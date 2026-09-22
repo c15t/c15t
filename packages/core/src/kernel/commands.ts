@@ -291,17 +291,62 @@ const conditionOutcome = function conditionOutcome(
 };
 
 /**
+ * Whether the selected categories alone settle a condition: with them at
+ * their post-action values, no assignment of the condition's other
+ * categories changes the outcome. Checked by enumerating those assignments,
+ * which a condition over a handful of categories keeps small. A condition
+ * that cannot be evaluated is never settled.
+ */
+const settledBySelection = function settledBySelection(
+	condition: HasCondition<AllConsentNames>,
+	afterAction: ConsentState,
+	selected: ReadonlySet<AllConsentNames>
+): boolean {
+	const expected = conditionOutcome(condition, afterAction);
+	if (expected === null) {
+		return false;
+	}
+	const free = [...new Set(extractConsentNamesFromCondition(condition))].filter(
+		(name) => !selected.has(name)
+	);
+	// Walk every other assignment of the free categories like an odometer:
+	// flip the first digit, carrying into the next when it rolls back.
+	const flipped = free.map(() => false);
+	const advance = (): boolean => {
+		for (const [index] of free.entries()) {
+			flipped[index] = !flipped[index];
+			if (flipped[index]) {
+				return true;
+			}
+		}
+		return false;
+	};
+	while (advance()) {
+		const state: ConsentState = { ...afterAction };
+		for (const [index, name] of free.entries()) {
+			if (flipped[index]) {
+				state[name] = !afterAction[name];
+			}
+		}
+		if (conditionOutcome(condition, state) !== expected) {
+			return false;
+		}
+	}
+	return true;
+};
+
+/**
  * The state after a bulk action narrowed to some categories. A denial is
  * lifted only for a vendor the action decides on its own: one of its
  * categories is selected, and the selected categories are what settles its
- * condition. A vendor under `{ or: [marketing, measurement] }` keeps its
- * denial when only measurement is rejected, since the still-granted
- * marketing branch would load it at once; one under `{ not: marketing }` is
- * decided by rejecting marketing, and its denial lifts. Decided means the
- * outcome differs between the selected categories set to what the action
- * makes them and set to the opposite, with everything else at its effective
- * value. Every other denial stays. Stamped like a full bulk action once a
- * governed vendor exists.
+ * condition, whatever the unselected ones hold. A vendor under
+ * `{ or: [marketing, measurement] }` keeps its denial when only measurement
+ * is rejected, since the still-granted marketing branch would load it at
+ * once; one under `{ not: marketing }` is decided by rejecting marketing,
+ * and its denial lifts; one under `{ and: [measurement, { not: marketing }] }`
+ * is decided by rejecting both, even though no single flip of the pair
+ * would change its outcome. Every other denial stays. Stamped like a full
+ * bulk action once a governed vendor exists.
  */
 const scopedBulkVendorChoice = function scopedBulkVendorChoice(
 	snapshot: ConsentSnapshot,
@@ -310,22 +355,18 @@ const scopedBulkVendorChoice = function scopedBulkVendorChoice(
 	actionAt: number
 ): VendorChoice | null {
 	const current = snapshot.vendorChoice;
+	const selected = new Set(categories);
 	const afterAction: ConsentState = { ...snapshot.effectivePermissions };
-	const otherwise: ConsentState = { ...snapshot.effectivePermissions };
-	for (const category of categories) {
+	for (const category of selected) {
 		afterAction[category] = granted;
-		otherwise[category] = !granted;
 	}
 	const governed = new Set<string>();
 	for (const vendor of snapshot.vendors?.declared ?? []) {
 		const names = extractConsentNamesFromCondition(vendor.category);
-		if (!names.some((name) => categories.includes(name))) {
+		if (!names.some((name) => selected.has(name))) {
 			continue;
 		}
-		const decided =
-			conditionOutcome(vendor.category, afterAction) !==
-			conditionOutcome(vendor.category, otherwise);
-		if (decided) {
+		if (settledBySelection(vendor.category, afterAction, selected)) {
 			governed.add(vendor.id);
 		}
 	}

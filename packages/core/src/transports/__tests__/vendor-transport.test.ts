@@ -58,6 +58,18 @@ describe('save body', () => {
 		expect(body.vendorChoice?.grants).not.toBe(payload.vendorChoice?.grants);
 	});
 
+	test('a vendor-only save sends an empty receipt, not none', () => {
+		// The backend reads a cookie-banner body without `choice` as a 2.x
+		// submission and stamps fresh receipts for every preference at
+		// `givenAt`. A vendor toggle must not renew the category receipts.
+		const body = buildSubjectPostBody(
+			{ ...payload, confirmed: { actionAt: NOW - 1000, categories: {} } },
+			{ domain: 'example.com' }
+		);
+		expect(body.choice).toEqual({ categories: {}, version: 3 });
+		expect(body.preferences).toEqual({ marketing: true, necessary: true });
+	});
+
 	test('omits vendorChoice when the payload has none', () => {
 		const { vendorChoice: _dropped, ...withoutVendors } = payload;
 		const body = buildSubjectPostBody(withoutVendors, {

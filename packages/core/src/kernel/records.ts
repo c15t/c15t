@@ -24,6 +24,7 @@ import {
 	validateNoticeDismissal,
 } from '../consent-record/validation';
 import type { RecordIssue } from '../consent-record/validation';
+import { isValidVendorId } from '../libs/vendors';
 import type { HydrationRecords, VendorChoice } from '../types';
 
 /** Validated records with the same omit/clear semantics as the input. */
@@ -158,7 +159,9 @@ export const validateVendorChoice = function validateVendorChoice(
 	const denied = new Set<string>();
 	if (Array.isArray(rawDenied)) {
 		for (const [index, entry] of rawDenied.entries()) {
-			if (!isNonEmptyString(entry)) {
+			// The same slug shape a declaration must have. A stored id outside
+			// it would ride into every later grant map and fail the wire schema.
+			if (!isNonEmptyString(entry) || !isValidVendorId(entry)) {
 				issues.push({ code: 'invalid-identifier', path: `denied[${index}]` });
 				continue;
 			}

@@ -46,17 +46,27 @@ beforeEach(clearAll);
 afterEach(clearAll);
 
 describe('vendor choice compact projection', () => {
-	it('round-trips sorted ids with percent encoding', () => {
+	it('round-trips sorted ids', () => {
 		const record = {
 			confirmedAt: NOW - 1,
-			denied: ['meta-pixel', 'a&b|c=d'],
+			denied: ['meta-pixel', 'ga.v4_eu'],
 			version: 1 as const,
 		};
 		const text = encodeVendorChoiceCompact(record);
-		expect(text).toBe(`v=1&t=${NOW - 1}&d=a%26b%7Cc%3Dd|meta-pixel`);
+		expect(text).toBe(`v=1&t=${NOW - 1}&d=ga.v4_eu|meta-pixel`);
 		expect(decodeVendorChoiceCompact(text, NOW)).toEqual({
 			ok: true,
-			record: { ...record, denied: ['a&b|c=d', 'meta-pixel'] },
+			record: { ...record, denied: ['ga.v4_eu', 'meta-pixel'] },
+		});
+	});
+
+	it('rejects a percent-encoded id that is not a slug', () => {
+		// A cookie anyone can write. An id outside the slug shape would ride
+		// into every later grant map and fail the wire schema on the backend.
+		const text = `v=1&t=${NOW - 1}&d=Bad%20ID|meta-pixel`;
+		expect(decodeVendorChoiceCompact(text, NOW)).toEqual({
+			issues: [{ code: 'invalid-identifier', path: 'denied[0]' }],
+			ok: false,
 		});
 	});
 
@@ -108,10 +118,10 @@ describe('vendor choice compact projection', () => {
 });
 
 describe('vendor choice JSON record', () => {
-	it('round-trips and keeps a __proto__ id as a plain member', () => {
+	it('round-trips and keeps a prototype-named id as a plain member', () => {
 		const record = {
 			confirmedAt: NOW - 1,
-			denied: ['__proto__', 'meta-pixel'],
+			denied: ['constructor', 'meta-pixel'],
 			version: 1 as const,
 		};
 		const parsed: unknown = JSON.parse(encodeVendorChoice(record));
@@ -124,6 +134,8 @@ describe('vendor choice JSON record', () => {
 		['extra key', { confirmedAt: NOW, denied: [], extra: 1, version: 1 }],
 		['empty id', { confirmedAt: NOW, denied: [''], version: 1 }],
 		['non-string id', { confirmedAt: NOW, denied: [1], version: 1 }],
+		['non-slug id', { confirmedAt: NOW, denied: ['Bad ID'], version: 1 }],
+		['__proto__ id', { confirmedAt: NOW, denied: ['__proto__'], version: 1 }],
 	])('rejects %s', (_label, input) => {
 		expect(decodeVendorChoice(input, NOW).ok).toBe(false);
 	});

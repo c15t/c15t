@@ -92,6 +92,9 @@ describe('validateVendorChoice', () => {
 		['unknown version', { confirmedAt: NOW, denied: [], version: 2 }],
 		['unknown key', { confirmedAt: NOW, denied: [], extra: 1, version: 1 }],
 		['empty id', { confirmedAt: NOW, denied: [''], version: 1 }],
+		// The wire accepts only slugs as grant keys; a stored id outside that
+		// shape would fail every later save once a vendor is declared.
+		['non-slug id', { confirmedAt: NOW, denied: ['Bad ID'], version: 1 }],
 		['non-array', { confirmedAt: NOW, denied: 'a', version: 1 }],
 	])('rejects %s', (_label, input) => {
 		expect(validateVendorChoice(input, NOW).ok).toBe(false);
@@ -531,6 +534,53 @@ describe('save with vendors', () => {
 		// Rejecting marketing is what makes this vendor eligible, so the bulk
 		// action decided it and its denial lifts.
 		await kernel.commands.save('none', { categories: ['marketing'] });
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: [],
+			version: 1,
+		});
+		kernel.dispose();
+	});
+
+	test('a narrowed bulk action decides a vendor whose condition the selected categories settle together', async () => {
+		// Experience stays outside the selection, so this is not the
+		// full-scope clear and the vendor has to be decided on its own.
+		const rule = matchedResolution(
+			optInRule({ categories: ['experience', 'marketing', 'measurement'] })
+		);
+		const kernel = createKernel({
+			initialPolicyResolution: rule,
+			initialRecords: {
+				...choiceRecords(
+					{ experience: true, marketing: true, measurement: true },
+					{ fingerprint: rule.fingerprints.choice }
+				),
+				vendorChoice: {
+					confirmedAt: NOW - 500,
+					denied: ['contextual'],
+					version: 1,
+				},
+			},
+			initialVendors: {
+				declared: [
+					...vendors.declared,
+					{
+						// Rejecting measurement blocks it and rejecting marketing
+						// enables it, so flipping the selection as a whole leaves
+						// the outcome false either way. Rejecting both still
+						// settles it: no value of experience can load it.
+						category: { and: ['measurement', { not: 'marketing' }] },
+						id: 'contextual',
+						presentable: false,
+						source: 'script',
+					},
+				],
+				listVersion: null,
+			},
+		});
+		await kernel.commands.save('none', {
+			categories: ['marketing', 'measurement'],
+		});
 		expect(kernel.getSnapshot().vendorChoice).toEqual({
 			confirmedAt: NOW,
 			denied: [],
