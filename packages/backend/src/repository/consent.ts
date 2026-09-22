@@ -358,15 +358,19 @@ const backfillVendorChoice = Effect.fn('consent.backfillVendorChoice')(
 		const encoded = JSON.stringify(vendorChoice);
 		// The same absence `storedVendorChoice` reads: SQL NULL, or a stored
 		// JSON `null`, which a text column hands back as the string 'null'
-		// and a JSON column as the literal. Anything else already decided.
-		// `char` would truncate to one character on Postgres; every engine
-		// spells the whole value with `text`, MySQL through its char alias.
+		// and a JSON column as the literal. The decoder parses the text, so
+		// surrounding whitespace an import left around the literal is still
+		// `null` to it; trimming keeps this predicate in step, or the update
+		// would match nothing and the decision would be lost. Anything else
+		// already decided. `char` would truncate to one character on
+		// Postgres; every engine spells the whole value with `text`, MySQL
+		// through its char alias.
 		const absent = sql`(
 			${sql('vendorChoice')} is null
-			or cast(${sql('vendorChoice')} as ${sql.onDialectOrElse({
+			or trim(cast(${sql('vendorChoice')} as ${sql.onDialectOrElse({
 				mysql: () => sql.literal('char'),
 				orElse: () => sql.literal('text'),
-			})}) = 'null'
+			})})) = 'null'
 		)`;
 		return yield* sql.onDialectOrElse({
 			mysql: () =>
@@ -441,7 +445,17 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 			select ${sql('vendorChoice')} from ${sql('consent')}
 			where ${sql('id')} = ${id}
 		`;
-		yield* assertSameVendors(rows[0]?.vendorChoice, vendorChoice);
+		const after = yield* assertSameVendors(rows[0]?.vendorChoice, vendorChoice);
+		if (after === 'backfill') {
+			// Nobody wrote, yet the update matched nothing: the predicate and
+			// the decoder disagree on what absence looks like. Reporting
+			// success here would drop the vendor decision on every replay.
+			return yield* Effect.die(
+				new Error(
+					`Vendor map backfill for consent ${id} matched no row while the row still lacks a map`
+				)
+			);
+		}
 		return false;
 	}
 );

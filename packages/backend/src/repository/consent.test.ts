@@ -378,6 +378,44 @@ describe('consent.record with vendor grants', () => {
 	);
 
 	it.effect(
+		'a replay fills in a map stored as a JSON null with surrounding whitespace',
+		() =>
+			Effect.gen(function* gen() {
+				yield* setup;
+				const sql = yield* SqlClient.SqlClient;
+				const first = yield* record(submission);
+				// An import can leave legal whitespace around the literal. The
+				// decoder still reads it as no map, so the backfill predicate
+				// has to match the same row or the decision is silently lost.
+				yield* sql`
+					update ${sql('consent')} set ${sql('vendorChoice')} = ${'  null  '}
+					where ${sql('id')} = ${first.id}
+				`;
+				const withVendors = {
+					...submission,
+					vendorChoice: {
+						confirmedAt: GIVEN_AT.getTime(),
+						grants: { 'meta-pixel': false },
+						version: 1 as const,
+					},
+				};
+				const replay = yield* record(withVendors);
+				assert.isFalse(replay.created);
+				assert.isTrue(replay.vendorChoiceBackfilled);
+				const rows = yield* sql<{ vendorChoice: unknown }>`
+					select ${sql('vendorChoice')} from ${sql('consent')}
+					where ${sql('id')} = ${first.id}
+				`;
+				const stored = rows[0]?.vendorChoice;
+				assert.deepStrictEqual(
+					typeof stored === 'string' ? JSON.parse(stored) : stored,
+					withVendors.vendorChoice
+				);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
 		'a lost backfill against a different map is a conflict, not a retry',
 		() =>
 			Effect.gen(function* gen() {
