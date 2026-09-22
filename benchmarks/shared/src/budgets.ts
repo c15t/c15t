@@ -152,13 +152,15 @@ export const coreRuntimeBudgets: MetricBudget[] = [
  * Vendor-level consent (#1034) added the vendor gate, the denial-list codec
  * with its subject copy, the paused-iframe marker, the vendor save path and
  * the per-module owner registry with live iframe ownership to the kernel
- * entry, with the declaration copy, retained-denial clear and frame
- * ownership sweep that review added: about 3.3 kB gzip on the headless
- * consumer scenario, measured on the PR that introduced it. The delta
- * budgets below carry that once; they return to their previous values in
- * the follow-up that lands after the feature is on the base branch.
+ * entry, with the declaration copy, retained-denial clear, frame
+ * ownership sweep, joint settlement of narrowed bulk actions and slug
+ * validation of stored denials that review added: about 3.4 kB gzip on
+ * the headless consumer scenario, measured on the PR that introduced it.
+ * The delta budgets below carry that once; they return to their previous
+ * values in the follow-up that lands after the feature is on the base
+ * branch.
  */
-const VENDOR_CONSENT_GZIP_BYTES = 3328;
+const VENDOR_CONSENT_GZIP_BYTES = 3456;
 /**
  * The same allowance for the core package tarball, which also carries the
  * bundled docs for the feature and its hooks and modules uncompressed.
