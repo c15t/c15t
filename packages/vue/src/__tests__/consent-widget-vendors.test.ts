@@ -7,7 +7,11 @@
  * that is off in the draft disables its vendor switches. Accept all clears
  * the denial. The markup mirrors the React rows so parity holds.
  */
-import type { InitOutput, TranslationsResponse } from '@c15t/schema/types';
+import type {
+	InitOutput,
+	PolicyRule,
+	TranslationsResponse,
+} from '@c15t/schema/types';
 import {
 	createPolicyRuleFingerprints,
 	normalizePolicyRule,
@@ -77,14 +81,14 @@ const VENDORS: RuntimeConsentConfig['vendors'] = [
 	},
 ];
 
-const rule = {
+const rule: PolicyRule = {
 	categories: ['marketing', 'measurement'],
 	id: 'vue_vendor_policy',
 	match: { fallback: true },
 	model: 'opt-in',
 	prompt: 'choice',
 	scopeMode: 'permissive',
-} as const;
+};
 // The wire takes the raw rule; the receipts carry the normalized rule's
 // fingerprint, which is what the kernel compares against.
 const fingerprints = createPolicyRuleFingerprints(normalizePolicyRule(rule));
@@ -119,9 +123,17 @@ const choiceRecords = (values: Record<string, boolean>) => ({
 	now: Date.now(),
 });
 
+/** The partial translations branch: every field optional, as an older backend sends. */
+const PARTIAL_TRANSLATIONS: TranslationsResponse = {
+	common: {},
+	consentManagerDialog: {},
+	consentTypes: {},
+	cookieBanner: {},
+};
+
 const renderWidget = async function renderWidget(
 	values: Record<string, boolean>,
-	translations: TranslationsResponse = { common: {} }
+	translations: TranslationsResponse = PARTIAL_TRANSLATIONS
 ) {
 	const config = {
 		backendURL: 'https://consent.example',
@@ -315,7 +327,7 @@ describe('Vue consent widget vendor rows', () => {
 		const { context, wrapper } = await renderWidget(
 			{ marketing: true, measurement: true },
 			{
-				common: {},
+				...PARTIAL_TRANSLATIONS,
 				consentManagerDialog: {
 					vendors: {
 						privacyPolicy: 'Datenschutz',
