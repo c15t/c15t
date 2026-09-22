@@ -159,6 +159,7 @@
 					<PreferenceItem.Content
 						class={styles?.content}
 						innerClassName={styles?.contentInner}
+						{noStyle}
 						data-testid={`consent-widget-vendor-content-${category}-${vendor.id}`}
 					>
 						{#if vendor.description}

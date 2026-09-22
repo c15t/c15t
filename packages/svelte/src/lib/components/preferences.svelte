@@ -245,6 +245,7 @@
 							: accordionStyles.contentViewport}
 						innerClassName={noStyle ? undefined : accordionStyles.contentInner}
 						class={noStyle ? '' : accordionStyles.content || ''}
+						{noStyle}
 						data-testid={`consent-widget-accordion-content-${consentType.name}`}
 					>
 						{translations.consentTypes[consentType.name]?.description ??

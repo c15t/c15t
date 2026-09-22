@@ -120,7 +120,7 @@
 		</PreferenceItem.Control>
 	</div>
 
-	<PreferenceItem.Content>
+	<PreferenceItem.Content {noStyle}>
 		<div class={noStyle ? '' : styles.stackDescription || ''}>
 			<p>{stack.description}</p>
 		</div>
