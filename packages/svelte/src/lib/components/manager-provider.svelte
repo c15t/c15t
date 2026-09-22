@@ -165,20 +165,18 @@
 		(current.policyRule.model === 'opt-out' ||
 			current.policyRule.preselectedCategories.includes(name));
 	/**
-	 * Forget the policy and vendor surface once every staged value is back
-	 * at its baseline. A visitor who moves a switch and moves it back has no
-	 * edit to review, so a later declaration must not make the draft stale.
-	 * The staged category values stay, so a save that fails still shows the
-	 * visitor's draft for the retry; the vendor map holds only moved
-	 * vendors, so nothing of it is left to keep.
+	 * Forget the policy and vendor surface once nothing is staged. Both maps
+	 * hold only moved values, so a visitor who moves a switch and moves it
+	 * back leaves nothing to review: a later declaration must not make the
+	 * draft stale, and a later policy must not find a value staged under
+	 * the old one and save it. A save that fails never settles, so its draft
+	 * stays for the retry.
 	 */
-	const settleDraft = (current: ConsentSnapshot) => {
-		const clean =
-			Object.entries(draftValues).every(
-				([name, value]) =>
-					value === baselineValue(current, name as OptionalConsentCategory)
-			) && Object.keys(draftVendors).length === 0;
-		if (clean) {
+	const settleDraft = () => {
+		if (
+			Object.keys(draftValues).length === 0 &&
+			Object.keys(draftVendors).length === 0
+		) {
 			draftFingerprint = null;
 			draftScope = null;
 			draftVendorSurface = null;
@@ -270,8 +268,18 @@
 			// A category edit reviews the vendor rows too: a vendor declared
 			// under it later was not what the visitor saw.
 			draftVendorSurface ??= vendorSurface(current);
-			draftValues = { ...draftValues, [name]: value };
-			settleDraft(current);
+			// Only moved categories are staged, like the vendor map.
+			const next: Partial<ConsentState> = {};
+			for (const [key, staged] of Object.entries(draftValues)) {
+				if (key !== name) {
+					next[key as OptionalConsentCategory] = staged;
+				}
+			}
+			if (value !== baselineValue(current, name)) {
+				next[name] = value;
+			}
+			draftValues = next;
+			settleDraft();
 		},
 		setVendor(vendorId, granted) {
 			const current = kernel.getSnapshot();
@@ -297,7 +305,7 @@
 				setOwn(next, vendorId, granted);
 			}
 			draftVendors = next;
-			settleDraft(current);
+			settleDraft();
 		},
 		get values() {
 			return {

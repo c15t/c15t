@@ -323,6 +323,28 @@ describe('Svelte consent widget vendor rows', () => {
 		expect(kernel().getSnapshot().vendorChoice?.denied).toEqual(['meta-pixel']);
 	});
 
+	test('a category moved back to its baseline is not saved under a later policy', async () => {
+		const { kernel, state } = renderWidget({
+			marketing: true,
+			measurement: true,
+		});
+		await open('marketing');
+		state()?.setSelectedConsent('measurement', false);
+		state()?.setSelectedConsent('measurement', true);
+		// Another surface records a denial for measurement: the baseline moved.
+		// The draft has nothing staged, so it must follow the record, not
+		// resurrect the value the visitor set and unset.
+		await kernel().commands.save({ measurement: false });
+		await waitFor(() => {
+			expect(state()?.selectedConsents.measurement).toBe(false);
+		});
+		expect(state()?.draft.isStale).toBe(false);
+		await state()?.saveConsents('custom');
+		expect(
+			kernel().getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(false);
+	});
+
 	test('noStyle drops the built-in classes from the vendor cards', async () => {
 		renderWidget({ marketing: true, measurement: true }, true);
 		await open('marketing');
