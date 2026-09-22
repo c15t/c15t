@@ -168,20 +168,16 @@
 	 * Forget the policy and vendor surface once every staged value is back
 	 * at its baseline. A visitor who moves a switch and moves it back has no
 	 * edit to review, so a later declaration must not make the draft stale.
-	 * The staged values themselves stay, so a save that fails still shows
-	 * the visitor's draft for the retry.
+	 * The staged category values stay, so a save that fails still shows the
+	 * visitor's draft for the retry; the vendor map holds only moved
+	 * vendors, so nothing of it is left to keep.
 	 */
 	const settleDraft = (current: ConsentSnapshot) => {
-		const seeded = seedVendors(current);
 		const clean =
 			Object.entries(draftValues).every(
 				([name, value]) =>
 					value === baselineValue(current, name as OptionalConsentCategory)
-			) &&
-			Object.entries(draftVendors).every(
-				([id, granted]) =>
-					!toggleableVendor(current, id) || granted === seeded[id]
-			);
+			) && Object.keys(draftVendors).length === 0;
 		if (clean) {
 			draftFingerprint = null;
 			draftScope = null;
@@ -288,8 +284,18 @@
 				current.evaluationPolicy.choiceScope ?? current.policyRule.scope
 			).join(',');
 			draftVendorSurface ??= vendorSurface(current);
-			const next = { ...draftVendors };
-			setOwn(next, vendorId, granted);
+			// Only moved vendors are staged. A vendor put back to its seeded
+			// value leaves the map, or the entry would outlive the seed and
+			// override a record another island writes later.
+			const next: Record<string, boolean> = {};
+			for (const [id, value] of Object.entries(draftVendors)) {
+				if (id !== vendorId) {
+					setOwn(next, id, value);
+				}
+			}
+			if (granted !== seedVendors(current)[vendorId]) {
+				setOwn(next, vendorId, granted);
+			}
 			draftVendors = next;
 			settleDraft(current);
 		},

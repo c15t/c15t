@@ -304,6 +304,25 @@ describe('Svelte consent widget vendor rows', () => {
 		await expect(state()?.saveConsents('custom')).resolves.toBeUndefined();
 	});
 
+	test('a settled draft follows a vendor record another island writes', async () => {
+		const { kernel, state } = renderWidget({
+			marketing: true,
+			measurement: true,
+		});
+		await open('marketing');
+		state()?.setSelectedVendor('meta-pixel', false);
+		state()?.setSelectedVendor('meta-pixel', true);
+		// Another surface on the same runtime records a denial. The draft
+		// has nothing staged, so it must show the record, and a save must
+		// not re-grant a vendor the visitor never touched.
+		await kernel().commands.save({}, { vendors: { 'meta-pixel': false } });
+		await waitFor(() => {
+			expect(state()?.draft.vendors['meta-pixel']).toBe(false);
+		});
+		await state()?.saveConsents('custom');
+		expect(kernel().getSnapshot().vendorChoice?.denied).toEqual(['meta-pixel']);
+	});
+
 	test('noStyle drops the built-in classes from the vendor cards', async () => {
 		renderWidget({ marketing: true, measurement: true }, true);
 		await open('marketing');
