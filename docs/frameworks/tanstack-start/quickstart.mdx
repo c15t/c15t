@@ -175,6 +175,8 @@ export const vendors: Vendor[] = [
 import { vendors } from '../vendors';
 
 <ConsentRoot state={state} backendURL={backendURL} initRoute={false} scripts={scripts} vendors={vendors}>
+  <Outlet />
+</ConsentRoot>
 ```
 
 The preference center lists each vendor under its category with a switch.

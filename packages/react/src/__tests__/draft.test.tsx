@@ -448,6 +448,88 @@ test('useVendorDraft stages a vendor on the shared draft and saves it', async ()
 		);
 });
 
+test('useVendorDraft reports a stale draft and resets it', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'vendor-draft-stale' }
+	);
+	const vendor = {
+		category: 'marketing' as const,
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	};
+	const Probe = ({ declare }: { declare: () => void }) => {
+		const { isDirty, isStale, reset, setVendor, vendors } = useVendorDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({ dirty: isDirty, stale: isStale, vendors })}
+				</output>
+				<button
+					onClick={() => setVendor('meta-pixel', false)}
+					type="button"
+				>
+					Deny
+				</button>
+				<button
+					onClick={declare}
+					type="button"
+				>
+					Declare vendor
+				</button>
+				<button
+					onClick={reset}
+					type="button"
+				>
+					Reset
+				</button>
+			</>
+		);
+	};
+	const App = () => {
+		const [extra, setExtra] = useState(false);
+		return (
+			<ConsentProvider
+				options={{
+					consentCategories: ['necessary', 'marketing'],
+					mode: offline(),
+					persistence: false,
+					prefetch: fixture,
+					vendors: extra
+						? [vendor, { ...vendor, id: 'x-pixel', name: 'X Pixel' }]
+						: [vendor],
+				}}
+			>
+				<Probe declare={() => setExtra(true)} />
+			</ConsentProvider>
+		);
+	};
+	const screen = await render(<App />);
+	await screen.getByRole('button', { name: 'Deny' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"dirty":true,"stale":false,"vendors":{"meta-pixel":false}}'
+		);
+	// A vendor declared under the staged denial changes the set of switches.
+	// The draft keeps the staged map, and the hook alone must show that it
+	// needs review and offer the way back, without the consumer mounting
+	// `useConsentDraft()`.
+	await screen.getByRole('button', { name: 'Declare vendor' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"dirty":true,"stale":true,"vendors":{"meta-pixel":false}}'
+		);
+	await screen.getByRole('button', { name: 'Reset' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"dirty":false,"stale":false,"vendors":{"meta-pixel":true,"x-pixel":true}}'
+		);
+});
+
 test('setVendor ignores a vendor declared disabled', async () => {
 	const fixture = policyFixture(
 		{ marketing: true },

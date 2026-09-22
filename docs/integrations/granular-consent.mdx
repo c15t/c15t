@@ -177,7 +177,8 @@ import { ConsentProvider, hosted } from 'c15t/react';
 Each category row expands to one card per vendor with its own switch. The
 switches disable while the category is off in the draft, and Save records the
 vendors the visitor moved. A custom control uses `useVendorDraft()` from
-`@c15t/react` to read and stage the same grants, and `useVendorAllowed(id)` to
+`c15t/react` to read and stage the same grants, with `isStale` and `reset` for
+a draft the policy or vendor list changed under, and `useVendorAllowed(id)` to
 read one vendor's effective result. Copy comes from
 `consentManagerDialog.vendors.{title, privacyPolicy, disabledByCategory,
 switchLabel}` in the translations. The Vue and Svelte preference centers do

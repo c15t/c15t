@@ -510,30 +510,42 @@ export interface VendorDraftHandle {
 	setVendor: (vendorId: string, granted: boolean) => void;
 	/** Whether any draft value, category or vendor, differs from the record. */
 	isDirty: boolean;
+	/**
+	 * Whether the policy or the vendor surface changed under an unsaved edit.
+	 * `save` refuses a stale draft. See {@link ConsentDraftHandle.isStale}.
+	 */
+	isStale: boolean;
 	/** Confirm the draft, categories and vendors together. */
 	save: () => Promise<SaveResult>;
+	/** Discard staged edits and reseed from the record. See {@link ConsentDraftHandle.reset}. */
+	reset: () => void;
 }
 
 /**
  * Read and stage vendor grants on the same draft the category switches use.
  * A custom vendor toggle needs only this; the categories stay where the
  * stock widget or `useConsentDraft()` left them, and one save confirms both.
+ * When the policy or the vendor list changes under a staged edit the draft
+ * turns stale and `save` refuses it; `reset` reseeds it from the record.
  *
- * @returns The draft's vendor map, the setter, the dirty flag and the save.
+ * @returns The draft's vendor map, the setter, the dirty and stale flags,
+ * the save and the reset.
  * @example
  * ```tsx
- * const { vendors, setVendor, save } = useVendorDraft();
+ * const { vendors, setVendor, isStale, reset, save } = useVendorDraft();
  * <Switch
  *   checked={vendors['meta-pixel'] ?? true}
  *   onCheckedChange={(on) => setVendor('meta-pixel', on)}
  * />;
+ * {isStale && <button onClick={reset}>Review again</button>}
  * ```
  * @public
  */
 export const useVendorDraft = function useVendorDraft(): VendorDraftHandle {
-	const { isDirty, save, setVendor, vendors } = useDraftHandle(useDraftStore());
+	const { isDirty, isStale, reset, save, setVendor, vendors } =
+		useDraftHandle(useDraftStore());
 	return useMemo(
-		() => ({ isDirty, save, setVendor, vendors }),
-		[isDirty, save, setVendor, vendors]
+		() => ({ isDirty, isStale, reset, save, setVendor, vendors }),
+		[isDirty, isStale, reset, save, setVendor, vendors]
 	);
 };
