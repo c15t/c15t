@@ -370,6 +370,43 @@ for (const engine of ENGINES) {
 		);
 
 		it.effect(
+			'a replay backfills over a JSON null padded with tabs and newlines',
+			() =>
+				Effect.gen(function* gen() {
+					yield* setup;
+					const sql = yield* SqlClient.SqlClient;
+					const first = yield* submit(submission);
+					// SQLite's bare `trim` strips spaces only, so the predicate
+					// has to name every JSON whitespace character or an imported
+					// row like this is never backfilled on that engine.
+					yield* sql`
+						update ${sql('consent')} set ${sql('vendorChoice')} = ${'\t\nnull \r\n'}
+						where ${sql('id')} = ${first.consentId}
+					`;
+					const withVendors = {
+						...submission,
+						vendorChoice: {
+							confirmedAt: GIVEN_AT.getTime(),
+							grants: { 'meta-pixel': false },
+							version: 1 as const,
+						},
+					};
+					const replay = yield* submit(withVendors);
+					assert.isFalse(replay.created);
+					const rows = yield* sql<{ vendorChoice: unknown }>`
+						select ${sql('vendorChoice')} from ${sql('consent')}
+						where ${sql('id')} = ${first.consentId}
+					`;
+					const stored = rows[0]?.vendorChoice;
+					assert.deepStrictEqual(
+						typeof stored === 'string' ? JSON.parse(stored) : stored,
+						withVendors.vendorChoice
+					);
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 120_000 }
+		);
+
+		it.effect(
 			'supersedes a policy inside one transaction',
 			() =>
 				Effect.gen(function* gen() {

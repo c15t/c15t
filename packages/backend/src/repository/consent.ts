@@ -331,6 +331,12 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 	}
 );
 
+/**
+ * The characters JSON allows around a value. `trim(x, chars)` strips any of
+ * them on every engine, where a bare `trim` strips spaces only on SQLite.
+ */
+const JSON_WHITESPACE = ' \t\n\r';
+
 /** The matched-row count a MySQL result header carries; 0 when absent. */
 const affectedRows = (result: unknown): number =>
 	typeof result === 'object' &&
@@ -359,18 +365,21 @@ const backfillVendorChoice = Effect.fn('consent.backfillVendorChoice')(
 		// The same absence `storedVendorChoice` reads: SQL NULL, or a stored
 		// JSON `null`, which a text column hands back as the string 'null'
 		// and a JSON column as the literal. The decoder parses the text, so
-		// surrounding whitespace an import left around the literal is still
-		// `null` to it; trimming keeps this predicate in step, or the update
-		// would match nothing and the decision would be lost. Anything else
-		// already decided. `char` would truncate to one character on
-		// Postgres; every engine spells the whole value with `text`, MySQL
-		// through its char alias.
+		// any JSON whitespace an import left around the literal is still
+		// `null` to it. `trim` alone would not do: SQLite's one-argument form
+		// strips spaces only, so the four JSON whitespace characters are
+		// named explicitly and the predicate stays in step with the decoder,
+		// or the update would match nothing and the decision would be lost.
+		// Anything else already decided. `char` would truncate to one
+		// character on Postgres; every engine spells the whole value with
+		// `text`, MySQL through its char alias.
+		const text = sql`cast(${sql('vendorChoice')} as ${sql.onDialectOrElse({
+			mysql: () => sql.literal('char'),
+			orElse: () => sql.literal('text'),
+		})})`;
 		const absent = sql`(
 			${sql('vendorChoice')} is null
-			or trim(cast(${sql('vendorChoice')} as ${sql.onDialectOrElse({
-				mysql: () => sql.literal('char'),
-				orElse: () => sql.literal('text'),
-			})})) = 'null'
+			or trim(${text}, ${JSON_WHITESPACE}) = 'null'
 		)`;
 		return yield* sql.onDialectOrElse({
 			mysql: () =>

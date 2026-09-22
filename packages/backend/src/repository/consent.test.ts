@@ -384,11 +384,11 @@ describe('consent.record with vendor grants', () => {
 				yield* setup;
 				const sql = yield* SqlClient.SqlClient;
 				const first = yield* record(submission);
-				// An import can leave legal whitespace around the literal. The
+				// An import can leave any JSON whitespace around the literal. The
 				// decoder still reads it as no map, so the backfill predicate
 				// has to match the same row or the decision is silently lost.
 				yield* sql`
-					update ${sql('consent')} set ${sql('vendorChoice')} = ${'  null  '}
+					update ${sql('consent')} set ${sql('vendorChoice')} = ${'\t\nnull \r\n'}
 					where ${sql('id')} = ${first.id}
 				`;
 				const withVendors = {
