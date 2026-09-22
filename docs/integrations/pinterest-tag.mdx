@@ -1,0 +1,212 @@
+---
+title: Pinterest Tag
+description: Track conversions and build audiences for Pinterest advertising campaigns.
+icon: pinterest
+group: integrations
+---
+
+Pinterest Tag is Pinterest's conversion tracking and audience building tool. It measures the actions people take on your site after seeing your Pins, so you can attribute conversions and build retargeting audiences for Pinterest Ads.
+
+## Official Pinterest documentation
+
+- [Install the Pinterest Tag (Pinterest Business Help)](https://help.pinterest.com/en/business/article/install-the-pinterest-tag)
+- [Pinterest Tag event codes](https://help.pinterest.com/en/business/article/add-event-codes)
+
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { pinterestTag } from '@c15t/scripts/pinterest-tag';
+
+    const scripts = [pinterestTag({ tagId: '2613654212508' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { pinterestTag } from '@c15t/scripts/pinterest-tag';
+
+    const scripts = [pinterestTag({ tagId: '2613654212508' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { pinterestTag } from '@c15t/scripts/pinterest-tag';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [pinterestTag({ tagId: '2613654212508' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** marketing consent is granted
+- **On revocation:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t calls `pintrk('setconsent', false)`, which stops Pinterest from sending events and clears its first-party cookies without removing the script
+
+Before the loader runs, c15t recreates Pinterest's base code: it defines the `pintrk` queue stub with `version = "3.0"`, then queues `pintrk('load', tagId)`, `pintrk('setconsent', true)`, and `pintrk('page')`. Pinterest's `core.js` replays the queue once it loads.
+
+## Configure the integration
+
+You can pass extra load options and disable the default page-visit event when you need finer control:
+
+```ts
+pinterestTag({
+  tagId: '2613654212508',
+  loadOptions: {
+    em: 'hello@example.com',
+  },
+  trackPageVisit: false,
+});
+```
+
+`loadOptions` is forwarded as the third argument to `pintrk('load', tagId, loadOptions)`. Pinterest uses `em` (email) and `external_id` for enhanced match, and hashes plain values before sending them.
+
+<Callout type="warn">
+  Enhanced match values are personal data. Only pass `em` or `external_id` when
+  your application has separately obtained consent to share them with
+  Pinterest — marketing consent alone does not cover this.
+</Callout>
+
+## Tracking events in your app
+
+c15t gates the Pinterest Tag from loading until `marketing` consent is granted. After consent is granted the script stays in the DOM, and c15t calls `pintrk('setconsent', false)` if consent is later revoked, so Pinterest itself suppresses events.
+
+This means `window.pintrk` is only defined after the user has granted marketing consent at least once. Use `pinterestTagEvent()` for typed standard and custom events — it's a no-op until `pintrk` exists, so it's safe to call before consent, and it doesn't bypass consent afterwards. Guarding with `has('marketing')` is still good practice so you don't queue events Pinterest will drop:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+import { pinterestTagEvent } from '@c15t/scripts/pinterest-tag';
+
+function useTrackCheckout() {
+  const { has } = useConsentManager();
+  return useCallback(() => {
+    if (has('marketing')) {
+      pinterestTagEvent('checkout', {
+        event_id: 'eventId0001',
+        value: 99.99,
+        order_quantity: 1,
+        currency: 'USD',
+        order_id: 'X-15148',
+        line_items: [
+          {
+            product_name: 'Parker Boots',
+            product_id: '1414',
+            product_category: 'Shoes',
+            product_price: 99.99,
+            product_quantity: 1,
+          },
+        ],
+      });
+    }
+  }, [has]);
+}
+
+function CheckoutButton() {
+  const trackCheckout = useTrackCheckout();
+  return <button onClick={trackCheckout}>Complete checkout</button>;
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+import { pinterestTagEvent } from '@c15t/scripts/pinterest-tag';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('marketing')) {
+  pinterestTagEvent('lead', { lead_type: 'newsletter' });
+}
+```
+
+Pass `event_id` when you also send the same event through the Pinterest Conversions API so Pinterest can deduplicate the two. Product details (`product_name`, `product_id`, `product_price`, and so on) go inside `line_items`, one entry per product — Pinterest ignores them at the top level.
+
+### Event names
+
+Pinterest recognises 20 event types for conversion tracking: `checkout`, `addtocart`, `pagevisit`, `signup`, `watchvideo`, `lead`, `search`, `viewcategory`, `custom`, `addpaymentinfo`, `addtowishlist`, `initiatecheckout`, `subscribe`, `viewcontent`, `contact`, `schedule`, `findlocation`, `customizeproduct`, `submitapplication`, and `starttrial`. `pinterestTagEvent()` also accepts any other string as a user-defined event, which Pinterest uses for audience targeting only — it logs a console warning for these.
+
+Which events you need depends on the campaign type. Conversions campaigns require at least one of `signup`, `lead`, `addtocart`, or `checkout`; catalog sales, conversion insights, dynamic retargeting, and the Verified Merchant Program all require `pagevisit`, `addtocart`, and `checkout` with `currency` set. See [Add event codes](https://help.pinterest.com/en/business/article/add-event-codes) for the full matrix.
+
+### Debugging with a callback
+
+Pinterest accepts an optional `(didInit, error)` callback after the event data. Pass it as the third argument to `pinterestTagEvent()` to surface tag errors during development:
+
+```ts
+import { pinterestTagEvent } from '@c15t/scripts/pinterest-tag';
+
+pinterestTagEvent('lead', { lead_type: 'Newsletter' }, (didInit, error) => {
+  if (!didInit) {
+    console.error('Pinterest Tag error:', error);
+  }
+});
+```
+
+## Types
+
+### PinterestTagOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/pinterest-tag.ts" name="PinterestTagOptions" />
+
+### PinterestTagLoadOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/pinterest-tag.ts" name="PinterestTagLoadOptions" />
+
+### PinterestTagEventData
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/pinterest-tag.ts" name="PinterestTagEventData" />
+
+### PinterestTagLineItem
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/pinterest-tag.ts" name="PinterestTagLineItem" />
+
+### PinterestTagEventCallback
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/pinterest-tag.ts" name="PinterestTagEventCallback" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

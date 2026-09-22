@@ -14,6 +14,7 @@
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../src/vendors/ads-and-pixels/microsoft-uet';
+import { pinterestTag } from '../src/vendors/ads-and-pixels/pinterest-tag';
 import { redditPixel } from '../src/vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from '../src/vendors/ads-and-pixels/snapchat-pixel';
 import { tiktokPixel } from '../src/vendors/ads-and-pixels/tiktok-pixel';
@@ -1230,6 +1231,42 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				typeof (window.twq as XPixelRuntime | undefined)?.exe === 'function',
 				'twq.exe present after loader executed'
 			),
+	},
+	{
+		vendor: 'pinterest-tag',
+		tier: 'full',
+		createScript: () => pinterestTag({ tagId: '123456789012345' }),
+		loaderUrlSubstring: 's.pinimg.com/ct/core.js',
+		bootstrapCheck: () => {
+			const stub = window.pintrk;
+
+			if (typeof stub !== 'function') {
+				return check(false, 'expected window.pintrk stub function');
+			}
+
+			return check(
+				stub.version === '3.0' &&
+					Array.isArray(stub.queue) &&
+					stub.queue.length > 0,
+				'pinterest tag stub version and queue seeded before load'
+			);
+		},
+		runtimeCheck: () => {
+			// Pinterest's runtime never replaces `window.pintrk`; it drains the
+			// stub's queue and swaps `queue.push` for its command dispatcher, and
+			// `load` records the tag id on the stub. Neither exists pre-load.
+			const stub = window.pintrk as
+				| (Window['pintrk'] & { tagId?: unknown })
+				| undefined;
+			const queue = stub?.queue;
+
+			return check(
+				Array.isArray(queue) &&
+					queue.push !== Array.prototype.push &&
+					typeof stub?.tagId === 'string',
+				'pintrk.queue.push replaced and tagId recorded after loader executed'
+			);
+		},
 	},
 ];
 

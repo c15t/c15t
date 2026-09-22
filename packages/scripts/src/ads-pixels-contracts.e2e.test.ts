@@ -9,6 +9,7 @@ import {
 	loadScripts,
 	registerVendorContractCleanup,
 } from './e2e-test-utils';
+import { pinterestTag } from './vendors/ads-and-pixels/pinterest-tag';
 import { redditPixel } from './vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from './vendors/ads-and-pixels/snapchat-pixel';
 
@@ -113,6 +114,46 @@ describe('ads pixel queue contracts', () => {
 			],
 			['track', 'PAGE_VIEW'],
 			['track', 'SIGN_UP', { sign_up_method: 'email' }],
+		]);
+	});
+
+	it('boots Pinterest Tag version and queue before append', () => {
+		let queueSnapshot: unknown[][] | undefined;
+		let scriptSrc: string | undefined;
+		let stubVersion: string | undefined;
+
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('s.pinimg.com/ct/core.js')) {
+				return;
+			}
+
+			win.pintrk?.('track', 'lead', { lead_type: 'newsletter' });
+			queueSnapshot = win.pintrk?.queue?.map((entry) => [...entry]);
+			stubVersion = win.pintrk?.version;
+			scriptSrc = node.src;
+			node.dispatchEvent(new Event('load'));
+		});
+
+		loadScripts(
+			[
+				{
+					...pinterestTag({
+						loadOptions: { em: 'hash@example.com' },
+						tagId: 'PINTEREST-CONTRACT',
+					}),
+					id: 'pinterest-tag-contract',
+				},
+			],
+			grantedMarketingConsents
+		);
+
+		expect(scriptSrc).toContain('/ct/core.js');
+		expect(stubVersion).toBe('3.0');
+		expect(queueSnapshot).toEqual([
+			['load', 'PINTEREST-CONTRACT', { em: 'hash@example.com' }],
+			['setconsent', true],
+			['page'],
+			['track', 'lead', { lead_type: 'newsletter' }],
 		]);
 	});
 });
