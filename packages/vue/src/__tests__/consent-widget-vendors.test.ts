@@ -133,7 +133,8 @@ const PARTIAL_TRANSLATIONS: TranslationsResponse = {
 
 const renderWidget = async function renderWidget(
 	values: Record<string, boolean>,
-	translations: TranslationsResponse = PARTIAL_TRANSLATIONS
+	translations: TranslationsResponse = PARTIAL_TRANSLATIONS,
+	noStyle = false
 ) {
 	const config = {
 		backendURL: 'https://consent.example',
@@ -160,6 +161,7 @@ const renderWidget = async function renderWidget(
 				[symbolConsent as symbol]: context.storedConsent,
 			},
 		},
+		props: { noStyle },
 	});
 	await flushPromises();
 	return { context, wrapper };
@@ -361,6 +363,33 @@ describe('Vue consent widget vendor rows', () => {
 			expect(
 				byTestId('consent-widget-footer-save-button')?.hasAttribute('disabled')
 			).toBe(true);
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
+	test('noStyle drops the built-in classes from the vendor cards', async () => {
+		const { context, wrapper } = await renderWidget(
+			{ marketing: true, measurement: true },
+			PARTIAL_TRANSLATIONS,
+			true
+		);
+		try {
+			await open('marketing');
+			const item = byTestId('consent-widget-vendor-item-marketing-meta-pixel');
+			expect(item?.className ?? '').toBe('');
+			const trigger = byTestId(
+				'consent-widget-vendor-trigger-marketing-meta-pixel'
+			);
+			expect(trigger?.className ?? '').toBe('');
+			const content = byTestId(
+				'consent-widget-vendor-content-marketing-meta-pixel'
+			);
+			expect(content?.className ?? '').toBe('');
+			expect(
+				content?.querySelector('[data-slot="preference-item-content-inner"]')
+					?.className ?? ''
+			).toBe('');
 		} finally {
 			await cleanup(wrapper, context);
 		}

@@ -33,14 +33,17 @@
 	const triggerId = $derived(context.triggerId);
 	const contentId = $derived(context.contentId);
 	const dataState = $derived(getPreferenceItemState(open));
+	const noStyle = $derived(context.noStyle);
 	const contentClassName = $derived.by(() =>
-		variants.content({ class: localClassName })
+		noStyle ? localClassName : variants.content({ class: localClassName })
 	);
 	const viewportClassNameValue = $derived.by(() =>
-		variants.contentViewport({ class: viewportClassName })
+		noStyle
+			? viewportClassName
+			: variants.contentViewport({ class: viewportClassName })
 	);
 	const innerClassNameValue = $derived.by(() =>
-		variants.contentInner({ class: innerClassName })
+		noStyle ? innerClassName : variants.contentInner({ class: innerClassName })
 	);
 </script>
 

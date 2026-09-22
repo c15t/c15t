@@ -4,6 +4,7 @@
 		ConsentState,
 		KernelOverrides,
 		KernelUser,
+		OptionalConsentCategory,
 	} from '@c15t/core';
 	import { deniedVendorIds } from '@c15t/core';
 	import {
@@ -154,6 +155,39 @@
 						vendor.category,
 					])
 				);
+	/** The value a category shows before the visitor moves it. */
+	const baselineValue = (
+		current: ConsentSnapshot,
+		name: OptionalConsentCategory
+	) =>
+		current.explicitChoice?.categories[name]?.value ??
+		options.presentation?.preferences?.defaults?.[name] ??
+		(current.policyRule.model === 'opt-out' ||
+			current.policyRule.preselectedCategories.includes(name));
+	/**
+	 * Forget the policy and vendor surface once every staged value is back
+	 * at its baseline. A visitor who moves a switch and moves it back has no
+	 * edit to review, so a later declaration must not make the draft stale.
+	 * The staged values themselves stay, so a save that fails still shows
+	 * the visitor's draft for the retry.
+	 */
+	const settleDraft = (current: ConsentSnapshot) => {
+		const seeded = seedVendors(current);
+		const clean =
+			Object.entries(draftValues).every(
+				([name, value]) =>
+					value === baselineValue(current, name as OptionalConsentCategory)
+			) &&
+			Object.entries(draftVendors).every(
+				([id, granted]) =>
+					!toggleableVendor(current, id) || granted === seeded[id]
+			);
+		if (clean) {
+			draftFingerprint = null;
+			draftScope = null;
+			draftVendorSurface = null;
+		}
+	};
 	let iabHandle = $state<IABHandle | null>(
 		untrack(() => runtime.iab as IABHandle | null)
 	);
@@ -241,6 +275,7 @@
 			// under it later was not what the visitor saw.
 			draftVendorSurface ??= vendorSurface(current);
 			draftValues = { ...draftValues, [name]: value };
+			settleDraft(current);
 		},
 		setVendor(vendorId, granted) {
 			const current = kernel.getSnapshot();
@@ -256,6 +291,7 @@
 			const next = { ...draftVendors };
 			setOwn(next, vendorId, granted);
 			draftVendors = next;
+			settleDraft(current);
 		},
 		get values() {
 			return {
@@ -265,11 +301,7 @@
 						snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope
 					).map((name) => [
 						name,
-						draftValues[name] ??
-							snapshot.explicitChoice?.categories[name]?.value ??
-							options.presentation?.preferences?.defaults?.[name] ??
-							(snapshot.policyRule.model === 'opt-out' ||
-								snapshot.policyRule.preselectedCategories.includes(name)),
+						draftValues[name] ?? baselineValue(snapshot, name),
 					])
 				),
 			};

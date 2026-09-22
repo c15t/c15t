@@ -60,12 +60,16 @@ const VENDORS: Vendor[] = [
 const byTestId = (id: string) =>
 	document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
 
-const renderWidget = (values: Record<'marketing' | 'measurement', boolean>) => {
+const renderWidget = (
+	values: Record<'marketing' | 'measurement', boolean>,
+	noStyle = false
+) => {
 	let context: ConsentContextValue | undefined;
 	render(WidgetFixture, {
 		capture: (captured: ConsentContextValue) => {
 			context = captured;
 		},
+		noStyle,
 		options: {
 			consentCategories: ['necessary', 'marketing', 'measurement'],
 			mode: testOffline(),
@@ -237,7 +241,7 @@ describe('Svelte consent widget vendor rows', () => {
 		expect(state()?.draft.vendors['meta-pixel']).toBe(true);
 	});
 
-	test('an imperative save refuses a draft whose vendor list changed under it', async () => {
+	test('save refuses a draft whose vendor list changed under it', async () => {
 		const { kernel, state } = renderWidget({
 			marketing: true,
 			measurement: true,
@@ -267,6 +271,62 @@ describe('Svelte consent widget vendor rows', () => {
 		expect(
 			kernel().getSnapshot().explicitChoice?.categories.measurement?.value
 		).toBe(true);
+	});
+
+	test('a vendor moved back to its seeded value leaves nothing to review', async () => {
+		const { kernel, state } = renderWidget({
+			marketing: true,
+			measurement: true,
+		});
+		await open('marketing');
+		state()?.setSelectedVendor('meta-pixel', false);
+		state()?.setSelectedVendor('meta-pixel', true);
+		state()?.setSelectedConsent('measurement', false);
+		state()?.setSelectedConsent('measurement', true);
+		// The draft is back at its baseline, so a late declaration is not a
+		// change under an edit and must not block the next save.
+		kernel().set.vendors({
+			declared: [
+				{
+					category: 'marketing',
+					id: 'late-vendor',
+					name: 'Late',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+			],
+		});
+		await waitFor(() => {
+			expect(state()?.draft.vendors['late-vendor']).toBe(true);
+		});
+		expect(state()?.draft.isStale).toBe(false);
+		await expect(state()?.saveConsents('custom')).resolves.toBeUndefined();
+	});
+
+	test('noStyle drops the built-in classes from the vendor cards', async () => {
+		renderWidget({ marketing: true, measurement: true }, true);
+		await open('marketing');
+		const item = await waitFor(() => {
+			const element = byTestId(
+				'consent-widget-vendor-item-marketing-meta-pixel'
+			);
+			expect(element).toBeInTheDocument();
+			return element as HTMLElement;
+		});
+		expect(item.className).toBe('');
+		const content = byTestId(
+			'consent-widget-vendor-content-marketing-meta-pixel'
+		);
+		expect(content?.className).toBe('');
+		expect(
+			content?.querySelector('[data-slot="preference-item-content-viewport"]')
+				?.className
+		).toBe('');
+		expect(
+			content?.querySelector('[data-slot="preference-item-content-inner"]')
+				?.className
+		).toBe('');
 	});
 
 	test('a vendor declared after a staged toggle marks the draft stale', async () => {

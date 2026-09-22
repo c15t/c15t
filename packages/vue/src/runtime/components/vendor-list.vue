@@ -98,7 +98,7 @@ const contentId = (index: number) =>
 			v-for="(vendor, index) in vendors"
 			:key="vendor.id"
 			v-bind="config.components?.['vendor-list']?.item"
-			:class="pi.root({ class: styles?.item })"
+			:class="noStyle ? undefined : pi.root({ class: styles?.item })"
 			data-slot="preference-item-root"
 			:data-state="isOpen(vendor.id) ? 'open' : 'closed'"
 			:data-disabled="hasDetails(vendor) ? undefined : ''"
@@ -115,7 +115,7 @@ const contentId = (index: number) =>
 					:aria-expanded="isOpen(vendor.id) ? 'true' : 'false'"
 					:aria-disabled="hasDetails(vendor) ? undefined : 'true'"
 					v-bind="config.components?.['vendor-list']?.trigger"
-					:class="pi.trigger({ class: styles?.trigger })"
+					:class="noStyle ? undefined : pi.trigger({ class: styles?.trigger })"
 					data-slot="preference-item-trigger"
 					:data-state="isOpen(vendor.id) ? 'open' : 'closed'"
 					:data-disabled="hasDetails(vendor) ? undefined : ''"
@@ -124,7 +124,7 @@ const contentId = (index: number) =>
 					@click="toggleOpen(vendor.id)"
 				>
 					<div
-						:class="pi.leading({ class: styles?.arrow })"
+						:class="noStyle ? undefined : pi.leading({ class: styles?.arrow })"
 						data-slot="preference-item-leading"
 					>
 						<svg
@@ -191,18 +191,22 @@ const contentId = (index: number) =>
 				:aria-hidden="isOpen(vendor.id) ? 'false' : 'true'"
 				:aria-labelledby="triggerId(index)"
 				v-bind="config.components?.['vendor-list']?.content"
-				:class="pi.content({ class: styles?.content })"
+				:class="noStyle ? undefined : pi.content({ class: styles?.content })"
 				data-slot="preference-item-content"
 				:data-state="isOpen(vendor.id) ? 'open' : 'closed'"
 				:data-testid="`consent-widget-vendor-content-${category}-${vendor.id}`"
 				:inert="!isOpen(vendor.id)"
 			>
 				<div
-					:class="pi.contentViewport()"
+					:class="noStyle ? undefined : pi.contentViewport()"
 					data-slot="preference-item-content-viewport"
 				>
 					<div
-						:class="pi.contentInner({ class: styles?.contentInner })"
+						:class="
+							noStyle
+								? undefined
+								: pi.contentInner({ class: styles?.contentInner })
+						"
 						data-slot="preference-item-content-inner"
 					>
 						<p

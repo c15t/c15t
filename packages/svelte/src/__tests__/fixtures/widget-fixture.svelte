@@ -8,13 +8,15 @@
 	let {
 		options,
 		capture,
+		noStyle = false,
 	}: {
 		options: ConsentManagerOptions;
 		capture?: (context: ConsentContextValue) => void;
+		noStyle?: boolean;
 	} = $props();
 </script>
 
 <ConsentManagerProvider {options}>
 	{#if capture}<Reader {capture} />{/if}
-	<ConsentWidget />
+	<ConsentWidget {noStyle} />
 </ConsentManagerProvider>
