@@ -15,6 +15,7 @@
 	import ConsentButton from './action-button.svelte';
 	import Branding from './branding.svelte';
 	import PolicyActionsRenderer from './policy-actions-renderer.svelte';
+	import VendorList from './vendor-list.svelte';
 
 	const sw = switchVariants({ size: 'small' });
 
@@ -249,6 +250,10 @@
 						{translations.consentTypes[consentType.name]?.description ??
 							consentType.description ??
 							''}
+						<VendorList
+							category={consentType.name}
+							{noStyle}
+						/>
 					</PreferenceItem.Content>
 				</PreferenceItem.Root>
 			{/each}
