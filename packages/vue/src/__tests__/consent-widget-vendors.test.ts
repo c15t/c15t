@@ -323,6 +323,49 @@ describe('Vue consent widget vendor rows', () => {
 		}
 	});
 
+	test('a vendor declared later reseeds a clean draft and stales a dirty one', async () => {
+		const { context, wrapper } = await renderWidget({
+			marketing: true,
+			measurement: true,
+		});
+		try {
+			const late = {
+				category: 'marketing' as const,
+				id: 'late-vendor',
+				name: 'Late',
+				presentable: true,
+				privacyPolicyUrl: 'https://example.com/privacy',
+				source: 'config' as const,
+			};
+			// Nothing moved: a module declaring a slug must not tell the visitor
+			// the policy changed. The new card appears and Save stays enabled.
+			context.kernel.set.vendors({ declared: [late] });
+			await flushPromises();
+			expect(document.querySelector('[role="status"]')).toBeNull();
+			expect(
+				byTestId('consent-widget-footer-save-button')?.hasAttribute('disabled')
+			).toBe(false);
+			await open('marketing');
+			expect(
+				byTestId('consent-widget-vendor-item-marketing-late-vendor')
+			).not.toBeNull();
+
+			// Dirty: the visitor was looking at a different list, so review.
+			byTestId('consent-widget-vendor-switch-marketing-meta-pixel')?.click();
+			await flushPromises();
+			context.kernel.set.vendors({
+				declared: [{ ...late, id: 'later-vendor' }],
+			});
+			await flushPromises();
+			expect(document.querySelector('[role="status"]')).not.toBeNull();
+			expect(
+				byTestId('consent-widget-footer-save-button')?.hasAttribute('disabled')
+			).toBe(true);
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
 	test('translated vendor copy overrides the defaults', async () => {
 		const { context, wrapper } = await renderWidget(
 			{ marketing: true, measurement: true },

@@ -187,12 +187,14 @@
 			const sequence = draftSaveSequence;
 			const current = kernel.getSnapshot();
 			if (
-				draftFingerprint !== null &&
-				(draftFingerprint !== current.evaluationPolicy.choice.fingerprint ||
-					draftScope !==
-						(
-							current.evaluationPolicy.choiceScope ?? current.policyRule.scope
-						).join(','))
+				(draftFingerprint !== null &&
+					(draftFingerprint !== current.evaluationPolicy.choice.fingerprint ||
+						draftScope !==
+							(
+								current.evaluationPolicy.choiceScope ?? current.policyRule.scope
+							).join(','))) ||
+				(draftVendorSurface !== null &&
+					draftVendorSurface !== vendorSurface(current))
 			) {
 				throw new Error(
 					'The policy changed. Review your preferences before saving.'
@@ -229,13 +231,15 @@
 			if (name === 'necessary') {
 				return;
 			}
+			const current = kernel.getSnapshot();
 			draftRevision += 1;
-			draftFingerprint ??=
-				kernel.getSnapshot().evaluationPolicy.choice.fingerprint;
+			draftFingerprint ??= current.evaluationPolicy.choice.fingerprint;
 			draftScope ??= (
-				kernel.getSnapshot().evaluationPolicy.choiceScope ??
-				kernel.getSnapshot().policyRule.scope
+				current.evaluationPolicy.choiceScope ?? current.policyRule.scope
 			).join(',');
+			// A category edit reviews the vendor rows too: a vendor declared
+			// under it later was not what the visitor saw.
+			draftVendorSurface ??= vendorSurface(current);
 			draftValues = { ...draftValues, [name]: value };
 		},
 		setVendor(vendorId, granted) {

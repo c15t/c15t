@@ -4,8 +4,8 @@ import {
 } from '@c15t/conformance/play/consent-widget';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
 
+import ConsentWidgetVendorsStory from './consent-widget-vendors-story.svelte';
 import ConsentWidgetStory from './ConsentWidgetStory.svelte';
-import ConsentWidgetVendorsStory from './ConsentWidgetVendorsStory.svelte';
 
 const meta = {
 	component: ConsentWidgetStory,

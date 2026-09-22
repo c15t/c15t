@@ -90,6 +90,8 @@ export const useConsentDraft = function useConsentDraft(
 	const vendors = ref<Record<string, boolean>>({});
 	/** The vendor map as seeded, so save() knows which vendors moved. */
 	const baseVendors = shallowRef<Record<string, boolean>>({});
+	/** The category values as seeded, so a clean draft can be told apart. */
+	const seededValues = shallowRef<Partial<ConsentState>>({});
 	const categoriesFor = (current: ConsentSnapshot): (keyof ConsentState)[] => {
 		const scope =
 			current.evaluationPolicy.choiceScope ?? current.policyRule.scope;
@@ -119,6 +121,7 @@ export const useConsentDraft = function useConsentDraft(
 							current.policyRule.preselectedCategories.includes(category))),
 			])
 		);
+		seededValues.value = { ...values.value };
 		baseVendors.value = seedVendors(current);
 		vendors.value = { ...baseVendors.value };
 	};
@@ -131,22 +134,45 @@ export const useConsentDraft = function useConsentDraft(
 				categoriesFor(snapshot.value).join(',') ||
 			surface.value !== vendorSurface(snapshot.value)
 	);
+	/** Whether the visitor moved anything since the last seed. */
+	const isDirty = () =>
+		displayedCategories.value.some(
+			(category) => values.value[category] !== seededValues.value[category]
+		) ||
+		Object.keys(vendors.value).length !==
+			Object.keys(baseVendors.value).length ||
+		Object.entries(vendors.value).some(
+			([id, granted]) => baseVendors.value[id] !== granted
+		);
 	watch(
 		[
 			() => snapshot.value.explicitChoice,
 			() => snapshot.value.vendorChoice,
+			() => snapshot.value.vendors,
 			() => snapshot.value.evaluationPolicy,
 		],
 		(
-			[choice, vendorChoice, policy],
-			[previousChoice, previousVendorChoice]
+			[choice, vendorChoice, declared, policy],
+			[previousChoice, previousVendorChoice, previousDeclared, previousPolicy]
 		) => {
+			if (!shouldSyncChanges()) {
+				return;
+			}
+			// A recorded choice reseeds the draft; so does a policy object that
+			// changed without changing the choice fingerprint.
 			if (
-				shouldSyncChanges() &&
-				(choice !== previousChoice ||
-					vendorChoice !== previousVendorChoice ||
+				choice !== previousChoice ||
+				vendorChoice !== previousVendorChoice ||
+				(policy !== previousPolicy &&
 					fingerprint.value === policy.choice.fingerprint)
 			) {
+				reset();
+				return;
+			}
+			// A vendor-only commit, such as a module declaring its slugs,
+			// reseeds a clean draft so the visitor is not told the policy
+			// changed; a dirty one stays and goes stale for review.
+			if (declared !== previousDeclared && !isDirty()) {
 				reset();
 			}
 		}

@@ -14,7 +14,6 @@ import type {
 	HydrationRecords,
 	KernelConfig,
 	KernelTransport,
-	Vendor,
 } from '@c15t/core';
 import { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
 import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
@@ -94,13 +93,6 @@ export interface UseNetworkBlockerOptions {
 
 export type RuntimeConsentConfig = ConsentConfig & {
 	scripts?: Script[];
-	/**
-	 * Vendors the preference center lists under their category, each with
-	 * its own switch, so a visitor can grant a category and still turn one
-	 * vendor off. Scripts, network rules and iframes naming a vendor's `id`
-	 * follow that choice. Merged with vendors the backend declares.
-	 */
-	vendors?: Vendor[];
 	/**
 	 * Content Security Policy nonce stamped on every `<script>` the script
 	 * loader creates. A per-script `nonce` takes precedence.

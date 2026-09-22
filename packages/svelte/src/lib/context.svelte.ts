@@ -69,6 +69,9 @@ export interface ConsentDraftState {
 	 * Stage one vendor's grant. Recorded by the next save. Ignored for a
 	 * vendor that is not declared or is declared `disabled`, since the kernel
 	 * would drop the grant on save.
+	 *
+	 * @param vendorId - Vendor slug as declared in `vendors` or on a script.
+	 * @param granted - Whether the vendor may load once the draft is saved.
 	 */
 	setVendor: (vendorId: string, granted: boolean) => void;
 	reset: () => void;
@@ -134,6 +137,9 @@ export interface ConsentManagerState extends Pick<
 	 * The vendors listed under one category: presentable, naming that
 	 * category, without a negation. Empty under an `iab` policy, where the
 	 * TC string decides and vendor rows are not shown.
+	 *
+	 * @param category - The category row being rendered.
+	 * @returns The vendors to list, in declared order.
 	 */
 	getDisplayedVendors: (category: AllConsentNames) => ResolvedVendor[];
 	has: (condition: HasCondition<AllConsentNames>) => boolean;
@@ -143,7 +149,12 @@ export interface ConsentManagerState extends Pick<
 	setConsent: (name: AllConsentNames, value: boolean) => void;
 	setLanguage: (code: string) => void;
 	setSelectedConsent: (name: AllConsentNames, value: boolean) => void;
-	/** Stage one vendor's grant on the draft. Recorded by the next save. */
+	/**
+	 * Stage one vendor's grant on the draft. Recorded by the next save.
+	 *
+	 * @param vendorId - Vendor slug as declared in `vendors` or on a script.
+	 * @param granted - Whether the vendor may load once the draft is saved.
+	 */
 	setSelectedVendor: (vendorId: string, granted: boolean) => void;
 	subscribeToConsentChanges: (
 		listener: (state: ConsentState) => void

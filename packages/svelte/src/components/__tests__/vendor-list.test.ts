@@ -237,6 +237,38 @@ describe('Svelte consent widget vendor rows', () => {
 		expect(state()?.draft.vendors['meta-pixel']).toBe(true);
 	});
 
+	test('an imperative save refuses a draft whose vendor list changed under it', async () => {
+		const { kernel, state } = renderWidget({
+			marketing: true,
+			measurement: true,
+		});
+		await open('marketing');
+		// A category edit alone records the surface the visitor reviewed.
+		state()?.setSelectedConsent('measurement', false);
+		kernel().set.vendors({
+			declared: [
+				{
+					category: 'measurement',
+					id: 'late-vendor',
+					name: 'Late',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+			],
+		});
+		await waitFor(() => {
+			expect(state()?.draft.isStale).toBe(true);
+		});
+		// The public API bypasses the disabled button; the guard holds.
+		await expect(state()?.saveConsents('custom')).rejects.toThrow(
+			/policy changed/u
+		);
+		expect(
+			kernel().getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(true);
+	});
+
 	test('a vendor declared after a staged toggle marks the draft stale', async () => {
 		const { kernel, state } = renderWidget({
 			marketing: true,
