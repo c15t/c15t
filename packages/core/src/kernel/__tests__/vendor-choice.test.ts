@@ -787,12 +787,14 @@ describe('save with vendors', () => {
 			transport: { save },
 		});
 		await kernel.commands.save('all');
-		// The clear is a newer decision. Without it on the wire another device
-		// keeps the old denial and restores it when the vendor is redeclared.
+		// The clear is a newer decision, and it names the vendor it lifted:
+		// the backend keeps an earlier decision for a vendor a later map
+		// omits, so an empty map would leave the old denial in place and
+		// another device would restore it when the vendor is redeclared.
 		const payload = save.mock.calls[0]?.[0] as SavePayload;
 		expect(payload.vendorChoice).toEqual({
 			confirmedAt: NOW,
-			grants: {},
+			grants: { 'meta-pixel': true },
 			version: 1,
 		});
 		kernel.dispose();

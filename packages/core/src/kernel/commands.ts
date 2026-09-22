@@ -515,14 +515,16 @@ export const resolveVendorSelection = function resolveVendorSelection(
  * present once a vendor decision exists locally: a save that never decided
  * vendors must not tell the backend every vendor was granted now, or an
  * older server denial still in flight would win the local merge while the
- * backend holds the newer all-granted map. The decision travels even when
- * nothing is declared right now: a bulk action that cleared a retained
- * denial after the backend dropped the vendor is a newer, empty map, and
- * without it another device would restore the old denial when the vendor
- * is declared again.
+ * backend holds the newer all-granted map. The backend keeps an earlier
+ * decision for any vendor a later map omits, since a client on a stale
+ * vendor list never saw it, so a decision about a vendor nothing declares
+ * right now must be spelled out: a denial the record retains travels as
+ * `false`, and a denial a bulk action just cleared travels as `true`, or
+ * another device would restore it when the vendor is declared again.
  */
 const vendorChoicePayload = function vendorChoicePayload(
-	snapshot: ConsentSnapshot
+	snapshot: ConsentSnapshot,
+	previous: ConsentSnapshot['vendorChoice']
 ): SavePayload['vendorChoice'] {
 	const declared = snapshot.vendors?.declared ?? [];
 	if (snapshot.model === 'iab' || snapshot.vendorChoice === null) {
@@ -549,6 +551,20 @@ const vendorChoicePayload = function vendorChoicePayload(
 				configurable: true,
 				enumerable: true,
 				value: false,
+				writable: true,
+			});
+		}
+	}
+	// A denial this action lifted for a vendor nothing declares is a
+	// decision too. Only a bulk action can lift one, and it decided every
+	// vendor, so the grant is explicit rather than left for the backend to
+	// read as an omission.
+	for (const id of previous?.denied ?? []) {
+		if (!Object.hasOwn(grants, id)) {
+			Object.defineProperty(grants, id, {
+				configurable: true,
+				enumerable: true,
+				value: true,
 				writable: true,
 			});
 		}
@@ -1356,7 +1372,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				uiSource,
 				user: after.user,
 			};
-			const vendorChoice = vendorChoicePayload(after);
+			const vendorChoice = vendorChoicePayload(after, before.vendorChoice);
 			if (vendorChoice) {
 				payload.vendorChoice = vendorChoice;
 			}
