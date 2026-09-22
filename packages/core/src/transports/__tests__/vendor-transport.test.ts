@@ -123,6 +123,34 @@ describe('subject record', () => {
 		).toEqual({ confirmedAt: NOW - 50, denied: [], version: 1 });
 	});
 
+	test('a map with a non-slug key is malformed, and the receipts survive it', () => {
+		// The kernel validates the denial list on hydration; an invalid id
+		// there would reject the whole response, receipts and subject too.
+		const records = mapSubjectRecordToHydrationRecords(
+			{
+				...base,
+				subjectChoice: {
+					categories: {
+						marketing: {
+							basis: { fingerprint: 'choice-fp', kind: 'choice-v1' },
+							confirmedAt: NOW - 50,
+							value: true,
+						},
+					},
+					version: 3,
+				},
+				subjectVendorChoice: {
+					confirmedAt: NOW - 50,
+					grants: { 'Bad ID': false, 'meta-pixel': false },
+					version: 1,
+				},
+			},
+			{ now: NOW }
+		);
+		expect(records.vendorChoice).toBeNull();
+		expect(records.choice?.categories.marketing?.value).toBe(true);
+	});
+
 	test('a future map, an array map and a missing map are all null', () => {
 		expect(
 			mapSubjectRecordToHydrationRecords(

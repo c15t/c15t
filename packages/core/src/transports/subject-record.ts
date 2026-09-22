@@ -40,6 +40,7 @@ import {
 	isOptionalConsentCategory,
 	validateExplicitChoice,
 } from '../consent-record/validation';
+import { isValidVendorId } from '../libs/vendors';
 import type { HydrationRecords, VendorChoice } from '../types';
 
 /** Validated records returned by a subject transport. */
@@ -229,10 +230,13 @@ const mapVendorChoice = (
 	}
 	const denied: string[] = [];
 	for (const [id, granted] of Object.entries(wire.grants)) {
-		if (typeof granted !== 'boolean') {
+		// A key outside the slug shape is a malformed map, not a denial to
+		// keep: the kernel revalidates the list on hydration and would drop
+		// the whole response, receipts and subject included, over one key.
+		if (typeof granted !== 'boolean' || !isValidVendorId(id)) {
 			return null;
 		}
-		if (!granted && id.length > 0) {
+		if (!granted) {
 			denied.push(id);
 		}
 	}
