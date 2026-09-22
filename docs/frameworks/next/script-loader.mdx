@@ -80,6 +80,38 @@ Use [custom integrations](/docs/integrations/building-integrations) for an
 unlisted vendor. Google helpers have a separate
 [Consent Mode contract](/docs/integrations/google-tag-manager).
 
+## Granular consent
+
+A visitor can grant marketing and still turn one vendor off. Declare the
+vendors next to the scripts in `lib/scripts.ts`, with the `vendor` slug each
+script already carries, and pass both to `ConsentRoot`:
+
+```ts title="lib/scripts.ts"
+import type { Vendor } from 'c15t';
+
+export const vendors: Vendor[] = [
+  {
+    id: 'x-pixel',
+    name: 'X Pixel',
+    category: 'marketing',
+    privacyPolicyUrl: 'https://x.com/privacy',
+  },
+];
+```
+
+```tsx title="components/consent.tsx"
+import { scripts, vendors } from '../lib/scripts';
+
+<ConsentRoot state={state} config={consentConfig} scripts={scripts} vendors={vendors}>
+```
+
+The preference center lists each vendor under its category with a switch.
+Integrations from `@c15t/scripts` set `vendor` to their manifest slug, so
+`xPixel()` needs no extra wiring; give a hand-written script the same slug
+in its `vendor` field. A backend manifest can declare vendors too. See
+[granular consent](/docs/integrations/granular-consent) for storage,
+bulk actions and the hooks a custom control uses.
+
 ## Clear stored tracking data
 
 Script gating does not remove cookies or Web Storage entries that a script

@@ -1,6 +1,6 @@
 'use client';
 
-import type { KernelOverrides } from '@c15t/core';
+import type { KernelOverrides, Vendor } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
 /**
  * Client root for the TanStack Start adapter.
@@ -77,6 +77,15 @@ export interface ConsentRootProps {
 	scripts?: Script[];
 
 	/**
+	 * Vendors the preference center lists under their category, each with
+	 * its own switch, so a visitor can grant a category and still turn one
+	 * vendor off. Scripts, network rules and iframes naming a vendor's
+	 * `id` follow that choice. Merged with vendors the backend declares.
+	 * See the granular consent guide.
+	 */
+	vendors?: Vendor[];
+
+	/**
 	 * Remove configured browser data for initially denied categories after policy
 	 * resolution and when consent is later revoked.
 	 * Initial-only: remount ConsentRoot to replace the cleanup configuration.
@@ -110,6 +119,7 @@ export interface ConsentRootProps {
 		| 'prefetch'
 		| 'scriptLoader'
 		| 'scripts'
+		| 'vendors'
 		| '__debugPkg'
 	> & {
 		mode?: ProviderTransportFactory;
@@ -168,6 +178,7 @@ export const ConsentRoot = ({
 	backendURL,
 	initRoute,
 	scripts,
+	vendors,
 	scriptLoader,
 	clearOnRevocation,
 	networkBlocker,
@@ -210,6 +221,7 @@ export const ConsentRoot = ({
 				prefetch: state,
 				scriptLoader,
 				scripts,
+				vendors,
 			}}
 		>
 			{children}

@@ -1,8 +1,15 @@
 ---
-title: Vendor-level consent
+title: Granular consent
 description: Let visitors grant a category and still turn one vendor off, without adopting IAB TCF.
 group: integrations
 ---
+
+Granular consent is choice below the category level: a visitor grants
+marketing and still turns Meta off. The unit of that choice is a vendor, so
+the API names them `vendors`, `vendor` and `data-vendor`, and the hooks
+`useVendorAllowed` and `useVendorDraft`. Everything else stays as it is:
+categories, policies, and the preference center gain vendor rows rather than
+a second consent model.
 
 ## Declare vendors
 
@@ -155,7 +162,9 @@ vendor is off, so the vendor's own consent API cannot re-enable tracking.
 
 The React `ConsentWidget` and `ConsentDialog` list vendors under their
 category when the provider declares them. Pass the same `vendors` array to
-`ConsentProvider`, or to `ConsentRoot` in Next.js and TanStack Start:
+`ConsentProvider`, or to the `vendors` prop of `ConsentRoot` in
+[Next.js](/docs/frameworks/next/script-loader#granular-consent) and
+[TanStack Start](/docs/frameworks/tanstack-start/quickstart#granular-consent):
 
 ```tsx
 import { ConsentProvider, hosted } from 'c15t/react';
