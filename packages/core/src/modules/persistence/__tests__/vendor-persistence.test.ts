@@ -266,6 +266,70 @@ describe('vendor persistence', () => {
 		}
 	});
 
+	it('a prefetch seed still yields to a newer localStorage vendor record', () => {
+		// The cookie carries the older list a server render prefetched; only
+		// localStorage holds the list this browser saved last, because the
+		// cookie write was dropped.
+		writeStoredVendorChoice(
+			{ confirmedAt: NOW - 1000, denied: [], version: 1 },
+			undefined,
+			NOW
+		);
+		const descriptor = Object.getOwnPropertyDescriptor(
+			Document.prototype,
+			'cookie'
+		);
+		const frozen = document.cookie;
+		Object.defineProperty(document, 'cookie', {
+			configurable: true,
+			get: () => frozen,
+			set: () => {
+				// Accepted and dropped.
+			},
+		});
+		try {
+			writeStoredVendorChoice(
+				{ confirmedAt: NOW - 1, denied: ['meta-pixel'], version: 1 },
+				undefined,
+				NOW
+			);
+			// Seeded from the prefetched cookie, so hydration is skipped.
+			const kernel = createConsentKernel({
+				initialPolicyResolution: matchedResolution(
+					optInRule({ categories: ['marketing'] })
+				),
+				initialRecords: {
+					...choiceRecords({ marketing: true }),
+					vendorChoice: { confirmedAt: NOW - 1000, denied: [], version: 1 },
+				},
+				initialVendors: vendors,
+				now: NOW,
+			});
+			const persistence = createPersistence({
+				kernel,
+				now: () => NOW,
+				skipHydration: true,
+			});
+			expect(kernel.getSnapshot().vendorChoice).toEqual({
+				confirmedAt: NOW - 1,
+				denied: ['meta-pixel'],
+				version: 1,
+			});
+			// The category records stay as the server seeded them.
+			expect(
+				kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+			).toBe(true);
+			persistence.dispose();
+			kernel.dispose();
+		} finally {
+			if (descriptor) {
+				Object.defineProperty(document, 'cookie', descriptor);
+			} else {
+				delete (document as { cookie?: string }).cookie;
+			}
+		}
+	});
+
 	it('clear() removes the stored record and the in-memory denials', async () => {
 		const kernel = createKernel();
 		const persistence = createPersistence({ kernel, now: () => NOW });

@@ -515,17 +515,17 @@ export const resolveVendorSelection = function resolveVendorSelection(
  * present once a vendor decision exists locally: a save that never decided
  * vendors must not tell the backend every vendor was granted now, or an
  * older server denial still in flight would win the local merge while the
- * backend holds the newer all-granted map.
+ * backend holds the newer all-granted map. The decision travels even when
+ * nothing is declared right now: a bulk action that cleared a retained
+ * denial after the backend dropped the vendor is a newer, empty map, and
+ * without it another device would restore the old denial when the vendor
+ * is declared again.
  */
 const vendorChoicePayload = function vendorChoicePayload(
 	snapshot: ConsentSnapshot
 ): SavePayload['vendorChoice'] {
 	const declared = snapshot.vendors?.declared ?? [];
-	if (
-		snapshot.model === 'iab' ||
-		declared.length === 0 ||
-		snapshot.vendorChoice === null
-	) {
+	if (snapshot.model === 'iab' || snapshot.vendorChoice === null) {
 		return undefined;
 	}
 	const denied = new Set(snapshot.vendorChoice.denied);

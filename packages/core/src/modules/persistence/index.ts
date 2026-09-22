@@ -36,7 +36,10 @@
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import { hydrateFromStorage } from './hydrate';
 import type { StoredIabMetadata } from './record-codec';
-import { clearStoredConsentRecords } from './record-storage';
+import {
+	clearStoredConsentRecords,
+	readStoredVendorChoice,
+} from './record-storage';
 import { createWriteScheduler } from './schedule';
 import type { PersistenceHandle, PersistenceOptions } from './types';
 import {
@@ -126,6 +129,38 @@ export const createPersistence = function createPersistence(
 		vendorWrites.cancel();
 	};
 
+	/**
+	 * A server prefetch seeds the kernel from the cookie alone. The vendor
+	 * record keeps a localStorage copy that outlives a cookie the browser
+	 * dropped, most often because many denied ids pushed it past the
+	 * per-cookie limit, so the seeded list can be older than what this
+	 * browser last saved. Read both projections and apply the newer one
+	 * before any gate consults the denials; the category records stay as
+	 * seeded.
+	 */
+	const reconcileVendorChoice = function reconcileVendorChoice(): void {
+		if (typeof document === 'undefined') {
+			return;
+		}
+		const at = now();
+		const stored = readStoredVendorChoice(storageConfig, at);
+		if (!stored?.ok) {
+			return;
+		}
+		const current = kernel.getSnapshot().vendorChoice;
+		if (current && current.confirmedAt >= stored.record.confirmedAt) {
+			return;
+		}
+		kernel.hydrate({
+			now: at,
+			vendorChoice: {
+				confirmedAt: stored.record.confirmedAt,
+				denied: stored.record.denied,
+				version: stored.record.version,
+			},
+		});
+	};
+
 	const hydrate = function hydrate(): boolean {
 		// An explicit choice may still be queued. Land it first so
 		// rehydration reads the new choice back instead of overwriting it
@@ -141,7 +176,9 @@ export const createPersistence = function createPersistence(
 		return stored.found;
 	};
 
-	if (!options.skipHydration) {
+	if (options.skipHydration) {
+		reconcileVendorChoice();
+	} else {
 		hydrate();
 	}
 

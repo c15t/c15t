@@ -770,6 +770,34 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
+	test('a full bulk action with nothing declared still sends the cleared map', async () => {
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
+		const kernel = createKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: true }),
+				vendorChoice: {
+					confirmedAt: NOW - 500,
+					denied: ['meta-pixel'],
+					version: 1,
+				},
+			},
+			initialVendors: { declared: [], listVersion: null },
+			transport: { save },
+		});
+		await kernel.commands.save('all');
+		// The clear is a newer decision. Without it on the wire another device
+		// keeps the old denial and restores it when the vendor is redeclared.
+		const payload = save.mock.calls[0]?.[0] as SavePayload;
+		expect(payload.vendorChoice).toEqual({
+			confirmedAt: NOW,
+			grants: {},
+			version: 1,
+		});
+		kernel.dispose();
+	});
+
 	test('a bulk action with no declared vendors records no vendor decision', async () => {
 		const kernel = createKernel({
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),
