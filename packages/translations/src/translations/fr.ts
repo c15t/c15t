@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Personnalisez vos paramètres de confidentialité ici. Vous pouvez choisir les types de cookies et de technologies de suivi que vous autorisez.',
 		title: 'Paramètres de confidentialité',
+		vendors: {
+			disabledByCategory:
+				'Activez cette catégorie pour choisir des fournisseurs.',
+			privacyPolicy: 'Politique de confidentialité',
+			switchLabel: 'Autoriser {vendor}',
+			title: 'Fournisseurs ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

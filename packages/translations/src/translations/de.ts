@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'Passe deine Datenschutz-Einstellungen hier an. Wähle aus, welche Arten von Cookies und Tracking-Technologien zugelassen werden.',
 		title: 'Einstellungen',
+		vendors: {
+			disabledByCategory: 'Aktiviere diese Kategorie, um Anbieter auszuwählen.',
+			privacyPolicy: 'Datenschutzerklärung',
+			switchLabel: '{vendor} zulassen',
+			title: 'Anbieter ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

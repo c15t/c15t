@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Pas hier uw privacyinstellingen aan. U kunt kiezen welke soorten cookies en trackingtechnologieën u toestaat.',
 		title: 'Privacy-instellingen',
+		vendors: {
+			disabledByCategory:
+				'Schakel deze categorie in om leveranciers te kiezen.',
+			privacyPolicy: 'Privacybeleid',
+			switchLabel: '{vendor} toestaan',
+			title: 'Leveranciers ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

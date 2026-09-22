@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Čia galite tinkinti savo privatumo nustatymus. Galite pasirinkti, kokių tipų slapukus ir sekimo technologijas leidžiate naudoti.',
 		title: 'Privatumo nustatymai',
+		vendors: {
+			disabledByCategory:
+				'Įjunkite šią kategoriją, kad galėtumėte pasirinkti tiekėjus.',
+			privacyPolicy: 'Privatumo politika',
+			switchLabel: 'Leisti {vendor}',
+			title: 'Tiekėjai ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

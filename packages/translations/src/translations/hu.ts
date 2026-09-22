@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Testreszabhatja adatvédelmi beállításait itt. Kiválaszthatja, hogy milyen típusú sütiket és nyomkövető technológiákat engedélyez.',
 		title: 'Adatvédelmi beállítások',
+		vendors: {
+			disabledByCategory:
+				'Kapcsolja be ezt a kategóriát a szolgáltatók kiválasztásához.',
+			privacyPolicy: 'Adatvédelmi szabályzat',
+			switchLabel: '{vendor} engedélyezése',
+			title: 'Szolgáltatók ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

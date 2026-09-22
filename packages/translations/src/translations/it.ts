@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'Personalizza le tue impostazioni di privacy. Puoi scegliere i tipi di cookies e tecnologie di tracciamento che autorizzi.',
 		title: 'Impostazioni di privacy',
+		vendors: {
+			disabledByCategory: 'Attiva questa categoria per scegliere i fornitori.',
+			privacyPolicy: 'Informativa sulla privacy',
+			switchLabel: 'Consenti {vendor}',
+			title: 'Fornitori ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {
