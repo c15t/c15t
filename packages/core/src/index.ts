@@ -310,6 +310,7 @@ export {
 	declareOwnedVendors,
 	forgetOwnedVendors,
 	resolveVendors,
+	vendorsListedUnder,
 } from './libs/vendors';
 export {
 	deferInitGvl,

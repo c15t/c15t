@@ -11,7 +11,7 @@ import type {
 	PromptPresentation,
 	TranslationConfig,
 } from '@c15t/core';
-import { evaluateConsent, extractConsentNamesFromCondition } from '@c15t/core';
+import { evaluateConsent, vendorsListedUnder } from '@c15t/core';
 import { useCallback, useMemo } from 'react';
 
 import { useConsentManagerDraft } from '../draft';
@@ -74,20 +74,6 @@ const DEFAULT_CONSENT_TYPES: ConsentType[] = [
 		name: 'marketing',
 	},
 ];
-
-/** Whether a category condition contains a `not` anywhere in its tree. */
-const hasNegation = function hasNegation(
-	condition: HasCondition<AllConsentNames>
-): boolean {
-	if (typeof condition === 'string') {
-		return false;
-	}
-	if ('not' in condition) {
-		return true;
-	}
-	const branches = 'and' in condition ? condition.and : condition.or;
-	return (Array.isArray(branches) ? branches : [branches]).some(hasNegation);
-};
 
 const toTranslationConfig = function toTranslationConfig(
 	resolved: ReturnType<typeof useTranslations>
@@ -198,12 +184,7 @@ export const useConsentManager = function useConsentManager() {
 	 */
 	const getDisplayedVendors = useCallback(
 		(category: AllConsentNames) =>
-			declaredVendors.filter(
-				(vendor) =>
-					vendor.presentable &&
-					!hasNegation(vendor.category) &&
-					extractConsentNamesFromCondition(vendor.category).includes(category)
-			),
+			vendorsListedUnder(declaredVendors, category),
 		[declaredVendors]
 	);
 

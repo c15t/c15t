@@ -9,6 +9,7 @@ import {
 	forgetOwnedVendors,
 	mergeDeclaredVendors,
 	resolveVendors,
+	vendorsListedUnder,
 	withoutManifestVendors,
 	withoutSourceVendors,
 } from '../vendors';
@@ -541,5 +542,53 @@ describe('declareOwnedVendors', () => {
 			['meta-pixel', { or: ['measurement', 'marketing'] }],
 		]);
 		kernel.dispose();
+	});
+});
+
+describe('vendorsListedUnder', () => {
+	const listed = (category: 'marketing' | 'measurement') =>
+		vendorsListedUnder(
+			[
+				{ ...meta, presentable: true, source: 'config' },
+				{
+					category: { or: ['marketing', 'measurement'] },
+					id: 'shared',
+					name: 'Shared',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+				{
+					category: { not: 'marketing' },
+					id: 'contextual',
+					name: 'Contextual',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+				{
+					category: 'marketing',
+					id: 'slug-only',
+					presentable: false,
+					source: 'script',
+				},
+				{
+					category: 'marketing',
+					disabled: true,
+					id: 'fixed',
+					name: 'Fixed',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+			],
+			category
+		).map((vendor) => vendor.id);
+
+	test('lists presentable vendors naming the category, negations and slug-only excluded', () => {
+		// A shared condition sits under both rows; a negated one under
+		// neither; a `disabled` vendor is still listed, without a switch.
+		expect(listed('marketing')).toEqual(['meta-pixel', 'shared', 'fixed']);
+		expect(listed('measurement')).toEqual(['shared']);
 	});
 });

@@ -406,6 +406,45 @@ export const resolveVendors = function resolveVendors(
 	);
 };
 
+/** Whether a category condition contains a `not` anywhere in its tree. */
+const hasNegation = function hasNegation(
+	condition: HasCondition<AllConsentNames>
+): boolean {
+	if (typeof condition === 'string') {
+		return false;
+	}
+	if ('not' in condition) {
+		return true;
+	}
+	const branches = 'and' in condition ? condition.and : condition.or;
+	return (Array.isArray(branches) ? branches : [branches]).some(hasNegation);
+};
+
+/**
+ * The vendors a preference center lists under one category: presentable,
+ * naming that category in their condition, and without a negation. A
+ * vendor under `{ not: 'marketing' }` gates on marketing but cannot sit in
+ * the marketing row, since turning the category on would switch it off.
+ * Every framework's preference center uses this one filter so their rows
+ * agree.
+ *
+ * @param declared - The kernel's declared vendors.
+ * @param category - The category row being rendered.
+ * @returns The vendors to list, in declared order.
+ * @public
+ */
+export const vendorsListedUnder = function vendorsListedUnder(
+	declared: readonly ResolvedVendor[],
+	category: AllConsentNames
+): ResolvedVendor[] {
+	return declared.filter(
+		(vendor) =>
+			vendor.presentable &&
+			!hasNegation(vendor.category) &&
+			extractConsentNamesFromCondition(vendor.category).includes(category)
+	);
+};
+
 /**
  * What each live module has declared on a kernel, keyed by the module. A
  * module only knows its own list, so the union across modules is what a

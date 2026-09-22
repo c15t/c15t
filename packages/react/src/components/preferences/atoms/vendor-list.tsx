@@ -113,7 +113,12 @@ const VendorRow = ({
 						baseClassName={styles?.name}
 						slotKey="vendor-list.name"
 					>
-						<span id={labelId}>{name}</span>
+						<span
+							data-testid={`consent-widget-vendor-name-${category}-${vendor.id}`}
+							id={labelId}
+						>
+							{name}
+						</span>
 					</Box>
 				</PreferenceItem.Trigger>
 				{toggleable ? (

@@ -123,6 +123,13 @@ describe('consent widget vendor rows', () => {
 			'consent-widget-vendor-trigger-marketing-meta-pixel'
 		);
 		await expect.element(trigger).toHaveTextContent('Meta Pixel');
+		// The name carries a test id so the switch's `aria-describedby` target
+		// is addressable in every framework's parity snapshot.
+		await expect
+			.element(
+				page.getByTestId('consent-widget-vendor-name-marketing-meta-pixel')
+			)
+			.toHaveTextContent('Meta Pixel');
 		await expect.element(trigger).toHaveAttribute('aria-expanded', 'false');
 		const content = page.getByTestId(
 			'consent-widget-vendor-content-marketing-meta-pixel'

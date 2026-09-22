@@ -3,13 +3,20 @@
    sites so imports cannot override one another. */
 
 @layer components {
-	/* The list: a stack of cards under the category description. */
+	/* The list: a stack of cards under the category description. It sets
+	   its own text colour rather than inheriting the category content's,
+	   which each framework's accordion resolves differently. */
 	.root:not(:global(.headless)) {
 		display: grid;
 		gap: var(--vendor-list-gap, var(--c15t-space-xs));
 		min-inline-size: 0;
 		margin: var(--vendor-list-margin-top, var(--c15t-space-sm)) 0 0;
 		padding: 0;
+		color: var(--vendor-list-text-color, var(--c15t-text));
+	}
+
+	:global(.c15t-dark) .root:not(:global(.headless)) {
+		color: var(--vendor-list-text-color-dark, var(--c15t-text));
 	}
 
 	.hint:not(:global(.headless)) {
