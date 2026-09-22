@@ -25,10 +25,11 @@
 		class?: string;
 		innerClassName?: string;
 		/**
-		 * Drop the primitive's built-in classes. Set explicitly by the
-		 * component that owns the content, the way the React primitive is
-		 * used: the root's own `noStyle` only says the root dropped its
-		 * class, and the React IAB items pass the content flag separately.
+		 * Drop the primitive's built-in classes. Falls back to the root's
+		 * `noStyle`, like the React primitive and the sibling trigger, so a
+		 * headless root strips the whole item. A component that sets
+		 * `noStyle` on its root only to own the item class passes an explicit
+		 * `false` here, as every consent widget and IAB item does.
 		 */
 		noStyle?: boolean;
 		/** Presentation class for the consent widget viewport.
@@ -41,7 +42,7 @@
 	const triggerId = $derived(context.triggerId);
 	const contentId = $derived(context.contentId);
 	const dataState = $derived(getPreferenceItemState(open));
-	const noStyle = $derived(localNoStyle ?? false);
+	const noStyle = $derived(localNoStyle ?? context.noStyle);
 	const contentClassName = $derived.by(() =>
 		noStyle ? localClassName : variants.content({ class: localClassName })
 	);
