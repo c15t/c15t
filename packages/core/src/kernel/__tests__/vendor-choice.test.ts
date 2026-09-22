@@ -696,6 +696,30 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
+	test('a full bulk action clears a denial retained for a vendor no longer declared', async () => {
+		// The backend list dropped the vendor, so nothing is declared, but the
+		// stored denial is still there. Accept all is documented to clear
+		// denials; if it did not, the vendor would return blocked.
+		const kernel = createKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true, measurement: true }),
+				vendorChoice: {
+					confirmedAt: NOW - 500,
+					denied: ['meta-pixel'],
+					version: 1,
+				},
+			},
+			initialVendors: { declared: [], listVersion: null },
+		});
+		await kernel.commands.save('all');
+		expect(kernel.getSnapshot().vendorChoice).toEqual({
+			confirmedAt: NOW,
+			denied: [],
+			version: 1,
+		});
+		kernel.dispose();
+	});
+
 	test('a bulk action with no declared vendors records no vendor decision', async () => {
 		const kernel = createKernel({
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),

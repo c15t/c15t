@@ -19,6 +19,7 @@ import type {
 	KernelIABState,
 	KernelOverrides,
 	KernelVendorsState,
+	ResolvedVendor,
 	VendorSource,
 } from '../types';
 import type { KernelRuntime } from './runtime';
@@ -60,6 +61,23 @@ export const mergeIab = function mergeIab(
  * by id with the existing entry's presentation winning, so a manifest
  * arriving after config never overwrites a name the publisher set in code.
  */
+/** A declaration and its nested conditions, owned by the kernel from here on. */
+const copyDeclaredVendor = function copyDeclaredVendor(
+	vendor: ResolvedVendor
+): ResolvedVendor {
+	const copy: ResolvedVendor = {
+		...vendor,
+		category: structuredClone(vendor.category),
+	};
+	if (vendor.ownerCategory !== undefined) {
+		copy.ownerCategory = structuredClone(vendor.ownerCategory);
+	}
+	if (vendor.shadowed) {
+		copy.shadowed = copyDeclaredVendor(vendor.shadowed);
+	}
+	return copy;
+};
+
 export const mergeVendors = function mergeVendors(
 	current: KernelVendorsState | null,
 	input: Partial<KernelVendorsState>,
@@ -73,10 +91,12 @@ export const mergeVendors = function mergeVendors(
 		options.replaceSource === undefined || input.declared === undefined
 			? baseline.declared
 			: withoutSourceVendors(baseline.declared, options.replaceSource);
+	// Copied first: the committed snapshot is frozen, and a caller reusing
+	// or mutating its own declaration object afterwards must not throw.
 	const merged =
 		input.declared === undefined
 			? baseline.declared
-			: mergeDeclaredVendors(base, input.declared);
+			: mergeDeclaredVendors(base, input.declared.map(copyDeclaredVendor));
 	// Removing a source always allocates, so a replacement that ends where it
 	// started has to fall back to the current reference or every call would
 	// commit.

@@ -37,6 +37,8 @@ export interface ReconcilePass {
 	 * declaration is gone. `null` when nothing is stored.
 	 */
 	storedDenied: ReadonlySet<string> | null;
+	/** Ids with a current declaration, so `vendorDenied` speaks for them. */
+	declared: ReadonlySet<string>;
 	/** Vendor denials are inert in IAB mode. */
 	isIabMode: boolean;
 }
@@ -50,6 +52,7 @@ export const buildReconcilePass = function buildReconcilePass(
 	const stored = snapshot.vendorChoice?.denied;
 	return {
 		consents: getEffectiveGateState(snapshot).effectivePermissions,
+		declared: new Set(snapshot.vendors?.declared.map((vendor) => vendor.id)),
 		isIabMode: snapshot.model === 'iab',
 		storedDenied: stored && stored.length > 0 ? new Set(stored) : null,
 		vendorDenied: deniedVendorIds(snapshot),
@@ -145,7 +148,13 @@ export const reconcileIframe = function reconcileIframe(
 	}
 
 	const categoryAllowed = category ? has(category, pass.consents) : true;
-	const denied = category ? pass.vendorDenied : pass.storedDenied;
+	// A vendor-only frame holds against every stored denial only while its
+	// slug is undeclared. Once declared, the gate's own filtered set decides,
+	// so a `disabled` declaration lifts a stale denial here as everywhere.
+	const denied =
+		category || (vendor !== undefined && pass.declared.has(vendor))
+			? pass.vendorDenied
+			: pass.storedDenied;
 	const vendorAllowed =
 		vendor === undefined ||
 		pass.isIabMode ||

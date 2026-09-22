@@ -96,6 +96,38 @@ describe('iframe data-vendor', () => {
 		expect(granted.getAttribute('src')).toBe('https://www.youtube.com/embed/y');
 	});
 
+	test('a vendor-only iframe follows a disabled declaration over a stale denial', () => {
+		// The denial predates the vendor being declared `disabled`. Every
+		// other gate ignores that denial once the declaration says the vendor
+		// cannot be toggled; a frame with no category must agree.
+		const kernel = createConsentKernel({
+			initialRecords: {
+				...choiceRecords({ marketing: true }),
+				vendorChoice: { confirmedAt: NOW - 1, denied: ['youtube'], version: 1 },
+			},
+			initialVendors: {
+				declared: [
+					{
+						category: 'marketing',
+						disabled: true,
+						id: 'youtube',
+						presentable: false,
+						source: 'config',
+					},
+				],
+				listVersion: null,
+			},
+			now: NOW,
+		});
+		const iframe = makeIframe({
+			'data-vendor': 'youtube',
+			src: 'https://www.youtube.com/embed/x',
+		});
+		reconcileIframe(iframe, buildReconcilePass(kernel.getSnapshot()));
+		expect(iframe.getAttribute('src')).toBe('https://www.youtube.com/embed/x');
+		kernel.dispose();
+	});
+
 	test('a vendor-only iframe holds a stored denial for a slug nothing declares yet', () => {
 		// Cold start: the denial was stored on an earlier visit, the backend
 		// declares the vendor, and its init has not arrived. The frame has no

@@ -354,7 +354,13 @@ const bulkClearedVendorChoice = function bulkClearedVendorChoice(
 	actionAt: number
 ): VendorChoice | null {
 	const current = snapshot.vendorChoice;
-	if ((snapshot.vendors?.declared.length ?? 0) === 0) {
+	// Nothing declared and nothing denied is not a decision. A retained
+	// denial for a vendor no longer declared still clears, or the vendor
+	// would come back blocked after the visitor used accept or reject all.
+	if (
+		(snapshot.vendors?.declared.length ?? 0) === 0 &&
+		(current?.denied.length ?? 0) === 0
+	) {
 		return current;
 	}
 	if (current?.denied.length === 0 && current.confirmedAt >= actionAt) {

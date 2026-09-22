@@ -498,6 +498,26 @@ describe('declareOwnedVendors', () => {
 		kernel.dispose();
 	});
 
+	test('set.vendors copies a declaration so the caller can keep mutating it', () => {
+		const kernel = kernelFor();
+		const declaration: ResolvedVendor = {
+			category: { or: ['marketing', 'measurement'] },
+			id: 'meta-pixel',
+			name: 'Meta Pixel',
+			presentable: true,
+			privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+			source: 'config',
+		};
+		kernel.set.vendors({ declared: [declaration] });
+		// The snapshot is frozen; the caller's own object must not be.
+		expect(() => {
+			declaration.name = 'Meta (renamed)';
+			(declaration.category as { or: string[] }).or.push('experience');
+		}).not.toThrow();
+		expect(kernel.getSnapshot().vendors?.declared[0]?.name).toBe('Meta Pixel');
+		kernel.dispose();
+	});
+
 	test('a declared vendor remembers every module that names it', () => {
 		const kernel = createConsentKernel({
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),
