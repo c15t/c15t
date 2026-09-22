@@ -370,16 +370,22 @@ const backfillVendorChoice = Effect.fn('consent.backfillVendorChoice')(
 		// strips spaces only, so the four JSON whitespace characters are
 		// named explicitly and the predicate stays in step with the decoder,
 		// or the update would match nothing and the decision would be lost.
-		// Anything else already decided. `char` would truncate to one
-		// character on Postgres; every engine spells the whole value with
-		// `text`, MySQL through its char alias.
+		// Postgres and SQLite take the characters as a second argument; MySQL
+		// only knows the `trim(chars from x)` form. Anything else already
+		// decided. `char` would truncate to one character on Postgres; every
+		// engine spells the whole value with `text`, MySQL through its char
+		// alias.
 		const text = sql`cast(${sql('vendorChoice')} as ${sql.onDialectOrElse({
 			mysql: () => sql.literal('char'),
 			orElse: () => sql.literal('text'),
 		})})`;
+		const trimmed = sql.onDialectOrElse({
+			mysql: () => sql`trim(${JSON_WHITESPACE} from ${text})`,
+			orElse: () => sql`trim(${text}, ${JSON_WHITESPACE})`,
+		});
 		const absent = sql`(
 			${sql('vendorChoice')} is null
-			or trim(${text}, ${JSON_WHITESPACE}) = 'null'
+			or ${trimmed} = 'null'
 		)`;
 		return yield* sql.onDialectOrElse({
 			mysql: () =>
