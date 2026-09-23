@@ -4,10 +4,10 @@ import {
 	PREFERENCE_ITEM_INTERNAL_SLOTS,
 	PREFERENCE_ITEM_SLOTS,
 } from '@c15t/ui/primitives';
-import { preferenceItemVariants } from './variants';
 import { computed } from 'vue';
 
 import { usePreferenceItemContext } from './context';
+import { preferenceItemVariants } from './variants';
 
 const props = withDefaults(
 	defineProps<{
