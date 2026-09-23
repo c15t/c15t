@@ -460,3 +460,53 @@ test('a category record saved by another surface keeps a staged vendor toggle', 
 		context.dispose();
 	}
 });
+
+test('a bulk save made while the draft is not syncing does not arm a later reseed', async () => {
+	const context = createVueConsentKernelContext({
+		config: {
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'google-ads',
+					name: 'Google Ads',
+					privacyPolicyUrl: 'https://policies.google.com/privacy',
+				},
+			],
+		},
+		kernelConfig: { initialPolicyResolution: resolution() },
+	});
+	await context.kernel.commands.save('all');
+	let syncing = true;
+	let draft!: ReturnType<typeof useConsentDraft>;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				draft = useConsentDraft(() => syncing);
+				return () => h('div');
+			},
+		})
+	);
+	app.provide(symbolKernelContext, context);
+	app.provide(consentConfigKey, {});
+	app.mount(document.createElement('div'));
+	try {
+		// The manager arms the latch and suppresses syncing around its own
+		// bulk save, then reseeds itself when the action completes.
+		draft.reseedOnNextRecord();
+		syncing = false;
+		await context.kernel.commands.save('none');
+		await nextTick();
+		syncing = true;
+		draft.reset();
+		expect(draft.values.value.marketing).toBe(false);
+		// A staged edit must survive the next change from another surface.
+		draft.setVendor('google-ads', false);
+		await context.kernel.commands.save({ marketing: true });
+		await nextTick();
+		expect(draft.values.value.marketing).toBe(true);
+		expect(draft.vendors.value['google-ads']).toBe(false);
+	} finally {
+		app.unmount();
+		context.dispose();
+	}
+});

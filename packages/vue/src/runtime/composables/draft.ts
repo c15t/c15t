@@ -106,6 +106,12 @@ export const useConsentDraft = function useConsentDraft(
 			]),
 		];
 	};
+	/**
+	 * Set by this surface's own save and bulk actions: the record change
+	 * they cause reseeds the draft even while it is dirty, since the edits
+	 * are what was just recorded or deliberately discarded.
+	 */
+	const reseedPending = ref(false);
 	/** The category values the record and policy imply for the displayed categories. */
 	const seedValues = (
 		current: ConsentSnapshot,
@@ -123,6 +129,9 @@ export const useConsentDraft = function useConsentDraft(
 		);
 	const reset = () => {
 		const current = snapshot.value;
+		// Any reseed consumes the latch, or a later foreign change would
+		// take it and discard edits made after this reseed.
+		reseedPending.value = false;
 		fingerprint.value = current.evaluationPolicy.choice.fingerprint;
 		surface.value = vendorSurface(current);
 		displayedCategories.value = categoriesFor(current);
@@ -173,12 +182,6 @@ export const useConsentDraft = function useConsentDraft(
 				categoriesFor(snapshot.value).join(',') ||
 			surface.value !== vendorSurface(snapshot.value)
 	);
-	/**
-	 * Set by this surface's own save and bulk actions: the record change
-	 * they cause reseeds the draft even while it is dirty, since the edits
-	 * are what was just recorded or deliberately discarded.
-	 */
-	const reseedPending = ref(false);
 	/** Whether the visitor moved anything since the last seed. */
 	const isDirty = () =>
 		displayedCategories.value.some(
@@ -201,6 +204,9 @@ export const useConsentDraft = function useConsentDraft(
 			[previousChoice, previousVendorChoice, previousDeclared, previousPolicy]
 		) => {
 			if (!shouldSyncChanges()) {
+				// The surface that suppressed syncing owns this change and
+				// reseeds when it is done, so the latch must not outlive it.
+				reseedPending.value = false;
 				return;
 			}
 			// A record saved by another surface, a vendor-only commit such as

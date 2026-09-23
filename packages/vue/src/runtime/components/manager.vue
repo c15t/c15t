@@ -142,6 +142,12 @@ const onAction = async function onAction(action: PresentationAction) {
 			applyingSave = false;
 		}
 		const result = await pending;
+		// The draft does not sync while an action is pending, so it follows
+		// the record once this action, and no newer one, has succeeded; a
+		// failed action keeps the visible draft for the visitor to retry.
+		if (result?.ok && sequence === actionSequence) {
+			resetDraft();
+		}
 		if (result?.ok && preserveManager && sequence === actionSequence) {
 			activeUI.value =
 				snapshot.value.promptRequirement.kind === 'none' ? null : 'banner';
