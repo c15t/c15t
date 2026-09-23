@@ -29,7 +29,6 @@ import {
 import { useConsentDraft } from '../composables/draft';
 import { useConsentSnapshot } from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
-import { preferenceItemVariants } from '../primitives/preference-item/variants';
 import { switchVariants } from '../primitives/switch-variants';
 import { consentWidgetManagerKey } from './preferences-manager-context';
 import ConsentTag from './tag.vue';
@@ -59,7 +58,6 @@ const hasConsentUi = useHasConsentUi();
 const manager = inject(consentWidgetManagerKey, null);
 const save = useConsentSave();
 
-const pi = preferenceItemVariants();
 const sw = switchVariants();
 
 /**

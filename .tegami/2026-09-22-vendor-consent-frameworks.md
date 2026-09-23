@@ -4,6 +4,7 @@ packages:
   "@c15t/svelte": minor
   "@c15t/core": patch
   "@c15t/react": patch
+  "@c15t/ui": patch
 ---
 
 ### Show vendors in the Vue and Svelte preference centers
