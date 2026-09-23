@@ -439,16 +439,21 @@ test('a category record saved by another surface keeps a staged vendor toggle', 
 	app.mount(document.createElement('div'));
 	try {
 		draft.setVendor('google-ads', false);
-		// Another surface on the same kernel records a category-only save.
-		await context.kernel.commands.save({ marketing: true, measurement: false });
+		// Another surface on the same kernel turns marketing off.
+		await context.kernel.commands.save({ marketing: false });
 		await nextTick();
 		expect(
-			context.snapshot.value.explicitChoice?.categories.measurement?.value
+			context.snapshot.value.explicitChoice?.categories.marketing?.value
 		).toBe(false);
+		// The staged toggle survives and the untouched category follows the
+		// new record, so this surface's save does not turn marketing back on.
 		expect(draft.vendors.value['google-ads']).toBe(false);
+		expect(draft.values.value.marketing).toBe(false);
 		expect(draft.isStale.value).toBe(false);
-		// This surface's own save records the toggle and reseeds from it.
 		await draft.save();
+		expect(
+			context.snapshot.value.explicitChoice?.categories.marketing?.value
+		).toBe(false);
 		expect(context.snapshot.value.vendorChoice?.denied).toEqual(['google-ads']);
 	} finally {
 		app.unmount();

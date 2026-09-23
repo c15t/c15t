@@ -106,13 +106,13 @@ export const useConsentDraft = function useConsentDraft(
 			]),
 		];
 	};
-	const reset = () => {
-		const current = snapshot.value;
-		fingerprint.value = current.evaluationPolicy.choice.fingerprint;
-		surface.value = vendorSurface(current);
-		displayedCategories.value = categoriesFor(current);
-		values.value = Object.fromEntries(
-			displayedCategories.value.map((category) => [
+	/** The category values the record and policy imply for the displayed categories. */
+	const seedValues = (
+		current: ConsentSnapshot,
+		categories: readonly (keyof ConsentState)[]
+	): Partial<ConsentState> =>
+		Object.fromEntries(
+			categories.map((category) => [
 				category,
 				category === 'necessary' ||
 					(current.explicitChoice?.categories[category]?.value ??
@@ -121,9 +121,48 @@ export const useConsentDraft = function useConsentDraft(
 							current.policyRule.preselectedCategories.includes(category))),
 			])
 		);
+	const reset = () => {
+		const current = snapshot.value;
+		fingerprint.value = current.evaluationPolicy.choice.fingerprint;
+		surface.value = vendorSurface(current);
+		displayedCategories.value = categoriesFor(current);
+		values.value = seedValues(current, displayedCategories.value);
 		seededValues.value = { ...values.value };
 		baseVendors.value = seedVendors(current);
 		vendors.value = { ...baseVendors.value };
+	};
+	/**
+	 * Follow a record another surface saved without dropping this draft's
+	 * edits: untouched categories and vendors take the new baseline, moved
+	 * ones keep their staged value. Otherwise the next save would write the
+	 * stale untouched values back over the other surface's change.
+	 */
+	const mergeBaseline = () => {
+		const current = snapshot.value;
+		const nextValues = seedValues(current, displayedCategories.value);
+		values.value = Object.fromEntries(
+			displayedCategories.value.map((category) => [
+				category,
+				values.value[category] === seededValues.value[category]
+					? nextValues[category]
+					: values.value[category],
+			])
+		);
+		seededValues.value = { ...nextValues };
+		const nextVendors = seedVendors(current);
+		const mergedVendors: Record<string, boolean> = {};
+		for (const [id, granted] of Object.entries(nextVendors)) {
+			const staged = vendors.value[id];
+			setOwn(
+				mergedVendors,
+				id,
+				staged !== undefined && staged !== baseVendors.value[id]
+					? staged
+					: granted
+			);
+		}
+		vendors.value = mergedVendors;
+		baseVendors.value = nextVendors;
 	};
 	reset();
 	const isStale = computed(
@@ -176,10 +215,15 @@ export const useConsentDraft = function useConsentDraft(
 				declared !== previousDeclared ||
 				(policy !== previousPolicy &&
 					fingerprint.value === policy.choice.fingerprint);
-			if (changed && (reseedPending.value || !isDirty())) {
+			if (!changed) {
+				return;
+			}
+			if (reseedPending.value || !isDirty()) {
 				reseedPending.value = false;
 				reset();
+				return;
 			}
+			mergeBaseline();
 		}
 	);
 	return {
