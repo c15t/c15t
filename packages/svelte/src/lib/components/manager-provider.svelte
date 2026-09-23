@@ -143,17 +143,22 @@
 		(current.vendors?.declared ?? []).some(
 			(vendor) => vendor.id === vendorId && vendor.disabled !== true
 		);
-	/** What the vendor rows are built from; a dirty draft goes stale when it changes. */
+	/**
+	 * What the vendor rows are built from; a dirty draft goes stale when it
+	 * changes. A declaration that cannot produce a row, such as a script
+	 * registering only its slug, is not part of the surface.
+	 */
 	const vendorSurface = (current: ConsentSnapshot) =>
 		current.model === 'iab'
 			? ''
 			: JSON.stringify(
-					(current.vendors?.declared ?? []).map((vendor) => [
-						vendor.id,
-						vendor.presentable,
-						vendor.disabled === true,
-						vendor.category,
-					])
+					(current.vendors?.declared ?? [])
+						.filter((vendor) => vendor.presentable)
+						.map((vendor) => [
+							vendor.id,
+							vendor.disabled === true,
+							vendor.category,
+						])
 				);
 	/** The value a category shows before the visitor moves it. */
 	const baselineValue = (

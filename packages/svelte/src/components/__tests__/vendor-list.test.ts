@@ -407,6 +407,27 @@ describe('Svelte consent widget vendor rows', () => {
 		await open('marketing');
 		state()?.setSelectedVendor('meta-pixel', false);
 		expect(state()?.draft.isStale).toBe(false);
+		// A script registering only its slug adds no row, so the draft stays fresh.
+		kernel().set.vendors({
+			declared: [
+				{
+					category: 'marketing',
+					id: 'slug-only',
+					name: 'slug-only',
+					presentable: false,
+					privacyPolicyUrl: '',
+					source: 'script',
+				},
+			],
+		});
+		await waitFor(() => {
+			expect(
+				kernel()
+					.getSnapshot()
+					.vendors?.declared.some((vendor) => vendor.id === 'slug-only')
+			).toBe(true);
+		});
+		expect(state()?.draft.isStale).toBe(false);
 		kernel().set.vendors({
 			declared: [
 				{

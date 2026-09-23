@@ -103,14 +103,12 @@ const vendorSurface = function vendorSurface(
 	if (snapshot.model === 'iab') {
 		return '';
 	}
+	// A declaration that cannot produce a row, such as a script registering
+	// only its slug, is not part of the surface: it changes nothing visible.
 	return JSON.stringify(
 		(snapshot.vendors?.declared ?? [])
-			.map((vendor) => [
-				vendor.id,
-				vendor.presentable,
-				vendor.disabled === true,
-				vendor.category,
-			])
+			.filter((vendor) => vendor.presentable)
+			.map((vendor) => [vendor.id, vendor.disabled === true, vendor.category])
 			.sort(([left], [right]) => String(left).localeCompare(String(right)))
 	);
 };

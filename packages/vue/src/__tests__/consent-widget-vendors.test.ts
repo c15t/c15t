@@ -358,6 +358,25 @@ describe('Vue consent widget vendor rows', () => {
 			// Dirty: the visitor was looking at a different list, so review.
 			byTestId('consent-widget-vendor-switch-marketing-meta-pixel')?.click();
 			await flushPromises();
+			// A script registering only its slug adds a declaration no row is
+			// built from, so the draft stays fresh and Save stays enabled.
+			context.kernel.set.vendors({
+				declared: [
+					{
+						category: 'marketing',
+						id: 'slug-only',
+						name: 'slug-only',
+						presentable: false,
+						privacyPolicyUrl: '',
+						source: 'script',
+					},
+				],
+			});
+			await flushPromises();
+			expect(document.querySelector('[role="status"]')).toBeNull();
+			expect(
+				byTestId('consent-widget-footer-save-button')?.hasAttribute('disabled')
+			).toBe(false);
 			context.kernel.set.vendors({
 				declared: [{ ...late, id: 'later-vendor' }],
 			});

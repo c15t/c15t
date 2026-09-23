@@ -58,7 +58,9 @@ const toggleableVendorIds = function toggleableVendorIds(
 /**
  * What the vendor rows are built from. A change here while the draft is
  * dirty means the visitor was looking at a different list, so the draft
- * goes stale the way a category change makes it stale.
+ * goes stale the way a category change makes it stale. A declaration that
+ * cannot produce a row, such as a script registering only its slug, is
+ * not part of the surface: it changes nothing the visitor can see.
  */
 const vendorSurface = function vendorSurface(
 	snapshot: ConsentSnapshot
@@ -67,12 +69,9 @@ const vendorSurface = function vendorSurface(
 		return '';
 	}
 	return JSON.stringify(
-		(snapshot.vendors?.declared ?? []).map((vendor) => [
-			vendor.id,
-			vendor.presentable,
-			vendor.disabled === true,
-			vendor.category,
-		])
+		(snapshot.vendors?.declared ?? [])
+			.filter((vendor) => vendor.presentable)
+			.map((vendor) => [vendor.id, vendor.disabled === true, vendor.category])
 	);
 };
 

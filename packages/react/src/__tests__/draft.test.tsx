@@ -811,3 +811,76 @@ test('drafts use configured categories and require review when the displayed sco
 		.element(screen.getByRole('status'))
 		.toHaveTextContent('"categories":["necessary","marketing","measurement"]');
 });
+
+test('a script registering only its slug does not stale a dirty draft', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'slug-only-later' }
+	);
+	const vendor = {
+		category: 'marketing' as const,
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	};
+	const Probe = ({ register }: { register: () => void }) => {
+		const draft = useConsentDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({ dirty: draft.isDirty, stale: draft.isStale })}
+				</output>
+				<button
+					onClick={() => draft.setVendor('meta-pixel', false)}
+					type="button"
+				>
+					Deny vendor
+				</button>
+				<button
+					onClick={register}
+					type="button"
+				>
+					Register script
+				</button>
+			</>
+		);
+	};
+	const App = () => {
+		const [registered, setRegistered] = useState(false);
+		return (
+			<ConsentProvider
+				options={{
+					consentCategories: ['necessary', 'marketing'],
+					mode: offline(),
+					persistence: false,
+					prefetch: fixture,
+					// A late script names a vendor nobody declared, which adds a
+					// hidden declaration no row is built from.
+					scripts: registered
+						? [
+								{
+									callbackOnly: true,
+									category: 'marketing',
+									id: 'ads-script',
+									vendor: 'ad-network',
+								},
+							]
+						: [],
+					vendors: [vendor],
+				}}
+			>
+				<Probe register={() => setRegistered(true)} />
+			</ConsentProvider>
+		);
+	};
+	const screen = await render(<App />);
+	await screen.getByRole('button', { name: 'Deny vendor' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"dirty":true,"stale":false');
+	await screen.getByRole('button', { name: 'Register script' }).click();
+	// The preference surface did not change, so the edit is still saveable.
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"dirty":true,"stale":false');
+});
