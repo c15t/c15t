@@ -134,6 +134,12 @@ export const useConsentDraft = function useConsentDraft(
 				categoriesFor(snapshot.value).join(',') ||
 			surface.value !== vendorSurface(snapshot.value)
 	);
+	/**
+	 * Set by this surface's own save and bulk actions: the record change
+	 * they cause reseeds the draft even while it is dirty, since the edits
+	 * are what was just recorded or deliberately discarded.
+	 */
+	const reseedPending = ref(false);
 	/** Whether the visitor moved anything since the last seed. */
 	const isDirty = () =>
 		displayedCategories.value.some(
@@ -158,26 +164,20 @@ export const useConsentDraft = function useConsentDraft(
 			if (!shouldSyncChanges()) {
 				return;
 			}
-			// A recorded choice reseeds the draft; so does a policy object that
-			// changed without changing the choice fingerprint.
-			if (
+			// A record saved by another surface, a vendor-only commit such as
+			// a module declaring its slugs, or a policy object that changed
+			// without changing the choice fingerprint reseeds a clean draft.
+			// A dirty one keeps its edits, as in React and Svelte; a material
+			// change makes it stale for review, and this surface's own save
+			// reseeds itself on success.
+			const changed =
 				choice !== previousChoice ||
+				vendorChoice !== previousVendorChoice ||
+				declared !== previousDeclared ||
 				(policy !== previousPolicy &&
-					fingerprint.value === policy.choice.fingerprint)
-			) {
-				reset();
-				return;
-			}
-			// A vendor record saved by another surface, or a vendor-only
-			// commit such as a module declaring its slugs, reseeds a clean
-			// draft so the visitor is not told the policy changed; a dirty
-			// one keeps its edits, as in React and Svelte, and a changed
-			// vendor surface makes it stale for review.
-			if (
-				(vendorChoice !== previousVendorChoice ||
-					declared !== previousDeclared) &&
-				!isDirty()
-			) {
+					fingerprint.value === policy.choice.fingerprint);
+			if (changed && (reseedPending.value || !isDirty())) {
+				reseedPending.value = false;
 				reset();
 			}
 		}
@@ -185,6 +185,14 @@ export const useConsentDraft = function useConsentDraft(
 	return {
 		displayedCategories,
 		isStale,
+		/**
+		 * Let the next record change reseed the draft even while it is
+		 * dirty. Bulk actions call this before saving so a staged vendor
+		 * toggle follows Accept all and Reject all instead of surviving them.
+		 */
+		reseedOnNextRecord() {
+			reseedPending.value = true;
+		},
 		reset,
 		async save(): Promise<SaveResult> {
 			if (isStale.value) {
@@ -209,7 +217,13 @@ export const useConsentDraft = function useConsentDraft(
 			if (Object.keys(moved).length > 0) {
 				patch.vendors = moved;
 			}
-			return await kernel.commands.save(patch);
+			// The kernel commits locally before the network call, so the
+			// record change lands, and reseeds this draft, before the save
+			// resolves; a rejected save changes nothing and the flag clears.
+			reseedPending.value = true;
+			const result = await kernel.commands.save(patch);
+			reseedPending.value = false;
+			return result;
 		},
 		/**
 		 * Stage one vendor's grant for the next save. Ignored for a vendor that

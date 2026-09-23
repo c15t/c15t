@@ -44,7 +44,12 @@ let pendingActions = 0;
 let actionSequence = 0;
 let applyingSave = false;
 const draftState = useConsentDraft(() => pendingActions === 0);
-const { isStale, reset: resetDraft, save: saveDraft } = draftState;
+const {
+	isStale,
+	reseedOnNextRecord,
+	reset: resetDraft,
+	save: saveDraft,
+} = draftState;
 
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
 const isOverlayVisible = computed(() => activeUI.value === 'manager');
@@ -124,8 +129,10 @@ const onAction = async function onAction(action: PresentationAction) {
 			if (action === 'save') {
 				pending = saveDraft();
 			} else if (action === 'accept') {
+				reseedOnNextRecord();
 				pending = save('all');
 			} else if (action === 'reject') {
+				reseedOnNextRecord();
 				pending = save('none');
 			}
 			if (preserveManager && sequence === actionSequence) {

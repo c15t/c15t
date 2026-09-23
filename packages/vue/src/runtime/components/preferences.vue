@@ -113,6 +113,7 @@ const {
 	values: draft,
 	displayedCategories: draftCategories,
 	isStale,
+	reseedOnNextRecord,
 	reset: resetDraft,
 	save: saveDraft,
 	setVendor,
@@ -210,8 +211,10 @@ const onAction = async function onAction(action: PresentationAction) {
 		return;
 	}
 	if (action === 'accept') {
+		reseedOnNextRecord();
 		save('all');
 	} else if (action === 'reject') {
+		reseedOnNextRecord();
 		save('none');
 	} else if (action === 'save') {
 		await saveDraft();

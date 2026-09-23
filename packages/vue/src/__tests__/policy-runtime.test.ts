@@ -409,3 +409,49 @@ test('a vendor record saved by another surface keeps a dirty draft', async () =>
 		context.dispose();
 	}
 });
+
+test('a category record saved by another surface keeps a staged vendor toggle', async () => {
+	const context = createVueConsentKernelContext({
+		config: {
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'google-ads',
+					name: 'Google Ads',
+					privacyPolicyUrl: 'https://policies.google.com/privacy',
+				},
+			],
+		},
+		kernelConfig: { initialPolicyResolution: resolution() },
+	});
+	await context.kernel.commands.save('all');
+	let draft!: ReturnType<typeof useConsentDraft>;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				draft = useConsentDraft();
+				return () => h('div');
+			},
+		})
+	);
+	app.provide(symbolKernelContext, context);
+	app.provide(consentConfigKey, {});
+	app.mount(document.createElement('div'));
+	try {
+		draft.setVendor('google-ads', false);
+		// Another surface on the same kernel records a category-only save.
+		await context.kernel.commands.save({ marketing: true, measurement: false });
+		await nextTick();
+		expect(
+			context.snapshot.value.explicitChoice?.categories.measurement?.value
+		).toBe(false);
+		expect(draft.vendors.value['google-ads']).toBe(false);
+		expect(draft.isStale.value).toBe(false);
+		// This surface's own save records the toggle and reseeds from it.
+		await draft.save();
+		expect(context.snapshot.value.vendorChoice?.denied).toEqual(['google-ads']);
+	} finally {
+		app.unmount();
+		context.dispose();
+	}
+});
