@@ -232,6 +232,7 @@ const interpolate = function interpolate(
 		<PreferenceItemContent
 			:inner-attrs="config.components?.['iab-purpose-item']?.content"
 			:inner-class="dialogStyles.purposeContent"
+			:no-style="false"
 		>
 			<p :class="dialogStyles.purposeDescription">{{ purpose.description }}</p>
 
@@ -293,7 +294,7 @@ const interpolate = function interpolate(
 							purpose.illustrations.length
 						}})
 					</PreferenceItemTrigger>
-					<PreferenceItemContent>
+					<PreferenceItemContent :no-style="false">
 						<ul :class="dialogStyles.examplesList">
 							<li
 								v-for="illustration in purpose.illustrations"
@@ -320,7 +321,10 @@ const interpolate = function interpolate(
 							purpose.vendors.length
 						}})
 					</PreferenceItemTrigger>
-					<PreferenceItemContent :inner-class="dialogStyles.vendorSection">
+					<PreferenceItemContent
+						:inner-class="dialogStyles.vendorSection"
+						:no-style="false"
+					>
 						<template v-if="iabConsentVendors.length > 0">
 							<h5 :class="dialogStyles.vendorSectionTitle">
 								{{ iabT?.preferenceCenter?.purposeItem?.withYourPermission }}

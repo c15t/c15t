@@ -6,7 +6,7 @@
 	} from '@c15t/core';
 	import accordionStyles from '@c15t/ui/styles/components/accordion';
 	import managerStyles from '@c15t/ui/styles/components/consent-manager';
-	import { switchVariants } from '@c15t/ui/styles/primitives';
+	import switchStyles from '@c15t/ui/styles/components/switch';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
@@ -16,8 +16,6 @@
 	import Branding from './branding.svelte';
 	import PolicyActionsRenderer from './policy-actions-renderer.svelte';
 	import VendorList from './vendor-list.svelte';
-
-	const sw = switchVariants({ size: 'small' });
 
 	let {
 		hideBranding = true,
@@ -216,15 +214,12 @@
 									: undefined}
 								onclick={() => toggleConsent(consentType.name, !isChecked)}
 								disabled={isDisabled}
-								class={noStyle ? '' : sw.root()}
+								class={noStyle ? '' : switchStyles.root}
+								data-size={noStyle ? undefined : 'small'}
 								data-testid={`consent-widget-switch-${consentType.name}`}
 							>
-								<Switch.Control
-									class={noStyle ? '' : sw.track({ disabled: isDisabled })}
-								>
-									<Switch.Thumb
-										class={noStyle ? '' : sw.thumb({ disabled: isDisabled })}
-									/>
+								<Switch.Control class={noStyle ? '' : switchStyles.track}>
+									<Switch.Thumb class={noStyle ? '' : switchStyles.thumb} />
 								</Switch.Control>
 							</Switch.Root>
 						</PreferenceItem.Control>
@@ -245,7 +240,6 @@
 							: accordionStyles.contentViewport}
 						innerClassName={noStyle ? undefined : accordionStyles.contentInner}
 						class={noStyle ? '' : accordionStyles.content || ''}
-						{noStyle}
 						data-testid={`consent-widget-accordion-content-${consentType.name}`}
 					>
 						{translations.consentTypes[consentType.name]?.description ??

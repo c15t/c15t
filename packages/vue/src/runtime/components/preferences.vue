@@ -344,29 +344,19 @@ const onAction = async function onAction(action: PresentationAction) {
 					:id="contentId(index)"
 					:aria-hidden="isOpen(category) ? 'false' : 'true'"
 					:aria-labelledby="triggerId(index)"
-					:class="
-						pi.content({ class: noStyle ? undefined : accordionStyles.content })
-					"
+					:class="noStyle ? undefined : accordionStyles.content"
 					data-slot="preference-item-content"
 					:data-state="isOpen(category) ? 'open' : 'closed'"
 					:data-testid="`consent-widget-accordion-content-${category}`"
 					:inert="!isOpen(category)"
 				>
 					<div
-						:class="
-							pi.contentViewport({
-								class: noStyle ? undefined : accordionStyles.contentViewport,
-							})
-						"
+						:class="noStyle ? undefined : accordionStyles.contentViewport"
 						v-bind="config.components?.accordion?.contentViewport"
 						data-slot="preference-item-content-viewport"
 					>
 						<div
-							:class="
-								pi.contentInner({
-									class: noStyle ? undefined : accordionStyles.contentInner,
-								})
-							"
+							:class="noStyle ? undefined : accordionStyles.contentInner"
 							v-bind="config.components?.accordion?.contentInner"
 							data-slot="preference-item-content-inner"
 						>

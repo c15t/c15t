@@ -159,7 +159,7 @@ const stackChecked = computed({
 			</PreferenceItemControl>
 		</div>
 
-		<PreferenceItemContent>
+		<PreferenceItemContent :no-style="false">
 			<div :class="dialogStyles.stackDescription">
 				<p>{{ stack.description }}</p>
 			</div>

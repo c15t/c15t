@@ -18,21 +18,34 @@ const props = withDefaults(
 		 * content slot lands — the outer two are the collapsing grid.
 		 */
 		innerAttrs?: object;
+		/**
+		 * Drop the built-in classes. Falls back to the root's `noStyle`,
+		 * like the React primitive and the sibling trigger, so a surface
+		 * that sets `noStyle` on its root only to own the item class passes
+		 * an explicit `false` here to keep the collapse rules.
+		 */
+		noStyle?: boolean;
 	}>(),
-	{ class: undefined, innerAttrs: undefined, innerClass: undefined }
+	{
+		class: undefined,
+		innerAttrs: undefined,
+		innerClass: undefined,
+		noStyle: undefined,
+	}
 );
 
 const context = usePreferenceItemContext();
 const variants = preferenceItemVariants();
 
+const noStyle = computed(() => props.noStyle ?? context.noStyle.value);
 const contentClass = computed(() =>
-	context.noStyle.value ? props.class : variants.content({ class: props.class })
+	noStyle.value ? props.class : variants.content({ class: props.class })
 );
 const viewportClass = computed(() =>
-	context.noStyle.value ? undefined : variants.contentViewport()
+	noStyle.value ? undefined : variants.contentViewport()
 );
 const innerClass = computed(() =>
-	context.noStyle.value
+	noStyle.value
 		? props.innerClass
 		: variants.contentInner({ class: props.innerClass })
 );

@@ -27,9 +27,11 @@
 		/**
 		 * Drop the primitive's built-in classes. Falls back to the root's
 		 * `noStyle`, like the React primitive and the sibling trigger, so a
-		 * headless root strips the whole item. A component that sets
-		 * `noStyle` on its root only to own the item class passes an explicit
-		 * `false` here, as every consent widget and IAB item does.
+		 * headless root strips the whole item. The IAB items set `noStyle`
+		 * on their root only to own the item class and pass an explicit
+		 * `false` here to keep the collapse rules; the consent widget
+		 * inherits the root's `noStyle` and supplies the accordion classes
+		 * itself, as React's does.
 		 */
 		noStyle?: boolean;
 		/** Presentation class for the consent widget viewport.

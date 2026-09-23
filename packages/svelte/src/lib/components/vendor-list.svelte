@@ -9,8 +9,8 @@
 	 */
 	import type { AllConsentNames, ResolvedVendor } from '@c15t/core';
 	import { defaultTranslationConfig } from '@c15t/core';
+	import switchStyles from '@c15t/ui/styles/components/switch';
 	import vendorListStyles from '@c15t/ui/styles/components/vendor-list';
-	import { switchVariants } from '@c15t/ui/styles/primitives';
 	import { resolveTranslations } from '@c15t/ui/utils';
 
 	import { getConsentContext } from '../context.svelte';
@@ -28,7 +28,6 @@
 
 	const consent = getConsentContext();
 	const uid = $props.id();
-	const sw = switchVariants({ size: 'small' });
 
 	const DEFAULT_COPY = {
 		disabledByCategory: 'Turn on this category to choose vendors.',
@@ -134,21 +133,18 @@
 								)}
 								aria-describedby={labelId(vendor)}
 								{checked}
-								class={noStyle ? undefined : sw.root()}
+								class={noStyle ? undefined : switchStyles.root}
+								data-size={noStyle ? undefined : 'small'}
 								disabled={!categoryOn}
 								onclick={() =>
 									consent.state.setSelectedVendor(vendor.id, !checked)}
 								data-testid={`consent-widget-vendor-switch-${category}-${vendor.id}`}
 							>
 								<Switch.Control
-									class={noStyle
-										? undefined
-										: sw.track({ disabled: !categoryOn })}
+									class={noStyle ? undefined : switchStyles.track}
 								>
 									<Switch.Thumb
-										class={noStyle
-											? undefined
-											: sw.thumb({ disabled: !categoryOn })}
+										class={noStyle ? undefined : switchStyles.thumb}
 									/>
 								</Switch.Control>
 							</Switch.Root>

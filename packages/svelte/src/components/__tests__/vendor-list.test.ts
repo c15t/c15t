@@ -8,6 +8,8 @@
  * the denial. The markup mirrors the React rows so parity holds.
  */
 import type { Vendor } from '@c15t/core';
+import accordionStyles from '@c15t/ui/styles/components/accordion';
+import switchStyles from '@c15t/ui/styles/components/switch';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
 
@@ -343,6 +345,33 @@ describe('Svelte consent widget vendor rows', () => {
 		expect(
 			kernel().getSnapshot().explicitChoice?.categories.measurement?.value
 		).toBe(false);
+	});
+
+	test('the category content and switches carry the class names React renders', async () => {
+		renderWidget({ marketing: true, measurement: true });
+		await open('marketing');
+		// React's accordion root is headless, so its content carries the
+		// accordion classes alone; stacking the preference-item classes on
+		// top changed the description colour. Its switches take the shared
+		// switch class map and size through data-size.
+		const content = byTestId('consent-widget-accordion-content-marketing');
+		expect([...(content?.classList ?? [])]).toEqual([accordionStyles.content]);
+		expect([
+			...(content?.querySelector('[data-slot="preference-item-content-inner"]')
+				?.classList ?? []),
+		]).toEqual([accordionStyles.contentInner]);
+		for (const id of [
+			'consent-widget-switch-marketing',
+			'consent-widget-vendor-switch-marketing-meta-pixel',
+		]) {
+			const control = byTestId(id);
+			expect([...(control?.classList ?? [])]).toEqual([switchStyles.root]);
+			expect(control?.getAttribute('data-size')).toBe('small');
+			expect([
+				...(control?.querySelector('[data-slot="switch-track"]')?.classList ??
+					[]),
+			]).toEqual([switchStyles.track]);
+		}
 	});
 
 	test('noStyle drops the built-in classes from the vendor cards', async () => {

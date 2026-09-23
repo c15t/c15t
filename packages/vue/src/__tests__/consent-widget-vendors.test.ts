@@ -18,6 +18,7 @@ import {
 	resolvePolicyRules,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
+import accordionStyles from '@c15t/ui/styles/components/accordion';
 import preferenceItemStyles from '@c15t/ui/styles/components/preference-item';
 import switchStyles from '@c15t/ui/styles/components/switch';
 import { flushPromises, mount } from '@vue/test-utils';
@@ -407,6 +408,18 @@ describe('Vue consent widget vendor rows', () => {
 					'consent-widget-vendor-content-marketing-meta-pixel'
 				)?.classList.contains(preferenceItemStyles.content)
 			).toBe(true);
+			// The category content carries the accordion classes alone, as in
+			// React, whose preference-item root is headless there. Stacking the
+			// preference-item classes on top changed the description colour.
+			const content = byTestId('consent-widget-accordion-content-marketing');
+			expect([...(content?.classList ?? [])]).toEqual([
+				accordionStyles.content,
+			]);
+			expect([
+				...(content?.querySelector(
+					'[data-slot="preference-item-content-inner"]'
+				)?.classList ?? []),
+			]).toEqual([accordionStyles.contentInner]);
 		} finally {
 			await cleanup(wrapper, context);
 		}

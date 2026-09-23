@@ -15,14 +15,21 @@ import {
 } from '../runtime/primitives';
 
 const Item = defineComponent({
-	props: { noStyle: { default: false, type: Boolean } },
+	props: {
+		contentNoStyle: { default: undefined, type: Boolean },
+		noStyle: { default: false, type: Boolean },
+	},
 	setup(props) {
 		return () =>
 			h(PreferenceItemRoot, { noStyle: props.noStyle, open: true }, () => [
 				h(PreferenceItemTrigger, null, () => 'Marketing'),
 				h(
 					PreferenceItemContent,
-					{ class: 'own-content', innerClass: 'own-inner' },
+					{
+						class: 'own-content',
+						innerClass: 'own-inner',
+						noStyle: props.contentNoStyle,
+					},
 					() => 'Body'
 				),
 			]);
@@ -47,4 +54,20 @@ test('content keeps the built-in classes by default and drops them under noStyle
 	expect(headless.content).toEqual(['own-content']);
 	expect(headless.viewport).toEqual([]);
 	expect(headless.inner).toEqual(['own-inner']);
+});
+
+test('an explicit noStyle on the content overrides the root', () => {
+	// The IAB items set noStyle on their root to own the item class and
+	// keep the collapse rules on the content with an explicit false.
+	const kept = classesOf(
+		mount(Item, { props: { contentNoStyle: false, noStyle: true } })
+	);
+	expect(kept.content.length).toBeGreaterThan(1);
+	expect(kept.viewport.length).toBe(1);
+
+	const dropped = classesOf(
+		mount(Item, { props: { contentNoStyle: true, noStyle: false } })
+	);
+	expect(dropped.content).toEqual(['own-content']);
+	expect(dropped.viewport).toEqual([]);
 });
