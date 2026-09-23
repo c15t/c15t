@@ -60,15 +60,6 @@ export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	readonly consentAction?: string | null;
 	readonly validUntil?: Date | null;
 	readonly runtimePolicySource?: string | null;
-	/**
-	 * Runs inside the same transaction as a vendor-map backfill, after the
-	 * map is written. The caller writes the audit entry here, so a failed
-	 * entry rolls the map back and the next replay records both together:
-	 * the first record of the decision is never left unaudited.
-	 */
-	readonly onVendorChoiceBackfilled?: (
-		consentId: string
-	) => Effect.Effect<void, SqlError.SqlError, SqlClient.SqlClient>;
 }
 
 export interface RecordedConsent {
@@ -80,12 +71,6 @@ export interface RecordedConsent {
 	 * replay — the audit trail should record one, not both.
 	 */
 	readonly created: boolean;
-	/**
-	 * True when a replay filled in a vendor map the stored row lacked. The
-	 * row was written by a process that did not yet carry the column, so the
-	 * replay is the first record of that decision and the caller audits it.
-	 */
-	readonly vendorChoiceBackfilled?: boolean;
 }
 
 /**
@@ -299,12 +284,12 @@ const storedVendorChoice = (
  * carries one. A queued save replays with its original time, so the same
  * id, and the row it meets can have been written by a process that did not
  * yet carry the column, during a rolling upgrade or before migration 4.
- * Treating that as a conflict would make the vendor decision unrecoverable,
- * so it answers `backfill` and the caller fills the column in. The other
+ * That replay is accepted as the same act so the client's queue clears; the
+ * row keeps no map, and the visitor's next save carries their full vendor
+ * map, so the subject's aggregate catches up on their next act. The other
  * direction, a stored map against a replay without one, stays a conflict:
  * a client that recorded vendors does not later replay the act without them.
  *
- * @returns `'same'` or `'backfill'`.
  * @internal
  */
 export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
@@ -316,11 +301,8 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 		const stored =
 			storedMap === UNREADABLE ? UNREADABLE : canonicalVendorChoice(storedMap);
 		const incoming = canonicalVendorChoice(submitted);
-		if (stored === incoming) {
-			return 'same' as const;
-		}
-		if (storedMap === null && submitted) {
-			return 'backfill' as const;
+		if (stored === incoming || (storedMap === null && submitted)) {
+			return;
 		}
 		return yield* new ConsentPurposeConflictError({
 			message:
@@ -332,102 +314,13 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 );
 
 /**
- * The characters JSON allows around a value. `trim(x, chars)` strips any of
- * them on every engine, where a bare `trim` strips spaces only on SQLite.
- */
-const JSON_WHITESPACE = ' \t\n\r';
-
-/** The matched-row count a MySQL result header carries; 0 when absent. */
-const affectedRows = (result: unknown): number =>
-	typeof result === 'object' &&
-	result !== null &&
-	'affectedRows' in result &&
-	typeof result.affectedRows === 'number'
-		? result.affectedRows
-		: 0;
-
-/**
- * Fill in the vendor map a stored row lacks. Only the row that still lacks
- * one is written, so two replays racing for the same backfill cannot both
- * win. Postgres and SQLite report the win through `returning`; MySQL has
- * no `returning`, so the update's own row count reports it. Reading the
- * row back and comparing would not do: a loser that replays the same map
- * reads the winner's identical copy and would audit the decision twice.
- * mysql2 connects with `CLIENT_FOUND_ROWS`, so the count is matched rows,
- * and the absence guard leaves a loser matching none.
- *
- * @returns Whether this call wrote the map.
- */
-const backfillVendorChoice = Effect.fn('consent.backfillVendorChoice')(
-	function* backfillVendorChoice(id: string, vendorChoice: VendorChoiceWire) {
-		const sql = yield* SqlClient.SqlClient;
-		const encoded = JSON.stringify(vendorChoice);
-		// The same absence `storedVendorChoice` reads: SQL NULL, or a stored
-		// JSON `null`, which a text column hands back as the string 'null'
-		// and a JSON column as the literal. The decoder parses the text, so
-		// any JSON whitespace an import left around the literal is still
-		// `null` to it. `trim` alone would not do: SQLite's one-argument form
-		// strips spaces only, so the four JSON whitespace characters are
-		// named explicitly and the predicate stays in step with the decoder,
-		// or the update would match nothing and the decision would be lost.
-		// Postgres and SQLite take the characters as a second argument; MySQL
-		// only knows the `trim(chars from x)` form. Anything else already
-		// decided. `char` would truncate to one character on Postgres; every
-		// engine spells the whole value with `text`, MySQL through its char
-		// alias.
-		const text = sql`cast(${sql('vendorChoice')} as ${sql.onDialectOrElse({
-			mysql: () => sql.literal('char'),
-			orElse: () => sql.literal('text'),
-		})})`;
-		const trimmed = sql.onDialectOrElse({
-			mysql: () => sql`trim(${JSON_WHITESPACE} from ${text})`,
-			orElse: () => sql`trim(${text}, ${JSON_WHITESPACE})`,
-		});
-		const absent = sql`(
-			${sql('vendorChoice')} is null
-			or ${trimmed} = 'null'
-		)`;
-		return yield* sql.onDialectOrElse({
-			mysql: () =>
-				Effect.map(
-					sql`
-						update ${sql('consent')}
-						set ${sql('vendorChoice')} = ${encoded}
-						where ${sql('id')} = ${id} and ${absent}
-					`.raw,
-					(result) => affectedRows(result) > 0
-				),
-			orElse: () =>
-				Effect.map(
-					sql<{ id: string }>`
-						update ${sql('consent')}
-						set ${sql('vendorChoice')} = ${encoded}
-						where ${sql('id')} = ${id} and ${absent}
-						returning ${sql('id')}
-					`,
-					(updated) => updated.length > 0
-				),
-		});
-	}
-);
-
-/**
  * Every content check against a stored row, for the two paths that find
- * one. Fills in a vendor map the row lacks, so the outcome of that replay
- * is the first record of the decision.
- *
- * A lost backfill is re-checked rather than reported as a retry: the other
- * writer may have stored a different map, and that is the same conflict
- * the surrounding content checks exist to catch.
- */
-/**
- * Exported for the unit tests of the lost-backfill branch.
+ * one.
  *
  * @internal
  */
 export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 	function* assertSameSubmission(
-		id: string,
 		stored:
 			| { purposeIds: unknown; choice: unknown; vendorChoice: unknown }
 			| undefined,
@@ -435,43 +328,7 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 	) {
 		yield* assertSamePurposes(stored?.purposeIds, submission.purposeIds);
 		yield* assertSameChoice(stored?.choice, submission.choice);
-		const vendors = yield* assertSameVendors(
-			stored?.vendorChoice,
-			submission.vendorChoice
-		);
-		if (vendors !== 'backfill' || !submission.vendorChoice) {
-			return false;
-		}
-		const sql = yield* SqlClient.SqlClient;
-		const { vendorChoice, onVendorChoiceBackfilled } = submission;
-		const backfilled = yield* sql.withTransaction(
-			Effect.gen(function* backfill() {
-				const won = yield* backfillVendorChoice(id, vendorChoice);
-				if (won && onVendorChoiceBackfilled) {
-					yield* onVendorChoiceBackfilled(id);
-				}
-				return won;
-			})
-		);
-		if (backfilled) {
-			return true;
-		}
-		const rows = yield* sql<{ vendorChoice: unknown }>`
-			select ${sql('vendorChoice')} from ${sql('consent')}
-			where ${sql('id')} = ${id}
-		`;
-		const after = yield* assertSameVendors(rows[0]?.vendorChoice, vendorChoice);
-		if (after === 'backfill') {
-			// Nobody wrote, yet the update matched nothing: the predicate and
-			// the decoder disagree on what absence looks like. Reporting
-			// success here would drop the vendor decision on every replay.
-			return yield* Effect.die(
-				new Error(
-					`Vendor map backfill for consent ${id} matched no row while the row still lacks a map`
-				)
-			);
-		}
-		return false;
+		yield* assertSameVendors(stored?.vendorChoice, submission.vendorChoice);
 	}
 );
 
@@ -515,12 +372,8 @@ export const record = Effect.fn('consent.record')(function* record(
 		// Reported rather than folded in. Overwriting would rewrite a legal record
 		// in place with no audit entry, and changing the id to cover purposes
 		// would break the parity the derivation exists to preserve.
-		const vendorChoiceBackfilled = yield* assertSameSubmission(
-			id,
-			found,
-			submission
-		);
-		return { created: false, id, vendorChoiceBackfilled };
+		yield* assertSameSubmission(found, submission);
+		return { created: false, id };
 	}
 
 	// Only now check for a row written by an older process. It has a random
@@ -589,11 +442,7 @@ export const record = Effect.fn('consent.record')(function* record(
 		from ${sql('consent')}
 		where ${sql('id')} = ${id}
 	`;
-	const vendorChoiceBackfilled = yield* assertSameSubmission(
-		id,
-		winner[0],
-		submission
-	);
+	yield* assertSameSubmission(winner[0], submission);
 
-	return { created, id, vendorChoiceBackfilled };
+	return { created, id };
 });

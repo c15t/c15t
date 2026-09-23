@@ -16,12 +16,7 @@ import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { singleTenant } from '../db/tenant';
-import {
-	assertSamePurposes,
-	assertSameSubmission,
-	assertSameVendors,
-	record,
-} from './consent';
+import { assertSamePurposes, assertSameVendors, record } from './consent';
 
 // Tests run single-tenant unless a case says otherwise; the scope is a
 // service, so a query cannot run without one.
@@ -289,11 +284,11 @@ describe('assertSameVendors', () => {
 		);
 	});
 
-	it('answers backfill for a stored row without a map against a replay with one', async () => {
+	it('accepts a replay carrying a map against a stored row without one', async () => {
 		// A row written by a process that predates the column, met by the
-		// queued save's replay. Not a conflict: the decision is recoverable.
-		const result = await Effect.runPromise(assertSameVendors(null, grants));
-		assert.strictEqual(result, 'backfill');
+		// queued save's replay. Not a conflict: the queue clears and the
+		// visitor's next save carries their full map.
+		await Effect.runPromise(assertSameVendors(null, grants));
 		// The other direction stays a conflict.
 		assert.strictEqual(
 			(await run(assertSameVendors(JSON.stringify(grants), undefined)))._tag,
@@ -339,7 +334,7 @@ describe('consent.record with vendor grants', () => {
 	);
 
 	it.effect(
-		'a replay fills in a vendor map the stored row lacks, once',
+		'a replay carrying a map against a row without one is a retry that writes nothing',
 		() =>
 			Effect.gen(function* gen() {
 				yield* setup;
@@ -355,150 +350,24 @@ describe('consent.record with vendor grants', () => {
 						version: 1 as const,
 					},
 				};
-				const replay = yield* record(withVendors);
-				assert.isFalse(replay.created);
-				assert.strictEqual(replay.id, first.id);
-				assert.isTrue(replay.vendorChoiceBackfilled);
-				const rows = yield* sql<{ vendorChoice: unknown }>`
-					select ${sql('vendorChoice')} from ${sql('consent')}
-					where ${sql('id')} = ${first.id}
-				`;
-				const stored = rows[0]?.vendorChoice;
-				assert.deepStrictEqual(
-					typeof stored === 'string' ? JSON.parse(stored) : stored,
-					withVendors.vendorChoice
-				);
-				// A second replay is an ordinary retry now.
-				const again = yield* record(withVendors);
-				assert.isFalse(again.created);
-				assert.notOk(again.vendorChoiceBackfilled);
-				assert.strictEqual(yield* countConsents(), 1);
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
-
-	it.effect(
-		'a replay fills in a map stored as a JSON null with surrounding whitespace',
-		() =>
-			Effect.gen(function* gen() {
-				yield* setup;
-				const sql = yield* SqlClient.SqlClient;
-				const first = yield* record(submission);
-				// An import can leave any JSON whitespace around the literal. The
-				// decoder still reads it as no map, so the backfill predicate
-				// has to match the same row or the decision is silently lost.
-				yield* sql`
-					update ${sql('consent')} set ${sql('vendorChoice')} = ${'\t\nnull \r\n'}
-					where ${sql('id')} = ${first.id}
-				`;
-				const withVendors = {
-					...submission,
-					vendorChoice: {
-						confirmedAt: GIVEN_AT.getTime(),
-						grants: { 'meta-pixel': false },
-						version: 1 as const,
-					},
-				};
-				const replay = yield* record(withVendors);
-				assert.isFalse(replay.created);
-				assert.isTrue(replay.vendorChoiceBackfilled);
-				const rows = yield* sql<{ vendorChoice: unknown }>`
-					select ${sql('vendorChoice')} from ${sql('consent')}
-					where ${sql('id')} = ${first.id}
-				`;
-				const stored = rows[0]?.vendorChoice;
-				assert.deepStrictEqual(
-					typeof stored === 'string' ? JSON.parse(stored) : stored,
-					withVendors.vendorChoice
-				);
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
-
-	it.effect(
-		'a lost backfill against a different map is a conflict, not a retry',
-		() =>
-			Effect.gen(function* gen() {
-				yield* setup;
-				const sql = yield* SqlClient.SqlClient;
-				const first = yield* record(submission);
-				const decided = {
-					...submission,
-					vendorChoice: {
-						confirmedAt: GIVEN_AT.getTime(),
-						grants: { 'meta-pixel': false },
-						version: 1 as const,
-					},
-				};
-				const seenWithoutMap = {
-					choice: null,
-					purposeIds: ['analytics'],
-					vendorChoice: null,
-				};
-				// The other writer wins the backfill between this replay's read,
-				// which saw no map, and its conditional update. PGlite serialises
-				// queries, so the race is staged: the winner's map is stored
-				// before the check runs against the stale read of the row.
-				yield* sql`
-					update ${sql('consent')}
-					set ${sql('vendorChoice')} = ${JSON.stringify({
-						...decided.vendorChoice,
-						grants: { 'meta-pixel': true },
-					})}
-					where ${sql('id')} = ${first.id}
-				`;
-				const lost = yield* Effect.result(
-					assertSameSubmission(first.id, seenWithoutMap, decided)
-				);
-				assert.strictEqual(lost._tag, 'Failure');
-				// Whereas the same map stored by the other writer is a retry.
-				yield* sql`
-					update ${sql('consent')}
-					set ${sql('vendorChoice')} = ${JSON.stringify(decided.vendorChoice)}
-					where ${sql('id')} = ${first.id}
-				`;
-				assert.isFalse(
-					yield* assertSameSubmission(first.id, seenWithoutMap, decided)
-				);
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
-
-	it.effect(
-		'a failed audit entry rolls the backfilled map back',
-		() =>
-			Effect.gen(function* gen() {
-				yield* setup;
-				const sql = yield* SqlClient.SqlClient;
-				const first = yield* record(submission);
-				const withVendors = {
-					...submission,
-					vendorChoice: {
-						confirmedAt: GIVEN_AT.getTime(),
-						grants: { 'meta-pixel': false },
-						version: 1 as const,
-					},
-				};
-				const failed = yield* Effect.result(
-					record({
-						...withVendors,
-						// A primary key of null cannot be inserted.
-						onVendorChoiceBackfilled: () =>
-							sql`
-								insert into ${sql('auditLog')} (${sql('id')}) values (null)
-							`.pipe(Effect.asVoid),
-					})
-				);
-				assert.strictEqual(failed._tag, 'Failure');
-				const rows = yield* sql<{ vendorChoice: unknown }>`
-					select ${sql('vendorChoice')} from ${sql('consent')}
-					where ${sql('id')} = ${first.id}
-				`;
-				// The map went back with the entry, so the next replay is still
-				// the first record of the decision and writes both.
-				assert.isNull(rows[0]?.vendorChoice ?? null);
-				const replay = yield* record(withVendors);
-				assert.isTrue(replay.vendorChoiceBackfilled);
+				for (const stored of [null, '\t\nnull \r\n']) {
+					yield* sql`
+						update ${sql('consent')} set ${sql('vendorChoice')} = ${stored}
+						where ${sql('id')} = ${first.id}
+					`;
+					const replay = yield* record(withVendors);
+					assert.isFalse(replay.created);
+					assert.strictEqual(replay.id, first.id);
+					const rows = yield* sql<{ vendorChoice: unknown }>`
+						select ${sql('vendorChoice')} from ${sql('consent')}
+						where ${sql('id')} = ${first.id}
+					`;
+					// The replay is a retry, not a write: the row still has no map.
+					const kept = rows[0]?.vendorChoice;
+					assert.isNull(
+						typeof kept === 'string' ? JSON.parse(kept) : (kept ?? null)
+					);
+				}
 			}).pipe(Effect.provide(Pglite)),
 		{ timeout: 60_000 }
 	);

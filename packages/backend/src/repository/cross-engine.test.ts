@@ -37,7 +37,6 @@ import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { layer as tenantLayer } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
-import { assertSameSubmission } from './consent';
 import { syncCurrent } from './legal-document';
 import { submit } from './record-consent';
 import { recordDecision } from './runtime-policy-decision';
@@ -114,126 +113,6 @@ for (const engine of ENGINES) {
 					assert.strictEqual(yield* countOf('consent'), 1);
 					assert.strictEqual(yield* countOf('subject'), 1);
 					assert.strictEqual(yield* countOf('auditLog'), 1);
-				}).pipe(Effect.provide(engine.layer)),
-			{ timeout: 120_000 }
-		);
-
-		it.effect(
-			'a replay fills in the vendor map an older row lacks, once, and audits it',
-			() =>
-				Effect.gen(function* gen() {
-					yield* setup;
-					const sql = yield* SqlClient.SqlClient;
-					// The row an older process wrote for this act, without a map.
-					const first = yield* submit(submission);
-					const withVendors = {
-						...submission,
-						vendorChoice: {
-							confirmedAt: GIVEN_AT.getTime(),
-							grants: { 'meta-pixel': false },
-							version: 1 as const,
-						},
-					};
-					const replay = yield* submit(withVendors);
-					assert.isFalse(replay.created);
-					assert.strictEqual(replay.consentId, first.consentId);
-
-					// The conditional update reports its win differently per
-					// engine: `returning` where it exists, matched rows on MySQL.
-					const rows = yield* sql<{ vendorChoice: unknown }>`
-						select ${sql('vendorChoice')} from ${sql('consent')}
-						where ${sql('id')} = ${first.consentId}
-					`;
-					const stored = rows[0]?.vendorChoice;
-					assert.deepStrictEqual(
-						typeof stored === 'string' ? JSON.parse(stored) : stored,
-						withVendors.vendorChoice
-					);
-					// The first write and the backfill: one entry each.
-					assert.strictEqual(yield* countOf('auditLog'), 2);
-					// A second replay is an ordinary retry and audits nothing.
-					yield* submit(withVendors);
-					assert.strictEqual(yield* countOf('auditLog'), 2);
-					assert.strictEqual(yield* countOf('consent'), 1);
-				}).pipe(Effect.provide(engine.layer)),
-			{ timeout: 120_000 }
-		);
-
-		it.effect(
-			'a replay fills in a map an imported row stored as JSON null',
-			() =>
-				Effect.gen(function* gen() {
-					yield* setup;
-					const sql = yield* SqlClient.SqlClient;
-					const first = yield* submit(submission);
-					// An import wrote the JSON literal rather than SQL NULL. The
-					// decoder reads it as absent, so the backfill must too, or the
-					// replay reports success while storing nothing.
-					yield* sql`
-						update ${sql('consent')}
-						set ${sql('vendorChoice')} = ${'null'}
-						where ${sql('id')} = ${first.consentId}
-					`;
-					const withVendors = {
-						...submission,
-						vendorChoice: {
-							confirmedAt: GIVEN_AT.getTime(),
-							grants: { 'meta-pixel': false },
-							version: 1 as const,
-						},
-					};
-					const replay = yield* submit(withVendors);
-					assert.isFalse(replay.created);
-					const rows = yield* sql<{ vendorChoice: unknown }>`
-						select ${sql('vendorChoice')} from ${sql('consent')}
-						where ${sql('id')} = ${first.consentId}
-					`;
-					const stored = rows[0]?.vendorChoice;
-					assert.deepStrictEqual(
-						typeof stored === 'string' ? JSON.parse(stored) : stored,
-						withVendors.vendorChoice
-					);
-					assert.strictEqual(yield* countOf('auditLog'), 2);
-				}).pipe(Effect.provide(engine.layer)),
-			{ timeout: 120_000 }
-		);
-
-		it.effect(
-			'a backfill another writer already made is a retry and audits nothing',
-			() =>
-				Effect.gen(function* gen() {
-					yield* setup;
-					const sql = yield* SqlClient.SqlClient;
-					const first = yield* submit(submission);
-					const decided = {
-						confirmedAt: GIVEN_AT.getTime(),
-						grants: { 'meta-pixel': false },
-						version: 1 as const,
-					};
-					// The other replay won the backfill with the same map between
-					// this one's read, which saw no map, and its update. The
-					// engine has to report that the update matched nothing; a
-					// read-back would find an identical map and audit twice.
-					yield* sql`
-						update ${sql('consent')}
-						set ${sql('vendorChoice')} = ${JSON.stringify(decided)}
-						where ${sql('id')} = ${first.consentId}
-					`;
-					let audited = 0;
-					const backfilled = yield* assertSameSubmission(
-						first.consentId,
-						{ choice: null, purposeIds: ['analytics'], vendorChoice: null },
-						{
-							...submission,
-							onVendorChoiceBackfilled: () =>
-								Effect.sync(() => {
-									audited += 1;
-								}),
-							vendorChoice: decided,
-						}
-					);
-					assert.isFalse(backfilled);
-					assert.strictEqual(audited, 0);
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 120_000 }
 		);
@@ -365,43 +244,6 @@ for (const engine of ENGINES) {
 					const latest = yield* latestPolicyIdByType();
 					assert.strictEqual(latest.get('cookie'), second.id);
 					assert.strictEqual(latest.size, 1);
-				}).pipe(Effect.provide(engine.layer)),
-			{ timeout: 120_000 }
-		);
-
-		it.effect(
-			'a replay backfills over a JSON null padded with tabs and newlines',
-			() =>
-				Effect.gen(function* gen() {
-					yield* setup;
-					const sql = yield* SqlClient.SqlClient;
-					const first = yield* submit(submission);
-					// SQLite's bare `trim` strips spaces only, so the predicate
-					// has to name every JSON whitespace character or an imported
-					// row like this is never backfilled on that engine.
-					yield* sql`
-						update ${sql('consent')} set ${sql('vendorChoice')} = ${'\t\nnull \r\n'}
-						where ${sql('id')} = ${first.consentId}
-					`;
-					const withVendors = {
-						...submission,
-						vendorChoice: {
-							confirmedAt: GIVEN_AT.getTime(),
-							grants: { 'meta-pixel': false },
-							version: 1 as const,
-						},
-					};
-					const replay = yield* submit(withVendors);
-					assert.isFalse(replay.created);
-					const rows = yield* sql<{ vendorChoice: unknown }>`
-						select ${sql('vendorChoice')} from ${sql('consent')}
-						where ${sql('id')} = ${first.consentId}
-					`;
-					const stored = rows[0]?.vendorChoice;
-					assert.deepStrictEqual(
-						typeof stored === 'string' ? JSON.parse(stored) : stored,
-						withVendors.vendorChoice
-					);
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 120_000 }
 		);

@@ -117,38 +117,6 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		jurisdiction: request.jurisdiction,
 		jurisdictionModel: request.jurisdictionModel,
 		metadata: request.metadata,
-		// A replay that meets a row written before the vendor column existed
-		// fills the map in. That is the first record of the vendor decision,
-		// so it gets its own entry rather than passing as a silent retry, and
-		// `record` writes it in the same transaction as the map: a failed
-		// entry rolls the map back, so the next replay records both.
-		onVendorChoiceBackfilled: (consentId) =>
-			Effect.gen(function* auditBackfill() {
-				yield* sql`
-					insert into ${sql('auditLog')} ${sql.insert(
-						encodeRow(yield* encoder, {
-							actionType: 'consent_given',
-							changes: JSON.stringify({
-								vendorChoice: request.vendorChoice ?? null,
-								vendorChoiceBackfilled: true,
-							}),
-							createdAt: new Date(),
-							entityId: consentId,
-							entityType: 'consent',
-							id: generateEntityId('auditLog'),
-							ipAddress: request.ipAddress,
-							metadata: JSON.stringify({
-								decisionId: decision?.id ?? null,
-								domainId: request.domainId,
-								policyId: request.policyId ?? null,
-							}),
-							subjectId: subject.id,
-							tenantId: tenantId ?? null,
-							userAgent: request.userAgent,
-						})
-					)}
-				`;
-			}),
 		policyId: request.policyId,
 		purposeIds: request.purposeIds,
 		runtimePolicySource: decision ? request.runtimePolicySource : undefined,
