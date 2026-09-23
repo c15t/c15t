@@ -8,13 +8,11 @@
  */
 import type { AllConsentNames, ResolvedVendor } from '@c15t/core';
 import vendorListStyles from '@c15t/ui/styles/components/vendor-list';
-import {
-	preferenceItemVariants,
-	switchVariants,
-} from '@c15t/ui/styles/primitives';
 import { computed, ref, useId } from 'vue';
 
 import { useConsentConfig, useConsentInit } from '../composables';
+import { preferenceItemVariants } from '../primitives/preference-item/variants';
+import { switchVariants } from '../primitives/switch-variants';
 
 const props = defineProps<{
 	/** Category whose vendors to list. */
@@ -36,7 +34,7 @@ const emit = defineEmits<{
 const config = useConsentConfig();
 const init = useConsentInit();
 const pi = preferenceItemVariants();
-const sw = switchVariants({ size: 'small' });
+const sw = switchVariants();
 /** Two surfaces can list the same vendor at once, so ids are scoped per instance. */
 const uid = useId();
 
@@ -165,6 +163,7 @@ const contentId = (index: number) =>
 						:aria-describedby="labelId(vendor)"
 						:class="noStyle ? undefined : sw.root()"
 						:data-disabled="categoryOn ? undefined : ''"
+						:data-size="noStyle ? undefined : 'small'"
 						data-slot="switch"
 						:data-state="isChecked(vendor) ? 'checked' : 'unchecked'"
 						:data-testid="`consent-widget-vendor-switch-${category}-${vendor.id}`"
@@ -172,13 +171,11 @@ const contentId = (index: number) =>
 						@click="emit('toggle', vendor.id, !isChecked(vendor))"
 					>
 						<span
-							:class="noStyle ? undefined : sw.track({ disabled: !categoryOn })"
+							:class="noStyle ? undefined : sw.track()"
 							data-slot="switch-track"
 						>
 							<span
-								:class="
-									noStyle ? undefined : sw.thumb({ disabled: !categoryOn })
-								"
+								:class="noStyle ? undefined : sw.thumb()"
 								data-slot="switch-thumb"
 							/>
 						</span>

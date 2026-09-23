@@ -17,10 +17,6 @@ import accordionStyles from '@c15t/ui/styles/components/accordion';
 import buttonStyles from '@c15t/ui/styles/components/button';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import managerStyles from '@c15t/ui/styles/components/consent-manager';
-import {
-	preferenceItemVariants,
-	switchVariants,
-} from '@c15t/ui/styles/primitives';
 import { getTextDirection } from '@c15t/ui/utils/dom';
 import { computed, inject, mergeProps, ref, useId } from 'vue';
 
@@ -33,6 +29,8 @@ import {
 import { useConsentDraft } from '../composables/draft';
 import { useConsentSnapshot } from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
+import { preferenceItemVariants } from '../primitives/preference-item/variants';
+import { switchVariants } from '../primitives/switch-variants';
 import { consentWidgetManagerKey } from './preferences-manager-context';
 import ConsentTag from './tag.vue';
 import ConsentWidgetVendorList from './vendor-list.vue';
@@ -62,7 +60,7 @@ const manager = inject(consentWidgetManagerKey, null);
 const save = useConsentSave();
 
 const pi = preferenceItemVariants();
-const sw = switchVariants({ size: 'small' });
+const sw = switchVariants();
 
 /**
  * One stable id per mounted widget; per-category ids append the category
@@ -320,6 +318,7 @@ const onAction = async function onAction(action: PresentationAction) {
 							v-bind="config.components?.switch?.root"
 							:class="noStyle ? undefined : sw.root()"
 							:data-disabled="category === 'necessary' ? '' : undefined"
+							:data-size="noStyle ? undefined : 'small'"
 							data-slot="switch"
 							:data-state="draft[category] ? 'checked' : 'unchecked'"
 							:data-testid="`consent-widget-switch-${category}`"
@@ -327,20 +326,12 @@ const onAction = async function onAction(action: PresentationAction) {
 							@click="toggleConsent(category)"
 						>
 							<span
-								:class="
-									noStyle
-										? undefined
-										: sw.track({ disabled: category === 'necessary' })
-								"
+								:class="noStyle ? undefined : sw.track()"
 								v-bind="config.components?.switch?.track"
 								data-slot="switch-track"
 							>
 								<span
-									:class="
-										noStyle
-											? undefined
-											: sw.thumb({ disabled: category === 'necessary' })
-									"
+									:class="noStyle ? undefined : sw.thumb()"
 									v-bind="config.components?.switch?.thumb"
 									data-slot="switch-thumb"
 								/>

@@ -18,6 +18,8 @@ import {
 	resolvePolicyRules,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
+import preferenceItemStyles from '@c15t/ui/styles/components/preference-item';
+import switchStyles from '@c15t/ui/styles/components/switch';
 import { flushPromises, mount } from '@vue/test-utils';
 import type { VueWrapper } from '@vue/test-utils';
 import { describe, expect, test } from 'vitest';
@@ -362,6 +364,48 @@ describe('Vue consent widget vendor rows', () => {
 			expect(document.querySelector('[role="status"]')).not.toBeNull();
 			expect(
 				byTestId('consent-widget-footer-save-button')?.hasAttribute('disabled')
+			).toBe(true);
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
+	test('the switches and vendor cards use the class maps that ship their CSS', async () => {
+		// `@c15t/ui/styles/components/*` entries import their stylesheet as a
+		// side effect, so a Nuxt app that never loads the aggregated
+		// stylesheet still gets a sized switch and a collapsing card. The
+		// `@c15t/ui/styles/primitives` variants map to CSS that only ships in
+		// that aggregate, which left both unstyled in Nuxt.
+		const { context, wrapper } = await renderWidget({
+			marketing: true,
+			measurement: true,
+		});
+		try {
+			await open('marketing');
+			for (const id of [
+				'consent-widget-switch-marketing',
+				'consent-widget-vendor-switch-marketing-meta-pixel',
+			]) {
+				const control = byTestId(id);
+				expect(control?.getAttribute('data-size')).toBe('small');
+				expect(control?.classList.contains(switchStyles.root)).toBe(true);
+				expect(
+					control
+						?.querySelector('[data-slot="switch-track"]')
+						?.classList.contains(switchStyles.track)
+				).toBe(true);
+				expect(
+					control
+						?.querySelector('[data-slot="switch-thumb"]')
+						?.classList.contains(switchStyles.thumb)
+				).toBe(true);
+			}
+			const item = byTestId('consent-widget-vendor-item-marketing-meta-pixel');
+			expect(item?.classList.contains(preferenceItemStyles.root)).toBe(true);
+			expect(
+				byTestId(
+					'consent-widget-vendor-content-marketing-meta-pixel'
+				)?.classList.contains(preferenceItemStyles.content)
 			).toBe(true);
 		} finally {
 			await cleanup(wrapper, context);
