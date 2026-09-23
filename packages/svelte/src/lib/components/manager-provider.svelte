@@ -256,9 +256,32 @@
 			if (!result.ok) {
 				throw new Error('Unable to save preferences.');
 			}
-			if (revision === draftRevision && sequence === draftSaveSequence) {
-				draft.reset();
+			if (sequence !== draftSaveSequence) {
+				return;
 			}
+			if (revision === draftRevision) {
+				draft.reset();
+				return;
+			}
+			// The visitor edited while the save was in flight. What was sent
+			// is the baseline now, so a submitted entry the visitor did not
+			// move again leaves the draft, or it would override a record
+			// another surface writes later; edits made after the submit stay.
+			const nextValues: Partial<ConsentState> = {};
+			for (const [name, staged] of Object.entries(draftValues)) {
+				if (values[name as OptionalConsentCategory] !== staged) {
+					nextValues[name as OptionalConsentCategory] = staged;
+				}
+			}
+			draftValues = nextValues;
+			const nextVendors: Record<string, boolean> = {};
+			for (const [id, staged] of Object.entries(draftVendors)) {
+				if (moved[id] !== staged) {
+					setOwn(nextVendors, id, staged);
+				}
+			}
+			draftVendors = nextVendors;
+			settleDraft();
 		},
 		set(name, value) {
 			if (name === 'necessary') {

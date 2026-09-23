@@ -7,6 +7,7 @@
  * that is off in the draft disables its vendor switches. Accept all clears
  * the denial. The markup mirrors the React rows so parity holds.
  */
+import { custom } from '@c15t/core';
 import type { Vendor } from '@c15t/core';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
 import switchStyles from '@c15t/ui/styles/components/switch';
@@ -401,6 +402,71 @@ describe('Svelte consent widget vendor rows', () => {
 		await fireEvent.click(trigger);
 		await waitFor(() => {
 			expect(trigger.getAttribute('aria-expanded')).toBe('true');
+		});
+	});
+
+	test('a vendor toggled while a save is in flight is the only one left staged', async () => {
+		let release: (() => void) | undefined;
+		let saves = 0;
+		let context: ConsentContextValue | undefined;
+		render(WidgetFixture, {
+			capture: (captured: ConsentContextValue) => {
+				context = captured;
+			},
+			noStyle: false,
+			options: {
+				consentCategories: ['necessary', 'marketing', 'measurement'],
+				mode: custom({
+					// The first save waits for the test to release it; later
+					// saves resolve at once.
+					save: () => {
+						saves += 1;
+						if (saves > 1) {
+							return Promise.resolve({ ok: true });
+						}
+						return new Promise<{ ok: true }>((resolve) => {
+							release = () => resolve({ ok: true });
+						});
+					},
+				}),
+				persistence: false,
+				prefetch: policyFixture(
+					{ marketing: true, measurement: true },
+					{
+						categories: ['marketing', 'measurement'],
+						id: 'vendor-rows',
+						model: 'opt-in',
+						prompt: 'choice',
+					}
+				),
+				vendors: VENDORS,
+			},
+		});
+		const state = () => {
+			if (!context) {
+				throw new Error('context not captured');
+			}
+			return context.state;
+		};
+		await open('marketing');
+		state().setSelectedVendor('meta-pixel', false);
+		const saving = state().saveConsents('custom');
+		await waitFor(() => {
+			expect(release).toBeDefined();
+		});
+		// Edited while the save was in flight.
+		state().setSelectedVendor('google-ads', false);
+		release?.();
+		await saving;
+		// Meta Pixel was recorded and left the draft; Google Ads stays staged.
+		expect(context?.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+			'meta-pixel',
+		]);
+		expect(state().selectedVendors['google-ads']).toBe(false);
+		// Another surface re-granting Meta Pixel is not overridden by a stale entry.
+		await context?.kernel.commands.save({ vendors: { 'meta-pixel': true } });
+		await waitFor(() => {
+			expect(state().selectedVendors['meta-pixel']).toBe(true);
 		});
 	});
 
