@@ -370,7 +370,12 @@ test('a vendor record saved by another surface keeps a dirty draft', async () =>
 	const context = createVueConsentKernelContext({
 		config: {
 			vendors: [
-				{ category: 'marketing', id: 'google-ads', name: 'Google Ads' },
+				{
+					category: 'marketing',
+					id: 'google-ads',
+					name: 'Google Ads',
+					privacyPolicyUrl: 'https://policies.google.com/privacy',
+				},
 			],
 		},
 		kernelConfig: { initialPolicyResolution: resolution() },
