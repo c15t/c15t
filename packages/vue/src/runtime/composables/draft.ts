@@ -162,17 +162,22 @@ export const useConsentDraft = function useConsentDraft(
 			// changed without changing the choice fingerprint.
 			if (
 				choice !== previousChoice ||
-				vendorChoice !== previousVendorChoice ||
 				(policy !== previousPolicy &&
 					fingerprint.value === policy.choice.fingerprint)
 			) {
 				reset();
 				return;
 			}
-			// A vendor-only commit, such as a module declaring its slugs,
-			// reseeds a clean draft so the visitor is not told the policy
-			// changed; a dirty one stays and goes stale for review.
-			if (declared !== previousDeclared && !isDirty()) {
+			// A vendor record saved by another surface, or a vendor-only
+			// commit such as a module declaring its slugs, reseeds a clean
+			// draft so the visitor is not told the policy changed; a dirty
+			// one keeps its edits, as in React and Svelte, and a changed
+			// vendor surface makes it stale for review.
+			if (
+				(vendorChoice !== previousVendorChoice ||
+					declared !== previousDeclared) &&
+				!isDirty()
+			) {
 				reset();
 			}
 		}

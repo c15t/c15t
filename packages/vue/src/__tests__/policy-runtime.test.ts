@@ -7,7 +7,7 @@ import {
 import type { PolicyResolution, PolicyRule } from '@c15t/schema/types';
 import { translations } from '@c15t/translations/en';
 import { afterEach, expect, test, vi } from 'vitest';
-import { createApp, defineComponent, h } from 'vue';
+import { createApp, defineComponent, h, nextTick } from 'vue';
 
 import { consentConfigKey } from '../runtime/composables/config';
 import { useConsentDraft } from '../runtime/composables/draft';
@@ -365,3 +365,42 @@ test.each(['header', 'browser', 'header-with-browser-false'] as const)(
 		}
 	}
 );
+
+test('a vendor record saved by another surface keeps a dirty draft', async () => {
+	const context = createVueConsentKernelContext({
+		config: {
+			vendors: [
+				{ category: 'marketing', id: 'google-ads', name: 'Google Ads' },
+			],
+		},
+		kernelConfig: { initialPolicyResolution: resolution() },
+	});
+	await context.kernel.commands.save('all');
+	let draft!: ReturnType<typeof useConsentDraft>;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				draft = useConsentDraft();
+				return () => h('div');
+			},
+		})
+	);
+	app.provide(symbolKernelContext, context);
+	app.provide(consentConfigKey, {});
+	app.mount(document.createElement('div'));
+	try {
+		draft.values.value.marketing = false;
+		// Another surface on the same kernel records a vendor-only save.
+		await context.kernel.commands.save({ vendors: { 'google-ads': false } });
+		await nextTick();
+		expect(context.snapshot.value.vendorChoice?.denied).toEqual(['google-ads']);
+		expect(draft.values.value.marketing).toBe(false);
+		expect(draft.isStale.value).toBe(false);
+		// A clean draft follows the new record.
+		draft.reset();
+		expect(draft.vendors.value['google-ads']).toBe(false);
+	} finally {
+		app.unmount();
+		context.dispose();
+	}
+});

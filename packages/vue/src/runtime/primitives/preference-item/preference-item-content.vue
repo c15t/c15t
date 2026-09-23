@@ -25,10 +25,16 @@ const props = withDefaults(
 const context = usePreferenceItemContext();
 const variants = preferenceItemVariants();
 
-const contentClass = computed(() => variants.content({ class: props.class }));
-const viewportClass = computed(() => variants.contentViewport());
+const contentClass = computed(() =>
+	context.noStyle.value ? props.class : variants.content({ class: props.class })
+);
+const viewportClass = computed(() =>
+	context.noStyle.value ? undefined : variants.contentViewport()
+);
 const innerClass = computed(() =>
-	variants.contentInner({ class: props.innerClass })
+	context.noStyle.value
+		? props.innerClass
+		: variants.contentInner({ class: props.innerClass })
 );
 const dataState = computed(() => getPreferenceItemState(context.open.value));
 </script>
