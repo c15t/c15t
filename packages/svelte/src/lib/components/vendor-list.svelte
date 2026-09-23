@@ -50,7 +50,18 @@
 	const styles = $derived(noStyle ? undefined : vendorListStyles);
 	const title = $derived(copy.title.replace('{count}', String(vendors.length)));
 
-	let openItems = $state<Record<string, boolean>>({});
+	// A set, not an object: a vendor id is any slug, and one such as
+	// `constructor` would read an inherited member off a plain object as open.
+	let openItems = $state<ReadonlySet<string>>(new Set());
+	const toggleOpen = (id: string) => {
+		const next = new Set(openItems);
+		if (next.has(id)) {
+			next.delete(id);
+		} else {
+			next.add(id);
+		}
+		openItems = next;
+	};
 
 	const vendorName = (vendor: ResolvedVendor) => vendor.name ?? vendor.id;
 	const hasDetails = (vendor: ResolvedVendor) =>
@@ -79,7 +90,7 @@
 			</p>
 		{/if}
 		{#each vendors as vendor (vendor.id)}
-			{@const open = openItems[vendor.id] ?? false}
+			{@const open = openItems.has(vendor.id)}
 			{@const details = hasDetails(vendor)}
 			{@const checked = isChecked(vendor)}
 			<PreferenceItem.Root
@@ -93,7 +104,7 @@
 					<PreferenceItem.Trigger
 						class={styles?.trigger}
 						onclick={() => {
-							openItems = { ...openItems, [vendor.id]: !open };
+							toggleOpen(vendor.id);
 						}}
 						data-testid={`consent-widget-vendor-trigger-${category}-${vendor.id}`}
 					>

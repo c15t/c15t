@@ -444,6 +444,39 @@ describe('Vue consent widget vendor rows', () => {
 		}
 	});
 
+	test('a vendor whose id is an object prototype key starts collapsed', async () => {
+		const { context, wrapper } = await renderWidget({
+			marketing: true,
+			measurement: true,
+		});
+		try {
+			context.kernel.set.vendors({
+				declared: [
+					{
+						category: 'marketing',
+						description: 'Named after a prototype member.',
+						id: 'constructor',
+						name: 'Constructor',
+						presentable: true,
+						privacyPolicyUrl: 'https://example.com/privacy',
+						source: 'config',
+					},
+				],
+			});
+			await flushPromises();
+			await open('marketing');
+			const trigger = byTestId(
+				'consent-widget-vendor-trigger-marketing-constructor'
+			);
+			expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+			trigger?.click();
+			await flushPromises();
+			expect(trigger?.getAttribute('aria-expanded')).toBe('true');
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
 	test('noStyle drops the built-in classes from the vendor cards', async () => {
 		const { context, wrapper } = await renderWidget(
 			{ marketing: true, measurement: true },

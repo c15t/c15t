@@ -374,6 +374,36 @@ describe('Svelte consent widget vendor rows', () => {
 		}
 	});
 
+	test('a vendor whose id is an object prototype key starts collapsed', async () => {
+		const { kernel } = renderWidget({ marketing: true, measurement: true });
+		kernel().set.vendors({
+			declared: [
+				{
+					category: 'marketing',
+					description: 'Named after a prototype member.',
+					id: 'constructor',
+					name: 'Constructor',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+			],
+		});
+		await open('marketing');
+		const trigger = await waitFor(() => {
+			const element = byTestId(
+				'consent-widget-vendor-trigger-marketing-constructor'
+			);
+			expect(element).toBeInTheDocument();
+			return element as HTMLElement;
+		});
+		expect(trigger.getAttribute('aria-expanded')).toBe('false');
+		await fireEvent.click(trigger);
+		await waitFor(() => {
+			expect(trigger.getAttribute('aria-expanded')).toBe('true');
+		});
+	});
+
 	test('noStyle drops the built-in classes from the vendor cards', async () => {
 		renderWidget({ marketing: true, measurement: true }, true);
 		await open('marketing');

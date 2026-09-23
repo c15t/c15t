@@ -55,11 +55,21 @@ const title = computed(() =>
 	copy.value.title.replace('{count}', String(props.vendors.length))
 );
 
-/** Open state per vendor card; each card opens on its own. */
-const openItems = ref<Record<string, boolean>>({});
-const isOpen = (id: string) => openItems.value[id] ?? false;
+/**
+ * Open state per vendor card; each card opens on its own. A set, not an
+ * object: a vendor id is any slug, and one such as `constructor` would read
+ * an inherited member off a plain object as open.
+ */
+const openItems = ref<ReadonlySet<string>>(new Set());
+const isOpen = (id: string) => openItems.value.has(id);
 const toggleOpen = (id: string) => {
-	openItems.value = { ...openItems.value, [id]: !isOpen(id) };
+	const next = new Set(openItems.value);
+	if (next.has(id)) {
+		next.delete(id);
+	} else {
+		next.add(id);
+	}
+	openItems.value = next;
 };
 
 const vendorName = (vendor: ResolvedVendor) => vendor.name ?? vendor.id;
