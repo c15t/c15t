@@ -8,7 +8,7 @@ import type {
 	SaveResult,
 	SaveInput,
 } from '@c15t/core';
-import { deniedVendorIds } from '@c15t/core';
+import { deniedVendorIds, vendorRenders } from '@c15t/core';
 import {
 	createContext,
 	useCallback,
@@ -107,7 +107,7 @@ const vendorSurface = function vendorSurface(
 	// only its slug, is not part of the surface: it changes nothing visible.
 	return JSON.stringify(
 		(snapshot.vendors?.declared ?? [])
-			.filter((vendor) => vendor.presentable)
+			.filter(vendorRenders)
 			.map((vendor) => [vendor.id, vendor.disabled === true, vendor.category])
 			.sort(([left], [right]) => String(left).localeCompare(String(right)))
 	);

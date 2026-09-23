@@ -421,6 +421,24 @@ const hasNegation = function hasNegation(
 };
 
 /**
+ * Whether a declared vendor can appear as a row anywhere: presentable and
+ * without a negation in its condition. A script registering only its slug
+ * is not presentable, and a vendor under `{ not: 'marketing' }` gates on a
+ * category it cannot be listed under. The preference surfaces use this to
+ * decide what a draft was staged against, so an invisible declaration
+ * cannot stale a draft.
+ *
+ * @param vendor - A declared vendor.
+ * @returns Whether some category row can list it.
+ * @public
+ */
+export const vendorRenders = function vendorRenders(
+	vendor: ResolvedVendor
+): boolean {
+	return vendor.presentable && !hasNegation(vendor.category);
+};
+
+/**
  * The vendors a preference center lists under one category: presentable,
  * naming that category in their condition, and without a negation. A
  * vendor under `{ not: 'marketing' }` gates on marketing but cannot sit in
@@ -439,8 +457,7 @@ export const vendorsListedUnder = function vendorsListedUnder(
 ): ResolvedVendor[] {
 	return declared.filter(
 		(vendor) =>
-			vendor.presentable &&
-			!hasNegation(vendor.category) &&
+			vendorRenders(vendor) &&
 			extractConsentNamesFromCondition(vendor.category).includes(category)
 	);
 };

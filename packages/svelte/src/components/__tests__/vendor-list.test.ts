@@ -437,7 +437,8 @@ describe('Svelte consent widget vendor rows', () => {
 		await open('marketing');
 		state()?.setSelectedVendor('meta-pixel', false);
 		expect(state()?.draft.isStale).toBe(false);
-		// A script registering only its slug adds no row, so the draft stays fresh.
+		// A script registering only its slug, or a vendor under a negated
+		// condition, adds no row, so the draft stays fresh.
 		kernel().set.vendors({
 			declared: [
 				{
@@ -447,6 +448,14 @@ describe('Svelte consent widget vendor rows', () => {
 					presentable: false,
 					privacyPolicyUrl: '',
 					source: 'script',
+				},
+				{
+					category: { not: 'marketing' },
+					id: 'negated',
+					name: 'Negated',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
 				},
 			],
 		});

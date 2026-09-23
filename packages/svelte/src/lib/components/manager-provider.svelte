@@ -6,7 +6,7 @@
 		KernelUser,
 		OptionalConsentCategory,
 	} from '@c15t/core';
-	import { deniedVendorIds } from '@c15t/core';
+	import { deniedVendorIds, vendorRenders } from '@c15t/core';
 	import {
 		createConsentRuntime,
 		normalizeKernelUser,
@@ -153,7 +153,7 @@
 			? ''
 			: JSON.stringify(
 					(current.vendors?.declared ?? [])
-						.filter((vendor) => vendor.presentable)
+						.filter(vendorRenders)
 						.map((vendor) => [
 							vendor.id,
 							vendor.disabled === true,

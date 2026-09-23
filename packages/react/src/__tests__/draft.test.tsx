@@ -855,7 +855,8 @@ test('a script registering only its slug does not stale a dirty draft', async ()
 					persistence: false,
 					prefetch: fixture,
 					// A late script names a vendor nobody declared, which adds a
-					// hidden declaration no row is built from.
+					// hidden declaration no row is built from; so does a vendor
+					// under a negated condition.
 					scripts: registered
 						? [
 								{
@@ -866,7 +867,17 @@ test('a script registering only its slug does not stale a dirty draft', async ()
 								},
 							]
 						: [],
-					vendors: [vendor],
+					vendors: registered
+						? [
+								vendor,
+								{
+									category: { not: 'marketing' },
+									id: 'negated',
+									name: 'Negated',
+									privacyPolicyUrl: 'https://example.com/privacy',
+								},
+							]
+						: [vendor],
 				}}
 			>
 				<Probe register={() => setRegistered(true)} />

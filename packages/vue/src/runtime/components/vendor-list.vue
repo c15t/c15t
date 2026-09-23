@@ -171,6 +171,7 @@ const contentId = (index: number) =>
 							copy.switchLabel.replace('{vendor}', vendorName(vendor))
 						"
 						:aria-describedby="labelId(vendor)"
+						v-bind="config.components?.switch?.root"
 						:class="noStyle ? undefined : sw.root()"
 						:data-disabled="categoryOn ? undefined : ''"
 						:data-size="noStyle ? undefined : 'small'"
@@ -181,10 +182,12 @@ const contentId = (index: number) =>
 						@click="emit('toggle', vendor.id, !isChecked(vendor))"
 					>
 						<span
+							v-bind="config.components?.switch?.track"
 							:class="noStyle ? undefined : sw.track()"
 							data-slot="switch-track"
 						>
 							<span
+								v-bind="config.components?.switch?.thumb"
 								:class="noStyle ? undefined : sw.thumb()"
 								data-slot="switch-thumb"
 							/>

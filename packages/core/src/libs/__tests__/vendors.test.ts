@@ -9,6 +9,7 @@ import {
 	forgetOwnedVendors,
 	mergeDeclaredVendors,
 	resolveVendors,
+	vendorRenders,
 	vendorsListedUnder,
 	withoutManifestVendors,
 	withoutSourceVendors,
@@ -591,4 +592,23 @@ describe('vendorsListedUnder', () => {
 		expect(listed('marketing')).toEqual(['meta-pixel', 'shared', 'fixed']);
 		expect(listed('measurement')).toEqual(['shared']);
 	});
+});
+
+test('vendorRenders is false for a slug-only or negated declaration', () => {
+	const base = {
+		category: 'marketing' as const,
+		id: 'v',
+		name: 'V',
+		presentable: true,
+		privacyPolicyUrl: '',
+		source: 'config' as const,
+	};
+	expect(vendorRenders(base)).toBe(true);
+	expect(vendorRenders({ ...base, presentable: false })).toBe(false);
+	expect(vendorRenders({ ...base, category: { not: 'marketing' } })).toBe(
+		false
+	);
+	expect(
+		vendorRenders({ ...base, category: { or: ['marketing', 'measurement'] } })
+	).toBe(true);
 });

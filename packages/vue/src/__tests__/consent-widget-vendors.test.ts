@@ -137,13 +137,15 @@ const PARTIAL_TRANSLATIONS: TranslationsResponse = {
 const renderWidget = async function renderWidget(
 	values: Record<string, boolean>,
 	translations: TranslationsResponse = PARTIAL_TRANSLATIONS,
-	noStyle = false
+	noStyle = false,
+	extra: Partial<ConsentConfig> = {}
 ) {
 	const config = {
 		backendURL: 'https://consent.example',
 		consentCategories: ['necessary', 'marketing', 'measurement'],
 		disableAnimation: true,
 		vendors: VENDORS,
+		...extra,
 	} as ConsentConfig;
 	const context = createVueConsentKernelContext({
 		config,
@@ -358,8 +360,9 @@ describe('Vue consent widget vendor rows', () => {
 			// Dirty: the visitor was looking at a different list, so review.
 			byTestId('consent-widget-vendor-switch-marketing-meta-pixel')?.click();
 			await flushPromises();
-			// A script registering only its slug adds a declaration no row is
-			// built from, so the draft stays fresh and Save stays enabled.
+			// A script registering only its slug, or a vendor under a negated
+			// condition, adds a declaration no row is built from, so the draft
+			// stays fresh and Save stays enabled.
 			context.kernel.set.vendors({
 				declared: [
 					{
@@ -369,6 +372,14 @@ describe('Vue consent widget vendor rows', () => {
 						presentable: false,
 						privacyPolicyUrl: '',
 						source: 'script',
+					},
+					{
+						category: { not: 'marketing' },
+						id: 'negated',
+						name: 'Negated',
+						presentable: true,
+						privacyPolicyUrl: 'https://example.com/privacy',
+						source: 'config',
 					},
 				],
 			});
@@ -472,6 +483,42 @@ describe('Vue consent widget vendor rows', () => {
 			trigger?.click();
 			await flushPromises();
 			expect(trigger?.getAttribute('aria-expanded')).toBe('true');
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
+	test('vendor switches take the switch slots like the category switches', async () => {
+		const { context, wrapper } = await renderWidget(
+			{ marketing: true, measurement: true },
+			PARTIAL_TRANSLATIONS,
+			false,
+			{
+				components: {
+					switch: {
+						root: { class: 'host-switch' },
+						thumb: { class: 'host-thumb' },
+						track: { class: 'host-track' },
+					},
+				},
+			}
+		);
+		try {
+			await open('marketing');
+			const control = byTestId(
+				'consent-widget-vendor-switch-marketing-meta-pixel'
+			);
+			expect(control?.classList.contains('host-switch')).toBe(true);
+			expect(
+				control
+					?.querySelector('[data-slot="switch-track"]')
+					?.classList.contains('host-track')
+			).toBe(true);
+			expect(
+				control
+					?.querySelector('[data-slot="switch-thumb"]')
+					?.classList.contains('host-thumb')
+			).toBe(true);
 		} finally {
 			await cleanup(wrapper, context);
 		}

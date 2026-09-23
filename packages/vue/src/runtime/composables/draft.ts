@@ -1,5 +1,5 @@
 import type { ConsentState, ConsentSnapshot, SaveResult } from '@c15t/core';
-import { deniedVendorIds } from '@c15t/core';
+import { deniedVendorIds, vendorRenders } from '@c15t/core';
 import { computed, ref, shallowRef, watch } from 'vue';
 
 import { useConsentConfig } from './config';
@@ -59,8 +59,9 @@ const toggleableVendorIds = function toggleableVendorIds(
  * What the vendor rows are built from. A change here while the draft is
  * dirty means the visitor was looking at a different list, so the draft
  * goes stale the way a category change makes it stale. A declaration that
- * cannot produce a row, such as a script registering only its slug, is
- * not part of the surface: it changes nothing the visitor can see.
+ * cannot produce a row, such as a script registering only its slug or a
+ * vendor under a negated condition, is not part of the surface: it changes
+ * nothing the visitor can see.
  */
 const vendorSurface = function vendorSurface(
 	snapshot: ConsentSnapshot
@@ -70,7 +71,7 @@ const vendorSurface = function vendorSurface(
 	}
 	return JSON.stringify(
 		(snapshot.vendors?.declared ?? [])
-			.filter((vendor) => vendor.presentable)
+			.filter(vendorRenders)
 			.map((vendor) => [vendor.id, vendor.disabled === true, vendor.category])
 	);
 };
