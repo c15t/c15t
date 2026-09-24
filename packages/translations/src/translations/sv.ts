@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Anpassa dina integritetsinställningar här. Du kan välja vilka typer av cookies och spårningstekniker du tillåter.',
 		title: 'Integritetsinställningar',
+		vendors: {
+			disabledByCategory:
+				'Slå på den här kategorin för att välja leverantörer.',
+			privacyPolicy: 'Integritetspolicy',
+			switchLabel: 'Tillåt {vendor}',
+			title: 'Leverantörer ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

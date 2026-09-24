@@ -8,6 +8,7 @@ import type {
 	SaveResult,
 	SaveInput,
 } from '@c15t/core';
+import { deniedVendorIds } from '@c15t/core';
 import {
 	createContext,
 	useCallback,
@@ -27,11 +28,24 @@ import { saveConsentUI } from './ui-save';
 export interface ConsentDraftHandle {
 	values: Readonly<ConsentState>;
 	displayedCategories: readonly AllConsentNames[];
+	/**
+	 * Granted flag per declared vendor. Seeded from the denials the gate
+	 * honors, so a vendor declared `disabled` reads `true` whatever an older
+	 * record says; every vendor not denied is `true`. Empty under an `iab`
+	 * policy.
+	 */
+	vendors: Readonly<Record<string, boolean>>;
 	isDirty: boolean;
 	/** A policy or displayed-category change requires reset and review before saving. */
 	isStale: boolean;
 	set: (category: AllConsentNames, value: boolean) => void;
 	update: (patch: Partial<ConsentState>) => void;
+	/**
+	 * Stage one vendor's grant. Recorded by the next save. Ignored for a
+	 * vendor that is not declared or is declared `disabled`, since the kernel
+	 * would drop the grant on save.
+	 */
+	setVendor: (vendorId: string, granted: boolean) => void;
 	acceptAll: () => void;
 	rejectAll: () => void;
 	save: () => Promise<SaveResult>;
@@ -40,9 +54,91 @@ export interface ConsentDraftHandle {
 interface DraftSnapshot {
 	values: ConsentState;
 	displayedCategories: readonly AllConsentNames[];
+	vendors: Record<string, boolean>;
 	isDirty: boolean;
 	isStale: boolean;
 }
+/**
+ * Defines an own enumerable data property. Plain assignment would route a
+ * valid `__proto__` vendor id through the prototype setter and drop it, so
+ * that vendor could never become dirty or travel with a save.
+ */
+const setOwn = function setOwn(
+	target: Record<string, boolean>,
+	key: string,
+	value: boolean
+): void {
+	Object.defineProperty(target, key, {
+		configurable: true,
+		enumerable: true,
+		value,
+		writable: true,
+	});
+};
+const seedVendors = function seedVendors(
+	snapshot: ConsentSnapshot
+): Record<string, boolean> {
+	const grants: Record<string, boolean> = {};
+	if (snapshot.model === 'iab') {
+		return grants;
+	}
+	// The kernel's own gate view: a stale denial for a vendor now declared
+	// `disabled` does not count, so the draft never reports a vendor as off
+	// while every gate allows it.
+	const denied = deniedVendorIds(snapshot) ?? new Set<string>();
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		setOwn(grants, vendor.id, !denied.has(vendor.id));
+	}
+	return grants;
+};
+/**
+ * What the preference surface shows for each vendor: whether it has a row
+ * at all, and which categories host it. A staged edit is made against a
+ * row, so a vendor losing its row, or moving to another category, is as
+ * material as one appearing or disappearing.
+ */
+const vendorSurface = function vendorSurface(
+	snapshot: ConsentSnapshot
+): string {
+	if (snapshot.model === 'iab') {
+		return '';
+	}
+	return JSON.stringify(
+		(snapshot.vendors?.declared ?? [])
+			.map((vendor) => [
+				vendor.id,
+				vendor.presentable,
+				vendor.disabled === true,
+				vendor.category,
+			])
+			.sort(([left], [right]) => String(left).localeCompare(String(right)))
+	);
+};
+/** Ids a save may toggle: declared and not `disabled`, mirroring the kernel. */
+const toggleableVendorIds = function toggleableVendorIds(
+	snapshot: ConsentSnapshot
+): ReadonlySet<string> {
+	const ids = new Set<string>();
+	if (snapshot.model === 'iab') {
+		return ids;
+	}
+	for (const vendor of snapshot.vendors?.declared ?? []) {
+		if (vendor.disabled !== true) {
+			ids.add(vendor.id);
+		}
+	}
+	return ids;
+};
+const sameGrants = function sameGrants(
+	left: Readonly<Record<string, boolean>>,
+	right: Readonly<Record<string, boolean>>
+): boolean {
+	const keys = Object.keys(left);
+	return (
+		keys.length === Object.keys(right).length &&
+		keys.every((key) => left[key] === right[key])
+	);
+};
 const seed = function seed(
 	snapshot: ConsentSnapshot,
 	defaults?: Partial<ConsentState>
@@ -72,6 +168,9 @@ const createDraftStore = function createDraftStore(
 	let saveSequence = 0;
 	let source = kernel.getSnapshot();
 	let base = seed(source, defaults);
+	let baseVendors = seedVendors(source);
+	let toggleable = toggleableVendorIds(source);
+	let surface = vendorSurface(source);
 	let { fingerprint } = source.evaluationPolicy.choice;
 	let current: DraftSnapshot = {
 		displayedCategories: [
@@ -81,6 +180,7 @@ const createDraftStore = function createDraftStore(
 		isDirty: false,
 		isStale: false,
 		values: base,
+		vendors: baseVendors,
 	};
 	const listeners = new Set<() => void>();
 	const publish = (next: DraftSnapshot) => {
@@ -89,10 +189,20 @@ const createDraftStore = function createDraftStore(
 			listener();
 		}
 	};
+	const isDirty = (
+		values: ConsentState,
+		vendors: Readonly<Record<string, boolean>>
+	) =>
+		current.displayedCategories.some(
+			(category) => values[category] !== base[category]
+		) || !sameGrants(vendors, baseVendors);
 	const reset = () => {
 		revision += 1;
 		source = kernel.getSnapshot();
 		base = seed(source, defaults);
+		baseVendors = seedVendors(source);
+		toggleable = toggleableVendorIds(source);
+		surface = vendorSurface(source);
 		({ fingerprint } = source.evaluationPolicy.choice);
 		publish({
 			displayedCategories: [
@@ -102,6 +212,7 @@ const createDraftStore = function createDraftStore(
 			isDirty: false,
 			isStale: false,
 			values: base,
+			vendors: baseVendors,
 		});
 	};
 	const update = (patch: Partial<ConsentState>) => {
@@ -121,19 +232,52 @@ const createDraftStore = function createDraftStore(
 			revision += 1;
 			publish({
 				...current,
-				isDirty: current.displayedCategories.some(
-					(category) => values[category] !== base[category]
-				),
+				isDirty: isDirty(values, current.vendors),
 				values,
 			});
 		}
+	};
+	const updateVendors = (patch: Readonly<Record<string, boolean>>) => {
+		const vendors = { ...current.vendors };
+		let changed = false;
+		for (const [id, granted] of Object.entries(patch)) {
+			// A `disabled` vendor is listed but not toggleable: the kernel drops
+			// a grant for it on save, so staging one would only dirty the draft.
+			if (
+				toggleable.has(id) &&
+				typeof granted === 'boolean' &&
+				vendors[id] !== granted
+			) {
+				setOwn(vendors, id, granted);
+				changed = true;
+			}
+		}
+		if (changed) {
+			revision += 1;
+			publish({
+				...current,
+				isDirty: isDirty(current.values, vendors),
+				vendors,
+			});
+		}
+	};
+	/** Every declared vendor granted: what a bulk action leaves behind. */
+	const allVendorsOn = () => {
+		const grants: Record<string, boolean> = {};
+		for (const id of Object.keys(baseVendors)) {
+			setOwn(grants, id, true);
+		}
+		return grants;
 	};
 	const sync = () => {
 		const next = kernel.getSnapshot();
 		if (
 			source.explicitChoice === next.explicitChoice &&
 			source.policyRule === next.policyRule &&
-			source.evaluationPolicy === next.evaluationPolicy
+			source.evaluationPolicy === next.evaluationPolicy &&
+			source.vendors === next.vendors &&
+			source.vendorChoice === next.vendorChoice &&
+			source.model === next.model
 		) {
 			return;
 		}
@@ -144,8 +288,17 @@ const createDraftStore = function createDraftStore(
 			nextScope.some(
 				(category) => !current.displayedCategories.includes(category)
 			);
+		// A changed vendor surface is material too: the draft's vendor grants
+		// are staged against rows, so a vendor appearing, disappearing, losing
+		// its row while a script keeps its slug, moving category, or flipping
+		// between `disabled` and toggleable needs a reset. A recorded grant
+		// change is what a save produces and reseeds through the clean-draft
+		// path below.
+		const vendorsChanged = vendorSurface(next) !== surface;
 		const material =
-			fingerprint !== next.evaluationPolicy.choice.fingerprint || scopeChanged;
+			fingerprint !== next.evaluationPolicy.choice.fingerprint ||
+			scopeChanged ||
+			vendorsChanged;
 		source = next;
 		if (!current.isDirty) {
 			reset();
@@ -160,6 +313,7 @@ const createDraftStore = function createDraftStore(
 					current.displayedCategories.map((category) => [category, true])
 				)
 			);
+			updateVendors(allVendorsOn());
 		},
 		connect() {
 			sync();
@@ -172,6 +326,9 @@ const createDraftStore = function createDraftStore(
 					current.displayedCategories.map((category) => [category, false])
 				)
 			);
+			// Vendors follow the category: a rejected category needs no per-vendor
+			// denial, and the kernel clears the denial list on a bulk action.
+			updateVendors(allVendorsOn());
 		},
 		reset,
 		async save(
@@ -197,7 +354,22 @@ const createDraftStore = function createDraftStore(
 			}
 			saveSequence += 1;
 			const sequence = saveSequence;
-			const pending = kernel.commands.save(input ?? patch, { categories });
+			// Only vendors the draft moved travel with the save, so an untouched
+			// vendor never renews the recorded confirmation time. A bulk action
+			// clears the denial list on its own, so it carries none.
+			const bulk = input === 'all' || input === 'none';
+			const vendors: Record<string, boolean> = {};
+			if (!bulk) {
+				for (const [id, granted] of Object.entries(current.vendors)) {
+					if (baseVendors[id] !== granted) {
+						setOwn(vendors, id, granted);
+					}
+				}
+			}
+			const pending = kernel.commands.save(input ?? patch, {
+				categories,
+				...(Object.keys(vendors).length > 0 && { vendors }),
+			});
 			// A clean draft can reseed synchronously from the local receipt.
 			const savedRevision = revision;
 			const result = await pending;
@@ -215,6 +387,9 @@ const createDraftStore = function createDraftStore(
 		},
 		set(category: AllConsentNames, value: boolean) {
 			update({ [category]: value });
+		},
+		setVendor(vendorId: string, granted: boolean) {
+			updateVendors({ [vendorId]: granted });
 		},
 		subscribe(listener: () => void) {
 			listeners.add(listener);
@@ -304,6 +479,7 @@ const useDraftHandle = function useDraftHandle(
 			reset: store.reset,
 			save: store.save,
 			set: store.set,
+			setVendor: store.setVendor,
 			update: store.update,
 		}),
 		[snapshot, store]
@@ -324,4 +500,52 @@ export const useConsentManagerDraft = function useConsentManagerDraft() {
 /** Read and edit displayed choices without replacing masked effective permissions. */
 export const useConsentDraft = function useConsentDraft(): ConsentDraftHandle {
 	return useDraftHandle(useDraftStore());
+};
+
+/** The vendor slice of the consent draft, for a custom vendor control. */
+export interface VendorDraftHandle {
+	/** Granted flag per declared vendor. See {@link ConsentDraftHandle.vendors}. */
+	vendors: Readonly<Record<string, boolean>>;
+	/** Stage one vendor's grant for the next save. See {@link ConsentDraftHandle.setVendor}. */
+	setVendor: (vendorId: string, granted: boolean) => void;
+	/** Whether any draft value, category or vendor, differs from the record. */
+	isDirty: boolean;
+	/**
+	 * Whether the policy or the vendor surface changed under an unsaved edit.
+	 * `save` refuses a stale draft. See {@link ConsentDraftHandle.isStale}.
+	 */
+	isStale: boolean;
+	/** Confirm the draft, categories and vendors together. */
+	save: () => Promise<SaveResult>;
+	/** Discard staged edits and reseed from the record. See {@link ConsentDraftHandle.reset}. */
+	reset: () => void;
+}
+
+/**
+ * Read and stage vendor grants on the same draft the category switches use.
+ * A custom vendor toggle needs only this; the categories stay where the
+ * stock widget or `useConsentDraft()` left them, and one save confirms both.
+ * When the policy or the vendor list changes under a staged edit the draft
+ * turns stale and `save` refuses it; `reset` reseeds it from the record.
+ *
+ * @returns The draft's vendor map, the setter, the dirty and stale flags,
+ * the save and the reset.
+ * @example
+ * ```tsx
+ * const { vendors, setVendor, isStale, reset, save } = useVendorDraft();
+ * <Switch
+ *   checked={vendors['meta-pixel'] ?? true}
+ *   onCheckedChange={(on) => setVendor('meta-pixel', on)}
+ * />;
+ * {isStale && <button onClick={reset}>Review again</button>}
+ * ```
+ * @public
+ */
+export const useVendorDraft = function useVendorDraft(): VendorDraftHandle {
+	const { isDirty, isStale, reset, save, setVendor, vendors } =
+		useDraftHandle(useDraftStore());
+	return useMemo(
+		() => ({ isDirty, isStale, reset, save, setVendor, vendors }),
+		[isDirty, isStale, reset, save, setVendor, vendors]
+	);
 };

@@ -331,7 +331,7 @@ export default defineDocsConfig({
 			pages: [
 				'overview',
 				'building-integrations',
-				'vendor-consent',
+				'granular-consent',
 				'clear-on-revocation',
 			],
 			slug: 'integrations',

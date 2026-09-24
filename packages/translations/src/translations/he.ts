@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'בחר את הגדרות הפרטיות שלך כאן. באפשרותך לבחור אילו סוגי עוגיות וטכנולוגיות מעקב תרצה לאפשר.',
 		title: 'הגדרות פרטיות',
+		vendors: {
+			disabledByCategory: 'הפעילו קטגוריה זו כדי לבחור ספקים.',
+			privacyPolicy: 'מדיניות פרטיות',
+			switchLabel: 'אפשר את {vendor}',
+			title: 'ספקים ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

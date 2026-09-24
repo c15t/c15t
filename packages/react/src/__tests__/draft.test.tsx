@@ -17,8 +17,17 @@ import type { ReactNode } from 'react';
 import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentDraftProvider, useConsentDraft } from '../draft';
-import { useConsent, useSaveConsents, useSnapshot } from '../hooks';
+import {
+	ConsentDraftProvider,
+	useConsentDraft,
+	useVendorDraft,
+} from '../draft';
+import {
+	useConsent,
+	useSaveConsents,
+	useSnapshot,
+	useVendorChoice,
+} from '../hooks';
 import { ConsentProvider } from '../provider';
 import { offline } from '../transports/offline';
 import { policyFixture } from './policy-fixture';
@@ -312,6 +321,403 @@ describe('useConsentDraft — reseeds on external kernel change when clean', () 
 		await getByTestId('external').click();
 		await expect.element(getByTestId('m')).toHaveTextContent('true');
 	});
+});
+
+test('the vendor draft ignores a stale denial for a vendor declared disabled', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'disabled-vendor-draft' }
+	);
+	const Probe = () => {
+		const draft = useConsentDraft();
+		return <output>{JSON.stringify(draft.vendors)}</output>;
+	};
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				consentCategories: ['necessary', 'marketing'],
+				mode: offline(),
+				persistence: false,
+				prefetch: {
+					...fixture,
+					initialRecords: {
+						...fixture.initialRecords,
+						vendorChoice: {
+							confirmedAt: (fixture.now ?? 1) - 1,
+							denied: ['meta-pixel'],
+							version: 1,
+						},
+					},
+				},
+				vendors: [
+					{
+						category: 'marketing',
+						disabled: true,
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+					},
+				],
+			}}
+		>
+			<Probe />
+		</ConsentProvider>
+	);
+	// Every gate allows the vendor, so the draft must not report it as off.
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"meta-pixel":true}');
+});
+
+test('useVendorDraft stages a vendor on the shared draft and saves it', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'vendor-draft-hook' }
+	);
+	const Probe = () => {
+		const { isDirty, save, setVendor, vendors } = useVendorDraft();
+		// Under one `ConsentDraftProvider` the category draft sees the same
+		// staging, so one save confirms both.
+		const draft = useConsentDraft();
+		const denied = useVendorChoice()?.denied ?? [];
+		return (
+			<>
+				<output>
+					{JSON.stringify({
+						denied,
+						dirty: isDirty,
+						sharedDirty: draft.isDirty,
+						vendors,
+					})}
+				</output>
+				<button
+					onClick={() => setVendor('meta-pixel', false)}
+					type="button"
+				>
+					Deny
+				</button>
+				<button
+					onClick={() => {
+						save();
+					}}
+					type="button"
+				>
+					Save
+				</button>
+			</>
+		);
+	};
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				consentCategories: ['necessary', 'marketing'],
+				mode: offline(),
+				persistence: false,
+				prefetch: fixture,
+				vendors: [
+					{
+						category: 'marketing',
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+					},
+				],
+			}}
+		>
+			<ConsentDraftProvider>
+				<Probe />
+			</ConsentDraftProvider>
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"denied":[],"dirty":false,"sharedDirty":false,"vendors":{"meta-pixel":true}}'
+		);
+	await screen.getByRole('button', { name: 'Deny' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"denied":[],"dirty":true,"sharedDirty":true,"vendors":{"meta-pixel":false}}'
+		);
+	await screen.getByRole('button', { name: 'Save' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"denied":["meta-pixel"],"dirty":false,"sharedDirty":false,"vendors":{"meta-pixel":false}}'
+		);
+});
+
+test('useVendorDraft reports a stale draft and resets it', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'vendor-draft-stale' }
+	);
+	const vendor = {
+		category: 'marketing' as const,
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	};
+	const Probe = ({ declare }: { declare: () => void }) => {
+		const { isDirty, isStale, reset, setVendor, vendors } = useVendorDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({ dirty: isDirty, stale: isStale, vendors })}
+				</output>
+				<button
+					onClick={() => setVendor('meta-pixel', false)}
+					type="button"
+				>
+					Deny
+				</button>
+				<button
+					onClick={declare}
+					type="button"
+				>
+					Declare vendor
+				</button>
+				<button
+					onClick={reset}
+					type="button"
+				>
+					Reset
+				</button>
+			</>
+		);
+	};
+	const App = () => {
+		const [extra, setExtra] = useState(false);
+		return (
+			<ConsentProvider
+				options={{
+					consentCategories: ['necessary', 'marketing'],
+					mode: offline(),
+					persistence: false,
+					prefetch: fixture,
+					vendors: extra
+						? [vendor, { ...vendor, id: 'x-pixel', name: 'X Pixel' }]
+						: [vendor],
+				}}
+			>
+				<Probe declare={() => setExtra(true)} />
+			</ConsentProvider>
+		);
+	};
+	const screen = await render(<App />);
+	await screen.getByRole('button', { name: 'Deny' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"dirty":true,"stale":false,"vendors":{"meta-pixel":false}}'
+		);
+	// A vendor declared under the staged denial changes the set of switches.
+	// The draft keeps the staged map, and the hook alone must show that it
+	// needs review and offer the way back, without the consumer mounting
+	// `useConsentDraft()`.
+	await screen.getByRole('button', { name: 'Declare vendor' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"dirty":true,"stale":true,"vendors":{"meta-pixel":false}}'
+		);
+	await screen.getByRole('button', { name: 'Reset' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent(
+			'{"dirty":false,"stale":false,"vendors":{"meta-pixel":true,"x-pixel":true}}'
+		);
+});
+
+test('setVendor ignores a vendor declared disabled', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'disabled-vendor-set' }
+	);
+	const Probe = () => {
+		const draft = useConsentDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({ dirty: draft.isDirty, vendors: draft.vendors })}
+				</output>
+				<button
+					onClick={() => draft.setVendor('meta-pixel', false)}
+					type="button"
+				>
+					Deny
+				</button>
+			</>
+		);
+	};
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				consentCategories: ['necessary', 'marketing'],
+				mode: offline(),
+				persistence: false,
+				prefetch: fixture,
+				vendors: [
+					{
+						category: 'marketing',
+						disabled: true,
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+					},
+				],
+			}}
+		>
+			<Probe />
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"dirty":false,"vendors":{"meta-pixel":true}}');
+	await screen.getByRole('button', { name: 'Deny' }).click();
+	// The kernel would drop the grant on save, so nothing is staged.
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"dirty":false,"vendors":{"meta-pixel":true}}');
+});
+
+test('a vendor turning toggleable while the draft is dirty marks it stale', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'toggleable-flip' }
+	);
+	const vendor = {
+		category: 'marketing' as const,
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	};
+	const Probe = ({ enable }: { enable: () => void }) => {
+		const draft = useConsentDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({ dirty: draft.isDirty, stale: draft.isStale })}
+				</output>
+				<button
+					onClick={() => draft.set('marketing', false)}
+					type="button"
+				>
+					Edit
+				</button>
+				<button
+					onClick={enable}
+					type="button"
+				>
+					Enable vendor
+				</button>
+			</>
+		);
+	};
+	const App = () => {
+		const [disabled, setDisabled] = useState(true);
+		return (
+			<ConsentProvider
+				options={{
+					consentCategories: ['necessary', 'marketing'],
+					mode: offline(),
+					persistence: false,
+					prefetch: fixture,
+					vendors: [{ ...vendor, disabled }],
+				}}
+			>
+				<Probe enable={() => setDisabled(false)} />
+			</ConsentProvider>
+		);
+	};
+	const screen = await render(<App />);
+	await screen.getByRole('button', { name: 'Edit' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('{"dirty":true,"stale":false}');
+	// The same id becomes toggleable: the set of switches the draft may stage
+	// changed under an unsaved edit, so review is required.
+	await screen.getByRole('button', { name: 'Enable vendor' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"stale":true');
+});
+
+test('a vendor losing its row while a script keeps its slug marks a dirty draft stale', async () => {
+	const fixture = policyFixture(
+		{ marketing: true },
+		{ categories: ['marketing'], id: 'row-disappears' }
+	);
+	const vendor = {
+		category: 'marketing' as const,
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	};
+	const Probe = ({ hide }: { hide: () => void }) => {
+		const draft = useConsentDraft();
+		return (
+			<>
+				<output>
+					{JSON.stringify({
+						dirty: draft.isDirty,
+						stale: draft.isStale,
+						vendors: draft.vendors,
+					})}
+				</output>
+				<button
+					onClick={() => draft.setVendor('meta-pixel', false)}
+					type="button"
+				>
+					Deny vendor
+				</button>
+				<button
+					onClick={hide}
+					type="button"
+				>
+					Hide vendor
+				</button>
+			</>
+		);
+	};
+	const App = () => {
+		const [declared, setDeclared] = useState(true);
+		return (
+			<ConsentProvider
+				options={{
+					consentCategories: ['necessary', 'marketing'],
+					mode: offline(),
+					persistence: false,
+					prefetch: fixture,
+					// The script keeps the slug declared as a hidden fallback once
+					// the presentable declaration goes, so the id set is unchanged.
+					scripts: [
+						{
+							callbackOnly: true,
+							category: 'marketing',
+							id: 'meta-script',
+							vendor: 'meta-pixel',
+						},
+					],
+					vendors: declared ? [vendor] : [],
+				}}
+			>
+				<Probe hide={() => setDeclared(false)} />
+			</ConsentProvider>
+		);
+	};
+	const screen = await render(<App />);
+	await screen.getByRole('button', { name: 'Deny vendor' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"dirty":true,"stale":false');
+	// The row the edit was staged against is gone: review is required rather
+	// than saving a denial for a vendor the visitor can no longer see.
+	await screen.getByRole('button', { name: 'Hide vendor' }).click();
+	await expect
+		.element(screen.getByRole('status'))
+		.toHaveTextContent('"stale":true');
 });
 
 test('drafts use configured categories and require review when the displayed scope changes', async () => {

@@ -1,0 +1,220 @@
+/* Vendor cards nested inside a category's accordion content, each shaped
+   like a category row and collapsed by default. Resolve defaults at use
+   sites so imports cannot override one another. */
+
+@layer components {
+	/* The list: a stack of cards under the category description. */
+	.root:not(:global(.headless)) {
+		display: grid;
+		gap: var(--vendor-list-gap, var(--c15t-space-xs));
+		min-inline-size: 0;
+		margin: var(--vendor-list-margin-top, var(--c15t-space-sm)) 0 0;
+		padding: 0;
+	}
+
+	.hint:not(:global(.headless)) {
+		margin: 0;
+		font-size: var(--c15t-font-size-sm);
+		line-height: var(--c15t-line-height-normal);
+		color: var(--vendor-list-hint-color, var(--c15t-text-muted));
+	}
+
+	/* One vendor's card: the same border, radius and surface as a category
+	   row, a size down. */
+	.item:not(:global(.headless)) {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		box-sizing: border-box;
+		padding: 0;
+		border: 1px solid var(--vendor-list-border-color, var(--c15t-border));
+		border-radius: var(--vendor-list-radius, var(--c15t-radius-md));
+		background-color: var(--vendor-list-background-color, var(--c15t-surface));
+		overflow: visible;
+	}
+
+	:global(.c15t-dark) .item:not(:global(.headless)) {
+		border-color: var(--vendor-list-border-color-dark, var(--c15t-border));
+		background-color: var(
+			--vendor-list-background-color-dark,
+			var(--c15t-surface)
+		);
+	}
+
+	.item:not(:global(.headless)):has(.trigger:focus-visible) {
+		outline: 2px solid var(--vendor-list-focus-ring, hsl(227.93, 100%, 63.92%));
+		outline-offset: -2px;
+	}
+
+	:global(.c15t-dark)
+		.item:not(:global(.headless)):has(.trigger:focus-visible) {
+		outline-color: var(
+			--vendor-list-focus-ring-dark,
+			hsl(228.07, 69.8%, 48.04%)
+		);
+	}
+
+	/* Trigger on the left, switch on the right, the way a category row lays
+	   out. */
+	.header:not(:global(.headless)) {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: var(--vendor-list-header-gap, var(--c15t-space-xs));
+		box-sizing: border-box;
+		width: 100%;
+		margin: 0;
+		padding: var(--vendor-list-padding, var(--c15t-space-sm));
+		border-radius: var(--vendor-list-radius, var(--c15t-radius-md));
+		color: var(--vendor-list-text-color, var(--c15t-text));
+		transition: background-color
+			var(--vendor-list-duration, var(--c15t-duration-normal))
+			var(--vendor-list-ease, var(--c15t-easing));
+	}
+
+	.header:not(:global(.headless)):hover {
+		background-color: var(
+			--vendor-list-background-hover,
+			var(--c15t-surface-hover)
+		);
+	}
+
+	:global(.c15t-dark) .header:not(:global(.headless)) {
+		color: var(--vendor-list-text-color-dark, var(--c15t-text));
+	}
+
+	:global(.c15t-dark) .header:not(:global(.headless)):hover {
+		background-color: var(
+			--vendor-list-background-hover-dark,
+			var(--c15t-surface-hover)
+		);
+	}
+
+	.trigger:not(:global(.headless)) {
+		appearance: none;
+		display: flex;
+		align-items: center;
+		gap: var(--vendor-list-header-gap, var(--c15t-space-xs));
+		flex: 1 1 auto;
+		min-width: 0;
+		min-height: calc(var(--vendor-list-icon-size, 1.25rem) + 0.25rem);
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		font-size: var(--vendor-list-name-size, var(--c15t-font-size-sm));
+		line-height: var(--c15t-line-height-tight);
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.trigger:not(:global(.headless)):focus-visible {
+		outline: none;
+	}
+
+	/* A vendor with nothing to show behind the header keeps its row but not
+	   the affordance. */
+	.trigger:not(:global(.headless))[data-disabled] {
+		cursor: default;
+	}
+
+	.trigger:not(:global(.headless))[data-disabled] .arrow {
+		visibility: hidden;
+	}
+
+	.arrow:not(:global(.headless)) {
+		display: inline-flex;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		width: var(--vendor-list-icon-size, 1.25rem);
+		height: var(--vendor-list-icon-size, 1.25rem);
+		color: var(--vendor-list-arrow-color, hsl(0, 0%, 63.92%));
+	}
+
+	.arrow:not(:global(.headless)) svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+
+	:global(.c15t-dark) .arrow:not(:global(.headless)) {
+		color: var(--vendor-list-arrow-color-dark, hsl(0, 0%, 80%));
+	}
+
+	.name:not(:global(.headless)) {
+		margin: 0;
+		min-width: 0;
+		font: inherit;
+		font-weight: var(--c15t-font-weight-regular);
+		color: inherit;
+	}
+
+	.control:not(:global(.headless)) {
+		align-self: center;
+		flex-shrink: 0;
+		position: relative;
+		top: -1px;
+	}
+
+	/* Same collapse as the category content: a grid row that goes from
+	   zero to its content, clipped while it moves. */
+	.content:not(:global(.headless)) {
+		display: grid;
+		grid-template-rows: 0fr;
+		overflow: hidden;
+		transition: grid-template-rows
+			var(--vendor-list-duration, var(--c15t-duration-normal))
+			var(--vendor-list-ease, var(--c15t-easing));
+	}
+
+	.content:not(:global(.headless))[data-state='open'] {
+		grid-template-rows: 1fr;
+	}
+
+	.content:not(:global(.headless))[data-state='closed'] {
+		pointer-events: none;
+	}
+
+	.contentInner:not(:global(.headless)) {
+		display: grid;
+		gap: 0.25rem;
+		padding: 0 var(--vendor-list-padding, var(--c15t-space-sm))
+			var(--vendor-list-padding, var(--c15t-space-sm));
+		padding-inline-start: calc(
+			var(--vendor-list-padding, var(--c15t-space-sm)) +
+				var(--vendor-list-icon-size, 1.25rem) +
+				var(--vendor-list-header-gap, var(--c15t-space-xs))
+		);
+	}
+
+	.description:not(:global(.headless)) {
+		margin: 0;
+		font-size: var(--c15t-font-size-sm);
+		line-height: var(--c15t-line-height-normal);
+		color: var(--vendor-list-description-color, var(--c15t-text-muted));
+	}
+
+	.link:not(:global(.headless)) {
+		justify-self: start;
+		font-size: var(--c15t-font-size-sm);
+		line-height: var(--c15t-line-height-normal);
+		color: var(--vendor-list-link-color, var(--c15t-primary));
+		text-decoration: underline;
+		text-underline-offset: 0.15em;
+	}
+
+	.link:not(:global(.headless)):focus-visible {
+		outline: 2px solid var(--vendor-list-focus-ring, hsl(227.93, 100%, 63.92%));
+		outline-offset: 2px;
+		border-radius: var(--c15t-radius-sm);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.content:not(:global(.headless)),
+		.header:not(:global(.headless)) {
+			transition: none;
+		}
+	}
+}

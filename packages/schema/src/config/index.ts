@@ -125,6 +125,18 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 		trigger?: T;
 		content?: T;
 	};
+	/** Vendor rows nested under a category in the preference center. */
+	'vendor-list'?: {
+		root?: T;
+		trigger?: T;
+		content?: T;
+		item?: T;
+		header?: T;
+		name?: T;
+		description?: T;
+		link?: T;
+		control?: T;
+	};
 	description?: {
 		banner?: T;
 		dialog?: T;
@@ -367,6 +379,17 @@ export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
 		toolbar: true,
 		toolbarIcon: true,
 		toolbarItem: true,
+	},
+	'vendor-list': {
+		content: true,
+		control: true,
+		description: true,
+		header: true,
+		item: true,
+		link: true,
+		name: true,
+		root: true,
+		trigger: true,
 	},
 } as const satisfies ConsentComponentSlotKeyMap;
 

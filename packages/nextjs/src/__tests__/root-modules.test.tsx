@@ -4,6 +4,7 @@
  * Verifies that passing curated module props causes the corresponding
  * modules to mount and react to kernel state.
  */
+import { useDeclaredVendors, useVendorAllowed } from '@c15t/react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -72,4 +73,35 @@ test('forwards clearOnRevocation and removes denied category storage', async () 
 		expect(localStorage.getItem('analytics:visitor')).toBeNull()
 	);
 	screen.unmount();
+});
+
+test('forwards vendors so the preference center lists them and gates their scripts', async () => {
+	const Probe = () => {
+		const declared = useDeclaredVendors();
+		const allowed = useVendorAllowed('meta-pixel');
+		return (
+			<output data-testid="probe">
+				{JSON.stringify({ allowed, ids: declared.map((vendor) => vendor.id) })}
+			</output>
+		);
+	};
+	const { getByTestId } = await render(
+		<ConsentRoot
+			state={policyFixture({ marketing: true })}
+			persistence={false}
+			vendors={[
+				{
+					category: 'marketing',
+					id: 'meta-pixel',
+					name: 'Meta Pixel',
+					privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+				},
+			]}
+		>
+			<Probe />
+		</ConsentRoot>
+	);
+	await expect
+		.element(getByTestId('probe'))
+		.toHaveTextContent('{"allowed":true,"ids":["meta-pixel"]}');
 });

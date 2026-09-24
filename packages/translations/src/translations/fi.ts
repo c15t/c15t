@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'Mukauta yksityisyysasetuksiasi täällä. Voit valita, minkä tyyppiset evästeet ja seurantatekniikat sallit.',
 		title: 'Tietosuoja-asetukset',
+		vendors: {
+			disabledByCategory: 'Ota tämä luokka käyttöön valitaksesi kumppanit.',
+			privacyPolicy: 'Tietosuojakäytäntö',
+			switchLabel: 'Salli {vendor}',
+			title: 'Kumppanit ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

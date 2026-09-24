@@ -106,6 +106,7 @@ export const ConsentWidget = withLazyProperties(
 		'Switch',
 		'AccordionItems',
 		'AccordionItem',
+		'VendorList',
 		'Root',
 		'AcceptAllButton',
 		'CustomizeButton',

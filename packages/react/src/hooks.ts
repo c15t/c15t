@@ -34,7 +34,10 @@ import type {
 	KernelUser,
 	LocationResponse,
 	PolicyScopeMode,
+	ResolvedVendor,
+	VendorChoice,
 } from '@c15t/core';
+import { evaluateConsent, isVendorDenied } from '@c15t/core';
 import { useCallback, useContext, useSyncExternalStore } from 'react';
 
 import { KernelContext } from './context';
@@ -236,6 +239,68 @@ export const useSpecialFeatureOptIn = function useSpecialFeatureOptIn(
 /** Latest TCF string. `null` until the IAB module encodes one. */
 export const useTCString = function useTCString(): string | null {
 	return useKernelSelector((snap) => snap.iab?.tcString ?? null);
+};
+
+const NO_VENDORS: readonly ResolvedVendor[] = [];
+
+/**
+ * Vendors declared for vendor-level consent outside IAB, merged from the
+ * provider's `vendors` option, the backend and script slugs. Empty under an
+ * `iab` policy, where the TC string decides and vendor rows are not shown.
+ */
+export const useDeclaredVendors =
+	function useDeclaredVendors(): readonly ResolvedVendor[] {
+		return useKernelSelector((snap) =>
+			snap.model === 'iab' ? NO_VENDORS : (snap.vendors?.declared ?? NO_VENDORS)
+		);
+	};
+
+/**
+ * The visitor's recorded vendor decision.
+ *
+ * @returns The decision, whose `denied` list may be empty after a bulk
+ * action lifted every denial, or `null` when no vendor decision was ever
+ * recorded.
+ */
+export const useVendorChoice =
+	function useVendorChoice(): Readonly<VendorChoice> | null {
+		return useKernelSelector((snap) => snap.vendorChoice);
+	};
+
+/**
+ * Whether one vendor is allowed: its category condition passes and the
+ * visitor has not turned it off.
+ *
+ * @param vendorId - Vendor slug as declared in `vendors` or on a script.
+ * @returns `false` while the vendor is denied outside `iab`, otherwise the
+ * result of its declared category condition. An undeclared id is `true`:
+ * nothing is known about its category, and a denial only exists for a vendor
+ * the visitor saw.
+ */
+export const useVendorAllowed = function useVendorAllowed(
+	vendorId: string
+): boolean {
+	return useKernelSelector((snap) => {
+		const vendor = snap.vendors?.declared.find(
+			(entry) => entry.id === vendorId
+		);
+		// An explicit short-circuit, not load-bearing: the kernel's denial set
+		// already skips an undeclared id, so this only makes the answer for an
+		// unknown vendor plain to read.
+		if (!vendor) {
+			return true;
+		}
+		// The kernel's own gate semantics: inert under `iab`, and a stale denial
+		// for a vendor now declared `disabled` no longer counts.
+		if (snap.model !== 'iab' && isVendorDenied(snap, vendorId)) {
+			return false;
+		}
+		try {
+			return evaluateConsent({ category: vendor.category }, snap);
+		} catch {
+			return false;
+		}
+	});
 };
 
 /** Register categories used by scripts, frames, or other integrations. */

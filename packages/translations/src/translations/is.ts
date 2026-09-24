@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'Sérsníðaðu persónuverndastillingar þínar hér. Þú getur valið hvaða tegundir af vafrakökum og rakningartækni þú leyfir.',
 		title: 'Persónuverndastillingar',
+		vendors: {
+			disabledByCategory: 'Kveiktu á þessum flokki til að velja söluaðila.',
+			privacyPolicy: 'Persónuverndarstefna',
+			switchLabel: 'Leyfa {vendor}',
+			title: 'Söluaðilar ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'Passt Är Privatsphär Astellungen hei un. Dir kënnt wielen wéi eng Zorte vu Cookien an Tracking-Technologien Dir erlaabt.',
 		title: 'Privatsphär Astellungen',
+		vendors: {
+			disabledByCategory: 'Aktivéiert dës Kategorie fir Ubidder auszewielen.',
+			privacyPolicy: 'Dateschutzrichtlinn',
+			switchLabel: '{vendor} erlaben',
+			title: 'Ubidder ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

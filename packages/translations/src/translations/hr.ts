@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Ovdje možete prilagoditi svoje postavke privatnosti. Možete odabrati koje vrste kolačića i tehnologija praćenja dopuštate.',
 		title: 'Postavke privatnosti',
+		vendors: {
+			disabledByCategory:
+				'Uključite ovu kategoriju da biste odabrali prodavače.',
+			privacyPolicy: 'Pravila o privatnosti',
+			switchLabel: 'Dopusti {vendor}',
+			title: 'Prodavači ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

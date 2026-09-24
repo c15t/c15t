@@ -42,3 +42,46 @@ export const ExpandedCategories: Story = {
 	...Default,
 	play: expandedCategories,
 };
+
+/** Vendors nested under their categories. Expand Marketing to see two rows. */
+export const WithVendors: Story = {
+	render: () => (
+		<StorybookConsentProvider
+			options={{
+				...editableConsentOptions,
+				vendors: [
+					{
+						category: 'marketing',
+						description: 'Ad conversion measurement and audiences.',
+						id: 'meta-pixel',
+						name: 'Meta Pixel',
+						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+					},
+					{
+						category: 'marketing',
+						id: 'google-ads',
+						name: 'Google Ads',
+						privacyPolicyUrl: 'https://policies.google.com/privacy',
+					},
+					{
+						category: 'measurement',
+						id: 'google-analytics',
+						name: 'Google Analytics',
+						privacyPolicyUrl: 'https://policies.google.com/privacy',
+					},
+				],
+			}}
+			storedConsent={{
+				experience: false,
+				functionality: false,
+				marketing: true,
+				measurement: true,
+				necessary: true,
+			}}
+		>
+			<div style={{ width: '32rem' }}>
+				<ConsentWidget />
+			</div>
+		</StorybookConsentProvider>
+	),
+};
