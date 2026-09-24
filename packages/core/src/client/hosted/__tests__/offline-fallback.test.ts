@@ -227,6 +227,7 @@ describe('Hosted Client Offline Fallback Tests', () => {
 			domain: 'example.com',
 			givenAt: Date.now(),
 			preferences: { analytics: true },
+			metadata: { c15tVisitId: 'ac2025bb-d674-4f94-b528-4f4b48bf7806' },
 		};
 
 		mockLocalStorage.getItem.mockImplementation((key) => {

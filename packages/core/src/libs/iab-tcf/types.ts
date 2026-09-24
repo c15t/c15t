@@ -242,7 +242,9 @@ export interface IABModule {
 		set: (
 			partial: Partial<import('../../store/type').ConsentStoreState>
 		) => void,
-		manager: import('../../client/client-interface').ConsentManagerInterface
+		manager: import('../../client/client-interface').ConsentManagerInterface,
+		/** Optional hosted visit link, captured when a save starts. */
+		getVisitId?: () => string | undefined
 	) => IABManager;
 
 	/** Initializes IAB mode (stub, GVL, CMP API). */
@@ -254,7 +256,9 @@ export interface IABModule {
 				partial: Partial<import('../../store/type').ConsentStoreState>
 			) => void;
 		},
-		prefetchedGVL?: import('../../types/iab-tcf').GlobalVendorList | null
+		prefetchedGVL?: import('../../types/iab-tcf').GlobalVendorList | null,
+		/** Called only after initialization and stored TC-string restoration resolve. */
+		onResolved?: (hasRestoredChoice: boolean) => void
 	) => Promise<void>;
 
 	/** Fetches the Global Vendor List. Used by client fallback paths. */

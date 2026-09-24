@@ -218,6 +218,8 @@ export const initOutputSchema = v.object({
 	 * Present when backend policy snapshots are configured.
 	 */
 	policySnapshotToken: v.optional(v.string()),
+	/** Hosted backend opt-in for ephemeral consent visit measurement. */
+	visitTracking: v.optional(v.object({ enabled: v.literal(true) })),
 });
 
 export type InitOutput = v.InferOutput<typeof initOutputSchema>;

@@ -44,6 +44,7 @@ describe('runtime', () => {
 
 				return {
 					id: `store-${++storeCount}`,
+					dispose: vi.fn(),
 					getState: () => state,
 					setState: (partial: Record<string, unknown>) => {
 						state = { ...state, ...partial };
@@ -55,6 +56,22 @@ describe('runtime', () => {
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
+	});
+
+	it('disposes visit tracking when evicting or clearing cached runtimes', () => {
+		const first = getOrCreateConsentRuntime({
+			mode: 'hosted',
+			backendURL: '/api/c15t',
+		});
+		first.dispose();
+		expect(first.consentStore.dispose).toHaveBeenCalledOnce();
+		const replacement = getOrCreateConsentRuntime({
+			mode: 'hosted',
+			backendURL: '/api/c15t',
+		});
+		expect(replacement.consentStore).not.toBe(first.consentStore);
+		clearConsentRuntimeCache();
+		expect(replacement.consentStore.dispose).toHaveBeenCalledOnce();
 	});
 
 	describe('nonce resolution', () => {

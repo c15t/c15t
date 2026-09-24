@@ -391,7 +391,8 @@ export async function updateStore(
 				config.iabConfig,
 				get,
 				set,
-				config.manager
+				config.manager,
+				config.visitTracker?.getVisitId
 			);
 			set({ iab });
 		}
@@ -447,6 +448,14 @@ export async function updateStore(
 		};
 	}
 
+	// Start before subscribers or callbacks can save. IAB must finish restoring
+	// its TC string before we classify whether a choice was already available.
+	const initialVisitState = { ...get(), ...storeUpdate };
+	if (effectiveIABEnabled && consentModel === 'iab') {
+		config.visitTracker?.start(data);
+	} else {
+		config.visitTracker?.initialise(data, initialVisitState);
+	}
 	set(storeUpdate);
 
 	// Trigger callbacks
@@ -480,7 +489,18 @@ export async function updateStore(
 		const iabModule = config.iabConfig?._module;
 		if (iabModule) {
 			iabModule
-				.initializeIABMode(mergedConfig, { set, get }, prefetchedGVL)
+				.initializeIABMode(
+					mergedConfig,
+					{ set, get },
+					prefetchedGVL,
+					(hasRestoredChoice) => {
+						config.visitTracker?.initialise(
+							data,
+							initialVisitState,
+							hasRestoredChoice
+						);
+					}
+				)
 				.catch((err) => {
 					console.error('Failed to initialize IAB mode in updateStore:', err);
 				});

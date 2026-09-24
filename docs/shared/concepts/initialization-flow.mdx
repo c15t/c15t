@@ -100,6 +100,30 @@ group: reference
   If the resolved model is `none` or `opt-out` (and `ui.mode` is `none`), consents are auto-granted and the banner never appears. See [Consent Models](/docs/frameworks/react/concepts/consent-models) and [Policy Packs](/docs/frameworks/react/concepts/policy-packs) for details.
 </section>
 
+<section id="visit-measurement">
+  ## Hosted Visit Measurement
+
+  A hosted backend can opt into visit measurement by including this optional field in its successful init response:
+
+  ```json
+  { "visitTracking": { "enabled": true } }
+  ```
+
+  With that opt-in, the browser runtime sends `started` and `state` events to `POST /consent/visits` on the same configured backend. It generates a random visit ID in memory and classifies the resolved initial state as `choice_required`, `existing_choice`, or `not_required`. `choice_required` means the runtime requires a choice; it does not prove that a banner rendered or was seen.
+
+  Measurement begins after successful initialization, including when the browser hydrates SSR or prefetched init data. Requests that fail before an opted-in response, disabled runtimes, offline mode, custom clients, and older SDK versions do not produce measured visits. Omit `visitTracking` to disable measurement. The collector must also enforce the backend's current enablement setting because SSR or prefetched responses can be cached.
+
+  While the document is visible, the runtime sends an `activity` event every 60 seconds and when visibility resumes. It sends `ended` on a non-persisted `pagehide` event. Back/forward-cache suspension pauses activity and restoration keeps the same visit. Missing activity or an exit event does not prove that someone left; browsers can stop or discard pages without delivering a final request.
+
+  The event body contains version `1`, random visit and event IDs, the event name, resolved state, optional policy ID, and hostname. It does not include the page URL, query string, subject ID, IP address, or user agent. Requests omit cookies and the referrer. The visit ID is not reused as a persistent visitor identity, so these counts describe initialized browser visits, not unique people.
+
+  IAB mode starts the visit after init and waits for TC-string restoration before sending its state. Failed IAB initialization leaves the visit unclassified. Use a matching `@c15t/iab` release to link IAB saves and report restored choices. Automatic opt-out and Global Privacy Control decisions change the in-memory preferences without producing a saved-choice event.
+
+  Consent saves include the reserved `metadata.c15tVisitId` field. The backend must count a save only after accepting it; there is no client-side `saved` analytics event. Queued saves and reload-deferred revocations retain the original visit ID until delivery, even if the next document has a new visit ID. Optional analytics failures do not interrupt consent saving or script gating.
+
+  Cached provider remounts reuse the existing runtime and visit. If you permanently discard a runtime, call `runtime.dispose()` to stop measurement and evict it from the runtime cache. For stores created directly, `store.dispose()` stops measurement. Do not dispose a shared runtime during an ordinary provider remount. `clearConsentRuntimeCache()` also disposes cached measurement listeners and timers.
+</section>
+
 <section id="debugging">
   ## Debugging the Lifecycle
 

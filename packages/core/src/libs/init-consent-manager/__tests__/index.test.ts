@@ -116,6 +116,7 @@ describe('initConsentManager', () => {
 					domain: 'example.com',
 					uiSource: 'dialog',
 					policySnapshotToken: 'snapshot-token-123',
+					c15tVisitId: 'ac2025bb-d674-4f94-b528-4f4b48bf7806',
 				})
 			);
 
@@ -140,6 +141,8 @@ describe('initConsentManager', () => {
 			expect(mockManager.setConsent).toHaveBeenCalledWith({
 				body: expect.objectContaining({
 					policySnapshotToken: 'snapshot-token-123',
+					metadata: { c15tVisitId: 'ac2025bb-d674-4f94-b528-4f4b48bf7806' },
+					consentAction: 'custom',
 					uiSource: 'dialog',
 				}),
 			});

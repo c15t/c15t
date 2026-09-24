@@ -13,6 +13,24 @@ describe('saveConsents', () => {
 	let updateIframeConsentsMock: ReturnType<typeof vi.fn>;
 	let updateNetworkBlockerConsentsMock: ReturnType<typeof vi.fn>;
 
+	it('attaches the original ephemeral visit to the save without creating a client saved event', async () => {
+		await saveConsents({
+			manager: mockManager,
+			visitId: 'ac2025bb-d674-4f94-b528-4f4b48bf7806',
+			type: 'all',
+			get: mockGet,
+			set: mockSet,
+		});
+		expect(mockManager.setConsent).toHaveBeenCalledWith(
+			expect.objectContaining({
+				body: expect.objectContaining({
+					metadata: { c15tVisitId: 'ac2025bb-d674-4f94-b528-4f4b48bf7806' },
+				}),
+			})
+		);
+		expect(mockManager.$fetch).not.toHaveBeenCalled();
+	});
+
 	beforeEach(() => {
 		// Reset all mocks
 		vi.clearAllMocks();
@@ -1849,6 +1867,7 @@ describe('saveConsents', () => {
 
 			await saveConsents({
 				manager: mockManager,
+				visitId: 'ac2025bb-d674-4f94-b528-4f4b48bf7806',
 				type: 'custom',
 				get: mockGet,
 				set: mockSet,
@@ -1866,6 +1885,9 @@ describe('saveConsents', () => {
 			).mock.calls.find(([key]) => key === PENDING_CONSENT_SYNC_KEY);
 			const storedData = JSON.parse(String(pendingSyncCall?.[1]));
 			expect(storedData.policySnapshotToken).toBe('snapshot-token-123');
+			expect(storedData.c15tVisitId).toBe(
+				'ac2025bb-d674-4f94-b528-4f4b48bf7806'
+			);
 
 			expect(callOrder).toEqual([
 				'onConsentSet',

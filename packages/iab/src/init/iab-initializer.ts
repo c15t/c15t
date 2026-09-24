@@ -56,11 +56,13 @@ function updateIABState(
  *   - `undefined` means not prefetched (will fetch)
  *   - `null` means non-IAB region (204 response, skip initialization)
  *   - `GlobalVendorList` means prefetched data to use
+ * @param onResolved - Optional visit hook called after stored-choice restoration
  */
 export async function initializeIABMode(
 	iab: IABConfig,
 	storeAccess: StoreAccess,
-	prefetchedGVL?: GlobalVendorList | null
+	prefetchedGVL?: GlobalVendorList | null,
+	onResolved?: (hasRestoredChoice: boolean) => void
 ): Promise<void> {
 	const { get } = storeAccess;
 
@@ -190,13 +192,14 @@ export async function initializeIABMode(
 		// Load existing TC String from storage if available
 		const existingTcString = cmpApi.loadFromStorage();
 
-		if (existingTcString) {
-			await restoreConsentFromTCString(existingTcString, storeAccess);
-		}
+		const hasRestoredChoice = existingTcString
+			? await restoreConsentFromTCString(existingTcString, storeAccess)
+			: false;
 		// No existing consent - initialize default IAB state
 		// Purpose 1 (Storage) is required, so we might auto-consent it
 		// based on your compliance requirements
 
+		onResolved?.(hasRestoredChoice);
 		// Update scripts based on IAB consent state
 		get().updateScripts();
 	} catch (error) {
@@ -214,7 +217,7 @@ export async function initializeIABMode(
 async function restoreConsentFromTCString(
 	tcString: string,
 	storeAccess: StoreAccess
-): Promise<void> {
+): Promise<boolean> {
 	const { set } = storeAccess;
 
 	try {
@@ -254,7 +257,9 @@ async function restoreConsentFromTCString(
 			selectedConsents: c15tConsents,
 			activeUI: 'none' as const, // User already has consent
 		});
+		return true;
 	} catch {
 		// Invalid TC String, ignore
+		return false;
 	}
 }

@@ -39,10 +39,12 @@ export interface PendingConsentSync {
 	domain: string;
 	uiSource?: string;
 	policySnapshotToken?: string;
+	c15tVisitId?: string;
 }
 
 interface SaveConsentsProps {
 	manager: ConsentManagerInterface;
+	visitId?: string;
 	type: 'necessary' | 'all' | 'custom';
 	get: StoreApi<ConsentStoreState>['getState'];
 	set: StoreApi<ConsentStoreState>['setState'];
@@ -139,6 +141,7 @@ function getConsentCategoryLists(
 
 export async function saveConsents({
 	manager,
+	visitId,
 	type,
 	get,
 	set,
@@ -296,6 +299,7 @@ export async function saveConsents({
 			domain: window.location.hostname,
 			uiSource: options?.uiSource ?? 'api',
 			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
+			...(visitId ? { c15tVisitId: visitId } : {}),
 			...(externalId ? { externalId } : {}),
 			...(identityProvider ? { identityProvider } : {}),
 		};
@@ -354,6 +358,7 @@ export async function saveConsents({
 			uiSource: options?.uiSource ?? 'api',
 			consentAction: type,
 			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
+			...(visitId ? { metadata: { c15tVisitId: visitId } } : {}),
 			...(externalId ? { externalSubjectId: externalId } : {}),
 			...(identityProvider ? { identityProvider } : {}),
 		},

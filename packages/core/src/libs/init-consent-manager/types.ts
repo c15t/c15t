@@ -10,6 +10,7 @@ import type { ConsentManagerInterface } from '../../client/client-factory';
 import type { IABConfig } from '../../libs/iab-tcf/types';
 import type { ConsentStoreState, SSRInitialData } from '../../store/type';
 import type { ConsentBannerResponse } from '../../types/compliance';
+import type { ConsentVisitTracker } from '../consent-visit';
 
 // Re-export for internal consumers
 export type { ConsentBannerResponse };
@@ -20,6 +21,8 @@ export type { ConsentBannerResponse };
 export interface InitConsentManagerConfig {
 	/** The consent manager client for API calls */
 	manager: ConsentManagerInterface;
+	/** Hosted visit tracking; absent for custom and offline clients. */
+	visitTracker?: ConsentVisitTracker;
 
 	/** SSR-prefetched data (init + optional GVL) */
 	ssrData?: Promise<SSRInitialData | undefined>;

@@ -53,6 +53,7 @@ export function createInitialIABState(config: IABConfig): IABState {
  * @param getState - Function to get the current state from the store
  * @param setState - Function to update the state in the store
  * @param manager - The consent manager interface for API calls
+ * @param getVisitId - Optional hook for correlating the save with its current visit
  * @returns IAB action methods
  *
  * @internal
@@ -60,7 +61,8 @@ export function createInitialIABState(config: IABConfig): IABState {
 export function createIABActions(
 	getState: () => ConsentStoreState,
 	setState: (partial: Partial<ConsentStoreState>) => void,
-	manager: ConsentManagerInterface
+	manager: ConsentManagerInterface,
+	getVisitId?: () => string | undefined
 ): IABActions {
 	/**
 	 * Helper to update nested IAB state.
@@ -202,6 +204,7 @@ export function createIABActions(
 		},
 
 		save: async () => {
+			const visitId = getVisitId?.();
 			const { iab, locationInfo, user, callbacks } = getState();
 
 			if (!iab?.cmpApi || !iab.gvl) {
@@ -339,6 +342,7 @@ export function createIABActions(
 					metadata: {
 						source: 'iab_tcf',
 						acceptanceMethod: 'iab',
+						...(visitId ? { c15tVisitId: visitId } : {}),
 					},
 				},
 			});
@@ -366,6 +370,7 @@ export function createIABActions(
  * @param getState - Function to get the current state from the store
  * @param setState - Function to update the state in the store
  * @param manager - The consent manager interface for API calls
+ * @param getVisitId - Optional hook for correlating the save with its current visit
  * @returns Complete IABManager with state and actions
  *
  * @internal
@@ -374,10 +379,11 @@ export function createIABManager(
 	config: IABConfig,
 	getState: () => ConsentStoreState,
 	setState: (partial: Partial<ConsentStoreState>) => void,
-	manager: ConsentManagerInterface
+	manager: ConsentManagerInterface,
+	getVisitId?: () => string | undefined
 ): IABManager {
 	const state = createInitialIABState(config);
-	const actions = createIABActions(getState, setState, manager);
+	const actions = createIABActions(getState, setState, manager, getVisitId);
 
 	return {
 		...state,

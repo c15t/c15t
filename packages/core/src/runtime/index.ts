@@ -60,6 +60,8 @@ export interface ConsentRuntimeResult {
 	consentManager: ConsentManagerInstance;
 	consentStore: ConsentStoreInstance;
 	cacheKey: string;
+	/** Stop visit measurement and evict this runtime. Do not call on shared provider remounts. */
+	dispose: () => void;
 }
 
 function generateRuntimeCacheKey(options: {
@@ -316,10 +318,18 @@ export function getOrCreateConsentRuntime(
 		consentManager,
 		consentStore,
 		cacheKey,
+		dispose: () => {
+			consentStore.dispose();
+			if (storeCache.get(cacheKey) === consentStore)
+				storeCache.delete(cacheKey);
+			if (managerCache.get(cacheKey) === consentManager)
+				managerCache.delete(cacheKey);
+		},
 	};
 }
 
 export function clearConsentRuntimeCache(): void {
+	for (const store of storeCache.values()) store.dispose();
 	managerCache.clear();
 	storeCache.clear();
 	clearClientRegistry();

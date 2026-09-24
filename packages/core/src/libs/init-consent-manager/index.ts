@@ -89,6 +89,7 @@ export async function initConsentManager(
 	// Check if localStorage is available
 	const hasLocalStorageAccess = checkLocalStorageAccess(set);
 	if (!hasLocalStorageAccess) {
+		config.visitTracker?.initialise(undefined, get());
 		return undefined;
 	}
 
@@ -106,7 +107,14 @@ export async function initConsentManager(
 	}
 
 	// Fall back to client-side API fetch
-	return fetchFromAPI(config, hasLocalStorageAccess, manager, callbacks);
+	const result = await fetchFromAPI(
+		config,
+		hasLocalStorageAccess,
+		manager,
+		callbacks
+	);
+	if (!result) config.visitTracker?.initialise(undefined, get());
+	return result;
 }
 
 /**
@@ -373,8 +381,12 @@ function processPendingConsentSync(
 					jurisdiction: data.jurisdiction,
 					jurisdictionModel: data.jurisdictionModel ?? undefined,
 					givenAt: data.givenAt,
+					consentAction: data.type,
 					uiSource: data.uiSource ?? 'api',
 					policySnapshotToken: data.policySnapshotToken,
+					...(data.c15tVisitId
+						? { metadata: { c15tVisitId: data.c15tVisitId } }
+						: {}),
 					...(externalSubjectId ? { externalSubjectId } : {}),
 					...(identityProvider ? { identityProvider } : {}),
 				},

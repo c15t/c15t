@@ -11,6 +11,8 @@ import {
 import { resolveTranslationInput } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
+import { C15tClient } from '../client/hosted';
+import { createConsentVisitTracker } from '../libs/consent-visit';
 import type { StorageConfig } from '../libs/cookie';
 import {
 	deleteConsentFromStorage,
@@ -232,6 +234,10 @@ export const createConsentManagerStore = (
 	const consentChangeListeners = new Set<Callback<OnConsentChangedPayload>>();
 	const inFlightConsentSaves = new Map<string, Promise<void>>();
 	const inFlightPolicyConsents = new Map<string, Promise<PostSubjectOutput>>();
+	const visitTracker =
+		enabled && manager instanceof C15tClient
+			? createConsentVisitTracker(manager)
+			: undefined;
 
 	const store = createStore<ConsentStoreState>((set, get) => ({
 		...initialState,
@@ -287,6 +293,7 @@ export const createConsentManagerStore = (
 			return coalesceInFlight(inFlightConsentSaves, requestKey, () =>
 				saveConsents({
 					manager,
+					visitId: visitTracker?.getVisitId(),
 					type,
 					get,
 					set,
@@ -421,6 +428,7 @@ export const createConsentManagerStore = (
 
 			return initConsentManager({
 				manager,
+				visitTracker,
 				ssrData: options.ssrData,
 				backendURL: internalOptions.__internal?.backendURL,
 				requestCredentials: internalOptions.__internal?.requestCredentials,
@@ -669,6 +677,7 @@ export const createConsentManagerStore = (
 
 			return await initConsentManager({
 				manager,
+				visitTracker,
 				backendURL: internalOptions.__internal?.backendURL,
 				requestCredentials: internalOptions.__internal?.requestCredentials,
 				initialTranslationConfig: normalizedInitialTranslationConfig,
@@ -737,7 +746,10 @@ export const createConsentManagerStore = (
 		}
 	}
 
-	return store;
+	return Object.assign(store, {
+		/** Stop optional visit analytics when explicitly disposing this store. */
+		dispose: () => visitTracker?.dispose(),
+	});
 };
 
 export * from './type';
