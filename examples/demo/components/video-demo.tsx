@@ -1,6 +1,6 @@
 'use client';
 
-import { Frame } from 'c15t/react';
+import { ConsentGate } from 'c15t/react';
 
 import { cn } from '../lib/utils';
 
@@ -27,8 +27,8 @@ export const VideoDemo = ({
 					Consent-aware embeds
 				</h2>
 				<p className="text-muted-foreground text-sm leading-6 sm:text-base">
-					<code className="font-mono">Frame</code> keeps third-party iframes
-					unmounted until the matching consent category is granted.
+					<code className="font-mono">ConsentGate</code> keeps third-party
+					iframes unmounted until the matching consent category is granted.
 				</p>
 			</div>
 
@@ -44,7 +44,7 @@ export const VideoDemo = ({
 							Unlocks when measurement consent is given.
 						</p>
 					</div>
-					<Frame category="measurement">
+					<ConsentGate category="measurement">
 						<iframe
 							allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
 							className="aspect-video w-full rounded-lg"
@@ -53,7 +53,7 @@ export const VideoDemo = ({
 							src="https://www.youtube-nocookie.com/embed/gwqYfNWVPpk?start=36&playsinline=1"
 							title="Measurement policy-gated video"
 						/>
-					</Frame>
+					</ConsentGate>
 				</div>
 
 				<div className="space-y-3">
@@ -67,7 +67,7 @@ export const VideoDemo = ({
 							Unlocks when marketing consent is given.
 						</p>
 					</div>
-					<Frame category="marketing">
+					<ConsentGate category="marketing">
 						<iframe
 							allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
 							className="aspect-video w-full rounded-lg"
@@ -76,7 +76,7 @@ export const VideoDemo = ({
 							src="https://www.youtube-nocookie.com/embed/gwqYfNWVPpk?start=36&playsinline=1"
 							title="Marketing policy-gated video"
 						/>
-					</Frame>
+					</ConsentGate>
 				</div>
 			</div>
 		</section>

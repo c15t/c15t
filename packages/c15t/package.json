@@ -209,6 +209,11 @@
 			"import": "./shims/react/panel-trigger.js",
 			"default": "./shims/react/panel-trigger.js"
 		},
+		"./react/consent-gate": {
+			"types": "./shims/react/consent-gate.d.ts",
+			"import": "./shims/react/consent-gate.js",
+			"default": "./shims/react/consent-gate.js"
+		},
 		"./react/frame": {
 			"types": "./shims/react/frame.d.ts",
 			"import": "./shims/react/frame.js",
@@ -267,6 +272,11 @@
 			"types": "./shims/react/components/preferences.d.ts",
 			"import": "./shims/react/components/preferences.js",
 			"default": "./shims/react/components/preferences.js"
+		},
+		"./react/components/consent-gate": {
+			"types": "./shims/react/components/consent-gate.d.ts",
+			"import": "./shims/react/components/consent-gate.js",
+			"default": "./shims/react/components/consent-gate.js"
 		},
 		"./react/components/frame": {
 			"types": "./shims/react/components/frame.d.ts",
@@ -492,6 +502,11 @@
 			"types": "./shims/vue/runtime/components/consent-description.vue.d.ts",
 			"import": "./shims/vue/runtime/components/consent-description.vue.js",
 			"default": "./shims/vue/runtime/components/consent-description.vue.js"
+		},
+		"./vue/runtime/components/consent-gate.vue": {
+			"types": "./shims/vue/runtime/components/consent-gate.vue.d.ts",
+			"import": "./shims/vue/runtime/components/consent-gate.vue.js",
+			"default": "./shims/vue/runtime/components/consent-gate.vue.js"
 		},
 		"./vue/runtime/components/consent-frame.vue": {
 			"types": "./shims/vue/runtime/components/consent-frame.vue.d.ts",

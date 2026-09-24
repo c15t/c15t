@@ -112,7 +112,7 @@ for (const target of selectedTargets()) {
 				expect(browserInitRequests).toBe(0);
 			});
 
-			test('Frame is visible without completing an entrance animation', async () => {
+			test('ConsentGate is visible without completing an entrance animation', async () => {
 				({ context, page, requests } = await openBrowserContext(
 					browser,
 					server.baseURL,

@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
 
-import FrameStory from './FrameStory.svelte';
+import ConsentGateStory from './ConsentGateStory.svelte';
 
 const meta = {
-	component: FrameStory,
+	component: ConsentGateStory,
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'COMPONENTS - SVELTE/Core/Frame',
-} satisfies Meta<FrameStory>;
+	title: 'COMPONENTS - SVELTE/Core/Consent Gate',
+} satisfies Meta<ConsentGateStory>;
 
 export default meta;
 

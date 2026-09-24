@@ -68,7 +68,9 @@ export { default as ConsentDialogLink } from './components/panel-link.svelte';
 export { default as ConsentDialogTrigger } from './components/panel-trigger.svelte';
 export { default as ConsentManagerProvider } from './components/manager-provider.svelte';
 export { default as ConsentWidget } from './components/preferences.svelte';
-export { default as Frame } from './components/frame.svelte';
+export { default as ConsentGate } from './components/consent-gate.svelte';
+/** @deprecated Renamed to `ConsentGate`. */
+export { default as Frame } from './components/consent-gate.svelte';
 export { default as IABConsentBanner } from './components/iab-prompt.svelte';
 export { default as IABConsentDialog } from './components/iab-panel.svelte';
 export {

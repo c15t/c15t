@@ -57,7 +57,7 @@ import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { createIAB } from '../../../iab/src/index';
 import type { IABHandle } from '../../../iab/src/index';
 import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
-import ConsentFrame from '../runtime/components/frame.vue';
+import ConsentGate from '../runtime/components/consent-gate.vue';
 import ConsentManager from '../runtime/components/manager.vue';
 import ConsentDialogTrigger from '../runtime/components/panel-trigger.vue';
 import ConsentPreferencesLink from '../runtime/components/preferences-link.vue';
@@ -474,7 +474,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 					h(ConsentPreferencesLink),
 					setup.probeGates
 						? h(
-								ConsentFrame,
+								ConsentGate,
 								{ category: 'marketing' },
 								{
 									default: () =>

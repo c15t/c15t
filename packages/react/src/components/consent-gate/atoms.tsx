@@ -10,20 +10,21 @@ import type { BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 
-const FrameRoot = createForwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
-	({ children, ...props }, ref) => (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.placeholder}
-			data-testid="frame-placeholder"
-			{...props}
-		>
-			{children}
-		</Box>
-	)
-);
+const ConsentGateRoot = createForwardRef<
+	HTMLDivElement,
+	Omit<BoxProps, 'slotKey'>
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.placeholder}
+		data-testid="frame-placeholder"
+		{...props}
+	>
+		{children}
+	</Box>
+));
 
-const FrameTitle = createForwardRef<
+const ConsentGateTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'> & { category?: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
@@ -49,7 +50,7 @@ const FrameTitle = createForwardRef<
 	);
 });
 
-const FrameButton = createForwardRef<
+const ConsentGateButton = createForwardRef<
 	HTMLButtonElement,
 	Omit<ConsentButtonProps, 'slotKey'> & { category: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
@@ -75,8 +76,8 @@ const FrameButton = createForwardRef<
 	);
 });
 
-FrameRoot.displayName = 'FrameRoot';
-FrameTitle.displayName = 'FrameTitle';
-FrameButton.displayName = 'FrameButton';
+ConsentGateRoot.displayName = 'ConsentGateRoot';
+ConsentGateTitle.displayName = 'ConsentGateTitle';
+ConsentGateButton.displayName = 'ConsentGateButton';
 
-export { FrameButton, FrameRoot, FrameTitle };
+export { ConsentGateButton, ConsentGateRoot, ConsentGateTitle };

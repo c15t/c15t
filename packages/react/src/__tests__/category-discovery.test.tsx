@@ -4,7 +4,7 @@ import { useContext, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, test, vi } from 'vitest';
 
-import { Frame } from '../components/frame';
+import { ConsentGate } from '../components/consent-gate';
 import { ConsentDialog } from '../components/panel';
 import { KernelContext } from '../context';
 import { ConsentProvider } from '../provider';
@@ -68,18 +68,18 @@ for (const source of ['scripts', 'frames', 'iframes'] as const) {
 					<Capture />
 					{source === 'frames' && (
 						<>
-							<Frame
+							<ConsentGate
 								category="measurement"
 								placeholder="Analytics blocked"
 							>
 								<span>Analytics content</span>
-							</Frame>
-							<Frame
+							</ConsentGate>
+							<ConsentGate
 								category="marketing"
 								placeholder="Marketing blocked"
 							>
 								<span>Marketing content</span>
-							</Frame>
+							</ConsentGate>
 						</>
 					)}
 					{source === 'iframes' && (

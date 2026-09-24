@@ -131,10 +131,15 @@
 			"import": "./dist/panel-trigger.js",
 			"default": "./dist/panel-trigger.js"
 		},
+		"./consent-gate": {
+			"types": "./dist-types/consent-gate.d.ts",
+			"import": "./dist/consent-gate.js",
+			"default": "./dist/consent-gate.js"
+		},
 		"./frame": {
-			"types": "./dist-types/frame.d.ts",
-			"import": "./dist/frame.js",
-			"default": "./dist/frame.js"
+			"types": "./dist-types/consent-gate.d.ts",
+			"import": "./dist/consent-gate.js",
+			"default": "./dist/consent-gate.js"
 		},
 		"./iab": {
 			"types": "./dist-types/iab.d.ts",
@@ -190,10 +195,15 @@
 			"import": "./dist/components/preferences/index.js",
 			"default": "./dist/components/preferences/index.js"
 		},
+		"./components/consent-gate": {
+			"types": "./dist-types/components/consent-gate/index.d.ts",
+			"import": "./dist/components/consent-gate/index.js",
+			"default": "./dist/components/consent-gate/index.js"
+		},
 		"./components/frame": {
-			"types": "./dist-types/components/frame/index.d.ts",
-			"import": "./dist/components/frame/index.js",
-			"default": "./dist/components/frame/index.js"
+			"types": "./dist-types/components/consent-gate/index.d.ts",
+			"import": "./dist/components/consent-gate/index.js",
+			"default": "./dist/components/consent-gate/index.js"
 		},
 		"./context": {
 			"types": "./dist-types/context/index.d.ts",

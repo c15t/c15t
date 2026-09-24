@@ -95,8 +95,8 @@ export type {
 	ConsentWidgetCompoundComponent,
 	ConsentWidgetProps,
 } from './components/preferences';
-export type { FrameProps } from './components/frame';
-export { Frame } from './components/frame';
+export type { ConsentGateProps, FrameProps } from './components/consent-gate';
+export { ConsentGate, Frame } from './components/consent-gate';
 export type {
 	ConsentDraftHandle,
 	ConsentDraftProviderProps,

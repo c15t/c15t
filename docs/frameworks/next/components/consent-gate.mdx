@@ -1,12 +1,12 @@
 ---
-title: Frame
-description: Consent-gate an iframe in Next.js with Frame inside ConsentRoot; with server prefetch the placeholder or embed is decided in the server HTML.
+title: ConsentGate
+description: Consent-gate an iframe in Next.js with ConsentGate inside ConsentRoot; with server prefetch the placeholder or embed is decided in the server HTML.
 group: frameworks
 ---
 
 ## Gate an embed behind consent
 
-`Frame` mounts its children only while the effective permission for one
+`ConsentGate` mounts its children only while the effective permission for one
 consent category is granted, and shows a placeholder otherwise. Wrap any
 iframe or third-party widget that would set cookies or contact a vendor on
 load. It is a Client Component; render it from any route under the layout
@@ -18,11 +18,11 @@ the `ConsentDialog` the placeholder button opens.
 ```tsx title="components/product-video.tsx"
 'use client';
 
-import { Frame } from 'c15t/next';
+import { ConsentGate } from 'c15t/next';
 
 export function ProductVideo() {
   return (
-    <Frame category="marketing" className="video-frame">
+    <ConsentGate category="marketing" className="video-frame">
       <iframe
         src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
         title="Product tour"
@@ -30,7 +30,7 @@ export function ProductVideo() {
         allowFullScreen
         style={{ width: '100%', aspectRatio: '16 / 9', border: 0 }}
       />
-    </Frame>
+    </ConsentGate>
   );
 }
 ```
@@ -39,10 +39,10 @@ Import `ProductVideo` into any page or Server Component; only this file needs
 `'use client'`. `marketing` must be in your policy scope. If you set a
 non-empty `options.consentCategories` list on `ConsentRoot`, include
 `marketing` there too so the preference center can display and save it.
-`Frame` does not add categories to that list.
+`ConsentGate` does not add categories to that list.
 
 The placeholder names the category using its title from your translations. Set
-`className` or `style` on `Frame` to reserve the embed's space, so the page
+`className` or `style` on `ConsentGate` to reserve the embed's space, so the page
 does not shift when the placeholder is replaced.
 
 With the awaited `resolveConsent` from the App Router guide, the
@@ -58,16 +58,16 @@ visitor gets the placeholder and a returning visitor who allowed `marketing`
 gets the iframe; under an opt-out rule a new visitor already has effective
 permission, so the iframe renders until they opt out.
 
-<import src="../../../shared/react/components/frame.mdx#props" />
+<import src="../../../shared/react/components/consent-gate.mdx#props" />
 
-<import src="../../../shared/react/components/frame.mdx#behavior" />
+<import src="../../../shared/react/components/consent-gate.mdx#behavior" />
 
 To read the same permission in your own Client Components, use `useConsent`
 from `c15t/next`; the `useIframeBlocker` and `useNetworkBlocker` module
 hooks also import from there.
 
-<import src="../../../shared/react/components/frame.mdx#composition" />
+<import src="../../../shared/react/components/consent-gate.mdx#composition" />
 
-<import src="../../../shared/react/components/frame.mdx#accessibility" />
+<import src="../../../shared/react/components/consent-gate.mdx#accessibility" />
 
-<import src="../../../shared/react/components/frame.mdx#verify" />
+<import src="../../../shared/react/components/consent-gate.mdx#verify" />

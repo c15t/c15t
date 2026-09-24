@@ -112,7 +112,7 @@ Pass the result intact to `state` and keep the same shared URLs in `config`.
 Do not turn allowed categories into new saved choices or emit a choice event
 during hydration. Keep one `ConsentRoot` mounted across navigation.
 
-With resolved server state, `Frame` renders its placeholder or permitted content
+With resolved server state, `ConsentGate` renders its placeholder or permitted content
 in the server HTML and reuses that state during hydration. It does not need to
 wait for the browser to mount before showing the placeholder. The default
 placeholder is visible immediately, without a fade-in animation.

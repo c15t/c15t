@@ -3,8 +3,8 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentDialogLink,
+	ConsentGate,
 	ConsentProvider,
-	Frame,
 	hosted,
 	useConsent,
 } from 'c15t/react';
@@ -64,7 +64,7 @@ const Gallery = () => {
 			</section>
 			<section className="card">
 				<h2>YouTube embed</h2>
-				<Frame
+				<ConsentGate
 					category="measurement"
 					placeholder={
 						<div className="placeholder">
@@ -80,7 +80,7 @@ const Gallery = () => {
 						allow="encrypted-media; picture-in-picture"
 						allowFullScreen
 					/>
-				</Frame>
+				</ConsentGate>
 			</section>
 			<footer>
 				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
