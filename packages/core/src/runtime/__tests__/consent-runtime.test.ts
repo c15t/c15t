@@ -124,6 +124,72 @@ describe('createRuntimeKernel', () => {
 		).toThrowError(/`mode` is required/u);
 	});
 
+	test('merges prefetched backend vendors with code-declared ones and keeps the list version', () => {
+		const kernel = createRuntimeKernel({
+			mode: custom(createTransport()),
+			prefetch: {
+				...RESOLVED_PREFETCH,
+				initialVendors: {
+					declared: [
+						{
+							category: 'measurement',
+							id: 'google-analytics',
+							name: 'Google Analytics',
+							presentable: true,
+							privacyPolicyUrl: 'https://policies.google.com/privacy',
+							source: 'manifest',
+						},
+					],
+					listVersion: '2026-09',
+				},
+			},
+			scripts: [
+				{
+					category: 'marketing',
+					id: 'meta',
+					src: 'https://example.com/meta.js',
+					vendor: 'meta-pixel',
+				},
+			],
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'meta-pixel',
+					name: 'Meta Pixel',
+					privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+				},
+			],
+		});
+		const { vendors, consentCategories } = kernel.getServerSnapshot();
+		expect(vendors?.listVersion).toBe('2026-09');
+		expect(vendors?.declared.map((vendor) => vendor.id)).toEqual([
+			'google-analytics',
+			'meta-pixel',
+		]);
+		// The prefetched backend vendor's category is selectable at construction,
+		// so the server snapshot and the hydrated one agree on scope.
+		expect(consentCategories).toContain('measurement');
+	});
+
+	test('a disabled runtime ignores a prefetched vendor denial', () => {
+		const kernel = createRuntimeKernel({
+			enabled: false,
+			mode: custom(createTransport()),
+			prefetch: {
+				...RESOLVED_PREFETCH,
+				initialRecords: {
+					now: 1_800_000_000_000,
+					vendorChoice: {
+						confirmedAt: 1_799_999_999_000,
+						denied: ['meta-pixel'],
+						version: 1,
+					},
+				},
+			},
+		});
+		expect(kernel.getServerSnapshot().vendorChoice).toBeNull();
+	});
+
 	test('grants every category and suppresses UI when disabled', () => {
 		const kernel = createRuntimeKernel({
 			enabled: false,
@@ -161,6 +227,36 @@ describe('createRuntimeKernel', () => {
 });
 
 describe('createConsentRuntime', () => {
+	test('stageVendorConsent stages a slug for the next save and resetVendorDraft drops it', async () => {
+		const runtime = createConsentRuntime({
+			mode: custom(createTransport()),
+			persistence: false,
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'meta-pixel',
+					name: 'Meta Pixel',
+					privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+				},
+			],
+		});
+		runtime.start();
+		await runtime.kernel.commands.save({ marketing: true });
+		// Staging alone changes no gate.
+		runtime.stageVendorConsent('meta-pixel', false);
+		expect(runtime.kernel.getSnapshot().vendorChoice).toBeNull();
+		runtime.resetVendorDraft();
+		await runtime.kernel.commands.save();
+		expect(runtime.kernel.getSnapshot().vendorChoice).toBeNull();
+		// Staged and then saved, the denial records.
+		runtime.stageVendorConsent('meta-pixel', false);
+		await runtime.kernel.commands.save();
+		expect(runtime.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+			'meta-pixel',
+		]);
+		runtime.dispose();
+	});
+
 	test('defers storage hydration until start and preserves valid legacy records', () => {
 		document.cookie = `c15t=c.necessary:1,c.marketing:1,i.t:${Date.now()}; path=/`;
 

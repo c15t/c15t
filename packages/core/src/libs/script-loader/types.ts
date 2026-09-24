@@ -21,6 +21,14 @@ export interface ScriptCallbackInfo {
 	consents: ConsentState;
 
 	/**
+	 * Vendor-level consent for the script's `vendor` slug, when set. Absent
+	 * in IAB mode and for scripts without a vendor. `granted` is `false`
+	 * while the subject has the vendor turned off, even when the category
+	 * is granted.
+	 */
+	vendor?: { id: string; granted: boolean };
+
+	/**
 	 * The script element (for load/error callbacks)
 	 * Will be undefined for callback-only scripts
 	 */
@@ -211,11 +219,31 @@ export interface Script {
 	// ─────────────────────────────────────────────────────────────────────────
 
 	/**
+	 * Vendor slug for vendor-level consent outside IAB.
+	 *
+	 * Declare the vendor in the runtime's `vendors` option (or on the
+	 * backend) so the preference surface can list it. The script loads when
+	 * `category` is satisfied and the subject has not turned this vendor
+	 * off. Inert in IAB mode, where `vendorId` and the TC string decide.
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'meta-pixel',
+	 *   src: 'https://connect.facebook.net/en_US/fbevents.js',
+	 *   category: 'marketing',
+	 *   vendor: 'meta-pixel',
+	 * };
+	 * ```
+	 */
+	vendor?: string;
+
+	/**
 	 * IAB TCF vendor ID - links script to a registered vendor.
 	 *
-	 * When in IAB mode, the script will only load if this vendor has consent.
-	 * Takes precedence over `category` when in IAB mode.
-	 * Use custom vendor IDs (string or number) to gate non-IAB vendors too.
+	 * Only evaluated in IAB mode, where the script loads when this vendor has
+	 * consent in the TC string. Outside IAB mode a script carrying any IAB
+	 * field is denied; use `vendor` for vendor-level consent there.
 	 *
 	 * @example
 	 * ```ts

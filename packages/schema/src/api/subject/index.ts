@@ -51,6 +51,11 @@ export {
 } from './choice-wire';
 
 export {
+	type VendorChoiceWire,
+	vendorChoiceWireSchema,
+} from './vendor-choice-wire';
+
+export {
 	type IdentityPrivacyDirectiveInput,
 	identityPrivacyDirectiveInputSchema,
 	type ListPrivacyDirectivesOutput,

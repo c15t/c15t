@@ -31,6 +31,7 @@
  *   loaders (or already in the DOM) are left alone.
  */
 import { extractConsentNamesFromCondition } from '../../libs/has';
+import { declareOwnedVendors, forgetOwnedVendors } from '../../libs/vendors';
 import type { ConsentSnapshot } from '../../types';
 import { getEffectiveGateState } from '../has';
 import { buildCallbackInfo, invokeCallback } from './callbacks';
@@ -100,12 +101,14 @@ export const createScriptLoader = function createScriptLoader(
 		diagnostics?.notify(event);
 	};
 
+	const ownerSource = Symbol('script-loader');
 	const registerCategories = (scripts: Script[]) => {
 		kernel.set.registerConsentCategories(
 			scripts.flatMap((script) =>
 				extractConsentNamesFromCondition(script.category)
 			)
 		);
+		declareOwnedVendors(kernel, scripts, ownerSource);
 	};
 	registerCategories(options.scripts);
 	let normalized: NormalizedScript[] = normalizeScripts(options.scripts);
@@ -160,6 +163,8 @@ export const createScriptLoader = function createScriptLoader(
 	let lastRestrictions: unknown = null;
 	let lastModel: unknown = null;
 	let lastEvaluationPolicy: unknown = null;
+	let lastVendorChoice: unknown = null;
+	let lastVendors: unknown = null;
 
 	const isConsentStateUnchanged = (snapshot: ConsentSnapshot): boolean => {
 		const effective = getEffectiveGateState(snapshot);
@@ -170,18 +175,48 @@ export const createScriptLoader = function createScriptLoader(
 			snapshot.iab === lastIab &&
 			effective.restrictions === lastRestrictions &&
 			snapshot.model === lastModel &&
-			snapshot.evaluationPolicy === lastEvaluationPolicy
+			snapshot.evaluationPolicy === lastEvaluationPolicy &&
+			snapshot.vendorChoice === lastVendorChoice &&
+			snapshot.vendors === lastVendors
 		);
 	};
 
+	// Another source can sweep this loader's slugs out of the declared set: a
+	// provider replacing its own script entries, or a backend init dropping a
+	// vendor a script here still names. A mounted loader's scripts own their
+	// slugs for as long as they are configured, so put them back before the
+	// gate runs; a stored denial for one of them would otherwise be ignored
+	// for the pass. Idempotent: nothing missing means no commit.
+	const declareMissingVendors = (snapshot: ConsentSnapshot): void => {
+		const declared = new Set(
+			snapshot.vendors?.declared.map((vendor) => vendor.id)
+		);
+		const missing = normalized.some(
+			({ vendor }) => vendor !== null && !declared.has(vendor)
+		);
+		if (missing) {
+			declareOwnedVendors(
+				kernel,
+				normalized.map(({ script }) => script),
+				ownerSource
+			);
+		}
+	};
+
 	const reconcile = function reconcile(force = false): void {
-		const snapshot: ConsentSnapshot = kernel.getSnapshot();
+		let snapshot: ConsentSnapshot = kernel.getSnapshot();
+		if (snapshot.vendors !== lastVendors) {
+			declareMissingVendors(snapshot);
+			snapshot = kernel.getSnapshot();
+		}
 		const effective = getEffectiveGateState(snapshot);
 		const permissionsChanged = effective.effectivePermissions !== lastConsents;
 
 		if (!force && isConsentStateUnchanged(snapshot)) {
 			return;
 		}
+		lastVendorChoice = snapshot.vendorChoice;
+		lastVendors = snapshot.vendors;
 		lastConsents = effective.effectivePermissions;
 		lastRestrictions = effective.restrictions;
 		lastModel = snapshot.model;
@@ -274,6 +309,7 @@ export const createScriptLoader = function createScriptLoader(
 						script.persistAfterConsentRevoked ?? false,
 					src: script.src,
 					status,
+					vendor: script.vendor,
 					vendorId: script.vendorId,
 				};
 			})
@@ -306,6 +342,7 @@ export const createScriptLoader = function createScriptLoader(
 		const scripts = new Set(normalized.map(({ script }) => script));
 		normalized = [];
 		pendingScripts = undefined;
+		forgetOwnedVendors(kernel, ownerSource);
 		for (const script of scripts) {
 			disposeScript(script);
 		}

@@ -7,6 +7,7 @@ import type {
 	PolicyScopeMode,
 	ResolvedPolicyRule,
 	TranslationsResponse,
+	Vendor,
 } from '@c15t/schema/types';
 /**
  * Kernel public types.
@@ -35,6 +36,7 @@ import type {
 } from './consent-record/types';
 import type { RecordIssue } from './consent-record/validation';
 import type { AllConsentNames } from './consent/consent-types';
+import type { HasCondition } from './libs/has';
 
 // Re-export schema types that consumers need so they don't have to
 // import from @c15t/schema directly for routine work.
@@ -46,6 +48,7 @@ export type {
 	PolicyScopeMode,
 	ResolvedPolicyRule,
 	TranslationsResponse,
+	Vendor,
 };
 
 export type {
@@ -203,6 +206,65 @@ export interface KernelIABState {
 }
 
 /**
+ * Where a declared vendor came from. Presentation fields follow
+ * `config` over `manifest`; a `script` source only has the slug and the
+ * owning integration's category.
+ */
+export type VendorSource = 'config' | 'manifest' | 'script';
+
+/**
+ * A vendor after merging every declaration source. `presentable` is
+ * `true` when the vendor carries a name and a privacy policy URL, which
+ * is what a preference surface needs to list it.
+ */
+export type ResolvedVendor = Pick<Vendor, 'id' | 'category'> &
+	Partial<Omit<Vendor, 'id' | 'category'>> & {
+		source: VendorSource;
+		presentable: boolean;
+		/**
+		 * Condition of the scripts or rules that also name this slug, kept on a
+		 * declared entry so a later list that drops the vendor leaves a
+		 * script-sourced fallback instead of nothing.
+		 */
+		ownerCategory?: HasCondition<AllConsentNames>;
+		/**
+		 * The lower-priority declaration this entry replaced, kept so removing
+		 * this entry's source restores it: a config entry remembers the backend
+		 * copy of the same vendor.
+		 */
+		shadowed?: ResolvedVendor;
+	};
+
+/**
+ * Vendor declarations the kernel knows about. Presentation data only:
+ * declaring a vendor never grants or denies anything.
+ */
+export interface KernelVendorsState {
+	readonly declared: readonly ResolvedVendor[];
+	/** Version label of the declared list, for display and audit. */
+	readonly listVersion: string | null;
+}
+
+/**
+ * Vendors the subject turned off. A denial list keeps storage empty in the
+ * common case and decodes without the vendor list. It has no policy basis
+ * and does not expire with the category choice: a denial is protective and
+ * stays until the subject changes it or a bulk action clears it.
+ */
+export interface VendorChoice {
+	readonly version: 1;
+	/** Epoch milliseconds when the vendor grants were last confirmed. */
+	readonly confirmedAt: number;
+	/**
+	 * Sorted, de-duplicated ids of denied vendors. Empty once every denial
+	 * was lifted; the record keeps its time so a newer "nothing denied"
+	 * decision still wins a merge against an older denial. `null` on the
+	 * snapshot means no vendor decision was ever made.
+	 */
+	readonly denied: readonly string[];
+}
+
+/**
  * Records a hydration boundary can apply without creating a choice.
  *
  * Semantics per key: omitted preserves the current value, an explicit
@@ -215,6 +277,8 @@ export interface HydrationRecords {
 	subject?: ConsentSubject | null;
 	noticeDismissal?: NoticeDismissal | null;
 	optOutDirectives?: readonly PrivacyOptOut[];
+	/** Vendors the subject turned off. `null` clears the denial list. */
+	vendorChoice?: VendorChoice | null;
 	/** Evaluation time in epoch milliseconds. Defaults to `Date.now()`. */
 	now?: number;
 }
@@ -295,6 +359,12 @@ export interface ConsentSnapshot {
 
 	// -- IAB passthrough (null when IAB not enabled) -------------------------
 	readonly iab: Readonly<KernelIABState> | null;
+
+	// -- Vendor-level consent outside IAB ------------------------------------
+	/** Declared vendors, or `null` when none is declared. */
+	readonly vendors: Readonly<KernelVendorsState> | null;
+	/** Vendors the subject turned off, or `null` when none is denied. */
+	readonly vendorChoice: Readonly<VendorChoice> | null;
 }
 
 /**
@@ -364,6 +434,8 @@ export interface KernelConfig {
 	initialPolicySnapshotToken?: string;
 	/** Initial IAB slice. */
 	initialIab?: Partial<KernelIABState>;
+	/** Vendors declared in code, already resolved. Presentation data only. */
+	initialVendors?: KernelVendorsState;
 	/**
 	 * Transport that carries out async commands (init, save, identify).
 	 * Optional — without a transport, commands run as no-ops and return
@@ -418,6 +490,10 @@ export interface InitResponse {
 	customVendors?: NonIABVendor[];
 	/** CMP ID registered with IAB Europe. */
 	cmpId?: number;
+	/** Vendors the backend declares for vendor-level consent outside IAB. */
+	vendors?: Vendor[];
+	/** Version label of the backend's vendor list. */
+	vendorListVersion?: string;
 }
 
 /** Categories one save confirmed, with the single captured action time. */
@@ -463,6 +539,15 @@ export interface SavePayload {
 	tcString?: string | null;
 	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */
 	givenAt?: number;
+	/**
+	 * Granted flag for every declared vendor after this action. Present only
+	 * when vendors are declared; a narrowed replay drops it.
+	 */
+	vendorChoice?: {
+		version: 1;
+		confirmedAt: number;
+		grants: Readonly<Record<string, boolean>>;
+	};
 }
 
 /**
@@ -529,6 +614,17 @@ export type KernelEvent =
 			snapshot: ConsentSnapshot;
 	  }
 	| { type: 'iab:set'; snapshot: ConsentSnapshot }
+	| {
+			/** The declared vendor list changed. */
+			type: 'vendors:set';
+			snapshot: ConsentSnapshot;
+	  }
+	| {
+			/** An explicit save changed which vendors are denied. */
+			type: 'vendors:recorded';
+			snapshot: ConsentSnapshot;
+			actionAt: number;
+	  }
 	| { type: 'init:applied'; snapshot: ConsentSnapshot }
 	| {
 			/** Transport initialization failed and the first layer stayed hidden. */
@@ -573,12 +669,23 @@ export interface InitResult {
  * Input accepted by `commands.save()`.
  * - `'all'` confirms every category in the active scope with `true`.
  * - `'none'` confirms every category in the active scope with `false`.
- * - an object confirms exactly its own optional category keys.
+ * - an object confirms exactly its own optional category keys, and its
+ *   `vendors` map, when present, the per-vendor grants alongside them.
  * - omitted confirms the presented selection for the active scope: the
  *   staged draft value, else the explicit value, else the model's displayed
  *   default. Never the masked effective permissions.
  */
-export type SaveInput = 'all' | 'none' | Partial<ConsentState>;
+export type SaveInput =
+	| 'all'
+	| 'none'
+	| (Partial<ConsentState> & {
+			/**
+			 * Per-vendor grants confirmed by this action, keyed by vendor id.
+			 * Overrides the staged vendor draft. Ignored when the model is
+			 * `iab`. The same map can travel in the save context instead.
+			 */
+			vendors?: Record<string, boolean>;
+	  });
 
 /**
  * Result returned by `commands.save()`. `ok: false` with `issues` means the
@@ -662,6 +769,17 @@ export interface ConsentKernel {
 		activeUI: (ui: KernelActiveUI) => void;
 		/** Patch the IAB slice. Creates the slice if currently null. */
 		iab: (patch: Partial<KernelIABState>) => void;
+		/**
+		 * Merge declared vendors. Existing ids keep higher-priority presentation.
+		 * Pass `replaceSource` to drop that source's previous entries first, so a
+		 * caller that owns the source can remove a vendor and not only add one.
+		 */
+		vendors: (
+			patch: Partial<KernelVendorsState>,
+			options?: { replaceSource?: VendorSource }
+		) => void;
+		/** Stage per-vendor grants a no-input `save()` confirms. Never a grant. */
+		vendorDraft: (input: Record<string, boolean> | null) => void;
 	};
 
 	/**
@@ -690,6 +808,12 @@ export interface ConsentKernel {
 				 * @internal
 				 */
 				iabAuthority?: KernelIABAuthority;
+				/**
+				 * Per-vendor grants confirmed by this action. Overrides the staged
+				 * vendor draft and the `vendors` key of an object input. Ignored
+				 * when the model is `iab`.
+				 */
+				vendors?: Record<string, boolean>;
 			}
 		) => Promise<SaveResult>;
 		/** Dismiss the current notice. Only while `promptRequirement.kind === 'notice'`. */

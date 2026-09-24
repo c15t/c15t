@@ -24,6 +24,7 @@ import type {
 	GetSubjectOutput,
 	PrivacyDirectiveWire,
 	SubjectChoiceWire,
+	VendorChoiceWire,
 } from '@c15t/schema/types';
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
@@ -39,7 +40,8 @@ import {
 	isOptionalConsentCategory,
 	validateExplicitChoice,
 } from '../consent-record/validation';
-import type { HydrationRecords } from '../types';
+import { isValidVendorId } from '../libs/vendors';
+import type { HydrationRecords, VendorChoice } from '../types';
 
 /** Validated records returned by a subject transport. */
 export type TransportHydrationRecords = HydrationRecords;
@@ -205,6 +207,59 @@ const mapDirective = (
 };
 
 /**
+ * The vendor denial list a wire grant map describes. A malformed map is
+ * ignored rather than invented. An all-granted map becomes an empty record
+ * that keeps its confirmation time, so a newer server decision to grant
+ * everything can still supersede an older local denial in the newest-wins
+ * merge; a `null` would read as "nothing known" and keep the denial.
+ */
+const mapVendorChoice = (
+	wire: VendorChoiceWire | null | undefined,
+	now: number
+): VendorChoice | null => {
+	if (
+		!wire ||
+		typeof wire !== 'object' ||
+		wire.version !== 1 ||
+		typeof wire.grants !== 'object' ||
+		wire.grants === null ||
+		Array.isArray(wire.grants) ||
+		checkTimestamp(wire.confirmedAt, now)
+	) {
+		return null;
+	}
+	const denied: string[] = [];
+	for (const [id, granted] of Object.entries(wire.grants)) {
+		// A key outside the slug shape is a malformed map, not a denial to
+		// keep: the kernel revalidates the list on hydration and would drop
+		// the whole response, receipts and subject included, over one key.
+		if (typeof granted !== 'boolean' || !isValidVendorId(id)) {
+			return null;
+		}
+		if (!granted) {
+			denied.push(id);
+		}
+	}
+	return { confirmedAt: wire.confirmedAt, denied: denied.sort(), version: 1 };
+};
+
+/** Newest vendor grant map across the consent items, for older backends. */
+const mergeItemVendors = (
+	items: readonly ConsentItem[]
+): VendorChoiceWire | null | undefined => {
+	let newest: VendorChoiceWire | null | undefined;
+	for (const item of items) {
+		if (item.type !== COOKIE_BANNER || !item.vendorChoice) {
+			continue;
+		}
+		if (!newest || item.vendorChoice.confirmedAt >= newest.confirmedAt) {
+			newest = item.vendorChoice;
+		}
+	}
+	return newest;
+};
+
+/**
  * Maps a subject read onto hydration records.
  *
  * `choice` is `null` when the backend holds no usable receipt: none at all,
@@ -232,11 +287,17 @@ export const mapSubjectRecordToHydrationRecords =
 			}
 		}
 
+		const vendorWire =
+			record.subjectVendorChoice === undefined
+				? mergeItemVendors(record.consents)
+				: record.subjectVendorChoice;
+
 		return {
 			choice: validated?.ok ? validated.record : null,
 			now: options.now,
 			optOutDirectives: directives,
 			subject: mapSubject(record.subject),
+			vendorChoice: mapVendorChoice(vendorWire, options.now),
 		};
 	};
 

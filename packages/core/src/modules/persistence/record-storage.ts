@@ -62,12 +62,16 @@ import {
 	decodePrivacyOptOuts,
 	decodePrivacyOptOutsCompact,
 	decodeStoredConsentEnvelopeCompact,
+	decodeVendorChoice,
+	decodeVendorChoiceCompact,
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
 	encodePrivacyOptOuts,
 	encodePrivacyOptOutsCompact,
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
+	encodeVendorChoice,
+	encodeVendorChoiceCompact,
 	validateIabMetadata,
 	validateStoredConsentEnvelope,
 } from './record-codec';
@@ -78,6 +82,7 @@ import type {
 	StoredIabMetadata,
 	StoredNoticeDismissal,
 	StoredPrivacyOptOuts,
+	StoredVendorChoice,
 } from './record-codec';
 
 export type { LegacyRecordEncoding as StoredRecordEncoding };
@@ -92,9 +97,9 @@ export type StoredRecordSource =
 export type StoredRecordFormat = 'legacy-v2' | 'v3';
 
 /**
- * The storage keys one configuration resolves to. Notice dismissals and
- * privacy directives get their own keys derived from the consent key so
- * a custom `storageKey` moves all three together.
+ * The storage keys one configuration resolves to. Notice dismissals,
+ * privacy directives and vendor denials get their own keys derived from
+ * the consent key so a custom `storageKey` moves all four together.
  */
 export interface ResolvedStorageKeys {
 	consent: string;
@@ -102,6 +107,7 @@ export interface ResolvedStorageKeys {
 	legacyConsent: string | null;
 	notice: string;
 	privacy: string;
+	vendors: string;
 }
 
 export const resolveStorageKeys = function resolveStorageKeys(
@@ -113,6 +119,7 @@ export const resolveStorageKeys = function resolveStorageKeys(
 		legacyConsent: consent === STORAGE_KEY ? null : STORAGE_KEY,
 		notice: `${consent}-notice`,
 		privacy: `${consent}-privacy`,
+		vendors: `${consent}-vendors`,
 	};
 };
 
@@ -960,14 +967,110 @@ export const clearStoredPrivacyOptOuts = function clearStoredPrivacyOptOuts(
 	deleteCookie(keys.privacy, cookie, config);
 };
 
+/**
+ * Reads the vendor denial list from both projections and returns the newer
+ * valid one by `confirmedAt`. The two can disagree: a compact cookie that
+ * grew past the browser's limit fails to write while localStorage already
+ * holds the new list, and the previous cookie would otherwise win on the
+ * next load and drop a denial the visitor just recorded. On a tie the
+ * localStorage copy wins: the subject rewrite after `subject:resolved`
+ * keeps the decision's time, so an equal time with different content means
+ * the cookie missed that rewrite. `null` when nothing is stored.
+ */
+export const readStoredVendorChoice = function readStoredVendorChoice(
+	config: StorageConfig | undefined,
+	now: number,
+	onUnavailable?: () => void
+): DecodeResult<StoredVendorChoice> | null {
+	const keys = resolveStorageKeys(config);
+	const fromCookie = readCompactCookie(
+		getRawCookieValue(keys.vendors, onUnavailable),
+		(text) => decodeVendorChoiceCompact(text, now)
+	);
+	const fromLocal = readLocalJson(
+		keys.vendors,
+		(value) => decodeVendorChoice(value, now),
+		onUnavailable
+	);
+	if (fromCookie?.ok && fromLocal?.ok) {
+		return fromLocal.record.confirmedAt >= fromCookie.record.confirmedAt
+			? fromLocal
+			: fromCookie;
+	}
+	if (fromCookie?.ok) {
+		return fromCookie;
+	}
+	return fromLocal ?? fromCookie;
+};
+
+/** Server read of the vendor cookie projection from a `Cookie` header. */
+export const readStoredVendorChoiceFromCookieHeader =
+	function readStoredVendorChoiceFromCookieHeader(
+		cookieHeader: string | undefined,
+		config: StorageConfig | undefined,
+		now: number
+	): DecodeResult<StoredVendorChoice> | null {
+		const keys = resolveStorageKeys(config);
+		return readCompactCookie(
+			readCookieValueFromHeader(cookieHeader, keys.vendors),
+			(text) => decodeVendorChoiceCompact(text, now)
+		);
+	};
+
+/**
+ * Writes the vendor denial list to localStorage and its compact cookie
+ * projection. The consent record and its cookie are never touched.
+ */
+export const writeStoredVendorChoice = function writeStoredVendorChoice(
+	record: StoredVendorChoice,
+	config: StorageConfig | undefined,
+	now: number,
+	cookie?: CookieOptions
+): DecodeResult<StoredVendorChoice> & { written?: AuxiliaryWriteReport } {
+	const validated = decodeVendorChoice(record, now);
+	if (validated.ok === false) {
+		return validated;
+	}
+	const keys = resolveStorageKeys(config);
+	const localStorageWritten = writeLocalStorageText(
+		keys.vendors,
+		encodeVendorChoice(validated.record)
+	);
+	const cookieDetail = writeCookie(
+		keys.vendors,
+		encodeVendorChoiceCompact(validated.record),
+		cookie,
+		config
+	);
+	return {
+		ok: true,
+		record: validated.record,
+		written: {
+			cookie: cookieDetail.attempted && cookieDetail.verified,
+			cookieDetail,
+			localStorage: localStorageWritten,
+		},
+	};
+};
+
+export const clearStoredVendorChoice = function clearStoredVendorChoice(
+	config?: StorageConfig,
+	cookie?: CookieOptions
+): void {
+	const keys = resolveStorageKeys(config);
+	removeLocalStorageKey(keys.vendors);
+	deleteCookie(keys.vendors, cookie, config);
+};
+
 // ---------------------------------------------------------------------------
 // Clear everything
 // ---------------------------------------------------------------------------
 
 /**
  * Removes explicit choices (configured and legacy keys, cookie and
- * localStorage), the notice dismissal and the privacy directives with
- * their cookie projections, and the queued backend replays. Cookie
+ * localStorage), the notice dismissal, the privacy directives and the
+ * vendor denials with their cookie projections, and the queued backend
+ * replays. Cookie
  * deletion uses the same domain handling as writes so a cross-subdomain
  * cookie is actually removed.
  */
@@ -978,6 +1081,7 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 	deleteConsentFromStorage(cookie, config);
 	clearStoredNoticeDismissal(config, cookie);
 	clearStoredPrivacyOptOuts(config, cookie);
+	clearStoredVendorChoice(config, cookie);
 	removeLocalStorageKey(PENDING_SAVES_STORAGE_KEY);
 	// Addon bytes must be removed even when the addon is not mounted.
 	removeLocalStorageKey('c15t-iab-authority-v1');

@@ -445,6 +445,7 @@ describe('raw candidate reading', () => {
 			legacyConsent: STORAGE_KEY,
 			notice: 'custom-key-notice',
 			privacy: 'custom-key-privacy',
+			vendors: 'custom-key-vendors',
 		});
 	});
 

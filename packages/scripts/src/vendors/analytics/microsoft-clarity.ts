@@ -184,9 +184,13 @@ const syncClarityConsent = function syncClarityConsent(
 	info: ScriptCallbackInfo,
 	defaultConsent?: ClarityConsentValue
 ): void {
+	// A vendor the subject turned off is told nothing is granted, whatever
+	// the category state or the configured default says.
 	window.clarity?.(
 		'consentv2',
-		getClarityConsentPayload(info.consents, defaultConsent)
+		info.vendor?.granted === false
+			? { ad_Storage: 'denied', analytics_Storage: 'denied' }
+			: getClarityConsentPayload(info.consents, defaultConsent)
 	);
 };
 

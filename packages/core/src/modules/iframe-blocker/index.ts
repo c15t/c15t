@@ -2,8 +2,8 @@
  * `@c15t/core/modules/iframe-blocker`
  *
  * Kernel-consuming iframe blocker. Subscribes to the kernel snapshot,
- * observes the DOM for iframes carrying a `data-category` attribute,
- * and toggles their `src` based on consent.
+ * observes the DOM for iframes carrying a `data-category` or
+ * `data-vendor` attribute, and toggles their `src` based on consent.
  *
  * Concerns are split across siblings:
  * - `types.ts`        — public type definitions.
@@ -13,8 +13,8 @@
  * v2 parity: `packages/core/src/libs/iframe-blocker/core.ts`.
  *
  * Semantics:
- * - iframes WITHOUT `data-category` are untouched (never blocked).
- * - iframes WITH `data-category`:
+ * - iframes WITHOUT `data-category` or `data-vendor` are untouched.
+ * - iframes WITH `data-category` and/or `data-vendor`:
  *   - consent granted + HTTP(S) `data-src` but no `src` → set resolved src
  *   - consent NOT granted + has `src`              → removeAttribute('src')
  *
@@ -26,9 +26,12 @@
  * subscription. Per-iframe state is derived from the DOM at check time,
  * so multiple instances produce the same result.
  */
+import { declareOwnedVendors, forgetOwnedVendors } from '../../libs/vendors';
+import type { VendorOwner } from '../../libs/vendors';
 import {
 	buildReconcilePass,
 	determineCategory,
+	determineVendor,
 	reconcileAllIframes,
 	reconcileIframe,
 } from './reconcile';
@@ -60,13 +63,73 @@ export const createIframeBlocker = function createIframeBlocker(
 		};
 	}
 
+	// What each frame on the page names right now, so the blocker's
+	// declaration follows the live frames: a frame that changes its slug or
+	// category, or leaves the page, takes its old pair with it. A scan only
+	// sees the frames that changed, so the map is keyed by frame and the
+	// declaration is the union over every frame still known.
+	const ownerSource = Symbol('iframe-blocker');
+	const framed = new Map<HTMLIFrameElement, VendorOwner>();
+	const ownerKey = (owner: VendorOwner) =>
+		`${owner.vendor}\u0000${JSON.stringify(owner.category)}`;
+	const currentOwners = () => {
+		const seen = new Map<string, VendorOwner>();
+		for (const owner of framed.values()) {
+			seen.set(ownerKey(owner), owner);
+		}
+		return [...seen.values()];
+	};
 	const registerIframes = (iframes: Iterable<HTMLIFrameElement>) => {
+		const list = Array.from(iframes);
 		kernel.set.registerConsentCategories(
-			Array.from(iframes).flatMap((iframe) => {
+			list.flatMap((iframe) => {
 				const category = determineCategory(iframe);
 				return category ? [category] : [];
 			})
 		);
+		// Declare the slugs the frames name, the way scripts and rules do, so
+		// a stored denial keeps gating them before a backend declaration of
+		// the same slug has arrived. A frame with only `data-vendor` has no
+		// category to declare under; `reconcileIframe` holds it against the
+		// stored denial directly instead.
+		const before = new Set(currentOwners().map(ownerKey));
+		for (const iframe of list) {
+			const vendor = determineVendor(iframe);
+			const category = determineCategory(iframe);
+			if (vendor && category && iframe.isConnected !== false) {
+				framed.set(iframe, { category, vendor });
+			} else {
+				framed.delete(iframe);
+			}
+		}
+		// A pass only sees the frames that changed, so the rest are checked
+		// here: one that left the page, or stayed but dropped its gate
+		// attributes, takes its declaration with it. Without an observer,
+		// under `disableAutomaticBlocking`, this is the only place that can.
+		for (const iframe of [...framed.keys()]) {
+			if (
+				iframe.isConnected === false ||
+				!determineVendor(iframe) ||
+				!determineCategory(iframe)
+			) {
+				framed.delete(iframe);
+			}
+		}
+		const owners = currentOwners();
+		const changed =
+			owners.length !== before.size ||
+			owners.some((owner) => !before.has(ownerKey(owner)));
+		// Also when another source swept a framed slug out of the declared
+		// set: a frame on the page owns its slug for as long as it is there.
+		const declaredIds = new Set(
+			kernel.getSnapshot().vendors?.declared.map((vendor) => vendor.id)
+		);
+		const missing = owners.some(
+			(owner) => owner.vendor && !declaredIds.has(owner.vendor)
+		);
+		if (changed || missing) {
+			declareOwnedVendors(kernel, owners, ownerSource);
+		}
 	};
 
 	const observer = new MutationObserver((mutations) => {
@@ -90,6 +153,23 @@ export const createIframeBlocker = function createIframeBlocker(
 					iframes.add(iframe);
 				}
 			}
+			// A frame that left the page takes its declaration with it. Only
+			// frames the blocker knows are re-registered, so a removed subtree
+			// costs nothing when it held no gated frame.
+			for (const node of Array.from(mutation.removedNodes ?? [])) {
+				if (node.nodeType !== 1) {
+					continue;
+				}
+				const element = node as Element;
+				if (element.tagName?.toUpperCase() === 'IFRAME') {
+					iframes.add(element as HTMLIFrameElement);
+				}
+				for (const iframe of Array.from(
+					element.querySelectorAll?.('iframe') ?? []
+				)) {
+					iframes.add(iframe);
+				}
+			}
 		}
 		registerIframes(iframes);
 		const pass = buildReconcilePass(kernel.getSnapshot());
@@ -100,7 +180,9 @@ export const createIframeBlocker = function createIframeBlocker(
 
 	const processAll = function processAll(): void {
 		registerIframes(
-			document.querySelectorAll<HTMLIFrameElement>('iframe[data-category]')
+			document.querySelectorAll<HTMLIFrameElement>(
+				'iframe[data-category], iframe[data-vendor]'
+			)
 		);
 		reconcileAllIframes(kernel.getSnapshot());
 	};
@@ -109,7 +191,7 @@ export const createIframeBlocker = function createIframeBlocker(
 		processAll();
 		if (document.body) {
 			observer.observe(document.body, {
-				attributeFilter: ['data-category'],
+				attributeFilter: ['data-category', 'data-vendor'],
 				attributes: true,
 				childList: true,
 				subtree: true,
@@ -121,6 +203,9 @@ export const createIframeBlocker = function createIframeBlocker(
 	let lastConsents: unknown = null;
 	let lastPolicyCategories: unknown = null;
 	let lastScopeMode: unknown = null;
+	let lastVendorChoice: unknown = null;
+	let lastVendors: unknown = null;
+	let lastModel: unknown = null;
 	const unsubscribe = kernel.subscribe((snapshot) => {
 		if (disableAuto) {
 			return;
@@ -128,13 +213,19 @@ export const createIframeBlocker = function createIframeBlocker(
 		if (
 			snapshot.effectivePermissions === lastConsents &&
 			snapshot.policyRule.scope === lastPolicyCategories &&
-			snapshot.policyRule.scopeMode === lastScopeMode
+			snapshot.policyRule.scopeMode === lastScopeMode &&
+			snapshot.vendorChoice === lastVendorChoice &&
+			snapshot.vendors === lastVendors &&
+			snapshot.model === lastModel
 		) {
 			return;
 		}
 		lastConsents = snapshot.effectivePermissions;
 		lastPolicyCategories = snapshot.policyRule.scope;
 		lastScopeMode = snapshot.policyRule.scopeMode;
+		lastVendorChoice = snapshot.vendorChoice;
+		lastVendors = snapshot.vendors;
+		lastModel = snapshot.model;
 		processAll();
 	});
 
@@ -142,6 +233,7 @@ export const createIframeBlocker = function createIframeBlocker(
 		dispose() {
 			observer.disconnect();
 			unsubscribe();
+			forgetOwnedVendors(kernel, ownerSource);
 		},
 		processAllIframes: processAll,
 	};

@@ -15,10 +15,17 @@
  *   save never renews a category the subject did not touch, and a queued
  *   replay resubmits the identical receipts.
  *
- * A payload without a receipt (an older kernel, or a save that confirmed
- * nothing) sends no `choice` at all, and its `consents` map as-is.
+ * A save that confirmed no category, such as a vendor-only save, still sends
+ * `choice` with no categories. The backend reads a cookie-banner body without
+ * `choice` as a 2.x submission and stamps fresh receipts from `preferences`
+ * at `givenAt`; the empty receipt tells it this act renewed nothing. Only a
+ * payload without a receipt, from an older kernel, sends no `choice`.
+ *
+ * `vendorChoice` travels alongside when the publisher declares vendors: the
+ * complete granted-or-denied map with one confirmation time, so the backend
+ * stores the vendor decision without knowing the vendor list.
  */
-import type { SubjectChoiceWire } from '@c15t/schema/types';
+import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema/types';
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
@@ -48,6 +55,8 @@ export interface SubjectPostBody {
 	consentAction: SavePayload['consentAction'];
 	policySnapshotToken?: string;
 	tcString?: string;
+	/** Granted flag per declared vendor after this act, when vendors exist. */
+	vendorChoice?: VendorChoiceWire;
 	metadata?: {
 		userProperties: NonNullable<SavePayload['user']>['properties'];
 	};
@@ -57,8 +66,11 @@ export interface SubjectPostBody {
  * The wire receipt for the categories one action confirmed.
  *
  * Reads receipts from the complete choice for exactly the confirmed keys, so
- * the confirmation time and basis are the kernel's, not restamped here.
- * Returns `undefined` when the payload has no receipt or confirmed nothing.
+ * the confirmation time and basis are the kernel's, not restamped here. An
+ * action that confirmed nothing yields an empty receipt rather than none:
+ * absent `choice` means a legacy client, and the backend would synthesize
+ * receipts for every preference. Returns `undefined` only when the payload
+ * carries no receipt at all.
  */
 export const buildConfirmedChoiceWire = function buildConfirmedChoiceWire(
 	payload: Pick<SavePayload, 'choice' | 'confirmed'>
@@ -68,7 +80,6 @@ export const buildConfirmedChoiceWire = function buildConfirmedChoiceWire(
 		return undefined;
 	}
 	const categories: SubjectChoiceWire['categories'] = {};
-	let any = false;
 	for (const key of Object.keys(confirmed.categories)) {
 		const category = key as OptionalConsentCategory;
 		const receipt = choice.categories[category];
@@ -88,9 +99,8 @@ export const buildConfirmedChoiceWire = function buildConfirmedChoiceWire(
 			confirmedAt: receipt.confirmedAt,
 			value: receipt.value,
 		};
-		any = true;
 	}
-	return any ? { categories, version: 3 } : undefined;
+	return { categories, version: 3 };
 };
 
 /** The explicit values a complete receipt holds, as a preference map. */
@@ -131,5 +141,12 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 		type: 'cookie_banner',
 		uiSource: payload.uiSource ?? undefined,
 		...(choice !== undefined && { choice }),
+		...(payload.vendorChoice !== undefined && {
+			vendorChoice: {
+				confirmedAt: payload.vendorChoice.confirmedAt,
+				grants: { ...payload.vendorChoice.grants },
+				version: 1 as const,
+			},
+		}),
 	};
 };

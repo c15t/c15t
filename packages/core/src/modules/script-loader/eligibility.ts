@@ -9,7 +9,12 @@
  */
 
 import type { ConsentSnapshot } from '../../types';
-import { evaluateConsent, getEffectiveGateState, has } from '../has';
+import {
+	deniedVendorIds,
+	evaluateConsent,
+	getEffectiveGateState,
+	has,
+} from '../has';
 import type { NormalizedScript, ReconcilePass } from './types';
 
 /**
@@ -25,7 +30,21 @@ export const buildReconcilePass = function buildReconcilePass(
 		iab: snapshot.iab,
 		isIabMode: snapshot.model === 'iab',
 		snapshot,
+		vendorDenied: deniedVendorIds(snapshot),
 	};
+};
+
+/** Whether the pass denies this script's vendor. Inert in IAB mode. */
+const vendorAllowed = function vendorAllowed(
+	entry: NormalizedScript,
+	pass: ReconcilePass
+): boolean {
+	return (
+		entry.vendor === null ||
+		pass.isIabMode ||
+		pass.vendorDenied === null ||
+		!pass.vendorDenied.has(entry.vendor)
+	);
 };
 
 /**
@@ -49,10 +68,13 @@ export const hasScriptConsent = function hasScriptConsent(
 				`Consent category "${entry.simpleCategory}" not found in consent state`
 			);
 		}
-		return pass.consents[entry.simpleCategory] || false;
+		return (
+			(pass.consents[entry.simpleCategory] || false) &&
+			vendorAllowed(entry, pass)
+		);
 	}
 
-	return has(script.category, pass.consents);
+	return has(script.category, pass.consents) && vendorAllowed(entry, pass);
 };
 
 /**
@@ -67,6 +89,8 @@ export const hasScriptConsent = function hasScriptConsent(
  * 3. Scripts with a single-category string consult the consent record
  *    directly. An unknown category throws — config bug, not user data.
  * 4. Otherwise the category tree is evaluated through `has`.
+ * 5. Outside IAB mode, a script whose `vendor` the subject turned off is
+ *    denied even when its category passes.
  */
 export const isEligible = function isEligible(
 	entry: NormalizedScript,

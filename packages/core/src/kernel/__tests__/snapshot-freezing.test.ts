@@ -1,3 +1,4 @@
+import type { VendorCategoryCondition } from '@c15t/schema/types';
 import { describe, expect, test } from 'vitest';
 
 import { createConsentKernel } from '..';
@@ -53,6 +54,25 @@ describe('snapshot default freezing', () => {
 			override: false,
 		});
 		expect(snapshot.user?.externalId).toBe('before');
+	});
+
+	test('copies nested vendor conditions without freezing the caller objects', () => {
+		const category: VendorCategoryCondition = {
+			or: ['marketing', 'measurement'],
+		};
+		const snapshot = buildInitialSnapshot({
+			initialVendors: {
+				declared: [
+					{ category, id: 'meta-pixel', presentable: false, source: 'script' },
+				],
+				listVersion: null,
+			},
+			now: NOW,
+		});
+		expectFrozenData(snapshot.vendors);
+		expect(Object.isFrozen(category)).toBe(false);
+		expect(Object.isFrozen(category.or)).toBe(false);
+		expect(snapshot.vendors?.declared[0]?.category).toEqual(category);
 	});
 
 	test('copies and freezes seeded IAB authority without normalizing it early', () => {

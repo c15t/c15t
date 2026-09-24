@@ -96,6 +96,8 @@ export interface NormalizedScript {
 	script: Script;
 	hasIabMeta: boolean;
 	simpleCategory: AllConsentNames | null;
+	/** Vendor slug for vendor-level consent outside IAB, if declared. */
+	vendor: string | null;
 }
 
 /**
@@ -109,6 +111,8 @@ export interface ReconcilePass {
 	consents: ConsentState;
 	isIabMode: boolean;
 	iab: KernelIABState | null;
+	/** Vendors the subject turned off, or `null` when none is denied. */
+	vendorDenied: ReadonlySet<string> | null;
 }
 
 /**

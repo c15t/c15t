@@ -36,8 +36,8 @@ export interface PersistenceHandle {
 	hydrate: () => boolean;
 	/**
 	 * Cancel queued writes, clear every c15t record (choice, notice, privacy,
-	 * their cookie projections and the queued backend replays) and reset the
-	 * kernel's in-memory records.
+	 * vendors, their cookie projections and the queued backend replays) and
+	 * reset the kernel's in-memory records.
 	 */
 	clear: () => void;
 }

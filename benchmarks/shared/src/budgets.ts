@@ -148,47 +148,69 @@ export const coreRuntimeBudgets: MetricBudget[] = [
 	},
 ];
 
+/**
+ * Vendor-level consent (#1034) added the vendor gate, the denial-list codec
+ * with its subject copy, the paused-iframe marker, the vendor save path and
+ * the per-module owner registry with live iframe ownership to the kernel
+ * entry, with the declaration copy, retained-denial clear, frame
+ * ownership sweep, joint settlement of narrowed bulk actions, slug
+ * validation of stored denials and the vendor record reconcile after a
+ * prefetch that review added: about 3.5 kB gzip on the headless consumer
+ * scenario, measured on the PR that introduced it.
+ * The delta budgets below carry that once; they return to their previous
+ * values in the follow-up that lands after the feature is on the base
+ * branch.
+ */
+const VENDOR_CONSENT_GZIP_BYTES = 3584;
+/**
+ * The same allowance for the core package tarball, which also carries the
+ * bundled docs for the feature and its hooks and modules uncompressed.
+ */
+const VENDOR_CONSENT_TARBALL_BYTES = 8192;
+
 export const bundleBudgets: MetricBudget[] = [
 	{
 		comparator: 'delta-bytes-lte',
 		description:
-			'The core-only route should not gain more than 1.5kB over the base branch.',
+			'The core-only route should not gain more than 1.5kB over the base branch, plus the vendor consent allowance.',
 		metric: 'core-only',
-		threshold: 1536,
+		threshold: 1536 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
-		description: 'Headless React bundle delta budget.',
+		description:
+			'Headless React bundle delta budget, plus the vendor consent allowance.',
 		metric: 'react-headless',
-		threshold: 2048,
+		threshold: 2048 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'React banner bundle delta budget.',
 		metric: 'react-banner-only',
-		threshold: 3072,
+		threshold: 3072 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'React full bundle delta budget.',
 		metric: 'react-full',
-		threshold: 4096,
+		threshold: 4096 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'Next.js package bundle delta budget.',
 		metric: 'nextjs-basic',
-		threshold: 3072,
+		threshold: 3072 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 ];
 
 export const artifactBudgets: MetricBudget[] = [
 	{
 		comparator: 'absolute-and-percent-lte',
-		description: 'Core package tarball growth must stay below 15kB and 10%.',
+		description:
+			'Core package tarball growth must stay below 15kB and 10%, plus the vendor consent allowance.',
 		metric: 'c15t',
 		secondaryThreshold: 10,
-		threshold: 15360,
+		threshold: 15360 + VENDOR_CONSENT_TARBALL_BYTES,
 	},
 	{
 		comparator: 'absolute-and-percent-lte',
@@ -1046,9 +1068,9 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip.',
+				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance.',
 			metric: 'initialGzip',
-			threshold: 2048,
+			threshold: 2048 + VENDOR_CONSENT_GZIP_BYTES,
 		},
 		{
 			comparator: 'delta-bytes-lte',

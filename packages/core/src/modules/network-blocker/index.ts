@@ -32,6 +32,7 @@
  *   subscribe tick.
  */
 import { extractConsentNamesFromCondition } from '../../libs/has';
+import { declareOwnedVendors, forgetOwnedVendors } from '../../libs/vendors';
 import type { ConsentSnapshot } from '../../types';
 import { installFetchPatch } from './patch-fetch';
 import { installXhrPatch } from './patch-xhr';
@@ -57,16 +58,37 @@ export const createNetworkBlocker = function createNetworkBlocker(
 	const { kernel, onRequestBlocked } = options;
 	const logBlocked = options.logBlockedRequests ?? true;
 	let rules: NetworkBlockerRule[] = [...(options.rules ?? [])];
-	const registerCategories = () =>
+	const ownerSource = Symbol('network-blocker');
+	const registerCategories = () => {
 		kernel.set.registerConsentCategories(
 			rules.flatMap((rule) => extractConsentNamesFromCondition(rule.category))
 		);
+		declareOwnedVendors(kernel, rules, ownerSource);
+	};
 	registerCategories();
 	let enabled = options.enabled !== false;
 	let snapshot: ConsentSnapshot = kernel.getSnapshot();
 
+	// Another source can sweep these rules' slugs out of the declared set: a
+	// provider replacing its own rule entries, or a backend init dropping a
+	// vendor a rule here still names. Mounted rules own their slugs for as
+	// long as they are configured, so put them back as soon as the set
+	// changes; a stored denial for one of them would otherwise be ignored.
+	// Idempotent: nothing missing means no commit.
+	let lastVendors: unknown = snapshot.vendors;
+	const declareMissingVendors = (next: ConsentSnapshot): void => {
+		const declared = new Set(next.vendors?.declared.map((vendor) => vendor.id));
+		if (rules.some((rule) => rule.vendor && !declared.has(rule.vendor))) {
+			declareOwnedVendors(kernel, rules, ownerSource);
+		}
+	};
+
 	const unsubscribe = kernel.subscribe((next) => {
 		snapshot = next;
+		if (next.vendors !== lastVendors) {
+			lastVendors = next.vendors;
+			declareMissingVendors(next);
+		}
 	});
 
 	// In non-browser (Node/RSC) environments there is nothing to patch;
@@ -80,6 +102,7 @@ export const createNetworkBlocker = function createNetworkBlocker(
 		return {
 			dispose() {
 				unsubscribe();
+				forgetOwnedVendors(kernel, ownerSource);
 			},
 			setEnabled(v) {
 				enabled = v;
@@ -124,6 +147,7 @@ export const createNetworkBlocker = function createNetworkBlocker(
 			unsubscribe();
 			uninstallFetch();
 			uninstallXhr();
+			forgetOwnedVendors(kernel, ownerSource);
 		},
 		setEnabled(v) {
 			enabled = v;
