@@ -122,6 +122,59 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 			expect(payload.location).toEqual({ countryCode: 'DE', regionCode: null });
 		});
 
+		test('reports the resolved session to the backend, detached', async () => {
+			const fetchImpl = vi.fn(() =>
+				Promise.resolve(manifestResponse())
+			) as unknown as typeof globalThis.fetch & ReturnType<typeof vi.fn>;
+			const registered: Promise<void>[] = [];
+			const { init } = createSvelteKitConsentRouteHandlers({
+				backendURL: 'https://api.example.com',
+				fetch: fetchImpl,
+				onBackgroundRevalidate: (task) => {
+					registered.push(task);
+				},
+			});
+
+			await init(
+				createEvent({
+					headers: {
+						cookie: 'c15t=secret',
+						'user-agent': 'Mozilla/5.0',
+						'x-c15t-country': 'DE',
+						'x-forwarded-for': '203.0.113.42',
+					},
+				})
+			);
+			expect(registered).toHaveLength(1);
+			await registered[0];
+
+			const report = fetchImpl.mock.calls.find(
+				([url]: [string]) => url === 'https://api.example.com/sessions'
+			);
+			expect(report).toBeDefined();
+			const requestInit = report?.[1] as RequestInit;
+			const headers = requestInit.headers as Record<string, string>;
+			expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+			expect(headers).not.toHaveProperty('cookie');
+			expect(JSON.parse(requestInit.body as string)).toMatchObject({
+				adapter: '@c15t/svelte',
+				country: 'DE',
+				policy: { id: 'eu-opt-in' },
+				source: 'route',
+			});
+		});
+
+		test('sends no report when reportSessions is false', async () => {
+			const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
+			const { init } = createSvelteKitConsentRouteHandlers({
+				backendURL: 'https://api.example.com',
+				fetch: fetchImpl,
+				reportSessions: false,
+			});
+			await init(createEvent({ headers: { 'x-c15t-country': 'DE' } }));
+			expect(fetchImpl).toHaveBeenCalledTimes(1);
+		});
+
 		test('is never shared-cached — it varies per request', async () => {
 			const { init } = createSvelteKitConsentRouteHandlers({
 				backendURL: 'https://api.example.com',

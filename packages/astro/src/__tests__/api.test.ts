@@ -131,7 +131,10 @@ describe('manifest caching through the routes', () => {
 		await handlers.init(makeRequest());
 		await handlers.init(makeRequest());
 
-		expect(fetchImpl).toHaveBeenCalledOnce();
+		// Each init also reports its session; only the manifest read counts.
+		expect(
+			fetchImpl.mock.calls.filter(([url]) => String(url).endsWith('/manifest'))
+		).toHaveLength(1);
 	});
 
 	it('revalidates with the stored ETag once the entry goes stale', async () => {
@@ -282,6 +285,66 @@ describe('route handlers', () => {
 
 		const response = await handlers.init(makeRequest());
 		expect(response.headers.get('cache-control')).toBe('private, no-store');
+	});
+
+	it('reports the resolved session to the backend, detached', async () => {
+		const fetchImpl = vi.fn((input: string) =>
+			Promise.resolve(
+				input.endsWith('/sessions')
+					? new Response(null, { status: 204 })
+					: jsonResponse(MANIFEST, { 'cache-control': 'public, s-maxage=300' })
+			)
+		);
+		const registered: Promise<void>[] = [];
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl as never,
+			onBackgroundRevalidate: (task) => {
+				registered.push(task);
+			},
+			options: options(),
+		});
+
+		await handlers.init(
+			makeRequest('https://site.example.com/api/c15t/init', {
+				cookie: 'c15t=secret',
+				'user-agent': 'Mozilla/5.0',
+				'x-c15t-country': 'DE',
+				'x-forwarded-for': '203.0.113.42',
+			})
+		);
+		expect(registered).toHaveLength(1);
+		await registered[0];
+
+		const report = fetchImpl.mock.calls.find(
+			([url]) => url === 'https://consent.example.com/sessions'
+		);
+		expect(report).toBeDefined();
+		const init = report?.[1] as RequestInit;
+		const headers = init.headers as Record<string, string>;
+		expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+		expect(headers).not.toHaveProperty('cookie');
+		expect(JSON.parse(init.body as string)).toMatchObject({
+			adapter: '@c15t/astro',
+			country: 'DE',
+			source: 'route',
+		});
+	});
+
+	it('sends no report when the mode turns reporting off', async () => {
+		const fetchImpl = vi.fn(() =>
+			jsonResponse(MANIFEST, { 'cache-control': 'public, s-maxage=300' })
+		);
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl,
+			options: options({
+				mode: manifestMode({
+					backendURL: 'https://consent.example.com',
+					reportSessions: false,
+				}),
+			}),
+		});
+		await handlers.init(makeRequest());
+		expect(fetchImpl).toHaveBeenCalledTimes(1);
 	});
 
 	it('answers init without a vendor list when the GVL fetch fails', async () => {

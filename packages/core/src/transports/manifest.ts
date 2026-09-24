@@ -13,6 +13,7 @@ import {
 import type {
 	ConsentManifest,
 	ConsentManifestGVLReference,
+	ConsentSessionSource,
 	GlobalVendorList,
 	InitOutput,
 	ResolveInitFromManifestInputs,
@@ -21,6 +22,8 @@ import { baseTranslations } from '@c15t/translations/all';
 import type { BaseTranslations } from '@c15t/translations/all';
 
 import type { PrivacyOptOut } from '../consent-record/types';
+import { reportConsentSession } from '../libs/session-report';
+import type { SessionReportHeaders } from '../libs/session-report';
 import type {
 	InitContext,
 	KernelOverrides,
@@ -130,6 +133,34 @@ export interface ManifestTransportOptions {
 	 * `Date.now`. Inject for deterministic tests.
 	 */
 	now?: () => number;
+
+	/**
+	 * Send a session report to `POST /sessions` after each `init()`, so the
+	 * backend still counts a visitor it never served `/init` to. Server
+	 * callers set this; a browser must not, since the report forwards the
+	 * visitor's IP and user agent from the incoming request's headers.
+	 * Absent means no report.
+	 */
+	report?: ManifestTransportReportOptions;
+}
+
+/** Session reporting for a server-side manifest transport. */
+export interface ManifestTransportReportOptions {
+	/** Where the resolution happened; `render` for an SSR or RSC prefetch. */
+	source: ConsentSessionSource;
+	/** Package that resolved init, for example `@c15t/nextjs`. */
+	adapter?: string;
+	/**
+	 * The visitor's request headers. Only the client IP chain and user agent
+	 * are forwarded. Defaults to the transport's `headers`.
+	 */
+	headers?: SessionReportHeaders;
+	/**
+	 * Receives the report's promise so a runtime that stops detached work
+	 * once the response is sent can keep it alive. The promise never
+	 * rejects.
+	 */
+	waitUntil?: (task: Promise<void>) => void;
 }
 
 /**
@@ -411,6 +442,22 @@ export const createManifestTransport = function createManifestTransport(
 					: deferInitGvl(payload, manifest.iab.gvl.url);
 			}
 			lastDecisionInputs = rememberDecisionInputs(payload, inputs.gpc);
+			if (options.report) {
+				// Detached: the report is telemetry and the decision is already
+				// made. It never rejects, so nothing here can fail the init.
+				reportConsentSession({
+					adapter: options.report.adapter,
+					backendURL,
+					fetch: fetchImpl,
+					headers: options.report.headers ?? options.headers,
+					init: payload,
+					inputs,
+					manifest,
+					manifestURL: options.manifestURL,
+					source: options.report.source,
+					waitUntil: options.report.waitUntil,
+				});
+			}
 			// Local resolution always produces the v3 wire; the manifest's own
 			// schema version decides matched, lifted, or failed inside it.
 			return mapInitOutputToInitResponse(payload, toHeadersFromInputs(inputs), {

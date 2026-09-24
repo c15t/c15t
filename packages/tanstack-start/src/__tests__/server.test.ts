@@ -13,6 +13,7 @@ import {
 	createConsentStateHandler,
 	resolveConsent as baseResolveConsent,
 } from '../server';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const createRequest = function createRequest(
 	headers: Record<string, string> = {}
@@ -159,5 +160,61 @@ describe('createConsentStateHandler: server function contract', () => {
 		})();
 		expect(state).not.toHaveProperty('transport');
 		expect(state.initialOverrides).toMatchObject({ country: 'DE' });
+	});
+});
+
+describe('resolveConsent with an inline manifest: session reports', () => {
+	test('reports the render to the backend, handed to onBackgroundRevalidate', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 204 }));
+		const registered: Promise<void>[] = [];
+
+		const state = await resolveConsent(
+			{
+				'user-agent': 'Mozilla/5.0',
+				'x-forwarded-for': '203.0.113.42',
+				'x-vercel-ip-country': 'DE',
+			},
+			{
+				backendURL: 'https://consent.example.com',
+				fetch: fetchSpy,
+				manifest: MANIFEST_FIXTURE,
+				onBackgroundRevalidate: (task) => {
+					registered.push(task);
+				},
+			}
+		);
+		expect(state.initialPolicyResolution).toMatchObject({
+			policyId: 'eu-opt-in',
+		});
+		expect(registered).toHaveLength(1);
+		await registered[0];
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('https://consent.example.com/sessions');
+		expect((init.headers as Record<string, string>)['x-forwarded-for']).toBe(
+			'203.0.113.42'
+		);
+		expect(JSON.parse(init.body as string)).toMatchObject({
+			adapter: '@c15t/tanstack-start',
+			country: 'DE',
+			source: 'render',
+		});
+	});
+
+	test('sends nothing when reportSessions is false', async () => {
+		const fetchSpy = vi.fn();
+		await resolveConsent(
+			{},
+			{
+				backendURL: 'https://consent.example.com',
+				fetch: fetchSpy,
+				manifest: MANIFEST_FIXTURE,
+				reportSessions: false,
+			}
+		);
+		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 });

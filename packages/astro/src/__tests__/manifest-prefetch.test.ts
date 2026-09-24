@@ -81,14 +81,52 @@ describe('manifest-mode server prefetch', () => {
 
 		// A per-render transport carried its own manifest memo, so every page
 		// view paid the upstream roundtrip. The shared cache is the point of
-		// manifest mode.
-		expect(fetchImpl).toHaveBeenCalledOnce();
-		expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-			'https://consent.example.com/manifest'
+		// manifest mode. Each render also reports its session, detached.
+		const reads = fetchImpl.mock.calls.filter(([url]) =>
+			String(url).endsWith('/manifest')
 		);
+		expect(reads).toHaveLength(1);
+		expect(reads[0]?.[0]).toBe('https://consent.example.com/manifest');
 		expect(first.c15t?.snapshot.policyRule.id).toBe(
 			second.c15t?.snapshot.policyRule.id
 		);
+	});
+
+	it('reports each render to the backend, detached from the response', async () => {
+		const fetchImpl = vi.fn((input: string) =>
+			Promise.resolve(
+				input.endsWith('/sessions')
+					? new Response(null, { status: 204 })
+					: manifestResponse()
+			)
+		);
+
+		await render({
+			fetch: fetchImpl as never,
+			headers: {
+				'user-agent': 'Mozilla/5.0',
+				'x-c15t-country': 'DE',
+				'x-forwarded-for': '203.0.113.42',
+			},
+		});
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+
+		const report = fetchImpl.mock.calls.find(
+			([url]) => url === 'https://consent.example.com/sessions'
+		);
+		expect(report).toBeDefined();
+		const init = report?.[1] as RequestInit;
+		expect((init.headers as Record<string, string>)['x-forwarded-for']).toBe(
+			'203.0.113.42'
+		);
+		expect(JSON.parse(init.body as string)).toMatchObject({
+			adapter: '@c15t/astro',
+			country: 'DE',
+			policy: { id: expect.any(String) },
+			source: 'render',
+		});
 	});
 
 	it('still resolves per-request geo off the cached manifest', async () => {
@@ -103,7 +141,9 @@ describe('manifest-mode server prefetch', () => {
 			headers: { 'x-c15t-country': 'US' },
 		});
 
-		expect(fetchImpl).toHaveBeenCalledOnce();
+		expect(
+			fetchImpl.mock.calls.filter(([url]) => String(url).endsWith('/manifest'))
+		).toHaveLength(1);
 		expect(german.c15t?.shouldShowBanner).toBe(true);
 		expect(american.c15t?.shouldShowBanner).toBe(false);
 	});

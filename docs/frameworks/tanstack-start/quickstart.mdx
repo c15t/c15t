@@ -206,7 +206,11 @@ repository.
 Once the cached manifest passes its `s-maxage`, the route and the prefetch
 serve it stale and refresh it in the background. On a runtime that stops work
 after the response is sent, pass `onBackgroundRevalidate` to either and hand
-the promise to your platform's `waitUntil`; it never rejects.
+the promise to your platform's `waitUntil`; it never rejects. Both also hand
+it their session report: after each resolution they post a small report to
+the backend's `POST /sessions`, server-to-server, so the backend still counts
+visitors it never served `/init` to. Pass `reportSessions: false` to send
+none.
 
 ## Verify the server path
 

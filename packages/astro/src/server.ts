@@ -44,7 +44,11 @@ import type {
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
-import { loadConsentManifest, resolveManifestInit } from './api/manifest-init';
+import {
+	loadConsentManifest,
+	resolveManifestInit,
+	resolveSessionReportURL,
+} from './api/manifest-init';
 import { filterCookieHeader } from './libs/cookies';
 import type { C15tColorScheme, C15tLocals, C15tResolvedOptions } from './types';
 
@@ -393,6 +397,12 @@ const prefetchManifest = async function prefetchManifest(
 				}),
 			inputs: input.inputs,
 			manifest,
+			report: {
+				backendURL: resolveSessionReportURL(source, input.options),
+				headers: input.headers,
+				source: 'render',
+				waitUntil: input.onBackgroundRevalidate,
+			},
 		});
 		return mergeInitOutputIntoKernelConfig(
 			input.base,

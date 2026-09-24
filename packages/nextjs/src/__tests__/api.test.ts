@@ -100,6 +100,73 @@ describe('@c15t/nextjs/api', () => {
 		});
 	});
 
+	test('GET reports the resolved session to the backend, detached', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify(MANIFEST_FIXTURE)));
+		const registered: Promise<void>[] = [];
+		const { GET } = createNextConsentRouteHandlers({
+			backendURL: 'https://consent.example.com/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			onBackgroundRevalidate: (task) => {
+				registered.push(task);
+			},
+		});
+
+		const response = await GET(
+			new Request('https://app.example.com/api/c15t/init', {
+				headers: {
+					cookie: 'c15t=secret',
+					'user-agent': 'Mozilla/5.0',
+					// `sec-gpc` is a forbidden header in this browser-mode suite;
+					// the adapter header the extractor reads first stands in.
+					'x-c15t-gpc': '1',
+					'x-forwarded-for': '203.0.113.42',
+					'x-vercel-ip-country': 'DE',
+				},
+			})
+		);
+		expect(response.status).toBe(200);
+		expect(registered).toHaveLength(1);
+		await registered[0];
+
+		const report = fetchSpy.mock.calls.find(
+			([url]) => url === 'https://consent.example.com/api/c15t/sessions'
+		);
+		expect(report).toBeDefined();
+		const init = report?.[1] as RequestInit;
+		expect(init.method).toBe('POST');
+		const headers = init.headers as Record<string, string>;
+		// `user-agent` is a forbidden request header in this browser-mode
+		// suite, so only the IP chain can be asserted here.
+		expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+		expect(headers).not.toHaveProperty('cookie');
+		expect(JSON.parse(init.body as string)).toMatchObject({
+			adapter: '@c15t/nextjs',
+			country: 'DE',
+			gpc: true,
+			policy: { id: 'eu-opt-in' },
+			revision: 'manifest-revision',
+			source: 'route',
+		});
+	});
+
+	test('GET sends no session report when reportSessions is false', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify(MANIFEST_FIXTURE)));
+		const { GET } = createNextConsentRouteHandlers({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			reportSessions: false,
+		});
+		await GET(new Request('https://app.example.com/api/c15t/init'));
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
+			'https://consent.example.com/manifest'
+		);
+	});
+
 	test('manifestGET mirrors backend cache headers', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(MANIFEST_FIXTURE), {
@@ -265,9 +332,13 @@ describe('@c15t/nextjs/api', () => {
 		);
 
 		// Both routes read the backend manifest, never the config's own
-		// same-origin `manifestURL`, which these handlers serve.
-		expect(fetchSpy).toHaveBeenCalledTimes(1);
-		for (const [url] of fetchSpy.mock.calls) {
+		// same-origin `manifestURL`, which these handlers serve. The init
+		// route's session report goes to the same backend.
+		const reads = fetchSpy.mock.calls.filter(
+			([url]) => !String(url).endsWith('/sessions')
+		);
+		expect(reads).toHaveLength(1);
+		for (const [url] of reads) {
 			expect(url).toBe('https://consent.example.com/api/c15t/manifest');
 		}
 		const body = await response.json();

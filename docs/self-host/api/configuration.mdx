@@ -49,6 +49,7 @@ fallback. Add reviewed rules for other locations in
 | `openapi` | Enabled by default at `/spec.json`. Supports `enabled`, `specPath`, `title` and the documented server `basePath`. |
 | `version` | Version reported by the status endpoint and OpenAPI document. |
 | `observability` | Logging configuration passed directly to `c15tInstance`. Defaults to warning and error requests. |
+| `sessions` | `onReport` receives every session report: hosts' `POST /sessions` and the backend's own `/init`. Runs detached from the response; the IP in its context follows `ipAddress`. Reports also land on the request's wide event. Nothing is stored. |
 
 `defineConfig()` checks types and returns the supplied object. It does not load
 environment variables or run migrations. It deliberately rejects `observability`;

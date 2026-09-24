@@ -19,6 +19,8 @@ import {
 	fetchCachedManifest,
 	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
+	reportConsentSession,
+	resolveSessionReportBackendURL,
 } from '@c15t/core/server';
 import {
 	consentInputsToOverrides,
@@ -145,6 +147,25 @@ const resolveManifestSource = function resolveManifestSource(
 	return { manifestURL: `${resolved}${MANIFEST_ROUTE_SUFFIX}` };
 };
 
+/**
+ * Where the init route reports sessions, when it can: the configured
+ * backend, else the backend the manifest URL implies. A relative value or
+ * no backend at all means no report.
+ */
+const resolveReportBackendURL = function resolveReportBackendURL(
+	event: RequestEvent,
+	options: SvelteKitConsentRouteOptions,
+	manifestURL: string
+): string | undefined {
+	const backendURL = options.backendURL ?? getEnv('C15T_BACKEND_URL');
+	return resolveSessionReportBackendURL({
+		backendURL: backendURL
+			? resolveAgainstRequest(backendURL, event)
+			: undefined,
+		manifestURL,
+	});
+};
+
 const shouldFetchGvl = function shouldFetchGvl(
 	manifest: ConsentManifest,
 	payload: InitOutput
@@ -235,6 +256,20 @@ export const createSvelteKitConsentRouteHandlers =
 				},
 				{ baseTranslations }
 			) as InitOutput & { resolvedOverrides?: Record<string, unknown> };
+
+			if (options.reportSessions !== false) {
+				reportConsentSession({
+					adapter: '@c15t/svelte',
+					backendURL: resolveReportBackendURL(event, options, manifestURL),
+					fetch: options.fetch as typeof globalThis.fetch | undefined,
+					headers: event.request.headers,
+					init: payload,
+					inputs,
+					manifest,
+					source: 'route',
+					waitUntil: bindBackgroundRevalidate(options, event),
+				});
+			}
 
 			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
 				const language = payload.translations.language.split('-')[0] || 'en';

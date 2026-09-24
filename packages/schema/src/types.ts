@@ -30,6 +30,8 @@ export type {
 } from './api/legal-document';
 // API types - Meta
 export type { StatusOutput } from './api/meta';
+// API types - Session
+export type { ConsentSessionReport, ConsentSessionSource } from './api/session';
 // API types - Subject
 export type {
 	ConsentItem,
@@ -94,9 +96,12 @@ export type {
 	LoggerLike,
 	ResolveInitFromManifestInputs,
 	ResolveInitFromManifestOptions,
+	BuildConsentSessionReportOptions,
+	SessionReportInputs,
 } from './shared';
 export {
 	buildConsentManifestFromConfig,
+	buildConsentSessionReport,
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,
 	checkJurisdiction,

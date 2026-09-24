@@ -64,6 +64,15 @@ export interface C15tManifestDescriptor {
 	backendURL?: string;
 	/** Inline manifest. Takes precedence over `manifestURL`. */
 	manifest?: ConsentManifest;
+	/**
+	 * Report each init the server resolves, in the middleware and the init
+	 * route, to the backend's `POST /sessions`, server-to-server and
+	 * detached from the response, so the backend still counts visitors it
+	 * never served `/init` to. Set `false` to send none.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
 }
 
 /**

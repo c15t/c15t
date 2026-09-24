@@ -40,6 +40,7 @@ import type { LegalDocumentSnapshotOptions } from './legal-document-snapshot';
 import type { ManifestCacheOptions } from './manifest';
 import type { PolicySnapshotOptions } from './policy-snapshot';
 import type { ScriptOptions } from './script';
+import type { SessionOptions } from './session';
 
 export interface AppLayers {
 	readonly sql: SqlClient.SqlClient;
@@ -112,6 +113,15 @@ export interface AppOptions {
 	 */
 	readonly legalDocumentSnapshot?: LegalDocumentSnapshotOptions;
 	readonly gvl?: GvlOptions & { enabled?: boolean };
+	/**
+	 * Session reports: the per-visitor signal `/init` used to be.
+	 *
+	 * Hosts that resolve init from a cached manifest send `POST /sessions`
+	 * instead of calling `/init`; the backend's own `/init` emits the same
+	 * event. Every report lands on the request's wide event. `onReport`
+	 * additionally hands it to a sink of the deployment's choosing.
+	 */
+	readonly sessions?: SessionOptions;
 	/**
 	 * Keys accepted on `Authorization: Bearer <key>`.
 	 *

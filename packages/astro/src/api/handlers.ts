@@ -30,6 +30,7 @@ import {
 	loadConsentManifest,
 	resolveManifestInit,
 	resolveManifestSourceFrom,
+	resolveSessionReportURL,
 } from './manifest-init';
 import type { FetchGvl } from './manifest-init';
 
@@ -166,6 +167,7 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 		if (listResponse) {
 			return listResponse;
 		}
+		const source = { headers: request.headers, url: request.url };
 		const payload = await resolveManifestInit({
 			fetch: handlerOptions.fetch,
 			fetchGvl: handlerOptions.fetchGvl,
@@ -176,6 +178,12 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 				language: handlerOptions.options.i18n?.locale,
 			}),
 			manifest,
+			report: {
+				backendURL: resolveSessionReportURL(source, handlerOptions.options),
+				headers: request.headers,
+				source: 'route',
+				waitUntil: bindBackgroundRevalidate(handlerOptions, lifetime),
+			},
 		});
 
 		return Response.json(payload, {

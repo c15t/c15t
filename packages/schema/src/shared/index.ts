@@ -18,6 +18,11 @@ export {
 	resolvePolicyResolutionFromManifest,
 	sliceConsentManifestLanguage,
 } from './consent-manifest';
+export {
+	type BuildConsentSessionReportOptions,
+	buildConsentSessionReport,
+	type SessionReportInputs,
+} from './session-report';
 // Export constants separately for runtime-safe usage
 export {
 	brandingValues as brandingValuesConst,

@@ -12,7 +12,7 @@ import { listSubjectsOutputSchema } from '@c15t/schema';
 import { Effect, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import * as v from 'valibot';
-import { afterEach, assert, beforeEach, describe, it } from 'vitest';
+import { afterEach, assert, beforeEach, describe, it, vi } from 'vitest';
 
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import * as Dialect from '../db/dialect';
@@ -278,6 +278,112 @@ for (const engine of ENGINES) {
 				cause: { code: 'SERVICE_UNAVAILABLE' },
 				message: 'Database health check failed',
 			});
+		});
+	});
+
+	describe('POST /sessions', () => {
+		const report = {
+			adapter: '@c15t/nextjs',
+			country: 'DE',
+			gpc: false,
+			jurisdiction: 'GDPR',
+			language: 'de',
+			policy: {
+				fingerprint: 'fp',
+				id: 'eu-opt-in',
+				matchedBy: 'country',
+				model: 'opt-in',
+			},
+			region: null,
+			resolution: 'matched',
+			revision: 'rev-1',
+			source: 'route',
+		};
+
+		it('accepts a report and hands it to the sink with the visitor context', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: {
+					'content-type': 'application/json',
+					'user-agent': 'Mozilla/5.0',
+					'x-forwarded-for': '203.0.113.42',
+				},
+				method: 'POST',
+			});
+
+			assert.strictEqual(response.status, 204);
+			assert.strictEqual(response.headers.get('cache-control'), 'no-store');
+			// The sink runs detached from the response.
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls.length, 1);
+			assert.deepStrictEqual(onReport.mock.calls[0]?.[0], report);
+			// The IP goes through the same masking as a consent record's.
+			assert.strictEqual(onReport.mock.calls[0]?.[1].ip, '203.0.113.0');
+			assert.strictEqual(onReport.mock.calls[0]?.[1].userAgent, 'Mozilla/5.0');
+		});
+
+		it('rejects a report that is not one', async () => {
+			const response = await app.request('/sessions', {
+				body: JSON.stringify({ ...report, source: 'browser' }),
+				headers: { 'content-type': 'application/json' },
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 400);
+			const body = await response.json();
+			assert.strictEqual(body.cause.code, 'BAD_REQUEST');
+			assert.match(body.message, /source/u);
+		});
+
+		it('needs no API key and survives a failing sink', async () => {
+			const reporting = createApp(runtime, {
+				sessions: {
+					onReport: () => Promise.reject(new Error('sink down')),
+				},
+			});
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: { 'content-type': 'application/json' },
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 204);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+		});
+
+		it("emits the same event from the backend's own /init", async () => {
+			// One sink sees hosted and manifest traffic alike, so a deployment
+			// counting sessions needs no second path for the old route.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example', tenantId: 'tenant_1' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', {
+				headers: {
+					'accept-language': 'de',
+					'sec-gpc': '1',
+					'x-c15t-country': 'DE',
+					'x-forwarded-for': '203.0.113.42',
+				},
+			});
+			assert.strictEqual(response.status, 200);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls.length, 1);
+			const [emitted, context] = onReport.mock.calls[0] ?? [];
+			assert.strictEqual(emitted.source, 'init');
+			assert.strictEqual(emitted.country, 'DE');
+			assert.strictEqual(emitted.gpc, true);
+			assert.strictEqual(emitted.tenantId, 'tenant_1');
+			assert.isString(emitted.revision);
+			assert.strictEqual(context.ip, '203.0.113.0');
 		});
 	});
 

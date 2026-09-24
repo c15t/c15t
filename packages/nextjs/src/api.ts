@@ -10,6 +10,10 @@ import {
 	parseCacheDirectiveSeconds,
 } from '@c15t/core/libs/manifest-cache';
 import {
+	reportConsentSession,
+	resolveSessionReportBackendURL,
+} from '@c15t/core/server';
+import {
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
 	resolveBackendURL,
@@ -80,6 +84,17 @@ export interface NextConsentManifestHandlersOptions {
 	 * ```
 	 */
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+
+	/**
+	 * Report each init the route resolves to the backend's `POST /sessions`,
+	 * server-to-server and detached from the response, so the backend still
+	 * counts visitors it never served `/init` to. The report is handed to
+	 * `onBackgroundRevalidate` like a manifest refresh. Set `false` to send
+	 * none.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
 
 	fetchGvl?: (input: {
 		reference: ConsentManifestGVLReference;
@@ -174,6 +189,31 @@ const resolveManifestURL = function resolveManifestURL(
 		throw new Error('@c15t/nextjs/api: invalid C15T_BACKEND_URL.');
 	}
 	return `${resolved}/manifest`;
+};
+
+/**
+ * Where the init route reports sessions, when it can. An explicit backend
+ * wins; otherwise the backend the manifest URL implies. Neither, or a
+ * relative value, means no report.
+ */
+const resolveReportBackendURL = function resolveReportBackendURL(
+	request: Request,
+	options: NextConsentManifestHandlersOptions
+): string | undefined {
+	const backendURL =
+		options.backendURL ??
+		getEnv('C15T_BACKEND_URL') ??
+		getEnv('NEXT_PUBLIC_C15T_BACKEND_URL');
+	let manifestURL: string | undefined;
+	try {
+		manifestURL = resolveManifestURL(request, options);
+	} catch {
+		manifestURL = undefined;
+	}
+	return resolveSessionReportBackendURL({
+		backendURL: backendURL ? resolveRequestURL(backendURL, request) : undefined,
+		manifestURL,
+	});
 };
 
 const withLanguage = function withLanguage(
@@ -357,6 +397,20 @@ export const createNextConsentRouteHandlers =
 
 					delete payload.policySnapshotToken;
 					delete payload.gvl;
+				}
+
+				if (options.reportSessions !== false) {
+					reportConsentSession({
+						adapter: '@c15t/nextjs',
+						backendURL: resolveReportBackendURL(request, options),
+						fetch: options.fetch,
+						headers: request.headers,
+						init: payload,
+						inputs,
+						manifest,
+						source: 'route',
+						waitUntil: options.onBackgroundRevalidate,
+					});
 				}
 
 				if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {

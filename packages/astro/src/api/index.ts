@@ -16,11 +16,13 @@ export {
 	loadConsentManifest,
 	resolveManifestInit,
 	resolveManifestSourceFrom,
+	resolveSessionReportURL,
 } from './manifest-init';
 export type {
 	FetchGvl,
 	RequestSource,
 	ResolvedInitOutput,
+	SessionReportTarget,
 } from './manifest-init';
 export {
 	clearManifestCache,

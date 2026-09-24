@@ -16,6 +16,7 @@ you are building a custom transport or server integration.
 | `GET /status` | Service status and configured version. | No |
 | `GET /manifest` | Geo-independent policy configuration, optionally sliced with `?language=en`. | No |
 | `GET /init` | Resolve configuration for this request's location, language and privacy signals. | No |
+| `POST /sessions` | Report an init a host resolved from a cached manifest. Nothing is stored. | No |
 | `POST /subjects` | Record a consent submission and its category receipts. | Optional, affects asserted identity authority |
 | `GET /subjects/:id` | Read this subject's consent status, merged choices and privacy directives. Optional `?type=a,b` filter. | No, the subject ID is the capability |
 | `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. | Optional, distinguishes browser and API authority |
@@ -61,6 +62,26 @@ not establish that a rule matched.
 request-time framework rendering, prefer a cached manifest and local resolution
 when the adapter supports it. Do not cache one visitor's resolved `/init` result
 as shared configuration.
+
+## Report a session
+
+```bash
+curl -i 'http://localhost:3000/api/c15t/sessions' \
+  -H 'Content-Type: application/json' \
+  -H 'X-Forwarded-For: 203.0.113.42' \
+  -d '{"source":"route","revision":"…","resolution":"matched","policy":{"id":"eu-opt-in","fingerprint":"…","matchedBy":"country","model":"opt-in"},"jurisdiction":"GDPR","country":"DE","region":null,"language":"de","gpc":false}'
+```
+
+A host that resolves init from a cached manifest never calls `/init`, so the
+backend would not know a visitor was served. The framework adapters send this
+report server-to-server after each resolution, detached from the response, and
+forward the visitor's IP chain and user agent as request headers. The backend
+answers `204`, records the report on the request's wide event and hands it to
+the `sessions.onReport` sink. It writes nothing to the database. The backend's
+own `/init` emits the same event. The body shape is `consentSessionReportSchema`
+in `@c15t/schema`; `source` is `route` for an init route, `render` for a
+server-rendered page and `init` for the backend's own route, so a consumer can
+dedupe a render followed by a client re-init.
 
 ## GET /c15t.js
 

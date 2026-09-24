@@ -1,0 +1,285 @@
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import type { ConsentManifest } from '@c15t/schema/types';
+import { describe, expect, test, vi } from 'vitest';
+
+import { createManifestTransport } from '../../transports/manifest';
+import {
+	buildConsentSessionReport,
+	forwardSessionReportHeaders,
+	reportConsentSession,
+	resolveSessionReportBackendURL,
+} from '../session-report';
+
+const manifest: ConsentManifest = {
+	branding: 'c15t',
+	policyPacks: [
+		createConsentManifestPolicyPack({
+			categories: ['marketing'],
+			id: 'eu-opt-in',
+			match: { countries: ['DE'], fallback: true },
+			model: 'opt-in',
+			prompt: 'choice',
+			scopeMode: 'strict',
+			validity: { choiceDays: 365 },
+		}),
+	],
+	revision: 'rev-1',
+	schemaVersion: 2,
+	tenantId: 'tenant_1',
+	translations: {
+		i18n: {
+			defaultProfile: 'default',
+			messages: {
+				default: {
+					fallbackLanguage: 'en',
+					translations: { en: { common: { acceptAll: 'Accept all' } } },
+				},
+			},
+		},
+	},
+};
+
+const resolveInit = async (
+	overrides: { country?: string; gpc?: boolean } = {}
+) => {
+	const transport = createManifestTransport({
+		backendURL: 'https://consent.example.com',
+		manifest,
+	});
+	const response = await transport.init({
+		overrides: { country: 'DE', language: 'de', ...overrides },
+		user: null,
+	});
+	return response;
+};
+
+const readBody = (call: unknown[] | undefined) => {
+	if (!call) {
+		throw new Error('expected a fetch call');
+	}
+	return JSON.parse((call[1] as RequestInit).body as string) as Record<
+		string,
+		unknown
+	>;
+};
+
+describe('buildConsentSessionReport', () => {
+	test('describes a matched resolution and the inputs it ran on', async () => {
+		const init = await resolveInit();
+		const report = buildConsentSessionReport({
+			adapter: '@c15t/nextjs',
+			init: init as never,
+			inputs: { country: 'DE', gpc: true, region: null },
+			manifest,
+			source: 'route',
+		});
+		expect(report).toMatchObject({
+			adapter: '@c15t/nextjs',
+			country: 'DE',
+			gpc: true,
+			language: 'en',
+			policy: { id: 'eu-opt-in', matchedBy: 'country', model: 'opt-in' },
+			region: null,
+			resolution: 'matched',
+			revision: 'rev-1',
+			source: 'route',
+			tenantId: 'tenant_1',
+		});
+		expect(typeof report.policy?.fingerprint).toBe('string');
+	});
+
+	test('records no policy when nothing matched', () => {
+		const report = buildConsentSessionReport({
+			init: {
+				jurisdiction: 'NONE',
+				policyResolution: { policy: null, status: 'no-match', version: 1 },
+				translations: { language: 'en' },
+			} as never,
+			manifest: { revision: 'rev-1' },
+			source: 'render',
+		});
+		expect(report.policy).toBeNull();
+		expect(report.resolution).toBe('no-match');
+		expect(report.gpc).toBe(false);
+		expect(Object.hasOwn(report, 'tenantId')).toBe(false);
+	});
+});
+
+describe('resolveSessionReportBackendURL', () => {
+	test('prefers the backend, then the origin the manifest URL implies', () => {
+		expect(
+			resolveSessionReportBackendURL({
+				backendURL: 'https://consent.example.com/',
+				manifestURL: 'https://cdn.example.com/manifest',
+			})
+		).toBe('https://consent.example.com');
+		expect(
+			resolveSessionReportBackendURL({
+				manifestURL:
+					'https://consent.example.com/api/c15t/manifest?language=de',
+			})
+		).toBe('https://consent.example.com/api/c15t');
+	});
+
+	test('sends nothing for a relative backend or a manifest that implies none', () => {
+		// A relative URL cannot be fetched from a server, and the app's own
+		// proxy route would count the visitor twice on the way through.
+		expect(resolveSessionReportBackendURL({ backendURL: '/api/c15t' })).toBe(
+			undefined
+		);
+		expect(
+			resolveSessionReportBackendURL({
+				manifestURL: 'https://cdn.example.com/tenant.json',
+			})
+		).toBe(undefined);
+	});
+});
+
+describe('forwardSessionReportHeaders', () => {
+	test('copies the client IP chain and user agent, never cookies', () => {
+		const forwarded = forwardSessionReportHeaders(
+			new Headers({
+				cookie: 'session=secret',
+				'user-agent': 'Mozilla/5.0',
+				'x-forwarded-for': '203.0.113.42, 10.0.0.1',
+			})
+		);
+		expect(forwarded).toEqual({
+			'user-agent': 'Mozilla/5.0',
+			'x-forwarded-for': '203.0.113.42, 10.0.0.1',
+		});
+	});
+
+	test('reads a Node-style header record regardless of casing', () => {
+		expect(
+			forwardSessionReportHeaders({
+				Cookie: 'a=b',
+				'User-Agent': ['UA'],
+				'X-Forwarded-For': '203.0.113.42',
+			})
+		).toEqual({ 'user-agent': 'UA', 'x-forwarded-for': '203.0.113.42' });
+	});
+});
+
+describe('reportConsentSession', () => {
+	test('posts the report with the visitor headers and the protocol headers', async () => {
+		const init = await resolveInit();
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 204 }));
+		const registered: Promise<void>[] = [];
+
+		await reportConsentSession({
+			adapter: '@c15t/svelte',
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			headers: new Headers({
+				cookie: 'c15t=secret',
+				'user-agent': 'UA',
+				'x-forwarded-for': '203.0.113.42',
+			}),
+			init: init as never,
+			inputs: { country: 'DE', gpc: false },
+			manifest,
+			source: 'route',
+			waitUntil: (task) => {
+				registered.push(task);
+			},
+		});
+
+		expect(registered).toHaveLength(1);
+		const [url, request] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('https://consent.example.com/sessions');
+		expect(request.method).toBe('POST');
+		const headers = request.headers as Record<string, string>;
+		expect(headers['content-type']).toBe('application/json');
+		expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+		expect(headers['user-agent']).toBe('UA');
+		expect(headers).not.toHaveProperty('cookie');
+		expect(typeof headers['x-c15t-version']).toBe('string');
+		expect(readBody(fetchSpy.mock.calls[0])).toMatchObject({
+			adapter: '@c15t/svelte',
+			country: 'DE',
+			revision: 'rev-1',
+			source: 'route',
+		});
+	});
+
+	test('never rejects, and never fetches without an absolute backend', async () => {
+		const init = await resolveInit();
+		const failing = vi.fn().mockRejectedValue(new Error('backend down'));
+		await expect(
+			reportConsentSession({
+				backendURL: 'https://consent.example.com',
+				fetch: failing,
+				init: init as never,
+				manifest,
+				source: 'render',
+			})
+		).resolves.toBeUndefined();
+		expect(failing).toHaveBeenCalledTimes(1);
+
+		const unused = vi.fn();
+		await reportConsentSession({
+			backendURL: '/api/c15t',
+			fetch: unused,
+			init: init as never,
+			manifest,
+			source: 'render',
+		});
+		expect(unused).not.toHaveBeenCalled();
+	});
+});
+
+describe('createManifestTransport report option', () => {
+	test('reports after each init with the transport backend and headers', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 204 }));
+		const transport = createManifestTransport({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			headers: { cookie: 'c15t=secret', 'x-forwarded-for': '203.0.113.42' },
+			manifest,
+			report: { adapter: '@c15t/nextjs', source: 'render' },
+		});
+
+		await transport.init({
+			overrides: { country: 'DE', gpc: true, language: 'de' },
+			user: null,
+		});
+		// The report is detached; let it land.
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+
+		const call = fetchSpy.mock.calls.find(
+			([url]) => url === 'https://consent.example.com/sessions'
+		);
+		expect(call).toBeDefined();
+		const headers = ((call as unknown[])[1] as RequestInit).headers as Record<
+			string,
+			string
+		>;
+		expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+		expect(headers).not.toHaveProperty('cookie');
+		expect(readBody(call)).toMatchObject({
+			adapter: '@c15t/nextjs',
+			country: 'DE',
+			gpc: true,
+			policy: { id: 'eu-opt-in' },
+			source: 'render',
+		});
+	});
+
+	test('sends nothing without the option', async () => {
+		const fetchSpy = vi.fn();
+		const transport = createManifestTransport({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			manifest,
+		});
+		await transport.init({ overrides: { country: 'DE' }, user: null });
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+});

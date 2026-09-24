@@ -239,6 +239,25 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * `console.warn` outside production so it does not go unnoticed.
 	 */
 	onError?: (error: unknown) => void;
+
+	/**
+	 * Report the init this render resolved from the manifest to the
+	 * backend's `POST /sessions`, server-to-server and detached from the
+	 * render, so the backend still counts visitors it never served `/init`
+	 * to. Only the manifest path reports; a hosted `/init` call is already
+	 * the backend's own signal. Set `false` to send none.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
+
+	/**
+	 * Receives the session report's promise so it survives the response on
+	 * runtimes that stop detached work once a response is sent. In the App
+	 * Router pass `after` from `next/server`: `(task) => after(() => task)`.
+	 * The promise never rejects.
+	 */
+	waitUntil?: (task: Promise<void>) => void;
 }
 
 const isProduction = function isProduction(): boolean {
@@ -403,6 +422,15 @@ const resolveFromManifest = async function resolveFromManifest(input: {
 		inputs: manifestInputs,
 		manifest: options.manifest,
 		manifestURL: absoluteManifest ?? undefined,
+		report:
+			options.reportSessions === false
+				? undefined
+				: {
+						adapter: '@c15t/nextjs',
+						headers: input.requestHeaders,
+						source: 'render',
+						waitUntil: options.waitUntil,
+					},
 	});
 
 	try {
