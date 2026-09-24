@@ -4,6 +4,7 @@ import {
 	defaultTranslationConfig,
 	has as evaluateHas,
 	resolveConsentPresentation,
+	vendorsListedUnder,
 } from '@c15t/core';
 import type {
 	ActiveUI,
@@ -18,6 +19,7 @@ import type {
 	KernelActiveUI,
 	KernelIABState,
 	Model,
+	ResolvedVendor,
 	TranslationConfig,
 } from '@c15t/core';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
@@ -54,8 +56,24 @@ export interface SvelteIABState extends KernelIABState {
 
 export interface ConsentDraftState {
 	readonly values: Partial<ConsentState>;
+	/**
+	 * Granted flag per declared vendor. Seeded from the denials the gate
+	 * honors, so a vendor declared `disabled` reads `true` whatever an older
+	 * record says; every vendor not denied is `true`. Empty under an `iab`
+	 * policy.
+	 */
+	readonly vendors: Readonly<Record<string, boolean>>;
 	readonly isStale: boolean;
 	set: (name: AllConsentNames, value: boolean) => void;
+	/**
+	 * Stage one vendor's grant. Recorded by the next save. Ignored for a
+	 * vendor that is not declared or is declared `disabled`, since the kernel
+	 * would drop the grant on save.
+	 *
+	 * @param vendorId - Vendor slug as declared in `vendors` or on a script.
+	 * @param granted - Whether the vendor may load once the draft is saved.
+	 */
+	setVendor: (vendorId: string, granted: boolean) => void;
 	reset: () => void;
 	save: (categories: readonly AllConsentNames[]) => Promise<void>;
 }
@@ -81,12 +99,16 @@ export interface ConsentManagerState extends Pick<
 	| 'revision'
 	| 'translations'
 	| 'user'
+	| 'vendors'
+	| 'vendorChoice'
 > {
 	activeUI: ActiveUI;
 	branding: NonNullable<ConsentSnapshot['branding']>;
 
 	selectedConsents: Partial<ConsentState>;
 	selectedConsentTypes: Partial<ConsentState>;
+	/** Granted flag per declared vendor in the draft. */
+	selectedVendors: Readonly<Record<string, boolean>>;
 	presentation?: ConsentPresentation;
 	readonly draft: ConsentDraftState;
 	consentCategories: AllConsentNames[];
@@ -111,6 +133,15 @@ export interface ConsentManagerState extends Pick<
 	legalLinks: ConsentManagerOptions['legalLinks'];
 	translationConfig: TranslationConfig;
 	getDisplayedConsents: () => ConsentType[];
+	/**
+	 * The vendors listed under one category: presentable, naming that
+	 * category, without a negation. Empty under an `iab` policy, where the
+	 * TC string decides and vendor rows are not shown.
+	 *
+	 * @param category - The category row being rendered.
+	 * @returns The vendors to list, in declared order.
+	 */
+	getDisplayedVendors: (category: AllConsentNames) => ResolvedVendor[];
 	has: (condition: HasCondition<AllConsentNames>) => boolean;
 	dismissNotice: () => Promise<unknown>;
 	saveConsents: (type: SaveType) => Promise<void>;
@@ -118,6 +149,13 @@ export interface ConsentManagerState extends Pick<
 	setConsent: (name: AllConsentNames, value: boolean) => void;
 	setLanguage: (code: string) => void;
 	setSelectedConsent: (name: AllConsentNames, value: boolean) => void;
+	/**
+	 * Stage one vendor's grant on the draft. Recorded by the next save.
+	 *
+	 * @param vendorId - Vendor slug as declared in `vendors` or on a script.
+	 * @param granted - Whether the vendor may load once the draft is saved.
+	 */
+	setSelectedVendor: (vendorId: string, granted: boolean) => void;
 	subscribeToConsentChanges: (
 		listener: (state: ConsentState) => void
 	) => () => void;
@@ -229,6 +267,12 @@ const createConsentState = function createConsentState(
 		// -- Methods --------------------------------------------------------------
 		getDisplayedConsents() {
 			return displayedConsentTypes(controller.consentCategories);
+		},
+		getDisplayedVendors(category: AllConsentNames) {
+			const snapshot = getSnapshotLocal();
+			return snapshot.model === 'iab'
+				? []
+				: vendorsListedUnder(snapshot.vendors?.declared ?? [], category);
 		},
 		has(condition: HasCondition<AllConsentNames>) {
 			const snapshot = getSnapshotLocal();
@@ -380,6 +424,9 @@ const createConsentState = function createConsentState(
 		get selectedConsentTypes() {
 			return options.getDraft().values;
 		},
+		get selectedVendors() {
+			return options.getDraft().vendors;
+		},
 		setActiveUI(ui: ActiveUI) {
 			actionSequence += 1;
 			(
@@ -398,6 +445,9 @@ const createConsentState = function createConsentState(
 		setSelectedConsent(name: AllConsentNames, value: boolean) {
 			options.getDraft().set(name, value);
 		},
+		setSelectedVendor(vendorId: string, granted: boolean) {
+			options.getDraft().setVendor(vendorId, granted);
+		},
 
 		subscribeToConsentChanges(listener: (state: ConsentState) => void) {
 			return kernel.subscribe((snapshot: ConsentSnapshot) =>
@@ -410,6 +460,12 @@ const createConsentState = function createConsentState(
 		},
 		get translations() {
 			return getSnapshotLocal().translations;
+		},
+		get vendorChoice() {
+			return getSnapshotLocal().vendorChoice;
+		},
+		get vendors() {
+			return getSnapshotLocal().vendors;
 		},
 		get user() {
 			return getSnapshotLocal().user;

@@ -3,6 +3,7 @@ import type {
 	ClearOnRevocationConfig,
 	KernelEvent,
 	HydrationRecords,
+	Vendor,
 } from '@c15t/core';
 import type { ConsentConfig as BaseConsentConfig } from '@c15t/schema/config';
 import type { InitOutput } from '@c15t/schema/types';
@@ -46,6 +47,13 @@ export interface ConsentManifestNuxtConfig {
 
 export interface ConsentConfig
 	extends BaseConsentConfig<HTMLAttributes>, ConsentManifestNuxtConfig {
+	/**
+	 * Vendors the preference center lists under their category, each with
+	 * its own switch, so a visitor can grant a category and still turn one
+	 * vendor off. Scripts, network rules and iframes naming a vendor's `id`
+	 * follow that choice. Merged with vendors the backend declares.
+	 */
+	vendors?: Vendor[];
 	/** Remove configured browser data when its consent permission is revoked. */
 	clearOnRevocation?: ClearOnRevocationConfig;
 	/** Resolved server init data, reused for the first client render. */

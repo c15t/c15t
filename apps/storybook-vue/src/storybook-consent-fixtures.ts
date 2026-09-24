@@ -21,6 +21,7 @@ import {
 	symbolSnapshot,
 } from '../../../packages/vue/src/runtime/utils/symbols';
 import {
+	storybookChoiceRecord,
 	storybookIABPolicy,
 	storybookIABPresentation,
 	storybookPolicy,
@@ -175,15 +176,25 @@ export const storybookNoticeInit: InitOutput = {
 export const useStorybookConsent = function useStorybookConsent(
 	activeUI: StoryActiveUI,
 	configOverrides?: Partial<ConsentConfig>,
-	prefetch: InitOutput = storybookInit
+	prefetch: InitOutput = storybookInit,
+	storedConsent?: Record<string, boolean>
 ) {
 	const config = configOverrides
 		? ({ ...storybookConsentConfig, ...configOverrides } as ConsentConfig)
 		: storybookConsentConfig;
+	// The story never starts the runtime, so persistence is not read; a
+	// stored choice goes in as initial records instead, the way a server
+	// prefetch would carry it.
 	const context = createVueConsentKernelContext({
 		config,
 		prefetch,
 		producerContract: 1,
+		...(storedConsent && {
+			initialRecords: {
+				choice: storybookChoiceRecord(storedConsent),
+				now: Date.now(),
+			},
+		}),
 	});
 	context.activeUI.value = activeUI;
 	provideStorybookConsentContext(null, context, config);

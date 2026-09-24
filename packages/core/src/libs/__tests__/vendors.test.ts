@@ -9,6 +9,8 @@ import {
 	forgetOwnedVendors,
 	mergeDeclaredVendors,
 	resolveVendors,
+	vendorRenders,
+	vendorsListedUnder,
 	withoutManifestVendors,
 	withoutSourceVendors,
 } from '../vendors';
@@ -542,4 +544,71 @@ describe('declareOwnedVendors', () => {
 		]);
 		kernel.dispose();
 	});
+});
+
+describe('vendorsListedUnder', () => {
+	const listed = (category: 'marketing' | 'measurement') =>
+		vendorsListedUnder(
+			[
+				{ ...meta, presentable: true, source: 'config' },
+				{
+					category: { or: ['marketing', 'measurement'] },
+					id: 'shared',
+					name: 'Shared',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+				{
+					category: { not: 'marketing' },
+					id: 'contextual',
+					name: 'Contextual',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+				{
+					category: 'marketing',
+					id: 'slug-only',
+					presentable: false,
+					source: 'script',
+				},
+				{
+					category: 'marketing',
+					disabled: true,
+					id: 'fixed',
+					name: 'Fixed',
+					presentable: true,
+					privacyPolicyUrl: 'https://example.com/privacy',
+					source: 'config',
+				},
+			],
+			category
+		).map((vendor) => vendor.id);
+
+	test('lists presentable vendors naming the category, negations and slug-only excluded', () => {
+		// A shared condition sits under both rows; a negated one under
+		// neither; a `disabled` vendor is still listed, without a switch.
+		expect(listed('marketing')).toEqual(['meta-pixel', 'shared', 'fixed']);
+		expect(listed('measurement')).toEqual(['shared']);
+	});
+});
+
+test('vendorRenders is false for a slug-only or negated declaration', () => {
+	const base = {
+		category: 'marketing' as const,
+		id: 'v',
+		name: 'V',
+		presentable: true,
+		privacyPolicyUrl: '',
+		source: 'config' as const,
+	};
+	expect(vendorRenders(base)).toBe(true);
+	expect(vendorRenders({ ...base, presentable: false })).toBe(false);
+	expect(vendorRenders({ ...base, category: { not: 'marketing' } })).toBe(
+		false
+	);
+	expect(
+		vendorRenders({ ...base, category: { or: ['marketing', 'measurement'] } })
+	).toBe(true);
 });

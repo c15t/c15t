@@ -5,10 +5,10 @@ import {
 	PREFERENCE_ITEM_SLOTS,
 	togglePreferenceItemValue,
 } from '@c15t/ui/primitives';
-import { preferenceItemVariants } from '@c15t/ui/styles/primitives';
 import { computed, ref, useId, watch } from 'vue';
 
 import { providePreferenceItemContext } from './context';
+import { preferenceItemVariants } from './variants';
 
 const props = withDefaults(
 	defineProps<{

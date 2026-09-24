@@ -183,6 +183,7 @@
 	     its own padding's worth. -->
 	<PreferenceItem.Content
 		innerClassName={noStyle ? '' : styles.purposeContent || ''}
+		{noStyle}
 	>
 		<p class={noStyle ? '' : styles.purposeDescription || ''}>
 			{purpose.description}
@@ -252,7 +253,7 @@
 						{iabT.preferenceCenter.purposeItem.examples}
 						({purpose.illustrations.length})
 					</PreferenceItem.Trigger>
-					<PreferenceItem.Content>
+					<PreferenceItem.Content {noStyle}>
 						<ul class={noStyle ? '' : styles.examplesList || ''}>
 							{#each purpose.illustrations as illustration (illustration)}
 								<li>{illustration}</li>
@@ -281,6 +282,7 @@
 				</PreferenceItem.Trigger>
 				<PreferenceItem.Content
 					innerClassName={noStyle ? '' : styles.vendorSection || ''}
+					{noStyle}
 				>
 					<!-- IAB Consent Vendors -->
 					{#if iabConsentVendors.length > 0}

@@ -17,12 +17,23 @@
 		children,
 		class: localClassName,
 		innerClassName,
+		noStyle: localNoStyle,
 		viewportClassName,
 		...restProps
 	}: HTMLAttributes<HTMLDivElement> & {
 		children?: Snippet;
 		class?: string;
 		innerClassName?: string;
+		/**
+		 * Drop the primitive's built-in classes. Falls back to the root's
+		 * `noStyle`, like the React primitive and the sibling trigger, so a
+		 * headless root strips the whole item. The IAB items set `noStyle`
+		 * on their root only to own the item class and pass an explicit
+		 * `false` here to keep the collapse rules; the consent widget
+		 * inherits the root's `noStyle` and supplies the accordion classes
+		 * itself, as React's does.
+		 */
+		noStyle?: boolean;
 		/** Presentation class for the consent widget viewport.
 		 * @internal
 		 */
@@ -33,14 +44,17 @@
 	const triggerId = $derived(context.triggerId);
 	const contentId = $derived(context.contentId);
 	const dataState = $derived(getPreferenceItemState(open));
+	const noStyle = $derived(localNoStyle ?? context.noStyle);
 	const contentClassName = $derived.by(() =>
-		variants.content({ class: localClassName })
+		noStyle ? localClassName : variants.content({ class: localClassName })
 	);
 	const viewportClassNameValue = $derived.by(() =>
-		variants.contentViewport({ class: viewportClassName })
+		noStyle
+			? viewportClassName
+			: variants.contentViewport({ class: viewportClassName })
 	);
 	const innerClassNameValue = $derived.by(() =>
-		variants.contentInner({ class: innerClassName })
+		noStyle ? innerClassName : variants.contentInner({ class: innerClassName })
 	);
 </script>
 

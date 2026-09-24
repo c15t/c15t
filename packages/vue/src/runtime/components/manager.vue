@@ -44,7 +44,12 @@ let pendingActions = 0;
 let actionSequence = 0;
 let applyingSave = false;
 const draftState = useConsentDraft(() => pendingActions === 0);
-const { isStale, reset: resetDraft, save: saveDraft } = draftState;
+const {
+	isStale,
+	reseedOnNextRecord,
+	reset: resetDraft,
+	save: saveDraft,
+} = draftState;
 
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
 const isOverlayVisible = computed(() => activeUI.value === 'manager');
@@ -124,8 +129,10 @@ const onAction = async function onAction(action: PresentationAction) {
 			if (action === 'save') {
 				pending = saveDraft();
 			} else if (action === 'accept') {
+				reseedOnNextRecord();
 				pending = save('all');
 			} else if (action === 'reject') {
+				reseedOnNextRecord();
 				pending = save('none');
 			}
 			if (preserveManager && sequence === actionSequence) {
@@ -135,6 +142,12 @@ const onAction = async function onAction(action: PresentationAction) {
 			applyingSave = false;
 		}
 		const result = await pending;
+		// The draft does not sync while an action is pending, so it follows
+		// the record once this action, and no newer one, has succeeded; a
+		// failed action keeps the visible draft for the visitor to retry.
+		if (result?.ok && sequence === actionSequence) {
+			resetDraft();
+		}
 		if (result?.ok && preserveManager && sequence === actionSequence) {
 			activeUI.value =
 				snapshot.value.promptRequirement.kind === 'none' ? null : 'banner';

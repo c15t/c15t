@@ -4,6 +4,7 @@ import {
 	createConsentKernel,
 	createHostedTransport,
 	initOutputToKernelConfig,
+	resolveVendors,
 } from '@c15t/core';
 import type {
 	ConsentKernel,
@@ -239,13 +240,50 @@ const getManifestInputs = function getManifestInputs(
 	};
 };
 
-const inferConfiguredCategories = (config: RuntimeConsentConfig) =>
-	[
-		...(config.scripts ?? []),
-		...(config.networkBlocker ? (config.networkBlocker.rules ?? []) : []),
-	].flatMap((integration) =>
-		extractConsentNamesFromCondition(integration.category)
+/** The scripts and rules that name vendor slugs and categories. */
+const configuredIntegrations = (config: RuntimeConsentConfig) => [
+	...(config.scripts ?? []),
+	...(config.networkBlocker ? (config.networkBlocker.rules ?? []) : []),
+];
+
+const inferConfiguredCategories = (
+	config: RuntimeConsentConfig,
+	vendors: KernelConfig['initialVendors']
+) =>
+	[...configuredIntegrations(config), ...(vendors?.declared ?? [])].flatMap(
+		(integration) => extractConsentNamesFromCondition(integration.category)
 	);
+
+const warnVendorDeclaration = function warnVendorDeclaration(
+	message: string
+): void {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (nodeEnv !== 'production') {
+		console.warn(message);
+	}
+};
+
+/**
+ * Declared vendors for the kernel: code declarations and script slugs merged
+ * over whatever a server prefetch already resolved. Same shape as the React
+ * provider's, so a Nuxt app and a React app declare vendors the same way.
+ */
+const resolveConfiguredVendors = function resolveConfiguredVendors(
+	config: RuntimeConsentConfig,
+	prefetch: KernelConfig
+): KernelConfig['initialVendors'] {
+	const declared = resolveVendors({
+		config: config.vendors,
+		existing: prefetch.initialVendors?.declared,
+		onWarn: warnVendorDeclaration,
+		owners: configuredIntegrations(config),
+	});
+	const listVersion = prefetch.initialVendors?.listVersion ?? null;
+	return declared.length > 0 || listVersion !== null
+		? { declared, listVersion }
+		: undefined;
+};
 
 /**
  * Hosted transport for Nuxt. `initURL` selects server manifest mode: init
@@ -508,17 +546,25 @@ export const createVueConsentKernelContext =
 			options.initialRecords ?? options.config.initialRecords,
 			options.kernelConfig?.initialRecords
 		);
+		const initialVendors = resolveConfiguredVendors(
+			options.config,
+			initialConfig
+		);
 		const kernel =
 			options.runtime?.kernel ??
 			createConsentKernel({
 				...initialConfig,
 				consentCategories: options.config.consentCategories,
-				inferredConsentCategories: inferConfiguredCategories(options.config),
+				inferredConsentCategories: inferConfiguredCategories(
+					options.config,
+					initialVendors
+				),
 				initialPolicyPending: resolveInitialPolicyPending(
 					initialConfig,
 					options.kernelConfig
 				),
 				initialRecords: records.initialRecords,
+				initialVendors,
 				now:
 					options.now ??
 					options.initialRecords?.now ??
@@ -550,6 +596,20 @@ export const createVueConsentKernelContext =
 				);
 			}
 		);
+		// Vendors the backend declares arrive with init. Their categories
+		// become selectable the same way a code-declared vendor's do.
+		const unsubscribeVendorCategories = ownsKernel
+			? kernel.events.on('init:applied', ({ snapshot: eventSnapshot }) => {
+					const declared = eventSnapshot.vendors?.declared ?? [];
+					if (declared.length > 0) {
+						kernel.set.registerConsentCategories(
+							declared.flatMap((vendor) =>
+								extractConsentNamesFromCondition(vendor.category)
+							)
+						);
+					}
+				})
+			: () => undefined;
 		const unsubscribePermissions = kernel.events.on(
 			'permissions:changed',
 			({ snapshot: eventSnapshot, previous }) => {
@@ -585,6 +645,7 @@ export const createVueConsentKernelContext =
 				unsubscribeIab?.();
 				unsubscribe();
 				unsubscribeChoice();
+				unsubscribeVendorCategories();
 				unsubscribePermissions();
 				if (ownsKernel) {
 					kernel.dispose();

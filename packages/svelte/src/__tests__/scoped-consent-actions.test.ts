@@ -45,7 +45,13 @@ describe('displayed consent actions', () => {
 					disableAnimation: true,
 					mode: custom({ save }),
 					persistence: false,
-					prefetch: policyFixture({}, { categories: ['marketing'] }),
+					// The draft stages only moved values, so the visitor's edit
+					// must move away from the record: start granted when the bulk
+					// action grants, so turning it off is the edit that survives.
+					prefetch: policyFixture(
+						{ marketing: action === 'all' },
+						{ categories: ['marketing'] }
+					),
 				},
 			});
 			try {
