@@ -172,6 +172,11 @@
 			"import": "./dist/vendors/functional/crisp.js",
 			"require": "./dist/vendors/functional/crisp.cjs"
 		},
+		"./front-chat": {
+			"types": "./dist-types/vendors/functional/front-chat.d.ts",
+			"import": "./dist/vendors/functional/front-chat.js",
+			"require": "./dist/vendors/functional/front-chat.cjs"
+		},
 		"./intercom": {
 			"types": "./dist-types/vendors/functional/intercom.d.ts",
 			"import": "./dist/vendors/functional/intercom.js",
