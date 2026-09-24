@@ -30,7 +30,7 @@ import {
 	ConsentDialog,
 	ConsentDialogLink,
 	ConsentDialogTrigger,
-	Frame,
+	ConsentGate,
 } from '@c15t/react';
 import { KernelContext } from '@c15t/react/context';
 import type { GlobalVendorList, PolicyResolution } from '@c15t/schema/types';
@@ -496,7 +496,7 @@ export const createFrameworkPolicyDriver = ({
 					<ConsentDialogTrigger />
 					<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 					{setup.probeGates ? (
-						<Frame
+						<ConsentGate
 							category="marketing"
 							placeholder={
 								<div data-testid="policy-iframe-placeholder">Blocked frame</div>
@@ -508,7 +508,7 @@ export const createFrameworkPolicyDriver = ({
 								src="about:blank#c15t-policy-probe"
 								data-testid="policy-iframe"
 							/>
-						</Frame>
+						</ConsentGate>
 					) : null}
 				</ConsentRoot>
 			);

@@ -34,7 +34,7 @@ behavior before choosing either approach.
 | [Google Maps](./google-maps.md) | Framework-specific consent-gated map iframe   | Iframe mounts only while the chosen permission is allowed |
 | [YouTube](./youtube.md)         | Framework-specific consent-gated video iframe | Iframe mounts only while the chosen permission is allowed |
 
-Both guides include all nine framework examples. React and Svelte use `Frame`;
+Both guides include all nine framework examples. React and Svelte use `ConsentGate`;
 Vue conditionally renders the iframe, and Astro and JavaScript use the existing
 kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
 

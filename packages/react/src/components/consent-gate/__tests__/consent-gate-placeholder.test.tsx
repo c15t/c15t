@@ -10,7 +10,8 @@ import { renderToString } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { Frame } from '~/components/frame';
+import { ConsentGate, Frame } from '~/components/consent-gate';
+import * as reactEntry from '~/index';
 import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
@@ -76,12 +77,12 @@ const frameApp = function frameApp(
 const renderFrame = (ui: ReactElement, consents: Record<string, boolean>) =>
 	render(frameApp(ui, consents));
 
-describe('Frame default placeholder', () => {
+describe('ConsentGate default placeholder', () => {
 	test('renders the shared placeholder slots when consent is missing', async () => {
 		const { container } = await renderFrame(
-			<Frame category="marketing">
+			<ConsentGate category="marketing">
 				<div data-testid="frame-content">Marketing content</div>
-			</Frame>,
+			</ConsentGate>,
 			{ marketing: false, necessary: true }
 		);
 
@@ -106,12 +107,12 @@ describe('Frame default placeholder', () => {
 
 	test('a supplied placeholder replaces the default slots', async () => {
 		const { container } = await renderFrame(
-			<Frame
+			<ConsentGate
 				category="marketing"
 				placeholder={<div data-testid="custom-placeholder">Blocked</div>}
 			>
 				<div data-testid="frame-content">Marketing content</div>
-			</Frame>,
+			</ConsentGate>,
 			{ marketing: false, necessary: true }
 		);
 
@@ -129,11 +130,11 @@ describe('Frame default placeholder', () => {
 	});
 });
 
-describe('Frame server rendering', () => {
+describe('ConsentGate server rendering', () => {
 	const content = (
-		<Frame category="marketing">
+		<ConsentGate category="marketing">
 			<div data-testid="frame-content">Marketing content</div>
-		</Frame>
+		</ConsentGate>
 	);
 
 	test('includes the default placeholder in the first HTML when consent is missing', () => {
@@ -146,12 +147,12 @@ describe('Frame server rendering', () => {
 	test('includes a supplied placeholder in the first HTML', () => {
 		const html = renderToString(
 			frameApp(
-				<Frame
+				<ConsentGate
 					category="marketing"
 					placeholder={<p>Video requires consent</p>}
 				>
 					<div data-testid="frame-content">Marketing content</div>
-				</Frame>,
+				</ConsentGate>,
 				{ marketing: false, necessary: true }
 			)
 		);
@@ -214,4 +215,12 @@ describe('Frame server rendering', () => {
 			}
 		}
 	);
+});
+
+describe('Frame alias', () => {
+	test('stays the same component as ConsentGate', () => {
+		expect(Frame).toBe(ConsentGate);
+		expect(Frame.Root).toBe(ConsentGate.Root);
+		expect(reactEntry.Frame).toBe(reactEntry.ConsentGate);
+	});
 });

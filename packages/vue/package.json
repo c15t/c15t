@@ -161,10 +161,15 @@
 			"import": "./dist/runtime/components/description.vue",
 			"default": "./dist/runtime/components/description.vue"
 		},
+		"./runtime/components/consent-gate.vue": {
+			"types": "./dist/runtime/components/consent-gate.d.vue.ts",
+			"import": "./dist/runtime/components/consent-gate.vue",
+			"default": "./dist/runtime/components/consent-gate.vue"
+		},
 		"./runtime/components/consent-frame.vue": {
-			"types": "./dist/runtime/components/frame.d.vue.ts",
-			"import": "./dist/runtime/components/frame.vue",
-			"default": "./dist/runtime/components/frame.vue"
+			"types": "./dist/runtime/components/consent-gate.d.vue.ts",
+			"import": "./dist/runtime/components/consent-gate.vue",
+			"default": "./dist/runtime/components/consent-gate.vue"
 		},
 		"./runtime/components/consent-legal-links.vue": {
 			"types": "./dist/runtime/components/legal-links.d.vue.ts",

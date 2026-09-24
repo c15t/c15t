@@ -44,7 +44,7 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/next/components/consent-dialog-link` | Compare with `/docs/frameworks/next/components/consent-dialog-trigger` before redirecting |
 | `/docs/frameworks/next/components/consent-dialog` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/components/consent-widget` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/next/components/frame` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/next/components/frame` | Redirect to `/docs/frameworks/next/components/consent-gate`; the component was renamed |
 | `/docs/frameworks/next/concepts/client-modes` | Compare with `/docs/guides/deployment-modes` before redirecting |
 | `/docs/frameworks/next/concepts/consent-models` | Compare with `/docs/guides/consent-state` before redirecting |
 | `/docs/frameworks/next/concepts/cookie-management` | Compare with `/docs/guides/consent-state` before redirecting |
@@ -79,7 +79,7 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/react/components/consent-dialog-link` | Compare with `/docs/frameworks/react/components/consent-dialog-trigger` before redirecting |
 | `/docs/frameworks/react/components/consent-dialog` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/components/consent-widget` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/react/components/frame` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/react/components/frame` | Redirect to `/docs/frameworks/react/components/consent-gate`; the component was renamed |
 | `/docs/frameworks/react/concepts/client-modes` | Compare with `/docs/guides/deployment-modes` before redirecting |
 | `/docs/frameworks/react/concepts/consent-models` | Compare with `/docs/guides/consent-state` before redirecting |
 | `/docs/frameworks/react/concepts/cookie-management` | Compare with `/docs/guides/consent-state` before redirecting |

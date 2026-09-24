@@ -25,10 +25,10 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
 - [ConsentDialogLink](./docs/frameworks/react/components/consent-dialog-link.md): Add a ConsentDialogLink to a React footer so visitors reopen the c15t preference center from your own text link, with asChild and rights data.
 - [ConsentDialogTrigger](./docs/frameworks/react/components/consent-dialog-trigger.md): Floating button and toolbar that reopen the preference center after the first prompt.
+- [ConsentGate](./docs/frameworks/react/components/consent-gate.md): Gate a YouTube or map iframe behind consent with ConsentGate in React, showing a placeholder that opens the preference center until the category is allowed.
 - [ConsentProvider](./docs/frameworks/react/components/consent-manager-provider.md): Configure the v3 consent runtime and share its state with child components.
 - [ConsentWidget](./docs/frameworks/react/components/consent-widget.md): Embed the c15t preference center inline with ConsentWidget on a React privacy page, with draft toggles that record a choice only on Save.
 - [DevTools](./docs/frameworks/react/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
-- [Frame](./docs/frameworks/react/components/frame.md): Gate a YouTube or map iframe behind consent with Frame in React, showing a placeholder that opens the preference center until the category is allowed.
 - [Consent categories](./docs/frameworks/react/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/react/concepts/policy-presets.md): Understand how policy rules affect React prompts, permissions and persistent privacy controls.
 - [Headless](./docs/frameworks/react/headless.md): Build a custom consent banner in React with the c15t/react/headless hooks inside your ConsentProvider.
@@ -71,6 +71,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Google Maps](./docs/integrations/google-maps.md): Prevent a map iframe from mounting before the required permission.
 - [Google Tag](./docs/integrations/google-tag.md): Configure gtag with c15t Consent Mode signals and understand its loading behavior.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Load GTM with c15t consent signals and verify the tags inside your container.
+- [Granular consent](./docs/integrations/granular-consent.md): Let visitors grant a category and still turn one vendor off, without adopting IAB TCF.
 - [Heap](./docs/integrations/heap.md): Configure Heap with c15t v3, understand measurement permission and verify loading and revocation.
 - [Hightouch](./docs/integrations/hightouch.md): Configure Hightouch with c15t v3, understand measurement permission and verify loading and revocation.
 - [Hotjar](./docs/integrations/hotjar.md): Configure Hotjar with c15t v3, understand measurement permission and verify loading and revocation.
@@ -95,7 +96,6 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Snapchat Pixel](./docs/integrations/snapchat-pixel.md): Configure Snapchat Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [TikTok Pixel](./docs/integrations/tiktok-pixel.md): Configure TikTok Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [Umami Analytics](./docs/integrations/umami-analytics.md): Configure Umami Analytics with c15t v3, understand measurement permission and verify loading and revocation.
-- [Vendor-level consent](./docs/integrations/vendor-consent.md): Let visitors grant a category and still turn one vendor off, without adopting IAB TCF.
 - [Vercel Analytics](./docs/integrations/vercel-analytics.md): Configure Vercel Analytics with c15t v3, understand measurement permission and verify loading and revocation.
 - [X Pixel](./docs/integrations/x-pixel.md): Configure X Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [YouTube](./docs/integrations/youtube.md): Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.

@@ -6,8 +6,8 @@ import { forwardRef as createForwardRef, useEffect } from 'react';
 import { useConsentManager } from '~/component-hooks/use-manager';
 import { useTranslations } from '~/component-hooks/use-translations';
 
-import { FrameButton, FrameRoot, FrameTitle } from './atoms';
-import type { FrameProps } from './types';
+import { ConsentGateButton, ConsentGateRoot, ConsentGateTitle } from './atoms';
+import type { ConsentGateProps } from './types';
 
 const DefaultPlaceholder = ({
 	category,
@@ -18,17 +18,17 @@ const DefaultPlaceholder = ({
 	policyBlocked: boolean;
 	policyBlockedMessage?: string;
 }) => (
-	<FrameRoot>
-		<FrameTitle category={category}>
+	<ConsentGateRoot>
+		<ConsentGateTitle category={category}>
 			{policyBlocked
 				? (policyBlockedMessage ??
 					"This content is unavailable under your region's consent policy.")
 				: undefined}
-		</FrameTitle>
-		{policyBlocked ? null : <FrameButton category={category} />}
-	</FrameRoot>
+		</ConsentGateTitle>
+		{policyBlocked ? null : <ConsentGateButton category={category} />}
+	</ConsentGateRoot>
 );
-const FrameComponent = createForwardRef<HTMLDivElement, FrameProps>(
+const ConsentGateComponent = createForwardRef<HTMLDivElement, ConsentGateProps>(
 	(
 		{
 			children,
@@ -89,6 +89,6 @@ const FrameComponent = createForwardRef<HTMLDivElement, FrameProps>(
 	}
 );
 
-FrameComponent.displayName = 'Frame';
+ConsentGateComponent.displayName = 'ConsentGate';
 
-export const Frame = FrameComponent;
+export const ConsentGate = ConsentGateComponent;

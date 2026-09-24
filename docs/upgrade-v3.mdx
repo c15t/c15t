@@ -258,6 +258,24 @@ TanStack Start (`c15t/tanstack-start`, `c15t/tanstack-start/server`):
 `consentLoaderOptions`, `backendURL`, `initRoute` and `DEFAULT_INIT_ROUTE` are
 unchanged.
 
+## `Frame` is now `ConsentGate`
+
+The component that mounts an embed only while its category is allowed is now
+`ConsentGate` in React, Next.js, TanStack Start, Svelte and Vue. The old names
+still work as deprecated aliases and will be removed in a later major release.
+
+| v2 | v3 |
+| --- | --- |
+| `Frame`, `Frame.Root`, `Frame.Title`, `Frame.Button` | `ConsentGate`, `ConsentGate.Root`, `ConsentGate.Title`, `ConsentGate.Button` |
+| `FrameProps`, `FrameCompoundComponent` | `ConsentGateProps`, `ConsentGateCompoundComponent` |
+| `c15t/react/frame`, `c15t/react/components/frame` | `c15t/react/consent-gate`, `c15t/react/components/consent-gate` |
+| Vue `ConsentFrame`, `@c15t/vue/runtime/components/consent-frame.vue` | `ConsentGate`, `@c15t/vue/runtime/components/consent-gate.vue` |
+
+Props and behavior are unchanged. The placeholder keeps its `frame.*`
+translation keys, `--frame-*` CSS custom properties and
+`data-testid="frame-placeholder"`, so custom copy, styles and tests continue
+to apply.
+
 ## Next.js RSC banner removal
 
 The `@c15t/nextjs/rsc` entry (`c15t/next/rsc`) and its `RscConsentBanner`,

@@ -32,12 +32,12 @@ Render this component inside your existing consent boundary or provider.
 ```tsx title="src/consent-embed.tsx"
 'use client';
 
-import { Frame } from 'c15t/next';
+import { ConsentGate } from 'c15t/next';
 import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
 
 export function ConsentEmbed() {
   return (
-    <Frame category={embedCategory}>
+    <ConsentGate category={embedCategory}>
       <iframe
         src={embedURL}
         title={embedTitle}
@@ -45,12 +45,12 @@ export function ConsentEmbed() {
         allowFullScreen
         style={{ width: '100%', aspectRatio: embedAspectRatio, minHeight: 200, border: 0 }}
       />
-    </Frame>
+    </ConsentGate>
   );
 }
 ```
 
-`Frame` keeps the iframe absent while permission is denied and removes it
+`ConsentGate` keeps the iframe absent while permission is denied and removes it
 on revocation. Keep your existing consent styles and preferences dialog.
 
 **TanStack Start**
@@ -58,12 +58,12 @@ on revocation. Keep your existing consent styles and preferences dialog.
 Render this component inside your existing consent boundary or provider.
 
 ```tsx title="src/consent-embed.tsx"
-import { Frame } from 'c15t/tanstack-start';
+import { ConsentGate } from 'c15t/tanstack-start';
 import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
 
 export function ConsentEmbed() {
   return (
-    <Frame category={embedCategory}>
+    <ConsentGate category={embedCategory}>
       <iframe
         src={embedURL}
         title={embedTitle}
@@ -71,12 +71,12 @@ export function ConsentEmbed() {
         allowFullScreen
         style={{ width: '100%', aspectRatio: embedAspectRatio, minHeight: 200, border: 0 }}
       />
-    </Frame>
+    </ConsentGate>
   );
 }
 ```
 
-`Frame` keeps the iframe absent while permission is denied and removes it
+`ConsentGate` keeps the iframe absent while permission is denied and removes it
 on revocation. Keep your existing consent styles and preferences dialog.
 
 **React**
@@ -84,12 +84,12 @@ on revocation. Keep your existing consent styles and preferences dialog.
 Render this component inside your existing consent boundary or provider.
 
 ```tsx title="src/consent-embed.tsx"
-import { Frame } from 'c15t/react';
+import { ConsentGate } from 'c15t/react';
 import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
 
 export function ConsentEmbed() {
   return (
-    <Frame category={embedCategory}>
+    <ConsentGate category={embedCategory}>
       <iframe
         src={embedURL}
         title={embedTitle}
@@ -97,12 +97,12 @@ export function ConsentEmbed() {
         allowFullScreen
         style={{ width: '100%', aspectRatio: embedAspectRatio, minHeight: 200, border: 0 }}
       />
-    </Frame>
+    </ConsentGate>
   );
 }
 ```
 
-`Frame` keeps the iframe absent while permission is denied and removes it
+`ConsentGate` keeps the iframe absent while permission is denied and removes it
 on revocation. Keep your existing consent styles and preferences dialog.
 
 **Nuxt**
@@ -222,11 +222,11 @@ The provider from your quickstart supplies its consent state.
 
 ```svelte title="src/ConsentEmbed.svelte"
 <script lang="ts">
-  import { Frame } from '@c15t/svelte';
+  import { ConsentGate } from '@c15t/svelte';
   import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
 </script>
 
-<Frame category={embedCategory}>
+<ConsentGate category={embedCategory}>
   <iframe
     src={embedURL}
     title={embedTitle}
@@ -237,10 +237,10 @@ The provider from your quickstart supplies its consent state.
     style:min-height="200px"
     style:border="0"
   ></iframe>
-</Frame>
+</ConsentGate>
 ```
 
-The Svelte `Frame` waits until the browser is mounted and the category is
+The Svelte `ConsentGate` waits until the browser is mounted and the category is
 allowed. Its default placeholder opens preferences. Revocation removes the
 iframe.
 
@@ -251,11 +251,11 @@ Keep the SvelteKit root provider and its server prefetch unchanged.
 
 ```svelte title="src/lib/ConsentEmbed.svelte"
 <script lang="ts">
-  import { Frame } from '@c15t/svelte';
+  import { ConsentGate } from '@c15t/svelte';
   import { embedCategory, embedURL, embedTitle, embedAspectRatio } from '../embed-config';
 </script>
 
-<Frame category={embedCategory}>
+<ConsentGate category={embedCategory}>
   <iframe
     src={embedURL}
     title={embedTitle}
@@ -266,10 +266,10 @@ Keep the SvelteKit root provider and its server prefetch unchanged.
     style:min-height="200px"
     style:border="0"
   ></iframe>
-</Frame>
+</ConsentGate>
 ```
 
-The Svelte `Frame` waits until the browser is mounted and the category is
+The Svelte `ConsentGate` waits until the browser is mounted and the category is
 allowed. Its default placeholder opens preferences. Revocation removes the
 iframe.
 

@@ -1,18 +1,18 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
-import { Frame } from '../../../packages/react/src/index';
+import { ConsentGate } from '../../../packages/react/src/index';
 import {
 	editableConsentOptions,
 	StorybookConsentProvider,
 } from './storybook-consent-fixtures';
 
 const meta = {
-	component: Frame,
+	component: ConsentGate,
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'COMPONENTS - REACT/Core/Frame',
-} satisfies Meta<typeof Frame>;
+	title: 'COMPONENTS - REACT/Core/Consent Gate',
+} satisfies Meta<typeof ConsentGate>;
 
 export default meta;
 
@@ -28,7 +28,7 @@ export const Placeholder: Story = {
 			}}
 		>
 			<div style={{ width: '32rem' }}>
-				<Frame
+				<ConsentGate
 					category="marketing"
 					placeholder={
 						<div data-testid="frame-placeholder">
@@ -36,8 +36,8 @@ export const Placeholder: Story = {
 						</div>
 					}
 				>
-					<div data-testid="parity-frame-content">Marketing content</div>
-				</Frame>
+					<div data-testid="parity-consent-gate-content">Marketing content</div>
+				</ConsentGate>
 			</div>
 		</StorybookConsentProvider>
 	),
@@ -53,7 +53,7 @@ export const GrantedContent: Story = {
 			}}
 		>
 			<div style={{ width: '32rem' }}>
-				<Frame
+				<ConsentGate
 					category="marketing"
 					placeholder={
 						<div data-testid="frame-placeholder">
@@ -62,7 +62,7 @@ export const GrantedContent: Story = {
 					}
 				>
 					<div
-						data-testid="parity-frame-content"
+						data-testid="parity-consent-gate-content"
 						style={{
 							background: 'var(--c15t-surface)',
 							border: '1px solid var(--c15t-border)',
@@ -72,7 +72,7 @@ export const GrantedContent: Story = {
 					>
 						Embedded marketing content is now visible.
 					</div>
-				</Frame>
+				</ConsentGate>
 			</div>
 		</StorybookConsentProvider>
 	),

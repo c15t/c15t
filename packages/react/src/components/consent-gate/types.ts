@@ -5,7 +5,7 @@ import type { Theme } from '~/types/theme';
 
 import type * as Atom from './atoms';
 
-export interface FrameProps extends ComponentPropsWithRef<'div'> {
+export interface ConsentGateProps extends ComponentPropsWithRef<'div'> {
 	/**
 	 * Content rendered when consent is granted. Children are not mounted until
 	 * consent is given, preventing unnecessary network requests.
@@ -38,8 +38,8 @@ export interface FrameProps extends ComponentPropsWithRef<'div'> {
 	theme?: Theme;
 }
 
-export interface FrameCompoundComponent extends FC<FrameProps> {
-	Root: typeof Atom.FrameRoot;
-	Title: typeof Atom.FrameTitle;
-	Button: typeof Atom.FrameButton;
+export interface ConsentGateCompoundComponent extends FC<ConsentGateProps> {
+	Root: typeof Atom.ConsentGateRoot;
+	Title: typeof Atom.ConsentGateTitle;
+	Button: typeof Atom.ConsentGateButton;
 }

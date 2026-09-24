@@ -50,7 +50,7 @@ import {
 } from '../../../core/src/modules/persistence/record-codec';
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
-import { Frame } from '../components/frame';
+import { ConsentGate } from '../components/consent-gate';
 import { ConsentDialog } from '../components/panel';
 import { ConsentDialogLink } from '../components/panel-link';
 import { ConsentDialogTrigger } from '../components/panel-trigger';
@@ -469,7 +469,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				<ConsentDialogTrigger />
 				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 				{setup.probeGates ? (
-					<Frame
+					<ConsentGate
 						category="marketing"
 						placeholder={
 							<div data-testid="policy-iframe-placeholder">Blocked frame</div>
@@ -481,7 +481,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 							src="about:blank#c15t-policy-probe"
 							data-testid="policy-iframe"
 						/>
-					</Frame>
+					</ConsentGate>
 				) : null}
 			</ConsentProvider>
 		);

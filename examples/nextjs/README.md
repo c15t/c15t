@@ -74,9 +74,9 @@ permission. X Pixel waits for marketing. The indicators show effective
 permission, not successful delivery into either vendor's dashboard. DevTools is
 included deliberately in this demo, including production builds.
 
-The video is `https://www.youtube-nocookie.com/embed/czTksCF6X8Y`. The `Frame`
-component keeps its iframe unmounted until measurement is allowed. A nocookie
-URL is still a third-party request once loaded.
+The video is `https://www.youtube-nocookie.com/embed/czTksCF6X8Y`. The
+`ConsentGate` component keeps its iframe unmounted until measurement is
+allowed. A nocookie URL is still a third-party request once loaded.
 
 Browser acceptance tests should intercept vendor and YouTube requests with
 fixtures for deterministic results. Check actual playback separately with the

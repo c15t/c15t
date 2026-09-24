@@ -135,7 +135,9 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 		for (const [name, file] of [
 			['ConsentPreferencesLink', 'preferences-link'],
 			['ConsentDialogTrigger', 'panel-trigger'],
-			['ConsentFrame', 'frame'],
+			['ConsentGate', 'consent-gate'],
+			// Deprecated alias kept so existing <ConsentFrame> templates resolve.
+			['ConsentFrame', 'consent-gate'],
 		] as const) {
 			addComponent({
 				filePath: resolver.resolve(`./runtime/components/${file}.vue`),
