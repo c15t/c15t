@@ -148,6 +148,13 @@ export interface ManifestTransportOptions {
 export interface ManifestTransportReportOptions {
 	/** Where the resolution happened; `render` for an SSR or RSC prefetch. */
 	source: ConsentSessionSource;
+	/**
+	 * Backend URL as configured, not resolved against the request. Defaults
+	 * to the transport's `backendURL`. Only an absolute URL is reported to;
+	 * a relative one resolved to the app's own origin would be its proxy,
+	 * and nothing is inferred from the manifest URL.
+	 */
+	backendURL?: string;
 	/** Package that resolved init, for example `@c15t/nextjs`. */
 	adapter?: string;
 	/**
@@ -447,13 +454,15 @@ export const createManifestTransport = function createManifestTransport(
 				// made. It never rejects, so nothing here can fail the init.
 				reportConsentSession({
 					adapter: options.report.adapter,
-					backendURL,
+					// The caller's own backend, never the derived one: for a
+					// manifest URL that is not `<backend>/manifest`, the derived
+					// value is the manifest asset itself.
+					backendURL: options.report.backendURL ?? options.backendURL,
 					fetch: fetchImpl,
 					headers: options.report.headers ?? options.headers,
 					init: payload,
 					inputs,
 					manifest,
-					manifestURL: options.manifestURL,
 					source: options.report.source,
 					waitUntil: options.report.waitUntil,
 				});

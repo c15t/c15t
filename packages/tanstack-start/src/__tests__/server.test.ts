@@ -194,7 +194,7 @@ describe('resolveConsent with an inline manifest: session reports', () => {
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
 		expect(url).toBe('https://consent.example.com/sessions');
-		expect((init.headers as Record<string, string>)['x-forwarded-for']).toBe(
+		expect((init.headers as Record<string, string>)['x-c15t-client-ip']).toBe(
 			'203.0.113.42'
 		);
 		expect(JSON.parse(init.body as string)).toMatchObject({

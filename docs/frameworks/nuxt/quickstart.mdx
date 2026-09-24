@@ -36,7 +36,7 @@ to it so it is not cut short when the response is sent. Nothing is needed from
 you. The init route hands its session report to the same `waitUntil`: after
 each resolution it posts a small report to the backend's `POST /sessions`,
 server-to-server, so the backend still counts visitors it never served
-`/init` to. It needs an absolute `backendURL`; set `reportSessions: false` to
+`/init` to. It needs an absolute `backendURL`, never inferred from a manifest URL; set `reportSessions: false` to
 send none.
 
 ## Register consent-gated scripts

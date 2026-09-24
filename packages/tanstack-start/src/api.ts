@@ -270,22 +270,21 @@ const resolveBackendURL = function resolveBackendURL(
 };
 
 /**
- * Where the init route reports sessions, when it can: the configured
- * backend, else the backend the manifest URL implies. A relative value or
- * no backend at all means no report.
+ * Where the init route reports sessions, when it can: an absolute backend,
+ * read as configured rather than resolved against the request. A relative
+ * `/api/c15t` resolved to this app's origin is this very route's proxy,
+ * not a backend, and means no report; nothing is inferred from a manifest
+ * URL.
  */
 const resolveReportBackendURL = function resolveReportBackendURL(
-	request: Request,
-	options: ConsentServerRouteOptions,
-	manifestURL: string
+	options: ConsentServerRouteOptions
 ): string | undefined {
-	let backendURL: string | undefined;
-	try {
-		backendURL = resolveBackendURL(request, options);
-	} catch {
-		backendURL = undefined;
-	}
-	return resolveSessionReportBackendURL({ backendURL, manifestURL });
+	return resolveSessionReportBackendURL({
+		backendURL:
+			options.backendURL ??
+			getEnv('C15T_BACKEND_URL') ??
+			getEnv('VITE_C15T_BACKEND_URL'),
+	});
 };
 
 const resolveSourceURL = function resolveSourceURL(
@@ -513,10 +512,19 @@ export const createConsentServerRoute = function createConsentServerRoute<
 			: getResolverInputsFromHeaders(request.headers);
 		const payload = resolveManifestInit({ inputs, manifest: cached.manifest });
 
+		if (shouldFetchGvl(cached.manifest, payload) && cached.manifest.iab?.gvl) {
+			const language = payload.translations.language.split('-')[0] || 'en';
+			payload.gvl = await (resolved.fetchGvl ?? defaultFetchGvl)({
+				fetch: resolved.fetch ?? globalThis.fetch.bind(globalThis),
+				language,
+				reference: cached.manifest.iab.gvl,
+			});
+		}
+
 		if (resolved.reportSessions !== false) {
 			reportConsentSession({
 				adapter: '@c15t/tanstack-start',
-				backendURL: resolveReportBackendURL(request, resolved, initSourceURL),
+				backendURL: resolveReportBackendURL(resolved),
 				fetch: resolved.fetch,
 				headers: request.headers,
 				init: payload,
@@ -524,15 +532,6 @@ export const createConsentServerRoute = function createConsentServerRoute<
 				manifest: cached.manifest,
 				source: 'route',
 				waitUntil: resolved.onBackgroundRevalidate,
-			});
-		}
-
-		if (shouldFetchGvl(cached.manifest, payload) && cached.manifest.iab?.gvl) {
-			const language = payload.translations.language.split('-')[0] || 'en';
-			payload.gvl = await (resolved.fetchGvl ?? defaultFetchGvl)({
-				fetch: resolved.fetch ?? globalThis.fetch.bind(globalThis),
-				language,
-				reference: cached.manifest.iab.gvl,
 			});
 		}
 

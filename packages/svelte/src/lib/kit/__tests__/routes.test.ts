@@ -154,7 +154,7 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 			expect(report).toBeDefined();
 			const requestInit = report?.[1] as RequestInit;
 			const headers = requestInit.headers as Record<string, string>;
-			expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+			expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
 			expect(headers).not.toHaveProperty('cookie');
 			expect(JSON.parse(requestInit.body as string)).toMatchObject({
 				adapter: '@c15t/svelte',

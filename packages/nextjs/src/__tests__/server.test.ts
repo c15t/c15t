@@ -239,7 +239,7 @@ describe('resolveConsent: manifest session reports', () => {
 		const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
 		expect(url).toBe('https://consent.example.com/sessions');
 		const headers = init.headers as Record<string, string>;
-		expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+		expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
 		expect(headers['user-agent']).toBe('Mozilla/5.0');
 		expect(headers).not.toHaveProperty('cookie');
 		expect(JSON.parse(init.body as string)).toMatchObject({
@@ -247,6 +247,20 @@ describe('resolveConsent: manifest session reports', () => {
 			country: 'DE',
 			source: 'render',
 		});
+	});
+
+	test('sends nothing for a router prefetch', async () => {
+		// A prefetched route tree resolves consent so the response is right,
+		// but the visitor may never navigate to it.
+		const fetchSpy = vi.fn();
+		headerStore.set('next-router-prefetch', '1');
+		headerStore.set('x-vercel-ip-country', 'DE');
+		await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			manifest: MANIFEST_FIXTURE,
+		});
+		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
 	test('sends nothing when reportSessions is false', async () => {

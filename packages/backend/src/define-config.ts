@@ -24,6 +24,11 @@ export type C15TConfig = C15TOptions & {
 	 * `observability` to `c15tInstance` directly instead.
 	 */
 	observability?: never;
+	/**
+	 * Not configurable from a config file, for the same reason: a session
+	 * sink is a callback. Pass `sessions` to `c15tInstance` directly.
+	 */
+	sessions?: never;
 };
 
 /**

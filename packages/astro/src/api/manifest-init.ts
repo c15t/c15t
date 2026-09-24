@@ -229,34 +229,29 @@ export interface SessionReportTarget {
 }
 
 /**
- * Where a resolution reports sessions, when it can: the configured backend
- * resolved against the request, else the backend the manifest URL implies.
- * `undefined` when reporting is off, or nothing absolute is configured.
+ * Where a resolution reports sessions, when it can: an absolute backend,
+ * read as configured rather than resolved against the request. A relative
+ * backend resolved to this site's origin is its own injected route, not a
+ * backend, and means no report; nothing is inferred from a manifest URL.
+ * `undefined` when reporting is off or nothing absolute is set.
  *
- * @param source - The request URL and headers, used to resolve relative URLs.
  * @param options - The resolved integration options.
  * @returns The backend base URL, or `undefined`.
  */
 export const resolveSessionReportURL = function resolveSessionReportURL(
-	source: RequestSource,
 	options: C15tResolvedOptions
 ): string | undefined {
 	const { mode } = options;
 	if (mode.type !== 'manifest' || mode.reportSessions === false) {
 		return undefined;
 	}
-	const backendURL = mode.backendURL ?? getEnv('C15T_BACKEND_URL');
-	let manifestURL: string | undefined;
-	try {
-		manifestURL = resolveManifestSourceFrom(source, options);
-	} catch {
-		manifestURL = undefined;
-	}
 	return resolveSessionReportBackendURL({
-		backendURL: backendURL
-			? resolveAgainstRequest(backendURL, source)
-			: undefined,
-		manifestURL,
+		// The same fallback chain the manifest source uses, so a deployment
+		// that loads its manifest from the public variable reports too.
+		backendURL:
+			mode.backendURL ??
+			getEnv('C15T_BACKEND_URL') ??
+			getEnv('PUBLIC_C15T_BACKEND_URL'),
 	});
 };
 
@@ -289,20 +284,6 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 		{ baseTranslations }
 	) as ResolvedInitOutput;
 
-	if (input.report?.backendURL) {
-		reportConsentSession({
-			adapter: '@c15t/astro',
-			backendURL: input.report.backendURL,
-			fetch: input.fetch as typeof globalThis.fetch | undefined,
-			headers: input.report.headers,
-			init: payload,
-			inputs,
-			manifest,
-			source: input.report.source,
-			waitUntil: input.report.waitUntil,
-		});
-	}
-
 	const fetchImpl =
 		input.fetch ?? (globalThis.fetch?.bind(globalThis) as ManifestFetch);
 	if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl && fetchImpl) {
@@ -319,6 +300,20 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 			// client can treat as unavailable beats a 500.
 			payload.gvl = null;
 		}
+	}
+
+	if (input.report?.backendURL) {
+		reportConsentSession({
+			adapter: '@c15t/astro',
+			backendURL: input.report.backendURL,
+			fetch: input.fetch as typeof globalThis.fetch | undefined,
+			headers: input.report.headers,
+			init: payload,
+			inputs,
+			manifest,
+			source: input.report.source,
+			waitUntil: input.report.waitUntil,
+		});
 	}
 
 	// The resolver's inputs are the only place GPC survives on the SSR

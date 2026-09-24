@@ -309,34 +309,80 @@ for (const engine of ENGINES) {
 				headers: {
 					'content-type': 'application/json',
 					'user-agent': 'Mozilla/5.0',
-					'x-forwarded-for': '203.0.113.42',
+					'x-c15t-client-ip': '203.0.113.42',
+					'x-c15t-version': '3.0.0',
 				},
 				method: 'POST',
 			});
 
 			assert.strictEqual(response.status, 204);
 			assert.strictEqual(response.headers.get('cache-control'), 'no-store');
-			// The sink runs detached from the response.
-			await new Promise<void>((resolve) => {
-				setTimeout(resolve, 0);
-			});
+			// The route waits for the sink: the only party waiting on this
+			// response is the reporting host, which already detached it.
 			assert.strictEqual(onReport.mock.calls.length, 1);
-			assert.deepStrictEqual(onReport.mock.calls[0]?.[0], report);
+			// Stamped with the instance's (null) tenant scope, otherwise as sent.
+			assert.deepStrictEqual(onReport.mock.calls[0]?.[0], {
+				...report,
+				tenantId: null,
+			});
 			// The IP goes through the same masking as a consent record's.
 			assert.strictEqual(onReport.mock.calls[0]?.[1].ip, '203.0.113.0');
 			assert.strictEqual(onReport.mock.calls[0]?.[1].userAgent, 'Mozilla/5.0');
 		});
 
+		it('refuses a report a page could have sent', async () => {
+			// A cross-site POST from a browser carries Origin and cannot add the
+			// protocol header without a preflight an untrusted origin fails.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const fromPage = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: {
+					'content-type': 'text/plain',
+					origin: 'https://attacker.example.net',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(fromPage.status, 400);
+			const noProtocol = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: { 'content-type': 'application/json' },
+				method: 'POST',
+			});
+			assert.strictEqual(noProtocol.status, 400);
+			assert.strictEqual(onReport.mock.calls.length, 0);
+		});
+
 		it('rejects a report that is not one', async () => {
 			const response = await app.request('/sessions', {
 				body: JSON.stringify({ ...report, source: 'browser' }),
-				headers: { 'content-type': 'application/json' },
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
 				method: 'POST',
 			});
 			assert.strictEqual(response.status, 400);
 			const body = await response.json();
 			assert.strictEqual(body.cause.code, 'BAD_REQUEST');
 			assert.match(body.message, /source/u);
+		});
+
+		it('rejects a report claiming the backend resolved it', async () => {
+			// `init` is reserved for the backend's own route, so a consumer can
+			// trust the source it sees.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify({ ...report, source: 'init' }),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 400);
+			assert.strictEqual(onReport.mock.calls.length, 0);
 		});
 
 		it('needs no API key and survives a failing sink', async () => {
@@ -347,13 +393,165 @@ for (const engine of ENGINES) {
 			});
 			const response = await reporting.request('/sessions', {
 				body: JSON.stringify(report),
-				headers: { 'content-type': 'application/json' },
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
 				method: 'POST',
 			});
 			assert.strictEqual(response.status, 204);
 			await new Promise<void>((resolve) => {
 				setTimeout(resolve, 0);
 			});
+		});
+
+		it("ignores the report IP header on the backend's own /init", async () => {
+			// A browser or any HTTP client can set the header the hosts use;
+			// only a host's report is allowed to name the visitor's address.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', {
+				headers: {
+					'x-c15t-client-ip': '198.51.100.7',
+					'x-forwarded-for': '203.0.113.42',
+				},
+			});
+			assert.strictEqual(response.status, 200);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls[0]?.[1].ip, '203.0.113.0');
+		});
+
+		it('hands the sink an allowlisted copy of the headers, never cookies or credentials', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				apiKeys: [API_KEY],
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', {
+				headers: {
+					authorization: `Bearer ${API_KEY}`,
+					cookie: 'c15t=secret',
+					'user-agent': 'Mozilla/5.0',
+					'x-c15t-country': 'DE',
+					'x-forwarded-for': '203.0.113.42',
+				},
+			});
+			assert.strictEqual(response.status, 200);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			const { headers } = onReport.mock.calls[0]?.[1] ?? {};
+			assert.strictEqual(headers.get('user-agent'), 'Mozilla/5.0');
+			assert.strictEqual(headers.get('x-c15t-country'), 'DE');
+			assert.isNull(headers.get('cookie'));
+			assert.isNull(headers.get('authorization'));
+			assert.isNull(headers.get('x-forwarded-for'));
+		});
+
+		it('keeps the raw address out of the sink when tracking is off', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				ipAddress: { tracking: false },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-client-ip': '203.0.113.42',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 204);
+			const context = onReport.mock.calls[0]?.[1];
+			assert.isNull(context.ip);
+			assert.isNull(context.headers.get('x-c15t-client-ip'));
+		});
+
+		it('attributes a report to the instance tenant, whatever it claims', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				sessions: { onReport },
+				tenantId: 'tenant_a',
+			});
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify({ ...report, tenantId: 'tenant_b' }),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 204);
+			assert.strictEqual(onReport.mock.calls[0]?.[0].tenantId, 'tenant_a');
+
+			// An instance without a tenant is the null scope, not any tenant.
+			const untenanted = vi.fn();
+			const single = createApp(runtime, { sessions: { onReport: untenanted } });
+			await single.request('/sessions', {
+				body: JSON.stringify({ ...report, tenantId: 'tenant_b' }),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.isNull(untenanted.mock.calls[0]?.[0].tenantId);
+		});
+
+		it('records no address for a report that names none', async () => {
+			// The connection behind a report is the host's server, never the
+			// visitor; an adapter that omits the header meant no address.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify(report),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+					'x-forwarded-for': '203.0.113.42',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 204);
+			assert.isNull(onReport.mock.calls[0]?.[1].ip);
+		});
+
+		it('stamps a /init session with the configured tenant over the manifest one', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example', tenantId: 'from_manifest' },
+				sessions: { onReport },
+				tenantId: 'tenant_a',
+			});
+			await reporting.request('/init');
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls[0]?.[0].tenantId, 'tenant_a');
+		});
+
+		it('does not count a prefetched /init as a session', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', {
+				headers: { 'next-router-prefetch': '1' },
+			});
+			assert.strictEqual(response.status, 200);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls.length, 0);
 		});
 
 		it("emits the same event from the backend's own /init", async () => {
@@ -363,6 +561,7 @@ for (const engine of ENGINES) {
 			const reporting = createApp(runtime, {
 				manifest: { appName: 'Example', tenantId: 'tenant_1' },
 				sessions: { onReport },
+				tenantId: 'tenant_1',
 			});
 			const response = await reporting.request('/init', {
 				headers: {

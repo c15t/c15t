@@ -38,9 +38,10 @@ export type {
 } from '../libs/session-report';
 export {
 	buildConsentSessionReport,
-	deriveBackendURLFromManifestURL,
 	forwardSessionReportHeaders,
+	isSpeculativeRequest,
 	reportConsentSession,
 	resolveSessionReportBackendURL,
+	SESSION_REPORT_CLIENT_IP_HEADER,
 	SESSION_REPORT_FORWARD_HEADERS,
 } from '../libs/session-report';

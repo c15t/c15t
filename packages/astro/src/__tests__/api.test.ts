@@ -321,13 +321,45 @@ describe('route handlers', () => {
 		expect(report).toBeDefined();
 		const init = report?.[1] as RequestInit;
 		const headers = init.headers as Record<string, string>;
-		expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+		expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
 		expect(headers).not.toHaveProperty('cookie');
 		expect(JSON.parse(init.body as string)).toMatchObject({
 			adapter: '@c15t/astro',
 			country: 'DE',
 			source: 'route',
 		});
+	});
+
+	it('reports when the backend comes from PUBLIC_C15T_BACKEND_URL', async () => {
+		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://consent.example.com');
+		try {
+			const fetchImpl = vi.fn((input: string) =>
+				Promise.resolve(
+					input.endsWith('/sessions')
+						? new Response(null, { status: 204 })
+						: jsonResponse(MANIFEST, {
+								'cache-control': 'public, s-maxage=300',
+							})
+				)
+			);
+			const registered: Promise<void>[] = [];
+			const handlers = createConsentRouteHandlers({
+				fetch: fetchImpl as never,
+				onBackgroundRevalidate: (task) => {
+					registered.push(task);
+				},
+				options: options({ mode: manifestMode() }),
+			});
+			await handlers.init(makeRequest());
+			await Promise.all(registered);
+			expect(
+				fetchImpl.mock.calls.some(
+					([url]) => url === 'https://consent.example.com/sessions'
+				)
+			).toBe(true);
+		} finally {
+			vi.unstubAllEnvs();
+		}
 	});
 
 	it('sends no report when the mode turns reporting off', async () => {

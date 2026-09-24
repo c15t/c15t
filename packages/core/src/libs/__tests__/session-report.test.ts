@@ -6,6 +6,7 @@ import { createManifestTransport } from '../../transports/manifest';
 import {
 	buildConsentSessionReport,
 	forwardSessionReportHeaders,
+	isSpeculativeRequest,
 	reportConsentSession,
 	resolveSessionReportBackendURL,
 } from '../session-report';
@@ -106,37 +107,36 @@ describe('buildConsentSessionReport', () => {
 });
 
 describe('resolveSessionReportBackendURL', () => {
-	test('prefers the backend, then the origin the manifest URL implies', () => {
+	test('accepts only an explicit absolute backend', () => {
 		expect(
 			resolveSessionReportBackendURL({
 				backendURL: 'https://consent.example.com/',
-				manifestURL: 'https://cdn.example.com/manifest',
 			})
 		).toBe('https://consent.example.com');
-		expect(
-			resolveSessionReportBackendURL({
-				manifestURL:
-					'https://consent.example.com/api/c15t/manifest?language=de',
-			})
-		).toBe('https://consent.example.com/api/c15t');
-	});
-
-	test('sends nothing for a relative backend or a manifest that implies none', () => {
 		// A relative URL cannot be fetched from a server, and the app's own
 		// proxy route would count the visitor twice on the way through.
 		expect(resolveSessionReportBackendURL({ backendURL: '/api/c15t' })).toBe(
 			undefined
 		);
-		expect(
-			resolveSessionReportBackendURL({
-				manifestURL: 'https://cdn.example.com/tenant.json',
-			})
-		).toBe(undefined);
+		expect(resolveSessionReportBackendURL({})).toBe(undefined);
 	});
 });
 
 describe('forwardSessionReportHeaders', () => {
-	test('copies the client IP chain and user agent, never cookies', () => {
+	test('ignores a caller-supplied x-c15t-client-ip', () => {
+		// A visitor can send the report header to a public init route, so the
+		// address always comes from the proxy chain.
+		expect(
+			forwardSessionReportHeaders(
+				new Headers({
+					'x-c15t-client-ip': '198.51.100.7',
+					'x-forwarded-for': '203.0.113.42',
+				})
+			)
+		).toEqual({ 'x-c15t-client-ip': '203.0.113.42' });
+	});
+
+	test('derives the client IP from the proxy chain and copies the user agent, never cookies', () => {
 		const forwarded = forwardSessionReportHeaders(
 			new Headers({
 				cookie: 'session=secret',
@@ -146,7 +146,7 @@ describe('forwardSessionReportHeaders', () => {
 		);
 		expect(forwarded).toEqual({
 			'user-agent': 'Mozilla/5.0',
-			'x-forwarded-for': '203.0.113.42, 10.0.0.1',
+			'x-c15t-client-ip': '203.0.113.42',
 		});
 	});
 
@@ -157,7 +157,7 @@ describe('forwardSessionReportHeaders', () => {
 				'User-Agent': ['UA'],
 				'X-Forwarded-For': '203.0.113.42',
 			})
-		).toEqual({ 'user-agent': 'UA', 'x-forwarded-for': '203.0.113.42' });
+		).toEqual({ 'user-agent': 'UA', 'x-c15t-client-ip': '203.0.113.42' });
 	});
 });
 
@@ -193,7 +193,7 @@ describe('reportConsentSession', () => {
 		expect(request.method).toBe('POST');
 		const headers = request.headers as Record<string, string>;
 		expect(headers['content-type']).toBe('application/json');
-		expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+		expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
 		expect(headers['user-agent']).toBe('UA');
 		expect(headers).not.toHaveProperty('cookie');
 		expect(typeof headers['x-c15t-version']).toBe('string');
@@ -231,7 +231,89 @@ describe('reportConsentSession', () => {
 	});
 });
 
+describe('isSpeculativeRequest', () => {
+	test('recognises prefetch and prerender signals from browsers, CDNs and Next', () => {
+		const speculative: Record<string, string>[] = [
+			{ 'sec-purpose': 'prefetch' },
+			{ 'sec-purpose': 'prefetch;prerender' },
+			{ purpose: 'prefetch' },
+			{ 'x-moz': 'prefetch' },
+			{ 'next-router-prefetch': '1' },
+		];
+		for (const headers of speculative) {
+			expect(isSpeculativeRequest(new Headers(headers))).toBe(true);
+		}
+		expect(isSpeculativeRequest(new Headers({ accept: 'text/html' }))).toBe(
+			false
+		);
+		expect(isSpeculativeRequest(undefined)).toBe(false);
+	});
+
+	test('a speculative request sends no report', async () => {
+		const init = await resolveInit();
+		const fetchSpy = vi.fn();
+		await reportConsentSession({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			headers: new Headers({ 'next-router-prefetch': '1' }),
+			init: init as never,
+			manifest,
+			source: 'render',
+		});
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+});
+
+describe('reportConsentSession lifetime hook', () => {
+	test('a throwing waitUntil never reaches the caller', async () => {
+		const init = await resolveInit();
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 204 }));
+		await expect(
+			reportConsentSession({
+				backendURL: 'https://consent.example.com',
+				fetch: fetchSpy,
+				init: init as never,
+				manifest,
+				source: 'route',
+				waitUntil: () => {
+					throw new Error('after() called outside a request scope');
+				},
+			})
+		).resolves.toBeUndefined();
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe('createManifestTransport report option', () => {
+	test('never reports to the origin its manifest URL came from', async () => {
+		// The transport derives a backend from its manifest URL for saves; a
+		// report never uses that, since a manifest may live on a CDN that
+		// exists only to hand out public policy data.
+		const fetchSpy = vi
+			.fn()
+			.mockImplementation((url: string) =>
+				Promise.resolve(
+					url.endsWith('/tenant.json')
+						? new Response(JSON.stringify(manifest))
+						: new Response(null, { status: 204 })
+				)
+			);
+		const transport = createManifestTransport({
+			fetch: fetchSpy,
+			manifestURL: 'https://cdn.example.com/tenant.json',
+			report: { source: 'render' },
+		});
+		await transport.init({ overrides: { country: 'DE' }, user: null });
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(
+			fetchSpy.mock.calls.some(([url]) => String(url).includes('/sessions'))
+		).toBe(false);
+	});
+
 	test('reports after each init with the transport backend and headers', async () => {
 		const fetchSpy = vi
 			.fn()
@@ -261,7 +343,7 @@ describe('createManifestTransport report option', () => {
 			string,
 			string
 		>;
-		expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+		expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
 		expect(headers).not.toHaveProperty('cookie');
 		expect(readBody(call)).toMatchObject({
 			adapter: '@c15t/nextjs',

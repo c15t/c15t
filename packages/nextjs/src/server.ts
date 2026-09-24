@@ -427,6 +427,9 @@ const resolveFromManifest = async function resolveFromManifest(input: {
 				? undefined
 				: {
 						adapter: '@c15t/nextjs',
+						// As configured, not request-resolved: a relative backend is
+						// this app's proxy, which means no report.
+						backendURL: options.backendURL ?? options.config?.backendURL,
 						headers: input.requestHeaders,
 						source: 'render',
 						waitUntil: options.waitUntil,

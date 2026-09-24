@@ -41,6 +41,7 @@ const options = function options(
 
 interface RenderInput {
 	path?: string;
+	method?: string;
 	headers?: Record<string, string>;
 	fetch?: typeof globalThis.fetch;
 	astroOptions?: C15tAstroOptions;
@@ -60,6 +61,7 @@ const render = async function render(
 			locals,
 			request: new Request(`https://site.example.com${input.path ?? '/'}`, {
 				headers: new Headers(input.headers ?? {}),
+				method: input.method ?? 'GET',
 			}),
 		} as never,
 		next as never
@@ -104,6 +106,7 @@ describe('manifest-mode server prefetch', () => {
 		await render({
 			fetch: fetchImpl as never,
 			headers: {
+				accept: 'text/html',
 				'user-agent': 'Mozilla/5.0',
 				'x-c15t-country': 'DE',
 				'x-forwarded-for': '203.0.113.42',
@@ -118,7 +121,7 @@ describe('manifest-mode server prefetch', () => {
 		);
 		expect(report).toBeDefined();
 		const init = report?.[1] as RequestInit;
-		expect((init.headers as Record<string, string>)['x-forwarded-for']).toBe(
+		expect((init.headers as Record<string, string>)['x-c15t-client-ip']).toBe(
 			'203.0.113.42'
 		);
 		expect(JSON.parse(init.body as string)).toMatchObject({

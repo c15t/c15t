@@ -148,21 +148,16 @@ const resolveManifestSource = function resolveManifestSource(
 };
 
 /**
- * Where the init route reports sessions, when it can: the configured
- * backend, else the backend the manifest URL implies. A relative value or
- * no backend at all means no report.
+ * Where the init route reports sessions, when it can: an absolute backend,
+ * read as configured rather than resolved against the request. A relative
+ * backend resolved to this app's origin is its own route, not a backend,
+ * and means no report; nothing is inferred from a manifest URL.
  */
 const resolveReportBackendURL = function resolveReportBackendURL(
-	event: RequestEvent,
-	options: SvelteKitConsentRouteOptions,
-	manifestURL: string
+	options: SvelteKitConsentRouteOptions
 ): string | undefined {
-	const backendURL = options.backendURL ?? getEnv('C15T_BACKEND_URL');
 	return resolveSessionReportBackendURL({
-		backendURL: backendURL
-			? resolveAgainstRequest(backendURL, event)
-			: undefined,
-		manifestURL,
+		backendURL: options.backendURL ?? getEnv('C15T_BACKEND_URL'),
 	});
 };
 
@@ -257,20 +252,6 @@ export const createSvelteKitConsentRouteHandlers =
 				{ baseTranslations }
 			) as InitOutput & { resolvedOverrides?: Record<string, unknown> };
 
-			if (options.reportSessions !== false) {
-				reportConsentSession({
-					adapter: '@c15t/svelte',
-					backendURL: resolveReportBackendURL(event, options, manifestURL),
-					fetch: options.fetch as typeof globalThis.fetch | undefined,
-					headers: event.request.headers,
-					init: payload,
-					inputs,
-					manifest,
-					source: 'route',
-					waitUntil: bindBackgroundRevalidate(options, event),
-				});
-			}
-
 			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
 				const language = payload.translations.language.split('-')[0] || 'en';
 				payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
@@ -278,6 +259,20 @@ export const createSvelteKitConsentRouteHandlers =
 						globalThis.fetch.bind(globalThis)) as typeof globalThis.fetch,
 					language,
 					reference: manifest.iab.gvl,
+				});
+			}
+
+			if (options.reportSessions !== false) {
+				reportConsentSession({
+					adapter: '@c15t/svelte',
+					backendURL: resolveReportBackendURL(options),
+					fetch: options.fetch as typeof globalThis.fetch | undefined,
+					headers: event.request.headers,
+					init: payload,
+					inputs,
+					manifest,
+					source: 'route',
+					waitUntil: bindBackgroundRevalidate(options, event),
 				});
 			}
 

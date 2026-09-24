@@ -465,6 +465,9 @@ export const resolveConsent = async function resolveConsent(
 					? undefined
 					: {
 							adapter: '@c15t/tanstack-start',
+							// As configured, not request-resolved: a relative backend
+							// is this app's proxy, which means no report.
+							backendURL: options.backendURL,
 							headers: request.headers,
 							source: 'render',
 							waitUntil: options.onBackgroundRevalidate,

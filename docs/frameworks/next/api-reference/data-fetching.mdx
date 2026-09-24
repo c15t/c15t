@@ -133,7 +133,7 @@ network request and returns cookie- and header-only state; see
 | `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Wrap it in Next.js fetch caching only in manifest mode; the `/init` call carries visitor cookies and returns per-visitor state, so keep it uncached. |
 | `forwardHeaders` | `[]` | Request header names copied onto the outgoing call. Backend `/init` also forwards `x-forwarded-for` and `user-agent` automatically; manifest requests forward only this list. Headers absent from the request are skipped. |
 | `onError` | none | Receives the failure from the backend or manifest request. When omitted, failures are logged with `console.warn` only when `NODE_ENV` is not `production`. |
-| `reportSessions` | `true` | In manifest mode, report the resolved init to the backend's `POST /sessions` after the render, server-to-server, so the backend still counts the visitor. Forwards `x-forwarded-for` and `user-agent`, never cookies. `false` sends none. |
+| `reportSessions` | `true` | In manifest mode, report the resolved init to the backend's `POST /sessions` after the render, server-to-server, so the backend still counts the visitor. Forwards the visitor's user agent and client IP on `x-c15t-client-ip`, never cookies. `false` sends none. |
 | `waitUntil` | none | Receives the session report's promise so it survives the response. In the App Router pass `(task) => after(() => task)` with `after` from `next/server`. The promise never rejects. |
 | `now` | `Date.now()` | Clock used to validate stored records and stamped into the result. |
 | `cookieName` | `c15t` | Cookie holding persisted consent. Must match the client `storageConfig.storageKey`. |
@@ -277,7 +277,7 @@ with no options, so they read only environment variables.
 | `manifestRevalidateSeconds` | `300`; env `C15T_MANIFEST_REVALIDATE_SECONDS` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it; the env value `'false'` also disables it. The env value is read with `parseInt`, so `60seconds` becomes `60` and `1e2` becomes `1`; values without a leading number or below `0` fall back to the default. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the manifest and Global Vendor List requests. |
 | `onBackgroundRevalidate` | none | Receives detached work started by a request: a background manifest refresh, and the init route's session report. Keep it alive with `after` from `next/server` or a platform `waitUntil`. Called inside the handler; the promises never reject. See [Optimization](/docs/frameworks/next/optimization#configure-manifest-cache-refresh). |
-| `reportSessions` | `true` | Report each init the route resolves to the backend's `POST /sessions`, server-to-server and detached from the response, so the backend still counts the visitor. Needs an absolute `backendURL`, or a `manifestURL` on the backend. `false` sends none. |
+| `reportSessions` | `true` | Report each init the route resolves to the backend's `POST /sessions`, server-to-server and detached from the response, so the backend still counts the visitor. Needs an absolute `backendURL`; nothing is inferred from a manifest URL. `false` sends none. |
 | `fetchGvl` | built-in cached fetcher | Loads the Global Vendor List for IAB policies. Called only under the conditions described in this section. |
 
 An explicit option wins over its environment variable, and a manifest URL from

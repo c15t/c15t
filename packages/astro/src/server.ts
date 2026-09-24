@@ -32,8 +32,8 @@ import { fetchCachedGvl } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
 import { readProducerPolicyContract } from '@c15t/core/transports';
 import {
-	CONSENT_REQUEST_HEADER_NAMES,
 	consentInputsToOverrides,
+	CONSENT_REQUEST_HEADER_NAMES,
 	extractConsentRequestInputs,
 	resolveBackendURL,
 } from '@c15t/schema/types';
@@ -398,7 +398,7 @@ const prefetchManifest = async function prefetchManifest(
 			inputs: input.inputs,
 			manifest,
 			report: {
-				backendURL: resolveSessionReportURL(source, input.options),
+				backendURL: resolveSessionReportURL(input.options),
 				headers: input.headers,
 				source: 'render',
 				waitUntil: input.onBackgroundRevalidate,

@@ -34,11 +34,7 @@ import type { EventHandlerRequest, H3Event } from 'h3';
 import { joinURL } from 'ufo';
 
 import type { ConsentConfig } from '../config';
-import {
-	fetchCachedManifest,
-	resolveManifestInit,
-	resolveManifestSourceURL,
-} from './manifest-mode';
+import { fetchCachedManifest, resolveManifestInit } from './manifest-mode';
 import type { ManifestFetch } from './manifest-mode';
 
 interface C15TNitroRuntimeConfig {
@@ -210,18 +206,20 @@ export const createInitRoute = function createInitRoute(
 				resolveManifestInit({ inputs, manifest: manifest.manifest }),
 				getRequestHeader(event, POLICY_CONTRACT_HEADER)
 			);
+			if (
+				payload.policyResolution.status === 'matched' &&
+				payload.policyResolution.policy.model === 'iab' &&
+				manifest.manifest.iab?.enabled
+			) {
+				payload.gvl = await load(
+					payload.translations.language.split('-')[0] || 'en'
+				);
+			}
 			if (config.reportSessions !== false) {
-				let manifestURL: string | undefined;
-				try {
-					manifestURL = resolveManifestSourceURL(config);
-				} catch {
-					manifestURL = undefined;
-				}
 				reportConsentSession({
 					adapter: '@c15t/vue',
 					backendURL: resolveSessionReportBackendURL({
 						backendURL: config.backendURL,
-						manifestURL,
 					}),
 					fetch: dependencies.fetch as typeof globalThis.fetch,
 					headers,
@@ -231,15 +229,6 @@ export const createInitRoute = function createInitRoute(
 					source: 'route',
 					waitUntil: bindBackgroundRevalidate(dependencies, event),
 				});
-			}
-			if (
-				payload.policyResolution.status === 'matched' &&
-				payload.policyResolution.policy.model === 'iab' &&
-				manifest.manifest.iab?.enabled
-			) {
-				payload.gvl = await load(
-					payload.translations.language.split('-')[0] || 'en'
-				);
 			}
 			return deferInitGvlToRoute(payload, getRequestURL(event).pathname);
 		} catch (cause) {

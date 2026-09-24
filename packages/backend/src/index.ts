@@ -89,6 +89,7 @@ export { c15tInstance } from './instance';
 export type { Migrator } from './migrator';
 export { createMigrator } from './migrator';
 export type { ObservabilityOptions } from './observability/evlog';
+export type { SessionOptions, SessionReportContext } from './http/session';
 export type { PolicyBuilderInput } from './policy/builder';
 export { composePacks, policyBuilder } from './policy/builder';
 export { version } from './version';

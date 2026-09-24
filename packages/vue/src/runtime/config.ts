@@ -48,8 +48,8 @@ export interface ConsentManifestNuxtConfig {
 	 * Report each init the server init route resolves to the backend's
 	 * `POST /sessions`, server-to-server and detached from the response, so
 	 * the backend still counts visitors it never served `/init` to. Needs an
-	 * absolute `backendURL` or a `manifestURL` on the backend. Set `false`
-	 * to send none.
+	 * absolute `backendURL`; nothing is inferred from `manifestURL`. Set
+	 * `false` to send none.
 	 *
 	 * @default true
 	 */

@@ -167,7 +167,6 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 		if (listResponse) {
 			return listResponse;
 		}
-		const source = { headers: request.headers, url: request.url };
 		const payload = await resolveManifestInit({
 			fetch: handlerOptions.fetch,
 			fetchGvl: handlerOptions.fetchGvl,
@@ -179,7 +178,7 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 			}),
 			manifest,
 			report: {
-				backendURL: resolveSessionReportURL(source, handlerOptions.options),
+				backendURL: resolveSessionReportURL(handlerOptions.options),
 				headers: request.headers,
 				source: 'route',
 				waitUntil: bindBackgroundRevalidate(handlerOptions, lifetime),

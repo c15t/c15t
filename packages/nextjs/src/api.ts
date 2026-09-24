@@ -192,27 +192,19 @@ const resolveManifestURL = function resolveManifestURL(
 };
 
 /**
- * Where the init route reports sessions, when it can. An explicit backend
- * wins; otherwise the backend the manifest URL implies. Neither, or a
- * relative value, means no report.
+ * Where the init route reports sessions, when it can: an absolute backend,
+ * read as configured rather than resolved against the request. A relative
+ * `/api/c15t` resolved to this app's origin is its own proxy route, not a
+ * backend, and means no report; nothing is inferred from a manifest URL.
  */
 const resolveReportBackendURL = function resolveReportBackendURL(
-	request: Request,
 	options: NextConsentManifestHandlersOptions
 ): string | undefined {
-	const backendURL =
-		options.backendURL ??
-		getEnv('C15T_BACKEND_URL') ??
-		getEnv('NEXT_PUBLIC_C15T_BACKEND_URL');
-	let manifestURL: string | undefined;
-	try {
-		manifestURL = resolveManifestURL(request, options);
-	} catch {
-		manifestURL = undefined;
-	}
 	return resolveSessionReportBackendURL({
-		backendURL: backendURL ? resolveRequestURL(backendURL, request) : undefined,
-		manifestURL,
+		backendURL:
+			options.backendURL ??
+			getEnv('C15T_BACKEND_URL') ??
+			getEnv('NEXT_PUBLIC_C15T_BACKEND_URL'),
 	});
 };
 
@@ -399,10 +391,19 @@ export const createNextConsentRouteHandlers =
 					delete payload.gvl;
 				}
 
+				if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
+					const language = payload.translations.language.split('-')[0] || 'en';
+					payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
+						fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
+						language,
+						reference: manifest.iab.gvl,
+					});
+				}
+
 				if (options.reportSessions !== false) {
 					reportConsentSession({
 						adapter: '@c15t/nextjs',
-						backendURL: resolveReportBackendURL(request, options),
+						backendURL: resolveReportBackendURL(options),
 						fetch: options.fetch,
 						headers: request.headers,
 						init: payload,
@@ -410,15 +411,6 @@ export const createNextConsentRouteHandlers =
 						manifest,
 						source: 'route',
 						waitUntil: options.onBackgroundRevalidate,
-					});
-				}
-
-				if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
-					const language = payload.translations.language.split('-')[0] || 'en';
-					payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
-						fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
-						language,
-						reference: manifest.iab.gvl,
 					});
 				}
 

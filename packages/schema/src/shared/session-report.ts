@@ -13,6 +13,18 @@ import type {
 } from '../api/session';
 import type { ConsentManifest } from './consent-manifest';
 
+/**
+ * Request header a host puts the visitor's IP on when it reports a session.
+ *
+ * A dedicated header rather than `x-forwarded-for`: a platform in front of
+ * the backend rewrites the standard chain to the connecting server, and the
+ * backend's proxy-header precedence was written for a visitor's own
+ * request, not a server-to-server one. The backend applies its `ipAddress`
+ * masking and tracking settings to this value exactly as it would to a
+ * connection-derived one.
+ */
+export const CONSENT_SESSION_CLIENT_IP_HEADER = 'x-c15t-client-ip';
+
 /** The resolver inputs a report records alongside the decision. */
 export interface SessionReportInputs {
 	country?: string | null;
@@ -68,4 +80,29 @@ export const buildConsentSessionReport = function buildConsentSessionReport(
 		report.tenantId = options.manifest.tenantId;
 	}
 	return report;
+};
+
+/**
+ * Whether a request is speculative: a browser, CDN, or router prefetching
+ * or prerendering a page the visitor may never open. Such a request still
+ * resolves consent so the response is right, but it is not a session;
+ * reporting it would count visits that never happened.
+ *
+ * @param headers - The incoming request's headers.
+ * @returns `true` for a prefetch or prerender request.
+ */
+export const isSpeculativeRequest = function isSpeculativeRequest(
+	headers: Headers
+): boolean {
+	const purpose = (
+		headers.get('sec-purpose') ??
+		headers.get('purpose') ??
+		headers.get('x-purpose') ??
+		headers.get('x-moz') ??
+		''
+	).toLowerCase();
+	if (purpose.includes('prefetch') || purpose.includes('prerender')) {
+		return true;
+	}
+	return headers.get('next-router-prefetch') === '1';
 };

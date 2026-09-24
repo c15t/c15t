@@ -72,7 +72,14 @@ const request = {
 
 const resolveConsent = (
 	options: Omit<Parameters<typeof baseResolveConsent>[0], 'request'>
-) => baseResolveConsent({ ...options, request });
+) =>
+	baseResolveConsent({
+		// These tests count backend and manifest fetches; the session report
+		// the render also sends is covered in server.test.ts.
+		reportSessions: false,
+		...options,
+		request,
+	});
 
 beforeEach(() => {
 	cookieStore.clear();

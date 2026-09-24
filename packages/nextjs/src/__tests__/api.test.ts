@@ -139,7 +139,7 @@ describe('@c15t/nextjs/api', () => {
 		const headers = init.headers as Record<string, string>;
 		// `user-agent` is a forbidden request header in this browser-mode
 		// suite, so only the IP chain can be asserted here.
-		expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+		expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
 		expect(headers).not.toHaveProperty('cookie');
 		expect(JSON.parse(init.body as string)).toMatchObject({
 			adapter: '@c15t/nextjs',

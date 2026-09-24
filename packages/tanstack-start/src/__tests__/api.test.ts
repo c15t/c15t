@@ -187,7 +187,8 @@ describe('createConsentServerRoute: session reports', () => {
 		expect(report).toBeDefined();
 		const init = report?.[1] as RequestInit;
 		const headers = init.headers as Record<string, string>;
-		expect(headers['x-forwarded-for']).toBe('203.0.113.42');
+		expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
+		expect(headers['user-agent']).toBe('Mozilla/5.0');
 		expect(headers).not.toHaveProperty('cookie');
 		expect(JSON.parse(init.body as string)).toMatchObject({
 			adapter: '@c15t/tanstack-start',

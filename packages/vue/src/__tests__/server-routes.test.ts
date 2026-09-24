@@ -513,7 +513,7 @@ describe('init route', () => {
 		);
 		expect(report).toBeDefined();
 		const init = report?.[1] as RequestInit;
-		expect((init.headers as Record<string, string>)['x-forwarded-for']).toBe(
+		expect((init.headers as Record<string, string>)['x-c15t-client-ip']).toBe(
 			'203.0.113.42'
 		);
 		expect(JSON.parse(init.body as string)).toMatchObject({

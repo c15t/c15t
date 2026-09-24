@@ -16,7 +16,7 @@ you are building a custom transport or server integration.
 | `GET /status` | Service status and configured version. | No |
 | `GET /manifest` | Geo-independent policy configuration, optionally sliced with `?language=en`. | No |
 | `GET /init` | Resolve configuration for this request's location, language and privacy signals. | No |
-| `POST /sessions` | Report an init a host resolved from a cached manifest. Nothing is stored. | No |
+| `POST /sessions` | Report an init a host resolved from a cached manifest. Server-to-server only; nothing is stored. | No |
 | `POST /subjects` | Record a consent submission and its category receipts. | Optional, affects asserted identity authority |
 | `GET /subjects/:id` | Read this subject's consent status, merged choices and privacy directives. Optional `?type=a,b` filter. | No, the subject ID is the capability |
 | `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. | Optional, distinguishes browser and API authority |
@@ -68,20 +68,34 @@ as shared configuration.
 ```bash
 curl -i 'http://localhost:3000/api/c15t/sessions' \
   -H 'Content-Type: application/json' \
-  -H 'X-Forwarded-For: 203.0.113.42' \
+  -H 'X-C15T-Version: 3.0.0' \
+  -H 'X-C15T-Client-IP: 203.0.113.42' \
+  -H 'User-Agent: Mozilla/5.0' \
   -d '{"source":"route","revision":"…","resolution":"matched","policy":{"id":"eu-opt-in","fingerprint":"…","matchedBy":"country","model":"opt-in"},"jurisdiction":"GDPR","country":"DE","region":null,"language":"de","gpc":false}'
 ```
 
 A host that resolves init from a cached manifest never calls `/init`, so the
 backend would not know a visitor was served. The framework adapters send this
-report server-to-server after each resolution, detached from the response, and
-forward the visitor's IP chain and user agent as request headers. The backend
-answers `204`, records the report on the request's wide event and hands it to
-the `sessions.onReport` sink. It writes nothing to the database. The backend's
-own `/init` emits the same event. The body shape is `consentSessionReportSchema`
-in `@c15t/schema`; `source` is `route` for an init route, `render` for a
-server-rendered page and `init` for the backend's own route, so a consumer can
-dedupe a render followed by a client re-init.
+report server-to-server after each resolution, detached from the response. The
+route accepts nothing a page could have sent: a request carrying `Origin`, or
+one without the `X-C15T-Version` header every c15t client sends, is rejected
+with `400`. The
+visitor's user agent travels as `User-Agent` and the visitor's address on
+`X-C15T-Client-IP`, a dedicated header because a platform in front of the
+backend rewrites `X-Forwarded-For` to the connecting server. The backend applies
+its `ipAddress` masking and tracking settings to that value, records the report
+on the request's wide event, hands it to the `sessions.onReport` sink, waits for
+the sink, and answers `204`. It writes nothing to the database.
+
+The body shape is `consentSessionReportSchema` in `@c15t/schema`. `source` is
+`route` for an init route and `render` for a server-rendered page; `init` is
+reserved for the backend's own `/init`, which emits the same event, and a report
+claiming it is rejected with `400`. Neither route reports a prefetch or
+prerender (`Sec-Purpose`, `Purpose`, `Next-Router-Prefetch`). One page view can legitimately produce more
+than one report, for example a `render` followed by a `route` when the client
+re-initialises, and every full page load produces a new one. Count sessions by
+deduplicating on `source` and grouping by visitor on the consuming side; the
+report carries no visitor identifier of its own.
 
 ## GET /c15t.js
 

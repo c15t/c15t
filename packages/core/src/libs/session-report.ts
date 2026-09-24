@@ -18,25 +18,37 @@
  * which a browser could not do and must not try to.
  */
 
-import { buildConsentSessionReport } from '@c15t/schema/types';
+import {
+	buildConsentSessionReport,
+	CONSENT_SESSION_CLIENT_IP_HEADER,
+	getIpAddress,
+	isSpeculativeRequest as isSpeculativeHeaders,
+} from '@c15t/schema/types';
 import type { BuildConsentSessionReportOptions } from '@c15t/schema/types';
 
 import { c15tProtocolHeaders } from '../transports/version-header';
 
 /**
- * Visitor request headers copied onto the report so the backend's client
- * IP derivation and user-agent recording see the visitor, not the host's
- * server. Cookies are never forwarded: the report carries no identity.
+ * The only request headers a report carries about the visitor: the user
+ * agent, and the client IP on {@link SESSION_REPORT_CLIENT_IP_HEADER}.
+ *
+ * The IP travels on a dedicated header rather than as the forwarded chain.
+ * A platform in front of the backend rewrites `x-forwarded-for` to the
+ * connecting server, which would make every report look like the host, and
+ * the backend's proxy-header precedence was written for a visitor's own
+ * request, not a server-to-server one. Cookies are never forwarded: the
+ * report carries no identity.
  */
 export const SESSION_REPORT_FORWARD_HEADERS = [
-	'x-forwarded-for',
-	'x-real-ip',
-	'x-client-ip',
-	'cf-connecting-ip',
-	'true-client-ip',
-	'fastly-client-ip',
 	'user-agent',
+	CONSENT_SESSION_CLIENT_IP_HEADER,
 ] as const;
+
+/** Header carrying the visitor's IP on a report. */
+export const SESSION_REPORT_CLIENT_IP_HEADER = CONSENT_SESSION_CLIENT_IP_HEADER;
+
+/** How long a report may take before it is abandoned. */
+const SESSION_REPORT_TIMEOUT_MS = 3000;
 
 export type {
 	BuildConsentSessionReportOptions,
@@ -56,50 +68,25 @@ const trimSlash = function trimSlash(url: string): string {
 const ABSOLUTE_URL = /^https?:\/\//iu;
 
 /**
- * The backend origin a manifest URL implies, when it implies one.
- *
- * `https://consent.example.com/manifest` came from a backend at
- * `https://consent.example.com`; a manifest served from a CDN path or a
- * file name implies nothing, and the caller must say where the backend is.
- *
- * @param manifestURL - An absolute `GET /manifest` URL.
- * @returns The backend URL, or `undefined` when it cannot be inferred.
- */
-export const deriveBackendURLFromManifestURL =
-	function deriveBackendURLFromManifestURL(
-		manifestURL: string
-	): string | undefined {
-		const withoutQuery = manifestURL.split(/[?#]/u)[0] ?? manifestURL;
-		const trimmed = trimSlash(withoutQuery);
-		return trimmed.endsWith('/manifest')
-			? trimmed.slice(0, -'/manifest'.length)
-			: undefined;
-	};
-
-/**
  * Where a session report is sent, or `undefined` to send none.
  *
- * Only an absolute `http(s)` backend qualifies: a server cannot resolve a
- * relative URL, and a report to the app's own proxy route would count the
- * visitor a second time on the way through.
+ * Only an explicit, absolute `http(s)` backend qualifies. A relative URL
+ * cannot be fetched from a server, and resolved against the request it is
+ * the app's own proxy route, which would count the visitor twice. Nothing
+ * is ever inferred from a manifest URL: a manifest may be served from a CDN
+ * that exists only to hand out public policy data, and a report carries the
+ * visitor's address and user agent.
  *
- * @param source - The configured backend URL, or the manifest URL to infer it from.
+ * @param source - The backend URL as configured, not resolved against the request.
  * @returns The backend base URL without a trailing slash.
  */
 export const resolveSessionReportBackendURL =
 	function resolveSessionReportBackendURL(source: {
 		backendURL?: string | null;
-		manifestURL?: string | null;
 	}): string | undefined {
-		const candidate =
-			source.backendURL ||
-			(source.manifestURL
-				? deriveBackendURLFromManifestURL(source.manifestURL)
-				: undefined);
-		if (!candidate || !ABSOLUTE_URL.test(candidate)) {
-			return undefined;
-		}
-		return trimSlash(candidate);
+		return source.backendURL && ABSOLUTE_URL.test(source.backendURL)
+			? trimSlash(source.backendURL)
+			: undefined;
 	};
 
 const readHeader = function readHeader(
@@ -124,38 +111,79 @@ const readHeader = function readHeader(
 	return undefined;
 };
 
+const toHeaders = function toHeaders(
+	headers: SessionReportHeaders | undefined
+): Headers {
+	if (!headers) {
+		return new Headers();
+	}
+	if (headers instanceof Headers) {
+		return headers;
+	}
+	const result = new Headers();
+	for (const [key, value] of Object.entries(headers)) {
+		const single = Array.isArray(value) ? value[0] : value;
+		if (single) {
+			result.set(key, single);
+		}
+	}
+	return result;
+};
+
+/**
+ * Whether a request is a prefetch or prerender the visitor may never open.
+ * The shared check from `@c15t/schema`, accepting any header shape a server
+ * runtime hands over.
+ *
+ * @param headers - The incoming request's headers.
+ * @returns `true` for a speculative request.
+ */
+export const isSpeculativeRequest = function isSpeculativeRequest(
+	headers: SessionReportHeaders | undefined
+): boolean {
+	return isSpeculativeHeaders(toHeaders(headers));
+};
+
 /**
  * The visitor headers a report forwards, read from any header shape.
  *
+ * The client IP is the address the shared derivation recovers from the
+ * request's proxy headers, unmasked: masking is the backend's decision and
+ * happens there. An `x-c15t-client-ip` already on the incoming request is
+ * ignored on purpose: a visitor can send that header to a public init
+ * route, and honouring it would let them choose the address the backend
+ * attributes to them.
+ *
  * @param headers - The incoming request's headers.
- * @returns Only the IP-chain and user-agent headers that were present.
+ * @returns The user agent and client IP that were present.
  */
 export const forwardSessionReportHeaders = function forwardSessionReportHeaders(
 	headers: SessionReportHeaders | undefined
 ): Record<string, string> {
 	const forwarded: Record<string, string> = {};
-	for (const name of SESSION_REPORT_FORWARD_HEADERS) {
-		const value = readHeader(headers, name);
-		if (value) {
-			forwarded[name] = value;
-		}
+	const userAgent = readHeader(headers, 'user-agent');
+	if (userAgent) {
+		forwarded['user-agent'] = userAgent;
+	}
+	const ip = getIpAddress(toHeaders(headers), { masking: false });
+	if (ip) {
+		forwarded[CONSENT_SESSION_CLIENT_IP_HEADER] = ip;
 	}
 	return forwarded;
 };
 
 export interface ReportConsentSessionOptions extends BuildConsentSessionReportOptions {
 	/**
-	 * Backend base URL. Relative or absent means no report is sent; see
-	 * {@link resolveSessionReportBackendURL}.
+	 * Backend base URL as configured. Relative or absent means no report is
+	 * sent; see {@link resolveSessionReportBackendURL}.
 	 */
 	backendURL?: string | null;
-	/** Manifest URL to infer the backend from when `backendURL` is unset. */
-	manifestURL?: string | null;
 	/** Fetch implementation. Defaults to `globalThis.fetch`. */
 	fetch?: typeof globalThis.fetch;
 	/**
-	 * The visitor's request headers. Only the client IP chain and user agent
-	 * are forwarded; see {@link SESSION_REPORT_FORWARD_HEADERS}.
+	 * The visitor's request headers. Only the user agent and the client IP
+	 * the shared derivation recovers from them are forwarded; see
+	 * {@link forwardSessionReportHeaders}.
 	 */
 	headers?: SessionReportHeaders;
 	/**
@@ -171,7 +199,8 @@ export interface ReportConsentSessionOptions extends BuildConsentSessionReportOp
  *
  * Never throws and never rejects: the report is telemetry, and a backend
  * that is down or a URL that is relative must not fail the request that
- * produced the resolution. Returns the in-flight promise so a caller that
+ * produced the resolution. A prefetch or prerender request sends nothing;
+ * see {@link isSpeculativeRequest}. Returns the in-flight promise so a caller that
  * wants to await it (a test, a CLI) can.
  *
  * @param options - What to report, where to send it, and how to keep it alive.
@@ -195,14 +224,14 @@ export const reportConsentSession = function reportConsentSession(
 ): Promise<void> {
 	const backendURL = resolveSessionReportBackendURL(options);
 	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!backendURL || !fetchImpl) {
+	if (!backendURL || !fetchImpl || isSpeculativeRequest(options.headers)) {
 		return Promise.resolve();
 	}
 
 	const task = (async () => {
 		try {
 			const body = buildConsentSessionReport(options);
-			await fetchImpl(`${backendURL}/sessions`, {
+			const response = await fetchImpl(`${backendURL}/sessions`, {
 				body: JSON.stringify(body),
 				headers: {
 					'content-type': 'application/json',
@@ -210,11 +239,25 @@ export const reportConsentSession = function reportConsentSession(
 					...forwardSessionReportHeaders(options.headers),
 				},
 				method: 'POST',
+				// A backend that hangs must not hold a `waitUntil` slot open.
+				signal:
+					typeof AbortSignal !== 'undefined' &&
+					typeof AbortSignal.timeout === 'function'
+						? AbortSignal.timeout(SESSION_REPORT_TIMEOUT_MS)
+						: undefined,
 			});
+			// Nothing in the answer is read; release the connection.
+			await response.body?.cancel();
 		} catch {
 			// Telemetry. The decision already happened; nothing to recover.
 		}
 	})();
-	options.waitUntil?.(task);
+	try {
+		options.waitUntil?.(task);
+	} catch {
+		// A lifetime hook invoked outside its request scope throws
+		// synchronously; that is the host's telemetry plumbing, not the
+		// visitor's consent decision.
+	}
 	return task;
 };
