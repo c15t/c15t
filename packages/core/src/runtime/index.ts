@@ -60,7 +60,7 @@ export interface ConsentRuntimeResult {
 	consentManager: ConsentManagerInstance;
 	consentStore: ConsentStoreInstance;
 	cacheKey: string;
-	/** Stop visit measurement and evict this runtime. Do not call on shared provider remounts. */
+	/** Clear init correlation and evict this runtime. Do not call on shared provider remounts. */
 	dispose: () => void;
 }
 

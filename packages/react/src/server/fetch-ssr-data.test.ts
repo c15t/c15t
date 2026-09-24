@@ -238,3 +238,201 @@ describe('fetchSSRData', () => {
 		expect(result).toBeUndefined();
 	});
 });
+
+const trackedVisitId = '951baf37-5725-48a2-b5d7-dd67c4e1e75d';
+const anotherVisitId = '89ab30ac-8c1a-4f17-8f15-bf3b16f66d41';
+
+describe('request-scoped SSR journey attribution', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	});
+
+	it('uses one existing init fetch per call with distinct IDs and matching echoes', async () => {
+		const calls: Array<{ url: URL; options: RequestInit | undefined }> = [];
+		const fetchMock = vi.fn<typeof fetch>(async (input, options) => {
+			const url = new URL(
+				typeof input === 'string'
+					? input
+					: input instanceof URL
+						? input.href
+						: input.url
+			);
+			calls.push({ url, options });
+			return Response.json({
+				gvl: null,
+				visitTracking: {
+					enabled: true,
+					visitId: url.searchParams.get('c15tVisitId'),
+				},
+			});
+		});
+		vi.stubGlobal('fetch', fetchMock);
+		const results = await Promise.all(
+			[0, 1].map(() =>
+				fetchSSRData({
+					backendURL: 'https://consent.example.com',
+					headers: createRequestHeaders(),
+					visitTracking: true,
+				})
+			)
+		);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(
+			new Set(calls.map(({ url }) => url.searchParams.get('c15tVisitId'))).size
+		).toBe(2);
+		for (const [index, { url, options }] of calls.entries()) {
+			const visitId = url.searchParams.get('c15tVisitId');
+			expect(visitId).toMatch(/^[a-f0-9-]{36}$/);
+			expect(url.pathname).toBe('/init');
+			expect([...url.searchParams.keys()]).toEqual([
+				'c15tVisitId',
+				'c15tVisitSource',
+			]);
+			expect(url.searchParams.get('c15tVisitSource')).toBe('ssr');
+			expect(options?.cache).toBe('no-store');
+			const headers = new Headers(options?.headers);
+			expect(headers.has('x-c15t-visit-id')).toBe(false);
+			expect(headers.has('x-c15t-visit-source')).toBe(false);
+			expect(headers.get('origin')).toBe('https://example.com');
+			expect(results[index]?.metadata?.visitTracking).toEqual({
+				source: 'ssr',
+				visitId,
+			});
+		}
+	});
+
+	it.each([
+		undefined,
+		{ enabled: true, visitId: anotherVisitId },
+		{ enabled: false, visitId: trackedVisitId },
+	])('does not attribute an absent, mismatched or disabled echo', async (visitTracking) => {
+		vi.stubGlobal('crypto', { randomUUID: () => trackedVisitId });
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(Response.json({ gvl: null, visitTracking }))
+		);
+		const result = await fetchSSRData({
+			backendURL: '/api/c15t',
+			headers: createRequestHeaders(),
+			visitTracking: true,
+		});
+		expect(result?.init).toBeDefined();
+		expect(result?.metadata?.visitTracking).toBeUndefined();
+	});
+
+	it('keeps default shared SSR untracked even if a response contains an ID', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(
+			Response.json({
+				gvl: null,
+				visitTracking: { enabled: true, visitId: trackedVisitId },
+			})
+		);
+		vi.stubGlobal('fetch', fetchMock);
+		const result = await fetchSSRData({
+			backendURL: '/api/c15t',
+			headers: createRequestHeaders(),
+		});
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://example.com/api/c15t/init',
+			expect.not.objectContaining({ cache: 'no-store' })
+		);
+		expect(result?.metadata?.visitTracking).toBeUndefined();
+	});
+
+	it.each([
+		['purpose', 'prefetch'],
+		['sec-purpose', 'prefetch;prerender'],
+		['purpose', 'prerender'],
+		['next-router-prefetch', '1'],
+		['x-middleware-prefetch', '1'],
+	])('leaves speculative %s requests untracked without adding another fetch', async (name, value) => {
+		const headers = createRequestHeaders();
+		headers.set(name, value);
+		const fetchMock = vi.fn().mockResolvedValue(Response.json({ gvl: null }));
+		vi.stubGlobal('fetch', fetchMock);
+		const result = await fetchSSRData({
+			backendURL: '/api/c15t',
+			headers,
+			visitTracking: true,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://example.com/api/c15t/init',
+			expect.not.objectContaining({ cache: 'no-store' })
+		);
+		expect(result?.metadata?.visitTracking).toBeUndefined();
+	});
+
+	it('uses a valid incoming website origin before the forwarded host', async () => {
+		const headers = createRequestHeaders();
+		headers.set('origin', 'https://website.example');
+		const fetchMock = vi.fn().mockResolvedValue(Response.json({ gvl: null }));
+		vi.stubGlobal('fetch', fetchMock);
+		await fetchSSRData({
+			backendURL: 'https://consent.example',
+			headers,
+			visitTracking: true,
+		});
+		expect(fetchMock).toHaveBeenCalledWith(
+			expect.stringContaining('https://consent.example/init?'),
+			expect.objectContaining({
+				headers: expect.objectContaining({ Origin: 'https://website.example' }),
+			})
+		);
+	});
+
+	it('never derives the website origin from an absolute backend URL', async () => {
+		const headers = new Headers({
+			'cf-ipcountry': 'US',
+			origin: 'https://website.example/private?secret=1',
+		});
+		const fetchMock = vi.fn().mockResolvedValue(Response.json({ gvl: null }));
+		vi.stubGlobal('fetch', fetchMock);
+		await fetchSSRData({
+			backendURL: 'https://consent.example',
+			headers,
+			visitTracking: true,
+		});
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://consent.example/init',
+			expect.not.objectContaining({ cache: 'no-store' })
+		);
+	});
+
+	it('keeps consent initialisation working when secure UUID generation is unavailable', async () => {
+		vi.stubGlobal('crypto', undefined);
+		const fetchMock = vi.fn().mockResolvedValue(Response.json({ gvl: null }));
+		vi.stubGlobal('fetch', fetchMock);
+		const result = await fetchSSRData({
+			backendURL: '/api/c15t',
+			headers: createRequestHeaders(),
+			visitTracking: true,
+		});
+		expect(result?.init).toBeDefined();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://example.com/api/c15t/init',
+			expect.not.objectContaining({ cache: 'no-store' })
+		);
+	});
+
+	it('preserves ordinary fetch error handling when forwarded headers produce an invalid URL', async () => {
+		const headers = createRequestHeaders();
+		headers.set('origin', 'https://website.example');
+		headers.set('x-forwarded-host', '[');
+		const fetchMock = vi.fn().mockRejectedValue(new TypeError('Invalid URL'));
+		vi.stubGlobal('fetch', fetchMock);
+		await expect(
+			fetchSSRData({
+				backendURL: '/api/c15t',
+				headers,
+				visitTracking: true,
+			})
+		).resolves.toBeUndefined();
+		expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
+			'https://[/api/c15t/init',
+			expect.not.objectContaining({ cache: 'no-store' })
+		);
+	});
+});

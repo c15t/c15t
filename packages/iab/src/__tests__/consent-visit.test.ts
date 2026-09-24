@@ -87,29 +87,12 @@ describe('IAB visit measurement hooks', () => {
 		state.iab = createIABManager(config, get, set, manager, () => visitId);
 	});
 
-	it('reports restoration only after a valid stored TC string has updated state', async () => {
+	it('restores an existing choice without creating a new save', async () => {
 		mocks.loadFromStorage.mockReturnValue('stored-tc-string');
-		const resolved = vi.fn(() => {
-			expect(state.iab?.tcString).toBe('stored-tc-string');
-			expect(state.activeUI).toBe('none');
-		});
-		await initializeIABMode(config, { get, set }, gvl, resolved);
-		expect(resolved).toHaveBeenCalledOnce();
-		expect(resolved).toHaveBeenCalledWith(true);
+		await initializeIABMode(config, { get, set }, gvl);
+		expect(state.iab?.tcString).toBe('stored-tc-string');
+		expect(state.activeUI).toBe('none');
 		expect(manager.setConsent).not.toHaveBeenCalled();
-	});
-
-	it('does not classify a failed IAB initialization as a known state', async () => {
-		const resolved = vi.fn();
-		const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-		await initializeIABMode(
-			{ ...config, cmpId: 0 },
-			{ get, set },
-			gvl,
-			resolved
-		);
-		expect(resolved).not.toHaveBeenCalled();
-		log.mockRestore();
 	});
 
 	it('captures the visit before asynchronous save work and preserves TCF metadata', async () => {

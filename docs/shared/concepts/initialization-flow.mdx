@@ -101,27 +101,53 @@ group: reference
 </section>
 
 <section id="visit-measurement">
-  ## Hosted Visit Measurement
+  ## Correlating Init Requests and Consent Saves
 
-  A hosted backend can opt into visit measurement by including this optional field in its successful init response:
+  Hosted browser initialization adds an ephemeral UUID to the existing `GET /init` request: the `c15tVisitId` query parameter contains the ID, and `c15tVisitSource` is `browser`. No new browser request headers are required. Retries reuse that ID. A later, separate initialization receives a new ID. The SDK does not send an additional start request, heartbeat, activity event, or exit beacon.
+
+  A supporting backend acknowledges measurement by returning the exact request ID:
 
   ```json
-  { "visitTracking": { "enabled": true } }
+  {
+    "visitTracking": {
+      "enabled": true,
+      "visitId": "ac2025bb-d674-4f94-b528-4f4b48bf7806"
+    }
+  }
   ```
 
-  With that opt-in, the browser runtime sends `started` and `state` events to `POST /consent/visits` on the same configured backend. It generates a random visit ID in memory and classifies the resolved initial state as `choice_required`, `existing_choice`, or `not_required`. `choice_required` means the runtime requires a choice; it does not prove that a banner rendered or was seen.
+  Only a matching acknowledgement enables the reserved `metadata.c15tVisitId` field on subsequent consent saves. Omit `visitTracking` to disable correlation. The backend must validate request origins, enforce its current measurement setting, deduplicate repeated init IDs, and record a save only after accepting the consent receipt. A missing or mismatched acknowledgement does not interrupt consent or script gating.
 
-  Measurement begins after successful initialization, including when the browser hydrates SSR or prefetched init data. Requests that fail before an opted-in response, disabled runtimes, offline mode, custom clients, and older SDK versions do not produce measured visits. Omit `visitTracking` to disable measurement. The collector must also enforce the backend's current enablement setting because SSR or prefetched responses can be cached.
+  The SDK requests `cache: 'no-store'`; the unique query value also avoids a previously cached public init response. Supporting backends must bypass shared CDN caches for these requests and return a private, non-cacheable response. Reusable policy data can still be cached internally, but the acknowledgement must be specific to the current init request.
 
-  While the document is visible, the runtime sends an `activity` event every 60 seconds and when visibility resumes. It sends `ended` on a non-persisted `pagehide` event. Back/forward-cache suspension pauses activity and restoration keeps the same visit. Missing activity or an exit event does not prove that someone left; browsers can stop or discard pages without delivering a final request.
+  Browser prefetch generates its ID when the inline script executes or the browser prefetch helper runs. Runtime hydration reuses that request and ID. Cached provider remounts do not send another init request. The ID lives in memory and is not a persistent visitor identity. Queued saves and reload-deferred revocations retain the original ID until delivery. IAB saves require a matching `@c15t/iab` release to include the same metadata.
 
-  The event body contains version `1`, random visit and event IDs, the event name, resolved state, optional policy ID, and hostname. It does not include the page URL, query string, subject ID, IP address, or user agent. Requests omit cookies and the referrer. The visit ID is not reused as a persistent visitor identity, so these counts describe initialized browser visits, not unique people.
+  ### Request-scoped SSR
 
-  IAB mode starts the visit after init and waits for TC-string restoration before sending its state. Failed IAB initialization leaves the visit unclassified. Use a matching `@c15t/iab` release to link IAB saves and report restored choices. Automatic opt-out and Global Privacy Control decisions change the in-memory preferences without producing a saved-choice event.
+  Shared SSR data is untracked by default. To correlate an init performed for a single server request, explicitly enable measurement in the server helper:
 
-  Consent saves include the reserved `metadata.c15tVisitId` field. The backend must count a save only after accepting it; there is no client-side `saved` analytics event. Queued saves and reload-deferred revocations retain the original visit ID until delivery, even if the next document has a new visit ID. Optional analytics failures do not interrupt consent saving or script gating.
+  ```ts
+  import { fetchInitialData } from '@c15t/nextjs';
 
-  Cached provider remounts reuse the existing runtime and visit. If you permanently discard a runtime, call `runtime.dispose()` to stop measurement and evict it from the runtime cache. For stores created directly, `store.dispose()` stops measurement. Do not dispose a shared runtime during an ordinary provider remount. `clearConsentRuntimeCache()` also disposes cached measurement listeners and timers.
+  const ssrData = fetchInitialData({
+    backendURL: 'https://your-backend.example.com',
+    visitTracking: true,
+  });
+  ```
+
+  The framework-agnostic `fetchSSRData` helper accepts the same option. It generates a fresh request ID, sends `c15tVisitSource=ssr`, and carries the expected ID in hydration metadata only when the backend acknowledges it. The Next.js helper bypasses its cross-request init cache when this option is enabled. Known speculative prefetch requests remain untracked.
+
+  Enable this only for request-scoped rendering. Do not cache or prerender the resulting HTML, serialized initial data, or helper promise for reuse across visitors. The SDK cannot detect every application-level cache or speculative render. Default shared SSR hydration adds no browser measurement request and remains outside the measured cohort.
+
+  ### What the measurement means
+
+  These identifiers correlate observed initializations with later accepted consent saves. They do not establish unique people, rendered banner exposure, page exits, or a complete website visit count. A browser prefetch can run before the consent UI mounts; SSR rendering does not prove that a browser displayed the response. Offline mode, custom clients, older SDK versions, shared SSR data, and requests without a matching acknowledgement are untracked.
+
+  Without another runtime signal, a missing save means only that no linked save has been recorded in the observation window. It cannot distinguish someone who left from someone still deciding, using an existing choice, experiencing a network failure, or not needing a choice. Local stored choices and automatic GPC or opt-out decisions do not themselves create a consent receipt.
+
+  The added correlation fields contain a random ID and request source, with no added page URL, IP address, or user-agent value. Existing init and consent requests retain their normal transport behaviour. Receipt correlation can associate the ephemeral ID with an existing consent identity; using the existing request does not itself establish a legal exemption or lawful basis for measurement.
+
+  If you permanently discard a runtime, `runtime.dispose()` clears its in-memory correlation and evicts it from the runtime cache. Direct stores expose `store.dispose()`. Do not dispose a shared runtime during an ordinary provider remount.
 </section>
 
 <section id="debugging">

@@ -257,6 +257,12 @@ export type OfflinePolicyConfig = {
  */
 export interface SSRInitRequestMetadata {
 	/**
+	 * Expected ID from a browser prefetch or explicitly request-scoped SSR init.
+	 * Never add this to shared, cached, or prerendered SSR data.
+	 */
+	visitTracking?: { source: 'browser' | 'ssr'; visitId: string };
+
+	/**
 	 * Effective request inputs used to fetch `/init`.
 	 */
 	requestContext?: SSRInitRequestContext;

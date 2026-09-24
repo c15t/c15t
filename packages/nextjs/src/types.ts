@@ -35,6 +35,7 @@ export interface C15tPrefetchProps extends PrefetchOptions {
 export interface FetchInitialDataOptions extends FetchSSRDataOptionsBase {
 	/**
 	 * Optional Next.js cache controls for SSR init requests.
+	 * Ignored when visitTracking is true: attributed init data must not be shared.
 	 */
 	nextCache?: NextCacheOptions;
 }

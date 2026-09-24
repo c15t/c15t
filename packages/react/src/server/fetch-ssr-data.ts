@@ -3,6 +3,7 @@ import { version } from '../version';
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 import type { FetchSSRDataOptions } from './types';
+import { createSSRVisitRequest, matchesSSRVisitEcho } from './visit-tracking';
 
 const C15T_VERSION_HEADER = 'x-c15t-version';
 
@@ -37,13 +38,32 @@ function performInitFetch(
 	normalizedURL: string,
 	relevantHeaders: Record<string, string>,
 	requestContext: NonNullable<SSRInitialData['metadata']>['requestContext'],
-	debug?: boolean
+	debug?: boolean,
+	requestedVisit?: ReturnType<typeof createSSRVisitRequest>
 ): Promise<SSRFetchResult> {
 	const startTime = getNowMs();
+	let visitRequest = requestedVisit;
 
-	return fetch(`${normalizedURL}/init`, {
+	let url = `${normalizedURL}/init`;
+	if (visitRequest) {
+		try {
+			const trackedURL = new URL(url);
+			trackedURL.searchParams.set('c15tVisitId', visitRequest.visitId);
+			trackedURL.searchParams.set('c15tVisitSource', 'ssr');
+			url = trackedURL.toString();
+		} catch {
+			// Optional attribution must not change normal init error handling.
+			visitRequest = undefined;
+		}
+	}
+
+	return fetch(url, {
 		method: 'GET',
-		headers: relevantHeaders,
+		headers: {
+			...relevantHeaders,
+			...(visitRequest ? { Origin: visitRequest.origin } : {}),
+		},
+		...(visitRequest ? { cache: 'no-store' } : {}),
 	})
 		.then((response) => {
 			const requestDurationMs = Math.max(0, Math.round(getNowMs() - startTime));
@@ -55,10 +75,15 @@ function performInitFetch(
 			};
 
 			if (response.ok) {
-				return response.json().then((init) => ({
-					init: init as InitOutput,
-					metadata,
-				}));
+				return response.json().then((init: unknown) => {
+					if (visitRequest && matchesSSRVisitEcho(init, visitRequest.visitId)) {
+						metadata.visitTracking = {
+							source: 'ssr',
+							visitId: visitRequest.visitId,
+						};
+					}
+					return { init: init as InitOutput, metadata };
+				});
 			}
 			if (debug) {
 				console.log(
@@ -268,7 +293,8 @@ export async function fetchSSRData(
 			headers: initHeaders,
 			overrides,
 		}),
-		debug
+		debug,
+		createSSRVisitRequest(headers, options.visitTracking)
 	);
 	const init = initResult.init;
 

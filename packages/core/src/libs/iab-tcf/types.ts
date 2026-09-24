@@ -256,9 +256,7 @@ export interface IABModule {
 				partial: Partial<import('../../store/type').ConsentStoreState>
 			) => void;
 		},
-		prefetchedGVL?: import('../../types/iab-tcf').GlobalVendorList | null,
-		/** Called only after initialization and stored TC-string restoration resolve. */
-		onResolved?: (hasRestoredChoice: boolean) => void
+		prefetchedGVL?: import('../../types/iab-tcf').GlobalVendorList | null
 	) => Promise<void>;
 
 	/** Fetches the Global Vendor List. Used by client fallback paths. */

@@ -27,6 +27,18 @@ export interface FetchSSRDataOptionsBase {
 	 * @default false
 	 */
 	debug?: boolean;
+
+	/**
+	 * Attribute this request's existing init fetch to an ephemeral init cohort.
+	 * Uses a fresh ID and no-store caching; the backend must echo the ID before
+	 * hydration can attribute a later save. Shared SSR caching remains untracked
+	 * by default. Known prefetch/prerender requests are never attributed.
+	 *
+	 * Call only during a live request. Server initialisations do not prove a page
+	 * loaded in the browser; do not reuse this result across users or cache it.
+	 * @default false
+	 */
+	visitTracking?: boolean;
 }
 
 /**

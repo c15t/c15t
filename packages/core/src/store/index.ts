@@ -236,7 +236,7 @@ export const createConsentManagerStore = (
 	const inFlightPolicyConsents = new Map<string, Promise<PostSubjectOutput>>();
 	const visitTracker =
 		enabled && manager instanceof C15tClient
-			? createConsentVisitTracker(manager)
+			? createConsentVisitTracker()
 			: undefined;
 
 	const store = createStore<ConsentStoreState>((set, get) => ({
@@ -747,7 +747,7 @@ export const createConsentManagerStore = (
 	}
 
 	return Object.assign(store, {
-		/** Stop optional visit analytics when explicitly disposing this store. */
+		/** Clear optional init correlation when explicitly disposing this store. */
 		dispose: () => visitTracker?.dispose(),
 	});
 };

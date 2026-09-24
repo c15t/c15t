@@ -9,6 +9,7 @@
 
 import type { ResponseContext } from '../../client/types';
 import type { InitDataSource, SSRInitialData } from '../../store/type';
+import { createConsentVisitId } from '../consent-visit';
 import {
 	createRuntimeRequestContextMatcher,
 	matchesStoredRequestContext,
@@ -89,7 +90,7 @@ export async function initConsentManager(
 	// Check if localStorage is available
 	const hasLocalStorageAccess = checkLocalStorageAccess(set);
 	if (!hasLocalStorageAccess) {
-		config.visitTracker?.initialise(undefined, get());
+		config.visitTracker?.initialise(undefined);
 		return undefined;
 	}
 
@@ -113,7 +114,7 @@ export async function initConsentManager(
 		manager,
 		callbacks
 	);
-	if (!result) config.visitTracker?.initialise(undefined, get());
+	if (!result) config.visitTracker?.initialise(undefined);
 	return result;
 }
 
@@ -141,6 +142,13 @@ async function tryUseSSRData(
 	}
 
 	if (data?.init) {
+		const tracking = data.metadata?.visitTracking;
+		config.visitTracker?.initialise(
+			data.init,
+			tracking?.source === 'browser' || tracking?.source === 'ssr'
+				? tracking.visitId
+				: undefined
+		);
 		const initSourceMetadata = inferSSRInitSourceMetadata(data);
 		await updateStore(data.init, config, true, data.gvl, {
 			initDataSource: initSourceMetadata.initDataSource,
@@ -173,9 +181,15 @@ async function fetchFromAPI(
 
 	try {
 		const { language, country, region } = config.get().overrides ?? {};
+		const visitId = config.visitTracker ? createConsentVisitId() : undefined;
+		config.visitTracker?.initialise(undefined);
 
 		// Fetch init data (GVL is included in response when server has it configured)
 		const initContext = (await manager.init({
+			...(visitId && {
+				query: { c15tVisitId: visitId, c15tVisitSource: 'browser' },
+				fetchOptions: { cache: 'no-store' as const },
+			}),
 			headers: {
 				...(language && { 'accept-language': language }),
 				...(country && { 'x-c15t-country': country }),
@@ -194,6 +208,7 @@ async function fetchFromAPI(
 		if (error || !data) {
 			throw new Error(`Failed to fetch consent banner info: ${error?.message}`);
 		}
+		config.visitTracker?.initialise(data, visitId);
 
 		const initSourceMetadata = inferInitSourceMetadata(
 			initContext,

@@ -22,6 +22,7 @@ const DEFAULT_REVALIDATE_SECONDS = 1;
  * @param options.backendURL - Backend URL (absolute or relative)
  * @param options.overrides - Optional geo-location overrides
  * @param options.debug - Enable debug logging
+ * @param options.visitTracking - Attribute this live request without shared caching
  * @returns The SSR initial data promise
  *
  * @example
@@ -50,7 +51,8 @@ export async function fetchInitialData(
 	}
 
 	const revalidateSeconds = options.nextCache?.revalidateSeconds;
-	if (revalidateSeconds === false) {
+	// A correlated SSR result must never be reused across requests or users.
+	if (options.visitTracking || revalidateSeconds === false) {
 		return fetchSSRData({
 			...options,
 			backendURL: normalizedURL,

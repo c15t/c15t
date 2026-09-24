@@ -1,6 +1,7 @@
 import type { InitOutput } from '@c15t/schema/types';
 import { C15T_VERSION_HEADERS } from '../../client/headers';
 import type { SSRInitialData } from '../../store/type';
+import { createConsentVisitId } from '../consent-visit';
 import {
 	buildRequestContextHeaders,
 	createBrowserRequestContext,
@@ -76,7 +77,8 @@ function buildPrefetchConfig(options: PrefetchOptions): PrefetchConfig {
 
 function toInitialData(
 	config: Pick<PrefetchConfig, 'requestContext'>,
-	init: InitOutput | undefined
+	init: InitOutput | undefined,
+	visitId?: string
 ): SSRInitialData | undefined {
 	if (!init) {
 		return undefined;
@@ -87,6 +89,9 @@ function toInitialData(
 		gvl: init.gvl,
 		metadata: {
 			requestContext: config.requestContext,
+			...(visitId && {
+				visitTracking: { source: 'browser' as const, visitId },
+			}),
 		},
 	};
 }
@@ -110,15 +115,22 @@ function getPromiseMap(
 }
 
 function createPrefetchEntry(config: PrefetchConfig): PrefetchEntry {
-	const promise = fetch(config.url, {
+	const visitId = createConsentVisitId();
+	const url = new URL(config.url);
+	if (visitId) {
+		url.searchParams.set('c15tVisitId', visitId);
+		url.searchParams.set('c15tVisitSource', 'browser');
+	}
+	const promise = fetch(url.toString(), {
 		method: 'GET',
 		credentials: config.credentials,
+		...(visitId && { cache: 'no-store' as const }),
 		headers: config.headers,
 	})
 		.then((response) =>
 			response.ok ? (response.json() as Promise<InitOutput>) : undefined
 		)
-		.then((init) => toInitialData(config, init))
+		.then((init) => toInitialData(config, init, visitId))
 		.catch(() => undefined);
 
 	return {
@@ -257,10 +269,22 @@ export function buildPrefetchScript(options: PrefetchOptions): string {
   if (promises[cacheKey]) {
     return;
   }
-  const promise = fetch(url, {
+  let visitId;
+  try {
+    visitId = typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : undefined;
+  } catch {}
+  const requestURL = new URL(url);
+  if (visitId) {
+    requestURL.searchParams.set('c15tVisitId', visitId);
+    requestURL.searchParams.set('c15tVisitSource', 'browser');
+  }
+  const promise = fetch(requestURL.toString(), {
     method: 'GET',
     credentials: payload.credentials,
-    headers: payload.headers
+    headers: payload.headers,
+    ...(visitId ? { cache: 'no-store' } : {})
   })
     .then((response) => (response.ok ? response.json() : undefined))
     .then((init) => (init
@@ -268,7 +292,8 @@ export function buildPrefetchScript(options: PrefetchOptions): string {
           init,
           gvl: init.gvl,
           metadata: {
-            requestContext
+            requestContext,
+            ...(visitId ? { visitTracking: { source: 'browser', visitId } } : {})
           }
         }
       : undefined))
