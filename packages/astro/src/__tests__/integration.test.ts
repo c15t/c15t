@@ -272,6 +272,7 @@ describe('astro:config:setup', () => {
 		];
 		expect(vueConfig.vite.plugins.map((plugin) => plugin.name)).toEqual([
 			'c15t:options',
+			'c15t:class-maps-without-css',
 			'@c15t/vue',
 		]);
 
@@ -281,6 +282,7 @@ describe('astro:config:setup', () => {
 		];
 		expect(svelteConfig.vite.plugins.map((plugin) => plugin.name)).toEqual([
 			'c15t:options',
+			'c15t:class-maps-without-css',
 		]);
 	});
 
