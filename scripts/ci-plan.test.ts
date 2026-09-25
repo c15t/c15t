@@ -89,7 +89,7 @@ describe('CI selection', () => {
 		const result = plan([file]);
 		expect(result.full).toBe(true);
 		expect(result.backend).toBe(true);
-		expect(result.examples).toHaveLength(9);
+		expect(result.examples).toHaveLength(10);
 	});
 	it('runs benchmark helper tests when benchmark infrastructure changes', () => {
 		expect(plan(['benchmarks/shared/src/budgets.ts']).tests).toContain(

@@ -286,6 +286,49 @@ for (const target of selectedTargets()) {
 			});
 		}
 
+		if (target.id === 'astro' || target.id === 'astro-static') {
+			test('ClientRouter navigation keeps one runtime and the banner state', async () => {
+				await visit('/consent-example');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				await page.evaluate(() => {
+					(window as unknown as { __runtimeMarker: unknown }).__runtimeMarker =
+						(window as unknown as { __c15tAstro: unknown }).__c15tAstro;
+				});
+				const sameRuntime = () =>
+					page.evaluate(
+						() =>
+							(window as unknown as { __runtimeMarker: unknown })
+								.__runtimeMarker ===
+							(window as unknown as { __c15tAstro: unknown }).__c15tAstro
+					);
+
+				// A swapped-in page still owes the banner until someone chooses.
+				await page
+					.getByRole('link', { exact: true, name: 'Second page' })
+					.click();
+				await page.waitForURL('**/second');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				expect(await sameRuntime()).toBe(true);
+
+				await rejectButton(page).click();
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(false);
+				await page
+					.getByRole('link', { exact: true, name: 'Consent example' })
+					.click();
+				await page.waitForURL('**/consent-example');
+				await expect
+					.poll(() =>
+						page
+							.getByRole('heading', { exact: true, name: 'Consent example' })
+							.isVisible()
+					)
+					.toBe(true);
+				expect(await rejectButton(page).isVisible()).toBe(false);
+				expect(await sameRuntime()).toBe(true);
+				await expectNoTracking(page, requests);
+			});
+		}
+
 		if (target.id === 'javascript') {
 			test('a persisted pagehide keeps preferences and consent gating active', async () => {
 				await visit('/');
