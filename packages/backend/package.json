@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "3.0.0-alpha.1",
+	"version": "3.0.0-alpha.2",
 	"description": "Self-hostable consent management backend for c15t with policy resolution, audit logs, geolocation, and Postgres, MySQL and SQLite storage.",
 	"keywords": [
 		"backend",
