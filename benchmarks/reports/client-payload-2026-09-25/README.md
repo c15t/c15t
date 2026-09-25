@@ -110,6 +110,28 @@ first init, as the root already does for the manifest transport.
 | Gzip | 208,737 | 205,177 | −3,560 |
 | Brotli | 179,336 | 176,389 | −2,947 |
 
+`@c15t/tanstack-start`'s `ConsentRoot` had the same static import and gets the
+same fix. It was measured separately, outside this bench: a TanStack Start
+1.168.49 app (Vite 8.1.3, React 19.2.8) following the TanStack Start quickstart
+(`createConsentStateHandler` in the root loader with an inline copy of the same
+manifest, `ConsentRoot` with `initRoute={false}`, banner, deferred dialog and
+link, `c15t/tanstack-start/styles.css`, the same theme), built with `vite build`
+and served from `dist/`. Packages were packed from `40032552c` (alpha.2) and from
+this branch. Chromium loaded 5 initial scripts in both builds, sized and
+attributed the same way as above. Rolldown minifies these modules less
+tightly than Turbopack, so the presets weigh more here (28,628 B raw).
+
+| TanStack Start, initial JS | alpha.2 | This branch | Change |
+| --- | ---: | ---: | ---: |
+| Raw | 551,334 | 522,938 | −28,396 |
+| Gzip | 174,132 | 164,373 | −9,759 |
+| Brotli | 148,784 | 140,560 | −8,224 |
+
+Initial CSS (21,720 B gzip) is unchanged. Opening the dialog loads 11,291 B gzip
+before and 11,289 B after; accepting loads no extra JS in either build, since this
+setup saves through `hosted()`. The presets now sit in an `offline-mode` chunk
+that neither build loads.
+
 What `ConsentRoot` still costs over the `v3-react` provider tree: 7,217 B raw,
 about 3,080 B gzip. `root.js` and `config.js` are 2,715 B; the rest is `hosted`
 with `initURL` options, `custom()`, and related helpers, which runtime mode
@@ -203,5 +225,3 @@ full Markdown for a saved run, including every module.
   mostly every locale's translations) comes from saving through the manifest
   transport. Routing saves through the hosted client needs a decision on how
   decision inputs are asserted when the server resolved consent.
-- `@c15t/tanstack-start`'s root imports `offline()` the same way. It was not
-  measured here.
