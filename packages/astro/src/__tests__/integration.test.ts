@@ -154,6 +154,34 @@ describe('astro:config:setup', () => {
 		expect(calls.addMiddleware).not.toHaveBeenCalled();
 	});
 
+	it('injects the component stylesheet into every page', async () => {
+		const { calls } = await runSetup({ mode: offlineMode() });
+		// The server build resolves the class maps through the `node`
+		// condition, which carries no CSS, so without this nothing is styled.
+		expect(calls.injectScript).toHaveBeenCalledWith(
+			'page-ssr',
+			"import '@c15t/astro/styles.css';"
+		);
+	});
+
+	it('adds the IAB stylesheet when IAB is configured', async () => {
+		const { calls } = await runSetup({
+			iab: { cmpId: 160 },
+			mode: offlineMode(),
+		});
+		const styles = calls.injectScript.mock.calls.find(
+			([stage]) => stage === 'page-ssr'
+		) as [string, string];
+		expect(styles[1]).toContain("import '@c15t/astro/iab/styles.css';");
+	});
+
+	it('leaves styles to the site with `styles: false`', async () => {
+		const { calls } = await runSetup({ mode: offlineMode(), styles: false });
+		expect(
+			calls.injectScript.mock.calls.some(([stage]) => stage === 'page-ssr')
+		).toBe(false);
+	});
+
 	it('injects a page-level boot script', async () => {
 		const { calls } = await runSetup({ mode: offlineMode() });
 		const [stage, code] = calls.injectScript.mock.calls[0] as [string, string];

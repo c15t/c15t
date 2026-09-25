@@ -200,6 +200,18 @@ export interface C15tAstroOptions {
 	 */
 	ui?: C15tUIAdapterName;
 
+	/**
+	 * Add `@c15t/astro/styles.css` to every page, and
+	 * `@c15t/astro/iab/styles.css` when {@link C15tAstroOptions.iab} is set.
+	 *
+	 * Set to `false` to import them yourself, for example from a global
+	 * stylesheet with your own cascade layers, or to style the surfaces from
+	 * scratch.
+	 *
+	 * @default true
+	 */
+	styles?: boolean;
+
 	/** Injected API routes. */
 	endpoints?: C15tEndpointOptions | boolean;
 

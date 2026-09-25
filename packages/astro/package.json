@@ -104,6 +104,7 @@
 			"default": "./dist/api/manifest.js"
 		},
 		"./styles.css": "./dist/styles.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
 		"./package.json": "./package.json",
 		"./components/consent-banner-deferred.astro": "./src/components/prompt-deferred.astro",
 		"./components/consent-banner.astro": "./src/components/prompt.astro",

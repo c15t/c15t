@@ -12,8 +12,10 @@
  *    `manifest` mode, with the same semantics as `@c15t/nextjs/api`.
  * 4. A virtual module (`virtual:c15t/options`) carrying the serialized
  *    options to all of the above.
+ * 5. The component stylesheet, on every page.
  */
 
+import { isIABConfigured } from '@c15t/core/runtime';
 import type { AstroIntegration } from 'astro';
 
 import type {
@@ -231,6 +233,25 @@ const buildBootScript = function buildBootScript(
 };
 
 /**
+ * Build the stylesheet imports the integration injects into every page.
+ *
+ * @param resolved - The resolved integration options.
+ * @returns The module source, or an empty string with `styles: false`.
+ */
+export const buildStylesImport = function buildStylesImport(
+	resolved: C15tResolvedOptions
+): string {
+	if (resolved.styles === false) {
+		return '';
+	}
+	const lines = ["import '@c15t/astro/styles.css';"];
+	if (isIABConfigured(resolved.iab)) {
+		lines.push("import '@c15t/astro/iab/styles.css';");
+	}
+	return lines.join('\n');
+};
+
+/**
  * The Vite plugins the app needs for the configured `ui`.
  *
  * `@c15t/vue`'s shared composables import `#imports`, which only Nuxt
@@ -373,6 +394,14 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 				// `page` runs the boot on every page, before any island
 				// hydrates, so the runtime exists before anything asks for it.
 				injectScript('page', buildBootScript(options, resolved.ui));
+
+				// `page-ssr` is Astro's hook for page-wide CSS. The components
+				// cannot import their own: the server build resolves the class
+				// maps through the `node` condition, which carries no CSS.
+				const styles = buildStylesImport(resolved);
+				if (styles) {
+					injectScript('page-ssr', styles);
+				}
 
 				if (resolved.endpoints.enabled) {
 					injectRoute({

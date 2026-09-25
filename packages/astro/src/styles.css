@@ -1,10 +1,11 @@
 /**
  * @c15t/astro — prebuilt component styles.
  *
- * Import this once from a layout or app-level stylesheet when you use the
- * styled banner and dialog components.
+ * The integration injects this into every page unless `styles: false` is
+ * set. It covers the theme tokens, the server-rendered banner and the dialog
+ * islands of every `ui` adapter.
  *
- * Usage (src/styles/global.css):
+ * Usage with `styles: false` (src/styles/global.css):
  *   @import "@c15t/astro/styles.css";
  */
 @import '@c15t/ui/styles.css';
