@@ -43,6 +43,12 @@ example's category list with the categories your consent UI actually displays,
 or omit `getConsentCategories` to use the current policy categories. Accept and
 reject leave hidden category values unchanged.
 
+To host the panel inside another devtools UI, pass that UI's element as
+`container` and set `embedded: true`. The panel then fills the container,
+starts open, and hides its launcher, header and close button. The container can
+belong to a same-origin iframe; the panel still inspects the page that owns the
+kernel.
+
 Call `tools.destroy()` from your app's teardown hook. The Vite example uses HMR
 disposal; other hosts should use their own lifecycle. Destroying DevTools does
 not destroy the kernel or change consent.

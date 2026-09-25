@@ -167,6 +167,33 @@ the generated files and check that all consent URLs exist on the deployed host.
 Reject, reload, navigate and reopen preferences. Use
 [verification](/docs/guides/verify-consent) for the network checks.
 
+## Inspect consent in Nuxt DevTools
+
+In development, the module adds a **c15t** tab to Nuxt DevTools. Open Nuxt
+DevTools with Shift + Option + D (Shift + Alt + D on Windows and Linux) and
+choose c15t. The tab inspects the app's consent kernel: consent values,
+scripts, location, the resolved policy, IAB state, events and consent actions.
+It follows the DevTools light or dark theme.
+
+Nuxt enables its DevTools by default in development. Production builds don't
+register the tab, its `/__c15t_devtools__` page or the client plugin that
+exposes the kernel to it. To turn the tab off in development, set
+`devtools: false`:
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  modules: ['c15t/vue'],
+  c15t: {
+    devtools: false,
+  },
+});
+```
+
+The tab's event history starts when you first open it. Nuxt DevTools keeps the
+tab loaded, so switching to another tab and back keeps the history. Saves and
+actions in the tab change the app's real consent state, as they would through
+the banner.
+
 ## Run the complete example
 
 Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
