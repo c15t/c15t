@@ -374,47 +374,82 @@ const collectRoute = async function collectRoute(
 	route: string,
 	hasConsent: boolean
 ): Promise<RouteResult> {
-	const context = await browser.newContext({
-		viewport: { height: 720, width: 1280 },
-	});
-	const page = await context.newPage();
-	const seen = new Map<string, AssetResult['phase']>();
-	let phase: AssetResult['phase'] = 'initial';
-	page.on('response', (response) => {
-		const url = new URL(response.url());
-		const type = response.request().resourceType();
-		if (
-			url.pathname.startsWith('/_next/static/') &&
-			(type === 'script' || type === 'stylesheet') &&
-			!seen.has(url.pathname)
-		) {
-			seen.set(url.pathname, phase);
-		}
-	});
-	await page.goto(`${baseURL}${route}`, { waitUntil: 'load' });
-	await page.waitForLoadState('networkidle');
-	const bannerVisible = await page
-		.getByTestId('consent-banner-root')
-		.first()
-		.isVisible();
-	let dialogVisible = false;
-	if (hasConsent) {
-		phase = 'dialog';
-		await page.getByTestId('consent-banner-customize-button').first().click();
-		await page
-			.getByTestId('consent-dialog-card')
-			.first()
-			.waitFor({ state: 'visible', timeout: 15_000 });
+	// Each phase lists what it loaded beyond that visit's earlier phases; one
+	// asset can belong to both interaction phases.
+	const seen = new Set<string>();
+	const record = (path: string, phase: AssetResult['phase']) => {
+		seen.add(`${phase} ${path}`);
+	};
+	// A fresh visitor per interaction: open the dialog in one context, and
+	// accept from the banner in another.
+	const visit = async (interaction: 'accept' | 'dialog' | null) => {
+		const context = await browser.newContext({
+			viewport: { height: 720, width: 1280 },
+		});
+		const page = await context.newPage();
+		const loaded = new Set<string>();
+		let phase: AssetResult['phase'] = 'initial';
+		page.on('response', (response) => {
+			const url = new URL(response.url());
+			const type = response.request().resourceType();
+			if (
+				url.pathname.startsWith('/_next/static/') &&
+				(type === 'script' || type === 'stylesheet') &&
+				!loaded.has(url.pathname)
+			) {
+				loaded.add(url.pathname);
+				record(url.pathname, phase);
+			}
+		});
+		await page.goto(`${baseURL}${route}`, { waitUntil: 'load' });
 		await page.waitForLoadState('networkidle');
-		dialogVisible = true;
+		const bannerVisible = await page
+			.getByTestId('consent-banner-root')
+			.first()
+			.isVisible();
+		if (interaction === 'dialog') {
+			phase = 'dialog';
+			await page.getByTestId('consent-banner-customize-button').first().click();
+			await page
+				.getByTestId('consent-dialog-card')
+				.first()
+				.waitFor({ state: 'visible', timeout: 15_000 });
+		}
+		if (interaction === 'accept') {
+			phase = 'accept';
+			// The save may start after the banner hides; wait for its POST so
+			// every chunk the save path loads has arrived.
+			const saved = page.waitForResponse(
+				(response) =>
+					response.request().method() === 'POST' &&
+					new URL(response.url()).pathname.endsWith('/subjects'),
+				{ timeout: 15_000 }
+			);
+			await page.getByTestId('consent-banner-accept-button').first().click();
+			await page
+				.getByTestId('consent-banner-root')
+				.first()
+				.waitFor({ state: 'hidden', timeout: 15_000 });
+			await saved;
+		}
+		await page.waitForLoadState('networkidle');
+		await context.close();
+		return bannerVisible;
+	};
+	const bannerVisible = await visit(hasConsent ? 'dialog' : null);
+	if (hasConsent) {
+		await visit('accept');
 	}
-	await context.close();
 	return {
-		assets: [...seen.entries()].map(([path, assetPhase]) =>
-			measureAsset(armDir, path, assetPhase)
-		),
+		assets: [...seen].map((entry) => {
+			const [assetPhase, path] = entry.split(' ') as [
+				AssetResult['phase'],
+				string,
+			];
+			return measureAsset(armDir, path, assetPhase);
+		}),
 		bannerVisible,
-		dialogVisible,
+		dialogVisible: hasConsent,
 		route,
 	};
 };
@@ -426,6 +461,14 @@ const main = async function main() {
 		(name) => ARM_DEFINITIONS[name]?.library === 'v3'
 	);
 	const v3 = needsV3 && !skipBuild ? v3Dependencies() : null;
+	// Remember which build the arms were installed from, for --skip-build.
+	const sourceFile = join(workDir, 'v3-source.txt');
+	if (v3) {
+		writeFileSync(sourceFile, v3.source);
+	}
+	const v3SourceLabel =
+		v3?.source ??
+		(existsSync(sourceFile) ? readFileSync(sourceFile, 'utf8') : v3Spec);
 	const armDirs = new Map<string, string>();
 	for (const name of armNames) {
 		const definition = ARM_DEFINITIONS[name] as ArmDefinition;
@@ -481,10 +524,10 @@ const main = async function main() {
 		arms,
 		generatedAt: new Date().toISOString(),
 		method:
-			'Assets are the /_next/static scripts and stylesheets Chromium fetched for the route (initial: until network idle after load; dialog: after clicking Customize until network idle). Sizes are the emitted files with the sourceMappingURL comment removed; gzip and brotli use Node zlib defaults on each file. Bytes are attributed per source module from productionBrowserSourceMaps: each mapping segment owns the generated text up to the next segment. Package gzip is the package share of raw bytes times the chunk gzip size.',
+			'Assets are the /_next/static scripts and stylesheets Chromium fetched for the route, each phase in a fresh browser context (initial: until network idle after load; dialog: after clicking Customize on the banner, until network idle; accept: after clicking Accept on the banner, until the banner hides and the network is idle). Sizes are the emitted files with the sourceMappingURL comment removed; gzip and brotli use Node zlib defaults on each file. Bytes are attributed per source module from productionBrowserSourceMaps: each mapping segment owns the generated text up to the next segment. Package gzip is the package share of raw bytes times the chunk gzip size.',
 		repoSha: gitSha(),
 		v2Version,
-		v3Source: v3?.source ?? v3Spec,
+		v3Source: v3SourceLabel,
 	};
 	writeFileSync(
 		join(outputDir, 'client-payload.json'),

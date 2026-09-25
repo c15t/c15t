@@ -13,7 +13,12 @@ export interface AssetResult {
 	/** Raw bytes per package (`@c15t/react`, `(app)`, ...). */
 	packages: Record<string, number>;
 	path: string;
-	phase: 'dialog' | 'initial';
+	/**
+	 * `initial`: loaded before any interaction. `dialog`: first loaded when the
+	 * dialog opened. `accept`: first loaded when a fresh visitor accepted from
+	 * the banner.
+	 */
+	phase: 'accept' | 'dialog' | 'initial';
 	raw: number;
 	type: 'css' | 'js';
 	unmappedBytes: number;
@@ -168,12 +173,14 @@ const routeTotalsSection = function routeTotalsSection(
 			const css = totals('initial', 'css');
 			const dialogJs = totals('dialog', 'js');
 			const dialogCss = totals('dialog', 'css');
+			const acceptJs = totals('accept', 'js');
 			rows.push([
 				`${arm.name} ${route.route}`,
 				`${js.count} / ${format(js.raw)} / ${format(js.gzip)}`,
 				`${css.count} / ${format(css.raw)} / ${format(css.gzip)}`,
 				`${dialogJs.count} / ${format(dialogJs.gzip)}`,
 				`${dialogCss.count} / ${format(dialogCss.gzip)}`,
+				`${acceptJs.count} / ${format(acceptJs.raw)} / ${format(acceptJs.gzip)}`,
 				`${route.bannerVisible ? 'yes' : 'no'} / ${route.dialogVisible ? 'yes' : 'no'}`,
 			]);
 		}
@@ -188,6 +195,7 @@ const routeTotalsSection = function routeTotalsSection(
 				'Initial CSS files / raw / gzip',
 				'Dialog JS files / gzip',
 				'Dialog CSS files / gzip',
+				'First accept JS files / raw / gzip',
 				'Banner / dialog',
 			],
 			rows
@@ -317,9 +325,9 @@ const comparisonSection = function comparisonSection(
 };
 
 const moduleSection = function moduleSection(result: PayloadResult): string[] {
-	const lines = ['## c15t modules in initial and dialog JS', ''];
+	const lines = ['## c15t modules by phase', ''];
 	for (const arm of result.arms.filter((a) => a.library !== 'none')) {
-		for (const phase of ['initial', 'dialog'] as const) {
+		for (const phase of ['initial', 'dialog', 'accept'] as const) {
 			const modules = [
 				...shareBy(assetsOf(arm, phase, 'js'), 'modules').entries(),
 			]
