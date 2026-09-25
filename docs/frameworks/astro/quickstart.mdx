@@ -143,6 +143,11 @@ For prerendered pages, the middleware skips request prefetch. The browser
 resolves consent against the external backend. This avoids treating the build
 machine's cookies or geography as visitor state.
 
+On a prerendered page `Astro.locals.c15t.prerendered` is `true`, and the config
+the page inlines carries no stored consent, clock or privacy signal. The
+browser reads the visitor's own consent cookie when it boots, so a returning
+visitor keeps their choice.
+
 For server-rendered pages, keep your Astro server adapter and output settings.
 The middleware can resolve request-specific state into `Astro.locals.c15t`.
 Pass the prepared state through the supplied components instead of constructing

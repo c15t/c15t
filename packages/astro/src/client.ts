@@ -370,7 +370,11 @@ const createClient = function createClient(
 	options: C15tResolvedOptions,
 	extension: C15tClientOptionsExtension = {}
 ): AstroConsentClient {
-	const config = readInlinedConfig();
+	const inlined = readInlinedConfig();
+	// A prerendered page inlines no clock: the build's would age every
+	// stored record against the day the site was built.
+	const config: KernelConfig =
+		inlined.now === undefined ? { ...inlined, now: Date.now() } : inlined;
 	const scripts = [...(options.scripts ?? []), ...(extension.scripts ?? [])];
 
 	// The server already resolved translations into `prefetch`, which the

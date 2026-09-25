@@ -137,7 +137,10 @@ export const createCiPlan = function createCiPlan(
 			/^apps\/storybook-(?:react|vue|svelte|astro)$/u.test(workspace.directory)
 		)
 		.map((workspace) => workspace.directory.replace('apps/storybook-', ''));
-	if (parity.includes('react')) {
+	// React is the reference every framework compares against, and the Astro
+	// Storybook is only checked alongside the React, Svelte and Vue ones: the
+	// suite needs at least two of those to pair stories and DevTools panels.
+	if (parity.includes('react') || parity.includes('astro')) {
 		parity.splice(0, parity.length, 'react', 'svelte', 'vue', 'astro');
 	}
 	if (parity.length && !parity.includes('react')) {

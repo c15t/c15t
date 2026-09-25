@@ -343,6 +343,13 @@ export interface C15tLocals {
 	shouldShowBanner: boolean;
 
 	/**
+	 * Whether this render is shared by every visitor, as on a prerendered
+	 * route. Its config then carries no stored consent, so the browser reads
+	 * the visitor's own cookie.
+	 */
+	prerendered: boolean;
+
+	/**
 	 * Whether a policy rule is resolved for this request. Every c15t consent
 	 * surface renders nothing until one is: an unconfigured, failed, or
 	 * unmatched resolution leaves nothing to consent to, and the browser shows

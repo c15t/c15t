@@ -64,9 +64,11 @@ const resolveSkipPaths = function resolveSkipPaths(
  * the components render the right thing on the server and the browser boots
  * without an `/init` roundtrip.
  *
- * A prerendered route is skipped: there is no per-visitor request to read,
- * and resolving one would bake one visitor's geo into a shared HTML file.
- * Use `<ConsentBannerDeferred />` when a cached page still needs live geo.
+ * A prerendered route is resolved without its request: there is no
+ * per-visitor request to read, and resolving one would bake one visitor's
+ * geo and cookie into a shared HTML file. The browser applies the
+ * visitor's own cookie on boot. Use `<ConsentBannerDeferred />` when a
+ * cached page still needs live geo.
  *
  * So are the integration's own init and manifest routes, and anything
  * listed in `middleware.skip` — those run `next()` with `Astro.locals.c15t`
@@ -88,13 +90,16 @@ export const createConsentMiddleware = function createConsentMiddleware(
 			return await next();
 		}
 
+		const prerendered = context.isPrerendered === true;
 		context.locals.c15t = await resolveConsentContext({
 			fetch: middlewareOptions.fetch,
-			headers: context.request.headers,
+			// Astro warns on any read of a prerendered request's headers, and
+			// at build time they hold nothing about a visitor anyway.
+			headers: prerendered ? new Headers() : context.request.headers,
 			onBackgroundRevalidate: (revalidation) =>
 				waitUntilFromLocals(revalidation, context.locals),
 			options,
-			skipPrefetch: context.isPrerendered === true,
+			prerendered,
 			url: context.request.url,
 		});
 		return await next();

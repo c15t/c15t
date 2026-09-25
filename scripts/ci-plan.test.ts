@@ -48,6 +48,17 @@ describe('CI selection', () => {
 		expect(result.compat).toContain('16-static-export');
 		expect(result.bundle).toBe(true);
 	});
+	it('pairs an Astro-only change with every framework parity is measured against', () => {
+		// The parity suite needs at least two of React, Svelte and Vue; React
+		// and Astro alone fail it before comparing anything.
+		const result = plan(['packages/astro/src/client.ts']);
+		expect([...result.parity].sort()).toEqual([
+			'astro',
+			'react',
+			'svelte',
+			'vue',
+		]);
+	});
 	it('follows Next through the umbrella package used by examples', () => {
 		const result = plan(['packages/nextjs/src/index.ts']);
 		expect([...result.compat].sort()).toEqual([
