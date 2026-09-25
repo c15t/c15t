@@ -32,6 +32,7 @@
 	],
 	"exclude": [
 		"node_modules",
+		"client-payload/fixture",
 		"app/nextjs-ssr/consent-api/current",
 		"app/nextjs-ssr/consent-api/legacy"
 	]
