@@ -46,7 +46,14 @@ Analytics.
 Hidden optional categories do not need a choice to dismiss the banner. Their
 permissions still follow the backend policy, so hidden opt-in categories remain
 denied without a valid grant. React providers enable DOM iframe blocking and
-discovery by default; set `iframeBlocker: false` to disable it, or
+discovery by default. The blocker loads when the first iframe with
+`data-category` or `data-vendor` is on the page, so pages without one never
+download it; until it runs, such an iframe that arrives with a `src` consent
+does not allow is paused. Write gated iframes with `data-src`, not `src`. The
+browser requests a `src` as soon as the iframe is in the document, before the
+blocker can pause it, whether the iframe comes from the server HTML or a
+client render. Set
+`iframeBlocker: false` to disable it, or
 `iframeBlocker: { disableAutomaticBlocking: true }` to scan manually with
 `useIframeBlocker({ disableAutomaticBlocking: true }).processAllIframes()`.
 
