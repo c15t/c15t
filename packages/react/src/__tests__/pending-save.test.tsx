@@ -5,9 +5,9 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { useHeadlessConsentUI } from '../component-hooks/use-headless-consent-ui';
-import { useConsentManager } from '../component-hooks/use-manager';
 import { ConsentDialog } from '../components/panel';
 import { KernelContext } from '../context';
+import { ConsentDraftProvider, useConsentDraft } from '../draft';
 import { ConsentProvider } from '../provider';
 
 const STORAGE_KEY = 'c15t';
@@ -231,21 +231,21 @@ const mountActions = async function mountActions() {
 	});
 	const controls = {} as {
 		kernel: ConsentKernel;
-		manager: ReturnType<typeof useConsentManager>;
+		draft: ReturnType<typeof useConsentDraft>;
 		headless: ReturnType<typeof useHeadlessConsentUI>;
 	};
 	const Capture = () => {
 		const kernel = useContext(KernelContext);
-		const manager = useConsentManager();
+		const draft = useConsentDraft();
 		const headless = useHeadlessConsentUI();
 		useEffect(() => {
 			if (!kernel) {
 				throw new Error('Missing kernel');
 			}
 			controls.kernel = kernel;
-			controls.manager = manager;
+			controls.draft = draft;
 			controls.headless = headless;
-		}, [kernel, manager, headless]);
+		}, [kernel, draft, headless]);
 		return null;
 	};
 	const container = document.createElement('div');
@@ -274,14 +274,16 @@ const mountActions = async function mountActions() {
 				},
 			}}
 		>
-			<Capture />
+			<ConsentDraftProvider>
+				<Capture />
+			</ConsentDraftProvider>
 		</ConsentProvider>
 	);
 	await vi.waitFor(() =>
 		expect(controls.kernel?.getSnapshot().resolution.status).toBe('matched')
 	);
-	controls.manager.setActiveUI('dialog');
-	await vi.waitFor(() => expect(controls.manager.activeUI).toBe('dialog'));
+	controls.headless.openDialog();
+	await vi.waitFor(() => expect(controls.headless.activeUI).toBe('dialog'));
 	return {
 		controls,
 		dispose() {
@@ -296,14 +298,14 @@ const mountActions = async function mountActions() {
 	};
 };
 
-test('manager saves its local custom selection without a draft provider', async () => {
+test('a custom save commits the selection staged on the shared draft', async () => {
 	const fixture = await mountActions();
 	try {
-		fixture.controls.manager.setSelectedConsent('marketing', true);
+		fixture.controls.draft.set('marketing', true);
 		await vi.waitFor(() =>
-			expect(fixture.controls.manager.selectedConsents.marketing).toBe(true)
+			expect(fixture.controls.draft.values.marketing).toBe(true)
 		);
-		const pending = fixture.controls.manager.saveConsents('custom');
+		const pending = fixture.controls.headless.saveCustomPreferences();
 		await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledOnce());
 		expect(
 			fixture.controls.kernel.getSnapshot().explicitChoice?.categories.marketing
@@ -321,20 +323,22 @@ for (const selection of ['all', 'custom'] as const) {
 	test(`a pending ${selection} save closes and keeps later draft edits`, async () => {
 		const fixture = await mountActions();
 		try {
-			fixture.controls.manager.setSelectedConsent('marketing', true);
+			fixture.controls.draft.set('marketing', true);
 			await vi.waitFor(() =>
-				expect(fixture.controls.manager.selectedConsents.marketing).toBe(true)
+				expect(fixture.controls.draft.values.marketing).toBe(true)
 			);
-			const pending = fixture.controls.manager.saveConsents(selection);
+			const pending = fixture.controls.headless.saveCustomPreferences(
+				selection === 'all' ? 'all' : undefined
+			);
 			expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
 			await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledOnce());
-			fixture.controls.manager.setSelectedConsent('marketing', false);
+			fixture.controls.draft.set('marketing', false);
 			await vi.waitFor(() =>
-				expect(fixture.controls.manager.selectedConsents.marketing).toBe(false)
+				expect(fixture.controls.draft.values.marketing).toBe(false)
 			);
 			fixture.replies[0]?.resolve({ ok: true });
 			await pending;
-			expect(fixture.controls.manager.selectedConsents.marketing).toBe(false);
+			expect(fixture.controls.draft.values.marketing).toBe(false);
 			expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
 		} finally {
 			fixture.dispose();
@@ -351,7 +355,7 @@ for (const navigation of ['close', 'reopen'] as const) {
 				expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
 				await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledOnce());
 				if (navigation === 'reopen') {
-					fixture.controls.manager.setActiveUI('dialog');
+					fixture.controls.headless.openDialog();
 				}
 				fixture.replies[0]?.resolve({ ok });
 				await pending;
@@ -368,14 +372,14 @@ for (const navigation of ['close', 'reopen'] as const) {
 test('older save outcomes cannot close a dialog reopened after them', async () => {
 	const fixture = await mountActions();
 	try {
-		const older = fixture.controls.manager.saveConsents('all');
+		const older = fixture.controls.headless.saveCustomPreferences('all');
 		expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
 		await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledOnce());
-		fixture.controls.manager.setActiveUI('dialog');
+		fixture.controls.headless.openDialog();
 		const newer = fixture.controls.headless.performAction('reject');
 		expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
 		await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledTimes(2));
-		fixture.controls.manager.setActiveUI('dialog');
+		fixture.controls.headless.openDialog();
 		fixture.replies[0]?.resolve({ ok: true });
 		await older;
 		expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('dialog');

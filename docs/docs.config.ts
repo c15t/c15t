@@ -122,7 +122,7 @@ export default defineDocsConfig({
 							title: 'Styling',
 						},
 						{
-							pages: ['hooks/use-consent-manager/overview'],
+							pages: ['hooks/overview'],
 							title: 'Hooks',
 						},
 						{
@@ -185,7 +185,7 @@ export default defineDocsConfig({
 							title: 'Styling',
 						},
 						{
-							pages: ['hooks/use-consent-manager/overview'],
+							pages: ['hooks/overview'],
 							title: 'Hooks',
 						},
 						{
