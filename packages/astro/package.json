@@ -145,7 +145,7 @@
 		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"astro": "^5.16.0",
+		"astro": "^7.3.0",
 		"jsdom": "^25.0.0",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
