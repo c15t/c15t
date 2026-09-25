@@ -18,6 +18,7 @@
 import { isIABConfigured } from '@c15t/core/runtime';
 import type { AstroIntegration } from 'astro';
 
+import { createClassMapPlugin } from './libs/class-map-plugin';
 import type {
 	C15tAstroOptions,
 	C15tEndpointOptions,
@@ -171,8 +172,13 @@ export const resolveOptions = function resolveOptions(
 	};
 };
 
+/** The one field every plugin this integration adds has in common. */
+interface VitePluginLike {
+	name: string;
+}
+
 /** Minimal Vite plugin shape, so the package does not depend on Vite types. */
-interface VirtualOptionsPlugin {
+interface VirtualOptionsPlugin extends VitePluginLike {
 	name: string;
 	resolveId: (id: string) => string | undefined;
 	load: (id: string) => string | undefined;
@@ -259,19 +265,23 @@ export const buildStylesImport = function buildStylesImport(
  * apps, and an Astro app is one. The import is dynamic so a site on any
  * other adapter never has to have `@c15t/vue` installed.
  *
+ * With the full stylesheet injected, the islands' own component CSS would
+ * be a second copy, so their class maps resolve without it.
+ *
  * @param resolved - The resolved integration options.
  * @returns Vite plugins to merge into the app config.
  */
-const buildVitePlugins = async function buildVitePlugins(
+export const buildVitePlugins = async function buildVitePlugins(
 	resolved: C15tResolvedOptions
-): Promise<VirtualOptionsPlugin[]> {
-	const plugins: VirtualOptionsPlugin[] = [
-		createVirtualOptionsPlugin(resolved),
-	];
+): Promise<VitePluginLike[]> {
+	const plugins: VitePluginLike[] = [createVirtualOptionsPlugin(resolved)];
+	if (resolved.styles !== false) {
+		plugins.push(createClassMapPlugin());
+	}
 	if (resolved.ui === 'vue') {
 		try {
 			const { default: shimVueImports } = await import('@c15t/vue/vite');
-			plugins.push(shimVueImports() as unknown as VirtualOptionsPlugin);
+			plugins.push(shimVueImports() as unknown as VitePluginLike);
 		} catch (cause) {
 			// This runs at `astro:config:setup`, before `astro:config:done`
 			// where the peer check lives, so an unresolved import would
