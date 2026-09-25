@@ -944,6 +944,7 @@
       "optionalPeers": [
         "@c15t/react",
         "@c15t/vue",
+        "astro",
         "react",
         "react-dom",
         "svelte",
@@ -1015,6 +1016,7 @@
       "name": "c15t",
       "version": "3.0.0-alpha.2",
       "dependencies": {
+        "@c15t/astro": "workspace:*",
         "@c15t/core": "workspace:*",
         "@c15t/nextjs": "workspace:*",
         "@c15t/react": "workspace:*",

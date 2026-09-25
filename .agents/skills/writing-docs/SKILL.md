@@ -55,10 +55,10 @@ signals. Never infer a recorded grant from `useConsent()` or turn hydration into
 a visitor action. Do not claim a banner automatically blocks existing scripts.
 
 Lead installation with `c15t` and use its actual exports: `c15t/react`,
-`c15t/next`, `c15t/vue`, `c15t/tanstack-start`, and `c15t` for the headless engine.
-The installed package name is `c15t`, not the import subpath. Use separate
-packages only for adapters and add-ons absent from its export map. Svelte and
-Astro currently require their dedicated packages. Never invent an umbrella
+`c15t/next`, `c15t/vue`, `c15t/tanstack-start`, `c15t/astro`, and `c15t` for the
+headless engine. The installed package name is `c15t`, not the import subpath.
+Use separate packages only for adapters and add-ons absent from its export map.
+Svelte currently requires its dedicated package. Never invent an umbrella
 subpath or mechanically replace provider names across adapters.
 Migration pages may show old APIs only in clearly labelled before examples.
 

@@ -106,6 +106,7 @@
 		"./styles.css": "./dist/styles.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
 		"./package.json": "./package.json",
+		"./components/consent-script.astro": "./src/components/consent-script.astro",
 		"./components/consent-banner-deferred.astro": "./src/components/prompt-deferred.astro",
 		"./components/consent-banner.astro": "./src/components/prompt.astro",
 		"./components/consent-dialog-trigger.astro": "./src/components/panel-trigger.astro",
@@ -163,6 +164,9 @@
 		"vue": "^3.5.0"
 	},
 	"peerDependenciesMeta": {
+		"astro": {
+			"optional": true
+		},
 		"@c15t/react": {
 			"optional": true
 		},

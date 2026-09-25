@@ -9,4 +9,17 @@
  *   @import "@c15t/astro/styles.css";
  */
 @import '@c15t/ui/styles.css';
-@import './visibility.css';
+
+/*
+ * The browser runtime shows and hides the banner with the `hidden`
+ * attribute. The banner's own `display` would otherwise beat the user-agent
+ * rule for `[hidden]`, leaving a dismissed banner on screen. Kept in this
+ * file rather than imported, so a copy of it (the `c15t` package ships one)
+ * stays self-contained.
+ */
+[data-testid='consent-banner-root'][hidden],
+[data-testid='consent-banner-overlay'][hidden],
+[data-testid='iab-consent-banner-root'][hidden],
+[data-testid='iab-consent-banner-overlay'][hidden] {
+	display: none !important;
+}
