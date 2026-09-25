@@ -170,9 +170,10 @@ their choice.
   resolve it the same way without request geography. The banner is in the HTML
   but hidden. The browser shows it to visitors who have not chosen yet.
 - In `hosted()` and `manifest()` mode the policy depends on the visitor's
-  location, so the build cannot resolve it. `ConsentBanner` leaves an empty
-  placeholder. The browser renders the banner there once its `/init` request
-  returns a policy that needs one.
+  location, so the build cannot resolve it. `ConsentBanner` and
+  `IABConsentBanner` leave empty placeholders. The browser renders the banner
+  that matches the policy once its `/init` request returns one. For an IAB
+  policy it also waits for the vendor list.
 
 Either way, first-time visitors see the banner once the page script runs,
 not in the first paint.

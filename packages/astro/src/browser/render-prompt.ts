@@ -15,38 +15,17 @@ import type {
 	LegalLinks,
 } from '@c15t/core';
 
-import {
-	C15T_MARK_SVG,
-	INTH_LOGO_SVG,
-	resolveBrandingModel,
-} from '../banner/branding-model';
 import type { PromptClassNames } from '../banner/class-names';
 import { resolvePromptModel } from '../banner/prompt-model';
 import type { PromptModel, PromptProps } from '../banner/prompt-model';
 import { PROMPT_SLOT_ATTRIBUTE } from '../banner/slot';
+import { element, hiddenBanner, readSpot, renderBrandingTag } from './dom';
 
 /** Site options the banner reads. */
 export interface RenderPromptOptions {
 	presentation?: ConsentPresentation;
 	legalLinks?: LegalLinks;
 }
-
-type Attributes = Record<string, string | undefined>;
-
-const element = function element(
-	tag: string,
-	attributes: Attributes,
-	children: (Node | string)[] = []
-): HTMLElement {
-	const node = document.createElement(tag);
-	for (const [name, value] of Object.entries(attributes)) {
-		if (value !== undefined) {
-			node.setAttribute(name, value);
-		}
-	}
-	node.append(...children);
-	return node;
-};
 
 /** What `<ConsentBanner />` leaves in its spot. */
 export interface PromptSlotData {
@@ -62,66 +41,14 @@ const EMPTY_CLASS_NAMES: PromptClassNames = {
 };
 
 const readSlot = function readSlot(slot: HTMLElement): PromptSlotData {
-	try {
-		const parsed = JSON.parse(
-			slot.getAttribute(PROMPT_SLOT_ATTRIBUTE) ?? '{}'
-		) as Partial<PromptSlotData> | null;
-		return {
-			classNames: { ...EMPTY_CLASS_NAMES, ...parsed?.classNames },
-			props: parsed?.props ?? {},
-		};
-	} catch {
-		return { classNames: EMPTY_CLASS_NAMES, props: {} };
-	}
-};
-
-const renderBranding = function renderBranding(
-	snapshot: ConsentSnapshot,
-	slot: PromptSlotData,
-	securedBy: string
-): HTMLElement | null {
-	const branding = resolveBrandingModel({
-		branding: snapshot.branding,
-		hide: slot.props.hideBranding,
-		hostname: window.location.hostname,
-		noStyle: slot.props.noStyle,
-		styles: slot.classNames.branding,
-		variant: 'banner-tag',
-	});
-	if (!branding.show) {
-		return null;
-	}
-	const { classes } = branding;
-	let wordmark: HTMLElement;
-	if (branding.brand === 'inth') {
-		wordmark = element('span', { class: classes.wordmark, dir: 'ltr' });
-		wordmark.innerHTML = INTH_LOGO_SVG;
-	} else {
-		const mark = element('span', { class: classes.mark });
-		mark.innerHTML = C15T_MARK_SVG;
-		wordmark = element('span', { class: classes.wordmark, dir: 'ltr' }, [
-			mark,
-			element('span', { class: classes.label }, ['c15t']),
-		]);
-	}
-	return element(
-		'a',
-		{
-			class: classes.root,
-			'data-branding': branding.brand,
-			'data-testid': 'consent-banner-branding',
-			'data-variant': branding.variant,
-			href: branding.href,
-		},
-		[
-			element('span', { class: classes.content, 'data-slot': 'tag-content' }, [
-				element('span', { class: classes.copy }, [
-					element('span', { class: classes.text }, [securedBy]),
-				]),
-				wordmark,
-			]),
-		]
-	);
+	const parsed = readSpot(
+		slot,
+		PROMPT_SLOT_ATTRIBUTE
+	) as Partial<PromptSlotData> | null;
+	return {
+		classNames: { ...EMPTY_CLASS_NAMES, ...parsed?.classNames },
+		props: parsed?.props ?? {},
+	};
 };
 
 const renderFooter = function renderFooter(
@@ -270,13 +197,19 @@ export const buildPrompt = function buildPrompt(
 			renderFooter(model, props),
 		]
 	);
-	const branding = renderBranding(snapshot, slot, model.copy.securedBy);
+	const branding = renderBrandingTag({
+		hide: props.hideBranding,
+		noStyle: props.noStyle,
+		securedBy: model.copy.securedBy,
+		snapshot,
+		styles: slot.classNames.branding,
+		testId: 'consent-banner-branding',
+	});
 	const root = element(
 		'div',
 		{
 			class: model.classes.root,
 			'data-blocking': model.blocking ? 'true' : undefined,
-			'data-c15t-visible': 'false',
 			'data-model': model.model,
 			'data-position': model.position,
 			'data-prompt': model.prompt,
@@ -293,19 +226,16 @@ export const buildPrompt = function buildPrompt(
 			),
 		]
 	);
-	// Hidden until `syncBannerVisibility` decides, same as a prerendered
-	// server banner.
-	root.hidden = true;
-	if (!model.blocking) {
-		return [root];
-	}
-	const overlay = element('div', {
-		'aria-hidden': 'true',
-		class: model.classes.overlay,
-		'data-testid': 'consent-banner-overlay',
-	});
-	overlay.hidden = true;
-	return [overlay, root];
+	return hiddenBanner(
+		root,
+		model.blocking
+			? element('div', {
+					'aria-hidden': 'true',
+					class: model.classes.overlay,
+					'data-testid': 'consent-banner-overlay',
+				})
+			: null
+	);
 };
 
 /**

@@ -22,8 +22,6 @@ import { getTextDirection } from '@c15t/ui/utils';
 
 import type { PromptClassNames } from './class-names';
 
-export { PROMPT_SLOT_ATTRIBUTE } from './slot';
-
 /** The `<ConsentBanner />` props that shape its markup. */
 export interface PromptProps {
 	/** Override the banner heading. */

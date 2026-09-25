@@ -13,6 +13,7 @@ import brandingStyles from '@c15t/ui/styles/components/branding';
 import buttonStyles from '@c15t/ui/styles/components/button';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+import iabBannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
 
 /** Class names for one component, keyed by the stylesheet's own names. */
 export type ClassNameMap = Record<string, string | undefined>;
@@ -20,6 +21,14 @@ export type ClassNameMap = Record<string, string | undefined>;
 /** The class maps the banner and its branding tag read. */
 export interface PromptClassNames {
 	banner: ClassNameMap;
+	actions: ClassNameMap;
+	button: ClassNameMap;
+	branding: ClassNameMap;
+}
+
+/** The class maps the IAB banner and its branding tag read. */
+export interface IABPromptClassNames {
+	iabBanner: ClassNameMap;
 	actions: ClassNameMap;
 	button: ClassNameMap;
 	branding: ClassNameMap;
@@ -64,4 +73,27 @@ export const promptClassNames: PromptClassNames = {
 		'brandingWordmarkLabel',
 	]),
 	button: pick(buttonStyles, ['button']),
+};
+
+/** The IAB banner's class names, trimmed to the ones its markup uses. */
+export const iabPromptClassNames: IABPromptClassNames = {
+	actions: promptClassNames.actions,
+	branding: promptClassNames.branding,
+	button: promptClassNames.button,
+	iabBanner: pick(iabBannerStyles, [
+		'bannerVisible',
+		'card',
+		'cardShell',
+		'description',
+		'footer',
+		'header',
+		'legitimateInterestNotice',
+		'overlay',
+		'overlayVisible',
+		'partnersLink',
+		'purposeList',
+		'purposeMore',
+		'root',
+		'title',
+	]),
 };

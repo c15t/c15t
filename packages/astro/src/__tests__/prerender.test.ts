@@ -11,6 +11,7 @@ import { createConsentMiddleware } from '../middleware-handler';
 import { hostedMode, offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
+import { describeTree } from './dom-tree';
 import { testRule } from './policy-fixture';
 
 let container: AstroContainer;
@@ -116,41 +117,6 @@ describe('<ConsentBanner /> on a prerendered page', () => {
 		expect(data.classNames.banner.root).toBe(promptClassNames.banner.root);
 	});
 });
-
-type Tree = [string, Record<string, string>, (Tree | string)[]];
-
-/**
- * Tag, attributes and text, ignoring whitespace, visibility state and the
- * source annotations Astro adds in development.
- */
-const describeTree = function describeTree(element: Element): Tree {
-	const attributes: Record<string, string> = {};
-	for (const { name, value } of element.attributes) {
-		if (
-			name === 'hidden' ||
-			name === 'data-c15t-visible' ||
-			name.startsWith('data-astro-source')
-		) {
-			continue;
-		}
-		if (name === 'class' && value === '') {
-			continue;
-		}
-		attributes[name] = value;
-	}
-	const children: (Tree | string)[] = [];
-	for (const node of element.childNodes) {
-		if (node.nodeType === node.ELEMENT_NODE) {
-			children.push(describeTree(node as Element));
-		} else if (node.nodeType === node.TEXT_NODE) {
-			const text = node.textContent?.replace(/\s+/gu, ' ').trim();
-			if (text) {
-				children.push(text);
-			}
-		}
-	}
-	return [element.tagName.toLowerCase(), attributes, children];
-};
 
 interface ParityCase {
 	rule?: Record<string, unknown>;
