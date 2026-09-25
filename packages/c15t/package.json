@@ -3,6 +3,7 @@
 	"version": "3.0.0-alpha.2",
 	"description": "The c15t consent management platform — one install for every framework: headless consent engine, React components, Next.js integration, and Vue/Nuxt module.",
 	"keywords": [
+		"astro",
 		"ccpa",
 		"cmp",
 		"consent",
@@ -639,13 +640,5 @@
 	},
 	"devDependencies": {
 		"vitest": "4.1.10"
-	},
-	"peerDependencies": {
-		"astro": "^5.0.0 || ^6.0.0 || ^7.0.0"
-	},
-	"peerDependenciesMeta": {
-		"astro": {
-			"optional": true
-		}
 	}
 }

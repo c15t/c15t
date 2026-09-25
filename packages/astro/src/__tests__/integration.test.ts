@@ -3,7 +3,7 @@ import { isAbsolute } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { c15t, resolveOptions, resolveOwnEntry } from '../integration';
+import { c15t, createOwnEntryResolver, resolveOptions } from '../integration';
 import { hostedMode, manifestMode, offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
 
@@ -13,6 +13,8 @@ interface SetupCalls {
 	injectScript: ReturnType<typeof vi.fn>;
 	updateConfig: ReturnType<typeof vi.fn>;
 }
+
+const resolveOwnEntry = await createOwnEntryResolver();
 
 /** How an injected module reads in the page script. */
 const specifier = (entry: string): string =>
@@ -54,7 +56,7 @@ const runDone = function runDone(
 	return Object.assign(run, { logger });
 };
 
-describe('resolveOwnEntry', () => {
+describe('createOwnEntryResolver', () => {
 	it('resolves an entry point to a file, for sites that cannot see @c15t/astro', () => {
 		// Under pnpm, a site that installed `c15t` has no `@c15t/astro` at its
 		// root, so Astro could not resolve the bare specifier from there.

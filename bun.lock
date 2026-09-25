@@ -944,6 +944,7 @@
       "optionalPeers": [
         "@c15t/react",
         "@c15t/vue",
+        "astro",
         "react",
         "react-dom",
         "svelte",
@@ -1026,12 +1027,6 @@
       "devDependencies": {
         "vitest": "4.1.10",
       },
-      "peerDependencies": {
-        "astro": "^5.0.0 || ^6.0.0 || ^7.0.0",
-      },
-      "optionalPeers": [
-        "astro",
-      ],
     },
     "packages/cli": {
       "name": "@c15t/cli",

@@ -15,8 +15,6 @@
  * 5. The component stylesheet, on every page.
  */
 
-import { fileURLToPath } from 'node:url';
-
 import { isIABConfigured } from '@c15t/core/runtime';
 import type { AstroIntegration } from 'astro';
 
@@ -35,32 +33,40 @@ const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 const DEFAULT_INIT_PATH = '/api/c15t/init';
 const DEFAULT_MANIFEST_PATH = '/api/c15t/manifest';
 
+/** Maps an `@c15t/astro/...` specifier to what Astro should load. */
+export type EntryResolver = (specifier: string) => string;
+
 /**
- * Resolve one of this package's own entry points to a file path.
+ * Create a resolver for this package's own entry points.
  *
  * Astro and Vite resolve what the integration hands them from the site's
  * root. A site that installed the `c15t` package rather than `@c15t/astro`
  * cannot see `@c15t/astro` from there under a strict package manager such
- * as pnpm, so a bare specifier would fail to resolve. A path always does.
- * Where `import.meta.resolve` is unavailable the specifier is kept.
+ * as pnpm, so a bare specifier would fail to resolve. A file path always
+ * does. `createRequire` resolves the package's own exports on every Node
+ * version Astro supports. It is loaded here, from the async setup hook,
+ * rather than imported at the top: the package root re-exports the
+ * integration, and browser code importing it must not pull in a Node
+ * built-in. A specifier that cannot be resolved is kept as it is.
  *
- * @param specifier - An `@c15t/astro/...` specifier.
- * @returns A file path, or the specifier unchanged.
+ * @returns The resolver.
  */
-export const resolveOwnEntry = function resolveOwnEntry(
-	specifier: string
-): string {
-	try {
-		const url = import.meta.resolve(specifier);
-		return url.startsWith('file:') ? fileURLToPath(url) : specifier;
-	} catch {
-		return specifier;
-	}
-};
-
-/** A module specifier as a quoted JavaScript string. */
-const quote = (specifier: string): string =>
-	JSON.stringify(resolveOwnEntry(specifier));
+export const createOwnEntryResolver =
+	async function createOwnEntryResolver(): Promise<EntryResolver> {
+		try {
+			const { createRequire } = await import('node:module');
+			const require = createRequire(import.meta.url);
+			return (specifier) => {
+				try {
+					return require.resolve(specifier);
+				} catch {
+					return specifier;
+				}
+			};
+		} catch {
+			return (specifier) => specifier;
+		}
+	};
 
 /**
  * What each `ui` adapter needs from the app, keyed by adapter name.
@@ -243,13 +249,17 @@ const createVirtualOptionsPlugin = function createVirtualOptionsPlugin(
  *
  * @param options - The options passed to `c15t()`.
  * @param ui - The resolved dialog adapter.
+ * @param resolveEntry - Maps this package's specifiers to what Astro loads.
  * @returns The module source to inject at the `page` stage.
  */
 const buildBootScript = function buildBootScript(
 	options: C15tAstroOptions,
-	ui: C15tUIAdapterName
+	ui: C15tUIAdapterName,
+	resolveEntry: EntryResolver
 ): string {
 	const adapter = UI_ADAPTERS[ui];
+	const quote = (specifier: string): string =>
+		JSON.stringify(resolveEntry(specifier));
 	const lines = [
 		`import options from '${VIRTUAL_ID}';`,
 		`import { boot, registerDialogAdapter, registerDialogSurface } from ${quote('@c15t/astro/client')};`,
@@ -271,11 +281,15 @@ const buildBootScript = function buildBootScript(
  * Build the stylesheet imports the integration injects into every page.
  *
  * @param resolved - The resolved integration options.
+ * @param resolveEntry - Maps this package's specifiers to what Astro loads.
  * @returns The module source, or an empty string with `styles: false`.
  */
 export const buildStylesImport = function buildStylesImport(
-	resolved: C15tResolvedOptions
+	resolved: C15tResolvedOptions,
+	resolveEntry: EntryResolver
 ): string {
+	const quote = (specifier: string): string =>
+		JSON.stringify(resolveEntry(specifier));
 	if (resolved.styles === false) {
 		return '';
 	}
@@ -461,37 +475,41 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 				updateConfig,
 			}) {
 				command = setupCommand;
+				const resolveEntry = await createOwnEntryResolver();
 				updateConfig({
 					vite: { plugins: await buildVitePlugins(resolved) },
 				});
 
 				if (resolved.middleware.enabled) {
 					addMiddleware({
-						entrypoint: resolveOwnEntry('@c15t/astro/middleware'),
+						entrypoint: resolveEntry('@c15t/astro/middleware'),
 						order: 'pre',
 					});
 				}
 
 				// `page` runs the boot on every page, before any island
 				// hydrates, so the runtime exists before anything asks for it.
-				injectScript('page', buildBootScript(options, resolved.ui));
+				injectScript(
+					'page',
+					buildBootScript(options, resolved.ui, resolveEntry)
+				);
 
 				// `page-ssr` is Astro's hook for page-wide CSS. The components
 				// cannot import their own: the server build resolves the class
 				// maps through the `node` condition, which carries no CSS.
-				const styles = buildStylesImport(resolved);
+				const styles = buildStylesImport(resolved, resolveEntry);
 				if (styles) {
 					injectScript('page-ssr', styles);
 				}
 
 				if (resolved.endpoints.enabled) {
 					injectRoute({
-						entrypoint: resolveOwnEntry('@c15t/astro/api/init'),
+						entrypoint: resolveEntry('@c15t/astro/api/init'),
 						pattern: resolved.endpoints.initPath,
 						prerender: false,
 					});
 					injectRoute({
-						entrypoint: resolveOwnEntry('@c15t/astro/api/manifest'),
+						entrypoint: resolveEntry('@c15t/astro/api/manifest'),
 						pattern: resolved.endpoints.manifestPath,
 						prerender: false,
 					});

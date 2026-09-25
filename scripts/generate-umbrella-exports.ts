@@ -70,9 +70,9 @@
  *   becomes a `.js`/`.d.ts` pair that re-exports the scoped component's
  *   default, behind an umbrella subpath that keeps the `.astro` name. Astro
  *   compiles the scoped file, so props, slots and server islands are
- *   unchanged. The umbrella lists `astro` as an optional peer, which is how
- *   Astro knows to bundle it for the server instead of handing the shim to
- *   Node. Internal entries (islands, raw component paths) are excluded via
+ *   unchanged. The umbrella carries the `astro` keyword, which is how Astro
+ *   knows to bundle it for the server instead of handing the shim to Node.
+ *   A peer dependency would do the same, but the umbrella declares none. Internal entries (islands, raw component paths) are excluded via
  *   {@link UmbrellaSource.exclude}.
  * - **Raw string wildcards** (`./runtime/*` → `./dist/runtime/*` on
  *   `@c15t/vue`): the target is a single string, so `*` captures the full

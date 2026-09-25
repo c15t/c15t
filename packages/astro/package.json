@@ -164,6 +164,9 @@
 		"vue": "^3.5.0"
 	},
 	"peerDependenciesMeta": {
+		"astro": {
+			"optional": true
+		},
 		"@c15t/react": {
 			"optional": true
 		},
