@@ -324,12 +324,34 @@ const suggestUIAdapter = function suggestUIAdapter(
 };
 
 /**
+ * Explain why a build with the injected routes needs an adapter.
+ *
+ * Manifest mode turns the routes on by default; any other mode only has
+ * them because `endpoints` asked for them, so the fix differs.
+ *
+ * @param resolved - The resolved integration options.
+ * @returns The error message.
+ */
+const missingAdapterMessage = function missingAdapterMessage(
+	resolved: C15tResolvedOptions
+): string {
+	const { initPath, manifestPath } = resolved.endpoints;
+	const routes = `on-demand routes at ${initPath} and ${manifestPath}`;
+	if (resolved.mode.type === 'manifest') {
+		return `@c15t/astro: manifest mode injects ${routes}, which need a server adapter to build. For a static site, use hosted() or offline(), or set \`endpoints: false\` and serve those routes elsewhere.`;
+	}
+	return `@c15t/astro: \`endpoints\` injects ${routes}, which need a server adapter to build. For a static site, set \`endpoints: false\`.`;
+};
+
+/**
  * Create the c15t Astro integration.
  *
  * @param options - Consent configuration for the site.
  * @returns The Astro integration to list in `astro.config.mjs`.
- * @throws {Error} When `mode` is missing, or when the Astro integration for
- * the configured `ui` is not listed in `astro.config`.
+ * @throws {Error} When `mode` is missing, when the Astro integration for
+ * the configured `ui` is not listed in `astro.config`, or when `astro build`
+ * runs with the injected init and manifest routes enabled and no server
+ * adapter configured.
  * @example
  * ```js
  * import { defineConfig } from 'astro/config';
@@ -350,10 +372,24 @@ const suggestUIAdapter = function suggestUIAdapter(
  */
 export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 	const resolved = resolveOptions(options);
+	// Recorded at `astro:config:setup`, which runs before `astro:config:done`.
+	let command: string | undefined;
 
 	return {
 		hooks: {
 			'astro:config:done'({ config, logger }) {
+				// Astro would stop the build on its own, with a generic
+				// "no adapter" error that never mentions the routes c15t added.
+				// Only the build needs an adapter: `astro dev` and `astro sync`
+				// accept on-demand routes without one.
+				if (
+					command === 'build' &&
+					resolved.endpoints.enabled &&
+					!config.adapter
+				) {
+					throw new Error(missingAdapterMessage(resolved));
+				}
+
 				const installed = new Set(
 					config.integrations.map((integration) => integration.name)
 				);
@@ -376,10 +412,12 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 
 			async 'astro:config:setup'({
 				addMiddleware,
+				command: setupCommand,
 				injectRoute,
 				injectScript,
 				updateConfig,
 			}) {
+				command = setupCommand;
 				updateConfig({
 					vite: { plugins: await buildVitePlugins(resolved) },
 				});

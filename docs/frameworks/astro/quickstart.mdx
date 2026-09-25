@@ -196,9 +196,10 @@ policies at build time. Do not use it to skip the backend request for a single
 visitor's render: that visitor's stored choice and location are discarded. It
 replaces the `skipPrefetch` option from earlier alphas.
 
-`manifest()` mode can inject init and manifest endpoints and therefore needs a
-server for those endpoints. Do not choose that setup for a purely static host
-without providing the routes elsewhere. Nonserializable extensions belong in
+`manifest()` mode injects on-demand init and manifest routes, so it needs an
+Astro server adapter. Without one the build stops with an error that names the
+routes. For a purely static host, use `hosted()` or `offline()`, or set
+`endpoints: false` and serve those routes elsewhere. Nonserializable extensions belong in
 the module selected by `clientEntrypoint`, not in `astro.config.mjs`.
 
 ## Verify navigation and loading
