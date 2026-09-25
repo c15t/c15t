@@ -292,7 +292,9 @@ describe('the spot <IABConsentBanner /> leaves', () => {
 		await vi.waitFor(() => {
 			expect(client?.getConsent().activeUI).toBe('banner');
 		});
-		await new Promise((resolve) => setTimeout(resolve, 20));
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 20);
+		});
 
 		// A ClientRouter swap to a page with the standard banner's spot.
 		document.body = document.createElement('body');
