@@ -26,7 +26,6 @@
  * runtime.start();
  * ```
  */
-import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { I18nConfig } from '@c15t/translations';
 
@@ -45,6 +44,7 @@ import {
 	resolveWindowDebugMode,
 } from '../modules/window-debug';
 import type { User } from '../options/user';
+import { disabledPolicyResolution } from '../policy';
 import { defaultTranslationConfig } from '../translations';
 import type { ProviderTransportContext } from '../transports/mode';
 import type {
@@ -170,19 +170,6 @@ export const resolveRuntimeTranslations = function resolveRuntimeTranslations(
 		) as TranslationsResponse,
 	};
 };
-
-const DISABLED_RESOLUTION = resolvePolicyRules({
-	countryCode: null,
-	regionCode: null,
-	rules: [
-		{
-			id: 'disabled',
-			match: { fallback: true },
-			model: 'opt-out',
-			prompt: 'none',
-		},
-	],
-});
 
 const normalizePersistenceOptions = function normalizePersistenceOptions(
 	options: ConsentRuntimeOptions
@@ -320,7 +307,7 @@ export const createRuntimeKernel = function createRuntimeKernel(
 			(enabled && !prefetch.initialPolicyResolution),
 		initialPolicyResolution: enabled
 			? prefetch.initialPolicyResolution
-			: DISABLED_RESOLUTION,
+			: disabledPolicyResolution(),
 		// A disabled runtime grants everything, so stored records, including a
 		// vendor denial list, must not narrow what loads.
 		initialRecords: enabled ? prefetch.initialRecords : undefined,
