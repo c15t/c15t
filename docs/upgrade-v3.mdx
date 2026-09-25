@@ -356,6 +356,7 @@ stored on the backend; the report reaches a `sessions.onReport` sink and the
 request log.
 
 Reporting is on by default and needs an absolute backend URL. Set
-`reportSessions: false` on the adapter to send none. A page view can produce a
-`render` report and a `route` report, so a consumer counting sessions must
-deduplicate on `source`.
+`reportSessions: false` on the adapter to send none. Each report is one
+resolution, not one visitor: a page view can produce a `render` report and a
+`route` report, and nothing in them links the two. A consumer counting sessions
+groups reports by the forwarded address and user agent within a window.

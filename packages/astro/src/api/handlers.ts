@@ -180,6 +180,7 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 			report: {
 				backendURL: resolveSessionReportURL(handlerOptions.options),
 				headers: request.headers,
+				method: request.method,
 				source: 'route',
 				waitUntil: bindBackgroundRevalidate(handlerOptions, lifetime),
 			},

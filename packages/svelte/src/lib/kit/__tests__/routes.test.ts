@@ -164,6 +164,27 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 			});
 		});
 
+		test('a HEAD probe sends no report', async () => {
+			const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
+			const { init } = createSvelteKitConsentRouteHandlers({
+				backendURL: 'https://api.example.com',
+				fetch: fetchImpl as unknown as typeof globalThis.fetch,
+			});
+			const event = createEvent({ url: 'http://localhost/api/c15t/init' });
+			(event as { request: Request }).request = new Request(event.url, {
+				method: 'HEAD',
+			});
+			await init(event);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(
+				fetchImpl.mock.calls.some(
+					([url]: [string]) => url === 'https://api.example.com/sessions'
+				)
+			).toBe(false);
+		});
+
 		test('sends no report when reportSessions is false', async () => {
 			const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
 			const { init } = createSvelteKitConsentRouteHandlers({

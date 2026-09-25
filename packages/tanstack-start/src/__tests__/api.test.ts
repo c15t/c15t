@@ -198,6 +198,28 @@ describe('createConsentServerRoute: session reports', () => {
 		});
 	});
 
+	test('a HEAD probe of init sends no report', async () => {
+		const fetchImpl = createManifestFetch();
+		const { initGET } = createRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+		});
+		const response = await initGET({
+			request: new Request('https://app.example.com/api/c15t/init', {
+				method: 'HEAD',
+			}),
+		});
+		expect(response.status).toBe(200);
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(
+			fetchImpl.mock.calls.some(
+				([url]: [string]) => url === 'https://consent.example.com/sessions'
+			)
+		).toBe(false);
+	});
+
 	test('init sends no report when reportSessions is false', async () => {
 		const fetchImpl = createManifestFetch();
 		const { initGET } = createRoute({

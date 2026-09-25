@@ -271,6 +271,7 @@ export const createSvelteKitConsentRouteHandlers =
 					init: payload,
 					inputs,
 					manifest,
+					method: event.request.method,
 					source: 'route',
 					waitUntil: bindBackgroundRevalidate(options, event),
 				});

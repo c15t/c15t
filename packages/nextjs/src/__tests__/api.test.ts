@@ -151,6 +151,29 @@ describe('@c15t/nextjs/api', () => {
 		});
 	});
 
+	test('a HEAD probe of the init route sends no session report', async () => {
+		// Next answers HEAD with the GET handler; a health check is not a visit.
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify(MANIFEST_FIXTURE)));
+		const { GET } = createNextConsentRouteHandlers({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+		const response = await GET(
+			new Request('https://app.example.com/api/c15t/init', { method: 'HEAD' })
+		);
+		expect(response.status).toBe(200);
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(
+			fetchSpy.mock.calls.some(
+				([url]) => url === 'https://consent.example.com/sessions'
+			)
+		).toBe(false);
+	});
+
 	test('GET sends no session report when reportSessions is false', async () => {
 		const fetchSpy = vi
 			.fn()

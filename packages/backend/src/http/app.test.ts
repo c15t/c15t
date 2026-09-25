@@ -554,6 +554,57 @@ for (const engine of ENGINES) {
 			assert.strictEqual(onReport.mock.calls.length, 0);
 		});
 
+		it('does not count a HEAD probe of /init as a session', async () => {
+			// Hono answers HEAD with the GET handler and drops the body, so a
+			// health check would otherwise register as a visitor.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', { method: 'HEAD' });
+			assert.strictEqual(response.status, 200);
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			assert.strictEqual(onReport.mock.calls.length, 0);
+		});
+
+		it("registers the /init sink with the runtime's waitUntil", async () => {
+			// On a runtime that stops work after the response, this is what
+			// keeps the detached sink alive; the response itself never waits.
+			let release: (() => void) | undefined;
+			const onReport = vi.fn(
+				() =>
+					new Promise<void>((resolve) => {
+						release = resolve;
+					})
+			);
+			const waitUntil = vi.fn();
+			const reporting = createApp(runtime, {
+				manifest: { appName: 'Example' },
+				sessions: { onReport },
+			});
+			const response = await reporting.request('/init', undefined, undefined, {
+				passThroughOnException: () => undefined,
+				props: {},
+				waitUntil,
+			});
+			assert.strictEqual(response.status, 200);
+			assert.strictEqual(onReport.mock.calls.length, 1);
+			assert.strictEqual(waitUntil.mock.calls.length, 1);
+			const registered = waitUntil.mock.calls[0]?.[0] as Promise<void>;
+			let settled = false;
+			void registered.then(() => {
+				settled = true;
+			});
+			await Promise.resolve();
+			assert.strictEqual(settled, false);
+			release?.();
+			await registered;
+			assert.strictEqual(settled, true);
+		});
+
 		it("emits the same event from the backend's own /init", async () => {
 			// One sink sees hosted and manifest traffic alike, so a deployment
 			// counting sessions needs no second path for the old route.

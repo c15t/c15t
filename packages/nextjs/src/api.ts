@@ -409,6 +409,7 @@ export const createNextConsentRouteHandlers =
 						init: payload,
 						inputs,
 						manifest,
+						method: request.method,
 						source: 'route',
 						waitUntil: options.onBackgroundRevalidate,
 					});

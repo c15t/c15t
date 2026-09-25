@@ -25,6 +25,7 @@ import {
 	CONSENT_SESSION_CLIENT_IP_HEADER,
 } from '@c15t/schema/types';
 import type { ConsentSessionReport } from '@c15t/schema/types';
+import { log as baseLog } from 'evlog';
 import type { Context } from 'hono';
 
 import { toRequestLog } from '../observability/evlog';
@@ -55,10 +56,13 @@ export interface SessionReportContext {
 export interface SessionOptions {
 	/**
 	 * Receives every session report: hosts' `POST /sessions` and the
-	 * backend's own `/init`. A failure never fails the request; it is
-	 * recorded on the request's wide event. `POST /sessions` waits for the
-	 * sink, since only the reporting host waits on that response; `/init`
-	 * does not, so a visitor's response is never delayed by a sink.
+	 * backend's own `/init`. A failure never fails the request. `POST
+	 * /sessions` waits for the sink, since only the reporting host waits on
+	 * that response, and a failure lands on that request's wide event.
+	 * `/init` does not wait, so a visitor's response is never delayed by a
+	 * sink; its promise is handed to the runtime's `waitUntil` where one
+	 * exists, and a failure is logged as its own event, since the request's
+	 * event has usually been emitted by the time the sink settles.
 	 */
 	readonly onReport?: (
 		report: ConsentSessionReport,
@@ -148,25 +152,53 @@ const sessionIp = function sessionIp(
 	return getIpAddress(headers, config);
 };
 
+/** How a route waits on the sink. */
+export type SessionDelivery =
+	/** The route awaits the sink before responding (`POST /sessions`). */
+	| 'awaited'
+	/** The route responds first and the sink finishes on its own (`/init`). */
+	| 'detached';
+
+export interface EmitConsentSessionOptions {
+	/** Where the visitor's address comes from. */
+	readonly ip: SessionIpSource;
+	/** Whether the route waits for the sink. */
+	readonly delivery: SessionDelivery;
+	/**
+	 * Where a detached sink's failure is logged. Defaults to evlog's base
+	 * logger, which writes regardless of any request's lifecycle. Injected so
+	 * a test can observe the failure without mocking the module.
+	 */
+	readonly logDetachedFailure?: (event: Record<string, unknown>) => void;
+}
+
+const logThroughBase = function logThroughBase(
+	event: Record<string, unknown>
+): void {
+	baseLog.error(event);
+};
+
 /**
  * Records a session on the wide event and hands it to the configured sink.
  *
- * Returns the sink's promise, which never rejects: a failing sink is
- * recorded on the wide event and must not fail the request. `POST /sessions`
- * awaits it, since only the reporting host waits on that response; `/init`
- * lets it run detached so a visitor's response is never delayed by a sink.
+ * Returns the sink's promise, which never rejects: a failing sink must not
+ * fail the request. Where the failure is logged depends on `delivery`. An
+ * awaited sink fails while the request's wide event is still open, so it
+ * goes there. A detached sink settles after the event has emitted, and
+ * evlog drops anything written to an emitted event, so the failure is
+ * logged as an event of its own instead of vanishing.
  */
 export const emitConsentSession = function emitConsentSession(
 	c: Context,
 	options: AppOptions,
 	report: ConsentSessionReport,
-	ipSource: SessionIpSource
+	emit: EmitConsentSessionOptions
 ): Promise<void> {
 	const log = toRequestLog(c.get('log'));
 	const { headers } = c.req.raw;
 	const context: SessionReportContext = {
 		headers: sinkHeaders(headers),
-		ip: sessionIp(headers, ipSource, options.ipAddress),
+		ip: sessionIp(headers, emit.ip, options.ipAddress),
 		userAgent: headers.get('user-agent'),
 	};
 	log?.set({ session: { ...report, ip: context.ip } });
@@ -175,14 +207,43 @@ export const emitConsentSession = function emitConsentSession(
 	if (!sink) {
 		return Promise.resolve();
 	}
+	const logDetachedFailure = emit.logDetachedFailure ?? logThroughBase;
 	const deliver = async function deliver(): Promise<void> {
 		try {
 			await sink(report, context);
-		} catch (error) {
-			log?.error(error instanceof Error ? error : new Error(String(error)), {
-				session: { sink: 'failed' },
-			});
+		} catch (caught) {
+			const error =
+				caught instanceof Error ? caught : new Error(String(caught));
+			if (emit.delivery === 'awaited') {
+				log?.error(error, { session: { sink: 'failed' } });
+			} else if (options.observability?.level !== 'silent') {
+				logDetachedFailure({
+					error: { message: error.message, name: error.name },
+					session: { sink: 'failed', source: report.source },
+				});
+			}
 		}
 	};
 	return deliver();
+};
+
+/**
+ * Runs a session emission after the response, without losing it.
+ *
+ * On a long-lived server the promise finishes on its own. On a runtime that
+ * stops work once the response is sent (Workers, Vercel Functions), Hono
+ * exposes the runtime's execution context, and registering the promise
+ * there is what keeps the sink alive. Hono throws when there is none, so
+ * the lookup is guarded; the visitor's response never waits either way.
+ */
+export const detachConsentSession = function detachConsentSession(
+	c: Context,
+	emission: Promise<void>
+): void {
+	try {
+		c.executionCtx.waitUntil(emission);
+	} catch {
+		// No execution context: a Node or Bun server, where detached work
+		// runs to completion without being registered.
+	}
 };

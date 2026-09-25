@@ -330,6 +330,32 @@ describe('route handlers', () => {
 		});
 	});
 
+	it('a HEAD probe of the init route sends no report', async () => {
+		const fetchImpl = vi.fn((_input: string) =>
+			Promise.resolve(
+				jsonResponse(MANIFEST, { 'cache-control': 'public, s-maxage=300' })
+			)
+		);
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl as never,
+			options: options(),
+		});
+		const response = await handlers.init(
+			new Request('https://site.example.com/api/c15t/init', {
+				method: 'HEAD',
+			})
+		);
+		expect(response.status).toBe(200);
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(
+			fetchImpl.mock.calls.some(
+				([url]) => url === 'https://consent.example.com/sessions'
+			)
+		).toBe(false);
+	});
+
 	it('reports when the backend comes from PUBLIC_C15T_BACKEND_URL', async () => {
 		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://consent.example.com');
 		try {

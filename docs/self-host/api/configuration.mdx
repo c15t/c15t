@@ -49,7 +49,7 @@ fallback. Add reviewed rules for other locations in
 | `openapi` | Enabled by default at `/spec.json`. Supports `enabled`, `specPath`, `title` and the documented server `basePath`. |
 | `version` | Version reported by the status endpoint and OpenAPI document. |
 | `observability` | Logging configuration passed directly to `c15tInstance`. Defaults to warning and error requests. |
-| `sessions` | `onReport` receives every session report: hosts' `POST /sessions` and the backend's own `/init`. The IP in its context follows `ipAddress`; a host report names the visitor only on `X-C15T-Client-IP`, and `/init` reads the connection. Failures are recorded on the request's wide event. Reports also land on that event. Nothing is stored. Not accepted by `defineConfig`, like `observability`. |
+| `sessions` | `onReport` receives every session report: hosts' `POST /sessions` and the backend's own `/init`. The IP in its context follows `ipAddress`; a host report names the visitor only on `X-C15T-Client-IP`, and `/init` reads the connection. Reports land on the request's wide event. A failing sink never fails the request: on `POST /sessions` the failure is recorded on that event; on `/init` the sink runs after the response, registered with the runtime's `waitUntil` where one exists, and a failure is logged as its own event. Nothing is stored. Not accepted by `defineConfig`, like `observability`. |
 
 `defineConfig()` checks types and returns the supplied object. It does not load
 environment variables or run migrations. It deliberately rejects `observability`;

@@ -226,6 +226,7 @@ export const createInitRoute = function createInitRoute(
 					init: payload,
 					inputs,
 					manifest: manifest.manifest,
+					method: event.method,
 					source: 'route',
 					waitUntil: bindBackgroundRevalidate(dependencies, event),
 				});

@@ -530,6 +530,7 @@ export const createConsentServerRoute = function createConsentServerRoute<
 				init: payload,
 				inputs,
 				manifest: cached.manifest,
+				method: request.method,
 				source: 'route',
 				waitUntil: resolved.onBackgroundRevalidate,
 			});

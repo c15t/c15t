@@ -523,6 +523,32 @@ describe('init route', () => {
 		});
 	});
 
+	test('a HEAD probe sends no report', async () => {
+		mocks.useRuntimeConfig.mockReturnValue({
+			public: { c15t: { backendURL: 'https://consent.example.com' } },
+		});
+		mocks.serverFetch.mockResolvedValue(
+			manifestResponse({ 'cache-control': 'public, s-maxage=120' })
+		);
+		const app = createApp();
+		(app.use as unknown as MountRoute)(
+			'/api/c15t/init',
+			createInitRoute(routeDependencies)
+		);
+		const response = await toWebHandler(app)(
+			new Request('http://localhost/api/c15t/init', { method: 'HEAD' })
+		);
+		expect(response.status).toBe(200);
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(
+			mocks.serverFetch.mock.calls.some(
+				([url]) => url === 'https://consent.example.com/sessions'
+			)
+		).toBe(false);
+	});
+
 	test('sends no report for a relative backendURL', async () => {
 		// The default config points at the app's own proxy; a report through
 		// it would count the visitor twice and cannot be fetched server-side.

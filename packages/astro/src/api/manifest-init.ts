@@ -224,6 +224,8 @@ export interface SessionReportTarget {
 	headers: Headers;
 	/** Absolute backend URL, or `undefined` to send no report. */
 	backendURL: string | undefined;
+	/** The request's method, when there is one; only a `GET` is reported. */
+	method?: string;
 	/** Keeps the detached report alive on runtimes that need it. */
 	waitUntil?: (task: Promise<void>) => void;
 }
@@ -311,6 +313,7 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 			init: payload,
 			inputs,
 			manifest,
+			method: input.report.method,
 			source: input.report.source,
 			waitUntil: input.report.waitUntil,
 		});

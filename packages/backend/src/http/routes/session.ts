@@ -80,7 +80,10 @@ export const register = function register({
 			// writes, and an absent tenant is the null scope, not "any": a
 			// report cannot attribute itself to another tenant.
 			const scoped = { ...parsed.output, tenantId: instanceTenant(options) };
-			await emitConsentSession(c, options, scoped, 'report');
+			await emitConsentSession(c, options, scoped, {
+				delivery: 'awaited',
+				ip: 'report',
+			});
 			// One visitor's report, never a shared response.
 			c.header('Cache-Control', 'no-store');
 			return c.body(null, 204);

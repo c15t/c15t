@@ -11,7 +11,9 @@ import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
  * - `init`: the backend's own `GET /init` resolved it.
  *
  * A page load can produce a `render` report and, on a later client
- * re-init, a `route` one, so the value is what lets a consumer dedupe.
+ * re-init, a `route` one. The value says which path resolved; it does not
+ * link the two, and a report carries no identifier that would. Consumers
+ * sessionize on the forwarded address and user agent within a window.
  */
 export const consentSessionSourceSchema = v.picklist([
 	'render',

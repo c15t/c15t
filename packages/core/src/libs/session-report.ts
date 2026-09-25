@@ -187,6 +187,15 @@ export interface ReportConsentSessionOptions extends BuildConsentSessionReportOp
 	 */
 	headers?: SessionReportHeaders;
 	/**
+	 * The incoming request's method, when the resolution answers a request.
+	 * Only a `GET` is reported: a `HEAD` probe from a health check or a link
+	 * checker resolves consent to produce its headers, but nobody is
+	 * visiting. Frameworks answer `HEAD` with the `GET` handler, so the
+	 * handler has to look. Omit it for a resolution with no request method,
+	 * such as a server render.
+	 */
+	method?: string;
+	/**
 	 * Receives the report's promise so a runtime that stops detached work
 	 * once the response is sent can keep it alive. The promise never
 	 * rejects.
@@ -199,8 +208,9 @@ export interface ReportConsentSessionOptions extends BuildConsentSessionReportOp
  *
  * Never throws and never rejects: the report is telemetry, and a backend
  * that is down or a URL that is relative must not fail the request that
- * produced the resolution. A prefetch or prerender request sends nothing;
- * see {@link isSpeculativeRequest}. Returns the in-flight promise so a caller that
+ * produced the resolution. A prefetch or prerender request sends nothing
+ * (see {@link isSpeculativeRequest}), nor does a `HEAD` probe. Returns the
+ * in-flight promise, the same one handed to `waitUntil`, so a caller that
  * wants to await it (a test, a CLI) can.
  *
  * @param options - What to report, where to send it, and how to keep it alive.
@@ -224,7 +234,12 @@ export const reportConsentSession = function reportConsentSession(
 ): Promise<void> {
 	const backendURL = resolveSessionReportBackendURL(options);
 	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!backendURL || !fetchImpl || isSpeculativeRequest(options.headers)) {
+	if (
+		!backendURL ||
+		!fetchImpl ||
+		isSpeculativeRequest(options.headers) ||
+		(options.method !== undefined && options.method.toUpperCase() !== 'GET')
+	) {
 		return Promise.resolve();
 	}
 

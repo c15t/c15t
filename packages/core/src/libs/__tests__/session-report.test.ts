@@ -286,6 +286,127 @@ describe('reportConsentSession lifetime hook', () => {
 	});
 });
 
+describe('reportConsentSession never blocks the resolution', () => {
+	test('the init resolves while the report is still in flight', async () => {
+		// A backend that never answers must not hold the visitor's init: the
+		// report is detached, and the transport returns without it.
+		let settle: (() => void) | undefined;
+		const pending = new Promise<Response>((resolve) => {
+			settle = () => resolve(new Response(null, { status: 204 }));
+		});
+		const fetchSpy = vi.fn().mockReturnValue(pending);
+		const registered: Promise<void>[] = [];
+		const transport = createManifestTransport({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			manifest,
+			report: {
+				source: 'render',
+				waitUntil: (task) => {
+					registered.push(task);
+				},
+			},
+		});
+
+		const response = await transport.init({
+			overrides: { country: 'DE' },
+			user: null,
+		});
+		expect(response.policyResolution?.status).toBe('matched');
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(registered).toHaveLength(1);
+
+		let done = false;
+		void registered[0]?.then(() => {
+			done = true;
+		});
+		await Promise.resolve();
+		expect(done).toBe(false);
+		settle?.();
+		await registered[0];
+		expect(done).toBe(true);
+	});
+
+	test('a non-2xx answer and a timeout both resolve without rejecting', async () => {
+		const init = await resolveInit();
+		const refused = vi
+			.fn()
+			.mockResolvedValue(new Response('nope', { status: 500 }));
+		await expect(
+			reportConsentSession({
+				backendURL: 'https://consent.example.com',
+				fetch: refused,
+				init: init as never,
+				manifest,
+				source: 'route',
+			})
+		).resolves.toBeUndefined();
+
+		// The request carries an abort signal so a hanging backend cannot hold
+		// a `waitUntil` slot open; a fetch aborted by it resolves like any
+		// other failure.
+		const timedOut = vi.fn((_url: string, request: RequestInit) => {
+			expect(request.signal).toBeInstanceOf(AbortSignal);
+			return Promise.reject(
+				new DOMException('The operation timed out.', 'TimeoutError')
+			);
+		});
+		await expect(
+			reportConsentSession({
+				backendURL: 'https://consent.example.com',
+				fetch: timedOut as unknown as typeof globalThis.fetch,
+				init: init as never,
+				manifest,
+				source: 'route',
+			})
+		).resolves.toBeUndefined();
+		expect(timedOut).toHaveBeenCalledTimes(1);
+	});
+
+	test('hands waitUntil the same promise it returns', async () => {
+		const init = await resolveInit();
+		const registered: Promise<void>[] = [];
+		const returned = reportConsentSession({
+			backendURL: 'https://consent.example.com',
+			fetch: vi.fn().mockResolvedValue(new Response(null, { status: 204 })),
+			init: init as never,
+			manifest,
+			source: 'route',
+			waitUntil: (task) => {
+				registered.push(task);
+			},
+		});
+		expect(registered[0]).toBe(returned);
+		await returned;
+	});
+
+	test('a HEAD probe sends no report; a GET in any case does', async () => {
+		const init = await resolveInit();
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 204 }));
+		await reportConsentSession({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			init: init as never,
+			manifest,
+			method: 'HEAD',
+			source: 'route',
+		});
+		expect(fetchSpy).not.toHaveBeenCalled();
+
+		await reportConsentSession({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			init: init as never,
+			manifest,
+			method: 'get',
+			source: 'route',
+		});
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe('createManifestTransport report option', () => {
 	test('never reports to the origin its manifest URL came from', async () => {
 		// The transport derives a backend from its manifest URL for saves; a

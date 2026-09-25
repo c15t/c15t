@@ -162,6 +162,8 @@ export interface ManifestTransportReportOptions {
 	 * are forwarded. Defaults to the transport's `headers`.
 	 */
 	headers?: SessionReportHeaders;
+	/** The request's method, when there is one; only a `GET` is reported. */
+	method?: string;
 	/**
 	 * Receives the report's promise so a runtime that stops detached work
 	 * once the response is sent can keep it alive. The promise never
@@ -463,6 +465,7 @@ export const createManifestTransport = function createManifestTransport(
 					init: payload,
 					inputs,
 					manifest,
+					method: options.report.method,
 					source: options.report.source,
 					waitUntil: options.report.waitUntil,
 				});

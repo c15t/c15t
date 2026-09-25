@@ -91,11 +91,14 @@ The body shape is `consentSessionReportSchema` in `@c15t/schema`. `source` is
 `route` for an init route and `render` for a server-rendered page; `init` is
 reserved for the backend's own `/init`, which emits the same event, and a report
 claiming it is rejected with `400`. Neither route reports a prefetch or
-prerender (`Sec-Purpose`, `Purpose`, `Next-Router-Prefetch`). One page view can legitimately produce more
-than one report, for example a `render` followed by a `route` when the client
-re-initialises, and every full page load produces a new one. Count sessions by
-deduplicating on `source` and grouping by visitor on the consuming side; the
-report carries no visitor identifier of its own.
+prerender (`Sec-Purpose`, `Purpose`, `Next-Router-Prefetch`), nor a `HEAD` probe.
+Each report is one resolution, not one visitor. A page view can produce more
+than one, for example a `render` followed by a `route` when the client
+re-initialises, and every full page load produces a new one. The report carries
+no visitor identifier and nothing ties a `render` to the `route` from the same
+page view, so a consumer that wants sessions builds them: group reports by the
+forwarded address and user agent within a window, and count a visitor once per
+window. That count is approximate by design.
 
 ## GET /c15t.js
 
