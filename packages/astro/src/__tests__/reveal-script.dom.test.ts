@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildBannerRevealScript } from '../server';
 
@@ -57,11 +57,46 @@ describe('buildBannerRevealScript', () => {
 			'a legacy record in localStorage',
 			() => localStorage.setItem('privacy-consent-storage', '{}'),
 		],
+		[
+			'a stored privacy directive',
+			() => localStorage.setItem('c15t-privacy', '{}'),
+		],
 	])('leaves it to the runtime with %s', (_name, store) => {
 		store();
 		run(buildBannerRevealScript(undefined, 'consent-banner'));
 		expect(root()?.hidden).toBe(true);
 		expect(overlay()?.hidden).toBe(true);
+	});
+
+	describe('with localStorage blocked', () => {
+		afterEach(() => vi.restoreAllMocks());
+
+		it('still shows the banner when no cookie is stored', () => {
+			vi.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
+				throw new DOMException('blocked', 'SecurityError');
+			});
+			run(buildBannerRevealScript(undefined, 'consent-banner'));
+			expect(root()?.hidden).toBe(false);
+		});
+
+		it('still honours a consent cookie', () => {
+			document.cookie = 'c15t=v=3; path=/';
+			vi.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
+				throw new DOMException('blocked', 'SecurityError');
+			});
+			run(buildBannerRevealScript(undefined, 'consent-banner'));
+			expect(root()?.hidden).toBe(true);
+		});
+	});
+
+	it('leaves no variables in the global scope', () => {
+		const before = new Set(Object.keys(globalThis));
+		// Indirect eval runs it as a classic script at global scope.
+		// oxlint-disable-next-line no-eval -- the point is the page's own scope.
+		(0, eval)(buildBannerRevealScript(undefined, 'consent-banner'));
+		expect(Object.keys(globalThis).filter((key) => !before.has(key))).toEqual(
+			[]
+		);
 	});
 
 	it('reads a custom storage key', () => {

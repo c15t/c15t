@@ -714,14 +714,21 @@ export const buildBannerRevealScript = function buildBannerRevealScript(
 	testId: 'consent-banner' | 'iab-consent-banner'
 ): string {
 	const keys = resolveStorageKeys(storageConfig);
-	const names = [keys.consent, keys.notice, keys.legacyConsent].filter(
-		(name): name is string => Boolean(name)
-	);
+	// A stored GPC or opt-out directive (`-privacy`) can also mean the banner
+	// is not owed, so it counts as something stored.
+	const names = [
+		keys.consent,
+		keys.notice,
+		keys.privacy,
+		keys.legacyConsent,
+	].filter((name): name is string => Boolean(name));
 	// `<` is escaped so a storage key can never close the script tag.
 	const json = JSON.stringify(names).replace(/</gu, '\\u003c');
-	// Wrapped because storage access throws in some privacy modes, and a
-	// throw here would abort the rest of the document's parsing.
-	return `try{var k=${json},c=document.cookie.split(';').map(function(p){return p.split('=')[0].trim()});if(!k.some(function(n){return c.indexOf(n)>=0||localStorage.getItem(n)!==null})){var r=document.querySelector('[data-testid="${testId}-root"][hidden]'),o=document.querySelector('[data-testid="${testId}-overlay"][hidden]');if(r){r.hidden=false;r.setAttribute('data-c15t-visible','true');if(o)o.hidden=false}}}catch(e){}`;
+	// An IIFE keeps its variables out of the page's global scope. Blocked
+	// storage (sandboxes, some privacy modes) throws on access: it is read as
+	// "nothing stored there" so the cookie check still decides, and any other
+	// throw is swallowed so it cannot abort the rest of the document.
+	return `(function(){try{var names=${json},cookies=document.cookie.split(';').map(function(p){return p.split('=')[0].trim()}),stored=function(n){if(cookies.indexOf(n)>=0)return true;try{return window.localStorage.getItem(n)!==null}catch(e){return false}};if(names.some(stored))return;var root=document.querySelector('[data-testid="${testId}-root"][hidden]'),overlay=document.querySelector('[data-testid="${testId}-overlay"][hidden]');if(root){root.hidden=false;root.setAttribute('data-c15t-visible','true');if(overlay)overlay.hidden=false}}catch(e){}})();`;
 };
 
 export { buildPrefetchScript } from '@c15t/core';
