@@ -109,6 +109,7 @@ export const createCiPlan = function createCiPlan(
 		['nuxt', 'nuxt'],
 		['tanstack-start', 'tanstack-start'],
 		['astro', 'astro-demo'],
+		['astro-static', 'astro-demo'],
 		['sveltekit', 'sveltekit-demo'],
 	]
 		.filter(([, directory]) =>
@@ -129,6 +130,7 @@ export const createCiPlan = function createCiPlan(
 			'nuxt',
 			'tanstack-start',
 			'astro',
+			'astro-static',
 			'sveltekit'
 		);
 	}
@@ -194,7 +196,7 @@ export const createCiPlan = function createCiPlan(
 			examples.some(
 				(target) =>
 					workspace.directory ===
-					`examples/${({ astro: 'astro-demo', sveltekit: 'sveltekit-demo' } as Record<string, string>)[target] ?? target}`
+					`examples/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', sveltekit: 'sveltekit-demo' } as Record<string, string>)[target] ?? target}`
 			)
 		) {
 			required.add(workspace.name);

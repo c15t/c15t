@@ -55,11 +55,19 @@ const uiIntegrations = {
 	vue: vue(),
 };
 
-// Server output so the middleware sees a real request per visitor: geo
-// headers, the GPC signal and the consent cookie all have to be read
-// per request for the banner decision to be correct.
+// Static output, for the prerendered-site journey: every page is built
+// once with no adapter, and the browser applies each visitor's policy and
+// stored choice. Real static sites look like this; the example suite runs
+// the same journeys against both builds.
+//
+//   C15T_ASTRO_OUTPUT=static bun run --cwd examples/astro-demo build
+const isStatic = process.env.C15T_ASTRO_OUTPUT === 'static';
+
+// Server output otherwise, so the middleware sees a real request per
+// visitor: geo headers, the GPC signal and the consent cookie all have to
+// be read per request for the banner decision to be correct.
 export default defineConfig({
-	adapter: node({ mode: 'standalone' }),
+	adapter: isStatic ? undefined : node({ mode: 'standalone' }),
 	integrations: [
 		uiIntegrations[ui],
 		c15t({
@@ -97,7 +105,7 @@ export default defineConfig({
 			ui,
 		}),
 	],
-	output: 'server',
+	output: isStatic ? 'static' : 'server',
 	// The bundle comparison reads this to walk the dialog chunk graph.
 	vite: { build: { manifest: true } },
 });
