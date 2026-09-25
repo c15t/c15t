@@ -1,5 +1,7 @@
 <script setup lang="ts" generic="T extends string">
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
+
+import '@c15t/ui/styles/components/consent-actions.css';
 import type { ButtonSize } from '@c15t/ui/styles/primitives';
 import { computed } from 'vue';
 

@@ -1,3 +1,6 @@
+// Layout assertions below need the documented app-level stylesheet: class
+// maps carry no CSS of their own.
+import '@c15t/ui/styles.css';
 import type { ConsentKernel, KernelConfig } from '@c15t/core';
 import { custom } from '@c15t/core';
 import {
