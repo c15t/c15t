@@ -2,7 +2,10 @@
 
 import type { ComponentType } from 'react';
 
-import { registerDialogChunkWarmer } from './chunk-warming';
+import {
+	registerDialogChunkWarmer,
+	useIdleDialogWarming,
+} from './chunk-warming';
 import type {
 	ConsentDialogCompoundComponent,
 	ConsentDialogProps,
@@ -43,6 +46,8 @@ const LazyConsentWidgetComponent = widgetModule.component(
 
 const LazyConsentDialog = (props: ConsentDialogProps) => {
 	const activeUI = useActiveUI();
+	// A shown banner can open the dialog at any moment, whatever renders it.
+	useIdleDialogWarming(activeUI === 'banner');
 	const shouldLoadDialog =
 		props.open === true || activeUI === 'dialog' || Boolean(props.showTrigger);
 	if (!shouldLoadDialog) {

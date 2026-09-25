@@ -2,7 +2,7 @@ import type { AllConsentNames } from '@c15t/core';
 import { forwardRef as createForwardRef, useCallback } from 'react';
 import type { FocusEvent, MouseEvent, PointerEvent } from 'react';
 
-import { warmDialogChunk } from '~/chunk-warming';
+import { useIdleDialogWarming, warmDialogChunk } from '~/chunk-warming';
 import { useConsentSaveAction } from '~/draft';
 import { useSetActiveUI, useDismissNotice } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
@@ -250,8 +250,10 @@ export const ConsentButton = createForwardRef<
 
 		// Buttons that open the dialog start loading its deferred module on
 		// hover or focus, so the chunk downloads during the lead time before the
-		// click instead of after it.
+		// click instead of after it. While one is mounted, the module also loads
+		// in idle time after the page loads, for opens with no lead time.
 		const opensDialog = action === 'open-consent-dialog';
+		useIdleDialogWarming(opensDialog);
 		const buttonFocus = useCallback(
 			(event: FocusEvent<HTMLButtonElement>) => {
 				forwardedOnFocus?.(event);

@@ -3,12 +3,14 @@
 import type { LegalLinks, ConsentPresentation } from '@c15t/core';
 import { createContext, useContext } from 'react';
 
+import type { DialogPreload } from '~/chunk-warming';
 import type { ReactComponentSlots } from '~/types/slots';
 
 export interface V3UIConfigValue {
 	components?: ReactComponentSlots;
 	presentation?: ConsentPresentation;
 	legalLinks?: LegalLinks;
+	preloadDialog?: DialogPreload;
 }
 
 export const V3UIConfigContext = createContext<V3UIConfigValue>({});
