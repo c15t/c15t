@@ -10,6 +10,7 @@ import styles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { forwardRef as createForwardRef } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 
+import { useIdleDialogWarming, warmDialogChunk } from '~/chunk-warming';
 import { usePolicyRule } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -108,6 +109,10 @@ export const TriggerButton = createForwardRef<
 			openDialog,
 		} = useTriggerContext();
 
+		// The trigger only opens the dialog, so it preloads it like every other
+		// dialog opener: in idle time while mounted, and on hover or focus.
+		useIdleDialogWarming(true);
+
 		const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
 			// Don't open dialog if this was a drag interaction
 			if (event.detail !== 0 && wasDragged()) {
@@ -141,6 +146,8 @@ export const TriggerButton = createForwardRef<
 				data-c15t-rights={policy.rights.join(' ')}
 				aria-label={ariaLabel}
 				onClick={handleClick}
+				onFocus={warmDialogChunk}
+				onPointerEnter={warmDialogChunk}
 			>
 				{children}
 			</button>

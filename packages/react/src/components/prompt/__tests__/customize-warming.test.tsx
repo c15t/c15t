@@ -9,9 +9,12 @@ import { ConsentDialogLink } from '~/components/panel-link';
 import { ConsentBanner } from '~/components/prompt';
 import { offline } from '~/transports/offline';
 
+// Intent only: idle warming would otherwise call the warmer on its own
+// schedule while the banner is shown.
 const options = {
 	mode: offline(),
 	persistence: false,
+	preloadDialog: 'intent',
 	prefetch: policyFixture(),
 } as const;
 
@@ -25,8 +28,6 @@ const button = (testId: string) => {
 	return element;
 };
 
-// The registry warms once per page, so this is the only test that can observe
-// the first warm-up.
 test('the stock banner Customize button warms the deferred dialog on focus', async () => {
 	const warmer = vi.fn();
 	const unregister = registerDialogChunkWarmer(warmer);

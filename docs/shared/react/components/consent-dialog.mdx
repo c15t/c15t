@@ -43,10 +43,32 @@ group: reference
   - `useSetActiveUI()('dialog')` in your own component, or `openDialog()`
     from `useHeadlessConsentUI()` on the headless subpath.
 
-  The component code is split into its own chunk. It downloads when the
-  dialog first opens or when a visitor hovers or focuses a Customize button,
-  and renders nothing until that chunk is ready. Passing `open={true}` or
-  `showTrigger` loads it on mount.
+  The component code is split into its own chunk, so it is not part of the
+  first page load. It renders nothing until that chunk is ready, and the
+  chunk downloads at the first of these:
+
+  - The browser's first idle period after the page's `load` event, while the
+    banner is shown or a `ConsentDialogLink`, `ConsentDialogTrigger`,
+    `ConsentGate` button or other button that opens the dialog is mounted.
+    This covers a visitor who taps or presses Enter with no hover or focus
+    first. Browsers without `requestIdleCallback`, such as Safari, wait
+    200 ms after `load` instead.
+  - Hover or focus on a button that opens the dialog.
+  - The dialog opening.
+
+  Passing `open={true}` or `showTrigger` loads it on mount. A visit with
+  saved consent and nothing on the page that opens the dialog never
+  downloads it.
+
+  Idle loading is skipped when the visitor has Save-Data on
+  (`navigator.connection.saveData`), on a `2g` or `slow-2g` connection, and
+  while offline; hover and focus still load it. To load the chunk only on
+  hover, focus or open, set `preloadDialog: 'intent'` in the provider
+  options. The default is `'idle'`. With Next.js, pass it through
+  `ConsentRoot`'s `options` prop.
+
+  If a preload fails, for example because the visitor is offline, nothing is
+  cached: the next hover, focus or open tries the download again.
 
   Without an `open` prop, Escape closes the dialog. Save, Accept all and
   Reject all close it after the save succeeds; a save that fails keeps it

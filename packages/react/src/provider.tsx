@@ -46,6 +46,7 @@ import { defaultTheme, generateThemeCSS } from '@c15t/ui/theme';
 import type { ReactNode } from 'react';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
+import type { DialogPreload } from './chunk-warming';
 import { KernelContext, ProviderServicesContext } from './context';
 import { ExternalIABProvider } from './external-iab-context';
 import { useColorScheme } from './hooks/use-color-scheme';
@@ -181,6 +182,21 @@ export interface ConsentProviderOptions extends Pick<
 	/** Per-component slot attribute overrides (shared contract with @c15t/vue). */
 	components?: ReactComponentSlots;
 	legalLinks?: LegalLinks;
+	/**
+	 * When the deferred `<ConsentDialog />` starts loading before it opens.
+	 *
+	 * - `'idle'` (default): after the page's load event, in browser idle time,
+	 *   while the banner is shown or a button that opens the dialog is
+	 *   mounted, and on hover or focus of such a button. Skipped when the
+	 *   visitor has Save-Data on or a 2G-class connection.
+	 * - `'intent'`: only on hover or focus of a button that opens the dialog.
+	 *
+	 * Neither loads the dialog on a visit that shows no banner and has no
+	 * dialog trigger.
+	 *
+	 * @default 'idle'
+	 */
+	preloadDialog?: DialogPreload;
 	/**
 	 * Adapter package name reported by `window.c15t`.
 	 * @internal
@@ -1309,9 +1325,15 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		() => ({
 			components: options.components,
 			legalLinks: options.legalLinks,
+			preloadDialog: options.preloadDialog,
 			presentation: options.presentation,
 		}),
-		[options.components, options.legalLinks, options.presentation]
+		[
+			options.components,
+			options.legalLinks,
+			options.preloadDialog,
+			options.presentation,
+		]
 	);
 
 	useColorScheme(options.colorScheme);
