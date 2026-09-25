@@ -1,9 +1,13 @@
+import { MINIMAL_GVL } from '@c15t/conformance/fixtures/gvl';
 import { createConsentKernel } from '@c15t/core';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { promptClassNames } from '../banner/class-names';
-import { PROMPT_SLOT_ATTRIBUTE } from '../banner/slot';
+import { iabPromptClassNames, promptClassNames } from '../banner/class-names';
+import {
+	IAB_PROMPT_SLOT_ATTRIBUTE,
+	PROMPT_SLOT_ATTRIBUTE,
+} from '../banner/slot';
 import { boot, setPromptRendererLoaderForTest } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
@@ -220,6 +224,104 @@ describe('the spot <ConsentBanner /> leaves', () => {
 		expect(document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)).not.toBeNull();
 		expect(
 			document.querySelector('[data-testid="consent-banner-root"]')
+		).toBeNull();
+	});
+});
+
+describe('the spot <IABConsentBanner /> leaves', () => {
+	const IAB_OPTIONS: C15tAstroOptions = {
+		consentCategories: ['necessary', 'marketing'],
+		iab: { cmpId: 160, gvl: MINIMAL_GVL as never },
+		mode: offlineMode({
+			policyRules: [
+				{
+					categories: ['marketing'],
+					id: 'iab',
+					match: { fallback: true },
+					model: 'iab',
+					prompt: 'choice',
+					scopeMode: 'permissive',
+				} as never,
+			],
+		}),
+	};
+
+	const leaveSpots = function leaveSpots(): void {
+		const standard = document.createElement('div');
+		standard.hidden = true;
+		standard.setAttribute(
+			PROMPT_SLOT_ATTRIBUTE,
+			JSON.stringify({ classNames: promptClassNames, props: {} })
+		);
+		const iab = document.createElement('div');
+		iab.hidden = true;
+		iab.setAttribute(
+			IAB_PROMPT_SLOT_ATTRIBUTE,
+			JSON.stringify({ classNames: iabPromptClassNames, props: {} })
+		);
+		document.body.append(standard, iab);
+	};
+
+	it('gets the IAB banner, not the standard one, under an IAB policy', async () => {
+		leaveSpots();
+		client = boot(resolveOptions(IAB_OPTIONS));
+
+		await vi.waitFor(() => {
+			const banner = document.querySelector<HTMLElement>(
+				'[data-testid="iab-consent-banner-root"]'
+			);
+			expect(banner?.hidden).toBe(false);
+		});
+		expect(
+			document.querySelector('[data-testid="consent-banner-root"]')
+		).toBeNull();
+		expect(document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)).not.toBeNull();
+	});
+
+	it('keeps rendering after an IAB-only page had nothing to render', async () => {
+		// Only the IAB spot, under a policy that is not IAB: neither banner
+		// renders here, and that must not leave rendering stuck.
+		const iab = document.createElement('div');
+		iab.hidden = true;
+		iab.setAttribute(
+			IAB_PROMPT_SLOT_ATTRIBUTE,
+			JSON.stringify({ classNames: iabPromptClassNames, props: {} })
+		);
+		document.body.append(iab);
+		client = boot(resolveOptions(OPTIONS));
+		await vi.waitFor(() => {
+			expect(client?.getConsent().activeUI).toBe('banner');
+		});
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 20);
+		});
+
+		// A ClientRouter swap to a page with the standard banner's spot.
+		document.body = document.createElement('body');
+		leaveSpots();
+		document.querySelector(`[${IAB_PROMPT_SLOT_ATTRIBUTE}]`)?.remove();
+		document.dispatchEvent(new Event('astro:after-swap'));
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector<HTMLElement>(
+					'[data-testid="consent-banner-root"]'
+				)?.hidden
+			).toBe(false);
+		});
+	});
+
+	it('leaves a non-IAB policy to the standard banner', async () => {
+		leaveSpots();
+		client = boot(resolveOptions(OPTIONS));
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="consent-banner-root"]')
+			).not.toBeNull();
+		});
+		expect(
+			document.querySelector('[data-testid="iab-consent-banner-root"]')
 		).toBeNull();
 	});
 });

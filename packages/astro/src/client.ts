@@ -39,7 +39,11 @@ import {
 	setupScrollLock,
 } from '@c15t/ui/utils/dom';
 
-import { PROMPT_SLOT_ATTRIBUTE } from './banner/slot';
+import {
+	IAB_PROMPT_SLOT_ATTRIBUTE,
+	PROMPT_SLOT_ATTRIBUTE,
+	readIABSpotModels,
+} from './banner/slot';
 import { lazyCreateIAB, whenIABReady } from './browser/iab';
 import { activateGatedScripts } from './browser/inline-scripts';
 import type * as PromptRenderer from './browser/render-prompt';
@@ -588,27 +592,87 @@ const MAX_PROMPT_LOAD_ATTEMPTS = 3;
 /** Failed renderer loads per client, for the retry back-off. */
 const promptLoadFailures = new WeakMap<AstroConsentClient, number>();
 
+const SPOT_SELECTOR = `[${PROMPT_SLOT_ATTRIBUTE}], [${IAB_PROMPT_SLOT_ATTRIBUTE}]`;
+
+/** Whether the banner is still owed and nothing has rendered one yet. */
+const owesBanner = function owesBanner(client: AstroConsentClient): boolean {
+	return (
+		getConsentClient() === client &&
+		client.getConsent().activeUI === 'banner' &&
+		document.querySelector(BANNER_ROOT_SELECTOR) === null
+	);
+};
+
 /**
- * Render the banner into its spot.
+ * Whether the IAB banner's spot answers the snapshot.
  *
- * @returns `false` when the renderer chunk failed to load.
+ * An IAB policy goes to the IAB spot while its IAB state loads. Once that
+ * state is definitively disabled (no usable vendor list) the policy runs as
+ * opt-in, and the standard banner answers it instead.
+ */
+const iabSpotAnswers = function iabSpotAnswers(
+	snapshot: ConsentSnapshot
+): boolean {
+	const iabSpot = document.querySelector(`[${IAB_PROMPT_SLOT_ATTRIBUTE}]`);
+	return (
+		iabSpot !== null &&
+		snapshot.iab?.enabled !== false &&
+		readIABSpotModels(iabSpot).includes(snapshot.policyRule.model)
+	);
+};
+
+/**
+ * Load the renderer for whichever spot answers the snapshot, and render.
+ *
+ * @returns `false` when the answer changed while the renderer loaded, so
+ * the caller should choose again.
+ */
+const renderIntoAnsweringSpot = async function renderIntoAnsweringSpot(
+	client: AstroConsentClient
+): Promise<boolean> {
+	if (iabSpotAnswers(client.getConsent())) {
+		const { renderIABPromptIntoSlot } =
+			await import('./browser/render-iab-prompt');
+		if (!iabSpotAnswers(client.getConsent())) {
+			return false;
+		}
+		if (owesBanner(client)) {
+			renderIABPromptIntoSlot(client.getConsent(), client.options);
+		}
+		return true;
+	}
+	if (!document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)) {
+		return true;
+	}
+	const { renderPromptIntoSlot } = await loadPromptRenderer();
+	if (iabSpotAnswers(client.getConsent())) {
+		return false;
+	}
+	if (owesBanner(client)) {
+		renderPromptIntoSlot(client.getConsent(), client.options);
+	}
+	return true;
+};
+
+/**
+ * Fill whichever spot answers the current policy. An IAB policy goes to the
+ * IAB banner's spot, and waits there until the vendor list arrives rather
+ * than falling back to the standard banner; the next snapshot retries.
+ *
+ * @returns `false` when a renderer chunk failed to load.
  */
 const renderPrompt = async function renderPrompt(
 	client: AstroConsentClient
 ): Promise<boolean> {
 	try {
-		const { renderPromptIntoSlot } = await loadPromptRenderer();
-		if (getConsentClient() !== client) {
-			return true;
+		// A policy refresh during the import can change the answer; choose once
+		// more. A second change in one render is left to the next snapshot.
+		if (!(await renderIntoAnsweringSpot(client))) {
+			await renderIntoAnsweringSpot(client);
 		}
-		const current = client.getConsent();
-		if (
-			current.activeUI === 'banner' &&
-			!document.querySelector(BANNER_ROOT_SELECTOR)
-		) {
-			renderPromptIntoSlot(current, client.options);
+		if (getConsentClient() === client) {
+			syncBannerVisibility(client.getConsent());
 		}
-		syncBannerVisibility(current);
 		return true;
 	} catch (error) {
 		// Usually a network failure. The caller retries with a back-off.
@@ -642,12 +706,13 @@ const runPromptRender = async function runPromptRender(
 };
 
 /**
- * Render the banner in the browser when the page owes one it does not have.
+ * Render a banner in the browser when the page owes one it does not have.
  *
- * The server leaves a marked spot wherever `<ConsentBanner />` could not
- * know the policy: a prerendered page in hosted or manifest mode, or a
- * server render whose init failed. The renderer is its own chunk, so a page
- * that never needs it never downloads it.
+ * `<ConsentBanner />` and `<IABConsentBanner />` leave a marked spot
+ * wherever the server could not know the policy — a prerendered page in
+ * hosted or manifest mode, or a server render whose init failed — and the
+ * IAB banner also when there was no vendor list yet. Each renderer is its
+ * own chunk, so a page that never needs one never downloads it.
  *
  * @param client - The page's consent client.
  * @param snapshot - The current kernel snapshot.
@@ -662,7 +727,7 @@ const ensurePromptRendered = function ensurePromptRendered(
 		promptRender?.client === client ||
 		snapshot.activeUI !== 'banner' ||
 		document.querySelector(BANNER_ROOT_SELECTOR) ||
-		!document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)
+		!document.querySelector(SPOT_SELECTOR)
 	) {
 		return;
 	}

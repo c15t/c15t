@@ -11,13 +11,15 @@
  *
  * The summary — which purposes, stacks and special features the banner
  * names, how many it leaves out, how many vendors there are — comes from
- * the shared model in `@c15t/iab/headless`, the same one the React, Svelte
- * and Vue banners read. Same DOM shape and the same `data-testid`s, so the
+ * the shared model in `@c15t/core`, the same one the React, Svelte and Vue
+ * banners read. Same DOM shape and the same `data-testid`s, so the
  * cross-framework parity gate compares like with like.
  *
- * It renders only when the server already has a vendor list. Hosted and
- * manifest mode get one from `/init`; offline mode needs `iab.gvl` or
- * `iab.gvlURL` on the integration options.
+ * The server renders it when it already has a policy and a vendor list.
+ * Offline mode needs `iab.gvl` or `iab.gvlURL` on the integration options.
+ * Otherwise — a prerendered page in hosted or manifest mode, or a vendor
+ * list that arrives later — it leaves a spot, and the browser renders the
+ * banner there from the same model once it has both.
  *
  * ```astro
  * ---
@@ -28,38 +30,18 @@
  * <IABConsentDialog />
  * ```
  */
-import { defaultTranslationConfig, resolveConsentPresentation } from '@c15t/core';
-import type { TranslationsResponse } from '@c15t/core';
-import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import {
 	buildColorSchemeScript,
 	buildConfigScript,
+	IAB_PROMPT_SLOT_ATTRIBUTE,
+	iabPromptClassNames,
 	markConfigEmitted,
+	resolveIABPromptModel,
 } from '@c15t/astro/server';
+import type { IABPromptProps } from '@c15t/astro/server';
 import Branding from './branding.astro';
-import actionStyles from '@c15t/ui/styles/components/consent-actions';
-import styles from '@c15t/ui/styles/components/iab-consent-banner';
-import buttonStyles from '@c15t/ui/styles/components/button';
-import { getTextDirection } from '@c15t/ui/utils';
 
-type IABAction = 'reject' | 'accept' | 'customize';
-
-interface Props {
-	/** Which action gets the filled treatment. */
-	primaryButton?: IABAction;
-	/**
-	 * Which consent models this banner responds to. Matches the `models`
-	 * prop on the React, Svelte and Vue IAB banners.
-	 */
-	models?: string[];
-	/** Ship the DOM without the bundled stylesheet's class names. */
-	noStyle?: boolean;
-	/** Extra class on the banner root. */
-	class?: string;
-	/** Drop the "Secured by c15t" tag. */
-	hideBranding?: boolean;
-	/** Paint the backdrop that goes with the banner's `aria-modal`. */
-	scrollLock?: boolean;
+interface Props extends IABPromptProps {
 	/**
 	 * Render even when the server decided the banner should stay hidden.
 	 * Useful for visual testing.
@@ -67,15 +49,7 @@ interface Props {
 	force?: boolean;
 }
 
-const {
-	primaryButton = 'customize',
-	models = ['iab'],
-	noStyle = false,
-	class: className,
-	hideBranding = false,
-	scrollLock,
-	force = false,
-} = Astro.props;
+const { force = false, ...props } = Astro.props;
 
 const { c15t } = Astro.locals;
 
@@ -86,88 +60,24 @@ if (!c15t) {
 }
 
 const { snapshot } = c15t;
-const { blocking } = resolveConsentPresentation({
-	override: { scrollLock },
-	policy: snapshot.policyRule,
+const model = resolveIABPromptModel({
+	classNames: iabPromptClassNames,
 	presentation: c15t.options.presentation,
-	surface: 'prompt',
+	props,
+	snapshot,
 });
 const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
 
-const summary = resolveIABBannerSummary(
-	snapshot.iab?.enabled === false ? null : (snapshot.iab ?? null)
-);
-// No vendor list, no banner: every line of copy below interpolates a count
-// the summary derives from it.
+// No vendor list, no banner: every line of copy interpolates a count the
+// summary derives from it.
 const shouldRender =
-	c15t.hasConsentUi &&
-	(force || c15t.shouldShowBanner) &&
-	summary.isReady &&
-	models.includes(snapshot.policyRule.model);
+	c15t.hasConsentUi && (force || c15t.shouldShowBanner) && model.canRender;
 // A prerendered page is shared by every visitor, so it ships hidden and the
 // browser shows it after reading the visitor's own cookie.
 const hidden = c15t.prerendered && !force;
-
-const fallback = defaultTranslationConfig.translations.en as TranslationsResponse;
-const bundle = (snapshot.translations?.translations ?? fallback) as TranslationsResponse;
-const iabFallback = fallback.iab as NonNullable<TranslationsResponse['iab']>;
-const iab = (bundle.iab ?? iabFallback) as NonNullable<TranslationsResponse['iab']>;
-const copy = {
-	accept: iab.common?.acceptAll ?? iabFallback.common.acceptAll,
-	andMore: iab.banner?.andMore ?? iabFallback.banner.andMore,
-	customize: iab.common?.customize ?? iabFallback.common.customize,
-	description: iab.banner?.description ?? iabFallback.banner.description,
-	legitimateInterestNotice:
-		iab.banner?.legitimateInterestNotice ??
-		iabFallback.banner.legitimateInterestNotice,
-	partnersLink: iab.banner?.partnersLink ?? iabFallback.banner.partnersLink,
-	reject: iab.common?.rejectAll ?? iabFallback.common.rejectAll,
-	scopeServiceSpecific:
-		iab.banner?.scopeServiceSpecific ?? iabFallback.banner.scopeServiceSpecific,
-	securedBy: bundle.common?.securedBy ?? fallback.common.securedBy,
-	title: iab.banner?.title ?? iabFallback.banner.title,
-};
-
-const textDirection = getTextDirection(snapshot.translations?.language);
-
-const descriptionText = copy.description.replace(
-	'{partnerCount}',
-	String(summary.vendorCount)
-);
-const partnersLinkText = copy.partnersLink.replace(
-	'{count}',
-	String(summary.vendorCount)
-);
-// The link sits inside the sentence, so the copy is split around it rather
-// than concatenated — a translation is free to put it anywhere.
-const [descriptionBefore = descriptionText, descriptionAfter = ''] =
-	descriptionText.split(partnersLinkText);
-
-const labels: Record<IABAction, string> = {
-	accept: copy.accept,
-	customize: copy.customize,
-	reject: copy.reject,
-};
-
-/**
- * The shared button stylesheet keys its variants off `data-*`. `reject` is
- * never filled even when it is the primary action, which is what the React
- * and Svelte banners do too.
- */
-const buttonAttrs = function buttonAttrs(action: IABAction) {
-	const primary = action === primaryButton;
-	return {
-		mode: primary && action !== 'reject' ? 'filled' : 'stroke',
-		variant: primary ? 'primary' : 'neutral',
-	};
-};
-
-const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisible, className]
-	.filter(Boolean)
-	.join(' ');
 ---
 
 {
@@ -179,10 +89,29 @@ const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisib
 {emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
 
 {
-	shouldRender && blocking && (
+	/*
+	 * No policy or no vendor list yet, but the browser may still owe a
+	 * banner once its own init and the vendor list arrive. It renders it
+	 * into this spot from the same model, props and class names.
+	 */
+	!shouldRender && (!c15t.hasPolicy || !model.vendorListReady) && (
+		<div
+			hidden
+			{...{
+				[IAB_PROMPT_SLOT_ATTRIBUTE]: JSON.stringify({
+					classNames: iabPromptClassNames,
+					props,
+				}),
+			}}
+		/>
+	)
+}
+
+{
+	shouldRender && model.blocking && (
 		<div
 			aria-hidden="true"
-			class={noStyle ? '' : `${styles.overlay} ${styles.overlayVisible}`}
+			class={model.classes.overlay}
 			data-testid="iab-consent-banner-overlay"
 			hidden={hidden ? true : undefined}
 		/>
@@ -192,116 +121,94 @@ const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisib
 {
 	shouldRender && (
 		<div
-			class={rootClass}
+			class={model.classes.root}
 			data-c15t-visible={hidden ? 'false' : 'true'}
-			data-blocking={blocking ? 'true' : undefined}
-			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
+			data-blocking={model.blocking ? 'true' : undefined}
+			data-position={model.position}
 			data-testid="iab-consent-banner-root"
-			dir={textDirection}
+			dir={model.textDirection}
 			hidden={hidden ? true : undefined}
-			lang={snapshot.translations?.language}
+			lang={model.language}
 			tabindex="-1"
 		>
-			<div class={noStyle ? '' : styles.cardShell}>
+			<div class={model.classes.cardShell}>
 				<Branding
 					branding={snapshot.branding}
 					data-testid="iab-consent-banner-branding"
-					hide={hideBranding}
+					hide={props.hideBranding}
 					hostname={Astro.url.hostname}
-					noStyle={noStyle}
-					securedBy={copy.securedBy}
+					noStyle={props.noStyle}
+					securedBy={model.copy.securedBy}
 					variant="banner-tag"
 				/>
 				<div
-					aria-label={copy.title}
-					aria-modal={blocking ? 'true' : undefined}
-					class={noStyle ? '' : styles.card}
+					aria-label={model.copy.title}
+					aria-modal={model.blocking ? 'true' : undefined}
+					class={model.classes.card}
 					data-testid="iab-consent-banner-card"
-					role={blocking ? 'dialog' : 'region'}
+					role={model.blocking ? 'dialog' : 'region'}
 				>
-					<div
-						class={noStyle ? '' : styles.header}
-						data-testid="iab-consent-banner-header"
-					>
-						<h2 class={noStyle ? '' : styles.title}>{copy.title}</h2>
-						<p class={noStyle ? '' : styles.description}>
-							{descriptionBefore}
+					<div class={model.classes.header} data-testid="iab-consent-banner-header">
+						<h2 class={model.classes.title}>{model.copy.title}</h2>
+						<p class={model.classes.description}>
+							{model.copy.descriptionBefore}
 							<button
-								class={noStyle ? '' : styles.partnersLink}
+								class={model.classes.partnersLink}
 								data-c15t-action="customize"
 								data-c15t-dialog="iab"
 								data-c15t-tab="vendors"
 								data-testid="iab-consent-banner-partners-link"
 								type="button"
 							>
-								{partnersLinkText}
+								{model.copy.partnersLink}
 							</button>
-							{descriptionAfter}
+							{model.copy.descriptionAfter}
 						</p>
-						<ul class={noStyle ? '' : styles.purposeList}>
-							{summary.displayItems.map((name) => (
+						<ul class={model.classes.purposeList}>
+							{model.displayItems.map((name) => (
 								<li>{name}</li>
 							))}
-							{summary.remainingCount > 0 && (
-								<li class={noStyle ? '' : styles.purposeMore}>
-									{copy.andMore.replace(
-										'{count}',
-										String(summary.remainingCount)
-									)}
-								</li>
+							{model.copy.andMore && (
+								<li class={model.classes.purposeMore}>{model.copy.andMore}</li>
 							)}
 						</ul>
-						<p class={noStyle ? '' : styles.legitimateInterestNotice}>
-							{`${copy.legitimateInterestNotice} ${copy.scopeServiceSpecific}`}
-						</p>
+						<p class={model.classes.notice}>{model.copy.notice}</p>
 					</div>
 					<div
-						class={[noStyle ? '' : actionStyles.actionRoot, noStyle ? '' : styles.footer]
-							.filter(Boolean)
-							.join(' ')}
+						class={model.classes.footer}
 						data-direction="row"
 						data-split="true"
 						data-testid="iab-consent-banner-footer"
 					>
-						<div
-							class={noStyle ? '' : actionStyles.actionGroup}
-							data-direction="row"
-						>
-							{(['reject', 'accept'] as const).map((action) => (
+						<div class={model.classes.actionGroup} data-direction="row">
+							{model.choiceButtons.map((button) => (
 								<button
-									class={noStyle ? '' : buttonStyles.button}
-									data-action={action}
-									data-c15t-action={action}
-									data-mode={noStyle ? undefined : buttonAttrs(action).mode}
-									data-size={noStyle ? undefined : 'small'}
-									data-testid={`iab-consent-banner-${action}-button`}
-									data-variant={
-										noStyle ? undefined : buttonAttrs(action).variant
-									}
+									class={model.classes.button}
+									data-action={button.action}
+									data-c15t-action={button.action}
+									data-mode={button.mode}
+									data-size={props.noStyle ? undefined : 'small'}
+									data-testid={`iab-consent-banner-${button.action}-button`}
+									data-variant={button.variant}
 									type="button"
 								>
-									{labels[action]}
+									{button.label}
 								</button>
 							))}
 						</div>
-						<div
-							class={noStyle ? '' : actionStyles.actionGroup}
-							data-direction="row"
-						>
+						<div class={model.classes.actionGroup} data-direction="row">
 							<button
-								class={noStyle ? '' : buttonStyles.button}
+								class={model.classes.button}
 								data-action="customize"
 								data-c15t-action="customize"
 								data-c15t-dialog="iab"
-								data-mode={noStyle ? undefined : buttonAttrs('customize').mode}
-								data-size={noStyle ? undefined : 'small'}
+								data-mode={model.customizeButton.mode}
+								data-size={props.noStyle ? undefined : 'small'}
 								data-testid="iab-consent-banner-customize-button"
-								data-variant={
-									noStyle ? undefined : buttonAttrs('customize').variant
-								}
+								data-variant={model.customizeButton.variant}
 								type="button"
 							>
-								{labels.customize}
+								{model.customizeButton.label}
 							</button>
 						</div>
 					</div>

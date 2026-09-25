@@ -700,13 +700,25 @@ export type {
 	BrandingModelInput,
 	BrandingVariant,
 } from './banner/branding-model';
-export { promptClassNames } from './banner/class-names';
-export type { ClassNameMap, PromptClassNames } from './banner/class-names';
+export { iabPromptClassNames, promptClassNames } from './banner/class-names';
+export type {
+	ClassNameMap,
+	IABPromptClassNames,
+	PromptClassNames,
+} from './banner/class-names';
+export { resolveIABPromptModel } from './banner/iab-prompt-model';
+export type {
+	IABAction,
+	IABPromptButton,
+	IABPromptModel,
+	IABPromptModelInput,
+	IABPromptProps,
+} from './banner/iab-prompt-model';
+export { joinClasses, resolvePromptModel } from './banner/prompt-model';
 export {
-	joinClasses,
+	IAB_PROMPT_SLOT_ATTRIBUTE,
 	PROMPT_SLOT_ATTRIBUTE,
-	resolvePromptModel,
-} from './banner/prompt-model';
+} from './banner/slot';
 export type {
 	PromptModel,
 	PromptModelInput,
