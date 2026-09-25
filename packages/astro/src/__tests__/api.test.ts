@@ -173,11 +173,15 @@ describe('manifest caching through the routes', () => {
 	});
 
 	it.each([
-		// Cloudflare adapter for Astro 6 and later.
+		// Cloudflare adapter for Astro 6 and later. It keeps a `runtime.ctx`
+		// getter that throws, so that must never be read.
 		[
 			'locals.cfContext',
 			(waitUntil: (promise: Promise<unknown>) => void) => ({
 				cfContext: { waitUntil },
+				get runtime(): never {
+					throw new Error('Astro.locals.runtime was removed');
+				},
 			}),
 		],
 		// Cloudflare adapter for Astro 5.

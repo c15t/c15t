@@ -65,10 +65,14 @@ export const waitUntilFromLocals = function waitUntilFromLocals(
 	const adapterLocals = locals as
 		| { cfContext?: WaitUntilContext; runtime?: { ctx?: WaitUntilContext } }
 		| undefined;
-	const ctx = [adapterLocals?.cfContext, adapterLocals?.runtime?.ctx].find(
-		(candidate) => typeof candidate?.waitUntil === 'function'
-	);
-	if (ctx) {
+	// `cfContext` first: the Astro 6 adapter keeps a `runtime.ctx` getter that
+	// throws, so it is only read when there is no `cfContext`.
+	const cfContext = adapterLocals?.cfContext;
+	const ctx =
+		typeof cfContext?.waitUntil === 'function'
+			? cfContext
+			: adapterLocals?.runtime?.ctx;
+	if (typeof ctx?.waitUntil === 'function') {
 		(ctx.waitUntil as (promise: Promise<unknown>) => void).call(
 			ctx,
 			revalidation
