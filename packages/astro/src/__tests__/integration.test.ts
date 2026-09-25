@@ -270,17 +270,20 @@ describe('astro:config:setup', () => {
 		const [vueConfig] = withVue.calls.updateConfig.mock.calls[0] as [
 			{ vite: { plugins: { name: string }[] } },
 		];
-		expect(vueConfig.vite.plugins.map((plugin) => plugin.name)).toContain(
-			'@c15t/vue'
-		);
+		expect(vueConfig.vite.plugins.map((plugin) => plugin.name)).toEqual([
+			'c15t:options',
+			'c15t:class-maps-without-css',
+			'@c15t/vue',
+		]);
 
 		const withSvelte = await runSetup({ mode: offlineMode() });
 		const [svelteConfig] = withSvelte.calls.updateConfig.mock.calls[0] as [
 			{ vite: { plugins: { name: string }[] } },
 		];
-		expect(
-			svelteConfig.vite.plugins.map((plugin) => plugin.name)
-		).not.toContain('@c15t/vue');
+		expect(svelteConfig.vite.plugins.map((plugin) => plugin.name)).toEqual([
+			'c15t:options',
+			'c15t:class-maps-without-css',
+		]);
 	});
 
 	it('injects the init and manifest routes in manifest mode', async () => {

@@ -9,10 +9,20 @@
  * CSS; this points the browser build at those instead.
  */
 
-import { existsSync } from 'node:fs';
-
 /** `@c15t/ui/styles/components/<name>`, but not the `.css` subpaths. */
 const CLASS_MAP = /^@c15t\/ui\/styles\/components\/[a-z-]+$/u;
+
+/** The IAB components' class maps, whose rules live in the IAB stylesheet. */
+const IAB_CLASS_MAP = /^@c15t\/ui\/styles\/components\/iab-/u;
+
+/** Options for {@link createClassMapPlugin}. */
+export interface ClassMapPluginOptions {
+	/**
+	 * Whether the IAB stylesheet is injected too. Without it the IAB class
+	 * maps keep their CSS, since nothing else carries those rules.
+	 */
+	iabStylesInjected: boolean;
+}
 
 interface ResolvedId {
 	id: string;
@@ -44,31 +54,38 @@ export interface ClassMapPlugin {
  * Create the plugin. Only add it when the integration injects the full
  * stylesheet: with `styles: false` the islands' own CSS is all a site has.
  *
+ * @param options - Which stylesheets the integration injects.
  * @returns A Vite plugin.
  */
-export const createClassMapPlugin =
-	function createClassMapPlugin(): ClassMapPlugin {
-		return {
-			enforce: 'pre',
-			name: 'c15t:class-maps-without-css',
-			async resolveId(id, importer, options = {}) {
-				// The server build already resolves the `node` condition.
-				if (
-					!CLASS_MAP.test(id) ||
-					options.ssr === true ||
-					this.environment?.config?.consumer === 'server'
-				) {
-					return null;
-				}
-				const resolved = await this.resolve(id, importer, {
-					...options,
-					skipSelf: true,
-				});
-				if (!resolved?.id.endsWith('.js')) {
-					return null;
-				}
-				const withoutCSS = `${resolved.id.slice(0, -'.js'.length)}.node.js`;
-				return existsSync(withoutCSS) ? withoutCSS : null;
-			},
-		};
+export const createClassMapPlugin = function createClassMapPlugin(
+	options: ClassMapPluginOptions
+): ClassMapPlugin {
+	return {
+		enforce: 'pre',
+		name: 'c15t:class-maps-without-css',
+		async resolveId(id, importer, resolveOptions = {}) {
+			// The server build already resolves the `node` condition.
+			if (
+				!CLASS_MAP.test(id) ||
+				(IAB_CLASS_MAP.test(id) && !options.iabStylesInjected) ||
+				resolveOptions.ssr === true ||
+				this.environment?.config?.consumer === 'server'
+			) {
+				return null;
+			}
+			const resolved = await this.resolve(id, importer, {
+				...resolveOptions,
+				skipSelf: true,
+			});
+			if (!resolved?.id.endsWith('.js')) {
+				return null;
+			}
+			const withoutCSS = `${resolved.id.slice(0, -'.js'.length)}.node.js`;
+			// Loaded here rather than at the top: the package root re-exports
+			// the integration, and browser code importing it must not pull in
+			// a Node built-in.
+			const { existsSync } = await import('node:fs');
+			return existsSync(withoutCSS) ? withoutCSS : null;
+		},
 	};
+};

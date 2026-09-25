@@ -21,9 +21,10 @@ const resolveWith = async function resolveWith(
 	id: string,
 	target: string,
 	options: { ssr?: boolean } = {},
-	consumer = 'client'
+	consumer = 'client',
+	iabStylesInjected = false
 ) {
-	const plugin = createClassMapPlugin();
+	const plugin = createClassMapPlugin({ iabStylesInjected });
 	const resolve = vi.fn(() => Promise.resolve({ id: target }));
 	const result = await plugin.resolveId.call(
 		{ environment: { config: { consumer } }, resolve },
@@ -55,6 +56,26 @@ describe('class maps without CSS', () => {
 		);
 		expect(result).toBeNull();
 		expect(resolve).not.toHaveBeenCalled();
+	});
+
+	it('keeps IAB class-map CSS when only the base stylesheet is injected', async () => {
+		const { resolve, result } = await resolveWith(
+			'@c15t/ui/styles/components/iab-consent-dialog',
+			withCSS
+		);
+		expect(result).toBeNull();
+		expect(resolve).not.toHaveBeenCalled();
+	});
+
+	it('drops IAB class-map CSS when the IAB stylesheet is injected too', async () => {
+		const { result } = await resolveWith(
+			'@c15t/ui/styles/components/iab-consent-dialog',
+			withCSS,
+			{},
+			'client',
+			true
+		);
+		expect(result).toBe(join(directory, 'panel.node.js'));
 	});
 
 	it('leaves stylesheet imports alone', async () => {

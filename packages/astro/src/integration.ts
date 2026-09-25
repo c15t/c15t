@@ -276,7 +276,11 @@ export const buildVitePlugins = async function buildVitePlugins(
 ): Promise<VitePluginLike[]> {
 	const plugins: VitePluginLike[] = [createVirtualOptionsPlugin(resolved)];
 	if (resolved.styles !== false) {
-		plugins.push(createClassMapPlugin());
+		plugins.push(
+			createClassMapPlugin({
+				iabStylesInjected: isIABConfigured(resolved.iab),
+			})
+		);
 	}
 	if (resolved.ui === 'vue') {
 		try {
