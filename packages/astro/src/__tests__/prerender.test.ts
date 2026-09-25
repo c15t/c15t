@@ -9,7 +9,7 @@ import ConsentBanner from '../components/prompt.astro';
 import { resolveOptions } from '../integration';
 import { createConsentMiddleware } from '../middleware-handler';
 import { hostedMode, offlineMode } from '../mode';
-import { resolveConsentContext } from '../server';
+import { buildBannerRevealScript, resolveConsentContext } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
 import { describeTree } from './dom-tree';
 import { testRule } from './policy-fixture';
@@ -97,6 +97,22 @@ describe('<ConsentBanner /> on a prerendered page', () => {
 		});
 		expect(html).toMatch(/data-testid="consent-banner-root"[^>]*\shidden/u);
 		expect(html).toContain('data-c15t-visible="false"');
+		// Revealed at first paint for a visitor with nothing stored.
+		expect(html).toContain(
+			buildBannerRevealScript(undefined, 'consent-banner')
+		);
+	});
+
+	it('adds no reveal script to a server-rendered banner', async () => {
+		const html = await container.renderToString(ConsentBanner, {
+			locals: {
+				c15t: await resolveConsentContext({
+					headers: new Headers(),
+					options: resolveOptions(OFFLINE),
+				}),
+			},
+		});
+		expect(html).not.toContain('localStorage.getItem');
 	});
 
 	it('leaves a spot with its props when the policy is unknown', async () => {

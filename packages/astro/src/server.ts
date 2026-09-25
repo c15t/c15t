@@ -26,6 +26,7 @@ import type {
 import {
 	CONSENT_STORAGE_KEY,
 	readStoredRecordsFromCookieHeader,
+	resolveStorageKeys,
 } from '@c15t/core/modules/persistence';
 import { isIABConfigured } from '@c15t/core/runtime';
 import { fetchCachedGvl } from '@c15t/core/server';
@@ -687,6 +688,40 @@ export const buildColorSchemeScript = function buildColorSchemeScript(
 	// Wrapped because `matchMedia` is absent in some embedded webviews, and
 	// a throw here would abort the rest of the document's parsing.
 	return "try{document.documentElement.classList.toggle('c15t-dark',matchMedia('(prefers-color-scheme:dark)').matches)}catch(e){}";
+};
+
+/**
+ * Build the script that shows a prerendered banner at first paint.
+ *
+ * A prerendered banner ships hidden, because the same HTML serves visitors
+ * who have already chosen. The runtime shows it once it has read the
+ * visitor's records, but that waits for the page's module scripts. This
+ * runs inline right after the banner: a visitor with nothing stored under
+ * any consent key cannot have chosen, so it shows the banner straight away.
+ * Anyone with a stored record keeps waiting for the runtime, which
+ * validates it.
+ *
+ * @param storageConfig - The integration's storage configuration.
+ * @param testId - The banner's `data-testid` prefix.
+ * @returns JavaScript safe for inline `<script>` injection.
+ * @example
+ * ```astro
+ * <script is:inline set:html={buildBannerRevealScript(undefined, 'consent-banner')} />
+ * ```
+ */
+export const buildBannerRevealScript = function buildBannerRevealScript(
+	storageConfig: C15tResolvedOptions['storageConfig'],
+	testId: 'consent-banner' | 'iab-consent-banner'
+): string {
+	const keys = resolveStorageKeys(storageConfig);
+	const names = [keys.consent, keys.notice, keys.legacyConsent].filter(
+		(name): name is string => Boolean(name)
+	);
+	// `<` is escaped so a storage key can never close the script tag.
+	const json = JSON.stringify(names).replace(/</gu, '\\u003c');
+	// Wrapped because storage access throws in some privacy modes, and a
+	// throw here would abort the rest of the document's parsing.
+	return `try{var k=${json},c=document.cookie.split(';').map(function(p){return p.split('=')[0].trim()});if(!k.some(function(n){return c.indexOf(n)>=0||localStorage.getItem(n)!==null})){var r=document.querySelector('[data-testid="${testId}-root"][hidden]'),o=document.querySelector('[data-testid="${testId}-overlay"][hidden]');if(r){r.hidden=false;r.setAttribute('data-c15t-visible','true');if(o)o.hidden=false}}}catch(e){}`;
 };
 
 export { buildPrefetchScript } from '@c15t/core';
