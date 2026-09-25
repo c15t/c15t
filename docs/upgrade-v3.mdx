@@ -356,3 +356,25 @@ export function Banner() {
   );
 }
 ```
+
+## Session reports in manifest mode
+
+A host that resolves init from a cached manifest never calls `/init`, so a v3
+backend could not count the visitors it served. From this release every
+server-side resolution sends `POST /sessions` to the backend after the fact,
+server-to-server and detached from the response: the Next.js, TanStack Start,
+SvelteKit, Nuxt and Astro init routes, and the Next.js, TanStack Start and
+Astro render-time prefetches. The browser makes no request.
+
+This is a new outbound data flow from your server to the consent backend. The
+report carries the manifest revision, the matched policy, the jurisdiction,
+country, region, language and GPC signal, plus the visitor's user agent and
+address as request headers. It carries no cookies and no identifier. Nothing is
+stored on the backend; the report reaches a `sessions.onReport` sink and the
+request log.
+
+Reporting is on by default and needs an absolute backend URL. Set
+`reportSessions: false` on the adapter to send none. Each report is one
+resolution, not one visitor: a page view can produce a `render` report and a
+`route` report, and nothing in them links the two. A consumer counting sessions
+groups reports by the forwarded address and user agent within a window.

@@ -30,6 +30,7 @@ import {
 	loadConsentManifest,
 	resolveManifestInit,
 	resolveManifestSourceFrom,
+	resolveSessionReportURL,
 } from './manifest-init';
 import type { FetchGvl } from './manifest-init';
 
@@ -176,6 +177,13 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 				language: handlerOptions.options.i18n?.locale,
 			}),
 			manifest,
+			report: {
+				backendURL: resolveSessionReportURL(handlerOptions.options),
+				headers: request.headers,
+				method: request.method,
+				source: 'route',
+				waitUntil: bindBackgroundRevalidate(handlerOptions, lifetime),
+			},
 		});
 
 		return Response.json(payload, {

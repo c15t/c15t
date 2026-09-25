@@ -32,8 +32,8 @@ import { fetchCachedGvl } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
 import { readProducerPolicyContract } from '@c15t/core/transports';
 import {
-	CONSENT_REQUEST_HEADER_NAMES,
 	consentInputsToOverrides,
+	CONSENT_REQUEST_HEADER_NAMES,
 	extractConsentRequestInputs,
 	resolveBackendURL,
 } from '@c15t/schema/types';
@@ -44,7 +44,11 @@ import type {
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
-import { loadConsentManifest, resolveManifestInit } from './api/manifest-init';
+import {
+	loadConsentManifest,
+	resolveManifestInit,
+	resolveSessionReportURL,
+} from './api/manifest-init';
 import { filterCookieHeader } from './libs/cookies';
 import type { C15tColorScheme, C15tLocals, C15tResolvedOptions } from './types';
 
@@ -393,6 +397,12 @@ const prefetchManifest = async function prefetchManifest(
 				}),
 			inputs: input.inputs,
 			manifest,
+			report: {
+				backendURL: resolveSessionReportURL(input.options),
+				headers: input.headers,
+				source: 'render',
+				waitUntil: input.onBackgroundRevalidate,
+			},
 		});
 		return mergeInitOutputIntoKernelConfig(
 			input.base,

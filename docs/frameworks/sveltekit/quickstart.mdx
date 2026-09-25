@@ -90,6 +90,10 @@ the background. On adapters that expose `event.platform.context.waitUntil`
 (Cloudflare, Vercel edge) the handlers hand the refresh to it so it is not cut
 short when the response is sent; nothing is needed from you. For another
 lifetime API, pass `onBackgroundRevalidate(refresh, event)` to the handlers.
+The init route hands its session report to the same hook: after each
+resolution it posts a small report to the backend's `POST /sessions`,
+server-to-server, so the backend still counts visitors it never served
+`/init` to. Pass `reportSessions: false` to send none.
 
 ## Use static hosting
 

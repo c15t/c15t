@@ -11,6 +11,7 @@ import type { KernelConfig } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { resolveConsent as baseResolveConsent } from '../server';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const cookieStore = new Map<string, string>();
 const headerStore = new Map<string, string>();
@@ -206,5 +207,70 @@ describe('resolveConsent: fluid-compute safety', () => {
 		// The point is that each call goes through the live `cookies()`
 		// helper every time, not a cached config from a previous call.
 		expect(results[0]).not.toBe(results[1]);
+	});
+});
+
+describe('resolveConsent: manifest session reports', () => {
+	test('reports the render to the backend without touching the render', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 204 }));
+		const registered: Promise<void>[] = [];
+		headerStore.set('x-vercel-ip-country', 'DE');
+		headerStore.set('x-forwarded-for', '203.0.113.42');
+		headerStore.set('user-agent', 'Mozilla/5.0');
+
+		const state = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			manifest: MANIFEST_FIXTURE,
+			waitUntil: (task) => {
+				registered.push(task);
+			},
+		});
+		expect(state.initialPolicyResolution).toMatchObject({
+			policyId: 'eu-opt-in',
+			status: 'matched',
+		});
+		expect(registered).toHaveLength(1);
+		await registered[0];
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('https://consent.example.com/sessions');
+		const headers = init.headers as Record<string, string>;
+		expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
+		expect(headers['user-agent']).toBe('Mozilla/5.0');
+		expect(headers).not.toHaveProperty('cookie');
+		expect(JSON.parse(init.body as string)).toMatchObject({
+			adapter: '@c15t/nextjs',
+			country: 'DE',
+			source: 'render',
+		});
+	});
+
+	test('sends nothing for a router prefetch', async () => {
+		// A prefetched route tree resolves consent so the response is right,
+		// but the visitor may never navigate to it.
+		const fetchSpy = vi.fn();
+		headerStore.set('next-router-prefetch', '1');
+		headerStore.set('x-vercel-ip-country', 'DE');
+		await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			manifest: MANIFEST_FIXTURE,
+		});
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test('sends nothing when reportSessions is false', async () => {
+		const fetchSpy = vi.fn();
+		await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			manifest: MANIFEST_FIXTURE,
+			reportSessions: false,
+		});
+		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 });

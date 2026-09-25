@@ -34,9 +34,12 @@ import {
 import {
 	fetchCachedManifest,
 	getManifestAge,
+	getResolverInputsFromHeaders,
 	MANIFEST_PASSTHROUGH_HEADERS,
+	reportConsentSession,
 	resolveManifestInit,
 	resolveManifestSourceURL,
+	resolveSessionReportBackendURL,
 } from '@c15t/core/transports/manifest-cache';
 import type { ManifestCache } from '@c15t/core/transports/manifest-cache';
 import type {
@@ -107,6 +110,17 @@ export interface ConsentServerRouteOptions {
 	 * the manifest is fresh or the request itself waits on the upstream.
 	 */
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+
+	/**
+	 * Report each init the route resolves to the backend's `POST /sessions`,
+	 * server-to-server and detached from the response, so the backend still
+	 * counts visitors it never served `/init` to. The report is handed to
+	 * `onBackgroundRevalidate` like a manifest refresh. Set `false` to send
+	 * none.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
 
 	/**
 	 * Resolve a relative `backendURL` or `manifestURL` against the
@@ -253,6 +267,24 @@ const resolveBackendURL = function resolveBackendURL(
 		throw new Error('@c15t/tanstack-start/api: invalid backendURL.');
 	}
 	return resolved;
+};
+
+/**
+ * Where the init route reports sessions, when it can: an absolute backend,
+ * read as configured rather than resolved against the request. A relative
+ * `/api/c15t` resolved to this app's origin is this very route's proxy,
+ * not a backend, and means no report; nothing is inferred from a manifest
+ * URL.
+ */
+const resolveReportBackendURL = function resolveReportBackendURL(
+	options: ConsentServerRouteOptions
+): string | undefined {
+	return resolveSessionReportBackendURL({
+		backendURL:
+			options.backendURL ??
+			getEnv('C15T_BACKEND_URL') ??
+			getEnv('VITE_C15T_BACKEND_URL'),
+	});
 };
 
 const resolveSourceURL = function resolveSourceURL(
@@ -475,14 +507,10 @@ export const createConsentServerRoute = function createConsentServerRoute<
 			return listResponse;
 		}
 		const remembered = readConsentInputs(request);
-		const payload = resolveManifestInit(
-			remembered
-				? {
-						inputs: { ...remembered, language: remembered.language ?? 'en' },
-						manifest: cached.manifest,
-					}
-				: { headers: request.headers, manifest: cached.manifest }
-		);
+		const inputs = remembered
+			? { ...remembered, language: remembered.language ?? 'en' }
+			: getResolverInputsFromHeaders(request.headers);
+		const payload = resolveManifestInit({ inputs, manifest: cached.manifest });
 
 		if (shouldFetchGvl(cached.manifest, payload) && cached.manifest.iab?.gvl) {
 			const language = payload.translations.language.split('-')[0] || 'en';
@@ -490,6 +518,21 @@ export const createConsentServerRoute = function createConsentServerRoute<
 				fetch: resolved.fetch ?? globalThis.fetch.bind(globalThis),
 				language,
 				reference: cached.manifest.iab.gvl,
+			});
+		}
+
+		if (resolved.reportSessions !== false) {
+			reportConsentSession({
+				adapter: '@c15t/tanstack-start',
+				backendURL: resolveReportBackendURL(resolved),
+				fetch: resolved.fetch,
+				headers: request.headers,
+				init: payload,
+				inputs,
+				manifest: cached.manifest,
+				method: request.method,
+				source: 'route',
+				waitUntil: resolved.onBackgroundRevalidate,
 			});
 		}
 

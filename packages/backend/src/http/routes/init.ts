@@ -7,10 +7,19 @@
  * harder to read than it needs to be.
  */
 
+import {
+	buildConsentSessionReport,
+	isSpeculativeRequest,
+} from '@c15t/schema/types';
 import { describeRoute } from 'hono-openapi';
 
 import type { RouteContext } from '../context';
 import { buildInitResponse } from '../init';
+import {
+	detachConsentSession,
+	emitConsentSession,
+	instanceTenant,
+} from '../session';
 
 export const register = function register({
 	app,
@@ -23,13 +32,42 @@ export const register = function register({
 			tags: ['Init'],
 		}),
 		async (c) => {
-			const { body } = await buildInitResponse(
+			const { body, manifest, signals } = await buildInitResponse(
 				options.manifest ?? {},
 				c.req.raw.headers,
 				options.policySnapshot,
 				options.gvl,
 				options.tenantId ?? options.manifest?.tenantId
 			);
+			// The same event a manifest host reports through `POST /sessions`,
+			// so one sink sees every visitor regardless of which path served
+			// them. A prefetch is a page the visitor may never open, not a visit,
+			// and a `HEAD` probe (Hono answers it with this handler) is a health
+			// check, not a visitor. Detached: a visitor's response never waits
+			// on a sink.
+			if (
+				c.req.raw.method === 'GET' &&
+				!isSpeculativeRequest(c.req.raw.headers)
+			) {
+				detachConsentSession(
+					c,
+					emitConsentSession(
+						c,
+						options,
+						{
+							...buildConsentSessionReport({
+								init: body,
+								inputs: signals,
+								manifest,
+								source: 'init',
+							}),
+							// The instance's scope, as a host's report is stamped.
+							tenantId: instanceTenant(options),
+						},
+						{ delivery: 'detached', ip: 'connection' }
+					)
+				);
+			}
 			// Geo-dependent by definition, so it must never be cached across
 			// visitors the way /manifest is. The contract header is part of the
 			// response identity too, for any cache that ignores no-store.

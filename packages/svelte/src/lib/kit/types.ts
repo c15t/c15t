@@ -60,4 +60,14 @@ export interface ConsentManifestOptions extends ManifestSourceConfig {
 		revalidation: Promise<void>,
 		event: RequestEvent
 	) => void;
+	/**
+	 * Report each init the route resolves to the backend's `POST /sessions`,
+	 * server-to-server and detached from the response, so the backend still
+	 * counts visitors it never served `/init` to. The report is handed to
+	 * `onBackgroundRevalidate` like a manifest refresh. Set `false` to send
+	 * none.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
 }

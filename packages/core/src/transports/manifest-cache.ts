@@ -44,6 +44,21 @@ export type {
 	ManifestFetch,
 	ManifestSourceOptions,
 } from '../libs/manifest-cache-runtime';
+export type {
+	BuildConsentSessionReportOptions,
+	ReportConsentSessionOptions,
+	SessionReportHeaders,
+	SessionReportInputs,
+} from '../libs/session-report';
+export {
+	buildConsentSessionReport,
+	forwardSessionReportHeaders,
+	isSpeculativeRequest,
+	reportConsentSession,
+	resolveSessionReportBackendURL,
+	SESSION_REPORT_CLIENT_IP_HEADER,
+	SESSION_REPORT_FORWARD_HEADERS,
+} from '../libs/session-report';
 
 /** Request headers accepted by {@link resolveManifestInit}. */
 export type ManifestRequestHeaders =

@@ -7,7 +7,10 @@ import {
 import {
 	fetchCachedGvl,
 	getManifestAge,
+	getResolverInputsFromHeaders,
 	MANIFEST_PASSTHROUGH_HEADERS,
+	reportConsentSession,
+	resolveSessionReportBackendURL,
 } from '@c15t/core/transports/manifest-cache';
 import {
 	parsePolicyContractHeader,
@@ -198,8 +201,9 @@ export const createInitRoute = function createInitRoute(
 			if (listResponse) {
 				return sendWebResponse(event, listResponse);
 			}
+			const inputs = getResolverInputsFromHeaders(headers);
 			const payload = negotiateInit(
-				resolveManifestInit({ headers, manifest: manifest.manifest }),
+				resolveManifestInit({ inputs, manifest: manifest.manifest }),
 				getRequestHeader(event, POLICY_CONTRACT_HEADER)
 			);
 			if (
@@ -210,6 +214,22 @@ export const createInitRoute = function createInitRoute(
 				payload.gvl = await load(
 					payload.translations.language.split('-')[0] || 'en'
 				);
+			}
+			if (config.reportSessions !== false) {
+				reportConsentSession({
+					adapter: '@c15t/vue',
+					backendURL: resolveSessionReportBackendURL({
+						backendURL: config.backendURL,
+					}),
+					fetch: dependencies.fetch as typeof globalThis.fetch,
+					headers,
+					init: payload,
+					inputs,
+					manifest: manifest.manifest,
+					method: event.method,
+					source: 'route',
+					waitUntil: bindBackgroundRevalidate(dependencies, event),
+				});
 			}
 			return deferInitGvlToRoute(payload, getRequestURL(event).pathname);
 		} catch (cause) {

@@ -9,7 +9,11 @@ import { deferInitGvlToRoute } from '@c15t/core';
  * transport would carry its own memo and re-fetch the manifest on every
  * page render, which is exactly the cost manifest mode exists to remove.
  */
-import { fetchCachedManifest } from '@c15t/core/server';
+import {
+	fetchCachedManifest,
+	reportConsentSession,
+	resolveSessionReportBackendURL,
+} from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
 import {
 	consentInputsToOverrides,
@@ -20,6 +24,7 @@ import type {
 	ConsentManifest,
 	ConsentManifestGVLReference,
 	ConsentRequestHeaderInputs,
+	ConsentSessionSource,
 	GlobalVendorList,
 	InitOutput,
 } from '@c15t/schema/types';
@@ -211,6 +216,47 @@ export type ResolvedInitOutput = InitOutput & {
 	resolvedOverrides?: Record<string, unknown>;
 };
 
+/** How a resolution reports itself to the backend's `POST /sessions`. */
+export interface SessionReportTarget {
+	/** Where the resolution happened. */
+	source: ConsentSessionSource;
+	/** The visitor's request headers; only IP chain and user agent travel. */
+	headers: Headers;
+	/** Absolute backend URL, or `undefined` to send no report. */
+	backendURL: string | undefined;
+	/** The request's method, when there is one; only a `GET` is reported. */
+	method?: string;
+	/** Keeps the detached report alive on runtimes that need it. */
+	waitUntil?: (task: Promise<void>) => void;
+}
+
+/**
+ * Where a resolution reports sessions, when it can: an absolute backend,
+ * read as configured rather than resolved against the request. A relative
+ * backend resolved to this site's origin is its own injected route, not a
+ * backend, and means no report; nothing is inferred from a manifest URL.
+ * `undefined` when reporting is off or nothing absolute is set.
+ *
+ * @param options - The resolved integration options.
+ * @returns The backend base URL, or `undefined`.
+ */
+export const resolveSessionReportURL = function resolveSessionReportURL(
+	options: C15tResolvedOptions
+): string | undefined {
+	const { mode } = options;
+	if (mode.type !== 'manifest' || mode.reportSessions === false) {
+		return undefined;
+	}
+	return resolveSessionReportBackendURL({
+		// The same fallback chain the manifest source uses, so a deployment
+		// that loads its manifest from the public variable reports too.
+		backendURL:
+			mode.backendURL ??
+			getEnv('C15T_BACKEND_URL') ??
+			getEnv('PUBLIC_C15T_BACKEND_URL'),
+	});
+};
+
 /**
  * Resolve one request's `/init` payload from an already-loaded manifest.
  *
@@ -225,6 +271,8 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 	/** Same-origin init route that serves versioned public lists. */
 	gvlRoute?: string;
 	fetchGvl?: FetchGvl;
+	/** Session report to send once resolved. Absent means none. */
+	report?: SessionReportTarget;
 }): Promise<ResolvedInitOutput> {
 	const { inputs, manifest } = input;
 	const payload = resolveInitFromManifest(
@@ -254,6 +302,21 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 			// client can treat as unavailable beats a 500.
 			payload.gvl = null;
 		}
+	}
+
+	if (input.report?.backendURL) {
+		reportConsentSession({
+			adapter: '@c15t/astro',
+			backendURL: input.report.backendURL,
+			fetch: input.fetch as typeof globalThis.fetch | undefined,
+			headers: input.report.headers,
+			init: payload,
+			inputs,
+			manifest,
+			method: input.report.method,
+			source: input.report.source,
+			waitUntil: input.report.waitUntil,
+		});
 	}
 
 	// The resolver's inputs are the only place GPC survives on the SSR

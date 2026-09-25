@@ -477,6 +477,88 @@ describe('init route', () => {
 		expect(mocks.serverFetch.mock.calls[0]?.[0]).toContain('/manifest');
 	});
 
+	test('reports the resolved session to an absolute backend, detached', async () => {
+		mocks.useRuntimeConfig.mockReturnValue({
+			public: { c15t: { backendURL: 'https://consent.example.com' } },
+		});
+		mocks.serverFetch.mockImplementation((input: string) =>
+			Promise.resolve(
+				input.endsWith('/sessions')
+					? new Response(null, { status: 204 })
+					: manifestResponse({ 'cache-control': 'public, s-maxage=120' })
+			)
+		);
+		const registered: Promise<void>[] = [];
+		const call = callRoute(
+			'/api/c15t/init',
+			createInitRoute({
+				...routeDependencies,
+				onBackgroundRevalidate: (task) => {
+					registered.push(task);
+				},
+			})
+		);
+
+		const response = await call({
+			'user-agent': 'Mozilla/5.0',
+			'x-c15t-country': 'DE',
+			'x-forwarded-for': '203.0.113.42',
+		});
+		expect(response.status).toBe(200);
+		expect(registered).toHaveLength(1);
+		await registered[0];
+
+		const report = mocks.serverFetch.mock.calls.find(
+			([url]) => url === 'https://consent.example.com/sessions'
+		);
+		expect(report).toBeDefined();
+		const init = report?.[1] as RequestInit;
+		expect((init.headers as Record<string, string>)['x-c15t-client-ip']).toBe(
+			'203.0.113.42'
+		);
+		expect(JSON.parse(init.body as string)).toMatchObject({
+			adapter: '@c15t/vue',
+			country: 'DE',
+			source: 'route',
+		});
+	});
+
+	test('a HEAD probe sends no report', async () => {
+		mocks.useRuntimeConfig.mockReturnValue({
+			public: { c15t: { backendURL: 'https://consent.example.com' } },
+		});
+		mocks.serverFetch.mockResolvedValue(
+			manifestResponse({ 'cache-control': 'public, s-maxage=120' })
+		);
+		const app = createApp();
+		(app.use as unknown as MountRoute)(
+			'/api/c15t/init',
+			createInitRoute(routeDependencies)
+		);
+		const response = await toWebHandler(app)(
+			new Request('http://localhost/api/c15t/init', { method: 'HEAD' })
+		);
+		expect(response.status).toBe(200);
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(
+			mocks.serverFetch.mock.calls.some(
+				([url]) => url === 'https://consent.example.com/sessions'
+			)
+		).toBe(false);
+	});
+
+	test('sends no report for a relative backendURL', async () => {
+		// The default config points at the app's own proxy; a report through
+		// it would count the visitor twice and cannot be fetched server-side.
+		mocks.serverFetch.mockResolvedValue(
+			manifestResponse({ 'cache-control': 'public, s-maxage=120' })
+		);
+		await callInitRoute({ 'x-c15t-country': 'DE' });
+		expect(mocks.serverFetch).toHaveBeenCalledTimes(1);
+	});
+
 	test('falls back to a proxied GET /init through serverFetch', async () => {
 		// RFC 0001 §3: an older backend with no /manifest must not break consent.
 		// The proxy has to go through serverFetch too, or a relative backendURL

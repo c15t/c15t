@@ -27,7 +27,11 @@ import {
 	resolveInitFromManifest,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
-import type { ConsentManifestConfig, InitOutput } from '@c15t/schema/types';
+import type {
+	ConsentManifest,
+	ConsentManifestConfig,
+	InitOutput,
+} from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
 import { resolveGvl } from './gvl';
@@ -108,7 +112,12 @@ export const buildInitResponse = async function buildInitResponse(
 	 * init route minting agree; the manifest's tenant otherwise.
 	 */
 	tokenTenantId: string | undefined = config.tenantId
-): Promise<{ body: InitOutput; signals: InitRequestSignals }> {
+): Promise<{
+	body: InitOutput;
+	signals: InitRequestSignals;
+	/** The manifest the decision came from, for the session report. */
+	manifest: ConsentManifest;
+}> {
 	const signals = readInitSignals(headers);
 	const manifest = await buildConsentManifestFromConfig(config);
 
@@ -150,7 +159,7 @@ export const buildInitResponse = async function buildInitResponse(
 			? negotiated
 			: { ...negotiated, gvl: gvlDocument };
 	if (resolution.status !== 'matched' || !snapshot?.signingKey) {
-		return { body, signals };
+		return { body, manifest, signals };
 	}
 	const token = await createPolicySnapshotToken(
 		{
@@ -168,6 +177,7 @@ export const buildInitResponse = async function buildInitResponse(
 	);
 	return {
 		body: token ? { ...body, policySnapshotToken: token.token } : body,
+		manifest,
 		signals,
 	};
 };

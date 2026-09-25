@@ -79,7 +79,12 @@ describe('consent middleware', () => {
 			},
 		};
 		const options: C15tAstroOptions = {
-			mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			// Session reports go through the same `waitUntil`; off here so the
+			// registrations counted below are the refresh alone.
+			mode: manifestMode({
+				backendURL: 'https://consent.example.com',
+				reportSessions: false,
+			}),
 		};
 
 		await run({ fetch: fetchImpl, locals, options });

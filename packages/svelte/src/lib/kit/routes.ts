@@ -19,6 +19,8 @@ import {
 	fetchCachedManifest,
 	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
+	reportConsentSession,
+	resolveSessionReportBackendURL,
 } from '@c15t/core/server';
 import {
 	consentInputsToOverrides,
@@ -145,6 +147,20 @@ const resolveManifestSource = function resolveManifestSource(
 	return { manifestURL: `${resolved}${MANIFEST_ROUTE_SUFFIX}` };
 };
 
+/**
+ * Where the init route reports sessions, when it can: an absolute backend,
+ * read as configured rather than resolved against the request. A relative
+ * backend resolved to this app's origin is its own route, not a backend,
+ * and means no report; nothing is inferred from a manifest URL.
+ */
+const resolveReportBackendURL = function resolveReportBackendURL(
+	options: SvelteKitConsentRouteOptions
+): string | undefined {
+	return resolveSessionReportBackendURL({
+		backendURL: options.backendURL ?? getEnv('C15T_BACKEND_URL'),
+	});
+};
+
 const shouldFetchGvl = function shouldFetchGvl(
 	manifest: ConsentManifest,
 	payload: InitOutput
@@ -243,6 +259,21 @@ export const createSvelteKitConsentRouteHandlers =
 						globalThis.fetch.bind(globalThis)) as typeof globalThis.fetch,
 					language,
 					reference: manifest.iab.gvl,
+				});
+			}
+
+			if (options.reportSessions !== false) {
+				reportConsentSession({
+					adapter: '@c15t/svelte',
+					backendURL: resolveReportBackendURL(options),
+					fetch: options.fetch as typeof globalThis.fetch | undefined,
+					headers: event.request.headers,
+					init: payload,
+					inputs,
+					manifest,
+					method: event.request.method,
+					source: 'route',
+					waitUntil: bindBackgroundRevalidate(options, event),
 				});
 			}
 

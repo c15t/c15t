@@ -30,3 +30,18 @@ export {
 	loadStaticManifest,
 } from './static-manifest';
 export type { StaticManifestModuleOptions } from './static-manifest';
+export type {
+	BuildConsentSessionReportOptions,
+	ReportConsentSessionOptions,
+	SessionReportHeaders,
+	SessionReportInputs,
+} from '../libs/session-report';
+export {
+	buildConsentSessionReport,
+	forwardSessionReportHeaders,
+	isSpeculativeRequest,
+	reportConsentSession,
+	resolveSessionReportBackendURL,
+	SESSION_REPORT_CLIENT_IP_HEADER,
+	SESSION_REPORT_FORWARD_HEADERS,
+} from '../libs/session-report';

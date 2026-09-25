@@ -30,6 +30,8 @@ export type {
 } from './api/legal-document';
 // API types - Meta
 export type { StatusOutput } from './api/meta';
+// API types - Session
+export type { ConsentSessionReport, ConsentSessionSource } from './api/session';
 // API types - Subject
 export type {
 	ConsentItem,
@@ -94,9 +96,14 @@ export type {
 	LoggerLike,
 	ResolveInitFromManifestInputs,
 	ResolveInitFromManifestOptions,
+	BuildConsentSessionReportOptions,
+	SessionReportInputs,
 } from './shared';
 export {
 	buildConsentManifestFromConfig,
+	buildConsentSessionReport,
+	CONSENT_SESSION_CLIENT_IP_HEADER,
+	isSpeculativeRequest,
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,
 	checkJurisdiction,
@@ -140,6 +147,13 @@ export type {
 	GVLVendorUrl,
 } from './shared/gvl';
 export { globalVendorListSchema } from './shared/gvl';
+// Client IP derivation, for hosts that report sessions server-to-server.
+export {
+	DEFAULT_IP_HEADERS_LIST,
+	getIpAddress,
+	type IpAddressConfig,
+	maskIpAddress,
+} from './shared/client-ip';
 // Non-IAB vendor types - Custom vendors not registered with IAB
 export type {
 	NonIABVendor,

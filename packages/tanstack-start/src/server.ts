@@ -315,6 +315,17 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 
 	/**
+	 * Report the init this render resolved from the manifest to the
+	 * backend's `POST /sessions`, server-to-server and detached from the
+	 * render, so the backend still counts visitors it never served `/init`
+	 * to. The report is handed to `onBackgroundRevalidate` like a manifest
+	 * refresh. Set `false` to send none.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
+
+	/**
 	 * Same-origin prefix where you mounted `createConsentServerRoute()`.
 	 * Set this explicitly to route deferred public vendor lists through it.
 	 * Without it, lists use the manifest URL directly. Self-route detection
@@ -449,6 +460,18 @@ export const resolveConsent = async function resolveConsent(
 			headers: forward,
 			inputs,
 			manifest: loaded.manifest,
+			report:
+				options.reportSessions === false
+					? undefined
+					: {
+							adapter: '@c15t/tanstack-start',
+							// As configured, not request-resolved: a relative backend
+							// is this app's proxy, which means no report.
+							backendURL: options.backendURL,
+							headers: request.headers,
+							source: 'render',
+							waitUntil: options.onBackgroundRevalidate,
+						},
 		});
 		const response = await transport.init?.({
 			overrides: {

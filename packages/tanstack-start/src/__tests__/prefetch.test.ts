@@ -48,6 +48,9 @@ const resolveConsent = (
 	request = createRequest()
 ) =>
 	baseResolveConsent({
+		// These tests count manifest fetches; the session report the render
+		// also sends is covered in server.test.ts.
+		reportSessions: false,
 		...options,
 		cache: createManifestCache(),
 		request,

@@ -364,7 +364,12 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 			},
 		});
 
-		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+		// The init route also reports its session to the backend, detached.
+		expect(
+			fetchSpy.mock.calls
+				.map(([url]) => url)
+				.filter((url) => !String(url).endsWith('/sessions'))
+		).toEqual([
 			'https://consent.example.com/api/c15t/manifest',
 			'https://app.example.com/api/consent/manifest',
 		]);

@@ -157,6 +157,81 @@ describe('createConsentServerRoute: background revalidation', () => {
 	});
 });
 
+describe('createConsentServerRoute: session reports', () => {
+	test('init reports the resolved session to the backend, detached', async () => {
+		const fetchImpl = createManifestFetch();
+		const registered: Promise<void>[] = [];
+		const { initGET } = createRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+			onBackgroundRevalidate: (task) => {
+				registered.push(task);
+			},
+		});
+
+		const response = await initGET({
+			request: request('/api/c15t/init', {
+				cookie: 'c15t=secret',
+				'user-agent': 'Mozilla/5.0',
+				'x-forwarded-for': '203.0.113.42',
+				'x-vercel-ip-country': 'DE',
+			}),
+		});
+		expect(response.status).toBe(200);
+		expect(registered).toHaveLength(1);
+		await registered[0];
+
+		const report = fetchImpl.mock.calls.find(
+			([url]: [string]) => url === 'https://consent.example.com/sessions'
+		);
+		expect(report).toBeDefined();
+		const init = report?.[1] as RequestInit;
+		const headers = init.headers as Record<string, string>;
+		expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
+		expect(headers['user-agent']).toBe('Mozilla/5.0');
+		expect(headers).not.toHaveProperty('cookie');
+		expect(JSON.parse(init.body as string)).toMatchObject({
+			adapter: '@c15t/tanstack-start',
+			country: 'DE',
+			policy: { id: 'eu-opt-in' },
+			source: 'route',
+		});
+	});
+
+	test('a HEAD probe of init sends no report', async () => {
+		const fetchImpl = createManifestFetch();
+		const { initGET } = createRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+		});
+		const response = await initGET({
+			request: new Request('https://app.example.com/api/c15t/init', {
+				method: 'HEAD',
+			}),
+		});
+		expect(response.status).toBe(200);
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(
+			fetchImpl.mock.calls.some(
+				([url]: [string]) => url === 'https://consent.example.com/sessions'
+			)
+		).toBe(false);
+	});
+
+	test('init sends no report when reportSessions is false', async () => {
+		const fetchImpl = createManifestFetch();
+		const { initGET } = createRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+			reportSessions: false,
+		});
+		await initGET({ request: request('/api/c15t/init') });
+		expect(fetchImpl).toHaveBeenCalledTimes(1);
+	});
+});
+
 describe('createConsentServerRoute: manifest passthrough', () => {
 	test('forwards backend cache headers and the language query', async () => {
 		const fetchSpy = createManifestFetch();
