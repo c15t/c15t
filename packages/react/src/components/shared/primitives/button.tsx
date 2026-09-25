@@ -1,7 +1,8 @@
 import type { AllConsentNames } from '@c15t/core';
 import { forwardRef as createForwardRef, useCallback } from 'react';
-import type { MouseEvent } from 'react';
+import type { FocusEvent, MouseEvent, PointerEvent } from 'react';
 
+import { warmDialogChunk } from '~/chunk-warming';
 import { useConsentSaveAction } from '~/draft';
 import { useSetActiveUI, useDismissNotice } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
@@ -138,6 +139,8 @@ export const ConsentButton = createForwardRef<
 			consentAction,
 			isPrimary,
 			onClick: forwardedOnClick,
+			onFocus: forwardedOnFocus,
+			onPointerEnter: forwardedOnPointerEnter,
 			closeConsentBanner = false,
 			closeConsentDialog = false,
 			performDefaultAction = true,
@@ -245,6 +248,29 @@ export const ConsentButton = createForwardRef<
 			]
 		);
 
+		// Buttons that open the dialog start loading its deferred module on
+		// hover or focus, so the chunk downloads during the lead time before the
+		// click instead of after it.
+		const opensDialog = action === 'open-consent-dialog';
+		const buttonFocus = useCallback(
+			(event: FocusEvent<HTMLButtonElement>) => {
+				forwardedOnFocus?.(event);
+				if (opensDialog) {
+					warmDialogChunk();
+				}
+			},
+			[forwardedOnFocus, opensDialog]
+		);
+		const buttonPointerEnter = useCallback(
+			(event: PointerEvent<HTMLButtonElement>) => {
+				forwardedOnPointerEnter?.(event);
+				if (opensDialog) {
+					warmDialogChunk();
+				}
+			},
+			[forwardedOnPointerEnter, opensDialog]
+		);
+
 		const Comp = asChild ? Slot : 'button';
 
 		// Filter out non-DOM props to prevent React warnings
@@ -267,6 +293,8 @@ export const ConsentButton = createForwardRef<
 				data-action={consentAction}
 				{...buttonStyleProps}
 				onClick={buttonClick}
+				onFocus={buttonFocus}
+				onPointerEnter={buttonPointerEnter}
 				{...domProps}
 			/>
 		);
