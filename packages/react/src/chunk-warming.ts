@@ -5,8 +5,9 @@
  * fix — deferred until it can actually render. That leaves one cold path:
  * the user's *first* "customize" click pays the chunk network+parse cost
  * under throttle. Surfaces register their lazy import here, and intent
- * signals (pointerenter/focus on the customize button) warm the chunk
- * before the click.
+ * signals (pointerenter/focus on any `ConsentButton` that opens the dialog,
+ * including the stock banner's Customize button) warm the chunk before the
+ * click.
  *
  * Module-level registry keeps banner components decoupled from the
  * aggregate exports (no context change, tree-shakes with the aggregate).
