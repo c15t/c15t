@@ -26,6 +26,7 @@ import type {
 import {
 	CONSENT_STORAGE_KEY,
 	readStoredRecordsFromCookieHeader,
+	resolveStorageKeys,
 } from '@c15t/core/modules/persistence';
 import { isIABConfigured } from '@c15t/core/runtime';
 import { fetchCachedGvl } from '@c15t/core/server';
@@ -687,6 +688,47 @@ export const buildColorSchemeScript = function buildColorSchemeScript(
 	// Wrapped because `matchMedia` is absent in some embedded webviews, and
 	// a throw here would abort the rest of the document's parsing.
 	return "try{document.documentElement.classList.toggle('c15t-dark',matchMedia('(prefers-color-scheme:dark)').matches)}catch(e){}";
+};
+
+/**
+ * Build the script that shows a prerendered banner at first paint.
+ *
+ * A prerendered banner ships hidden, because the same HTML serves visitors
+ * who have already chosen. The runtime shows it once it has read the
+ * visitor's records, but that waits for the page's module scripts. This
+ * runs inline right after the banner: a visitor with nothing stored under
+ * any consent key cannot have chosen, so it shows the banner straight away.
+ * Anyone with a stored record keeps waiting for the runtime, which
+ * validates it.
+ *
+ * @param storageConfig - The integration's storage configuration.
+ * @param testId - The banner's `data-testid` prefix.
+ * @returns JavaScript safe for inline `<script>` injection.
+ * @example
+ * ```astro
+ * <script is:inline set:html={buildBannerRevealScript(undefined, 'consent-banner')} />
+ * ```
+ */
+export const buildBannerRevealScript = function buildBannerRevealScript(
+	storageConfig: C15tResolvedOptions['storageConfig'],
+	testId: 'consent-banner' | 'iab-consent-banner'
+): string {
+	const keys = resolveStorageKeys(storageConfig);
+	// A stored GPC or opt-out directive (`-privacy`) can also mean the banner
+	// is not owed, so it counts as something stored.
+	const names = [
+		keys.consent,
+		keys.notice,
+		keys.privacy,
+		keys.legacyConsent,
+	].filter((name): name is string => Boolean(name));
+	// `<` is escaped so a storage key can never close the script tag.
+	const json = JSON.stringify(names).replace(/</gu, '\\u003c');
+	// An IIFE keeps its variables out of the page's global scope. Blocked
+	// cookies or storage (sandboxes, some privacy modes) throw on access: each
+	// is read as "nothing stored there" so the other still decides, and any
+	// other throw is swallowed so it cannot abort the rest of the document.
+	return `(function(){try{var names=${json},cookies=[],stored;try{cookies=document.cookie.split(';').map(function(p){return p.split('=')[0].trim()})}catch(e){}stored=function(n){if(cookies.indexOf(n)>=0)return true;try{return window.localStorage.getItem(n)!==null}catch(e){return false}};if(names.some(stored))return;var root=document.querySelector('[data-testid="${testId}-root"][hidden]'),overlay=document.querySelector('[data-testid="${testId}-overlay"][hidden]');if(root){root.hidden=false;root.setAttribute('data-c15t-visible','true');if(overlay)overlay.hidden=false}}catch(e){}})();`;
 };
 
 export { buildPrefetchScript } from '@c15t/core';

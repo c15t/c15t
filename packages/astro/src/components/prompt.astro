@@ -13,8 +13,9 @@
  * Svelte and React banners, so cross-framework tests and CSS both hold.
  *
  * A prerendered page is built once for every visitor. In offline mode the
- * banner is rendered hidden and the browser shows it to visitors who have
- * not chosen yet. In hosted and manifest mode the build cannot know the
+ * banner is rendered hidden. A small inline script shows it at first paint
+ * to visitors with nothing stored, and the runtime decides for everyone
+ * else once it has read their records. In hosted and manifest mode the build cannot know the
  * policy, so the browser renders the banner from the same model once its
  * init resolves.
  *
@@ -26,6 +27,7 @@
  * ```
  */
 import {
+	buildBannerRevealScript,
 	buildColorSchemeScript,
 	buildConfigScript,
 	markConfigEmitted,
@@ -228,6 +230,22 @@ const model = resolvePromptModel({
 				</div>
 			</div>
 		</div>
+	)
+}
+
+{
+	/*
+	 * Right after the hidden banner, so a visitor with nothing stored sees it
+	 * in the first paint instead of after the module scripts load.
+	 */
+	shouldRender && hidden && (
+		<script
+			is:inline
+			set:html={buildBannerRevealScript(
+				c15t.options.storageConfig,
+				'consent-banner'
+			)}
+		/>
 	)
 }
 

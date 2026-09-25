@@ -168,15 +168,17 @@ their choice.
 
 - In `offline()` mode the build resolves the policy, because the browser would
   resolve it the same way without request geography. The banner is in the HTML
-  but hidden. The browser shows it to visitors who have not chosen yet.
+  but hidden. A small inline script shows it in the first paint to visitors with
+  no stored consent. For everyone else, the browser decides once it has read
+  their stored records.
 - In `hosted()` and `manifest()` mode the policy depends on the visitor's
   location, so the build cannot resolve it. `ConsentBanner` and
   `IABConsentBanner` leave empty placeholders. The browser renders the banner
   that matches the policy once its `/init` request returns one. For an IAB
   policy it also waits for the vendor list.
 
-Either way, first-time visitors see the banner once the page script runs,
-not in the first paint.
+In hosted and manifest mode, first-time visitors see the banner once `/init`
+returns, not in the first paint.
 
 On a prerendered page `Astro.locals.c15t.prerendered` is `true`, and the config
 the page inlines carries no stored consent, clock or privacy signal.

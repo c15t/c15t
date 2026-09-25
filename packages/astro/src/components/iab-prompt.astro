@@ -31,6 +31,7 @@
  * ```
  */
 import {
+	buildBannerRevealScript,
 	buildColorSchemeScript,
 	buildConfigScript,
 	IAB_PROMPT_SLOT_ATTRIBUTE,
@@ -215,6 +216,22 @@ const hidden = c15t.prerendered && !force;
 				</div>
 			</div>
 		</div>
+	)
+}
+
+{
+	/*
+	 * Right after the hidden banner, so a visitor with nothing stored sees it
+	 * in the first paint instead of after the module scripts load.
+	 */
+	shouldRender && hidden && (
+		<script
+			is:inline
+			set:html={buildBannerRevealScript(
+				c15t.options.storageConfig,
+				'iab-consent-banner'
+			)}
+		/>
 	)
 }
 
