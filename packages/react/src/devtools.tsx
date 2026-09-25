@@ -266,13 +266,12 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 			const devTools = createDevTools({
 				...stableServices,
 				container,
-				defaultOpen: true,
 				defaultTab,
+				embedded: true,
 				getConsentCategories: getDisplayedCategories,
 				kernel,
 				maxEvents,
 			});
-			devTools.element?.classList.add('c15t-dev-tools--embedded');
 
 			return () => devTools.destroy();
 		}, [defaultTab, getDisplayedCategories, stableServices, kernel, maxEvents]);

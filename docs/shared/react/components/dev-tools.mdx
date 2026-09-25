@@ -185,6 +185,30 @@ group: reference
   prop; conditionally render them instead. Unmounting removes the panel and
   subscriptions without changing consent.
 
+  ### Embed the Vue panel
+
+  `ConsentDevToolsPanel` from `c15t/vue/devtools` fills its parent element
+  instead of floating over the page. It has no launcher or close button and
+  starts open. Use it for your own debug page or another devtools host. Give
+  the parent a height:
+
+  ```vue
+  <script setup lang="ts">
+  import { ConsentDevToolsPanel } from 'c15t/vue/devtools';
+  </script>
+
+  <template>
+    <div style="height: 32rem">
+      <ConsentDevToolsPanel default-tab="events" />
+    </div>
+  </template>
+  ```
+
+  It accepts `defaultTab`, `maxEvents`, `getConsentCategories`,
+  `getPresentation` and `clearRecords`, and must render inside the provider
+  that supplies the kernel. Nuxt apps also get a c15t tab in Nuxt DevTools
+  without rendering either component.
+
   ## TanStack Devtools
 
   Each embedded panel owns its event history and subscriptions. Unmounting it

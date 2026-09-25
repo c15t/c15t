@@ -68,6 +68,8 @@ interface ViewOptions {
 	getConsentCategories: () => readonly (keyof ConsentState)[];
 	stateManager: StateManager;
 	container?: HTMLElement;
+	/** Fill the container; no launcher, close button, or Escape to close. */
+	embedded?: boolean;
 }
 
 interface ViewState {
@@ -420,18 +422,21 @@ const renderScripts = (
 	const results = createElement(document, 'div', 'c15t-dev-tools__script-list');
 	const scanPage = (): void => {
 		results.replaceChildren();
-		for (const element of document.querySelectorAll<
+		// Scan the page running this code, which owns the kernel. An
+		// embedded panel can render into a devtools iframe's document.
+		const page = globalThis.document ?? document;
+		for (const element of page.querySelectorAll<
 			HTMLScriptElement | HTMLIFrameElement
 		>('script[src], iframe[src]')) {
 			let url: URL;
 			try {
-				url = new URL(element.src, document.baseURI);
+				url = new URL(element.src, page.baseURI);
 			} catch {
 				continue;
 			}
 			if (
 				!['http:', 'https:'].includes(url.protocol) ||
-				url.origin === document.location.origin
+				url.origin === page.location.origin
 			) {
 				continue;
 			}
@@ -853,6 +858,9 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 		'div',
 		`c15t-dev-tools ${positionClass(options.stateManager.getState().position)}`
 	);
+	if (options.embedded) {
+		root.classList.add('c15t-dev-tools--embedded');
+	}
 	root.dataset.c15tDevTools = viewId;
 	root.addEventListener('keydown', (event) => {
 		if (
@@ -1123,6 +1131,10 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 			: createElement(document, 'div', 'c15t-dev-tools-host');
 	if (host) {
 		host.dataset.c15tDevToolsHost = viewId;
+		if (options.embedded) {
+			// The panel fills the container only if its host does.
+			host.style.height = '100%';
+		}
 		const shadowRoot = host.attachShadow({ mode: 'open' });
 		shadowRoot.append(
 			createElement(document, 'style', undefined, devToolsStyles)

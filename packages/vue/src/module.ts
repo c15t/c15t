@@ -9,10 +9,15 @@ import {
 	createResolver,
 	defineNuxtModule,
 } from '@nuxt/kit';
-import type { NuxtModule } from '@nuxt/schema';
+import type { Nuxt, NuxtModule } from '@nuxt/schema';
 import { defu } from 'defu';
+import { joinURL } from 'ufo';
 
-import type { ConsentConfig } from './runtime/config';
+import type { ModuleOptions } from './module-options';
+import {
+	DEVTOOLS_ICON_ROUTE,
+	DEVTOOLS_PAGE_ROUTE,
+} from './runtime/devtools/constants';
 import {
 	resolveManifestMode,
 	resolveNuxtInitRoute,
@@ -21,14 +26,66 @@ import {
 
 export { defineTheme, type Theme } from '@c15t/ui/theme';
 
-/** Options accepted by the Nuxt module. */
-export type ModuleOptions = Partial<ConsentConfig>;
+export type { ConsentModuleOptions, ModuleOptions } from './module-options';
+
+/**
+ * The part of a Nuxt DevTools custom tab this module sends. Declared here
+ * so the module does not depend on `@nuxt/devtools-kit` for one hook.
+ */
+interface DevToolsCustomTab {
+	category?: 'app';
+	icon?: string;
+	name: string;
+	title: string;
+	view: { src: string; type: 'iframe' };
+}
+
+/** Whether Nuxt installs its DevTools module for this build. */
+const isNuxtDevToolsEnabled = (nuxt: Nuxt): boolean => {
+	const { devtools } = nuxt.options;
+	return typeof devtools === 'boolean' ? devtools : devtools?.enabled !== false;
+};
+
+/**
+ * Serve the tab page, expose the kernel to it from a client plugin, and
+ * register the tab. Nuxt DevTools 4 keeps `devtools:customTabs` as a shim
+ * over its dock system, so the same tab shows in both versions.
+ */
+const addDevToolsTab = (
+	nuxt: Nuxt,
+	resolve: (path: string) => string
+): void => {
+	const handler = resolve('./runtime/server/devtools.get');
+	addServerHandler({ handler, method: 'get', route: DEVTOOLS_PAGE_ROUTE });
+	addServerHandler({ handler, method: 'get', route: DEVTOOLS_ICON_ROUTE });
+	// Appended so it runs after the consent plugin that provides the kernel;
+	// addPlugin prepends by default.
+	addPlugin(
+		{ mode: 'client', src: resolve('./runtime/devtools/plugin.nuxt') },
+		{ append: true }
+	);
+	const { baseURL } = nuxt.options.app;
+	const hook = nuxt.hook as unknown as (
+		name: 'devtools:customTabs',
+		callback: (tabs: DevToolsCustomTab[]) => void
+	) => void;
+	hook('devtools:customTabs', (tabs) => {
+		tabs.push({
+			category: 'app',
+			icon: joinURL(baseURL, DEVTOOLS_ICON_ROUTE),
+			name: 'c15t',
+			title: 'c15t',
+			view: { src: joinURL(baseURL, DEVTOOLS_PAGE_ROUTE), type: 'iframe' },
+		});
+	});
+};
 
 // Annotated explicitly: the inferred type names `NuxtModule` through
 // @nuxt/schema's store path, which is not portable across installs (TS2883).
-const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
+const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 	defaults: () => ({
 		...defaultConsentConfig,
+		devtools: true,
 		initRoute: resolveNuxtInitRoute({}),
 		manifest: false,
 		manifestRoute: resolveNuxtManifestRoute({}),
@@ -37,7 +94,7 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 		configKey: 'c15t',
 		name: '@c15t/vue',
 	},
-	setup(options, nuxt) {
+	setup({ devtools, ...options }, nuxt) {
 		const resolver = createResolver(import.meta.url);
 		const manifestMode = resolveManifestMode(options);
 		const initRoute = resolveNuxtInitRoute(options);
@@ -113,6 +170,10 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 		}
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
+
+		if (nuxt.options.dev && devtools && isNuxtDevToolsEnabled(nuxt)) {
+			addDevToolsTab(nuxt, (path) => resolver.resolve(path));
+		}
 
 		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		addComponent({
