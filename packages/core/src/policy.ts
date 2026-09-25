@@ -8,6 +8,7 @@
 import type {
 	PolicyFingerprints,
 	PolicyResolution,
+	PolicyResolutionMatched,
 	ResolvedPolicyRule,
 } from '@c15t/schema/types';
 import { safeFallbackPolicyInput } from '@c15t/schema/types';
@@ -67,6 +68,51 @@ const FALLBACK_EVALUATION_POLICY = projectEvaluationPolicy(
 	FALLBACK_EFFECTIVE_POLICY
 );
 deepFreeze(FALLBACK_EVALUATION_POLICY);
+
+/**
+ * The resolution a disabled provider or runtime runs on: a permissive
+ * opt-out rule with no prompt, matched as the fallback.
+ *
+ * @remarks
+ * A literal, not a `resolvePolicyRules` call. Resolving at module load would
+ * validate and hash a rule on every page load, and would ship the authoring
+ * validator and the SHA-256 fingerprinting to every client bundle that
+ * renders a provider. A test pins this value to what `resolvePolicyRules`
+ * returns for the same rule.
+ *
+ * @returns A fresh copy.
+ * @internal
+ */
+export const disabledPolicyResolution =
+	function disabledPolicyResolution(): PolicyResolutionMatched {
+		return {
+			fingerprints: {
+				choice:
+					'7c239616f9280c2381800f2815429bd4bc3dad324a367fbd36adb838a1960340',
+				notice:
+					'167ae78ed172a70d96c03045e6a740e0fe1a7d7f54d28ccee8777fe345c574ed',
+				policy:
+					'7f89b3f54bb6e0396447461ca1451ef4d448d43bc356442ee61910de8070c220',
+			},
+			matchedBy: 'fallback',
+			policy: {
+				actions: { allowed: [], equivalent: [], required: [] },
+				copyRevision: null,
+				id: 'disabled',
+				model: 'opt-out',
+				preselectedCategories: [],
+				privacySignals: { gpc: { denyCategories: [] } },
+				prompt: 'none',
+				proof: { storeIp: false, storeLanguage: false, storeUserAgent: false },
+				rights: ['disclosure', 'opt-out', 'preferences'],
+				scope: ['experience', 'functionality', 'marketing', 'measurement'],
+				scopeMode: 'permissive',
+				validity: { choiceMs: 31_536_000_000, noticeMs: 31_536_000_000 },
+			},
+			policyId: 'disabled',
+			status: 'matched',
+		};
+	};
 
 /**
  * The rule a resolution puts in force: the matched rule, or the safe

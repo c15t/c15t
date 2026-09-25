@@ -3,6 +3,7 @@
 import {
 	extractConsentNamesFromCondition,
 	createConsentKernel,
+	disabledPolicyResolution,
 	kernelConfigToInitResponse,
 	declareOwnedVendors,
 	forgetOwnedVendors,
@@ -39,7 +40,6 @@ import {
 } from '@c15t/core/modules/window-debug';
 import type { WindowDebugMode } from '@c15t/core/modules/window-debug';
 import type { ConsentRuntime } from '@c15t/core/runtime';
-import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
 import { defaultTheme, generateThemeCSS } from '@c15t/ui/theme';
@@ -222,19 +222,6 @@ export interface ExternalRuntimeProviderProps {
 export type ConsentProviderProps =
 	| OwnedRuntimeProviderProps
 	| ExternalRuntimeProviderProps;
-
-const DISABLED_RESOLUTION = resolvePolicyRules({
-	countryCode: null,
-	regionCode: null,
-	rules: [
-		{
-			id: 'disabled',
-			match: { fallback: true },
-			model: 'opt-out',
-			prompt: 'none',
-		},
-	],
-});
 
 const DEFAULT_TRANSLATIONS: KernelTranslations = {
 	language: 'en',
@@ -585,7 +572,7 @@ const createProviderKernel = function createProviderKernel(
 		transport,
 		initialPolicyResolution: enabled
 			? prefetch.initialPolicyResolution
-			: DISABLED_RESOLUTION,
+			: disabledPolicyResolution(),
 		initialOverrides: {
 			...(prefetch.initialOverrides ?? {}),
 			...(options.overrides ?? {}),
