@@ -35,7 +35,6 @@ import ConsentDialogTrigger from '@c15t/astro/components/consent-dialog-trigger.
 `,
 			'ConsentHead.astro': `---
 import ConsentScript from '@c15t/astro/components/consent-script.astro';
-import '@c15t/astro/styles.css';
 ---
 <ConsentScript />
 `,
