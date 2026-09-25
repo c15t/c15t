@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { promptClassNames } from '../banner/class-names';
 import { PROMPT_SLOT_ATTRIBUTE } from '../banner/slot';
-import { boot } from '../client';
+import { boot, setPromptRendererLoaderForTest } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
@@ -176,6 +176,37 @@ describe('the spot <ConsentBanner /> leaves', () => {
 			expect(banner?.hidden).toBe(false);
 		});
 		expect(document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)).toBeNull();
+	});
+
+	it('retries a renderer that failed to load', async () => {
+		let loads = 0;
+		setPromptRendererLoaderForTest(async () => {
+			loads += 1;
+			if (loads === 1) {
+				throw new TypeError('Failed to fetch dynamically imported module');
+			}
+			return await import('../browser/render-prompt');
+		});
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			leaveSpot();
+			await bootPrerendered();
+
+			await vi.waitFor(
+				() => {
+					const banner = document.querySelector<HTMLElement>(
+						'[data-testid="consent-banner-root"]'
+					);
+					expect(banner?.hidden).toBe(false);
+				},
+				{ timeout: 3000 }
+			);
+			expect(loads).toBe(2);
+			expect(warn).toHaveBeenCalledOnce();
+		} finally {
+			warn.mockRestore();
+			setPromptRendererLoaderForTest();
+		}
 	});
 
 	it('stays empty for a visitor who already chose', async () => {
