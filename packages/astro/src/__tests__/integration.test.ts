@@ -309,32 +309,70 @@ describe('astro:config:setup', () => {
 });
 
 describe('astro:config:done', () => {
-	it('names the injected routes when manifest mode has no adapter', () => {
-		const run = runDone(
-			{ mode: manifestMode({ backendURL: 'https://consent.example.com' }) },
-			['@astrojs/svelte']
+	/** Run setup for `command`, then done, the way Astro does. */
+	const runForCommand = async function runForCommand(
+		options: C15tAstroOptions,
+		command: string,
+		adapter?: { name: string }
+	) {
+		const integration = c15t(options);
+		await integration.hooks['astro:config:setup']?.({
+			addMiddleware: vi.fn(),
+			command,
+			injectRoute: vi.fn(),
+			injectScript: vi.fn(),
+			updateConfig: vi.fn(),
+		} as unknown as Parameters<
+			NonNullable<(typeof integration)['hooks']['astro:config:setup']>
+		>[0]);
+		return () =>
+			integration.hooks['astro:config:done']?.({
+				config: { adapter, integrations: [{ name: '@astrojs/svelte' }] },
+				logger: { error: vi.fn(), warn: vi.fn() },
+			} as unknown as Parameters<
+				NonNullable<(typeof integration)['hooks']['astro:config:done']>
+			>[0]);
+	};
+	const MANIFEST: C15tAstroOptions = {
+		mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+	};
+
+	it('names the injected routes when a build has no adapter', async () => {
+		const done = await runForCommand(MANIFEST, 'build');
+		expect(done).toThrowError(
+			/manifest mode injects on-demand routes at \/api\/c15t\/init.*need a server adapter/u
 		);
-		expect(run).toThrowError(/\/api\/c15t\/init.*need a server adapter/u);
 	});
 
-	it('lets manifest mode build with an adapter', () => {
-		const run = runDone(
-			{ mode: manifestMode({ backendURL: 'https://consent.example.com' }) },
-			['@astrojs/svelte'],
-			{ name: '@astrojs/node' }
+	it('tells an explicit `endpoints` site how to build statically', async () => {
+		const done = await runForCommand(
+			{ endpoints: true, mode: offlineMode() },
+			'build'
 		);
-		expect(run).not.toThrow();
+		expect(done).toThrowError(/`endpoints` injects .*set `endpoints: false`/u);
 	});
 
-	it('lets manifest mode build statically with `endpoints: false`', () => {
-		const run = runDone(
-			{
-				endpoints: false,
-				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
-			},
-			['@astrojs/svelte']
+	it.each(['dev', 'sync'])(
+		'lets `astro %s` run without an adapter, as Astro does',
+		async (command) => {
+			const done = await runForCommand(MANIFEST, command);
+			expect(done).not.toThrow();
+		}
+	);
+
+	it('lets manifest mode build with an adapter', async () => {
+		const done = await runForCommand(MANIFEST, 'build', {
+			name: '@astrojs/node',
+		});
+		expect(done).not.toThrow();
+	});
+
+	it('lets manifest mode build statically with `endpoints: false`', async () => {
+		const done = await runForCommand(
+			{ ...MANIFEST, endpoints: false },
+			'build'
 		);
-		expect(run).not.toThrow();
+		expect(done).not.toThrow();
 	});
 
 	it.each([
