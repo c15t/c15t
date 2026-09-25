@@ -61,7 +61,16 @@ import { policyScenarios, runPolicyScenarios } from './policy-scenarios';
 
 const HOST = '127.0.0.1';
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const buildIdPath = join(appDir, '.next', 'BUILD_ID');
+/**
+ * `C15T_CSS=styles` selects the component-CSS build of the banner-css page
+ * (see next.config.ts), which lives in its own dist directory.
+ */
+const cssArm = process.env.C15T_CSS === 'styles' ? 'styles' : 'aggregate';
+const buildIdPath = join(
+	appDir,
+	cssArm === 'styles' ? '.next-css-styles' : '.next',
+	'BUILD_ID'
+);
 const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/react';
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
@@ -313,11 +322,16 @@ const readServerHtml = async function readServerHtml(
 const resultScenarioName = function resultScenarioName(
 	scenario: string
 ): string {
+	// The component-CSS build only changes the banner-css page.
+	const name =
+		cssArm === 'styles' && scenario === 'banner-css'
+			? `${scenario}:css-styles`
+			: scenario;
 	if (throttleProfile === 'none' && initLatencyMs === 0) {
-		return scenario;
+		return name;
 	}
 
-	return `${scenario}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
+	return `${name}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
 };
 
 const resultFileName = function resultFileName(scenario: string): string {
@@ -477,6 +491,46 @@ const recordChoice = async function recordChoice(
 	}
 };
 
+/**
+ * Serialized page function: computed styles that only the banner stylesheets
+ * and theme tokens produce. An unstyled card is transparent and square.
+ */
+const bannerCardStyleExpression = `(() => {
+	const card = document.querySelector('[data-testid="consent-banner-card"]');
+	if (!card) {
+		return null;
+	}
+	const style = getComputedStyle(card);
+	return {
+		backgroundColor: style.backgroundColor,
+		borderRadius: style.borderRadius,
+	};
+})()`;
+
+/**
+ * The CSS delivery arms must render a styled banner, or their timings
+ * measure an unstyled page. Catches a stylesheet that stopped loading, such
+ * as a class map that no longer imports its CSS.
+ */
+const assertBannerStyled = async function assertBannerStyled(
+	page: PlaywrightTypes.Page,
+	scenario: string
+) {
+	const style = (await page.evaluate(bannerCardStyleExpression)) as {
+		backgroundColor: string;
+		borderRadius: string;
+	} | null;
+	if (
+		!style ||
+		style.backgroundColor === 'rgba(0, 0, 0, 0)' ||
+		style.borderRadius === '0px'
+	) {
+		throw new Error(
+			`${scenario} (${cssArm} CSS): the consent banner rendered without its styles (${JSON.stringify(style)}).`
+		);
+	}
+};
+
 const assertSampleBannerState = function assertSampleBannerState(
 	sample: ReactBrowserSample,
 	scenario: string,
@@ -526,6 +580,7 @@ const writeScenarioResult = function writeScenarioResult(
 			),
 			cls: Number(median(samples.map((sample) => sample.cls ?? 0)).toFixed(4)),
 			...coldStateMetadata(input.coldState),
+			cssArm,
 			gitDirty: safeGitDirty(),
 			initLatencyMs,
 			profile: throttleProfile,
@@ -682,6 +737,10 @@ const runFreshScenario = async function runFreshScenario(
 			const metrics = await collectPageMetrics(page, scenario.name);
 			if (scenario.name !== 'baseline') {
 				assertSampleBannerState(metrics, scenario.name, 'fresh');
+			}
+			if (scenario.name === 'banner-css') {
+				// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+				await assertBannerStyled(page, scenario.name);
 			}
 			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
 			const interactionLatencyMs = await measureInteractionLatency(

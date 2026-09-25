@@ -166,6 +166,51 @@ Stylesheets on both routes, alpha.2 artifacts (gzip body bytes):
 The aggregate stylesheet defines 200 classes. Every class in the other six
 stylesheets is also in it. The workspace-linked benches did not show this.
 
+## 6. The React `C15T_CSS=styles` arm
+
+This manual arm of `react-browser-bench` was meant to compare the aggregate
+stylesheet with per-component CSS on the `banner-css` page. It has not built
+since the v3 exports change in `bbfcc04bb`. Its shim imported
+`@c15t/ui/styles/components/consent-banner.module.css` and its extras reused
+`button.module.css`, and both specifiers now resolve to JavaScript class
+maps. Turbopack failed with `missing VAR_MODULE_GLOBAL_ERROR in template` and
+webpack with `Selector ":root" is not pure`. The shim was also stale: it kept
+the old monolith keys and dropped `rights`, `rightLink` and the overlay
+classes the banner now reads.
+
+The v3 class maps already are the CSS-module class maps, so the shim and the
+aliases are gone. Both builds now load the same JavaScript and differ only in
+the stylesheets they import explicitly:
+
+- default build: `@c15t/react/styles.css`.
+- `C15T_CSS=styles` build: the banner's component stylesheets
+  (`consent-banner`, `consent-actions`, `button`, `legal-links`,
+  `branding`), built into `.next-css-styles`.
+
+Neither build relies on a class map importing its CSS. Component stylesheets
+carry no default tokens, and the aggregate is the only published token
+source. With only the bench's 1 ms motion override, the component-CSS banner
+renders with a transparent card and square corners. The page therefore passes
+the full default theme in both builds, and the provider writes every token
+inline. Each `banner-css` sample now fails if the banner card is transparent
+or square.
+
+Same machine, 7 samples after 1 warm-up, arms run one after the other rather
+than interleaved, so treat the timings as a smoke check only:
+
+| `@c15t/ui` build | Arm | Stylesheets | CSS bytes | Banner paint | Banner ready |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `v3` (`40032552c`) | aggregate | 4 | 23,509 | 76 (64–96) ms | 69.3 (59.0–89.7) ms |
+| `v3` | component CSS | 3 | 7,063 | 64 (60–84) ms | 59.1 (53.4–74.0) ms |
+| #1191 (`7eadda5b1`) | aggregate | 1 | 16,446 | 60 (56–64) ms | 53.7 (51.7–58.6) ms |
+| #1191 | component CSS | 1 | 5,838 | 84 (76–88) ms | 75.0 (68.2–81.4) ms |
+
+Both arms build with Turbopack and with `next build --webpack` on both
+`@c15t/ui` builds. The banner's computed styles match across all four rows:
+white card, 12 px radius, and 8 px button radius. On `v3` the aggregate arm
+also loads three component stylesheets that duplicate its rules, which is
+the issue #1191 fixes.
+
 ## Reproduce
 
 Build the packages first (`bun turbo run build --filter=c15t...`) and install
@@ -187,6 +232,17 @@ bunx tsx scripts/run-production-consumer.ts --arm head=workspace \
 ```
 
 Its `summary.md` holds the tables above; per-scenario JSON sits beside it.
+
+The CSS arms, from `benchmarks/react-browser-bench`:
+
+```sh
+bun run build
+C15T_CSS=styles bun run build
+bunx tsx scripts/run-bench.ts --scenario banner-css
+C15T_CSS=styles bunx tsx scripts/run-bench.ts --scenario banner-css
+```
+
+The second run writes `banner-css-css-styles.json`.
 
 ## Not covered
 
