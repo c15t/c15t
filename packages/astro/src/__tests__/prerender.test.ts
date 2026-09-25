@@ -1,11 +1,23 @@
-import { describe, expect, it, vi } from 'vitest';
+import { experimental_AstroContainer as AstroContainer } from 'astro/container';
+import { JSDOM } from 'jsdom';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { promptClassNames } from '../banner/class-names';
+import { PROMPT_SLOT_ATTRIBUTE } from '../banner/slot';
+import { buildPrompt } from '../browser/render-prompt';
+import ConsentBanner from '../components/prompt.astro';
 import { resolveOptions } from '../integration';
 import { createConsentMiddleware } from '../middleware-handler';
 import { hostedMode, offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
 import { testRule } from './policy-fixture';
+
+let container: AstroContainer;
+
+beforeAll(async () => {
+	container = await AstroContainer.create();
+});
 
 const OFFLINE: C15tAstroOptions = {
 	mode: offlineMode({ policyRules: [testRule] }),
@@ -59,6 +71,13 @@ describe('prerendered routes', () => {
 		expect(c15t.config).not.toHaveProperty('initialPrivacySignals');
 	});
 
+	it('resolves an offline policy at build time', async () => {
+		const c15t = await runPrerendered(OFFLINE);
+		expect(c15t.hasConsentUi).toBe(true);
+		expect(c15t.shouldShowBanner).toBe(true);
+		expect(c15t.config.initialPolicyResolution).toBeDefined();
+	});
+
 	it('leaves a hosted policy for the browser to resolve', async () => {
 		const fetchImpl = vi.fn();
 		const c15t = await runPrerendered(
@@ -68,4 +87,126 @@ describe('prerendered routes', () => {
 		expect(fetchImpl).not.toHaveBeenCalled();
 		expect(c15t.hasPolicy).toBe(false);
 	});
+});
+
+describe('<ConsentBanner /> on a prerendered page', () => {
+	it('renders hidden for the browser to reveal', async () => {
+		const html = await container.renderToString(ConsentBanner, {
+			locals: { c15t: await runPrerendered(OFFLINE) },
+		});
+		expect(html).toMatch(/data-testid="consent-banner-root"[^>]*\shidden/u);
+		expect(html).toContain('data-c15t-visible="false"');
+	});
+
+	it('leaves a spot with its props when the policy is unknown', async () => {
+		const html = await container.renderToString(ConsentBanner, {
+			locals: {
+				c15t: await runPrerendered({
+					mode: hostedMode({ url: 'https://consent.example.com' }),
+				}),
+			},
+			props: { title: 'Cookies?' },
+		});
+		expect(html).not.toContain('data-testid="consent-banner-root"');
+		const spot = new JSDOM(html).window.document.querySelector(
+			`[${PROMPT_SLOT_ATTRIBUTE}]`
+		);
+		const data = JSON.parse(spot?.getAttribute(PROMPT_SLOT_ATTRIBUTE) ?? '');
+		expect(data.props).toEqual({ title: 'Cookies?' });
+		expect(data.classNames.banner.root).toBe(promptClassNames.banner.root);
+	});
+});
+
+type Tree = [string, Record<string, string>, (Tree | string)[]];
+
+/**
+ * Tag, attributes and text, ignoring whitespace, visibility state and the
+ * source annotations Astro adds in development.
+ */
+const describeTree = function describeTree(element: Element): Tree {
+	const attributes: Record<string, string> = {};
+	for (const { name, value } of element.attributes) {
+		if (
+			name === 'hidden' ||
+			name === 'data-c15t-visible' ||
+			name.startsWith('data-astro-source')
+		) {
+			continue;
+		}
+		if (name === 'class' && value === '') {
+			continue;
+		}
+		attributes[name] = value;
+	}
+	const children: (Tree | string)[] = [];
+	for (const node of element.childNodes) {
+		if (node.nodeType === node.ELEMENT_NODE) {
+			children.push(describeTree(node as Element));
+		} else if (node.nodeType === node.TEXT_NODE) {
+			const text = node.textContent?.replace(/\s+/gu, ' ').trim();
+			if (text) {
+				children.push(text);
+			}
+		}
+	}
+	return [element.tagName.toLowerCase(), attributes, children];
+};
+
+describe('browser-rendered banner', () => {
+	it.each([
+		['an opt-in choice', {}, undefined],
+		[
+			'an opt-out notice',
+			{ model: 'opt-out', prompt: 'notice', rights: ['opt-out'] },
+			undefined,
+		],
+		['a blocking wall', {}, { prompt: { variant: 'wall' } }],
+	] as const)(
+		'matches the server markup for %s',
+		async (_name, overrides, presentation) => {
+			const options: C15tAstroOptions = {
+				legalLinks: {
+					privacyPolicy: { href: '/privacy', label: 'Privacy' },
+				},
+				mode: offlineMode({
+					policyRules: [{ ...testRule, ...overrides } as typeof testRule],
+				}),
+				presentation,
+			};
+			const props = { legalLinks: ['privacyPolicy'] as const, title: 'Hi' };
+			const c15t = await resolveConsentContext({
+				headers: new Headers(),
+				options: resolveOptions(options),
+			});
+			const server = new JSDOM(
+				await container.renderToString(ConsentBanner, {
+					locals: { c15t },
+					props: { ...props, legalLinks: [...props.legalLinks] },
+					request: new Request('https://example.com/'),
+				}),
+				{ url: 'https://example.com/' }
+			).window.document;
+
+			const dom = new JSDOM('', { url: 'https://example.com/' });
+			vi.stubGlobal('document', dom.window.document);
+			vi.stubGlobal('window', dom.window);
+			try {
+				const built = buildPrompt(
+					c15t.snapshot,
+					{
+						classNames: promptClassNames,
+						props: { ...props, legalLinks: [...props.legalLinks] },
+					},
+					c15t.options
+				);
+				const expected = [
+					server.querySelector('[data-testid="consent-banner-overlay"]'),
+					server.querySelector('[data-testid="consent-banner-root"]'),
+				].filter((node): node is Element => node !== null);
+				expect(built.map(describeTree)).toEqual(expected.map(describeTree));
+			} finally {
+				vi.unstubAllGlobals();
+			}
+		}
+	);
 });

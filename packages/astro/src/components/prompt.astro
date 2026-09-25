@@ -12,6 +12,12 @@
  * bytes and no flash. The same DOM shape and the same `data-testid`s as the
  * Svelte and React banners, so cross-framework tests and CSS both hold.
  *
+ * A prerendered page is built once for every visitor. In offline mode the
+ * banner is rendered hidden and the browser shows it to visitors who have
+ * not chosen yet. In hosted and manifest mode the build cannot know the
+ * policy, so the browser renders the banner from the same model once its
+ * init resolves.
+ *
  * ```astro
  * ---
  * import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
@@ -19,40 +25,18 @@
  * <ConsentBanner />
  * ```
  */
-import {defaultTranslationConfig, resolveConsentPresentation} from '@c15t/core';
-import type { LegalLinks, TranslationsResponse } from '@c15t/core';
 import {
 	buildColorSchemeScript,
 	buildConfigScript,
 	markConfigEmitted,
+	PROMPT_SLOT_ATTRIBUTE,
+	promptClassNames,
+	resolvePromptModel,
 } from '@c15t/astro/server';
+import type { PromptProps } from '@c15t/astro/server';
 import Branding from './branding.astro';
-import actionStyles from '@c15t/ui/styles/components/consent-actions';
-import styles from '@c15t/ui/styles/components/consent-banner';
-import buttonStyles from '@c15t/ui/styles/components/button';
-import { getTextDirection } from '@c15t/ui/utils';
 
-interface Props {
-	/** Override the banner heading. */
-	title?: string;
-	/** Override the banner body copy. */
-	description?: string;
-	/** Override the reject button label. */
-	rejectButtonText?: string;
-	/** Override the accept button label. */
-	acceptButtonText?: string;
-	/** Override the notice acknowledgement label. */
-	dismissButtonText?: string;
-	/** Override the customize button label. */
-	customizeButtonText?: string;
-	/** Ship the DOM without the bundled stylesheet's class names. */
-	noStyle?: boolean;
-	/** Extra class on the banner root. */
-	class?: string;
-	/** Drop the "Secured by c15t" tag. */
-	hideBranding?: boolean;
-	/** Which legal links to render inline. `null` renders none. */
-	legalLinks?: (keyof LegalLinks)[] | null;
+interface Props extends PromptProps {
 	/**
 	 * Render even when the server decided the banner should stay hidden.
 	 * Useful for visual testing.
@@ -60,19 +44,7 @@ interface Props {
 	force?: boolean;
 }
 
-const {
-	title,
-	description,
-	rejectButtonText,
-	acceptButtonText,
-	dismissButtonText,
-	customizeButtonText,
-	noStyle = false,
-	class: className,
-	hideBranding = false,
-	legalLinks = null,
-	force = false,
-} = Astro.props;
+const { force = false, ...props } = Astro.props;
 
 const { c15t } = Astro.locals;
 
@@ -85,6 +57,10 @@ if (!c15t) {
 const { snapshot } = c15t;
 // No resolved policy means no consent surface, even when forced.
 const shouldRender = c15t.hasConsentUi && (force || c15t.shouldShowBanner);
+// A prerendered page is shared by every visitor, so it cannot know whether
+// this one has already chosen. It ships hidden, and the browser shows it
+// after reading the visitor's cookie.
+const hidden = c15t.prerendered && !force;
 const emitConfig = markConfigEmitted(Astro.locals);
 // A fallback for layouts with no <ConsentScript /> in <head>. It still runs
 // before the banner markup it precedes, so the first paint is right.
@@ -92,85 +68,13 @@ const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
 
-const fallback = defaultTranslationConfig.translations.en as TranslationsResponse;
-const bundle = (snapshot.translations?.translations ?? fallback) as TranslationsResponse;
-// A notice prompt explains and points at the opt-out; it never asks.
-const notice = snapshot.policyRule.prompt === 'notice';
-const copy = {
-	accept: acceptButtonText ?? bundle.common?.acceptAll ?? fallback.common.acceptAll,
-	customize:
-		customizeButtonText ?? bundle.common?.customize ?? fallback.common.customize,
-	description:
-		description ??
-		(notice
-			? (bundle.cookieBanner?.noticeDescription ?? fallback.cookieBanner.noticeDescription)
-			: (bundle.cookieBanner?.description ?? fallback.cookieBanner.description)),
-	// Acknowledgement leaves category choices and permissions unchanged.
-	dismiss: dismissButtonText ?? bundle.common?.acknowledge ?? bundle.common?.dismiss ?? fallback.common.acknowledge,
-	reject: rejectButtonText ?? bundle.common?.rejectAll ?? fallback.common.rejectAll,
-	securedBy: bundle.common?.securedBy ?? fallback.common.securedBy,
-	title:
-		title ??
-		(notice
-			? (bundle.cookieBanner?.noticeTitle ?? fallback.cookieBanner.noticeTitle)
-			: (bundle.cookieBanner?.title ?? fallback.cookieBanner.title)),
-};
-const rightLabels: Record<string, string> = {
-	'opt-out': bundle.rights?.optOut ?? fallback.rights.optOut,
-	preferences: bundle.rights?.preferences ?? fallback.rights.preferences,
-};
-
-const textDirection = getTextDirection(snapshot.translations?.language);
-
-// Same policy-driven action resolution the Svelte and React banners use, so
-// an opt-out or IAB policy produces the same buttons in the same order.
-const presentation = resolveConsentPresentation({policy: snapshot.policyRule, presentation: c15t.options.presentation, surface: 'prompt'});
-const {
-	actionGroups,
-	blocking,
-	direction,
-	primaryActions,
-	shouldFillActions: shouldFill,
-	preferenceControls,
-	variant,
-} = presentation;
-
-// A corner the host did not choose follows the text direction, the same
-// mirroring the React and Svelte roots apply; a host corner is kept as is.
-const mirrorCorner = function mirrorCorner(position: string): string {
-	if (position.endsWith('-left')) {
-		return position.replace(/-left$/u, '-right');
-	}
-	if (position.endsWith('-right')) {
-		return position.replace(/-right$/u, '-left');
-	}
-	return position;
-};
-const position =
-	textDirection === 'rtl' &&
-	presentation.positionSource === 'default' &&
-	(variant === 'floating' || variant === 'widget')
-		? mirrorCorner(presentation.position)
-		: presentation.position;
-
-const labels: Record<string, string> = {
-	accept: copy.accept,
-	customize: copy.customize,
-	dismiss: copy.dismiss,
-	reject: copy.reject,
-};
-
-const rootClass = [
-	noStyle ? '' : styles.root,
-	noStyle ? '' : styles.bannerVisible,
-	className,
-]
-	.filter(Boolean)
-	.join(' ');
-
-const inlineLegalLinks = (legalLinks ?? []).filter(
-	(key) => c15t.options.legalLinks?.[key]
-);
+const model = resolvePromptModel({
+	classNames: promptClassNames,
+	legalLinks: c15t.options.legalLinks,
+	presentation: c15t.options.presentation,
+	props,
+	snapshot,
+});
 ---
 
 {
@@ -182,11 +86,33 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 {emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
 
 {
-	shouldRender && blocking && (
+	/*
+	 * No policy yet, so nothing to render, but the browser may still owe a
+	 * banner: a prerendered page in hosted or manifest mode only learns its
+	 * policy from the visitor's own init, and so does a server render whose
+	 * init failed. The browser renders it into this spot from the same
+	 * model, with the same props and class names.
+	 */
+	!c15t.hasPolicy && (
+		<div
+			hidden
+			{...{
+				[PROMPT_SLOT_ATTRIBUTE]: JSON.stringify({
+					classNames: promptClassNames,
+					props,
+				}),
+			}}
+		/>
+	)
+}
+
+{
+	shouldRender && model.blocking && (
 		<div
 			aria-hidden="true"
-			class={noStyle ? '' : `${styles.overlay} ${styles.overlayVisible}`}
+			class={model.classes.overlay}
 			data-testid="consent-banner-overlay"
+			hidden={hidden ? true : undefined}
 		/>
 	)
 }
@@ -194,116 +120,106 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 {
 	shouldRender && (
 		<div
-			class={rootClass}
-			data-blocking={blocking ? 'true' : undefined}
-			data-c15t-visible="true"
-			data-model={snapshot.policyRule.model}
-			data-position={position}
-			data-prompt={snapshot.policyRule.prompt === 'none' ? undefined : snapshot.policyRule.prompt}
+			class={model.classes.root}
+			data-blocking={model.blocking ? 'true' : undefined}
+			data-c15t-visible={hidden ? 'false' : 'true'}
+			data-model={model.model}
+			data-position={model.position}
+			data-prompt={model.prompt}
 			data-testid="consent-banner-root"
-			data-variant={variant}
-			dir={textDirection}
-			lang={snapshot.translations?.language}
+			data-variant={model.variant}
+			dir={model.textDirection}
+			hidden={hidden ? true : undefined}
+			lang={model.language}
 		>
-			<div class={noStyle ? '' : styles.cardShell}>
+			<div class={model.classes.cardShell}>
 				<Branding
 					branding={snapshot.branding}
 					data-testid="consent-banner-branding"
-					hide={hideBranding}
+					hide={props.hideBranding}
 					hostname={Astro.url.hostname}
-					noStyle={noStyle}
-					securedBy={copy.securedBy}
+					noStyle={props.noStyle}
+					securedBy={model.copy.securedBy}
 					variant="banner-tag"
 				/>
 				<div
-					aria-label={copy.title}
-					aria-modal={blocking ? "true" : undefined}
-					class={noStyle ? '' : styles.card}
+					aria-label={model.copy.title}
+					aria-modal={model.blocking ? "true" : undefined}
+					class={model.classes.card}
 					data-testid="consent-banner-card"
-					role={blocking ? "dialog" : "region"}
+					role={model.blocking ? "dialog" : "region"}
 					tabindex="-1"
 				>
-					<div
-						class={noStyle ? '' : styles.header}
-						data-testid="consent-banner-header"
-					>
-						<h2
-							class={noStyle ? '' : styles.title}
-							data-testid="consent-banner-title"
-						>
-							{copy.title}
+					<div class={model.classes.header} data-testid="consent-banner-header">
+						<h2 class={model.classes.title} data-testid="consent-banner-title">
+							{model.copy.title}
 						</h2>
 						<div
-							class={noStyle ? '' : styles.description}
+							class={model.classes.description}
 							data-context="banner"
 							data-testid="consent-banner-description"
 						>
-							{copy.description}
-							{inlineLegalLinks.map((key) => (
+							{model.copy.description}
+							{model.legalLinks.map((link) => (
 								<a
-									data-testid={`consent-banner-legal-link-${key}`}
-									href={c15t.options.legalLinks?.[key]?.href}
+									data-testid={`consent-banner-legal-link-${link.key}`}
+									href={link.href}
 									rel="noreferrer"
 									target="_blank"
 								>
-									{c15t.options.legalLinks?.[key]?.label ?? key}
+									{link.label}
 								</a>
 							))}
 						</div>
 					</div>
 					<div
-						class={[noStyle ? '' : actionStyles.actionRoot, noStyle ? '' : styles.footer]
-							.filter(Boolean)
-							.join(' ')}
-						data-direction={direction}
-						data-fill={shouldFill ? 'true' : undefined}
-						data-split={actionGroups.length > 1 && !shouldFill ? 'true' : undefined}
+						class={model.classes.footer}
+						data-direction={model.direction}
+						data-fill={model.shouldFill ? 'true' : undefined}
+						data-split={model.split ? 'true' : undefined}
 						data-testid="consent-banner-footer"
 					>
-						{preferenceControls.length > 0 && (
-							<div
-								class={noStyle ? '' : styles.rights}
-								data-testid="consent-banner-rights"
-							>
-								{preferenceControls.map((right) => (
+						{model.rights.length > 0 && (
+							<div class={model.classes.rights} data-testid="consent-banner-rights">
+								{model.rights.map(({ right, label }) => (
 									<button
-										class={noStyle ? '' : styles.rightLink}
+										class={model.classes.rightLink}
 										data-action="right"
 										data-c15t-action="customize"
 										data-right={right}
 										data-testid={`consent-banner-right-link-${right}`}
 										type="button"
 									>
-										{rightLabels[right] ?? right}
+										{label}
 									</button>
 								))}
 							</div>
 						)}
-						{actionGroups.map((group) => (
+						{model.actionGroups.map((group) => (
 							<div
-								class={noStyle ? '' : actionStyles.actionGroup}
-								data-direction={direction}
-								data-fill={shouldFill ? 'true' : undefined}
+								class={model.classes.actionGroup}
+								data-direction={model.direction}
+								data-fill={model.shouldFill ? 'true' : undefined}
 								data-testid="consent-banner-footer-sub-group"
 							>
-								{group.map((action) => (
+								{group.map(({ action, label, primary }) => (
 									<button
-										class={noStyle ? '' : buttonStyles.button}
+										class={model.classes.button}
 										data-action={action}
 										data-c15t-action={action}
-										data-mode={noStyle ? undefined : 'stroke'}
-										data-size={noStyle ? undefined : 'small'}
+										data-mode={props.noStyle ? undefined : 'stroke'}
+										data-size={props.noStyle ? undefined : 'small'}
 										data-testid={`consent-banner-${action}-button`}
 										data-variant={
-											noStyle
+											props.noStyle
 												? undefined
-												: primaryActions.includes(action)
+												: primary
 													? 'primary'
 													: 'neutral'
 										}
 										type="button"
 									>
-										{labels[action] ?? action}
+										{label}
 									</button>
 								))}
 							</div>

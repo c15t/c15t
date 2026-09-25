@@ -8,3 +8,4 @@
  *   @import "@c15t/astro/styles.css";
  */
 @import '@c15t/ui/styles.css';
+@import './visibility.css';

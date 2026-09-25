@@ -101,13 +101,15 @@ const summary = resolveIABBannerSummary(
 	snapshot.iab?.enabled === false ? null : (snapshot.iab ?? null)
 );
 // No vendor list, no banner: every line of copy below interpolates a count
-// the summary derives from it. The browser boots, fetches one and mounts
-// the client banner instead.
+// the summary derives from it.
 const shouldRender =
 	c15t.hasConsentUi &&
 	(force || c15t.shouldShowBanner) &&
 	summary.isReady &&
 	models.includes(snapshot.policyRule.model);
+// A prerendered page is shared by every visitor, so it ships hidden and the
+// browser shows it after reading the visitor's own cookie.
+const hidden = c15t.prerendered && !force;
 
 const fallback = defaultTranslationConfig.translations.en as TranslationsResponse;
 const bundle = (snapshot.translations?.translations ?? fallback) as TranslationsResponse;
@@ -182,6 +184,7 @@ const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisib
 			aria-hidden="true"
 			class={noStyle ? '' : `${styles.overlay} ${styles.overlayVisible}`}
 			data-testid="iab-consent-banner-overlay"
+			hidden={hidden ? true : undefined}
 		/>
 	)
 }
@@ -190,11 +193,12 @@ const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisib
 	shouldRender && (
 		<div
 			class={rootClass}
-			data-c15t-visible="true"
+			data-c15t-visible={hidden ? 'false' : 'true'}
 			data-blocking={blocking ? 'true' : undefined}
 			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
 			data-testid="iab-consent-banner-root"
 			dir={textDirection}
+			hidden={hidden ? true : undefined}
 			lang={snapshot.translations?.language}
 			tabindex="-1"
 		>

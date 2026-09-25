@@ -66,9 +66,9 @@ const resolveSkipPaths = function resolveSkipPaths(
  *
  * A prerendered route is resolved without its request: there is no
  * per-visitor request to read, and resolving one would bake one visitor's
- * geo and cookie into a shared HTML file. The browser applies the
- * visitor's own cookie on boot. Use `<ConsentBannerDeferred />` when a
- * cached page still needs live geo.
+ * geo and cookie into a shared HTML file. Offline mode still resolves its
+ * policy, and the browser applies the visitor's own cookie on boot. Use
+ * `<ConsentBannerDeferred />` when a cached page still needs live geo.
  *
  * So are the integration's own init and manifest routes, and anything
  * listed in `middleware.skip` — those run `next()` with `Astro.locals.c15t`

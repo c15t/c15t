@@ -139,9 +139,21 @@ color scheme. Do not create separate runtimes for each consent island.
 
 ## Static pages and request SSR
 
-For prerendered pages, the middleware skips request prefetch. The browser
-resolves consent against the external backend. This avoids treating the build
-machine's cookies or geography as visitor state.
+A prerendered page is built once and served to every visitor, so the build
+never reads a request's cookies, geography or privacy signals. The browser
+reads the visitor's consent cookie when it boots, so a returning visitor keeps
+their choice.
+
+- In `offline()` mode the build resolves the policy, because the browser would
+  resolve it the same way without request geography. The banner is in the HTML
+  but hidden. The browser shows it to visitors who have not chosen yet.
+- In `hosted()` and `manifest()` mode the policy depends on the visitor's
+  location, so the build cannot resolve it. `ConsentBanner` leaves an empty
+  placeholder. The browser renders the banner there once its `/init` request
+  returns a policy that needs one.
+
+Either way, first-time visitors see the banner once the page script runs,
+not in the first paint.
 
 On a prerendered page `Astro.locals.c15t.prerendered` is `true`, and the config
 the page inlines carries no stored consent, clock or privacy signal. The
@@ -149,9 +161,12 @@ browser reads the visitor's own consent cookie when it boots, so a returning
 visitor keeps their choice.
 
 For server-rendered pages, keep your Astro server adapter and output settings.
-The middleware can resolve request-specific state into `Astro.locals.c15t`.
-Pass the prepared state through the supplied components instead of constructing
-records from permission booleans.
+The middleware resolves the request's consent state into `Astro.locals.c15t`,
+so the banner is in the first paint and a returning visitor gets no banner
+markup at all. Pass the prepared state through the supplied components instead
+of constructing records from permission booleans. To render only the banner per
+request on an otherwise cached page, use `ConsentBannerDeferred`, which needs an
+adapter for its server island.
 
 `manifest()` mode can inject init and manifest endpoints and therefore needs a
 server for those endpoints. Do not choose that setup for a purely static host
