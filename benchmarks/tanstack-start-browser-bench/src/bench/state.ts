@@ -5,7 +5,6 @@ export type TanstackBenchScenario =
 	| 'manifest-ssr'
 	| 'manifest-ssr-proxy'
 	| 'manifest-ssr-root'
-	| 'repeat-visitor'
 	| 'ssr';
 
 /**
@@ -29,6 +28,8 @@ export interface TanstackBenchState {
 		regionCode?: string | null;
 	} | null;
 	hasConsented?: boolean;
+	/** First moment policy resolution settled, banner or not. */
+	promptSettledMs?: number;
 	onBannerFetchedMs?: number;
 	cls?: number;
 	bannerReadyMs?: number;
@@ -90,6 +91,31 @@ export const isElementVisible = function isElementVisible(
 		style.display !== 'none' &&
 		style.visibility !== 'hidden' &&
 		Number(style.opacity) >= 0.99
+	);
+};
+
+/**
+ * Whether policy resolution has finished: the provisional placeholder is
+ * gone and a resolved policy, resolution, or prompt requirement exists.
+ * Saved-consent visits never show a banner, so they wait on this instead.
+ */
+export const isPolicySettled = function isPolicySettled(
+	snapshot: unknown
+): boolean {
+	const record = snapshot as {
+		policyPending?: unknown;
+		policy?: unknown;
+		resolution?: unknown;
+		promptRequirement?: unknown;
+	};
+	if (record?.policyPending === true) {
+		return false;
+	}
+	return (
+		(record?.policy !== undefined && record?.policy !== null) ||
+		(record?.resolution !== undefined && record?.resolution !== null) ||
+		(record?.promptRequirement !== undefined &&
+			record?.promptRequirement !== null)
 	);
 };
 

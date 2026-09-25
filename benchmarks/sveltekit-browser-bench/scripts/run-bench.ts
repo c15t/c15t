@@ -21,15 +21,26 @@ import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
-import type { readBenchNavigationTiming } from '@c15t/benchmarking/browser';
+import type {
+	BenchPerfMetrics,
+	readBenchNavigationTiming,
+} from '@c15t/benchmarking/browser';
 import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
+	benchPerfMetricsExpression,
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import { sveltekitBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
+import {
+	analyzeServerHtmlStream,
+	bannerMarkupMarkers,
+	readServerHtmlStream,
+} from '@c15t/benchmarking/html-stream';
+import type { ServerHtmlStreamAnalysis } from '@c15t/benchmarking/html-stream';
+import { createRepeatVisitorCookie } from '@c15t/benchmarking/nuxt-repeat-visitor';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
@@ -37,10 +48,26 @@ import {
 	median,
 	safeBaseSha,
 	safeCommitSha,
+	safeGitDirty,
 	summarizeMetric,
 	summarizeNullableMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
+import {
+	assertVisitBannerState,
+	coldStateMetadata,
+	describeColdState,
+} from '@c15t/benchmarking/visit-definitions';
+import type {
+	BenchColdState,
+	BenchVisitKind,
+} from '@c15t/benchmarking/visit-definitions';
+import {
+	serverHtmlMetadata,
+	summarizeServerHtmlMetrics,
+	summarizeVisitTimingMetrics,
+	visitMetricGlossary,
+} from '@c15t/benchmarking/visit-metrics';
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
 
@@ -59,6 +86,8 @@ interface SvelteKitBrowserBenchState {
 	mountCount: number;
 	renderCount: number;
 	activeUI: string;
+	/** The probe saw a stored or recorded explicit choice. */
+	hasConsented?: boolean;
 	onBannerFetchedMs?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
@@ -71,18 +100,10 @@ interface SvelteKitBrowserBenchState {
 declare global {
 	interface Window {
 		__c15tSvelteBench?: SvelteKitBrowserBenchState;
-		__c15tBenchPerfMetrics?: {
-			cls: number;
-			longTaskCount: number;
-			longTaskTotalMs: number;
-			bannerPaintMs: number | null;
-		};
 	}
 }
 
 const HOST = '127.0.0.1';
-const PORT = 4333;
-const BASE_URL = `http://${HOST}:${PORT}`;
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const serverEntryPath = join(appDir, 'build', 'index.js');
 const outputDir =
@@ -125,15 +146,6 @@ const awaitServerExit = async function awaitServerExit(
 const bannerRootTestId = 'consent-banner-root';
 const bannerAcceptButtonTestId = 'consent-banner-accept-button';
 const bannerElementTimingName = 'c15t-consent-banner';
-const repeatVisitorCookieValue = [
-	'c.necessary:1',
-	'c.functionality:1',
-	'c.experience:1',
-	'c.measurement:1',
-	'c.marketing:1',
-	'i.t:1800000000000',
-	'i.sid:sub_2VZxR7YmNpKq3WfLs8TgHd',
-].join(',');
 
 /**
  * Escape hatch for machines whose Playwright browser cache does not hold the
@@ -152,6 +164,11 @@ const readCliFlag = function readCliFlag(name: string): string | undefined {
 	const match = process.argv.find((arg) => arg.startsWith(prefix));
 	return match?.slice(prefix.length);
 };
+
+const PORT = Number(
+	readCliFlag('--port') ?? process.env.C15T_BENCH_PORT ?? '4333'
+);
+const BASE_URL = `http://${HOST}:${PORT}`;
 
 const iterations = Number(
 	readCliFlag('--iterations') ??
@@ -322,7 +339,9 @@ const seedRepeatVisitorCookie = async function seedRepeatVisitorCookie(
 			path: '/',
 			sameSite: 'Lax',
 			secure: false,
-			value: repeatVisitorCookieValue,
+			// Stamped relative to now: the cookie reader rejects a consent
+			// time in the future, which turns this arm into a first visit.
+			value: createRepeatVisitorCookie(),
 		},
 	]);
 };
@@ -373,10 +392,10 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	});
 
 	const response = await page.goto(path);
-	const firstHtml = (await response?.text().catch(() => '')) ?? '';
-	const bannerInFirstHtml =
-		firstHtml.includes(`data-testid="${bannerRootTestId}"`) ||
-		firstHtml.includes(`data-testid='${bannerRootTestId}'`);
+	const serverHtml = (await response?.text().catch(() => '')) ?? '';
+	const bannerInServerHtml = bannerMarkupMarkers(bannerRootTestId).some(
+		(marker) => serverHtml.includes(marker)
+	);
 	await page.waitForLoadState('domcontentloaded');
 	await page.waitForFunction(
 		(targetScenario) => {
@@ -415,25 +434,22 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
 		};
 	});
-	const performanceObserverInfo = await page.evaluate(() => {
-		const metrics = window.__c15tBenchPerfMetrics;
-		return {
-			bannerPaintMs: metrics?.bannerPaintMs ?? null,
-			cls: metrics?.cls ?? 0,
-			domNodeCount: document.querySelectorAll('*').length,
-			longTaskCount: metrics?.longTaskCount ?? 0,
-			longTaskTotalMs: metrics?.longTaskTotalMs ?? 0,
-		};
-	});
+	const performanceObserverInfo = (await page.evaluate(
+		benchPerfMetricsExpression
+	)) as BenchPerfMetrics;
+	const bannerCount = await page
+		.locator(`[data-testid="${bannerRootTestId}"]`)
+		.count();
 
 	return {
 		...state,
 		...navEntry,
 		...scriptEntry,
 		...performanceObserverInfo,
-		bannerInFirstHtml,
-		bannerPaintMs:
-			performanceObserverInfo.bannerPaintMs ?? state?.bannerPaintMs ?? null,
+		bannerCount,
+		bannerInServerHtml,
+		// Element Timing only; the probe's own reading is not a fallback.
+		bannerPaintMs: performanceObserverInfo.bannerPaintMs,
 		initRequestsAfterLoad: initRequests,
 		manifestRequestsAfterLoad: manifestRequests,
 		sameOriginInitRequestsAfterLoad: sameOriginInitRequests,
@@ -470,6 +486,68 @@ const readFixtureCounts =
 		});
 		return (await response.json()) as BenchConsentFixtureCounts;
 	};
+
+const isBaselineScenario = function isBaselineScenario(
+	scenario: SvelteKitBenchScenario
+): boolean {
+	return scenario === 'baseline' || scenario === 'baseline-client';
+};
+
+/** The repeat visitor carries a stored accept-all choice; every other arm is a first visit. */
+const visitForScenario = function visitForScenario(
+	scenario: SvelteKitBenchScenario
+): BenchVisitKind {
+	return scenario === 'repeat-visitor' ? 'saved-accept' : 'fresh';
+};
+
+/**
+ * Whether the arm resolves consent through the SDK's in-process manifest
+ * cache: the kit init route behind `ssr-manifest` and `repeat-visitor`, and
+ * the browser-side manifest fetch of `client-manifest`.
+ */
+const usesManifestCache = function usesManifestCache(
+	scenario: SvelteKitBenchScenario
+): boolean {
+	return scenario.includes('manifest') || scenario === 'repeat-visitor';
+};
+
+const scenarioColdState = function scenarioColdState(
+	scenario: SvelteKitBenchScenario
+): BenchColdState {
+	return describeColdState({
+		freshBrowserContext: true,
+		note:
+			scenario === 'repeat-visitor'
+				? 'stored-consent cookie seeded before load'
+				: undefined,
+		usesManifestCache: usesManifestCache(scenario),
+	});
+};
+
+/**
+ * Read the raw server HTML stream for a route, once per measured iteration,
+ * with the cookies of the visit being measured. Runs after the browser
+ * samples and fixture counts so it cannot warm or skew them.
+ */
+const readServerHtml = async function readServerHtml(
+	path: string,
+	cookie: string | undefined
+): Promise<ServerHtmlStreamAnalysis[]> {
+	const reads: ServerHtmlStreamAnalysis[] = [];
+	for (let index = 0; index < iterations; index += 1) {
+		// oxlint-disable-next-line no-await-in-loop -- Sequential reads keep timings independent.
+		const capture = await readServerHtmlStream(`${BASE_URL}${path}`, {
+			cookie,
+		});
+		reads.push(
+			analyzeServerHtmlStream(
+				capture.chunks,
+				bannerMarkupMarkers(bannerRootTestId)
+			)
+		);
+	}
+	return reads;
+};
 
 const run = async function run() {
 	await ensureBuild();
@@ -531,6 +609,23 @@ const run = async function run() {
 							scenario.name,
 							scenario.path
 						);
+						if (scenario.name === 'repeat-visitor') {
+							assertVisitBannerState({
+								activeUI: metrics.activeUI,
+								bannerCount: metrics.bannerCount,
+								bannerInServerHtml: metrics.bannerInServerHtml,
+								hasStoredChoice: metrics.hasConsented,
+								scenario: scenario.name,
+								visit: 'saved-accept',
+							});
+						} else if (!isBaselineScenario(scenario.name)) {
+							assertVisitBannerState({
+								activeUI: metrics.activeUI,
+								bannerCount: metrics.bannerCount,
+								scenario: scenario.name,
+								visit: 'fresh',
+							});
+						}
 						const interactionLatencyMs = await measureInteractionLatency(
 							page,
 							scenario.name
@@ -543,6 +638,12 @@ const run = async function run() {
 					Promise.resolve()
 				);
 				const fixtureCounts = await readFixtureCounts();
+				const visit = visitForScenario(scenario.name);
+				const coldState = scenarioColdState(scenario.name);
+				const serverHtml = await readServerHtml(
+					scenario.path,
+					visit === 'fresh' ? undefined : `c15t=${createRepeatVisitorCookie()}`
+				);
 				const outputScenario = resultScenarioName(scenario.name);
 
 				const result: BenchmarkResult = {
@@ -560,9 +661,8 @@ const run = async function run() {
 					},
 					framework: 'svelte',
 					metadata: {
-						bannerInFirstHtml: samples.every(
-							(sample) => sample.bannerInFirstHtml
-						),
+						...serverHtmlMetadata(serverHtml),
+						...coldStateMetadata(coldState),
 						bannerPaintMs: nullableMedian(
 							samples.map((sample) => sample.bannerPaintMs)
 						),
@@ -572,33 +672,42 @@ const run = async function run() {
 						fixtureInitExecutions: fixtureCounts.init,
 						fixtureManifestExecutions: fixtureCounts.manifest,
 						fixtureSubjectExecutions: fixtureCounts.subjects,
+						gitDirty: safeGitDirty(),
 						initLatencyMs,
 						profile: throttleProfile,
+						visit,
 						zeroConsentBaseline:
 							scenario.name === 'baseline' ||
 							scenario.name === 'baseline-client',
 					},
 					metrics: [
-						summarizeMetric(
+						summarizeNullableMetric(
 							'bannerReadyMs',
 							'ms',
-							samples.map((sample) => sample.bannerReadyMs ?? 0)
+							samples.map((sample) =>
+								// A stored-consent visit has no banner, so it has no banner time.
+								scenario.name === 'repeat-visitor'
+									? null
+									: (sample.bannerReadyMs ?? 0)
+							)
 						),
-						summarizeMetric(
+						summarizeNullableMetric(
 							'bannerVisibleMs',
 							'ms',
-							samples.map((sample) => sample.bannerVisibleMs ?? 0)
+							samples.map((sample) =>
+								// A stored-consent visit has no banner, so it has no banner time.
+								scenario.name === 'repeat-visitor'
+									? null
+									: (sample.bannerVisibleMs ?? 0)
+							)
 						),
 						summarizeNullableMetric(
 							'bannerPaintMs',
 							'ms',
 							samples.map((sample) => sample.bannerPaintMs ?? null)
 						),
-						summarizeMetric(
-							'bannerInFirstHtml',
-							'count',
-							samples.map((sample) => (sample.bannerInFirstHtml ? 1 : 0))
-						),
+						...summarizeVisitTimingMetrics(samples),
+						...summarizeServerHtmlMetrics(serverHtml),
 						summarizeMetric(
 							'cls',
 							'ratio',
@@ -690,6 +799,8 @@ const run = async function run() {
 					notes: [
 						'SvelteKit browser bench covers the @c15t/svelte/kit SSR paths (direct init and manifest), browser-side SPA arms, a pre-seeded repeat visitor, and zero-consent baseline floors.',
 						'The client-manifest arm resolves the manifest in the browser; @c15t/svelte ships server-side manifest resolution, so that arm prices the alternative rather than a shipped mode.',
+						`Visit: ${visit}. Cold state: ${coldState.setup}.`,
+						...visitMetricGlossary,
 					],
 					package: '@c15t/sveltekit-browser-bench',
 					runtime: 'playwright',

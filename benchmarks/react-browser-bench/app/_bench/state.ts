@@ -5,8 +5,7 @@ export type ReactBenchScenario =
 	| 'baseline'
 	| 'css-banner-modules'
 	| 'full-ui'
-	| 'headless'
-	| 'repeat-visitor';
+	| 'headless';
 
 export interface BenchInteractionMetrics {
 	acceptAllMs?: number;
@@ -21,6 +20,10 @@ export interface BenchState {
 	mountCount: number;
 	renderCount: number;
 	activeUI: string;
+	/** A stored explicit choice was restored or recorded. */
+	hasStoredChoice?: boolean;
+	/** First moment policy resolution settled, banner or not. */
+	promptSettledMs?: number;
 	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
@@ -76,6 +79,31 @@ export const markInteraction = function markInteraction(
 	}
 
 	state.interaction[key] = nowMs();
+};
+
+/**
+ * Whether policy resolution has finished: the provisional placeholder is
+ * gone and a resolved policy, resolution, or prompt requirement exists.
+ * Saved-consent visits never show a banner, so they wait on this instead.
+ */
+export const isPolicySettled = function isPolicySettled(
+	snapshot: unknown
+): boolean {
+	const record = snapshot as {
+		policyPending?: unknown;
+		policy?: unknown;
+		resolution?: unknown;
+		promptRequirement?: unknown;
+	};
+	if (record?.policyPending === true) {
+		return false;
+	}
+	return (
+		(record?.policy !== undefined && record?.policy !== null) ||
+		(record?.resolution !== undefined && record?.resolution !== null) ||
+		(record?.promptRequirement !== undefined &&
+			record?.promptRequirement !== null)
+	);
 };
 
 export const isElementVisible = function isElementVisible(

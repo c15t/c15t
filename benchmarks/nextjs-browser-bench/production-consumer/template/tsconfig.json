@@ -12,14 +12,7 @@
 		"isolatedModules": true,
 		"jsx": "react-jsx",
 		"incremental": true,
-		"plugins": [
-			{
-				"name": "next"
-			}
-		],
-		"paths": {
-			"@/*": ["./*"]
-		},
+		"plugins": [{ "name": "next" }],
 		"target": "ES2017"
 	},
 	"include": [
@@ -29,5 +22,5 @@
 		".next/types/**/*.ts",
 		".next/dev/types/**/*.ts"
 	],
-	"exclude": ["node_modules", "production-consumer"]
+	"exclude": ["node_modules"]
 }

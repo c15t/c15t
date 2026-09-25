@@ -35,6 +35,10 @@ import {
 	summarizeNullableMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
+import {
+	coldStateMetadata,
+	describeColdState,
+} from '@c15t/benchmarking/visit-definitions';
 import type * as PlaywrightTypes from 'playwright';
 
 import type {
@@ -701,6 +705,15 @@ const writePolicyResult = function writePolicyResult(
 			actionTaken: mostCommon(samples.map((sample) => sample.actionTaken)),
 			activeUiHistory: mostCommon(
 				samples.map((sample) => sample.activeUiHistory.join('>'))
+			),
+			// policy-repeat reloads in the same context as the fresh visit, so
+			// it keeps the browser HTTP cache as well as the stored choice.
+			...coldStateMetadata(
+				describeColdState({
+					freshBrowserContext: scenario !== 'policy-repeat',
+					note: 'hosted client init; no server consent resolution',
+					usesManifestCache: false,
+				})
 			),
 			consoleErrors: samples.flatMap((sample) => sample.consoleErrors),
 			cookieNames: mostCommon(
