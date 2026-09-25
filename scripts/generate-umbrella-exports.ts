@@ -5,7 +5,7 @@
  * maps of the scoped packages it mirrors.
  *
  * The umbrella is a facade: `npm i c15t` installs `@c15t/core`,
- * `@c15t/react`, and `@c15t/nextjs`, and every umbrella subpath re-exports
+ * `@c15t/react`, `@c15t/nextjs` and the other mirrored packages, and every umbrella subpath re-exports
  * the matching scoped subpath (`c15t/react/hooks` ≡ `@c15t/react/hooks`).
  * The mirrored packages are config-driven (`UMBRELLA_SOURCES`), so mounting
  * another framework package later is a single config entry.
@@ -66,6 +66,14 @@
  *   Nuxt module working through the umbrella: `c15t/vue` re-exports
  *   `@c15t/vue`'s default, and the module resolves its runtime directory via
  *   `createResolver(import.meta.url)` from `@c15t/vue`'s own files.
+ * - **`.astro` components** (`@c15t/astro`): each named component export
+ *   becomes a `.js`/`.d.ts` pair that re-exports the scoped component's
+ *   default, behind an umbrella subpath that keeps the `.astro` name. Astro
+ *   compiles the scoped file, so props, slots and server islands are
+ *   unchanged. The umbrella lists `astro` as an optional peer, which is how
+ *   Astro knows to bundle it for the server instead of handing the shim to
+ *   Node. Internal entries (islands, raw component paths) are excluded via
+ *   {@link UmbrellaSource.exclude}.
  * - **Raw string wildcards** (`./runtime/*` → `./dist/runtime/*` on
  *   `@c15t/vue`): the target is a single string, so `*` captures the full
  *   file name *including its extension*. The umbrella keeps a raw string
@@ -124,6 +132,11 @@ export interface UmbrellaSource {
 	 * wildcard exports (which are enumerated from `src/`).
 	 */
 	sourceRoot?: SourceRootMapping;
+	/**
+	 * Scoped subpaths the umbrella leaves out, for internal entries users
+	 * never import. An entry ending in `/` leaves out every subpath under it.
+	 */
+	exclude?: string[];
 }
 
 /**
@@ -146,6 +159,20 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 		packageName: '@c15t/vue',
 		prefix: 'vue',
 		sourceRoot: { distPrefix: 'dist/', srcPrefix: 'src/' },
+	},
+	{
+		directory: 'astro',
+		// The islands and the raw `./components/*` paths are what the
+		// integration's own boot script loads through `@c15t/astro`; users
+		// import the named `.astro` components.
+		exclude: [
+			'./components/*',
+			'./components/islands/',
+			'./islands/',
+			'./package.json',
+		],
+		packageName: '@c15t/astro',
+		prefix: 'astro',
 	},
 ];
 
@@ -414,6 +441,43 @@ const buildStringWildcardEntry = function buildStringWildcardEntry(
 	return `./${shimRoot}/*`;
 };
 
+const isExcluded = function isExcluded(
+	config: UmbrellaSource,
+	subpath: string
+): boolean {
+	return (config.exclude ?? []).some((entry) =>
+		entry.endsWith('/') ? subpath.startsWith(entry) : subpath === entry
+	);
+};
+
+/**
+ * Mirrors a single `.astro` component export (`./components/x.astro` →
+ * `./src/components/y.astro`). An exports target cannot point into another
+ * package, so the umbrella subpath keeps its `.astro` name but resolves to
+ * an ESM shim that re-exports the scoped component's default. The scoped
+ * file is still the one Astro compiles, so props, slots and server islands
+ * behave exactly as they do through `@c15t/astro`.
+ */
+const buildAstroComponentEntry = function buildAstroComponentEntry(
+	source: SourcePackage,
+	subpath: string,
+	umbrellaSubpath: string,
+	shimFiles: Record<string, string>
+): ConditionalExport {
+	const specifier = toSpecifier(source.config.packageName, subpath);
+	const shimBase = toShimBase(umbrellaSubpath);
+	const shim = `${GENERATED_BANNER}\nexport { default } from '${specifier}';\n`;
+	shimFiles[`${shimBase}.js`] = shim;
+	shimFiles[`${shimBase}.d.ts`] = shim;
+	// Export conditions match in order: `types` first, `default` last.
+	// oxlint-disable-next-line sort-keys -- condition order is significant.
+	return {
+		types: `./${shimBase}.d.ts`,
+		import: `./${shimBase}.js`,
+		default: `./${shimBase}.js`,
+	};
+};
+
 const buildCssEntry = function buildCssEntry(
 	source: SourcePackage,
 	subpath: string,
@@ -551,6 +615,9 @@ export const deriveUmbrellaArtifacts = function deriveUmbrellaArtifacts(
 
 	for (const source of sources) {
 		for (const [subpath, value] of Object.entries(source.exports)) {
+			if (isExcluded(source.config, subpath)) {
+				continue;
+			}
 			const umbrellaSubpath = mapSubpath(source.config.prefix, subpath);
 			if (umbrellaSubpath in exports) {
 				throw new Error(
@@ -563,6 +630,13 @@ export const deriveUmbrellaArtifacts = function deriveUmbrellaArtifacts(
 					source,
 					subpath,
 					value,
+					umbrellaSubpath,
+					shimFiles
+				);
+			} else if (typeof value === 'string' && subpath.endsWith('.astro')) {
+				exports[umbrellaSubpath] = buildAstroComponentEntry(
+					source,
+					subpath,
 					umbrellaSubpath,
 					shimFiles
 				);

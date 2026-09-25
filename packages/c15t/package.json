@@ -527,6 +527,93 @@
 			"types": "./shims/vue/runtime/components/nuxt-consent-root.vue.d.ts",
 			"import": "./shims/vue/runtime/components/nuxt-consent-root.vue.js",
 			"default": "./shims/vue/runtime/components/nuxt-consent-root.vue.js"
+		},
+		"./astro": {
+			"types": "./shims/astro.d.ts",
+			"import": "./shims/astro.js",
+			"default": "./shims/astro.js"
+		},
+		"./astro/client": {
+			"types": "./shims/astro/client.d.ts",
+			"import": "./shims/astro/client.js",
+			"default": "./shims/astro/client.js"
+		},
+		"./astro/middleware": {
+			"types": "./shims/astro/middleware.d.ts",
+			"import": "./shims/astro/middleware.js",
+			"default": "./shims/astro/middleware.js"
+		},
+		"./astro/server": {
+			"types": "./shims/astro/server.d.ts",
+			"import": "./shims/astro/server.js",
+			"default": "./shims/astro/server.js"
+		},
+		"./astro/api": {
+			"types": "./shims/astro/api.d.ts",
+			"import": "./shims/astro/api.js",
+			"default": "./shims/astro/api.js"
+		},
+		"./astro/ui/svelte": {
+			"types": "./shims/astro/ui/svelte.d.ts",
+			"import": "./shims/astro/ui/svelte.js",
+			"default": "./shims/astro/ui/svelte.js"
+		},
+		"./astro/ui/react": {
+			"types": "./shims/astro/ui/react.d.ts",
+			"import": "./shims/astro/ui/react.js",
+			"default": "./shims/astro/ui/react.js"
+		},
+		"./astro/ui/vue": {
+			"types": "./shims/astro/ui/vue.d.ts",
+			"import": "./shims/astro/ui/vue.js",
+			"default": "./shims/astro/ui/vue.js"
+		},
+		"./astro/api/init": {
+			"types": "./shims/astro/api/init.d.ts",
+			"import": "./shims/astro/api/init.js",
+			"default": "./shims/astro/api/init.js"
+		},
+		"./astro/api/manifest": {
+			"types": "./shims/astro/api/manifest.d.ts",
+			"import": "./shims/astro/api/manifest.js",
+			"default": "./shims/astro/api/manifest.js"
+		},
+		"./astro/styles.css": "./dist/astro/styles.css",
+		"./astro/iab/styles.css": "./dist/astro/iab/styles.css",
+		"./astro/components/consent-script.astro": {
+			"types": "./shims/astro/components/consent-script.astro.d.ts",
+			"import": "./shims/astro/components/consent-script.astro.js",
+			"default": "./shims/astro/components/consent-script.astro.js"
+		},
+		"./astro/components/consent-banner-deferred.astro": {
+			"types": "./shims/astro/components/prompt-deferred.astro.d.ts",
+			"import": "./shims/astro/components/prompt-deferred.astro.js",
+			"default": "./shims/astro/components/prompt-deferred.astro.js"
+		},
+		"./astro/components/consent-banner.astro": {
+			"types": "./shims/astro/components/prompt.astro.d.ts",
+			"import": "./shims/astro/components/prompt.astro.js",
+			"default": "./shims/astro/components/prompt.astro.js"
+		},
+		"./astro/components/consent-dialog-trigger.astro": {
+			"types": "./shims/astro/components/panel-trigger.astro.d.ts",
+			"import": "./shims/astro/components/panel-trigger.astro.js",
+			"default": "./shims/astro/components/panel-trigger.astro.js"
+		},
+		"./astro/components/consent-dialog.astro": {
+			"types": "./shims/astro/components/panel.astro.d.ts",
+			"import": "./shims/astro/components/panel.astro.js",
+			"default": "./shims/astro/components/panel.astro.js"
+		},
+		"./astro/components/iab-consent-banner.astro": {
+			"types": "./shims/astro/components/iab-prompt.astro.d.ts",
+			"import": "./shims/astro/components/iab-prompt.astro.js",
+			"default": "./shims/astro/components/iab-prompt.astro.js"
+		},
+		"./astro/components/iab-consent-dialog.astro": {
+			"types": "./shims/astro/components/iab-panel.astro.d.ts",
+			"import": "./shims/astro/components/iab-panel.astro.js",
+			"default": "./shims/astro/components/iab-panel.astro.js"
 		}
 	},
 	"publishConfig": {
@@ -542,6 +629,7 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
+		"@c15t/astro": "workspace:*",
 		"@c15t/core": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"@c15t/react": "workspace:*",
@@ -551,5 +639,13 @@
 	},
 	"devDependencies": {
 		"vitest": "4.1.10"
+	},
+	"peerDependencies": {
+		"astro": "^5.0.0 || ^6.0.0 || ^7.0.0"
+	},
+	"peerDependenciesMeta": {
+		"astro": {
+			"optional": true
+		}
 	}
 }

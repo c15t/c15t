@@ -11,8 +11,9 @@
  * scoped entry and reports the namespace keys.
  *
  * Some scoped entries cannot load in plain Node at all — the v3 component
- * dists import raw `.css` files, and the vue runtime needs a Nuxt/Vite
- * context (`#imports`, `.vue`). Those are listed in the expected-failure
+ * dists import raw `.css` files, the vue runtime needs a Nuxt/Vite
+ * context (`#imports`, `.vue`), and Astro's components and middleware need
+ * Astro's compiler and its generated options module. Those are listed in the expected-failure
  * sets below and asserted
  * to fail **identically on both sides** instead of being skipped, so parity
  * is still checked: a missing or mistargeted shim fails with a different
@@ -78,6 +79,15 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	...Object.keys(manifest.exports).filter(
 		(subpath) =>
 			subpath.startsWith('./vue/runtime/') && subpath.endsWith('.vue')
+	),
+	// The Astro middleware and routes import the `virtual:c15t/options`
+	// module the integration generates at build time.
+	'./astro/middleware',
+	'./astro/api/init',
+	'./astro/api/manifest',
+	// `.astro` components only load through Astro's compiler.
+	...Object.keys(manifest.exports).filter(
+		(subpath) => subpath.startsWith('./astro/') && subpath.endsWith('.astro')
 	),
 ]);
 
@@ -219,6 +229,7 @@ const rowsScopedSpecifier = function rowsScopedSpecifier(
 		['next', '@c15t/nextjs'],
 		['tanstack-start', '@c15t/tanstack-start'],
 		['vue', '@c15t/vue'],
+		['astro', '@c15t/astro'],
 	];
 	for (const [prefix, packageName] of prefixes) {
 		if (segment === prefix) {

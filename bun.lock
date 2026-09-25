@@ -1015,6 +1015,7 @@
       "name": "c15t",
       "version": "3.0.0-alpha.2",
       "dependencies": {
+        "@c15t/astro": "workspace:*",
         "@c15t/core": "workspace:*",
         "@c15t/nextjs": "workspace:*",
         "@c15t/react": "workspace:*",
@@ -1025,6 +1026,12 @@
       "devDependencies": {
         "vitest": "4.1.10",
       },
+      "peerDependencies": {
+        "astro": "^5.0.0 || ^6.0.0 || ^7.0.0",
+      },
+      "optionalPeers": [
+        "astro",
+      ],
     },
     "packages/cli": {
       "name": "@c15t/cli",

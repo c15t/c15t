@@ -15,6 +15,8 @@
  * 5. The component stylesheet, on every page.
  */
 
+import { fileURLToPath } from 'node:url';
+
 import { isIABConfigured } from '@c15t/core/runtime';
 import type { AstroIntegration } from 'astro';
 
@@ -32,6 +34,33 @@ const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 
 const DEFAULT_INIT_PATH = '/api/c15t/init';
 const DEFAULT_MANIFEST_PATH = '/api/c15t/manifest';
+
+/**
+ * Resolve one of this package's own entry points to a file path.
+ *
+ * Astro and Vite resolve what the integration hands them from the site's
+ * root. A site that installed the `c15t` package rather than `@c15t/astro`
+ * cannot see `@c15t/astro` from there under a strict package manager such
+ * as pnpm, so a bare specifier would fail to resolve. A path always does.
+ * Where `import.meta.resolve` is unavailable the specifier is kept.
+ *
+ * @param specifier - An `@c15t/astro/...` specifier.
+ * @returns A file path, or the specifier unchanged.
+ */
+export const resolveOwnEntry = function resolveOwnEntry(
+	specifier: string
+): string {
+	try {
+		const url = import.meta.resolve(specifier);
+		return url.startsWith('file:') ? fileURLToPath(url) : specifier;
+	} catch {
+		return specifier;
+	}
+};
+
+/** A module specifier as a quoted JavaScript string. */
+const quote = (specifier: string): string =>
+	JSON.stringify(resolveOwnEntry(specifier));
 
 /**
  * What each `ui` adapter needs from the app, keyed by adapter name.
@@ -223,9 +252,9 @@ const buildBootScript = function buildBootScript(
 	const adapter = UI_ADAPTERS[ui];
 	const lines = [
 		`import options from '${VIRTUAL_ID}';`,
-		"import { boot, registerDialogAdapter, registerDialogSurface } from '@c15t/astro/client';",
-		`registerDialogAdapter('${ui}', async () => (await import('${adapter.adapterModule}')).${adapter.adapterExport});`,
-		`registerDialogSurface('${ui}', () => import('${adapter.surfaceModule}'));`,
+		`import { boot, registerDialogAdapter, registerDialogSurface } from ${quote('@c15t/astro/client')};`,
+		`registerDialogAdapter('${ui}', async () => (await import(${quote(adapter.adapterModule)})).${adapter.adapterExport});`,
+		`registerDialogSurface('${ui}', () => import(${quote(adapter.surfaceModule)}));`,
 	];
 	if (options.clientEntrypoint) {
 		lines.push(
@@ -250,9 +279,9 @@ export const buildStylesImport = function buildStylesImport(
 	if (resolved.styles === false) {
 		return '';
 	}
-	const lines = ["import '@c15t/astro/styles.css';"];
+	const lines = [`import ${quote('@c15t/astro/styles.css')};`];
 	if (isIABConfigured(resolved.iab)) {
-		lines.push("import '@c15t/astro/iab/styles.css';");
+		lines.push(`import ${quote('@c15t/astro/iab/styles.css')};`);
 	}
 	return lines.join('\n');
 };
@@ -438,7 +467,7 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 
 				if (resolved.middleware.enabled) {
 					addMiddleware({
-						entrypoint: '@c15t/astro/middleware',
+						entrypoint: resolveOwnEntry('@c15t/astro/middleware'),
 						order: 'pre',
 					});
 				}
@@ -457,12 +486,12 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 
 				if (resolved.endpoints.enabled) {
 					injectRoute({
-						entrypoint: '@c15t/astro/api/init',
+						entrypoint: resolveOwnEntry('@c15t/astro/api/init'),
 						pattern: resolved.endpoints.initPath,
 						prerender: false,
 					});
 					injectRoute({
-						entrypoint: '@c15t/astro/api/manifest',
+						entrypoint: resolveOwnEntry('@c15t/astro/api/manifest'),
 						pattern: resolved.endpoints.manifestPath,
 						prerender: false,
 					});

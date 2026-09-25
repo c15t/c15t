@@ -15,7 +15,7 @@ Astro renders the banner with native `.astro` components. Preference dialogs use
 an on-demand Svelte, React or Vue island. Choose the framework your site already
 uses; set `ui` explicitly. This example uses Svelte.
 
-<CommandTabs command="@c15t/astro @c15t/svelte @astrojs/svelte svelte @c15t/scripts" mode="install" />
+<CommandTabs command="c15t @astrojs/svelte svelte @c15t/scripts" mode="install" />
 
 ## Register consent-gated scripts
 
@@ -42,7 +42,7 @@ Create the client extension so script callbacks stay out of serialized server
 configuration:
 
 ```ts title="src/consent-client.ts"
-import type { C15tClientOptionsExtension } from '@c15t/astro';
+import type { C15tClientOptionsExtension } from 'c15t/astro';
 import { createExampleScripts } from './example-scripts';
 
 export default {
@@ -59,7 +59,7 @@ export default {
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import svelte from '@astrojs/svelte';
-import c15t, { hosted } from '@c15t/astro';
+import c15t, { hosted } from 'c15t/astro';
 
 const backendURL = process.env.C15T_BACKEND_URL;
 if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
@@ -103,17 +103,19 @@ the backend still counts visitors it never served `/init` to. Set
 `reportSessions: false` on `manifest()` to send none.
 
 The framework integration must appear before `c15t()`. For React or Vue, install
-that framework's Astro integration and c15t adapter, register the matching
-integration, and set `ui: 'react'` or `ui: 'vue'`.
+that framework's Astro integration and runtime, register the matching
+integration, and set `ui: 'react'` or `ui: 'vue'`. The `c15t` package already
+includes the c15t adapters for Svelte, React and Vue. The same entry points are
+also published as `@c15t/astro`, for example `@c15t/astro/client`.
 
 ## Add the shared layout
 
 ```astro title="src/layouts/Base.astro"
 ---
-import ConsentScript from '@c15t/astro/components/consent-script.astro';
-import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
-import ConsentDialog from '@c15t/astro/components/consent-dialog.astro';
-import ConsentDialogTrigger from '@c15t/astro/components/consent-dialog-trigger.astro';
+import ConsentScript from 'c15t/astro/components/consent-script.astro';
+import ConsentBanner from 'c15t/astro/components/consent-banner.astro';
+import ConsentDialog from 'c15t/astro/components/consent-dialog.astro';
+import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
 ---
 <html lang="en">
   <head>
@@ -139,8 +141,8 @@ not create separate runtimes for each consent island.
 
 ## Styles
 
-The integration adds `@c15t/astro/styles.css` to every page, and
-`@c15t/astro/iab/styles.css` when `iab` is set. The stylesheet covers the
+The integration adds `c15t/astro/styles.css` to every page, and
+`c15t/astro/iab/styles.css` when `iab` is set. The stylesheet covers the
 banner and the dialogs of every `ui` adapter: about 125 KB, or 16 KB gzipped.
 Do not import it again.
 
@@ -150,9 +152,9 @@ cascade layers, set `styles: false` and import the same files. Sites that set
 unstyled.
 
 ```css title="src/styles/global.css"
-@import '@c15t/astro/styles.css';
+@import 'c15t/astro/styles.css';
 /* Only when the integration sets `iab`. */
-@import '@c15t/astro/iab/styles.css';
+@import 'c15t/astro/iab/styles.css';
 ```
 
 Keep the c15t stylesheet when you restyle the surfaces. The browser runtime
