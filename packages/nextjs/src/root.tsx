@@ -9,7 +9,7 @@ import type { Script } from '@c15t/core/modules/script-loader';
  * it to the React provider as `options.prefetch`. Kernel creation,
  * persistence, init, and module wiring live in `@c15t/react`.
  */
-import { custom, hosted, offline } from '@c15t/react';
+import { custom, hosted } from '@c15t/react';
 import type { ProviderTransportFactory } from '@c15t/react';
 import type {
 	UseNetworkBlockerOptions,
@@ -170,6 +170,39 @@ const createLazyManifestTransport = function createLazyManifestTransport(
 	};
 };
 
+/**
+ * Offline mode that loads `offline()` on first init. `offline()` carries
+ * the recommended policy-rule pack, so a static import would ship that pack
+ * to every app that renders the root with a backend URL, where it never runs.
+ */
+const lazyOffline = function lazyOffline(): ProviderTransportFactory {
+	return Object.assign(
+		(context: Parameters<ProviderTransportFactory>[0]): KernelTransport => {
+			let transportPromise: Promise<KernelTransport> | undefined;
+			const load = function load(): Promise<KernelTransport> {
+				transportPromise ??= (async () => {
+					try {
+						const { offline } = await import('./offline-mode');
+						return offline()(context);
+					} catch (error) {
+						// Let the kernel's retry make a fresh import attempt.
+						transportPromise = undefined;
+						throw error;
+					}
+				})();
+				return transportPromise;
+			};
+			return {
+				async init(ctx) {
+					const transport = await load();
+					return (await transport.init?.(ctx)) ?? {};
+				},
+			};
+		},
+		{ kind: 'offline' as const }
+	);
+};
+
 const resolveMode = function resolveMode(input: {
 	backendURL: string | undefined;
 	config: ConsentConfig | undefined;
@@ -180,7 +213,7 @@ const resolveMode = function resolveMode(input: {
 		return input.mode;
 	}
 	if (!input.backendURL) {
-		return offline();
+		return lazyOffline();
 	}
 	if (input.config?.initURL) {
 		return hosted({
