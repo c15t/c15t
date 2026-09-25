@@ -68,9 +68,17 @@ export interface ResolveConsentContextOptions {
 	fetch?: typeof globalThis.fetch;
 	/**
 	 * Skip the server-side init roundtrip and return cookie + geo only.
-	 * Useful for static output where every request shares one render.
 	 */
 	skipPrefetch?: boolean;
+	/**
+	 * Render once for every visitor, as a prerendered route does.
+	 *
+	 * `headers` is ignored, and the config carries no stored consent, clock
+	 * or privacy signal: those belong to whoever is building the site, and
+	 * the browser would otherwise prefer them over the visitor's own cookie.
+	 * The policy is left pending for the browser to resolve.
+	 */
+	prerendered?: boolean;
 	/**
 	 * Receives the promise of a background manifest revalidation started by
 	 * this render, so the host can keep it alive past the response on
@@ -533,6 +541,24 @@ export const snapshotFromConfig = function snapshotFromConfig(
 };
 
 /**
+ * Drop the parts of a config that describe one visitor.
+ *
+ * @param config - A config resolved without a visitor's request.
+ * @returns The config minus stored records, clock and privacy signals.
+ */
+const withoutVisitorState = function withoutVisitorState(
+	config: KernelConfig
+): KernelConfig {
+	const {
+		initialPrivacySignals: _signals,
+		initialRecords: _records,
+		now: _now,
+		...shared
+	} = config;
+	return shared;
+};
+
+/**
  * Resolve everything the page needs about consent for one request.
  *
  * Reads the consent cookie and the geo/GPC headers, prefetches the policy
@@ -549,12 +575,16 @@ export const snapshotFromConfig = function snapshotFromConfig(
 export const resolveConsentContext = async function resolveConsentContext(
 	input: ResolveConsentContextOptions
 ): Promise<C15tLocals> {
-	const { headers, options } = input;
+	const { options } = input;
+	const prerendered = input.prerendered === true;
+	const headers = prerendered ? new Headers() : input.headers;
 	const { config: base, inputs } = readInitialConsentConfig(headers, options);
 	const translations = resolveTranslations(options, inputs);
+	// A build has no visitor to resolve a policy for.
+	const skipPrefetch = input.skipPrefetch === true || prerendered;
 
 	let config: KernelConfig = { ...base, initialTranslations: translations };
-	if (!input.skipPrefetch) {
+	if (!skipPrefetch) {
 		config =
 			options.mode.type === 'hosted'
 				? await prefetchHosted({
@@ -588,7 +618,11 @@ export const resolveConsentContext = async function resolveConsentContext(
 	config.initialPolicyPending = config.initialPolicyResolution === undefined;
 	const snapshot = snapshotFromConfig(config);
 	return {
-		config,
+		// The snapshot above is the one a first-time visitor gets, which is
+		// what the build renders. The config the page inlines drops it: any
+		// `initialRecords` at all stop the browser reading the visitor's
+		// cookie, and a build-time `now` would age every record against it.
+		config: prerendered ? withoutVisitorState(config) : config,
 		decision: snapshot.resolution,
 		hasConsentUi:
 			snapshot.resolution.status === 'matched' &&
@@ -597,6 +631,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 		hasPolicy: snapshot.resolution.status === 'matched',
 		inputs,
 		options,
+		prerendered,
 		shouldShowBanner: !snapshot.policyPending && snapshot.activeUI === 'banner',
 		snapshot,
 	};
