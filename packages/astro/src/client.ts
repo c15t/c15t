@@ -551,7 +551,13 @@ export const getConsentClient =
 		return getWindow()?.[GLOBAL_KEY] ?? null;
 	};
 
-let promptRender: Promise<void> | null = null;
+/** A banner render in flight, and the client and page it started for. */
+interface PendingPromptRender {
+	client: AstroConsentClient;
+	body: HTMLElement;
+}
+
+let promptRender: PendingPromptRender | null = null;
 
 const renderPrompt = async function renderPrompt(
 	client: AstroConsentClient
@@ -572,9 +578,27 @@ const renderPrompt = async function renderPrompt(
 	} catch {
 		// A failed chunk load leaves the page as it was; the preferences
 		// trigger still opens the dialog.
-	} finally {
-		promptRender = null;
 	}
+};
+
+/**
+ * Run one render and release the in-flight marker it owns.
+ *
+ * @returns `true` when a `ClientRouter` swap replaced the page during the
+ * chunk import. The swap's own `attach()` found this render in flight and
+ * stood down, so the new page still needs a look.
+ */
+const runPromptRender = async function runPromptRender(
+	pending: PendingPromptRender
+): Promise<boolean> {
+	await renderPrompt(pending.client);
+	if (promptRender !== pending) {
+		return false;
+	}
+	promptRender = null;
+	return (
+		document.body !== pending.body && getConsentClient() === pending.client
+	);
 };
 
 /**
@@ -592,15 +616,23 @@ const ensurePromptRendered = function ensurePromptRendered(
 	client: AstroConsentClient,
 	snapshot: ConsentSnapshot
 ): void {
+	// A render for this client is already under way. One left over from a
+	// disposed client does not count: its result is discarded.
 	if (
-		promptRender ||
+		promptRender?.client === client ||
 		snapshot.activeUI !== 'banner' ||
 		document.querySelector(BANNER_ROOT_SELECTOR) ||
 		!document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)
 	) {
 		return;
 	}
-	promptRender = renderPrompt(client);
+	const pending = { body: document.body, client };
+	promptRender = pending;
+	void (async () => {
+		if (await runPromptRender(pending)) {
+			ensurePromptRendered(client, client.getConsent());
+		}
+	})();
 };
 
 const attach = function attach(client: AstroConsentClient): void {

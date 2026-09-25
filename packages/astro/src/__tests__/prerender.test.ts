@@ -152,61 +152,89 @@ const describeTree = function describeTree(element: Element): Tree {
 	return [element.tagName.toLowerCase(), attributes, children];
 };
 
+interface ParityCase {
+	rule?: Record<string, unknown>;
+	options?: Partial<C15tAstroOptions>;
+	props?: Record<string, unknown>;
+	branding?: 'inth';
+}
+
 describe('browser-rendered banner', () => {
-	it.each([
-		['an opt-in choice', {}, undefined],
+	it.each<[string, ParityCase]>([
+		['an opt-in choice', {}],
 		[
 			'an opt-out notice',
-			{ model: 'opt-out', prompt: 'notice', rights: ['opt-out'] },
-			undefined,
+			{ rule: { model: 'opt-out', prompt: 'notice', rights: ['opt-out'] } },
 		],
-		['a blocking wall', {}, { prompt: { variant: 'wall' } }],
-	] as const)(
-		'matches the server markup for %s',
-		async (_name, overrides, presentation) => {
-			const options: C15tAstroOptions = {
-				legalLinks: {
-					privacyPolicy: { href: '/privacy', label: 'Privacy' },
+		[
+			'a blocking wall',
+			{ options: { presentation: { prompt: { variant: 'wall' } } } },
+		],
+		['a bar', { options: { presentation: { prompt: { variant: 'bar' } } } }],
+		// A default corner follows the text direction in both renderings.
+		[
+			'a right-to-left widget',
+			{
+				options: {
+					i18n: { locale: 'he' },
+					presentation: { prompt: { variant: 'widget' } },
 				},
-				mode: offlineMode({
-					policyRules: [{ ...testRule, ...overrides } as typeof testRule],
-				}),
-				presentation,
-			};
-			const props = { legalLinks: ['privacyPolicy'] as const, title: 'Hi' };
-			const c15t = await resolveConsentContext({
-				headers: new Headers(),
-				options: resolveOptions(options),
-			});
-			const server = new JSDOM(
-				await container.renderToString(ConsentBanner, {
-					locals: { c15t },
-					props: { ...props, legalLinks: [...props.legalLinks] },
-					request: new Request('https://example.com/'),
-				}),
-				{ url: 'https://example.com/' }
-			).window.document;
+			},
+		],
+		['no stylesheet', { props: { noStyle: true } }],
+		['no branding tag', { props: { hideBranding: true } }],
+		['INTH branding', { branding: 'inth' }],
+	])('matches the server markup for %s', async (_name, parityCase) => {
+		const options: C15tAstroOptions = {
+			legalLinks: {
+				privacyPolicy: { href: '/privacy', label: 'Privacy' },
+			},
+			mode: offlineMode({
+				policyRules: [{ ...testRule, ...parityCase.rule } as typeof testRule],
+			}),
+			...parityCase.options,
+		};
+		const props = {
+			legalLinks: ['privacyPolicy'],
+			title: 'Hi',
+			...parityCase.props,
+		};
+		const resolved = await resolveConsentContext({
+			headers: new Headers(),
+			options: resolveOptions(options),
+		});
+		const c15t = parityCase.branding
+			? {
+					...resolved,
+					snapshot: { ...resolved.snapshot, branding: parityCase.branding },
+				}
+			: resolved;
+		const server = new JSDOM(
+			await container.renderToString(ConsentBanner, {
+				locals: { c15t },
+				props,
+				request: new Request('https://example.com/'),
+			}),
+			{ url: 'https://example.com/' }
+		).window.document;
 
-			const dom = new JSDOM('', { url: 'https://example.com/' });
-			vi.stubGlobal('document', dom.window.document);
-			vi.stubGlobal('window', dom.window);
-			try {
-				const built = buildPrompt(
-					c15t.snapshot,
-					{
-						classNames: promptClassNames,
-						props: { ...props, legalLinks: [...props.legalLinks] },
-					},
-					c15t.options
-				);
-				const expected = [
-					server.querySelector('[data-testid="consent-banner-overlay"]'),
-					server.querySelector('[data-testid="consent-banner-root"]'),
-				].filter((node): node is Element => node !== null);
-				expect(built.map(describeTree)).toEqual(expected.map(describeTree));
-			} finally {
-				vi.unstubAllGlobals();
-			}
+		const dom = new JSDOM('', { url: 'https://example.com/' });
+		vi.stubGlobal('document', dom.window.document);
+		vi.stubGlobal('window', dom.window);
+		try {
+			const built = buildPrompt(
+				c15t.snapshot,
+				{ classNames: promptClassNames, props },
+				c15t.options
+			);
+			const expected = [
+				server.querySelector('[data-testid="consent-banner-overlay"]'),
+				server.querySelector('[data-testid="consent-banner-root"]'),
+			].filter((node): node is Element => node !== null);
+			expect(expected.length).toBeGreaterThan(0);
+			expect(built.map(describeTree)).toEqual(expected.map(describeTree));
+		} finally {
+			vi.unstubAllGlobals();
 		}
-	);
+	});
 });

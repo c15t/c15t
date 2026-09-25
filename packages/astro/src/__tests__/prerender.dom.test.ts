@@ -144,6 +144,40 @@ describe('the spot <ConsentBanner /> leaves', () => {
 		).toBe('Cookies?');
 	});
 
+	it('renders for a client booted while a disposed one was still importing', async () => {
+		leaveSpot();
+		const first = await bootPrerendered();
+		// The first client's render is still importing its chunk.
+		first.dispose();
+		client = null;
+		await bootPrerendered();
+
+		await vi.waitFor(() => {
+			const banner = document.querySelector<HTMLElement>(
+				'[data-testid="consent-banner-root"]'
+			);
+			expect(banner?.hidden).toBe(false);
+		});
+	});
+
+	it('renders into the new page when a swap lands mid-import', async () => {
+		leaveSpot();
+		await bootPrerendered();
+		// A ClientRouter swap replaces the body before the chunk arrives, and
+		// its attach() finds the render already in flight.
+		document.body = document.createElement('body');
+		leaveSpot();
+		document.dispatchEvent(new Event('astro:after-swap'));
+
+		await vi.waitFor(() => {
+			const banner = document.querySelector<HTMLElement>(
+				'[data-testid="consent-banner-root"]'
+			);
+			expect(banner?.hidden).toBe(false);
+		});
+		expect(document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)).toBeNull();
+	});
+
 	it('stays empty for a visitor who already chose', async () => {
 		await saveChoice('all');
 		leaveSpot();
