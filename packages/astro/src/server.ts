@@ -67,10 +67,6 @@ export interface ResolveConsentContextOptions {
 	/** Override fetch, mainly for tests. */
 	fetch?: typeof globalThis.fetch;
 	/**
-	 * Skip the server-side init roundtrip and return cookie + geo only.
-	 */
-	skipPrefetch?: boolean;
-	/**
 	 * Render once for every visitor, as a prerendered route does.
 	 *
 	 * `headers` is ignored, and the config carries no stored consent, clock
@@ -585,9 +581,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 	// Hosted and manifest mode resolve against the visitor's geo, which a
 	// build has none of. Offline mode resolves without it in the browser as
 	// well, so the build reaches the answer every visitor would.
-	const skipPrefetch =
-		input.skipPrefetch === true ||
-		(prerendered && options.mode.type !== 'offline');
+	const skipPrefetch = prerendered && options.mode.type !== 'offline';
 
 	let config: KernelConfig = { ...base, initialTranslations: translations };
 	if (!skipPrefetch) {

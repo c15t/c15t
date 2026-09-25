@@ -188,6 +188,14 @@ of constructing records from permission booleans. To render only the banner per
 request on an otherwise cached page, use `ConsentBannerDeferred`, which needs an
 adapter for its server island.
 
+The middleware handles both cases. If you call `resolveConsentContext` from
+`@c15t/astro/server` yourself, pass `prerendered: true` only for a render that
+every visitor shares. It ignores the request's headers and cookies, leaves
+visitor state out of the inlined configuration, and resolves only offline
+policies at build time. Do not use it to skip the backend request for a single
+visitor's render: that visitor's stored choice and location are discarded. It
+replaces the `skipPrefetch` option from earlier alphas.
+
 `manifest()` mode can inject init and manifest endpoints and therefore needs a
 server for those endpoints. Do not choose that setup for a purely static host
 without providing the routes elsewhere. Nonserializable extensions belong in
