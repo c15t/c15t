@@ -1,0 +1,435 @@
+{
+	"loadStart": [6.17041015625, 7.0751953125, 7.35986328125],
+	"loadEnd": [6.84912109375, 7.16455078125, 7.3828125],
+	"rows": [
+		{
+			"rep": 0,
+			"warmup": true,
+			"arm": "plain",
+			"tag": "site-plain-r0",
+			"loadavg": [6.17041015625, 7.0751953125, 7.35986328125],
+			"spawnToReadyMs": 251,
+			"readyToRequestMs": 0,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362400784,
+				"hrStartUs": 383873156860,
+				"headersMs": 1061.76,
+				"firstChunkMs": 1065.07,
+				"bannerMs": 1526.35,
+				"doneMs": 1529.3,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362402815,
+				"hrStartUs": 383875187231,
+				"headersMs": 3.46,
+				"firstChunkMs": 3.77,
+				"bannerMs": 47.7,
+				"doneMs": 47.9,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [1192],
+			"manifestProxyMs": [269],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 1192, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 1527, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 2074, "status": 204 }
+			]
+		},
+		{
+			"rep": 1,
+			"warmup": false,
+			"arm": "plain",
+			"tag": "site-plain-r1",
+			"loadavg": [5.99658203125, 7.02392578125, 7.33984375],
+			"spawnToReadyMs": 118,
+			"readyToRequestMs": 0,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362403502,
+				"hrStartUs": 383875874572,
+				"headersMs": 570.3,
+				"firstChunkMs": 572.84,
+				"bannerMs": 959.79,
+				"doneMs": 961.04,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362404964,
+				"hrStartUs": 383877337008,
+				"headersMs": 4.18,
+				"firstChunkMs": 5.29,
+				"bannerMs": 30.37,
+				"doneMs": 30.69,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [680],
+			"manifestProxyMs": [217],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 680, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 915, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 1485, "status": 204 }
+			]
+		},
+		{
+			"rep": 1,
+			"warmup": false,
+			"arm": "profile",
+			"tag": "site-profile-r1",
+			"loadavg": [5.99658203125, 7.02392578125, 7.33984375],
+			"spawnToReadyMs": 160,
+			"readyToRequestMs": 0,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362405690,
+				"hrStartUs": 383878062276,
+				"headersMs": 673.81,
+				"firstChunkMs": 676.86,
+				"bannerMs": 1089.48,
+				"doneMs": 1091.03,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362407282,
+				"hrStartUs": 383879654711,
+				"headersMs": 3.08,
+				"firstChunkMs": 3.49,
+				"bannerMs": 18.51,
+				"doneMs": 18.69,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [801],
+			"manifestProxyMs": [213],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 801, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 1027, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 1606, "status": 204 }
+			]
+		},
+		{
+			"rep": 2,
+			"warmup": false,
+			"arm": "profile",
+			"tag": "site-profile-r2",
+			"loadavg": [6.23681640625, 7.056640625, 7.34912109375],
+			"spawnToReadyMs": 141,
+			"readyToRequestMs": 0,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362408037,
+				"hrStartUs": 383880409990,
+				"headersMs": 574.45,
+				"firstChunkMs": 577.13,
+				"bannerMs": 958.1,
+				"doneMs": 964.65,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362409504,
+				"hrStartUs": 383881876295,
+				"headersMs": 4.58,
+				"firstChunkMs": 5.04,
+				"bannerMs": 20.56,
+				"doneMs": 20.77,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [684],
+			"manifestProxyMs": [213],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 684, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 910, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 1482, "status": 204 }
+			]
+		},
+		{
+			"rep": 2,
+			"warmup": false,
+			"arm": "plain",
+			"tag": "site-plain-r2",
+			"loadavg": [6.23681640625, 7.056640625, 7.34912109375],
+			"spawnToReadyMs": 112,
+			"readyToRequestMs": 0,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362410265,
+				"hrStartUs": 383882637792,
+				"headersMs": 514.53,
+				"firstChunkMs": 517.05,
+				"bannerMs": 892.94,
+				"doneMs": 893.8,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362411660,
+				"hrStartUs": 383884032897,
+				"headersMs": 4.04,
+				"firstChunkMs": 4.32,
+				"bannerMs": 19.08,
+				"doneMs": 19.47,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [618],
+			"manifestProxyMs": [214],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 618, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 893, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 1414, "status": 204 }
+			]
+		},
+		{
+			"rep": 3,
+			"warmup": false,
+			"arm": "plain",
+			"tag": "site-plain-r3",
+			"loadavg": [6.23681640625, 7.056640625, 7.34912109375],
+			"spawnToReadyMs": 121,
+			"readyToRequestMs": 0,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362412319,
+				"hrStartUs": 383884691889,
+				"headersMs": 556.42,
+				"firstChunkMs": 559.13,
+				"bannerMs": 942.16,
+				"doneMs": 943.14,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362413764,
+				"hrStartUs": 383886136389,
+				"headersMs": 3.83,
+				"firstChunkMs": 4.35,
+				"bannerMs": 24.81,
+				"doneMs": 25.24,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [667],
+			"manifestProxyMs": [215],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 667, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 896, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 1463, "status": 204 }
+			]
+		},
+		{
+			"rep": 3,
+			"warmup": false,
+			"arm": "profile",
+			"tag": "site-profile-r3",
+			"loadavg": [7.0986328125, 7.2216796875, 7.4052734375],
+			"spawnToReadyMs": 161,
+			"readyToRequestMs": 0,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362414467,
+				"hrStartUs": 383886839121,
+				"headersMs": 614.27,
+				"firstChunkMs": 616.97,
+				"bannerMs": 996.35,
+				"doneMs": 997.33,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362415965,
+				"hrStartUs": 383888337770,
+				"headersMs": 3.06,
+				"firstChunkMs": 3.37,
+				"bannerMs": 18.2,
+				"doneMs": 18.56,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [720],
+			"manifestProxyMs": [212],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 720, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 946, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 1516, "status": 204 }
+			]
+		},
+		{
+			"rep": 4,
+			"warmup": false,
+			"arm": "plain",
+			"tag": "site-plain-r4",
+			"loadavg": [7.0986328125, 7.2216796875, 7.4052734375],
+			"spawnToReadyMs": 127,
+			"readyToRequestMs": 1,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362416714,
+				"hrStartUs": 383889086070,
+				"headersMs": 559.85,
+				"firstChunkMs": 562.3,
+				"bannerMs": 923.09,
+				"doneMs": 928.14,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362418143,
+				"hrStartUs": 383890515486,
+				"headersMs": 3.34,
+				"firstChunkMs": 3.61,
+				"bannerMs": 18.36,
+				"doneMs": 18.85,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [657],
+			"manifestProxyMs": [213],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 657, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 923, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 1447, "status": 204 }
+			]
+		},
+		{
+			"rep": 5,
+			"warmup": false,
+			"arm": "plain",
+			"tag": "site-plain-r5",
+			"loadavg": [7.01025390625, 7.201171875, 7.39697265625],
+			"spawnToReadyMs": 125,
+			"readyToRequestMs": 0,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362418804,
+				"hrStartUs": 383891176326,
+				"headersMs": 650.96,
+				"firstChunkMs": 653.6,
+				"bannerMs": 1074.73,
+				"doneMs": 1075.5,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362420380,
+				"hrStartUs": 383892752093,
+				"headersMs": 3.76,
+				"firstChunkMs": 4.11,
+				"bannerMs": 18.32,
+				"doneMs": 18.68,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [784],
+			"manifestProxyMs": [223],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 784, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 1024, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 1594, "status": 204 }
+			]
+		},
+		{
+			"rep": 6,
+			"warmup": false,
+			"arm": "plain",
+			"tag": "site-plain-r6",
+			"loadavg": [7.01025390625, 7.201171875, 7.39697265625],
+			"spawnToReadyMs": 161,
+			"readyToRequestMs": 0,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362421081,
+				"hrStartUs": 383893453791,
+				"headersMs": 643.63,
+				"firstChunkMs": 647.11,
+				"bannerMs": 1058.19,
+				"doneMs": 1059,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362422641,
+				"hrStartUs": 383895013071,
+				"headersMs": 2.86,
+				"firstChunkMs": 3.2,
+				"bannerMs": 17.38,
+				"doneMs": 17.62,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [761],
+			"manifestProxyMs": [221],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 761, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 1001, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 1577, "status": 204 }
+			]
+		},
+		{
+			"rep": 7,
+			"warmup": false,
+			"arm": "plain",
+			"tag": "site-plain-r7",
+			"loadavg": [6.84912109375, 7.16455078125, 7.3828125],
+			"spawnToReadyMs": 135,
+			"readyToRequestMs": 0,
+			"cold": {
+				"status": 200,
+				"startedAt": 1790362423314,
+				"hrStartUs": 383895686824,
+				"headersMs": 577.01,
+				"firstChunkMs": 579.54,
+				"bannerMs": 941.35,
+				"doneMs": 946.75,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"warm": {
+				"status": 200,
+				"startedAt": 1790362424761,
+				"hrStartUs": 383897133860,
+				"headersMs": 3.22,
+				"firstChunkMs": 3.53,
+				"bannerMs": 18.1,
+				"doneMs": 18.59,
+				"chunkCount": 11,
+				"bytes": 188375
+			},
+			"originManifest": 1,
+			"manifestSentAfterRequestMs": [674],
+			"manifestProxyMs": [213],
+			"backend": [
+				{ "path": "/manifest", "afterRequestMs": 674, "status": 200 },
+				{ "path": "/sessions", "afterRequestMs": 899, "status": 204 },
+				{ "path": "/sessions", "afterRequestMs": 1465, "status": 204 }
+			]
+		}
+	]
+}
