@@ -75,7 +75,8 @@ export interface ResolveConsentContextOptions {
 	 * Receives the promise of a background manifest revalidation started by
 	 * this render, so the host can keep it alive past the response on
 	 * runtimes that stop detached work once a response is sent. The
-	 * middleware passes the adapter's `waitUntil` from `locals.runtime.ctx`
+	 * middleware passes the adapter's `waitUntil` from `locals.cfContext`
+	 * (Astro 6 and later) or `locals.runtime.ctx` (Astro 5)
 	 * when there is one. The promise never rejects.
 	 */
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;

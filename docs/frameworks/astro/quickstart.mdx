@@ -7,6 +7,8 @@ group: frameworks
 [Create an Inth project](https://inth.com) and use its backend endpoint in
 this guide. Configure the project's policy rules and allowed app origins first.
 
+`@c15t/astro` supports Astro 5, 6 and 7.
+
 ## Choose the dialog framework
 
 Astro renders the banner with native `.astro` components. Preference dialogs use
@@ -89,9 +91,10 @@ vendor list through that same-origin route. The backend does not need to allow
 browser access or CORS requests from the app.
 
 Past the manifest's `s-maxage` the injected routes and the middleware serve it
-stale and refresh it in the background. On adapters that expose
-`locals.runtime.ctx.waitUntil` (Cloudflare) the refresh is handed to it so it
-is not cut short when the response is sent; nothing is needed from you. For
+stale and refresh it in the background. On the Cloudflare adapter, which
+exposes `waitUntil` on `locals.cfContext` from Astro 6 and on
+`locals.runtime.ctx` before that, the refresh is handed to it so it is not cut
+short when the response is sent; nothing is needed from you. For
 another lifetime API, pass `onBackgroundRevalidate` to
 `createConsentRouteHandlers` or `resolveConsentContext`. Session reports go
 through the same hook: after each resolution, in the middleware and the init
