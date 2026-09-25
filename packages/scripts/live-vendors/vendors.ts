@@ -52,6 +52,7 @@ import { segment } from '../src/vendors/analytics/segment';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { crisp } from '../src/vendors/functional/crisp';
+import { frontChat } from '../src/vendors/functional/front-chat';
 import { intercom } from '../src/vendors/functional/intercom';
 import { googleTagManager } from '../src/vendors/tag-managers/google-tag-manager';
 import type { LiveProbeCheckResult, LiveVendorProbeConfig } from './types';
@@ -1027,6 +1028,29 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		// array would only re-assert our own bootstrap stub.
 		notes:
 			'Crisp adds no observable global for placeholder website ids, so no runtime is asserted. Upgrading to full tier needs a real website id supplied as a secret.',
+	},
+	{
+		vendor: 'front-chat',
+		// The stable loader URL returns a 302 to a versioned bundle. The
+		// monitor records that first response, so accept the redirect while
+		// still requiring the runtime installed by the final bundle below.
+		tier: 'loader-only',
+		createScript: () => frontChat({ chatId: 'c15tfake' }),
+		loaderUrlSubstring: 'chat-assets.frontapp.com/v1/chat.bundle.js',
+		bootstrapCheck: () =>
+			check(
+				typeof window.FrontChat === 'undefined',
+				'FrontChat is not seeded before the vendor loader executes'
+			),
+		// The helper seeds no FrontChat stub, so this function can only be
+		// installed by the real loader. The embedded chat page stays blocked.
+		runtimeCheck: () =>
+			check(
+				typeof window.FrontChat === 'function',
+				'window.FrontChat present after the vendor loader executed'
+			),
+		notes:
+			'The public Front Chat loader redirects to a versioned bundle; runtime installation is still required. The chat iframe and every other third-party request are blocked. This does not validate a live chat session with a real channel.',
 	},
 	{
 		vendor: 'intercom',

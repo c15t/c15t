@@ -290,7 +290,7 @@ const generateDocsConfig = () => {
 					},
 					{
 						title: 'Functional',
-						pages: ['crisp', 'intercom'],
+						pages: ['crisp', 'front-chat', 'intercom'],
 					},
 					{
 						title: 'Ads & Pixels',
