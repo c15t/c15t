@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
+
+import '@c15t/ui/styles/components/consent-dialog.css';
 import { getTextDirection } from '@c15t/ui/utils';
 import { computed, nextTick, onUnmounted, provide, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';

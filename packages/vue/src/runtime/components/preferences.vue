@@ -14,9 +14,17 @@ import type { PresentationAction } from '@c15t/core';
 import { vendorsListedUnder } from '@c15t/core';
 import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
+
+import '@c15t/ui/styles/components/accordion.css';
 import buttonStyles from '@c15t/ui/styles/components/button';
+
+import '@c15t/ui/styles/components/button.css';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
+
+import '@c15t/ui/styles/components/consent-actions.css';
 import managerStyles from '@c15t/ui/styles/components/consent-manager';
+
+import '@c15t/ui/styles/components/consent-manager.css';
 import { getTextDirection } from '@c15t/ui/utils/dom';
 import { computed, inject, mergeProps, ref, useId } from 'vue';
 
