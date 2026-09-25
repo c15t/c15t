@@ -89,6 +89,20 @@ describe('buildBannerRevealScript', () => {
 		});
 	});
 
+	it('still shows the banner when the cookie getter throws', () => {
+		const cookie = vi
+			.spyOn(document, 'cookie', 'get')
+			.mockImplementation(() => {
+				throw new DOMException('sandboxed', 'SecurityError');
+			});
+		try {
+			run(buildBannerRevealScript(undefined, 'consent-banner'));
+			expect(root()?.hidden).toBe(false);
+		} finally {
+			cookie.mockRestore();
+		}
+	});
+
 	it('leaves no variables in the global scope', () => {
 		const before = new Set(Object.keys(globalThis));
 		// Indirect eval runs it as a classic script at global scope.

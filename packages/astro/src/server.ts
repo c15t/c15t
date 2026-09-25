@@ -725,10 +725,10 @@ export const buildBannerRevealScript = function buildBannerRevealScript(
 	// `<` is escaped so a storage key can never close the script tag.
 	const json = JSON.stringify(names).replace(/</gu, '\\u003c');
 	// An IIFE keeps its variables out of the page's global scope. Blocked
-	// storage (sandboxes, some privacy modes) throws on access: it is read as
-	// "nothing stored there" so the cookie check still decides, and any other
-	// throw is swallowed so it cannot abort the rest of the document.
-	return `(function(){try{var names=${json},cookies=document.cookie.split(';').map(function(p){return p.split('=')[0].trim()}),stored=function(n){if(cookies.indexOf(n)>=0)return true;try{return window.localStorage.getItem(n)!==null}catch(e){return false}};if(names.some(stored))return;var root=document.querySelector('[data-testid="${testId}-root"][hidden]'),overlay=document.querySelector('[data-testid="${testId}-overlay"][hidden]');if(root){root.hidden=false;root.setAttribute('data-c15t-visible','true');if(overlay)overlay.hidden=false}}catch(e){}})();`;
+	// cookies or storage (sandboxes, some privacy modes) throw on access: each
+	// is read as "nothing stored there" so the other still decides, and any
+	// other throw is swallowed so it cannot abort the rest of the document.
+	return `(function(){try{var names=${json},cookies=[],stored;try{cookies=document.cookie.split(';').map(function(p){return p.split('=')[0].trim()})}catch(e){}stored=function(n){if(cookies.indexOf(n)>=0)return true;try{return window.localStorage.getItem(n)!==null}catch(e){return false}};if(names.some(stored))return;var root=document.querySelector('[data-testid="${testId}-root"][hidden]'),overlay=document.querySelector('[data-testid="${testId}-overlay"][hidden]');if(root){root.hidden=false;root.setAttribute('data-c15t-visible','true');if(overlay)overlay.hidden=false}}catch(e){}})();`;
 };
 
 export { buildPrefetchScript } from '@c15t/core';
