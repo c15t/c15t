@@ -4,8 +4,8 @@
 # Keep one glob per line, without Markdown lists or code fences.
 
 # Markdown and MDX at any depth, including executable MDX components.
-*.md
-*.mdx
+**/*.md
+**/*.mdx
 
 # === Vendored / dependency directories ===
 **/.git/**
