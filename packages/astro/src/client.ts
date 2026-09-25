@@ -39,8 +39,10 @@ import {
 	setupScrollLock,
 } from '@c15t/ui/utils/dom';
 
+import { PROMPT_SLOT_ATTRIBUTE } from './banner/slot';
 import { lazyCreateIAB, whenIABReady } from './browser/iab';
 import { activateGatedScripts } from './browser/inline-scripts';
+import type * as PromptRenderer from './browser/render-prompt';
 import { resolveTransportFactory } from './mode';
 import type { C15tClientOptionsExtension, C15tResolvedOptions } from './types';
 import { loadDialogAdapter } from './ui/adapter';
@@ -294,12 +296,13 @@ export const syncSurfaceVisibility = function syncSurfaceVisibility(
 	}
 };
 
+const BANNER_ROOT_SELECTOR =
+	'[data-testid="consent-banner-root"], [data-testid="iab-consent-banner-root"]';
+
 export const syncBannerVisibility = function syncBannerVisibility(
 	snapshot: ConsentSnapshot
 ): void {
-	const banner = document.querySelector<HTMLElement>(
-		'[data-testid="consent-banner-root"], [data-testid="iab-consent-banner-root"]'
-	);
+	const banner = document.querySelector<HTMLElement>(BANNER_ROOT_SELECTOR);
 	if (!banner) {
 		releaseBlocking?.();
 		return;
@@ -539,13 +542,6 @@ const createClient = function createClient(
 	return client;
 };
 
-const attach = function attach(client: AstroConsentClient): void {
-	const snapshot = client.getConsent();
-	syncBannerVisibility(snapshot);
-	syncSurfaceVisibility(snapshot);
-	activateGatedScripts(snapshot);
-};
-
 /**
  * The page's consent client, if the integration has booted.
  *
@@ -555,6 +551,156 @@ export const getConsentClient =
 	function getConsentClient(): AstroConsentClient | null {
 		return getWindow()?.[GLOBAL_KEY] ?? null;
 	};
+
+/** A banner render in flight, and the client and page it started for. */
+interface PendingPromptRender {
+	client: AstroConsentClient;
+	body: HTMLElement;
+}
+
+let promptRender: PendingPromptRender | null = null;
+
+type PromptRendererModule = typeof PromptRenderer;
+
+const loadDefaultPromptRenderer = (): Promise<PromptRendererModule> =>
+	import('./browser/render-prompt');
+
+let loadPromptRenderer = loadDefaultPromptRenderer;
+
+/**
+ * Replaces how the banner renderer chunk is loaded, so a test can make it
+ * fail. Call with no argument to restore the real one.
+ *
+ * Tests only.
+ *
+ * @internal
+ */
+export const setPromptRendererLoaderForTest =
+	function setPromptRendererLoaderForTest(
+		loader?: () => Promise<PromptRendererModule>
+	): void {
+		loadPromptRenderer = loader ?? loadDefaultPromptRenderer;
+	};
+
+/** How often a client tries to load the banner renderer before giving up. */
+const MAX_PROMPT_LOAD_ATTEMPTS = 3;
+
+/** Failed renderer loads per client, for the retry back-off. */
+const promptLoadFailures = new WeakMap<AstroConsentClient, number>();
+
+/**
+ * Render the banner into its spot.
+ *
+ * @returns `false` when the renderer chunk failed to load.
+ */
+const renderPrompt = async function renderPrompt(
+	client: AstroConsentClient
+): Promise<boolean> {
+	try {
+		const { renderPromptIntoSlot } = await loadPromptRenderer();
+		if (getConsentClient() !== client) {
+			return true;
+		}
+		const current = client.getConsent();
+		if (
+			current.activeUI === 'banner' &&
+			!document.querySelector(BANNER_ROOT_SELECTOR)
+		) {
+			renderPromptIntoSlot(current, client.options);
+		}
+		syncBannerVisibility(current);
+		return true;
+	} catch (error) {
+		// Usually a network failure. The caller retries with a back-off.
+		console.warn('@c15t/astro: the consent banner failed to load.', error);
+		return false;
+	}
+};
+
+/**
+ * Run one render and release the in-flight marker it owns.
+ *
+ * @returns What to do next: `'again'` when a `ClientRouter` swap replaced
+ * the page during the chunk import (the swap's own `attach()` found this
+ * render in flight and stood down, so the new page still needs a look),
+ * `'later'` when the renderer failed to load, and `'done'` otherwise.
+ */
+const runPromptRender = async function runPromptRender(
+	pending: PendingPromptRender
+): Promise<'again' | 'later' | 'done'> {
+	const loaded = await renderPrompt(pending.client);
+	if (promptRender !== pending) {
+		return 'done';
+	}
+	promptRender = null;
+	if (!loaded) {
+		return 'later';
+	}
+	return document.body !== pending.body && getConsentClient() === pending.client
+		? 'again'
+		: 'done';
+};
+
+/**
+ * Render the banner in the browser when the page owes one it does not have.
+ *
+ * The server leaves a marked spot wherever `<ConsentBanner />` could not
+ * know the policy: a prerendered page in hosted or manifest mode, or a
+ * server render whose init failed. The renderer is its own chunk, so a page
+ * that never needs it never downloads it.
+ *
+ * @param client - The page's consent client.
+ * @param snapshot - The current kernel snapshot.
+ */
+const ensurePromptRendered = function ensurePromptRendered(
+	client: AstroConsentClient,
+	snapshot: ConsentSnapshot
+): void {
+	// A render for this client is already under way. One left over from a
+	// disposed client does not count: its result is discarded.
+	if (
+		promptRender?.client === client ||
+		snapshot.activeUI !== 'banner' ||
+		document.querySelector(BANNER_ROOT_SELECTOR) ||
+		!document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)
+	) {
+		return;
+	}
+	const pending = { body: document.body, client };
+	promptRender = pending;
+	void (async () => {
+		const next = await runPromptRender(pending);
+		if (next === 'again') {
+			ensurePromptRendered(client, client.getConsent());
+			return;
+		}
+		if (next !== 'later') {
+			return;
+		}
+		// Without the renderer the visitor has no way to choose, so try again
+		// after 1 s and 2 s before giving up.
+		const failures = (promptLoadFailures.get(client) ?? 0) + 1;
+		promptLoadFailures.set(client, failures);
+		if (failures < MAX_PROMPT_LOAD_ATTEMPTS) {
+			setTimeout(
+				() => {
+					if (getConsentClient() === client) {
+						ensurePromptRendered(client, client.getConsent());
+					}
+				},
+				1000 * 2 ** (failures - 1)
+			);
+		}
+	})();
+};
+
+const attach = function attach(client: AstroConsentClient): void {
+	const snapshot = client.getConsent();
+	ensurePromptRendered(client, snapshot);
+	syncBannerVisibility(snapshot);
+	syncSurfaceVisibility(snapshot);
+	activateGatedScripts(snapshot);
+};
 
 /**
  * Wire the delegated handler for the server-rendered banner's buttons.
@@ -632,6 +778,7 @@ export const boot = function boot(
 	attachBannerActions();
 
 	client.subscribe((snapshot) => {
+		ensurePromptRendered(client, snapshot);
 		syncBannerVisibility(snapshot);
 		syncSurfaceVisibility(snapshot);
 		activateGatedScripts(snapshot);

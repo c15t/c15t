@@ -2,7 +2,9 @@ import { createConsentKernel } from '@c15t/core';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { boot } from '../client';
+import { promptClassNames } from '../banner/class-names';
+import { PROMPT_SLOT_ATTRIBUTE } from '../banner/slot';
+import { boot, setPromptRendererLoaderForTest } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
@@ -93,5 +95,131 @@ describe('a prerendered page', () => {
 			expect(booted.getConsent().activeUI).toBe('banner');
 		});
 		expect(booted.getConsent().explicitChoice).toBeNull();
+	});
+
+	it('reveals the hidden banner for a first-time visitor', async () => {
+		document.body.innerHTML =
+			'<div data-testid="consent-banner-root" data-c15t-visible="false" hidden></div>';
+
+		await bootPrerendered();
+
+		const banner = document.querySelector<HTMLElement>(
+			'[data-testid="consent-banner-root"]'
+		);
+		expect(banner?.hidden).toBe(false);
+		expect(banner?.dataset.c15tVisible).toBe('true');
+	});
+});
+
+describe('the spot <ConsentBanner /> leaves', () => {
+	const leaveSpot = function leaveSpot(): void {
+		const spot = document.createElement('div');
+		spot.hidden = true;
+		spot.setAttribute(
+			PROMPT_SLOT_ATTRIBUTE,
+			JSON.stringify({
+				classNames: promptClassNames,
+				props: { title: 'Cookies?' },
+			})
+		);
+		document.body.append(spot);
+	};
+
+	it('gets the banner once the policy says one is due', async () => {
+		leaveSpot();
+		// No inlined resolution, as on a prerendered hosted page: the
+		// browser's own init decides.
+		client = boot(resolveOptions(OPTIONS));
+
+		await vi.waitFor(() => {
+			const banner = document.querySelector<HTMLElement>(
+				'[data-testid="consent-banner-root"]'
+			);
+			expect(banner?.hidden).toBe(false);
+		});
+		expect(document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)).toBeNull();
+		expect(
+			document.querySelector('[data-testid="consent-banner-title"]')
+				?.textContent
+		).toBe('Cookies?');
+	});
+
+	it('renders for a client booted while a disposed one was still importing', async () => {
+		leaveSpot();
+		const first = await bootPrerendered();
+		// The first client's render is still importing its chunk.
+		first.dispose();
+		client = null;
+		await bootPrerendered();
+
+		await vi.waitFor(() => {
+			const banner = document.querySelector<HTMLElement>(
+				'[data-testid="consent-banner-root"]'
+			);
+			expect(banner?.hidden).toBe(false);
+		});
+	});
+
+	it('renders into the new page when a swap lands mid-import', async () => {
+		leaveSpot();
+		await bootPrerendered();
+		// A ClientRouter swap replaces the body before the chunk arrives, and
+		// its attach() finds the render already in flight.
+		document.body = document.createElement('body');
+		leaveSpot();
+		document.dispatchEvent(new Event('astro:after-swap'));
+
+		await vi.waitFor(() => {
+			const banner = document.querySelector<HTMLElement>(
+				'[data-testid="consent-banner-root"]'
+			);
+			expect(banner?.hidden).toBe(false);
+		});
+		expect(document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)).toBeNull();
+	});
+
+	it('retries a renderer that failed to load', async () => {
+		let loads = 0;
+		setPromptRendererLoaderForTest(async () => {
+			loads += 1;
+			if (loads === 1) {
+				throw new TypeError('Failed to fetch dynamically imported module');
+			}
+			return await import('../browser/render-prompt');
+		});
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			leaveSpot();
+			await bootPrerendered();
+
+			await vi.waitFor(
+				() => {
+					const banner = document.querySelector<HTMLElement>(
+						'[data-testid="consent-banner-root"]'
+					);
+					expect(banner?.hidden).toBe(false);
+				},
+				{ timeout: 3000 }
+			);
+			expect(loads).toBe(2);
+			expect(warn).toHaveBeenCalledOnce();
+		} finally {
+			warn.mockRestore();
+			setPromptRendererLoaderForTest();
+		}
+	});
+
+	it('stays empty for a visitor who already chose', async () => {
+		await saveChoice('all');
+		leaveSpot();
+		client = boot(resolveOptions(OPTIONS));
+
+		await vi.waitFor(() => {
+			expect(client?.getConsent().policyPending).toBe(false);
+		});
+		expect(document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)).not.toBeNull();
+		expect(
+			document.querySelector('[data-testid="consent-banner-root"]')
+		).toBeNull();
 	});
 });

@@ -76,7 +76,9 @@ export interface ResolveConsentContextOptions {
 	 * `headers` is ignored, and the config carries no stored consent, clock
 	 * or privacy signal: those belong to whoever is building the site, and
 	 * the browser would otherwise prefer them over the visitor's own cookie.
-	 * The policy is left pending for the browser to resolve.
+	 * Offline mode still resolves its policy, because it resolves without
+	 * request inputs in the browser too. Hosted and manifest mode are left
+	 * pending for the browser to resolve.
 	 */
 	prerendered?: boolean;
 	/**
@@ -580,8 +582,12 @@ export const resolveConsentContext = async function resolveConsentContext(
 	const headers = prerendered ? new Headers() : input.headers;
 	const { config: base, inputs } = readInitialConsentConfig(headers, options);
 	const translations = resolveTranslations(options, inputs);
-	// A build has no visitor to resolve a policy for.
-	const skipPrefetch = input.skipPrefetch === true || prerendered;
+	// Hosted and manifest mode resolve against the visitor's geo, which a
+	// build has none of. Offline mode resolves without it in the browser as
+	// well, so the build reaches the answer every visitor would.
+	const skipPrefetch =
+		input.skipPrefetch === true ||
+		(prerendered && options.mode.type !== 'offline');
 
 	let config: KernelConfig = { ...base, initialTranslations: translations };
 	if (!skipPrefetch) {
@@ -690,6 +696,28 @@ export const buildColorSchemeScript = function buildColorSchemeScript(
 };
 
 export { buildPrefetchScript } from '@c15t/core';
+export {
+	C15T_MARK_SVG,
+	INTH_LOGO_SVG,
+	resolveBrandingModel,
+} from './banner/branding-model';
+export type {
+	BrandingModel,
+	BrandingModelInput,
+	BrandingVariant,
+} from './banner/branding-model';
+export { promptClassNames } from './banner/class-names';
+export type { ClassNameMap, PromptClassNames } from './banner/class-names';
+export {
+	joinClasses,
+	PROMPT_SLOT_ATTRIBUTE,
+	resolvePromptModel,
+} from './banner/prompt-model';
+export type {
+	PromptModel,
+	PromptModelInput,
+	PromptProps,
+} from './banner/prompt-model';
 export type { KernelConfig } from '@c15t/core';
 
 /**

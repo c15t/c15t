@@ -58,7 +58,7 @@ export const consentIntegration = c15t({
 		},
 		instructions: [
 			'In astro.config, import { consentIntegration } from "./{{output}}/consent-integration" and add it after the Svelte integration in integrations. Import svelte from "@astrojs/svelte" and add svelte() only if the site does not already use it.',
-			'Configure an Astro deployment adapter and on-demand rendering for pages using these components, for example output: "server". Do not prerender a visitor-specific consent decision into shared HTML.',
+			"Prerendered and on-demand pages both work. A prerendered page is built once for every visitor, and the browser applies each visitor's stored choice. Render on demand, with an Astro adapter, when the server should read each visitor's geo and cookie before the page reaches them.",
 			'In the shared Astro layout, import ConsentHead from "{{output}}/ConsentHead.astro" and Consent from "{{output}}/Consent.astro", adjusting relative imports. Render <ConsentHead /> inside <head> and <Consent /> inside <body>. The native integration owns middleware, browser boot, and ClientRouter navigation.',
 			'The preference dialog uses the native Svelte adapter. Reuse an existing React or Vue island runtime instead only after changing the integration ui option and installing its matching Astro integration.',
 			...(options.scripts.length

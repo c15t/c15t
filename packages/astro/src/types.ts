@@ -344,8 +344,8 @@ export interface C15tLocals {
 
 	/**
 	 * Whether this render is shared by every visitor, as on a prerendered
-	 * route. Its config then carries no stored consent, so the browser reads
-	 * the visitor's own cookie.
+	 * route. Consent surfaces then render hidden, and the browser shows
+	 * them once it has read the visitor's own cookie.
 	 */
 	prerendered: boolean;
 
