@@ -28,6 +28,7 @@
 		"linkedin-insights",
 		"microsoft-uet",
 		"x-pixel",
+		"pinterest-tag",
 		"analytics-consent",
 		"consent-mode",
 		"consent-mode-v2",
@@ -216,6 +217,11 @@
 			"types": "./dist-types/vendors/ads-and-pixels/x-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/x-pixel.js",
 			"require": "./dist/vendors/ads-and-pixels/x-pixel.cjs"
+		},
+		"./pinterest-tag": {
+			"types": "./dist-types/vendors/ads-and-pixels/pinterest-tag.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/pinterest-tag.js",
+			"require": "./dist/vendors/ads-and-pixels/pinterest-tag.cjs"
 		},
 		"./registry": {
 			"types": "./dist-types/registry.d.ts",

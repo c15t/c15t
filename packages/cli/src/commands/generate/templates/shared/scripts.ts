@@ -162,6 +162,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		importName: 'xPixel',
 		example: "xPixel({ pixelId: 'oXXXX' })",
 	},
+	'pinterest-tag': {
+		importName: 'pinterestTag',
+		example: "pinterestTag({ tagId: 'XXXXXXXX' })",
+	},
 };
 
 /**

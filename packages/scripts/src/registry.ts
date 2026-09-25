@@ -436,6 +436,16 @@ export const builtInScriptIntegrations = [
 		integrationCategory: 'ads-and-pixels',
 		consentCategory: 'marketing',
 	},
+	{
+		key: 'pinterestTag',
+		vendor: 'pinterest-tag',
+		label: 'Pinterest Tag',
+		hint: 'Pinterest ads tracking',
+		docsSlug: 'pinterest-tag',
+		packageSubpath: 'pinterest-tag',
+		integrationCategory: 'ads-and-pixels',
+		consentCategory: 'marketing',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**

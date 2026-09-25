@@ -23,6 +23,10 @@ import {
 	microsoftUetManifest,
 } from './vendors/ads-and-pixels/microsoft-uet';
 import {
+	pinterestTag,
+	pinterestTagManifest,
+} from './vendors/ads-and-pixels/pinterest-tag';
+import {
 	redditPixel,
 	redditPixelManifest,
 } from './vendors/ads-and-pixels/reddit-pixel';
@@ -403,6 +407,14 @@ const helperParityCases = {
 			src: 'https://static.ads-twitter.com/uwt.js',
 		},
 	},
+	pinterestTag: {
+		script: pinterestTag({ tagId: '2613654212508' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://s.pinimg.com/ct/core.js',
+		},
+	},
 } satisfies Record<
 	BuiltInScriptIntegrationKey,
 	Parameters<typeof expectScriptMatchesIntegration>[2] extends infer Expected
@@ -448,6 +460,7 @@ const vendorManifests = [
 	microsoftUetManifest,
 	snapchatPixelManifest,
 	xPixelManifest,
+	pinterestTagManifest,
 ];
 
 function getPublicScriptExportSubpaths(): string[] {
