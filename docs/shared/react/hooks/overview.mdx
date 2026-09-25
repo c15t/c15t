@@ -27,9 +27,11 @@ group: reference
   stock UI or headless surface actions for a complete prompt. Do not call save on
   mount to persist a state derived from permissions.
 
-  `useConsentManager` remains available for the combined UI API, including draft
-  management. Prefer focused hooks for simple feature gates and use the headless
-  UI hook when implementing a complete custom prompt. Read
-  [consent state](/docs/guides/consent-state) before treating a callback as evidence
-  of a choice.
+  Use focused hooks for feature gates. For a complete custom prompt or preference
+  center, use `useHeadlessConsentUI()` for surface actions and `useConsentDraft()`
+  for staged choices, inside one `ConsentDraftProvider` so the save commits the
+  same draft. v3 has no `useConsentManager()`; the
+  [upgrade guide](/docs/upgrade-v3#replace-useconsentmanager) maps each of its
+  fields to a hook. Read [consent state](/docs/guides/consent-state) before
+  treating a callback as evidence of a choice.
 </section>

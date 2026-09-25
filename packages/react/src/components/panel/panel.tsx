@@ -11,10 +11,10 @@ import type * as C15tCoreTypes from '@c15t/core';
  */
 import type { FC } from 'react';
 
-import { useConsentManager } from '~/component-hooks/use-manager';
 import { ConsentDialogTrigger } from '~/components/panel-trigger';
 import type { ConsentDialogTriggerProps } from '~/components/panel-trigger';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
+import { useActiveUI } from '~/hooks';
 import { useComponentConfig } from '~/hooks/use-component-config';
 
 import { ConsentCustomizationCard } from './atoms/card';
@@ -52,7 +52,7 @@ export interface ConsentDialogProps {
 
 	/**
 	 * Control the open state. If omitted the dialog follows
-	 * `useConsentManager().activeUI === 'dialog'`.
+	 * `useActiveUI() === 'dialog'`.
 	 */
 	open?: boolean;
 
@@ -126,7 +126,7 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 	models,
 	uiSource,
 }) => {
-	const { activeUI } = useConsentManager();
+	const activeUI = useActiveUI();
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({

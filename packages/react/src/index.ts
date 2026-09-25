@@ -103,7 +103,6 @@ export type {
 	VendorDraftHandle,
 } from './draft';
 export { ConsentDraftProvider, useConsentDraft, useVendorDraft } from './draft';
-export { useConsentManager } from './component-hooks/use-manager';
 export { useTranslations } from './component-hooks/use-translations';
 export {
 	useActiveUI,
@@ -124,12 +123,14 @@ export {
 	usePreferencesPresentation,
 	usePolicyScopeMode,
 	usePurposeConsent,
+	useRegisterConsentCategories,
 	useSaveConsents,
 	useSetActiveUI,
 	useSetLanguage,
 	useSetOverrides,
 	useSnapshot,
 	useSpecialFeatureOptIn,
+	useSubscribeToConsentChanges,
 	useTCString,
 	useUser,
 	useDeclaredVendors,

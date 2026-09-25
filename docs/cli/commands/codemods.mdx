@@ -11,6 +11,14 @@ c15t codemods component-renames --dry-run --json
 
 These transforms target c15t v2. They are available from the command line and help output, but are omitted from the main onboarding menu. For v3, use the [agent migration workflow](../automation).
 
+One transform targets v3: `use-consent-manager-to-hooks` rewrites `useConsentManager()` destructuring to the v3 hooks. It runs only when named, never with `--all`:
+
+```bash
+c15t codemods use-consent-manager-to-hooks --dry-run --json
+```
+
+Fields with no one-hook equivalent stay on a `useConsentManager()` call under a `TODO(c15t v3)` comment, so the build fails where manual work remains. The [upgrade guide](/docs/upgrade-v3#replace-useconsentmanager) maps every field.
+
 ## Choose transforms
 
 Pass one or more IDs from `--list`. Named transforms remain available after you update dependency versions, because the application source may still use the previous API.

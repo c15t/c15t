@@ -14,16 +14,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
-import { useConsentManager } from '~/component-hooks/use-manager';
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
-import { useHasConsentUI } from '~/hooks';
+import { useActiveUI, useHasConsentUI, useModel } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import { useTheme } from '~/hooks/use-theme';
+import { useTranslationLanguage } from '~/kernel-selector';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
@@ -51,13 +51,13 @@ const resolveDialogOptions = (
 const resolveDialogOpen = (
 	hasConsentUI: boolean,
 	models: C15tCoreTypes.Model[],
-	model: C15tCoreTypes.Model,
+	model: C15tCoreTypes.Model | null,
 	open: boolean | undefined,
-	activeUI: string
+	activeUI: string | null
 ): boolean => {
 	// Without a resolved policy, or under a `none` rule with no rights, there
-	// is nothing to manage: never open.
-	if (!hasConsentUI || !models.includes(model)) {
+	// is nothing to manage: never open. The model is `null` only then too.
+	if (!hasConsentUI || !models.includes(model ?? 'opt-in')) {
 		return false;
 	}
 	return open ?? activeUI === 'dialog';
@@ -167,7 +167,9 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const { components } = useUIConfig();
 
 	// Consent manager state
-	const { activeUI, translationConfig, model } = useConsentManager();
+	const activeUI = useActiveUI();
+	const model = useModel();
+	const language = useTranslationLanguage();
 	const { closeUI, dialog } = useHeadlessConsentUI({
 		preferences: { scrollLock: localScrollLock, trapFocus: localTrapFocus },
 	});
@@ -179,7 +181,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 			globalTheme.noStyle,
 			dialog.blocking
 		);
-	const textDirection = useTextDirection(translationConfig.defaultLanguage);
+	const textDirection = useTextDirection(language);
 
 	// Final open state (controlled or managed by consent manager).
 	const hasConsentUI = useHasConsentUI();

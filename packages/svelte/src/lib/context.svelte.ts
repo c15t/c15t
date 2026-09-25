@@ -534,7 +534,8 @@ export const getSnapshot = function getSnapshot(): ConsentSnapshot {
  * Exposes both readable state (`consents`, `activeUI`, `model`, …) and
  * mutators (`setConsent`, `saveConsents`, `setActiveUI`, `setLanguage`, …).
  * This is the primary API for reading and writing consent from inside your
- * own components — equivalent to React's `useConsentManager()`.
+ * own components. React has no single equivalent; it reads each field
+ * through its own hook, such as `useConsent()` or `useActiveUI()`.
  *
  * Must be called inside a component tree wrapped in `<ConsentManagerProvider>`.
  */

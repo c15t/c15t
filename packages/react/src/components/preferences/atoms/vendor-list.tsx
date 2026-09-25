@@ -1,13 +1,15 @@
 import type { AllConsentNames, ResolvedVendor } from '@c15t/core';
+import { vendorsListedUnder } from '@c15t/core';
 import vendorListStyles from '@c15t/ui/styles/components/vendor-list';
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 
-import { useConsentManager } from '~/component-hooks/use-manager';
 import { useTranslations } from '~/component-hooks/use-translations';
 import { Box } from '~/components/shared/primitives/box';
 import type { BoxProps } from '~/components/shared/primitives/box';
 import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as RadixSwitch from '~/components/shared/ui/switch';
+import { useConsentDraftSlice, useConsentDraftStore } from '~/draft';
+import { useDeclaredVendors } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 
 export interface ConsentWidgetVendorListProps extends Omit<
@@ -201,24 +203,31 @@ export const ConsentWidgetVendorList = ({
 	noStyle,
 	...props
 }: ConsentWidgetVendorListProps) => {
-	const {
-		getDisplayedVendors,
-		selectedConsents,
-		selectedVendors,
-		setSelectedVendor,
-	} = useConsentManager();
+	const declaredVendors = useDeclaredVendors();
+	// Presentable vendors whose category condition names this category.
+	const vendors = useMemo(
+		() => vendorsListedUnder(declaredVendors, category),
+		[declaredVendors, category]
+	);
+	const draft = useConsentDraftStore();
+	const categoryOn = useConsentDraftSlice(
+		draft,
+		(snapshot) => snapshot.values[category] === true
+	);
+	const selectedVendors = useConsentDraftSlice(
+		draft,
+		(snapshot) => snapshot.vendors
+	);
 	const { consentManagerDialog } = useTranslations();
 	const { noStyle: contextNoStyle } = useTheme();
 	// Two surfaces can list the same vendor at once, an inline widget and an
 	// open dialog for instance, so the label ids are scoped to this instance.
 	const instanceId = useId();
 	const finalNoStyle = noStyle ?? contextNoStyle ?? false;
-	const vendors = getDisplayedVendors(category);
 	if (vendors.length === 0) {
 		return null;
 	}
 	const copy = { ...DEFAULT_COPY, ...consentManagerDialog.vendors };
-	const categoryOn = selectedConsents[category] === true;
 	const styles = finalNoStyle ? undefined : vendorListStyles;
 	const title = copy.title.replace('{count}', String(vendors.length));
 
@@ -250,7 +259,7 @@ export const ConsentWidgetVendorList = ({
 						copy={copy}
 						labelId={`${instanceId}vendor-${category}-${vendor.id}`}
 						noStyle={finalNoStyle}
-						onCheckedChange={(next) => setSelectedVendor(vendor.id, next)}
+						onCheckedChange={(next) => draft.setVendor(vendor.id, next)}
 						styles={styles}
 						vendor={vendor}
 					/>
