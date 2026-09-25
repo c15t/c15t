@@ -29,13 +29,17 @@ const runSetup = async function runSetup(options: C15tAstroOptions) {
 
 const runDone = function runDone(
 	options: C15tAstroOptions,
-	integrationNames: string[]
+	integrationNames: string[],
+	adapter?: { name: string }
 ) {
 	const integration = c15t(options);
 	const logger = { error: vi.fn(), warn: vi.fn() };
 	const run = () =>
 		integration.hooks['astro:config:done']?.({
-			config: { integrations: integrationNames.map((name) => ({ name })) },
+			config: {
+				adapter,
+				integrations: integrationNames.map((name) => ({ name })),
+			},
 			logger,
 		} as unknown as Parameters<
 			NonNullable<(typeof integration)['hooks']['astro:config:done']>
@@ -305,6 +309,34 @@ describe('astro:config:setup', () => {
 });
 
 describe('astro:config:done', () => {
+	it('names the injected routes when manifest mode has no adapter', () => {
+		const run = runDone(
+			{ mode: manifestMode({ backendURL: 'https://consent.example.com' }) },
+			['@astrojs/svelte']
+		);
+		expect(run).toThrowError(/\/api\/c15t\/init.*need a server adapter/u);
+	});
+
+	it('lets manifest mode build with an adapter', () => {
+		const run = runDone(
+			{ mode: manifestMode({ backendURL: 'https://consent.example.com' }) },
+			['@astrojs/svelte'],
+			{ name: '@astrojs/node' }
+		);
+		expect(run).not.toThrow();
+	});
+
+	it('lets manifest mode build statically with `endpoints: false`', () => {
+		const run = runDone(
+			{
+				endpoints: false,
+				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			},
+			['@astrojs/svelte']
+		);
+		expect(run).not.toThrow();
+	});
+
 	it.each([
 		['svelte', '@astrojs/svelte'],
 		['react', '@astrojs/react'],

@@ -354,6 +354,14 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 	return {
 		hooks: {
 			'astro:config:done'({ config, logger }) {
+				// Astro would stop the build on its own, with a generic
+				// "no adapter" error that never mentions the routes c15t added.
+				if (resolved.endpoints.enabled && !config.adapter) {
+					throw new Error(
+						`@c15t/astro: manifest mode injects on-demand routes at ${resolved.endpoints.initPath} and ${resolved.endpoints.manifestPath}, which need a server adapter. For a static site, use hosted() or offline(), or set \`endpoints: false\` and serve those routes elsewhere.`
+					);
+				}
+
 				const installed = new Set(
 					config.integrations.map((integration) => integration.name)
 				);
