@@ -41,6 +41,12 @@ non-empty `options.consentCategories` list on `ConsentRoot`, include
 `marketing` there too so the preference center can display and save it.
 `ConsentGate` does not add categories to that list.
 
+`ConsentGate` does not read the clock during server rendering, so a page that
+renders it can still be prerendered, including with `cacheComponents: true`.
+It does not need a `Suspense` boundary of its own. On a static page the
+prerendered HTML contains the placeholder, and the embed replaces it after
+the browser resolves policy and the category is allowed.
+
 The placeholder names the category using its title from your translations. Set
 `className` or `style` on `ConsentGate` to reserve the embed's space, so the page
 does not shift when the placeholder is replaced.
