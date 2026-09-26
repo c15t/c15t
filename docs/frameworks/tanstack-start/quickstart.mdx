@@ -212,6 +212,17 @@ the backend's `POST /sessions`, server-to-server, so the backend still counts
 visitors it never served `/init` to. Pass `reportSessions: false` to send
 none.
 
+The prefetch waits at most `timeoutMs` (500 ms by default) for the manifest.
+If the backend is slow or down, the page renders without consent UI in the
+server HTML, optional categories stay denied, consent-gated scripts and iframes
+stay blocked, and `ConsentRoot` initializes in the browser, showing the banner
+once the backend answers. The manifest request keeps running and fills the
+cache for the next request; `onBackgroundRevalidate` receives it too. After a
+failed manifest request with nothing cached, the cache waits 1 second before
+asking the backend again, doubling up to 5 seconds while failures continue, so
+an outage does not turn every page view into a backend request. Set
+`timeoutMs: false` to wait for the cache's 5 second request timeout instead.
+
 ## Verify the server path
 
 Load the page directly and inspect the initial HTML under a choice policy.

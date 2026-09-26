@@ -404,3 +404,64 @@ test.each(['direct', 'proxy', 'custom-fetch', 'forwarded'] as const)(
 		}
 	}
 );
+
+describe('resolveConsent: slow or failing backend', () => {
+	test('renders the cookie-and-headers state when the manifest misses the budget, then uses it', async () => {
+		const cache = createManifestCache();
+		let answer: (() => void) | undefined;
+		const fetchSpy = vi.fn(
+			() =>
+				new Promise<Response>((resolve) => {
+					answer = () =>
+						resolve(
+							new Response(JSON.stringify(MANIFEST_FIXTURE), {
+								headers: { 'cache-control': 'public, s-maxage=120' },
+								status: 200,
+							})
+						);
+				})
+		);
+		const background: Promise<void>[] = [];
+		const options = {
+			backendURL: 'https://consent.example.com',
+			cache,
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			onBackgroundRevalidate: (task: Promise<void>) => {
+				background.push(task);
+			},
+			reportSessions: false,
+			request: createRequest({ 'x-vercel-ip-country': 'DE' }),
+			timeoutMs: 20,
+		};
+
+		const first = await baseResolveConsent(options);
+		expect(first.initialPolicyResolution).toBeUndefined();
+		expect(background).toHaveLength(1);
+		answer?.();
+		await background[0];
+
+		const second = await baseResolveConsent(options);
+		expect(second.initialPolicyResolution?.status).toBe('matched');
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('after a failed manifest, later renders wait out the retry floor', async () => {
+		const cache = createManifestCache();
+		const fetchSpy = vi.fn(() =>
+			Promise.resolve(new Response('unavailable', { status: 503 }))
+		);
+		const options = {
+			backendURL: 'https://consent.example.com',
+			cache,
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			reportSessions: false,
+			request: createRequest(),
+		};
+		for (let index = 0; index < 5; index += 1) {
+			// oxlint-disable-next-line no-await-in-loop -- Sequential renders by design.
+			const state = await baseResolveConsent(options);
+			expect(state.initialPolicyResolution).toBeUndefined();
+		}
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+});

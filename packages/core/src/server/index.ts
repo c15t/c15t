@@ -22,6 +22,7 @@ export {
 	getManifestStaleWhileRevalidate,
 	MANIFEST_DEDUPE_TTL_SECONDS,
 	MANIFEST_PASSTHROUGH_HEADERS,
+	ManifestUnavailableError,
 	resolveManifestSourceURL,
 } from './manifest-cache';
 

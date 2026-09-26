@@ -144,19 +144,22 @@ fingerprint, or one that no longer covers every required category prompts
 again. Location rules apply when your host supplies trusted geography
 headers. The [runnable Next.js example](/docs/examples) uses this awaited form.
 
-If the manifest request fails, `resolveConsent` returns a baseline
-state without a resolved policy and logs the failure outside production. The
-page still renders, and the browser resolves policy after hydration, so on that
-request a new visitor sees the prompt appear late. Pass `onError` to report
-these failures; see [troubleshooting](/docs/frameworks/next/troubleshooting).
+If the manifest request fails, or does not answer within `timeoutMs` (500 ms
+by default), `resolveConsent` returns a baseline state without a resolved
+policy and logs the failure outside production. The page renders without a
+banner, optional categories stay denied and gated scripts and embeds stay
+blocked. The browser resolves policy after hydration, so on that request a new
+visitor sees the prompt appear late. Pass `onError` to report these failures;
+see [troubleshooting](/docs/frameworks/next/troubleshooting).
 
 The page content waits with the consent subtree. Because `{children}` sits
 inside `ResolvedConsent` and the fallback is `null`, a slow manifest response
-leaves the whole page blank until the helper returns or its 10 second fetch
-timeout fires and the baseline renders. A warm manifest cache makes this a few
-milliseconds; a cold cache pays the backend round trip. If the site cannot
-accept that, use the [streaming form](#stream-the-page-while-consent-resolves),
-which renders the shell immediately.
+leaves the page blank until the helper returns, for at most `timeoutMs`. A warm
+manifest cache answers in about a millisecond; a cold cache pays the backend
+round trip, and a request that misses the budget keeps running and fills the
+cache for the next visitor. If the site cannot accept that wait, use the
+[streaming form](#stream-the-page-while-consent-resolves), which renders the
+shell immediately.
 
 Keep the c15t stylesheet in `globals.css` rather than importing
 `c15t/next/styles.css` from a layout or component. Tailwind CSS 4 declares its
