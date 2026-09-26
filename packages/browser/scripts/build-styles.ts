@@ -62,8 +62,12 @@ const readClassMap = async function readClassMap(
 
 const main = async function main(): Promise<void> {
 	// The sheet already pairs every `:root` with `:host`, so it applies
-	// inside the shadow root as published.
-	const stylesheet = await readFile(join(uiDist, 'styles.css'), 'utf8');
+	// inside the shadow root as published. This package renders the dialog
+	// eagerly, so it carries the dialog rules too.
+	const stylesheet = [
+		await readFile(join(uiDist, 'styles.css'), 'utf8'),
+		await readFile(join(uiDist, 'styles/dialog.css'), 'utf8'),
+	].join('\n');
 	const entries = await Promise.all(
 		Object.entries(COMPONENTS).map(async ([key, component]) => [
 			key,

@@ -4,7 +4,13 @@
  * Import this stylesheet once from your app-level CSS entrypoint
  * when using prebuilt (styled) consent components.
  *
+ * Svelte loads the consent dialog with the rest of the app, so this file
+ * carries the dialog rules and the primitive rules the Svelte components use,
+ * next to the tokens and first-paint rules in `@c15t/ui/styles.css`.
+ *
  * Usage (src/app.css):
  *   @import "@c15t/svelte/styles.css";
  */
 @import '@c15t/ui/styles.css';
+@import '@c15t/ui/styles/dialog.css';
+@import '@c15t/ui/styles/primitives.css';
