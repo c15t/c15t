@@ -7,6 +7,7 @@ import type {
 } from '@c15t/core/modules/network-blocker';
 import { useEffect, useRef, useState } from 'react';
 
+import { useEarlyNetworkHold } from './network-hold';
 import { useRequiredKernel } from './shared';
 
 const loadNetworkBlockerModule = () =>
@@ -19,10 +20,34 @@ export interface UseNetworkBlockerOptions {
 	onRequestBlocked?: (info: BlockedRequestInfo) => void;
 }
 
+/**
+ * Block `fetch` and XHR requests that match `rules` until the visitor's
+ * consent allows them.
+ *
+ * Blocking starts during the first render in the browser: matching requests
+ * wait from then on, including ones sent from this component's children's
+ * mount effects and from effects that run before this component's. The
+ * blocker loads after mount and decides each waiting request. On the
+ * server the hook does nothing.
+ *
+ * Rendering has a side effect: the first render patches `fetch` and
+ * `XMLHttpRequest` to hold matching requests. If React discards that
+ * render and never commits it, the hold ends after 10 seconds and the
+ * requests it held are sent unchecked, as they would have been without the
+ * hook.
+ *
+ * Prefer the provider's `networkBlocker` option. It starts blocking when
+ * the provider renders, so it also covers components rendered before this
+ * one.
+ *
+ * @param options - Rules and logging options.
+ * @returns A handle to update rules or toggle blocking.
+ */
 export const useNetworkBlocker = function useNetworkBlocker(
 	options: UseNetworkBlockerOptions
 ): NetworkBlockerHandle {
 	const kernel = useRequiredKernel();
+	const earlyHold = useEarlyNetworkHold(options.rules, options.enabled);
 	const handleRef = useRef<NetworkBlockerHandle | null>(null);
 	const latestRulesRef = useRef(options.rules);
 	const latestEnabledRef = useRef(options.enabled);
@@ -65,6 +90,10 @@ export const useNetworkBlocker = function useNetworkBlocker(
 
 	useEffect(() => {
 		let disposed = false;
+		const hold = earlyHold.claim(
+			latestRulesRef.current,
+			latestEnabledRef.current
+		);
 		void (async () => {
 			const { createNetworkBlocker } = await loadNetworkBlockerModule();
 			if (disposed) {
@@ -72,6 +101,7 @@ export const useNetworkBlocker = function useNetworkBlocker(
 			}
 			const created = createNetworkBlocker({
 				enabled: latestEnabledRef.current,
+				hold,
 				kernel,
 				logBlockedRequests: options.logBlockedRequests,
 				onRequestBlocked: options.onRequestBlocked,
@@ -84,8 +114,9 @@ export const useNetworkBlocker = function useNetworkBlocker(
 			disposed = true;
 			handleRef.current?.dispose();
 			handleRef.current = null;
+			earlyHold.unmount();
 		};
-	}, [kernel, options.logBlockedRequests, options.onRequestBlocked]);
+	}, [earlyHold, kernel, options.logBlockedRequests, options.onRequestBlocked]);
 
 	return handle;
 };

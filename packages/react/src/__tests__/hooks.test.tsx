@@ -17,7 +17,6 @@ import {
 	useConsent,
 	useConsents,
 	useExplicitChoice,
-	useNetworkBlocker,
 	useOverrides,
 	useSaveConsents,
 	useSetOverrides,
@@ -375,32 +374,6 @@ describe('v3 react: network blocker lifecycle', () => {
 			},
 		};
 	};
-
-	test('abandoned render does not patch fetch', async () => {
-		const fetch = installFetchStub();
-
-		const ThrowsAfterHook = function ThrowsAfterHook() {
-			useNetworkBlocker({
-				logBlockedRequests: false,
-				rules: [{ category: 'marketing', domain: 'example.com' }],
-			});
-			throw new Error('render failed before commit');
-		};
-
-		try {
-			await expect(
-				render(
-					<ConsentProvider options={{ mode: offline(), persistence: false }}>
-						<ThrowsAfterHook />
-					</ConsentProvider>
-				)
-			).rejects.toThrow('render failed before commit');
-
-			expect(window.fetch).toBe(fetch.fetchStub);
-		} finally {
-			fetch.restore();
-		}
-	});
 
 	test('StrictMode provider restores fetch after unmount', async () => {
 		const fetch = installFetchStub();

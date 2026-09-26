@@ -186,3 +186,79 @@ describe('holdNetworkRequests', () => {
 		expect(XMLHttpRequest.prototype.send).toBe(originalSend);
 	});
 });
+
+describe('several callers holding at once', () => {
+	const otherRules: NetworkBlockerRule[] = [
+		{ category: 'marketing', domain: 'ads.example' },
+	];
+
+	test('releasing one caller sends only what no other caller holds', async () => {
+		const first = holdNetworkRequests(rules);
+		const second = holdNetworkRequests(otherRules);
+		const tracker = window.fetch('https://tracker.example/collect');
+		const ads = window.fetch('https://ads.example/pixel');
+
+		second.release()();
+		await flush();
+
+		expect(second.held).toBe(false);
+		expect(first.held).toBe(true);
+		expect((await ads).status).toBe(200);
+		expect(original).toHaveBeenCalledOnce();
+		expect(original.mock.calls[0]?.[0]).toBe('https://ads.example/pixel');
+
+		first.release()();
+		expect((await tracker).status).toBe(200);
+		expect(window.fetch).toBe(original);
+	});
+
+	test('a blocker given one caller hold leaves the other hold in place', async () => {
+		const first = holdNetworkRequests(rules);
+		const second = holdNetworkRequests(otherRules);
+		const tracker = window.fetch('https://tracker.example/collect');
+		const ads = window.fetch('https://ads.example/pixel');
+
+		blocker = createNetworkBlocker({
+			hold: first,
+			kernel: createConsentKernel(),
+			rules,
+		});
+
+		expect((await tracker).status).toBe(451);
+		await flush();
+		// The ads request matches only the second caller's rules, which have
+		// no blocker yet: it keeps waiting instead of leaving unchecked.
+		expect(original).not.toHaveBeenCalled();
+		expect(second.held).toBe(true);
+
+		const late = window.fetch('https://ads.example/late');
+		const secondBlocker = createNetworkBlocker({
+			hold: second,
+			kernel: createConsentKernel(),
+			rules: otherRules,
+		});
+		try {
+			expect((await ads).status).toBe(451);
+			expect((await late).status).toBe(451);
+			expect(original).not.toHaveBeenCalled();
+		} finally {
+			secondBlocker.dispose();
+		}
+	});
+
+	test('releasing after the blocker took over does nothing', async () => {
+		const hold = holdNetworkRequests(rules);
+		blocker = createNetworkBlocker({
+			hold,
+			kernel: createConsentKernel(),
+			rules,
+		});
+
+		expect(hold.held).toBe(false);
+		hold.release()();
+		expect((await window.fetch('https://tracker.example/collect')).status).toBe(
+			451
+		);
+		expect(original).not.toHaveBeenCalled();
+	});
+});

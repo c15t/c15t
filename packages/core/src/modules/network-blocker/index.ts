@@ -175,7 +175,9 @@ export const createNetworkBlocker = function createNetworkBlocker(
 		whenSettled,
 	};
 
-	const replayHeld = releaseNetworkRequests();
+	const replayHeld = options.hold
+		? options.hold.release()
+		: releaseNetworkRequests();
 	const uninstallFetch = installFetchPatch(patchDeps);
 	const uninstallXhr = installXhrPatch(patchDeps);
 	replayHeld();
