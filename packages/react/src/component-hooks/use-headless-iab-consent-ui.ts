@@ -3,13 +3,20 @@
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import { useCallback, useMemo } from 'react';
 
+import {
+	useActiveUI,
+	usePreferencesPresentation,
+	usePromptPresentation,
+	useSetActiveUI,
+} from '../hooks';
 import { useIAB } from '../iab-context';
-import { useConsentManager } from './use-manager';
 
 export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 	const iab = useIAB();
-	const { activeUI, policyBanner, policyDialog, setActiveUI } =
-		useConsentManager();
+	const activeUI = useActiveUI() ?? 'none';
+	const policyBanner = usePromptPresentation();
+	const policyDialog = usePreferencesPresentation();
+	const setActiveUI = useSetActiveUI();
 
 	const banner = useMemo(() => resolveIABBannerSummary(iab), [iab]);
 

@@ -38,44 +38,11 @@ import type {
 	VendorChoice,
 } from '@c15t/core';
 import { evaluateConsent, isVendorDenied } from '@c15t/core';
-import { useCallback, useContext, useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
-import { KernelContext } from './context';
+import { useKernel, useKernelSelector } from './kernel-selector';
 import { useUIConfig } from './ui-config-context';
 import { invalidateConsentUIAction } from './ui-save';
-
-const useKernel = function useKernel(): ConsentKernel {
-	const kernel = useContext(KernelContext);
-	if (!kernel) {
-		throw new Error(
-			'c15t: no kernel in context. Wrap your app with <ConsentProvider options={...}> from @c15t/react.'
-		);
-	}
-	return kernel;
-};
-
-const subscribe = function subscribe(
-	kernel: ConsentKernel,
-	listener: () => void
-): () => void {
-	return kernel.subscribe(listener);
-};
-
-const useKernelSelector = function useKernelSelector<T>(
-	selector: (snap: ConsentSnapshot) => T
-): T {
-	const kernel = useKernel();
-	return useSyncExternalStore(
-		(listener) => subscribe(kernel, listener),
-		() => selector(kernel.getSnapshot()),
-		// Hydration must render what the SERVER rendered. Client boot
-		// mutations (sync persistence hydrate, eager init) can flip the live
-		// snapshot before hydration completes — rendering the mutated state
-		// here mismatches the server HTML and strands SSR'd consent UI as
-		// unowned DOM (a banner React never removes).
-		() => selector(kernel.getServerSnapshot())
-	);
-};
 
 /**
  * Full snapshot accessor. Escape hatch for consumers that genuinely need
@@ -84,7 +51,7 @@ const useKernelSelector = function useKernelSelector<T>(
 export const useSnapshot = function useSnapshot(): ConsentSnapshot {
 	const kernel = useKernel();
 	return useSyncExternalStore(
-		(listener) => subscribe(kernel, listener),
+		(listener) => kernel.subscribe(listener),
 		() => kernel.getSnapshot(),
 		() => kernel.getServerSnapshot()
 	);

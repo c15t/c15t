@@ -11,7 +11,7 @@ but do not replace a versioned v2 reference. For the remaining routes, retain
 access to the v2 documentation or write the missing v3 task before retiring it.
 The private host owns version routing, canonical URLs and redirect status codes.
 
-96 old public MDX paths need a publication decision.
+98 old public MDX paths need a publication decision.
 
 | Old route | Publication decision |
 | --- | --- |
@@ -52,9 +52,10 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/next/concepts/initialization-flow` | Compare with `/docs/guides/consent-state` before redirecting |
 | `/docs/frameworks/next/concepts/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/next/hooks/use-color-scheme` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/next/hooks/use-consent-manager/checking-consent` | Compare with `/docs/frameworks/next/hooks/use-consent-manager/overview` before redirecting |
-| `/docs/frameworks/next/hooks/use-consent-manager/location-info` | Compare with `/docs/frameworks/next/hooks/use-consent-manager/overview` before redirecting |
-| `/docs/frameworks/next/hooks/use-consent-manager/setting-consent` | Compare with `/docs/frameworks/next/hooks/use-consent-manager/overview` before redirecting |
+| `/docs/frameworks/next/hooks/use-consent-manager/checking-consent` | Compare with `/docs/frameworks/next/hooks/overview` before redirecting |
+| `/docs/frameworks/next/hooks/use-consent-manager/overview` | Redirect to `/docs/frameworks/next/hooks/overview`; the v3 page moved there when `useConsentManager()` was removed |
+| `/docs/frameworks/next/hooks/use-consent-manager/location-info` | Compare with `/docs/frameworks/next/hooks/overview` before redirecting |
+| `/docs/frameworks/next/hooks/use-consent-manager/setting-consent` | Compare with `/docs/frameworks/next/hooks/overview` before redirecting |
 | `/docs/frameworks/next/hooks/use-draggable` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/hooks/use-focus-trap` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/hooks/use-reduced-motion` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
@@ -87,9 +88,10 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/react/concepts/initialization-flow` | Compare with `/docs/guides/consent-state` before redirecting |
 | `/docs/frameworks/react/concepts/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/react/hooks/use-color-scheme` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/react/hooks/use-consent-manager/checking-consent` | Compare with `/docs/frameworks/react/hooks/use-consent-manager/overview` before redirecting |
-| `/docs/frameworks/react/hooks/use-consent-manager/location-info` | Compare with `/docs/frameworks/react/hooks/use-consent-manager/overview` before redirecting |
-| `/docs/frameworks/react/hooks/use-consent-manager/setting-consent` | Compare with `/docs/frameworks/react/hooks/use-consent-manager/overview` before redirecting |
+| `/docs/frameworks/react/hooks/use-consent-manager/checking-consent` | Compare with `/docs/frameworks/react/hooks/overview` before redirecting |
+| `/docs/frameworks/react/hooks/use-consent-manager/overview` | Redirect to `/docs/frameworks/react/hooks/overview`; the v3 page moved there when `useConsentManager()` was removed |
+| `/docs/frameworks/react/hooks/use-consent-manager/location-info` | Compare with `/docs/frameworks/react/hooks/overview` before redirecting |
+| `/docs/frameworks/react/hooks/use-consent-manager/setting-consent` | Compare with `/docs/frameworks/react/hooks/overview` before redirecting |
 | `/docs/frameworks/react/hooks/use-draggable` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/hooks/use-focus-trap` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/hooks/use-reduced-motion` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
