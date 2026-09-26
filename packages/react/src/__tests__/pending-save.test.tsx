@@ -2,7 +2,7 @@ import type { ConsentKernel } from '@c15t/core';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { useContext, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { useHeadlessConsentUI } from '../component-hooks/use-headless-consent-ui';
 import { useConsentManager } from '../component-hooks/use-manager';
@@ -16,7 +16,11 @@ const nextFrame = () =>
 		requestAnimationFrame(() => resolve(undefined));
 	});
 
-afterEach(() => {
+// Browser-mode test files that share a worker run in the same browser
+// context, so localStorage and cookies from an earlier file are still there
+// when this one starts. A stored choice would make the first visitor here a
+// returning one, so clear before each test as well as after.
+const clearStoredConsent = function clearStoredConsent() {
 	localStorage.clear();
 	for (const cookie of document.cookie.split(';')) {
 		const name = cookie.split('=')[0]?.trim();
@@ -24,13 +28,17 @@ afterEach(() => {
 			document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 		}
 	}
-});
+};
+
+beforeEach(clearStoredConsent);
+afterEach(clearStoredConsent);
 
 const mountDialog = async function mountDialog(
 	save: () => Promise<{ ok: boolean }>
 ) {
 	const onError = vi.fn();
 	const onBeforeLoad = vi.fn();
+	const onLoaderReady = vi.fn();
 	let kernel!: ConsentKernel;
 	const Capture = () => {
 		const current = useContext(KernelContext);
@@ -75,6 +83,13 @@ const mountDialog = async function mountDialog(
 						id: 'optimistic-marketing',
 						onBeforeLoad,
 					},
+					{
+						alwaysLoad: true,
+						callbackOnly: true,
+						category: 'necessary',
+						id: 'loader-ready',
+						onBeforeLoad: onLoaderReady,
+					},
 				],
 			}}
 		>
@@ -84,14 +99,26 @@ const mountDialog = async function mountDialog(
 	);
 	const dialog = () =>
 		document.querySelector('[data-testid="consent-dialog-root"]');
-	await vi.waitFor(() => expect(dialog()).not.toBeNull());
-	expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+	const dispose = () => {
+		view.unmount();
+		container.remove();
+	};
+	try {
+		await vi.waitFor(() => expect(dialog()).not.toBeNull());
+		// The provider attaches the script loader after a dynamic import, which
+		// can finish after the dialog renders on a loaded machine. Wait for it,
+		// so the click below measures enforcement rather than chunk loading.
+		await vi.waitFor(() => expect(onLoaderReady).toHaveBeenCalledOnce());
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+	} catch (error) {
+		// A dialog left mounted here would satisfy the next test's wait
+		// before that test's own kernel exists.
+		dispose();
+		throw error;
+	}
 	return {
 		dialog,
-		dispose() {
-			view.unmount();
-			container.remove();
-		},
+		dispose,
 		kernel,
 		onBeforeLoad,
 		onError,
