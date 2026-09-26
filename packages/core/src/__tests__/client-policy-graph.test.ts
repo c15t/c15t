@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /**
  * Client code reads policy resolutions; it never resolves a pack.
  *
