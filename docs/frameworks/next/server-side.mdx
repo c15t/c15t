@@ -12,8 +12,8 @@ Fetching and rendering are separate choices. The examples here keep the shared
 
 | Rendering path | Pass to `ConsentRoot` as `state` | What the visitor receives |
 | --- | --- | --- |
-| Await consent | The resolved `resolveConsent` result | The consent subtree renders after resolution. A surrounding Suspense fallback may stream first. |
-| Stream while consent resolves | The `resolveConsent` promise | The page renders immediately; the browser initializes consent when the result arrives. |
+| Stream while consent resolves | The `resolveConsent` promise | The page renders immediately; the browser applies the result after hydration and consent UI appears then. |
+| Await consent | The resolved `resolveConsent` result | The consent subtree, and any page content inside it, renders after resolution. A surrounding Suspense fallback may stream first. |
 | [Browser initialization](/docs/frameworks/next/client-side) | `state={{}}`, with the shared URLs in `config` | The browser initializes after mount; the initial HTML has no resolved consent prompt. |
 
 Client Components can still be prerendered by Next.js. Browser initialization
@@ -35,10 +35,9 @@ props. The streaming examples on this page are for App Router.
 
 ## Stream the page while consent resolves
 
-The App Router guide awaits `resolveConsent` inside `Suspense` by
-default and offers this promise form as the streaming alternative. Pass the
-promise from a synchronous layout to the script-owning client wrapper. This
-partial example keeps that wrapper:
+This is the default layout in the App Router guide. Pass the promise from a
+synchronous layout to the script-owning client wrapper. This partial example
+keeps that wrapper:
 
 ```tsx
 import { resolveConsent } from 'c15t/next/server';
@@ -55,8 +54,11 @@ This promise form does not render consent UI on the server. For server-rendered
 consent UI, await the result as shown below.
 
 Keep the shared config and manifest route from that guide. This form also
-works with `cacheComponents: true`. Request helpers still need a visitor request;
-passing a promise does not make this a static-export setup.
+works with `cacheComponents: true`, where the page can stay in the prerendered
+static shell. A `ConsentGate` in that shell reads the clock while rendering and
+fails `next build`; give it its own `Suspense` boundary. Request helpers still
+need a visitor request; passing a promise does not make this a static-export
+setup.
 
 ## Await consent inside Suspense
 
@@ -64,8 +66,8 @@ If the consent subtree should wait for resolution, move it into an async Server
 Component under `Suspense`. With `cacheComponents: true`, awaiting request data
 directly in the root layout without this boundary causes a build error.
 
-This is the default root layout from the App Router guide. Keep its shared
-`c15t.config.ts`, manifest route and script-owning `Consent` wrapper:
+This is the server-rendered banner layout from the App Router guide. Keep its
+shared `c15t.config.ts`, manifest route and script-owning `Consent` wrapper:
 
 ```tsx title="app/layout.tsx"
 import { Suspense } from 'react';
@@ -98,8 +100,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 This example waits to render the children inside `ResolvedConsent`. The outer
 shell and fallback can stream first, so awaiting does not guarantee a resolved
-prompt in the first HTML response. Use the promise form when the page should
-render while consent is pending.
+prompt in the first HTML response. The page then streams in a later chunk, and
+React can hold its reveal for up to 300 ms after the browser's first paint or
+an earlier boundary's reveal, even when the manifest cache is warm. See
+[what server prefetch costs](/docs/frameworks/next/app-router#awaiting-holds-the-page).
+Use the promise form when the page should render while consent is pending.
 
 ## Preserve the server result
 

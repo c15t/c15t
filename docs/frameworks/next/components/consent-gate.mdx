@@ -45,9 +45,32 @@ The placeholder names the category using its title from your translations. Set
 `className` or `style` on `ConsentGate` to reserve the embed's space, so the page
 does not shift when the placeholder is replaced.
 
-With the awaited `resolveConsent` from the App Router guide, the
-server decides between placeholder and embed from the resolved rule and the
-request cookie. Pages Router works the same way when `getServerSideProps`
+With the default App Router layout, which passes the pending
+`resolveConsent` result, the server HTML contains the placeholder, and the
+browser swaps in the embed after it applies the resolved state if the
+category is granted. No request reaches the embed's host before that. With
+`cacheComponents: true`, a page that renders `ConsentGate` in its prerendered
+static shell fails `next build` with an unstable `Date.now()` error, because
+`ConsentGate` reads the clock while rendering. Give it a `Suspense` boundary
+whose fallback reserves the embed's size:
+
+```tsx title="app/product/page.tsx"
+import { Suspense } from 'react';
+import { ProductVideo } from '../../components/product-video';
+
+export default function ProductPage() {
+  return (
+    <Suspense fallback={<div className="video-frame" />}>
+      <ProductVideo />
+    </Suspense>
+  );
+}
+```
+
+With the
+[awaited layout](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html),
+the server decides between placeholder and embed from the resolved rule and
+the request cookie. Pages Router works the same way when `getServerSideProps`
 awaits `resolveConsent` from `c15t/next/pages` and passes the result
 through `state` to `ConsentRoot`, as in the
 [Pages Router guide](../pages-router). Hydration keeps that choice as long as

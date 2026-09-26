@@ -1,0 +1,212 @@
+{
+	"appName": "paint-consumer",
+	"branding": "none",
+	"defaults": {
+		"disableGeoLocation": false
+	},
+	"policyPacks": [
+		{
+			"fingerprints": {
+				"choice": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+				"notice": "7f05073243a60d3d057f8945113f5282024b4f5bcd13933e35952534ad1cf423",
+				"policy": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969"
+			},
+			"match": {
+				"fallback": true,
+				"countries": [
+					"AT",
+					"BE",
+					"BG",
+					"HR",
+					"CY",
+					"CZ",
+					"DK",
+					"EE",
+					"FI",
+					"FR",
+					"DE",
+					"GR",
+					"HU",
+					"IE",
+					"IT",
+					"LV",
+					"LT",
+					"LU",
+					"MT",
+					"NL",
+					"PL",
+					"PT",
+					"RO",
+					"SK",
+					"SI",
+					"ES",
+					"SE",
+					"IS",
+					"LI",
+					"NO",
+					"GB"
+				]
+			},
+			"rule": {
+				"actions": {
+					"allowed": ["accept", "customize", "reject"],
+					"equivalent": [["accept", "reject"]],
+					"required": ["accept", "reject"]
+				},
+				"copyRevision": null,
+				"id": "europe_opt_in",
+				"model": "opt-in",
+				"preselectedCategories": [],
+				"privacySignals": {
+					"gpc": {
+						"denyCategories": []
+					}
+				},
+				"prompt": "choice",
+				"proof": {
+					"storeIp": true,
+					"storeLanguage": true,
+					"storeUserAgent": true
+				},
+				"rights": ["disclosure", "preferences"],
+				"scope": ["experience", "functionality", "marketing", "measurement"],
+				"scopeMode": "permissive",
+				"validity": {
+					"choiceMs": 31536000000,
+					"noticeMs": 31536000000
+				}
+			}
+		},
+		{
+			"fingerprints": {
+				"choice": "a35ac43b3d435b98441c5c39ccb3879d59d813fd9185d5fa9e3cfc08385412a9",
+				"notice": "7f05073243a60d3d057f8945113f5282024b4f5bcd13933e35952534ad1cf423",
+				"policy": "8aca68633714c54fb0a96eaee313aa415ae0a3137e56764cf629a20793b2f969"
+			},
+			"match": {
+				"regions": [
+					{
+						"region": "QC",
+						"country": "CA"
+					}
+				]
+			},
+			"rule": {
+				"actions": {
+					"allowed": ["accept", "customize", "reject"],
+					"equivalent": [["accept", "reject"]],
+					"required": ["accept", "reject"]
+				},
+				"copyRevision": null,
+				"id": "quebec_opt_in",
+				"model": "opt-in",
+				"preselectedCategories": [],
+				"privacySignals": {
+					"gpc": {
+						"denyCategories": []
+					}
+				},
+				"prompt": "choice",
+				"proof": {
+					"storeIp": true,
+					"storeLanguage": true,
+					"storeUserAgent": true
+				},
+				"rights": ["disclosure", "preferences"],
+				"scope": ["experience", "functionality", "marketing", "measurement"],
+				"scopeMode": "permissive",
+				"validity": {
+					"choiceMs": 31536000000,
+					"noticeMs": 31536000000
+				}
+			}
+		},
+		{
+			"fingerprints": {
+				"choice": "f0a9519130a3c7706acc1dcb795f48eee79cfcde7de85e4384394583bd0db1b0",
+				"notice": "8d9a703452d973d7243cbba8bce68bd86d75d3edd7dff5b1e27d9e31dcb17cee",
+				"policy": "2add89cb0c497ef5bccaef815bae6277006e37bdc10d4d0e6b1f494aa754c087"
+			},
+			"match": {
+				"regions": [
+					{
+						"region": "CA",
+						"country": "US"
+					}
+				]
+			},
+			"rule": {
+				"actions": {
+					"allowed": [],
+					"equivalent": [],
+					"required": []
+				},
+				"copyRevision": null,
+				"id": "california_opt_out",
+				"model": "opt-out",
+				"preselectedCategories": [],
+				"privacySignals": {
+					"gpc": {
+						"denyCategories": ["marketing", "measurement"]
+					}
+				},
+				"prompt": "none",
+				"proof": {
+					"storeIp": true,
+					"storeLanguage": true,
+					"storeUserAgent": true
+				},
+				"rights": ["disclosure", "opt-out", "preferences"],
+				"scope": ["experience", "functionality", "marketing", "measurement"],
+				"scopeMode": "permissive",
+				"validity": {
+					"choiceMs": 31536000000,
+					"noticeMs": 31536000000
+				}
+			}
+		},
+		{
+			"fingerprints": {
+				"choice": "e35ddd3edaa862e8558653e2dae18a9dabc45e4ef8f0dec8df8d0098005d4061",
+				"notice": "2e2716a0eb79749eabb1508bfa2d8fbd28d53f751ba833fef958f8b3b39eaccd",
+				"policy": "b031c07e1e290e1896f2bc08557e93fd28085980107197e46eb5e7206b201479"
+			},
+			"match": {
+				"isDefault": true
+			},
+			"rule": {
+				"actions": {
+					"allowed": [],
+					"equivalent": [],
+					"required": []
+				},
+				"copyRevision": null,
+				"id": "world_no_banner",
+				"model": "none",
+				"preselectedCategories": [],
+				"privacySignals": {
+					"gpc": {
+						"denyCategories": []
+					}
+				},
+				"prompt": "none",
+				"proof": {
+					"storeIp": false,
+					"storeLanguage": false,
+					"storeUserAgent": true
+				},
+				"rights": [],
+				"scope": ["experience", "functionality", "marketing", "measurement"],
+				"scopeMode": "permissive",
+				"validity": {
+					"choiceMs": 31536000000,
+					"noticeMs": 31536000000
+				}
+			}
+		}
+	],
+	"revision": "ca4661046614669777b4a50ed2c4b5eaa49c0c5d9e48a366e284638e1a8964b4",
+	"schemaVersion": 2,
+	"tenantId": "paint-consumer",
+	"translations": {}
+}
