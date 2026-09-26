@@ -137,6 +137,17 @@ const isOpen = function isOpen(category: CONSENT_CATEGORY): boolean {
 	return openItems.value[category] ?? false;
 };
 
+/**
+ * Categories opened at least once. A collapsed body, with its vendor list,
+ * mounts on first open and then stays, so the close transition keeps its
+ * content. The React and Svelte primitives do the same.
+ */
+const openedItems = ref<ReadonlySet<string>>(new Set());
+
+const hasOpened = function hasOpened(category: CONSENT_CATEGORY): boolean {
+	return openedItems.value.has(category);
+};
+
 const toggleOpenItem = function toggleOpenItem(category: CONSENT_CATEGORY) {
 	const nextOpen = !isOpen(category);
 	openItems.value = Object.fromEntries(
@@ -145,6 +156,9 @@ const toggleOpenItem = function toggleOpenItem(category: CONSENT_CATEGORY) {
 			nextOpen && current === category,
 		])
 	);
+	if (nextOpen && !hasOpened(category)) {
+		openedItems.value = new Set([...openedItems.value, category]);
+	}
 };
 
 const toggleConsent = function toggleConsent(category: CONSENT_CATEGORY) {
@@ -361,16 +375,18 @@ const onAction = async function onAction(action: PresentationAction) {
 							v-bind="config.components?.accordion?.contentInner"
 							data-slot="preference-item-content-inner"
 						>
-							{{ consentDescription(category) }}
-							<ConsentWidgetVendorList
-								v-if="displayedVendors(category).length > 0"
-								:category="category"
-								:category-on="draft[category] === true"
-								:granted="draftVendors"
-								:no-style="noStyle"
-								:vendors="displayedVendors(category)"
-								@toggle="setVendor"
-							/>
+							<template v-if="hasOpened(category)">
+								{{ consentDescription(category) }}
+								<ConsentWidgetVendorList
+									v-if="displayedVendors(category).length > 0"
+									:category="category"
+									:category-on="draft[category] === true"
+									:granted="draftVendors"
+									:no-style="noStyle"
+									:vendors="displayedVendors(category)"
+									@toggle="setVendor"
+								/>
+							</template>
 						</div>
 					</div>
 				</div>
