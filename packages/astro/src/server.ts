@@ -44,6 +44,8 @@ import type {
 	InitOutput,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
+import { generateThemeCSS } from '@c15t/ui/theme';
+import type { Theme } from '@c15t/ui/theme';
 
 import {
 	loadConsentManifest,
@@ -654,6 +656,27 @@ export const buildConfigScript = function buildConfigScript(
 	// `<` is escaped so a translation string can never close the script tag.
 	const json = JSON.stringify(config ?? {}).replace(/</gu, '\\u003c');
 	return `window.__c15tAstroConfig=${json};`;
+};
+
+/**
+ * Build the theme stylesheet for the configured theme tokens.
+ *
+ * The banner is server-rendered and the dialog islands no longer generate
+ * theme CSS in the browser, so the server writes the `--c15t-*` variables
+ * once, next to the config script. Dark tokens follow the `c15t-dark`
+ * class the colour-scheme script sets.
+ *
+ * @param theme - The integration's theme option.
+ * @returns CSS for a `<style>` element, or an empty string without a theme.
+ * @example
+ * ```astro
+ * <style is:inline id="c15t-theme" set:html={buildThemeCSS(theme)} />
+ * ```
+ */
+export const buildThemeCSS = function buildThemeCSS(
+	theme: Theme | undefined
+): string {
+	return theme ? generateThemeCSS(theme) : '';
 };
 
 /**

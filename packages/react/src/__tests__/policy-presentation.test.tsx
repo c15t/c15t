@@ -1,3 +1,4 @@
+import '@c15t/ui/styles.css';
 import type { ConsentKernel, KernelConfig } from '@c15t/core';
 import { custom } from '@c15t/core';
 import {

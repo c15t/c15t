@@ -33,10 +33,11 @@ layout can be restored by the policy renderer.
 ## Use the adapter's configuration shape
 
 React and Next.js accept provider `theme`, `presentation` and `components`
-options. Vue and Nuxt expose their own shared configuration, including CSS
+options, and render theme tokens with `ConsentTheme` on the server. Vue and Nuxt expose their own shared configuration, including CSS
 `tokens` and component slots. Svelte accepts its provider options and theme
-contract. Astro serializes integration options and uses the selected adapter for
-dialogs. Do not move a configuration object between frameworks without checking
+slots; SvelteKit renders the token CSS from a server `load`. Astro serializes
+integration options, renders the theme tokens on the server and uses the
+selected adapter for dialogs. Do not move a configuration object between frameworks without checking
 the target types.
 
 Read [tokens and CSS](/docs/customization/tokens),

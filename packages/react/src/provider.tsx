@@ -42,7 +42,6 @@ import type { ConsentRuntime } from '@c15t/core/runtime';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
-import { defaultTheme, generateThemeCSS } from '@c15t/ui/theme';
 import type { ReactNode } from 'react';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -68,6 +67,9 @@ const loadNetworkBlockerModule = () =>
 const loadScriptLoaderModule = () => import('@c15t/core/modules/script-loader');
 const loadClearOnRevocationModule = () =>
 	import('@c15t/core/modules/clear-on-revocation');
+
+/** Replaced by the app's bundler; see the theme-token warning below. */
+declare const process: { env: { NODE_ENV?: string } };
 
 /** Events emitted by the mounted provider without snapshot-derived consent aliases. */
 export type ConsentProviderCallbacks = Pick<
@@ -96,9 +98,10 @@ export interface ConsentProviderOptions extends Pick<
 	 *
 	 * @remarks
 	 * Set this when your CSP uses a nonce-based policy instead of
-	 * `'unsafe-inline'`. The provider forwards it to the injected theme
-	 * `<style>` element and to every `<script>` element created by the
-	 * script loader. A per-script `nonce` still takes precedence.
+	 * `'unsafe-inline'`. The provider forwards it to every `<script>`
+	 * element created by the script loader. A per-script `nonce` still takes
+	 * precedence. Pass the same nonce to `ConsentTheme`, which renders the
+	 * theme `<style>` element.
 	 */
 	nonce?: string;
 	/**
@@ -1275,16 +1278,32 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	}, [owned, ownsRuntime]);
 
 	const userTheme = options.theme;
-	// Render tokens with the banner, including before hydration. CSS escapes
-	// preserve token values without allowing HTML closing tags.
-	const themeCSS = useMemo(
-		() =>
-			generateThemeCSS(userTheme ?? defaultTheme, options.colorScheme).replace(
-				/</gu,
-				'\\3c '
-			),
-		[userTheme, options.colorScheme]
-	);
+	// Development only: bundlers replace `process.env.NODE_ENV`, so production
+	// builds drop the check. Tokens need `ConsentTheme` or a stylesheet now.
+	useEffect(() => {
+		if (process.env.NODE_ENV === 'production') {
+			return;
+		}
+		const tokenKeys = [
+			'colors',
+			'dark',
+			'motion',
+			'radius',
+			'shadows',
+			'spacing',
+			'typography',
+		];
+		if (
+			!userTheme ||
+			!tokenKeys.some((key) => key in userTheme) ||
+			document.getElementById('c15t-theme')
+		) {
+			return;
+		}
+		console.warn(
+			'c15t: `theme` tokens are no longer turned into CSS in the browser. Render <ConsentTheme theme={theme} /> on the server, or put the CSS from generateThemeCSS() in your stylesheet. See https://c15t.com/docs/frameworks/react/styling/overview'
+		);
+	}, [userTheme]);
 
 	const themeContextValue = useMemo(
 		() => ({
@@ -1381,12 +1400,6 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					themeConfig={themeContextValue}
 					uiConfig={uiConfigValue}
 				>
-					<style
-						id="c15t-theme"
-						nonce={options.nonce}
-						// oxlint-disable-next-line react/no-danger -- CSS escapes
-						dangerouslySetInnerHTML={{ __html: themeCSS }}
-					/>
 					{providerChildren}
 				</V3ThemeProvider>
 			</ProviderServicesContext.Provider>

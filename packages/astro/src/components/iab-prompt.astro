@@ -33,6 +33,7 @@
 import {
 	buildBannerRevealScript,
 	buildColorSchemeScript,
+	buildThemeCSS,
 	buildConfigScript,
 	IAB_PROMPT_SLOT_ATTRIBUTE,
 	iabPromptClassNames,
@@ -71,6 +72,7 @@ const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
+const themeCSS = emitConfig ? buildThemeCSS(c15t.options.theme) : '';
 
 // No vendor list, no banner: every line of copy interpolates a count the
 // summary derives from it.
@@ -86,6 +88,8 @@ const hidden = c15t.prerendered && !force;
 		<script is:inline set:html={colorSchemeScript} />
 	)
 }
+
+{themeCSS && <style is:inline id="c15t-theme" set:html={themeCSS} />}
 
 {emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
 

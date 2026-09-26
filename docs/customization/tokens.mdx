@@ -47,9 +47,17 @@ export const theme = defineTheme({
 });
 ```
 
-Install `@c15t/ui` if importing its theme helper directly. Pass `theme` in your
-provider options. `consentActions` selects styling by action role. A per-action
-entry overrides `primary`, which overrides `default`.
+Install `@c15t/ui` if importing its theme helper directly. The browser does
+not turn tokens into CSS. In React and Next.js, render
+`<ConsentTheme theme={theme} />` where the app renders on the server, and pass
+`theme` in your provider options for `consentActions`. Elsewhere, call
+`generateThemeCSS(theme)` from `@c15t/ui/theme` on the server or at build time
+and put the result in a `<style>` element or your stylesheet. See
+[React styling](/docs/frameworks/react/styling/overview) and
+[Next.js styling](/docs/frameworks/next/styling/overview).
+
+`consentActions` selects styling by action role. A per-action entry overrides
+`primary`, which overrides `default`.
 
 ## Target a prompt with CSS
 
