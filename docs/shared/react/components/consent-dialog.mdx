@@ -49,8 +49,13 @@ group: reference
   `showTrigger` loads it on mount.
 
   Without an `open` prop, Escape closes the dialog. Save, Accept all and
-  Reject all close it after the save succeeds; a save that fails keeps it
-  open. With `open={true}`, these actions leave the dialog visible; the
+  Reject all close it as soon as the choice is recorded in the browser, in
+  the same task as the click; the exit animation still plays. The request to
+  the backend runs afterwards and never reopens the dialog: a failed request
+  keeps the choice, reports through `onError` and is retried later. See
+  [when a choice is saved](/docs/guides/consent-state#when-a-choice-is-saved)
+  for the order of events. A draft that went stale because the policy changed keeps the dialog open
+  for review. With `open={true}`, these actions leave the dialog visible; the
   parent must set `open={false}` to close it. Clicking the backdrop does not
   close it. Closing discards toggles that were not saved: the next open starts
   from the recorded choice again. After a save from an uncontrolled dialog,

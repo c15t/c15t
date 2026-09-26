@@ -12,7 +12,11 @@
 	import { focusTrap } from '../actions/focus-trap';
 	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
-	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import {
+		getConsentContext,
+		getThemeContext,
+		saveIABChoice,
+	} from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
 	import { useBannerVisibility } from '../use-banner-visibility.svelte';
 	import { resolveComponentStyles } from '../utils';
@@ -98,8 +102,9 @@
 		if (!iabState) {
 			return;
 		}
+		const state = iabState;
 		try {
-			await iabState.save();
+			await saveIABChoice(consent.kernel, () => state.save());
 		} catch {
 			// Keep the prompt available so a later action can retry the failed load/save.
 		}

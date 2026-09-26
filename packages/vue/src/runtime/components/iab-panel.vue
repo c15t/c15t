@@ -32,11 +32,16 @@ import {
 } from '#c15t/composables';
 import type { ConsentIabSelection } from '#c15t/composables';
 
-import { useConsentSnapshot, useHasConsentUi } from '../composables/kernel';
+import {
+	useConsentKernel,
+	useConsentSnapshot,
+	useHasConsentUi,
+} from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '../primitives';
 import { useFocusTrap } from '../primitives/use-focus-trap';
+import { saveIABChoice } from '../utils/save-iab-choice';
 import ConsentActions from './actions.vue';
 import type { IabVendorId } from './iab-purpose-item.vue';
 import IabPurposeItem from './iab-purpose-item.vue';
@@ -64,7 +69,11 @@ const config = useConsentConfig();
 const init = useConsentInit();
 const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
-const save = useConsentIabSave();
+const kernel = useConsentKernel();
+const saveIab = useConsentIabSave();
+// The dialog closes in the click task; see `saveIABChoice`.
+const save = (...args: Parameters<typeof saveIab>) =>
+	saveIABChoice(kernel, () => saveIab(...args));
 
 const initValue = computed(() => toValue(init));
 const textDirection = computed(() =>

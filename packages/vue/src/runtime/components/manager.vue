@@ -9,8 +9,8 @@ import {
 	useConsentActiveUI,
 	useConsentConfig,
 	useConsentInit,
+	useConsentKernel,
 	useConsentSave,
-	useConsentSnapshot,
 	useHasConsentUi,
 } from '../composables';
 import { useConsentDraft } from '../composables/draft';
@@ -35,7 +35,7 @@ const textDirection = computed(() =>
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const save = useConsentSave();
-const snapshot = useConsentSnapshot();
+const kernel = useConsentKernel();
 // No resolved policy means nothing to manage: render no surface at all.
 const hasConsentUi = useHasConsentUi();
 
@@ -102,8 +102,7 @@ watch(
 	{ immediate: true }
 );
 
-// A local receipt can hide the kernel prompt before its transport settles.
-// Explicit close/reopen and newer actions invalidate the older completion.
+// Explicit close/reopen and newer actions invalidate an older completion.
 watch(
 	activeUI,
 	(ui) => {
@@ -117,10 +116,17 @@ onUnmounted(() => {
 	actionSequence += 1;
 });
 
+/** Leave the manager for the banner only when a choice is still owed. */
+const closeManager = function closeManager() {
+	activeUI.value =
+		kernel.getSnapshot().promptRequirement.kind === 'none' ? null : 'banner';
+};
+
 const onAction = async function onAction(action: PresentationAction) {
 	actionSequence += 1;
 	const sequence = actionSequence;
-	const preserveManager = activeUI.value === 'manager';
+	const fromManager = activeUI.value === 'manager';
+	const before = kernel.getSnapshot();
 	pendingActions += 1;
 	try {
 		applyingSave = true;
@@ -135,8 +141,21 @@ const onAction = async function onAction(action: PresentationAction) {
 				reseedOnNextRecord();
 				pending = save('none');
 			}
-			if (preserveManager && sequence === actionSequence) {
-				activeUI.value = 'manager';
+			// The kernel records the choice and updates permissions before
+			// the transport runs (storage follows one task later, still ahead
+			// of the request). Close in this task and
+			// leave the backend request to finish in the background: its
+			// outcome never reopens the manager, and reopening reseeds the
+			// draft from the record.
+			const after = kernel.getSnapshot();
+			if (
+				fromManager &&
+				sequence === actionSequence &&
+				(after.explicitChoice !== before.explicitChoice ||
+					after.vendorChoice !== before.vendorChoice)
+			) {
+				closeManager();
+				actionSequence += 1;
 			}
 		} finally {
 			applyingSave = false;
@@ -148,9 +167,14 @@ const onAction = async function onAction(action: PresentationAction) {
 		if (result?.ok && sequence === actionSequence) {
 			resetDraft();
 		}
-		if (result?.ok && preserveManager && sequence === actionSequence) {
-			activeUI.value =
-				snapshot.value.promptRequirement.kind === 'none' ? null : 'banner';
+		// A save that recorded nothing new closes once it resolves.
+		if (
+			result?.ok &&
+			fromManager &&
+			sequence === actionSequence &&
+			activeUI.value === 'manager'
+		) {
+			closeManager();
 		}
 	} finally {
 		pendingActions -= 1;
