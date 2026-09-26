@@ -22,6 +22,7 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 import type { ConsentConfig } from './config';
+import { createLazyManifestTransport } from './lazy-manifest-transport';
 import type { ConsentState } from './types';
 
 export interface ConsentRootProps {
@@ -109,66 +110,6 @@ export interface ConsentRootProps {
 
 	children: ReactNode;
 }
-
-type ManifestModeOptions = Pick<ConsentConfig, 'backendURL'> & {
-	manifestURL: string;
-};
-
-/**
- * Manifest transport that loads `@c15t/core/transports/manifest` on first
- * use. The resolver pulls in every translation language, so a static
- * import would land in the client bundle of every app that renders the
- * root, manifest mode or not.
- */
-const loadManifestTransport = async function loadManifestTransport(
-	options: ManifestModeOptions
-): Promise<KernelTransport> {
-	const { createManifestTransport } =
-		await import('@c15t/core/transports/manifest');
-	return createManifestTransport(options);
-};
-
-const createLazyManifestTransport = function createLazyManifestTransport(
-	options: ManifestModeOptions
-): KernelTransport {
-	let transportPromise: Promise<KernelTransport> | undefined;
-	const load = function load(): Promise<KernelTransport> {
-		transportPromise ??= (async () => {
-			try {
-				return await loadManifestTransport(options);
-			} catch (error) {
-				// A failed chunk load must not poison every later init/save;
-				// the kernel's retry gets a fresh import attempt.
-				transportPromise = undefined;
-				throw error;
-			}
-		})();
-		return transportPromise;
-	};
-
-	return {
-		async identify(user, subjectId) {
-			await (await load()).identify?.(user, subjectId);
-		},
-		async init(ctx) {
-			const transport = await load();
-			return (await transport.init?.(ctx)) ?? {};
-		},
-		async loadSubjectRecord(subjectId) {
-			return (await (await load()).loadSubjectRecord?.(subjectId)) ?? null;
-		},
-		async recordPrivacyOptOut(directive, subjectId) {
-			await (await load()).recordPrivacyOptOut?.(directive, subjectId);
-		},
-		async save(payload) {
-			const transport = await load();
-			if (!transport.save) {
-				throw new Error('@c15t/nextjs: manifest transport cannot save.');
-			}
-			return await transport.save(payload);
-		},
-	};
-};
 
 const resolveMode = function resolveMode(input: {
 	backendURL: string | undefined;
