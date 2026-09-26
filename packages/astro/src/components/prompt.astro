@@ -29,6 +29,7 @@
 import {
 	buildBannerRevealScript,
 	buildColorSchemeScript,
+	buildThemeCSS,
 	buildConfigScript,
 	markConfigEmitted,
 	PROMPT_SLOT_ATTRIBUTE,
@@ -69,6 +70,7 @@ const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
+const themeCSS = emitConfig ? buildThemeCSS(c15t.options.theme) : '';
 
 const model = resolvePromptModel({
 	classNames: promptClassNames,
@@ -84,6 +86,8 @@ const model = resolvePromptModel({
 		<script is:inline set:html={colorSchemeScript} />
 	)
 }
+
+{themeCSS && <style is:inline id="c15t-theme" set:html={themeCSS} />}
 
 {emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
 

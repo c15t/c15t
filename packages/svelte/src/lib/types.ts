@@ -90,7 +90,12 @@ export interface ConsentManagerOptions
 	iab?: ProviderIABOptions;
 	/** Links rendered in the banner and preference-center footers. */
 	legalLinks?: LegalLinks;
-	/** Design-token overrides applied as a `<style id="c15t-theme">` block. */
+	/**
+	 * Slot styles and consent-action variants. Design tokens (colors, dark,
+	 * typography, spacing, radius, shadows, motion) are not applied in the
+	 * browser: render `generateThemeCSS(theme)` from `@c15t/ui/theme` in a
+	 * server `load` or a stylesheet instead.
+	 */
 	theme?: Theme;
 }
 
