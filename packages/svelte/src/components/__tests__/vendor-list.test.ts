@@ -119,11 +119,17 @@ describe('Svelte consent widget vendor rows', () => {
 				'[data-testid="consent-widget-vendor-item-measurement-google-analytics"]'
 			)
 		).toBeNull();
-		expect(
-			byTestId('consent-widget-vendor-list-measurement')?.querySelector(
-				'[data-testid="consent-widget-vendor-item-measurement-google-analytics"]'
-			)
-		).not.toBeNull();
+		// A category's rows mount on its first open and stay mounted after.
+		expect(byTestId('consent-widget-vendor-list-measurement')).toBeNull();
+		await open('measurement');
+		await waitFor(() => {
+			expect(
+				byTestId('consent-widget-vendor-list-measurement')?.querySelector(
+					'[data-testid="consent-widget-vendor-item-measurement-google-analytics"]'
+				)
+			).toBeInTheDocument();
+		});
+		await open('marketing');
 
 		const trigger = byTestId(
 			'consent-widget-vendor-trigger-marketing-meta-pixel'
@@ -133,6 +139,8 @@ describe('Svelte consent widget vendor rows', () => {
 		);
 		expect(trigger.getAttribute('aria-expanded')).toBe('false');
 		expect(content?.getAttribute('data-state')).toBe('closed');
+		// The card's details mount on its first open.
+		expect(content?.textContent).toBe('');
 		await fireEvent.click(trigger);
 		await waitFor(() => {
 			expect(trigger.getAttribute('aria-expanded')).toBe('true');
@@ -196,6 +204,7 @@ describe('Svelte consent widget vendor rows', () => {
 		expect(
 			byTestId('consent-widget-vendor-item-marketing-negated-vendor')
 		).toBeNull();
+		await open('measurement');
 		const ids = [...document.querySelectorAll('[id$="-shared-vendor"]')].map(
 			(element) => element.id
 		);

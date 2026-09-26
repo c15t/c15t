@@ -61,13 +61,19 @@ const title = computed(() =>
  * an inherited member off a plain object as open.
  */
 const openItems = ref<ReadonlySet<string>>(new Set());
+/** Cards opened at least once: their details mount on first open. */
+const openedItems = ref<ReadonlySet<string>>(new Set());
 const isOpen = (id: string) => openItems.value.has(id);
+const hasOpened = (id: string) => openedItems.value.has(id);
 const toggleOpen = (id: string) => {
 	const next = new Set(openItems.value);
 	if (next.has(id)) {
 		next.delete(id);
 	} else {
 		next.add(id);
+		if (!openedItems.value.has(id)) {
+			openedItems.value = new Set([...openedItems.value, id]);
+		}
 	}
 	openItems.value = next;
 };
@@ -219,23 +225,25 @@ const contentId = (index: number) =>
 						"
 						data-slot="preference-item-content-inner"
 					>
-						<p
-							v-if="vendor.description"
-							v-bind="config.components?.['vendor-list']?.description"
-							:class="styles?.description"
-						>
-							{{ vendor.description }}
-						</p>
-						<a
-							v-if="vendor.privacyPolicyUrl"
-							v-bind="config.components?.['vendor-list']?.link"
-							:class="styles?.link"
-							:href="vendor.privacyPolicyUrl"
-							rel="noopener noreferrer"
-							target="_blank"
-						>
-							{{ copy.privacyPolicy }}
-						</a>
+						<template v-if="hasOpened(vendor.id)">
+							<p
+								v-if="vendor.description"
+								v-bind="config.components?.['vendor-list']?.description"
+								:class="styles?.description"
+							>
+								{{ vendor.description }}
+							</p>
+							<a
+								v-if="vendor.privacyPolicyUrl"
+								v-bind="config.components?.['vendor-list']?.link"
+								:class="styles?.link"
+								:href="vendor.privacyPolicyUrl"
+								rel="noopener noreferrer"
+								target="_blank"
+							>
+								{{ copy.privacyPolicy }}
+							</a>
+						</template>
 					</div>
 				</div>
 			</div>
