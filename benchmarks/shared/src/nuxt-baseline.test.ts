@@ -4,7 +4,7 @@ import { assertConsentFreeBaseline } from './nuxt-baseline';
 
 const empty = {
 	bannerCount: 0,
-	bannerInFirstHtml: false,
+	bannerInServerHtml: false,
 	initRequests: 0,
 	manifestRequests: 0,
 };
@@ -14,7 +14,7 @@ it('accepts a module-free baseline', () => {
 });
 
 it.each([
-	{ bannerInFirstHtml: true },
+	{ bannerInServerHtml: true },
 	{ bannerCount: 1 },
 	{ initRequests: 1 },
 	{ manifestRequests: 1 },

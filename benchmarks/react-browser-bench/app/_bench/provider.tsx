@@ -21,12 +21,25 @@ const consentCategories = [
 	'marketing',
 ] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
 
+const benchTheme: NonNullable<ConsentProviderOptions['theme']> = {
+	motion: {
+		duration: {
+			fast: '1ms',
+			normal: '1ms',
+			slow: '1ms',
+		},
+	},
+};
+
 export const ReactBenchmarkProvider = ({
 	children,
 	scenario,
+	theme = benchTheme,
 }: {
 	children: ReactNode;
 	scenario: ReactBenchScenario;
+	/** Defaults to the 1ms motion override only. */
+	theme?: ConsentProviderOptions['theme'];
 }) => {
 	const options: ConsentProviderOptions = {
 		callbacks: {
@@ -45,15 +58,7 @@ export const ReactBenchmarkProvider = ({
 		},
 		consentCategories,
 		mode: hosted({ url: '/api/bench-consent' }),
-		theme: {
-			motion: {
-				duration: {
-					fast: '1ms',
-					normal: '1ms',
-					slow: '1ms',
-				},
-			},
-		},
+		theme,
 	};
 
 	return (

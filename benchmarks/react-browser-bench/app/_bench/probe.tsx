@@ -1,12 +1,13 @@
 'use client';
 
-import { useActiveUI } from '@c15t/react';
+import { useActiveUI, useSnapshot } from '@c15t/react';
 import { useEffect, useRef } from 'react';
 
 import {
 	getBenchState,
 	hasRunningAnimations,
 	isElementVisible,
+	isPolicySettled,
 	nowMs,
 } from './state';
 import type { ReactBenchScenario } from './state';
@@ -45,6 +46,7 @@ export const ReactBenchmarkProbe = ({
 	scenario: ReactBenchScenario;
 }) => {
 	const activeUI = useActiveUI();
+	const snapshot = useSnapshot();
 	const renderRef = useRef(0);
 
 	useEffect(() => {
@@ -99,6 +101,10 @@ export const ReactBenchmarkProbe = ({
 			return;
 		}
 		current.activeUI = activeUI ?? 'none';
+		current.hasStoredChoice = Boolean(snapshot.explicitChoice);
+		if (current.promptSettledMs === undefined && isPolicySettled(snapshot)) {
+			current.promptSettledMs = nowMs();
+		}
 		if (current.bannerVisibleMs !== undefined || activeUI !== 'banner') {
 			return;
 		}
@@ -141,7 +147,7 @@ export const ReactBenchmarkProbe = ({
 
 		frameId = window.requestAnimationFrame(check);
 		return () => window.cancelAnimationFrame(frameId);
-	}, [activeUI, scenario]);
+	}, [activeUI, scenario, snapshot]);
 
 	return null;
 };

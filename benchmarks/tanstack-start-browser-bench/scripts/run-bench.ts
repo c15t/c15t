@@ -7,18 +7,27 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
 import type {
+	BenchPerfMetrics,
 	BenchScriptResourceMetrics,
 	readBenchNavigationTiming,
 } from '@c15t/benchmarking/browser';
 import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
+	benchPerfMetricsExpression,
 	benchScriptResourceExpression,
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import { tanstackBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
+import {
+	analyzeServerHtmlStream,
+	bannerMarkupMarkers,
+	readServerHtmlStream,
+	toCookieHeader,
+} from '@c15t/benchmarking/html-stream';
+import type { ServerHtmlStreamAnalysis } from '@c15t/benchmarking/html-stream';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
@@ -26,16 +35,32 @@ import {
 	median,
 	safeBaseSha,
 	safeCommitSha,
+	safeGitDirty,
 	summarizeMetric,
 	summarizeNullableMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
+import {
+	assertVisitBannerState,
+	coldStateMetadata,
+	describeColdState,
+	savedConsentVisits,
+} from '@c15t/benchmarking/visit-definitions';
+import type {
+	BenchColdState,
+	BenchVisitKind,
+	SavedConsentVisitDefinition,
+} from '@c15t/benchmarking/visit-definitions';
+import {
+	serverHtmlMetadata,
+	summarizeServerHtmlMetrics,
+	summarizeVisitTimingMetrics,
+	visitMetricGlossary,
+} from '@c15t/benchmarking/visit-metrics';
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
 
 const HOST = '127.0.0.1';
-const PORT = 4314;
-const BASE_URL = `http://${HOST}:${PORT}`;
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/tanstack-start';
@@ -54,6 +79,11 @@ const readCliFlag = function readCliFlag(name: string): string | undefined {
 	const match = process.argv.find((arg) => arg.startsWith(prefix));
 	return match?.slice(prefix.length);
 };
+
+const PORT = Number(
+	readCliFlag('--port') ?? process.env.C15T_BENCH_PORT ?? '4314'
+);
+const BASE_URL = `http://${HOST}:${PORT}`;
 
 const iterations = Number(
 	readCliFlag('--iterations') ??
@@ -112,6 +142,15 @@ const allBenchmarkScenarios = rootProviderMode
 	? rootProviderScenarios
 	: allScenarios;
 
+type FreshScenario = (typeof allBenchmarkScenarios)[number];
+
+/**
+ * Saved-consent visits reload the manifest SSR route in a new browser
+ * context carrying the recording visit's cookies and localStorage, so the
+ * server sees the stored choice and must omit the banner.
+ */
+const savedConsentScenario = { name: 'manifest-ssr', path: '/manifest-ssr' };
+
 const scenarios = scenarioFilter
 	? allBenchmarkScenarios.filter(
 			(scenario) =>
@@ -119,18 +158,27 @@ const scenarios = scenarioFilter
 				(rootProviderMode && scenarioFilter === 'manifest-ssr')
 		)
 	: allBenchmarkScenarios;
+const availableSavedVisits = rootProviderMode ? [] : savedConsentVisits;
+const selectedSavedVisits = scenarioFilter
+	? availableSavedVisits.filter((visit) => visit.name === scenarioFilter)
+	: availableSavedVisits;
 
-if (scenarioFilter && scenarios.length === 0) {
+if (
+	scenarioFilter &&
+	scenarios.length === 0 &&
+	selectedSavedVisits.length === 0
+) {
 	throw new Error(
-		`Unsupported scenario "${scenarioFilter}". Expected ${allBenchmarkScenarios
-			.map((scenario) => scenario.name)
-			.join(', ')}.`
+		`Unsupported scenario "${scenarioFilter}". Expected ${[
+			...allBenchmarkScenarios.map((scenario) => scenario.name),
+			...availableSavedVisits.map((visit) => visit.name),
+		].join(', ')}.`
 	);
 }
 
 const measureInteractionLatency = async function measureInteractionLatency(
 	page: PlaywrightTypes.Page,
-	scenario: (typeof allBenchmarkScenarios)[number]['name'] | 'repeat-visitor'
+	scenario: FreshScenario['name'] | 'saved-consent'
 ) {
 	if (scenario === 'baseline') {
 		const startedAt = performance.now();
@@ -138,7 +186,9 @@ const measureInteractionLatency = async function measureInteractionLatency(
 		return performance.now() - startedAt;
 	}
 
-	if (scenario === 'repeat-visitor') {
+	if (scenario === 'saved-consent') {
+		// A returning visitor has no banner; reopening preferences is the
+		// interaction left to measure.
 		const startedAt = performance.now();
 		await page.click('#open-preferences');
 		await page.waitForFunction(
@@ -281,10 +331,41 @@ const nullableMedian = function nullableMedian(
 	return numbers.length > 0 ? Number(median(numbers).toFixed(3)) : null;
 };
 
+/**
+ * Read the raw server HTML stream for a route, once per measured iteration,
+ * with the cookies of the visit being measured. Runs after the browser
+ * samples and fixture counts so it cannot warm or skew them.
+ */
+const readServerHtml = async function readServerHtml(
+	path: string,
+	cookie: string | undefined
+): Promise<ServerHtmlStreamAnalysis[]> {
+	const reads: ServerHtmlStreamAnalysis[] = [];
+	for (let index = 0; index < iterations; index += 1) {
+		// oxlint-disable-next-line no-await-in-loop -- Sequential reads keep timings independent.
+		const capture = await readServerHtmlStream(`${BASE_URL}${path}`, {
+			cookie,
+		});
+		reads.push(
+			analyzeServerHtmlStream(
+				capture.chunks,
+				bannerMarkupMarkers(bannerRootTestId)
+			)
+		);
+	}
+	return reads;
+};
+
+/**
+ * Collect one page load. `waitFor: 'banner'` waits for the banner to be
+ * ready; `'settled'` waits for policy resolution, which is all a
+ * saved-consent visit produces.
+ */
 const collectScenarioMetrics = async function collectScenarioMetrics(
 	page: PlaywrightTypes.Page,
 	scenario: string,
-	path: string
+	path: string,
+	waitFor: 'banner' | 'settled' = 'banner'
 ) {
 	let initRequests = 0;
 	let manifestRequests = 0;
@@ -298,21 +379,18 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 		}
 	});
 
-	const response = await page.goto(path);
-	const firstHtml = (await response?.text().catch(() => '')) ?? '';
-	const bannerInFirstHtml =
-		firstHtml.includes(`data-testid="${bannerRootTestId}"`) ||
-		firstHtml.includes(`data-testid='${bannerRootTestId}'`);
+	await page.goto(path);
 	await page.waitForFunction(
-		(targetScenario) => {
+		({ targetScenario, mode }) => {
 			const state = window.__c15tTanstackBench;
-			return (
-				state &&
-				state.scenario === targetScenario &&
-				typeof state.bannerReadyMs === 'number'
-			);
+			if (!state || state.scenario !== targetScenario) {
+				return false;
+			}
+			return mode === 'settled'
+				? typeof state.promptSettledMs === 'number'
+				: typeof state.bannerReadyMs === 'number';
 		},
-		scenario,
+		{ mode: waitFor, targetScenario: scenario },
 		{ timeout: 30_000 }
 	);
 	await page.waitForLoadState('load');
@@ -325,34 +403,21 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	const scriptEntry = (await page.evaluate(
 		benchScriptResourceExpression
 	)) as BenchScriptResourceMetrics | null;
-	const performanceObserverInfo = await page.evaluate(() => {
-		const metrics = (
-			window as typeof window & {
-				__c15tBenchPerfMetrics?: {
-					cls: number;
-					longTaskCount: number;
-					longTaskTotalMs: number;
-					bannerPaintMs: number | null;
-				};
-			}
-		).__c15tBenchPerfMetrics;
-		return {
-			bannerPaintMs: metrics?.bannerPaintMs ?? null,
-			cls: metrics?.cls ?? 0,
-			domNodeCount: document.querySelectorAll('*').length,
-			longTaskCount: metrics?.longTaskCount ?? 0,
-			longTaskTotalMs: metrics?.longTaskTotalMs ?? 0,
-		};
-	});
+	const performanceObserverInfo = (await page.evaluate(
+		benchPerfMetricsExpression
+	)) as BenchPerfMetrics;
+	const bannerCount = await page
+		.locator(`[data-testid="${bannerRootTestId}"]`)
+		.count();
 
 	return {
 		...state,
 		...navEntry,
 		...scriptEntry,
 		...performanceObserverInfo,
-		bannerInFirstHtml,
-		bannerPaintMs:
-			performanceObserverInfo.bannerPaintMs ?? state?.bannerPaintMs ?? null,
+		bannerCount,
+		// Element Timing only; the probe's own reading is not a fallback.
+		bannerPaintMs: performanceObserverInfo.bannerPaintMs,
 		initRequestsAfterLoad: initRequests,
 		manifestRequestsAfterLoad: manifestRequests,
 	};
@@ -365,8 +430,6 @@ type TanstackBrowserSample = Omit<
 	scenario?: string;
 	interactionLatencyMs?: number;
 };
-
-const budgetsForScenario = tanstackBrowserBudgetsForScenario;
 
 interface BenchConsentFixtureCounts {
 	init: number;
@@ -393,6 +456,429 @@ const isManifestScenario = function isManifestScenario(
 	scenario: string
 ): boolean {
 	return scenario.includes('manifest');
+};
+
+const assertSampleBannerState = function assertSampleBannerState(
+	sample: TanstackBrowserSample,
+	scenario: string,
+	visit: BenchVisitKind
+) {
+	assertVisitBannerState({
+		activeUI: sample.activeUI,
+		bannerCount: sample.bannerCount,
+		hasStoredChoice: visit === 'fresh' ? undefined : sample.hasConsented,
+		scenario,
+		visit,
+	});
+};
+
+/**
+ * Cold state of a fresh-visit sample. In `--cold-manifest` mode the server
+ * starts with a new manifest URL token, so the first measured visit to a
+ * manifest route is also the first time this process resolves that route's
+ * manifest; later samples reuse it.
+ */
+const freshColdState = function freshColdState(
+	scenario: string,
+	sampleLabel: 'cold' | 'steady' | null
+): BenchColdState {
+	const usesManifestCache = isManifestScenario(scenario);
+	if (sampleLabel === 'cold') {
+		return describeColdState({
+			freshBrowserContext: true,
+			manifestCacheKeyIsNew: true,
+			note: 'first measured visit to this route since the server started with a new manifest token (includes loading the route module); earlier scenarios in the same process may have fetched the same manifest',
+			usesManifestCache,
+		});
+	}
+	return describeColdState({
+		freshBrowserContext: true,
+		usesManifestCache,
+	});
+};
+
+interface ScenarioResultInput {
+	scenario: string;
+	visit: BenchVisitKind;
+	coldState: BenchColdState;
+	samples: TanstackBrowserSample[];
+	serverHtml: ServerHtmlStreamAnalysis[];
+	fixtureCounts: BenchConsentFixtureCounts;
+	browserVersion: string;
+}
+
+const writeScenarioResult = function writeScenarioResult(
+	input: ScenarioResultInput
+) {
+	const { samples: groupedSamples, serverHtml, fixtureCounts } = input;
+	const outputScenario = resultScenarioName(input.scenario);
+	const coverage =
+		'TanStack Start browser bench covers client, manifest, SSR, proxied-save, and saved-consent (accept and reject) paths.';
+	const result: BenchmarkResult = {
+		baseSha: safeBaseSha(),
+		budgetDefinitions: tanstackBrowserBudgetsForScenario(input.scenario),
+		budgets: [],
+		commitSha: safeCommitSha(),
+		environment: getEnvironment(input.browserVersion),
+		fixture: {
+			consentCount: 5,
+			localeCount: 1,
+			name: outputScenario,
+			scriptCount: 0,
+			themeComplexity: 'minimal',
+		},
+		framework: 'tanstack-start',
+		metadata: {
+			...serverHtmlMetadata(serverHtml),
+			...coldStateMetadata(input.coldState),
+			bannerPaintMs: nullableMedian(
+				groupedSamples.map((sample) => sample.bannerPaintMs)
+			),
+			cls: Number(
+				median(groupedSamples.map((sample) => sample.cls ?? 0)).toFixed(4)
+			),
+			coldManifestMode,
+			fixtureInitExecutions: fixtureCounts.init,
+			fixtureManifestExecutions: fixtureCounts.manifest,
+			fixtureSubjectExecutions: fixtureCounts.subjects,
+			gitDirty: safeGitDirty(),
+			initLatencyMs,
+			profile: throttleProfile,
+			visit: input.visit,
+		},
+		metrics: [
+			summarizeNullableMetric(
+				'bannerReadyMs',
+				'ms',
+				groupedSamples.map((sample) => sample.bannerReadyMs ?? null)
+			),
+			summarizeNullableMetric(
+				'bannerVisibleMs',
+				'ms',
+				groupedSamples.map((sample) => sample.bannerVisibleMs ?? null)
+			),
+			summarizeNullableMetric(
+				'bannerPaintMs',
+				'ms',
+				groupedSamples.map((sample) => sample.bannerPaintMs ?? null)
+			),
+			...summarizeVisitTimingMetrics(groupedSamples),
+			...summarizeServerHtmlMetrics(serverHtml),
+			summarizeMetric(
+				'cls',
+				'ratio',
+				groupedSamples.map((sample) => sample.cls ?? 0)
+			),
+			summarizeMetric(
+				'firstAppScriptStartMs',
+				'ms',
+				groupedSamples.map((sample) => sample.firstAppScriptStartMs ?? 0)
+			),
+			summarizeMetric(
+				'lastAppScriptEndMs',
+				'ms',
+				groupedSamples.map((sample) => sample.lastAppScriptEndMs ?? 0)
+			),
+			summarizeMetric(
+				'appScriptCount',
+				'count',
+				groupedSamples.map((sample) => sample.appScriptCount ?? 0)
+			),
+			summarizeMetric(
+				'jsBytes',
+				'bytes',
+				groupedSamples.map((sample) => sample.jsBytes ?? 0)
+			),
+			summarizeMetric(
+				'ttfbMs',
+				'ms',
+				groupedSamples.map((sample) => sample.ttfbMs ?? 0)
+			),
+			summarizeMetric(
+				'htmlDoneMs',
+				'ms',
+				groupedSamples.map((sample) => sample.htmlDoneMs ?? 0)
+			),
+			summarizeMetric(
+				'domContentLoadedMs',
+				'ms',
+				groupedSamples.map((sample) => sample.domContentLoadedMs ?? 0)
+			),
+			summarizeMetric(
+				'loadEventMs',
+				'ms',
+				groupedSamples.map((sample) => sample.loadEventMs ?? 0)
+			),
+			summarizeMetric(
+				'initRequestsAfterLoad',
+				'count',
+				groupedSamples.map((sample) => sample.initRequestsAfterLoad ?? 0)
+			),
+			summarizeMetric(
+				'manifestRequestsAfterLoad',
+				'count',
+				groupedSamples.map((sample) => sample.manifestRequestsAfterLoad ?? 0)
+			),
+			summarizeMetric(
+				'mountCount',
+				'count',
+				groupedSamples.map((sample) => sample.mountCount ?? 0)
+			),
+			summarizeMetric(
+				'renderCount',
+				'count',
+				groupedSamples.map((sample) => sample.renderCount ?? 0)
+			),
+			summarizeMetric(
+				'longTaskCount',
+				'count',
+				groupedSamples.map((sample) => sample.longTaskCount ?? 0)
+			),
+			summarizeMetric(
+				'longTaskTotalMs',
+				'ms',
+				groupedSamples.map((sample) => sample.longTaskTotalMs ?? 0)
+			),
+			summarizeMetric(
+				'domNodeCount',
+				'count',
+				groupedSamples.map((sample) => sample.domNodeCount ?? 0)
+			),
+			summarizeMetric(
+				'interactionLatencyMs',
+				'ms',
+				groupedSamples.map((sample) => sample.interactionLatencyMs ?? 0)
+			),
+			summarizeMetric(
+				'hydratedChoicePresent',
+				'count',
+				groupedSamples.map((sample) => (sample.hasConsented ? 1 : 0))
+			),
+			summarizeMetric(
+				'promptShownCount',
+				'count',
+				groupedSamples.map((sample) => (sample.bannerCount > 0 ? 1 : 0))
+			),
+			summarizeNullableMetric(
+				'promptSettledMs',
+				'ms',
+				groupedSamples.map((sample) => sample.promptSettledMs ?? null)
+			),
+		],
+		notes: [
+			coverage,
+			...(rootProviderMode
+				? [
+						'Root-mounted provider variant: `ConsentRoot` and the manifest prefetch loader live in `__root.tsx`, and `/manifest-ssr` renders only the page shell.',
+					]
+				: []),
+			`Visit: ${input.visit}. Cold state: ${input.coldState.setup}.`,
+			...visitMetricGlossary,
+		],
+		package: '@c15t/tanstack-start-browser-bench',
+		runtime: 'playwright',
+		scenario: outputScenario,
+		schemaVersion: BENCHMARK_SCHEMA_VERSION,
+		suite: 'browser-runtime',
+		timestamp: new Date().toISOString(),
+	};
+
+	writeJson(join(outputDir, resultFileName(input.scenario)), result);
+};
+
+const runFreshScenario = async function runFreshScenario(
+	browser: PlaywrightTypes.Browser,
+	scenario: FreshScenario
+) {
+	const samples: TanstackBrowserSample[] = [];
+	await resetFixtureCounts();
+	const effectiveWarmupIterations =
+		coldManifestMode && isManifestScenario(scenario.name)
+			? 0
+			: warmupIterations;
+	for (
+		let index = 0;
+		index < effectiveWarmupIterations + iterations;
+		index += 1
+	) {
+		// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+		const context = await browser.newContext({ baseURL: BASE_URL });
+		try {
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const page = await context.newPage();
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await applyPageProfile(context, page);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const metrics = await collectScenarioMetrics(
+				page,
+				scenario.name,
+				scenario.path
+			);
+			if (scenario.name !== 'baseline') {
+				assertSampleBannerState(metrics, scenario.name, 'fresh');
+			}
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const interactionLatencyMs = await measureInteractionLatency(
+				page,
+				scenario.name
+			);
+			if (index >= effectiveWarmupIterations) {
+				const measuredIndex = index - effectiveWarmupIterations;
+				let sampleScenario: string = scenario.name;
+				if (coldManifestMode && isManifestScenario(scenario.name)) {
+					sampleScenario =
+						measuredIndex === 0
+							? `${scenario.name}-cold`
+							: `${scenario.name}-steady`;
+				}
+				samples.push({
+					...metrics,
+					interactionLatencyMs,
+					scenario: sampleScenario,
+				});
+			}
+		} finally {
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await context.close();
+		}
+	}
+	const fixtureCounts = await readFixtureCounts();
+	const serverHtml = await readServerHtml(scenario.path, undefined);
+
+	const grouped = new Map<string, TanstackBrowserSample[]>();
+	for (const sample of samples) {
+		const key = sample.scenario ?? scenario.name;
+		grouped.set(key, [...(grouped.get(key) ?? []), sample]);
+	}
+	for (const [groupScenario, groupedSamples] of grouped) {
+		let sampleLabel: 'cold' | 'steady' | null = null;
+		if (groupScenario.endsWith('-cold')) {
+			sampleLabel = 'cold';
+		} else if (groupScenario.endsWith('-steady')) {
+			sampleLabel = 'steady';
+		}
+		writeScenarioResult({
+			browserVersion: browser.version(),
+			coldState: freshColdState(scenario.name, sampleLabel),
+			fixtureCounts,
+			samples: groupedSamples,
+			scenario: groupScenario,
+			serverHtml,
+			visit: 'fresh',
+		});
+	}
+};
+
+/**
+ * Unmeasured fresh visit that records the choice, then returns the
+ * context's cookies and localStorage for the saved-consent visit.
+ */
+const recordChoice = async function recordChoice(
+	browser: PlaywrightTypes.Browser,
+	visit: SavedConsentVisitDefinition
+) {
+	const context = await browser.newContext({ baseURL: BASE_URL });
+	try {
+		const page = await context.newPage();
+		await page.goto(savedConsentScenario.path);
+		await page.waitForFunction(
+			() => typeof window.__c15tTanstackBench?.bannerReadyMs === 'number',
+			undefined,
+			{ timeout: 30_000 }
+		);
+		await page.click(`[data-testid="${visit.buttonTestId}"]`);
+		await page.waitForFunction(
+			() => {
+				const state = window.__c15tTanstackBench;
+				return (
+					!!state && state.onConsentSetCount > 0 && state.activeUI === 'none'
+				);
+			},
+			undefined,
+			{ timeout: 30_000 }
+		);
+		// Persistence writes are debounced behind the save.
+		await page.waitForFunction(
+			() =>
+				document.cookie
+					.split(';')
+					.some((entry) => entry.trim().startsWith('c15t=')),
+			undefined,
+			{ timeout: 10_000 }
+		);
+		return await context.storageState();
+	} finally {
+		await context.close();
+	}
+};
+
+const runSavedConsentVisit = async function runSavedConsentVisit(
+	browser: PlaywrightTypes.Browser,
+	visit: SavedConsentVisitDefinition
+) {
+	const samples: TanstackBrowserSample[] = [];
+	let lastCookie: string | undefined;
+	await resetFixtureCounts();
+	for (let index = 0; index < warmupIterations + iterations; index += 1) {
+		// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+		const storageState = await recordChoice(browser, visit);
+		lastCookie = toCookieHeader(storageState.cookies);
+		// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+		const context = await browser.newContext({
+			baseURL: BASE_URL,
+			storageState,
+		});
+		try {
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const page = await context.newPage();
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await applyPageProfile(context, page);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const metrics = await collectScenarioMetrics(
+				page,
+				savedConsentScenario.name,
+				savedConsentScenario.path,
+				'settled'
+			);
+			assertSampleBannerState(metrics, visit.name, visit.visit);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const interactionLatencyMs = await measureInteractionLatency(
+				page,
+				'saved-consent'
+			);
+			if (index >= warmupIterations) {
+				samples.push({ ...metrics, interactionLatencyMs });
+			}
+		} finally {
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await context.close();
+		}
+	}
+	const fixtureCounts = await readFixtureCounts();
+	const serverHtml = await readServerHtml(
+		savedConsentScenario.path,
+		lastCookie
+	);
+	for (const read of serverHtml) {
+		if (read.bannerInServerHtml) {
+			throw new Error(
+				`${visit.name}: the server HTML still contained the banner for a stored ${visit.action} choice`
+			);
+		}
+	}
+	writeScenarioResult({
+		browserVersion: browser.version(),
+		coldState: describeColdState({
+			freshBrowserContext: true,
+			note: 'cookies and localStorage carried over from the recording visit',
+			usesManifestCache: true,
+		}),
+		fixtureCounts,
+		samples,
+		scenario: visit.name,
+		serverHtml,
+		visit: visit.visit,
+	});
 };
 
 const run = async function run() {
@@ -429,259 +915,14 @@ const run = async function run() {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
 
-		await Array.from(scenarios).reduce<Promise<void>>(
-			async (previousScenario, scenario) => {
-				await previousScenario;
-				const samples: TanstackBrowserSample[] = [];
-				await resetFixtureCounts();
-				const effectiveWarmupIterations =
-					coldManifestMode && isManifestScenario(scenario.name)
-						? 0
-						: warmupIterations;
-				const iterationIndexes = Array.from(
-					{ length: effectiveWarmupIterations + iterations },
-					(_, index) => index
-				);
-				await iterationIndexes.reduce<Promise<void>>(
-					async (previousIteration, index) => {
-						await previousIteration;
-						const context = await browser.newContext({ baseURL: BASE_URL });
-						const page = await context.newPage();
-						await applyPageProfile(context, page);
-						const metrics = await collectScenarioMetrics(
-							page,
-							scenario.name,
-							scenario.path
-						);
-						const interactionLatencyMs = await measureInteractionLatency(
-							page,
-							scenario.name
-						);
-						if (index >= effectiveWarmupIterations) {
-							const measuredIndex = index - effectiveWarmupIterations;
-							let sampleScenario: string | undefined = metrics.scenario;
-							if (coldManifestMode && isManifestScenario(scenario.name)) {
-								sampleScenario =
-									measuredIndex === 0
-										? `${scenario.name}-cold`
-										: `${scenario.name}-steady`;
-							}
-							samples.push({
-								...metrics,
-								interactionLatencyMs,
-								scenario: sampleScenario,
-							});
-						}
-
-						if (
-							scenario.name === 'client' &&
-							index >= effectiveWarmupIterations
-						) {
-							const repeatContext = await browser.newContext({
-								baseURL: BASE_URL,
-							});
-							const repeatPage = await repeatContext.newPage();
-							await applyPageProfile(repeatContext, repeatPage);
-							const repeatMetrics = await collectScenarioMetrics(
-								repeatPage,
-								scenario.name,
-								scenario.path
-							);
-							const repeatInteractionLatencyMs =
-								await measureInteractionLatency(repeatPage, 'repeat-visitor');
-							samples.push({
-								...repeatMetrics,
-								interactionLatencyMs: repeatInteractionLatencyMs,
-								scenario: 'repeat-visitor',
-							});
-							await repeatContext.close();
-						}
-
-						await context.close();
-					},
-					Promise.resolve()
-				);
-				const fixtureCounts = await readFixtureCounts();
-
-				const grouped = new Map<string, typeof samples>();
-				for (const sample of samples) {
-					const key = sample.scenario ?? scenario.name;
-					const existing = grouped.get(key) ?? [];
-					existing.push(sample);
-					grouped.set(key, existing);
-				}
-
-				for (const [groupScenario, groupedSamples] of grouped) {
-					const outputScenario = resultScenarioName(groupScenario);
-					const result: BenchmarkResult = {
-						baseSha: safeBaseSha(),
-						budgetDefinitions: budgetsForScenario(groupScenario),
-						budgets: [],
-						commitSha: safeCommitSha(),
-						environment: getEnvironment(browser.version()),
-						fixture: {
-							consentCount: 5,
-							localeCount: 1,
-							name: outputScenario,
-							scriptCount: 0,
-							themeComplexity: 'minimal',
-						},
-						framework: 'tanstack-start',
-						metadata: {
-							bannerInFirstHtml: groupedSamples.every(
-								(sample) => sample.bannerInFirstHtml
-							),
-							bannerPaintMs: nullableMedian(
-								groupedSamples.map((sample) => sample.bannerPaintMs)
-							),
-							cls: Number(
-								median(groupedSamples.map((sample) => sample.cls ?? 0)).toFixed(
-									4
-								)
-							),
-							coldManifestMode,
-							fixtureInitExecutions: fixtureCounts.init,
-							fixtureManifestExecutions: fixtureCounts.manifest,
-							fixtureSubjectExecutions: fixtureCounts.subjects,
-							initLatencyMs,
-							profile: throttleProfile,
-						},
-						metrics: [
-							summarizeMetric(
-								'bannerReadyMs',
-								'ms',
-								groupedSamples.map((sample) => sample.bannerReadyMs ?? 0)
-							),
-							summarizeMetric(
-								'bannerVisibleMs',
-								'ms',
-								groupedSamples.map((sample) => sample.bannerVisibleMs ?? 0)
-							),
-							summarizeNullableMetric(
-								'bannerPaintMs',
-								'ms',
-								groupedSamples.map((sample) => sample.bannerPaintMs ?? null)
-							),
-							summarizeMetric(
-								'bannerInFirstHtml',
-								'count',
-								groupedSamples.map((sample) =>
-									sample.bannerInFirstHtml ? 1 : 0
-								)
-							),
-							summarizeMetric(
-								'cls',
-								'ratio',
-								groupedSamples.map((sample) => sample.cls ?? 0)
-							),
-							summarizeMetric(
-								'firstAppScriptStartMs',
-								'ms',
-								groupedSamples.map(
-									(sample) => sample.firstAppScriptStartMs ?? 0
-								)
-							),
-							summarizeMetric(
-								'lastAppScriptEndMs',
-								'ms',
-								groupedSamples.map((sample) => sample.lastAppScriptEndMs ?? 0)
-							),
-							summarizeMetric(
-								'appScriptCount',
-								'count',
-								groupedSamples.map((sample) => sample.appScriptCount ?? 0)
-							),
-							summarizeMetric(
-								'jsBytes',
-								'bytes',
-								groupedSamples.map((sample) => sample.jsBytes ?? 0)
-							),
-							summarizeMetric(
-								'ttfbMs',
-								'ms',
-								groupedSamples.map((sample) => sample.ttfbMs ?? 0)
-							),
-							summarizeMetric(
-								'htmlDoneMs',
-								'ms',
-								groupedSamples.map((sample) => sample.htmlDoneMs ?? 0)
-							),
-							summarizeMetric(
-								'domContentLoadedMs',
-								'ms',
-								groupedSamples.map((sample) => sample.domContentLoadedMs ?? 0)
-							),
-							summarizeMetric(
-								'loadEventMs',
-								'ms',
-								groupedSamples.map((sample) => sample.loadEventMs ?? 0)
-							),
-							summarizeMetric(
-								'initRequestsAfterLoad',
-								'count',
-								groupedSamples.map(
-									(sample) => sample.initRequestsAfterLoad ?? 0
-								)
-							),
-							summarizeMetric(
-								'manifestRequestsAfterLoad',
-								'count',
-								groupedSamples.map(
-									(sample) => sample.manifestRequestsAfterLoad ?? 0
-								)
-							),
-							summarizeMetric(
-								'mountCount',
-								'count',
-								groupedSamples.map((sample) => sample.mountCount ?? 0)
-							),
-							summarizeMetric(
-								'renderCount',
-								'count',
-								groupedSamples.map((sample) => sample.renderCount ?? 0)
-							),
-							summarizeMetric(
-								'longTaskCount',
-								'count',
-								groupedSamples.map((sample) => sample.longTaskCount ?? 0)
-							),
-							summarizeMetric(
-								'longTaskTotalMs',
-								'ms',
-								groupedSamples.map((sample) => sample.longTaskTotalMs ?? 0)
-							),
-							summarizeMetric(
-								'domNodeCount',
-								'count',
-								groupedSamples.map((sample) => sample.domNodeCount ?? 0)
-							),
-							summarizeMetric(
-								'interactionLatencyMs',
-								'ms',
-								groupedSamples.map((sample) => sample.interactionLatencyMs ?? 0)
-							),
-						],
-						notes: rootProviderMode
-							? [
-									'TanStack Start browser bench covers client, manifest, SSR, proxied-save, and repeat-visitor paths.',
-									'Root-mounted provider variant: `ConsentRoot` and the manifest prefetch loader live in `__root.tsx`, and `/manifest-ssr` renders only the page shell.',
-								]
-							: [
-									'TanStack Start browser bench covers client, manifest, SSR, proxied-save, and repeat-visitor paths.',
-								],
-						package: '@c15t/tanstack-start-browser-bench',
-						runtime: 'playwright',
-						scenario: outputScenario,
-						schemaVersion: BENCHMARK_SCHEMA_VERSION,
-						suite: 'browser-runtime',
-						timestamp: new Date().toISOString(),
-					};
-
-					writeJson(join(outputDir, resultFileName(groupScenario)), result);
-				}
-			},
-			Promise.resolve()
-		);
+		for (const scenario of scenarios) {
+			// oxlint-disable-next-line no-await-in-loop -- Scenarios run sequentially.
+			await runFreshScenario(browser, scenario);
+		}
+		for (const visit of selectedSavedVisits) {
+			// oxlint-disable-next-line no-await-in-loop -- Scenarios run sequentially.
+			await runSavedConsentVisit(browser, visit);
+		}
 
 		await browser.close();
 	} finally {

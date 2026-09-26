@@ -1,7 +1,12 @@
 import { useActiveUI, useSnapshot } from '@c15t/tanstack-start';
 import { useEffect, useRef } from 'react';
 
-import { getState, hasRunningAnimations, isElementVisible } from './state';
+import {
+	getState,
+	hasRunningAnimations,
+	isElementVisible,
+	isPolicySettled,
+} from './state';
 import type { TanstackBenchScenario } from './state';
 
 const BANNER_ELEMENT_TIMING_NAME = 'c15t-consent-banner';
@@ -111,6 +116,9 @@ export const TanstackBenchmarkProbe = ({
 				}
 			: null;
 		current.hasConsented = snapshot.explicitChoice !== null;
+		if (current.promptSettledMs === undefined && isPolicySettled(snapshot)) {
+			current.promptSettledMs = performance.now();
+		}
 		if (current.bannerVisibleMs !== undefined || activeUI !== 'banner') {
 			return;
 		}

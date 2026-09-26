@@ -1,2 +1,2 @@
-/** Control arm: load the @c15t/ui monolithic stylesheet. */
+/** Control arm: the documented aggregate stylesheet. */
 import '@c15t/react/styles.css';

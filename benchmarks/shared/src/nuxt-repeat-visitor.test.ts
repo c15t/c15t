@@ -35,7 +35,7 @@ it.each([Date.UTC(2025, 0, 1), Date.UTC(2030, 0, 1)])(
 
 const restored = {
 	bannerCount: 0,
-	bannerInFirstHtml: false,
+	bannerInServerHtml: false,
 	hasStoredChoice: true,
 };
 
@@ -46,7 +46,7 @@ it('accepts a restored visitor without a banner', () => {
 it.each([
 	{ hasStoredChoice: false },
 	{ hasStoredChoice: undefined },
-	{ bannerInFirstHtml: true },
+	{ bannerInServerHtml: true },
 	{ bannerCount: 1 },
 ])('rejects a repeat measurement with invalid state: %j', (observation) => {
 	expect(() => assertRepeatVisitor({ ...restored, ...observation })).toThrow(

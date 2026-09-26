@@ -13,12 +13,12 @@ export const createRepeatVisitorCookie = (now = Date.now()): string =>
 /** A repeat-visitor measurement requires an actual restored choice. */
 export const assertRepeatVisitor = (observation: {
 	hasStoredChoice: boolean | undefined;
-	bannerInFirstHtml: boolean;
+	bannerInServerHtml: boolean;
 	bannerCount: number;
 }): void => {
 	if (
 		observation.hasStoredChoice !== true ||
-		observation.bannerInFirstHtml ||
+		observation.bannerInServerHtml ||
 		observation.bannerCount > 0
 	) {
 		throw new Error(
