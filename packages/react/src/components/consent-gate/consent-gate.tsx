@@ -5,6 +5,7 @@ import { forwardRef as createForwardRef, useEffect } from 'react';
 
 import { useConsentManager } from '~/component-hooks/use-manager';
 import { useTranslations } from '~/component-hooks/use-translations';
+import { useCategoryAllowed } from '~/hooks';
 
 import { ConsentGateButton, ConsentGateRoot, ConsentGateTitle } from './atoms';
 import type { ConsentGateProps } from './types';
@@ -41,11 +42,13 @@ const ConsentGateComponent = createForwardRef<HTMLDivElement, ConsentGateProps>(
 		},
 		ref
 	) => {
-		const { has, updateConsentCategories, policyCategories, policyScopeMode } =
+		const { updateConsentCategories, policyCategories, policyScopeMode } =
 			useConsentManager();
 		const { frame } = useTranslations();
 
-		const hasConsent = has(category);
+		// Never reads the clock while server rendering, so the gate can sit in
+		// a statically prerendered page.
+		const hasConsent = useCategoryAllowed(category);
 		const hasPolicyScope =
 			Array.isArray(policyCategories) &&
 			policyCategories.length > 0 &&
