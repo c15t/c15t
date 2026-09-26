@@ -14,10 +14,15 @@ import {
 	useIabTranslations,
 } from '#c15t/composables';
 
-import { useConsentSnapshot, useHasConsentUi } from '../composables/kernel';
+import {
+	useConsentKernel,
+	useConsentSnapshot,
+	useHasConsentUi,
+} from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
+import { saveIABChoice } from '../utils/save-iab-choice';
 import ConsentActions from './actions.vue';
 import ConsentTag from './tag.vue';
 
@@ -48,7 +53,11 @@ const config = useConsentConfig();
 const init = useConsentInit();
 const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
-const save = useConsentIabSave();
+const kernel = useConsentKernel();
+const saveIab = useConsentIabSave();
+// The banner closes in the click task; see `saveIABChoice`.
+const save = (...args: Parameters<typeof saveIab>) =>
+	saveIABChoice(kernel, () => saveIab(...args));
 
 const initValue = computed(() => toValue(init));
 const textDirection = computed(() =>

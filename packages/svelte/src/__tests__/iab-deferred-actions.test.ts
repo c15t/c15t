@@ -12,7 +12,7 @@ test.each(
 		['accept', 'reject'].map((action) => ({ action, component }))
 	)
 )(
-	'keeps $component open after deferred $action fails and allows retry',
+	'restores $component after deferred $action fails and allows retry',
 	async ({ component, action }) => {
 		let rejectLoad!: (error: Error) => void;
 		const fetch = vi
@@ -87,9 +87,9 @@ test.each(
 			kernel?.set.activeUI('dialog');
 		}
 		button()?.click();
-		expect(kernel?.getSnapshot().activeUI).toBe(
-			component === 'iab-consent-banner' ? 'banner' : 'dialog'
-		);
+		// The surface closes on the click and comes back because the vendor
+		// list failed before anything was recorded.
+		expect(kernel?.getSnapshot().activeUI).toBe('none');
 		rejectLoad(new Error('offline'));
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);

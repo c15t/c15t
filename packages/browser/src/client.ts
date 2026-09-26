@@ -356,25 +356,44 @@ export const createConsentClient = function createConsentClient(
 		navigation += 1;
 		kernel.set.activeUI('banner');
 	};
+	/** Leave the surface for the banner only when a choice is still owed. */
+	const settleSurface = (): void => {
+		kernel.set.activeUI(
+			kernel.getSnapshot().promptRequirement.kind === 'none' ? 'none' : 'banner'
+		);
+	};
 	const saveSelection = async (input: SaveInput): Promise<SaveResult> => {
 		navigation += 1;
 		const current = navigation;
-		const surface = kernel.getSnapshot().activeUI;
-		const { fingerprint } = kernel.getSnapshot().evaluationPolicy.choice;
+		const before = kernel.getSnapshot();
+		const surface = before.activeUI;
+		const { fingerprint } = before.evaluationPolicy.choice;
 		const pending = kernel.commands.save(input, { categories: categories() });
-		// Local recording can close the surface before the transport answers.
-		kernel.set.activeUI(surface);
+		// The kernel records the choice and updates permissions before the
+		// transport runs (storage follows one task later, still ahead of the
+		// request). Close in this task and let the backend
+		// request finish in the background: its outcome never reopens the
+		// surface, and a failed request stays queued for replay.
+		const after = kernel.getSnapshot();
+		if (
+			after.explicitChoice !== before.explicitChoice ||
+			after.vendorChoice !== before.vendorChoice
+		) {
+			if (surface !== 'none') {
+				settleSurface();
+			}
+			return pending;
+		}
+		// A save that recorded nothing new closes once it resolves.
 		const result = await pending;
 		if (
 			result.ok &&
+			surface !== 'none' &&
 			current === navigation &&
+			kernel.getSnapshot().activeUI === surface &&
 			fingerprint === kernel.getSnapshot().evaluationPolicy.choice.fingerprint
 		) {
-			kernel.set.activeUI(
-				kernel.getSnapshot().promptRequirement.kind === 'none'
-					? 'none'
-					: 'banner'
-			);
+			settleSurface();
 		}
 		return result;
 	};
@@ -391,6 +410,24 @@ export const createConsentClient = function createConsentClient(
 		navigation += 1;
 		const current = navigation;
 		const snapshot = kernel.getSnapshot();
+		// The surface closes in this task. An IAB choice commits once its TC
+		// string is encoded, which can wait on the TCF library but never on
+		// the backend. The surface comes back only when that local step
+		// recorded nothing, so the visitor can try again.
+		if (snapshot.activeUI !== 'none') {
+			kernel.set.activeUI('none');
+		}
+		const restoreIfUnrecorded = (): void => {
+			const next = kernel.getSnapshot();
+			if (
+				current === navigation &&
+				snapshot.activeUI !== 'none' &&
+				next.activeUI === 'none' &&
+				next.iab?.authority === snapshot.iab?.authority
+			) {
+				kernel.set.activeUI(snapshot.activeUI);
+			}
+		};
 		try {
 			if (blanket === true) {
 				handle.acceptAll();
@@ -405,16 +442,12 @@ export const createConsentClient = function createConsentClient(
 				next.evaluationPolicy.choice.fingerprint !==
 					snapshot.evaluationPolicy.choice.fingerprint
 			) {
+				restoreIfUnrecorded();
 				return { ok: false };
-			}
-			if (current === navigation) {
-				kernel.set.activeUI('none');
 			}
 			return { ok: true };
 		} catch (error) {
-			if (current === navigation) {
-				kernel.set.activeUI(snapshot.activeUI);
-			}
+			restoreIfUnrecorded();
 			emit('error', error instanceof Error ? error : new Error(String(error)));
 			return { ok: false };
 		}

@@ -133,10 +133,9 @@ for (const source of ['scripts', 'frames', 'iframes'] as const) {
 				);
 				expect(button).not.toBeNull();
 				button?.click();
-				await vi.waitFor(() =>
-					expect(kernel.getSnapshot().activeUI).toBe('none')
-				);
-				expect(save).toHaveBeenCalledOnce();
+				// The dialog closes on the local record; the request follows.
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
 				expect(
 					kernel.getSnapshot().explicitChoice?.categories.marketing?.value
 				).toBe(true);
