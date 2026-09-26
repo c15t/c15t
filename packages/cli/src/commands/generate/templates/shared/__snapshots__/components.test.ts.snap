@@ -65,7 +65,7 @@ export default function ConsentManagerClient({
 	state,
 }: {
 	children: ReactNode;
-	state: ConsentState;
+	state: ConsentState | Promise<ConsentState>;
 }) {
 	return (
 		<ConsentProvider options={{

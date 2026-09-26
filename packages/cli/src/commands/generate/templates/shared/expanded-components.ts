@@ -52,7 +52,7 @@ export const generateExpandedProviderTemplate =
 		if (enableSSR) {
 			propsInterface = `\ninterface Props {
 	children: ReactNode;
-	state: ConsentState;
+	state: ConsentState | Promise<ConsentState>;
 }\n`;
 			propsDestructure = '{ children, state }: Props';
 			typeImports = `import type { ConsentState } from '${framework.importSource}';`;
