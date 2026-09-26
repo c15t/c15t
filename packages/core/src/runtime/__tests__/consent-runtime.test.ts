@@ -531,6 +531,36 @@ describe('createConsentRuntime', () => {
 		expect(runtime.started).toBe(false);
 	});
 
+	test('holds network-blocker requests from construction until `start()` decides them', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const nativeFetch = window.fetch;
+		const original = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = original as unknown as typeof window.fetch;
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			// A component that mounts before the host calls `start()`.
+			const early = window.fetch('https://tracker.example/collect');
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(original).not.toHaveBeenCalled();
+
+			runtime.start();
+
+			expect((await early).status).toBe(451);
+			expect(original).not.toHaveBeenCalled();
+			runtime.dispose();
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
 	test('forwards `i18n` messages into the kernel translations', () => {
 		const runtime = createConsentRuntime({
 			i18n: {

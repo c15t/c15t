@@ -11,18 +11,23 @@
  */
 import type { ConsentSnapshot } from '../../types';
 import { evaluateBlock } from './decide';
+import { stashXhr, XHR_REQUEST } from './hold';
+import type { XhrStash } from './hold';
 import type { BlockedRequestInfo, NetworkBlockerRule } from './types';
-import { normalizeMethod, parseUrl } from './url';
+import { parseUrl } from './url';
 
 export interface XhrPatchDeps {
 	getRules: () => NetworkBlockerRule[];
 	getSnapshot: () => ConsentSnapshot;
 	isEnabled: () => boolean;
 	notifyBlocked: (info: BlockedRequestInfo) => void;
+	/**
+	 * Promise that settles once consent is known, or `null` when it already
+	 * is. An async XHR that would be blocked waits for it and is evaluated
+	 * again. A synchronous XHR cannot wait and is blocked.
+	 */
+	whenSettled?: () => Promise<void> | null;
 }
-
-const INTERNAL_METHOD = Symbol('c15t-xhr-method');
-const INTERNAL_URL = Symbol('c15t-xhr-url');
 
 /**
  * Install the XHR `open` + `send` patches. Returns a teardown fn that
@@ -41,27 +46,21 @@ export const installXhrPatch = function installXhrPatch(
 		url: string | URL,
 		...rest: unknown[]
 	) {
-		// oxlint-disable-next-line typescript/no-explicit-any -- internal symbol-keyed stash
-		(this as any)[INTERNAL_METHOD] = normalizeMethod(method);
-		// oxlint-disable-next-line typescript/no-explicit-any -- internal symbol-keyed stash
-		(this as any)[INTERNAL_URL] =
-			typeof url === 'string' ? url : url.toString();
+		stashXhr(this, method, url, rest[0]);
 		// oxlint-disable-next-line typescript/no-explicit-any -- pass-through to native impl
 		return (originalOpen as any).call(this, method, url, ...rest);
 	} as typeof XMLHttpRequest.prototype.open;
 
 	const patchedSend = function patchedSend(
-		this: XMLHttpRequest,
+		this: XMLHttpRequest & XhrStash,
 		body?: Document | XMLHttpRequestBodyInit | null
 	) {
 		if (!deps.isEnabled()) {
 			return originalSend.call(this, body as never);
 		}
-		// oxlint-disable-next-line typescript/no-explicit-any -- internal symbol-keyed stash
-		const method: string = (this as any)[INTERNAL_METHOD] ?? 'GET';
-		// oxlint-disable-next-line typescript/no-explicit-any -- internal symbol-keyed stash
-		const rawUrl: string = (this as any)[INTERNAL_URL] ?? '';
-		const url = parseUrl(rawUrl);
+		const request = this[XHR_REQUEST];
+		const method = request?.method ?? 'GET';
+		const url = parseUrl(request?.url ?? '');
 		if (!url) {
 			return originalSend.call(this, body as never);
 		}
@@ -74,6 +73,14 @@ export const installXhrPatch = function installXhrPatch(
 		);
 		if (!decision.shouldBlock) {
 			return originalSend.call(this, body as never);
+		}
+		const settled = request?.sync ? null : deps.whenSettled?.();
+		if (settled) {
+			void (async () => {
+				await settled;
+				patchedSend.call(this, body);
+			})();
+			return;
 		}
 
 		deps.notifyBlocked({

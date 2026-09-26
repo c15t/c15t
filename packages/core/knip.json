@@ -8,6 +8,7 @@
 		"./src/libs/generate-subject-id.ts",
 		"./src/modules/script-loader/index.ts",
 		"./src/modules/network-blocker/index.ts",
+		"./src/modules/network-blocker/hold.ts",
 		"./src/modules/iframe-blocker/index.ts",
 		"./src/modules/persistence/index.ts",
 		"./src/modules/window-debug/index.ts",

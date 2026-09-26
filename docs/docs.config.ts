@@ -97,6 +97,7 @@ export default defineDocsConfig({
 							pages: [
 								'optimization',
 								'script-loader',
+								'network-blocker',
 								'geography-headers',
 								'content-security-policy',
 								'troubleshooting',
@@ -163,7 +164,7 @@ export default defineDocsConfig({
 							title: 'Policies',
 						},
 						{
-							pages: ['script-loader', 'troubleshooting'],
+							pages: ['script-loader', 'network-blocker', 'troubleshooting'],
 							title: 'Integration',
 						},
 						{

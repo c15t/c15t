@@ -1,0 +1,107 @@
+---
+title: "Network blocker"
+description: "Shared network blocker reference for the React and Next.js adapters."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="rules">
+  ## Match requests with rules
+
+  Each rule names a `domain` and the consent `category` a request needs. The
+  domain also matches its subdomains: `google-analytics.com` covers
+  `www.google-analytics.com`. `pathIncludes` narrows the rule to paths that
+  contain a substring, and `methods` narrows it to HTTP methods. A request is
+  blocked when a matching rule's condition is not met by the visitor's
+  effective permissions.
+
+  `category` takes the same conditions as scripts:
+
+  ```ts
+  { category: 'measurement' }
+  { category: { and: ['measurement', 'marketing'] } }
+  { category: { or: ['measurement', 'marketing'] } }
+  ```
+
+  Add `vendor` to also block the request while the visitor has turned that
+  vendor off. IAB TCF rules use `vendorId` and the `iab*` purpose fields
+  instead.
+
+  | Option | Default | Purpose |
+  | --- | --- | --- |
+  | `rules` | required | Rules described above |
+  | `enabled` | `true` | Set `false` to keep the rules but stop blocking |
+  | `logBlockedRequests` | `true` | Log each blocked request with `console.warn` |
+  | `onRequestBlocked` | none | Called with `{ method, url, rule }` for each blocked request |
+</section>
+
+<section id="behavior">
+  ## What a blocked request looks like
+
+  The blocker wraps `window.fetch` and `XMLHttpRequest`. A blocked `fetch`
+  resolves to a `451` response with the status text
+  `Request blocked by consent`, and nothing is sent. A blocked XHR is aborted
+  and fires an `error` event. Requests that match no rule are not delayed.
+
+  ## When blocking starts
+
+  The provider holds matching requests from its first render in the browser,
+  before any of its children render or run effects. That covers requests from
+  child components, including their mount effects, and from effects in
+  components rendered next to the provider. The blocker module itself loads
+  after mount and decides each held request. Apps without `networkBlocker` do
+  not download it.
+
+  While consent is unknown, a matching request that would be blocked waits
+  instead of failing. Consent is unknown until the policy has loaded, which is
+  also when a returning visitor's stored choice takes effect. The request is
+  then sent if the choice allows it and blocked otherwise. If the policy fails
+  to load, optional categories stay denied and waiting requests are blocked.
+  If the policy request never finishes, they keep waiting and are never sent.
+
+  A synchronous XHR cannot wait. Before the blocker module has loaded, a
+  matching one throws a `NetworkError` from `send()`. After that, one that
+  consent does not allow yet is blocked.
+</section>
+
+<section id="limits">
+  ## What the network blocker cannot stop
+
+  The blocker only sees requests made after the provider starts rendering in
+  the browser, through `fetch` or `XMLHttpRequest`. It cannot stop:
+
+  - Code that runs before the provider renders: inline scripts in the HTML,
+    third-party tags in `<head>`, scripts loaded before hydration (such as
+    `next/script` with `beforeInteractive`), and client modules that evaluate
+    earlier. Webpack builds evaluate a route's client component modules when
+    its chunk loads, so their top-level code runs first. Turbopack evaluates a
+    client component module when its first element renders, which inside the
+    provider is after blocking starts.
+  - Code that saved its own reference to `fetch` or `XMLHttpRequest` before the
+    provider rendered.
+  - `navigator.sendBeacon`, `WebSocket`, `EventSource`, and requests made by
+    `<img>`, `<script>` or `<iframe>` elements, web workers and service
+    workers.
+  - Requests from components that use the `useNetworkBlocker` hook and their
+    children's mount effects. The hook starts blocking after mount; use the
+    provider's `networkBlocker` option instead.
+
+  Keep tracking calls out of that window:
+
+  - Send them from an effect or an event handler, never at module top level.
+  - Load vendor SDKs through `scripts` instead of a `<script>` tag or
+    `next/script`, so they wait for consent before they run at all.
+  - Check `useConsent('measurement')` (or the category you need) before you
+    call a vendor from your own code, and treat the blocker as a backstop.
+</section>
+
+<section id="verify">
+  ## Verify
+
+  Open the browser's network panel, clear site data and reload. Requests
+  matching a rule should not appear until you grant their category; with
+  logging on, the console lists each blocked request. Reject, reload, and
+  check that they still do not appear. The
+  [verification guide](/docs/guides/verify-consent) covers automated checks.
+</section>

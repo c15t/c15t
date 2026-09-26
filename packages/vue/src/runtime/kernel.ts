@@ -23,6 +23,7 @@ import type {
 	BlockedRequestInfo,
 	NetworkBlockerRule,
 } from '@c15t/core/modules/network-blocker';
+import { holdNetworkRequests } from '@c15t/core/modules/network-hold';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import type { StorageConfig } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
@@ -507,6 +508,24 @@ const resolveInitialPolicyPending = (
 		initialConfig.initialPolicyResolution
 	);
 
+/**
+ * The network blocker installs once the root mounts, after every child ran
+ * its setup and mount hooks. Hold matching requests until then; the blocker
+ * replays them.
+ */
+const holdBlockedRequests = function holdBlockedRequests(
+	config: RuntimeConsentConfig,
+	ownsKernel: boolean
+): void {
+	if (
+		ownsKernel &&
+		config.networkBlocker &&
+		config.networkBlocker.enabled !== false
+	) {
+		holdNetworkRequests(config.networkBlocker.rules);
+	}
+};
+
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
@@ -572,6 +591,7 @@ export const createVueConsentKernelContext =
 				transport,
 				...options.kernelConfig,
 			});
+		holdBlockedRequests(options.config, ownsKernel);
 
 		const snapshot = shallowRef(kernel.getSnapshot());
 		const unsubscribe = kernel.subscribe((next) => {
