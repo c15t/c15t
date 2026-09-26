@@ -165,6 +165,12 @@ group: reference
   `vendor-list.item`, `vendor-list.header`,
   `vendor-list.name`, `vendor-list.description`, `vendor-list.link`,
   `vendor-list.control` and `tag.manager`.
+
+  `ConsentWidget` from the package root and from the
+  `c15t/react/consent-widget` subpath loads its code in a separate chunk the
+  first time it renders, so a page that never renders it does not download
+  it. `c15t/react/components/consent-widget` exports the widget without that
+  deferral, plus each part as a named export.
 </section>
 
 <section id="verify">

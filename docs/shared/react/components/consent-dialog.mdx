@@ -135,6 +135,15 @@ group: reference
   for the stock structure are `dialog.root`, `dialog.container`,
   `dialog.card`, `dialog.header`, `dialog.title`, `dialog.content`,
   `dialog.overlay`, `description.dialog`, `manager.footer` and `tag.dialog`.
+
+  `ConsentDialog` from the package root and from the
+  `c15t/react/consent-dialog` subpath is the deferred component described
+  under Behavior, and each `ConsentDialog.<Part>` loads with the same chunk.
+  `c15t/react/components/consent-dialog` exports the dialog without the
+  deferral, plus each part as a named export (`Card`, `Header`, `Overlay`,
+  `Root` and the rest). Importing from that path puts the dialog's code in
+  the bundle of every page that imports it, so the first open needs no
+  download but every visitor downloads the dialog.
 </section>
 
 <section id="verify">

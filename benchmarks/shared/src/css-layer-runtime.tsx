@@ -1,9 +1,9 @@
 'use client';
 
 import { offline } from '@c15t/react';
+import { ConsentDialog } from '@c15t/react/components/consent-dialog';
+import { ConsentWidget } from '@c15t/react/components/consent-widget';
 import { ConsentBanner } from '@c15t/react/consent-banner';
-import { ConsentDialog } from '@c15t/react/consent-dialog';
-import { ConsentWidget } from '@c15t/react/consent-widget';
 import { ConsentDraftProvider } from '@c15t/react/draft';
 import { useActiveUI, useSetActiveUI } from '@c15t/react/hooks';
 import { ConsentProvider } from '@c15t/react/provider';

@@ -276,6 +276,25 @@ translation keys, `--frame-*` CSS custom properties and
 `data-testid="frame-placeholder"`, so custom copy, styles and tests continue
 to apply.
 
+## Split dialog and widget entries are deferred
+
+`c15t/react/consent-dialog` and `c15t/react/consent-widget` (and their
+`@c15t/react/*` equivalents) now export the same deferred `ConsentDialog` and
+`ConsentWidget` as `c15t/react`. The dialog's code loads when it first opens
+instead of with every page. `<ConsentDialog />`, `<ConsentWidget />` and the
+`ConsentDialog.<Part>` properties need no change.
+
+The two entries no longer export the individual parts. Import those from the
+component entries, which keep the old, eagerly bundled exports:
+
+| Before | After |
+| --- | --- |
+| `import { Card, Header } from 'c15t/react/consent-dialog'` | `import { Card, Header } from 'c15t/react/components/consent-dialog'` |
+| `import { Accordion, Switch } from 'c15t/react/consent-widget'` | `import { Accordion, Switch } from 'c15t/react/components/consent-widget'` |
+
+To keep the dialog in the first load so its first open needs no download,
+import `ConsentDialog` from `c15t/react/components/consent-dialog`.
+
 ## Next.js RSC banner removal
 
 The `@c15t/nextjs/rsc` entry (`c15t/next/rsc`) and its `RscConsentBanner`,
