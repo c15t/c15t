@@ -95,6 +95,36 @@ resolution it posts a small report to the backend's `POST /sessions`,
 server-to-server, so the backend still counts visitors it never served
 `/init` to. Pass `reportSessions: false` to send none.
 
+## Apply theme tokens on the server
+
+The provider does not turn theme tokens into CSS in the browser. Generate the
+CSS in the server `load` and render it in `<svelte:head>`, so the first paint
+already uses your colors. Install `@c15t/ui` for `generateThemeCSS`. These are
+partial additions to the files above:
+
+```ts title="src/routes/+layout.server.ts (partial)"
+import { generateThemeCSS } from '@c15t/ui/theme';
+
+const themeCSS = generateThemeCSS({
+  colors: { primary: '#2f6f4e' },
+  radius: { lg: '4px' },
+});
+
+// In `load`, return it with the prefetch data:
+return { prefetch: await loadConsent(event, { backendURL }), backendURL, themeCSS };
+```
+
+```svelte title="src/routes/+layout.svelte (partial)"
+<svelte:head>
+  {@html `<style id="c15t-theme">${data.themeCSS}</style>`}
+</svelte:head>
+```
+
+`generateThemeCSS` escapes `<`, so its output is safe inside `<style>`. Keep
+slot styles and `consentActions` in the provider's `options.theme`. Earlier
+v3 alphas injected the token CSS from the provider after hydration, so a
+custom theme appeared one frame late; this path removes that flash.
+
 ## Use static hosting
 
 A prerendered page cannot resolve a visitor's cookies at build time. For static

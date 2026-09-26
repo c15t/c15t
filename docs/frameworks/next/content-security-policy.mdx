@@ -112,13 +112,14 @@ created. Each full page load gets the fresh nonce from its own request.
 
 ## What the nonce applies to
 
-c15t stamps `options.nonce` on two kinds of DOM nodes:
+c15t stamps a nonce on two kinds of DOM nodes:
 
 - Every `<script>` element the script loader creates for a `scripts` entry,
-  both `src` and inline `textContent` scripts. A `nonce` set on an individual
-  `scripts` entry takes precedence over `options.nonce` for that element.
-- The `<style id="c15t-theme">` element the provider injects with the theme's
-  `--c15t-*` custom properties.
+  both `src` and inline `textContent` scripts, gets `options.nonce`. A `nonce`
+  set on an individual `scripts` entry takes precedence for that element.
+- The `<style id="c15t-theme">` element that `ConsentTheme` renders with the
+  theme's `--c15t-*` custom properties gets its `nonce` prop. Pass it the same
+  request nonce: `<ConsentTheme theme={theme} nonce={nonce} />`.
 
 It does not apply to anything else:
 

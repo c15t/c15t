@@ -157,6 +157,12 @@ unstyled.
 @import 'c15t/astro/iab/styles.css';
 ```
 
+The integration's `theme` tokens are rendered on the server as a
+`<style id="c15t-theme">` element next to the config script, so the
+server-rendered banner and the dialog islands share them from the first paint.
+A `theme` in the client entrypoint only adds slot styles and `consentActions`;
+put tokens in the integration's `theme`.
+
 Keep the c15t stylesheet when you restyle the surfaces. The browser runtime
 hides the banner with the `hidden` attribute, and the stylesheet makes that
 attribute beat the banner's own `display`.

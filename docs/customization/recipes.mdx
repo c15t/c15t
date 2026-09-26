@@ -14,8 +14,10 @@ intact.
 
 <include src="../examples/brand-theme.ts" />
 
-Install `@c15t/ui` to use `defineTheme` directly. Pass `brandTheme` as `theme` in
-your existing React or Next.js provider options. Keep your Inth mode and script
+Install `@c15t/ui` to use `defineTheme` directly. Render
+`<ConsentTheme theme={brandTheme} />` on the server for the tokens, and pass
+`brandTheme` as `theme` in your existing React or Next.js provider options for
+the action styles. Keep your Inth mode and script
 configuration. The theme source above is also imported by the runnable example,
 so the rendered result and the documentation use the same values.
 
