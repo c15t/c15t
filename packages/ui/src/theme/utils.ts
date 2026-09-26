@@ -436,6 +436,11 @@ const serializeThemeVars = function serializeThemeVars(
 
 /**
  * Generates a CSS string for the theme variables.
+ *
+ * Call it where your app renders on the server or at build time, and put
+ * the result in a `<style>` element or a stylesheet. The browser runtime no
+ * longer generates theme CSS. `<` is written as a CSS escape, so the result
+ * is safe inside a `<style>` element.
  * Apply `c15t-no-transitions` while switching themes to suppress animations.
  * @param theme - Theme tokens to serialize.
  * @param colorScheme - Select a scheme before hydration; defaults to root classes.
@@ -453,8 +458,13 @@ export const generateThemeCSS = function generateThemeCSS(
 		(colorScheme
 			? serializeThemeVars({ colors: defaultDarkColors }, true)
 			: '') + serializeThemeVars(theme, true);
+	// A CSS escape keeps token values intact without letting one close the
+	// surrounding `<style>` element.
 	return `${root}{${colorScheme === 'dark' ? dark : serializeThemeVars(theme, false)}}
 ${colorScheme === 'system' ? `@media(prefers-color-scheme:dark){${root}{${dark}}}` : ''}
 :root.dark,:host(.dark),.dark .c15t-theme-root,:root.c15t-dark,:host(.c15t-dark),.c15t-dark .c15t-theme-root{${dark}}
-.c15t-no-transitions,.c15t-no-transitions *,.c15t-no-transitions *::before,.c15t-no-transitions *::after{transition: none !important;animation: none !important;}`;
+.c15t-no-transitions,.c15t-no-transitions *,.c15t-no-transitions *::before,.c15t-no-transitions *::after{transition: none !important;animation: none !important;}`.replace(
+		/</gu,
+		'\\3c '
+	);
 };

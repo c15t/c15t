@@ -169,7 +169,10 @@ export interface C15tAstroOptions {
 	/** Locale and message overrides. */
 	i18n?: C15tI18nOptions;
 
-	/** Theme tokens applied to the banner and dialog surfaces. */
+	/**
+	 * Theme tokens applied to the banner and dialog surfaces. The server
+	 * renders them as a `<style id="c15t-theme">` next to the config script.
+	 */
 	theme?: Theme;
 
 	/**
@@ -313,7 +316,11 @@ export interface C15tClientOptionsExtension {
 	/** Overrides cleanup targets from the integration options. */
 	clearOnRevocation?: ClearOnRevocationConfig;
 	callbacks?: Record<string, unknown>;
-	/** Merged over the serialized theme. */
+	/**
+	 * Merged over the serialized theme for slot styles and consent-action
+	 * variants. Design tokens here are not applied: the browser no longer
+	 * generates theme CSS, so put tokens in the integration's `theme`.
+	 */
 	theme?: Theme;
 }
 
