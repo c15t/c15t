@@ -18,6 +18,21 @@ describe('generateServerComponent', () => {
 		expect(output).toContain('<ConsentManagerClient state={state}>');
 	});
 
+	test('passes the pending consent state instead of awaiting it', () => {
+		const output = generateServerComponent({
+			backendURLValue: 'process.env.NEXT_PUBLIC_C15T_URL!',
+			enableSSR: true,
+			framework: NEXTJS_CONFIG,
+		});
+
+		// An async wrapper that awaits resolution holds the whole response
+		// until the consent backend answers.
+		expect(output).toContain('export function ConsentManager(');
+		expect(output).not.toContain('async function');
+		expect(output).toContain('const state = resolveConsent({');
+		expect(output).not.toMatch(/await\s+resolveConsent/u);
+	});
+
 	test('does not add server resolution when SSR is disabled', () => {
 		const output = generateServerComponent({
 			backendURLValue: "'https://example.com'",

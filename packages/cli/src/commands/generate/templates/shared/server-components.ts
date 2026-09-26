@@ -18,9 +18,12 @@ interface GenerateServerComponentOptions {
 /**
  * Generates the server-side consent-manager index.tsx component template
  *
- * When SSR is enabled, the component resolves serializable consent state on
- * the server with `resolveConsent()` and passes it to the client component.
- * When SSR is disabled, it simply wraps children with the client component.
+ * When SSR is enabled, the component starts resolving consent state on the
+ * server with `resolveConsent()` and passes the pending promise to the client
+ * component, so the page renders without waiting for consent. The generated
+ * file stays synchronous: awaiting there would hold the whole response until
+ * the backend answers. When SSR is disabled, it simply wraps children with
+ * the client component.
  *
  * @param options - Template generation options
  * @param options.enableSSR - Whether to call `resolveConsent()` for SSR
@@ -39,11 +42,20 @@ import type { ReactNode } from 'react';
 import ConsentManagerClient from './provider';
 
 /**
- * Server-side consent management wrapper that resolves consent state per request.
- * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
+ * Server-side consent management wrapper.
+ *
+ * Starts resolving this request's consent state and passes the pending result
+ * to the client provider without awaiting it, so the page renders without
+ * waiting for the consent backend. The banner mounts after hydration, once
+ * the state arrives.
+ *
+ * To render the banner in the server HTML instead, make this component async,
+ * await \`resolveConsent\`, and wrap <ConsentManager> in <Suspense> in your
+ * layout. The page then waits for consent before it is shown.
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/app-router
  */
-export async function ConsentManager({ children }: { children: ReactNode }) {
-	const state = await resolveConsent({
+export function ConsentManager({ children }: { children: ReactNode }) {
+	const state = resolveConsent({
 		backendURL: ${backendURLValue},
 	});
 

@@ -1,6 +1,7 @@
 const Page = () => (
 	<p className="route-note">
-		App Router resolves consent on the server before rendering the page.
+		App Router starts resolving consent on the server and renders the page
+		without waiting for it.
 	</p>
 );
 
