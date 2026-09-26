@@ -94,7 +94,9 @@ export const createIABSurface = (
 		};
 		const result = await save[action]();
 		busy = false;
-		saveFailed = !result.ok;
+		// A backend failure after the choice was recorded leaves the surface
+		// closed; the message is only for a surface that came back to retry.
+		saveFailed = !result.ok && client.getSnapshot().activeUI !== 'none';
 		client.ui?.update();
 		updateFeedback();
 	};

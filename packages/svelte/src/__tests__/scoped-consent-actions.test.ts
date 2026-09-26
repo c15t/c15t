@@ -23,7 +23,7 @@ beforeEach(() => {
 
 describe('displayed consent actions', () => {
 	test.each(['all', 'necessary', 'custom'] as const)(
-		'%s transport failure retains the draft and dialog for retry',
+		'%s transport failure keeps the recorded choice and the dialog closed',
 		async (action) => {
 			const captured: {
 				kernel?: ConsentKernel;
@@ -60,24 +60,27 @@ describe('displayed consent actions', () => {
 				kernel.set.activeUI('dialog');
 				await tick();
 				manager.setSelectedConsent('marketing', action !== 'all');
-				const draft = { ...manager.selectedConsents };
-				await expect(manager.saveConsents(action)).rejects.toThrow(
-					'Unable to save preferences'
-				);
+				const pending = manager.saveConsents(action);
+				// Closed in the call, before the request starts.
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+				expect(save).not.toHaveBeenCalled();
+				await expect(pending).rejects.toThrow('Unable to save preferences');
 				expect(save).toHaveBeenCalledOnce();
-				expect(
-					kernel.getSnapshot().explicitChoice?.categories.marketing?.value
-				).toBe(action !== 'necessary');
-				expect(manager.selectedConsents).toEqual(draft);
-				expect(kernel.getSnapshot().activeUI).toBe('dialog');
-				expect(screen.getByRole('dialog')).toBeTruthy();
+				const recorded =
+					kernel.getSnapshot().explicitChoice?.categories.marketing?.value;
+				expect(recorded).toBe(action !== 'necessary');
+				// The local choice stands, and the draft follows it.
+				expect(manager.selectedConsents.marketing).toBe(recorded);
+				await tick();
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+				expect(screen.queryByRole('dialog')).toBeNull();
 			} finally {
 				result.unmount();
 			}
 		}
 	);
 	test.each(['all', 'necessary', 'custom'] as const)(
-		'%s keeps the dialog pending and respects an explicit close',
+		'%s closes before the save settles and stays closed when it fails',
 		async (action) => {
 			let rejectSave: (reason: Error) => void = () => {
 				throw new Error('Save not started');
@@ -116,23 +119,27 @@ describe('displayed consent actions', () => {
 				const rejected = expect(pending).rejects.toThrow(
 					'Unable to save preferences'
 				);
+				expect(kernel.getSnapshot().activeUI).toBe('none');
+				await tick();
+				expect(screen.queryByRole('dialog')).toBeNull();
 				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
-				expect(kernel.getSnapshot().activeUI).toBe('dialog');
-				expect(screen.getByRole('dialog')).toBeTruthy();
-				manager.setActiveUI('none');
 				rejectSave(new Error('Transport unavailable'));
 				await rejected;
 				await tick();
 				expect(kernel.getSnapshot().activeUI).toBe('none');
 				expect(screen.queryByRole('dialog')).toBeNull();
-				expect(manager.selectedConsents.marketing).toBe(true);
+				// The draft follows the recorded choice, which the failure keeps.
+				expect(manager.selectedConsents.marketing).toBe(action !== 'necessary');
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+				).toBe(action !== 'necessary');
 			} finally {
 				result.unmount();
 			}
 		}
 	);
 	test.each(['all', 'necessary', 'custom'] as const)(
-		'%s completion cannot close or reset a newer pending save',
+		'%s completion cannot close or reset a reopened dialog',
 		async (action) => {
 			const finish: (() => void)[] = [];
 			const fail: ((reason: unknown) => void)[] = [];
@@ -168,13 +175,17 @@ describe('displayed consent actions', () => {
 				manager.setActiveUI('dialog');
 				manager.setSelectedConsent('marketing', true);
 				const first = manager.saveConsents(action);
+				expect(kernel.getSnapshot().activeUI).toBe('none');
 				await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(1));
-				manager.setSelectedConsent('marketing', false);
+				manager.setActiveUI('dialog');
+				manager.setSelectedConsent('marketing', action === 'necessary');
 				const second = manager.saveConsents('custom');
 				const secondFailure = expect(second).rejects.toThrow(
 					'Unable to save preferences'
 				);
+				expect(kernel.getSnapshot().activeUI).toBe('none');
 				await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+				manager.setActiveUI('dialog');
 				manager.setSelectedConsent('marketing', true);
 				required(finish[0])();
 				await first;

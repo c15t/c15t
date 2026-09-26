@@ -367,45 +367,16 @@ const createConsentState = function createConsentState(
 		async saveConsents(type: SaveType) {
 			actionSequence += 1;
 			const sequence = actionSequence;
-			const preserveDialog = kernel.getSnapshot().activeUI === 'dialog';
-			const save = async () => {
-				if (type === 'custom') {
-					await options.getDraft().save(controller.consentCategories);
-					return;
-				}
-				const result = await kernel.commands.save(
-					type === 'all' ? 'all' : 'none',
-					{
-						categories: controller.consentCategories,
-					}
+			const before = kernel.getSnapshot();
+			const fromDialog = before.activeUI === 'dialog';
+			const recorded = () => {
+				const after = kernel.getSnapshot();
+				return (
+					after.explicitChoice !== before.explicitChoice ||
+					after.vendorChoice !== before.vendorChoice
 				);
-				if (!result.ok) {
-					throw new Error('Unable to save preferences.');
-				}
-				if (sequence === actionSequence) {
-					options.getDraft().reset();
-				}
 			};
-			// The local receipt commits synchronously, before the transport settles.
-			// Restore the open dialog now so loading and failure never hide its draft.
-			const pending = save();
-			if (preserveDialog && sequence === actionSequence) {
-				kernel.set.activeUI('dialog');
-			}
-			const unsubscribe = kernel.subscribe((next) => {
-				if (
-					preserveDialog &&
-					next.activeUI !== 'dialog' &&
-					sequence === actionSequence
-				) {
-					actionSequence += 1;
-				}
-			});
-			try {
-				await pending;
-				if (sequence !== actionSequence || !preserveDialog) {
-					return;
-				}
+			const closeDialog = () => {
 				const current = kernel.getSnapshot();
 				kernel.set.activeUI(
 					current.policyPending ||
@@ -414,8 +385,49 @@ const createConsentState = function createConsentState(
 						? 'none'
 						: 'banner'
 				);
-			} finally {
-				unsubscribe();
+			};
+			const save = async () => {
+				if (type === 'custom') {
+					await options.getDraft().save(controller.consentCategories);
+					return;
+				}
+				const pendingSave = kernel.commands.save(
+					type === 'all' ? 'all' : 'none',
+					{
+						categories: controller.consentCategories,
+					}
+				);
+				// The record already holds the choice; the draft follows it now.
+				if (recorded()) {
+					options.getDraft().reset();
+				}
+				const result = await pendingSave;
+				if (!result.ok) {
+					throw new Error('Unable to save preferences.');
+				}
+				if (sequence === actionSequence) {
+					options.getDraft().reset();
+				}
+			};
+			// The kernel records the choice and updates permissions before the
+			// transport runs (storage follows one task later, still ahead of
+			// the request). Close in this task and let
+			// the backend request finish in the background: its outcome never
+			// reopens the dialog, and a failed request stays queued for replay.
+			const pending = save();
+			const closed = fromDialog && recorded();
+			if (closed && sequence === actionSequence) {
+				closeDialog();
+			}
+			await pending;
+			// A save that recorded nothing new closes once it resolves.
+			if (
+				fromDialog &&
+				!closed &&
+				sequence === actionSequence &&
+				kernel.getSnapshot().activeUI === 'dialog'
+			) {
+				closeDialog();
 			}
 		},
 		get selectedConsents() {
@@ -604,6 +616,40 @@ export const getHeadlessConsent = function getHeadlessConsent() {
 			await consent.saveConsents('custom');
 		},
 	};
+};
+
+/**
+ * Close an IAB surface in the task that handled the click, then save.
+ *
+ * An IAB choice commits once its TC string is encoded, which can wait on the
+ * TCF library chunk but never on the backend. The surface comes back only
+ * when that local step recorded nothing (the vendor list failed to load, or
+ * the policy changed underneath), so the visitor can try again. A failed
+ * backend request never reopens it.
+ *
+ * @internal
+ */
+export const saveIABChoice = async function saveIABChoice(
+	kernel: ConsentKernel,
+	save: () => Promise<void>
+): Promise<void> {
+	const before = kernel.getSnapshot();
+	const surface = before.activeUI;
+	if (surface !== 'none') {
+		kernel.set.activeUI('none');
+	}
+	try {
+		await save();
+	} finally {
+		const after = kernel.getSnapshot();
+		if (
+			surface !== 'none' &&
+			after.iab?.authority === before.iab?.authority &&
+			after.activeUI === 'none'
+		) {
+			kernel.set.activeUI(surface);
+		}
+	}
 };
 
 export const getIAB = function getIAB(): SvelteIABState | null {
