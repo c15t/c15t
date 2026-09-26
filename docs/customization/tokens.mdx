@@ -10,9 +10,44 @@ React, Next.js and Svelte provide `styles.css`. Import the adapter's stylesheet
 at the app's global entry point. Vue includes styles in its components; Astro
 adds styles through its integration.
 
+The stylesheet blocks rendering, so it carries only what a first paint can
+show: the default tokens, every c15t CSS variable, and the rules for the
+banner, `ConsentDialogTrigger` and the `ConsentGate` placeholder. The consent
+dialog and preference widget bring their own rules. Each rule reaches the page
+once.
+
 ```tsx
 import 'c15t/react/styles.css';
 ```
+
+| File | Holds | Loaded by |
+| --- | --- | --- |
+| `styles.css` or `styles.tw3.css` | Default tokens, all variables, banner, trigger and `ConsentGate` rules | Your app, once |
+| `@c15t/ui/styles/dialog.css` | Dialog and preference widget rules | The dialog component, with its lazy chunk |
+| `@c15t/ui/styles/primitives.css` | Rules for the `@c15t/ui/styles/primitives` class maps | Svelte's `styles.css`, or your app if it renders those class maps |
+| `iab/styles.css` | IAB TCF banner and dialog rules and variables | Your app, after `styles.css` |
+
+In React, Next.js and TanStack Start, the dialog's module imports
+`@c15t/ui/styles/dialog.css`. The bundler emits it with the dialog's chunk and
+loads it before that chunk runs, so the dialog never renders unstyled. The
+chunk loads after first paint, by the time the dialog first opens. Do not
+import `dialog.css` yourself. The `@c15t/react/consent-dialog`,
+`/consent-widget`, `/primitives` and `/iab` entry points import it as soon as
+you import them, because they render dialog parts outside the lazy chunk.
+
+Svelte loads its dialog with the page, so `c15t/svelte/styles.css` also
+imports the dialog and primitive rules. Astro injects the banner rules; the
+React and Svelte dialog islands import the rest, and Astro links those
+stylesheets on every page, so in Astro the dialog rules still block rendering.
+Vue components import their own stylesheets.
+
+The dialog rules sit in `@layer components` and declare no variables, so
+tokens from `theme`, variables you override in your own CSS, and Tailwind 4
+utilities still win over them even though they load later. If you import
+`styles.css` into a named layer, such as `@import 'c15t/react/styles.css'
+layer(c15t)`, the dialog rules still join the top-level `components` layer.
+List `components` in your layer order statement, for example
+`@layer c15t, components, app;`, so it does not land after your own layers.
 
 The standard stylesheet places rules in `@layer components`. For Tailwind 3,
 use the `styles.tw3.css` entry instead of the standard stylesheet, between the
@@ -23,6 +58,18 @@ components and utilities directives in your Tailwind entry:
 @tailwind components;
 @import 'c15t/react/styles.tw3.css';
 @tailwind utilities;
+```
+
+Tailwind 3 also processes the dialog stylesheet the bundler loads, and it
+rejects a stylesheet that uses `@layer components` without its own
+`@tailwind components` directive. Add the c15t plugin before `tailwindcss` in
+your PostCSS config. It removes the layer wrapper from c15t's stylesheets so
+Tailwind 3 accepts them and its preflight does not override them:
+
+```js title="postcss.config.mjs"
+export default {
+  plugins: ['@c15t/ui/postcss-tailwind3', 'tailwindcss', 'autoprefixer'],
+};
 ```
 
 Do not load both c15t stylesheet variants. For Tailwind 4 or unlayered CSS,

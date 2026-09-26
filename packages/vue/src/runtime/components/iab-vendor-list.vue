@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+
+import '@c15t/ui/styles/components/iab-consent-dialog.css';
 import { computed, ref, toValue, watch } from 'vue';
 
 import {

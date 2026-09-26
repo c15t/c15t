@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import type { CompleteTranslations } from '@c15t/translations';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+
+import '@c15t/ui/styles/components/consent-banner.css';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
+
+import '@c15t/ui/styles/components/consent-dialog.css';
 import { computed } from 'vue';
 
 import { useConsentConfig, useConsentInit } from '#c15t/composables';

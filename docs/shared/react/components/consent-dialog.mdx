@@ -46,7 +46,9 @@ group: reference
   The component code is split into its own chunk. It downloads when the
   dialog first opens or when a visitor hovers or focuses a Customize button,
   and renders nothing until that chunk is ready. Passing `open={true}` or
-  `showTrigger` loads it on mount.
+  `showTrigger` loads it on mount. The dialog's CSS travels in the same chunk
+  and is applied before the dialog renders, so your app's `styles.css` import
+  stays small.
 
   Without an `open` prop, Escape closes the dialog. Save, Accept all and
   Reject all close it after the save succeeds; a save that fails keeps it

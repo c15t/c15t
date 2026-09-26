@@ -9,6 +9,10 @@
  * of the dialog's parts.
  */
 
+// styles.css does not carry the dialog's rules. Importing them here puts them
+// in the dialog's lazy chunk, and bundlers load a chunk's CSS before its
+// module runs, so the dialog never renders unstyled.
+import '@c15t/ui/styles/dialog.css';
 import type { FC } from 'react';
 
 import {

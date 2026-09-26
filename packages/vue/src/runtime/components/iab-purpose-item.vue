@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+
+import '@c15t/ui/styles/components/iab-consent-dialog.css';
 /**
  * One row in the IAB preference centre: a purpose, a special purpose, a
  * feature or a special feature.
@@ -11,6 +13,8 @@ import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
  * three-element content, same switch stylesheet.
  */
 import switchStyles from '@c15t/ui/styles/components/switch';
+
+import '@c15t/ui/styles/components/switch.css';
 import { computed, ref, toValue } from 'vue';
 
 import {

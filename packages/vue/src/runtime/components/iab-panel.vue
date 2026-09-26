@@ -10,6 +10,8 @@ import type {
 } from '@c15t/iab/headless';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+
+import '@c15t/ui/styles/components/iab-consent-dialog.css';
 import { getTextDirection } from '@c15t/ui/utils';
 import {
 	computed,

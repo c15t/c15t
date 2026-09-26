@@ -164,6 +164,11 @@ cascade layers in that file; when the c15t stylesheet is bundled separately
 and lands first, Tailwind's preflight sits above the c15t component layer and
 strips the banner's padding, borders and button styles.
 
+`c15t/next/styles.css` holds the tokens and the banner, trigger and
+`ConsentGate` rules. The dialog's rules come with the dialog's lazy chunk,
+which Next.js loads after your global stylesheet, so they join the layer order
+Tailwind already declared. See [Theme tokens and CSS](/docs/customization/tokens).
+
 The `Suspense` boundary is required with `cacheComponents: true`: awaiting
 request data directly in the root layout without it fails the build. Without
 `cacheComponents`, the boundary is still safe to keep. If `next dev` reports an
