@@ -178,11 +178,11 @@ describe('lazyHosted', () => {
 
 		expect(load).toHaveBeenCalledTimes(1);
 		expect(init).toHaveBeenCalledTimes(2);
-		const [options] = load.mock.calls[0] as unknown as [
+		const [loadOptions] = load.mock.calls[0] as unknown as [
 			{ fetch: unknown; url: string },
 		];
-		expect(options.url).toBe('https://consent.example.com');
-		expect(options.fetch).not.toBe(laterFetch);
+		expect(loadOptions.url).toBe('https://consent.example.com');
+		expect(loadOptions.fetch).not.toBe(laterFetch);
 	});
 });
 
