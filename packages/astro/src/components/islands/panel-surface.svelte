@@ -15,6 +15,11 @@
 	import { ConsentDialog, ConsentManagerProvider } from '@c15t/svelte';
 	import type { Component } from 'svelte';
 
+	// The injected stylesheet covers the banner only. The dialog and the
+	// Svelte primitives it renders need these rules too.
+	import '@c15t/ui/styles/dialog.css';
+	import '@c15t/ui/styles/primitives.css';
+
 	let {
 		options,
 		runtime,

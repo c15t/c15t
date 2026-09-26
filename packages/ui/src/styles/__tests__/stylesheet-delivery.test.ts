@@ -1,13 +1,21 @@
 /**
- * Guards the stylesheet contract: component rules reach the page once,
- * through the aggregated stylesheet.
+ * Guards the stylesheet contract: each component rule reaches the page once,
+ * and the render-blocking stylesheet carries only what a first paint can
+ * show.
  *
- * React, Next.js, TanStack Start, Svelte and Astro document one app-level
- * import of `styles.css` (or `styles.tw3.css`). If a class-map module also
- * imported its component stylesheet, bundlers would emit that stylesheet as a
- * second asset holding rules the aggregate already carries. Next.js with
- * Turbopack did exactly that for the banner, actions, legal links and consent
- * gate on first load, and for the dialog on open.
+ * - `styles.css` / `styles.tw3.css`: default tokens, every variable, and the
+ *   rules for the banner, dialog trigger and ConsentGate. The app imports it
+ *   once; it blocks rendering.
+ * - `styles/dialog.css`: dialog and preference-widget rules. The dialog's
+ *   module imports it, so bundlers ship it with the lazy dialog chunk.
+ * - `styles/primitives.css`: rules for the primitive class maps.
+ * - `iab/styles.css`: IAB variables and rules, loaded next to `styles.css`.
+ *
+ * Class maps stay CSS-free. If one imported its component stylesheet,
+ * bundlers would emit that stylesheet as a second asset holding rules an
+ * aggregate already carries. Next.js with Turbopack did exactly that for the
+ * banner, actions, legal links and consent gate on first load, and for the
+ * dialog on open.
  *
  * Vue keeps its component-only loading by importing the per-component `.css`
  * files explicitly next to each class map.
@@ -21,6 +29,12 @@ import { join } from 'node:path';
 import { parse } from 'postcss';
 import type { AtRule, ChildNode, Container, Declaration } from 'postcss';
 import { describe, expect, test } from 'vitest';
+
+import {
+	DIALOG_COMPONENTS,
+	FIRST_PAINT_COMPONENTS,
+	IAB_PREFIX,
+} from '../../../scripts/stylesheet-parts';
 
 const DIST_DIR = join(__dirname, '..', '..', '..', 'dist');
 const COMPONENTS_DIR = join(DIST_DIR, 'styles', 'components');
@@ -124,36 +138,155 @@ describe('class maps carry no CSS', () => {
 	}
 });
 
-describe('the aggregated stylesheet carries every component rule', () => {
-	const aggregates = {
-		iab: {
-			layered: ruleKeys(readDist(join(DIST_DIR, 'iab', 'styles.css'))),
-			tw3: ruleKeys(readDist(join(DIST_DIR, 'iab', 'styles.tw3.css'))),
-		},
-		standard: {
-			layered: ruleKeys(readDist(join(DIST_DIR, 'styles.css'))),
-			tw3: ruleKeys(readDist(join(DIST_DIR, 'styles.tw3.css'))),
-		},
-	};
+/** `:root` custom-property blocks, which always go into `styles.css`. */
+const isVariableRule = (key: string) => key.split('|')[1]?.includes(':root');
 
+const sheets = {
+	dialog: ruleKeys(readDist(join(DIST_DIR, 'styles', 'dialog.css'))),
+	iab: ruleKeys(readDist(join(DIST_DIR, 'iab', 'styles.css'))),
+	iabTw3: ruleKeys(readDist(join(DIST_DIR, 'iab', 'styles.tw3.css'))),
+	primitives: ruleKeys(readDist(join(DIST_DIR, 'styles', 'primitives.css'))),
+	styles: ruleKeys(readDist(join(DIST_DIR, 'styles.css'))),
+	stylesTw3: ruleKeys(readDist(join(DIST_DIR, 'styles.tw3.css'))),
+};
+
+const groupOf = function groupOf(
+	file: string
+): 'dialog' | 'first-paint' | 'iab' {
+	const name = file.replace(/\.css$/u, '');
+	if (name.startsWith(IAB_PREFIX)) {
+		return 'iab';
+	}
+	if ((DIALOG_COMPONENTS as readonly string[]).includes(name)) {
+		return 'dialog';
+	}
+	if ((FIRST_PAINT_COMPONENTS as readonly string[]).includes(name)) {
+		return 'first-paint';
+	}
+	throw new Error(`components/${file} is in neither stylesheet part`);
+};
+
+const missingFrom = (rules: string[], sheet: Set<string>) =>
+	rules.filter((rule) => !sheet.has(rule));
+
+/**
+ * Where each group's rules and variables must appear. IAB variables and
+ * rules ship in the IAB sheet only. Every other variable rides in the
+ * render-blocking sheet, so a host's override of one is never re-declared by
+ * a sheet that loads later.
+ */
+const TARGETS = {
+	dialog: {
+		rules: [sheets.dialog],
+		variables: [sheets.styles, sheets.stylesTw3],
+	},
+	'first-paint': {
+		rules: [sheets.styles, sheets.stylesTw3],
+		variables: [sheets.styles, sheets.stylesTw3],
+	},
+	iab: {
+		rules: [sheets.iab, sheets.iabTw3],
+		variables: [sheets.iab, sheets.iabTw3],
+	},
+} as const;
+
+describe('each component rule lands in the stylesheet for its surface', () => {
 	for (const file of COMPONENT_STYLESHEETS) {
-		const target = file.startsWith('iab-')
-			? aggregates.iab
-			: aggregates.standard;
-		const entry = file.startsWith('iab-') ? 'iab/styles' : 'styles';
+		const group = groupOf(file);
+		const target = TARGETS[group];
 
-		test(`${entry}.css and ${entry}.tw3.css contain every rule of components/${file}`, () => {
-			const componentRules = [
-				...ruleKeys(readDist(join(COMPONENTS_DIR, file))),
-			];
+		test(`components/${file} (${group})`, () => {
+			const all = [...ruleKeys(readDist(join(COMPONENTS_DIR, file)))];
+			const variables = all.filter(isVariableRule);
+			const rules = all.filter((rule) => !isVariableRule(rule));
 
-			expect(componentRules.length).toBeGreaterThan(0);
-			expect(
-				componentRules.filter((rule) => !target.layered.has(rule))
-			).toEqual([]);
-			expect(componentRules.filter((rule) => !target.tw3.has(rule))).toEqual(
-				[]
+			expect(rules.length).toBeGreaterThan(0);
+			expect(target.rules.map((sheet) => missingFrom(rules, sheet))).toEqual(
+				target.rules.map(() => [])
 			);
+			expect(
+				target.variables.map((sheet) => missingFrom(variables, sheet))
+			).toEqual(target.variables.map(() => []));
 		});
 	}
+
+	for (const file of listFiles(PRIMITIVES_DIR, '.module.css')) {
+		test(`primitives/${file}`, () => {
+			const rules = [...ruleKeys(readDist(join(PRIMITIVES_DIR, file)))].filter(
+				(rule) => !isVariableRule(rule)
+			);
+			expect(missingFrom(rules, sheets.primitives)).toEqual([]);
+		});
+	}
+});
+
+describe('the render-blocking stylesheet holds only first-paint rules', () => {
+	/** Hashed class names of a class map in `dist/styles/<dir>/<name>.js`. */
+	const classNamesOf = function classNamesOf(path: string): string[] {
+		return [...readDist(path).matchAll(/c15t-ui-[\w-]+/gu)].map(
+			(match) => match[0]
+		);
+	};
+	const selectorsOf = (keys: Set<string>) =>
+		[...keys].map((key) => key.split('|')[1] ?? '').join('\n');
+
+	const deferred = [
+		...DIALOG_COMPONENTS.map((name) => `components/${name}.js`),
+		...listFiles(PRIMITIVES_DIR, '.module.js').map(
+			(file) => `primitives/${file}`
+		),
+		...COMPONENT_STYLESHEETS.filter((file) => file.startsWith(IAB_PREFIX)).map(
+			(file) => `components/${file.replace(/\.css$/u, '.js')}`
+		),
+	];
+
+	for (const classMap of deferred) {
+		test(`styles.css and styles.tw3.css select no class from ${classMap}`, () => {
+			const classNames = classNamesOf(join(DIST_DIR, 'styles', classMap));
+			expect(classNames.length).toBeGreaterThan(0);
+			for (const sheet of [sheets.styles, sheets.stylesTw3]) {
+				const selectors = selectorsOf(sheet);
+				expect(classNames.filter((name) => selectors.includes(name))).toEqual(
+					[]
+				);
+			}
+		});
+	}
+
+	test('the dialog, primitive and IAB sheets declare no variables', () => {
+		// Only styles.css declares variables. The IAB sheet adds IAB variables,
+		// which styles.css does not declare.
+		for (const sheet of [sheets.dialog, sheets.primitives]) {
+			expect([...sheet].filter(isVariableRule)).toEqual([]);
+		}
+		expect(
+			[...sheets.iab].filter(
+				(rule) => isVariableRule(rule) && sheets.styles.has(rule)
+			)
+		).toEqual([]);
+	});
+
+	test('no rule reaches the page twice', () => {
+		const overlap = (a: Set<string>, b: Set<string>) =>
+			[...a].filter((rule) => b.has(rule));
+
+		expect(overlap(sheets.styles, sheets.dialog)).toEqual([]);
+		expect(overlap(sheets.styles, sheets.primitives)).toEqual([]);
+		expect(overlap(sheets.styles, sheets.iab)).toEqual([]);
+		expect(overlap(sheets.dialog, sheets.iab)).toEqual([]);
+	});
+
+	test('the dialog and primitive sheets keep their rules in @layer components', () => {
+		for (const file of ['dialog.css', 'primitives.css']) {
+			const css = readDist(join(DIST_DIR, 'styles', file));
+			const root = parse(css);
+			const topLevel = root.nodes.filter((node) => node.type !== 'comment');
+			expect(topLevel).toHaveLength(1);
+			expect(topLevel[0]).toMatchObject({
+				name: 'layer',
+				params: 'components',
+				type: 'atrule',
+			});
+		}
+	});
 });

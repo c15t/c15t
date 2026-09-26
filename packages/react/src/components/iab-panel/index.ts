@@ -9,6 +9,9 @@
  * of the consent dialog's parts.
  */
 
+// The IAB dialog renders switches, tabs and the preference widget, whose rules
+// live in the dialog stylesheet rather than styles.css.
+import '@c15t/ui/styles/dialog.css';
 import type { FC } from 'react';
 
 import { IABConsentDialogCard } from './atoms/card';

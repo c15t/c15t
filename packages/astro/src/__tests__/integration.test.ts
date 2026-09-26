@@ -206,6 +206,23 @@ describe('astro:config:setup', () => {
 		);
 	});
 
+	it('adds the dialog stylesheet to every page only for the Vue islands', async () => {
+		// React and Svelte islands import it on their own chunk; Astro's
+		// build drops the stylesheets the Vue island's components import.
+		const pageStyles = async (ui: 'react' | 'svelte' | 'vue') => {
+			const { calls } = await runSetup({ mode: offlineMode(), ui });
+			const found = calls.injectScript.mock.calls.find(
+				([stage]) => stage === 'page-ssr'
+			) as [string, string];
+			return found[1];
+		};
+		const dialog = `import ${specifier('@c15t/ui/styles/dialog.css')};`;
+
+		expect(await pageStyles('vue')).toContain(dialog);
+		expect(await pageStyles('react')).not.toContain(dialog);
+		expect(await pageStyles('svelte')).not.toContain(dialog);
+	});
+
 	it('leaves styles to the site with `styles: false`', async () => {
 		const { calls } = await runSetup({ mode: offlineMode(), styles: false });
 		expect(
