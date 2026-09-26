@@ -66,6 +66,9 @@ group: reference
   and its description and privacy policy link behind the card's own expand
   control. Cards start collapsed, so a long list stays one line per vendor,
   and the category list scrolls inside the dialog rather than growing it.
+  A collapsed category or card renders its content element empty and mounts
+  the content the first time it opens, then keeps it mounted, so a long
+  vendor list costs nothing until a visitor expands its category.
   Vendor switches edit the same draft as the category
   switches and record on Save. Saving with one vendor off denies that vendor
   only; the category stays granted and its other vendors keep loading. While
