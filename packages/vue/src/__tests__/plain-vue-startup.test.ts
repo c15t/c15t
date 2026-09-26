@@ -1,7 +1,8 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { createApp, defineComponent, h, inject } from 'vue';
+import { createApp, defineComponent, h, inject, onMounted } from 'vue';
 
 import { c15tVue } from '../index';
+import type { RuntimeConsentConfig } from '../runtime/kernel';
 import { symbolKernel } from '../runtime/utils/symbols';
 
 const cleanups: (() => void)[] = [];
@@ -70,3 +71,50 @@ test.each([false, true])(
 		expect(lifecycle.dispose).toHaveBeenCalledTimes(1);
 	}
 );
+
+test('holds tracker requests from child mount hooks until the blocker decides them', async () => {
+	vi.spyOn(console, 'warn').mockImplementation(() => {});
+	const network = vi.fn((_input: RequestInfo | URL) =>
+		Promise.resolve(new Response('{}', { status: 503 }))
+	);
+	vi.stubGlobal('fetch', network);
+	const statuses: Promise<number>[] = [];
+	// Children mount before the root, and the root's mount installs the blocker.
+	const child = defineComponent({
+		setup() {
+			onMounted(() => {
+				statuses.push(
+					window
+						.fetch('https://tracker.example/collect')
+						.then(({ status }) => status)
+				);
+			});
+			return () => h('p', 'Tracker');
+		},
+	});
+	const container = document.createElement('div');
+	document.body.append(container);
+	const app = createApp(
+		defineComponent({ setup: () => () => h('main', [h(child)]) })
+	);
+	const config: RuntimeConsentConfig = {
+		backendURL: 'https://consent.example.test',
+		networkBlocker: {
+			logBlockedRequests: false,
+			rules: [{ category: 'measurement', domain: 'tracker.example' }],
+		},
+	};
+	app.use(c15tVue, config);
+	cleanups.push(() => {
+		app.unmount();
+		container.remove();
+	});
+	app.mount(container);
+
+	expect(await Promise.all(statuses)).toEqual([451]);
+	expect(
+		network.mock.calls.some(([input]) =>
+			String(input).includes('tracker.example')
+		)
+	).toBe(false);
+});

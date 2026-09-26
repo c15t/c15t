@@ -30,3 +30,11 @@ export const COMPAT_CONSENT_CONFIG = defineConsentConfig({
 	initURL: COMPAT_INIT_URL,
 	manifestURL: COMPAT_MANIFEST_URL,
 });
+
+/**
+ * Network-blocker rules for the tracker the network-blocker route calls from
+ * `network-beacons.tsx`.
+ */
+export const COMPAT_TRACKER_RULES = [
+	{ category: 'measurement' as const, domain: 'tracker.test' },
+];

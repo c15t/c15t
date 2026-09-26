@@ -115,6 +115,11 @@
 			"import": "./shims/modules/network-blocker.js",
 			"default": "./shims/modules/network-blocker.js"
 		},
+		"./modules/network-hold": {
+			"types": "./shims/modules/network-hold.d.ts",
+			"import": "./shims/modules/network-hold.js",
+			"default": "./shims/modules/network-hold.js"
+		},
 		"./modules/iframe-blocker": {
 			"types": "./shims/modules/iframe-blocker.d.ts",
 			"import": "./shims/modules/iframe-blocker.js",

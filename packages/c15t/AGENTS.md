@@ -52,6 +52,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Headless](./docs/frameworks/next/headless.md): Build a custom consent banner in Next.js with the c15t/next/headless hooks inside your existing ConsentRoot.
 - [Hooks](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Gate features and save consent choices in Next.js Client Components with the focused hooks exported from c15t/next.
 - [IAB TCF](./docs/frameworks/next/iab/overview.md): Mount the IAB TCF banner and dialog inside a Next.js ConsentRoot and configure the CMP ID, policy and vendor data.
+- [Block network requests](./docs/frameworks/next/network-blocker.md): Block fetch and XHR calls to third-party domains in a Next.js app until the visitor grants their consent category.
 - [Optimization](./docs/frameworks/next/optimization.md): Reuse cached policy data and optionally reduce browser connection overhead without changing consent behavior.
 - [Pages Router](./docs/frameworks/next/pages-router.md): Set up Pages Router with Inth, cached manifests and consent-gated scripts.
 - [Quickstart](./docs/frameworks/next/quickstart.md): Add c15t consent management to Next.js with Inth, with setup guides for the App Router, the Pages Router and static export.
@@ -74,6 +75,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Headless](./docs/frameworks/react/headless.md): Build a custom consent banner in React with the c15t/react/headless hooks inside your ConsentProvider.
 - [Hooks](./docs/frameworks/react/hooks/use-consent-manager/overview.md): Gate features and save consent choices in React components with the focused hooks exported from c15t/react.
 - [IAB TCF](./docs/frameworks/react/iab/overview.md): Mount the IAB TCF banner and dialog inside a React ConsentProvider and configure the CMP ID, policy and vendor data.
+- [Block network requests](./docs/frameworks/react/network-blocker.md): Block fetch and XHR calls to third-party domains in a React app until the visitor grants their consent category.
 - [Quickstart](./docs/frameworks/react/quickstart.md): Connect a React application to Inth and add consent UI, persistence and a preferences link.
 - [Load scripts with consent](./docs/frameworks/react/script-loader.md): Register vendor scripts once and let effective permissions control loading.
 - [Styling](./docs/frameworks/react/styling/overview.md): Import the React stylesheet and theme c15t components with tokens, slots, and class names on ConsentProvider.
