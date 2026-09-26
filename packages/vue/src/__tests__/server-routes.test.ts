@@ -612,3 +612,75 @@ describe('serverFetch', () => {
 		});
 	});
 });
+
+describe('init route with a slow or failing backend', () => {
+	const initOutput = () =>
+		Response.json(
+			{
+				branding: 'c15t',
+				location: { countryCode: 'DE', regionCode: null },
+				policyResolution: writePolicyResolutionWire(
+					resolvePolicyRules({
+						countryCode: 'DE',
+						regionCode: null,
+						rules: [
+							{
+								id: 'eu',
+								match: { isDefault: true },
+								model: 'opt-in',
+								prompt: 'choice',
+							},
+						],
+					})
+				),
+				translations: { language: 'en', translations: {} },
+			},
+			{ headers: { 'x-c15t-policy-contract': '1' } }
+		);
+
+	test('answers within the render budget header without falling back to /init', async () => {
+		mocks.serverFetch.mockImplementation(
+			(_url: string, init?: RequestInit) =>
+				new Promise((_resolve, reject) => {
+					init?.signal?.addEventListener('abort', () =>
+						reject(init.signal?.reason)
+					);
+				})
+		);
+		const startedAt = Date.now();
+		const response = await callInitRoute({ 'x-c15t-timeout-ms': '20' });
+		expect(response.ok).toBe(false);
+		expect(Date.now() - startedAt).toBeLessThan(2000);
+		expect(mocks.serverFetch).toHaveBeenCalledTimes(1);
+	});
+
+	test('does not send every request to /init while the manifest backs off', async () => {
+		mocks.serverFetch.mockResolvedValue(
+			new Response('unavailable', { status: 503 })
+		);
+		const first = await callInitRoute();
+		const second = await callInitRoute();
+		expect(first.ok).toBe(false);
+		expect(second.ok).toBe(false);
+		// The first request tried the manifest and fell back to /init once.
+		expect(mocks.serverFetch).toHaveBeenCalledTimes(2);
+	});
+
+	test('keeps falling back to /init for a backend without /manifest', async () => {
+		mocks.serverFetch.mockImplementation((url: string) =>
+			Promise.resolve(
+				url.endsWith('/manifest')
+					? new Response('missing', { status: 404 })
+					: initOutput()
+			)
+		);
+		const first = await callInitRoute({ 'x-c15t-policy-contract': '1' });
+		const second = await callInitRoute({ 'x-c15t-policy-contract': '1' });
+		expect(first.ok).toBe(true);
+		expect(second.ok).toBe(true);
+		const initCalls = mocks.serverFetch.mock.calls.filter(([url]) =>
+			String(url).endsWith('/init')
+		);
+		expect(initCalls).toHaveLength(2);
+	});
+});

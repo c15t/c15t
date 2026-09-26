@@ -34,7 +34,12 @@ import type { EventHandlerRequest, H3Event } from 'h3';
 import { joinURL } from 'ufo';
 
 import type { ConsentConfig } from '../config';
-import { fetchCachedManifest, resolveManifestInit } from './manifest-mode';
+import {
+	C15T_TIMEOUT_HEADER,
+	fetchCachedManifest,
+	ManifestUnavailableError,
+	resolveManifestInit,
+} from './manifest-mode';
 import type { ManifestFetch } from './manifest-mode';
 
 interface C15TNitroRuntimeConfig {
@@ -139,6 +144,39 @@ export const createManifestRoute = function createManifestRoute(
 	});
 };
 
+/** Longest request-supplied budget honoured, in milliseconds. */
+const MAX_REQUEST_TIMEOUT_MS = 10_000;
+
+/**
+ * The budget the server render asked for with {@link C15T_TIMEOUT_HEADER},
+ * or `undefined` when the request carries none (a browser's own init).
+ */
+const readRequestTimeoutMs = function readRequestTimeoutMs(
+	value: string | undefined
+): number | undefined {
+	if (value === undefined || !/^\d+$/u.test(value.trim())) {
+		return undefined;
+	}
+	return Math.min(Number.parseInt(value.trim(), 10), MAX_REQUEST_TIMEOUT_MS);
+};
+
+/**
+ * Whether a failed manifest read may fall back to backend `/init`. It may for
+ * a backend that has no `/manifest` (404) and for the request that saw the
+ * failure itself. It may not when the render budget ran out, or while the
+ * key is backing off after a failure: sending every one of those requests to
+ * `/init` would put the load the backoff removes back on the same backend.
+ */
+const canFallBackToInit = function canFallBackToInit(cause: unknown): boolean {
+	if (!(cause instanceof ManifestUnavailableError)) {
+		return true;
+	}
+	if (cause.reason === 'timeout') {
+		return false;
+	}
+	return (cause.cause as { status?: unknown } | undefined)?.status === 404;
+};
+
 const negotiateInit = function negotiateInit(
 	output: InitOutput,
 	clientContract: string | undefined
@@ -185,6 +223,7 @@ export const createInitRoute = function createInitRoute(
 				config,
 				fetch: dependencies.fetch,
 				onBackgroundRevalidate: bindBackgroundRevalidate(dependencies, event),
+				timeoutMs: readRequestTimeoutMs(headers[C15T_TIMEOUT_HEADER]),
 			});
 			const load = (language: string) =>
 				manifest.manifest.iab?.gvl
@@ -235,7 +274,7 @@ export const createInitRoute = function createInitRoute(
 		} catch (cause) {
 			// Older backends may not expose /manifest; fall back to GET /init
 			// through the same fetch adapter so relative backend URLs work.
-			if (!config.backendURL) {
+			if (!config.backendURL || !canFallBackToInit(cause)) {
 				throw cause;
 			}
 			const forward: Record<string, string> = { ...c15tProtocolHeaders };

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	clearManifestCache,
@@ -9,7 +9,12 @@ import {
 import {
 	createManifestCache,
 	fetchCachedManifest as fetchThroughRuntime,
+	MANIFEST_FAILURE_RETRY_MAX_MS,
+	MANIFEST_FAILURE_RETRY_MIN_MS,
+	ManifestUnavailableError,
+	readFillFailures,
 	readRevalidationFloors,
+	withResolutionBudget,
 } from '../manifest-cache-runtime';
 
 const manifest = { revision: 'r1', schemaVersion: 1 };
@@ -442,5 +447,278 @@ describe('revalidation floor bookkeeping', () => {
 		expect(floor).toBeGreaterThanOrEqual(
 			122_000 + MANIFEST_DEDUPE_TTL_SECONDS * 1000
 		);
+	});
+});
+
+describe('failures on a cold cache', () => {
+	const unavailable = () =>
+		Promise.resolve(new Response('down', { status: 503 }));
+
+	test('a failed fill is not retried until its floor passes, then backs off', async () => {
+		const cache = createManifestCache();
+		const fetchSpy = vi.fn(unavailable);
+		const read = (now: number) =>
+			fetchThroughRuntime({
+				cache,
+				fetch: fetchSpy,
+				now,
+				sourceURL: URL_UNDER_TEST,
+			});
+
+		await expect(read(0)).rejects.toThrow('responded 503');
+		// Inside the floor every read answers from the failure record.
+		for (const now of [1, 500, MANIFEST_FAILURE_RETRY_MIN_MS - 1]) {
+			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
+			await expect(read(now)).rejects.toMatchObject({
+				cause: expect.objectContaining({ status: 503 }),
+				name: 'ManifestUnavailableError',
+				reason: 'backoff',
+			});
+		}
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+		// Each consecutive failure doubles the floor, up to the maximum.
+		let now = MANIFEST_FAILURE_RETRY_MIN_MS;
+		const floors: number[] = [];
+		for (let attempt = 0; attempt < 5; attempt += 1) {
+			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
+			await expect(read(now)).rejects.toThrow('responded 503');
+			const retryAt = readFillFailures(cache).get(URL_UNDER_TEST)?.retryAt;
+			floors.push((retryAt ?? now) - now);
+			now = retryAt ?? now;
+		}
+		expect(floors).toEqual([
+			2000,
+			4000,
+			MANIFEST_FAILURE_RETRY_MAX_MS,
+			MANIFEST_FAILURE_RETRY_MAX_MS,
+			MANIFEST_FAILURE_RETRY_MAX_MS,
+		]);
+		expect(fetchSpy).toHaveBeenCalledTimes(6);
+	});
+
+	test('a success clears the failure record', async () => {
+		const cache = createManifestCache();
+		const fetchSpy = vi
+			.fn()
+			.mockImplementationOnce(unavailable)
+			.mockResolvedValue(jsonResponse({ 'cache-control': 's-maxage=60' }));
+		const read = (now: number) =>
+			fetchThroughRuntime({
+				cache,
+				fetch: fetchSpy,
+				now,
+				sourceURL: URL_UNDER_TEST,
+			});
+
+		await expect(read(0)).rejects.toThrow('responded 503');
+		await expect(read(MANIFEST_FAILURE_RETRY_MIN_MS)).resolves.toMatchObject({
+			manifest,
+		});
+		expect(readFillFailures(cache).size).toBe(0);
+	});
+
+	test('concurrent reads of a failing key still share one request', async () => {
+		const cache = createManifestCache();
+		const gate = Promise.withResolvers<undefined>();
+		const fetchSpy = vi.fn(async () => {
+			await gate.promise;
+			return new Response('down', { status: 503 });
+		});
+		const reads = Array.from({ length: 5 }, () =>
+			fetchThroughRuntime({
+				cache,
+				fetch: fetchSpy,
+				now: 0,
+				sourceURL: URL_UNDER_TEST,
+			})
+		);
+		gate.resolve(undefined);
+
+		const settled = await Promise.allSettled(reads);
+		expect(settled.every((result) => result.status === 'rejected')).toBe(true);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('a stale entry past its window is not served while the upstream fails', async () => {
+		const cache = createManifestCache();
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				jsonResponse({
+					'cache-control': 's-maxage=10, stale-while-revalidate=20',
+				})
+			)
+			.mockImplementation(unavailable);
+		const read = (now: number) =>
+			fetchThroughRuntime({
+				cache,
+				fetch: fetchSpy,
+				now,
+				sourceURL: URL_UNDER_TEST,
+			});
+
+		await read(0);
+		// Inside stale-while-revalidate the stale copy is served.
+		await expect(read(15_000)).resolves.toMatchObject({ manifest });
+		// Past it, the read waits on the upstream and its failure surfaces,
+		// then the floor holds without serving the expired copy either.
+		await expect(read(31_000)).rejects.toThrow('responded 503');
+		await expect(read(31_500)).rejects.toMatchObject({ reason: 'backoff' });
+	});
+
+	test('a caller that cancels its own request does not start a floor', async () => {
+		const cache = createManifestCache();
+		const controller = new AbortController();
+		const fetchSpy = vi.fn(
+			(_url: string | URL | Request, init?: RequestInit) =>
+				new Promise<Response>((_resolve, reject) => {
+					init?.signal?.addEventListener('abort', () =>
+						reject(init.signal?.reason)
+					);
+				})
+		);
+		const pending = fetchThroughRuntime({
+			cache,
+			fetch: fetchSpy,
+			init: { signal: controller.signal },
+			now: 0,
+			sourceURL: URL_UNDER_TEST,
+		});
+		await vi.waitFor(() => {
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+		});
+		controller.abort(new Error('navigation cancelled'));
+		await expect(pending).rejects.toThrow('navigation cancelled');
+		expect(readFillFailures(cache).size).toBe(0);
+	});
+});
+
+describe('timeoutMs', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	test('stops waiting at the budget and lets the request fill the cache', async () => {
+		vi.useFakeTimers();
+		const cache = createManifestCache();
+		const fetchSpy = vi.fn(
+			() =>
+				new Promise<Response>((resolve) => {
+					setTimeout(() => {
+						resolve(jsonResponse({ 'cache-control': 's-maxage=60' }));
+					}, 800);
+				})
+		);
+		const background: Promise<void>[] = [];
+		const pending = fetchThroughRuntime({
+			cache,
+			fetch: fetchSpy,
+			onBackgroundRevalidate: (task) => {
+				background.push(task);
+			},
+			sourceURL: URL_UNDER_TEST,
+			timeoutMs: 300,
+		});
+		const rejected = expect(pending).rejects.toMatchObject({
+			name: 'ManifestUnavailableError',
+			reason: 'timeout',
+		});
+		await vi.advanceTimersByTimeAsync(300);
+		await rejected;
+		expect(background).toHaveLength(1);
+
+		await vi.advanceTimersByTimeAsync(500);
+		await background[0];
+		await expect(
+			fetchThroughRuntime({
+				cache,
+				fetch: fetchSpy,
+				sourceURL: URL_UNDER_TEST,
+				timeoutMs: 0,
+			})
+		).resolves.toMatchObject({ manifest });
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('a call joining a request already past its budget gives up at once', async () => {
+		vi.useFakeTimers();
+		const cache = createManifestCache();
+		const fetchSpy = vi.fn(
+			() =>
+				new Promise<Response>(() => {
+					// Never answers.
+				})
+		);
+		const first = fetchThroughRuntime({
+			cache,
+			fetch: fetchSpy,
+			sourceURL: URL_UNDER_TEST,
+			timeoutMs: 300,
+		});
+		const firstRejected = expect(first).rejects.toMatchObject({
+			reason: 'timeout',
+		});
+		await vi.advanceTimersByTimeAsync(400);
+		await firstRejected;
+
+		const startedAt = Date.now();
+		await expect(
+			fetchThroughRuntime({
+				cache,
+				fetch: fetchSpy,
+				sourceURL: URL_UNDER_TEST,
+				timeoutMs: 300,
+			})
+		).rejects.toMatchObject({ reason: 'timeout' });
+		expect(Date.now() - startedAt).toBe(0);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('fresh reads answer from memory whatever the budget', async () => {
+		const cache = createManifestCache();
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(jsonResponse({ 'cache-control': 's-maxage=60' }));
+		await fetchThroughRuntime({
+			cache,
+			fetch: fetchSpy,
+			now: 0,
+			sourceURL: URL_UNDER_TEST,
+		});
+		await expect(
+			fetchThroughRuntime({
+				cache,
+				fetch: fetchSpy,
+				now: 1000,
+				sourceURL: URL_UNDER_TEST,
+				timeoutMs: 0,
+			})
+		).resolves.toMatchObject({ manifest });
+	});
+});
+
+describe('withResolutionBudget', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	test('rejects with a timeout once the budget runs out', async () => {
+		vi.useFakeTimers();
+		const never = new Promise<string>(() => {
+			// Never settles.
+		});
+		const bounded = withResolutionBudget(never, 250);
+		const rejected = expect(bounded).rejects.toBeInstanceOf(
+			ManifestUnavailableError
+		);
+		await vi.advanceTimersByTimeAsync(250);
+		await rejected;
+	});
+
+	test('passes a result through when there is no budget', async () => {
+		await expect(
+			withResolutionBudget(Promise.resolve('ok'), undefined)
+		).resolves.toBe('ok');
 	});
 });

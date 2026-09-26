@@ -146,11 +146,12 @@ hydration. To send it with the HTML, use the
 [awaited layout](#render-the-banner-in-the-server-html) and accept that the
 page waits with it.
 
-If the manifest request fails, `resolveConsent` resolves to a baseline state
-without a policy and logs the failure outside production. The page has already
-rendered. The browser retries policy resolution after hydration, and gated
-scripts and embeds stay blocked until it succeeds. Pass `onError` to report
-these failures; see [troubleshooting](/docs/frameworks/next/troubleshooting).
+If the manifest request fails, or does not answer within `timeoutMs` (500 ms
+by default), `resolveConsent` resolves to a baseline state without a policy
+and logs the failure outside production. The page has already rendered. The
+browser retries policy resolution after hydration, and gated scripts and
+embeds stay blocked until it succeeds. Pass `onError` to report these
+failures; see [troubleshooting](/docs/frameworks/next/troubleshooting).
 
 Keep the c15t stylesheet in `globals.css` rather than importing
 `c15t/next/styles.css` from a layout or component. Tailwind CSS 4 declares its
@@ -215,8 +216,9 @@ Whether the delay happens depends on when the browser paints relative to the
 consent chunk, so it varies with the device, network and page. In the last
 row the stylesheet finished with the end of the HTML and no sample was
 delayed; in the other rows 7 to 9 of 9 awaited samples were. When the manifest
-request hung, the awaited page stayed blank until the 10 second fetch timeout,
-while the default layout rendered the page at once. Gated scripts and embeds
+request hung, the awaited page stayed blank until the fetch timeout (10
+seconds in that run; `timeoutMs` now caps it at 500 ms by default), while the
+default layout rendered the page at once. Gated scripts and embeds
 stayed blocked until policy resolved in every case.
 
 The default layout pays with the banner, which mounts after hydration. Under
@@ -274,10 +276,13 @@ content waits with it: `{children}` sits inside `ResolvedConsent` and the
 fallback is `null`, so Next.js streams an empty shell first and the page in a
 later chunk of the same response, subject to the reveal delay described in
 [what server prefetch costs](#awaiting-holds-the-page). A slow manifest
-response leaves the whole page blank until the helper returns or its 10 second
-fetch timeout fires and the baseline renders. If the manifest request fails,
-the page renders with the baseline state and the browser resolves policy after
-hydration, so a new visitor sees the prompt appear late.
+response leaves the page blank until the helper returns, for at most
+`timeoutMs`. A warm manifest cache answers in about a millisecond; a cold
+cache pays the backend round trip, and a request that misses the budget keeps
+running and fills the cache for the next visitor. If the manifest request
+fails or times out, the page renders without a banner, optional categories
+stay denied and gated scripts and embeds stay blocked. The browser resolves
+policy after hydration, so a new visitor sees the prompt appear late.
 
 The `Suspense` boundary is required with `cacheComponents: true`: awaiting
 request data directly in the root layout without it fails the build. Without

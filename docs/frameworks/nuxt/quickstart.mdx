@@ -39,6 +39,18 @@ server-to-server, so the backend still counts visitors it never served
 `/init` to. It needs an absolute `backendURL`, never inferred from a manifest URL; set `reportSessions: false` to
 send none.
 
+Server rendering waits at most `timeoutMs` (500 ms by default) for the
+visitor's policy. If the backend is slow or down, the page renders without
+consent UI in the server HTML, optional categories stay denied, consent-gated
+scripts and iframes stay blocked, and the browser resolves the policy after
+hydration. The manifest request keeps running and fills the cache for the next
+request. The browser's own init requests are not cut short. After a failed
+manifest request with nothing cached, the routes wait 1 second before asking
+the backend again, doubling up to 5 seconds while failures continue; during
+that wait the init route does not fall back to the backend's `/init` unless the
+backend has no `/manifest` endpoint. Set `timeoutMs` in the `c15t` config to
+change the budget, or `false` to remove it.
+
 ## Register consent-gated scripts
 
 Include measurement and marketing categories in your policy for these vendors.
