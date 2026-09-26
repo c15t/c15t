@@ -70,6 +70,9 @@ group: reference
   If a preload fails, for example because the visitor is offline, nothing is
   cached: the next hover, focus or open tries the download again.
 
+  The dialog's CSS travels in the same chunk and is applied before the dialog
+  renders, so your app's `styles.css` import stays small.
+
   Without an `open` prop, Escape closes the dialog. Save, Accept all and
   Reject all close it as soon as the choice is recorded in the browser, in
   the same task as the click; the exit animation still plays. The request to

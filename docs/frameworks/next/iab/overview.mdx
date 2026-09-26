@@ -13,7 +13,9 @@ entry point, so import the components from `c15t/react/iab` and render this
 Client Component inside the `ConsentRoot` from your
 [App Router](/docs/frameworks/next/app-router) or
 [Pages Router](/docs/frameworks/next/pages-router) setup. Import
-`c15t/next/iab/styles.css` at your global stylesheet entry.
+`c15t/next/iab/styles.css` at your global stylesheet entry, after
+`c15t/next/styles.css`: the IAB stylesheet holds only the IAB rules and uses
+the tokens from the base stylesheet.
 
 ```tsx title="components/iab-consent.tsx"
 'use client';
