@@ -53,6 +53,12 @@ group: reference
   after mount and decides each held request. Apps without `networkBlocker` do
   not download it.
 
+  The standalone `useNetworkBlocker` hook works the same way from the first
+  render of the component that calls it. That render patches `fetch` and
+  `XMLHttpRequest`. If React throws the render away and never commits it, the
+  hold ends after 10 seconds and the requests it held are sent, as they would
+  have been without the hook.
+
   While consent is unknown, a matching request that would be blocked waits
   instead of failing. Consent is unknown until the policy has loaded, which is
   also when a returning visitor's stored choice takes effect. The request is
@@ -83,9 +89,9 @@ group: reference
   - `navigator.sendBeacon`, `WebSocket`, `EventSource`, and requests made by
     `<img>`, `<script>` or `<iframe>` elements, web workers and service
     workers.
-  - Requests from components that use the `useNetworkBlocker` hook and their
-    children's mount effects. The hook starts blocking after mount; use the
-    provider's `networkBlocker` option instead.
+  - With the standalone `useNetworkBlocker` hook instead of the provider
+    option, requests sent before the component that calls it renders.
+    Blocking starts in that component's first render, not the provider's.
 
   Keep tracking calls out of that window:
 

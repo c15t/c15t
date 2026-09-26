@@ -13,6 +13,7 @@ import type {
 	NetworkBlockerRule,
 } from '../../libs/network-blocker/types';
 import type { ConsentKernel } from '../../types';
+import type { NetworkHold } from './hold';
 
 export type { BlockedRequestInfo, NetworkBlockerConfig, NetworkBlockerRule };
 
@@ -21,6 +22,13 @@ export interface NetworkBlockerOptions extends Omit<
 	'initialDraft'
 > {
 	kernel: ConsentKernel;
+	/**
+	 * The caller's hold from `holdNetworkRequests()`. The blocker takes over
+	 * only these requests and leaves other callers' holds in place. Without
+	 * it, the blocker ends every hold.
+	 * @internal
+	 */
+	hold?: NetworkHold;
 }
 
 export interface NetworkBlockerHandle {
