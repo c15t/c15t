@@ -67,6 +67,7 @@ import {
 import type { RememberedDecisionInputs } from './decision-inputs';
 import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
+import { saveFailure } from './save-rejection';
 import { buildSubjectPostBody } from './subject-body';
 import type { SubjectSavePayload } from './subject-body';
 import {
@@ -530,9 +531,7 @@ export const createHostedTransport = function createHostedTransport(
 			});
 
 			if (!response.ok) {
-				throw new Error(
-					`c15t hosted transport: /subjects responded ${response.status} ${response.statusText}`
-				);
+				throw await saveFailure(response, 'c15t hosted transport');
 			}
 
 			return toSaveResult(await response.json());

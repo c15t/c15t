@@ -79,6 +79,10 @@ export { clearGvlCache, fetchCachedGvl } from './transports/gvl-cache';
 export type { HostedTransportOptions } from './transports/hosted';
 export { createHostedTransport } from './transports/hosted';
 export {
+	ConsentSaveRejectedError,
+	isConsentSaveRejection,
+} from './transports/save-rejection';
+export {
 	initOutputToKernelConfig,
 	initResponseToKernelConfig,
 	kernelConfigToInitResponse,

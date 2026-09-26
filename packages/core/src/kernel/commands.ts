@@ -23,6 +23,7 @@ import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
+import { isConsentSaveRejection } from '../transports/save-rejection';
 import type {
 	ConsentSnapshot,
 	ConsentState,
@@ -726,6 +727,18 @@ export interface CommandDeps {
 /**
  * Build the `kernel.commands.*` object given the kernel's runtime deps.
  */
+/**
+ * The payload to queue after a failed save, or `null`. A save the backend
+ * refused for good would be refused again on every replay; the choice stays
+ * recorded locally either way.
+ */
+const worthReplaying = function worthReplaying(
+	payload: SavePayload | null,
+	error: unknown
+): SavePayload | null {
+	return isConsentSaveRejection(error) ? null : payload;
+};
+
 // oxlint-disable-next-line max-lines-per-function -- Commands share retry, timer and replay state through closures.
 export const buildCommands = function buildCommands(deps: CommandDeps) {
 	const { runtime, transport, initRetry } = deps;
@@ -1122,7 +1135,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			return { ...result, confirmed };
 		} catch (error) {
 			emit({ command: 'save', error, type: 'command:error' });
-			const remaining = currentPayload();
+			const remaining = worthReplaying(currentPayload(), error);
 			if (remaining) {
 				await pendingSaves?.enqueue(remaining);
 				ensureOnlineListener();

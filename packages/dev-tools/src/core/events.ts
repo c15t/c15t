@@ -85,6 +85,11 @@ const outcomeMessage = (
 	failure: string
 ): string => (ok ? success : failure);
 
+const replayMessage = (ok: boolean, rejected: string | undefined): string =>
+	rejected
+		? `Queued consent save refused by the backend (${rejected}); dropped`
+		: outcomeMessage(ok, 'Queued consent saved', 'Queued consent save failed');
+
 /**
  * Converts a kernel event into the stable log shape shown by DevTools.
  *
@@ -228,13 +233,13 @@ export function kernelEventToDevToolsEvent(
 			};
 		case 'save:replayed':
 			return {
-				data: { ok: event.ok, subjectId: event.subjectId },
+				data: {
+					ok: event.ok,
+					rejected: event.rejected,
+					subjectId: event.subjectId,
+				},
 				id,
-				message: outcomeMessage(
-					event.ok,
-					'Queued consent saved',
-					'Queued consent save failed'
-				),
+				message: replayMessage(event.ok, event.rejected),
 				timestamp,
 				type: event.type,
 			};

@@ -136,6 +136,45 @@ Retrying the same act with a different map is a `CONFLICT`, like a retry with
 different receipts, and so is any retry against a stored map that cannot be
 read. Migration `4-vendor-choice` adds the column.
 
+### Late saves
+
+A browser that can't deliver a save keeps it and sends it again on the next
+page load or when it comes back online, for up to 7 days. The replay carries
+the original `givenAt` (the click time) and the `policySnapshotToken` from the
+`/init` the visitor saw. Tokens expire after `ttlSeconds` (30 minutes by
+default), so a replay often arrives with an expired token.
+
+With signing configured, the backend accepts such a save when all of these
+hold:
+
+- The token's signature, issuer and tenant audience verify.
+- The token was valid at `givenAt`: `givenAt` is between the token's issue
+  time and its expiry, with 10 minutes of slack for the visitor's clock.
+- The request arrives no later than `policySnapshot.replayWindowSeconds` after
+  the token expired (7 days by default).
+- The manifest still has the policy the token names under the same
+  fingerprint.
+
+The record keeps `givenAt` as sent, `createdAt` is when the backend received
+it, and `runtimePolicySource` is `snapshot_token_replayed` instead of
+`snapshot_token`. The request's wide event carries the same value as
+`consent.decisionSource`. A save that arrived before its token expired is
+unchanged. Retrying a save that already landed returns the existing record.
+
+The backend refuses these, and the c15t client drops them from its replay
+queue instead of retrying:
+
+| Response | When |
+| --- | --- |
+| `409 POLICY_SNAPSHOT_EXPIRED` | `givenAt` is outside the token's lifetime, or the request arrived after the replay window |
+| `409 POLICY_SNAPSHOT_INVALID` | The token doesn't verify, or its claims are incomplete |
+| `422 STALE_POLICY`, reason `policy-changed` | The policy the token names is no longer in the manifest under that fingerprint. The visitor saw the old text, so the choice is not recorded against the new one. |
+
+A refused save stays recorded in the visitor's browser only. `givenAt` is
+supplied by the client. A late save can only claim a time inside the lifetime
+of a token this backend signed, for a policy that is still current, but within
+that range the backend can't tell a genuine click time from a chosen one.
+
 Privacy directives are stored separately from consent records. Saving consent
 does not delete an existing directive. An API-authenticated identity link has
 different authority from a browser-asserted link.
