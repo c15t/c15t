@@ -133,7 +133,7 @@ describe('manifest fetch protection', () => {
 		expect(fetch.mock.calls[0]?.[1]).toMatchObject({ redirect: 'follow' });
 	});
 
-	test('times out a stalled shared fetch and allows a later request to retry', async () => {
+	test('times out a stalled shared fetch and retries once the failure floor passes', async () => {
 		vi.useFakeTimers();
 		const fetch = vi
 			.fn<typeof globalThis.fetch>()
@@ -151,12 +151,17 @@ describe('manifest fetch protection', () => {
 		const first = transport.fetchCachedManifest({ fetch, sourceURL: url });
 		const second = transport.fetchCachedManifest({ fetch, sourceURL: url });
 		const rejected = Promise.all([
-			expect(first).rejects.toThrow('timed out after 10 seconds'),
-			expect(second).rejects.toThrow('timed out after 10 seconds'),
+			expect(first).rejects.toThrow('timed out after 5000 ms'),
+			expect(second).rejects.toThrow('timed out after 5000 ms'),
 		]);
-		await vi.advanceTimersByTimeAsync(10_000);
+		await vi.advanceTimersByTimeAsync(transport.MANIFEST_FETCH_TIMEOUT_MS);
 		await rejected;
 		expect(fetch).toHaveBeenCalledTimes(1);
+		await expect(
+			transport.fetchCachedManifest({ fetch, sourceURL: url })
+		).rejects.toMatchObject({ reason: 'backoff' });
+		expect(fetch).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(transport.MANIFEST_FAILURE_RETRY_MIN_MS);
 		await expect(
 			transport.fetchCachedManifest({ fetch, sourceURL: url })
 		).resolves.toMatchObject({ manifest: { revision: 1 } });

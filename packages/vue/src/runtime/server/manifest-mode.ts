@@ -16,7 +16,11 @@ import type {
 
 import type { ConsentConfig } from '../config';
 
-export { resolveNuxtInitRoute, resolveNuxtManifestRoute } from '../manifest';
+export {
+	C15T_TIMEOUT_HEADER,
+	resolveNuxtInitRoute,
+	resolveNuxtManifestRoute,
+} from '../manifest';
 export { clearManifestCache as clearManifestRouteCache } from '@c15t/core/transports/manifest-cache';
 
 export type {
@@ -29,6 +33,7 @@ export {
 	getManifestStaleWhileRevalidate,
 	getResolverInputsFromHeaders,
 	MANIFEST_DEDUPE_TTL_SECONDS,
+	ManifestUnavailableError,
 	resolveManifestInit,
 } from '@c15t/core/transports/manifest-cache';
 
@@ -52,6 +57,8 @@ export const fetchCachedManifest = function fetchCachedManifest(input: {
 	query?: string;
 	now?: number;
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+	/** Longest to wait for the upstream when nothing servable is cached. */
+	timeoutMs?: number;
 }): Promise<CachedManifestResponse> {
 	return fetchCachedManifestFromSource({
 		fetch: input.fetch,
@@ -59,5 +66,6 @@ export const fetchCachedManifest = function fetchCachedManifest(input: {
 		onBackgroundRevalidate: input.onBackgroundRevalidate,
 		query: input.query,
 		sourceURL: resolveManifestSourceURL(input.config),
+		timeoutMs: input.timeoutMs,
 	});
 };

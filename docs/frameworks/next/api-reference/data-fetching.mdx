@@ -128,13 +128,14 @@ network request and returns cookie- and header-only state; see
 | --- | --- | --- |
 | `backendURL` | `config.backendURL` | Backend base URL. An explicit value overrides `config.backendURL`. Without a manifest source, `resolveConsent` calls `${backendURL}/init`. Omit both `backendURL` and `config` for cookie-only state. |
 | `config` | none | A `defineConsentConfig` result supplying `backendURL` and `manifestURL`. Explicit options on this bag win over its fields. `initURL` is not read. |
-| `manifestURL` | `config.manifestURL` | Manifest route URL. When set, server prefetch resolves policy from the manifest and does not call backend `/init`. |
+| `manifestURL` | `config.manifestURL` | Manifest route URL. When set, server prefetch resolves policy from the manifest and does not call backend `/init`. The manifest is read through the in-process manifest cache, whether the URL is your manifest route or the backend's `/manifest`. |
 | `manifest` | none | Inline manifest object used instead of fetching `manifestURL`. Any `manifestURL` is still resolved first, so a relative one needs a request host. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Wrap it in Next.js fetch caching only in manifest mode; the `/init` call carries visitor cookies and returns per-visitor state, so keep it uncached. |
 | `forwardHeaders` | `[]` | Request header names copied onto the outgoing call. Backend `/init` also forwards `x-forwarded-for` and `user-agent` automatically; manifest requests forward only this list. Headers absent from the request are skipped. |
-| `onError` | none | Receives the failure from the backend or manifest request. When omitted, failures are logged with `console.warn` only when `NODE_ENV` is not `production`. |
+| `onError` | none | Receives the failure from the backend or manifest request, including a `ManifestUnavailableError` when `timeoutMs` runs out or the manifest is backing off after a failure. When omitted, failures are logged with `console.warn` only when `NODE_ENV` is not `production`. |
+| `timeoutMs` | `500` | Longest the render waits for policy, in milliseconds, counted from the manifest or backend `/init` request. When it runs out, the helper returns the baseline state described below. `false` waits for the manifest cache's 5 second request timeout, or for the `fetch` implementation on backend `/init`. |
 | `reportSessions` | `true` | In manifest mode, report the resolved init to the backend's `POST /sessions` after the render, server-to-server, so the backend still counts the visitor. Forwards the visitor's user agent and client IP on `x-c15t-client-ip`, never cookies. `false` sends none. |
-| `waitUntil` | none | Receives the session report's promise so it survives the response. In the App Router pass `(task) => after(() => task)` with `after` from `next/server`. The promise never rejects. |
+| `waitUntil` | none | Receives work that outlives the render so it survives the response: the session report, a manifest refresh, and a manifest request that `timeoutMs` stopped waiting for. In the App Router pass `(task) => after(() => task)` with `after` from `next/server`. The promise never rejects. |
 | `now` | `Date.now()` | Clock used to validate stored records and stamped into the result. |
 | `cookieName` | `c15t` | Cookie holding persisted consent. Must match the client `storageConfig.storageKey`. |
 | `country` | header detection | Overrides the country read from request headers. |
@@ -143,7 +144,7 @@ network request and returns cookie- and header-only state; see
 
 `resolveConsent` throws when the request adapter's `headers()` or `cookies()`
 rejects (the default adapter rejects outside a request scope), and when your
-`onError` callback throws. Thrown URL resolution, network and policy
+`onError` callback throws. Thrown URL resolution, network, timeout and policy
 resolution errors are handled: they return the same baseline state as the
 cookie-only call, with stored records, geography, language and GPC from the
 request but no resolved policy. The page still renders and the browser initializes
@@ -153,6 +154,41 @@ body reports `policyResolution.status: 'failed'`, for example an unsupported
 policy contract, is different: that failed resolution is kept as the prepared
 state, the browser does not re-initialize on mount, and the consent UI stays
 hidden until the cause is fixed.
+
+### Slow or unavailable backends
+
+`resolveConsent` waits at most `timeoutMs` (500 ms by default) for policy. A
+warm manifest cache answers in about a millisecond, and a cold read over a new
+connection to a hosted backend usually takes a few hundred. When the budget
+runs out, the render uses the baseline state: no consent UI in the server HTML,
+optional categories denied, and consent-gated scripts and iframes blocked.
+`ConsentRoot` then initializes in the browser and shows the banner once the
+backend answers, retrying failed attempts with backoff.
+
+The manifest request does not stop when the render gives up. It keeps running,
+up to the cache's 5 second request timeout, and stores the manifest for later
+renders. Pass `waitUntil` so serverless platforms keep it alive after the
+response.
+
+Server manifest reads, in `resolveConsent` and in the route handlers, share
+these rules:
+
+- Concurrent requests for the same manifest URL share one upstream request.
+- A render that joins a request already in flight waits only for what is left
+  of that request's `timeoutMs`.
+- After a failed request, with no usable copy cached, that URL is not asked
+  again for 1 second. Each further failure doubles the wait, up to 5 seconds.
+  Requests in between fail at once with a `ManifestUnavailableError` whose
+  `reason` is `'backoff'`, so a struggling backend sees at most one request
+  per URL per server instance in each interval.
+- A stale copy is served only inside the backend's `stale-while-revalidate`
+  window, while one background request refreshes it. Past that window the read
+  waits for the backend like a miss and never falls back to the expired copy.
+
+A `manifestURL` that points at the backend itself, rather than your manifest
+route, is read through the same in-process cache, so renders do not fetch the
+backend on every request. The manifest route adds the Next.js Data Cache and a
+cacheable response for your CDN, so it remains the recommended setup.
 
 Absolute `http(s)` URLs are used as given. A `/`-relative `backendURL` or
 `manifestURL` is resolved from the request: the scheme comes from
