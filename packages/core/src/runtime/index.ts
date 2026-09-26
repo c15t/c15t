@@ -37,6 +37,7 @@ import { resolveVendors } from '../libs/vendors';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
+import { holdNetworkRequests } from '../modules/network-blocker/hold';
 import { createPersistence } from '../modules/persistence';
 import type { PersistenceHandle } from '../modules/persistence';
 import { createScriptLoader } from '../modules/script-loader';
@@ -397,6 +398,15 @@ export const createConsentRuntime = function createConsentRuntime(
 	const enabled = options.enabled ?? true;
 	const persistenceOptions = normalizePersistenceOptions(options);
 	const kernel = createRuntimeKernel(options);
+	// `start()` installs the blocker, often after the host rendered its
+	// children. Hold matching requests until then; the blocker replays them.
+	if (
+		enabled &&
+		options.networkBlocker &&
+		options.networkBlocker.enabled !== false
+	) {
+		holdNetworkRequests(options.networkBlocker.rules);
+	}
 
 	let iabHandle: ConsentRuntimeIABHandle | null = null;
 	let started = false;

@@ -9,7 +9,9 @@
 		"./consent-shell": "./src/consent-shell.tsx",
 		"./probe": "./src/probe.tsx",
 		"./fixture": "./src/fixture/index.ts",
-		"./fixture/node-adapter": "./src/fixture/node-adapter.ts"
+		"./fixture/node-adapter": "./src/fixture/node-adapter.ts",
+		"./network-beacons": "./src/network-beacons.tsx",
+		"./sibling-beacon": "./src/sibling-beacon.tsx"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit",

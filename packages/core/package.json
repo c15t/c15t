@@ -103,6 +103,11 @@
 			"import": "./dist/network-blocker.js",
 			"default": "./dist/network-blocker.js"
 		},
+		"./modules/network-hold": {
+			"types": "./dist-types/modules/network-blocker/hold.d.ts",
+			"import": "./dist/network-hold.js",
+			"default": "./dist/network-hold.js"
+		},
 		"./modules/iframe-blocker": {
 			"types": "./dist-types/modules/iframe-blocker/index.d.ts",
 			"import": "./dist/iframe-blocker.js",
