@@ -142,9 +142,11 @@ not create separate runtimes for each consent island.
 ## Styles
 
 The integration adds `c15t/astro/styles.css` to every page, and
-`c15t/astro/iab/styles.css` when `iab` is set. The stylesheet covers the
-banner and the dialogs of every `ui` adapter: about 125 KB, or 16 KB gzipped.
-Do not import it again.
+`c15t/astro/iab/styles.css` when `iab` is set. The stylesheet covers the tokens
+and the banner: about 66 KB, or 9 KB gzipped. The React and Svelte dialog
+islands import the dialog's rules themselves, and Astro links that stylesheet
+on each page next to this one. With `ui: 'vue'`, the integration adds the
+dialog's rules to the page. Do not import `c15t/astro/styles.css` again.
 
 To load it yourself, for example from a global stylesheet that orders its own
 cascade layers, set `styles: false` and import the same files. Sites that set
@@ -153,6 +155,8 @@ unstyled.
 
 ```css title="src/styles/global.css"
 @import 'c15t/astro/styles.css';
+/* Only with `ui: 'vue'`. */
+@import '@c15t/ui/styles/dialog.css';
 /* Only when the integration sets `iab`. */
 @import 'c15t/astro/iab/styles.css';
 ```
