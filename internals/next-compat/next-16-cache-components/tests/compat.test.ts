@@ -54,6 +54,13 @@ defineCompatSuite({
 		},
 		{
 			gatedEmbed: true,
+			initPath: 'ssr',
+			name: 'gate-ssr',
+			path: '/gate-ssr',
+			rendering: { kind: 'partial' },
+		},
+		{
+			gatedEmbed: true,
 			initPath: 'ssr-stream',
 			name: 'gate-stream',
 			path: '/gate-stream',

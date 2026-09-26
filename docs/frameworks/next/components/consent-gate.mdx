@@ -1,6 +1,6 @@
 ---
 title: ConsentGate
-description: Consent-gate an iframe in Next.js with ConsentGate inside ConsentRoot; with server prefetch the placeholder or embed is decided in the server HTML.
+description: Consent-gate an iframe in Next.js with ConsentGate inside ConsentRoot; with server prefetch the server HTML carries the placeholder for a denied category, and a granted embed mounts after hydration.
 group: frameworks
 ---
 
@@ -52,12 +52,17 @@ The placeholder names the category using its title from your translations. Set
 does not shift when the placeholder is replaced.
 
 With the awaited `resolveConsent` from the App Router guide, the
-server decides between placeholder and embed from the resolved rule and the
-request cookie. Pages Router works the same way when `getServerSideProps`
+server decides from the resolved rule and the request cookie whether the
+category is allowed. Pages Router works the same way when `getServerSideProps`
 awaits `resolveConsent` from `c15t/next/pages` and passes the result
 through `state` to `ConsentRoot`, as in the
-[Pages Router guide](../pages-router). Hydration keeps that choice as long as
-the browser's privacy signals agree with the request: a `navigator.globalPrivacyControl`
+[Pages Router guide](../pages-router). A denied category gets the placeholder
+in the server HTML. A granted category gets an empty wrapper, and the embed
+mounts once hydration completes. With the awaited layout the page streams
+inside a `Suspense` boundary, and React moves streamed HTML into place after
+parsing it; an iframe that was already in that HTML would load twice.
+Hydration keeps the server's decision as long as the browser's privacy
+signals agree with the request: a `navigator.globalPrivacyControl`
 that the request did not carry as `Sec-GPC` is re-detected on hydration and
 can withdraw a category. Under an opt-in rule a new
 visitor gets the placeholder and a returning visitor who allowed `marketing`
