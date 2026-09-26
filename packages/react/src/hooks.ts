@@ -164,10 +164,23 @@ export const useHasConsentPolicy = function useHasConsentPolicy(): boolean {
 export const useHasConsentUI = function useHasConsentUI(): boolean {
 	return useKernelSelector(
 		(snap) =>
+			!snap.externalPermissions &&
 			snap.resolution.status === 'matched' &&
 			(snap.policyRule.prompt !== 'none' || snap.policyRule.rights.length > 0)
 	);
 };
+
+/** Whether c15t or an external CMP offers a preferences control. */
+export const useHasConsentPreferences =
+	function useHasConsentPreferences(): boolean {
+		return useKernelSelector(
+			(snap) =>
+				Boolean(snap.externalPermissions) ||
+				(snap.resolution.status === 'matched' &&
+					(snap.policyRule.prompt !== 'none' ||
+						snap.policyRule.rights.length > 0))
+		);
+	};
 
 /**
  * Derived consent model (opt-in / opt-out / iab), or `null` while no policy

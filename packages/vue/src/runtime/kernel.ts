@@ -28,7 +28,12 @@ import type { StorageConfig } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
-import { createLazyIABFactory } from '@c15t/core/runtime';
+import {
+	wireRuntimeCallbacks,
+	connectConsentSource,
+	reloadOnConsentRevocation,
+	createLazyIABFactory,
+} from '@c15t/core/runtime';
 import type {
 	ConsentRuntime,
 	ConsentRuntimeIABHandle,
@@ -508,6 +513,7 @@ const resolveInitialPolicyPending = (
 	);
 
 export const createVueConsentKernelContext =
+	// oxlint-disable-next-line complexity -- Resolves hosted, prefetched, borrowed and external-authority kernels.
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
 		headers?: Record<string, string | undefined>;
@@ -550,28 +556,32 @@ export const createVueConsentKernelContext =
 			options.config,
 			initialConfig
 		);
-		const kernel =
-			options.runtime?.kernel ??
-			createConsentKernel({
-				...initialConfig,
-				consentCategories: options.config.consentCategories,
-				inferredConsentCategories: inferConfiguredCategories(
-					options.config,
-					initialVendors
-				),
-				initialPolicyPending: resolveInitialPolicyPending(
-					initialConfig,
-					options.kernelConfig
-				),
-				initialRecords: records.initialRecords,
-				initialVendors,
-				now:
-					options.now ??
-					options.initialRecords?.now ??
-					options.config.initialRecords?.now,
-				transport,
-				...options.kernelConfig,
-			});
+		const kernelConfig: KernelConfig = {
+			...initialConfig,
+			consentCategories: options.config.consentCategories,
+			inferredConsentCategories: inferConfiguredCategories(
+				options.config,
+				initialVendors
+			),
+			initialPolicyPending: resolveInitialPolicyPending(
+				initialConfig,
+				options.kernelConfig
+			),
+			initialRecords: records.initialRecords,
+			initialVendors,
+			now:
+				options.now ??
+				options.initialRecords?.now ??
+				options.config.initialRecords?.now,
+			transport,
+			...options.kernelConfig,
+		};
+		if (options.config.consentSource) {
+			kernelConfig.initialExternalPermissions = {};
+			kernelConfig.initialRecords = undefined;
+			kernelConfig.initialPolicyPending = false;
+		}
+		const kernel = options.runtime?.kernel ?? createConsentKernel(kernelConfig);
 
 		const snapshot = shallowRef(kernel.getSnapshot());
 		const unsubscribe = kernel.subscribe((next) => {
@@ -584,18 +594,11 @@ export const createVueConsentKernelContext =
 			set: (value) => kernel.set.activeUI(toKernelActiveUI(value)),
 		});
 		const storedConsent = computed(() => snapshot.value.explicitChoice);
-		const unsubscribeChoice = kernel.events.on(
-			'choice:recorded',
-			({ snapshot: eventSnapshot, confirmed, actionAt }) => {
-				(ownsKernel ? options.config.callbacks : undefined)?.onChoiceRecorded?.(
-					{
-						actionAt,
-						confirmed,
-						snapshot: eventSnapshot,
-					}
-				);
-			}
-		);
+		const unsubscribeCallbacks = wireRuntimeCallbacks({
+			callbacks: ownsKernel ? options.config.callbacks : undefined,
+			kernel,
+		});
+
 		// Vendors the backend declares arrive with init. Their categories
 		// become selectable the same way a code-declared vendor's do.
 		const unsubscribeVendorCategories = ownsKernel
@@ -610,18 +613,6 @@ export const createVueConsentKernelContext =
 					}
 				})
 			: () => undefined;
-		const unsubscribePermissions = kernel.events.on(
-			'permissions:changed',
-			({ snapshot: eventSnapshot, previous }) => {
-				(ownsKernel
-					? options.config.callbacks
-					: undefined
-				)?.onPermissionsChanged?.({
-					previous,
-					snapshot: eventSnapshot,
-				});
-			}
-		);
 
 		// Assigned after context creation because the subscription updates that context.
 		// oxlint-disable-next-line prefer-const
@@ -644,9 +635,8 @@ export const createVueConsentKernelContext =
 			dispose() {
 				unsubscribeIab?.();
 				unsubscribe();
-				unsubscribeChoice();
+				unsubscribeCallbacks();
 				unsubscribeVendorCategories();
-				unsubscribePermissions();
 				if (ownsKernel) {
 					kernel.dispose();
 				}
@@ -755,6 +745,7 @@ const mountClearOnRevocation = (
  * @param options - Set `runInit: false` to skip the initial `init()`.
  * @returns A disposer that undoes everything this call mounted.
  */
+// oxlint-disable-next-line complexity -- Mounts consent modules in lifecycle order with one external authority.
 export const startVueConsentRuntime = function startVueConsentRuntime(
 	context: VueConsentKernelContext,
 	config: RuntimeConsentConfig,
@@ -780,7 +771,11 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		disposers.push(() => windowDebug.dispose());
 	}
 
-	if (typeof document !== 'undefined' && typeof localStorage !== 'undefined') {
+	if (
+		!config.consentSource &&
+		typeof document !== 'undefined' &&
+		typeof localStorage !== 'undefined'
+	) {
 		const persistence = createPersistence({
 			kernel: context.kernel,
 			skipHydration: true,
@@ -795,8 +790,18 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		});
 	}
 
+	if (typeof document !== 'undefined' && config.consentSource) {
+		disposers.push(connectConsentSource(context.kernel, config.consentSource));
+	}
+	if (
+		typeof document !== 'undefined' &&
+		config.reloadOnRevocation &&
+		config.scripts?.length
+	) {
+		disposers.push(reloadOnConsentRevocation(context.kernel));
+	}
 	const detectedGpc = context.snapshot.value.privacySignals.gpc;
-	if (detectedGpc.detected && detectedGpc.active) {
+	if (!config.consentSource && detectedGpc.detected && detectedGpc.active) {
 		// Prepared hydration is read-only. Commit the honored request signal
 		// through the public setter once the provider has mounted.
 		context.kernel.set.privacySignals({ gpc: true });
@@ -837,6 +842,9 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	let iabHandle: ConsentRuntimeIABHandle | undefined;
 	let activeCmpId: number | undefined;
 	const mountIab = () => {
+		if (config.consentSource) {
+			return;
+		}
 		const state = context.kernel.getSnapshot();
 		const cmpId = state.iab?.cmpId;
 		const nextCmpId =
@@ -869,13 +877,13 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	});
 
 	const browserGpc = getBrowserGpc();
-	if (browserGpc !== undefined) {
+	if (!config.consentSource && browserGpc !== undefined) {
 		context.kernel.set.privacySignals({ gpc: browserGpc });
 	}
 	let active = true;
 	const isActive = () => active;
 
-	if (options.runInit !== false) {
+	if (!config.consentSource && options.runInit !== false) {
 		void (async () => {
 			await context.kernel.commands.init();
 			if (!active) {

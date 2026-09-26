@@ -144,7 +144,10 @@ export interface ConsentUIOptions {
  * Everything `init()` accepts. Queue serializable options, transport
  * factories, callbacks, and DOM containers through `c15t.push(['config', {...}])` on a no-code site.
  */
-export interface ConsentClientOptions {
+export interface ConsentClientOptions extends Pick<
+	ConsentRuntimeOptions,
+	'consentSource' | 'reloadOnRevocation'
+> {
 	/** IAB configuration. Requires the `@c15t/browser/iab` entry. */
 	iab?: ConsentRuntimeOptions['iab'];
 	/**

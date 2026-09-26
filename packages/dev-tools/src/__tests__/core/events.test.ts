@@ -51,6 +51,7 @@ describe('kernel event mapping', () => {
 		const snapshot = createConsentKernel().getSnapshot();
 		const events: KernelEvent[] = [
 			{ type: 'records:cleared' },
+			{ type: 'preferences:requested' },
 			{
 				actionAt: 1,
 				confirmed: ['marketing'],

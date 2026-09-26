@@ -72,6 +72,10 @@ export default mergeConfig(
 					resolve(__dirname, '../core/src/modules/window-debug/index.ts'),
 				],
 				[
+					'@c15t/core/runtime/controls',
+					resolve(__dirname, '../core/src/runtime/controls.ts'),
+				],
+				[
 					'@c15t/core/runtime',
 					resolve(__dirname, '../core/src/runtime/index.ts'),
 				],

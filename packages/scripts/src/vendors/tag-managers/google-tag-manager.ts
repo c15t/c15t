@@ -75,6 +75,8 @@ export const googleTagManagerManifest = {
 } as const satisfies VendorManifest;
 
 export interface GoogleTagManagerOptions {
+	/** Container queue name. Defaults to dataLayer. */
+	dataLayer?: string;
 	/**
 	 * Your Google Tag Manager container ID. Begins with 'GTM-'.
 	 * @example `GTM-1234XXX`
@@ -117,18 +119,39 @@ export interface GoogleTagManagerOptions {
  */
 export const googleTagManager = function googleTagManager({
 	id,
+	dataLayer = 'dataLayer',
 	updateEventName,
 	consentMapping,
 }: GoogleTagManagerOptions): Script {
-	const manifest = withOptionalConsentMapping(
+	let manifest: VendorManifest = withOptionalConsentMapping(
 		googleTagManagerManifest,
 		consentMapping
 	);
 
+	if (dataLayer !== 'dataLayer') {
+		// Manifest values are JSON; substitute only exact queue/signal tokens.
+		manifest = JSON.parse(
+			JSON.stringify(manifest)
+				.replaceAll('"dataLayer"', JSON.stringify(dataLayer))
+				.replaceAll('"gtag"', JSON.stringify(`${dataLayer}Gtag`))
+				.replace(
+					'gtm.js?id={{id}}',
+					`gtm.js?id={{id}}&l=${encodeURIComponent(dataLayer)}`
+				)
+		);
+		manifest = {
+			...manifest,
+			consentSignal: 'gtag',
+			consentSignalTarget: `${dataLayer}Gtag`,
+		};
+	}
 	const resolved = resolveManifest(manifest, {
 		id,
 		updateEventName: updateEventName ?? 'consent-update',
 	});
 
-	return resolved;
+	return {
+		...resolved,
+		attributes: { ...resolved.attributes, 'data-c15t-layer': dataLayer },
+	};
 };

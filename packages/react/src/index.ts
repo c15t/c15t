@@ -111,6 +111,7 @@ export {
 	useConsent,
 	useConsents,
 	useHasConsentPolicy,
+	useHasConsentPreferences,
 	useHasConsentUI,
 	useIABEnabled,
 	useIABSnapshot,

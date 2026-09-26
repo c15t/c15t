@@ -73,6 +73,9 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	}, [options]);
 
 	useEffect(() => {
+		if (kernel.getSnapshot().externalPermissions) {
+			return;
+		}
 		const next = createIAB({ ...optionsRef.current, kernel });
 		handleRef.current = next;
 		setHandle(next);

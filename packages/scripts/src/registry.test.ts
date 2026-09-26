@@ -484,6 +484,7 @@ const getPublicScriptExportSubpaths =
 					key !== '.' &&
 					key !== './*' &&
 					key !== './package.json' &&
+					key !== './events' &&
 					key !== './registry'
 			)
 			.map((key) => key.replace('./', ''));

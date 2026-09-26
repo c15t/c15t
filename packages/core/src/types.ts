@@ -295,6 +295,8 @@ export type HydrationResult =
  * value did not change.
  */
 export interface ConsentSnapshot {
+	/** Volatile external CMP authority, when configured. Never persisted as a receipt. */
+	readonly externalPermissions?: Readonly<ConsentState>;
 	/** Configured and discovered categories. Null uses the full policy scope. */
 	readonly consentCategories: readonly AllConsentNames[] | null;
 	// -- Consent model -------------------------------------------------------
@@ -373,6 +375,8 @@ export interface ConsentSnapshot {
  * handle and only invoked when the corresponding command fires.
  */
 export interface KernelConfig {
+	/** External CMP authority. An empty object starts with optional categories denied. */
+	initialExternalPermissions?: Partial<ConsentState>;
 	/**
 	 * Categories to offer alongside discovered categories, intersected with policy scope.
 	 * Uses the full policy scope when neither source supplies categories.
@@ -579,6 +583,10 @@ export interface KernelTransport {
  * Kernel event surface. Stable event names.
  */
 export type KernelEvent =
+	| {
+			/** An external authority should open its preferences. */
+			type: 'preferences:requested';
+	  }
 	| { type: 'records:cleared' }
 	| {
 			/** An explicit accept, reject or save recorded a choice. */
@@ -752,6 +760,8 @@ export interface ConsentKernel {
 	 * Sync mutations. Notify subscribers synchronously.
 	 */
 	readonly set: {
+		/** Replace external CMP permissions. Only available when configured at construction. */
+		externalPermissions: (permissions: Partial<ConsentState>) => void;
 		/** Replace configured categories, retain discovered categories, and re-evaluate completion. */
 		consentCategories: (
 			categories: readonly AllConsentNames[] | undefined

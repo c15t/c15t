@@ -387,8 +387,10 @@ const createClient = function createClient(
 	// The server already resolved translations into `prefetch`, which the
 	// runtime prefers over anything it would derive from `i18n`.
 	const runtime = createConsentRuntime({
+		callbacks: extension.callbacks,
 		clearOnRevocation: extension.clearOnRevocation ?? options.clearOnRevocation,
 		consentCategories: options.consentCategories,
+		consentSource: extension.consentSource,
 		createIAB: lazyCreateIAB,
 		i18n: options.i18n as ConsentRuntimeOptions['i18n'],
 		// `RuntimeIABOptions` is the runtime's open-ended shape; the
@@ -406,6 +408,7 @@ const createClient = function createClient(
 		policyRules:
 			options.mode.type === 'offline' ? options.mode.policyRules : undefined,
 		prefetch: config,
+		reloadOnRevocation: options.reloadOnRevocation,
 		scripts,
 		storageConfig: options.storageConfig,
 	});
@@ -461,6 +464,10 @@ const createClient = function createClient(
 			tab?: 'purposes' | 'vendors'
 		) {
 			if (disposed) {
+				return;
+			}
+			if (extension.consentSource) {
+				runtime.kernel.set.activeUI('dialog');
 				return;
 			}
 			// Decide against the settled resolution: an init still in flight is

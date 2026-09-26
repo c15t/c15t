@@ -38,7 +38,11 @@ import {
 	resolveWindowDebugMode,
 } from '@c15t/core/modules/window-debug';
 import type { WindowDebugMode } from '@c15t/core/modules/window-debug';
-import type { ConsentRuntime } from '@c15t/core/runtime';
+import type { ConsentControlOptions, ConsentRuntime } from '@c15t/core/runtime';
+import {
+	connectConsentSource,
+	reloadOnConsentRevocation,
+} from '@c15t/core/runtime/controls';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
@@ -80,15 +84,18 @@ export type ConsentProviderPrefetch = Omit<
 	'initialDraft' | 'transport'
 >;
 
-export interface ConsentProviderOptions extends Pick<
-	ReactUIOptions,
-	| 'colorScheme'
-	| 'disableAnimation'
-	| 'noStyle'
-	| 'scrollLock'
-	| 'theme'
-	| 'trapFocus'
-> {
+export interface ConsentProviderOptions
+	extends
+		ConsentControlOptions,
+		Pick<
+			ReactUIOptions,
+			| 'colorScheme'
+			| 'disableAnimation'
+			| 'noStyle'
+			| 'scrollLock'
+			| 'theme'
+			| 'trapFocus'
+		> {
 	enabled?: boolean;
 	presentation?: ConsentPresentation;
 	/**
@@ -522,6 +529,7 @@ const resolveProviderVendors = function resolveProviderVendors(
 		: undefined;
 };
 
+// oxlint-disable-next-line complexity -- Resolves provider SSR options and external authority without changing streaming prefetch.
 const createProviderKernel = function createProviderKernel(
 	options: ConsentProviderOptions
 ): ConsentKernel {
@@ -573,7 +581,9 @@ const createProviderKernel = function createProviderKernel(
 			),
 		],
 		initialVendors,
-		initialRecords: enabled ? prefetch.initialRecords : undefined,
+		initialExternalPermissions: options.consentSource ? {} : undefined,
+		initialRecords:
+			enabled && !options.consentSource ? prefetch.initialRecords : undefined,
 		initialPrivacySignals: enabled ? prefetch.initialPrivacySignals : undefined,
 		// An empty shell has no expiring records to evaluate. A stable seed
 		// avoids reading the clock during Next.js static prerender; init
@@ -597,7 +607,9 @@ const createProviderKernel = function createProviderKernel(
 		// copy/actions that init may replace (mid-read copy swap, CLS, consent
 		// recorded against a placeholder policy). Real initial policies
 		// (prefetch/SSR/offline config) stay authoritative and render at once.
-		initialPolicyPending: resolveInitialPolicyPending(enabled, prefetch),
+		initialPolicyPending: options.consentSource
+			? false
+			: resolveInitialPolicyPending(enabled, prefetch),
 	});
 	kernelRef.current = kernel;
 	return kernel;
@@ -1186,12 +1198,14 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
  * </ConsentProvider>
  * ```
  */
+// oxlint-disable-next-line complexity -- Provider selects owned or borrowed lifecycle and renders the optional modules.
 export const ConsentProvider = (props: ConsentProviderProps) => {
 	const { children } = props;
 	const options = (props.options ?? {}) as ConsentProviderOptions;
 	const enabled = getEnabled(options);
 	const [owned, setOwned] = useState(() => ({
 		clearOnRevocation: options.clearOnRevocation,
+		consentSource: options.consentSource,
 		disabledKernel: props.runtime
 			? undefined
 			: createProviderKernel({ ...options, enabled: false }),
@@ -1199,15 +1213,17 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		kernel:
 			props.runtime?.kernel ??
 			createProviderKernel({ ...options, enabled: true }),
+		reloadOnRevocation: options.reloadOnRevocation,
 	}));
 	void setOwned;
 	const {
 		clearOnRevocation: initialClearOnRevocation,
 		external: externalRuntime,
 	} = owned;
-	const kernel = enabled
-		? owned.kernel
-		: (owned.disabledKernel ?? owned.kernel);
+	const kernel =
+		enabled || owned.consentSource
+			? owned.kernel
+			: (owned.disabledKernel ?? owned.kernel);
 	const ownsRuntime = externalRuntime === undefined;
 	useEffect(() => {
 		if (ownsRuntime || options.consentCategories !== undefined) {
@@ -1247,8 +1263,23 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		}),
 		[kernel, options.presentation, externalRuntime]
 	);
-	const persistenceOptions = normalizePersistenceOptions(options);
+	const persistenceOptions = owned.consentSource
+		? undefined
+		: normalizePersistenceOptions(options);
 	const { scripts, networkBlocker } = options;
+	useEffect(() => {
+		if (!ownsRuntime || !owned.consentSource) {
+			return;
+		}
+		return connectConsentSource(kernel, owned.consentSource);
+	}, [kernel, owned, ownsRuntime]);
+	const hasScripts = Boolean(scripts?.length);
+	useEffect(() => {
+		if (!ownsRuntime || !owned.reloadOnRevocation || !hasScripts) {
+			return;
+		}
+		return reloadOnConsentRevocation(kernel);
+	}, [kernel, owned, ownsRuntime, hasScripts]);
 	const windowDebugPkg = options.__debugPkg ?? '@c15t/react';
 	// `mode` is optional when a runtime is handed in — its owner picked the
 	// transport, and this provider mounts no `window.c15t` either way.
@@ -1338,7 +1369,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 						/>
 					) : null}
 					<InitMount
-						enabled={enabled}
+						enabled={enabled && !owned.consentSource}
 						prepared={!!resolveSyncPrefetch(options).initialPolicyResolution}
 						kernel={kernel}
 					/>

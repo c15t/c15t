@@ -22,6 +22,7 @@ import type {
 	ResolvedVendor,
 	VendorSource,
 } from '../types';
+import { normalizeExternalPermissions } from './external-permissions';
 import type { KernelRuntime } from './runtime';
 import {
 	buildDraft,
@@ -192,20 +193,33 @@ export const buildSetters = function buildSetters(
 
 	return {
 		activeUI(ui: KernelActiveUI): void {
+			if (getSnapshot().externalPermissions) {
+				if (ui === 'dialog') {
+					runtime.emit({ type: 'preferences:requested' });
+				}
+				return;
+			}
 			commit({ activeUI: ui });
 		},
-
 		consentCategories(
 			categories: readonly AllConsentNames[] | undefined
 		): void {
 			configured = categories ? [...categories] : [];
 			updateCategories();
 		},
-
 		draft(input: Partial<ConsentState>): void {
 			runtime.setDraft(mergeDraft(runtime.getDraft(), input));
 		},
-
+		externalPermissions(permissions: Partial<ConsentState>): void {
+			if (config.initialExternalPermissions === undefined) {
+				throw new Error(
+					'Configure external consent authority before updating its permissions.'
+				);
+			}
+			commit({
+				externalPermissions: normalizeExternalPermissions(permissions),
+			});
+		},
 		iab(input: Partial<KernelIABState>): void {
 			const { next, changed } = mergeIab(getSnapshot().iab, input);
 			if (!changed) {
@@ -215,7 +229,6 @@ export const buildSetters = function buildSetters(
 				emit({ snapshot: getSnapshot(), type: 'iab:set' });
 			}
 		},
-
 		language(code: string): void {
 			const snapshot = getSnapshot();
 			if (snapshot.overrides.language === code) {
@@ -224,7 +237,6 @@ export const buildSetters = function buildSetters(
 			commit({ overrides: { ...snapshot.overrides, language: code } });
 			emit({ snapshot: getSnapshot(), type: 'overrides:set' });
 		},
-
 		overrides(input: KernelOverrides): void {
 			const snapshot = getSnapshot();
 			const at = runtime.now();
@@ -233,7 +245,6 @@ export const buildSetters = function buildSetters(
 			runtime.reconcilePrivacy(at);
 			runtime.armDeadlineTimer();
 		},
-
 		privacySignals(input: { gpc?: boolean }): void {
 			if (input.gpc === undefined) {
 				return;
@@ -243,7 +254,6 @@ export const buildSetters = function buildSetters(
 			runtime.reconcilePrivacy(at);
 			runtime.armDeadlineTimer();
 		},
-
 		registerConsentCategories(categories: readonly AllConsentNames[]): void {
 			if (!categories.length) {
 				return;
@@ -257,7 +267,6 @@ export const buildSetters = function buildSetters(
 				updateCategories();
 			}
 		},
-
 		subjectId(id: string | null): void {
 			const { subject, iab } = getSnapshot();
 			const iabPatch = iab
@@ -277,11 +286,9 @@ export const buildSetters = function buildSetters(
 			}
 			commit({ subject: { ...subject, subjectId: id }, ...iabPatch });
 		},
-
 		vendorDraft(input: Record<string, boolean> | null): void {
 			runtime.setVendorDraft(mergeVendorDraft(runtime.getVendorDraft(), input));
 		},
-
 		vendors(
 			input: Partial<KernelVendorsState>,
 			options?: { replaceSource?: VendorSource }

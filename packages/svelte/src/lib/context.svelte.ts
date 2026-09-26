@@ -130,6 +130,8 @@ export interface ConsentManagerState extends Pick<
 	 * the permissions it grants apply. `false` until a rule is resolved.
 	 */
 	hasConsentUi: boolean;
+	/** Whether c15t or an external CMP offers a preferences control. */
+	hasConsentPreferences: boolean;
 	legalLinks: ConsentManagerOptions['legalLinks'];
 	translationConfig: TranslationConfig;
 	getDisplayedConsents: () => ConsentType[];
@@ -304,9 +306,16 @@ const createConsentState = function createConsentState(
 		get hasPolicy() {
 			return getSnapshotLocal().resolution.status === 'matched';
 		},
+		get hasConsentPreferences() {
+			return (
+				Boolean(getSnapshotLocal().externalPermissions) ||
+				controller.hasConsentUi
+			);
+		},
 		get hasConsentUi() {
 			const snapshot = getSnapshotLocal();
 			return (
+				!snapshot.externalPermissions &&
 				snapshot.resolution.status === 'matched' &&
 				(snapshot.policyRule.prompt !== 'none' ||
 					snapshot.policyRule.rights.length > 0)
