@@ -64,7 +64,8 @@ beforeEach(() => {
 	original = vi.fn().mockResolvedValue(new Response('ok'));
 	window.fetch = original as unknown as typeof window.fetch;
 	originalSend = vi.fn();
-	XMLHttpRequest.prototype.send = originalSend;
+	XMLHttpRequest.prototype.send =
+		originalSend as unknown as XMLHttpRequest['send'];
 	vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
