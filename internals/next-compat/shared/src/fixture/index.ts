@@ -242,6 +242,13 @@ export const handleFixtureRequest = function handleFixtureRequest(
 	if (path === '__compat/requests') {
 		return handleDiagnostics(request);
 	}
+	if (path === '__compat/embed' && request.method === 'GET') {
+		// A stand-in for a third-party embed behind `ConsentGate`. The suite
+		// counts the browser's requests for it.
+		return new Response('<!doctype html><p>Gated embed</p>', {
+			headers: { ...NO_STORE, 'content-type': 'text/html; charset=utf-8' },
+		});
+	}
 	return Response.json(
 		{ error: `unhandled ${request.method} /${path}` },
 		{

@@ -78,6 +78,49 @@ const useKernelSelector = function useKernelSelector<T>(
 };
 
 /**
+ * Like `useKernelSelector`, for selectors that evaluate a gate at a point in
+ * time. The server render and hydration evaluate at the snapshot's own
+ * `evaluatedAt`, so they never read the clock: a Next.js `cacheComponents`
+ * prerender rejects `Date.now()` in a Client Component. In the browser the
+ * gate is evaluated at `Date.now()`, so an expiry the kernel's deadline
+ * timer has not processed yet still denies.
+ *
+ * @param selector - Picks the slice from a snapshot at the given time.
+ * @returns The selected slice.
+ * @internal
+ */
+const useGateSelector = function useGateSelector<SliceType>(
+	selector: (snap: ConsentSnapshot, now: number) => SliceType
+): SliceType {
+	const kernel = useKernel();
+	return useSyncExternalStore(
+		(listener) => subscribe(kernel, listener),
+		() => selector(kernel.getSnapshot(), Date.now()),
+		() => {
+			const snap = kernel.getServerSnapshot();
+			return selector(snap, snap.evaluatedAt);
+		}
+	);
+};
+
+/**
+ * Whether content gated on one category may render, with the kernel's gate
+ * semantics. Server rendering and hydration read no clock; see
+ * `useGateSelector`.
+ *
+ * @param category - Category the content needs.
+ * @returns `true` while the category is permitted.
+ * @internal
+ */
+export const useCategoryAllowed = function useCategoryAllowed(
+	category: AllConsentNames
+): boolean {
+	return useGateSelector((snap, now) =>
+		evaluateConsent({ category }, snap, now)
+	);
+};
+
+/**
  * Full snapshot accessor. Escape hatch for consumers that genuinely need
  * multiple slices. Prefer narrow hooks for re-render isolation.
  */
@@ -280,7 +323,7 @@ export const useVendorChoice =
 export const useVendorAllowed = function useVendorAllowed(
 	vendorId: string
 ): boolean {
-	return useKernelSelector((snap) => {
+	return useGateSelector((snap, now) => {
 		const vendor = snap.vendors?.declared.find(
 			(entry) => entry.id === vendorId
 		);
@@ -296,7 +339,7 @@ export const useVendorAllowed = function useVendorAllowed(
 			return false;
 		}
 		try {
-			return evaluateConsent({ category: vendor.category }, snap);
+			return evaluateConsent({ category: vendor.category }, snap, now);
 		} catch {
 			return false;
 		}

@@ -9,7 +9,8 @@
 		"./consent-shell": "./src/consent-shell.tsx",
 		"./probe": "./src/probe.tsx",
 		"./fixture": "./src/fixture/index.ts",
-		"./fixture/node-adapter": "./src/fixture/node-adapter.ts"
+		"./fixture/node-adapter": "./src/fixture/node-adapter.ts",
+		"./gated-embed": "./src/gated-embed.tsx"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit",
