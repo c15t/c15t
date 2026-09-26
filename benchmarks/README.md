@@ -30,6 +30,8 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
   Loads `/policy/<fixture>` against an init route that resolves the fixture through the installed schema package, then records prompt readiness, probe render count, request and console-error invariants, the cookie and localStorage bytes the browser holds after an explicit choice or notice dismissal, and, for the persisted repeat visitor, the synchronous persistence hydration cost against the real stored record.
 - `nextjs-browser-bench` (`ssr-repeat` scenario and SSR consistency metrics)
   Adds a persisted repeat visitor over the SSR route plus `consoleErrorCount`, `hydrationWarningCount`, `promptTransitionCount`, and `promptShownCount` for every scenario, so matching server and client inputs must settle on the same prompt without a flash or a hydration warning.
+- `bundle-test-app/client-payload`
+  Builds one Next.js consumer with no consent library, v2, and several v3 setups, installed from npm or packed tarballs, and attributes initial, dialog-open and first-accept JS/CSS to packages and modules through production source maps. Run by hand; see `benchmarks/reports/client-payload-2026-09-25/`.
 - `bundle-test-app` (`bench:entries`, `ordinary-react` entry)
   Builds a synthetic esbuild entry for the ordinary non-IAB React path and reports `iabInputBytes`, `devtoolsInputBytes`, and `allLocalesInputBytes` from the metafile so the import boundary is measured, not assumed.
 - `shared`
