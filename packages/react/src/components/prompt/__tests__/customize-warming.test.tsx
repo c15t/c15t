@@ -14,8 +14,8 @@ import { offline } from '~/transports/offline';
 const options = {
 	mode: offline(),
 	persistence: false,
-	preloadDialog: 'intent',
 	prefetch: policyFixture(),
+	preloadDialog: 'intent',
 } as const;
 
 const button = (testId: string) => {
