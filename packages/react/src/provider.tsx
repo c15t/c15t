@@ -54,7 +54,7 @@ import type {
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from './module-hooks';
-import { useIframeBlocker } from './module-hooks/iframe-blocker';
+import { useIframeBlockerOnDemand } from './module-hooks/iframe-blocker';
 import type { UseIframeBlockerOptions } from './module-hooks/iframe-blocker';
 import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
@@ -172,7 +172,12 @@ export interface ConsentProviderOptions extends Pick<
 	vendors?: Vendor[];
 	scriptLoader?: UseScriptLoaderOptions;
 	networkBlocker?: UseNetworkBlockerOptions | false;
-	/** Discover and gate DOM iframes with data-category. Enabled by default. */
+	/**
+	 * Discover and gate DOM iframes with data-category. Enabled by default.
+	 * The blocker loads when the first gated iframe is on the page; until it
+	 * runs, a gated iframe that arrives with a `src` consent does not allow
+	 * is paused.
+	 */
 	iframeBlocker?: UseIframeBlockerOptions | false;
 	persistence?: boolean | UsePersistenceOptions;
 	i18n?: Partial<I18nConfig>;
@@ -1023,7 +1028,7 @@ const IframeBlockerMount = ({
 }: {
 	options?: UseIframeBlockerOptions;
 }) => {
-	useIframeBlocker(options);
+	useIframeBlockerOnDemand(options);
 	return null;
 };
 
