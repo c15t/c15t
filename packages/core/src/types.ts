@@ -640,6 +640,12 @@ export type KernelEvent =
 			type: 'save:replayed';
 			subjectId: string;
 			ok: boolean;
+			/**
+			 * The backend's code when it refused the save for good, for
+			 * example `POLICY_SNAPSHOT_EXPIRED`. The save left the queue and
+			 * the choice stays recorded in the browser only.
+			 */
+			rejected?: string;
 	  }
 	| { type: 'command:init:started' }
 	| { type: 'command:init:completed'; result: InitResult }

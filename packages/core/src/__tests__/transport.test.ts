@@ -9,7 +9,12 @@ import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { createConsentKernel, createHostedTransport } from '../index';
+import {
+	ConsentSaveRejectedError,
+	createConsentKernel,
+	createHostedTransport,
+	isConsentSaveRejection,
+} from '../index';
 import type { InitResponse, KernelTransport, SaveResult } from '../index';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
 import { buildDecisionAssertion } from '../transports/decision-inputs';
@@ -1615,6 +1620,173 @@ describe('kernel transport: failed save replay', () => {
 			kernel.dispose();
 			vi.stubGlobal('window', originalWindow);
 		}
+	});
+
+	const refused = (code: string) =>
+		new ConsentSaveRejectedError({
+			code,
+			message: `/subjects responded 409 (${code})`,
+			status: 409,
+		});
+
+	test('a save the backend refuses for good is not queued', async () => {
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValue(refused('POLICY_SNAPSHOT_INVALID'));
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+		const errors: unknown[] = [];
+		kernel.events.on('command:error', ({ error }) => {
+			errors.push(error);
+		});
+
+		await expect(kernel.commands.save('all')).resolves.toMatchObject({
+			ok: false,
+		});
+
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		expect(errors).toHaveLength(1);
+		expect(isConsentSaveRejection(errors[0])).toBe(true);
+		// The choice is still recorded in the browser.
+		expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
+		kernel.dispose();
+	});
+
+	test('a replay refused for good leaves the queue instead of retrying', async () => {
+		vi.useFakeTimers({ now: 1_800_000_000_000, toFake: ['Date'] });
+		try {
+			const saveSpy = vi
+				.fn()
+				.mockRejectedValueOnce(new Error('save offline'))
+				.mockRejectedValueOnce(refused('STALE_POLICY'));
+			const kernel = createConsentKernel({
+				transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+			});
+			const replayed: { ok: boolean; rejected?: string }[] = [];
+			kernel.events.on('save:replayed', ({ ok, rejected }) => {
+				replayed.push({ ok, rejected });
+			});
+
+			await kernel.commands.save('all');
+			expect(
+				JSON.parse(
+					window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+				)
+			).toHaveLength(1);
+
+			// Back online two hours later; the backend refuses the replay.
+			vi.setSystemTime(1_800_000_000_000 + 2 * 60 * 60 * 1000);
+			await kernel.commands.init();
+			await vi.waitFor(() => {
+				expect(replayed).toEqual([{ ok: false, rejected: 'STALE_POLICY' }]);
+			});
+			expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+
+			// Nothing is left to replay on the next load.
+			await kernel.commands.init();
+			await new Promise((resolve) => {
+				setTimeout(resolve, 20);
+			});
+			expect(saveSpy).toHaveBeenCalledTimes(2);
+			kernel.dispose();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	test('a replay that fails for another reason stays queued', async () => {
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockRejectedValueOnce(new Error('/subjects responded 503'));
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+		const replayed: { ok: boolean; rejected?: string }[] = [];
+		kernel.events.on('save:replayed', ({ ok, rejected }) => {
+			replayed.push({ ok, rejected });
+		});
+
+		await kernel.commands.save('all');
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toEqual([{ ok: false, rejected: undefined }]);
+		});
+		const stored = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		expect(stored).toHaveLength(1);
+		expect(stored[0].attempts).toBe(1);
+		kernel.dispose();
+	});
+});
+
+describe('hosted transport: save refusals', () => {
+	const payload = {
+		choice: {
+			categories: {
+				marketing: {
+					basis: { fingerprint: 'fp', kind: 'choice-v1' },
+					confirmedAt: 1,
+					value: true,
+				},
+			},
+			version: 3,
+		},
+		confirmed: { actionAt: 1, categories: { marketing: true } },
+		consentAction: 'all',
+		consents: { marketing: true, necessary: true },
+		givenAt: 1,
+		model: 'opt-in',
+		overrides: {},
+		policySnapshotToken: 'token',
+		subjectId: 'sub_refusal',
+		uiSource: 'banner',
+		user: null,
+	} as unknown as Parameters<
+		ReturnType<typeof createHostedTransport>['save']
+	>[0];
+
+	const answer = (status: number, cause?: Record<string, string>) =>
+		createHostedTransport({
+			backendURL: 'https://backend.test',
+			domain: 'example.com',
+			fetch: () =>
+				Promise.resolve(
+					Response.json({ cause, message: 'refused' }, { status })
+				),
+		});
+
+	test.each([
+		[409, 'POLICY_SNAPSHOT_EXPIRED', undefined],
+		[409, 'POLICY_SNAPSHOT_INVALID', undefined],
+		[409, 'POLICY_SNAPSHOT_REQUIRED', undefined],
+		[422, 'STALE_POLICY', 'policy-changed'],
+	])(
+		'%i %s is a refusal the kernel does not retry',
+		async (status, code, reason) => {
+			const cause: Record<string, string> = { code };
+			if (reason) {
+				cause.reason = reason;
+			}
+			const error = await answer(status, cause)
+				.save(payload)
+				.catch((caught: unknown) => caught);
+			expect(isConsentSaveRejection(error)).toBe(true);
+			expect(error).toMatchObject({ code, reason, status });
+		}
+	);
+
+	test.each([
+		[400, { code: 'INPUT_VALIDATION_FAILED' }],
+		[409, { code: 'SOMETHING_ELSE' }],
+		[500, { code: 'DATABASE_ERROR' }],
+		[503, undefined],
+	])('%i stays retryable', async (status, cause) => {
+		const error = await answer(status, cause)
+			.save(payload)
+			.catch((caught: unknown) => caught);
+		expect(error).toBeInstanceOf(Error);
+		expect(isConsentSaveRejection(error)).toBe(false);
 	});
 });
 

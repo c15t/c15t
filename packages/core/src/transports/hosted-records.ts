@@ -15,6 +15,7 @@ import type { PrivacyOptOut } from '../consent-record/types';
 import type { KernelTransport, KernelUser, SaveResult } from '../types';
 import { buildDecisionAssertion } from './decision-inputs';
 import type { RememberedDecisionInputs } from './decision-inputs';
+import { saveFailure } from './save-rejection';
 import { buildSubjectPostBody } from './subject-body';
 import type { SubjectSavePayload } from './subject-body';
 import type { TransportHydrationRecords } from './subject-record';
@@ -283,7 +284,7 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 			});
 
 			if (!response.ok) {
-				throw failed('/subjects', response);
+				throw await saveFailure(response, 'c15t hosted transport');
 			}
 
 			return toSaveResult(await response.json());
