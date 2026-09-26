@@ -10,11 +10,7 @@ import {
 } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
 import type { InitResponse, KernelTransport } from '../../../types';
-import {
-	blockHeldRequests,
-	holdNetworkRequests,
-	releaseNetworkRequests,
-} from '../hold';
+import { holdNetworkRequests, releaseNetworkRequests } from '../hold';
 import { createNetworkBlocker } from '../index';
 import type { NetworkBlockerHandle, NetworkBlockerRule } from '../types';
 
@@ -191,54 +187,78 @@ describe('holdNetworkRequests', () => {
 	});
 });
 
-describe('blockHeldRequests', () => {
-	test('fails held requests as blocked instead of sending them', async () => {
-		holdNetworkRequests(rules);
-		const held = window.fetch('https://tracker.example/collect');
-		const xhr = new XMLHttpRequest();
-		const onError = vi.fn();
-		xhr.addEventListener('error', onError);
-		xhr.open('POST', 'https://tracker.example/collect');
-		xhr.send();
+describe('several callers holding at once', () => {
+	const otherRules: NetworkBlockerRule[] = [
+		{ category: 'marketing', domain: 'ads.example' },
+	];
 
-		blockHeldRequests(rules);
+	test('releasing one caller sends only what no other caller holds', async () => {
+		const first = holdNetworkRequests(rules);
+		const second = holdNetworkRequests(otherRules);
+		const tracker = window.fetch('https://tracker.example/collect');
+		const ads = window.fetch('https://ads.example/pixel');
 
-		// The same answers the blocker gives a blocked request.
-		const response = await held;
-		expect(response.status).toBe(451);
-		expect(response.statusText).toBe('Request blocked by consent');
-		expect(onError).toHaveBeenCalledOnce();
-		expect(original).not.toHaveBeenCalled();
-		expect(originalSend).not.toHaveBeenCalled();
-		// The hold is gone, so nothing waits from here on.
+		second.release()();
+		await flush();
+
+		expect(second.held).toBe(false);
+		expect(first.held).toBe(true);
+		expect((await ads).status).toBe(200);
+		expect(original).toHaveBeenCalledOnce();
+		expect(original.mock.calls[0]?.[0]).toBe('https://ads.example/pixel');
+
+		first.release()();
+		expect((await tracker).status).toBe(200);
 		expect(window.fetch).toBe(original);
-		expect(XMLHttpRequest.prototype.send).toBe(originalSend);
 	});
 
-	test('leaves requests that other rules still hold waiting', async () => {
-		const ads: NetworkBlockerRule[] = [
-			{ category: 'marketing', domain: 'ads.example' },
-		];
-		holdNetworkRequests(ads);
-		holdNetworkRequests(rules);
-		const own = window.fetch('https://tracker.example/collect');
-		let adsSettled = false;
-		const other = window.fetch('https://ads.example/pixel').finally(() => {
-			adsSettled = true;
-		});
-
-		blockHeldRequests(rules);
-
-		expect((await own).status).toBe(451);
-		await flush();
-		expect(adsSettled).toBe(false);
-		expect(original).not.toHaveBeenCalled();
+	test('a blocker given one caller hold leaves the other hold in place', async () => {
+		const first = holdNetworkRequests(rules);
+		const second = holdNetworkRequests(otherRules);
+		const tracker = window.fetch('https://tracker.example/collect');
+		const ads = window.fetch('https://ads.example/pixel');
 
 		blocker = createNetworkBlocker({
+			hold: first,
 			kernel: createConsentKernel(),
-			rules: ads,
+			rules,
 		});
-		expect((await other).status).toBe(451);
+
+		expect((await tracker).status).toBe(451);
+		await flush();
+		// The ads request matches only the second caller's rules, which have
+		// no blocker yet: it keeps waiting instead of leaving unchecked.
+		expect(original).not.toHaveBeenCalled();
+		expect(second.held).toBe(true);
+
+		const late = window.fetch('https://ads.example/late');
+		const secondBlocker = createNetworkBlocker({
+			hold: second,
+			kernel: createConsentKernel(),
+			rules: otherRules,
+		});
+		try {
+			expect((await ads).status).toBe(451);
+			expect((await late).status).toBe(451);
+			expect(original).not.toHaveBeenCalled();
+		} finally {
+			secondBlocker.dispose();
+		}
+	});
+
+	test('releasing after the blocker took over does nothing', async () => {
+		const hold = holdNetworkRequests(rules);
+		blocker = createNetworkBlocker({
+			hold,
+			kernel: createConsentKernel(),
+			rules,
+		});
+
+		expect(hold.held).toBe(false);
+		hold.release()();
+		expect((await window.fetch('https://tracker.example/collect')).status).toBe(
+			451
+		);
 		expect(original).not.toHaveBeenCalled();
 	});
 });

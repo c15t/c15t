@@ -33,10 +33,6 @@ import type {
 	Vendor,
 } from '@c15t/core';
 import type { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
-import {
-	blockHeldRequests,
-	holdNetworkRequests,
-} from '@c15t/core/modules/network-hold';
 import type { Script } from '@c15t/core/modules/script-loader';
 import {
 	createWindowDebug,
@@ -60,6 +56,7 @@ import type {
 } from './module-hooks';
 import { useIframeBlockerOnDemand } from './module-hooks/iframe-blocker';
 import type { UseIframeBlockerOptions } from './module-hooks/iframe-blocker';
+import { useEarlyNetworkHold } from './module-hooks/network-hold';
 import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
 import type { ReactUIOptions } from './types/manager';
@@ -1054,19 +1051,9 @@ const NetworkBlockerMount = ({
 		setEnabled: (enabled: boolean) => void;
 	} | null>(null);
 	const latestOptionsRef = useRef(options);
-	const mounts = useRef(0);
 	// The blocker loads after mount. Hold matching requests from this render
 	// on, before any child renders or runs an effect; the blocker replays them.
-	// The rules the hold was started with, kept by reference so an unmount
-	// before the blocker loads ends exactly this hold.
-	// oxlint-disable-next-line react/hook-use-state -- Runs once, during the first render.
-	const [heldRules] = useState(() => {
-		if (options.enabled === false) {
-			return null;
-		}
-		holdNetworkRequests(options.rules);
-		return options.rules;
-	});
+	const earlyHold = useEarlyNetworkHold(options.rules, options.enabled);
 
 	useEffect(() => {
 		latestOptionsRef.current = options;
@@ -1077,6 +1064,10 @@ const NetworkBlockerMount = ({
 			return;
 		}
 		let disposed = false;
+		const hold = earlyHold.claim(
+			latestOptionsRef.current.rules,
+			latestOptionsRef.current.enabled
+		);
 		void (async () => {
 			const { createNetworkBlocker } = await loadNetworkBlockerModule();
 			if (disposed) {
@@ -1085,6 +1076,7 @@ const NetworkBlockerMount = ({
 			const latest = latestOptionsRef.current;
 			const created = createNetworkBlocker({
 				enabled: latest.enabled,
+				hold,
 				kernel,
 				logBlockedRequests: latest.logBlockedRequests,
 				onRequestBlocked: latest.onRequestBlocked,
@@ -1092,24 +1084,13 @@ const NetworkBlockerMount = ({
 			});
 			handleRef.current = created;
 		})();
-		mounts.current += 1;
-		const mount = mounts.current;
 		return () => {
 			disposed = true;
-			const loaded = handleRef.current !== null;
 			handleRef.current?.dispose();
 			handleRef.current = null;
-			// Unmounted before the blocker loaded, so nothing takes over the hold,
-			// and nothing checked consent for what it held: those requests fail
-			// as blocked. A StrictMode or kernel re-run mounts again before this
-			// runs.
-			queueMicrotask(() => {
-				if (!loaded && mounts.current === mount && heldRules) {
-					blockHeldRequests(heldRules);
-				}
-			});
+			earlyHold.unmount();
 		};
-	}, [heldRules, kernel]);
+	}, [earlyHold, kernel]);
 
 	useEffect(() => {
 		handleRef.current?.updateRules(options.rules);
