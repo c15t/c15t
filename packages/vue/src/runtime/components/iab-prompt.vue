@@ -2,6 +2,8 @@
 import type { PresentationAction } from '@c15t/core';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import bannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
+
+import '@c15t/ui/styles/components/iab-consent-banner.css';
 import { getTextDirection } from '@c15t/ui/utils';
 import { computed, ref, Teleport, Transition, toValue } from 'vue';
 

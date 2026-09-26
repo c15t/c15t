@@ -8,6 +8,8 @@
  */
 import type { AllConsentNames, ResolvedVendor } from '@c15t/core';
 import vendorListStyles from '@c15t/ui/styles/components/vendor-list';
+
+import '@c15t/ui/styles/components/vendor-list.css';
 import { computed, ref, useId } from 'vue';
 
 import { useConsentConfig, useConsentInit } from '../composables';

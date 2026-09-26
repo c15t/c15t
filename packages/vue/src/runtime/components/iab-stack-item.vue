@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+
+import '@c15t/ui/styles/components/iab-consent-dialog.css';
 /**
  * A TCF stack: one toggle standing for the purposes it absorbed.
  *
@@ -8,6 +10,8 @@ import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
  * lets the four adapters be compared row for row.
  */
 import switchStyles from '@c15t/ui/styles/components/switch';
+
+import '@c15t/ui/styles/components/switch.css';
 import { computed, ref, toValue } from 'vue';
 
 import {

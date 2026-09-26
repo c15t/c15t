@@ -7,6 +7,8 @@ import type {
 import type { PolicyRight } from '@c15t/schema/types';
 import type { CompleteTranslations } from '@c15t/translations';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+
+import '@c15t/ui/styles/components/consent-banner.css';
 import { getTextDirection } from '@c15t/ui/utils';
 import { computed, mergeProps, ref, Teleport, Transition } from 'vue';
 
