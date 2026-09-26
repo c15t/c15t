@@ -1,0 +1,110 @@
+---
+title: OneDollarStats
+description: Load OneDollarStats after measurement consent with optional tracker data attributes.
+group: integrations
+---
+
+[OneDollarStats](https://onedollarstats.com/) matches events to the domain registered in your dashboard, so no API key is needed. This helper loads its classic deferred script after measurement consent and forwards settings as `data-*` attributes.
+
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { oneDollarStats } from '@c15t/scripts/one-dollar-stats';
+
+    const scripts = [oneDollarStats()];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { oneDollarStats } from '@c15t/scripts/one-dollar-stats';
+
+    const scripts = [oneDollarStats()];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { oneDollarStats } from '@c15t/scripts/one-dollar-stats';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [oneDollarStats()],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Tracker settings
+
+All settings use strings and omit the `data-` prefix. Unknown settings are forwarded for compatibility with future tracker options.
+
+```ts
+oneDollarStats({
+  hostname: 'docs.example.com',
+  devmode: 'true',
+  autocollect: 'false',
+  'hash-routing': 'true',
+  url: 'https://analytics.example.com/events',
+})
+```
+
+- `hostname` must be a bare hostname, optionally including a port. It overrides the event hostname on every host, including production.
+- Local testing needs both `hostname` and `devmode: 'true'`.
+- `autocollect: 'false'` disables automatic pageview and click collection.
+- `'hash-routing': 'false'` omits the attribute entirely: the CDN tracker enables hash routing whenever the attribute is present, regardless of its value.
+- `url` overrides the collection endpoint. Leave it unset to use the vendor default.
+
+The tracker handles browser history navigation itself; no extra router hook is required. See the [vendor installation reference](https://docs.onedollarstats.com/installation) for its settings.
+
+## Consent behaviour
+
+The script uses the `measurement` category and loads only when that consent is granted. On revocation, c15t removes its script element. Removing a script does not undo code that already executed, including the tracker's history hooks and event listeners. Use c15t's reload-on-revocation behaviour to clear the running tracker, and check measurement consent before making manual tracking calls.
+
+## Types
+
+### OneDollarStatsOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/one-dollar-stats.ts" name="OneDollarStatsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
