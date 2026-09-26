@@ -13,4 +13,5 @@ Opening the dialog used to mount every vendor card inside the collapsed categori
 
 #### Migration
 
-If your CSS shows collapsed content, or a test reads it before the row opens, pass `forceMount` to the `PreferenceItem.Content` primitive (React, Vue and Svelte) to render its children while collapsed. Otherwise, open the row before reading its content.
+- Tests that read a category description, vendor card or vendor details before opening its row: open the row first. `consent-widget-accordion-content-*` and `consent-widget-vendor-content-*` still exist while collapsed, but they are empty.
+- Custom compositions of the `PreferenceItem` primitive that need collapsed children in the DOM, for example because custom CSS shows them: pass the new `forceMount` prop to `PreferenceItem.Content` (React, Vue and Svelte).
