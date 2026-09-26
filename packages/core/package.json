@@ -127,6 +127,11 @@
 			"types": "./dist-types/runtime/index.d.ts",
 			"import": "./dist/runtime.js",
 			"default": "./dist/runtime.js"
+		},
+		"./runtime/controls": {
+			"types": "./dist-types/runtime/controls.d.ts",
+			"import": "./dist/runtime/controls.js",
+			"default": "./dist/runtime/controls.js"
 		}
 	},
 	"publishConfig": {

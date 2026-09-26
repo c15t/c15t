@@ -467,7 +467,7 @@ const createClient = function createClient(
 				return;
 			}
 			if (extension.consentSource) {
-				await extension.consentSource.openPreferences();
+				runtime.kernel.set.activeUI('dialog');
 				return;
 			}
 			// Decide against the settled resolution: an init still in flight is

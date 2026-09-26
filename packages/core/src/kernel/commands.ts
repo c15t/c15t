@@ -1150,6 +1150,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		},
 
 		async identify(user: KernelUser): Promise<void> {
+			if (getSnapshot().externalPermissions) {
+				return;
+			}
 			identifyGeneration += 1;
 			const attempt = identifyGeneration;
 			const generation = runtime.getGeneration();
@@ -1183,6 +1186,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		},
 
 		init(): Promise<InitResult> {
+			if (getSnapshot().externalPermissions) {
+				return Promise.resolve({ ok: true });
+			}
 			// An explicit init re-arms a disposed kernel. React StrictMode runs
 			// effect cleanup (which disposes) and then re-mounts with the same
 			// memoized kernel and calls init again; retries must work after that.

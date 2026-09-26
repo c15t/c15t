@@ -58,11 +58,13 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	const initFetchTarget = getNuxtInitFetchTarget(config.value);
 	const manifestMode = resolveManifestMode(config.value);
 	const initialRecords = useNuxtState('c15t:records', () =>
-		readStoredRecordsFromCookieHeader(
-			cookieHeader,
-			config.value.storageConfig,
-			Date.now()
-		)
+		config.value.consentSource
+			? undefined
+			: readStoredRecordsFromCookieHeader(
+					cookieHeader,
+					config.value.storageConfig,
+					Date.now()
+				)
 	);
 
 	const producerContract = useNuxtState<number | null | undefined>(
@@ -70,7 +72,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		() => undefined
 	);
 	let prefetch: InitOutput | undefined;
-	if (initFetchTarget) {
+	if (initFetchTarget && !config.value.consentSource) {
 		const { data } = await useFetch<InitOutput>(initFetchTarget.url, {
 			baseURL: initFetchTarget.baseURL,
 			cache: manifestMode === 'server' ? undefined : 'no-store',

@@ -12,7 +12,7 @@ import {
 	useConsentInit,
 } from '#c15t/composables';
 
-import { useHasConsentUi, usePolicyRule } from '../composables/kernel';
+import { useHasConsentPreferences, usePolicyRule } from '../composables/kernel';
 import { useDraggable } from '../composables/use-draggable';
 import { useLocalStorageRef } from '../composables/use-local-storage-ref';
 import { useMounted } from '../composables/use-mounted';
@@ -124,7 +124,7 @@ watch(
 	{ flush: 'post', immediate: true }
 );
 
-const hasConsentUi = useHasConsentUi();
+const hasConsentUi = useHasConsentPreferences();
 const isVisible = computed(() => {
 	if (!mounted.value) {
 		return false;

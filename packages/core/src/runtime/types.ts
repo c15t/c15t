@@ -152,12 +152,6 @@ export type ConsentRuntimeIABFactory = (
 	options: ConsentRuntimeIABFactoryOptions
 ) => ConsentRuntimeIABHandle;
 
-/**
- * Everything the framework-agnostic consent runtime needs.
- *
- * Framework packages extend this with their UI-only options (theme, color
- * scheme, animation, legal links) and forward the rest untouched.
- */
 /** External CMP decision source. The provider owns UI, persistence, expiry and GPC. */
 export interface ExternalConsentSource {
 	/** Read the current decision. Null means not ready, so optional categories are denied. */
@@ -168,6 +162,10 @@ export interface ExternalConsentSource {
 	openPreferences: () => void | Promise<void>;
 }
 
+/**
+ * Framework-independent lifecycle options. Adapters add presentation options.
+ * External sources are initial-only; recreate the runtime to change authority.
+ */
 export interface ConsentRuntimeOptions {
 	/** Reload after an optional permission is revoked, stopping SDKs that cannot unload themselves.
 	 * Off by default. Runs after synchronous persistence and consent callbacks complete.

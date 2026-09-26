@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import {
 	useConsentActiveUI,
-	useHasConsentUi,
+	useHasConsentPreferences,
 	usePolicyRule,
 } from '../composables';
 
 const policy = usePolicyRule();
 const activeUI = useConsentActiveUI();
-const hasConsentUi = useHasConsentUi();
+const hasConsentUi = useHasConsentPreferences();
 </script>
 
 <template>

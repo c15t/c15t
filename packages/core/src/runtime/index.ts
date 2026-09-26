@@ -57,6 +57,7 @@ import type {
 	TranslationsResponse,
 } from '../types';
 import { wireRuntimeCallbacks } from './callbacks';
+import { connectConsentSource, reloadOnConsentRevocation } from './controls';
 import { isIABConfigured } from './iab-options';
 import type {
 	ConsentRuntime,
@@ -66,6 +67,9 @@ import type {
 	RuntimeIABOptions,
 	RuntimePersistenceOptions,
 } from './types';
+
+export { connectConsentSource, reloadOnConsentRevocation } from './controls';
+export type { ConsentControlOptions } from './controls';
 
 export type {
 	ExternalConsentSource,
@@ -603,22 +607,7 @@ export const createConsentRuntime = function createConsentRuntime(
 
 			startPersistence();
 			if (options.consentSource) {
-				const source = options.consentSource;
-				const sync = () => {
-					if (disposed) {
-						return;
-					}
-					// A failed or unavailable provider must never retain a stale grant.
-					let permissions = null;
-					try {
-						permissions = source.getPermissions();
-					} catch {
-						/* denied */
-					}
-					kernel.set.externalPermissions(permissions ?? {});
-				};
-				disposers.push(source.subscribe(sync));
-				sync();
+				disposers.push(connectConsentSource(kernel, options.consentSource));
 			}
 
 			// A server-resolved prefetch already holds the init answer; asking
@@ -680,28 +669,7 @@ export const createConsentRuntime = function createConsentRuntime(
 			startIAB();
 			startCleanup();
 			if (options.reloadOnRevocation && options.scripts?.length) {
-				let previous = kernel.getSnapshot().effectivePermissions;
-				let scheduled = false;
-				disposers.push(
-					kernel.subscribe((snapshot) => {
-						const next = snapshot.effectivePermissions;
-						const revoked = Object.keys(previous).some(
-							(category) =>
-								category !== 'necessary' &&
-								previous[category as keyof ConsentState] &&
-								!next[category as keyof ConsentState]
-						);
-						previous = next;
-						if (revoked && !scheduled) {
-							scheduled = true;
-							queueMicrotask(() => {
-								if (!disposed) {
-									window.location.reload();
-								}
-							});
-						}
-					})
-				);
+				disposers.push(reloadOnConsentRevocation(kernel));
 			}
 		},
 		get started() {

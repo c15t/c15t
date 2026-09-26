@@ -222,6 +222,9 @@ YouTube video and a persistent preferences control. Use it to test rejection, pe
 
 ## Use an external consent source
 
+These are [shared core controls](/docs/guides/shared-consent-controls), also available
+through React, Vue, Svelte, and the browser client.
+
 An existing CMP can own consent decisions, UI, records, expiry, and privacy-signal handling while c15t owns the script runtime. Export `consentSource` from the browser client entrypoint. Its `getPermissions()` returns a complete current decision; omitted optional categories are denied. Notify on initialization, changes, withdrawal, expiry, and loss of availability.
 
 ```ts title="src/consent.client.ts"

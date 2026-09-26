@@ -129,3 +129,42 @@ test('reloads once after withdrawal, and cancels a pending reload when disposed'
 		vi.unstubAllGlobals();
 	}
 });
+
+test('all framework preference setters delegate without opening c15t UI, and errors reach callbacks', async () => {
+	const error = new Error('CMP unavailable');
+	const openPreferences = vi.fn<() => void | Promise<void>>();
+	const onError = vi.fn();
+	const init = vi.fn();
+	const identify = vi.fn();
+	const runtime = createConsentRuntime({
+		callbacks: { onError },
+		consentSource: {
+			getPermissions: () => null,
+			openPreferences,
+			subscribe: () => () => {},
+		},
+		iframeBlocker: false,
+		mode: custom({ identify, init }),
+	});
+	runtime.start();
+	runtime.kernel.set.activeUI('dialog');
+	expect(openPreferences).toHaveBeenCalledTimes(1);
+	runtime.kernel.set.activeUI('banner');
+	expect(runtime.kernel.getSnapshot().activeUI).toBe('none');
+	openPreferences.mockRejectedValueOnce(error);
+	runtime.kernel.set.activeUI('dialog');
+	await Promise.resolve();
+	expect(onError).toHaveBeenCalledWith({ error: 'CMP unavailable' });
+	openPreferences.mockImplementationOnce(() => {
+		throw error;
+	});
+	runtime.kernel.set.activeUI('dialog');
+	expect(onError).toHaveBeenCalledTimes(2);
+	await runtime.kernel.commands.init();
+	await runtime.kernel.commands.identify({ id: 'external-user' });
+	expect(init).not.toHaveBeenCalled();
+	expect(identify).not.toHaveBeenCalled();
+	runtime.dispose();
+	runtime.kernel.set.activeUI('dialog');
+	expect(openPreferences).toHaveBeenCalledTimes(3);
+});

@@ -45,6 +45,10 @@ const alias = {
 		'../core/src/consent-record/index.ts'
 	),
 	'@c15t/core/server': resolve(__dirname, '../core/src/server/index.ts'),
+	'@c15t/core/runtime/controls': resolve(
+		__dirname,
+		'../core/src/runtime/controls.ts'
+	),
 	'@c15t/core': resolve(__dirname, '../core/src/index.ts'),
 	'@c15t/react/context': resolve(__dirname, '../react/dist/context.js'),
 	'@c15t/react/iab': resolve(__dirname, '../react/dist/iab.js'),

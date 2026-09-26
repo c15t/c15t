@@ -18,7 +18,7 @@
 	} = $props();
 </script>
 
-{#if consent.state.hasConsentUi}
+{#if consent.state.hasConsentPreferences}
 	<ConsentButton
 		action="open-consent-dialog"
 		{noStyle}

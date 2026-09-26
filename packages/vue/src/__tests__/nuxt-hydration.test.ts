@@ -1,5 +1,6 @@
 import { C15T_POLICY_CONTRACT_HEADER } from '@c15t/core';
 import { readStoredRecords } from '@c15t/core/modules/persistence';
+import type { ExternalConsentSource } from '@c15t/core/runtime';
 import {
 	normalizePolicyRule,
 	createConsentManifestPolicyPack,
@@ -9,7 +10,14 @@ import {
 import type { InitOutput, PolicyRule } from '@c15t/schema/types';
 import { translations } from '@c15t/translations/en';
 import { afterEach, expect, test, vi } from 'vitest';
-import { createSSRApp, defineComponent, h, nextTick, shallowRef } from 'vue';
+import {
+	createApp,
+	createSSRApp,
+	defineComponent,
+	h,
+	nextTick,
+	shallowRef,
+} from 'vue';
 import type { App, ShallowRef } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
@@ -20,6 +28,7 @@ import { resolveManifestInit } from '../runtime/server/manifest-mode';
 
 const nuxt = vi.hoisted(() => ({
 	cached: undefined as InitOutput | undefined,
+	consentSource: undefined as ExternalConsentSource | undefined,
 	headers: {} as Record<string, string | undefined>,
 	manifest: false,
 	requests: 0,
@@ -34,6 +43,7 @@ vi.mock('#imports', async () => {
 		useAppConfig: () => ({
 			c15t: {
 				backendURL: '/api/c15t',
+				consentSource: nuxt.consentSource,
 				disableAnimation: true,
 				hideBranding: true,
 				iframeBlocker: false,
@@ -75,6 +85,7 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	nuxt.state.clear();
 	nuxt.cached = undefined;
+	nuxt.consentSource = undefined;
 	document.body.replaceChildren();
 });
 
@@ -258,4 +269,61 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 	} finally {
 		clientApp.unmount();
 	}
+});
+
+test('Nuxt external authority skips server fetch and records, then connects only on mount', async () => {
+	const getPermissions = vi.fn(() => ({ measurement: true }));
+	const detach = vi.fn();
+	const openPreferences = vi.fn();
+	nuxt.requests = 0;
+	nuxt.consentSource = {
+		getPermissions,
+		openPreferences,
+		subscribe: () => detach,
+	};
+	const { default: plugin } = await vi.importActual<{
+		default: (app: {
+			vueApp: App;
+			hook: (name: string, callback: () => void) => void;
+		}) => Promise<void>;
+	}>('../runtime/plugin.nuxt');
+	let context!: VueConsentKernelContext;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				context = useConsentKernelContext();
+				return () => h('div');
+			},
+		})
+	);
+	let mounted: (() => void) | undefined;
+	await plugin({
+		hook: (name, handler) => {
+			if (name === 'app:mounted') {
+				mounted = handler;
+			}
+		},
+		vueApp: app,
+	});
+	expect(nuxt.requests).toBe(0);
+	expect(nuxt.state.get('c15t:records')?.value).toBeUndefined();
+	expect(getPermissions).not.toHaveBeenCalled();
+	const container = document.createElement('div');
+	document.body.append(container);
+	app.mount(container);
+	try {
+		expect(context.kernel.getSnapshot().effectivePermissions.measurement).toBe(
+			false
+		);
+		mounted?.();
+		expect(context.kernel.getSnapshot().effectivePermissions.measurement).toBe(
+			true
+		);
+		context.activeUI.value = 'manager';
+		expect(openPreferences).toHaveBeenCalledTimes(1);
+		expect(context.kernel.getSnapshot().activeUI).toBe('none');
+	} finally {
+		app.unmount();
+	}
+	expect(detach).toHaveBeenCalledTimes(1);
 });

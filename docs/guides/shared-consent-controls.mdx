@@ -1,0 +1,147 @@
+---
+title: Share consent controls across frameworks
+description: Use the same c15t script lifecycle, external consent source, and event controls in every framework.
+group: guides
+---
+
+## Choose one consent authority
+
+c15t owns script loading, consent gates, lifecycle callbacks, and optional cleanup
+through its framework-independent core. React, Vue, Svelte, Astro, and the browser
+client connect to that core. Next.js and TanStack Start use the React provider;
+Nuxt uses Vue; SvelteKit uses Svelte. None requires Astro for these controls.
+
+With c15t as the consent authority, keep your framework's hosted, self-hosted, or
+offline setup. Offline mode keeps choices in the browser; a hosted backend can
+store records. The script SDK and event dispatcher work with either mode.
+
+To keep another CMP, provide a `consentSource`. It owns the banner, preferences,
+records, expiration, privacy signals, and category mapping. c15t follows its
+current permissions without creating a second choice record. Optional categories
+start denied, including during SSR. An unavailable source or a failed read denies
+them again. Initialize the CMP independently, or register its loader as an
+explicitly early-loading script so it does not wait for its own consent.
+
+The source contract is exported from `@c15t/core/runtime`:
+
+```ts title="src/consent-source.ts — adapter skeleton"
+import type { ExternalConsentSource } from 'c15t/runtime';
+import { provider } from './existing-cmp';
+
+export const consentSource: ExternalConsentSource = {
+  getPermissions: () => provider.getCategoryPermissions(),
+  subscribe: (notify) => provider.subscribe(notify),
+  openPreferences: () => provider.openPreferences(),
+};
+```
+
+`provider` is your application's adapter for the existing CMP, not a c15t export.
+Map its categories to c15t's `measurement`, `marketing`, `functionality`, and
+`experience` booleans. Missing categories are denied; `necessary` stays true.
+Return `null` until the CMP is ready. `subscribe` must notify on initialization,
+changes, withdrawal, and expiration, and return a function that removes listeners.
+Keep browser access inside these functions so importing the adapter during SSR is safe.
+
+## Pass the controls to your framework
+
+The same `consentSource` and `reloadOnRevocation` options are available at these
+registration points. Register your SDK configurations through the same owner's
+`scripts` option. Do not create an additional runtime beside an existing provider.
+
+| Framework | Registration point |
+| --- | --- |
+| React | `ConsentProvider options={{ mode, consentSource, scripts, reloadOnRevocation }}` |
+| Next.js / TanStack Start | `ConsentRoot options={{ consentSource, reloadOnRevocation }}` with `scripts` as a top-level prop; `ConsentProvider` also accepts the React options |
+| Vue | `app.use(c15tVue, { consentSource, scripts, reloadOnRevocation })` |
+| Nuxt | `app.config.ts` → `c15t: { consentSource, scripts, reloadOnRevocation }` |
+| Svelte / SvelteKit | `ConsentManagerProvider` options or corresponding top-level props |
+| Astro | `clientOptions.consentSource`; `reloadOnRevocation` on the integration |
+| Browser client | `createConsentClient({ consentSource, scripts, reloadOnRevocation })` |
+| Headless JavaScript / Solid | `createConsentRuntime({ mode, consentSource, scripts, reloadOnRevocation })` |
+
+For example, a React client boundary can use the source directly:
+
+```tsx title="src/Consent.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import { ConsentProvider, offline, useSetActiveUI } from 'c15t/react';
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { consentSource } from './consent-source';
+
+const mode = offline();
+const scripts = [googleTagManager({ id: 'GTM-EXAMPLE' })];
+
+function Preferences() {
+  const setActiveUI = useSetActiveUI();
+  return <button type="button" onClick={() => setActiveUI('dialog')}>Privacy settings</button>;
+}
+
+export function Consent({ children }: { children: ReactNode }) {
+  return (
+    <ConsentProvider options={{ mode, consentSource, scripts, reloadOnRevocation: true }}>
+      {children}
+      <Preferences />
+    </ConsentProvider>
+  );
+}
+```
+
+Replace the container ID. `mode` remains required by the provider API, but an
+external source bypasses c15t backend initialization and persistence. Omit c15t's
+banner and dialog. Preference links, hooks, and `kernel.set.activeUI('dialog')`
+delegate to the source. Preference-opening failures reach `callbacks.onError`;
+`kernel.commands.save()` rejects instead of recording a second choice.
+
+In Next.js, construct the source in the client boundary; do not pass functions
+from a Server Component. Existing `ConsentRoot` state can stay serializable, but
+c15t records do not establish external permissions. A client-owned
+`ConsentProvider` avoids a redundant server consent fetch for external-only setups.
+For Nuxt, use `app.config.ts` for the functions, not serialized public runtime
+configuration; the module skips its consent fetch and record hydration when a
+source is configured. Browser access remains deferred until mount.
+
+Solid currently ships UI primitives, not a lifecycle provider. Create the core
+runtime once, call `start()` from `onMount`, and `dispose()` from `onCleanup`.
+Other frameworks' providers perform that lifecycle automatically. A provider given
+an existing `runtime` borrows it: configure controls on the runtime owner, which
+also owns starting and disposing it.
+
+## Handle withdrawal and application events
+
+`reloadOnRevocation` defaults to `false`. With configured scripts and the option
+enabled, losing any optional permission schedules one browser reload after
+synchronous consent callbacks and cleanup. Disposing the owner cancels a pending
+reload. Use it for SDKs that cannot fully stop after execution. When disabled,
+c15t still updates gates and invokes script consent callbacks; removing a script
+element cannot undo JavaScript that already ran.
+
+`createEventDispatcher` from `@c15t/scripts/events` also has no framework dependency:
+
+```ts title="src/events.ts — attach to an existing runtime"
+import { createEventDispatcher } from '@c15t/scripts/events';
+
+const events = createEventDispatcher({
+  scripts,
+  getSnapshot: () => runtime.kernel.getSnapshot(),
+});
+events.track('docs_search', { resultCount: 4 });
+```
+
+Here `scripts` is the same configuration registered with the existing `runtime`.
+For a provider-owned kernel, use that kernel's live `getSnapshot` instead. The
+dispatcher sends only to configured integrations with supported event APIs when
+measurement and the script's own consent condition allow it. It discards denied
+events, isolates vendor failures, and deduplicates explicitly configured SPA
+pageviews. It does not subscribe to a framework router: notify it from your
+router's navigation hook. Use vendor-specific helpers for APIs outside the shared
+event contract.
+
+## Verify the integration
+
+Test an undecided visitor, an existing grant, withdrawal, expiry, and a source
+that cannot be read. Check that only permitted scripts execute, the preference
+control opens the existing CMP, c15t does not render another banner or persist
+another receipt, and unmounting removes the source listeners. Test your actual
+CMP category mapping and tag-manager container; shared gates do not validate
+those configurations or establish compliance by themselves.

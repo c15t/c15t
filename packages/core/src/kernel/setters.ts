@@ -193,6 +193,12 @@ export const buildSetters = function buildSetters(
 
 	return {
 		activeUI(ui: KernelActiveUI): void {
+			if (getSnapshot().externalPermissions) {
+				if (ui === 'dialog') {
+					runtime.emit({ type: 'preferences:requested' });
+				}
+				return;
+			}
 			commit({ activeUI: ui });
 		},
 		consentCategories(

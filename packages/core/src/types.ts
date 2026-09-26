@@ -583,6 +583,10 @@ export interface KernelTransport {
  * Kernel event surface. Stable event names.
  */
 export type KernelEvent =
+	| {
+			/** An external authority should open its preferences. */
+			type: 'preferences:requested';
+	  }
 	| { type: 'records:cleared' }
 	| {
 			/** An explicit accept, reject or save recorded a choice. */
