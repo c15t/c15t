@@ -16,6 +16,7 @@
 	let {
 		children,
 		class: localClassName,
+		forceMount = false,
 		innerClassName,
 		noStyle: localNoStyle,
 		viewportClassName,
@@ -23,6 +24,12 @@
 	}: HTMLAttributes<HTMLDivElement> & {
 		children?: Snippet;
 		class?: string;
+		/**
+		 * Render the children while the item has never been opened. By
+		 * default they mount on first open and then stay mounted; collapsed
+		 * content is `inert` and `aria-hidden` either way.
+		 */
+		forceMount?: boolean;
 		innerClassName?: string;
 		/**
 		 * Drop the primitive's built-in classes. Falls back to the root's
@@ -41,6 +48,15 @@
 	} = $props();
 
 	const open = $derived(context.open);
+	// A collapsed body can hold a whole vendor list: mount it on first open
+	// and keep it, so the close transition keeps its content.
+	let hasOpened = $state(false);
+	$effect.pre(() => {
+		if (open) {
+			hasOpened = true;
+		}
+	});
+	const renderChildren = $derived(forceMount || open || hasOpened);
 	const triggerId = $derived(context.triggerId);
 	const contentId = $derived(context.contentId);
 	const dataState = $derived(getPreferenceItemState(open));
@@ -76,7 +92,9 @@
 			class={innerClassNameValue}
 			data-slot={PREFERENCE_ITEM_INTERNAL_SLOTS.contentInner}
 		>
-			{@render children?.()}
+			{#if renderChildren}
+				{@render children?.()}
+			{/if}
 		</div>
 	</div>
 </div>

@@ -206,11 +206,15 @@ describe('Vue consent widget vendor rows', () => {
 					'[data-testid="consent-widget-vendor-item-measurement-google-analytics"]'
 				)
 			).toBeNull();
+			// A category's rows mount on its first open and stay mounted after.
+			expect(byTestId('consent-widget-vendor-list-measurement')).toBeNull();
+			await open('measurement');
 			expect(
 				byTestId('consent-widget-vendor-list-measurement')?.querySelector(
 					'[data-testid="consent-widget-vendor-item-measurement-google-analytics"]'
 				)
-			).not.toBeNull();
+			).toBeInstanceOf(HTMLElement);
+			await open('marketing');
 
 			const trigger = byTestId(
 				'consent-widget-vendor-trigger-marketing-meta-pixel'
@@ -220,6 +224,8 @@ describe('Vue consent widget vendor rows', () => {
 			);
 			expect(trigger?.getAttribute('aria-expanded')).toBe('false');
 			expect(content?.getAttribute('data-state')).toBe('closed');
+			// The card's details mount on its first open.
+			expect(content?.textContent?.trim()).toBe('');
 			trigger?.click();
 			await flushPromises();
 			expect(trigger?.getAttribute('aria-expanded')).toBe('true');
@@ -294,6 +300,7 @@ describe('Vue consent widget vendor rows', () => {
 				byTestId('consent-widget-vendor-item-marketing-negated-vendor')
 			).toBeNull();
 			// A shared vendor gets a distinct label id per category.
+			await open('measurement');
 			const ids = [...document.querySelectorAll('[id$="-shared-vendor"]')].map(
 				(element) => element.id
 			);
