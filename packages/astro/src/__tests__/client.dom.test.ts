@@ -492,3 +492,58 @@ it('forwards cleanup targets to its shared runtime', async () => {
 	await booted.rejectAll();
 	expect(localStorage.getItem('analytics:visitor')).toBeNull();
 });
+
+describe('networkBlocker', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		// The consent cookie outlives the localStorage reset between tests.
+		for (const cookie of document.cookie.split(';')) {
+			const name = cookie.split('=')[0]?.trim();
+			if (name) {
+				document.cookie = `${name}=; max-age=0; path=/`;
+			}
+		}
+	});
+
+	const TRACKER = 'https://tracker.example/collect';
+	const rules = [
+		{ category: 'measurement' as const, domain: 'tracker.example' },
+	];
+
+	it('blocks matching requests until the visitor consents', async () => {
+		const network = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(new Response('ok'));
+		renderBanner();
+		const booted = start({
+			...OPTIONS,
+			networkBlocker: { logBlockedRequests: false, rules },
+		});
+
+		expect((await window.fetch(TRACKER)).status).toBe(451);
+		expect(network).not.toHaveBeenCalled();
+
+		await booted.acceptAll();
+		expect((await window.fetch(TRACKER)).status).toBe(200);
+		expect(network).toHaveBeenCalledWith(TRACKER, undefined);
+	});
+
+	it('takes onRequestBlocked from the client entrypoint', async () => {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+		const onRequestBlocked = vi.fn();
+		renderBanner();
+		(window as unknown as Record<string, unknown>).__c15tAstroConfig =
+			INLINE_CONFIG;
+		client = boot(
+			resolveOptions({ ...OPTIONS, networkBlocker: { rules: [] } }),
+			{
+				networkBlocker: { logBlockedRequests: false, onRequestBlocked, rules },
+			}
+		);
+
+		expect((await window.fetch(TRACKER)).status).toBe(451);
+		expect(onRequestBlocked).toHaveBeenCalledWith(
+			expect.objectContaining({ url: TRACKER })
+		);
+	});
+});

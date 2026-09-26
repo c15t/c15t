@@ -402,6 +402,7 @@ const createClient = function createClient(
 				options.mode.type === 'manifest' ? options.mode.backendURL : undefined,
 			initPath: options.endpoints.initPath,
 		}),
+		networkBlocker: extension.networkBlocker ?? options.networkBlocker,
 		pkg: '@c15t/astro',
 		policyRules:
 			options.mode.type === 'offline' ? options.mode.policyRules : undefined,
