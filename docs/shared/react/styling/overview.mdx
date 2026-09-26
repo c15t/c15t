@@ -16,18 +16,56 @@ group: reference
 
 <section id="tokens-intro">
   Colors, radii, shadows, typography, and motion come from `--c15t-*` custom
-  properties. Set them on the provider through `theme`, or override the
-  variables directly in your CSS.
+  properties. The package stylesheet sets the default values. To change them,
+  render `ConsentTheme` with your theme where your app renders on the server,
+  or override the variables directly in your CSS.
 
-  React and Next.js render the theme stylesheet in the server HTML before
-  the banner. Pass the same theme on the server and the first client render
-  so your custom tokens apply before hydration. The provider's `nonce`
-  option also applies to this stylesheet for Content Security Policy.
+  `ConsentTheme` renders a `<style id="c15t-theme">` element with the
+  variables for `theme`. It is not a client component: rendered from a Server
+  Component or another server-only file, the theme generator stays out of the
+  browser bundle. Rendered from a client component it still works, but the
+  browser downloads the generator (about 1.7 KB gzip). The provider no longer
+  turns `theme` tokens into CSS. It still reads `consentActions` and slot
+  styles from its `theme` option, and warns in development when `theme` holds
+  tokens but the page has no `c15t-theme` stylesheet.
 
-  `colorScheme: 'dark'` applies dark tokens in the server HTML.
-  `colorScheme: 'system'` uses a CSS media query to follow the visitor's
-  preference before hydration. If your app manages dark mode through a
-  root class instead, include that class in the server HTML too.
+  | `ConsentTheme` prop | Purpose |
+  | --- | --- |
+  | `theme` | Colors, `dark` colors, typography, spacing, radius, shadows and motion. Defaults to the built-in theme. |
+  | `colorScheme` | `'dark'` makes the dark tokens the default before hydration. `'system'` follows `prefers-color-scheme` with a CSS media query. Omit it to follow a `dark` or `c15t-dark` class on `<html>`. |
+  | `nonce` | Content Security Policy nonce for the `<style>` element. |
+
+  Pass the same `colorScheme` to `ConsentTheme` and to the provider. The
+  provider keeps the `c15t-dark` class on `<html>` in sync after hydration.
+  If your app manages dark mode through a root class, such as next-themes'
+  `dark` class, omit `colorScheme` and include that class in the server
+  HTML.
+
+  To switch between light and dark at runtime, render `ConsentTheme` without
+  `colorScheme` and toggle the `dark` class on `<html>`: its output already
+  holds the variables for both schemes. To switch between different token
+  sets, render `ConsentTheme` from a client component and change its props,
+  which ships the generator.
+
+  Outside React, call `generateThemeCSS(theme, colorScheme)` from
+  `@c15t/ui/theme` on the server or at build time and put the result in a
+  `<style>` element or your stylesheet. It escapes `<`, so the result is safe
+  inside `<style>`.
+</section>
+
+<section id="theme-migration">
+  Earlier v3 alphas generated theme CSS in the browser from the provider's
+  `theme` option. To migrate:
+
+  1. Move the theme into a module without `'use client'`, so server and
+     client files can both import it.
+  2. Render `<ConsentTheme theme={theme} />` next to the consent root, from a
+     Server Component or another server-rendered file. Pass `colorScheme` and
+     `nonce` if you set them on the provider.
+  3. Keep passing `theme` to the provider only for `consentActions` and slot
+     styles. A theme with tokens only can be removed from the provider.
+  4. Keep the package stylesheet import. It carries the default tokens the
+     provider used to inject.
 </section>
 
 <section id="token-roles">
