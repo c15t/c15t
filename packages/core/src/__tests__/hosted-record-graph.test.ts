@@ -58,7 +58,7 @@ const staticGraph = function staticGraph(entry: string): {
 				continue;
 			}
 			for (const name of (match.groups?.names ?? '').split(',')) {
-				const imported = name.trim().split(/\s+as\s+/u)[0];
+				const [imported] = name.trim().split(/\s+as\s+/u);
 				if (imported && !imported.startsWith('type ')) {
 					packageImports.add(`${specifier}#${imported}`);
 				}
