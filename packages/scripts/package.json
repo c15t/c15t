@@ -127,6 +127,11 @@
 			"import": "./dist/vendors/analytics/mixpanel-analytics.js",
 			"require": "./dist/vendors/analytics/mixpanel-analytics.cjs"
 		},
+		"./one-dollar-stats": {
+			"types": "./dist-types/vendors/analytics/one-dollar-stats.d.ts",
+			"import": "./dist/vendors/analytics/one-dollar-stats.js",
+			"require": "./dist/vendors/analytics/one-dollar-stats.cjs"
+		},
 		"./pirsch": {
 			"types": "./dist-types/vendors/analytics/pirsch.d.ts",
 			"import": "./dist/vendors/analytics/pirsch.js",

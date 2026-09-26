@@ -64,6 +64,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example:
 			"matomoAnalytics({ matomoUrl: 'https://analytics.example.com', siteId: 1 })",
 	},
+	'one-dollar-stats': {
+		importName: 'oneDollarStats',
+		example: 'oneDollarStats()',
+	},
 	posthog: {
 		importName: 'posthog',
 		example: "posthog({ id: 'phc_XXXXXXXXXX' })",
