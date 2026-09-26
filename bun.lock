@@ -1225,8 +1225,10 @@
     "packages/scripts": {
       "name": "@c15t/scripts",
       "version": "3.0.0-alpha.1",
-      "devDependencies": {
+      "dependencies": {
         "@c15t/core": "workspace:*",
+      },
+      "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
         "playwright": "1.58.2",

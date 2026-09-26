@@ -22,6 +22,17 @@ describe('segment', () => {
 		});
 	});
 
+	it('sets load options on the SDK queue before the script loads', () => {
+		const script = segment({
+			loadOptions: { integrations: { All: false } },
+			writeKey: 'options',
+		});
+		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		expect(getTestGlobal().analytics).toHaveProperty('_loadOptions', {
+			integrations: { All: false },
+		});
+	});
+
 	it('queues page call by default', () => {
 		const globalRef = getTestGlobal();
 		const script = segment({ writeKey: 'abc123xyz456' });

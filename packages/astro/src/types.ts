@@ -18,6 +18,7 @@ import type {
 	Script,
 	StorageConfig,
 } from '@c15t/core';
+import type { ConsentRuntimeOptions } from '@c15t/core/runtime';
 import type {
 	PolicyRule,
 	PolicyResolution,
@@ -138,6 +139,8 @@ export interface C15tMiddlewareOptions {
 
 /** Options accepted by the `c15t()` Astro integration. */
 export interface C15tAstroOptions {
+	/** Reload on consent withdrawal to stop already-executed SDKs. Defaults to false. */
+	reloadOnRevocation?: boolean;
 	/** Host layout and styling constrained by the active policy. */
 	presentation?: ConsentPresentation;
 	/**
@@ -312,7 +315,9 @@ export interface C15tClientOptionsExtension {
 	scripts?: Script[];
 	/** Overrides cleanup targets from the integration options. */
 	clearOnRevocation?: ClearOnRevocationConfig;
-	callbacks?: Record<string, unknown>;
+	callbacks?: ConsentRuntimeOptions['callbacks'];
+	/** External CMP owns consent decisions and preferences. */
+	consentSource?: ConsentRuntimeOptions['consentSource'];
 	/** Merged over the serialized theme. */
 	theme?: Theme;
 }

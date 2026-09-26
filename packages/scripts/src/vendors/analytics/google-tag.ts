@@ -69,6 +69,8 @@ export const gtagManifest = {
 } as const satisfies VendorManifest;
 
 export interface GtagOptions {
+	/** Parameters forwarded to gtag config. */
+	config?: Record<string, unknown>;
 	/**
 	 * Your gtag id
 	 * @example `G-XXXXXXX`
@@ -116,14 +118,27 @@ export interface GtagOptions {
  */
 export const gtag = function gtag({
 	id,
+	config,
 	category,
 	consentMapping,
 	script,
 }: GtagOptions): Script {
-	const manifest = withOptionalConsentMapping(gtagManifest, consentMapping);
+	const base =
+		config === undefined
+			? gtagManifest
+			: {
+					...gtagManifest,
+					install: gtagManifest.install.map((step) =>
+						step.type === 'callGlobal' && step.args[0] === 'config'
+							? { ...step, args: ['config', '{{id}}', '{{config}}'] }
+							: step
+					),
+				};
+	const manifest = withOptionalConsentMapping(base, consentMapping);
 
 	const resolved = resolveManifest(manifest, {
 		category,
+		config,
 		id,
 	});
 

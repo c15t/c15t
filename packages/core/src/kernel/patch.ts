@@ -42,6 +42,7 @@ import type {
 	KernelVendorsState,
 	VendorChoice,
 } from '../types';
+import { evaluateExternalPermissions } from './external-permissions';
 import { freezeSnapshot } from './snapshot';
 
 /**
@@ -51,6 +52,7 @@ import { freezeSnapshot } from './snapshot';
  * Nullable fields: `undefined` (omitted) preserves, `null` clears.
  */
 export interface SnapshotPatch {
+	externalPermissions?: Readonly<ConsentState>;
 	consentCategories?: readonly AllConsentNames[] | null;
 	explicitChoice?: ExplicitChoice | null;
 	noticeDismissal?: NoticeDismissal | null;
@@ -104,6 +106,8 @@ export const isUnchangedPatch = function isUnchangedPatch(
 		return false;
 	}
 	return (
+		pick(patch.externalPermissions, current.externalPermissions) ===
+			current.externalPermissions &&
 		pick(patch.privacyDetected, current.privacySignals.gpc.detected) ===
 			current.privacySignals.gpc.detected &&
 		pick(patch.explicitChoice, current.explicitChoice) ===
@@ -332,7 +336,11 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		privacySignals.gpc.active === current.privacySignals.gpc.active &&
 		now >= current.evaluatedAt &&
 		(current.nextDeadline === null || now < current.nextDeadline);
-	const evaluation = reuseEvaluation
+	const externalPermissions = pick(
+		patch.externalPermissions,
+		current.externalPermissions
+	);
+	let evaluation = reuseEvaluation
 		? {
 				nextDeadline: current.nextDeadline,
 				permissions: current.effectivePermissions,
@@ -347,6 +355,10 @@ export const buildNextSnapshot = function buildNextSnapshot(
 				optOuts: optOutDirectives,
 				policy: evaluationPolicy,
 			});
+	if (externalPermissions) {
+		evaluation = evaluateExternalPermissions(externalPermissions);
+	}
+
 	const effectivePermissions = samePermissions(
 		current.effectivePermissions,
 		evaluation.permissions
@@ -370,15 +382,17 @@ export const buildNextSnapshot = function buildNextSnapshot(
 	const promptChanged = promptRequirement !== current.promptRequirement;
 	const visibilityChanged =
 		resolutionChanged || policyPending !== current.policyPending;
-	const activeUI = deriveNextActiveUI({
-		current,
-		derive: promptChanged || visibilityChanged,
-		patch,
-		policyPending,
-		policyRule,
-		promptRequirement,
-		resolution,
-	});
+	const activeUI = externalPermissions
+		? 'none'
+		: deriveNextActiveUI({
+				current,
+				derive: promptChanged || visibilityChanged,
+				patch,
+				policyPending,
+				policyRule,
+				promptRequirement,
+				resolution,
+			});
 
 	const subject = pick(patch.subject, current.subject);
 
@@ -390,6 +404,7 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		evaluatedAt: now,
 		evaluationPolicy,
 		explicitChoice,
+		externalPermissions,
 		iab,
 		location: pick(patch.location, current.location),
 		model: deriveModel(policyRule, iab?.enabled ?? false),

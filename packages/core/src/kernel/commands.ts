@@ -1205,6 +1205,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				vendors?: Record<string, boolean>;
 			}
 		): Promise<SaveResult> {
+			if (getSnapshot().externalPermissions) {
+				throw new Error(
+					'Consent is owned by an external CMP. Save through that provider.'
+				);
+			}
+
 			// An object input may carry the vendor grants next to the categories.
 			// They are split off here so the category validator only sees
 			// categories; the context form wins when both are given.

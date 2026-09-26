@@ -219,3 +219,48 @@ reload and script requests.
 
 Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
 YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.
+
+## Use an external consent source
+
+An existing CMP can own consent decisions, UI, records, expiry, and privacy-signal handling while c15t owns the script runtime. Export `consentSource` from the browser client entrypoint. Its `getPermissions()` returns a complete current decision; omitted optional categories are denied. Notify on initialization, changes, withdrawal, expiry, and loss of availability.
+
+```ts title="src/consent.client.ts"
+import type { C15tClientOptionsExtension } from '@c15t/astro';
+import { provider } from './your-consent-provider';
+import { posthog } from '@c15t/scripts/posthog';
+
+export default {
+  scripts: [posthog({ id: 'ph_your_project_key' })],
+  consentSource: {
+    getPermissions: () => provider.currentPermissions(),
+    subscribe: (notify) => provider.subscribe(notify),
+    openPreferences: () => provider.openPreferences(),
+  },
+} satisfies C15tClientOptionsExtension;
+```
+
+`provider` is your application adapter, not a c15t export. While using an external source, omit c15t's banner and dialog components. The runtime disables c15t persistence, initialization, and IAB setup, keeps optional permissions denied until the source reports them, and does not create c15t choice receipts. Save choices through the external provider; c15t's save commands reject while an external authority is configured. `openDialog()` opens the provider's preferences.
+
+For SDKs that cannot stop after they have executed, set `reloadOnRevocation: true` on the Astro integration. c15t reloads after an optional permission is revoked, after synchronous consent callbacks and persistence. This option defaults to `false`.
+
+## Dispatch application events
+
+`createEventDispatcher` from `@c15t/scripts/events` sends custom analytics events to configured integrations with supported event APIs. Pass the same scripts registered with c15t and a live `getSnapshot` function. It checks measurement and each script's consent condition, isolates vendor failures, and discards denied events instead of replaying them later.
+
+```ts title="src/events.ts"
+import { getConsentClient } from '@c15t/astro/client';
+import { createEventDispatcher } from '@c15t/scripts/events';
+import options from './consent.client';
+
+export function trackSearch(resultCount: number) {
+  const client = getConsentClient();
+  if (!client) return;
+  const events = createEventDispatcher({
+    scripts: options.scripts ?? [],
+    getSnapshot: client.getConsent,
+  });
+  events.track('search', { resultCount });
+}
+```
+
+Keep raw search text and other sensitive application payloads out of event properties unless you have deliberately configured their collection. Early-loading scripts are not automatically eligible for application analytics events. Use SDK-specific helpers for vendor-specific events that are not part of the shared dispatcher.

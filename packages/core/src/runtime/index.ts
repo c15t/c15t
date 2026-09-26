@@ -68,6 +68,7 @@ import type {
 } from './types';
 
 export type {
+	ExternalConsentSource,
 	ConsentRuntime,
 	ConsentRuntimeIABFactory,
 	ConsentRuntimeIABFactoryOptions,
@@ -299,6 +300,7 @@ export const createRuntimeKernel = function createRuntimeKernel(
 				extractConsentNamesFromCondition(vendor.category)
 			),
 		],
+		initialExternalPermissions: options.consentSource ? {} : undefined,
 		initialIab:
 			prefetch.initialIab?.gvlReference &&
 			options.iab &&
@@ -315,15 +317,17 @@ export const createRuntimeKernel = function createRuntimeKernel(
 			...(prefetch.initialOverrides ?? {}),
 			...(options.overrides ?? {}),
 		},
-		initialPolicyPending:
-			prefetch.initialPolicyPending ??
-			(enabled && !prefetch.initialPolicyResolution),
+		initialPolicyPending: options.consentSource
+			? false
+			: (prefetch.initialPolicyPending ??
+				(enabled && !prefetch.initialPolicyResolution)),
 		initialPolicyResolution: enabled
 			? prefetch.initialPolicyResolution
 			: DISABLED_RESOLUTION,
 		// A disabled runtime grants everything, so stored records, including a
 		// vendor denial list, must not narrow what loads.
-		initialRecords: enabled ? prefetch.initialRecords : undefined,
+		initialRecords:
+			enabled && !options.consentSource ? prefetch.initialRecords : undefined,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
 		initialUser: normalizeKernelUser(options.user) ?? prefetch.initialUser,
 		initialVendors:
@@ -395,7 +399,9 @@ export const createConsentRuntime = function createConsentRuntime(
 	options: ConsentRuntimeOptions
 ): ConsentRuntime {
 	const enabled = options.enabled ?? true;
-	const persistenceOptions = normalizePersistenceOptions(options);
+	const persistenceOptions = options.consentSource
+		? false
+		: normalizePersistenceOptions(options);
 	const kernel = createRuntimeKernel(options);
 
 	let iabHandle: ConsentRuntimeIABHandle | null = null;
@@ -440,7 +446,7 @@ export const createConsentRuntime = function createConsentRuntime(
 	let persistenceHandle: PersistenceHandle | null = null;
 
 	const runInit = async function runInit(): Promise<void> {
-		if (disposed) {
+		if (disposed || options.consentSource) {
 			return;
 		}
 		await kernel.commands.init();
@@ -480,7 +486,7 @@ export const createConsentRuntime = function createConsentRuntime(
 
 	const startIAB = function startIAB() {
 		const { createIAB } = options;
-		if (!(enabled && createIAB && options.iab)) {
+		if (!(enabled && createIAB && options.iab) || options.consentSource) {
 			return;
 		}
 		let mounted = false;
@@ -580,6 +586,7 @@ export const createConsentRuntime = function createConsentRuntime(
 		stageVendorConsent(vendorId, granted) {
 			kernel.set.vendorDraft({ [vendorId]: granted });
 		},
+		// oxlint-disable-next-line complexity -- Starts the runtime modules in dependency order.
 		start() {
 			if (started || disposed || typeof document === 'undefined') {
 				return;
@@ -595,12 +602,34 @@ export const createConsentRuntime = function createConsentRuntime(
 			}
 
 			startPersistence();
+			if (options.consentSource) {
+				const source = options.consentSource;
+				const sync = () => {
+					if (disposed) {
+						return;
+					}
+					// A failed or unavailable provider must never retain a stale grant.
+					let permissions = null;
+					try {
+						permissions = source.getPermissions();
+					} catch {
+						/* denied */
+					}
+					kernel.set.externalPermissions(permissions ?? {});
+				};
+				disposers.push(source.subscribe(sync));
+				sync();
+			}
 
 			// A server-resolved prefetch already holds the init answer; asking
 			// for it again is one request per page load on every SSR route.
-			if (enabled && !hasResolvedPrefetch(options.prefetch)) {
+			if (
+				enabled &&
+				!options.consentSource &&
+				!hasResolvedPrefetch(options.prefetch)
+			) {
 				void runInit();
-			} else if (enabled) {
+			} else if (enabled && !options.consentSource) {
 				kernel.hydrate({ now: kernel.getServerSnapshot().evaluatedAt });
 				const { gpc } = kernel.getSnapshot().privacySignals;
 				if (gpc.detected && gpc.active) {
@@ -650,6 +679,30 @@ export const createConsentRuntime = function createConsentRuntime(
 
 			startIAB();
 			startCleanup();
+			if (options.reloadOnRevocation && options.scripts?.length) {
+				let previous = kernel.getSnapshot().effectivePermissions;
+				let scheduled = false;
+				disposers.push(
+					kernel.subscribe((snapshot) => {
+						const next = snapshot.effectivePermissions;
+						const revoked = Object.keys(previous).some(
+							(category) =>
+								category !== 'necessary' &&
+								previous[category as keyof ConsentState] &&
+								!next[category as keyof ConsentState]
+						);
+						previous = next;
+						if (revoked && !scheduled) {
+							scheduled = true;
+							queueMicrotask(() => {
+								if (!disposed) {
+									window.location.reload();
+								}
+							});
+						}
+					})
+				);
+			}
 		},
 		get started() {
 			return started;

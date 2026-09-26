@@ -242,6 +242,11 @@
 			"types": "./dist-types/*.d.ts",
 			"import": "./dist/*.js",
 			"default": "./dist/*.js"
+		},
+		"./events": {
+			"types": "./dist-types/events.d.ts",
+			"import": "./dist/events.js",
+			"default": "./dist/events.js"
 		}
 	},
 	"publishConfig": {
@@ -259,8 +264,10 @@
 		"test:live-vendors": "bun --tsconfig-override live-vendors/tsconfig.json live-vendors/runner.ts",
 		"test:watch": "vitest"
 	},
+	"dependencies": {
+		"@c15t/core": "workspace:*"
+	},
 	"devDependencies": {
-		"@c15t/core": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"playwright": "1.58.2",

@@ -27,6 +27,7 @@ import type { User } from '../options/user';
 import type { ProviderTransportFactory } from '../transports/mode';
 import type {
 	ConsentKernel,
+	ConsentState,
 	GlobalVendorList,
 	KernelConfig,
 	KernelOverrides,
@@ -157,7 +158,23 @@ export type ConsentRuntimeIABFactory = (
  * Framework packages extend this with their UI-only options (theme, color
  * scheme, animation, legal links) and forward the rest untouched.
  */
+/** External CMP decision source. The provider owns UI, persistence, expiry and GPC. */
+export interface ExternalConsentSource {
+	/** Read the current decision. Null means not ready, so optional categories are denied. */
+	getPermissions: () => Partial<ConsentState> | null;
+	/** Notify on initialization, changes, revocation and expiry. Returns cleanup. */
+	subscribe: (listener: () => void) => Unsubscribe;
+	/** Open the external provider's preference UI. */
+	openPreferences: () => void | Promise<void>;
+}
+
 export interface ConsentRuntimeOptions {
+	/** Reload after an optional permission is revoked, stopping SDKs that cannot unload themselves.
+	 * Off by default. Runs after synchronous persistence and consent callbacks complete.
+	 */
+	reloadOnRevocation?: boolean;
+	/** External authority. Disables c15t persistence, initialization, IAB and choice UI. */
+	consentSource?: ExternalConsentSource;
 	/**
 	 * Set `false` to grant every category, suppress all UI and skip
 	 * initialization. Consent-gated scripts load immediately, as they would

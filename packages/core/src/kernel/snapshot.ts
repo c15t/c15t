@@ -34,6 +34,10 @@ import type {
 	VendorChoice,
 	ResolvedVendor,
 } from '../types';
+import {
+	evaluateExternalPermissions,
+	normalizeExternalPermissions,
+} from './external-permissions';
 import { validateHydrationRecords } from './records';
 
 /**
@@ -324,7 +328,11 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 			? DEFAULT_PRIVACY_SIGNALS
 			: { gpc: { active: override ?? detected, detected, override } };
 
-	const evaluation =
+	const externalPermissions =
+		config.initialExternalPermissions === undefined
+			? undefined
+			: normalizeExternalPermissions(config.initialExternalPermissions);
+	const recordEvaluation =
 		evaluationPolicy === DEFAULT_EVALUATION_POLICY &&
 		explicitChoice === null &&
 		noticeDismissal === null &&
@@ -339,18 +347,24 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 					policy: evaluationPolicy,
 				});
 
+	const evaluation = externalPermissions
+		? evaluateExternalPermissions(externalPermissions)
+		: recordEvaluation;
 	return freezeSnapshot({
-		activeUI: deriveActiveUI({
-			policyPending,
-			promptRequirement: evaluation.promptRequirement,
-			resolution,
-		}),
+		activeUI: externalPermissions
+			? 'none'
+			: deriveActiveUI({
+					policyPending,
+					promptRequirement: evaluation.promptRequirement,
+					resolution,
+				}),
 		branding: config.initialBranding ?? null,
 		consentCategories,
 		effectivePermissions: evaluation.permissions,
 		evaluatedAt: now,
 		evaluationPolicy,
 		explicitChoice,
+		externalPermissions,
 		iab,
 		location: config.initialLocation ? { ...config.initialLocation } : null,
 		model: deriveModel(effective.rule, iab?.enabled ?? false),
