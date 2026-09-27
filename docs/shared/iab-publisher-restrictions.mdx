@@ -19,8 +19,11 @@ restriction types for one purpose. They are never dropped. Loading IAB settings,
 saving and generating a TC String all reject with a `PublisherRestrictionError`
 exported by `@c15t/iab`. On a `createIAB` handle these are `whenReady()`,
 `save()` and `generateTCString()`. The error is permanent for that handle:
-`whenReady()` does not retry or fetch another vendor list. No TC String is
-written and no consent is recorded. Because the check reads the current vendor
+`whenReady()` does not retry or fetch another vendor list, and saving keeps
+failing even if the kernel later receives a different list. No TC String is
+written and no consent is recorded. When a replacement vendor list makes a
+restriction unsupported, c15t also clears the TC authority confirmed under the
+previous list, so gated scripts stop until the configuration is fixed. Because the check reads the current vendor
 list, a vendor that stops declaring a purpose or its flexibility makes a
 restriction invalid. Narrow a `vendors` allowlist and your restrictions
 together.
@@ -36,7 +39,11 @@ writes always follow the current policy.
 The preference centre lists each vendor under the legal basis the
 restrictions leave it. A vendor whose purpose now requires legitimate interest
 gets an objection control instead of a consent toggle, and a prohibited
-purpose no longer lists the vendor. Custom preference UIs can call
+purpose no longer lists the vendor. A purpose whose vendors all use legitimate
+interest has no consent switch, because turning one off would change nothing
+the vendors rely on; its objection control is the opt-out. Stack switches
+cover only the purposes some vendor processes on consent. Display-model rows
+expose this as `hasConsentBasis`. Custom preference UIs can call
 `applyPublisherRestrictionsToGVL` from `@c15t/iab/headless`, or pass
 `publisherRestrictions` to `processGVLForDialog`, to get the same vendor
 declarations. The configured restrictions are on the kernel's IAB state as
