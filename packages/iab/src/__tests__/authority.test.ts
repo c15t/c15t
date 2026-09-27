@@ -21,6 +21,14 @@ beforeEach(() => {
 	vi.useFakeTimers();
 	vi.setSystemTime(NOW);
 	localStorage.clear();
+	// Cookies outlive a test, and a clear's epoch cookie would void the next
+	// test's decisions made at the same fixed time.
+	for (const pair of document.cookie.split(';')) {
+		const name = pair.split('=')[0]?.trim();
+		if (name) {
+			document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+		}
+	}
 });
 afterEach(() => {
 	for (const dispose of disposers.splice(0)) {
