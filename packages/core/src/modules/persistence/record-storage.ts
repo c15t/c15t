@@ -645,9 +645,20 @@ const withNewerLocalDenials = function withNewerLocalDenials(
 			changed = true;
 		}
 	}
-	return changed
-		? { ...cookie, choice: { categories, version: 3 }, epoch }
-		: cookie;
+	if (!changed) {
+		return cookie;
+	}
+	// The subject and IAB metadata belong to the clear history they were
+	// written in. A copy from before the later epoch never saw that clear,
+	// so its identity is void with its decisions; take the later copy's.
+	const identity = cookie.epoch === epoch ? cookie : local;
+	return {
+		...cookie,
+		choice: { categories, version: 3 },
+		epoch,
+		iab: identity.iab,
+		subject: identity.subject,
+	};
 };
 
 /**
@@ -896,16 +907,23 @@ export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 		getRawCookieValue(keys.notice, onUnavailable),
 		(text) => decodeNoticeDismissalCompact(text, now)
 	);
+	const fromLocal = readLocalJson(
+		keys.notice,
+		(value) => decodeNoticeDismissal(value, now),
+		onUnavailable
+	);
+	// The newer dismissal wins, the cookie on a tie. A dismissal only hides
+	// the notice for the fingerprint it names, which the evaluator checks,
+	// and it never grants a category.
+	if (fromCookie?.ok && fromLocal?.ok) {
+		return fromLocal.record.dismissedAt > fromCookie.record.dismissedAt
+			? fromLocal
+			: fromCookie;
+	}
 	if (fromCookie?.ok) {
 		return fromCookie;
 	}
-	return (
-		readLocalJson(
-			keys.notice,
-			(value) => decodeNoticeDismissal(value, now),
-			onUnavailable
-		) ?? fromCookie
-	);
+	return fromLocal ?? fromCookie;
 };
 
 /** Server read of the notice cookie projection from a `Cookie` header. */
@@ -967,6 +985,27 @@ export const clearStoredNoticeDismissal = function clearStoredNoticeDismissal(
 	deleteCookie(keys.notice, cookie, config);
 };
 
+/** Both directive lists without duplicates, oldest first. */
+const unionDirectives = function unionDirectives(
+	left: readonly PrivacyOptOut[],
+	right: readonly PrivacyOptOut[]
+): PrivacyOptOut[] {
+	const byKey = new Map<string, PrivacyOptOut>();
+	for (const directive of [...left, ...right]) {
+		const key = JSON.stringify([
+			directive.recordedAt,
+			directive.source,
+			[...directive.categories].sort(),
+		]);
+		if (!byKey.has(key)) {
+			byKey.set(key, directive);
+		}
+	}
+	return [...byKey.values()].sort(
+		(first, second) => first.recordedAt - second.recordedAt
+	);
+};
+
 /**
  * Reads standing privacy directives: the cookie projection first, then
  * localStorage. `null` when nothing is stored.
@@ -981,16 +1020,29 @@ export const readStoredPrivacyOptOuts = function readStoredPrivacyOptOuts(
 		getRawCookieValue(keys.privacy, onUnavailable),
 		(text) => decodePrivacyOptOutsCompact(text, now)
 	);
+	const fromLocal = readLocalJson(
+		keys.privacy,
+		(value) => decodePrivacyOptOuts(value, now),
+		onUnavailable
+	);
+	// Directives only restrict, so both copies count: a dropped cookie write
+	// cannot lose a directive the localStorage copy holds.
+	if (fromCookie?.ok && fromLocal?.ok) {
+		return {
+			ok: true,
+			record: {
+				...fromCookie.record,
+				directives: unionDirectives(
+					fromCookie.record.directives,
+					fromLocal.record.directives
+				),
+			},
+		};
+	}
 	if (fromCookie?.ok) {
 		return fromCookie;
 	}
-	return (
-		readLocalJson(
-			keys.privacy,
-			(value) => decodePrivacyOptOuts(value, now),
-			onUnavailable
-		) ?? fromCookie
-	);
+	return fromLocal ?? fromCookie;
 };
 
 /** Server read of the privacy cookie projection from a `Cookie` header. */
@@ -1054,14 +1106,15 @@ export const clearStoredPrivacyOptOuts = function clearStoredPrivacyOptOuts(
 };
 
 /**
- * Reads the vendor denial list from both projections and returns the newer
- * valid one by `confirmedAt`. The two can disagree: a compact cookie that
- * grew past the browser's limit fails to write while localStorage already
- * holds the new list, and the previous cookie would otherwise win on the
- * next load and drop a denial the visitor just recorded. On a tie the
- * localStorage copy wins: the subject rewrite after `subject:resolved`
- * keeps the decision's time, so an equal time with different content means
- * the cookie missed that rewrite. `null` when nothing is stored.
+ * Reads the vendor denial list from both projections. The two can
+ * disagree: a compact cookie that grew past the browser's limit fails to
+ * write while localStorage already holds the new list. When the local copy
+ * is at least as new, its denials are added to the cookie's and its time
+ * and subject are kept; an equal time with different content means the
+ * cookie missed the subject rewrite after `subject:resolved`. A denial the
+ * cookie holds is never lifted by the local copy, so a dropped cookie write
+ * only ever leaves fewer vendors allowed. An older local copy is ignored.
+ * `null` when nothing is stored.
  */
 export const readStoredVendorChoice = function readStoredVendorChoice(
 	config: StorageConfig | undefined,
@@ -1079,9 +1132,13 @@ export const readStoredVendorChoice = function readStoredVendorChoice(
 		onUnavailable
 	);
 	if (fromCookie?.ok && fromLocal?.ok) {
-		return fromLocal.record.confirmedAt >= fromCookie.record.confirmedAt
-			? fromLocal
-			: fromCookie;
+		if (fromLocal.record.confirmedAt < fromCookie.record.confirmedAt) {
+			return fromCookie;
+		}
+		const denied = [
+			...new Set([...fromCookie.record.denied, ...fromLocal.record.denied]),
+		].sort();
+		return { ok: true, record: { ...fromLocal.record, denied } };
 	}
 	if (fromCookie?.ok) {
 		return fromCookie;

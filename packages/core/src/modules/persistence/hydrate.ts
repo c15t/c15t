@@ -87,6 +87,23 @@ const auxiliarySinceEpoch = function auxiliarySinceEpoch(
 };
 
 /**
+ * The selected envelope as the clear in force leaves it. An envelope with
+ * nothing left since the clear is a cleared one (the caller passes no
+ * choice). One written before the clear in force, by a writer that missed
+ * it, keeps only its later decisions: its subject and IAB metadata belong
+ * to the cleared history and are void.
+ */
+const envelopeSinceEpoch = function envelopeSinceEpoch(
+	selected: StoredConsentSelection['selected'],
+	writtenUnderEpoch: boolean
+): StoredConsentSelection['selected'] {
+	if (!selected || writtenUnderEpoch) {
+		return selected;
+	}
+	return { ...selected, iab: null, subject: null };
+};
+
+/**
  * Builds the records from decoded reads. Anything confirmed before the
  * clear epoch (the newer of the stored epoch and the envelope's own) was
  * cleared and reads as absent, so a record written back by a runtime that
@@ -109,8 +126,9 @@ const composeRecords = function composeRecords(
 		epoch,
 		envelopeEpoch === epoch
 	);
-	// An envelope with nothing left since the clear is a cleared one.
-	const selected = choice ? selection.selected : null;
+	const selected = choice
+		? envelopeSinceEpoch(selection.selected, envelopeEpoch === epoch)
+		: null;
 	const vendorRecord = vendorChoiceSinceEpoch(
 		vendors?.ok ? vendors.record : null,
 		epoch
