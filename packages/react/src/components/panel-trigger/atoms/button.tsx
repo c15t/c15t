@@ -8,7 +8,7 @@
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { forwardRef as createForwardRef } from 'react';
-import type { MouseEvent, ReactNode } from 'react';
+import type { FocusEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
 
 import { useIdleDialogWarming, warmDialogChunk } from '~/chunk-warming';
 import { usePolicyRule } from '~/hooks';
@@ -137,6 +137,17 @@ export const TriggerButton = createForwardRef<
 			...handlers,
 		});
 
+		// These replace the `trigger.root` slot's handlers in `buttonStyle`, so
+		// they call them before warming the dialog chunk.
+		const handleFocus = (event: FocusEvent<HTMLButtonElement>) => {
+			buttonStyle.onFocus?.(event);
+			warmDialogChunk();
+		};
+		const handlePointerEnter = (event: PointerEvent<HTMLButtonElement>) => {
+			buttonStyle.onPointerEnter?.(event);
+			warmDialogChunk();
+		};
+
 		return (
 			<button
 				{...buttonStyle}
@@ -146,8 +157,8 @@ export const TriggerButton = createForwardRef<
 				data-c15t-rights={policy.rights.join(' ')}
 				aria-label={ariaLabel}
 				onClick={handleClick}
-				onFocus={warmDialogChunk}
-				onPointerEnter={warmDialogChunk}
+				onFocus={handleFocus}
+				onPointerEnter={handlePointerEnter}
 			>
 				{children}
 			</button>

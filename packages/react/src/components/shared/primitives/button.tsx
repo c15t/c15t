@@ -252,25 +252,32 @@ export const ConsentButton = createForwardRef<
 		// hover or focus, so the chunk downloads during the lead time before the
 		// click instead of after it. While one is mounted, the module also loads
 		// in idle time after the page loads, for opens with no lead time.
+		//
+		// These handlers replace the ones spread from `buttonStyleProps`, so they
+		// call the caller's handler first: a direct prop, else the
+		// `components.button.*` slot's handler.
 		const opensDialog = action === 'open-consent-dialog';
 		useIdleDialogWarming(opensDialog);
+		const onFocus = forwardedOnFocus ?? buttonStyleProps.onFocus;
+		const onPointerEnter =
+			forwardedOnPointerEnter ?? buttonStyleProps.onPointerEnter;
 		const buttonFocus = useCallback(
 			(event: FocusEvent<HTMLButtonElement>) => {
-				forwardedOnFocus?.(event);
+				onFocus?.(event);
 				if (opensDialog) {
 					warmDialogChunk();
 				}
 			},
-			[forwardedOnFocus, opensDialog]
+			[onFocus, opensDialog]
 		);
 		const buttonPointerEnter = useCallback(
 			(event: PointerEvent<HTMLButtonElement>) => {
-				forwardedOnPointerEnter?.(event);
+				onPointerEnter?.(event);
 				if (opensDialog) {
 					warmDialogChunk();
 				}
 			},
-			[forwardedOnPointerEnter, opensDialog]
+			[onPointerEnter, opensDialog]
 		);
 
 		const Comp = asChild ? Slot : 'button';
