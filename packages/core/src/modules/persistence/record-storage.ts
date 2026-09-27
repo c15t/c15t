@@ -56,6 +56,7 @@ import {
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
 } from '../../libs/storage-keys';
+import { choiceSinceEpoch } from './epoch';
 import {
 	decodeClearEpoch,
 	decodeNoticeDismissal,
@@ -590,6 +591,21 @@ export const decodeStoredConsentCandidate =
 	};
 
 /**
+ * The categories of `record` still in force under `epoch`: decisions made
+ * before the clear are void, and one in the clearing millisecond counts
+ * only when the record was written under that epoch.
+ */
+const categoriesSinceEpoch = function categoriesSinceEpoch(
+	record: DecodedStoredConsent,
+	epoch: number
+): ExplicitChoice['categories'] {
+	return (
+		choiceSinceEpoch(record.choice, epoch, record.epoch === epoch)
+			?.categories ?? {}
+	);
+};
+
+/**
  * The cookie record with every newer localStorage denial applied, or the
  * cookie record itself when there is none.
  *
@@ -598,20 +614,27 @@ export const decodeStoredConsentCandidate =
  * no longer carries. But a browser can drop a cookie write (over the size
  * limit, say) while localStorage takes it, and then the cookie holds an
  * older choice. A local denial newer than the cookie's decision for that
- * category is therefore applied on top of it; a newer local grant is not,
- * so a dropped cookie write only ever fails toward less permission. Records
- * from different clear epochs are not mixed: the later epoch wins whole.
+ * category is therefore applied on top of it; a newer local grant never
+ * is, so the result only ever moves toward less permission.
+ *
+ * When the two were written under different clear epochs, both are first
+ * cut to the later one: each side's decisions from before it are void. The
+ * same rule then applies, so a later epoch never lets a local grant replace
+ * a cookie denial.
  */
 const withNewerLocalDenials = function withNewerLocalDenials(
 	cookie: DecodedStoredConsent,
 	local: DecodedStoredConsent
 ): DecodedStoredConsent {
-	if (cookie.epoch !== local.epoch) {
-		return local.epoch > cookie.epoch ? local : cookie;
-	}
-	const categories = { ...cookie.choice.categories };
-	let changed = false;
-	for (const [category, decision] of Object.entries(local.choice.categories)) {
+	const epoch = Math.max(cookie.epoch, local.epoch);
+	const categories = categoriesSinceEpoch(cookie, epoch);
+	const cut =
+		Object.keys(categories).length !==
+		Object.keys(cookie.choice.categories).length;
+	let changed = cut || epoch !== cookie.epoch;
+	for (const [category, decision] of Object.entries(
+		categoriesSinceEpoch(local, epoch)
+	)) {
 		const current = categories[category as keyof typeof categories];
 		if (
 			decision &&
@@ -623,7 +646,7 @@ const withNewerLocalDenials = function withNewerLocalDenials(
 		}
 	}
 	return changed
-		? { ...cookie, choice: { ...cookie.choice, categories } }
+		? { ...cookie, choice: { categories, version: 3 }, epoch }
 		: cookie;
 };
 

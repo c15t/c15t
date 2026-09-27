@@ -757,3 +757,61 @@ describe('notice dismissal and privacy opt-outs', () => {
 		expect(readStoredNoticeDismissal(config, NOW)).toBeNull();
 	});
 });
+
+describe('cookie and local copies from different clear epochs', () => {
+	const decision = (value: boolean, confirmedAt: number) => ({
+		basis: currentBasis,
+		confirmedAt,
+		value,
+	});
+	const store = (
+		cookieEnvelope: StoredConsentEnvelope,
+		localEnvelope: StoredConsentEnvelope
+	) => {
+		document.cookie = `${STORAGE_KEY_V2}=${encodeStoredConsentEnvelopeCompact(cookieEnvelope)}`;
+		window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(localEnvelope));
+	};
+
+	it('never lets an older local grant replace a newer cookie denial', () => {
+		store(
+			{
+				categories: { marketing: decision(false, NOW - 700) },
+				epoch: NOW - 900,
+				version: 3,
+			},
+			{
+				categories: { marketing: decision(true, NOW - 750) },
+				epoch: NOW - 800,
+				version: 3,
+			}
+		);
+
+		const { selected } = readStoredConsentRecord(undefined, NOW);
+		expect(selected?.choice.categories.marketing?.value).toBe(false);
+	});
+
+	it('voids the side from before the later epoch and adds no local grant', () => {
+		store(
+			{
+				categories: { marketing: decision(true, NOW - 950) },
+				epoch: NOW - 1000,
+				version: 3,
+			},
+			{
+				categories: {
+					marketing: decision(true, NOW - 700),
+					measurement: decision(false, NOW - 700),
+				},
+				epoch: NOW - 800,
+				version: 3,
+			}
+		);
+
+		const { selected } = readStoredConsentRecord(undefined, NOW);
+		// The cookie grant predates the later clear; the local grant is not
+		// applied over the cookie, the local denial is.
+		expect(selected?.choice.categories.marketing).toBeUndefined();
+		expect(selected?.choice.categories.measurement?.value).toBe(false);
+		expect(selected?.epoch).toBe(NOW - 800);
+	});
+});
