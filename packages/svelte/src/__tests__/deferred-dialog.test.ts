@@ -18,6 +18,7 @@ import {
 	warmDialog,
 } from '../lib/dialog-warming';
 import DeferredDialogFixture from './fixtures/deferred-dialog-fixture.svelte';
+import DeferredDialogTriggerFixture from './fixtures/deferred-dialog-trigger-fixture.svelte';
 import { testOffline } from './test-offline';
 
 const LIB = resolve(__dirname, '../lib');
@@ -123,6 +124,27 @@ describe('deferred ConsentDialog', () => {
 		).toBeNull();
 
 		await fireEvent.click(customize);
+
+		await waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="consent-dialog-card"]')
+			).toBeInTheDocument();
+		});
+	});
+
+	test('loads at once to render its own trigger', async () => {
+		render(DeferredDialogTriggerFixture, {
+			options: { mode: testOffline(), preloadDialog: 'intent' },
+		});
+		const trigger = await waitFor(() => {
+			const button = document.querySelector(
+				'[data-testid="consent-dialog-trigger"]'
+			);
+			expect(button).toBeInTheDocument();
+			return button as HTMLElement;
+		});
+
+		await fireEvent.click(trigger);
 
 		await waitFor(() => {
 			expect(
