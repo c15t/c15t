@@ -143,6 +143,32 @@ describe('@c15t/iab headless publisher restrictions', () => {
 		).toBeUndefined();
 	});
 
+	test.each([
+		[1, { legIntPurposes: [], purposes: [1, 7] }],
+		[2, { legIntPurposes: [7], purposes: [1] }],
+	] as const)(
+		'type %i lists a purpose declared on both bases once',
+		(restrictionType, expected) => {
+			// Out of spec, but seen in lists: the purpose appears in both arrays.
+			const both = {
+				...completeGVL,
+				vendors: {
+					...completeGVL.vendors,
+					755: {
+						...completeGVL.vendors[755],
+						flexiblePurposes: [7],
+						legIntPurposes: [7],
+						purposes: [1, 7],
+					},
+				},
+			} as typeof completeGVL;
+			const { vendors } = applyPublisherRestrictionsToGVL(both, [
+				{ purposeId: 7, restrictionType, vendorIds: [755] },
+			]);
+			expect(vendors[755]).toMatchObject(expected);
+		}
+	);
+
 	test('returns the same list when nothing is restricted', () => {
 		expect(applyPublisherRestrictionsToGVL(completeGVL, [])).toBe(completeGVL);
 		expect(applyPublisherRestrictionsToGVL(completeGVL, undefined)).toBe(

@@ -25,6 +25,10 @@ type Vendor = GlobalVendorList['vendors'][number];
 const without = (list: readonly number[], purposeId: number): number[] =>
 	list.filter((id) => id !== purposeId);
 
+/** Appends a purpose once, even if the list already declares it. */
+const including = (list: readonly number[], purposeId: number): number[] =>
+	list.includes(purposeId) ? [...list] : [...list, purposeId];
+
 /** One restriction applied to one vendor, following the TCF v2 rules. */
 const restrictVendor = function restrictVendor(
 	vendor: Vendor,
@@ -50,7 +54,7 @@ const restrictVendor = function restrictVendor(
 			? {
 					...vendor,
 					legIntPurposes: without(legIntPurposes, purposeId),
-					purposes: [...purposes, purposeId],
+					purposes: including(purposes, purposeId),
 				}
 			: remove();
 	}
@@ -58,7 +62,7 @@ const restrictVendor = function restrictVendor(
 		return flexible && !CONSENT_ONLY_PURPOSES.includes(purposeId)
 			? {
 					...vendor,
-					legIntPurposes: [...legIntPurposes, purposeId],
+					legIntPurposes: including(legIntPurposes, purposeId),
 					purposes: without(purposes, purposeId),
 				}
 			: remove();
