@@ -1583,6 +1583,48 @@ test('changing the restrictions array after mount does not change what is encode
 	]);
 });
 
+test('a replacement list that invalidates a restriction clears retained authority', async () => {
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		kernel,
+		publisherRestrictions: [
+			{ purposeId: 7, restrictionType: 0, vendorIds: [755] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	addon.acceptAll();
+	await addon.save();
+	const gate = { category: 'marketing' as const, vendorId: 755 };
+	expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(true);
+
+	// Vendor 755 stops declaring purpose 7, so prohibiting it is unsupported.
+	const { 755: vendor755 } = completeGVL.vendors;
+	if (!vendor755) {
+		throw new Error('Missing vendor 755 fixture');
+	}
+	kernel.set.iab({
+		gvl: {
+			...completeGVL,
+			vendors: {
+				...completeGVL.vendors,
+				755: {
+					...vendor755,
+					flexiblePurposes: [2],
+					purposes: vendor755.purposes.filter((id) => id !== 7),
+				},
+			},
+		},
+	});
+	await expect(addon.whenReady()).rejects.toBeInstanceOf(
+		PublisherRestrictionError
+	);
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+	expect(kernel.getSnapshot().iab?.tcString).toBe('');
+	expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(false);
+});
+
 test('stored authority must carry the configured publisher restrictions', async () => {
 	const kernel = makeKernel();
 	const publisherRestrictions = [

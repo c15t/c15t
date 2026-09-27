@@ -1069,6 +1069,21 @@ export const createIAB = function createIAB(
 			)
 		);
 	};
+	const restrictionsForList = (gvl: GlobalVendorList) => {
+		try {
+			return validatePublisherRestrictions(configuredRestrictions, {
+				gvl,
+				isServiceSpecific,
+			});
+		} catch (error) {
+			// Authority confirmed against an earlier list must not keep gating
+			// scripts once this CMP can no longer publish a string.
+			if (readIAB(kernel).authority) {
+				kernel.set.iab({ authority: null, tcString: '' });
+			}
+			throw error;
+		}
+	};
 	const initialize = async (
 		preloaded: GlobalVendorList | null | undefined,
 		requested: typeof reference
@@ -1089,10 +1104,7 @@ export const createIAB = function createIAB(
 			}
 			// An unsupported restriction stops the CMP here, before any TC
 			// string could be written or published without it.
-			publisherRestrictions = validatePublisherRestrictions(
-				configuredRestrictions,
-				{ gvl, isServiceSpecific }
-			);
+			publisherRestrictions = restrictionsForList(gvl);
 			const beforePublish = kernel.getSnapshot();
 			const retained = beforePublish.iab?.authority;
 			const validAuthority = await retainedAuthorityMatchesList(
