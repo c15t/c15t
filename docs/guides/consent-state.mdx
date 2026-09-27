@@ -182,7 +182,11 @@ never removes it. Every consent record written afterwards also records the
 epoch it was written under.
 
 A decision confirmed before the epoch was made before the clear, so it is void
-wherever it turns up:
+wherever it turns up. A decision stamped in the very millisecond of the clear
+counts only if it comes from a tab that had already seen that clear, so a tab's
+own choice right after its own clear stands while another tab's decision in the
+same millisecond does not. A stored record left with no decisions after the
+clear is void too, subject included.
 
 - A tab that reconciles only after another tab cleared and saved again drops
   its pre-clear decisions instead of merging them back. Its subject from before
@@ -195,8 +199,15 @@ wherever it turns up:
   same rule, so a server render agrees with the browser.
 
 Records from before any clear, including v2 and legacy records, read as epoch 0
-and are unaffected. A corrupt or future epoch, or one that cannot be read, also
-reads as 0: it voids nothing, so a failed read never grants a category.
+and are unaffected. A corrupt epoch, or one that cannot be read, also reads as
+0: it voids nothing, so a failed read never grants a category. A consent record
+whose own epoch field is corrupt is kept, and only its epoch is ignored.
+
+Each clear moves the epoch forward, even when the device clock went back, so a
+later clear never lets earlier decisions back in. An epoch up to one hour ahead
+of the clock is kept, as it is when the clock was set back after a clear. Until
+the clock catches up, decisions saved in that window are void too. An epoch more
+than an hour ahead is treated as corrupt and reads as 0.
 
 This changes the stored format. After a clear, the consent cookie carries
 `&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes),
@@ -204,6 +215,17 @@ and the epoch cookie itself holds a 13-digit time. Visitors who never cleared
 their records store exactly what they did before. An older c15t build rejects a
 consent cookie that carries the epoch, so a page still running one shows the
 prompt again rather than applying the record.
+
+### When the cookie and localStorage disagree
+
+The consent record is stored twice: as a cookie, which a server render reads,
+and in localStorage. The browser uses whichever copy is more recent, comparing
+the clear epoch first and then the newest decision. So if the browser dropped a
+cookie write, for example because the record grew past the cookie size limit,
+the newer localStorage copy still applies. On a tie the cookie wins, so the
+browser applies what the server rendered. A server render sees only the
+cookie; after a dropped cookie write it can show the older choice until the
+browser applies the newer one.
 
 ### Ordering with pending writes
 

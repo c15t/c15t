@@ -54,8 +54,16 @@ removes it. Every consent record written afterwards records its epoch too.
 Decisions confirmed before the epoch are void everywhere: a tab that reconciles
 after another tab cleared and saved again drops its pre-clear decisions, a tab
 that missed the clear cannot write them back, and browser hydration and server
-reads (`readStoredRecordsFromCookieHeader`) ignore them. Records from before any
-clear, including v2 and legacy records, read as epoch 0 and are unaffected.
+reads (`readStoredRecordsFromCookieHeader`) ignore them. A decision in the
+clearing millisecond counts only from a tab that had seen the clear. Each clear
+moves the epoch forward even after the clock went back, and an epoch up to an
+hour ahead of the clock is kept. Records from before any clear, including v2
+and legacy records, read as epoch 0 and are unaffected; a corrupt epoch also
+reads as 0, and a record whose epoch field is corrupt is kept.
+
+The browser now reads whichever of the consent cookie and its localStorage
+copy is more recent, so a dropped cookie write no longer keeps an older choice
+in force. On a tie the cookie wins, matching the server render.
 
 This changes the stored format: after a clear, the consent cookie gains
 `&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes).
