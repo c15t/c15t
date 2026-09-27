@@ -78,29 +78,79 @@ const composeRecords = function composeRecords(
 	};
 };
 
+/** Whether a consent read found bytes but no candidate decoded. */
+const hasUndecodableChoice = function hasUndecodableChoice(
+	selection: StoredConsentSelection
+): boolean {
+	return (
+		selection.selected === null &&
+		selection.candidates.some(
+			(candidate) =>
+				candidate.status === 'invalid' || candidate.status === 'unparseable'
+		)
+	);
+};
+
+/** Which records could not be read. */
+interface Unreadable {
+	choice: boolean;
+	notice: boolean;
+	privacy: boolean;
+	vendors: boolean;
+}
+
 /**
- * Browser read of every stored record at `now`. Never writes.
+ * Also count records whose bytes did not decode as unreadable. A reader
+ * returns a failed decode result, not `null`, for such bytes.
  */
-export const readStoredRecords = function readStoredRecords(
+const markUndecodable = function markUndecodable(
+	unreadable: Unreadable,
+	selection: StoredConsentSelection,
+	results: Record<'notice' | 'privacy' | 'vendors', { ok: boolean } | null>
+): void {
+	unreadable.choice ||= hasUndecodableChoice(selection);
+	unreadable.notice ||= results.notice?.ok === false;
+	unreadable.privacy ||= results.privacy?.ok === false;
+	unreadable.vendors ||= results.vendors?.ok === false;
+};
+
+/**
+ * Shared browser read. With `preserveUndecodable`, a record that is stored
+ * but does not decode is omitted like an unavailable one, so the caller
+ * keeps its in-memory value instead of treating the bytes as absent.
+ */
+const readRecords = function readRecords(
 	storageConfig: StorageConfig | undefined,
-	now: number
+	now: number,
+	preserveUndecodable: boolean
 ): StoredRecords {
-	let choiceUnavailable = false;
-	let noticeUnavailable = false;
-	let privacyUnavailable = false;
-	let vendorsUnavailable = false;
+	const unreadable: Unreadable = {
+		choice: false,
+		notice: false,
+		privacy: false,
+		vendors: false,
+	};
 	const selection = readStoredConsentRecord(storageConfig, now, () => {
-		choiceUnavailable = true;
+		unreadable.choice = true;
 	});
 	const notice = readStoredNoticeDismissal(storageConfig, now, () => {
-		noticeUnavailable = true;
+		unreadable.notice = true;
 	});
 	const privacy = readStoredPrivacyOptOuts(storageConfig, now, () => {
-		privacyUnavailable = true;
+		unreadable.privacy = true;
 	});
 	const vendors = readStoredVendorChoice(storageConfig, now, () => {
-		vendorsUnavailable = true;
+		unreadable.vendors = true;
 	});
+	if (preserveUndecodable) {
+		markUndecodable(unreadable, selection, { notice, privacy, vendors });
+	}
+	const {
+		choice: choiceUnavailable,
+		notice: noticeUnavailable,
+		privacy: privacyUnavailable,
+		vendors: vendorsUnavailable,
+	} = unreadable;
 	const stored = composeRecords(selection, notice, privacy, vendors, now);
 	// An absent value only clears memory when every candidate was readable.
 	// A valid record from an available source can still hydrate normally.
@@ -121,6 +171,31 @@ export const readStoredRecords = function readStoredRecords(
 	}
 	return stored;
 };
+
+/**
+ * Browser read of every stored record at `now`. Never writes.
+ */
+export const readStoredRecords = function readStoredRecords(
+	storageConfig: StorageConfig | undefined,
+	now: number
+): StoredRecords {
+	return readRecords(storageConfig, now, false);
+};
+
+/**
+ * Browser read for reconciling a running kernel. Like
+ * {@link readStoredRecords}, except a record whose bytes are present but do
+ * not decode is omitted rather than reported as absent: bytes that cannot
+ * be read say nothing about what the visitor decided, so they must not
+ * clear a decision the kernel already holds.
+ */
+export const readStoredRecordsForReconcile =
+	function readStoredRecordsForReconcile(
+		storageConfig: StorageConfig | undefined,
+		now: number
+	): StoredRecords {
+		return readRecords(storageConfig, now, true);
+	};
 
 /**
  * Server read of every cookie-carried record from a request `Cookie`

@@ -32,13 +32,33 @@
  *   Permission changes, policy changes and elapsed time never write.
  * - `clear()` cancels queued writes before it removes storage, so a
  *   pending flush cannot recreate what was just cleared.
+ * - Writes and `reconcile()` follow the ordering rules in `reconcile.ts`:
+ *   a write never replaces a newer stored record, a subject-only rewrite
+ *   never recreates a cleared one, and reconciliation lands queued writes
+ *   before it reads.
+ * - With `sync` on (the default), `storage`, `visibilitychange` and `focus`
+ *   schedule one coalesced `reconcile()`. `dispose()` removes the
+ *   listeners and cancels the scheduled run.
  */
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
-import { hydrateFromStorage } from './hydrate';
+import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
+import {
+	fingerprintStoredRecords,
+	mayWriteChoice,
+	mayWriteNotice,
+	mayWritePrivacy,
+	mayWriteVendorChoice,
+	selectReconciledRecords,
+} from './reconcile';
+import type { StorageFingerprints, StoredRecordKind } from './reconcile';
 import type { StoredIabMetadata } from './record-codec';
 import {
 	clearStoredConsentRecords,
+	readStoredConsentRecord,
+	readStoredNoticeDismissal,
+	readStoredPrivacyOptOuts,
 	readStoredVendorChoice,
+	resolveStorageKeys,
 } from './record-storage';
 import { createWriteScheduler } from './schedule';
 import type { PersistenceHandle, PersistenceOptions } from './types';
@@ -78,21 +98,97 @@ export const createPersistence = function createPersistence(
 	// next explicit save so an envelope rewrite never drops it.
 	let storedIab: StoredIabMetadata | null = null;
 
+	// What storage held when this runtime last read or wrote each record.
+	// Reconciliation acts only on records that changed since.
+	let seen: StorageFingerprints = {};
+	// Whether a decision was recorded since the last write. Without one, a
+	// scheduled write only acknowledges the server's subject id.
+	let choiceRecorded = false;
+	let vendorsRecorded = false;
+	let disposed = false;
+
+	const observe = function observe(kind?: StoredRecordKind): void {
+		if (typeof document === 'undefined') {
+			return;
+		}
+		const prints = fingerprintStoredRecords(
+			readStoredRecordsForReconcile(storageConfig, now()).records
+		);
+		if (kind) {
+			seen[kind] = prints[kind];
+		} else {
+			seen = prints;
+		}
+	};
+
 	const choiceWrites = createWriteScheduler(() => {
-		writeChoiceToStorage(kernel.getSnapshot(), storedIab, storageConfig, now());
+		const subjectOnly = !choiceRecorded;
+		choiceRecorded = false;
+		const snapshot = kernel.getSnapshot();
+		const at = now();
+		const stored = readStoredConsentRecord(storageConfig, at).selected;
+		if (
+			snapshot.explicitChoice &&
+			mayWriteChoice(
+				snapshot.explicitChoice,
+				stored?.choice ?? null,
+				subjectOnly
+			)
+		) {
+			writeChoiceToStorage(snapshot, storedIab, storageConfig, at);
+			observe('choice');
+		}
 	});
 	const noticeWrites = createWriteScheduler(() => {
-		writeNoticeToStorage(kernel.getSnapshot(), storageConfig, now());
+		const snapshot = kernel.getSnapshot();
+		const at = now();
+		const stored = readStoredNoticeDismissal(storageConfig, at);
+		if (
+			snapshot.noticeDismissal &&
+			mayWriteNotice(
+				snapshot.noticeDismissal,
+				stored?.ok ? stored.record : null
+			)
+		) {
+			writeNoticeToStorage(snapshot, storageConfig, at);
+			observe('notice');
+		}
 	});
 	const privacyWrites = createWriteScheduler(() => {
-		writePrivacyToStorage(kernel.getSnapshot(), storageConfig, now());
+		const snapshot = kernel.getSnapshot();
+		const at = now();
+		const stored = readStoredPrivacyOptOuts(storageConfig, at);
+		if (
+			mayWritePrivacy(
+				snapshot.optOutDirectives,
+				stored?.ok ? stored.record.directives : null
+			)
+		) {
+			writePrivacyToStorage(snapshot, storageConfig, at);
+			observe('privacy');
+		}
 	});
 	const vendorWrites = createWriteScheduler(() => {
-		writeVendorChoiceToStorage(kernel.getSnapshot(), storageConfig, now());
+		const subjectOnly = !vendorsRecorded;
+		vendorsRecorded = false;
+		const snapshot = kernel.getSnapshot();
+		const at = now();
+		const stored = readStoredVendorChoice(storageConfig, at);
+		if (
+			mayWriteVendorChoice(
+				snapshot.vendorChoice,
+				stored?.ok ? stored.record : null,
+				subjectOnly
+			)
+		) {
+			writeVendorChoiceToStorage(snapshot, storageConfig, at);
+			observe('vendors');
+		}
 	});
 
 	const unsubscribers = [
 		kernel.events.on('choice:recorded', () => {
+			choiceRecorded = true;
 			choiceWrites.schedule();
 		}),
 		kernel.events.on('subject:resolved', ({ snapshot }) => {
@@ -111,6 +207,7 @@ export const createPersistence = function createPersistence(
 			privacyWrites.schedule();
 		}),
 		kernel.events.on('vendors:recorded', () => {
+			vendorsRecorded = true;
 			vendorWrites.schedule();
 		}),
 	];
@@ -127,6 +224,8 @@ export const createPersistence = function createPersistence(
 		noticeWrites.cancel();
 		privacyWrites.cancel();
 		vendorWrites.cancel();
+		choiceRecorded = false;
+		vendorsRecorded = false;
 	};
 
 	/**
@@ -170,17 +269,105 @@ export const createPersistence = function createPersistence(
 		if (!stored) {
 			return false;
 		}
+		seen = fingerprintStoredRecords(stored.records);
 		if (stored.records.choice !== undefined) {
 			storedIab = stored.iab;
 		}
 		return stored.found;
 	};
 
+	// Coalesces bursts of triggers (one save writes several keys) into one
+	// read in a later macrotask.
+	const scheduledReconcile = createWriteScheduler(() => {
+		// oxlint-disable-next-line no-use-before-define -- Mutually recursive with the scheduler.
+		reconcile();
+	});
+
+	const reconcile = function reconcile(): boolean {
+		scheduledReconcile.cancel();
+		if (disposed || typeof document === 'undefined') {
+			return false;
+		}
+		// Land this runtime's queued writes first. Each one is guarded, so it
+		// cannot replace a newer record another runtime stored meanwhile.
+		flushAll();
+		const at = now();
+		const stored = readStoredRecordsForReconcile(storageConfig, at);
+		const next = selectReconciledRecords(
+			kernel.getSnapshot(),
+			stored.records,
+			seen,
+			at
+		);
+		({ seen } = next);
+		if (!next.records) {
+			return false;
+		}
+		const result = kernel.hydrate(next.records);
+		if (result.ok === false) {
+			console.warn(
+				'[c15t] Stored consent records were rejected.',
+				result.issues
+			);
+			return false;
+		}
+		if (next.records.choice !== undefined) {
+			storedIab = next.records.choice ? stored.iab : null;
+		}
+		return result.changed;
+	};
+
+	const installSyncListeners = function installSyncListeners(): () => void {
+		if (
+			options.sync === false ||
+			typeof window === 'undefined' ||
+			typeof document === 'undefined' ||
+			typeof window.addEventListener !== 'function' ||
+			typeof document.addEventListener !== 'function'
+		) {
+			return () => undefined;
+		}
+		const keys = resolveStorageKeys(storageConfig);
+		const watched = new Set<string | null>([
+			keys.consent,
+			keys.legacyConsent,
+			keys.notice,
+			keys.privacy,
+			keys.vendors,
+			// Another page called `localStorage.clear()`.
+			null,
+		]);
+		const onStorage = function onStorage(event: StorageEvent): void {
+			if (watched.has(event.key)) {
+				scheduledReconcile.schedule();
+			}
+		};
+		const onVisibilityChange = function onVisibilityChange(): void {
+			if (document.visibilityState !== 'hidden') {
+				scheduledReconcile.schedule();
+			}
+		};
+		const onFocus = function onFocus(): void {
+			scheduledReconcile.schedule();
+		};
+		window.addEventListener('storage', onStorage);
+		window.addEventListener('focus', onFocus);
+		document.addEventListener('visibilitychange', onVisibilityChange);
+		return () => {
+			window.removeEventListener('storage', onStorage);
+			window.removeEventListener('focus', onFocus);
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+		};
+	};
+
 	if (options.skipHydration) {
 		reconcileVendorChoice();
+		observe();
 	} else {
 		hydrate();
 	}
+
+	const removeListeners = installSyncListeners();
 
 	return {
 		clear() {
@@ -189,6 +376,7 @@ export const createPersistence = function createPersistence(
 			if (typeof document !== 'undefined') {
 				clearStoredConsentRecords(undefined, storageConfig);
 			}
+			observe();
 			kernel.hydrate({
 				choice: null,
 				noticeDismissal: null,
@@ -200,6 +388,12 @@ export const createPersistence = function createPersistence(
 			kernel.events.emit({ type: 'records:cleared' });
 		},
 		dispose() {
+			if (disposed) {
+				return;
+			}
+			disposed = true;
+			removeListeners();
+			scheduledReconcile.cancel();
 			for (const unsubscribe of unsubscribers) {
 				unsubscribe();
 			}
@@ -209,5 +403,6 @@ export const createPersistence = function createPersistence(
 			flushAll();
 		},
 		hydrate,
+		reconcile,
 	};
 };

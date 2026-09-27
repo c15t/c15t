@@ -236,7 +236,9 @@ export interface ConsentRuntimeOptions {
 	createIAB?: ConsentRuntimeIABFactory;
 	/**
 	 * Storage persistence. `true`/omitted hydrates from cookie +
-	 * localStorage on start; `false` disables storage entirely.
+	 * localStorage on start and reconciles with other tabs; `false` disables
+	 * storage entirely. Pass `{ sync: false }` to keep storage but reconcile
+	 * only through {@link ConsentRuntime.reconcileStorage}.
 	 */
 	persistence?: boolean | RuntimePersistenceOptions;
 	/** Ordered policy rules evaluated by local transports. */
@@ -299,8 +301,40 @@ export interface ConsentRuntime {
 	setOverrides: (overrides: KernelOverrides) => void;
 	/**
 	 * Re-run `kernel.commands.init()` and evaluate the current records. A no-op when `enabled` is `false`.
+	 *
+	 * Does not read storage. Use {@link ConsentRuntime.reconcileStorage} for
+	 * records another runtime changed.
 	 */
 	reinit: () => Promise<void>;
+	/**
+	 * Read stored consent records again and apply what another runtime
+	 * changed, such as a denial saved or records cleared in another tab.
+	 *
+	 * With persistence on, the runtime already does this when another tab
+	 * changes c15t's localStorage keys, when the page becomes visible and
+	 * when the window regains focus (see `persistence.sync`). Call it
+	 * yourself after a change no browser event reports: a second runtime
+	 * on the same page, or cookies rewritten without a localStorage change.
+	 *
+	 * This runtime's queued writes land first. Only records whose stored
+	 * value changed since this runtime last read or wrote them are applied:
+	 * a stored record replaces the in-memory one unless it is older, a
+	 * removed record clears it so the active policy applies, and unreadable
+	 * storage changes nothing. Subscribers are notified once when anything
+	 * changed.
+	 *
+	 * @returns Whether any in-memory record changed. `false` before
+	 * {@link ConsentRuntime.start}, after {@link ConsentRuntime.dispose}, and
+	 * when persistence is off or the runtime is disabled.
+	 *
+	 * @example
+	 * ```ts
+	 * // The response sets the consent cookie; no browser event reports it.
+	 * await fetch('/account/restore-consent', { method: 'POST' });
+	 * runtime.reconcileStorage();
+	 * ```
+	 */
+	reconcileStorage: () => boolean;
 	/** Replace configured categories; retain categories discovered from integrations. */
 	setConsentCategories: (categories: AllConsentNames[]) => void;
 	/**

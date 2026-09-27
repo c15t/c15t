@@ -186,6 +186,7 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 	return {
 		skipHydration: options.persistence.skipHydration,
 		storageConfig: options.persistence.storageConfig ?? storageConfig,
+		sync: options.persistence.sync,
 	};
 };
 
@@ -456,6 +457,7 @@ export const createConsentRuntime = function createConsentRuntime(
 				persistenceOptions.skipHydration ??
 				Boolean(options.prefetch?.initialRecords),
 			storageConfig: persistenceOptions.storageConfig,
+			sync: persistenceOptions.sync,
 		});
 		persistenceHandle = persistence;
 		disposers.push(() => {
@@ -566,6 +568,9 @@ export const createConsentRuntime = function createConsentRuntime(
 			return function unsubscribeIAB() {
 				iabListeners.delete(listener);
 			};
+		},
+		reconcileStorage() {
+			return persistenceHandle?.reconcile() ?? false;
 		},
 		async reinit() {
 			if (!enabled || disposed) {
