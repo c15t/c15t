@@ -52,6 +52,7 @@ import type {
 	SavedConsentVisitDefinition,
 } from '@c15t/benchmarking/visit-definitions';
 import {
+	serverHtmlForSampleGroup,
 	serverHtmlMetadata,
 	summarizeServerHtmlMetrics,
 	summarizeVisitTimingMetrics,
@@ -523,7 +524,7 @@ const freshColdState = function freshColdState(
 		return describeColdState({
 			freshBrowserContext: true,
 			manifestCacheKeyIsNew: true,
-			note: 'first measured visit to this route since the server started with a new manifest token (includes loading the route module); earlier scenarios in the same process may have fetched the manifest through /api/c15t/manifest',
+			note: 'first measured visit to this route since the server started with a new manifest token (includes loading the route module); earlier scenarios in the same process may have fetched the manifest through /api/c15t/manifest; server HTML reads are omitted because they run after the samples, with a warm cache',
 			usesManifestCache,
 		});
 	}
@@ -847,7 +848,7 @@ const runFreshScenario = async function runFreshScenario(
 			fixtureCounts,
 			samples: groupedSamples,
 			scenario: groupScenario,
-			serverHtml: freshServerHtml,
+			serverHtml: serverHtmlForSampleGroup(freshServerHtml, sampleLabel),
 			visit: 'fresh',
 		});
 	}

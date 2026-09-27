@@ -121,6 +121,22 @@ describe('readServerHtmlStream', () => {
 			analysis.firstChunkMs ?? Number.POSITIVE_INFINITY
 		);
 	});
+
+	it('rejects a non-2xx response instead of analyzing the error page', async () => {
+		const server = createServer((_request, response) => {
+			response.writeHead(500, { 'content-type': 'text/html' });
+			response.end('<html><body>Internal error</body></html>');
+		});
+		servers.push(server);
+		await new Promise<void>((resolve) => {
+			server.listen(0, '127.0.0.1', resolve);
+		});
+		const { port } = server.address() as AddressInfo;
+
+		await expect(
+			readServerHtmlStream(`http://127.0.0.1:${port}/`)
+		).rejects.toThrow('got 500');
+	});
 });
 
 describe('toCookieHeader', () => {

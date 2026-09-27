@@ -54,6 +54,7 @@ import type {
 	BenchVisitKind,
 } from '@c15t/benchmarking/visit-definitions';
 import {
+	serverHtmlForSampleGroup,
 	serverHtmlMetadata,
 	summarizeServerHtmlMetrics,
 	summarizeVisitTimingMetrics,
@@ -534,7 +535,7 @@ const scenarioColdState = function scenarioColdState(
 		return describeColdState({
 			freshBrowserContext: true,
 			manifestCacheKeyIsNew: true,
-			note: 'first measured visit to this route since the server started with a new manifest token; earlier scenarios in the same process may have fetched the same manifest',
+			note: 'first measured visit to this route since the server started with a new manifest token; earlier scenarios in the same process may have fetched the same manifest; server HTML reads are omitted because they run after the samples, with a warm cache',
 			usesManifestCache,
 		});
 	}
@@ -681,6 +682,10 @@ const run = async function run(baseline: boolean) {
 						sampleLabel = 'steady';
 					}
 					const coldState = scenarioColdState(scenario.name, sampleLabel);
+					const groupServerHtml = serverHtmlForSampleGroup(
+						serverHtml,
+						sampleLabel
+					);
 					const outputScenario = resultScenarioName(groupScenario);
 					const result: BenchmarkResult = {
 						baseSha: safeBaseSha(),
@@ -697,7 +702,7 @@ const run = async function run(baseline: boolean) {
 						},
 						framework: 'vue',
 						metadata: {
-							...serverHtmlMetadata(serverHtml),
+							...serverHtmlMetadata(groupServerHtml),
 							...coldStateMetadata(coldState),
 							bannerPaintMs: nullableMedian(
 								groupedSamples.map((sample) => sample.bannerPaintMs)
@@ -743,7 +748,7 @@ const run = async function run(baseline: boolean) {
 								groupedSamples.map((sample) => sample.bannerPaintMs ?? null)
 							),
 							...summarizeVisitTimingMetrics(groupedSamples),
-							...summarizeServerHtmlMetrics(serverHtml),
+							...summarizeServerHtmlMetrics(groupServerHtml),
 							summarizeMetric(
 								'cls',
 								'ratio',

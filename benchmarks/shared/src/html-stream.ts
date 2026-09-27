@@ -109,7 +109,9 @@ export interface ReadServerHtmlStreamOptions {
  * @param url - Absolute `http:` URL of the page.
  * @param options - Cookie, extra headers, and timeout.
  * @returns Status, header timing, and the chunks in arrival order.
- * @throws {Error} When the request fails or exceeds the timeout.
+ * @throws {Error} When the request fails, exceeds the timeout, or answers
+ * with a non-2xx status. A redirect or error page has no banner markup, so
+ * analyzing it would pass a no-banner check without testing anything.
  */
 export const readServerHtmlStream = async function readServerHtmlStream(
 	url: string,
@@ -138,6 +140,14 @@ export const readServerHtmlStream = async function readServerHtmlStream(
 			{ agent: false, headers, method: 'GET' },
 			(response) => {
 				const headersMs = elapsed();
+				const status = response.statusCode ?? 0;
+				if (status < 200 || status >= 300) {
+					response.resume();
+					reject(
+						new Error(`Expected a 2xx response from ${url}, got ${status}`)
+					);
+					return;
+				}
 				response.on('data', (buffer: Buffer) => {
 					chunks.push({
 						atMs: elapsed(),
@@ -154,7 +164,7 @@ export const readServerHtmlStream = async function readServerHtmlStream(
 						chunks,
 						doneMs: elapsed(),
 						headersMs,
-						status: response.statusCode ?? 0,
+						status,
 					});
 				});
 				response.on('error', reject);

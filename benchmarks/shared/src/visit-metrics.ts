@@ -60,6 +60,23 @@ export const summarizeVisitTimingMetrics = function summarizeVisitTimingMetrics(
 };
 
 /**
+ * The server HTML reads that belong to one sample group. Runners read the
+ * server HTML after every browser sample, when the manifest cache is warm,
+ * so those reads describe the steady state. A `-cold` group gets none
+ * rather than warm timings under a cold label.
+ *
+ * @param reads - Raw server HTML reads taken after the browser samples.
+ * @param sampleLabel - The group's cold-manifest label, if any.
+ * @returns The reads to report for that group.
+ */
+export const serverHtmlForSampleGroup = function serverHtmlForSampleGroup(
+	reads: readonly ServerHtmlStreamAnalysis[],
+	sampleLabel: 'cold' | 'steady' | null
+): ServerHtmlStreamAnalysis[] {
+	return sampleLabel === 'cold' ? [] : [...reads];
+};
+
+/**
  * Summaries for raw server HTML reads of one scenario.
  *
  * @param reads - One analysis per raw HTTP read.
