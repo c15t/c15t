@@ -221,13 +221,17 @@ prompt again rather than applying the record.
 ### When the cookie and localStorage disagree
 
 The consent record is stored twice: as a cookie, which a server render reads,
-and in localStorage. The browser uses whichever copy is more recent, comparing
-the clear epoch first and then the newest decision. So if the browser dropped a
-cookie write, for example because the record grew past the cookie size limit,
-the newer localStorage copy still applies. On a tie the cookie wins, so the
-browser applies what the server rendered. A server render sees only the
-cookie; after a dropped cookie write it can show the older choice until the
-browser applies the newer one.
+and in localStorage. The cookie is authoritative. A well-formed cookie wins
+even when it has expired, so a local copy can never bring back a grant the
+cookie no longer carries.
+
+A browser can still drop a cookie write, for example when the record grows past
+the cookie size limit, while localStorage takes it. A denial in the local copy
+that is newer than the cookie's decision for that category is therefore applied
+on top of the cookie. A newer local grant is not, so a dropped cookie write only
+ever leaves the visitor with less permission. A server render sees only the
+cookie; after a dropped write that carried a denial, the browser is the stricter
+of the two.
 
 ### Ordering with pending writes
 

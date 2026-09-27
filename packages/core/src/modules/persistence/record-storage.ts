@@ -589,73 +589,84 @@ export const decodeStoredConsentCandidate =
 		};
 	};
 
-/** Time of the newest category decision in a decoded record. */
-const newestDecisionAt = function newestDecisionAt(
-	record: DecodedStoredConsent
-): number {
-	let newest = Number.NEGATIVE_INFINITY;
-	for (const decision of Object.values(record.choice.categories)) {
-		if (decision && decision.confirmedAt > newest) {
-			newest = decision.confirmedAt;
+/**
+ * The cookie record with every newer localStorage denial applied, or the
+ * cookie record itself when there is none.
+ *
+ * The cookie stays authoritative: a well-formed cookie wins even when it is
+ * expired, so a stale local copy can never resurrect authority the cookie
+ * no longer carries. But a browser can drop a cookie write (over the size
+ * limit, say) while localStorage takes it, and then the cookie holds an
+ * older choice. A local denial newer than the cookie's decision for that
+ * category is therefore applied on top of it; a newer local grant is not,
+ * so a dropped cookie write only ever fails toward less permission. Records
+ * from different clear epochs are not mixed: the later epoch wins whole.
+ */
+const withNewerLocalDenials = function withNewerLocalDenials(
+	cookie: DecodedStoredConsent,
+	local: DecodedStoredConsent
+): DecodedStoredConsent {
+	if (cookie.epoch !== local.epoch) {
+		return local.epoch > cookie.epoch ? local : cookie;
+	}
+	const categories = { ...cookie.choice.categories };
+	let changed = false;
+	for (const [category, decision] of Object.entries(local.choice.categories)) {
+		const current = categories[category as keyof typeof categories];
+		if (
+			decision &&
+			decision.value === false &&
+			(!current || decision.confirmedAt > current.confirmedAt)
+		) {
+			categories[category as keyof typeof categories] = decision;
+			changed = true;
 		}
 	}
-	return newest;
+	return changed
+		? { ...cookie, choice: { ...cookie.choice, categories } }
+		: cookie;
 };
 
 /**
- * Whether `candidate` is strictly more recent than `current`: a later clear
- * epoch first, then a newer decision. A tie keeps the earlier one in read
- * order, the cookie, which is what a server render read.
- */
-const isMoreRecent = function isMoreRecent(
-	candidate: DecodedStoredConsent,
-	current: DecodedStoredConsent
-): boolean {
-	if (candidate.epoch !== current.epoch) {
-		return candidate.epoch > current.epoch;
-	}
-	return newestDecisionAt(candidate) > newestDecisionAt(current);
-};
-
-/**
- * Decodes candidates and selects one. The cookie and the configured
- * localStorage key hold two projections of the same record; the more
- * recent valid one wins (see {@link isMoreRecent}), so a cookie the browser
- * dropped (over the size limit, say) cannot keep an older choice in force.
- * The legacy localStorage key is read only when neither holds a valid
- * record. Semantic freshness is not consulted here; that belongs to the
- * evaluator with the same `now`.
+ * Decodes candidates and selects one. The cookie wins over the configured
+ * localStorage key, with the local copy's newer denials applied (see
+ * {@link withNewerLocalDenials}); the configured localStorage record is
+ * used alone only when the cookie holds no valid one, and the legacy key
+ * only when neither does. Semantic freshness is not consulted here; that
+ * belongs to the evaluator with the same `now`.
  */
 export const selectStoredConsent = function selectStoredConsent(
 	rawCandidates: readonly RawStoredCandidate[],
 	now: number
 ): StoredConsentSelection {
 	const candidates: StoredConsentCandidate[] = [];
-	let selected: DecodedStoredConsent | null = null;
-	let legacy: DecodedStoredConsent | null = null;
+	const valid = new Map<StoredRecordSource, DecodedStoredConsent>();
 	for (const raw of rawCandidates) {
 		const candidate = decodeStoredConsentCandidate(raw, now);
 		candidates.push(candidate);
-		if (candidate.status !== 'valid') {
-			continue;
-		}
-		if (candidate.source === 'legacy-local-storage') {
-			legacy ??= candidate.record;
-		} else if (!selected || isMoreRecent(candidate.record, selected)) {
-			selected = candidate.record;
+		if (candidate.status === 'valid' && !valid.has(candidate.source)) {
+			valid.set(candidate.source, candidate.record);
 		}
 	}
-	return { candidates, selected: selected ?? legacy };
+	const cookie = valid.get('cookie');
+	const local = valid.get('local-storage');
+	let selected: DecodedStoredConsent | null = null;
+	if (cookie && local) {
+		selected = withNewerLocalDenials(cookie, local);
+	} else {
+		selected = cookie ?? local ?? valid.get('legacy-local-storage') ?? null;
+	}
+	return { candidates, selected };
 };
 
 /**
  * Browser read of the cookie, the configured localStorage key and the
- * legacy localStorage key. Returns the more recent of the cookie and
- * configured copies, or the legacy record when neither is valid, with the
- * full candidate report for diagnostics. A server render reads the cookie
- * alone, so the two agree whenever the cookie holds the latest record;
- * when the browser dropped the cookie write, the browser applies the newer
- * localStorage copy instead. Never writes.
+ * legacy localStorage key. The cookie wins, with newer denials from the
+ * configured localStorage copy applied (see {@link selectStoredConsent}),
+ * and the full candidate report is returned for diagnostics. A server
+ * render reads the cookie alone, so the two agree except when the browser
+ * dropped a cookie write that carried a denial, where the browser is the
+ * stricter of the two. Never writes.
  */
 export const readStoredConsentRecord = function readStoredConsentRecord(
 	config: StorageConfig | undefined,

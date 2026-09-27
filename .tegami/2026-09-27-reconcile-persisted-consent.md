@@ -61,9 +61,10 @@ hour ahead of the clock is kept. Records from before any clear, including v2
 and legacy records, read as epoch 0 and are unaffected; a corrupt epoch also
 reads as 0, and a record whose epoch field is corrupt is kept.
 
-The browser now reads whichever of the consent cookie and its localStorage
-copy is more recent, so a dropped cookie write no longer keeps an older choice
-in force. On a tie the cookie wins, matching the server render.
+The consent cookie stays authoritative, but a denial in its localStorage copy
+that is newer than the cookie's decision is now applied on top of it, so a
+dropped cookie write no longer keeps an older grant in force. A newer local
+grant is still not applied.
 
 This changes the stored format: after a clear, the consent cookie gains
 `&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes).
