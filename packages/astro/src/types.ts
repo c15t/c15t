@@ -135,6 +135,22 @@ export interface C15tMiddlewareOptions {
 	 * @example ['/api/webhooks', '/healthz']
 	 */
 	skip?: string[];
+	/**
+	 * Longest a server render waits for the visitor's policy, in
+	 * milliseconds.
+	 *
+	 * The middleware resolves consent before the page renders, so a slow or
+	 * unreachable backend holds the whole response. When the budget runs out
+	 * the page renders without the server decision: no banner in the HTML,
+	 * optional categories denied, gated scripts and iframes blocked. The
+	 * browser then resolves the policy and shows the banner. A manifest
+	 * request keeps running and fills the cache for the next render.
+	 *
+	 * `false` waits for the backend however long it takes.
+	 *
+	 * @default 500
+	 */
+	timeoutMs?: number | false;
 }
 
 /** Options accepted by the `c15t()` Astro integration. */
@@ -355,7 +371,8 @@ export interface C15tResolvedOptions extends Omit<
 	endpoints: Required<Omit<C15tEndpointOptions, 'enabled'>> & {
 		enabled: boolean;
 	};
-	middleware: Required<C15tMiddlewareOptions>;
+	middleware: Required<Omit<C15tMiddlewareOptions, 'timeoutMs'>> &
+		Pick<C15tMiddlewareOptions, 'timeoutMs'>;
 }
 
 /** Consent context the middleware attaches to every request. */

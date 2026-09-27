@@ -87,9 +87,78 @@ export interface ResolveConsentContextOptions {
 	 * middleware passes the adapter's `waitUntil` from `locals.cfContext`
 	 * (Astro 6 and later) or `locals.runtime.ctx` (Astro 5)
 	 * when there is one. The promise never rejects.
+	 *
+	 * It also receives a manifest request the render stopped waiting for
+	 * when {@link ResolveConsentContextOptions.timeoutMs} ran out.
 	 */
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+	/**
+	 * Longest to wait for the backend, in milliseconds. Overrides
+	 * `middleware.timeoutMs` from the integration options. `false` waits
+	 * however long the backend takes.
+	 *
+	 * When it runs out, the result is what a failed request gives: no
+	 * server decision, `hasPolicy: false`, and the browser resolves the
+	 * policy on boot.
+	 *
+	 * @default 500
+	 */
+	timeoutMs?: number | false;
 }
+
+/**
+ * How long a server render waits for the visitor's policy unless
+ * `middleware.timeoutMs` says otherwise.
+ */
+export const DEFAULT_RESOLVE_TIMEOUT_MS = 500;
+
+const TIMED_OUT: unique symbol = Symbol('c15t.resolution-timeout');
+
+/**
+ * The render budget in milliseconds, or `undefined` for none.
+ *
+ * @param input - The resolution input.
+ * @returns A non-negative budget, or `undefined` when disabled.
+ */
+const resolveBudgetMs = function resolveBudgetMs(
+	input: ResolveConsentContextOptions
+): number | undefined {
+	const configured =
+		input.timeoutMs ??
+		input.options.middleware?.timeoutMs ??
+		DEFAULT_RESOLVE_TIMEOUT_MS;
+	if (configured === false || !Number.isFinite(configured)) {
+		return undefined;
+	}
+	return Math.max(0, configured);
+};
+
+/**
+ * Settle with the task, or with {@link TIMED_OUT} once `remainingMs` passes.
+ * The task itself keeps running.
+ *
+ * @param task - Work that never rejects.
+ * @param remainingMs - Time left, or `undefined` for no limit.
+ * @returns The task's value, or `TIMED_OUT`.
+ */
+const raceBudget = async function raceBudget<Value>(
+	task: Promise<Value>,
+	remainingMs: number | undefined
+): Promise<Value | typeof TIMED_OUT> {
+	if (remainingMs === undefined) {
+		return await task;
+	}
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	// oxlint-disable-next-line promise/avoid-new -- Bridges a timer into the race.
+	const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+		timer = setTimeout(() => resolve(TIMED_OUT), remainingMs);
+	});
+	try {
+		return await Promise.race([task, timeout]);
+	} finally {
+		clearTimeout(timer);
+	}
+};
 
 /**
  * Resolve the language the surfaces should render in.
@@ -320,6 +389,7 @@ const prefetchHosted = async function prefetchHosted(input: {
 	options: C15tResolvedOptions;
 	url?: string;
 	fetch?: typeof globalThis.fetch;
+	timeoutMs?: number;
 }): Promise<KernelConfig> {
 	const absolute = resolveAgainstRequest(
 		input.backendURL,
@@ -344,6 +414,12 @@ const prefetchHosted = async function prefetchHosted(input: {
 			credentials: allowCookie ? 'include' : 'omit',
 			headers: forwarded,
 			method: 'GET',
+			// `/init` answers one visitor and is never cached, so a request
+			// the render gave up on has nothing left to deliver.
+			signal:
+				input.timeoutMs === undefined
+					? undefined
+					: AbortSignal.timeout(input.timeoutMs),
 		});
 		if (!response.ok) {
 			return input.base;
@@ -585,21 +661,40 @@ export const resolveConsentContext = async function resolveConsentContext(
 	// build has none of. Offline mode resolves without it in the browser as
 	// well, so the build reaches the answer every visitor would.
 	const skipPrefetch = prerendered && options.mode.type !== 'offline';
+	// One deadline for the whole resolution, so a slow policy request and a
+	// slow vendor list cannot each spend a full budget.
+	const budgetMs = resolveBudgetMs(input);
+	const startedAt = Date.now();
+	const remainingMs = (): number | undefined =>
+		budgetMs === undefined
+			? undefined
+			: Math.max(0, budgetMs - (Date.now() - startedAt));
+	const keepAlive = (task: Promise<unknown>): void => {
+		const settle = async (): Promise<void> => {
+			try {
+				await task;
+			} catch {
+				// The prefetch steps degrade on their own; nothing to report.
+			}
+		};
+		input.onBackgroundRevalidate?.(settle());
+	};
 
 	let config: KernelConfig = { ...base, initialTranslations: translations };
 	if (!skipPrefetch) {
-		config =
+		const prefetch =
 			options.mode.type === 'hosted'
-				? await prefetchHosted({
+				? prefetchHosted({
 						backendURL: options.mode.url,
 						base: config,
 						configuredHeaders: options.mode.headers,
 						fetch: input.fetch,
 						headers,
 						options,
+						timeoutMs: budgetMs,
 						url: input.url,
 					})
-				: await prefetchLocal({
+				: prefetchLocal({
 						base: config,
 						fetch: input.fetch,
 						headers,
@@ -609,14 +704,28 @@ export const resolveConsentContext = async function resolveConsentContext(
 						translations,
 						url: input.url,
 					});
+		const settled = await raceBudget(prefetch, remainingMs());
+		if (settled === TIMED_OUT) {
+			// Render without the server decision, as a failed request does.
+			// A manifest fill keeps going and serves the next render.
+			keepAlive(prefetch);
+		} else {
+			config = settled;
+		}
 	}
 
-	config = await withResolvedGvl({
+	const withGvl = withResolvedGvl({
 		config,
 		fetch: input.fetch,
 		language: translations.language.split('-')[0] || 'en',
 		options,
 	});
+	const gvlSettled = await raceBudget(withGvl, remainingMs());
+	if (gvlSettled === TIMED_OUT) {
+		keepAlive(withGvl);
+	} else {
+		config = gvlSettled;
+	}
 
 	config.initialPolicyPending = config.initialPolicyResolution === undefined;
 	const snapshot = snapshotFromConfig(config);
