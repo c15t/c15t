@@ -232,6 +232,21 @@ export const GLOBAL_SCOPE_RESTRICTION_TC_STRING = encodeCoreSegment({
 	restrictions: [{ entries: [1], purposeId: 2, restrictionType: 0 }],
 });
 
+/**
+ * Policy version 2 (TCF 2.0) still allowed legitimate interest for purposes
+ * 3 to 6, so this restriction was valid when the string was written.
+ */
+export const POLICY_2_LI_ON_PURPOSE_3_TC_STRING = encodeCoreSegment({
+	policyVersion: 2,
+	restrictions: [{ entries: [1], purposeId: 3, restrictionType: 2 }],
+});
+
+/** Purpose 1 never allowed legitimate interest, under any policy version. */
+export const POLICY_2_LI_ON_PURPOSE_1_TC_STRING = encodeCoreSegment({
+	policyVersion: 2,
+	restrictions: [{ entries: [1], purposeId: 1, restrictionType: 2 }],
+});
+
 /** Vendor 1 both requires consent and requires LI for purpose 2. */
 export const CONFLICTING_RESTRICTIONS_TC_STRING = encodeCoreSegment({
 	restrictions: [

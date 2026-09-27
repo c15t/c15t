@@ -207,7 +207,8 @@ export const generateTCString = async function generateTCString(
  */
 const readPublisherRestrictions = function readPublisherRestrictions(
 	vector: PurposeRestrictionVector,
-	isServiceSpecific: boolean
+	isServiceSpecific: boolean,
+	policyVersion: number
 ): PublisherRestriction[] {
 	return validatePublisherRestrictions(
 		vector.getRestrictions().map((restriction) => ({
@@ -215,7 +216,8 @@ const readPublisherRestrictions = function readPublisherRestrictions(
 			restrictionType: restriction.restrictionType,
 			vendorIds: vector.getVendors(restriction),
 		})),
-		{ isServiceSpecific }
+		// Judge the string by the policy it was written under.
+		{ isServiceSpecific, policyVersion }
 	);
 };
 
@@ -284,7 +286,8 @@ export interface DecodedTCString {
  * that ends before it starts.
  * @throws {PublisherRestrictionError} When the string carries a
  * restriction c15t does not support: vendor ID `0`, legitimate interest
- * required for a consent-only purpose, two types for one vendor and
+ * required for a purpose that is consent-only under the string's policy
+ * version, two types for one vendor and
  * purpose, or any restriction in a string that is not service-specific.
  *
  * @example
@@ -327,7 +330,8 @@ export const decodeTCString = async function decodeTCString(
 		policyVersion: tcModel.policyVersion as number,
 		publisherRestrictions: readPublisherRestrictions(
 			tcModel.publisherRestrictions,
-			tcModel.isServiceSpecific
+			tcModel.isServiceSpecific,
+			tcModel.policyVersion as number
 		),
 		purposeConsents: vectorToRecord(tcModel.purposeConsents, 11),
 		purposeLegitimateInterests: vectorToRecord(

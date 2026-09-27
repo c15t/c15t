@@ -39,6 +39,18 @@ export const PUBLISHER_RESTRICTION_TYPES = {
  */
 export const CONSENT_ONLY_PURPOSES: readonly number[] = [1, 3, 4, 5, 6];
 
+/** The first TCF policy version (TCF 2.2) that bars LI for purposes 3 to 6. */
+const CONSENT_ONLY_POLICY_VERSION = 4;
+
+/**
+ * Purposes that may not use legitimate interest under a policy version.
+ * Before policy version 4 only purpose 1 was consent-only.
+ */
+const consentOnlyPurposes = (policyVersion: number | undefined) =>
+	policyVersion !== undefined && policyVersion < CONSENT_ONLY_POLICY_VERSION
+		? [1]
+		: CONSENT_ONLY_PURPOSES;
+
 /** The spec encodes a purpose ID in 6 bits. */
 const MAX_PURPOSE_ID = 63;
 /** The spec encodes a vendor ID in 16 bits. */
@@ -66,6 +78,13 @@ export interface PublisherRestrictionContext {
 	 * restrictions only in service-specific strings. Default: `true`.
 	 */
 	isServiceSpecific?: boolean;
+	/**
+	 * TCF policy version of a decoded string. Strings written before policy
+	 * version 4 may require legitimate interest for purposes 3 to 6. Omit it
+	 * when encoding: c15t only writes restrictions valid under the current
+	 * policy.
+	 */
+	policyVersion?: number;
 }
 
 const fail = (message: string): never => {
@@ -77,7 +96,8 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 
 const readRestrictionEntry = (
 	entry: unknown,
-	index: number
+	index: number,
+	policyVersion: number | undefined
 ): { purposeId: number; restrictionType: 0 | 1 | 2; vendorIds: number[] } => {
 	const at = `publisherRestrictions[${index}]`;
 	if (!isPlainObject(entry)) {
@@ -105,7 +125,7 @@ const readRestrictionEntry = (
 	if (
 		restrictionType ===
 			PUBLISHER_RESTRICTION_TYPES.REQUIRE_LEGITIMATE_INTEREST &&
-		CONSENT_ONLY_PURPOSES.includes(purposeId)
+		consentOnlyPurposes(policyVersion).includes(purposeId)
 	) {
 		return fail(
 			`${at} requires legitimate interest for purpose ${purposeId}, which TCF allows only with consent.`
@@ -178,8 +198,9 @@ const checkDeclaration = (
  * @param context - Vendor list and string scope to check against.
  * @returns The normalized restrictions. `undefined` returns an empty list.
  * @throws {PublisherRestrictionError} When a restriction is malformed,
- * uses the reserved type `3`, requires legitimate interest for a
- * consent-only purpose, gives one vendor two types for the same purpose,
+ * uses the reserved type `3`, requires legitimate interest for a purpose
+ * that is consent-only under `context.policyVersion` (the current policy
+ * when omitted), gives one vendor two types for the same purpose,
  * appears in a string that is not service-specific, or, with a vendor
  * list, does not match the vendor's declarations.
  *
@@ -213,7 +234,8 @@ export const validatePublisherRestrictions =
 		for (const [index, entry] of input.entries()) {
 			const { purposeId, restrictionType, vendorIds } = readRestrictionEntry(
 				entry,
-				index
+				index,
+				context.policyVersion
 			);
 			if (
 				context.gvl &&
