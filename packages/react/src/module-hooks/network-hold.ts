@@ -8,8 +8,9 @@ import { useState } from 'react';
 /**
  * How long a hold started during render waits for its component to commit.
  * A render React throws away never commits, so nothing else would end its
- * hold. When this runs out the rules never took effect, and the requests
- * they held are sent as if they had never been held.
+ * hold. When this runs out the hold ends, and since nothing checked consent
+ * for the requests it held, they get the blocker's answer for a blocked
+ * request instead of being sent.
  * @internal
  */
 export const UNCOMMITTED_HOLD_MS = 10_000;
@@ -34,6 +35,8 @@ export interface EarlyNetworkHold {
 	/**
 	 * Call from the mount effect's cleanup. Ends a hold no blocker took
 	 * over, unless the effect runs again first (StrictMode, a kernel change).
+	 * Nothing checked consent for what that hold held, so those requests get
+	 * the blocker's answer for a blocked request instead of being sent.
 	 */
 	unmount: () => void;
 }
@@ -57,18 +60,19 @@ const createSlot = function createSlot(
 		claim(latestRules, latestEnabled) {
 			uncommitted.delete(slot);
 			clearTimeout(timer);
+			mounts += 1;
+			if (latestEnabled !== false && !hold?.held) {
+				hold = holdNetworkRequests(latestRules);
+			}
 			// A render React discarded (StrictMode's second render, a retry
 			// after suspending) started a hold for the same rules that nothing
 			// will claim. This hold covers its requests, so end it now instead
-			// of letting it delay requests the blocker allows.
+			// of letting it delay requests the blocker allows. Only after this
+			// hold is in place: ending it fails what no live hold still covers.
 			for (const other of uncommitted) {
 				if (other.key === slot.key) {
 					other.expire();
 				}
-			}
-			mounts += 1;
-			if (latestEnabled !== false && !hold?.held) {
-				hold = holdNetworkRequests(latestRules);
 			}
 			// Never `undefined`: without a hold, the blocker would end every
 			// caller's hold and send their requests past a disabled gate.
@@ -77,7 +81,7 @@ const createSlot = function createSlot(
 		expire() {
 			uncommitted.delete(slot);
 			clearTimeout(timer);
-			hold?.release()();
+			hold?.block();
 		},
 		key: '',
 		unmount() {
@@ -85,7 +89,7 @@ const createSlot = function createSlot(
 			const current = hold;
 			queueMicrotask(() => {
 				if (mounts === mount) {
-					current?.release()();
+					current?.block();
 				}
 			});
 		},
@@ -107,7 +111,8 @@ const createSlot = function createSlot(
  * Rendering is not side-effect free: the first render patches `fetch` and
  * `XMLHttpRequest`. That is safe because the hold only delays matching
  * requests, a render React discards ends its hold after
- * {@link UNCOMMITTED_HOLD_MS}, and on the server it does nothing.
+ * {@link UNCOMMITTED_HOLD_MS} (failing what it held as blocked), and on the
+ * server it does nothing.
  *
  * @internal
  */

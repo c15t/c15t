@@ -1,5 +1,8 @@
 import type { NetworkBlockerRule } from '@c15t/core/modules/network-blocker';
-import { releaseNetworkRequests } from '@c15t/core/modules/network-hold';
+import {
+	holdNetworkRequests,
+	releaseNetworkRequests,
+} from '@c15t/core/modules/network-hold';
 import { StrictMode, Suspense, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -219,10 +222,10 @@ test('a render React discards ends its hold on its own', async () => {
 		run();
 	}
 
-	// The rules never took effect, so the request goes out as it would have
-	// without the hook, and `fetch` is the page's own again.
-	expect(await held).toBe(200);
-	expect(trackerCalls()).toHaveLength(1);
+	// Nothing checked consent for it, so it fails as blocked instead of
+	// going out, and `fetch` is the page's own again.
+	expect(await held).toBe(451);
+	expect(trackerCalls()).toHaveLength(0);
 	expect(window.fetch).toBe(network);
 });
 
@@ -252,4 +255,45 @@ test('a disabled provider blocker leaves the hook holding its requests', async (
 
 	expect(await Promise.all(statuses)).toEqual([451]);
 	expect(trackerCalls()).toHaveLength(0);
+});
+
+test('unmounting the hook before its blocker loads fails its held requests closed', async () => {
+	// Another caller holds its own rules and must keep holding.
+	holdNetworkRequests([{ category: 'marketing', domain: 'ads.example' }]);
+	let adsSettled = false;
+	const ads = window.fetch('https://ads.example/pixel').finally(() => {
+		adsSettled = true;
+	});
+	const statuses: Promise<number>[] = [];
+	// The hook's chunk is cached by now, so unmount in the same task as the
+	// commit: the blocker's import cannot resolve before the cleanup runs.
+	const view = await render(
+		<ConsentProvider
+			options={{
+				mode: offline(),
+				persistence: false,
+				prefetch: policyFixture({ measurement: true }),
+			}}
+		>
+			<HookBlocker>
+				<Beacon
+					label="child"
+					statuses={statuses}
+				/>
+			</HookBlocker>
+		</ConsentProvider>
+	);
+	view.unmount();
+
+	// Allowed by stored consent, but never checked: blocked, not sent.
+	expect(await Promise.all(statuses)).toEqual([451]);
+	expect(trackerCalls()).toHaveLength(0);
+	await new Promise((resolve) => {
+		setTimeout(resolve, 20);
+	});
+	expect(adsSettled).toBe(false);
+	expect(network).not.toHaveBeenCalled();
+
+	releaseNetworkRequests()();
+	await ads;
 });

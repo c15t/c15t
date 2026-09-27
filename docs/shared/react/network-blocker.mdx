@@ -56,8 +56,10 @@ group: reference
   The standalone `useNetworkBlocker` hook works the same way from the first
   render of the component that calls it. That render patches `fetch` and
   `XMLHttpRequest`. If React throws the render away and never commits it, the
-  hold ends after 10 seconds and the requests it held are sent, as they would
-  have been without the hook.
+  hold ends after 10 seconds. Nothing checked consent for the requests it held,
+  so they fail the way the blocker fails a blocked request: a 451 response for
+  `fetch`, a failed XHR. The same happens when the component unmounts before
+  the blocker loads.
 
   While consent is unknown, a matching request that would be blocked waits
   instead of failing. Consent is unknown until the policy has loaded, which is

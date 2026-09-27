@@ -32,9 +32,9 @@ export interface UseNetworkBlockerOptions {
  *
  * Rendering has a side effect: the first render patches `fetch` and
  * `XMLHttpRequest` to hold matching requests. If React discards that
- * render and never commits it, the hold ends after 10 seconds and the
- * requests it held are sent unchecked, as they would have been without the
- * hook.
+ * render and never commits it, the hold ends after 10 seconds. Nothing
+ * checked consent for the requests it held, so they fail as blocked: a 451
+ * response for `fetch`, a failed XHR.
  *
  * Prefer the provider's `networkBlocker` option. It starts blocking when
  * the provider renders, so it also covers components rendered before this

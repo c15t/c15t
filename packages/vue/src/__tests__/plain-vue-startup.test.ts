@@ -200,3 +200,38 @@ test('a disabled Vue blocker leaves other callers holding', async () => {
 		network.mock.calls.some(([input]) => String(input).includes('ads.example'))
 	).toBe(false);
 });
+
+test('a context disposed before the blocker loads fails its held requests closed', async () => {
+	const network = vi.fn((_input: RequestInfo | URL) =>
+		Promise.resolve(new Response('{}', { status: 200 }))
+	);
+	vi.stubGlobal('fetch', network);
+	const context = createVueConsentKernelContext({
+		config: {
+			backendURL: 'https://consent.example.test',
+			networkBlocker: {
+				rules: [{ category: 'measurement', domain: 'tracker.example' }],
+			},
+		},
+	});
+	let settled = false;
+	const early = window.fetch('https://tracker.example/collect').finally(() => {
+		settled = true;
+	});
+	await new Promise<void>((resolve) => {
+		setTimeout(resolve, 0);
+	});
+	expect(settled).toBe(false);
+
+	// A failed root mount: the context goes away before startup runs.
+	context.dispose();
+
+	// Nothing checked consent for it: answered as blocked, not sent or hung.
+	expect((await early).status).toBe(451);
+	expect(
+		network.mock.calls.some(([input]) =>
+			String(input).includes('tracker.example')
+		)
+	).toBe(false);
+	expect(window.fetch).toBe(network);
+});
