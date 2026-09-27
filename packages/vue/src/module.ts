@@ -126,6 +126,14 @@ const module: NuxtModule<C15tNuxtConfig> = defineNuxtModule<C15tNuxtConfig>({
 		}
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
+		if (manifestMode === 'client') {
+			// Resolves the manifest in the browser at startup: bundle the
+			// resolver with the entry so it preloads with the page.
+			addPlugin({
+				mode: 'client',
+				src: resolver.resolve('./runtime/plugin-client-manifest.nuxt'),
+			});
+		}
 
 		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		addComponent({
