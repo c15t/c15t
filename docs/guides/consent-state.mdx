@@ -137,6 +137,14 @@ Stored records are merged into the ones in memory:
   union. A directive only restricts, so none is dropped.
 - The notice dismissal and the vendor record are single decisions. A stored one
   at least as new as the one in memory replaces it; an older one is ignored.
+- When two tabs record decisions in the same millisecond, the one stored first
+  wins in both tabs.
+- Tabs keep one subject. A tab that opened before another tab stored a subject
+  adopts the stored one, unless it identified a different user with
+  `identify()`.
+- Under an IAB policy, the `@c15t/iab` module then loads the TC string the other
+  tab stored, so `__tcfapi` reports the choice now in force. A missing or older
+  stored TC string leaves the current one in place.
 - A record removed from readable storage since this tab last read or wrote it
   is cleared, and the active policy decides again. A record held only in
   memory, such as a receipt merged from the server after `identify()`, stays.
@@ -152,7 +160,8 @@ A tab writes its own choices in a later task, not during the click. Before it
 reads storage, it lands its own queued writes, so a reconciliation never undoes
 the visitor's latest action in that tab. A queued write follows the same rules
 as a read: it stores the per-category merge of its choice and the stored one,
-the union of directives, and never replaces a newer notice or vendor record.
+the union of directives, and never replaces a newer notice or vendor record. It
+keeps the stored subject unless this tab identified a different user.
 When a slow save response returns a server subject id, the tab adds it only to
 the record it wrote; it does not recreate records another tab cleared or
 overwrite another tab's newer choice.

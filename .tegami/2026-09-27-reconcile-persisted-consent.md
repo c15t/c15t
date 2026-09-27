@@ -9,6 +9,7 @@ packages:
   '@c15t/svelte': patch
   '@c15t/astro': patch
   '@c15t/browser': patch
+  '@c15t/iab': patch
 ---
 
 ### Keep open tabs in step with stored consent
@@ -30,7 +31,14 @@ not decode change nothing. Reconnecting does not read storage.
 Queued writes follow the same rules. A tab lands its own pending write before it
 reads, a choice write stores the per-category merge with what storage holds, a
 directive write keeps every stored directive, and the rewrite that adds a
-server subject id no longer recreates records another tab cleared.
+server subject id no longer recreates records another tab cleared. When two
+tabs act in the same millisecond, the record stored first wins in both. A
+tab that opened before another stored a subject keeps the stored subject
+unless it identified a different user.
+
+Under an IAB policy, `@c15t/iab` loads the TC string another tab stored once
+its choice is reconciled, so `__tcfapi` no longer reports the previous
+choice. A missing or older stored TC string leaves the current one in place.
 
 New API:
 
