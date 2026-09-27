@@ -561,6 +561,43 @@ describe('createConsentRuntime', () => {
 		}
 	});
 
+	test('a runtime disposed before `start()` stops holding requests', async () => {
+		const nativeFetch = window.fetch;
+		const original = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = original as unknown as typeof window.fetch;
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			let settled = false;
+			const early = window
+				.fetch('https://tracker.example/collect')
+				.finally(() => {
+					settled = true;
+				});
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(settled).toBe(false);
+
+			runtime.dispose();
+
+			// Nothing enforces the disposed runtime's rules any more, so its
+			// requests go out as they would without a runtime.
+			expect((await early).status).toBe(200);
+			expect(window.fetch).toBe(original);
+			expect((await window.fetch('https://tracker.example/next')).status).toBe(
+				200
+			);
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
 	test('forwards `i18n` messages into the kernel translations', () => {
 		const runtime = createConsentRuntime({
 			i18n: {

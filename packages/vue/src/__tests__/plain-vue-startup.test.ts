@@ -2,6 +2,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { createApp, defineComponent, h, inject, onMounted } from 'vue';
 
 import { c15tVue } from '../index';
+import { createVueConsentKernelContext } from '../runtime/kernel';
 import type { RuntimeConsentConfig } from '../runtime/kernel';
 import { symbolKernel } from '../runtime/utils/symbols';
 
@@ -117,4 +118,33 @@ test('holds tracker requests from child mount hooks until the blocker decides th
 			String(input).includes('tracker.example')
 		)
 	).toBe(false);
+});
+
+test('a context disposed before the blocker loads stops holding requests', async () => {
+	const network = vi.fn((_input: RequestInfo | URL) =>
+		Promise.resolve(new Response('{}', { status: 200 }))
+	);
+	vi.stubGlobal('fetch', network);
+	const context = createVueConsentKernelContext({
+		config: {
+			backendURL: 'https://consent.example.test',
+			networkBlocker: {
+				rules: [{ category: 'measurement', domain: 'tracker.example' }],
+			},
+		},
+	});
+	let settled = false;
+	const early = window.fetch('https://tracker.example/collect').finally(() => {
+		settled = true;
+	});
+	await new Promise<void>((resolve) => {
+		setTimeout(resolve, 0);
+	});
+	expect(settled).toBe(false);
+
+	// A failed root mount: the context goes away before startup runs.
+	context.dispose();
+
+	expect((await early).status).toBe(200);
+	expect(window.fetch).toBe(network);
 });
