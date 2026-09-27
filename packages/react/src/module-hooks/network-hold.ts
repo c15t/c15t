@@ -1,7 +1,7 @@
 'use client';
 
 import type { NetworkBlockerRule } from '@c15t/core/modules/network-blocker';
-import { holdNetworkRequests } from '@c15t/core/modules/network-hold';
+import { holdNetworkRequests, NOT_HELD } from '@c15t/core/modules/network-hold';
 import type { NetworkHold } from '@c15t/core/modules/network-hold';
 import { useState } from 'react';
 
@@ -23,12 +23,14 @@ export interface EarlyNetworkHold {
 	 * Call from the mount effect, before loading the blocker. Keeps the hold
 	 * from expiring, starts a new one if it already ended (a StrictMode or
 	 * kernel re-run after the blocker took over, or a commit that came after
-	 * the expiry), and returns it for `createNetworkBlocker({ hold })`.
+	 * the expiry), and returns it for `createNetworkBlocker({ hold })`. A
+	 * disabled blocker gets a hold that holds nothing, so it cannot end
+	 * another caller's hold.
 	 */
 	claim: (
 		rules: readonly NetworkBlockerRule[],
 		enabled: boolean | undefined
-	) => NetworkHold | undefined;
+	) => NetworkHold;
 	/**
 	 * Call from the mount effect's cleanup. Ends a hold no blocker took
 	 * over, unless the effect runs again first (StrictMode, a kernel change).
@@ -68,7 +70,9 @@ const createSlot = function createSlot(
 			if (latestEnabled !== false && !hold?.held) {
 				hold = holdNetworkRequests(latestRules);
 			}
-			return hold;
+			// Never `undefined`: without a hold, the blocker would end every
+			// caller's hold and send their requests past a disabled gate.
+			return hold ?? NOT_HELD;
 		},
 		expire() {
 			uncommitted.delete(slot);

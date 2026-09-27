@@ -90,7 +90,14 @@ let active: Hold | null = null;
 
 const sendNothing = (): void => undefined;
 
-const NOT_HELD: NetworkHold = {
+/**
+ * A hold for a caller whose rules hold nothing, for example a blocker
+ * created with `enabled: false`. Pass it to `createNetworkBlocker({ hold })`
+ * so that blocker takes over nothing, rather than omitting `hold`, which
+ * ends every caller's hold.
+ * @internal
+ */
+export const NOT_HELD: NetworkHold = {
 	held: false,
 	release: () => sendNothing,
 };

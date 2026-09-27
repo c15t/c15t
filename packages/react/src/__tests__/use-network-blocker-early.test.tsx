@@ -225,3 +225,31 @@ test('a render React discards ends its hold on its own', async () => {
 	expect(trackerCalls()).toHaveLength(1);
 	expect(window.fetch).toBe(network);
 });
+
+test('a disabled provider blocker leaves the hook holding its requests', async () => {
+	// The provider's blocker mounts before its children, so it loads first.
+	// Disabled, it holds nothing, and must not end the hook's hold on its way
+	// in: the hook's requests would go out through its pass-through patch.
+	const statuses: Promise<number>[] = [];
+	render(
+		<ConsentProvider
+			options={{
+				mode: offline(),
+				networkBlocker: { enabled: false, rules },
+				persistence: false,
+				prefetch: policyFixture(),
+			}}
+		>
+			<HookBlocker>
+				<Beacon
+					label="child"
+					statuses={statuses}
+				/>
+			</HookBlocker>
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(statuses).toHaveLength(1));
+
+	expect(await Promise.all(statuses)).toEqual([451]);
+	expect(trackerCalls()).toHaveLength(0);
+});
