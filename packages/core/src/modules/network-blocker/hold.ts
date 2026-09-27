@@ -60,10 +60,53 @@ export const stashXhr = function stashXhr(
 };
 
 /**
+ * The response the blocker gives a blocked `fetch`: a 451, without calling
+ * the network.
+ * @internal
+ */
+export const blockedResponse = function blockedResponse(): Response {
+	return new Response(null, {
+		status: 451,
+		statusText: 'Request blocked by consent',
+	});
+};
+
+/**
+ * How the blocker fails a blocked XHR: `abort()` plus a synthetic
+ * `ProgressEvent('error')`, as consumers see when the network fails.
+ * @internal
+ */
+export const failBlockedXhr = function failBlockedXhr(
+	xhr: XMLHttpRequest
+): void {
+	xhr.abort();
+	// Synthetic error — dispatch via onerror + dispatchEvent (v2 parity).
+	const event =
+		typeof ProgressEvent === 'undefined'
+			? ({ type: 'error' } as Event)
+			: new ProgressEvent('error');
+	// oxlint-disable-next-line typescript/no-explicit-any -- spec-typed XHR
+	if (typeof (xhr as any).onerror === 'function') {
+		// oxlint-disable-next-line typescript/no-explicit-any -- spec-typed XHR
+		(xhr as any).onerror(event);
+	}
+	xhr.dispatchEvent(event);
+};
+
+/**
  * One caller's share of the hold.
  * @internal
  */
 export interface NetworkHold {
+	/**
+	 * Stop holding for this caller's rules when no blocker will take over,
+	 * for example a runtime disposed before it started. Nothing checked
+	 * consent for the requests they held, so none is sent: each one no other
+	 * caller's rules match is answered the way the blocker answers a blocked
+	 * request (a 451 `Response`, or a failed XHR). The rest stay held. A
+	 * no-op once released or blocked.
+	 */
+	block: () => void;
 	/** Whether this caller's rules still hold requests. */
 	readonly held: boolean;
 	/**
@@ -80,9 +123,17 @@ interface Owner {
 	rules: readonly NetworkBlockerRule[];
 }
 
+/** A held request: sent again through the page, or answered as blocked. */
+interface Held {
+	block: () => void;
+	input: RequestInfo | URL;
+	method: string | undefined;
+	replay: () => void;
+}
+
 interface Hold {
 	owners: Set<Owner>;
-	queue: (() => void)[];
+	queue: Held[];
 	restore: () => void;
 }
 
@@ -98,13 +149,14 @@ const sendNothing = (): void => undefined;
  * @internal
  */
 export const NOT_HELD: NetworkHold = {
+	block: () => undefined,
 	held: false,
 	release: () => sendNothing,
 };
 
-const replayAll = (queue: (() => void)[]) => () => {
-	for (const replay of queue) {
-		replay();
+const replayAll = (queue: Held[]) => () => {
+	for (const held of queue) {
+		held.replay();
 	}
 };
 
@@ -161,6 +213,25 @@ const matches = function matches(
 	return false;
 };
 
+/**
+ * After owners left without a blocker to take over: end the hold if none
+ * remain, and answer as blocked every held request no remaining owner's
+ * rules match.
+ */
+const blockUnmatched = function blockUnmatched(hold: Hold): void {
+	if (hold.owners.size === 0 && active === hold) {
+		active = null;
+		hold.restore();
+	}
+	for (const held of hold.queue.splice(0)) {
+		if (active === hold && matches(hold, held.input, held.method)) {
+			hold.queue.push(held);
+		} else {
+			held.block();
+		}
+	}
+};
+
 const joinHold = function joinHold(
 	hold: Hold,
 	rules: readonly NetworkBlockerRule[]
@@ -168,6 +239,11 @@ const joinHold = function joinHold(
 	const owner: Owner = { rules };
 	hold.owners.add(owner);
 	return {
+		block() {
+			if (active === hold && hold.owners.delete(owner)) {
+				blockUnmatched(hold);
+			}
+		},
 		get held() {
 			return active === hold && hold.owners.has(owner);
 		},
@@ -220,16 +296,16 @@ export const holdNetworkRequests = function holdNetworkRequests(
 		init?: RequestInit
 	): Promise<Response> {
 		const hold = active;
-		if (
-			hold &&
-			matches(
-				hold,
-				input,
-				init?.method ?? (input instanceof Request ? input.method : undefined)
-			)
-		) {
+		const method =
+			init?.method ?? (input instanceof Request ? input.method : undefined);
+		if (hold && matches(hold, input, method)) {
 			return new Promise((resolve) => {
-				hold.queue.push(() => resolve(window.fetch(input, init)));
+				hold.queue.push({
+					block: () => resolve(blockedResponse()),
+					input,
+					method,
+					replay: () => resolve(window.fetch(input, init)),
+				});
 			});
 		}
 		return originalFetch.call(window, input, init);
@@ -256,7 +332,12 @@ export const holdNetworkRequests = function holdNetworkRequests(
 			if (request.sync) {
 				throw new DOMException('Request blocked by consent', 'NetworkError');
 			}
-			hold.queue.push(() => XMLHttpRequest.prototype.send.call(this, body));
+			hold.queue.push({
+				block: () => failBlockedXhr(this),
+				input: request.url,
+				method: request.method,
+				replay: () => XMLHttpRequest.prototype.send.call(this, body),
+			});
 			return;
 		}
 		return originalSend.call(this, body as never);
@@ -285,4 +366,29 @@ export const holdNetworkRequests = function holdNetworkRequests(
 	};
 	active = hold;
 	return joinHold(hold, rules);
+};
+
+/**
+ * Stop holding for `rules` when no blocker will take over, as
+ * {@link NetworkHold.block} does, for a caller that kept its rules rather
+ * than its hold. Every caller that held with only these rules (matched by
+ * reference) lets go; requests other callers' rules still match stay held.
+ *
+ * @param rules - The rules the caller held with.
+ * @internal
+ */
+export const blockHeldRequests = function blockHeldRequests(
+	rules: readonly NetworkBlockerRule[]
+): void {
+	const hold = active;
+	if (!hold) {
+		return;
+	}
+	const dropped = new Set(rules);
+	for (const owner of [...hold.owners]) {
+		if (owner.rules.every((rule) => dropped.has(rule))) {
+			hold.owners.delete(owner);
+		}
+	}
+	blockUnmatched(hold);
 };

@@ -137,7 +137,7 @@ const settles = (request: Promise<Response>) => {
 	return state;
 };
 
-test('a context disposed before startup ends only its own hold', async () => {
+test('a context disposed before startup fails only its own held requests closed', async () => {
 	const network = vi.fn((_input: RequestInfo | URL) =>
 		Promise.resolve(new Response('{}', { status: 200 }))
 	);
@@ -162,12 +162,11 @@ test('a context disposed before startup ends only its own hold', async () => {
 	// A failed root mount: the context goes away before startup runs.
 	context.dispose();
 
-	expect((await own).status).toBe(200);
+	// Nothing checked consent for it: answered as blocked, not sent.
+	expect((await own).status).toBe(451);
 	await tick();
 	expect(ads.settled).toBe(false);
-	expect(
-		network.mock.calls.some(([input]) => String(input).includes('ads.example'))
-	).toBe(false);
+	expect(network).not.toHaveBeenCalled();
 });
 
 test('a disabled Vue blocker leaves other callers holding', async () => {

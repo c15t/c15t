@@ -246,6 +246,42 @@ describe('several callers holding at once', () => {
 		}
 	});
 
+	test('blocking one caller fails only what no other caller holds', async () => {
+		const first = holdNetworkRequests(rules);
+		const second = holdNetworkRequests(otherRules);
+		const tracker = window.fetch('https://tracker.example/collect');
+		const xhr = new XMLHttpRequest();
+		const onError = vi.fn();
+		xhr.addEventListener('error', onError);
+		xhr.open('POST', 'https://tracker.example/collect');
+		xhr.send();
+		let adsSettled = false;
+		const ads = window.fetch('https://ads.example/pixel').finally(() => {
+			adsSettled = true;
+		});
+
+		first.block();
+
+		// Nothing checked consent for these: the blocker's answers, not a send.
+		const response = await tracker;
+		expect(response.status).toBe(451);
+		expect(response.statusText).toBe('Request blocked by consent');
+		expect(onError).toHaveBeenCalledOnce();
+		expect(first.held).toBe(false);
+		await flush();
+		expect(adsSettled).toBe(false);
+		expect(second.held).toBe(true);
+		expect(original).not.toHaveBeenCalled();
+		expect(originalSend).not.toHaveBeenCalled();
+
+		second.block();
+		expect((await ads).status).toBe(451);
+		expect(original).not.toHaveBeenCalled();
+		// No caller holds any more, so nothing waits from here on.
+		expect(window.fetch).toBe(original);
+		expect(XMLHttpRequest.prototype.send).toBe(originalSend);
+	});
+
 	test('releasing after the blocker took over does nothing', async () => {
 		const hold = holdNetworkRequests(rules);
 		blocker = createNetworkBlocker({

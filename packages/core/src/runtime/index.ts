@@ -389,7 +389,8 @@ export const createConsentRuntime = function createConsentRuntime(
 	// `start()` installs the blocker, often after the host rendered its
 	// children. Hold matching requests until then; the blocker takes over this
 	// runtime's hold and replays them. A runtime disposed before it started
-	// ends its hold itself. Either way, other callers' holds stay in place.
+	// ends its hold itself, failing what it held closed. Either way, other
+	// callers' holds stay in place.
 	let hold: NetworkHold | null =
 		enabled &&
 		options.networkBlocker &&
@@ -536,9 +537,10 @@ export const createConsentRuntime = function createConsentRuntime(
 				dispose();
 			}
 			disposers.length = 0;
-			// No blocker took the hold over, so nothing else ends it. Without
-			// this, matching requests would wait for the rest of the page.
-			hold?.release()();
+			// No blocker took the hold over, so nothing else ends it, and
+			// nothing checked consent for what it held: those requests fail
+			// as blocked rather than wait for the rest of the page.
+			hold?.block();
 			hold = null;
 			iabListeners.clear();
 			iabHandle = null;

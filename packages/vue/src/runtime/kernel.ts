@@ -699,9 +699,10 @@ export const createVueConsentKernelContext =
 					kernel.dispose();
 				}
 				// Disposed before a blocker took the hold over (a failed mount,
-				// or no browser start): nothing else ends it, and matching
-				// requests would wait for the rest of the page.
-				claimHold(context).release()();
+				// or no browser start): nothing else ends it, and nothing
+				// checked consent for what it held, so those requests fail as
+				// blocked rather than wait for the rest of the page.
+				claimHold(context).block();
 			},
 			iab: options.runtime?.iab ?? undefined,
 			init,

@@ -692,7 +692,7 @@ describe('the runtime network hold', () => {
 			setTimeout(resolve, 0);
 		});
 
-	test("disposing before `start()` ends only this runtime's hold", async () => {
+	test("disposing before `start()` fails only this runtime's held requests closed", async () => {
 		const nativeFetch = window.fetch;
 		const network = vi.fn().mockResolvedValue(new Response('ok'));
 		window.fetch = network as unknown as typeof window.fetch;
@@ -714,13 +714,11 @@ describe('the runtime network hold', () => {
 
 			runtime.dispose();
 
-			expect((await own).status).toBe(200);
+			// Nothing checked consent for it: answered as blocked, not sent.
+			expect((await own).status).toBe(451);
+			expect(network).not.toHaveBeenCalled();
 			await tick();
 			expect(ads.settled).toBe(false);
-			expect(network).not.toHaveBeenCalledWith(
-				'https://ads.example/pixel',
-				undefined
-			);
 		} finally {
 			other.release()();
 			window.fetch = nativeFetch;
