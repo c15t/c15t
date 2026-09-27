@@ -7,13 +7,16 @@
  */
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
+	buildConsentManifestFromConfig,
 	createConsentManifestPolicyPack,
+	policyRulePresets,
 	resolvePolicyRules,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 import { createApp, toWebHandler } from 'h3';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { resolveNuxtTimeoutMs } from '../runtime/manifest';
 import {
 	clearManifestRouteCache,
 	fetchCachedManifest,
@@ -652,6 +655,82 @@ describe('init route with a slow or failing backend', () => {
 		expect(response.ok).toBe(false);
 		expect(Date.now() - startedAt).toBeLessThan(2000);
 		expect(mocks.serverFetch).toHaveBeenCalledTimes(1);
+	});
+
+	test('sends a fractional timeoutMs as a budget header the route accepts', () => {
+		expect(String(resolveNuxtTimeoutMs({ timeoutMs: 500.5 }))).toBe('500');
+	});
+
+	test('bounds the /init fallback by the render budget', async () => {
+		// Nitro's in-process fetch drops the abort signal, so a hanging /init
+		// must be bounded by the route itself.
+		mocks.serverFetch.mockImplementation((url: string) =>
+			url.endsWith('/manifest')
+				? Promise.resolve(new Response('missing', { status: 404 }))
+				: new Promise(() => {
+						// Never answers.
+					})
+		);
+		const startedAt = Date.now();
+		const response = await callInitRoute({
+			'x-c15t-policy-contract': '1',
+			'x-c15t-timeout-ms': '50',
+		});
+		expect(response.ok).toBe(false);
+		expect(Date.now() - startedAt).toBeLessThan(2000);
+		expect(mocks.serverFetch).toHaveBeenLastCalledWith(
+			'/api/self-host/init',
+			expect.objectContaining({ signal: expect.any(AbortSignal) })
+		);
+	});
+
+	test('bounds the vendor list by the render budget and keeps it filling', async () => {
+		const gvlURL = 'https://vendors.example/budget-list.json';
+		const manifest = await buildConsentManifestFromConfig({
+			branding: 'c15t',
+			iab: { cmpId: 28, enabled: true },
+			policyRules: [policyRulePresets.europeIab()],
+		});
+		if (!manifest.iab) {
+			throw new Error('Expected an IAB manifest');
+		}
+		manifest.iab.gvl = { url: gvlURL };
+		let finishList: (response: Response) => void = () => undefined;
+		mocks.serverFetch.mockImplementation((url: string) =>
+			url === gvlURL
+				? new Promise<Response>((resolve) => {
+						finishList = resolve;
+					})
+				: Promise.resolve(Response.json(manifest))
+		);
+		const registered: Promise<void>[] = [];
+		const call = callRoute(
+			'/api/c15t/init',
+			createInitRoute({
+				...routeDependencies,
+				onBackgroundRevalidate: (task) => {
+					registered.push(task);
+				},
+			})
+		);
+		const startedAt = Date.now();
+		const response = await call({
+			'x-c15t-country': 'DE',
+			'x-c15t-policy-contract': '1',
+			'x-c15t-timeout-ms': '50',
+		});
+		expect(response.ok).toBe(false);
+		expect(Date.now() - startedAt).toBeLessThan(2000);
+		expect(mocks.serverFetch).toHaveBeenCalledWith(gvlURL, expect.anything());
+		// No /init fallback once the budget is gone.
+		expect(
+			mocks.serverFetch.mock.calls.some(([url]) =>
+				String(url).endsWith('/init')
+			)
+		).toBe(false);
+		expect(registered).toHaveLength(1);
+		finishList(Response.json({ vendorListVersion: 1 }));
+		await expect(registered[0]).resolves.toBeUndefined();
 	});
 
 	test('does not send every request to /init while the manifest backs off', async () => {

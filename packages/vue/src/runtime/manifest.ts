@@ -23,7 +23,8 @@ export const resolveNuxtTimeoutMs = function resolveNuxtTimeoutMs(
 		return undefined;
 	}
 	const value = config.timeoutMs ?? DEFAULT_NUXT_RESOLVE_TIMEOUT_MS;
-	return Number.isFinite(value) && value >= 0 ? value : undefined;
+	// Whole milliseconds: the init route only reads a digit-only header.
+	return Number.isFinite(value) && value >= 0 ? Math.floor(value) : undefined;
 };
 export const DEFAULT_MANIFEST_ROUTE = '/api/c15t/manifest';
 

@@ -971,9 +971,12 @@ const waitForFill = function waitForFill(
 		return fill.promise;
 	}
 	const giveUp = function giveUp(): ManifestUnavailableError {
+		// Observe the abandoned fill even when nothing keeps it alive, so its
+		// failure is not reported as an unhandled rejection.
+		const background = settle(fill.promise);
 		if (options.onBackgroundRevalidate) {
 			try {
-				options.onBackgroundRevalidate(settle(fill.promise));
+				options.onBackgroundRevalidate(background);
 			} catch {
 				// Registration is best effort; the fill runs either way.
 			}

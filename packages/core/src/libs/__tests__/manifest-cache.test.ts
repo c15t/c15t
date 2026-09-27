@@ -454,7 +454,14 @@ describe('failures on a cold cache', () => {
 	const unavailable = () =>
 		Promise.resolve(new Response('down', { status: 503 }));
 
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
 	test('a failed fill is not retried until its floor passes, then backs off', async () => {
+		// A failure's floor counts from `now` plus the fill's real duration;
+		// a frozen clock keeps the exact floors below from drifting under load.
+		vi.useFakeTimers();
 		const cache = createManifestCache();
 		const fetchSpy = vi.fn(unavailable);
 		const read = (now: number) =>
@@ -498,6 +505,7 @@ describe('failures on a cold cache', () => {
 	});
 
 	test('a success clears the failure record', async () => {
+		vi.useFakeTimers();
 		const cache = createManifestCache();
 		const fetchSpy = vi
 			.fn()
@@ -673,6 +681,29 @@ describe('timeoutMs', () => {
 		).rejects.toMatchObject({ reason: 'timeout' });
 		expect(Date.now() - startedAt).toBe(0);
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('a fill abandoned with no background hook still has its failure observed', async () => {
+		const unhandled = vi.fn();
+		process.on('unhandledRejection', unhandled);
+		try {
+			const gate = Promise.withResolvers<Response>();
+			await expect(
+				fetchThroughRuntime({
+					cache: createManifestCache(),
+					fetch: () => gate.promise,
+					sourceURL: URL_UNDER_TEST,
+					timeoutMs: 0,
+				})
+			).rejects.toMatchObject({ reason: 'timeout' });
+			gate.resolve(new Response('down', { status: 503 }));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 20);
+			});
+			expect(unhandled).not.toHaveBeenCalled();
+		} finally {
+			process.off('unhandledRejection', unhandled);
+		}
 	});
 
 	test('fresh reads answer from memory whatever the budget', async () => {
