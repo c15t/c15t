@@ -206,15 +206,6 @@ describe('Vue consent widget vendor rows', () => {
 					'[data-testid="consent-widget-vendor-item-measurement-google-analytics"]'
 				)
 			).toBeNull();
-			// A category's rows mount on its first open and stay mounted after.
-			expect(byTestId('consent-widget-vendor-list-measurement')).toBeNull();
-			await open('measurement');
-			expect(
-				byTestId('consent-widget-vendor-list-measurement')?.querySelector(
-					'[data-testid="consent-widget-vendor-item-measurement-google-analytics"]'
-				)
-			).toBeInstanceOf(HTMLElement);
-			await open('marketing');
 
 			const trigger = byTestId(
 				'consent-widget-vendor-trigger-marketing-meta-pixel'
@@ -256,6 +247,28 @@ describe('Vue consent widget vendor rows', () => {
 			const snapshot = context.kernel.getSnapshot();
 			expect(snapshot.vendorChoice?.denied).toEqual(['meta-pixel']);
 			expect(snapshot.effectivePermissions.marketing).toBe(true);
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
+	test('mounts a category’s vendor rows on its first open and keeps them', async () => {
+		const { context, wrapper } = await renderWidget({
+			marketing: true,
+			measurement: true,
+		});
+		try {
+			expect(byTestId('consent-widget-vendor-list-measurement')).toBeNull();
+			await open('measurement');
+			const item =
+				'[data-testid="consent-widget-vendor-item-measurement-google-analytics"]';
+			expect(
+				byTestId('consent-widget-vendor-list-measurement')?.querySelector(item)
+			).toBeInstanceOf(HTMLElement);
+			await open('measurement');
+			expect(
+				byTestId('consent-widget-vendor-list-measurement')?.querySelector(item)
+			).toBeInstanceOf(HTMLElement);
 		} finally {
 			await cleanup(wrapper, context);
 		}
