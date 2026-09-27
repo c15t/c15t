@@ -1,5 +1,8 @@
 import type { ConsentSnapshot } from '@c15t/core';
-import { resolveIABDialogDisplayModel } from '@c15t/iab/headless';
+import {
+	applyPublisherRestrictionsToGVL,
+	resolveIABDialogDisplayModel,
+} from '@c15t/iab/headless';
 import type { HeadlessIABDisplayRow } from '@c15t/iab/headless';
 
 import { classes } from '../generated/iab-styles';
@@ -151,15 +154,20 @@ export const createIABPreferences = (
 		if (row.locked) {
 			body.append(h('p', {}, t.preferenceCenter.vendorList.requiredNotice));
 		} else {
-			body.append(
-				toggle(
-					t.preferenceCenter.purposeItem.withYourPermission,
-					`${row.testId}-consent`,
-					(value) => readConsent(row, value),
-					(value) => writeConsent(row, value),
-					row.name
-				)
-			);
+			// With no vendor on consent, a consent switch would look like an
+			// opt-out while every vendor kept processing; the objection below is
+			// the one that counts.
+			if (row.hasConsentBasis) {
+				body.append(
+					toggle(
+						t.preferenceCenter.purposeItem.withYourPermission,
+						`${row.testId}-consent`,
+						(value) => readConsent(row, value),
+						(value) => writeConsent(row, value),
+						row.name
+					)
+				);
+			}
 			if (
 				row.kind === 'purpose' &&
 				row.vendors.some((vendor) => vendor.usesLegitimateInterest)
@@ -204,6 +212,32 @@ export const createIABPreferences = (
 	};
 	for (const row of model.consentRows) {
 		if (row.kind === 'stack') {
+			// The stack switch covers the purposes some vendor processes on
+			// consent. The others offer only their own objection control.
+			const consentPurposes = row.purposes.filter(
+				(purpose) => purpose.hasConsentBasis
+			);
+			const stackToggle = consentPurposes.length
+				? [
+						toggle(
+							t.preferenceCenter.purposeItem.withYourPermission,
+							`${row.testId}-consent`,
+							(value) =>
+								consentPurposes.every((purpose) => readConsent(purpose, value)),
+							(value) => {
+								for (const purpose of consentPurposes) {
+									writeConsent(purpose, value);
+								}
+							},
+							row.name,
+							(value) =>
+								consentPurposes.some((purpose) =>
+									readConsent(purpose, value)
+								) &&
+								!consentPurposes.every((purpose) => readConsent(purpose, value))
+						),
+					]
+				: [];
 			purposes.append(
 				h(
 					'details',
@@ -223,21 +257,7 @@ export const createIABPreferences = (
 						h('span', { class: css(styles.stackName) }, row.name)
 					),
 					h('p', {}, row.description),
-					toggle(
-						t.preferenceCenter.purposeItem.withYourPermission,
-						`${row.testId}-consent`,
-						(value) =>
-							row.purposes.every((purpose) => readConsent(purpose, value)),
-						(value) => {
-							for (const purpose of row.purposes) {
-								writeConsent(purpose, value);
-							}
-						},
-						row.name,
-						(value) =>
-							row.purposes.some((purpose) => readConsent(purpose, value)) &&
-							!row.purposes.every((purpose) => readConsent(purpose, value))
-					),
+					...stackToggle,
 					...row.purposes.map(renderPurpose)
 				)
 			);
@@ -263,8 +283,18 @@ export const createIABPreferences = (
 		)
 	);
 
+	// Declarations after publisher restrictions, so each vendor gets the
+	// consent or objection control for the basis it actually uses.
+	const gvl = snapshot.iab?.gvl;
 	const vendorRows = [
-		...Object.values(snapshot.iab?.gvl?.vendors ?? {}),
+		...Object.values(
+			gvl
+				? applyPublisherRestrictionsToGVL(
+						gvl,
+						snapshot.iab?.publisherRestrictions
+					).vendors
+				: {}
+		),
 		...(snapshot.iab?.customVendors ?? []),
 	];
 	const list = h('div', { class: css(styles.vendorListContent) });

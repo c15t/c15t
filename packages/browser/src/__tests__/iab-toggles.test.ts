@@ -1,3 +1,4 @@
+import { evaluateConsent } from '@c15t/core';
 import { clearGVLCache } from '@c15t/iab';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -170,5 +171,57 @@ describe('IAB purpose and stack controls', () => {
 			specialFeatureOptIns: { 1: false },
 			vendorConsents: { 1: false, 755: false },
 		});
+	});
+});
+
+describe('IAB controls with publisher restrictions', () => {
+	// Every vendor for purpose 7 ends up on legitimate interest: vendor 1 may
+	// not use it, and vendors 2 and 755 must use legitimate interest.
+	const restrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [1] },
+		{ purposeId: 7, restrictionType: 2 as const, vendorIds: [2, 755] },
+	];
+	const find = (client: ConsentClient, id: string) =>
+		client.ui?.root.querySelector<HTMLButtonElement>(
+			`button[data-testid="${id}"]`
+		) ?? null;
+
+	it('offers only the objection for a purpose no vendor consents to', async () => {
+		const client = await start({ publisherRestrictions: restrictions });
+		expect(find(client, 'purpose-item-7-consent')).toBeNull();
+		expect(find(client, 'purpose-item-7-li')).not.toBeNull();
+		// The stack switch covers purpose 2 only.
+		control(client, 'stack-item-1-consent').click();
+		expect(client.getSnapshot().iab?.purposeConsents).toMatchObject({
+			2: true,
+		});
+		expect(Boolean(client.getSnapshot().iab?.purposeConsents[7])).toBe(false);
+	});
+
+	it('lists a vendor moved to legitimate interest with an objection control', async () => {
+		const client = await start({ publisherRestrictions: restrictions });
+		client.ui?.root
+			.querySelector<HTMLButtonElement>('#c15t-iab-vendors-tab')
+			?.click();
+		expect(find(client, 'iab-vendor-755-li')).not.toBeNull();
+	});
+
+	it('the visible objection makes the gate deny the vendor', async () => {
+		const client = await start({ publisherRestrictions: restrictions });
+		const target = {
+			category: 'necessary' as const,
+			iabPurposes: [7],
+			vendorId: 755,
+		};
+		client.runtime.iab?.acceptAll();
+		expect((await client.saveIAB()).ok).toBe(true);
+		expect(evaluateConsent(target, client.getSnapshot())).toBe(true);
+
+		client.openDialog();
+		// The objection is the only opt-out shown for purpose 7.
+		expect(find(client, 'purpose-item-7-consent')).toBeNull();
+		control(client, 'purpose-item-7-li').click();
+		expect((await client.saveIAB()).ok).toBe(true);
+		expect(evaluateConsent(target, client.getSnapshot())).toBe(false);
 	});
 });
