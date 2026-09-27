@@ -7,13 +7,9 @@
  * sides turn it into a {@link ProviderTransportFactory} themselves.
  */
 
-import {
-	createHostedTransport,
-	createOfflineTransport,
-	custom,
-	hosted,
-} from '@c15t/core';
+import { createHostedTransport, custom, hosted } from '@c15t/core';
 import type {
+	KernelTransport,
 	ProviderTransportContext,
 	ProviderTransportFactory,
 } from '@c15t/core';
@@ -81,17 +77,48 @@ export const manifestMode = function manifestMode(
 	return { ...options, type: 'manifest' };
 };
 
-/** Resolve explicit policy rules through the shared offline transport. */
+/**
+ * Resolve explicit policy rules through the shared offline transport.
+ *
+ * The transport and the recommended rule pack load on the first init. The
+ * page script resolves the mode at runtime, so a static import would ship
+ * both to every hosted and manifest site, where they never run. An offline
+ * page the server already resolved never inits, so it never loads them
+ * either. Saves need nothing from the chunk: offline mode has no server to
+ * acknowledge them.
+ */
 const createOfflineFactory = (
 	descriptor: C15tOfflineDescriptor
 ): ProviderTransportFactory =>
 	Object.assign(
-		(context: ProviderTransportContext) =>
-			createOfflineTransport({
-				iabEnabled: context.iabEnabled,
-				policyRules: descriptor.policyRules ?? context.policyRules,
-				translations: context.translations,
-			}),
+		(context: ProviderTransportContext): KernelTransport => {
+			let loading: Promise<KernelTransport> | undefined;
+			const load = function load(): Promise<KernelTransport> {
+				loading ??= (async () => {
+					try {
+						const { createOfflineTransport } = await import('./offline-mode');
+						return createOfflineTransport({
+							iabEnabled: context.iabEnabled,
+							policyRules: descriptor.policyRules ?? context.policyRules,
+							translations: context.translations,
+						});
+					} catch (error) {
+						// Let the kernel's retry make a fresh import attempt.
+						loading = undefined;
+						throw error;
+					}
+				})();
+				return loading;
+			};
+			return {
+				async init(ctx) {
+					const transport = await load();
+					return (await transport.init?.(ctx)) ?? {};
+				},
+				save: (payload) =>
+					Promise.resolve({ ok: true, subjectId: payload.subjectId }),
+			};
+		},
 		{ kind: 'offline' as const }
 	);
 
