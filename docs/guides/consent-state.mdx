@@ -204,7 +204,9 @@ and are unaffected. A corrupt epoch, or one that cannot be read, also reads as
 whose own epoch field is corrupt is kept, and only its epoch is ignored.
 
 Each clear moves the epoch forward, even when the device clock went back, so a
-later clear never lets earlier decisions back in. An epoch up to one hour ahead
+later clear never lets earlier decisions back in. Two clears in the same
+millisecond therefore leave the epoch a millisecond ahead, and a decision saved
+in that millisecond is void. An epoch up to one hour ahead
 of the clock is kept, as it is when the clock was set back after a clear. Until
 the clock catches up, decisions saved in that window are void too. An epoch more
 than an hour ahead is treated as corrupt and reads as 0.
