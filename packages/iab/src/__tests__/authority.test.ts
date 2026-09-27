@@ -656,3 +656,113 @@ test("reconciling another runtime's IAB save publishes that runtime's authority"
 		rejected ?? 'missing'
 	);
 });
+
+const purposeGrants = (kernel: ConsentKernel) =>
+	Object.values(kernel.getSnapshot().iab?.purposeConsents ?? {}).filter(
+		(value) => value === true
+	).length;
+
+test("reconciling another runtime's IAB save also applies its selections", async () => {
+	const first = makeKernel();
+	const firstStorage = createPersistence({ kernel: first, sync: false });
+	disposers.push(firstStorage.dispose);
+	const firstAddon = createAddon(first);
+
+	const second = makeKernel();
+	const secondStorage = createPersistence({ kernel: second, sync: false });
+	disposers.push(secondStorage.dispose);
+	const secondAddon = createAddon(second);
+	// This runtime granted everything and saved; its selections match its
+	// confirmed authority.
+	secondAddon.acceptAll();
+	await secondAddon.save();
+	secondStorage.reconcile();
+	expect(purposeGrants(second)).toBeGreaterThan(0);
+
+	vi.setSystemTime(NOW + 1000);
+	firstStorage.reconcile();
+	await vi.waitFor(() =>
+		expect(first.getSnapshot().iab?.authority?.tcString).toBe(
+			second.getSnapshot().iab?.authority?.tcString
+		)
+	);
+	firstAddon.rejectAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+	const rejected = first.getSnapshot().iab?.authority?.tcString;
+	expect(rejected).not.toBe(second.getSnapshot().iab?.authority?.tcString);
+
+	expect(secondStorage.reconcile()).toBe(true);
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority?.tcString).toBe(rejected)
+	);
+	expect(purposeGrants(second)).toBe(0);
+});
+
+test('reconciling keeps selections this runtime changed but did not save', async () => {
+	const first = makeKernel();
+	const firstStorage = createPersistence({ kernel: first, sync: false });
+	disposers.push(firstStorage.dispose);
+	const firstAddon = createAddon(first);
+	firstAddon.acceptAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+
+	const second = makeKernel();
+	const secondStorage = createPersistence({ kernel: second, sync: false });
+	disposers.push(secondStorage.dispose);
+	const secondAddon = createAddon(second);
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority).not.toBeNull()
+	);
+	// An unsaved edit in progress.
+	secondAddon.setPurposeConsent(10, true);
+
+	vi.setSystemTime(NOW + 1000);
+	firstAddon.rejectAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+	const rejected = first.getSnapshot().iab?.authority?.tcString;
+
+	secondStorage.reconcile();
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority?.tcString).toBe(rejected)
+	);
+	expect(second.getSnapshot().iab?.purposeConsents[10]).toBe(true);
+});
+
+test('a TC string never keeps granting what the reconciled choice denies', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	addon.acceptAll();
+	await addon.save();
+	storage.reconcile();
+	expect(evaluateConsent(target, kernel.getSnapshot(), NOW)).toBe(true);
+	const receipt = localStorage.getItem('c15t-iab-authority-v1');
+
+	// Another runtime records a denial without a new TC string.
+	vi.setSystemTime(NOW + 1000);
+	const other = makeKernel();
+	const otherStorage = createPersistence({ kernel: other, sync: false });
+	disposers.push(otherStorage.dispose);
+	await other.commands.save('none');
+	otherStorage.reconcile();
+
+	expect(storage.reconcile()).toBe(true);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority ?? null).toBeNull()
+	);
+	expect(evaluateConsent(target, kernel.getSnapshot(), NOW + 1000)).toBe(false);
+	// The shared receipt is not this runtime's to delete.
+	expect(localStorage.getItem('c15t-iab-authority-v1')).toBe(receipt);
+
+	// A runtime opened now does not restore the conflicting TC string.
+	const fresh = makeKernel();
+	const freshStorage = createPersistence({ kernel: fresh, sync: false });
+	disposers.push(freshStorage.dispose);
+	createAddon(fresh);
+	await vi.advanceTimersByTimeAsync(1);
+	expect(fresh.getSnapshot().iab?.authority ?? null).toBeNull();
+});

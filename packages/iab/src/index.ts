@@ -25,7 +25,10 @@ import type {
 	CMPApi,
 	ConsentKernel,
 	ConsentSnapshot,
+	ExplicitChoice,
 	GlobalVendorList,
+	KernelIABAuthority,
+	KernelIABState,
 	NonIABVendor,
 } from '@c15t/core';
 
@@ -40,6 +43,7 @@ import { createCMPApi } from './tcf/cmp-api';
 import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
 import { getTCFCore } from './tcf/lazy-load';
 import {
+	C15T_TO_IAB_PURPOSE_MAP,
 	c15tConsentsToIabPurposes,
 	iabPurposesToC15tConsents,
 } from './tcf/purpose-mapping';
@@ -298,6 +302,78 @@ const changedIABDraft = function changedIABDraft(
 	);
 };
 
+/**
+ * Whether a TC authority grants a category the explicit choice denies, by
+ * the same purpose mapping a save uses to record categories.
+ */
+const grantsDeniedCategory = function grantsDeniedCategory(
+	authority: KernelIABAuthority,
+	choice: ExplicitChoice | null
+): boolean {
+	if (!choice) {
+		return false;
+	}
+	const implied = iabPurposesToC15tConsents(authority.purposeConsents);
+	return Object.entries(choice.categories).some(
+		([category, decision]) =>
+			decision?.value === false &&
+			implied[category as keyof typeof implied] === true
+	);
+};
+
+/** The editable selections a confirmed authority records. */
+const selectionsOf = function selectionsOf(authority: KernelIABAuthority) {
+	return {
+		purposeConsents: { ...authority.purposeConsents },
+		purposeLegitimateInterests: { ...authority.purposeLegitimateInterests },
+		specialFeatureOptIns: { ...authority.specialFeatureOptIns },
+		vendorConsents: { ...authority.vendorConsents },
+		vendorLegitimateInterests: { ...authority.vendorLegitimateInterests },
+	};
+};
+
+/** Purpose consents with every purpose of a denied category turned off. */
+const withoutDeniedPurposes = function withoutDeniedPurposes(
+	purposeConsents: Record<number, boolean>,
+	choice: ExplicitChoice
+): Record<number, boolean> {
+	const next = { ...purposeConsents };
+	for (const [category, decision] of Object.entries(choice.categories)) {
+		if (decision?.value !== false) {
+			continue;
+		}
+		const purposes =
+			C15T_TO_IAB_PURPOSE_MAP[category as keyof typeof C15T_TO_IAB_PURPOSE_MAP];
+		for (const purpose of purposes ?? []) {
+			next[purpose] = false;
+		}
+	}
+	return next;
+};
+
+/**
+ * Whether a stored receipt should replace the held authority: it grants
+ * nothing the choice denies, differs, and is at least as new or replaces a
+ * held authority that conflicts with the choice.
+ */
+const shouldInstallReceipt = function shouldInstallReceipt(
+	receipt: KernelIABAuthority | null,
+	held: KernelIABAuthority | null,
+	heldConflicts: boolean,
+	choice: ExplicitChoice
+): receipt is KernelIABAuthority {
+	if (
+		!receipt ||
+		grantsDeniedCategory(receipt, choice) ||
+		receipt.tcString === held?.tcString
+	) {
+		return false;
+	}
+	return (
+		held === null || heldConflicts || held.confirmedAt <= receipt.confirmedAt
+	);
+};
+
 const changedSelections = (
 	previous: ConsentSnapshot,
 	current: ConsentSnapshot
@@ -419,6 +495,12 @@ export const createIAB = function createIAB(
 	let authorityTimer: ReturnType<typeof setTimeout> | undefined;
 	let confirmationGeneration = 0;
 	let selectionRevision = 0;
+	// Selection revision when the held authority was installed. A later
+	// revision means the visitor changed selections without saving.
+	let revisionAtAuthority = 0;
+	// Set while this module withdraws an authority another runtime's
+	// receipt still backs, so the shared receipt is not deleted.
+	let keepReceipt = false;
 	const armAuthorityTimer = function armAuthorityTimer(): void {
 		clearTimeout(authorityTimer);
 		const authority = kernel.getSnapshot().iab?.authority;
@@ -470,6 +552,25 @@ export const createIAB = function createIAB(
 
 	let restoredFingerprint: string | null = null;
 	let hydrationCancelled = false;
+	/** Whether nothing changed while a stored receipt was being validated. */
+	const unchangedSince = function unchangedSince(
+		before: ConsentSnapshot,
+		recordsGeneration: number,
+		generation: number
+	): boolean {
+		const current = kernel.getSnapshot();
+		return (
+			!disposed &&
+			!hydrationCancelled &&
+			generation === confirmationGeneration &&
+			kernel.getRecordsGeneration() === recordsGeneration &&
+			current.iab === before.iab &&
+			current.explicitChoice === before.explicitChoice &&
+			current.subject === before.subject &&
+			current.evaluationPolicy.choice.fingerprint ===
+				before.evaluationPolicy.choice.fingerprint
+		);
+	};
 	const restoreAuthority = async function restoreAuthority(): Promise<void> {
 		if (options.persistence === false) {
 			return;
@@ -497,60 +598,101 @@ export const createIAB = function createIAB(
 			hydrationSnapshot,
 			Date.now()
 		);
-		const current = kernel.getSnapshot();
 		if (
-			!disposed &&
-			!hydrationCancelled &&
 			authority &&
-			generation === confirmationGeneration &&
-			kernel.getRecordsGeneration() === recordsGeneration &&
-			current.iab === hydrationSnapshot.iab &&
-			current.explicitChoice === hydrationSnapshot.explicitChoice &&
-			current.subject === hydrationSnapshot.subject &&
-			current.evaluationPolicy.choice.fingerprint === fingerprint
+			unchangedSince(hydrationSnapshot, recordsGeneration, generation) &&
+			// A receipt granting what the stored choice denies is not restored.
+			!grantsDeniedCategory(authority, hydrationSnapshot.explicitChoice)
 		) {
 			kernel.set.iab({ authority, tcString: authority.tcString });
+			revisionAtAuthority = selectionRevision;
 			armAuthorityTimer();
 		}
 	};
 	/**
+	 * Bring the held authority in line with the reconciled `choice`: install
+	 * `receipt` when it is compatible and at least as new, or when the held
+	 * one conflicts; otherwise withdraw a conflicting held authority without
+	 * deleting the shared receipt. Selections follow unless the visitor
+	 * changed them here without saving.
+	 */
+	const applyReconciledAuthority = function applyReconciledAuthority(
+		receipt: KernelIABAuthority | null,
+		choice: ExplicitChoice
+	): void {
+		const held = readIAB(kernel).authority;
+		const heldConflicts = held !== null && grantsDeniedCategory(held, choice);
+		const keepSelections = selectionRevision !== revisionAtAuthority;
+		if (shouldInstallReceipt(receipt, held, heldConflicts, choice)) {
+			const update: Partial<KernelIABState> = {
+				authority: receipt,
+				tcString: receipt.tcString,
+			};
+			if (!keepSelections) {
+				Object.assign(update, selectionsOf(receipt));
+			}
+			kernel.set.iab(update);
+		} else if (heldConflicts) {
+			const update: Partial<KernelIABState> = {
+				authority: null,
+				tcString: null,
+			};
+			if (!keepSelections) {
+				update.purposeConsents = withoutDeniedPurposes(
+					readIAB(kernel).purposeConsents,
+					choice
+				);
+			}
+			keepReceipt = true;
+			try {
+				kernel.set.iab(update);
+			} finally {
+				keepReceipt = false;
+			}
+		} else {
+			return;
+		}
+		if (!keepSelections) {
+			revisionAtAuthority = selectionRevision;
+		}
+		armAuthorityTimer();
+	};
+	/**
 	 * Records replaced at a hydration boundary, such as a choice another tab
-	 * stored, can come with a newer authority receipt that tab wrote. Load
-	 * it so `__tcfapi` publishes the TC string behind the choice now in
-	 * force. The shared receipt is only read: a missing or invalid one keeps
-	 * the authority held here, and an older one never replaces a newer one.
+	 * stored, can come with a newer authority receipt that tab wrote. Read
+	 * the shared receipt and reconcile the held authority with the choice
+	 * now in force (see {@link applyReconciledAuthority}), so `__tcfapi`
+	 * never publishes a grant the choice denies.
 	 */
 	const reloadAuthority = async function reloadAuthority(): Promise<void> {
-		if (options.persistence === false || disposed) {
+		const snapshot = kernel.getSnapshot();
+		if (
+			options.persistence === false ||
+			disposed ||
+			snapshot.model !== 'iab' ||
+			snapshot.explicitChoice === null
+		) {
 			return;
 		}
-		const snapshot = kernel.getSnapshot();
 		const recordsGeneration = kernel.getRecordsGeneration();
 		const generation = confirmationGeneration;
-		if (snapshot.model !== 'iab' || snapshot.explicitChoice === null) {
-			return;
-		}
-		const authority = await validateAuthority(
+		const receipt = await validateAuthority(
 			readAuthorityReceipt(),
 			snapshot,
 			Date.now()
 		);
 		const current = kernel.getSnapshot();
-		const held = current.iab?.authority;
 		if (
-			!authority ||
 			disposed ||
 			generation !== confirmationGeneration ||
 			kernel.getRecordsGeneration() !== recordsGeneration ||
 			current.evaluationPolicy.choice.fingerprint !==
 				snapshot.evaluationPolicy.choice.fingerprint ||
-			held?.tcString === authority.tcString ||
-			(held && held.confirmedAt > authority.confirmedAt)
+			!current.explicitChoice
 		) {
 			return;
 		}
-		kernel.set.iab({ authority, tcString: authority.tcString });
-		armAuthorityTimer();
+		applyReconciledAuthority(receipt, current.explicitChoice);
 	};
 	const unsubscribeClear = kernel.events.on('records:cleared', () => {
 		hydrationCancelled = true;
@@ -790,7 +932,7 @@ export const createIAB = function createIAB(
 				void restoreAuthority();
 			});
 		}
-		if (previousAuthority && !snapshot.iab?.authority) {
+		if (previousAuthority && !snapshot.iab?.authority && !keepReceipt) {
 			clearAuthorityReceipt();
 		}
 		previousAuthority = snapshot.iab?.authority;
@@ -1003,6 +1145,8 @@ export const createIAB = function createIAB(
 					cmpApi?.saveToStorage(tcString);
 				}
 				cmpApi?.updateConsent(tcString, consentData);
+				// The saved selections are the authority's; nothing is unsaved.
+				revisionAtAuthority = selectionRevision;
 				armAuthorityTimer();
 			}
 			const result = await pendingSave;
