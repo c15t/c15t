@@ -18,7 +18,10 @@ context without a policy, as it already did when the call failed. The page
 renders without consent UI in the server HTML, optional categories stay
 denied, and the browser resolves the policy and shows the banner after
 hydration. A hosted `/init` request is aborted. An init route request keeps
-running and fills the manifest cache for the next render.
+running, through the platform's `waitUntil` where the adapter provides one,
+and fills the manifest cache for the next render. It sends no session report,
+since the browser's own init reports that page view. A `timeoutMs` that is not
+a finite, non-negative number uses the 500 ms default.
 
 #### Migration
 

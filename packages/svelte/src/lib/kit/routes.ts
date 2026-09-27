@@ -72,6 +72,42 @@ const bindBackgroundRevalidate = function bindBackgroundRevalidate(
 	return (revalidation) => onBackgroundRevalidate(revalidation, event);
 };
 
+/**
+ * Runs `handle` and, if the request is aborted before it finishes, hands the
+ * rest of its work to the platform. `loadConsent` aborts its in-process call
+ * when the render budget runs out; SvelteKit then stops waiting for the
+ * route, and edge runtimes would drop a cold manifest fill the next render
+ * needs.
+ */
+const keepAliveOnAbort = async function keepAliveOnAbort(
+	options: ConsentManifestOptions,
+	event: RequestEvent,
+	handle: () => Promise<Response>
+): Promise<Response> {
+	const work = handle();
+	const { signal } = event.request;
+	const onAbort = () => {
+		const remaining = (async () => {
+			try {
+				await work;
+			} catch {
+				// Nobody is waiting for this response any more.
+			}
+		})();
+		try {
+			bindBackgroundRevalidate(options, event)(remaining);
+		} catch {
+			// Registration is best effort; the work runs either way.
+		}
+	};
+	signal.addEventListener('abort', onAbort, { once: true });
+	try {
+		return await work;
+	} finally {
+		signal.removeEventListener('abort', onAbort);
+	}
+};
+
 /** Options for {@link createSvelteKitConsentRouteHandlers}. */
 export interface SvelteKitConsentRouteOptions extends ConsentManifestOptions {
 	/**
@@ -220,7 +256,7 @@ export const createSvelteKitConsentRouteHandlers =
 		init: RequestHandler;
 		manifest: RequestHandler;
 	} {
-		const init: RequestHandler = async (event) => {
+		const resolveInit = async (event: RequestEvent): Promise<Response> => {
 			const { manifestURL } = resolveManifestSource(event, options);
 			const { manifest } = await fetchCachedManifest({
 				config: { manifestURL },
@@ -262,7 +298,9 @@ export const createSvelteKitConsentRouteHandlers =
 				});
 			}
 
-			if (options.reportSessions !== false) {
+			// An aborted request is a render that stopped waiting for this
+			// answer; the browser inits again and that request reports the view.
+			if (options.reportSessions !== false && !event.request.signal.aborted) {
 				reportConsentSession({
 					adapter: '@c15t/svelte',
 					backendURL: resolveReportBackendURL(options),
@@ -295,6 +333,9 @@ export const createSvelteKitConsentRouteHandlers =
 				}
 			);
 		};
+
+		const init: RequestHandler = (event) =>
+			keepAliveOnAbort(options, event, () => resolveInit(event));
 
 		const manifest: RequestHandler = async (event) => {
 			const { manifestURL } = resolveManifestSource(event, options);

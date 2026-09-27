@@ -24,6 +24,7 @@ import type {
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { prefetchInitialConsent, readInitialConsentConfig } from '../server';
+import { waitUntilFromEvent } from './routes';
 import type { C15tLocals, ConsentRequestOptions } from './types';
 
 /** Options for {@link loadConsent}. */
@@ -56,10 +57,13 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	 * cookie-only config, the same as when the call fails: the page renders
 	 * without consent UI in the server HTML, optional categories stay denied,
 	 * and the browser resolves the policy after hydration. A hosted-mode
-	 * request is aborted; an init route request finishes in the background
-	 * and fills the manifest cache for the next render.
+	 * request is aborted. An init route request finishes in the background,
+	 * kept alive through the platform's `waitUntil` where it has one, and
+	 * fills the manifest cache for the next render; it sends no session
+	 * report, because the browser's own init reports the page view.
 	 *
-	 * `false` waits for the upstream, however long it takes.
+	 * `false` waits for the upstream, however long it takes. A value that is
+	 * not a finite, non-negative number uses the default.
 	 *
 	 * @default 500
 	 */
@@ -76,7 +80,10 @@ const resolveTimeoutMs = function resolveTimeoutMs(
 		return undefined;
 	}
 	const timeoutMs = value ?? DEFAULT_LOAD_CONSENT_TIMEOUT_MS;
-	return Number.isFinite(timeoutMs) && timeoutMs >= 0 ? timeoutMs : undefined;
+	// Only `false` turns the budget off; a bad number must not do it silently.
+	return Number.isFinite(timeoutMs) && timeoutMs >= 0
+		? timeoutMs
+		: DEFAULT_LOAD_CONSENT_TIMEOUT_MS;
 };
 
 /**
@@ -111,6 +118,15 @@ const withinBudget = async function withinBudget<Value>(
 		return await Promise.race([settled, expired]);
 	} finally {
 		clearTimeout(timer);
+	}
+};
+
+/** Swallows a promise's outcome, for work handed to the platform. */
+const settle = async function settle(task: Promise<unknown>): Promise<void> {
+	try {
+		await task;
+	} catch {
+		// The render already fell back; nothing waits on this result.
 	}
 };
 
@@ -251,10 +267,14 @@ export const loadConsent = async function loadConsent(
 	if (options.initRoute) {
 		const { initRoute } = options;
 		const forwarded = initRequestHeaders(inputs);
+		const controller = new AbortController();
+		let routeRequest: Promise<Response> | undefined;
 		const resolveFromRoute = async (): Promise<KernelConfig> => {
-			const response = await event.fetch(initRoute, {
+			routeRequest = event.fetch(initRoute, {
 				headers: forwarded,
+				signal: controller.signal,
 			});
+			const response = await routeRequest;
 			if (!response.ok) {
 				return config;
 			}
@@ -272,7 +292,14 @@ export const loadConsent = async function loadConsent(
 		// Fail soft: the client re-runs init on hydration. A route request
 		// that outlives the budget keeps running and fills the manifest cache.
 		return withinBudget(resolveFromRoute, timeoutMs, config, () => {
-			/* the route finishes in the background */
+			// The abort tells the route this render gave up, so it leaves the
+			// session report to the browser's init. The route itself hands its
+			// remaining work to the platform; SvelteKit versions whose internal
+			// fetch does not settle on abort are kept alive here as well.
+			controller.abort();
+			if (routeRequest) {
+				waitUntilFromEvent(settle(routeRequest), event);
+			}
 		});
 	}
 
