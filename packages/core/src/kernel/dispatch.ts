@@ -15,7 +15,7 @@
  * - Listeners that keep updating consent in response to each other are
  *   cut off at `MAX_DELIVERY_DEPTH` instead of overflowing the stack.
  */
-import type { Listener } from '../types';
+import type { Listener, Unsubscribe } from '../types';
 
 /**
  * Nested deliveries one synchronous cascade may open. Far above any
@@ -23,13 +23,51 @@ import type { Listener } from '../types';
  */
 export const MAX_DELIVERY_DEPTH = 100;
 
+/** One `add()` call. A function removed and added again is a new one. */
+interface Registration<Value> {
+	listener: Listener<Value>;
+}
+
+/**
+ * Listener registrations. Delivery checks the registration, not just the
+ * function, so a function unsubscribed and subscribed again during a
+ * delivery counts as added during it and waits for the next one.
+ */
+export interface ListenerSet<Value> {
+	/**
+	 * Register `listener`. Adding a registered function again keeps its
+	 * registration. The returned call removes this registration only, never
+	 * a later one for the same function.
+	 */
+	add: (listener: Listener<Value>) => Unsubscribe;
+	readonly registrations: ReadonlyMap<Listener<Value>, Registration<Value>>;
+}
+
+export const createListenerSet = function createListenerSet<
+	Value,
+>(): ListenerSet<Value> {
+	const registrations = new Map<Listener<Value>, Registration<Value>>();
+	return {
+		add(listener) {
+			const registration = registrations.get(listener) ?? { listener };
+			registrations.set(listener, registration);
+			return () => {
+				if (registrations.get(listener) === registration) {
+					registrations.delete(listener);
+				}
+			};
+		},
+		registrations,
+	};
+};
+
 export interface Dispatcher {
 	/**
-	 * Call each listener in `listeners` with `value`. The listener set is
+	 * Call each registration in `listeners` with `value`. Registrations are
 	 * read now: one added later first receives the next delivery, and one
 	 * removed before its turn is skipped.
 	 */
-	deliver: <Value>(listeners: Set<Listener<Value>>, value: Value) => void;
+	deliver: <Value>(listeners: ListenerSet<Value>, value: Value) => void;
 	/**
 	 * Hold deliveries made while `run` executes, then deliver them in order.
 	 * Lets a command commit and emit its follow-up events before any
@@ -39,8 +77,8 @@ export interface Dispatcher {
 }
 
 interface Delivery {
-	listeners: Set<Listener<unknown>>;
-	targets: Listener<unknown>[];
+	listeners: ListenerSet<unknown>;
+	targets: Registration<unknown>[];
 	value: unknown;
 	next: number;
 }
@@ -83,17 +121,17 @@ export const createDispatcher = function createDispatcher(): Dispatcher {
 		try {
 			while (pending.length > 0) {
 				const [delivery] = pending;
-				const listener = delivery?.targets[delivery.next];
-				if (!(delivery && listener)) {
+				const target = delivery?.targets[delivery.next];
+				if (!(delivery && target)) {
 					pending.shift();
 					continue;
 				}
 				delivery.next += 1;
-				if (!delivery.listeners.has(listener)) {
+				if (delivery.listeners.registrations.get(target.listener) !== target) {
 					continue;
 				}
 				try {
-					listener(delivery.value);
+					target.listener(delivery.value);
 				} catch (error) {
 					reportListenerError(error);
 				}
@@ -116,13 +154,14 @@ export const createDispatcher = function createDispatcher(): Dispatcher {
 			}
 		},
 		deliver(listeners, value) {
-			if (listeners.size === 0) {
+			const { registrations } = listeners;
+			if (registrations.size === 0) {
 				return;
 			}
 			pending.push({
-				listeners: listeners as Set<Listener<unknown>>,
+				listeners: listeners as ListenerSet<unknown>,
 				next: 0,
-				targets: [...listeners] as Listener<unknown>[],
+				targets: [...registrations.values()] as Registration<unknown>[],
 				value,
 			});
 			if (held === 0) {

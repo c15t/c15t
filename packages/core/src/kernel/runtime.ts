@@ -22,7 +22,8 @@ import type {
 	KernelTransport,
 	Listener,
 } from '../types';
-import type { Dispatcher } from './dispatch';
+import { createListenerSet } from './dispatch';
+import type { Dispatcher, ListenerSet } from './dispatch';
 import { buildNextSnapshot, isUnchangedPatch, snapshotChanged } from './patch';
 import type { SnapshotPatch } from './patch';
 import { mergeNewestChoice, validateHydrationRecords } from './records';
@@ -140,7 +141,7 @@ export const createRuntime = function createRuntime(
 	let pendingDirectives: Map<string, object> | undefined;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let visibilityInstalled = false;
-	let listeners: Set<Listener<ConsentSnapshot>> | undefined;
+	let listeners: ListenerSet<ConsentSnapshot> | undefined;
 
 	const getSnapshot = () => snapshot;
 	const now = () => Date.now();
@@ -451,11 +452,8 @@ export const createRuntime = function createRuntime(
 		start,
 		stopTimers,
 		subscribe(listener) {
-			listeners ??= new Set();
-			listeners.add(listener);
-			return () => {
-				listeners?.delete(listener);
-			};
+			listeners ??= createListenerSet();
+			return listeners.add(listener);
 		},
 	};
 };

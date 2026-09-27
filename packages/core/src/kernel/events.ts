@@ -15,8 +15,8 @@
  * reach every listener in the order they were made.
  */
 import type { KernelEvent, Listener, Unsubscribe } from '../types';
-import { createDispatcher } from './dispatch';
-import type { Dispatcher } from './dispatch';
+import { createDispatcher, createListenerSet } from './dispatch';
+import type { Dispatcher, ListenerSet } from './dispatch';
 
 export interface EventBus {
 	/**
@@ -43,31 +43,24 @@ export interface EventBus {
 export const createEventBus = function createEventBus(
 	dispatcher: Dispatcher = createDispatcher()
 ): EventBus {
-	let listeners:
-		| Map<KernelEvent['type'], Set<Listener<KernelEvent>>>
-		| undefined;
+	let listeners: Map<KernelEvent['type'], ListenerSet<KernelEvent>> | undefined;
 
 	return {
 		emit(event) {
 			const bucket = listeners?.get(event.type);
-			if (!bucket || bucket.size === 0) {
-				return;
+			if (bucket) {
+				dispatcher.deliver(bucket, event);
 			}
-			dispatcher.deliver(bucket, event);
 		},
 
 		on(type, listener) {
 			listeners ??= new Map();
 			let bucket = listeners.get(type);
 			if (!bucket) {
-				bucket = new Set();
+				bucket = createListenerSet();
 				listeners.set(type, bucket);
 			}
-			const cast = listener as Listener<KernelEvent>;
-			bucket.add(cast);
-			return () => {
-				bucket?.delete(cast);
-			};
+			return bucket.add(listener as Listener<KernelEvent>);
 		},
 	};
 };

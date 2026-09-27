@@ -279,6 +279,78 @@ describe('unsubscribing during delivery', () => {
 		expect(later).toHaveBeenCalledTimes(2);
 	});
 
+	test('a subscriber removed and added again waits for the next transition', async () => {
+		const kernel = await grantedKernel();
+		const observed: boolean[] = [];
+		const readd = (snapshot: ReturnType<ConsentKernel['getSnapshot']>) => {
+			observed.push(snapshot.effectivePermissions.measurement);
+		};
+		let unsubscribe = (): void => undefined;
+		let resubscribed = false;
+		kernel.subscribe(() => {
+			if (!resubscribed) {
+				resubscribed = true;
+				unsubscribe();
+				kernel.subscribe(readd);
+			}
+		});
+		unsubscribe = kernel.subscribe(readd);
+
+		await kernel.commands.save({ measurement: false });
+		expect(observed).toEqual([]);
+
+		await kernel.commands.save({ measurement: true });
+		expect(observed).toEqual([true]);
+	});
+
+	test('an old unsubscribe does not remove a later subscription', async () => {
+		const kernel = await grantedKernel();
+		const listener = vi.fn();
+		const first = kernel.subscribe(listener);
+		first();
+		kernel.subscribe(listener);
+		first();
+
+		await kernel.commands.save({ measurement: false });
+
+		expect(listener).toHaveBeenCalledOnce();
+	});
+
+	test('subscribing a function twice registers it once', async () => {
+		const kernel = await grantedKernel();
+		const listener = vi.fn();
+		kernel.subscribe(listener);
+		const second = kernel.subscribe(listener);
+
+		await kernel.commands.save({ measurement: false });
+		expect(listener).toHaveBeenCalledOnce();
+
+		second();
+		await kernel.commands.save({ measurement: true });
+		expect(listener).toHaveBeenCalledOnce();
+	});
+
+	test('an event listener removed and added again waits for the next event', async () => {
+		const kernel = await grantedKernel();
+		const recorded = vi.fn();
+		let off = (): void => undefined;
+		let readded = false;
+		kernel.events.on('choice:recorded', () => {
+			if (!readded) {
+				readded = true;
+				off();
+				kernel.events.on('choice:recorded', recorded);
+			}
+		});
+		off = kernel.events.on('choice:recorded', recorded);
+
+		await kernel.commands.save({ measurement: false });
+		expect(recorded).not.toHaveBeenCalled();
+
+		await kernel.commands.save({ measurement: true });
+		expect(recorded).toHaveBeenCalledOnce();
+	});
+
 	test('an event listener removed by an earlier one is not called', async () => {
 		const kernel = await grantedKernel();
 		const removed = vi.fn();
