@@ -450,6 +450,8 @@ interface PrefetchLocalInput {
 	url?: string;
 	fetch?: typeof globalThis.fetch;
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+	/** Whether the render stopped waiting for this prefetch. */
+	abandoned?: () => boolean;
 }
 
 const prefetchManifest = async function prefetchManifest(
@@ -484,6 +486,7 @@ const prefetchManifest = async function prefetchManifest(
 			inputs: input.inputs,
 			manifest,
 			report: {
+				abandoned: input.abandoned,
 				backendURL: resolveSessionReportURL(input.options),
 				headers: input.headers,
 				source: 'render',
@@ -681,6 +684,10 @@ export const resolveConsentContext = async function resolveConsentContext(
 	};
 
 	let config: KernelConfig = { ...base, initialTranslations: translations };
+	// Set once the render stops waiting for the prefetch. The browser then
+	// resolves the view through the init route, which reports the session,
+	// so the abandoned prefetch must not report it as well.
+	let prefetchAbandoned = false;
 	if (!skipPrefetch) {
 		const prefetch =
 			options.mode.type === 'hosted'
@@ -695,6 +702,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 						url: input.url,
 					})
 				: prefetchLocal({
+						abandoned: () => prefetchAbandoned,
 						base: config,
 						fetch: input.fetch,
 						headers,
@@ -708,6 +716,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 		if (settled === TIMED_OUT) {
 			// Render without the server decision, as a failed request does.
 			// A manifest fill keeps going and serves the next render.
+			prefetchAbandoned = true;
 			keepAlive(prefetch);
 		} else {
 			config = settled;

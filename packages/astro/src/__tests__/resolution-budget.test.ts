@@ -184,6 +184,50 @@ describe('server resolution budget', () => {
 		expect(manifestCalls()).toHaveLength(1);
 	});
 
+	it('leaves the session report to the init route once the render gives up', async () => {
+		const manifest = heldFetch(manifestResponse);
+		const reports: string[] = [];
+		const fetchImpl = vi.fn(
+			(input: string | URL | Request, init?: RequestInit) => {
+				if (String(input).endsWith('/sessions')) {
+					reports.push(String(init?.body));
+					return Promise.resolve(new Response(null, { status: 204 }));
+				}
+				return manifest.fetch(input, init);
+			}
+		) as unknown as typeof globalThis.fetch;
+		const background: Promise<void>[] = [];
+		const astroOptions: C15tAstroOptions = {
+			middleware: { timeoutMs: 40 },
+			mode: manifestMode({ backendURL: BACKEND }),
+		};
+		const onBackgroundRevalidate = (task: Promise<void>) => {
+			background.push(task);
+		};
+
+		const first = await resolveContext(astroOptions, {
+			fetch: fetchImpl,
+			onBackgroundRevalidate,
+		});
+		expect(first.config.initialPolicyPending).toBe(true);
+		manifest.release();
+		await Promise.all(background);
+		// The browser resolves this view through the init route, which
+		// reports it; the render that gave up sends nothing.
+		expect(reports).toHaveLength(0);
+
+		const second = await resolveContext(astroOptions, {
+			fetch: fetchImpl,
+			onBackgroundRevalidate,
+		});
+		await Promise.all(background);
+		expect(second.hasPolicy).toBe(true);
+		expect(reports).toHaveLength(1);
+		expect(JSON.parse(reports[0] as string)).toMatchObject({
+			source: 'render',
+		});
+	});
+
 	it('does not delay offline mode', async () => {
 		const c15t = await resolveContext({
 			middleware: { timeoutMs: 0 },
