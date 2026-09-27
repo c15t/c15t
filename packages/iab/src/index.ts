@@ -933,7 +933,8 @@ export const createIAB = function createIAB(
 		const receipt = await validateAuthority(
 			readAuthorityReceipt(receiptText),
 			snapshot,
-			Date.now()
+			Date.now(),
+			publisherRestrictions
 		);
 		const current = kernel.getSnapshot();
 		// A receipt replaced or removed while it was decoded is stale: the

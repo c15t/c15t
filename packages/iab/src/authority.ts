@@ -160,13 +160,14 @@ const compatibleTC = function compatibleTC(
 /**
  * Decode TC authority and check its receipt, current policy and original clock.
  * The string's publisher restrictions must match the configured ones for
- * every listed vendor; a configuration change asks the visitor again.
+ * every listed vendor; a configuration change asks the visitor again. Pass
+ * the handle's validated restrictions, or `[]` when none are configured.
  */
 export const validateAuthority = async function validateAuthority(
 	input: unknown,
 	snapshot: ConsentSnapshot,
 	now: number,
-	publisherRestrictions: readonly PublisherRestriction[] = []
+	publisherRestrictions: readonly PublisherRestriction[]
 ): Promise<KernelIABAuthority | null> {
 	if (
 		!input ||

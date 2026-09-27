@@ -82,11 +82,16 @@ test('validates actual TC and rejects stale, future, malformed and mismatched re
 	const kernel = makeKernel();
 	const tcString = await generateTCString(data, completeGVL, { cmpId: 28 });
 	const receipt = createAuthorityReceipt(kernel.getSnapshot(), tcString, NOW);
-	const authority = await validateAuthority(receipt, kernel.getSnapshot(), NOW);
+	const authority = await validateAuthority(
+		receipt,
+		kernel.getSnapshot(),
+		NOW,
+		[]
+	);
 	expect(authority?.vendorConsents['755']).toBe(true);
 	expect(authority?.confirmedAt).toBe(NOW);
 	expect(
-		await validateAuthority(receipt, kernel.getSnapshot(), NOW + DAY)
+		await validateAuthority(receipt, kernel.getSnapshot(), NOW + DAY, [])
 	).toBeNull();
 	await Promise.all(
 		[
@@ -100,7 +105,8 @@ test('validates actual TC and rejects stale, future, malformed and mismatched re
 				await validateAuthority(
 					{ ...receipt, ...patch },
 					kernel.getSnapshot(),
-					NOW
+					NOW,
+					[]
 				)
 			).toBeNull();
 		})
@@ -1679,7 +1685,7 @@ test('stored authority must carry the configured publisher restrictions', async 
 	);
 	const receipt = createAuthorityReceipt(kernel.getSnapshot(), tcString, NOW);
 	expect(
-		await validateAuthority(receipt, kernel.getSnapshot(), NOW)
+		await validateAuthority(receipt, kernel.getSnapshot(), NOW, [])
 	).toBeNull();
 	expect(
 		await validateAuthority(receipt, kernel.getSnapshot(), NOW, [
@@ -1693,4 +1699,48 @@ test('stored authority must carry the configured publisher restrictions', async 
 		publisherRestrictions
 	);
 	expect(authority?.publisherRestrictions).toEqual(publisherRestrictions);
+});
+
+test("reconciling another runtime's restricted save publishes its authority", async () => {
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	const restrictedAddon = (kernel: ConsentKernel) => {
+		const addon = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+			publisherRestrictions,
+		});
+		disposers.push(addon.dispose);
+		return addon;
+	};
+	const first = makeKernel();
+	const firstStorage = createPersistence({ kernel: first, sync: false });
+	disposers.push(firstStorage.dispose);
+	const firstAddon = restrictedAddon(first);
+	firstAddon.acceptAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+
+	const second = makeKernel();
+	const secondStorage = createPersistence({ kernel: second, sync: false });
+	disposers.push(secondStorage.dispose);
+	restrictedAddon(second);
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority?.tcString).toBe(
+			first.getSnapshot().iab?.authority?.tcString
+		)
+	);
+
+	vi.setSystemTime(NOW + 1000);
+	firstAddon.rejectAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+	const rejected = first.getSnapshot().iab?.authority?.tcString;
+	expect(secondStorage.reconcile()).toBe(true);
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority?.tcString).toBe(rejected)
+	);
+	expect(evaluateConsent(target, second.getSnapshot(), NOW + 1000)).toBe(false);
 });
