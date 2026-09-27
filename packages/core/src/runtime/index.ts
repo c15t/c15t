@@ -37,8 +37,8 @@ import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
 import {
+	blockHeldRequests,
 	holdNetworkRequests,
-	releaseNetworkRequests,
 } from '../modules/network-blocker/hold';
 import { createPersistence } from '../modules/persistence';
 import type { PersistenceHandle } from '../modules/persistence';
@@ -390,7 +390,7 @@ export const createConsentRuntime = function createConsentRuntime(
 	const kernel = createRuntimeKernel(options);
 	// `start()` installs the blocker, often after the host rendered its
 	// children. Hold matching requests until then; the blocker replays them.
-	// A runtime disposed before it started lets go of the hold itself.
+	// A runtime disposed before it started ends its hold itself.
 	let holding = false;
 	if (
 		enabled &&
@@ -540,11 +540,12 @@ export const createConsentRuntime = function createConsentRuntime(
 				dispose();
 			}
 			disposers.length = 0;
-			if (holding) {
-				// No blocker took over, so nothing else ends the hold. Without
-				// this, matching requests would wait for the rest of the page.
+			if (holding && options.networkBlocker) {
+				// No blocker took over, so nothing else ends the hold, and
+				// nothing checked consent for what it held: those requests
+				// fail as blocked rather than wait for the rest of the page.
 				holding = false;
-				releaseNetworkRequests()();
+				blockHeldRequests(options.networkBlocker.rules);
 			}
 			iabListeners.clear();
 			iabHandle = null;

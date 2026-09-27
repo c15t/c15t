@@ -11,6 +11,7 @@
  */
 import type { ConsentSnapshot } from '../../types';
 import { evaluateBlock } from './decide';
+import { blockedResponse } from './hold';
 import type { BlockedRequestInfo, NetworkBlockerRule } from './types';
 import { normalizeMethod, parseUrl } from './url';
 
@@ -70,12 +71,7 @@ export const installFetchPatch = function installFetchPatch(
 				rule: decision.rule,
 				url: url.toString(),
 			});
-			return Promise.resolve(
-				new Response(null, {
-					status: 451,
-					statusText: 'Request blocked by consent',
-				})
-			);
+			return Promise.resolve(blockedResponse());
 		}
 		return originalFetch(input, init);
 	};

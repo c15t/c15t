@@ -24,8 +24,8 @@ import type {
 	NetworkBlockerRule,
 } from '@c15t/core/modules/network-blocker';
 import {
+	blockHeldRequests,
 	holdNetworkRequests,
-	releaseNetworkRequests,
 } from '@c15t/core/modules/network-hold';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import type { StorageConfig } from '@c15t/core/modules/persistence';
@@ -693,10 +693,11 @@ export const createVueConsentKernelContext =
 					kernel.dispose();
 				}
 				// Disposed before a blocker took over (a failed mount, or no
-				// browser start): nothing else ends the hold, and matching
-				// requests would wait for the rest of the page.
-				if (unclaimedHolds.delete(context)) {
-					releaseNetworkRequests()();
+				// browser start): nothing else ends the hold, and nothing
+				// checked consent for what it held, so those requests fail as
+				// blocked rather than wait for the rest of the page.
+				if (unclaimedHolds.delete(context) && options.config.networkBlocker) {
+					blockHeldRequests(options.config.networkBlocker.rules);
 				}
 			},
 			iab: options.runtime?.iab ?? undefined,

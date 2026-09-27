@@ -11,7 +11,7 @@
  */
 import type { ConsentSnapshot } from '../../types';
 import { evaluateBlock } from './decide';
-import { stashXhr, XHR_REQUEST } from './hold';
+import { failBlockedXhr, stashXhr, XHR_REQUEST } from './hold';
 import type { XhrStash } from './hold';
 import type { BlockedRequestInfo, NetworkBlockerRule } from './types';
 import { parseUrl } from './url';
@@ -88,18 +88,7 @@ export const installXhrPatch = function installXhrPatch(
 			rule: decision.rule,
 			url: url.toString(),
 		});
-		this.abort();
-		// Synthetic error — dispatch via onerror + dispatchEvent (v2 parity).
-		const event =
-			typeof ProgressEvent === 'undefined'
-				? ({ type: 'error' } as Event)
-				: new ProgressEvent('error');
-		// oxlint-disable-next-line typescript/no-explicit-any -- spec-typed XHR
-		if (typeof (this as any).onerror === 'function') {
-			// oxlint-disable-next-line typescript/no-explicit-any -- spec-typed XHR
-			(this as any).onerror(event);
-		}
-		this.dispatchEvent(event);
+		failBlockedXhr(this);
 	} as typeof XMLHttpRequest.prototype.send;
 
 	XMLHttpRequest.prototype.open = patchedOpen;

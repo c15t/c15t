@@ -120,7 +120,7 @@ test('holds tracker requests from child mount hooks until the blocker decides th
 	).toBe(false);
 });
 
-test('a context disposed before the blocker loads stops holding requests', async () => {
+test('a context disposed before the blocker loads fails its held requests closed', async () => {
 	const network = vi.fn((_input: RequestInfo | URL) =>
 		Promise.resolve(new Response('{}', { status: 200 }))
 	);
@@ -145,6 +145,12 @@ test('a context disposed before the blocker loads stops holding requests', async
 	// A failed root mount: the context goes away before startup runs.
 	context.dispose();
 
-	expect((await early).status).toBe(200);
+	// Nothing checked consent for it: answered as blocked, not sent or hung.
+	expect((await early).status).toBe(451);
+	expect(
+		network.mock.calls.some(([input]) =>
+			String(input).includes('tracker.example')
+		)
+	).toBe(false);
 	expect(window.fetch).toBe(network);
 });

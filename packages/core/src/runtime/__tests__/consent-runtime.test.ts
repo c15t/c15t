@@ -561,7 +561,7 @@ describe('createConsentRuntime', () => {
 		}
 	});
 
-	test('a runtime disposed before `start()` stops holding requests', async () => {
+	test('a runtime disposed before `start()` fails its held requests closed', async () => {
 		const nativeFetch = window.fetch;
 		const original = vi.fn().mockResolvedValue(new Response('ok'));
 		window.fetch = original as unknown as typeof window.fetch;
@@ -586,13 +586,12 @@ describe('createConsentRuntime', () => {
 
 			runtime.dispose();
 
-			// Nothing enforces the disposed runtime's rules any more, so its
-			// requests go out as they would without a runtime.
-			expect((await early).status).toBe(200);
+			// Nothing checked consent for the held request, so it is answered
+			// as blocked rather than sent, and it does not hang.
+			expect((await early).status).toBe(451);
+			expect(original).not.toHaveBeenCalled();
+			// The hold is gone: nothing waits from here on.
 			expect(window.fetch).toBe(original);
-			expect((await window.fetch('https://tracker.example/next')).status).toBe(
-				200
-			);
 		} finally {
 			window.fetch = nativeFetch;
 		}
