@@ -15,6 +15,10 @@ export const useConsentPolicyActions = function useConsentPolicyActions(
 	>
 ) {
 	const snapshot = useConsentSnapshot();
+	// Only the rule feeds the presentation. Reading it through its own
+	// computed keeps the presentation, and every component using it, from
+	// recomputing on kernel changes that leave the rule alone.
+	const policyRule = computed(() => snapshot.value.policyRule);
 	const config = useConsentConfig();
 	/**
 	 * `bannerPosition` predates the presentation API and is merged in with
@@ -31,7 +35,7 @@ export const useConsentPolicyActions = function useConsentPolicyActions(
 	const presentation = computed(() =>
 		resolveConsentPresentation({
 			override: toValue(override),
-			policy: snapshot.value.policyRule,
+			policy: policyRule.value,
 			presentation: {
 				...config.value.presentation,
 				preferences: {

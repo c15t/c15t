@@ -156,6 +156,35 @@ const toVueActiveUI = function toVueActiveUI(
 	return ui;
 };
 
+const DISPLAY_DATA_KEYS = [
+	'branding',
+	'cmpId',
+	'customVendors',
+	'gvl',
+	'gvlReference',
+	'location',
+	'translations',
+] as const;
+
+/**
+ * Keep the previous display data when every field is the same reference, so
+ * components reading `useConsentInit()` don't re-render on kernel changes
+ * that leave it alone (opening the dialog, a save, a privacy signal).
+ */
+const reuseDisplayData = function reuseDisplayData(
+	next: VueConsentDisplayData | undefined,
+	previous: VueConsentDisplayData | undefined
+): VueConsentDisplayData | undefined {
+	if (
+		next &&
+		previous &&
+		DISPLAY_DATA_KEYS.every((key) => next[key] === previous[key])
+	) {
+		return previous;
+	}
+	return next;
+};
+
 const snapshotToDisplayData = function snapshotToDisplayData(
 	snapshot: ConsentSnapshot
 ): VueConsentDisplayData | undefined {
@@ -649,7 +678,9 @@ export const createVueConsentKernelContext =
 			snapshot.value = next;
 		});
 
-		const init = computed(() => snapshotToDisplayData(snapshot.value));
+		const init = computed<VueConsentDisplayData | undefined>((previous) =>
+			reuseDisplayData(snapshotToDisplayData(snapshot.value), previous)
+		);
 		const activeUI = computed<ConsentActiveUI>({
 			get: () => toVueActiveUI(snapshot.value.activeUI),
 			set: (value) => {
