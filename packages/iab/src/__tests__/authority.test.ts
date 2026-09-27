@@ -587,51 +587,69 @@ test.each(['subject', 'identity', 'new-save'] as const)(
 	}
 );
 
-test.each(['clock', 'fingerprint', 'maps', 'expiry', 'restrictions'] as const)(
-	'invalid addon %s is an atomic no-op',
-	async (field) => {
-		const original = makeKernel();
-		const addon = createAddon(original);
-		addon.acceptAll();
-		await addon.save();
-		const authority = original.getSnapshot().iab?.authority;
-		if (!authority) {
-			throw new Error('Missing valid fixture authority');
-		}
-		const invalid = { ...authority };
-		if (field === 'clock') {
-			invalid.confirmedAt = NOW - 1;
-		}
-		if (field === 'fingerprint') {
-			invalid.choiceFingerprint = 'stale';
-		}
-		if (field === 'maps') {
-			Reflect.set(invalid, 'vendorConsents', null);
-		}
-		if (field === 'expiry') {
-			invalid.expiresAt = NOW;
-		}
-		if (field === 'restrictions') {
-			Reflect.set(invalid, 'publisherRestrictions', [
-				{ purposeId: 2, restrictionType: 3, vendorIds: [755] },
-			]);
-		}
-		const send = vi.fn();
-		const kernel = makeKernel({ save: send });
-		const before = kernel.getSnapshot();
-		const emit = vi.fn();
-		kernel.events.on('command:save:started', emit);
-		kernel.events.on('choice:recorded', emit);
-		const result = await kernel.commands.save('all', {
-			actionAt: NOW,
-			iabAuthority: invalid,
-		});
-		expect(result.ok).toBe(false);
-		expect(kernel.getSnapshot()).toBe(before);
-		expect(emit).not.toHaveBeenCalled();
-		expect(send).not.toHaveBeenCalled();
+test.each([
+	'clock',
+	'fingerprint',
+	'maps',
+	'expiry',
+	'restrictions',
+	'sparse restrictions',
+	'sparse vendor IDs',
+] as const)('invalid addon %s is an atomic no-op', async (field) => {
+	const original = makeKernel();
+	const addon = createAddon(original);
+	addon.acceptAll();
+	await addon.save();
+	const authority = original.getSnapshot().iab?.authority;
+	if (!authority) {
+		throw new Error('Missing valid fixture authority');
 	}
-);
+	const invalid = { ...authority };
+	if (field === 'clock') {
+		invalid.confirmedAt = NOW - 1;
+	}
+	if (field === 'fingerprint') {
+		invalid.choiceFingerprint = 'stale';
+	}
+	if (field === 'maps') {
+		Reflect.set(invalid, 'vendorConsents', null);
+	}
+	if (field === 'expiry') {
+		invalid.expiresAt = NOW;
+	}
+	if (field === 'restrictions') {
+		Reflect.set(invalid, 'publisherRestrictions', [
+			{ purposeId: 2, restrictionType: 3, vendorIds: [755] },
+		]);
+	}
+	// `every` skips holes, so these must be rejected explicitly.
+	if (field === 'sparse restrictions') {
+		const restrictions: unknown[] = [];
+		restrictions[1] = { purposeId: 2, restrictionType: 0, vendorIds: [755] };
+		Reflect.set(invalid, 'publisherRestrictions', restrictions);
+	}
+	if (field === 'sparse vendor IDs') {
+		const vendorIds: number[] = [];
+		vendorIds[1] = 755;
+		Reflect.set(invalid, 'publisherRestrictions', [
+			{ purposeId: 2, restrictionType: 0, vendorIds },
+		]);
+	}
+	const send = vi.fn();
+	const kernel = makeKernel({ save: send });
+	const before = kernel.getSnapshot();
+	const emit = vi.fn();
+	kernel.events.on('command:save:started', emit);
+	kernel.events.on('choice:recorded', emit);
+	const result = await kernel.commands.save('all', {
+		actionAt: NOW,
+		iabAuthority: invalid,
+	});
+	expect(result.ok).toBe(false);
+	expect(kernel.getSnapshot()).toBe(before);
+	expect(emit).not.toHaveBeenCalled();
+	expect(send).not.toHaveBeenCalled();
+});
 
 test("reconciling another runtime's IAB save publishes that runtime's authority", async () => {
 	const first = makeKernel();

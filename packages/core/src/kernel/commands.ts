@@ -661,22 +661,37 @@ const isIntegerIn = (value: unknown, min: number, max: number): boolean =>
 	value >= min &&
 	value <= max;
 
-/** Absent, or a list of well-formed TC publisher restrictions. */
+/**
+ * Every index of a list, holes included. `every` skips holes, which would
+ * let a sparse list through and hand `undefined` to the IAB gate.
+ */
+const everyIndex = (
+	list: readonly unknown[],
+	check: (entry: unknown) => boolean
+): boolean => {
+	for (let index = 0; index < list.length; index += 1) {
+		if (!(index in list && check(list[index]))) {
+			return false;
+		}
+	}
+	return true;
+};
+
+/** Absent, or a dense list of well-formed TC publisher restrictions. */
 const validPublisherRestrictions = function validPublisherRestrictions(
 	value: unknown
 ): boolean {
 	return (
 		value === undefined ||
 		(Array.isArray(value) &&
-			value.every(
-				(restriction: unknown) =>
+			everyIndex(
+				value,
+				(restriction) =>
 					isRecord(restriction) &&
 					isIntegerIn(restriction.purposeId, 1, 63) &&
 					isIntegerIn(restriction.restrictionType, 0, 2) &&
 					Array.isArray(restriction.vendorIds) &&
-					restriction.vendorIds.every((id: unknown) =>
-						isIntegerIn(id, 1, 65_535)
-					)
+					everyIndex(restriction.vendorIds, (id) => isIntegerIn(id, 1, 65_535))
 			))
 	);
 };
