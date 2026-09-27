@@ -5,6 +5,7 @@ import {
 	applyPublisherRestrictionsToGVL,
 	processGVLForDialog,
 	resolveIABBannerSummary,
+	resolveIABDialogDisplayModel,
 } from '../headless';
 import { completeGVL } from './fixtures/gvl-sample';
 
@@ -168,6 +169,34 @@ describe('@c15t/iab headless publisher restrictions', () => {
 			expect(vendors[755]).toMatchObject(expected);
 		}
 	);
+
+	test.each([
+		['without restrictions', undefined, true],
+		[
+			'when the only consent vendor must use LI',
+			[{ purposeId: 7, restrictionType: 2 as const, vendorIds: [755] }],
+			false,
+		],
+	])('purpose 7 consent basis %s', (_name, publisherRestrictions, expected) => {
+		const { 10: liVendor, 755: consentVendor } = completeGVL.vendors;
+		if (!(liVendor && consentVendor)) {
+			throw new Error('Missing vendor fixtures');
+		}
+		const model = resolveIABDialogDisplayModel({
+			gvl: {
+				...completeGVL,
+				vendors: { 10: liVendor, 755: consentVendor },
+			},
+			publisherRestrictions,
+		});
+		const rows = model.consentRows.flatMap((row) =>
+			row.kind === 'stack' ? row.purposes : [row]
+		);
+		expect(
+			rows.find((row) => row.kind === 'purpose' && row.id === 7)
+				?.hasConsentBasis
+		).toBe(expected);
+	});
 
 	test('returns the same list when nothing is restricted', () => {
 		expect(applyPublisherRestrictionsToGVL(completeGVL, [])).toBe(completeGVL);

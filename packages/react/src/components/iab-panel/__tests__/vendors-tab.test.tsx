@@ -4,6 +4,9 @@
  * Tests for the vendors tab in IAB Consent Dialog.
  */
 
+import { evaluateConsent } from '@c15t/core';
+import type { ConsentKernel } from '@c15t/core';
+import { useContext, useEffect } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
@@ -11,6 +14,7 @@ import { userEvent } from 'vitest/browser';
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
+import { KernelContext } from '~/context';
 import { offline } from '~/transports/offline';
 
 import { IABConsentDialog } from '../iab-panel';
@@ -299,4 +303,97 @@ describe('IAB vendors tab with publisher restrictions', () => {
 			);
 		}
 	);
+});
+
+describe('IAB purposes tab with publisher restrictions', () => {
+	beforeEach(() => {
+		window.localStorage.clear();
+		vi.clearAllMocks();
+		delete (window as { __tcfapi?: unknown }).__tcfapi;
+	});
+
+	test('a purpose left with only legitimate interest offers the objection, and it denies the vendor', async () => {
+		const probe: { kernel: ConsentKernel | null } = { kernel: null };
+		const KernelProbe = () => {
+			const kernel = useContext(KernelContext);
+			useEffect(() => {
+				probe.kernel = kernel;
+			}, [kernel]);
+			return null;
+		};
+		// Vendors 1 and 10 declare purpose 7 for legitimate interest; the
+		// restriction moves vendor 755 there too, so no vendor uses consent.
+		render(
+			<ConsentProvider
+				options={{
+					...defaultIABOptions,
+					iab: {
+						...defaultIABOptions.iab,
+						publisherRestrictions: [
+							{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+						],
+					},
+				}}
+			>
+				<KernelProbe />
+				<IABConsentDialog open />
+			</ConsentProvider>
+		);
+		const purposeRow = await vi.waitFor(
+			() => {
+				const row = document.querySelector<HTMLElement>(
+					'[data-testid="purpose-item-7"]'
+				);
+				expect(row).not.toBeNull();
+				return getDefined(row);
+			},
+			{ timeout: 5000 }
+		);
+		// A consent switch here would change nothing the vendors rely on.
+		expect(
+			purposeRow.querySelector(
+				'[role="switch"][aria-label="Measure advertising performance"]'
+			)
+		).toBeNull();
+
+		const button = (label: string) =>
+			getDefined(
+				Array.from(document.querySelectorAll('button')).find(
+					(element) => element.textContent?.trim() === label
+				),
+				`Missing ${label} button`
+			);
+		// The fixture policy scopes no optional category, so gate on the TC
+		// signals alone.
+		const target = {
+			category: 'necessary' as const,
+			iabPurposes: [7],
+			vendorId: 755,
+		};
+		const gate = () =>
+			evaluateConsent(target, getDefined(probe.kernel).getSnapshot());
+
+		await userEvent.click(button('Accept All'));
+		await vi.waitFor(() => expect(gate()).toBe(true), { timeout: 5000 });
+
+		// Purpose 7 sits in stack 1 with purpose 2; open both to reach it.
+		const trigger = (testId: string) =>
+			getDefined(
+				document.querySelector<HTMLElement>(
+					`[data-testid="${testId}"] [data-slot="preference-item-trigger"]`
+				),
+				`Missing ${testId} trigger`
+			);
+		await userEvent.click(trigger('stack-item-1'));
+		await userEvent.click(trigger('purpose-item-7'));
+		const objection = getDefined(
+			document.querySelector<HTMLButtonElement>(
+				'[data-testid="purpose-item-7"] button[aria-pressed]'
+			),
+			'Missing objection control'
+		);
+		await userEvent.click(objection);
+		await userEvent.click(button('Save Settings'));
+		await vi.waitFor(() => expect(gate()).toBe(false), { timeout: 5000 });
+	});
 });

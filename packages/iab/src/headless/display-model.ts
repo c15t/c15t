@@ -65,6 +65,14 @@ export interface HeadlessIABDisplayRow {
 	locked: boolean;
 	/** Which consent map the toggle writes to. */
 	toggle: HeadlessIABDisplayToggle;
+	/**
+	 * Whether any vendor processes this purpose on consent. `false` when
+	 * every vendor uses legitimate interest, for example after a publisher
+	 * restriction moved them there. A consent switch would then change
+	 * nothing the vendors rely on, so the row offers only the objection
+	 * control. Always `true` for rows that are not purposes.
+	 */
+	hasConsentBasis: boolean;
 }
 
 /** A stack, with the purposes it absorbed. */
@@ -137,6 +145,9 @@ const toRow = function toRow(
 ): HeadlessIABDisplayRow {
 	return {
 		description: purpose.description,
+		hasConsentBasis:
+			toggle !== 'purpose' ||
+			purpose.vendors.some((vendor) => !vendor.usesLegitimateInterest),
 		id: purpose.id,
 		illustrations: purpose.illustrations,
 		kind,
