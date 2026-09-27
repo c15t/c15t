@@ -15,6 +15,14 @@ Astro renders the banner with native `.astro` components. Preference dialogs use
 an on-demand Svelte, React or Vue island. Choose the framework your site already
 uses; set `ui` explicitly. This example uses Svelte.
 
+The island downloads when a visitor points at or focuses a control that opens
+the preference dialog, such as the banner's Customize button or
+`ConsentDialogTrigger`, so a mouse click usually finds it loaded. Visitors who
+only accept or reject never download it. Taps and keyboard presses give no
+warning; to make the first open instant for them too, add `preload` to
+`ConsentDialog`, which downloads the island once the browser is idle on every
+page that renders it.
+
 <CommandTabs command="c15t @astrojs/svelte svelte @c15t/scripts" mode="install" />
 
 ## Register consent-gated scripts

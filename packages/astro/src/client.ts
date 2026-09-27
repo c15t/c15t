@@ -216,6 +216,21 @@ const ensureDialogHost = function ensureDialogHost(): HTMLElement {
  */
 let releaseBlocking: (() => void) | null = null;
 
+/** A dialog warm-up in flight or done, so repeated hovers cost nothing. */
+let warming: Promise<void> | null = null;
+
+/**
+ * Download the configured dialog adapter and its surface without mounting.
+ *
+ * @param client - The page's consent client.
+ */
+const loadDialogChunks = async function loadDialogChunks(
+	client: AstroConsentClient
+): Promise<void> {
+	const adapter = await loadDialogAdapter(client.options.ui);
+	await adapter.preload?.();
+};
+
 /**
  * Show or hide the server-rendered banner to match the kernel.
  *
@@ -438,6 +453,7 @@ const createClient = function createClient(
 				return;
 			}
 			disposed = true;
+			warming = null;
 			detachPageSwapListeners();
 			releaseBlocking?.();
 			void dialog?.destroy();
@@ -769,11 +785,46 @@ const attach = function attach(client: AstroConsentClient): void {
 };
 
 /**
+ * Start downloading the preference dialog when a visitor points at or
+ * focuses a control that opens it.
+ *
+ * The island loads on first open, so a click used to wait for the framework
+ * runtime and the surface to download. Hover and focus usually come a few
+ * hundred milliseconds before the click, and on touch `pointerover` fires
+ * on the tap's `pointerdown`. A failed warm-up is forgotten, so the next
+ * hover, focus or open tries again.
+ *
+ * @param event - A `pointerover` or `focusin` event from the document.
+ */
+const warmDialogOnIntent = function warmDialogOnIntent(event: Event): void {
+	const resolved = resolveAction(event.target);
+	const client = getConsentClient();
+	if (
+		warming ||
+		!client ||
+		resolved?.action !== 'customize' ||
+		resolved.dialog !== 'preferences'
+	) {
+		return;
+	}
+	const attempt = (async () => {
+		try {
+			await loadDialogChunks(client);
+		} catch {
+			// The open reports its own failure.
+			warming = null;
+		}
+	})();
+	warming = attempt;
+};
+
+/**
  * Wire the delegated handler for the server-rendered banner's buttons.
  *
  * The banner ships zero framework JavaScript: the buttons carry
  * `data-c15t-action` and one document-level listener turns them into
- * runtime calls. Calling this more than once is a no-op.
+ * runtime calls. Hovering or focusing a control that opens the preference
+ * dialog starts downloading it. Calling this more than once is a no-op.
  */
 export const attachBannerActions = function attachBannerActions(): void {
 	const browserWindow = getWindow() as
@@ -783,6 +834,11 @@ export const attachBannerActions = function attachBannerActions(): void {
 		return;
 	}
 	browserWindow.__c15tAstroActions = true;
+
+	document.addEventListener('pointerover', warmDialogOnIntent, {
+		passive: true,
+	});
+	document.addEventListener('focusin', warmDialogOnIntent);
 
 	document.addEventListener('click', (event) => {
 		const resolved = resolveAction(event.target);
@@ -928,8 +984,7 @@ export const preloadDialog = async function preloadDialog(): Promise<void> {
 	if (!client) {
 		return;
 	}
-	const adapter = await loadDialogAdapter(client.options.ui);
-	await adapter.preload?.();
+	await loadDialogChunks(client);
 };
 
 export { activateGatedScripts } from './browser/inline-scripts';

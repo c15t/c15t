@@ -482,6 +482,111 @@ describe('dialog lifecycle', () => {
 	});
 });
 
+describe('warming the dialog on intent', () => {
+	const registerCountingAdapter = function registerCountingAdapter(
+		preload: () => Promise<void> = () => Promise.resolve()
+	) {
+		const counts = { loads: 0, preloads: 0 };
+		registerDialogAdapter('svelte', () => {
+			counts.loads += 1;
+			return Promise.resolve({
+				mount: () =>
+					Promise.resolve({
+						close: vi.fn(),
+						destroy: vi.fn(),
+					} as ConsentDialogHandle),
+				name: 'svelte',
+				preload: () => {
+					counts.preloads += 1;
+					return preload();
+				},
+			});
+		});
+		return counts;
+	};
+
+	const button = (action: string) =>
+		document.querySelector<HTMLButtonElement>(`[data-c15t-action="${action}"]`);
+
+	it('does not download the dialog on load', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		start();
+		await tick();
+		expect(counts).toEqual({ loads: 0, preloads: 0 });
+	});
+
+	it('downloads it when the pointer reaches Customize', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		start();
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(1);
+		});
+		// More hovers reuse the first download.
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await tick();
+		expect(counts).toEqual({ loads: 1, preloads: 1 });
+	});
+
+	it('downloads it when Customize gets focus', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		start();
+		button('customize')?.focus();
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(1);
+		});
+	});
+
+	it('ignores other buttons and the IAB dialog', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<button data-c15t-action="customize" data-c15t-dialog="iab" id="iab">Partners</button>'
+		);
+		start();
+		for (const target of [
+			button('accept'),
+			button('reject'),
+			document.querySelector('#iab'),
+		]) {
+			target?.dispatchEvent(new Event('pointerover', { bubbles: true }));
+		}
+		await tick();
+		expect(counts).toEqual({ loads: 0, preloads: 0 });
+	});
+
+	it('retries after a failed download', async () => {
+		let fail = true;
+		const counts = registerCountingAdapter(() =>
+			fail ? Promise.reject(new Error('offline')) : Promise.resolve()
+		);
+		renderBanner();
+		start();
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(1);
+		});
+		await tick();
+		fail = false;
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(2);
+		});
+	});
+});
+
 it('forwards cleanup targets to its shared runtime', async () => {
 	const booted = start({
 		...OPTIONS,
