@@ -34,8 +34,8 @@ import type {
 } from '@c15t/core';
 import type { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
 import {
+	blockHeldRequests,
 	holdNetworkRequests,
-	releaseNetworkRequests,
 } from '@c15t/core/modules/network-hold';
 import type { Script } from '@c15t/core/modules/script-loader';
 import {
@@ -1054,11 +1054,15 @@ const NetworkBlockerMount = ({
 	const mounts = useRef(0);
 	// The blocker loads after mount. Hold matching requests from this render
 	// on, before any child renders or runs an effect; the blocker replays them.
+	// The rules the hold was started with, kept by reference so an unmount
+	// before the blocker loads ends exactly this hold.
 	// oxlint-disable-next-line react/hook-use-state -- Runs once, during the first render.
-	useState(() => {
-		if (options.enabled !== false) {
-			holdNetworkRequests(options.rules);
+	const [heldRules] = useState(() => {
+		if (options.enabled === false) {
+			return null;
 		}
+		holdNetworkRequests(options.rules);
+		return options.rules;
 	});
 
 	useEffect(() => {
@@ -1092,15 +1096,17 @@ const NetworkBlockerMount = ({
 			const loaded = handleRef.current !== null;
 			handleRef.current?.dispose();
 			handleRef.current = null;
-			// Unmounted before the blocker loaded, so nothing takes over the hold.
-			// A StrictMode or kernel re-run mounts again before this runs.
+			// Unmounted before the blocker loaded, so nothing takes over the hold,
+			// and nothing checked consent for what it held: those requests fail
+			// as blocked. A StrictMode or kernel re-run mounts again before this
+			// runs.
 			queueMicrotask(() => {
-				if (!loaded && mounts.current === mount) {
-					releaseNetworkRequests()();
+				if (!loaded && mounts.current === mount && heldRules) {
+					blockHeldRequests(heldRules);
 				}
 			});
 		};
-	}, [kernel]);
+	}, [heldRules, kernel]);
 
 	useEffect(() => {
 		handleRef.current?.updateRules(options.rules);
