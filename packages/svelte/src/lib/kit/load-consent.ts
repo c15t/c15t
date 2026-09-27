@@ -49,7 +49,85 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 
 	/** Fetch implementation for hosted mode. Defaults to `event.fetch`. */
 	fetch?: typeof globalThis.fetch;
+
+	/**
+	 * Longest `loadConsent` waits for the init route or the backend `/init`,
+	 * in milliseconds. When it runs out, `loadConsent` returns the
+	 * cookie-only config, the same as when the call fails: the page renders
+	 * without consent UI in the server HTML, optional categories stay denied,
+	 * and the browser resolves the policy after hydration. A hosted-mode
+	 * request is aborted; an init route request finishes in the background
+	 * and fills the manifest cache for the next render.
+	 *
+	 * `false` waits for the upstream, however long it takes.
+	 *
+	 * @default 500
+	 */
+	timeoutMs?: number | false;
 }
+
+/** Default {@link LoadConsentOptions.timeoutMs}, in milliseconds. */
+const DEFAULT_LOAD_CONSENT_TIMEOUT_MS = 500;
+
+const resolveTimeoutMs = function resolveTimeoutMs(
+	value: number | false | undefined
+): number | undefined {
+	if (value === false) {
+		return undefined;
+	}
+	const timeoutMs = value ?? DEFAULT_LOAD_CONSENT_TIMEOUT_MS;
+	return Number.isFinite(timeoutMs) && timeoutMs >= 0 ? timeoutMs : undefined;
+};
+
+/**
+ * Settles with the task's result, or with `fallback` if the task fails or
+ * `timeoutMs` passes first. The task is not cancelled here; `onTimeout` can
+ * do that.
+ */
+const withinBudget = async function withinBudget<Value>(
+	task: () => Promise<Value>,
+	timeoutMs: number | undefined,
+	fallback: Value,
+	onTimeout: () => void
+): Promise<Value> {
+	const settled = (async () => {
+		try {
+			return await task();
+		} catch {
+			return fallback;
+		}
+	})();
+	if (timeoutMs === undefined) {
+		return settled;
+	}
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	const expired = new Promise<Value>((resolve) => {
+		timer = setTimeout(() => {
+			onTimeout();
+			resolve(fallback);
+		}, timeoutMs);
+	});
+	try {
+		return await Promise.race([settled, expired]);
+	} finally {
+		clearTimeout(timer);
+	}
+};
+
+/** Adds `signal` to every request `fetchImpl` sends without one. */
+const withSignal = function withSignal(
+	fetchImpl: typeof globalThis.fetch | undefined,
+	signal: AbortSignal
+): typeof globalThis.fetch | undefined {
+	if (!fetchImpl) {
+		return undefined;
+	}
+	return ((input, init) =>
+		fetchImpl(input, {
+			...init,
+			signal: init?.signal ?? signal,
+		})) as typeof globalThis.fetch;
+};
 
 const readLocals = function readLocals(
 	event: RequestEvent
@@ -155,10 +233,12 @@ const initRequestHeaders = function initRequestHeaders(
  *   the server just has nothing extra to seed.
  *
  * Never throws: a failed upstream call degrades to the cookie-only config
- * rather than taking the page down with it.
+ * rather than taking the page down with it. Neither does a slow one: after
+ * `timeoutMs` (500 ms by default) the cookie-only config is returned.
  *
  * @param event - The SvelteKit request event from `load`.
- * @param options - Mode selection, cookie name, and geo/language overrides.
+ * @param options - Mode selection, cookie name, geo/language overrides, and
+ * the time budget.
  * @returns A serializable `KernelConfig` for the provider's `prefetch` prop.
  */
 export const loadConsent = async function loadConsent(
@@ -166,11 +246,13 @@ export const loadConsent = async function loadConsent(
 	options: LoadConsentOptions = {}
 ): Promise<KernelConfig> {
 	const { config, inputs, cookieName } = await resolveBase(event, options);
+	const timeoutMs = resolveTimeoutMs(options.timeoutMs);
 
 	if (options.initRoute) {
+		const { initRoute } = options;
 		const forwarded = initRequestHeaders(inputs);
-		try {
-			const response = await event.fetch(options.initRoute, {
+		const resolveFromRoute = async (): Promise<KernelConfig> => {
+			const response = await event.fetch(initRoute, {
 				headers: forwarded,
 			});
 			if (!response.ok) {
@@ -179,31 +261,41 @@ export const loadConsent = async function loadConsent(
 			const payload = (await response.json()) as InitOutput;
 			return mergeInitOutputIntoKernelConfig(
 				config,
-				deferInitGvl(payload, options.initRoute, 'init', forwarded),
+				deferInitGvl(payload, initRoute, 'init', forwarded),
 				{
 					...headersToRecord(event.request.headers),
 					...forwarded,
 				},
 				{ producerContract: readProducerPolicyContract(response.headers) }
 			);
-		} catch {
-			// Fail soft: the client re-runs init on hydration.
-			return config;
-		}
+		};
+		// Fail soft: the client re-runs init on hydration. A route request
+		// that outlives the budget keeps running and fills the manifest cache.
+		return withinBudget(resolveFromRoute, timeoutMs, config, () => {
+			/* the route finishes in the background */
+		});
 	}
 
 	if (options.backendURL) {
-		return prefetchInitialConsent({
-			backendURL: options.backendURL,
-			cookieName,
-			country: inputs.country,
-			fetch: options.fetch,
-			forwardHeaders: options.forwardHeaders,
-			frameworkFetch: event.fetch,
-			headers: event.request.headers,
-			language: inputs.language,
-			region: inputs.region,
-		});
+		const { backendURL } = options;
+		const controller = new AbortController();
+		return withinBudget(
+			() =>
+				prefetchInitialConsent({
+					backendURL,
+					cookieName,
+					country: inputs.country,
+					fetch: withSignal(options.fetch, controller.signal),
+					forwardHeaders: options.forwardHeaders,
+					frameworkFetch: withSignal(event.fetch, controller.signal),
+					headers: event.request.headers,
+					language: inputs.language,
+					region: inputs.region,
+				}),
+			timeoutMs,
+			config,
+			() => controller.abort()
+		);
 	}
 
 	return config;
