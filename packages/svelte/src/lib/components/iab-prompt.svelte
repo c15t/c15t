@@ -189,6 +189,7 @@
 	<div use:portal>
 		{#if shouldScrollLock}
 			<Overlay
+				{styles}
 				variant="iab-banner"
 				visible={visibility.isVisible}
 			/>
