@@ -19,6 +19,7 @@ import {
 } from '../lib/dialog-warming';
 import DeferredDialogFixture from './fixtures/deferred-dialog-fixture.svelte';
 import DeferredDialogTriggerFixture from './fixtures/deferred-dialog-trigger-fixture.svelte';
+import PanelTriggerFixture from './fixtures/panel-trigger-fixture.svelte';
 import { testOffline } from './test-offline';
 
 const LIB = resolve(__dirname, '../lib');
@@ -241,6 +242,44 @@ describe('dialog warming', () => {
 		holdIdleDialogWarming('idle');
 
 		expect(idleCallbacks).toHaveLength(0);
+		expect(warmer).not.toHaveBeenCalled();
+	});
+
+	test('a shown ConsentDialogTrigger loads the dialog in idle time', async () => {
+		const warmer = vi.fn();
+		registerDialogWarmer(warmer);
+
+		render(PanelTriggerFixture, {
+			options: { mode: testOffline() },
+			showWhen: 'always',
+		});
+		await waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="consent-dialog-trigger"]')
+			).toBeInTheDocument();
+		});
+		runIdleCallbacks();
+
+		expect(warmer).toHaveBeenCalledTimes(1);
+	});
+
+	test('a hidden ConsentDialogTrigger does not load the dialog', async () => {
+		const warmer = vi.fn();
+		registerDialogWarmer(warmer);
+
+		render(PanelTriggerFixture, {
+			options: { mode: testOffline() },
+			showWhen: 'never',
+		});
+		// Let the provider resolve its policy before idle time.
+		await new Promise((_resolve) => {
+			setTimeout(_resolve, 50);
+		});
+		runIdleCallbacks();
+
+		expect(
+			document.querySelector('[data-testid="consent-dialog-trigger"]')
+		).toBeNull();
 		expect(warmer).not.toHaveBeenCalled();
 	});
 

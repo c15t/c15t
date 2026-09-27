@@ -95,6 +95,12 @@ resolution it posts a small report to the backend's `POST /sessions`,
 server-to-server, so the backend still counts visitors it never served
 `/init` to. Pass `reportSessions: false` to send none.
 
+`ConsentDialog` loads in its own chunk after the first paint, as described in
+the [Svelte quickstart](/docs/frameworks/svelte/quickstart). With
+`showTrigger`, its trigger appears right after hydration instead of in the
+server HTML; render `ConsentDialogTrigger` next to the dialog to keep the
+trigger in the server HTML.
+
 ## Apply theme tokens on the server
 
 The provider does not turn theme tokens into CSS in the browser. Generate the

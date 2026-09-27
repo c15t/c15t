@@ -42,9 +42,6 @@
 	const consent = getConsentContext();
 	const theme = getThemeContext();
 
-	// Load the deferred dialog before the first click.
-	onMount(() => holdIdleDialogWarming(theme.preloadDialog));
-
 	let corner: CornerPosition = $state(untrack(() => defaultPosition));
 
 	// Drag state
@@ -70,6 +67,14 @@
 			showWhen !== 'never' &&
 			consent.snapshot.activeUI !== 'dialog'
 	);
+
+	// Load the deferred dialog before the first click, but only while the
+	// button is shown: a hidden trigger can't open the dialog.
+	$effect(() => {
+		if (visible) {
+			return holdIdleDialogWarming(theme.preloadDialog);
+		}
+	});
 
 	// Position class mapping
 	const cornerClassMap: Record<CornerPosition, string> = {

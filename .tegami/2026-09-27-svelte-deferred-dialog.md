@@ -17,8 +17,9 @@ their own chunk, before the first open:
 
 Idle loading is skipped with Save-Data, on 2G connections and offline. Set
 `preloadDialog: 'intent'` in the provider options to load the dialog only on
-hover, focus or open. A failed load is retried on the next hover, focus or
-open.
+hover, focus or open. If the load fails as the dialog opens, the banner or
+trigger that opened it comes back, and the next hover, focus or open retries
+the load.
 
 `ConsentDialog`'s own `showTrigger` trigger now appears once the dialog chunk
 has loaded, right after hydration, instead of in the server HTML. Render

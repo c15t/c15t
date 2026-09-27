@@ -32,6 +32,7 @@
 	 * the page loads while a button that opens it is mounted, and on hover or
 	 * focus of that button (see `preloadDialog`). Props are the dialog's own.
 	 */
+	import type { ActiveUI } from '@c15t/core';
 	import { onMount } from 'svelte';
 
 	import { getConsentContext } from '../context.svelte';
@@ -43,6 +44,15 @@
 	const consent = getConsentContext();
 	let Panel = $state<typeof PanelComponent | null>(null);
 
+	// The surface the dialog replaced when it opened.
+	let surfaceBeforeDialog: ActiveUI = 'none';
+	$effect.pre(() => {
+		const ui = consent.state.activeUI;
+		if (ui !== 'dialog') {
+			surfaceBeforeDialog = ui;
+		}
+	});
+
 	const load = async function load() {
 		if (Panel) {
 			return;
@@ -50,7 +60,12 @@
 		try {
 			Panel = await loadPanel();
 		} catch {
-			// Retried on the next warm or open.
+			// The banner and the trigger hide while the dialog is open, so a
+			// dialog that failed to load would leave no consent UI. Put back the
+			// surface it replaced; the next warm or open retries the import.
+			if (props.open === undefined && consent.state.activeUI === 'dialog') {
+				consent.state.setActiveUI(surfaceBeforeDialog);
+			}
 		}
 	};
 
