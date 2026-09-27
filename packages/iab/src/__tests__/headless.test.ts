@@ -198,6 +198,28 @@ describe('@c15t/iab headless publisher restrictions', () => {
 		).toBe(expected);
 	});
 
+	test('a vendor declaring the purpose on both bases keeps the consent switch', () => {
+		const { 755: vendor755 } = completeGVL.vendors;
+		if (!vendor755) {
+			throw new Error('Missing vendor fixture');
+		}
+		const model = resolveIABDialogDisplayModel({
+			gvl: {
+				...completeGVL,
+				vendors: {
+					755: { ...vendor755, legIntPurposes: [7], purposes: [1, 7] },
+				},
+			},
+		});
+		const rows = model.consentRows.flatMap((row) =>
+			row.kind === 'stack' ? row.purposes : [row]
+		);
+		expect(
+			rows.find((row) => row.kind === 'purpose' && row.id === 7)
+				?.hasConsentBasis
+		).toBe(true);
+	});
+
 	test('returns the same list when nothing is restricted', () => {
 		expect(applyPublisherRestrictionsToGVL(completeGVL, [])).toBe(completeGVL);
 		expect(applyPublisherRestrictionsToGVL(completeGVL, undefined)).toBe(
