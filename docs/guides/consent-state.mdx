@@ -162,7 +162,11 @@ Stored records are merged into the ones in memory:
   consent until the next save. A category denied after the TC string was saved
   conflicts if the TC string grants any of its purposes. A partial selection
   saved through IAB, which records its category as denied because not every
-  purpose is granted, keeps its TC string.
+  purpose is granted, keeps its TC string. A TC string confirmed before the
+  choice's newest decision no longer describes it and is withdrawn too. The TC
+  string and its receipt (`euconsent-v2`, `c15t-iab-authority-v1`) belong to one
+  origin, so after a save on a sibling subdomain that shares the consent cookie,
+  this subdomain reports no consent through `__tcfapi` until it saves again.
 - A record removed from readable storage since this tab last saw it present is
   cleared, and the active policy decides again. A record this tab never saw in
   storage, such as a receipt merged from the server after `identify()` or a
@@ -220,6 +224,13 @@ prompt again rather than applying the record.
 
 ### When the cookie and localStorage disagree
 
+The notice dismissal, privacy directives and vendor denials are stored twice
+as well. Privacy directives from both copies all apply. A vendor list in
+localStorage at least as new as the cookie's adds its denials but never lifts
+one the cookie holds. The newer notice dismissal applies; it still only hides a
+notice with the fingerprint it names. The consent record follows the rules
+below.
+
 The consent record is stored twice: as a cookie, which a server render reads,
 and in localStorage. The cookie is authoritative. A well-formed cookie wins
 even when it has expired, so a local copy can never bring back a grant the
@@ -236,7 +247,9 @@ of the two.
 When the two copies were written under different clear epochs, each loses its
 decisions from before the later epoch first, and the same rule applies to what
 remains. A later epoch in the local copy never lets its grant replace a cookie
-denial.
+denial. The subject and IAB metadata come from the copy written under the later
+epoch; a record written before the clear in force keeps its later decisions but
+no subject.
 
 A server render cannot know about a clear that never reached a cookie. If the
 page could write localStorage but its cookie writes failed during

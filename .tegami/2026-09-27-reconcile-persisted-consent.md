@@ -46,7 +46,10 @@ selections, so `__tcfapi` and the preference controls no longer show the
 previous choice. Selections changed in this tab without saving are kept. A
 TC string that grants any purpose of a category denied after it was saved
 is withdrawn and not restored on the next page load; a partial purpose
-selection saved through IAB keeps its TC string.
+selection saved through IAB keeps its TC string. A TC string confirmed before
+the reconciled choice's newest decision, such as after a save on a sibling
+subdomain that shares the consent cookie, is withdrawn as well, since the TC
+string and its receipt belong to one origin.
 
 Clearing records now stores the clear epoch, the time of the clear, under
 `c15t-epoch` in localStorage and a cookie of the same name, and clearing never
@@ -64,7 +67,10 @@ reads as 0, and a record whose epoch field is corrupt is kept.
 The consent cookie stays authoritative, but a denial in its localStorage copy
 that is newer than the cookie's decision is now applied on top of it, so a
 dropped cookie write no longer keeps an older grant in force. Copies written
-under different clear epochs are cut to the later epoch first. A newer local
+under different clear epochs are cut to the later epoch first, and the
+subject comes from the later copy. Privacy directives from both copies of the
+privacy record apply, a newer local vendor list adds denials without lifting
+any, and the newer notice dismissal applies. A newer local
 grant is still not applied.
 
 This changes the stored format: after a clear, the consent cookie gains
