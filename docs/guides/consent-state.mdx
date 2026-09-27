@@ -90,3 +90,85 @@ would invent a grant and lose its original confirmation time.
 Valid v2 records can be read without a startup rewrite. The next explicit action
 writes the v3 format. See [migration](/docs/upgrade-v3) for expiry, partial saves,
 custom transports and backend contract changes.
+
+## Keep open tabs in step
+
+Tabs and windows of one site share the consent cookie and localStorage. When a
+visitor rejects in one tab, every other open tab applies the rejection without a
+reload. Scripts and features gated on `effectivePermissions` lose permission,
+subscribers are notified once and `onPermissionsChanged` fires. Clearing records
+in one tab returns the others to the active policy's defaults: an opt-in policy
+denies optional categories and shows the prompt again.
+
+Browser persistence reads stored records again at these moments:
+
+| Moment | What happens |
+| --- | --- |
+| Another tab or window changes a c15t localStorage key | Reconciles on the `storage` event |
+| The page becomes visible again | Reconciles on `visibilitychange` |
+| The window regains focus | Reconciles on `focus` |
+| The network reconnects | No storage read |
+
+Several triggers in quick succession run one reconciliation in a later task.
+Reconnecting does not read storage, because going online changes nothing in
+browser storage. On reconnect the kernel retries saves the backend did not
+accept and a failed initialization. Save retries do not write the cookie or
+localStorage. A write that follows initialization, such as a Global Privacy
+Control directive, obeys the ordering described below.
+
+Every adapter that mounts browser persistence does this: the React, Next.js and
+TanStack Start providers, Vue, Svelte, Astro, the script tag and
+`createConsentRuntime`. With `persistence: false` nothing is stored or read.
+
+### What a reconciliation applies
+
+Only records whose stored value changed since this tab last read or wrote them
+are considered. A record held only in memory, such as a receipt merged from the
+server after `identify()`, stays. For each changed record:
+
+- A stored record at least as new as the one in memory replaces it. Times come
+  from the record itself: category confirmation, notice dismissal, vendor
+  confirmation and privacy directive times.
+- A stored record older than the one in memory is ignored.
+- A record removed from readable storage is cleared, and the active policy
+  decides again.
+- Blocked storage, or bytes that do not decode, change nothing. A failed read
+  never grants a category.
+
+Expiry is not decided here. The applied records are evaluated at the time of the
+read, the same way as at startup.
+
+### Ordering with pending writes
+
+A tab writes its own choices in a later task, not during the click. Before it
+reads storage, it lands its own queued writes, so a reconciliation never undoes
+the visitor's latest action in that tab. A queued write never replaces a stored
+record newer than the one it carries. When a slow save response returns a
+server subject id, the tab adds it only to the record it wrote; it does not
+recreate records another tab cleared or overwrite another tab's newer choice.
+
+If another tab's choice arrives while this tab's save request is still in
+flight, this tab neither sends that save nor queues it for retry. The other tab
+sends its own. A save already queued for retry keeps its original decision time.
+
+### Reconcile yourself or turn it off
+
+Browsers send no event for a change made in the same document, or for a cookie
+rewritten without a localStorage change, such as a `Set-Cookie` response header
+or another subdomain sharing the cookie. The next focus or visibility change
+picks it up. To apply it at once, call the method yourself:
+
+```ts
+// Runtime owners: returns true when any record changed.
+runtime.reconcileStorage();
+
+// Kernel owners with createPersistence from c15t/modules/persistence:
+persistence.reconcile();
+```
+
+To keep storage but stop automatic reconciliation, pass `sync: false` in the
+persistence options, for example `createConsentRuntime({ persistence: { sync:
+false } })` or `createPersistence({ kernel, sync: false })`. The manual methods
+still work.
+
+`dispose()` removes the listeners and cancels a scheduled reconciliation.
