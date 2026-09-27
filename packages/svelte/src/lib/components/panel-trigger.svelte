@@ -10,7 +10,8 @@
 	import { onMount, untrack } from 'svelte';
 
 	import { portal } from '../actions/portal';
-	import { getConsentContext } from '../context.svelte';
+	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { holdIdleDialogWarming, warmDialog } from '../dialog-warming';
 	import C15TIconOnly from './icons/c15-t-icon-only.svelte';
 	import ConsentIconOnly from './icons/consent-icon-only.svelte';
 
@@ -39,6 +40,10 @@
 	} = $props();
 
 	const consent = getConsentContext();
+	const theme = getThemeContext();
+
+	// Load the deferred dialog before the first click.
+	onMount(() => holdIdleDialogWarming(theme.preloadDialog));
 
 	let corner: CornerPosition = $state(untrack(() => defaultPosition));
 
@@ -220,6 +225,8 @@
 			onpointermove={handlePointerMove}
 			onpointerup={handlePointerUp}
 			onpointercancel={handlePointerCancel}
+			onpointerenter={warmDialog}
+			onfocus={warmDialog}
 			data-testid="consent-dialog-trigger"
 		>
 			<span

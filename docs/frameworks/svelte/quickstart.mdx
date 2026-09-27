@@ -74,6 +74,14 @@ rather than creating a new provider for each page. The stylesheet supplies the
 stock appearance. Use [customization](/docs/customization/overview) before
 rebuilding the UI with headless APIs.
 
+`ConsentDialog` is not part of the page's first load. It loads in its own
+chunk: in browser idle time after the page loads while a button that opens it
+is mounted (the banner's Customize button, `ConsentDialogLink` or
+`ConsentDialogTrigger`), when that button is hovered or focused, and at the
+latest when the dialog opens. Pass `preloadDialog: 'intent'` in the provider
+options to load it only on hover, focus or open. Idle loading is skipped with
+Save-Data, on 2G connections and offline.
+
 ## Use local policies when no backend is needed
 
 Install `@c15t/schema` and replace the hosted mode in the example with this
