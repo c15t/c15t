@@ -15,16 +15,10 @@ import {
 	recordChoice,
 } from '../src/policy';
 import { ConsentProbe } from '../src/react';
-import { countSubscriptions, mount } from './dom';
+import { countSubscriptions, mount, unmountAll } from './dom';
 import type { Mounted } from './dom';
 
-const mounted: Mounted[] = [];
 const runtimes: ConsentRuntime[] = [];
-
-const track = function track(root: Mounted): Mounted {
-	mounted.push(root);
-	return root;
-};
 
 /** A runtime restored from an earlier accept or reject. */
 const restored = async function restored(
@@ -97,10 +91,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, { failed: boolean }> {
 }
 
 afterEach(async () => {
-	for (const root of mounted.splice(0)) {
-		// oxlint-disable-next-line no-await-in-loop -- Unmount roots in order.
-		await root.unmount();
-	}
+	// Every root `mount()` created, including ones a failed assertion left
+	// mounted, before the runtimes they borrow are disposed.
+	await unmountAll();
 	for (const runtime of runtimes.splice(0)) {
 		runtime.dispose();
 	}
@@ -113,15 +106,13 @@ describe('KernelContext consumers under ConsentProvider', () => {
 		await runtime.kernel.commands.save('all');
 		const onRender = vi.fn();
 
-		const root = track(
-			await mount(
-				<ConsentProvider runtime={runtime}>
-					<ConsentProbe
-						name="late"
-						onRender={onRender}
-					/>
-				</ConsentProvider>
-			)
+		const root = await mount(
+			<ConsentProvider runtime={runtime}>
+				<ConsentProbe
+					name="late"
+					onRender={onRender}
+				/>
+			</ConsentProvider>
 		);
 
 		// The first render already has the grant; nothing had to be replayed.
@@ -135,12 +126,10 @@ describe('KernelContext consumers under ConsentProvider', () => {
 
 	test('re-render on grants and denials', async () => {
 		const runtime = await restored();
-		const root = track(
-			await mount(
-				<ConsentProvider runtime={runtime}>
-					<ConsentProbe name="live" />
-				</ConsentProvider>
-			)
+		const root = await mount(
+			<ConsentProvider runtime={runtime}>
+				<ConsentProbe name="live" />
+			</ConsentProvider>
 		);
 		expect(root.probe('live')?.granted).toBe('false');
 
@@ -194,15 +183,13 @@ describe('provider replacement', () => {
 			/>
 		);
 
-		const root = track(
-			await mount(
-				<ConsentProvider
-					key="first"
-					runtime={first}
-				>
-					{consumer}
-				</ConsentProvider>
-			)
+		const root = await mount(
+			<ConsentProvider
+				key="first"
+				runtime={first}
+			>
+				{consumer}
+			</ConsentProvider>
 		);
 		expect(root.probe('consumer')?.granted).toBe('true');
 		expect(firstSubscriptions.active).toBeGreaterThan(0);
@@ -239,7 +226,7 @@ describe('provider replacement', () => {
 			</ConsentProvider>
 		);
 
-		const root = track(await mount(tree(first)));
+		const root = await mount(tree(first));
 		expect(root.probe('consumer')?.granted).toBe('true');
 		expect(firstSubscriptions.active).toBeGreaterThan(0);
 
@@ -261,27 +248,23 @@ describe('two provider roots', () => {
 		const grantedRenders = vi.fn();
 		const deniedRenders = vi.fn();
 
-		const granted = track(
-			await mount(
-				<ConsentProvider options={await ownedOptions('all')}>
-					<KernelCapture onKernel={(kernel) => (kernels.granted = kernel)} />
-					<ConsentProbe
-						name="granted"
-						onRender={grantedRenders}
-					/>
-				</ConsentProvider>
-			)
+		const granted = await mount(
+			<ConsentProvider options={await ownedOptions('all')}>
+				<KernelCapture onKernel={(kernel) => (kernels.granted = kernel)} />
+				<ConsentProbe
+					name="granted"
+					onRender={grantedRenders}
+				/>
+			</ConsentProvider>
 		);
-		const denied = track(
-			await mount(
-				<ConsentProvider options={await ownedOptions('none')}>
-					<KernelCapture onKernel={(kernel) => (kernels.denied = kernel)} />
-					<ConsentProbe
-						name="denied"
-						onRender={deniedRenders}
-					/>
-				</ConsentProvider>
-			)
+		const denied = await mount(
+			<ConsentProvider options={await ownedOptions('none')}>
+				<KernelCapture onKernel={(kernel) => (kernels.denied = kernel)} />
+				<ConsentProbe
+					name="denied"
+					onRender={deniedRenders}
+				/>
+			</ConsentProvider>
 		);
 
 		expect(kernels.granted).not.toBe(kernels.denied);
@@ -313,17 +296,15 @@ describe('two provider roots', () => {
 	test('sibling providers in one tree stay isolated while their revisions match', async () => {
 		const first = await restored('all');
 		const second = await restored('none');
-		const root = track(
-			await mount(
-				<>
-					<ConsentProvider runtime={first}>
-						<ConsentProbe name="first" />
-					</ConsentProvider>
-					<ConsentProvider runtime={second}>
-						<ConsentProbe name="second" />
-					</ConsentProvider>
-				</>
-			)
+		const root = await mount(
+			<>
+				<ConsentProvider runtime={first}>
+					<ConsentProbe name="first" />
+				</ConsentProvider>
+				<ConsentProvider runtime={second}>
+					<ConsentProbe name="second" />
+				</ConsentProvider>
+			</>
 		);
 		expect(root.probe('first')?.revision).toBe(root.probe('second')?.revision);
 		expect(root.probe('first')?.granted).toBe('true');
@@ -466,16 +447,14 @@ describe('borrowed runtimes', () => {
 
 describe('missing and detached providers', () => {
 	test('a consumer without a provider sees no grant, even beside a granting root', async () => {
-		const granting = track(
-			await mount(
-				<ConsentProvider options={await ownedOptions('all')}>
-					<ConsentProbe name="granting" />
-				</ConsentProvider>
-			)
+		const granting = await mount(
+			<ConsentProvider options={await ownedOptions('all')}>
+				<ConsentProbe name="granting" />
+			</ConsentProvider>
 		);
 		expect(granting.probe('granting')?.granted).toBe('true');
 
-		const orphan = track(await mount(<ConsentProbe name="orphan" />));
+		const orphan = await mount(<ConsentProbe name="orphan" />);
 
 		expect(orphan.probe('orphan')).toEqual({
 			attached: 'no',
@@ -485,12 +464,10 @@ describe('missing and detached providers', () => {
 	});
 
 	test('useConsent without a provider throws instead of borrowing a granting root', async () => {
-		track(
-			await mount(
-				<ConsentProvider options={await ownedOptions('all')}>
-					<ConsentProbe name="granting" />
-				</ConsentProvider>
-			)
+		await mount(
+			<ConsentProvider options={await ownedOptions('all')}>
+				<ConsentProbe name="granting" />
+			</ConsentProvider>
 		);
 		const Reader = () => <output>{String(useConsent('marketing'))}</output>;
 		const errors: unknown[] = [];
@@ -498,12 +475,10 @@ describe('missing and detached providers', () => {
 			// React reports the caught render error; the boundary records it.
 		});
 
-		const orphan = track(
-			await mount(
-				<ErrorBoundary onError={(error) => errors.push(error)}>
-					<Reader />
-				</ErrorBoundary>
-			)
+		const orphan = await mount(
+			<ErrorBoundary onError={(error) => errors.push(error)}>
+				<Reader />
+			</ErrorBoundary>
 		);
 
 		expect(orphan.container.querySelector('output')).toBeNull();
@@ -512,15 +487,13 @@ describe('missing and detached providers', () => {
 
 	test('a consumer detached below a granting provider sees no grant', async () => {
 		const runtime = await restored('all');
-		const root = track(
-			await mount(
-				<ConsentProvider runtime={runtime}>
-					<ConsentProbe name="inside" />
-					<KernelContext.Provider value={null}>
-						<ConsentProbe name="detached" />
-					</KernelContext.Provider>
-				</ConsentProvider>
-			)
+		const root = await mount(
+			<ConsentProvider runtime={runtime}>
+				<ConsentProbe name="inside" />
+				<KernelContext.Provider value={null}>
+					<ConsentProbe name="detached" />
+				</KernelContext.Provider>
+			</ConsentProvider>
 		);
 
 		expect(root.probe('inside')?.granted).toBe('true');
@@ -546,12 +519,10 @@ describe('missing and detached providers', () => {
 			) : (
 				children
 			);
-		const root = track(
-			await mount(
-				<Layout provided>
-					<ConsentProbe name="moved" />
-				</Layout>
-			)
+		const root = await mount(
+			<Layout provided>
+				<ConsentProbe name="moved" />
+			</Layout>
 		);
 		expect(root.probe('moved')?.granted).toBe('true');
 
@@ -585,7 +556,7 @@ describe('missing and detached providers', () => {
 				/>
 			</ConsentProvider>
 		);
-		const root = track(await mount(tree(granting)));
+		const root = await mount(tree(granting));
 		seen.length = 0;
 
 		await root.rerender(tree(denying));

@@ -23,7 +23,7 @@ import { afterEach, beforeAll, describe, expect, test } from 'vitest';
 
 import { OBSERVED_RULE, observedPolicy } from '../src/policy';
 import { ConsentProbe } from '../src/react';
-import { mount } from './dom';
+import { mount, unmountAll } from './dom';
 
 const BACKEND_URL = 'https://consent.example.test';
 const MANIFEST: ConsentManifest = {
@@ -86,6 +86,9 @@ const manifestResponse = function manifestResponse(): Response {
 	});
 };
 
+/** How long `release()` waits for the expected fetches, well under the test timeout. */
+const RELEASE_TIMEOUT_MS = 2000;
+
 /**
  * A manifest endpoint that holds its answers until `expected` fetches are
  * waiting, then answers the newest first, so the first visitor's resolution
@@ -107,15 +110,26 @@ const reversedManifestFetch = function reversedManifestFetch(expected: number) {
 		});
 	};
 	const release = async function release(): Promise<void> {
-		while (pending.length < expected) {
-			// oxlint-disable-next-line no-await-in-loop -- Poll until the fetches are in flight.
-			await new Promise<void>((resolve) => {
-				setTimeout(resolve, 1);
-			});
-		}
-		released = true;
-		for (const answer of pending.splice(0).toReversed()) {
-			answer();
+		const deadline = Date.now() + RELEASE_TIMEOUT_MS;
+		try {
+			while (pending.length < expected) {
+				if (Date.now() > deadline) {
+					throw new Error(
+						`expected ${expected} manifest fetches in flight, saw ${pending.length}`
+					);
+				}
+				// oxlint-disable-next-line no-await-in-loop -- Poll until the fetches are in flight.
+				await new Promise<void>((resolve) => {
+					setTimeout(resolve, 1);
+				});
+			}
+		} finally {
+			// Answer every held fetch even when the wait failed, so no
+			// resolution is left pending after the test ends.
+			released = true;
+			for (const answer of pending.splice(0).toReversed()) {
+				answer();
+			}
 		}
 	};
 	return {
@@ -195,7 +209,8 @@ beforeAll(async () => {
 	deniedCookie = await visitorCookie('none');
 });
 
-afterEach(() => {
+afterEach(async () => {
+	await unmountAll();
 	clearBrowserStorage();
 });
 

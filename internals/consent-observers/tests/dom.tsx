@@ -16,6 +16,7 @@ import { vi } from 'vitest';
 export interface Mounted {
 	container: HTMLElement;
 	rerender: (element: ReactElement) => Promise<void>;
+	/** Unmounts the root. Safe to call more than once. */
 	unmount: () => Promise<void>;
 	/** Reads one probe's rendered attributes. */
 	probe: (name: string) => {
@@ -35,9 +36,25 @@ export const settle = async function settle(): Promise<void> {
 	});
 };
 
+/** Roots that are still mounted, keyed by their container. */
+const live = new Map<HTMLElement, () => Promise<void>>();
+
+/**
+ * Unmounts every root {@link mount} created that a test has not unmounted,
+ * including roots left behind by a failed assertion. Call it in `afterEach`.
+ */
+export const unmountAll = async function unmountAll(): Promise<void> {
+	for (const unmount of [...live.values()]) {
+		// oxlint-disable-next-line no-await-in-loop -- Unmount roots in order.
+		await unmount();
+	}
+};
+
 /**
  * Renders `element` into a fresh root and waits for effects, including the
- * provider's lazily loaded pieces, to settle.
+ * provider's lazily loaded pieces, to settle. The root is registered before
+ * the first render, so {@link unmountAll} cleans it up even if rendering or a
+ * later assertion fails.
  */
 export const mount = async function mount(
 	element: ReactElement
@@ -45,6 +62,18 @@ export const mount = async function mount(
 	const container = document.createElement('div');
 	document.body.append(container);
 	const root = createRoot(container);
+	const unmount = async function unmount(): Promise<void> {
+		if (!live.delete(container)) {
+			return;
+		}
+		await act(() => {
+			root.unmount();
+		});
+		container.remove();
+		// Owned providers dispose in a microtask after unmount.
+		await settle();
+	};
+	live.set(container, unmount);
 	await act(() => {
 		root.render(element);
 	});
@@ -67,14 +96,7 @@ export const mount = async function mount(
 			});
 			await settle();
 		},
-		async unmount() {
-			await act(() => {
-				root.unmount();
-			});
-			container.remove();
-			// Owned providers dispose in a microtask after unmount.
-			await settle();
-		},
+		unmount,
 	};
 };
 
