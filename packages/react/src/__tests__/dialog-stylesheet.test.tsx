@@ -96,6 +96,10 @@ test.each([
 	'consent-gate.js',
 	'hooks.js',
 	'headless.js',
+	// The split entries export the deferred components, which load the
+	// dialog code and its stylesheet through import().
+	'panel.js',
+	'preferences.js',
 ])('%s keeps the dialog stylesheet out of first load', (entry) => {
 	const graph = reachable(entry);
 	expect(graph.has(DIALOG_CSS)).toBe(false);
@@ -106,8 +110,6 @@ test.each([
 test.each([
 	'components/panel/index.js',
 	'components/preferences/index.js',
-	'panel.js',
-	'preferences.js',
 	'primitives.js',
 	'iab.js',
 ])('%s imports the dialog stylesheet', (entry) => {
