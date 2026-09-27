@@ -1,6 +1,12 @@
-import { createHostedRecordTransport } from '@c15t/core';
+import {
+	createHostedInitRequest,
+	createHostedRecordTransport,
+	hasPrefetchedInitialData,
+} from '@c15t/core';
 import type {
+	HostedInitRequest,
 	HostedModeOptions,
+	InitContext,
 	KernelTransport,
 	ProviderTransportFactory,
 } from '@c15t/core';
@@ -22,12 +28,13 @@ export type LoadManifestTransport = (
 ) => Promise<KernelTransport>;
 
 /**
- * Loads the transport that runs init. Called at most once per successful
- * load; a rejected load is retried on the next request.
+ * Loads the transport that runs init, given the context of the init that
+ * triggered the load. Called at most once per successful load; a rejected
+ * load is retried on the next init.
  *
  * @internal
  */
-export type LoadInitTransport = () => Promise<KernelTransport>;
+export type LoadInitTransport = (ctx: InitContext) => Promise<KernelTransport>;
 
 /**
  * Loads `@c15t/core/transports/manifest` on first use. The resolver pulls in
@@ -62,10 +69,12 @@ export const createLazyInitTransport = function createLazyInitTransport(
 	load: LoadInitTransport
 ): KernelTransport {
 	let transportPromise: Promise<KernelTransport> | undefined;
-	const resolver = function resolver(): Promise<KernelTransport> {
+	const resolver = function resolver(
+		ctx: InitContext
+	): Promise<KernelTransport> {
 		transportPromise ??= (async () => {
 			try {
-				return await load();
+				return await load(ctx);
 			} catch (error) {
 				// A failed chunk load must not poison every later init/save;
 				// the kernel's retry gets a fresh import attempt.
@@ -79,7 +88,7 @@ export const createLazyInitTransport = function createLazyInitTransport(
 	// so saves carry the decision inputs that init remembered.
 	const recordTransport =
 		async function recordTransport(): Promise<KernelTransport> {
-			return transportPromise ? await resolver() : records;
+			return transportPromise ? await transportPromise : records;
 		};
 
 	return {
@@ -87,7 +96,7 @@ export const createLazyInitTransport = function createLazyInitTransport(
 			await (await recordTransport()).identify?.(user, subjectId);
 		},
 		async init(ctx) {
-			const transport = await resolver();
+			const transport = await resolver(ctx);
 			return (await transport.init?.(ctx)) ?? {};
 		},
 		async loadSubjectRecord(subjectId) {
@@ -146,11 +155,97 @@ const loadHostedTransport = async function loadHostedTransport(
 	});
 };
 
+type LazyHostedOptions = Pick<
+	HostedModeOptions,
+	'assertDecisionInputs' | 'initURL' | 'url'
+>;
+
+/** A first `/init` request sent before the hosted transport loaded. */
+interface EarlyInit {
+	url: string;
+	init: HostedInitRequest['init'];
+	response: Promise<Response>;
+}
+
+/**
+ * Sends the first init request while the hosted transport's chunk loads,
+ * so the chunk and `/init` travel in the same round trip instead of one
+ * after the other. The request is the one the loaded transport builds.
+ * Skipped on the server, without `fetch`, and when an inline prefetch
+ * script already requested init, which the loaded transport reads instead.
+ */
+const startEarlyInit = function startEarlyInit(
+	options: LazyHostedOptions,
+	fetch: typeof globalThis.fetch | undefined,
+	ctx: InitContext
+): EarlyInit | undefined {
+	if (
+		typeof window === 'undefined' ||
+		!fetch ||
+		(!options.initURL && hasPrefetchedInitialData())
+	) {
+		return undefined;
+	}
+	const request = createHostedInitRequest({
+		backendURL: options.url,
+		initURL: options.initURL,
+		overrides: ctx.overrides,
+	});
+	const response = fetch(request.url, request.init);
+	// If the loaded transport sends a different first request, nothing reads
+	// this one; its failure is not an unhandled rejection.
+	void (async () => {
+		try {
+			await response;
+		} catch {
+			// The transport that reads the response reports the failure.
+		}
+	})();
+	return { init: request.init, response, url: request.url };
+};
+
+const isSameRequest = function isSameRequest(
+	early: EarlyInit,
+	input: Parameters<typeof globalThis.fetch>[0],
+	init: RequestInit | undefined
+): boolean {
+	return (
+		input === early.url &&
+		init?.method === early.init.method &&
+		init?.credentials === early.init.credentials &&
+		JSON.stringify(init?.headers) === JSON.stringify(early.init.headers)
+	);
+};
+
+/**
+ * Hands the early response to the loaded transport's first request that
+ * matches it exactly; every other request goes out through `fetch`.
+ */
+const withEarlyInit = function withEarlyInit(
+	fetch: typeof globalThis.fetch,
+	early: EarlyInit
+): typeof globalThis.fetch {
+	let pending: EarlyInit | undefined = early;
+	const fetchWithEarlyInit = (
+		input: Parameters<typeof globalThis.fetch>[0],
+		init?: RequestInit
+	): Promise<Response> => {
+		if (pending && isSameRequest(pending, input, init)) {
+			const { response } = pending;
+			pending = undefined;
+			return response;
+		}
+		return fetch(input, init);
+	};
+	return fetchWithEarlyInit as typeof globalThis.fetch;
+};
+
 /**
  * Hosted mode for `ConsentRoot`. Saves and the other record requests go
  * out at once through the record transport; the init path loads on the
  * first init, which a root with server-resolved state only runs when the
- * provider re-initializes.
+ * provider re-initializes. That first init's `/init` request goes out
+ * alongside the chunk request, and the loaded transport reads its response.
  *
  * With `assertDecisionInputs`, a save that carries no decision inputs of its
  * own is refused until init resolved a decision, as in the full transport.
@@ -164,7 +259,7 @@ const loadHostedTransport = async function loadHostedTransport(
  * @internal
  */
 export const lazyHosted = function lazyHosted(
-	options: Pick<HostedModeOptions, 'assertDecisionInputs' | 'initURL' | 'url'>,
+	options: LazyHostedOptions,
 	load: (
 		options: HostedModeOptions
 	) => Promise<KernelTransport> = loadHostedTransport
@@ -183,7 +278,13 @@ export const lazyHosted = function lazyHosted(
 							}
 						: undefined
 				),
-				() => load({ ...options, fetch })
+				(ctx) => {
+					const early = startEarlyInit(options, fetch, ctx);
+					return load({
+						...options,
+						fetch: early && fetch ? withEarlyInit(fetch, early) : fetch,
+					});
+				}
 			);
 		},
 		{ kind: 'hosted' as const }

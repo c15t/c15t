@@ -4,7 +4,7 @@
  * browser, so a save must not wait for that chunk, and must still assert
  * the policy decision the backend checks.
  */
-import { createConsentKernel } from '@c15t/core';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
 import type { InitContext, KernelTransport, SavePayload } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -183,6 +183,98 @@ describe('lazyHosted', () => {
 		];
 		expect(loadOptions.url).toBe('https://consent.example.com');
 		expect(loadOptions.fetch).not.toBe(laterFetch);
+	});
+
+	// When the browser runs init (no server state, or the server could not
+	// resolve it), `/init` must not queue behind the chunk request.
+	test('the first init sends /init while the init path is still loading', async () => {
+		let release: (transport: KernelTransport) => void = () => undefined;
+		const load = vi.fn(
+			() =>
+				new Promise<KernelTransport>((resolve) => {
+					release = resolve;
+				})
+		);
+		const factory = lazyHosted(
+			{
+				assertDecisionInputs: true,
+				initURL: '/api/consent/init',
+				url: 'https://consent.example.com',
+			},
+			load
+		);
+		const transport = factory({} as unknown as Parameters<typeof factory>[0]);
+
+		const pending = transport.init?.({
+			overrides: { language: 'de' },
+		} as unknown as InitContext);
+
+		expect(load).toHaveBeenCalledTimes(1);
+		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+			'/api/consent/init',
+		]);
+		release({ init: () => Promise.resolve({}) });
+		await pending;
+	});
+
+	test('the loaded transport reads the early /init response instead of sending its own', async () => {
+		fetchSpy.mockImplementationOnce(() =>
+			Promise.resolve(
+				jsonResponse({
+					branding: 'c15t',
+					jurisdiction: 'GDPR',
+					location: { countryCode: 'DE', regionCode: null },
+					translations: { language: 'de', translations: { common: {} } },
+				})
+			)
+		);
+		const factory = lazyHosted(
+			{ url: 'https://consent.example.com' },
+			(loadOptions) =>
+				Promise.resolve(
+					createHostedTransport({
+						backendURL: loadOptions.url,
+						fetch: loadOptions.fetch,
+						initURL: loadOptions.initURL,
+					})
+				)
+		);
+		const transport = factory({} as unknown as Parameters<typeof factory>[0]);
+
+		await transport.init?.({
+			overrides: { country: 'DE', language: 'de' },
+		} as unknown as InitContext);
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(url).toBe('https://consent.example.com/init');
+		expect(init?.headers).toMatchObject({
+			'accept-language': 'de',
+			'x-c15t-country': 'DE',
+		});
+	});
+
+	test('an inline prefetch is left to the loaded transport', async () => {
+		const prefetchWindow = window as Window & {
+			__c15tInitialDataPromises?: Record<string, unknown>;
+		};
+		prefetchWindow.__c15tInitialDataPromises = {
+			key: { promise: Promise.resolve(undefined), requestContext: null },
+		};
+		try {
+			const init = vi.fn(() => Promise.resolve({}));
+			const factory = lazyHosted({ url: 'https://consent.example.com' }, () =>
+				Promise.resolve({ init })
+			);
+			const transport = factory({} as unknown as Parameters<typeof factory>[0]);
+
+			await transport.init?.({ overrides: {} } as unknown as InitContext);
+
+			expect(init).toHaveBeenCalledTimes(1);
+			expect(fetchSpy).not.toHaveBeenCalled();
+		} finally {
+			delete prefetchWindow.__c15tInitialDataPromises;
+		}
 	});
 });
 

@@ -83,6 +83,9 @@ export type {
 	HostedRecordTransportOptions,
 } from './transports/hosted-records';
 export { createHostedRecordTransport } from './transports/hosted-records';
+export type { HostedInitRequest } from './transports/hosted-init-request';
+export { createHostedInitRequest } from './transports/hosted-init-request';
+export { hasPrefetchedInitialData } from './libs/prefetch/window-key';
 export {
 	initOutputToKernelConfig,
 	initResponseToKernelConfig,

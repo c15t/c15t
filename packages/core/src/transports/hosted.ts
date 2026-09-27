@@ -48,7 +48,6 @@ import {
 import type { InitOutput } from '@c15t/schema/types';
 
 import { consumePrefetchedInitialData } from '../libs/prefetch/prefetch';
-import { buildRequestContextHeaders } from '../libs/request-context';
 import type { SSRInitialData } from '../options/ssr';
 import type { KernelOverrides, InitContext } from '../types';
 import {
@@ -57,6 +56,7 @@ import {
 	rememberDecisionInputs,
 } from './decision-inputs';
 import type { RememberedDecisionInputs } from './decision-inputs';
+import { createHostedInitRequest } from './hosted-init-request';
 import {
 	createHostedRecordTransport,
 	resolveFetch,
@@ -65,10 +65,7 @@ import {
 import type { HostedRecordTransport } from './hosted-records';
 import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
-import {
-	c15tProtocolHeaders,
-	readProducerPolicyContract,
-} from './version-header';
+import { readProducerPolicyContract } from './version-header';
 
 export interface HostedTransportOptions {
 	/**
@@ -233,10 +230,14 @@ export const createHostedTransport = function createHostedTransport(
 		initGeneration += 1;
 		const generation = initGeneration;
 		prepareInit(ctx);
-		const requestHeaders = {
-			...initHeaders,
-			...buildRequestContextHeaders(ctx.overrides),
-		};
+		const request = createHostedInitRequest({
+			backendURL: base,
+			credentials,
+			headers: initHeaders,
+			initURL,
+			overrides: ctx.overrides,
+		});
+		const { requestHeaders } = request;
 		const supplied = initialData;
 		initialData = undefined;
 		let prefetched: SSRInitialData | undefined;
@@ -275,15 +276,7 @@ export const createHostedTransport = function createHostedTransport(
 				producerContract: readProducerPolicyContract(producerHeaders),
 			});
 		}
-		const response = await fetchImpl(initURL, {
-			credentials,
-			headers: {
-				accept: 'application/json',
-				...c15tProtocolHeaders,
-				...requestHeaders,
-			},
-			method: 'GET',
-		});
+		const response = await fetchImpl(request.url, request.init);
 
 		if (!response.ok) {
 			throw new Error(

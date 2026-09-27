@@ -87,6 +87,22 @@ describe('hosted record transport graph', () => {
 		);
 	});
 
+	test('the init request builder and the prefetch probe reach no init-path module', () => {
+		for (const entry of [
+			'transports/hosted-init-request.ts',
+			'libs/prefetch/window-key.ts',
+		]) {
+			const { files, packageImports } = staticGraph(entry);
+			expect(files).not.toContain('transports/hosted.ts');
+			expect(files).not.toContain('transports/init-output.ts');
+			expect(files).not.toContain('libs/request-context.ts');
+			expect(files).not.toContain('libs/prefetch/prefetch.ts');
+			expect(packageImports).not.toContain(
+				'@c15t/schema/types#extractConsentRequestInputs'
+			);
+		}
+	});
+
 	test('custom() does not reach the hosted transport', () => {
 		expect(staticGraph('transports/custom.ts').files).not.toContain(
 			'transports/hosted.ts'
