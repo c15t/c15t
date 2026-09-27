@@ -1181,6 +1181,31 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 };
 
 /**
+ * Picks the kernels a provider renders.
+ *
+ * A borrowed runtime follows the `runtime` prop, so consumers move to a
+ * replacement and release the previous kernel. A kernel the provider built
+ * stays initial-only, like `mode`.
+ */
+const selectProviderKernels = function selectProviderKernels(
+	owned: {
+		disabledKernel: ConsentKernel | undefined;
+		external: ConsentRuntime | undefined;
+		kernel: ConsentKernel;
+	},
+	runtime: ConsentRuntime | undefined,
+	enabled: boolean
+) {
+	const external = owned.external ? (runtime ?? owned.external) : undefined;
+	const active = external?.kernel ?? owned.kernel;
+	return {
+		active,
+		external,
+		rendered: enabled ? active : (owned.disabledKernel ?? active),
+	};
+};
+
+/**
  * v3 ConsentProvider.
  *
  * Retains the enabled kernel while disabled mode uses a separate permissive
@@ -1193,7 +1218,9 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
  * Pass `runtime` to render a runtime someone else created. The provider
  * then borrows its kernel and mounts none of the side-effecting modules —
  * no second `init()`, no second persistence handle, no second `window.c15t`
- * — and does not dispose it on unmount.
+ * — and does not dispose it on unmount. Handing it a different runtime
+ * switches the tree to that runtime's kernel; switching between a borrowed
+ * runtime and a provider-built kernel still needs a remount.
  *
  * @example
  * ```tsx
@@ -1222,13 +1249,12 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			createProviderKernel({ ...options, enabled: true }),
 	}));
 	void setOwned;
+	const { clearOnRevocation: initialClearOnRevocation } = owned;
 	const {
-		clearOnRevocation: initialClearOnRevocation,
+		active: activeKernel,
 		external: externalRuntime,
-	} = owned;
-	const kernel = enabled
-		? owned.kernel
-		: (owned.disabledKernel ?? owned.kernel);
+		rendered: kernel,
+	} = selectProviderKernels(owned, props.runtime, enabled);
 	const ownsRuntime = externalRuntime === undefined;
 	useEffect(() => {
 		if (ownsRuntime || options.consentCategories !== undefined) {
@@ -1277,7 +1303,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		? resolveWindowDebugMode(options.mode)
 		: 'hosted';
 
-	useProviderOptionSync(owned.kernel, options, enabled, ownsRuntime);
+	useProviderOptionSync(activeKernel, options, enabled, ownsRuntime);
 	const lifecycle = useRef(0);
 	useEffect(() => {
 		if (!ownsRuntime) {
