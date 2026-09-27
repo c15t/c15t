@@ -42,6 +42,7 @@
  *   listeners and cancels the scheduled run.
  */
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
+import type { ConsentSnapshot, HydrationRecords } from '../../types';
 import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
 import {
 	choiceToWrite,
@@ -109,18 +110,49 @@ export const createPersistence = function createPersistence(
 	let choiceRecorded = false;
 	let vendorsRecorded = false;
 	let disposed = false;
+	// The subject id storage held at the last readable read or write, and
+	// the id a save generated because this runtime held none. An in-memory
+	// id equal to either yields to a stored subject; any other one came from
+	// the server and is kept.
+	let seenSubjectId: string | null | undefined;
+	let freshSubjectId: string | undefined;
+	let subjectBeforeSave: string | undefined;
+
+	const rememberSubject = function rememberSubject(
+		records: HydrationRecords
+	): void {
+		if (records.choice !== undefined) {
+			seenSubjectId = records.subject?.subjectId ?? null;
+		}
+	};
+
+	const subjectYields = function subjectYields(): boolean {
+		const id = kernel.getSnapshot().subject?.subjectId;
+		return !id || id === freshSubjectId || id === seenSubjectId;
+	};
 
 	const observe = function observe(kind?: StoredRecordKind): void {
 		if (typeof document === 'undefined') {
 			return;
 		}
-		const prints = fingerprintStoredRecords(
-			readStoredRecordsForReconcile(storageConfig, now()).records
-		);
+		const read = readStoredRecordsForReconcile(storageConfig, now());
+		const prints = fingerprintStoredRecords(read);
 		if (kind) {
 			seen[kind] = prints[kind];
 		} else {
 			seen = prints;
+		}
+		if (kind === undefined || kind === 'choice') {
+			rememberSubject(read.records);
+		}
+	};
+
+	const noteGeneratedSubject = function noteGeneratedSubject(
+		snapshot: ConsentSnapshot
+	): void {
+		const id = snapshot.subject?.subjectId;
+		if (id && !subjectBeforeSave) {
+			freshSubjectId = id;
 		}
 	};
 
@@ -133,7 +165,7 @@ export const createPersistence = function createPersistence(
 		at: number
 	): boolean {
 		const prints = fingerprintStoredRecords(
-			readStoredRecordsForReconcile(storageConfig, at).records
+			readStoredRecordsForReconcile(storageConfig, at)
 		);
 		return prints[kind] !== undefined && prints[kind] !== seen[kind];
 	};
@@ -153,7 +185,7 @@ export const createPersistence = function createPersistence(
 		if (explicitChoice) {
 			const subject = subjectOnly
 				? snapshot.subject
-				: subjectToWrite(snapshot.subject, stored?.subject);
+				: subjectToWrite(snapshot.subject, stored?.subject, subjectYields());
 			writeChoiceToStorage(
 				{ ...snapshot, explicitChoice, subject },
 				storedIab,
@@ -214,14 +246,22 @@ export const createPersistence = function createPersistence(
 		) {
 			const subject = subjectOnly
 				? snapshot.subject
-				: subjectToWrite(snapshot.subject, stored?.subject);
+				: subjectToWrite(snapshot.subject, stored?.subject, subjectYields());
 			writeVendorChoiceToStorage({ ...snapshot, subject }, storageConfig, at);
-			observe('vendors');
+			// As for the choice: a subject taken from storage stays marked as
+			// changed until reconciliation brings it into memory.
+			if (sameRecord(subject, snapshot.subject)) {
+				observe('vendors');
+			}
 		}
 	});
 
 	const unsubscribers = [
-		kernel.events.on('choice:recorded', () => {
+		kernel.events.on('command:save:started', () => {
+			subjectBeforeSave = kernel.getSnapshot().subject?.subjectId;
+		}),
+		kernel.events.on('choice:recorded', ({ snapshot }) => {
+			noteGeneratedSubject(snapshot);
 			choiceRecorded = true;
 			choiceWrites.schedule();
 		}),
@@ -240,7 +280,8 @@ export const createPersistence = function createPersistence(
 		kernel.events.on('privacy:opt-out', () => {
 			privacyWrites.schedule();
 		}),
-		kernel.events.on('vendors:recorded', () => {
+		kernel.events.on('vendors:recorded', ({ snapshot }) => {
+			noteGeneratedSubject(snapshot);
 			vendorsRecorded = true;
 			vendorWrites.schedule();
 		}),
@@ -303,7 +344,8 @@ export const createPersistence = function createPersistence(
 		if (!stored) {
 			return false;
 		}
-		seen = fingerprintStoredRecords(stored.records);
+		seen = fingerprintStoredRecords(stored);
+		rememberSubject(stored.records);
 		if (stored.records.choice !== undefined) {
 			storedIab = stored.iab;
 		}
@@ -330,11 +372,13 @@ export const createPersistence = function createPersistence(
 		const stored = readStoredRecordsForReconcile(storageConfig, at);
 		const next = selectReconciledRecords(
 			kernel.getSnapshot(),
-			stored.records,
+			stored,
 			seen,
-			at
+			at,
+			subjectYields()
 		);
 		({ seen } = next);
+		rememberSubject(stored.records);
 		if (!next.records) {
 			return false;
 		}

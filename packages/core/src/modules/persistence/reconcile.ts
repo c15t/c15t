@@ -44,6 +44,10 @@ import type {
 	HydrationRecords,
 	VendorChoice,
 } from '../../types';
+import type { StoredRecords } from './hydrate';
+
+/** The parts of a storage read that reconciliation consults. */
+export type StoredRead = Pick<StoredRecords, 'records' | 'vendorSubject'>;
 
 const canonical = function canonical(value: unknown): unknown {
 	if (Array.isArray(value)) {
@@ -109,7 +113,7 @@ const mergeDirectives = function mergeDirectives(
 };
 
 // ---------------------------------------------------------------------------
-// Writes
+// Subjects
 // ---------------------------------------------------------------------------
 
 /**
@@ -128,28 +132,40 @@ const hasNewerIdentity = function hasNewerIdentity(
 };
 
 /**
- * The subject to store with a merged record. A runtime opened before
- * another one stored a subject generates its own id on its first save; the
- * stored identity is carried forward so a reload and later backend saves
- * keep one subject. The runtime's own subject wins only when it carries a
- * newer identity from `identify()`.
+ * The subject to store with a merged record.
+ *
+ * The in-memory subject yields to the stored one when it is only a copy of
+ * what this runtime last read from storage, or an id this runtime generated
+ * on a save because it held none: a runtime opened before another one stored
+ * a subject then joins that subject. Any other in-memory id came from the
+ * server (init, prefetch or a save response) and wins, as does an identity
+ * set by `identify()`. Fields the winner lacks are filled from the other.
  *
  * @param ours - The subject in memory.
  * @param stored - The subject storage holds now, or `null`.
+ * @param oursYields - Whether the in-memory subject is a copy or generated.
  * @returns The subject to write.
  */
 export const subjectToWrite = function subjectToWrite(
 	ours: ConsentSubject | null,
-	stored: ConsentSubject | null | undefined
+	stored: ConsentSubject | null | undefined,
+	oursYields: boolean
 ): ConsentSubject | null {
 	if (!stored || Object.keys(stored).length === 0) {
 		return ours;
 	}
-	if (!ours || hasNewerIdentity(ours, stored)) {
-		return ours ?? { ...stored };
+	if (!ours) {
+		return { ...stored };
+	}
+	if (hasNewerIdentity(ours, stored) || !oursYields) {
+		return { ...stored, ...ours };
 	}
 	return { ...ours, ...stored };
 };
+
+// ---------------------------------------------------------------------------
+// Writes
+// ---------------------------------------------------------------------------
 
 /**
  * The choice to write over what storage holds, or `null` to skip the write.
@@ -161,9 +177,8 @@ export const subjectToWrite = function subjectToWrite(
  * or wrote the record; otherwise the record is this runtime's own and its
  * later action in the same millisecond wins. A write that only acknowledges
  * the server's subject id carries no new decision, so it lands only on a
- * record that still holds exactly this runtime's decisions: it never
- * recreates a record another runtime cleared, and never replaces one
- * another runtime wrote.
+ * record storage still holds from this runtime: it never recreates a record
+ * another runtime cleared, and never replaces one another runtime wrote.
  *
  * @param ours - The in-memory choice about to be written.
  * @param stored - The choice storage holds now, or `null`.
@@ -182,7 +197,9 @@ export const choiceToWrite = function choiceToWrite(
 		return null;
 	}
 	if (subjectOnly) {
-		return stored !== null && sameRecord(stored.categories, ours.categories)
+		return !storedWinsTies &&
+			stored !== null &&
+			sameRecord(stored.categories, ours.categories)
 			? ours
 			: null;
 	}
@@ -206,8 +223,8 @@ const isNewerThanStored = function isNewerThanStored(
 /**
  * Whether the vendor record may be written over what storage holds. The
  * newer record wins, ties follow the rule of {@link choiceToWrite}, and a
- * subject-only rewrite lands only on this runtime's own record. An
- * in-memory `null` never deletes a stored record.
+ * subject-only rewrite lands only on a record storage still holds from
+ * this runtime. An in-memory `null` never deletes a stored record.
  */
 export const mayWriteVendorChoice = function mayWriteVendorChoice(
 	ours: VendorChoice | null,
@@ -223,6 +240,7 @@ export const mayWriteVendorChoice = function mayWriteVendorChoice(
 	}
 	if (subjectOnly) {
 		return (
+			!storedWinsTies &&
 			stored.confirmedAt === ours.confirmedAt &&
 			sameRecord(stored.denied, ours.denied)
 		);
@@ -273,7 +291,8 @@ export type StoredRecordKind = 'choice' | 'notice' | 'privacy' | 'vendors';
 
 /**
  * What storage held for each record the last time this runtime read or
- * wrote it. A kind is missing until it was readable once.
+ * wrote it. A kind is missing while it was never readable: its state is
+ * unknown, which is different from absent.
  */
 export type StorageFingerprints = Partial<Record<StoredRecordKind, string>>;
 
@@ -281,20 +300,33 @@ const fingerprint = function fingerprint(value: unknown): string {
 	return JSON.stringify(canonical(value));
 };
 
+/** Fingerprints of readable storage holding none of the records. */
+const ABSENT: Record<StoredRecordKind, string> = {
+	choice: fingerprint(null),
+	notice: fingerprint(null),
+	privacy: fingerprint([]),
+	vendors: fingerprint([null, null]),
+};
+
 /**
- * Fingerprints of the readable records in a storage read. The subject is
- * part of the choice record: it is stored with the envelope, or with the
- * vendor record when no choice exists.
+ * Fingerprints of the readable records in a storage read. The envelope's
+ * print includes its subject; the vendor record's print includes the
+ * subject the vendor record itself carries. An absent envelope prints the
+ * same whatever subject the vendor record holds.
  *
- * @param stored - Records read from storage; omitted keys were unreadable.
+ * @param read - A storage read; omitted records were unreadable.
  * @returns One fingerprint per readable record.
  */
 export const fingerprintStoredRecords = function fingerprintStoredRecords(
-	stored: HydrationRecords
+	read: StoredRead
 ): StorageFingerprints {
+	const { records: stored } = read;
 	const prints: StorageFingerprints = {};
 	if (stored.choice !== undefined) {
-		prints.choice = fingerprint([stored.choice, stored.subject ?? null]);
+		prints.choice =
+			stored.choice === null
+				? ABSENT.choice
+				: fingerprint([stored.choice, stored.subject ?? null]);
 	}
 	if (stored.noticeDismissal !== undefined) {
 		prints.notice = fingerprint(stored.noticeDismissal);
@@ -303,42 +335,59 @@ export const fingerprintStoredRecords = function fingerprintStoredRecords(
 		prints.privacy = fingerprint(stored.optOutDirectives);
 	}
 	if (stored.vendorChoice !== undefined) {
-		prints.vendors = fingerprint(stored.vendorChoice);
+		prints.vendors = fingerprint([
+			stored.vendorChoice,
+			stored.vendorChoice ? read.vendorSubject : null,
+		]);
 	}
 	return prints;
 };
 
-type Changed = (kind: StoredRecordKind) => boolean;
+/** How storage moved for one record since this runtime last saw it. */
+interface Movement {
+	/** The record is readable and differs from what was last seen. */
+	changed: (kind: StoredRecordKind) => boolean;
+	/** A record last seen present is now readable and absent. */
+	removed: (kind: StoredRecordKind) => boolean;
+}
 
 /** Whether a changed single-decision record should replace memory. */
 const adoptNewer = function adoptNewer<RecordType>(
 	current: RecordType | null,
 	stored: RecordType | null,
+	removed: boolean,
 	timeOf: (record: RecordType) => number
 ): boolean {
 	if (sameRecord(current, stored)) {
 		return false;
 	}
-	if (stored === null || current === null) {
-		// Removal clears; a first record is adopted.
+	if (stored === null) {
+		return removed;
+	}
+	if (current === null) {
 		return true;
 	}
 	return timeOf(stored) >= timeOf(current);
 };
 
 /**
- * The subject to apply, or `undefined` to keep the one in memory. The
- * subject belongs to the record it was stored with: the envelope, or the
- * vendor record for a visitor whose only decision is about vendors. A
- * stored subject replaces the one in memory when the stored choice is at
- * least as recent overall; an absent one never erases an identity held
- * alongside a choice.
+ * The subject to apply, or `undefined` to keep the one in memory.
+ *
+ * The subject belongs to the record it was stored with: the envelope, or
+ * the vendor record for a visitor whose only decision is about vendors. It
+ * is only considered when that record changed in storage, so focus or an
+ * unrelated key never moves the subject. A subject that yields (see
+ * {@link subjectToWrite}) is replaced by a stored one at least as recent; an
+ * id the server resolved is replaced only by a strictly newer stored
+ * choice. An identity from `identify()` is never replaced, and an absent
+ * stored subject never erases one held alongside a choice.
  */
 const reconcileSubject = function reconcileSubject(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
 	records: HydrationRecords,
-	changed: Changed
+	movement: Movement,
+	subjectYields: boolean
 ): HydrationRecords['subject'] {
 	const { explicitChoice } = snapshot;
 	let candidate: HydrationRecords['subject'];
@@ -346,26 +395,22 @@ const reconcileSubject = function reconcileSubject(
 		// The choice was cleared: take whatever identity storage still has.
 		candidate = stored.subject ?? null;
 	} else if (stored.choice) {
-		// A stored subject at least as recent as the choice in memory is the
-		// shared identity, unless this runtime identified a different user.
-		const current =
-			explicitChoice === null ||
-			latestDecisionAt(stored.choice) >= latestDecisionAt(explicitChoice);
+		const relevant = movement.changed('choice') || records.choice !== undefined;
+		const storedAt = latestDecisionAt(stored.choice);
+		const memoryAt = latestDecisionAt(explicitChoice);
+		const recent = subjectYields ? storedAt >= memoryAt : storedAt > memoryAt;
 		candidate =
-			current &&
+			relevant &&
+			recent &&
 			stored.subject &&
 			!hasNewerIdentity(snapshot.subject, stored.subject)
 				? stored.subject
 				: undefined;
-	} else if (explicitChoice === null) {
+	} else if (explicitChoice === null && movement.changed('vendors')) {
 		// No choice on either side, or an unreadable one: the vendor record
 		// carries the subject.
-		const relevant =
-			stored.choice === null ? changed('choice') : changed('vendors');
 		candidate =
-			relevant && (stored.choice === null || stored.subject)
-				? stored.subject
-				: undefined;
+			stored.choice === null || stored.subject ? stored.subject : undefined;
 	}
 	return candidate !== undefined && !sameRecord(snapshot.subject, candidate)
 		? candidate
@@ -376,25 +421,32 @@ const reconcileSubject = function reconcileSubject(
 const reconcileChoice = function reconcileChoice(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
-	changed: Changed
+	movement: Movement,
+	subjectYields: boolean
 ): HydrationRecords {
 	const records: HydrationRecords = {};
 	const { explicitChoice } = snapshot;
 	if (stored.choice === null) {
-		if (changed('choice') && explicitChoice !== null) {
+		if (movement.removed('choice') && explicitChoice !== null) {
 			records.choice = null;
 		}
 	} else if (stored.choice) {
 		// On equal times a decision another runtime stored since this one
 		// last looked wins; otherwise the stored record is this runtime's own.
-		const merged = changed('choice')
+		const merged = movement.changed('choice')
 			? mergeNewestChoice(stored.choice, explicitChoice)
 			: mergeNewestChoice(explicitChoice, stored.choice);
 		if (!sameRecord(merged, explicitChoice)) {
 			records.choice = merged;
 		}
 	}
-	const subject = reconcileSubject(snapshot, stored, records, changed);
+	const subject = reconcileSubject(
+		snapshot,
+		stored,
+		records,
+		movement,
+		subjectYields
+	);
 	if (subject !== undefined) {
 		records.subject = subject;
 	}
@@ -405,14 +457,14 @@ const reconcileChoice = function reconcileChoice(
 const reconcileDirectives = function reconcileDirectives(
 	current: readonly PrivacyOptOut[],
 	stored: readonly PrivacyOptOut[] | undefined,
-	changed: Changed
+	movement: Movement
 ): readonly PrivacyOptOut[] | undefined {
 	if (!stored) {
 		return undefined;
 	}
 	if (stored.length === 0) {
-		// An emptied list is a clear, but only once it changed.
-		return changed('privacy') && current.length > 0 ? [] : undefined;
+		// An emptied list is a clear, but only once storage lost it.
+		return movement.removed('privacy') && current.length > 0 ? [] : undefined;
 	}
 	const merged = mergeDirectives(current, stored);
 	return sameRecord(merged, mergeDirectives(current, [])) ? undefined : merged;
@@ -432,27 +484,38 @@ export interface ReconciledRecords {
  * read never touches the kernel or notifies anyone.
  *
  * @param snapshot - The kernel's current snapshot.
- * @param stored - Records read from storage; omitted keys were unreadable.
+ * @param read - A storage read; omitted records were unreadable.
  * @param seen - Fingerprints from the previous read or write.
  * @param now - Read time, used as the evaluation time.
+ * @param subjectYields - Whether the in-memory subject yields to a stored
+ * one (see {@link subjectToWrite}).
  * @returns The records to hydrate and the fingerprints to keep.
  */
 export const selectReconciledRecords = function selectReconciledRecords(
 	snapshot: ConsentSnapshot,
-	stored: HydrationRecords,
+	read: StoredRead,
 	seen: StorageFingerprints,
-	now: number
+	now: number,
+	subjectYields: boolean
 ): ReconciledRecords {
-	const current = fingerprintStoredRecords(stored);
-	const changed: Changed = (kind) =>
-		current[kind] !== undefined && current[kind] !== seen[kind];
-	const records = reconcileChoice(snapshot, stored, changed);
+	const { records: stored } = read;
+	const current = fingerprintStoredRecords(read);
+	const movement: Movement = {
+		changed: (kind) =>
+			current[kind] !== undefined && current[kind] !== seen[kind],
+		removed: (kind) =>
+			current[kind] === ABSENT[kind] &&
+			seen[kind] !== undefined &&
+			seen[kind] !== ABSENT[kind],
+	};
+	const records = reconcileChoice(snapshot, stored, movement, subjectYields);
 
 	if (
-		changed('vendors') &&
+		movement.changed('vendors') &&
 		adoptNewer(
 			snapshot.vendorChoice,
 			stored.vendorChoice ?? null,
+			movement.removed('vendors'),
 			(record) => record.confirmedAt
 		)
 	) {
@@ -460,10 +523,11 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	}
 
 	if (
-		changed('notice') &&
+		movement.changed('notice') &&
 		adoptNewer(
 			snapshot.noticeDismissal,
 			stored.noticeDismissal ?? null,
+			movement.removed('notice'),
 			(record) => record.dismissedAt
 		)
 	) {
@@ -473,7 +537,7 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	const directives = reconcileDirectives(
 		snapshot.optOutDirectives,
 		stored.optOutDirectives,
-		changed
+		movement
 	);
 	if (directives) {
 		records.optOutDirectives = directives;

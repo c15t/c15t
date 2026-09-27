@@ -642,3 +642,140 @@ test('a save after identifying a different user stores that identity', async () 
 		active.kernel.getSnapshot().subject?.subjectId
 	);
 });
+
+test('a seeded choice survives storage becoming readable and empty', () => {
+	const now = Date.now();
+	const localStorageGetter = vi
+		.spyOn(window, 'localStorage', 'get')
+		.mockImplementation(() => {
+			throw new DOMException('Storage access blocked', 'SecurityError');
+		});
+	const cookieGetter = vi
+		.spyOn(document, 'cookie', 'get')
+		.mockImplementation(() => {
+			throw new DOMException('Cookies blocked', 'SecurityError');
+		});
+	const active = start({
+		prefetch: {
+			initialPolicyResolution: resolution,
+			initialRecords: {
+				choice: explicitChoice(
+					{ measurement: true },
+					{ fingerprint: resolution.fingerprints.choice, now }
+				),
+				now,
+			},
+		},
+	});
+	expect(measurement(active)).toBe(true);
+
+	localStorageGetter.mockRestore();
+	cookieGetter.mockRestore();
+
+	// Storage was never seen holding this choice, so empty storage is no
+	// evidence that it was removed.
+	expect(active.reconcileStorage()).toBe(false);
+	expect(measurement(active)).toBe(true);
+});
+
+test('a subject stored with a vendor record does not clear a choice held in memory', () => {
+	const active = start();
+	const now = Date.now();
+	active.kernel.hydrate({
+		choice: explicitChoice(
+			{ measurement: true },
+			{
+				fingerprint:
+					active.kernel.getSnapshot().evaluationPolicy.choice.fingerprint,
+				now,
+			}
+		),
+		now,
+	});
+
+	writeStoredVendorChoice(
+		{
+			confirmedAt: now - 1000,
+			denied: ['meta-pixel'],
+			subject: { subjectId: 'sub_vendor' },
+			version: 1,
+		},
+		undefined,
+		now
+	);
+
+	active.reconcileStorage();
+	expect(measurement(active)).toBe(true);
+	expect(active.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+		'meta-pixel',
+	]);
+});
+
+test('a late subject acknowledgement does not replace a subject another runtime stored in the same millisecond', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	const vendors = [
+		{
+			category: 'measurement' as const,
+			id: 'analytics-one',
+			name: 'Analytics One',
+			privacyPolicyUrl: 'https://example.com/privacy',
+		},
+	];
+	const response = Promise.withResolvers<{ ok: true; subjectId: string }>();
+	const late = start(
+		{ vendors },
+		createTransport({ save: vi.fn(() => response.promise) })
+	);
+	const other = start({ vendors });
+	const input = { measurement: true, vendors: { 'analytics-one': false } };
+
+	void late.kernel.commands.save(input);
+	void other.kernel.commands.save(input);
+	other.dispose();
+	const subjectId = other.kernel.getSnapshot().subject?.subjectId;
+	await nextTask();
+	await nextTask();
+
+	response.resolve({ ok: true, subjectId: 'sub_late_server' });
+	await vi.waitFor(() => {
+		expect(late.kernel.getSnapshot().subject?.subjectId).toBe(
+			'sub_late_server'
+		);
+	});
+	await nextTask();
+
+	expect(storedSubject()?.subjectId).toBe(subjectId);
+	const vendorRecord = readStoredVendorChoice(undefined, Date.now());
+	expect(vendorRecord?.ok ? vendorRecord.record.subject?.subjectId : null).toBe(
+		subjectId
+	);
+});
+
+test('a subject the server resolved at init outlives unchanged storage and is saved', async () => {
+	await start().kernel.commands.save('all');
+	await nextTask();
+	const storedId = storedSubject()?.subjectId;
+	expect(storedId).toBeTruthy();
+
+	const active = start(
+		{ prefetch: {} },
+		createTransport({
+			init: vi.fn().mockResolvedValue({
+				policyResolution: writePolicyResolutionWire(resolution),
+				subjectId: 'sub_server',
+			}),
+		})
+	);
+	await vi.waitFor(() => {
+		expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+	});
+
+	window.dispatchEvent(new Event('focus'));
+	await nextTask();
+	expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+
+	await active.kernel.commands.save({ measurement: false });
+	await nextTask();
+	expect(storedSubject()?.subjectId).toBe('sub_server');
+});

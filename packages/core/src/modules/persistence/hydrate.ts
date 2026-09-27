@@ -8,6 +8,7 @@
  * `now`, and everything is applied through `kernel.hydrate()`, which
  * validates again and never emits a choice event.
  */
+import type { ConsentSubject } from '../../consent-record/types';
 import type { ConsentKernel, HydrationRecords } from '../../types';
 import type { StoredIabMetadata, StoredVendorChoice } from './record-codec';
 import {
@@ -32,6 +33,12 @@ export interface StoredRecords {
 	found: boolean;
 	/** Diagnostics for every inspected consent candidate. */
 	candidates: StoredConsentSelection['candidates'];
+	/**
+	 * The subject the vendor record itself carries, `null` when it carries
+	 * none or no vendor record is stored. The envelope's subject wins in
+	 * `records.subject`, so this is the only place the vendor copy shows.
+	 */
+	vendorSubject: ConsentSubject | null;
 }
 
 /**
@@ -75,6 +82,7 @@ const composeRecords = function composeRecords(
 		found: selected !== null || [notice, privacy, vendors].some((r) => r?.ok),
 		iab: selected?.iab ?? null,
 		records,
+		vendorSubject: vendorRecord?.subject ?? null,
 	};
 };
 
