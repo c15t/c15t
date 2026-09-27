@@ -106,6 +106,13 @@ localStorage, so the browser sends them no `storage` event. They pick up the
 change on their next focus or visibility change, or when you reconcile
 yourself (see below).
 
+The `storage` event only exists for localStorage. When localStorage is
+unavailable (blocked by the browser, a sandboxed frame or a privacy mode) and
+c15t stores in the cookie alone, another tab's change arrives only on the next
+focus or visibility change, or when you call `runtime.reconcileStorage()` or
+`persistence.reconcile()`. c15t does not poll the cookie or use a
+`BroadcastChannel` for this.
+
 Browser persistence reads stored records again at these moments:
 
 | Moment | What happens |
@@ -165,6 +172,38 @@ Stored records are merged into the ones in memory:
 
 Expiry is not decided here. The applied records are evaluated at the time of the
 read, the same way as at startup.
+
+### Clearing records across tabs
+
+`clearRecords()` removes every record and then stores the time of the clear,
+the clear epoch, under its own key: `c15t-epoch` in localStorage and a cookie
+of the same name (`<storageKey>-epoch` with a custom `storageKey`). Clearing
+never removes it. Every consent record written afterwards also records the
+epoch it was written under.
+
+A decision confirmed before the epoch was made before the clear, so it is void
+wherever it turns up:
+
+- A tab that reconciles only after another tab cleared and saved again drops
+  its pre-clear decisions instead of merging them back. Its subject from before
+  the clear is dropped too.
+- A tab that missed the clear writes only decisions it made after it. Its queued
+  write of an earlier decision is discarded, so it cannot bring back a cleared
+  record.
+- Browser hydration and server reads (`readStoredRecordsFromCookieHeader`, used
+  by the Next.js, TanStack Start, Nuxt, SvelteKit and Astro helpers) apply the
+  same rule, so a server render agrees with the browser.
+
+Records from before any clear, including v2 and legacy records, read as epoch 0
+and are unaffected. A corrupt or future epoch, or one that cannot be read, also
+reads as 0: it voids nothing, so a failed read never grants a category.
+
+This changes the stored format. After a clear, the consent cookie carries
+`&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes),
+and the epoch cookie itself holds a 13-digit time. Visitors who never cleared
+their records store exactly what they did before. An older c15t build rejects a
+consent cookie that carries the epoch, so a page still running one shows the
+prompt again rather than applying the record.
 
 ### Ordering with pending writes
 

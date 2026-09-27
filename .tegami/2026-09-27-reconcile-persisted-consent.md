@@ -22,7 +22,8 @@ Browser persistence reads stored records again when another tab on the same
 origin changes a c15t localStorage key, when the page becomes visible and when
 the window regains focus. A tab on another subdomain that shares the consent
 cookie gets no `storage` event and catches up on its next focus or visibility
-change. Category decisions merge per category, keeping the newer decision for
+change, and so does every tab when localStorage is unavailable and only the
+cookie is stored. Category decisions merge per category, keeping the newer decision for
 each, and privacy directives merge as a union. A stored notice or vendor record
 replaces the one in memory unless it is older. A record removed from storage is
 cleared, so the active policy decides again. Blocked storage or bytes that do
@@ -46,6 +47,20 @@ previous choice. Selections changed in this tab without saving are kept. A
 TC string that grants any purpose of a category denied after it was saved
 is withdrawn and not restored on the next page load; a partial purpose
 selection saved through IAB keeps its TC string.
+
+Clearing records now stores the clear epoch, the time of the clear, under
+`c15t-epoch` in localStorage and a cookie of the same name, and clearing never
+removes it. Every consent record written afterwards records its epoch too.
+Decisions confirmed before the epoch are void everywhere: a tab that reconciles
+after another tab cleared and saved again drops its pre-clear decisions, a tab
+that missed the clear cannot write them back, and browser hydration and server
+reads (`readStoredRecordsFromCookieHeader`) ignore them. Records from before any
+clear, including v2 and legacy records, read as epoch 0 and are unaffected.
+
+This changes the stored format: after a clear, the consent cookie gains
+`&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes).
+Visitors who never cleared store what they did before. Older c15t builds reject
+a consent cookie that carries the epoch and treat the visitor as undecided.
 
 New API:
 
