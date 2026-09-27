@@ -158,6 +158,7 @@ describe('createHostedRecordTransport', () => {
 			decisionInputs: {
 				country: 'DE',
 				fingerprint: 'fp',
+				gpc: false,
 				language: 'en',
 				policyId: 'gdpr',
 				region: null,
@@ -189,7 +190,9 @@ describe('createHostedRecordTransport', () => {
 	});
 
 	test('reads a subject record back through the lazily loaded reviver', async () => {
-		const fetch = vi.fn(() => Promise.resolve(jsonResponse({}, 404)));
+		const fetch = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) =>
+			Promise.resolve(jsonResponse({}, 404))
+		);
 		const records = createHostedRecordTransport({
 			backendURL: '/api/c15t',
 			fetch,
