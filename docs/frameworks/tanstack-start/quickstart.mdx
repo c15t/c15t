@@ -114,6 +114,69 @@ settings. The server resolves the visitor's `ConsentState`; `ConsentRoot`
 uses it for the first client render. `initRoute={false}` sends browser
 initialization to `${backendURL}/init`, matching this direct-backend setup.
 
+## Stream the page while consent resolves
+
+The loader above awaits the server function, so TanStack Start sends no part
+of the response until the consent state is ready. With a warm manifest cache
+that takes a few milliseconds. The first request after a server starts, or any
+request while the backend is slow or down, waits for the backend, for at most
+the prefetch's `timeoutMs` (500 ms by default; see
+[add a same-origin proxy](#add-a-same-origin-proxy-when-needed)).
+
+To send the page without waiting, return the pending server function call
+from the loader instead of awaiting it. TanStack Router streams the promise,
+and `ConsentRoot` accepts it as `state`. This partial example keeps the
+imports, `scripts`, `backendURL` and `getConsentState` from the root-route
+setup above:
+
+```tsx title="src/routes/__root.tsx"
+export const Route = createRootRoute({
+  ...consentLoaderOptions,
+  loader: () => ({ consent: getConsentState() }),
+  head: () => ({ links: [{ rel: 'stylesheet', href: consentCss }] }),
+  component: Root,
+});
+
+function Root() {
+  const { consent } = Route.useLoaderData();
+  return (
+    <html lang="en">
+      <head><HeadContent /></head>
+      <body>
+        <ConsentRoot state={consent} backendURL={backendURL} initRoute={false} scripts={scripts}>
+          <Outlet />
+          <ConsentBanner />
+          <ConsentDialog />
+          <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+        </ConsentRoot>
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+```
+
+The trade-off is the banner. The awaited loader puts the banner in the server
+HTML, so it paints with the page. The streamed loader renders the page without
+consent UI; the banner mounts after hydration, once the promise resolves. Until
+then no optional category is granted, so gated scripts and embeds stay
+blocked, and a returning visitor's stored choice applies when the state
+arrives. If the server gives up on the manifest after `timeoutMs`, the promise
+resolves to the cookie-and-headers state and the browser runs init itself.
+
+In a test app on a 170 ms round trip with 4× CPU throttling, a cold manifest
+cache and a backend answering in 200 ms, the awaited loader painted at 628 ms
+and the streamed one at 428 ms. With a warm cache both painted at 424 ms, and
+the banner appeared at 433 ms with the awaited loader and 719 ms with the
+streamed one. When the backend stopped answering, the awaited loader held the
+page for over 10 seconds, measured before the prefetch had a `timeoutMs`; it
+now gives up after 500 ms by default. The streamed one painted at 424 ms.
+
+Keep the awaited loader when the banner should be in the first paint and the
+backend is reliable. Stream when even the `timeoutMs` wait for a slow or
+unavailable backend must not delay the page, for example on serverless hosts where many requests start with a
+cold manifest cache.
+
 ## Customize the theme
 
 Import `defineTheme` from `c15t/tanstack-start` to define colors and radius
