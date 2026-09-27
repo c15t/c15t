@@ -841,3 +841,58 @@ test('a later category denial withdraws a TC string granting any of its purposes
 	await vi.advanceTimersByTimeAsync(1);
 	expect(fresh.getSnapshot().iab?.authority ?? null).toBeNull();
 });
+
+test('a newer choice from a sibling subdomain withdraws the TC string it cannot read', async () => {
+	// This subdomain saved everything and holds that authority.
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	addon.acceptAll();
+	await addon.save();
+	storage.reconcile();
+	const ownReceipt = localStorage.getItem('c15t-iab-authority-v1');
+	const held = kernel.getSnapshot().iab?.authority?.tcString;
+	expect(held).toBeTruthy();
+
+	// A sibling subdomain saves a vendor-only change later. The consent
+	// cookie is shared; its receipt lands in the sibling's own localStorage.
+	vi.setSystemTime(NOW + 1000);
+	const sibling = makeKernel();
+	const siblingStorage = createPersistence({ kernel: sibling, sync: false });
+	disposers.push(siblingStorage.dispose);
+	const siblingAddon = createAddon(sibling);
+	await vi.waitFor(() =>
+		expect(sibling.getSnapshot().iab?.authority).not.toBeNull()
+	);
+	siblingAddon.acceptAll();
+	siblingAddon.setVendorConsent(755, false);
+	await siblingAddon.save();
+	// Vendor-only: the categories stay granted, so nothing conflicts.
+	expect(
+		sibling.getSnapshot().explicitChoice?.categories.marketing?.value
+	).toBe(true);
+	siblingStorage.reconcile();
+	expect(sibling.getSnapshot().iab?.authority?.tcString).not.toBe(held);
+	// Only the cookie is shared: this origin still has its own receipt.
+	localStorage.setItem('c15t-iab-authority-v1', ownReceipt ?? '');
+	localStorage.removeItem('c15t');
+
+	expect(kernel.getSnapshot().iab?.authority?.tcString).toBe(held);
+	const reconciled = storage.reconcile();
+	expect(reconciled).toBe(true);
+	await vi.advanceTimersByTimeAsync(1);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority ?? null).toBeNull()
+	);
+	// The receipt is left for this origin's next save to replace.
+	expect(localStorage.getItem('c15t-iab-authority-v1')).toBe(ownReceipt);
+
+	// A fresh page on this subdomain does not restore the stale receipt.
+	const fresh = makeKernel();
+	const freshStorage = createPersistence({ kernel: fresh, sync: false });
+	disposers.push(freshStorage.dispose);
+	createAddon(fresh);
+	await vi.advanceTimersByTimeAsync(1);
+	expect(fresh.getSnapshot().iab?.authority ?? null).toBeNull();
+});

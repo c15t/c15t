@@ -364,26 +364,52 @@ const withoutDeniedPurposes = function withoutDeniedPurposes(
 };
 
 /**
- * Whether a stored receipt should replace the held authority: it grants
- * nothing the choice denies, differs, and is at least as new or replaces a
- * held authority that conflicts with the choice.
+ * Whether a TC authority no longer describes the choice: the choice holds a
+ * category decision confirmed after the authority was. An IAB save stamps
+ * its category decisions with the authority's confirmation time, so a
+ * later decision came from another action, such as an IAB save on a sibling
+ * subdomain whose receipt this origin's localStorage cannot read.
+ */
+const predatesChoice = function predatesChoice(
+	authority: KernelIABAuthority,
+	choice: ExplicitChoice | null
+): boolean {
+	return Object.values(choice?.categories ?? {}).some(
+		(decision) =>
+			decision !== undefined && decision.confirmedAt > authority.confirmedAt
+	);
+};
+
+/** Whether an authority may be published for `choice`. */
+const fitsChoice = function fitsChoice(
+	authority: KernelIABAuthority,
+	choice: ExplicitChoice | null
+): boolean {
+	return (
+		!grantsDeniedCategory(authority, choice) &&
+		!predatesChoice(authority, choice)
+	);
+};
+
+/**
+ * Whether a stored receipt should replace the held authority: it fits the
+ * choice (see {@link fitsChoice}), differs, and is at least as new or
+ * replaces a held authority that no longer fits.
  */
 const shouldInstallReceipt = function shouldInstallReceipt(
 	receipt: KernelIABAuthority | null,
 	held: KernelIABAuthority | null,
-	heldConflicts: boolean,
+	heldUnfit: boolean,
 	choice: ExplicitChoice
 ): receipt is KernelIABAuthority {
 	if (
 		!receipt ||
-		grantsDeniedCategory(receipt, choice) ||
+		!fitsChoice(receipt, choice) ||
 		receipt.tcString === held?.tcString
 	) {
 		return false;
 	}
-	return (
-		held === null || heldConflicts || held.confirmedAt <= receipt.confirmedAt
-	);
+	return held === null || heldUnfit || held.confirmedAt <= receipt.confirmedAt;
 };
 
 const changedSelections = (
@@ -613,8 +639,9 @@ export const createIAB = function createIAB(
 		if (
 			authority &&
 			unchangedSince(hydrationSnapshot, recordsGeneration, generation) &&
-			// A receipt granting what the stored choice denies is not restored.
-			!grantsDeniedCategory(authority, hydrationSnapshot.explicitChoice)
+			// A receipt that grants what the stored choice denies, or predates
+			// it, is not restored.
+			fitsChoice(authority, hydrationSnapshot.explicitChoice)
 		) {
 			kernel.set.iab({ authority, tcString: authority.tcString });
 			revisionAtAuthority = selectionRevision;
@@ -633,7 +660,9 @@ export const createIAB = function createIAB(
 		choice: ExplicitChoice
 	): void {
 		const held = readIAB(kernel).authority;
-		const heldConflicts = held !== null && grantsDeniedCategory(held, choice);
+		// A held authority that grants what the choice denies, or that
+		// predates it, is withdrawn unless a fitting receipt replaces it.
+		const heldConflicts = held !== null && !fitsChoice(held, choice);
 		const keepSelections = selectionRevision !== revisionAtAuthority;
 		if (shouldInstallReceipt(receipt, held, heldConflicts, choice)) {
 			const update: Partial<KernelIABState> = {
