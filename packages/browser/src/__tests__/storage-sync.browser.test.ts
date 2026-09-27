@@ -66,3 +66,26 @@ it('clearing records in one page returns the other to the policy default', async
 	expect(second.client.getSnapshot().activeUI).not.toBe('none');
 	expect(second.notifications.at(-1)).toBe(false);
 });
+
+it('a clear and a partial save in one page do not bring back cleared categories in the other', async () => {
+	const first = await openPage();
+	const second = await openPage();
+
+	await first.client.acceptAll();
+	await expect.poll(() => measurement(second)).toBe(true);
+
+	// One uninterrupted burst in the other page: clear, record one category,
+	// land its write. The first page reconciles once, after all of it.
+	second.client.runtime.clearRecords();
+	void second.recordOnly({ marketing: false });
+	second.client.runtime.reconcileStorage();
+
+	const marketing = () =>
+		first.client.getSnapshot().explicitChoice?.categories.marketing?.value;
+	await expect.poll(marketing).toBe(false);
+	// Granted before the clear and never decided again.
+	expect(
+		first.client.getSnapshot().explicitChoice?.categories.measurement
+	).toBeUndefined();
+	expect(measurement(first)).toBe(false);
+});
