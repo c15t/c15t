@@ -265,6 +265,34 @@ export const validatePublisherRestrictions =
 	};
 
 /**
+ * Copies restriction input so later changes to the caller's array or its
+ * entries cannot change what is validated and encoded. Anything that is not
+ * an array is returned as is for {@link validatePublisherRestrictions} to
+ * reject; holes become `undefined` entries, which it also rejects.
+ *
+ * @param input - Restrictions as configured.
+ * @returns A copy that shares no arrays or entries with `input`.
+ *
+ * @internal
+ */
+export const copyPublisherRestrictionInput =
+	function copyPublisherRestrictionInput(input: unknown): unknown {
+		if (!Array.isArray(input)) {
+			return input;
+		}
+		return Array.from(input, (entry: unknown) =>
+			isPlainObject(entry)
+				? {
+						...entry,
+						vendorIds: Array.isArray(entry.vendorIds)
+							? Array.from(entry.vendorIds)
+							: entry.vendorIds,
+					}
+				: entry
+		);
+	};
+
+/**
  * Converts restrictions to the `__tcfapi` shape: purpose ID, then vendor
  * ID, then restriction type.
  *

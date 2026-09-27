@@ -46,7 +46,9 @@ import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
 import type { PublisherRestriction } from './tcf/iab-tcf-types';
 import { getTCFCore } from './tcf/lazy-load';
 import {
+	copyPublisherRestrictionInput,
 	PUBLISHER_RESTRICTION_TYPES,
+	PublisherRestrictionError,
 	validatePublisherRestrictions,
 } from './tcf/publisher-restrictions';
 import {
@@ -81,6 +83,8 @@ export interface CreateIABOptions {
 	 * applied when c15t gates IAB scripts. Checked against the vendor list
 	 * once it loads: an unsupported restriction rejects `whenReady()`,
 	 * `generateTCString()` and `save()` with a `PublisherRestrictionError`.
+	 * The error is permanent for this handle: `whenReady()` does not retry.
+	 * The array is copied when the handle is created.
 	 */
 	publisherRestrictions?: PublisherRestriction[];
 	/** Store saved TC strings in cookies and localStorage. Default: true.
@@ -651,9 +655,13 @@ export const createIAB = function createIAB(
 	const isServiceSpecific = options.isServiceSpecific ?? true;
 	/** Restrictions checked against the most recently published list. */
 	let publisherRestrictions: PublisherRestriction[] = [];
+	// Later changes to the caller's array must not change what is encoded.
+	const configuredRestrictions = copyPublisherRestrictionInput(
+		options.publisherRestrictions
+	);
 	const restrictionsForBlanket = (gvl: GlobalVendorList) => {
 		try {
-			return validatePublisherRestrictions(options.publisherRestrictions, {
+			return validatePublisherRestrictions(configuredRestrictions, {
 				gvl,
 				isServiceSpecific,
 			});
@@ -1071,7 +1079,7 @@ export const createIAB = function createIAB(
 			// An unsupported restriction stops the CMP here, before any TC
 			// string could be written or published without it.
 			publisherRestrictions = validatePublisherRestrictions(
-				options.publisherRestrictions,
+				configuredRestrictions,
 				{ gvl, isServiceSpecific }
 			);
 			const beforePublish = kernel.getSnapshot();
@@ -1136,7 +1144,13 @@ export const createIAB = function createIAB(
 
 	const whenReady = async (): Promise<void> => {
 		// A later user action retries a failed request; concurrent callers share it.
-		if (initializationError && !disposed) {
+		// Invalid restrictions stay invalid, so retrying would only replace a
+		// supplied list with a fetched one.
+		if (
+			initializationError &&
+			!disposed &&
+			!(initializationError instanceof PublisherRestrictionError)
+		) {
 			initialization = initialize(undefined, reference);
 		}
 		let pending: Promise<void>;
@@ -1146,6 +1160,9 @@ export const createIAB = function createIAB(
 			// oxlint-disable-next-line no-await-in-loop -- Each iteration follows a new initialization generation.
 			await Promise.race([pending, replaced]);
 		} while (pending !== initialization);
+		if (initializationError instanceof PublisherRestrictionError) {
+			throw initializationError;
+		}
 		if (initializationError) {
 			throw new Error(
 				`Unable to load IAB privacy settings: ${initializationError instanceof Error ? initializationError.message : 'vendor list request failed'}`,
@@ -1330,7 +1347,10 @@ export const createIAB = function createIAB(
 			disclosed[id] = true;
 		}
 		return {
-			publisherRestrictions: options.publisherRestrictions,
+			// Validated again by the encoder, which rejects unsupported input.
+			publisherRestrictions: configuredRestrictions as
+				| PublisherRestriction[]
+				| undefined,
 			purposeConsents: { ...iab.purposeConsents },
 			purposeLegitimateInterests: { ...iab.purposeLegitimateInterests },
 			specialFeatureOptIns: { ...iab.specialFeatureOptIns },

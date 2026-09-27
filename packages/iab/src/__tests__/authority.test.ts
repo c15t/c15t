@@ -1537,13 +1537,46 @@ test('unsupported publisher restrictions reject readiness and save', async () =>
 		],
 	});
 	disposers.push(addon.dispose);
-	await expect(addon.whenReady()).rejects.toThrow(
-		/Unable to load IAB privacy settings: Vendor 755 must declare purpose 2/u
-	);
+	const fetchList = vi.fn();
+	vi.stubGlobal('fetch', fetchList);
+	disposers.push(() => vi.unstubAllGlobals());
+	// A configuration error is terminal: retrying must neither drop the
+	// supplied list nor fetch another one.
+	const first = addon.whenReady();
+	await expect(first).rejects.toBeInstanceOf(PublisherRestrictionError);
+	await expect(first).rejects.toThrow(/Vendor 755 must declare purpose 2/u);
+	await expect(addon.whenReady()).rejects.toBe(await first.catch((e) => e));
+	expect(fetchList).not.toHaveBeenCalled();
 	addon.acceptAll();
 	await expect(addon.save()).rejects.toBeInstanceOf(PublisherRestrictionError);
 	expect(kernel.getSnapshot().iab?.authority).toBeNull();
 	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+});
+
+test('changing the restrictions array after mount does not change what is encoded', async () => {
+	const kernel = makeKernel();
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as 0 | 1 | 2, vendorIds: [755] },
+	];
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel,
+		publisherRestrictions,
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	publisherRestrictions.push({
+		purposeId: 2,
+		restrictionType: 2,
+		vendorIds: [755],
+	});
+	addon.acceptAll();
+	await addon.save();
+	const authority = kernel.getSnapshot().iab?.authority;
+	expect(authority?.publisherRestrictions).toEqual([
+		{ purposeId: 7, restrictionType: 0, vendorIds: [755] },
+	]);
 });
 
 test('stored authority must carry the configured publisher restrictions', async () => {
