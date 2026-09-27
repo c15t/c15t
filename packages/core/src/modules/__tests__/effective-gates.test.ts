@@ -11,7 +11,11 @@ import {
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../kernel';
 import { hasGlobalPrivacyControlSignal } from '../../libs/global-privacy-control';
-import type { ConsentKernel, KernelIABAuthority } from '../../types';
+import type {
+	ConsentKernel,
+	GlobalVendorList,
+	KernelIABAuthority,
+} from '../../types';
 import { evaluateConsent } from '../has';
 import { createIframeBlocker } from '../iframe-blocker';
 import { createNetworkBlocker } from '../network-blocker';
@@ -277,6 +281,59 @@ test('historical addon confirmation evaluates expiry using the current clock', a
 		kernel.getSnapshot().explicitChoice?.categories.marketing?.confirmedAt
 	).toBe(NOW);
 	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+});
+
+test('IAB gates apply confirmed publisher restrictions with list flexibility', () => {
+	const kernel = createConsentKernel({
+		initialIab: {
+			enabled: true,
+			gvl: {
+				vendors: {
+					755: { flexiblePurposes: [2], legIntPurposes: [], purposes: [2] },
+				},
+			} as unknown as GlobalVendorList,
+		},
+		initialPolicyResolution: matchedResolution(iabRule()),
+		now: NOW,
+	});
+	disposers.push(kernel.dispose);
+	const target = {
+		category: 'marketing' as const,
+		iabPurposes: [2],
+		vendorId: 755,
+	};
+	installAuthority(kernel, {
+		purposeConsents: { 2: true },
+		purposeLegitimateInterests: { 2: true },
+		vendorLegitimateInterests: { '755': true },
+	});
+	expect(evaluateConsent(target, kernel.getSnapshot())).toBe(true);
+
+	installAuthority(kernel, {
+		publisherRestrictions: [
+			{ purposeId: 2, restrictionType: 0, vendorIds: [755] },
+		],
+		purposeConsents: { 2: true },
+	});
+	expect(evaluateConsent(target, kernel.getSnapshot())).toBe(false);
+
+	// Required LI: the list marks purpose 2 flexible, so LI satisfies it.
+	installAuthority(kernel, {
+		publisherRestrictions: [
+			{ purposeId: 2, restrictionType: 2, vendorIds: [755] },
+		],
+		purposeConsents: { 2: true },
+		purposeLegitimateInterests: { 2: true },
+		vendorLegitimateInterests: { '755': true },
+	});
+	expect(evaluateConsent(target, kernel.getSnapshot())).toBe(true);
+	installAuthority(kernel, {
+		publisherRestrictions: [
+			{ purposeId: 2, restrictionType: 2, vendorIds: [755] },
+		],
+		purposeConsents: { 2: true },
+	});
+	expect(evaluateConsent(target, kernel.getSnapshot())).toBe(false);
 });
 
 test('strict scope and changed policy reject IAB authority', () => {

@@ -20,6 +20,7 @@ import type {
 	TCFApiCallback,
 	TCFConsentData,
 } from './iab-tcf-types';
+import { toTCDataRestrictions } from './publisher-restrictions';
 import { clearStubQueue, getStubQueue } from './stub';
 import { decodeTCString } from './tc-string';
 
@@ -125,18 +126,23 @@ export const createCMPApi = function createCMPApi(
 		);
 		let specialFeatureOptins: Record<number, boolean> =
 			currentConsentData?.specialFeatureOptIns ?? {};
+		// Restrictions always come from the string vendors receive.
+		let restrictions: Record<number, Record<number, number>> = {};
 
 		// Decode TC string if present
-		if (tcString && !currentConsentData) {
+		if (tcString) {
 			try {
 				const decoded = await decodeTCString(tcString);
-				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-				purposeConsents = decoded.purposeConsents;
-				purposeLegitInterests = decoded.purposeLegitimateInterests;
-				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-				vendorConsents = decoded.vendorConsents;
-				vendorLegitInterests = decoded.vendorLegitimateInterests;
-				specialFeatureOptins = decoded.specialFeatureOptIns;
+				restrictions = toTCDataRestrictions(decoded.publisherRestrictions);
+				if (!currentConsentData) {
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+					purposeConsents = decoded.purposeConsents;
+					purposeLegitInterests = decoded.purposeLegitimateInterests;
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+					vendorConsents = decoded.vendorConsents;
+					vendorLegitInterests = decoded.vendorLegitimateInterests;
+					specialFeatureOptins = decoded.specialFeatureOptIns;
+				}
 			} catch {
 				// Invalid TC string, use empty values
 			}
@@ -161,7 +167,7 @@ export const createCMPApi = function createCMPApi(
 					legitimateInterests: {},
 				},
 				legitimateInterests: {},
-				restrictions: {},
+				restrictions,
 			},
 			publisherCC: 'US',
 			purpose: {

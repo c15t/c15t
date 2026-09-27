@@ -43,7 +43,12 @@ import {
 } from './authority';
 import { createCMPApi } from './tcf/cmp-api';
 import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
+import type { PublisherRestriction } from './tcf/iab-tcf-types';
 import { getTCFCore } from './tcf/lazy-load';
+import {
+	PUBLISHER_RESTRICTION_TYPES,
+	validatePublisherRestrictions,
+} from './tcf/publisher-restrictions';
 import {
 	C15T_TO_IAB_PURPOSE_MAP,
 	c15tConsentsToIabPurposes,
@@ -71,6 +76,13 @@ export interface CreateIABOptions {
 	publisherCountryCode?: string;
 	/** Whether the CMP is service-specific. Default: true. */
 	isServiceSpecific?: boolean;
+	/**
+	 * Publisher restrictions encoded into every TC string this CMP saves and
+	 * applied when c15t gates IAB scripts. Checked against the vendor list
+	 * once it loads: an unsupported restriction rejects `whenReady()`,
+	 * `generateTCString()` and `save()` with a `PublisherRestrictionError`.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 	/** Store saved TC strings in cookies and localStorage. Default: true.
 	 * Set false for an in-memory playground; the kernel save transport still runs.
 	 */
@@ -135,6 +147,14 @@ const createIABProviderConfig = function createIABProviderConfig(
 
 export { createIABProviderConfig as iab };
 export { initializeIABStub, destroyIABStub } from './tcf/stub';
+export type { PublisherRestriction } from './tcf/iab-tcf-types';
+export {
+	CONSENT_ONLY_PURPOSES,
+	PUBLISHER_RESTRICTION_TYPES,
+	PublisherRestrictionError,
+	validatePublisherRestrictions,
+} from './tcf/publisher-restrictions';
+export type { PublisherRestrictionContext } from './tcf/publisher-restrictions';
 
 /**
  * Handle returned by `createIAB`. Provides imperative control over the
@@ -237,24 +257,40 @@ const readIAB = function readIAB(kernel: ConsentKernel) {
 const applyBlanket = function applyBlanket(
 	kernel: ConsentKernel,
 	gvl: GlobalVendorList,
-	value: boolean
+	value: boolean,
+	restrictions: readonly PublisherRestriction[] = []
 ): void {
 	const vendors = [
 		...Object.values(gvl.vendors ?? {}),
 		...readIAB(kernel).customVendors,
 	];
+	// A restriction can move a vendor's flexible purpose to the other legal
+	// basis, so that basis needs a vendor signal too.
+	const movedTo = (type: number) =>
+		new Set(
+			restrictions
+				.filter((restriction) => restriction.restrictionType === type)
+				.flatMap((restriction) => restriction.vendorIds.map(String))
+		);
+	const movedToConsent = movedTo(PUBLISHER_RESTRICTION_TYPES.REQUIRE_CONSENT);
+	const movedToLegitimateInterest = movedTo(
+		PUBLISHER_RESTRICTION_TYPES.REQUIRE_LEGITIMATE_INTEREST
+	);
 	const purposeIds = Object.keys(gvl.purposes ?? {}).map(Number);
 	const specialFeatureIds = Object.keys(gvl.specialFeatures ?? {}).map(Number);
 	const vendorConsents: Record<string, boolean> = Object.fromEntries(
 		vendors.map((vendor) => [
 			String(vendor.id),
-			value && vendor.purposes.length > 0,
+			value &&
+				(vendor.purposes.length > 0 || movedToConsent.has(String(vendor.id))),
 		])
 	);
 	const vendorLegitimateInterests: Record<string, boolean> = Object.fromEntries(
 		vendors.map((vendor) => [
 			String(vendor.id),
-			value && (vendor.legIntPurposes?.length ?? 0) > 0,
+			value &&
+				((vendor.legIntPurposes?.length ?? 0) > 0 ||
+					movedToLegitimateInterest.has(String(vendor.id))),
 		])
 	);
 	const purposeConsents: Record<number, boolean> = {};
@@ -612,6 +648,20 @@ export const createIAB = function createIAB(
 	options: CreateIABOptions
 ): IABHandle {
 	const { kernel, cmpId, cmpVersion = 1, vendors, gvlURL } = options;
+	const isServiceSpecific = options.isServiceSpecific ?? true;
+	/** Restrictions checked against the most recently published list. */
+	let publisherRestrictions: PublisherRestriction[] = [];
+	const restrictionsForBlanket = (gvl: GlobalVendorList) => {
+		try {
+			return validatePublisherRestrictions(options.publisherRestrictions, {
+				gvl,
+				isServiceSpecific,
+			});
+		} catch {
+			// whenReady(), generateTCString() and save() report this error.
+			return [];
+		}
+	};
 
 	const preloadedGvl = resolvePreloadedGvl(kernel, options);
 	let reference =
@@ -736,7 +786,8 @@ export const createIAB = function createIAB(
 		const authority = await validateAuthority(
 			readAuthorityReceipt(),
 			hydrationSnapshot,
-			Date.now()
+			Date.now(),
+			publisherRestrictions
 		);
 		if (
 			authority &&
@@ -994,7 +1045,8 @@ export const createIAB = function createIAB(
 					customLegitimateInterests: retained.vendorLegitimateInterests,
 				},
 				{ ...snapshot, iab: { ...iab, gvl } },
-				Date.now()
+				Date.now(),
+				publisherRestrictions
 			)
 		);
 	};
@@ -1016,6 +1068,12 @@ export const createIAB = function createIAB(
 				kernel.set.iab({ enabled: false, gvl: null });
 				return;
 			}
+			// An unsupported restriction stops the CMP here, before any TC
+			// string could be written or published without it.
+			publisherRestrictions = validatePublisherRestrictions(
+				options.publisherRestrictions,
+				{ gvl, isServiceSpecific }
+			);
 			const beforePublish = kernel.getSnapshot();
 			const retained = beforePublish.iab?.authority;
 			const validAuthority = await retainedAuthorityMatchesList(
@@ -1123,7 +1181,7 @@ export const createIAB = function createIAB(
 			if ((await waitForReferencedList()) && revision === selectionRevision) {
 				const { gvl } = readIAB(kernel);
 				if (gvl) {
-					applyBlanket(kernel, gvl, value);
+					applyBlanket(kernel, gvl, value, restrictionsForBlanket(gvl));
 				}
 			}
 		} catch {
@@ -1272,6 +1330,7 @@ export const createIAB = function createIAB(
 			disclosed[id] = true;
 		}
 		return {
+			publisherRestrictions: options.publisherRestrictions,
 			purposeConsents: { ...iab.purposeConsents },
 			purposeLegitimateInterests: { ...iab.purposeLegitimateInterests },
 			specialFeatureOptIns: { ...iab.specialFeatureOptIns },
@@ -1300,7 +1359,7 @@ export const createIAB = function createIAB(
 		const tcString = await generateTCString(consentData, iab.gvl, {
 			cmpId,
 			cmpVersion,
-			isServiceSpecific: options.isServiceSpecific ?? true,
+			isServiceSpecific,
 			publisherCountryCode: options.publisherCountryCode ?? 'US',
 		});
 		if (
@@ -1327,7 +1386,7 @@ export const createIAB = function createIAB(
 			if (!gvl) {
 				return;
 			}
-			applyBlanket(kernel, gvl, true);
+			applyBlanket(kernel, gvl, true, restrictionsForBlanket(gvl));
 		},
 		get cmpApi() {
 			return cmpApi;
@@ -1368,7 +1427,7 @@ export const createIAB = function createIAB(
 			if (!gvl) {
 				return;
 			}
-			applyBlanket(kernel, gvl, false);
+			applyBlanket(kernel, gvl, false, restrictionsForBlanket(gvl));
 		},
 		// oxlint-disable-next-line complexity -- Keep the async save cancellation checks together.
 		async save() {
@@ -1396,13 +1455,14 @@ export const createIAB = function createIAB(
 				cmpId,
 				cmpVersion,
 				confirmedAt: actionAt,
-				isServiceSpecific: options.isServiceSpecific ?? true,
+				isServiceSpecific,
 				publisherCountryCode: options.publisherCountryCode ?? 'US',
 			});
 			const authority = await validateAuthority(
 				{ ...receipt, tcString },
 				snapshot,
-				Date.now()
+				Date.now(),
+				publisherRestrictions
 			);
 			if (
 				!authority ||

@@ -137,6 +137,14 @@ export const copyIABAuthority = function copyIABAuthority(
 	}
 	return {
 		...authority,
+		...(authority.publisherRestrictions && {
+			publisherRestrictions: authority.publisherRestrictions.map(
+				(restriction) => ({
+					...restriction,
+					vendorIds: [...restriction.vendorIds],
+				})
+			),
+		}),
 		purposeConsents: { ...authority.purposeConsents },
 		purposeLegitimateInterests: { ...authority.purposeLegitimateInterests },
 		specialFeatureOptIns: { ...authority.specialFeatureOptIns },

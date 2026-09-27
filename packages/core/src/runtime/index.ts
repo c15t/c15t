@@ -351,6 +351,7 @@ const normalizeIABOptions = function normalizeIABOptions(
 		gvlURL: iab.gvlURL,
 		isServiceSpecific: iab.isServiceSpecific,
 		publisherCountryCode: iab.publisherCountryCode,
+		publisherRestrictions: iab.publisherRestrictions,
 		vendors: iab.vendors,
 	};
 };

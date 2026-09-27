@@ -7,6 +7,7 @@ import { evaluateConsentRecord } from '../consent-record/evaluate';
 import type { AllConsentNames } from '../consent/consent-types';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
+import type { PublisherRestriction } from '../options/iab-tcf';
 import type { ConsentSnapshot } from '../types';
 
 export type { HasCondition };
@@ -24,7 +25,95 @@ export interface IABConsentInputs {
 	purposeConsents: Record<number, boolean>;
 	purposeLegitimateInterests: Record<number, boolean>;
 	specialFeatureOptIns: Record<number, boolean>;
+	/** Publisher restrictions from the confirmed TC string. */
+	publisherRestrictions?: readonly PublisherRestriction[];
 }
+
+/**
+ * The part of a vendor's Global Vendor List entry that publisher
+ * restrictions depend on.
+ */
+export interface IABVendorDeclaration {
+	/** Purposes the vendor accepts on either legal basis. */
+	flexiblePurposes?: readonly number[];
+}
+
+/** Purposes TCF allows only with consent (policy version 4 and later). */
+const CONSENT_ONLY_PURPOSES = new Set([1, 3, 4, 5, 6]);
+
+interface LegalBases {
+	consent: number[];
+	legitimateInterest: number[];
+}
+
+/**
+ * Applies publisher restrictions to the purposes a target declares.
+ * Returns `null` when a restriction forbids the processing.
+ */
+const restrictLegalBases = function restrictLegalBases(
+	target: IABTarget,
+	restrictions: readonly PublisherRestriction[] | undefined,
+	declaration: IABVendorDeclaration | undefined
+): LegalBases | null {
+	const consent = [...(target.iabPurposes ?? [])];
+	const legitimateInterest = [...(target.iabLegIntPurposes ?? [])];
+	const vendorId = Number(target.vendorId);
+	if (
+		target.vendorId === undefined ||
+		!Number.isInteger(vendorId) ||
+		!restrictions?.length
+	) {
+		return { consent, legitimateInterest };
+	}
+	const typeFor = (purposeId: number): number | undefined => {
+		let type: number | undefined;
+		for (const restriction of restrictions) {
+			if (
+				restriction.purposeId === purposeId &&
+				restriction.vendorIds.includes(vendorId)
+			) {
+				// Contradicting restrictions leave no legal basis.
+				type =
+					type === undefined || type === restriction.restrictionType
+						? restriction.restrictionType
+						: 0;
+			}
+		}
+		return type;
+	};
+	const flexible = (purposeId: number) =>
+		declaration?.flexiblePurposes?.includes(purposeId) === true;
+	const bases: LegalBases = { consent: [], legitimateInterest: [] };
+	for (const purposeId of consent) {
+		const type = typeFor(purposeId);
+		if (type === 0) {
+			return null;
+		}
+		if (type === 2) {
+			if (!flexible(purposeId) || CONSENT_ONLY_PURPOSES.has(purposeId)) {
+				return null;
+			}
+			bases.legitimateInterest.push(purposeId);
+		} else {
+			bases.consent.push(purposeId);
+		}
+	}
+	for (const purposeId of legitimateInterest) {
+		const type = typeFor(purposeId);
+		if (type === 0) {
+			return null;
+		}
+		if (type === 1) {
+			if (!flexible(purposeId)) {
+				return null;
+			}
+			bases.consent.push(purposeId);
+		} else {
+			bases.legitimateInterest.push(purposeId);
+		}
+	}
+	return bases;
+};
 
 /**
  * Whatever is being gated (script, network rule, iframe) may carry IAB
@@ -46,16 +135,37 @@ export interface IABTarget {
  * - If `iabLegIntPurposes` set, require ALL in `purposeLegitimateInterests`.
  * - If `iabSpecialFeatures` set, require ALL in `specialFeatureOptIns`.
  *
+ * Publisher restrictions for the target's `vendorId` apply first:
+ * - Type 0 denies a target that declares the purpose on either basis.
+ * - Type 1 moves an LI purpose to consent; type 2 moves a consent purpose
+ *   to LI. The move needs the purpose in the vendor's `flexiblePurposes`,
+ *   and type 2 never applies to purposes 1 and 3 to 6. Otherwise the
+ *   target is denied, because the vendor has no permitted legal basis.
+ *
  * Missing IAB fields are vacuously true — an empty IAB target passes.
+ *
+ * @param target - IAB metadata of the script, rule or iframe.
+ * @param iab - Confirmed IAB signals and publisher restrictions.
+ * @param declaration - The target vendor's vendor list entry, if any.
+ * @returns Whether the target may run.
  */
 export const hasIABConsent = function hasIABConsent(
 	target: IABTarget,
-	iab: IABConsentInputs
+	iab: IABConsentInputs,
+	declaration?: IABVendorDeclaration
 ): boolean {
+	const bases = restrictLegalBases(
+		target,
+		iab.publisherRestrictions,
+		declaration
+	);
+	if (!bases) {
+		return false;
+	}
 	if (target.vendorId !== undefined) {
 		const key = String(target.vendorId);
-		const needsLI = (target.iabLegIntPurposes?.length ?? 0) > 0;
-		const needsConsent = !needsLI || (target.iabPurposes?.length ?? 0) > 0;
+		const needsLI = bases.legitimateInterest.length > 0;
+		const needsConsent = !needsLI || bases.consent.length > 0;
 		if (
 			needsLI &&
 			(!Object.hasOwn(iab.vendorLegitimateInterests, key) ||
@@ -72,12 +182,12 @@ export const hasIABConsent = function hasIABConsent(
 		}
 	}
 	return (
-		(target.iabPurposes ?? []).every(
+		bases.consent.every(
 			(id) =>
 				Object.hasOwn(iab.purposeConsents, id) &&
 				iab.purposeConsents[id] === true
 		) &&
-		(target.iabLegIntPurposes ?? []).every(
+		bases.legitimateInterest.every(
 			(id) =>
 				Object.hasOwn(iab.purposeLegitimateInterests, id) &&
 				iab.purposeLegitimateInterests[id] === true
@@ -181,6 +291,18 @@ export const getEffectiveGateState = function getEffectiveGateState(
 	};
 };
 
+/** The target vendor's entry in the loaded vendor list, if any. */
+const vendorDeclaration = function vendorDeclaration(
+	snapshot: ConsentSnapshot,
+	vendorId: IABTarget['vendorId']
+): IABVendorDeclaration | undefined {
+	const vendors = snapshot.iab?.gvl?.vendors;
+	const key = String(vendorId);
+	return vendorId !== undefined && vendors && Object.hasOwn(vendors, key)
+		? vendors[key]
+		: undefined;
+};
+
 const hasCurrentIABAuthority = function hasCurrentIABAuthority(
 	snapshot: ConsentSnapshot,
 	now: number
@@ -249,7 +371,11 @@ export const evaluateConsent = function evaluateConsent<
 				return false;
 			}
 		}
-		return hasIABConsent(target, authority);
+		return hasIABConsent(
+			target,
+			authority,
+			vendorDeclaration(snapshot, target.vendorId)
+		);
 	}
 
 	const allowed = has(target.category, effective.effectivePermissions);

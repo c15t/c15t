@@ -11,8 +11,13 @@ import { describe, expect, test } from 'vitest';
 
 import { choiceRecords } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../index';
-import type { ConsentSnapshot, KernelIABState } from '../../types';
+import type {
+	ConsentSnapshot,
+	KernelIABAuthority,
+	KernelIABState,
+} from '../../types';
 import { evaluateConsent, has, hasIABConsent } from '../has';
+import type { IABConsentInputs } from '../has';
 
 const iabSlice = function iabSlice(
 	patch: Partial<KernelIABState> = {}
@@ -121,6 +126,123 @@ describe('hasIABConsent — v2 parity', () => {
 
 	test('empty IAB target is vacuously true', () => {
 		expect(hasIABConsent({}, iabSlice())).toBe(true);
+	});
+});
+
+describe('hasIABConsent — publisher restrictions', () => {
+	/** Vendor 755 grants every signal; purposes 2 and 7 are flexible. */
+	const granted = (
+		publisherRestrictions: KernelIABAuthority['publisherRestrictions']
+	): IABConsentInputs => ({
+		...iabSlice({
+			purposeConsents: { 1: true, 2: true, 3: true, 7: true },
+			purposeLegitimateInterests: { 2: true, 7: true },
+			vendorConsents: { '755': true },
+			vendorLegitimateInterests: { '755': true },
+		}),
+		publisherRestrictions,
+	});
+	const flexible = { flexiblePurposes: [2, 7] };
+
+	test('purpose prohibited (type 0) denies on either legal basis', () => {
+		const iab = granted([
+			{ purposeId: 2, restrictionType: 0, vendorIds: [755] },
+		]);
+		expect(
+			hasIABConsent({ iabPurposes: [2], vendorId: 755 }, iab, flexible)
+		).toBe(false);
+		expect(
+			hasIABConsent({ iabLegIntPurposes: [2], vendorId: 755 }, iab, flexible)
+		).toBe(false);
+		// Other purposes and other vendors are unaffected.
+		expect(
+			hasIABConsent({ iabPurposes: [7], vendorId: 755 }, iab, flexible)
+		).toBe(true);
+		expect(
+			hasIABConsent(
+				{ iabPurposes: [2], vendorId: 1 },
+				{ ...iab, vendorConsents: { '1': true } },
+				flexible
+			)
+		).toBe(true);
+	});
+
+	test('consent required (type 1): legitimate interest no longer satisfies', () => {
+		const target = { iabLegIntPurposes: [7], vendorId: 755 };
+		const restrictions = [
+			{ purposeId: 7, restrictionType: 1 as const, vendorIds: [755] },
+		];
+		expect(hasIABConsent(target, granted(restrictions), flexible)).toBe(true);
+		expect(
+			hasIABConsent(
+				target,
+				{ ...granted(restrictions), purposeConsents: { 7: false } },
+				flexible
+			)
+		).toBe(false);
+		expect(
+			hasIABConsent(
+				target,
+				{ ...granted(restrictions), vendorConsents: {} },
+				flexible
+			)
+		).toBe(false);
+		// Without flexibility the vendor has no permitted legal basis.
+		expect(hasIABConsent(target, granted(restrictions), {})).toBe(false);
+	});
+
+	test('legitimate interest required (type 2): consent no longer satisfies', () => {
+		const target = { iabPurposes: [2], vendorId: 755 };
+		const restrictions = [
+			{ purposeId: 2, restrictionType: 2 as const, vendorIds: [755] },
+		];
+		expect(hasIABConsent(target, granted(restrictions), flexible)).toBe(true);
+		expect(
+			hasIABConsent(
+				target,
+				{ ...granted(restrictions), purposeLegitimateInterests: {} },
+				flexible
+			)
+		).toBe(false);
+		expect(
+			hasIABConsent(
+				target,
+				{ ...granted(restrictions), vendorLegitimateInterests: {} },
+				flexible
+			)
+		).toBe(false);
+		expect(hasIABConsent(target, granted(restrictions), {})).toBe(false);
+	});
+
+	test('legitimate interest is never allowed for consent-only purposes', () => {
+		const iab = granted([
+			{ purposeId: 3, restrictionType: 2, vendorIds: [755] },
+		]);
+		expect(
+			hasIABConsent({ iabPurposes: [3], vendorId: 755 }, iab, {
+				flexiblePurposes: [3],
+			})
+		).toBe(false);
+	});
+
+	test('a restriction matching the declared basis changes nothing', () => {
+		const iab = granted([
+			{ purposeId: 2, restrictionType: 1, vendorIds: [755] },
+			{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+		]);
+		expect(
+			hasIABConsent(
+				{ iabLegIntPurposes: [7], iabPurposes: [2], vendorId: 755 },
+				iab
+			)
+		).toBe(true);
+	});
+
+	test('restrictions need a vendorId to apply', () => {
+		const iab = granted([
+			{ purposeId: 2, restrictionType: 0, vendorIds: [755] },
+		]);
+		expect(hasIABConsent({ iabPurposes: [2] }, iab)).toBe(true);
 	});
 });
 

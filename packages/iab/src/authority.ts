@@ -1,5 +1,7 @@
 import type { ConsentSnapshot, KernelIABAuthority } from '@c15t/core';
 
+import type { PublisherRestriction } from './tcf/iab-tcf-types';
+import { sameListedRestrictions } from './tcf/publisher-restrictions';
 import { decodeTCString } from './tcf/tc-string';
 import type { DecodedTCString } from './tcf/tc-string';
 
@@ -155,11 +157,16 @@ const compatibleTC = function compatibleTC(
 	);
 };
 
-/** Decode TC authority and check its receipt, current policy and original clock. */
+/**
+ * Decode TC authority and check its receipt, current policy and original clock.
+ * The string's publisher restrictions must match the configured ones for
+ * every listed vendor; a configuration change asks the visitor again.
+ */
 export const validateAuthority = async function validateAuthority(
 	input: unknown,
 	snapshot: ConsentSnapshot,
-	now: number
+	now: number,
+	publisherRestrictions: readonly PublisherRestriction[] = []
 ): Promise<KernelIABAuthority | null> {
 	if (
 		!input ||
@@ -178,7 +185,14 @@ export const validateAuthority = async function validateAuthority(
 	const { tcString, confirmedAt, expiresAt, choiceFingerprint } = receipt;
 	try {
 		const decoded = await decodeTCString(tcString);
-		if (!compatibleTC(decoded, receipt, snapshot)) {
+		if (
+			!compatibleTC(decoded, receipt, snapshot) ||
+			!sameListedRestrictions(
+				decoded.publisherRestrictions,
+				publisherRestrictions,
+				snapshot.iab.gvl?.vendors
+			)
+		) {
 			return null;
 		}
 		const vendorConsents = { ...decoded.vendorConsents };
@@ -204,6 +218,7 @@ export const validateAuthority = async function validateAuthority(
 			choiceFingerprint,
 			confirmedAt,
 			expiresAt,
+			publisherRestrictions: decoded.publisherRestrictions,
 			purposeConsents: decoded.purposeConsents,
 			purposeLegitimateInterests: decoded.purposeLegitimateInterests,
 			specialFeatureOptIns: decoded.specialFeatureOptIns,

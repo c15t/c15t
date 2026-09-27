@@ -92,6 +92,8 @@ export interface ConsentRuntimeIABFactoryOptions {
 	publisherCountryCode?: string;
 	/** Whether the CMP is service-specific rather than global. */
 	isServiceSpecific?: boolean;
+	/** Publisher restrictions to encode and enforce. */
+	publisherRestrictions?: IABConfig['publisherRestrictions'];
 	/** Pre-fetched Global Vendor List, or `null` to disable IAB mode. */
 	gvl?: GlobalVendorList | null;
 	/** Override the GVL endpoint. */

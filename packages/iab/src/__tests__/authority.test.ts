@@ -12,6 +12,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createAuthorityReceipt, validateAuthority } from '../authority';
 import { createIAB } from '../index';
 import type { IABHandle } from '../index';
+import { PublisherRestrictionError } from '../tcf/publisher-restrictions';
 import { decodeTCString, generateTCString } from '../tcf/tc-string';
 import { completeGVL } from './fixtures/gvl-sample';
 
@@ -586,7 +587,7 @@ test.each(['subject', 'identity', 'new-save'] as const)(
 	}
 );
 
-test.each(['clock', 'fingerprint', 'maps', 'expiry'] as const)(
+test.each(['clock', 'fingerprint', 'maps', 'expiry', 'restrictions'] as const)(
 	'invalid addon %s is an atomic no-op',
 	async (field) => {
 		const original = makeKernel();
@@ -609,6 +610,11 @@ test.each(['clock', 'fingerprint', 'maps', 'expiry'] as const)(
 		}
 		if (field === 'expiry') {
 			invalid.expiresAt = NOW;
+		}
+		if (field === 'restrictions') {
+			Reflect.set(invalid, 'publisherRestrictions', [
+				{ purposeId: 2, restrictionType: 3, vendorIds: [755] },
+			]);
 		}
 		const send = vi.fn();
 		const kernel = makeKernel({ save: send });
@@ -1452,4 +1458,100 @@ test('a save refusing consent but keeping legitimate interest keeps its TC strin
 	expect(storage.reconcile()).toBe(true);
 	await vi.advanceTimersByTimeAsync(10);
 	expect(kernel.getSnapshot().iab?.authority ?? null).toBeNull();
+});
+
+test('save encodes configured publisher restrictions and gates apply them', async () => {
+	const kernel = makeKernel();
+	const publisherRestrictions = [
+		{ purposeId: 2, restrictionType: 2 as const, vendorIds: [755] },
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel,
+		publisherRestrictions,
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	addon.acceptAll();
+	// Vendor 755 declares no LI purposes; the LI restriction still needs its signal.
+	expect(kernel.getSnapshot().iab?.vendorLegitimateInterests['755']).toBe(true);
+	await addon.save();
+	const authority = kernel.getSnapshot().iab?.authority;
+	expect(authority?.publisherRestrictions).toEqual(publisherRestrictions);
+	expect(
+		(await decodeTCString(authority?.tcString ?? '')).publisherRestrictions
+	).toEqual(publisherRestrictions);
+
+	const gate = (iabPurposes: number[]) =>
+		evaluateConsent(
+			{ category: 'marketing', iabPurposes, vendorId: 755 },
+			kernel.getSnapshot()
+		);
+	expect(gate([1])).toBe(true);
+	expect(gate([7])).toBe(false);
+	expect(gate([2])).toBe(true);
+
+	const tcData = await new Promise<unknown>((resolve) => {
+		window.__tcfapi?.('getTCData', 2, (value) => resolve(value));
+	});
+	expect(tcData).toMatchObject({
+		publisher: { restrictions: { 2: { 755: 2 }, 7: { 755: 0 } } },
+	});
+
+	addon.setPurposeLegitimateInterest(2, false);
+	await addon.save();
+	// Consent alone no longer satisfies purpose 2 for vendor 755.
+	expect(kernel.getSnapshot().iab?.authority?.purposeConsents[2]).toBe(true);
+	expect(gate([2])).toBe(false);
+});
+
+test('unsupported publisher restrictions reject readiness and save', async () => {
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel,
+		// Vendor 755 declares purpose 2 for consent, so requiring consent is void.
+		publisherRestrictions: [
+			{ purposeId: 2, restrictionType: 1, vendorIds: [755] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await expect(addon.whenReady()).rejects.toThrow(
+		/Unable to load IAB privacy settings: Vendor 755 must declare purpose 2/u
+	);
+	addon.acceptAll();
+	await expect(addon.save()).rejects.toBeInstanceOf(PublisherRestrictionError);
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+});
+
+test('stored authority must carry the configured publisher restrictions', async () => {
+	const kernel = makeKernel();
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	const tcString = await generateTCString(
+		{ ...data, publisherRestrictions },
+		completeGVL,
+		{ cmpId: 28 }
+	);
+	const receipt = createAuthorityReceipt(kernel.getSnapshot(), tcString, NOW);
+	expect(
+		await validateAuthority(receipt, kernel.getSnapshot(), NOW)
+	).toBeNull();
+	expect(
+		await validateAuthority(receipt, kernel.getSnapshot(), NOW, [
+			{ purposeId: 7, restrictionType: 0, vendorIds: [755, 2] },
+		])
+	).toBeNull();
+	const authority = await validateAuthority(
+		receipt,
+		kernel.getSnapshot(),
+		NOW,
+		publisherRestrictions
+	);
+	expect(authority?.publisherRestrictions).toEqual(publisherRestrictions);
 });
