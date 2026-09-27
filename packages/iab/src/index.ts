@@ -83,7 +83,8 @@ export interface CreateIABOptions {
 	 * applied when c15t gates IAB scripts. Checked against the vendor list
 	 * once it loads: an unsupported restriction rejects `whenReady()`,
 	 * `generateTCString()` and `save()` with a `PublisherRestrictionError`.
-	 * The error is permanent for this handle: `whenReady()` does not retry.
+	 * `whenReady()` does not retry it. With an explicit `gvl` it lasts for the
+	 * handle; otherwise a replacement vendor list is checked again.
 	 * The array is copied when the handle is created.
 	 */
 	publisherRestrictions?: PublisherRestriction[];

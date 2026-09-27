@@ -18,10 +18,12 @@ reserves, a vendor or purpose missing from the list, and a vendor with two
 restriction types for one purpose. They are never dropped. Loading IAB settings,
 saving and generating a TC String all reject with a `PublisherRestrictionError`
 exported by `@c15t/iab`. On a `createIAB` handle these are `whenReady()`,
-`save()` and `generateTCString()`. The error is permanent for that handle:
-`whenReady()` does not retry or fetch another vendor list, and saving keeps
-failing even if the kernel later receives a different list. No TC String is
-written and no consent is recorded. When a replacement vendor list makes a
+`save()` and `generateTCString()`. No TC String is written and no consent is
+recorded. Retrying `whenReady()` does not fetch another vendor list. The error
+lasts until a new vendor list is set up: with an explicit `gvl` option that
+never happens, so saving keeps failing even if the kernel later holds a
+different list. When the CMP follows the kernel's list instead, a replacement
+list is checked again and saving works once it accepts the restrictions. When a replacement vendor list makes a
 restriction unsupported, c15t also clears the TC authority confirmed under the
 previous list, so gated scripts stop until the configuration is fixed. Because the check reads the current vendor
 list, a vendor that stops declaring a purpose or its flexibility makes a
