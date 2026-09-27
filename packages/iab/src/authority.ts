@@ -158,6 +158,26 @@ const compatibleTC = function compatibleTC(
 };
 
 /**
+ * Keeps the vendor list's vendors in each restriction. A decoded range can
+ * cover IDs the list does not have, and gates must not apply it to a custom
+ * vendor that happens to use one of those numbers. The TC string itself
+ * still carries the range as encoded.
+ */
+const listedRestrictions = function listedRestrictions(
+	restrictions: readonly PublisherRestriction[],
+	vendors: Record<string, unknown> | undefined
+): PublisherRestriction[] {
+	return restrictions
+		.map((restriction) => ({
+			...restriction,
+			vendorIds: restriction.vendorIds.filter((id) =>
+				Object.hasOwn(vendors ?? {}, id)
+			),
+		}))
+		.filter((restriction) => restriction.vendorIds.length > 0);
+};
+
+/**
  * Decode TC authority and check its receipt, current policy and original clock.
  * The string's publisher restrictions must match the configured ones for
  * every listed vendor; a configuration change asks the visitor again. Pass
@@ -219,7 +239,10 @@ export const validateAuthority = async function validateAuthority(
 			choiceFingerprint,
 			confirmedAt,
 			expiresAt,
-			publisherRestrictions: decoded.publisherRestrictions,
+			publisherRestrictions: listedRestrictions(
+				decoded.publisherRestrictions,
+				snapshot.iab.gvl?.vendors
+			),
 			purposeConsents: decoded.purposeConsents,
 			purposeLegitimateInterests: decoded.purposeLegitimateInterests,
 			specialFeatureOptIns: decoded.specialFeatureOptIns,

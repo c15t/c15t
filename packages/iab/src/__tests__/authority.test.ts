@@ -1805,3 +1805,50 @@ test('a list that accepts the restrictions after a rejected one restores stored 
 		expect(kernel.getSnapshot().iab?.authority).not.toBeNull()
 	);
 });
+
+test('restrictions decoded from a range never reach an unlisted custom vendor', async () => {
+	const kernel = makeKernel();
+	// No listed vendor sits between 2 and 10, so the encoder writes one
+	// range 2-10, which decodes to IDs 3 to 9 as well.
+	const addon = createIAB({
+		cmpId: 28,
+		customVendors: [
+			{
+				id: 3,
+				name: 'Custom vendor 3',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [2],
+			},
+		],
+		gvl: completeGVL,
+		kernel,
+		publisherRestrictions: [
+			{ purposeId: 2, restrictionType: 0, vendorIds: [2, 10] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	addon.acceptAll();
+	await addon.save();
+	const authority = kernel.getSnapshot().iab?.authority;
+	// The TC string still carries the range as encoded.
+	expect(
+		(await decodeTCString(authority?.tcString ?? '')).publisherRestrictions
+	).toEqual([
+		{
+			purposeId: 2,
+			restrictionType: 0,
+			vendorIds: [2, 3, 4, 5, 6, 7, 8, 9, 10],
+		},
+	]);
+	expect(authority?.publisherRestrictions).toEqual([
+		{ purposeId: 2, restrictionType: 0, vendorIds: [2, 10] },
+	]);
+	const gate = (vendorId: number) =>
+		evaluateConsent(
+			{ category: 'marketing', iabPurposes: [2], vendorId },
+			kernel.getSnapshot()
+		);
+	expect(gate(3)).toBe(true);
+	expect(gate(2)).toBe(false);
+});
