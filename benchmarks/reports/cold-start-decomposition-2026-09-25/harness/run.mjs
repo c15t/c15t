@@ -114,21 +114,32 @@ export const startServer = async function startServer(
 			stdio: ['ignore', 'pipe', log.fd],
 		}
 	);
-	const readyAt = await new Promise((resolve, reject) => {
-		const timer = setTimeout(() => {
-			reject(new Error('start timeout'));
-		}, 30_000);
-		child.stdout.on('data', (buffer) => {
-			if (String(buffer).includes('Ready in')) {
+	let readyAt;
+	try {
+		readyAt = await new Promise((resolve, reject) => {
+			const timer = setTimeout(() => {
+				reject(new Error('start timeout'));
+			}, 30_000);
+			child.stdout.on('data', (buffer) => {
+				if (String(buffer).includes('Ready in')) {
+					clearTimeout(timer);
+					resolve(Date.now());
+				}
+			});
+			child.once('exit', (code) => {
 				clearTimeout(timer);
-				resolve(Date.now());
-			}
+				reject(new Error(`server exited ${code}`));
+			});
 		});
-		child.once('exit', (code) => {
-			clearTimeout(timer);
-			reject(new Error(`server exited ${code}`));
-		});
-	});
+	} catch (error) {
+		// The caller gets no server object to stop, so don't leave the child
+		// holding the port or the log open.
+		if (child.exitCode === null && child.signalCode === null) {
+			child.kill('SIGKILL');
+		}
+		await log.close();
+		throw error;
+	}
 	child.stdout.resume();
 	return { child, log, readyAt, spawnedAt };
 };
@@ -136,6 +147,12 @@ export const startServer = async function startServer(
 /** Stop the exact child `startServer` spawned and wait for it to exit. */
 export const stopServer = async function stopServer(server) {
 	if (!server) {
+		return;
+	}
+	// A child that already exited (for example, a request crashed it) will
+	// not emit 'exit' again.
+	if (server.child.exitCode !== null || server.child.signalCode !== null) {
+		await server.log.close();
 		return;
 	}
 	await new Promise((resolve) => {

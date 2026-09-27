@@ -69,6 +69,12 @@ for (let rep = 0; rep <= Number(argv.reps); rep += 1) {
 			await backendControl({ delay, mode: 'ok' });
 			await rm(`${variant.dir}/.next/cache`, { force: true, recursive: true });
 			const tag = `${name}-d${delay}-r${rep}${argv.profile ? '-prof' : ''}`;
+			if (argv.profile) {
+				// Node adds a new uniquely named profile on every run, and
+				// analyze-profile.mjs reads the first one it finds, so a rerun
+				// would pair a stale profile with new timings.
+				await rm(`${ROOT}/profiles/${tag}`, { force: true, recursive: true });
+			}
 			const env = argv.profile
 				? {
 						...variant.env,

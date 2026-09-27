@@ -183,9 +183,17 @@ const chunkShares = (file) => {
 	return shares;
 };
 
-const load = { request: new Map(), startup: new Map() };
+// File loads use the same windows as CPU samples, on the hrtime clock.
+const loadPhaseOf = (startHrUs) => {
+	if (startHrUs < requestHrUs) {
+		return 'startup';
+	}
+	return startHrUs <= endHrUs ? 'request' : 'after';
+};
+
+const load = { after: new Map(), request: new Map(), startup: new Map() };
 for (const entry of chunkTiming.loads) {
-	const bucket = load[entry.startHrUs < requestHrUs ? 'startup' : 'request'];
+	const bucket = load[loadPhaseOf(entry.startHrUs)];
 	const f = entry.file;
 	if (SERVER_OUTPUT.test(f)) {
 		const shares = chunkShares(f);
@@ -219,6 +227,7 @@ console.log(
 				startup: sorted(cpu.startup),
 			},
 			fileLoadMs: {
+				after: sorted(load.after),
 				request: sorted(load.request),
 				startup: sorted(load.startup),
 			},

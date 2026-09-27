@@ -197,7 +197,8 @@ manifest route. CPU profiles of the same cold request (3 runs, profiling
 overhead included) put c15t code execution before the first byte at about
 1 ms and compiling c15t's share of the server chunks at about 5.6 ms. The rest
 is Turbopack's runtime loading a larger module graph (+14 ms) and more
-bundled Next.js code (+6 ms). The 5.6 ms covers every c15t chunk the request loads, before and after the first byte.
+bundled Next.js code (+6 ms). All 5.6 ms of c15t chunk loading falls before
+the first byte: the TTFB and end-of-response windows give the same figure.
 
 ## The site's 626 ms
 
@@ -221,7 +222,7 @@ the page's TTFB in all 7 runs.
 | Part of the cold TTFB gap | Share | Evidence |
 | --- | ---: | --- |
 | Manifest fetch (200 ms injected plus gateway) | 0 ms | The origin request leaves about 110 ms after the first byte. TTFB does not change between a 200 ms and an instant backend (states d and e). |
-| c15t server module initialisation | about 4 ms | Site profiles: 0.0 ms of c15t code before the first byte; the page's c15t chunk (93% c15t) and the manifest route's chunk take 3.4 to 4.4 ms to load. The small consumer's +25 ms is an upper bound. |
+| c15t server module initialisation | about 4 ms | Site profiles: 0.0 ms of c15t code runs before the first byte. Loading c15t's share of the server chunks takes 3.3 to 4.2 ms before the first byte (the page's root chunk, 93% c15t, and the chunk holding the consent route handlers, which Next loads with the other route entries) and another 2.4 to 2.8 ms after it. The small consumer's +25 ms is an upper bound. |
 | Next.js process start and the site's modules | the remaining ~560 ms | During the first request Next loads route entries across the app (the changelog page takes 43 ms, the docs-ask route 14.5 ms, the OG route 9 ms, middleware 10.7 ms), plus Sentry, OpenTelemetry and Node module loading. |
 
 The earlier v2 site measurement (`cold-main-raw.json`, no server-side consent
@@ -303,4 +304,7 @@ installed. `site-cold.mjs` and `site-proxy.mjs` need the docs-site build and
 the seeded gateway from the originating machine (`COLD_BENCH_SITE`).
 
 `results/` holds the measured runs: `matrix.json` (states), `coldraw.json`,
-`coldraw-direct.json`, `cache.json`, and `site-cold.json`.
+`coldraw-direct.json`, `cache.json`, and `site-cold.json`. The CPU profiles
+and per-file load timings are not committed. The site figures come from
+`analyze-profile.mjs` over the three profiled `site-cold.mjs` runs, cut off
+at each run's `headersMs`.

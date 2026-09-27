@@ -8,7 +8,7 @@
 // from the originating machine.
 //
 // Usage: node site-cold.mjs --reps 7 --profiled 3 [--out <file>]
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
@@ -73,6 +73,13 @@ for (let rep = 0; rep <= reps; rep += 1) {
 	for (const arm of armsFor(rep, profiled)) {
 		const tag = `site-${arm}-r${rep}`;
 		const setup = profileSetup(arm, tag);
+		if (arm === 'profile') {
+			// Same as coldraw.mjs: never leave an older profile next to this run's.
+			await rm(`${ROOT}/profiles-site/${tag}`, {
+				force: true,
+				recursive: true,
+			});
+		}
 		await fetch(`${PROXY}/__reset`);
 		const load = os.loadavg();
 		const server = await startServer(SITE, PORT, setup.env, setup.nodeArgs);
