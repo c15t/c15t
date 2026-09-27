@@ -964,3 +964,33 @@ test.each([
 
 	expect(measurement(start())).toBe(false);
 });
+
+test('a subject generated right after a clear still yields to one another runtime stored', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	const active = start();
+	await active.kernel.commands.save('all');
+	await nextTask();
+
+	// Something clears the records as the next save starts, after this
+	// runtime noted its pre-clear subject.
+	let cleared = false;
+	active.kernel.events.on('command:save:started', () => {
+		if (!cleared) {
+			cleared = true;
+			active.clearRecords();
+		}
+	});
+	vi.setSystemTime(1_800_000_001_000);
+	void active.kernel.commands.save('none');
+	expect(active.kernel.getSnapshot().subject?.subjectId).toBeTruthy();
+
+	// Another runtime stores a subject before this one's write lands.
+	const other = start();
+	void other.kernel.commands.save('all');
+	const storedId = other.kernel.getSnapshot().subject?.subjectId;
+	other.dispose();
+
+	active.reconcileStorage();
+	expect(storedSubject()?.subjectId).toBe(storedId);
+});
