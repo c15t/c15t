@@ -1625,6 +1625,48 @@ test('a replacement list that invalidates a restriction clears retained authorit
 	expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(false);
 });
 
+test('encoding refuses restrictions the CMP rejected, whatever list the kernel holds', async () => {
+	const kernel = makeKernel();
+	const { 755: vendor755 } = completeGVL.vendors;
+	if (!vendor755) {
+		throw new Error('Missing vendor 755 fixture');
+	}
+	// In this list vendor 755 does not declare purpose 7.
+	const rejecting = {
+		...completeGVL,
+		vendors: {
+			...completeGVL.vendors,
+			755: {
+				...vendor755,
+				flexiblePurposes: [2],
+				purposes: vendor755.purposes.filter((id) => id !== 7),
+			},
+		},
+	};
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: rejecting,
+		kernel,
+		publisherRestrictions: [
+			{ purposeId: 7, restrictionType: 0, vendorIds: [755] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await expect(addon.whenReady()).rejects.toBeInstanceOf(
+		PublisherRestrictionError
+	);
+	// A later init response replaces the kernel's list with one the
+	// restriction would pass against. The CMP never validated or published it.
+	kernel.set.iab({ gvl: completeGVL });
+	addon.acceptAll();
+	await expect(addon.generateTCString()).rejects.toBeInstanceOf(
+		PublisherRestrictionError
+	);
+	await expect(addon.save()).rejects.toBeInstanceOf(PublisherRestrictionError);
+	expect(kernel.getSnapshot().iab?.tcString).toBeFalsy();
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+});
+
 test('stored authority must carry the configured publisher restrictions', async () => {
 	const kernel = makeKernel();
 	const publisherRestrictions = [

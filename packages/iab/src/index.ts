@@ -1383,10 +1383,23 @@ export const createIAB = function createIAB(
 		};
 	};
 
+	/**
+	 * Rethrows a configuration error from list setup. Encoding reads the
+	 * kernel's list, which can hold a list this CMP never validated, so it
+	 * must not run once the restrictions were rejected. Synchronous, so the
+	 * action clock and cancellation checks keep their current timing.
+	 */
+	const rejectInvalidRestrictions = (): void => {
+		if (initializationError instanceof PublisherRestrictionError) {
+			throw initializationError;
+		}
+	};
+
 	const generateTC = async function generateTC(): Promise<string> {
 		if (!readIAB(kernel).gvl && reference && !(await waitForReferencedList())) {
 			throw new Error('IAB action cancelled while loading vendor data.');
 		}
+		rejectInvalidRestrictions();
 		const snapshot = kernel.getSnapshot();
 		const recordsGeneration = kernel.getRecordsGeneration();
 		const generation = confirmationGeneration;
@@ -1481,6 +1494,7 @@ export const createIAB = function createIAB(
 			) {
 				throw new Error('IAB action cancelled while loading vendor data.');
 			}
+			rejectInvalidRestrictions();
 			if (disposed) {
 				return;
 			}
