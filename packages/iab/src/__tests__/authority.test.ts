@@ -617,3 +617,42 @@ test.each(['clock', 'fingerprint', 'maps', 'expiry'] as const)(
 		expect(send).not.toHaveBeenCalled();
 	}
 );
+
+test("reconciling another runtime's IAB save publishes that runtime's authority", async () => {
+	const first = makeKernel();
+	const firstStorage = createPersistence({ kernel: first, sync: false });
+	disposers.push(firstStorage.dispose);
+	const firstAddon = createAddon(first);
+	firstAddon.acceptAll();
+	await firstAddon.save();
+	// Land the queued record write.
+	firstStorage.reconcile();
+
+	const second = makeKernel();
+	const secondStorage = createPersistence({ kernel: second, sync: false });
+	disposers.push(secondStorage.dispose);
+	createAddon(second);
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority?.tcString).toBe(
+			first.getSnapshot().iab?.authority?.tcString
+		)
+	);
+	expect(evaluateConsent(target, second.getSnapshot(), NOW)).toBe(true);
+
+	vi.setSystemTime(NOW + 1000);
+	firstAddon.rejectAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+	const rejected = first.getSnapshot().iab?.authority?.tcString;
+	expect(rejected).toBeTruthy();
+
+	expect(secondStorage.reconcile()).toBe(true);
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority?.tcString).toBe(rejected)
+	);
+	expect(evaluateConsent(target, second.getSnapshot(), NOW + 1000)).toBe(false);
+	// Reloading reads the shared receipt; it never removes it.
+	expect(localStorage.getItem('c15t-iab-authority-v1')).toContain(
+		rejected ?? 'missing'
+	);
+});

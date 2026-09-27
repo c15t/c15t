@@ -513,6 +513,45 @@ export const createIAB = function createIAB(
 			armAuthorityTimer();
 		}
 	};
+	/**
+	 * Records replaced at a hydration boundary, such as a choice another tab
+	 * stored, can come with a newer authority receipt that tab wrote. Load
+	 * it so `__tcfapi` publishes the TC string behind the choice now in
+	 * force. The shared receipt is only read: a missing or invalid one keeps
+	 * the authority held here, and an older one never replaces a newer one.
+	 */
+	const reloadAuthority = async function reloadAuthority(): Promise<void> {
+		if (options.persistence === false || disposed) {
+			return;
+		}
+		const snapshot = kernel.getSnapshot();
+		const recordsGeneration = kernel.getRecordsGeneration();
+		const generation = confirmationGeneration;
+		if (snapshot.model !== 'iab' || snapshot.explicitChoice === null) {
+			return;
+		}
+		const authority = await validateAuthority(
+			readAuthorityReceipt(),
+			snapshot,
+			Date.now()
+		);
+		const current = kernel.getSnapshot();
+		const held = current.iab?.authority;
+		if (
+			!authority ||
+			disposed ||
+			generation !== confirmationGeneration ||
+			kernel.getRecordsGeneration() !== recordsGeneration ||
+			current.evaluationPolicy.choice.fingerprint !==
+				snapshot.evaluationPolicy.choice.fingerprint ||
+			held?.tcString === authority.tcString ||
+			(held && held.confirmedAt > authority.confirmedAt)
+		) {
+			return;
+		}
+		kernel.set.iab({ authority, tcString: authority.tcString });
+		armAuthorityTimer();
+	};
 	const unsubscribeClear = kernel.events.on('records:cleared', () => {
 		hydrationCancelled = true;
 		confirmationGeneration += 1;
@@ -724,9 +763,19 @@ export const createIAB = function createIAB(
 	let previousAuthority = kernel.getSnapshot().iab?.authority;
 	let previousDisplay = cmpDisplayStatus(kernel.getSnapshot());
 	let previousSnapshot = kernel.getSnapshot();
+	let previousRecordsGeneration = kernel.getRecordsGeneration();
 	const unsubscribe = kernel.subscribe((snapshot: ConsentSnapshot) => {
 		const previous = previousSnapshot;
 		previousSnapshot = snapshot;
+		// Hydration advances the records generation after it notifies, so
+		// compare once the commit has finished.
+		queueMicrotask(() => {
+			const recordsGeneration = kernel.getRecordsGeneration();
+			if (recordsGeneration !== previousRecordsGeneration) {
+				previousRecordsGeneration = recordsGeneration;
+				void reloadAuthority();
+			}
+		});
 		if (changedSelections(previous, snapshot)) {
 			selectionRevision += 1;
 		}
