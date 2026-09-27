@@ -15,6 +15,8 @@ import {
 	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
+import { readStoredRecordsFromCookieHeader } from '../../modules/persistence/hydrate';
+import { encodeStoredConsentEnvelopeCompact } from '../../modules/persistence/record-codec';
 import {
 	clearStoredConsentRecords,
 	clearStoredPrivacyOptOuts,
@@ -847,4 +849,118 @@ test('a vendor record without a subject keeps a subject the server resolved', as
 		'meta-pixel',
 	]);
 	expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+});
+
+test('a clear and a partial save reconciled together do not bring back cleared categories', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	const active = start(threeCategories);
+	await active.kernel.commands.save('all');
+	await nextTask();
+	const other = start(threeCategories);
+
+	// The other runtime clears, then saves one category, before this one
+	// reconciles even once.
+	vi.setSystemTime(1_800_000_001_000);
+	other.clearRecords();
+	vi.setSystemTime(1_800_000_002_000);
+	void other.kernel.commands.save({ marketing: false });
+	other.dispose();
+
+	active.reconcileStorage();
+	expect(decision(active, 'marketing')).toBe(false);
+	expect(decision(active, 'measurement')).toBeUndefined();
+	expect(measurement(active)).toBe(false);
+	expect(active.kernel.getSnapshot().subject?.subjectId).toBe(
+		storedSubject()?.subjectId
+	);
+});
+
+test('a runtime that missed a clear cannot write back decisions from before it', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	await start(threeCategories).kernel.commands.save('all');
+	await nextTask();
+	const stale = start(threeCategories);
+	const other = start(threeCategories);
+
+	// Recorded before the clear; the write is still queued.
+	vi.setSystemTime(1_800_000_000_500);
+	void stale.kernel.commands.save({ measurement: true });
+
+	vi.setSystemTime(1_800_000_001_000);
+	other.clearRecords();
+	vi.setSystemTime(1_800_000_002_000);
+	void other.kernel.commands.save({ marketing: false });
+	other.dispose();
+
+	// Lands the queued write, then reads.
+	stale.reconcileStorage();
+	const fresh = start(threeCategories);
+	expect(decision(fresh, 'measurement')).toBeUndefined();
+	expect(decision(fresh, 'marketing')).toBe(false);
+	expect(decision(stale, 'measurement')).toBeUndefined();
+});
+
+test('a runtime that missed a clear keeps only what it decided after it', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	await start(threeCategories).kernel.commands.save('all');
+	await nextTask();
+	const stale = start(threeCategories);
+	const other = start(threeCategories);
+
+	vi.setSystemTime(1_800_000_001_000);
+	other.clearRecords();
+	vi.setSystemTime(1_800_000_002_000);
+	await other.kernel.commands.save({ marketing: false });
+	await nextTask();
+
+	// A new decision in the runtime that has not seen the clear yet.
+	vi.setSystemTime(1_800_000_003_000);
+	await stale.kernel.commands.save({ marketing: true });
+	await nextTask();
+
+	const fresh = start(threeCategories);
+	expect(decision(fresh, 'marketing')).toBe(true);
+	// Granted before the clear and never decided again.
+	expect(decision(fresh, 'measurement')).toBeUndefined();
+	stale.reconcileStorage();
+	expect(decision(stale, 'marketing')).toBe(true);
+	expect(decision(stale, 'measurement')).toBeUndefined();
+});
+
+test('a server read voids decisions from before the clear epoch', () => {
+	const now = Date.now();
+	const envelope = encodeStoredConsentEnvelopeCompact({
+		categories: explicitChoice(
+			{ measurement: true },
+			{
+				confirmedAt: now - 5000,
+				fingerprint: resolution.fingerprints.choice,
+				now,
+			}
+		).categories,
+		version: 3,
+	});
+	const header = `c15t=${envelope}; c15t-epoch=${now - 1000}`;
+	expect(
+		readStoredRecordsFromCookieHeader(header, undefined, now).choice
+	).toBeNull();
+	expect(
+		readStoredRecordsFromCookieHeader(`c15t=${envelope}`, undefined, now).choice
+	).not.toBeNull();
+});
+
+test.each([
+	['a future clear epoch', () => `${Date.now() + 60_000}`],
+	['a malformed clear epoch', () => 'not-a-time'],
+])('%s voids nothing', async (_case, epoch) => {
+	resolution = optOut;
+	await start().kernel.commands.save('none');
+	await nextTask();
+	document.cookie = `c15t-epoch=${epoch()}; path=/`;
+	localStorage.setItem('c15t-epoch', epoch());
+
+	expect(measurement(start())).toBe(false);
 });

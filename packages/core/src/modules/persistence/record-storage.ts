@@ -57,6 +57,7 @@ import {
 	STORAGE_KEY_V2,
 } from '../../libs/storage-keys';
 import {
+	decodeClearEpoch,
 	decodeNoticeDismissal,
 	decodeNoticeDismissalCompact,
 	decodePrivacyOptOuts,
@@ -64,6 +65,7 @@ import {
 	decodeStoredConsentEnvelopeCompact,
 	decodeVendorChoice,
 	decodeVendorChoiceCompact,
+	encodeClearEpoch,
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
 	encodePrivacyOptOuts,
@@ -98,8 +100,9 @@ export type StoredRecordFormat = 'legacy-v2' | 'v3';
 
 /**
  * The storage keys one configuration resolves to. Notice dismissals,
- * privacy directives and vendor denials get their own keys derived from
- * the consent key so a custom `storageKey` moves all four together.
+ * privacy directives, vendor denials and the clear epoch get their own
+ * keys derived from the consent key so a custom `storageKey` moves them
+ * all together.
  */
 export interface ResolvedStorageKeys {
 	consent: string;
@@ -108,6 +111,8 @@ export interface ResolvedStorageKeys {
 	notice: string;
 	privacy: string;
 	vendors: string;
+	/** Time of the last clear. Survives the clear it records. */
+	epoch: string;
 }
 
 export const resolveStorageKeys = function resolveStorageKeys(
@@ -116,6 +121,7 @@ export const resolveStorageKeys = function resolveStorageKeys(
 	const consent = config?.storageKey || STORAGE_KEY_V2;
 	return {
 		consent,
+		epoch: `${consent}-epoch`,
 		legacyConsent: consent === STORAGE_KEY ? null : STORAGE_KEY,
 		notice: `${consent}-notice`,
 		privacy: `${consent}-privacy`,
@@ -157,6 +163,8 @@ export interface DecodedStoredConsent {
 	choice: ExplicitChoice;
 	subject: ConsentSubject | null;
 	iab: StoredIabMetadata | null;
+	/** Clear epoch the record was written under; `0` for legacy records. */
+	epoch: number;
 }
 
 export type StoredConsentCandidate =
@@ -501,6 +509,7 @@ const decodeLegacyRecord = function decodeLegacyRecord(
 		ok: true,
 		record: {
 			choice: normalized.choice,
+			epoch: 0,
 			format: 'legacy-v2',
 			iab: iab ?? null,
 			subject: normalized.subject,
@@ -519,6 +528,7 @@ const decodeEnvelope = function decodeEnvelope(
 		ok: true,
 		record: {
 			choice: { categories: record.categories, version: 3 },
+			epoch: record.epoch ?? 0,
 			format: 'v3',
 			iab: record.iab ?? null,
 			subject: record.subject ?? null,
@@ -1060,6 +1070,83 @@ export const clearStoredVendorChoice = function clearStoredVendorChoice(
 	const keys = resolveStorageKeys(config);
 	removeLocalStorageKey(keys.vendors);
 	deleteCookie(keys.vendors, cookie, config);
+};
+
+// ---------------------------------------------------------------------------
+// Clear epoch: the time of the last clear, kept by the clear itself
+// ---------------------------------------------------------------------------
+
+const newerEpoch = function newerEpoch(
+	result: DecodeResult<number> | null,
+	current: number
+): number {
+	return result?.ok && result.record > current ? result.record : current;
+};
+
+const readRawEpoch = function readRawEpoch(
+	text: string | null | undefined,
+	now: number
+): DecodeResult<number> | null {
+	const trimmed = text?.trim();
+	return trimmed ? decodeClearEpoch(trimmed, now) : null;
+};
+
+/**
+ * Reads the clear epoch: the newer of the cookie and localStorage copies,
+ * or `0` when neither holds a valid one. An unreadable or invalid copy
+ * counts as `0`, which voids nothing, so a failed read never turns a
+ * stored denial into a grant.
+ */
+export const readStoredClearEpoch = function readStoredClearEpoch(
+	config: StorageConfig | undefined,
+	now: number,
+	onUnavailable?: () => void
+): number {
+	const keys = resolveStorageKeys(config);
+	const fromCookie = readRawEpoch(
+		getRawCookieValue(keys.epoch, onUnavailable),
+		now
+	);
+	const fromLocal = readRawEpoch(
+		readLocalStorageText(keys.epoch, onUnavailable),
+		now
+	);
+	return newerEpoch(fromLocal, newerEpoch(fromCookie, 0));
+};
+
+/** Server read of the clear epoch cookie from a request `Cookie` header. */
+export const readStoredClearEpochFromCookieHeader =
+	function readStoredClearEpochFromCookieHeader(
+		cookieHeader: string | undefined,
+		config: StorageConfig | undefined,
+		now: number
+	): number {
+		const keys = resolveStorageKeys(config);
+		return newerEpoch(
+			readRawEpoch(readCookieValueFromHeader(cookieHeader, keys.epoch), now),
+			0
+		);
+	};
+
+/**
+ * Writes the clear epoch to localStorage and its cookie. Written by
+ * `clear()` after it removes the records, and never removed by it, so
+ * every runtime can tell decisions made before the clear from later ones.
+ */
+export const writeStoredClearEpoch = function writeStoredClearEpoch(
+	epoch: number,
+	config: StorageConfig | undefined,
+	cookie?: CookieOptions
+): AuxiliaryWriteReport {
+	const keys = resolveStorageKeys(config);
+	const text = encodeClearEpoch(epoch);
+	const localStorageWritten = writeLocalStorageText(keys.epoch, text);
+	const cookieDetail = writeCookie(keys.epoch, text, cookie, config);
+	return {
+		cookie: cookieDetail.attempted && cookieDetail.verified,
+		cookieDetail,
+		localStorage: localStorageWritten,
+	};
 };
 
 // ---------------------------------------------------------------------------

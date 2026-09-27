@@ -196,7 +196,8 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		expect(document.cookie).toBe(cookie);
 
 		reader.clear();
-		expect(document.cookie).toBe('');
+		// The clear epoch is the only thing left.
+		expect(document.cookie).toMatch(/^c15t-epoch=\d+$/u);
 		expect(restored.getSnapshot().explicitChoice).toBeNull();
 		expect(restored.getSnapshot().noticeDismissal).toBeNull();
 		expect(restored.getSnapshot().optOutDirectives).toEqual([]);

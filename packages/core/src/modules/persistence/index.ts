@@ -1,3 +1,4 @@
+import type { ConsentSubject } from '../../consent-record/types';
 /**
  * `@c15t/core/modules/persistence`
  *
@@ -43,6 +44,12 @@
  */
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import type { ConsentSnapshot, HydrationRecords } from '../../types';
+import {
+	choiceSinceEpoch,
+	directivesSinceEpoch,
+	noticeSinceEpoch,
+	vendorChoiceSinceEpoch,
+} from './epoch';
 import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
 import {
 	choiceToWrite,
@@ -58,11 +65,10 @@ import type { StorageFingerprints, StoredRecordKind } from './reconcile';
 import type { StoredIabMetadata } from './record-codec';
 import {
 	clearStoredConsentRecords,
-	readStoredConsentRecord,
-	readStoredNoticeDismissal,
-	readStoredPrivacyOptOuts,
+	readStoredClearEpoch,
 	readStoredVendorChoice,
 	resolveStorageKeys,
+	writeStoredClearEpoch,
 } from './record-storage';
 import { createWriteScheduler } from './schedule';
 import type { PersistenceHandle, PersistenceOptions } from './types';
@@ -118,6 +124,9 @@ export const createPersistence = function createPersistence(
 	// id equal to either yields to a stored subject; any other one came from
 	// the server and is kept.
 	let seenSubjectId: string | null | undefined;
+	// The clear epoch the records in memory belong to. A stored epoch past
+	// it means another runtime cleared the records since.
+	let memoryEpoch = 0;
 	let freshSubjectId: string | undefined;
 	let subjectBeforeSave: string | undefined;
 
@@ -148,6 +157,9 @@ export const createPersistence = function createPersistence(
 		if (kind === undefined || kind === 'choice') {
 			rememberSubject(read.records);
 		}
+		if (kind === undefined) {
+			memoryEpoch = read.epoch;
+		}
 	};
 
 	const noteGeneratedSubject = function noteGeneratedSubject(
@@ -159,6 +171,8 @@ export const createPersistence = function createPersistence(
 		}
 	};
 
+	type StoredRead = ReturnType<typeof readStoredRecordsForReconcile>;
+
 	/**
 	 * Whether storage holds something for a record that memory lacks: another
 	 * runtime changed it since this runtime last saw it, or this runtime's
@@ -167,11 +181,9 @@ export const createPersistence = function createPersistence(
 	 */
 	const changedSinceSeen = function changedSinceSeen(
 		kind: StoredRecordKind,
-		at: number
+		read: StoredRead
 	): boolean {
-		const print = fingerprintStoredRecords(
-			readStoredRecordsForReconcile(storageConfig, at)
-		)[kind];
+		const print = fingerprintStoredRecords(read)[kind];
 		return (print !== undefined && print !== seen[kind]) || unadopted.has(kind);
 	};
 
@@ -193,45 +205,79 @@ export const createPersistence = function createPersistence(
 		}
 	};
 
+	/**
+	 * The subject a write stores. After a clear this runtime missed, its
+	 * subject belongs to the cleared history: only what storage holds now is
+	 * kept, or none.
+	 */
+	const writtenSubject = function writtenSubject(
+		snapshot: ConsentSnapshot,
+		stored: ConsentSubject | null | undefined,
+		subjectOnly: boolean,
+		clearMissed: boolean
+	): ConsentSubject | null {
+		if (subjectOnly) {
+			return snapshot.subject;
+		}
+		if (clearMissed) {
+			return stored ?? null;
+		}
+		return subjectToWrite(snapshot.subject, stored, subjectYields());
+	};
+
+	// Every write reads storage first and voids what this runtime holds from
+	// before the stored clear epoch, so a runtime that missed a clear can
+	// only write decisions made after it.
 	const choiceWrites = createWriteScheduler(() => {
 		const subjectOnly = !choiceRecorded;
 		choiceRecorded = false;
 		const snapshot = kernel.getSnapshot();
 		const at = now();
-		const stored = readStoredConsentRecord(storageConfig, at).selected;
-		const explicitChoice = choiceToWrite(
-			snapshot.explicitChoice,
-			stored?.choice ?? null,
-			subjectOnly,
-			changedSinceSeen('choice', at)
-		);
-		if (explicitChoice) {
-			const subject = subjectOnly
-				? snapshot.subject
-				: subjectToWrite(snapshot.subject, stored?.subject, subjectYields());
-			writeChoiceToStorage(
-				{ ...snapshot, explicitChoice, subject },
-				storedIab,
-				storageConfig,
-				at
-			);
-			markWritten(
-				'choice',
-				sameRecord(explicitChoice, snapshot.explicitChoice) &&
-					sameRecord(subject, snapshot.subject)
-			);
+		const read = readStoredRecordsForReconcile(storageConfig, at);
+		const clearMissed = read.epoch > memoryEpoch;
+		const stored = read.records.choice ?? null;
+		const explicitChoice =
+			subjectOnly && clearMissed
+				? null
+				: choiceToWrite(
+						choiceSinceEpoch(snapshot.explicitChoice, read.epoch),
+						stored,
+						subjectOnly,
+						changedSinceSeen('choice', read)
+					);
+		if (!explicitChoice) {
+			return;
 		}
+		const subject = writtenSubject(
+			snapshot,
+			stored ? read.records.subject : null,
+			subjectOnly,
+			clearMissed
+		);
+		writeChoiceToStorage(
+			{ ...snapshot, explicitChoice, subject },
+			storedIab,
+			storageConfig,
+			at,
+			read.epoch
+		);
+		markWritten(
+			'choice',
+			sameRecord(explicitChoice, snapshot.explicitChoice) &&
+				sameRecord(subject, snapshot.subject)
+		);
 	});
 	const noticeWrites = createWriteScheduler(() => {
 		const snapshot = kernel.getSnapshot();
 		const at = now();
-		const stored = readStoredNoticeDismissal(storageConfig, at);
+		const read = readStoredRecordsForReconcile(storageConfig, at);
+		const ours = noticeSinceEpoch(snapshot.noticeDismissal, read.epoch);
 		if (
-			snapshot.noticeDismissal &&
+			ours &&
 			mayWriteNotice(
-				snapshot.noticeDismissal,
-				stored?.ok ? stored.record : null,
-				changedSinceSeen('notice', at)
+				ours,
+				read.records.noticeDismissal ?? null,
+				changedSinceSeen('notice', read)
 			)
 		) {
 			writeNoticeToStorage(snapshot, storageConfig, at);
@@ -241,11 +287,14 @@ export const createPersistence = function createPersistence(
 	const privacyWrites = createWriteScheduler(() => {
 		const snapshot = kernel.getSnapshot();
 		const at = now();
-		const stored = readStoredPrivacyOptOuts(storageConfig, at);
+		const read = readStoredRecordsForReconcile(storageConfig, at);
 		const optOutDirectives = directivesToWrite(
-			snapshot.optOutDirectives,
-			stored?.ok ? stored.record.directives : null
+			directivesSinceEpoch(snapshot.optOutDirectives, read.epoch),
+			read.records.optOutDirectives ?? null
 		);
+		if (optOutDirectives.length === 0) {
+			return;
+		}
 		writePrivacyToStorage({ ...snapshot, optOutDirectives }, storageConfig, at);
 		observe('privacy');
 	});
@@ -254,22 +303,29 @@ export const createPersistence = function createPersistence(
 		vendorsRecorded = false;
 		const snapshot = kernel.getSnapshot();
 		const at = now();
-		const read = readStoredVendorChoice(storageConfig, at);
-		const stored = read?.ok ? read.record : null;
+		const read = readStoredRecordsForReconcile(storageConfig, at);
+		const clearMissed = read.epoch > memoryEpoch;
+		const ours = vendorChoiceSinceEpoch(snapshot.vendorChoice, read.epoch);
 		if (
-			mayWriteVendorChoice(
-				snapshot.vendorChoice,
-				stored,
+			(snapshot.vendorChoice && !ours) ||
+			(subjectOnly && clearMissed) ||
+			!mayWriteVendorChoice(
+				ours,
+				read.records.vendorChoice ?? null,
 				subjectOnly,
-				changedSinceSeen('vendors', at)
+				changedSinceSeen('vendors', read)
 			)
 		) {
-			const subject = subjectOnly
-				? snapshot.subject
-				: subjectToWrite(snapshot.subject, stored?.subject, subjectYields());
-			writeVendorChoiceToStorage({ ...snapshot, subject }, storageConfig, at);
-			markWritten('vendors', sameRecord(subject, snapshot.subject));
+			return;
 		}
+		const subject = writtenSubject(
+			snapshot,
+			read.vendorSubject,
+			subjectOnly,
+			clearMissed
+		);
+		writeVendorChoiceToStorage({ ...snapshot, subject }, storageConfig, at);
+		markWritten('vendors', sameRecord(subject, snapshot.subject));
 	});
 
 	const unsubscribers = [
@@ -338,7 +394,10 @@ export const createPersistence = function createPersistence(
 			return;
 		}
 		const current = kernel.getSnapshot().vendorChoice;
-		if (current && current.confirmedAt >= stored.record.confirmedAt) {
+		if (
+			(current && current.confirmedAt >= stored.record.confirmedAt) ||
+			stored.record.confirmedAt < readStoredClearEpoch(storageConfig, at)
+		) {
 			return;
 		}
 		kernel.hydrate({
@@ -362,6 +421,7 @@ export const createPersistence = function createPersistence(
 		}
 		seen = fingerprintStoredRecords(stored);
 		rememberSubject(stored.records);
+		memoryEpoch = stored.epoch;
 		if (stored.records.choice !== undefined) {
 			storedIab = stored.iab;
 		}
@@ -392,11 +452,13 @@ export const createPersistence = function createPersistence(
 			seen,
 			at,
 			subjectYields(),
-			unadopted
+			unadopted,
+			memoryEpoch
 		);
 		({ seen } = next);
 		unadopted.clear();
 		rememberSubject(stored.records);
+		memoryEpoch = stored.epoch;
 		if (!next.records) {
 			return false;
 		}
@@ -431,6 +493,7 @@ export const createPersistence = function createPersistence(
 			keys.notice,
 			keys.privacy,
 			keys.vendors,
+			keys.epoch,
 			// Another page called `localStorage.clear()`.
 			null,
 		]);
@@ -469,15 +532,25 @@ export const createPersistence = function createPersistence(
 	return {
 		clear() {
 			cancelAll();
+			unadopted.clear();
 			storedIab = null;
+			const at = now();
 			if (typeof document !== 'undefined') {
 				clearStoredConsentRecords(undefined, storageConfig);
+				// The epoch outlives the clear it records: decisions confirmed
+				// before it stay void wherever another runtime writes them back.
+				const epoch = Math.max(
+					at,
+					memoryEpoch,
+					readStoredClearEpoch(storageConfig, at)
+				);
+				writeStoredClearEpoch(epoch, storageConfig);
 			}
 			observe();
 			kernel.hydrate({
 				choice: null,
 				noticeDismissal: null,
-				now: now(),
+				now: at,
 				optOutDirectives: [],
 				subject: null,
 				vendorChoice: null,

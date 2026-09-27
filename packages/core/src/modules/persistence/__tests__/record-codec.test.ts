@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ChoiceBasis, PrivacyOptOut } from '../../../consent-record/types';
 import {
+	decodeClearEpoch,
 	decodeNoticeDismissal,
 	decodePrivacyOptOuts,
 	decodeStoredConsentEnvelopeCompact,
@@ -358,5 +359,51 @@ describe('notice dismissal and privacy opt-out codecs', () => {
 				decodePrivacyOptOuts({ directives: [directive], version: 1 }, NOW).ok
 			).toBe(false);
 		}
+	});
+});
+
+describe('clear epoch', () => {
+	const envelope: StoredConsentEnvelope = {
+		categories: {
+			marketing: { basis: choice(), confirmedAt: NOW - 1000, value: false },
+		},
+		epoch: NOW - 2000,
+		version: 3,
+	};
+
+	it('round-trips through both encodings', () => {
+		const compact = encodeStoredConsentEnvelopeCompact(envelope);
+		expect(compact).toContain(`&e=${NOW - 2000}&`);
+		expect(decodeStoredConsentEnvelopeCompact(compact, NOW)).toEqual({
+			ok: true,
+			record: envelope,
+		});
+		expect(
+			validateStoredConsentEnvelope(
+				JSON.parse(encodeStoredConsentEnvelopeJson(envelope)),
+				NOW
+			)
+		).toEqual({ ok: true, record: envelope });
+	});
+
+	it('omits epoch 0, so records from before any clear keep their bytes', () => {
+		const { epoch: _epoch, ...plain } = envelope;
+		expect(encodeStoredConsentEnvelopeCompact(plain)).not.toContain('&e=');
+		expect(encodeStoredConsentEnvelopeJson(plain)).not.toContain('epoch');
+	});
+
+	it('rejects a future or malformed epoch', () => {
+		expect(
+			decodeStoredConsentEnvelopeCompact(
+				encodeStoredConsentEnvelopeCompact({ ...envelope, epoch: NOW + 1 }),
+				NOW
+			).ok
+		).toBe(false);
+		expect(decodeClearEpoch(String(NOW - 1), NOW)).toEqual({
+			ok: true,
+			record: NOW - 1,
+		});
+		expect(decodeClearEpoch(String(NOW + 1), NOW).ok).toBe(false);
+		expect(decodeClearEpoch('1e12', NOW).ok).toBe(false);
 	});
 });

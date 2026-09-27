@@ -10,8 +10,16 @@
  */
 import type { ConsentSubject } from '../../consent-record/types';
 import type { ConsentKernel, HydrationRecords } from '../../types';
+import {
+	choiceSinceEpoch,
+	directivesSinceEpoch,
+	noticeSinceEpoch,
+	vendorChoiceSinceEpoch,
+} from './epoch';
 import type { StoredIabMetadata, StoredVendorChoice } from './record-codec';
 import {
+	readStoredClearEpoch,
+	readStoredClearEpochFromCookieHeader,
 	readStoredConsentRecord,
 	readStoredConsentRecordFromCookieHeader,
 	readStoredNoticeDismissal,
@@ -39,6 +47,12 @@ export interface StoredRecords {
 	 * `records.subject`, so this is the only place the vendor copy shows.
 	 */
 	vendorSubject: ConsentSubject | null;
+	/**
+	 * The clear epoch in force: the newer of the stored epoch and the one
+	 * the envelope records, `0` when no clear was ever recorded. Records
+	 * above already exclude everything confirmed before it.
+	 */
+	epoch: number;
 }
 
 /**
@@ -58,20 +72,46 @@ const kernelVendorChoice = function kernelVendorChoice(
 	};
 };
 
+/** The notice dismissal and privacy directives left by the clear epoch. */
+const auxiliarySinceEpoch = function auxiliarySinceEpoch(
+	notice: ReturnType<typeof readStoredNoticeDismissal>,
+	privacy: ReturnType<typeof readStoredPrivacyOptOuts>,
+	epoch: number
+): Pick<HydrationRecords, 'noticeDismissal' | 'optOutDirectives'> {
+	return {
+		noticeDismissal: noticeSinceEpoch(notice?.ok ? notice.record : null, epoch),
+		optOutDirectives: privacy?.ok
+			? [...directivesSinceEpoch(privacy.record.directives, epoch)]
+			: [],
+	};
+};
+
+/**
+ * Builds the records from decoded reads. Anything confirmed before the
+ * clear epoch (the newer of the stored epoch and the envelope's own) was
+ * cleared and reads as absent, so a record written back by a runtime that
+ * missed the clear cannot bring it back.
+ */
 const composeRecords = function composeRecords(
 	selection: StoredConsentSelection,
 	notice: ReturnType<typeof readStoredNoticeDismissal>,
 	privacy: ReturnType<typeof readStoredPrivacyOptOuts>,
 	vendors: ReturnType<typeof readStoredVendorChoice>,
+	clearEpoch: number,
 	now: number
 ): StoredRecords {
-	const { selected } = selection;
-	const vendorRecord = vendors?.ok ? vendors.record : null;
+	const epoch = Math.max(clearEpoch, selection.selected?.epoch ?? 0);
+	const choice = choiceSinceEpoch(selection.selected?.choice ?? null, epoch);
+	// An envelope with nothing left since the clear is a cleared one.
+	const selected = choice ? selection.selected : null;
+	const vendorRecord = vendorChoiceSinceEpoch(
+		vendors?.ok ? vendors.record : null,
+		epoch
+	);
 	const records: HydrationRecords = {
-		choice: selected?.choice ?? null,
-		noticeDismissal: notice?.ok ? notice.record : null,
+		choice,
+		...auxiliarySinceEpoch(notice, privacy, epoch),
 		now,
-		optOutDirectives: privacy?.ok ? [...privacy.record.directives] : [],
 		// The envelope's subject wins; the vendor record's copy covers a visitor
 		// whose only act so far decided vendors.
 		subject: selected?.subject ?? vendorRecord?.subject ?? null,
@@ -79,7 +119,12 @@ const composeRecords = function composeRecords(
 	};
 	return {
 		candidates: selection.candidates,
-		found: selected !== null || [notice, privacy, vendors].some((r) => r?.ok),
+		epoch,
+		found:
+			selected !== null ||
+			vendorRecord !== null ||
+			records.noticeDismissal !== null ||
+			privacy?.ok === true,
 		iab: selected?.iab ?? null,
 		records,
 		vendorSubject: vendorRecord?.subject ?? null,
@@ -159,12 +204,19 @@ const readRecords = function readRecords(
 		privacy: privacyUnavailable,
 		vendors: vendorsUnavailable,
 	} = unreadable;
-	const stored = composeRecords(selection, notice, privacy, vendors, now);
+	const stored = composeRecords(
+		selection,
+		notice,
+		privacy,
+		vendors,
+		readStoredClearEpoch(storageConfig, now),
+		now
+	);
 	// An absent value only clears memory when every candidate was readable.
 	// A valid record from an available source can still hydrate normally.
 	if (!selection.selected && choiceUnavailable) {
 		delete stored.records.choice;
-		if (!vendors?.ok) {
+		if (!stored.records.vendorChoice) {
 			delete stored.records.subject;
 		}
 	}
@@ -231,6 +283,7 @@ export const readStoredRecordsFromCookieHeader =
 				now
 			),
 			readStoredVendorChoiceFromCookieHeader(cookieHeader, storageConfig, now),
+			readStoredClearEpochFromCookieHeader(cookieHeader, storageConfig, now),
 			now
 		).records;
 	};

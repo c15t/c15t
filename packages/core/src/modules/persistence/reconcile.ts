@@ -47,10 +47,19 @@ import type {
 	HydrationRecords,
 	VendorChoice,
 } from '../../types';
+import {
+	choiceSinceEpoch,
+	directivesSinceEpoch,
+	noticeSinceEpoch,
+	vendorChoiceSinceEpoch,
+} from './epoch';
 import type { StoredRecords } from './hydrate';
 
 /** The parts of a storage read that reconciliation consults. */
-export type StoredRead = Pick<StoredRecords, 'records' | 'vendorSubject'>;
+export type StoredRead = Pick<
+	StoredRecords,
+	'records' | 'vendorSubject' | 'epoch'
+>;
 
 const canonical = function canonical(value: unknown): unknown {
 	if (Array.isArray(value)) {
@@ -514,6 +523,54 @@ export interface ReconciledRecords {
 }
 
 /**
+ * The in-memory records as the clear epoch leaves them: decisions confirmed
+ * before `epoch` are void. When the epoch moved past the one this runtime
+ * last saw, another runtime cleared the records and the subject in memory
+ * belongs to the cleared history, so it does not survive either.
+ */
+const sinceEpoch = function sinceEpoch(
+	snapshot: ConsentSnapshot,
+	epoch: number,
+	clearMissed: boolean
+): ConsentSnapshot {
+	return {
+		...snapshot,
+		explicitChoice: choiceSinceEpoch(snapshot.explicitChoice, epoch),
+		noticeDismissal: noticeSinceEpoch(snapshot.noticeDismissal, epoch),
+		optOutDirectives: directivesSinceEpoch(snapshot.optOutDirectives, epoch),
+		subject: clearMissed ? null : snapshot.subject,
+		vendorChoice: vendorChoiceSinceEpoch(snapshot.vendorChoice, epoch),
+	};
+};
+
+const EPOCH_FIELDS = [
+	['choice', 'explicitChoice'],
+	['noticeDismissal', 'noticeDismissal'],
+	['optOutDirectives', 'optOutDirectives'],
+	['subject', 'subject'],
+	['vendorChoice', 'vendorChoice'],
+] as const;
+
+/**
+ * Adds the records the epoch voided in memory and reconciliation left
+ * alone, so the kernel drops them too.
+ */
+const applyVoided = function applyVoided(
+	records: HydrationRecords,
+	view: ConsentSnapshot,
+	snapshot: ConsentSnapshot
+): void {
+	for (const [recordKey, snapshotKey] of EPOCH_FIELDS) {
+		if (
+			records[recordKey] === undefined &&
+			view[snapshotKey] !== snapshot[snapshotKey]
+		) {
+			Object.assign(records, { [recordKey]: view[snapshotKey] });
+		}
+	}
+};
+
+/**
  * Records to apply so the kernel reflects what storage holds, by the rules
  * at the top of this file. Only differences are returned, so an unchanged
  * read never touches the kernel or notifies anyone.
@@ -526,6 +583,7 @@ export interface ReconciledRecords {
  * one (see {@link subjectToWrite}).
  * @param unadopted - Records this runtime wrote with parts memory lacks;
  * they count as changed even when storage still holds what was written.
+ * @param memoryEpoch - The clear epoch the in-memory records belong to.
  * @returns The records to hydrate and the fingerprints to keep.
  */
 export const selectReconciledRecords = function selectReconciledRecords(
@@ -534,9 +592,14 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	seen: StorageFingerprints,
 	now: number,
 	subjectYields: boolean,
-	unadopted: ReadonlySet<StoredRecordKind>
+	unadopted: ReadonlySet<StoredRecordKind>,
+	memoryEpoch: number
 ): ReconciledRecords {
 	const { records: stored } = read;
+	const clearMissed = read.epoch > memoryEpoch;
+	// Reconcile against memory as the clear left it, then drop from the
+	// kernel whatever the clear voided.
+	const view = sinceEpoch(snapshot, read.epoch, clearMissed);
 	const current = fingerprintStoredRecords(read);
 	const movement: Movement = {
 		changed: (kind) =>
@@ -547,12 +610,17 @@ export const selectReconciledRecords = function selectReconciledRecords(
 			seen[kind] !== undefined &&
 			seen[kind] !== ABSENT[kind],
 	};
-	const records = reconcileChoice(snapshot, stored, movement, subjectYields);
+	const records = reconcileChoice(
+		view,
+		stored,
+		movement,
+		subjectYields || clearMissed
+	);
 
 	if (
 		movement.changed('vendors') &&
 		adoptNewer(
-			snapshot.vendorChoice,
+			view.vendorChoice,
 			stored.vendorChoice ?? null,
 			movement.removed('vendors'),
 			(record) => record.confirmedAt
@@ -564,7 +632,7 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	if (
 		movement.changed('notice') &&
 		adoptNewer(
-			snapshot.noticeDismissal,
+			view.noticeDismissal,
 			stored.noticeDismissal ?? null,
 			movement.removed('notice'),
 			(record) => record.dismissedAt
@@ -574,13 +642,14 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	}
 
 	const directives = reconcileDirectives(
-		snapshot.optOutDirectives,
+		view.optOutDirectives,
 		stored.optOutDirectives,
 		movement
 	);
 	if (directives) {
 		records.optOutDirectives = directives;
 	}
+	applyVoided(records, view, snapshot);
 
 	return {
 		records: Object.keys(records).length > 0 ? { ...records, now } : null,

@@ -321,7 +321,8 @@ describe('persistence: explicit choices still write', () => {
 		handle.clear();
 		expect(localStorage.getItem('custom-key')).toBeNull();
 		expect(readLocalStorage()).toEqual(defaultPayload);
-		expect(document.cookie).toBe(defaultCookie);
+		// Only the custom key's clear epoch is added; default-key data stays.
+		expect(document.cookie).toBe(`${defaultCookie}; custom-key-epoch=${NOW}`);
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		handle.dispose();
@@ -336,7 +337,7 @@ describe('persistence: explicit choices still write', () => {
 		flushWrites();
 		reloadedHandle.dispose();
 		expect(readLocalStorage()).toEqual(defaultPayload);
-		expect(document.cookie).toBe(defaultCookie);
+		expect(document.cookie).toBe(`${defaultCookie}; custom-key-epoch=${NOW}`);
 	});
 
 	test('a failed remote save still persists the choice locally with the same receipt', async () => {

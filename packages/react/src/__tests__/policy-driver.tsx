@@ -266,6 +266,8 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		legacyKey,
 		`${keys.consent}-notice`,
 		`${keys.consent}-privacy`,
+		// A clear's epoch outlives it and would void the next seed's records.
+		keys.epoch,
 	]) {
 		localStorage.removeItem(key);
 		document.cookie = `${key}=; Max-Age=0; Path=/`;

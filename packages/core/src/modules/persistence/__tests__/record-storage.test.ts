@@ -442,6 +442,7 @@ describe('raw candidate reading', () => {
 		);
 		expect(resolveStorageKeys(config)).toEqual({
 			consent: 'custom-key',
+			epoch: 'custom-key-epoch',
 			legacyConsent: STORAGE_KEY,
 			notice: 'custom-key-notice',
 			privacy: 'custom-key-privacy',
