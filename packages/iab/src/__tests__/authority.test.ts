@@ -1744,3 +1744,64 @@ test("reconciling another runtime's restricted save publishes its authority", as
 	);
 	expect(evaluateConsent(target, second.getSnapshot(), NOW + 1000)).toBe(false);
 });
+
+test('a list that accepts the restrictions after a rejected one restores stored authority', async () => {
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	const original = makeKernel();
+	const saved = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel: original,
+		publisherRestrictions,
+	});
+	saved.acceptAll();
+	await saved.save();
+	saved.dispose();
+
+	// The first list rejects the restriction, so none is validated yet.
+	const { 755: vendor755 } = completeGVL.vendors;
+	if (!vendor755) {
+		throw new Error('Missing vendor 755 fixture');
+	}
+	const rejecting = {
+		...completeGVL,
+		vendors: {
+			...completeGVL.vendors,
+			755: {
+				...vendor755,
+				flexiblePurposes: [2],
+				purposes: vendor755.purposes.filter((id) => id !== 7),
+			},
+		},
+	};
+	const kernel = createConsentKernel({
+		initialIab: { cmpId: 28, enabled: true, gvl: rejecting },
+		transport: {
+			init: () =>
+				Promise.resolve({
+					policyResolution: writePolicyResolutionWire(
+						original.getSnapshot().resolution
+					),
+				}),
+		},
+	});
+	disposers.push(kernel.dispose);
+	const addon = createIAB({ cmpId: 28, kernel, publisherRestrictions });
+	disposers.push(addon.dispose);
+	await expect(addon.whenReady()).rejects.toBeInstanceOf(
+		PublisherRestrictionError
+	);
+	// Policy resolves while no restriction is validated: nothing restores.
+	await kernel.commands.init();
+	await vi.advanceTimersByTimeAsync(1);
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+
+	// A list that accepts the restriction must still restore the receipt.
+	kernel.set.iab({ gvl: completeGVL });
+	await addon.whenReady();
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority).not.toBeNull()
+	);
+});
