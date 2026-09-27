@@ -167,23 +167,37 @@ test('every public entry that renders dialog classes brings the dialog styleshee
 	expect(missing).toEqual([]);
 });
 
-/** Whether a `sideEffects` glob (`**` = any depth, `*` = one segment) matches. */
-const matchesGlob = (glob: string, relative: string): boolean => {
-	const pattern = glob
-		.replace(/^\.\//u, '')
-		.split('**/')
-		.map((part) =>
-			part.replaceAll(/[.+?^${}()|[\]\\]/gu, '\\$&').replaceAll('*', '[^/]*')
-		)
-		.join('(?:.*/)?');
-	return new RegExp(`^${pattern}$`, 'u').test(relative);
-};
+/** Class maps of the primitives the `/primitives` entries export. */
+const PRIMITIVE_CLASS_MAPS = [
+	'accordion',
+	'collapsible',
+	'preference-item',
+	'switch',
+	'tabs',
+].map((name) => `@c15t/ui/styles/components/${name}`);
 
-// The package is side-effect free apart from `sideEffects`. A module that
-// only re-exports is skipped by bundlers (Turbopack, webpack) when that
-// holds, and its stylesheet import goes with it: the primitives then render
-// unstyled. Such modules have to be listed.
-test('re-export modules that import the dialog stylesheet are marked side-effectful', () => {
+// Only `**/*.css` is marked side-effectful, so bundlers (Turbopack, webpack)
+// skip a module that only re-exports, together with any stylesheet import in
+// it. The import has to sit in the module that uses the classes.
+test('each primitive that uses dialog classes imports the dialog stylesheet itself', () => {
+	const users = Object.entries(DIST).filter(
+		([file, source]) =>
+			file.startsWith('../../dist/components/shared/ui/') &&
+			staticImports(source).some((specifier) =>
+				PRIMITIVE_CLASS_MAPS.includes(specifier)
+			)
+	);
+
+	expect(users.length).toBeGreaterThanOrEqual(PRIMITIVE_CLASS_MAPS.length);
+	expect(
+		users
+			.filter(([, source]) => !staticImports(source).includes(DIALOG_CSS))
+			.map(([file]) => file)
+	).toEqual([]);
+});
+
+test('no re-export-only module carries the dialog stylesheet import', () => {
+	expect(packageJson.sideEffects).toEqual(['**/*.css']);
 	const reExportOnly = Object.entries(DIST)
 		.filter(([, source]) => staticImports(source).includes(DIALOG_CSS))
 		.filter(([, source]) =>
@@ -196,18 +210,9 @@ test('re-export modules that import the dialog stylesheet are marked side-effect
 						/^(?:export\s*[*{]|import\s*\*\s*as\s)/u.test(statement.trim())
 				)
 		)
-		.map(([file]) => `dist/${file.slice('../../dist/'.length)}`);
+		.map(([file]) => file);
 
-	expect(reExportOnly).toEqual(
-		expect.arrayContaining([
-			'dist/primitives.js',
-			'dist/primitives/accordion.js',
-		])
-	);
-	const unmarked = reExportOnly.filter(
-		(file) => !packageJson.sideEffects.some((glob) => matchesGlob(glob, file))
-	);
-	expect(unmarked).toEqual([]);
+	expect(reExportOnly).toEqual([]);
 });
 
 // Plain Node (externalised SSR) throws ERR_UNKNOWN_FILE_EXTENSION on a `.css`

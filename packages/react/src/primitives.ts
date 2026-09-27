@@ -1,7 +1,3 @@
-// Accordion, Collapsible, PreferenceItem, Switch and Tabs render classes whose
-// rules live in the dialog stylesheet, not styles.css.
-import '@c15t/ui/styles/dialog';
-
 // oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
 export * as Accordion from './components/shared/ui/accordion';
 export * as Button from './components/shared/ui/button';
