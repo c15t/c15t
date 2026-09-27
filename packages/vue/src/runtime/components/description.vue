@@ -16,12 +16,14 @@ const props = defineProps<{
 /**
  * The banner and the dialog each style their description in their own
  * stylesheet, so the class has to come from the right one — the banner's
- * tighter letter-spacing does not belong on the dialog.
+ * tighter letter-spacing does not belong on the dialog. The manager's muted
+ * colours live in the banner stylesheet, so only the dialog takes the
+ * dialog's class.
  */
 const descriptionClass = computed(() =>
-	props.context === 'banner'
-		? bannerStyles.description
-		: dialogStyles.description
+	props.context === 'dialog'
+		? dialogStyles.description
+		: bannerStyles.description
 );
 </script>
 
