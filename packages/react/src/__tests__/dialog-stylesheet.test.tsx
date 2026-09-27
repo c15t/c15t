@@ -1,15 +1,19 @@
 /**
  * The render-blocking `styles.css` no longer carries the dialog's rules. The
- * dialog's lazy module imports `@c15t/ui/styles/dialog.css`, so the bundler
- * ships the rules with the dialog chunk and applies them before that module
- * runs. These tests fail if the import goes missing (the dialog would render
- * unstyled) or if the dialog rules drift back into `styles.css`.
+ * dialog's lazy module imports `@c15t/ui/styles/dialog`, which imports
+ * `styles/dialog.css` for bundlers, so the bundler ships the rules with the
+ * dialog chunk and applies them before that module runs. Under the `node`
+ * condition it imports nothing, so plain Node can load the package. These
+ * tests fail if the import goes missing (the dialog would render unstyled),
+ * if a module imports the `.css` file directly (plain Node would throw), or
+ * if the dialog rules drift back into `styles.css`.
  */
 import '@c15t/ui/styles.css';
 import panelStyles from '@c15t/ui/styles/components/consent-dialog';
 import { createRoot } from 'react-dom/client';
 import { expect, test, vi } from 'vitest';
 
+import packageJson from '../../package.json';
 import { ConsentDialog } from '../aggregate-components';
 import { ConsentProvider } from '../provider';
 import { offline } from '../transports/offline';
@@ -24,7 +28,7 @@ const DIST = import.meta.glob<string>('../../dist/**/*.js', {
 	import: 'default',
 	query: '?raw',
 });
-const DIALOG_CSS = '@c15t/ui/styles/dialog.css';
+const DIALOG_CSS = '@c15t/ui/styles/dialog';
 /** Class maps whose rules live in `@c15t/ui/styles/dialog.css`. */
 const DIALOG_CLASS_MAPS = [
 	'accordion',
@@ -111,11 +115,110 @@ test.each([
 	'components/panel/index.js',
 	'components/preferences/index.js',
 	'primitives.js',
+	'primitives/accordion.js',
+	'primitives/collapsible.js',
+	'primitives/preference-item.js',
+	'primitives/switch.js',
+	'primitives/tabs.js',
 	'iab.js',
 ])('%s imports the dialog stylesheet', (entry) => {
 	const graph = reachable(entry);
 	expect(DIALOG_CLASS_MAPS.some((map) => graph.has(map))).toBe(true);
 	expect(graph.has(DIALOG_CSS)).toBe(true);
+});
+
+/** Every `dist/*.js` file a public subpath (wildcards expanded) points at. */
+const publicEntries = (): string[] => {
+	const entries = new Set<string>();
+	for (const target of Object.values(packageJson.exports)) {
+		const path =
+			typeof target === 'string'
+				? target
+				: (target as { import?: string }).import;
+		if (!path?.endsWith('.js')) {
+			continue;
+		}
+		const [prefix = '', suffix = ''] = path.slice('./dist/'.length).split('*');
+		for (const file of Object.keys(DIST)) {
+			const relative = file.slice('../../dist/'.length);
+			const middle = relative.slice(prefix.length, -suffix.length || undefined);
+			const matches = path.includes('*')
+				? relative.startsWith(prefix) &&
+					relative.endsWith(suffix) &&
+					!middle.includes('/')
+				: relative === prefix;
+			if (matches) {
+				entries.add(relative);
+			}
+		}
+	}
+	return [...entries].sort();
+};
+
+test('every public entry that renders dialog classes brings the dialog stylesheet', () => {
+	const entries = publicEntries();
+	expect(entries).toContain('primitives/accordion.js');
+	const missing = entries.filter((entry) => {
+		const graph = reachable(entry);
+		return (
+			DIALOG_CLASS_MAPS.some((map) => graph.has(map)) && !graph.has(DIALOG_CSS)
+		);
+	});
+	expect(missing).toEqual([]);
+});
+
+/** Whether a `sideEffects` glob (`**` = any depth, `*` = one segment) matches. */
+const matchesGlob = (glob: string, relative: string): boolean => {
+	const pattern = glob
+		.replace(/^\.\//u, '')
+		.split('**/')
+		.map((part) =>
+			part.replaceAll(/[.+?^${}()|[\]\\]/gu, '\\$&').replaceAll('*', '[^/]*')
+		)
+		.join('(?:.*/)?');
+	return new RegExp(`^${pattern}$`, 'u').test(relative);
+};
+
+// The package is side-effect free apart from `sideEffects`. A module that
+// only re-exports is skipped by bundlers (Turbopack, webpack) when that
+// holds, and its stylesheet import goes with it: the primitives then render
+// unstyled. Such modules have to be listed.
+test('re-export modules that import the dialog stylesheet are marked side-effectful', () => {
+	const reExportOnly = Object.entries(DIST)
+		.filter(([, source]) => staticImports(source).includes(DIALOG_CSS))
+		.filter(([, source]) =>
+			source
+				.replace(`import"${DIALOG_CSS}";`, '')
+				.split(';')
+				.every(
+					(statement) =>
+						statement.trim() === '' ||
+						/^(?:export\s*[*{]|import\s*\*\s*as\s)/u.test(statement.trim())
+				)
+		)
+		.map(([file]) => `dist/${file.slice('../../dist/'.length)}`);
+
+	expect(reExportOnly).toEqual(
+		expect.arrayContaining([
+			'dist/primitives.js',
+			'dist/primitives/accordion.js',
+		])
+	);
+	const unmarked = reExportOnly.filter(
+		(file) => !packageJson.sideEffects.some((glob) => matchesGlob(glob, file))
+	);
+	expect(unmarked).toEqual([]);
+});
+
+// Plain Node (externalised SSR) throws ERR_UNKNOWN_FILE_EXTENSION on a `.css`
+// import. `@c15t/ui/styles/dialog` resolves to an empty module there.
+test('no built module imports a stylesheet file directly', () => {
+	const offenders = Object.entries(DIST)
+		.filter(([, source]) =>
+			staticImports(source).some((specifier) => specifier.endsWith('.css'))
+		)
+		.map(([file]) => file);
+	expect(offenders).toEqual([]);
 });
 
 test('the aggregate ConsentDialog reaches the dialog stylesheet only through import()', () => {

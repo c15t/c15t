@@ -21,6 +21,7 @@
  * | --- | --- | --- |
  * | `styles.css`, `styles.tw3.css` | default tokens, every `:root` variable and `@keyframes`, rules for the banner, dialog trigger and ConsentGate | the app, once, render-blocking |
  * | `styles/dialog.css` | rules for the dialog and preference widget | the dialog's module (lazy in React) |
+ * | `styles/dialog.js` (`@c15t/ui/styles/dialog`) | an import of `styles/dialog.css`; nothing under the `node` condition | React's dialog, widget and primitive modules |
  * | `styles/primitives.css` | rules for the `@c15t/ui/styles/primitives` class maps | Svelte's `styles.css` and hosts that render those class maps |
  * | `iab/styles.css`, `iab/styles.tw3.css` | IAB variables and rules only | the app, next to `styles.css` |
  *
@@ -412,6 +413,20 @@ writeDist(
 	])
 );
 
+// dist/styles/dialog.js — the side-effect module JavaScript imports to load
+// dialog.css (`@c15t/ui/styles/dialog`). Bundlers follow its CSS import. The
+// `node` export condition serves dialog.node.js instead, which imports
+// nothing: a runtime that loads the package with plain Node (externalised
+// SSR, for example) cannot load a `.css` file. Keep `./styles/dialog.css`
+// itself unconditional: Astro imports it from `page-ssr`, where its SSR
+// build collects the page's CSS.
+writeDist('styles/dialog.js', "import './dialog.css';\n");
+writeDist(
+	'styles/dialog.node.js',
+	'// Plain Node cannot load CSS. Bundlers resolve dialog.js instead.\nexport {};\n'
+);
+writeDist('styles/dialog.d.ts', 'export {};\n');
+
 // dist/styles/primitives.css — rules for the primitive class maps, which
 // React never renders. Svelte's styles.css and custom hosts import it.
 writeDist(
@@ -453,5 +468,5 @@ if (IAB_COMPONENTS.length > 0) {
 }
 
 console.log(
-	'Generated dist/styles.css, dist/styles.tw3.css, dist/styles/dialog.css, dist/styles/primitives.css, dist/iab/styles.css, and dist/iab/styles.tw3.css'
+	'Generated dist/styles.css, dist/styles.tw3.css, dist/styles/dialog.css, dist/styles/dialog.js, dist/styles/primitives.css, dist/iab/styles.css, and dist/iab/styles.tw3.css'
 );

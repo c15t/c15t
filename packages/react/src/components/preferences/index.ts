@@ -12,7 +12,7 @@
 
 // Widget rules live in the dialog stylesheet, not styles.css. See
 // components/panel/index.ts.
-import '@c15t/ui/styles/dialog.css';
+import '@c15t/ui/styles/dialog';
 import type { FC } from 'react';
 
 import {

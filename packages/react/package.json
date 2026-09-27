@@ -56,7 +56,9 @@
 	],
 	"type": "module",
 	"sideEffects": [
-		"**/*.css"
+		"**/*.css",
+		"./dist/primitives.js",
+		"./dist/primitives/*.js"
 	],
 	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
