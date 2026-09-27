@@ -11,12 +11,14 @@
  * that nothing loaded; the second holds the chunk back to test the window
  * before it arrives.
  */
-import type { ConsentKernel } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core';
+import type { ConsentKernel, KernelVendorsState } from '@c15t/core';
 import { useContext, useEffect } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { KernelContext } from '../context';
+import { watchGatedIframes } from '../module-hooks/iframe-blocker';
 import { ConsentProvider } from '../provider';
 import { policyFixture } from './policy-fixture';
 
@@ -85,12 +87,59 @@ const insertFrame = (attributes: Record<string, string>) => {
 };
 
 afterEach(() => {
-	for (const iframe of Array.from(document.querySelectorAll('iframe'))) {
-		if (iframe.getAttribute('data-category')) {
-			iframe.remove();
-		}
+	for (const iframe of Array.from(
+		document.querySelectorAll('iframe[data-category], iframe[data-vendor]')
+	)) {
+		iframe.remove();
 	}
 });
+
+/**
+ * A kernel with marketing granted and `denied` turned off, as a returning
+ * visitor has before the backend declares any vendor.
+ */
+const kernelWithVendorChoice = (
+	denied: string[],
+	initialVendors?: KernelVendorsState
+): ConsentKernel => {
+	const fixture = policyFixture({ marketing: true });
+	return createConsentKernel({
+		...fixture,
+		initialRecords: {
+			...fixture.initialRecords,
+			vendorChoice: { confirmedAt: fixture.now - 1, denied, version: 1 },
+		},
+		initialVendors,
+	});
+};
+
+/** Watch with `kernel` and record every `src` the watcher takes away. */
+const watchAndRecord = (watched: ConsentKernel) => {
+	const removals: Element[] = [];
+	const recorder = new MutationObserver((records) => {
+		for (const record of records) {
+			const target = record.target as Element;
+			if (record.attributeName === 'src' && !target.hasAttribute('src')) {
+				removals.push(target);
+			}
+		}
+	});
+	recorder.observe(document.body, {
+		attributeFilter: ['src'],
+		attributes: true,
+		subtree: true,
+	});
+	const stop = watchGatedIframes(watched, () => {
+		/* the chunk is not under test here */
+	});
+	return {
+		removals,
+		stop: () => {
+			stop();
+			recorder.disconnect();
+		},
+	};
+};
 
 describe('iframe blocker on demand', () => {
 	test('a page without gated iframes never loads the blocker', async () => {
@@ -162,5 +211,117 @@ describe('iframe blocker on demand', () => {
 
 		await vi.waitFor(() => expect(iframe.getAttribute('src')).toBeNull());
 		expect(iframe.getAttribute('data-src')).toBe(FRAME_URL);
+	});
+
+	test('an invalid data-category surfaces as an error once the blocker loads', async () => {
+		const reasons: unknown[] = [];
+		const onRejection = (event: PromiseRejectionEvent) => {
+			reasons.push(event.reason);
+			event.preventDefault();
+		};
+		window.addEventListener('unhandledrejection', onRejection);
+		try {
+			await renderProvider(policyFixture());
+			insertFrame({ 'data-category': 'not-a-category', src: FRAME_URL });
+			await vi.waitFor(() =>
+				expect(String(reasons[0])).toContain(
+					'invalid data-category "not-a-category"'
+				)
+			);
+		} finally {
+			window.removeEventListener('unhandledrejection', onRejection);
+		}
+	});
+});
+
+describe('frames the watcher holds before the blocker loads', () => {
+	test('holds a frame whose vendor the visitor turned off, though no one declared it yet', async () => {
+		const watch = watchAndRecord(kernelWithVendorChoice(['youtube']));
+		const iframe = insertFrame({
+			'data-category': 'marketing',
+			'data-vendor': 'youtube',
+			sandbox: '',
+			src: FRAME_URL,
+		});
+		await sleep(20);
+		watch.stop();
+
+		expect(iframe.getAttribute('src')).toBeNull();
+		expect(iframe.getAttribute('data-src')).toBe(FRAME_URL);
+	});
+
+	test('holds a vendor-only frame the visitor turned off', async () => {
+		const watch = watchAndRecord(kernelWithVendorChoice(['youtube']));
+		const iframe = insertFrame({
+			'data-vendor': 'youtube',
+			sandbox: '',
+			src: FRAME_URL,
+		});
+		await sleep(20);
+		watch.stop();
+
+		expect(iframe.getAttribute('src')).toBeNull();
+		expect(iframe.getAttribute('data-src')).toBe(FRAME_URL);
+	});
+
+	test('leaves an allowed vendor-only frame loading', async () => {
+		const watch = watchAndRecord(kernelWithVendorChoice(['other-vendor']));
+		const iframe = insertFrame({
+			'data-vendor': 'youtube',
+			sandbox: '',
+			src: FRAME_URL,
+		});
+		await sleep(20);
+		watch.stop();
+
+		expect(iframe.getAttribute('src')).toBe(FRAME_URL);
+		expect(watch.removals).toEqual([]);
+	});
+
+	test('leaves a frame alone when a disabled declaration lifts a stale denial', async () => {
+		const watch = watchAndRecord(
+			kernelWithVendorChoice(['youtube'], {
+				declared: [
+					{
+						category: 'marketing',
+						disabled: true,
+						id: 'youtube',
+						presentable: false,
+						source: 'config',
+					},
+				],
+				listVersion: null,
+			})
+		);
+		const iframe = insertFrame({
+			'data-vendor': 'youtube',
+			sandbox: '',
+			src: FRAME_URL,
+		});
+		await sleep(20);
+		watch.stop();
+
+		expect(iframe.getAttribute('src')).toBe(FRAME_URL);
+		expect(watch.removals).toEqual([]);
+	});
+
+	test('ignores vendor denials in IAB mode', async () => {
+		const base = kernelWithVendorChoice(['youtube']);
+		const iab: ConsentKernel = {
+			...base,
+			getSnapshot: () => ({ ...base.getSnapshot(), model: 'iab' }),
+		};
+		const watch = watchAndRecord(iab);
+		const iframe = insertFrame({
+			'data-category': 'marketing',
+			'data-vendor': 'youtube',
+			sandbox: '',
+			src: FRAME_URL,
+		});
+		await sleep(20);
+		watch.stop();
+
+		expect(iframe.getAttribute('src')).toBe(FRAME_URL);
+		expect(watch.removals).toEqual([]);
 	});
 });
