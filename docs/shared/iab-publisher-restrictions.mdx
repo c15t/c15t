@@ -1,0 +1,43 @@
+Each restriction type has a requirement that depends on the vendor list:
+
+| `restrictionType` | Meaning | Allowed when the vendor |
+| --- | --- | --- |
+| `0` | Purpose not allowed on any legal basis | declares the purpose for consent or legitimate interest |
+| `1` | Consent required | declares the purpose for legitimate interest and lists it in `flexiblePurposes` |
+| `2` | Legitimate interest required | declares the purpose for consent and lists it in `flexiblePurposes` |
+
+Type `2` is never allowed for purposes 1, 3, 4, 5 and 6, which TCF allows
+only with consent. Restrictions also require a service-specific CMP, the
+default. Setting `isServiceSpecific: false` with restrictions is an error.
+
+c15t checks restrictions when the vendor list loads and again before each TC
+String is encoded. Unsupported restrictions include type `3`, which the spec
+reserves, a vendor or purpose missing from the list, and a vendor with two
+restriction types for one purpose. They are never dropped. Loading IAB settings
+fails with the reason, and saving or generating a TC String rejects with a
+`PublisherRestrictionError` exported by `@c15t/iab`. On a `createIAB` handle
+these are `whenReady()`, `save()` and `generateTCString()`. No TC String is
+written and no consent is recorded. Because the check reads the current vendor
+list, a vendor that stops declaring a purpose or its flexibility makes a
+restriction invalid. Narrow a `vendors` allowlist and your restrictions
+together.
+
+Saved TC Strings carry the restrictions in their `PubRestrictions` section, and
+`__tcfapi('getTCData')` reports them as `publisher.restrictions`, keyed by
+purpose ID, then vendor ID. A stored TC String whose restrictions differ from
+the current configuration is not restored, so the visitor is asked again.
+
+Consent-gated scripts, network rules and iframes with a `vendorId` also apply
+the confirmed restrictions for that vendor:
+
+- Type `0` blocks a target that declares the purpose in `iabPurposes` or
+  `iabLegIntPurposes`.
+- Type `1` makes a purpose declared in `iabLegIntPurposes` require purpose and
+  vendor consent. Legitimate interest no longer satisfies it.
+- Type `2` makes a purpose declared in `iabPurposes` require purpose and vendor
+  legitimate interest. Consent no longer satisfies it.
+
+Types `1` and `2` block the target when the vendor list does not mark the
+purpose as flexible for that vendor. Targets without a `vendorId` ignore
+restrictions. Accept all grants the vendor signal a restriction moves a purpose
+to, including legitimate interest for a vendor that declares none.
