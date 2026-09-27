@@ -105,6 +105,9 @@ export const createPersistence = function createPersistence(
 	// What storage held when this runtime last read or wrote each record.
 	// Reconciliation acts only on records that changed since.
 	let seen: StorageFingerprints = {};
+	// Records this runtime wrote with parts taken from storage that memory
+	// does not hold yet. The next reconciliation treats them as changed.
+	const unadopted = new Set<StoredRecordKind>();
 	// Whether a decision was recorded since the last write. Without one, a
 	// scheduled write only acknowledges the server's subject id.
 	let choiceRecorded = false;
@@ -157,17 +160,37 @@ export const createPersistence = function createPersistence(
 	};
 
 	/**
-	 * Whether another runtime changed a record since this runtime last read
-	 * or wrote it. Such a record wins a tie with a queued write.
+	 * Whether storage holds something for a record that memory lacks: another
+	 * runtime changed it since this runtime last saw it, or this runtime's
+	 * own merged write took parts of it from storage. Such a record wins a
+	 * tie with a queued write and blocks a subject-only rewrite.
 	 */
 	const changedSinceSeen = function changedSinceSeen(
 		kind: StoredRecordKind,
 		at: number
 	): boolean {
-		const prints = fingerprintStoredRecords(
+		const print = fingerprintStoredRecords(
 			readStoredRecordsForReconcile(storageConfig, at)
-		);
-		return prints[kind] !== undefined && prints[kind] !== seen[kind];
+		)[kind];
+		return (print !== undefined && print !== seen[kind]) || unadopted.has(kind);
+	};
+
+	/**
+	 * Mark a record after writing it. The record is seen as written, so a
+	 * later removal is recognised as one. A write that took anything from
+	 * storage is also marked unadopted: memory lacks part of it, so the next
+	 * reconciliation treats it as changed and brings the merge into memory.
+	 */
+	const markWritten = function markWritten(
+		kind: StoredRecordKind,
+		wroteOwnState: boolean
+	): void {
+		observe(kind);
+		if (wroteOwnState) {
+			unadopted.delete(kind);
+		} else {
+			unadopted.add(kind);
+		}
 	};
 
 	const choiceWrites = createWriteScheduler(() => {
@@ -192,14 +215,11 @@ export const createPersistence = function createPersistence(
 				storageConfig,
 				at
 			);
-			// A write that took anything from storage leaves the record marked
-			// as changed, so the next reconciliation brings it into memory.
-			if (
+			markWritten(
+				'choice',
 				sameRecord(explicitChoice, snapshot.explicitChoice) &&
-				sameRecord(subject, snapshot.subject)
-			) {
-				observe('choice');
-			}
+					sameRecord(subject, snapshot.subject)
+			);
 		}
 	});
 	const noticeWrites = createWriteScheduler(() => {
@@ -248,11 +268,7 @@ export const createPersistence = function createPersistence(
 				? snapshot.subject
 				: subjectToWrite(snapshot.subject, stored?.subject, subjectYields());
 			writeVendorChoiceToStorage({ ...snapshot, subject }, storageConfig, at);
-			// As for the choice: a subject taken from storage stays marked as
-			// changed until reconciliation brings it into memory.
-			if (sameRecord(subject, snapshot.subject)) {
-				observe('vendors');
-			}
+			markWritten('vendors', sameRecord(subject, snapshot.subject));
 		}
 	});
 
@@ -375,9 +391,11 @@ export const createPersistence = function createPersistence(
 			stored,
 			seen,
 			at,
-			subjectYields()
+			subjectYields(),
+			unadopted
 		);
 		({ seen } = next);
+		unadopted.clear();
 		rememberSubject(stored.records);
 		if (!next.records) {
 			return false;

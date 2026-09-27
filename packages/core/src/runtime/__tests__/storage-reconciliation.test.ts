@@ -779,3 +779,72 @@ test('a subject the server resolved at init outlives unchanged storage and is sa
 	await nextTask();
 	expect(storedSubject()?.subjectId).toBe('sub_server');
 });
+
+test('a record merged into on write is still cleared when another runtime removes it', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	const vendors = [
+		{
+			category: 'measurement' as const,
+			id: 'analytics-one',
+			name: 'Analytics One',
+			privacyPolicyUrl: 'https://example.com/privacy',
+		},
+	];
+	// Opened on empty storage.
+	const active = start({ vendors });
+
+	// Another runtime stores a choice and a vendor record under its subject.
+	const other = start({ vendors });
+	await other.kernel.commands.save({
+		measurement: false,
+		vendors: { 'analytics-one': false },
+	});
+	await nextTask();
+
+	// This runtime decides later; its writes merge into those records and
+	// carry the stored subject.
+	vi.setSystemTime(1_800_000_001_000);
+	await active.kernel.commands.save({
+		measurement: true,
+		vendors: { 'analytics-one': false },
+	});
+	await nextTask();
+	expect(active.kernel.getSnapshot().explicitChoice).not.toBeNull();
+	expect(active.kernel.getSnapshot().vendorChoice).not.toBeNull();
+
+	// The other runtime clears before this one reconciles.
+	other.clearRecords();
+
+	active.reconcileStorage();
+	expect(active.kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(active.kernel.getSnapshot().vendorChoice).toBeNull();
+});
+
+test('a vendor record without a subject keeps a subject the server resolved', async () => {
+	const active = start(
+		{ prefetch: {} },
+		createTransport({
+			init: vi.fn().mockResolvedValue({
+				policyResolution: writePolicyResolutionWire(resolution),
+				subjectId: 'sub_server',
+			}),
+		})
+	);
+	await vi.waitFor(() => {
+		expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+	});
+
+	const now = Date.now();
+	writeStoredVendorChoice(
+		{ confirmedAt: now - 1000, denied: ['meta-pixel'], version: 1 },
+		undefined,
+		now
+	);
+
+	active.reconcileStorage();
+	expect(active.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+		'meta-pixel',
+	]);
+	expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+});

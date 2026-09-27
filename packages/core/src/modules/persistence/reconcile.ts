@@ -374,16 +374,35 @@ const adoptNewer = function adoptNewer<RecordType>(
 };
 
 /**
+ * Whether a stored subject should replace the one in memory, given the
+ * time of the newest decision each side carries. A subject that yields (see
+ * {@link subjectToWrite}) is replaced by a stored one at least as recent; an
+ * id the server resolved only by a strictly newer one. An identity from
+ * `identify()` is never replaced, and a missing stored subject replaces
+ * nothing.
+ */
+const prefersStoredSubject = function prefersStoredSubject(
+	memory: ConsentSubject | null,
+	stored: ConsentSubject | null | undefined,
+	storedAt: number,
+	memoryAt: number,
+	subjectYields: boolean
+): stored is ConsentSubject {
+	if (!stored || hasNewerIdentity(memory, stored)) {
+		return false;
+	}
+	return subjectYields ? storedAt >= memoryAt : storedAt > memoryAt;
+};
+
+/**
  * The subject to apply, or `undefined` to keep the one in memory.
  *
  * The subject belongs to the record it was stored with: the envelope, or
  * the vendor record for a visitor whose only decision is about vendors. It
  * is only considered when that record changed in storage, so focus or an
- * unrelated key never moves the subject. A subject that yields (see
- * {@link subjectToWrite}) is replaced by a stored one at least as recent; an
- * id the server resolved is replaced only by a strictly newer stored
- * choice. An identity from `identify()` is never replaced, and an absent
- * stored subject never erases one held alongside a choice.
+ * unrelated key never moves the subject, and follows
+ * {@link prefersStoredSubject}. Only the removal of the record that carried
+ * it clears the subject.
  */
 const reconcileSubject = function reconcileSubject(
 	snapshot: ConsentSnapshot,
@@ -392,28 +411,41 @@ const reconcileSubject = function reconcileSubject(
 	movement: Movement,
 	subjectYields: boolean
 ): HydrationRecords['subject'] {
-	const { explicitChoice } = snapshot;
+	const { explicitChoice, vendorChoice } = snapshot;
 	let candidate: HydrationRecords['subject'];
 	if (records.choice === null) {
 		// The choice was cleared: take whatever identity storage still has.
 		candidate = stored.subject ?? null;
 	} else if (stored.choice) {
 		const relevant = movement.changed('choice') || records.choice !== undefined;
-		const storedAt = latestDecisionAt(stored.choice);
-		const memoryAt = latestDecisionAt(explicitChoice);
-		const recent = subjectYields ? storedAt >= memoryAt : storedAt > memoryAt;
-		candidate =
+		if (
 			relevant &&
-			recent &&
-			stored.subject &&
-			!hasNewerIdentity(snapshot.subject, stored.subject)
-				? stored.subject
-				: undefined;
+			prefersStoredSubject(
+				snapshot.subject,
+				stored.subject,
+				latestDecisionAt(stored.choice),
+				latestDecisionAt(explicitChoice),
+				subjectYields
+			)
+		) {
+			candidate = stored.subject;
+		}
 	} else if (explicitChoice === null && movement.changed('vendors')) {
 		// No choice on either side, or an unreadable one: the vendor record
 		// carries the subject.
-		candidate =
-			stored.choice === null || stored.subject ? stored.subject : undefined;
+		if (stored.choice === null && movement.removed('vendors')) {
+			candidate = null;
+		} else if (
+			prefersStoredSubject(
+				snapshot.subject,
+				stored.subject,
+				stored.vendorChoice?.confirmedAt ?? Number.NEGATIVE_INFINITY,
+				vendorChoice?.confirmedAt ?? Number.NEGATIVE_INFINITY,
+				subjectYields
+			)
+		) {
+			candidate = stored.subject;
+		}
 	}
 	return candidate !== undefined && !sameRecord(snapshot.subject, candidate)
 		? candidate
@@ -492,6 +524,8 @@ export interface ReconciledRecords {
  * @param now - Read time, used as the evaluation time.
  * @param subjectYields - Whether the in-memory subject yields to a stored
  * one (see {@link subjectToWrite}).
+ * @param unadopted - Records this runtime wrote with parts memory lacks;
+ * they count as changed even when storage still holds what was written.
  * @returns The records to hydrate and the fingerprints to keep.
  */
 export const selectReconciledRecords = function selectReconciledRecords(
@@ -499,13 +533,15 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	read: StoredRead,
 	seen: StorageFingerprints,
 	now: number,
-	subjectYields: boolean
+	subjectYields: boolean,
+	unadopted: ReadonlySet<StoredRecordKind>
 ): ReconciledRecords {
 	const { records: stored } = read;
 	const current = fingerprintStoredRecords(read);
 	const movement: Movement = {
 		changed: (kind) =>
-			current[kind] !== undefined && current[kind] !== seen[kind],
+			current[kind] !== undefined &&
+			(current[kind] !== seen[kind] || unadopted.has(kind)),
 		removed: (kind) =>
 			current[kind] === ABSENT[kind] &&
 			seen[kind] !== undefined &&
