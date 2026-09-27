@@ -15,6 +15,7 @@ import type {
 	ConsentPresentation,
 	KernelConfig,
 	LegalLinks,
+	PublisherRestriction,
 	Script,
 	StorageConfig,
 } from '@c15t/core';
@@ -309,6 +310,12 @@ export interface C15tIABOptions {
 	publisherCountryCode?: string;
 	/** Whether the CMP is service-specific rather than global. */
 	isServiceSpecific?: boolean;
+	/**
+	 * Publisher restrictions to encode into the TC string and apply to IAB
+	 * gates. Plain data, so it travels to the browser with the rest of these
+	 * options. `@c15t/iab` rejects restrictions the vendor list does not allow.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 	/**
 	 * Fetch the vendor list from this URL on the server.
 	 *
