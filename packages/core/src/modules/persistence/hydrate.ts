@@ -100,8 +100,15 @@ const composeRecords = function composeRecords(
 	clearEpoch: number,
 	now: number
 ): StoredRecords {
-	const epoch = Math.max(clearEpoch, selection.selected?.epoch ?? 0);
-	const choice = choiceSinceEpoch(selection.selected?.choice ?? null, epoch);
+	const envelopeEpoch = selection.selected?.epoch ?? 0;
+	const epoch = Math.max(clearEpoch, envelopeEpoch);
+	// An envelope written under the epoch in force came from a runtime that
+	// had seen that clear, so its decisions in the clearing millisecond count.
+	const choice = choiceSinceEpoch(
+		selection.selected?.choice ?? null,
+		epoch,
+		envelopeEpoch === epoch
+	);
 	// An envelope with nothing left since the clear is a cleared one.
 	const selected = choice ? selection.selected : null;
 	const vendorRecord = vendorChoiceSinceEpoch(

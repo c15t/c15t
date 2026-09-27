@@ -22,8 +22,11 @@ import {
 	clearStoredPrivacyOptOuts,
 	readStoredConsentRecord,
 	readStoredNoticeDismissal,
+	readStoredClearEpoch,
 	readStoredPrivacyOptOuts,
 	readStoredVendorChoice,
+	writeStoredClearEpoch,
+	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
 	writeStoredPrivacyOptOuts,
 	writeStoredVendorChoice,
@@ -953,7 +956,8 @@ test('a server read voids decisions from before the clear epoch', () => {
 });
 
 test.each([
-	['a future clear epoch', () => `${Date.now() + 60_000}`],
+	// Within an hour ahead counts as a clock set back; see the test below.
+	['a clear epoch far in the future', () => `${Date.now() + 2 * 3_600_000}`],
 	['a malformed clear epoch', () => 'not-a-time'],
 ])('%s voids nothing', async (_case, epoch) => {
 	resolution = optOut;
@@ -993,4 +997,156 @@ test('a subject generated right after a clear still yields to one another runtim
 
 	active.reconcileStorage();
 	expect(storedSubject()?.subjectId).toBe(storedId);
+});
+
+const T = 1_800_000_000_000;
+const HOUR = 3_600_000;
+
+test.each([
+	['a malformed', 'not-a-time'],
+	['a future', String(T + 10 * HOUR)],
+])(
+	'%s epoch inside a stored record never drops its denial',
+	async (_case, badEpoch) => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(T);
+		resolution = optOut;
+		await start().kernel.commands.save('none');
+		await nextTask();
+
+		// Corrupt the epoch field of both projections.
+		const cookie = document.cookie
+			.split('; ')
+			.find((part) => part.startsWith('c15t='))
+			?.slice('c15t='.length);
+		document.cookie = `c15t=${cookie}&e=${badEpoch}; path=/`;
+		const json = JSON.parse(localStorage.getItem('c15t') ?? '{}');
+		localStorage.setItem('c15t', JSON.stringify({ ...json, epoch: badEpoch }));
+
+		expect(measurement(start())).toBe(false);
+	}
+);
+
+test('an epoch ahead of a clock set back is kept, and the next clear keeps the maximum', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T - HOUR / 2);
+	const stale = createTransport();
+	await start({}, stale).kernel.commands.save('all');
+	await nextTask();
+	const cleared = JSON.parse(localStorage.getItem('c15t') ?? '{}');
+
+	vi.setSystemTime(T);
+	start().clearRecords();
+	// A writer that knows nothing of the clear puts the old record back.
+	writeStoredConsentEnvelope(cleared, { now: T });
+
+	// The clock goes back ten minutes.
+	vi.setSystemTime(T - 10 * 60_000);
+	expect(measurement(start())).toBe(false);
+	expect(readStoredClearEpoch(undefined, Date.now())).toBe(T);
+
+	start().clearRecords();
+	expect(readStoredClearEpoch(undefined, Date.now())).toBeGreaterThan(T);
+});
+
+test('an epoch more than an hour ahead of the clock is treated as corrupt', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	resolution = optOut;
+	await start().kernel.commands.save('none');
+	await nextTask();
+	writeStoredClearEpoch(T + 2 * HOUR, undefined);
+
+	expect(measurement(start())).toBe(false);
+});
+
+test("a stale runtime's decision in the clearing millisecond does not survive the clear", async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T - 1000);
+	await start(threeCategories).kernel.commands.save({ marketing: false });
+	await nextTask();
+	const stale = start(threeCategories);
+	const other = start(threeCategories);
+
+	// Same millisecond: the stale runtime grants, the other one clears.
+	vi.setSystemTime(T);
+	void stale.kernel.commands.save({ measurement: true });
+	other.clearRecords();
+
+	stale.reconcileStorage();
+	expect(decision(start(threeCategories), 'measurement')).toBeUndefined();
+	expect(decision(stale, 'measurement')).toBeUndefined();
+});
+
+test("a runtime's own decision in the millisecond of its clear still counts", async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	const active = start(threeCategories);
+	active.clearRecords();
+	await active.kernel.commands.save({ measurement: true });
+	await nextTask();
+
+	expect(active.reconcileStorage()).toBe(false);
+	expect(decision(active, 'measurement')).toBe(true);
+	expect(decision(start(threeCategories), 'measurement')).toBe(true);
+});
+
+test('a stored record without decisions from before a clear does not restore its subject', () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	writeStoredConsentEnvelope(
+		{ categories: {}, subject: { subjectId: 'sub_before_clear' }, version: 3 },
+		{ now: T }
+	);
+	writeStoredClearEpoch(T, undefined);
+
+	expect(start().kernel.getSnapshot().subject).toBeNull();
+});
+
+test('a removed choice does not replace a server subject with an older vendor subject', async () => {
+	const vendors = [
+		{
+			category: 'measurement' as const,
+			id: 'analytics-one',
+			name: 'Analytics One',
+			privacyPolicyUrl: 'https://example.com/privacy',
+		},
+	];
+	const active = start(
+		{ prefetch: {}, vendors },
+		createTransport({
+			init: vi.fn().mockResolvedValue({
+				policyResolution: writePolicyResolutionWire(resolution),
+				subjectId: 'sub_server',
+			}),
+		})
+	);
+	await vi.waitFor(() => {
+		expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+	});
+	await active.kernel.commands.save({
+		measurement: true,
+		vendors: { 'analytics-one': false },
+	});
+	await nextTask();
+	expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+
+	// Only the envelope goes; the vendor record keeps an older subject.
+	const now = Date.now();
+	writeStoredVendorChoice(
+		{
+			confirmedAt: now - 60_000,
+			denied: ['analytics-one'],
+			subject: { subjectId: 'sub_older' },
+			version: 1,
+		},
+		undefined,
+		now
+	);
+	localStorage.removeItem('c15t');
+	document.cookie = 'c15t=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+
+	active.reconcileStorage();
+	expect(active.kernel.getSnapshot().explicitChoice).toBeNull();
+	expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
 });

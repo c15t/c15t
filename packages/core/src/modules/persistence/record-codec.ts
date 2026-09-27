@@ -295,22 +295,31 @@ const ENVELOPE_KEYS = [
 ] as const;
 
 /**
- * Checks a clear epoch: a whole, non-negative time no later than `now`.
- * An epoch in the future would void every decision stored before it, so a
- * corrupt value is rejected rather than trusted.
+ * How far a clear epoch may lie ahead of the clock and still count: one
+ * hour. A clock set back after a clear leaves the epoch in the future, and
+ * dropping it would let cleared records back in, so a small lead is kept.
+ * A larger one is taken as corrupt, since it would void every decision for
+ * as long as it stays ahead.
  */
-const checkEpoch = function checkEpoch(
+export const EPOCH_CLOCK_TOLERANCE_MS = 60 * 60 * 1000;
+
+/**
+ * Reads a clear epoch: a whole, non-negative time at most
+ * {@link EPOCH_CLOCK_TOLERANCE_MS} ahead of `now`, or `undefined`. The
+ * epoch only voids decisions, so an unreadable one is dropped rather than
+ * rejecting the record that carries it: a bad epoch never discards a
+ * stored denial.
+ */
+const readEpoch = function readEpoch(
 	value: unknown,
-	path: string,
-	now: number,
-	issues: StorageIssue[]
+	now: number
 ): number | undefined {
-	const issue = checkTimestamp(value, now);
-	if (issue) {
-		issues.push({ code: issue, path });
-		return undefined;
-	}
-	return value as number;
+	return typeof value === 'number' &&
+		Number.isSafeInteger(value) &&
+		value >= 0 &&
+		value <= now + EPOCH_CLOCK_TOLERANCE_MS
+		? value
+		: undefined;
 };
 
 /**
@@ -338,10 +347,7 @@ export const validateStoredConsentEnvelope =
 		}
 		const subject = validateSubject(ownValue(input, 'subject'), issues);
 		const rawEpoch = ownValue(input, 'epoch');
-		const epoch =
-			rawEpoch === undefined
-				? undefined
-				: checkEpoch(rawEpoch, 'epoch', now, issues);
+		const epoch = rawEpoch === undefined ? undefined : readEpoch(rawEpoch, now);
 		const rawIab = ownValue(input, 'iab');
 		let iab: StoredIabMetadata | undefined;
 		if (isPlainRecord(rawIab)) {
@@ -715,11 +721,9 @@ export const decodeStoredConsentEnvelopeCompact =
 		const epoch =
 			rawEpoch === undefined
 				? undefined
-				: checkEpoch(
+				: readEpoch(
 						DIGITS_ONLY.test(rawEpoch) ? Number(rawEpoch) : rawEpoch,
-						EPOCH_FIELD,
-						now,
-						issues
+						now
 					);
 
 		const subject: ConsentSubject = {};
@@ -1282,24 +1286,19 @@ export const encodeClearEpoch = function encodeClearEpoch(
 };
 
 /**
- * Parses a clear epoch record. Anything but a whole time no later than
- * `now` is rejected: a corrupt or future epoch would void decisions that
- * were never cleared.
+ * Parses a clear epoch record. Anything but a whole time at most
+ * {@link EPOCH_CLOCK_TOLERANCE_MS} ahead of `now` is rejected, and a
+ * rejected epoch reads as `0`: a corrupt epoch voids nothing.
  */
 export const decodeClearEpoch = function decodeClearEpoch(
 	text: string,
 	now: number
 ): DecodeResult<number> {
-	const issues: StorageIssue[] = [];
 	const epoch = DIGITS_ONLY.test(text)
-		? checkEpoch(Number(text), '', now, issues)
+		? readEpoch(Number(text), now)
 		: undefined;
 	if (epoch === undefined) {
-		return {
-			issues:
-				issues.length > 0 ? issues : [{ code: 'malformed-encoding', path: '' }],
-			ok: false,
-		};
+		return { issues: [{ code: 'malformed-encoding', path: '' }], ok: false };
 	}
 	return { ok: true, record: epoch };
 };

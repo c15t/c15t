@@ -240,7 +240,7 @@ export const createPersistence = function createPersistence(
 			subjectOnly && clearMissed
 				? null
 				: choiceToWrite(
-						choiceSinceEpoch(snapshot.explicitChoice, read.epoch),
+						choiceSinceEpoch(snapshot.explicitChoice, read.epoch, !clearMissed),
 						stored,
 						subjectOnly,
 						changedSinceSeen('choice', read)
@@ -543,11 +543,13 @@ export const createPersistence = function createPersistence(
 				clearStoredConsentRecords(undefined, storageConfig);
 				// The epoch outlives the clear it records: decisions confirmed
 				// before it stay void wherever another runtime writes them back.
-				const epoch = Math.max(
-					at,
+				// Always past the previous epoch, even when the clock went back:
+				// a lower epoch would let decisions between the two back in.
+				const previous = Math.max(
 					memoryEpoch,
 					readStoredClearEpoch(storageConfig, at)
 				);
+				const epoch = Math.max(at, previous + 1);
 				writeStoredClearEpoch(epoch, storageConfig);
 			}
 			observe();

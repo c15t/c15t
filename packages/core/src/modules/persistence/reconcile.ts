@@ -404,6 +404,33 @@ const prefersStoredSubject = function prefersStoredSubject(
 };
 
 /**
+ * The subject once the stored choice was removed. With no identity left in
+ * storage the subject goes with the choice. A subject the vendor record
+ * still carries follows the usual precedence, so it never replaces an id
+ * the server resolved or an identity from `identify()` it should yield to.
+ */
+const subjectAfterRemoval = function subjectAfterRemoval(
+	snapshot: ConsentSnapshot,
+	stored: HydrationRecords,
+	movement: Movement,
+	subjectYields: boolean
+): HydrationRecords['subject'] {
+	if (!stored.subject) {
+		return null;
+	}
+	return movement.changed('vendors') &&
+		prefersStoredSubject(
+			snapshot.subject,
+			stored.subject,
+			stored.vendorChoice?.confirmedAt ?? Number.NEGATIVE_INFINITY,
+			snapshot.vendorChoice?.confirmedAt ?? Number.NEGATIVE_INFINITY,
+			subjectYields
+		)
+		? stored.subject
+		: undefined;
+};
+
+/**
  * The subject to apply, or `undefined` to keep the one in memory.
  *
  * The subject belongs to the record it was stored with: the envelope, or
@@ -423,8 +450,7 @@ const reconcileSubject = function reconcileSubject(
 	const { explicitChoice, vendorChoice } = snapshot;
 	let candidate: HydrationRecords['subject'];
 	if (records.choice === null) {
-		// The choice was cleared: take whatever identity storage still has.
-		candidate = stored.subject ?? null;
+		candidate = subjectAfterRemoval(snapshot, stored, movement, subjectYields);
 	} else if (stored.choice) {
 		const relevant = movement.changed('choice') || records.choice !== undefined;
 		if (
@@ -535,7 +561,11 @@ const sinceEpoch = function sinceEpoch(
 ): ConsentSnapshot {
 	return {
 		...snapshot,
-		explicitChoice: choiceSinceEpoch(snapshot.explicitChoice, epoch),
+		explicitChoice: choiceSinceEpoch(
+			snapshot.explicitChoice,
+			epoch,
+			!clearMissed
+		),
 		noticeDismissal: noticeSinceEpoch(snapshot.noticeDismissal, epoch),
 		optOutDirectives: directivesSinceEpoch(snapshot.optOutDirectives, epoch),
 		subject: clearMissed ? null : snapshot.subject,

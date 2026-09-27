@@ -12,7 +12,15 @@
  *
  * Voiding only removes decisions; it never adds one. A corrupt or
  * unreadable epoch reads as `0`, which voids nothing, so a failed read
- * cannot turn a stored denial into a grant.
+ * cannot turn a stored denial into a grant. A clear always moves the epoch
+ * forward, even when the clock went back, so a later clear never lets
+ * earlier decisions back in.
+ *
+ * Ties: a category decision in the clearing millisecond counts only when
+ * its writer had seen the clear (see {@link choiceSinceEpoch}). The notice
+ * dismissal, vendor denials and privacy directives keep a tie: after a
+ * clear none of them exists, so one surviving a tie can only restrict or
+ * hide the notice, never grant.
  *
  * Pure.
  */
@@ -24,25 +32,42 @@ import type {
 import type { VendorChoice } from '../../types';
 
 /**
- * The choice without decisions confirmed before `epoch`, or `null` when
- * none remain.
+ * The choice without decisions made before the clear, or `null` when none
+ * remain. A choice with no decisions at all never survives a clear either,
+ * so a cleared record cannot bring back its subject.
+ *
+ * A decision confirmed in the very millisecond of the clear is ambiguous by
+ * time alone. It counts only when `knowsClear` says the choice comes from a
+ * runtime that had already seen this clear: that runtime's own memory, or
+ * an envelope written under this epoch. Such a runtime recorded it after the
+ * clear. Anywhere else (a runtime that missed the clear, a record from an
+ * older writer) it may predate the clear, so it is void.
+ *
+ * @param choice - The choice to filter.
+ * @param epoch - The clear epoch in force; `0` voids nothing.
+ * @param knowsClear - Whether the choice's writer had seen this clear.
+ * @returns The surviving choice, or `null`.
  */
 export const choiceSinceEpoch = function choiceSinceEpoch(
 	choice: ExplicitChoice | null,
-	epoch: number
+	epoch: number,
+	knowsClear: boolean
 ): ExplicitChoice | null {
 	if (!choice || epoch <= 0) {
 		return choice;
 	}
 	const entries = Object.entries(choice.categories).filter(
-		([, decision]) => decision && decision.confirmedAt >= epoch
+		([, decision]) =>
+			decision &&
+			(decision.confirmedAt > epoch ||
+				(knowsClear && decision.confirmedAt === epoch))
 	);
-	if (entries.length === Object.keys(choice.categories).length) {
-		return choice;
+	if (entries.length === 0) {
+		return null;
 	}
-	return entries.length > 0
-		? { categories: Object.fromEntries(entries), version: 3 }
-		: null;
+	return entries.length === Object.keys(choice.categories).length
+		? choice
+		: { categories: Object.fromEntries(entries), version: 3 };
 };
 
 /** The vendor record, or `null` when it was confirmed before `epoch`. */
