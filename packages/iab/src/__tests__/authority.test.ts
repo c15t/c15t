@@ -1852,3 +1852,90 @@ test('restrictions decoded from a range never reach an unlisted custom vendor', 
 	expect(gate(3)).toBe(true);
 	expect(gate(2)).toBe(false);
 });
+
+test('a receipt arriving while a replacement list loads is not checked against the old list', async () => {
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	// No explicit gvl: the CMP follows the kernel's list.
+	const restrictedAddon = (kernel: ConsentKernel) => {
+		const addon = createIAB({ cmpId: 28, kernel, publisherRestrictions });
+		disposers.push(addon.dispose);
+		return addon;
+	};
+	const first = makeKernel();
+	const firstStorage = createPersistence({ kernel: first, sync: false });
+	disposers.push(firstStorage.dispose);
+	const second = makeKernel();
+	const secondStorage = createPersistence({ kernel: second, sync: false });
+	disposers.push(secondStorage.dispose);
+	const firstAddon = restrictedAddon(first);
+	const secondAddon = restrictedAddon(second);
+	await secondAddon.whenReady();
+	firstAddon.acceptAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+
+	// The other runtime's save lands in the same turn as a replacement list
+	// on which vendor 755 no longer declares purpose 7.
+	const { 755: vendor755 } = completeGVL.vendors;
+	if (!vendor755) {
+		throw new Error('Missing vendor 755 fixture');
+	}
+	expect(secondStorage.reconcile()).toBe(true);
+	second.set.iab({
+		gvl: {
+			...completeGVL,
+			vendors: {
+				...completeGVL.vendors,
+				755: {
+					...vendor755,
+					flexiblePurposes: [2],
+					purposes: vendor755.purposes.filter((id) => id !== 7),
+				},
+			},
+		},
+	});
+	await expect(secondAddon.whenReady()).rejects.toBeInstanceOf(
+		PublisherRestrictionError
+	);
+	await vi.advanceTimersByTimeAsync(10);
+	expect(second.getSnapshot().iab?.authority).toBeNull();
+});
+
+test('a receipt deferred during a list load is reconciled once the list publishes', async () => {
+	// Earlier tests leave consent cookies behind; start from none.
+	for (const entry of document.cookie.split(';')) {
+		document.cookie = `${entry.split('=')[0]?.trim()}=; Max-Age=0; path=/`;
+	}
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	const restrictedAddon = (kernel: ConsentKernel) => {
+		const addon = createIAB({ cmpId: 28, kernel, publisherRestrictions });
+		disposers.push(addon.dispose);
+		return addon;
+	};
+	const first = makeKernel();
+	const firstStorage = createPersistence({ kernel: first, sync: false });
+	disposers.push(firstStorage.dispose);
+	const second = makeKernel();
+	const secondStorage = createPersistence({ kernel: second, sync: false });
+	disposers.push(secondStorage.dispose);
+	const firstAddon = restrictedAddon(first);
+	const secondAddon = restrictedAddon(second);
+	await secondAddon.whenReady();
+	firstAddon.acceptAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+
+	expect(secondStorage.reconcile()).toBe(true);
+	// An equivalent replacement list: the restrictions stay valid.
+	second.set.iab({ gvl: { ...completeGVL } });
+	await secondAddon.whenReady();
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority?.tcString).toBe(
+			first.getSnapshot().iab?.authority?.tcString
+		)
+	);
+});

@@ -911,6 +911,10 @@ export const createIAB = function createIAB(
 		}
 		armAuthorityTimer();
 	};
+	let listGeneration = 0;
+	/** The list generation last published, and a reload waiting for it. */
+	let publishedListGeneration = 0;
+	let reloadAfterList = false;
 	/**
 	 * Records replaced at a hydration boundary, such as a choice another tab
 	 * stored, can come with a newer authority receipt that tab wrote. Read
@@ -931,13 +935,26 @@ export const createIAB = function createIAB(
 		const recordsGeneration = kernel.getRecordsGeneration();
 		const generation = confirmationGeneration;
 		const receiptText = readAuthorityReceiptText();
-		const receipt = await validateAuthority(
-			readAuthorityReceipt(receiptText),
-			snapshot,
-			Date.now(),
-			publisherRestrictions
-		);
+		// While a list loads, the restrictions and the snapshot's list still
+		// describe the previous one. Check the receipt once it is published;
+		// until then only withdraw a held authority the choice denies.
+		const listLoading = publishedListGeneration !== listGeneration;
+		if (listLoading) {
+			reloadAfterList = true;
+		}
+		const receipt = listLoading
+			? null
+			: await validateAuthority(
+					readAuthorityReceipt(receiptText),
+					snapshot,
+					Date.now(),
+					publisherRestrictions
+				);
 		const current = kernel.getSnapshot();
+		if (!listLoading && publishedListGeneration !== listGeneration) {
+			reloadAfterList = true;
+			return;
+		}
 		// A receipt replaced or removed while it was decoded is stale: the
 		// storage event for that change starts its own reload, and a removal
 		// has already withdrawn the held authority.
@@ -1041,12 +1058,19 @@ export const createIAB = function createIAB(
 			? authority.tcString
 			: '';
 	};
+	/** Record a published list and run a reload that waited for it. */
+	const markListPublished = (generation: number): void => {
+		publishedListGeneration = generation;
+		if (reloadAfterList) {
+			reloadAfterList = false;
+			void reloadAuthority();
+		}
+	};
 	const unsubscribeClear = kernel.events.on('records:cleared', () => {
 		hydrationCancelled = true;
 		confirmationGeneration += 1;
 		clearAuthorityReceipt();
 	});
-	let listGeneration = 0;
 	let publishedList = preloadedGvl ?? null;
 	let initializationError: unknown;
 	const retainedAuthorityMatchesList = async (
@@ -1132,6 +1156,7 @@ export const createIAB = function createIAB(
 			publishedList = gvl;
 			const beforeUpdate = kernel.getSnapshot();
 			kernel.set.iab(update);
+			markListPublished(generation);
 			try {
 				cmpApi ??= createCMPApi({
 					cmpId,
