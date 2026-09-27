@@ -7,7 +7,7 @@ import {
 	normalizePolicyRule,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createAuthorityReceipt, validateAuthority } from '../authority';
 import { createIAB } from '../index';
@@ -1937,5 +1937,89 @@ test('a receipt deferred during a list load is reconciled once the list publishe
 		expect(second.getSnapshot().iab?.authority?.tcString).toBe(
 			first.getSnapshot().iab?.authority?.tcString
 		)
+	);
+});
+
+describe('returning visitors and changed publisher restrictions', () => {
+	const savedWith = async (
+		publisherRestrictions: {
+			purposeId: number;
+			restrictionType: 0 | 1 | 2;
+			vendorIds: number[];
+		}[]
+	) => {
+		const original = makeKernel();
+		const storage = createPersistence({ kernel: original, sync: false });
+		const addon = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel: original,
+			publisherRestrictions,
+		});
+		addon.acceptAll();
+		await addon.save();
+		storage.reconcile();
+		addon.dispose();
+		storage.dispose();
+		original.dispose();
+	};
+	const returning = (
+		publisherRestrictions: {
+			purposeId: number;
+			restrictionType: 0 | 1 | 2;
+			vendorIds: number[];
+		}[]
+	) => {
+		const kernel = makeKernel();
+		const storage = createPersistence({ kernel, sync: false });
+		disposers.push(storage.dispose);
+		const addon = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+			publisherRestrictions,
+		});
+		disposers.push(addon.dispose);
+		return { addon, kernel };
+	};
+	const gate = { category: 'marketing' as const, vendorId: 755 };
+	const prohibit7 = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+
+	test('a restriction change asks again and gates wait for the new save', async () => {
+		await savedWith([]);
+		const { addon, kernel } = returning(prohibit7);
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		// The stored choice is current, so only the IAB change can ask.
+		expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(false);
+
+		addon.acceptAll();
+		await addon.save();
+		expect(kernel.getSnapshot().iab?.authority?.publisherRestrictions).toEqual(
+			prohibit7
+		);
+		expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(true);
+	});
+
+	test.each([
+		['without restrictions', []],
+		['with the same restrictions', prohibit7],
+	])(
+		'an unchanged configuration %s never asks again',
+		async (_name, config) => {
+			await savedWith(config);
+			const { addon, kernel } = returning(config);
+			await addon.whenReady();
+			await vi.waitFor(() =>
+				expect(kernel.getSnapshot().iab?.authority).not.toBeNull()
+			);
+			expect(kernel.getSnapshot().activeUI).toBe('none');
+		}
 	);
 });

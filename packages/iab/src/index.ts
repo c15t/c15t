@@ -34,6 +34,7 @@ import type {
 
 import {
 	AUTHORITY_KEY,
+	checkAuthority,
 	clearAuthorityReceipt,
 	createAuthorityReceipt,
 	readAuthorityReceipt,
@@ -803,12 +804,22 @@ export const createIAB = function createIAB(
 		}
 		restoredFingerprint = fingerprint;
 		const generation = confirmationGeneration;
-		const authority = await validateAuthority(
+		const { authority, restrictionsChanged } = await checkAuthority(
 			readAuthorityReceipt(),
 			hydrationSnapshot,
 			Date.now(),
 			publisherRestrictions
 		);
+		if (
+			restrictionsChanged &&
+			hydrationSnapshot.explicitChoice &&
+			unchangedSince(hydrationSnapshot, recordsGeneration, generation) &&
+			kernel.getSnapshot().activeUI === 'none'
+		) {
+			// A material change to what the visitor agreed to: show the
+			// surface a changed policy shows. Gates wait for the new save.
+			kernel.set.activeUI('banner');
+		}
 		if (
 			authority &&
 			unchangedSince(hydrationSnapshot, recordsGeneration, generation) &&
