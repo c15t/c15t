@@ -43,8 +43,9 @@ Under an IAB policy, `@c15t/iab` loads the TC string another tab stored once
 its choice is reconciled, with its purpose, vendor and special-feature
 selections, so `__tcfapi` and the preference controls no longer show the
 previous choice. Selections changed in this tab without saving are kept. A
-TC string that grants a category the reconciled choice denies is withdrawn
-and not restored on the next page load.
+TC string that grants any purpose of a category denied after it was saved
+is withdrawn and not restored on the next page load; a partial purpose
+selection saved through IAB keeps its TC string.
 
 New API:
 
