@@ -117,10 +117,14 @@ Pass the result intact to `state` and keep the same shared URLs in `config`.
 Do not turn allowed categories into new saved choices or emit a choice event
 during hydration. Keep one `ConsentRoot` mounted across navigation.
 
-With resolved server state, `ConsentGate` renders its placeholder or permitted content
-in the server HTML and reuses that state during hydration. It does not need to
-wait for the browser to mount before showing the placeholder. The default
-placeholder is visible immediately, without a fade-in animation.
+With resolved server state, `ConsentGate` renders the placeholder for a denied
+category in the server HTML and reuses that state during hydration. It does not
+need to wait for the browser to mount before showing the placeholder. The
+default placeholder is visible immediately, without a fade-in animation. For a
+granted category the server HTML holds an empty wrapper, and the permitted
+content mounts once hydration completes, so an embed loads once even when the
+page streams inside a `Suspense` boundary. See
+[ConsentGate](/docs/frameworks/next/components/consent-gate).
 
 A resolved policy can satisfy browser initialization without another request.
 If prefetch fails or returns only baseline records, the browser can retry.
