@@ -251,3 +251,52 @@ describe('IAB preference item interactions', () => {
 		});
 	});
 });
+
+describe('IAB vendors tab with publisher restrictions', () => {
+	beforeEach(() => {
+		window.localStorage.clear();
+		vi.clearAllMocks();
+		delete (window as { __tcfapi?: unknown }).__tcfapi;
+	});
+
+	const findVendorRow = (name: string) =>
+		vi.waitFor(
+			() => {
+				const row = Array.from(
+					document.querySelectorAll<HTMLElement>('[id^="vendor-"]')
+				).find((element) => element.textContent?.includes(name));
+				expect(row).toBeDefined();
+				return getDefined(row);
+			},
+			{ timeout: 5000 }
+		);
+
+	test.each([
+		['without restrictions', undefined, false],
+		[
+			'when purpose 7 requires legitimate interest',
+			[{ purposeId: 7, restrictionType: 2 as const, vendorIds: [755] }],
+			true,
+		],
+	])(
+		'vendor 755 objection control %s',
+		async (_name, publisherRestrictions, objectable) => {
+			render(
+				<ConsentProvider
+					options={{
+						...defaultIABOptions,
+						iab: { ...defaultIABOptions.iab, publisherRestrictions },
+					}}
+				>
+					<IABConsentDialog open />
+				</ConsentProvider>
+			);
+			// Vendor 755 declares only consent purposes. Requiring legitimate
+			// interest for purpose 7 gives the visitor a right to object.
+			const row = await findVendorRow('Google Advertising Products');
+			expect(row.querySelector('button[aria-pressed]') !== null).toBe(
+				objectable
+			);
+		}
+	);
+});

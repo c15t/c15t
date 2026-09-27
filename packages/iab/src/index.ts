@@ -41,13 +41,13 @@ import {
 	storeAuthority,
 	validateAuthority,
 } from './authority';
+import { applyPublisherRestrictionsToGVL } from './headless/effective-vendor-list';
 import { createCMPApi } from './tcf/cmp-api';
 import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
 import type { PublisherRestriction } from './tcf/iab-tcf-types';
 import { getTCFCore } from './tcf/lazy-load';
 import {
 	copyPublisherRestrictionInput,
-	PUBLISHER_RESTRICTION_TYPES,
 	PublisherRestrictionError,
 	validatePublisherRestrictions,
 } from './tcf/publisher-restrictions';
@@ -210,7 +210,8 @@ export interface IABHandle {
 const seedInitialIAB = function seedInitialIAB(
 	kernel: ConsentKernel,
 	options: CreateIABOptions,
-	gvl: GlobalVendorList | null
+	gvl: GlobalVendorList | null,
+	publisherRestrictions: PublisherRestriction[]
 ): void {
 	let reference =
 		options.gvl === undefined
@@ -229,6 +230,7 @@ const seedInitialIAB = function seedInitialIAB(
 				Boolean(kernel.getSnapshot().iab?.gvlReference)),
 		gvl,
 		gvlReference: reference,
+		publisherRestrictions,
 	});
 };
 
@@ -264,37 +266,26 @@ const applyBlanket = function applyBlanket(
 	value: boolean,
 	restrictions: readonly PublisherRestriction[] = []
 ): void {
+	// A restriction can move a vendor's flexible purpose to the other legal
+	// basis, so that basis needs the vendor signal instead.
 	const vendors = [
-		...Object.values(gvl.vendors ?? {}),
+		...Object.values(
+			applyPublisherRestrictionsToGVL(gvl, restrictions).vendors ?? {}
+		),
 		...readIAB(kernel).customVendors,
 	];
-	// A restriction can move a vendor's flexible purpose to the other legal
-	// basis, so that basis needs a vendor signal too.
-	const movedTo = (type: number) =>
-		new Set(
-			restrictions
-				.filter((restriction) => restriction.restrictionType === type)
-				.flatMap((restriction) => restriction.vendorIds.map(String))
-		);
-	const movedToConsent = movedTo(PUBLISHER_RESTRICTION_TYPES.REQUIRE_CONSENT);
-	const movedToLegitimateInterest = movedTo(
-		PUBLISHER_RESTRICTION_TYPES.REQUIRE_LEGITIMATE_INTEREST
-	);
 	const purposeIds = Object.keys(gvl.purposes ?? {}).map(Number);
 	const specialFeatureIds = Object.keys(gvl.specialFeatures ?? {}).map(Number);
 	const vendorConsents: Record<string, boolean> = Object.fromEntries(
 		vendors.map((vendor) => [
 			String(vendor.id),
-			value &&
-				(vendor.purposes.length > 0 || movedToConsent.has(String(vendor.id))),
+			value && vendor.purposes.length > 0,
 		])
 	);
 	const vendorLegitimateInterests: Record<string, boolean> = Object.fromEntries(
 		vendors.map((vendor) => [
 			String(vendor.id),
-			value &&
-				((vendor.legIntPurposes?.length ?? 0) > 0 ||
-					movedToLegitimateInterest.has(String(vendor.id))),
+			value && (vendor.legIntPurposes?.length ?? 0) > 0,
 		])
 	);
 	const purposeConsents: Record<number, boolean> = {};
@@ -315,6 +306,21 @@ const applyBlanket = function applyBlanket(
 		vendorConsents,
 		vendorLegitimateInterests,
 	});
+};
+
+/**
+ * Restrictions preference UIs read from the kernel before the vendor list
+ * is known. Invalid input shows none: the CMP rejects it before saving.
+ */
+const restrictionsForDisplay = function restrictionsForDisplay(
+	input: unknown,
+	isServiceSpecific: boolean
+): PublisherRestriction[] {
+	try {
+		return validatePublisherRestrictions(input, { isServiceSpecific });
+	} catch {
+		return [];
+	}
 };
 
 const sameConfirmationContext = function sameConfirmationContext(
@@ -680,7 +686,12 @@ export const createIAB = function createIAB(
 	// Seed the iab slice immediately so downstream consumers see the
 	// cmpId and any preloaded GVL. A reference keeps the server-rendered
 	// banner enabled while its list loads.
-	seedInitialIAB(kernel, options, preloadedGvl ?? null);
+	seedInitialIAB(
+		kernel,
+		options,
+		preloadedGvl ?? null,
+		restrictionsForDisplay(configuredRestrictions, isServiceSpecific)
+	);
 
 	let cmpApi: CMPApi | null = null;
 	let disposed = false;

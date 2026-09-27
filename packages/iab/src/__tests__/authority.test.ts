@@ -1491,6 +1491,10 @@ test('save encodes configured publisher restrictions and gates apply them', asyn
 		publisherRestrictions,
 	});
 	disposers.push(addon.dispose);
+	// Preference UIs read the configured restrictions from the kernel.
+	expect(kernel.getSnapshot().iab?.publisherRestrictions).toEqual(
+		publisherRestrictions
+	);
 	await addon.whenReady();
 	addon.acceptAll();
 	// Vendor 755 declares no LI purposes; the LI restriction still needs its signal.

@@ -209,6 +209,12 @@ export interface KernelIABState {
 	specialFeatureOptIns: Record<number, boolean>;
 	/** Latest TC string, set after `save()` encodes one. */
 	tcString: string | null;
+	/**
+	 * Publisher restrictions configured on the CMP. Preference UIs list each
+	 * vendor under the legal basis these leave it. Gates enforce the ones in
+	 * the confirmed `authority`, not these.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 }
 
 /**

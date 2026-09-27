@@ -1,7 +1,11 @@
 import type { NonIABVendor } from '@c15t/core';
 import { describe, expect, test } from 'vitest';
 
-import { processGVLForDialog, resolveIABBannerSummary } from '../headless';
+import {
+	applyPublisherRestrictionsToGVL,
+	processGVLForDialog,
+	resolveIABBannerSummary,
+} from '../headless';
 import { completeGVL } from './fixtures/gvl-sample';
 
 const customVendor: NonIABVendor = {
@@ -70,6 +74,80 @@ describe('@c15t/iab headless dialog data', () => {
 			statisticsPurpose?.vendors.find((vendor) => vendor.id === 755)
 				?.usesLegitimateInterest
 		).toBe(false);
+	});
+});
+
+describe('@c15t/iab headless publisher restrictions', () => {
+	// Vendor 755 declares purposes 1 to 11 for consent and is flexible on
+	// 2, 7, 9, 10 and 11. Vendor 10 declares 2, 7, 9 and 10 for LI and is
+	// not flexible.
+	const vendorsFor = (
+		purposeId: number,
+		publisherRestrictions: Parameters<typeof applyPublisherRestrictionsToGVL>[1]
+	) =>
+		processGVLForDialog({
+			gvl: completeGVL,
+			publisherRestrictions,
+		}).purposes.find((purpose) => purpose.id === purposeId)?.vendors ?? [];
+	const vendor = (vendors: ReturnType<typeof vendorsFor>, id: number) =>
+		vendors.find((entry) => entry.id === id);
+
+	test('required LI (type 2) lists the vendor under legitimate interest', () => {
+		expect(vendor(vendorsFor(7, []), 755)?.usesLegitimateInterest).toBe(false);
+		const vendors = vendorsFor(7, [
+			{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+		]);
+		expect(vendor(vendors, 755)).toMatchObject({
+			legIntPurposes: [7],
+			usesLegitimateInterest: true,
+		});
+		expect(vendor(vendors, 755)?.purposes).not.toContain(7);
+	});
+
+	test('required consent (type 1) lists the vendor under consent', () => {
+		const flexible = {
+			...completeGVL,
+			vendors: {
+				...completeGVL.vendors,
+				10: { ...completeGVL.vendors[10], flexiblePurposes: [7] },
+			},
+		} as typeof completeGVL;
+		const data = processGVLForDialog({
+			gvl: flexible,
+			publisherRestrictions: [
+				{ purposeId: 7, restrictionType: 1, vendorIds: [10] },
+			],
+		});
+		const restricted = data.purposes
+			.find((purpose) => purpose.id === 7)
+			?.vendors.find((entry) => entry.id === 10);
+		expect(restricted?.usesLegitimateInterest).toBe(false);
+		expect(restricted?.purposes).toContain(7);
+	});
+
+	test('a prohibited purpose (type 0) no longer lists the vendor', () => {
+		const vendors = vendorsFor(7, [
+			{ purposeId: 7, restrictionType: 0, vendorIds: [755] },
+		]);
+		expect(vendor(vendors, 755)).toBeUndefined();
+		expect(vendor(vendors, 2)).toBeDefined();
+	});
+
+	test('a basis change the vendor list does not allow drops the purpose', () => {
+		// Vendor 10 is not flexible on purpose 7, so it may not process it at all.
+		expect(
+			vendor(
+				vendorsFor(7, [{ purposeId: 7, restrictionType: 1, vendorIds: [10] }]),
+				10
+			)
+		).toBeUndefined();
+	});
+
+	test('returns the same list when nothing is restricted', () => {
+		expect(applyPublisherRestrictionsToGVL(completeGVL, [])).toBe(completeGVL);
+		expect(applyPublisherRestrictionsToGVL(completeGVL, undefined)).toBe(
+			completeGVL
+		);
 	});
 });
 

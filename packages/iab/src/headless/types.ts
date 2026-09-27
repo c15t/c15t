@@ -2,6 +2,7 @@ import type {
 	KernelIABState,
 	GlobalVendorList,
 	NonIABVendor,
+	PublisherRestriction,
 } from '@c15t/core';
 /**
  * Headless IAB types shared across all framework wrappers.
@@ -27,6 +28,12 @@ export interface HeadlessIABStateInput {
 	isLoadingGVL?: boolean;
 	nonIABVendors?: NonIABVendor[];
 	customVendors?: NonIABVendor[];
+	/**
+	 * Publisher restrictions configured on the CMP. Vendors are listed under
+	 * the legal basis the restrictions leave them, so each control edits the
+	 * signal the IAB gates evaluate.
+	 */
+	publisherRestrictions?: readonly PublisherRestriction[];
 }
 
 export interface HeadlessIABBannerState {
