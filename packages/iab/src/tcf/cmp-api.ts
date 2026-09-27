@@ -56,6 +56,30 @@ const getCookie = function getCookie(name: string): string | null {
 };
 
 /**
+ * Copies consent data down to its vectors, so the API's copy is never
+ * shared with the caller.
+ */
+const copyConsentData = function copyConsentData(
+	consentData: TCFConsentData
+): TCFConsentData {
+	return {
+		...consentData,
+		publisherRestrictions: consentData.publisherRestrictions?.map(
+			(restriction) => ({
+				...restriction,
+				vendorIds: [...restriction.vendorIds],
+			})
+		),
+		purposeConsents: { ...consentData.purposeConsents },
+		purposeLegitimateInterests: { ...consentData.purposeLegitimateInterests },
+		specialFeatureOptIns: { ...consentData.specialFeatureOptIns },
+		vendorConsents: { ...consentData.vendorConsents },
+		vendorLegitimateInterests: { ...consentData.vendorLegitimateInterests },
+		vendorsDisclosed: { ...consentData.vendorsDisclosed },
+	};
+};
+
+/**
  * Creates a CMP API instance using functional composition.
  *
  * This installs __tcfapi on window and returns control functions.
@@ -448,7 +472,10 @@ export const createCMPApi = function createCMPApi(
 		) => {
 			gdprApplies = applies ?? gdprApplies;
 			tcString = newTcString;
-			currentConsentData = newTcString ? (consentData ?? null) : null;
+			// Keep a private copy: a caller changing its object in place must
+			// not change, or half change, the vectors published for this string.
+			currentConsentData =
+				newTcString && consentData ? copyConsentData(consentData) : null;
 			// Invalidate cache
 			cachedTCData = null;
 			if (cmpStatus === 'loaded') {

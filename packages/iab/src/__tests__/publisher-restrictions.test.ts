@@ -378,6 +378,31 @@ describe('publisher restrictions: CMP API', () => {
 		}
 	});
 
+	test('changing the published consent data in place cannot mix vectors', async () => {
+		const api = createCMPApi({ cmpId: 28, gvl: createMockGVL() });
+		try {
+			const consentData = createMockTCFConsent({
+				purposeConsents: { 1: true, 2: true },
+				vendorConsents: { 1: true, 2: true },
+			});
+			api.updateConsent(LEGITIMATE_INTEREST_REQUIRED_TC_STRING, consentData);
+			const pending = readTCData();
+			// The caller reuses its object while the string decodes.
+			consentData.purposeConsents[2] = false;
+			consentData.vendorConsents[2] = false;
+			const tcData = await pending;
+			expect(tcData.purpose.consents).toEqual({ 1: true, 2: true });
+			expect(tcData.vendor.consents).toEqual({ 1: true, 2: true });
+			// Nor can it rewrite data already published.
+			expect((await readTCData()).purpose.consents).toEqual({
+				1: true,
+				2: true,
+			});
+		} finally {
+			api.destroy();
+		}
+	});
+
 	test('an update during decoding never pairs a string with older data', async () => {
 		const api = createCMPApi({ cmpId: 28, gvl: createMockGVL() });
 		try {
