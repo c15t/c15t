@@ -152,6 +152,103 @@ export const Status = () => {
 		]);
 	});
 
+	it('keeps policyCategories referentially stable across renders', async () => {
+		const { updated } = await transform(`
+import { useEffect, useState } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+export const Categories = () => {
+	const { policyCategories } = useConsentManager();
+	const [count, setCount] = useState(0);
+	useEffect(() => {
+		setCount((value) => value + 1);
+	}, [policyCategories]);
+	return <p>{count}</p>;
+};
+`);
+
+		expect(updated).not.toContain("['necessary', ...usePolicyCategories()]");
+		expect(updated).toContain(
+			'const policyCategoriesScope = usePolicyCategories();'
+		);
+		expect(updated).toContain(
+			"const policyCategories = useMemo(() => ['necessary', ...policyCategoriesScope], [policyCategoriesScope]);"
+		);
+		expect(updated).toContain(
+			"import { useEffect, useState, useMemo } from 'react';"
+		);
+		expect(updated).toContain(
+			"import { usePolicyCategories } from '@c15t/react';"
+		);
+	});
+
+	it('memoizes policyCategories through an existing React namespace import', async () => {
+		const { updated } = await transform(`
+import * as React from 'react';
+import { useConsentManager } from '@c15t/react';
+
+export const Categories = () => {
+	const { policyCategories: categories } = useConsentManager();
+	return <p>{categories.join(',')}</p>;
+};
+`);
+
+		expect(updated).toContain(
+			"const categories = React.useMemo(() => ['necessary', ...categoriesScope], [categoriesScope]);"
+		);
+		expect(updated).not.toContain("import { useMemo } from 'react';");
+	});
+
+	it('adds a React import for useMemo when the file has none', async () => {
+		const { updated } = await transform(`
+import { useConsentManager } from '@c15t/react';
+
+export const useCategories = () => {
+	const { policyCategories } = useConsentManager();
+	return policyCategories;
+};
+`);
+
+		expect(updated).toContain("import { useMemo } from 'react';");
+		expect(updated).toContain('useMemo(() => [');
+	});
+
+	it('leaves same-named local bindings alone', async () => {
+		const { result, updated } = await transform(`
+import { useConsentManager } from '@c15t/react';
+
+export const Child = ({
+	useConsentManager,
+}: {
+	useConsentManager: () => { activeUI: string };
+}) => {
+	const { activeUI } = useConsentManager();
+	return <p>{activeUI}</p>;
+};
+
+export const Local = () => {
+	function useConsentManager() {
+		return { activeUI: 'local' };
+	}
+	const { activeUI } = useConsentManager();
+	return <p>{activeUI}</p>;
+};
+
+export const Banner = () => {
+	const { model } = useConsentManager();
+	return <p>{model}</p>;
+};
+`);
+
+		expect(result.changedFiles[0]?.operations).toBe(1);
+		expect(updated).toContain("const model = useModel() ?? 'opt-in';");
+		expect(updated).not.toContain('useActiveUI');
+		expect(
+			updated.match(/const \{ activeUI \} = useConsentManager\(\);/gu)
+		).toHaveLength(2);
+		expect(updated).toContain("import { useModel } from '@c15t/react';");
+	});
+
 	it('ignores a useConsentManager that is not imported from c15t', async () => {
 		const { result } = await transform(`
 import { useConsentManager } from './local-store';

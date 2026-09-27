@@ -49,10 +49,6 @@ const HOOK_FIELDS = {
 		expression: 'usePromptPresentation()',
 		hook: 'usePromptPresentation',
 	},
-	policyCategories: {
-		expression: "['necessary', ...usePolicyCategories()]",
-		hook: 'usePolicyCategories',
-	},
 	policyDialog: {
 		expression: 'usePreferencesPresentation()',
 		hook: 'usePreferencesPresentation',
@@ -145,6 +141,13 @@ interface FieldPlan {
 	edits: Edit[];
 	draftProperties: string[];
 	usesDraftSave: boolean;
+	usesMemo: boolean;
+}
+
+/** How this file calls React's `useMemo`, and whether it must import it. */
+interface MemoCallee {
+	callee: string;
+	needsImport: boolean;
 }
 
 const toPascalCase = function toPascalCase(value: string): string {
@@ -279,11 +282,32 @@ const planSave = function planSave(
 	return true;
 };
 
+/**
+ * `policyCategories` was memoized, so effects and memoized children that
+ * depend on it did not rerun on unrelated renders. Keep it stable.
+ */
+const planPolicyCategories = function planPolicyCategories(
+	sourceFile: TsMorphTypes.SourceFile,
+	name: string,
+	plan: FieldPlan,
+	taken: Set<string>,
+	memo: MemoCallee
+): void {
+	const scope = uniqueName(sourceFile, taken, `${name}Scope`);
+	plan.statements.push(
+		`const ${scope} = usePolicyCategories();`,
+		`const ${name} = ${memo.callee}(() => ['necessary', ...${scope}], [${scope}]);`
+	);
+	plan.hooks.add('usePolicyCategories');
+	plan.usesMemo = true;
+};
+
 const planElement = function planElement(
 	sourceFile: TsMorphTypes.SourceFile,
 	element: TsMorphTypes.BindingElement,
 	plan: FieldPlan,
-	taken: Set<string>
+	taken: Set<string>,
+	memo: MemoCallee
 ): void {
 	const key = bindingPropertyName(element);
 	const local = element.getNameNode();
@@ -302,6 +326,10 @@ const planElement = function planElement(
 		return;
 	}
 	const name = local.getText();
+	if (key === 'policyCategories') {
+		planPolicyCategories(sourceFile, name, plan, taken, memo);
+		return;
+	}
 	if (key in HOOK_FIELDS) {
 		const field = HOOK_FIELDS[key as keyof typeof HOOK_FIELDS];
 		plan.statements.push(`const ${name} = ${field.expression};`);
@@ -350,6 +378,8 @@ interface CallContext {
 	hooks: Set<string>;
 	headlessHooks: Set<string>;
 	summaries: string[];
+	memo: MemoCallee;
+	usesMemo: boolean;
 }
 
 const toTextEdit = function toTextEdit(node: TsMorphTypes.Node, text: string) {
@@ -410,10 +440,11 @@ const planCall = function planCall(
 		manual: [],
 		statements: [],
 		usesDraftSave: false,
+		usesMemo: false,
 	};
 	const taken = new Set<string>();
 	for (const element of pattern.getElements()) {
-		planElement(context.sourceFile, element, plan, taken);
+		planElement(context.sourceFile, element, plan, taken, context.memo);
 	}
 	const indent = lineIndent(statement);
 	const keyword = list.getDeclarationKind();
@@ -455,6 +486,7 @@ const planCall = function planCall(
 	for (const hook of plan.headlessHooks) {
 		context.headlessHooks.add(hook);
 	}
+	context.usesMemo ||= plan.usesMemo;
 	const mapped = [...plan.hooks, ...plan.headlessHooks];
 	if (mapped.length > 0) {
 		context.summaries.push(`useConsentManager -> ${mapped.join(', ')}`);
@@ -477,6 +509,56 @@ const applyEdits = function applyEdits(
 		text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
 	}
 	sourceFile.replaceWithText(text);
+};
+
+/**
+ * The local binding an import specifier creates. `isReference` is true only
+ * for identifiers that resolve to that binding, so a parameter or local
+ * function with the same name is not treated as the import.
+ */
+const importedBinding = function importedBinding(
+	namedImport: TsMorphTypes.ImportSpecifier
+): { isReference: (node: TsMorphTypes.Node) => boolean } {
+	const symbol = (
+		namedImport.getAliasNode() ?? namedImport.getNameNode()
+	).getSymbol()?.compilerSymbol;
+	return {
+		isReference: (node) =>
+			symbol !== undefined &&
+			Node.isIdentifier(node) &&
+			node.getSymbol()?.compilerSymbol === symbol,
+	};
+};
+
+const findMemoCallee = function findMemoCallee(
+	sourceFile: TsMorphTypes.SourceFile
+): MemoCallee {
+	const reactImports = sourceFile
+		.getImportDeclarations()
+		.filter(
+			(declaration) =>
+				declaration.getModuleSpecifierValue() === 'react' &&
+				!declaration.isTypeOnly()
+		);
+	for (const declaration of reactImports) {
+		const named = declaration
+			.getNamedImports()
+			.find((specifier) => specifier.getName() === 'useMemo');
+		if (named && !named.isTypeOnly()) {
+			return {
+				callee: named.getAliasNode()?.getText() ?? 'useMemo',
+				needsImport: false,
+			};
+		}
+	}
+	for (const declaration of reactImports) {
+		const react =
+			declaration.getNamespaceImport() ?? declaration.getDefaultImport();
+		if (react) {
+			return { callee: `${react.getText()}.useMemo`, needsImport: false };
+		}
+	}
+	return { callee: 'useMemo', needsImport: true };
 };
 
 const findImport = function findImport(
@@ -518,6 +600,69 @@ const addNamedImports = function addNamedImports(
 	);
 };
 
+/**
+ * Adds the replacement hook imports and drops the `useConsentManager` import
+ * once no reference to it is left.
+ */
+const updateImports = function updateImports(
+	sourceFile: TsMorphTypes.SourceFile,
+	specifier: string,
+	quote: string,
+	context: CallContext
+): void {
+	const base = specifier.endsWith(HEADLESS_SUFFIX)
+		? specifier.slice(0, -HEADLESS_SUFFIX.length)
+		: specifier;
+	// The edits re-parsed the file; find the import again.
+	const current = sourceFile
+		.getImportDeclarations()
+		.find(
+			(candidate) =>
+				candidate.getModuleSpecifierValue() === specifier &&
+				candidate
+					.getNamedImports()
+					.some((named) => named.getName() === 'useConsentManager')
+		);
+	const currentImport = current
+		?.getNamedImports()
+		.find((named) => named.getName() === 'useConsentManager');
+	if (!current || !currentImport) {
+		return;
+	}
+	const currentBinding = importedBinding(currentImport);
+	const stillUsed = sourceFile
+		.getDescendantsOfKind(SyntaxKind.Identifier)
+		.some(
+			(identifier) =>
+				!identifier.getFirstAncestorByKind(SyntaxKind.ImportDeclaration) &&
+				currentBinding.isReference(identifier)
+		);
+	addNamedImports(sourceFile, base, context.hooks, current, quote);
+	addNamedImports(
+		sourceFile,
+		`${base}${HEADLESS_SUFFIX}`,
+		context.headlessHooks,
+		current,
+		quote
+	);
+	if (context.usesMemo && context.memo.needsImport) {
+		addNamedImports(sourceFile, 'react', new Set(['useMemo']), current, quote);
+	}
+	if (!stillUsed) {
+		current
+			.getNamedImports()
+			.find((named) => named.getName() === 'useConsentManager')
+			?.remove();
+		if (
+			current.getNamedImports().length === 0 &&
+			!current.getDefaultImport() &&
+			!current.getNamespaceImport()
+		) {
+			current.remove();
+		}
+	}
+};
+
 const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): UseConsentManagerResult {
@@ -541,25 +686,22 @@ const transformSourceFile = function transformSourceFile(
 	const quote = declaration.getModuleSpecifier().getText().charAt(0);
 	const localName =
 		namedImport.getAliasNode()?.getText() ?? 'useConsentManager';
-	const base = specifier.endsWith(HEADLESS_SUFFIX)
-		? specifier.slice(0, -HEADLESS_SUFFIX.length)
-		: specifier;
 	const context: CallContext = {
 		edits: [],
 		headlessHooks: new Set(),
 		hooks: new Set(),
 		localName,
+		memo: findMemoCallee(sourceFile),
 		sourceFile,
 		summaries: [],
+		usesMemo: false,
 	};
+	const imported = importedBinding(namedImport);
 	let operations = 0;
 	for (const call of sourceFile.getDescendantsOfKind(
 		SyntaxKind.CallExpression
 	)) {
-		if (
-			call.getExpression().getText() === localName &&
-			planCall(call, context)
-		) {
+		if (imported.isReference(call.getExpression()) && planCall(call, context)) {
 			operations += 1;
 		}
 	}
@@ -568,47 +710,7 @@ const transformSourceFile = function transformSourceFile(
 	}
 	applyEdits(sourceFile, context.edits);
 
-	// The edits re-parsed the file; find the import again.
-	const current = sourceFile
-		.getImportDeclarations()
-		.find(
-			(candidate) =>
-				candidate.getModuleSpecifierValue() === specifier &&
-				candidate
-					.getNamedImports()
-					.some((named) => named.getName() === 'useConsentManager')
-		);
-	if (!current) {
-		return { changed: true, operations, summaries: context.summaries };
-	}
-	const stillUsed = sourceFile
-		.getDescendantsOfKind(SyntaxKind.Identifier)
-		.some(
-			(identifier) =>
-				identifier.getText() === localName &&
-				!identifier.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
-		);
-	addNamedImports(sourceFile, base, context.hooks, current, quote);
-	addNamedImports(
-		sourceFile,
-		`${base}${HEADLESS_SUFFIX}`,
-		context.headlessHooks,
-		current,
-		quote
-	);
-	if (!stillUsed) {
-		current
-			.getNamedImports()
-			.find((named) => named.getName() === 'useConsentManager')
-			?.remove();
-		if (
-			current.getNamedImports().length === 0 &&
-			!current.getDefaultImport() &&
-			!current.getNamespaceImport()
-		) {
-			current.remove();
-		}
-	}
+	updateImports(sourceFile, specifier, quote, context);
 	return { changed: true, operations, summaries: context.summaries };
 };
 
