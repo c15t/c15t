@@ -766,3 +766,70 @@ test('a TC string never keeps granting what the reconciled choice denies', async
 	await vi.advanceTimersByTimeAsync(1);
 	expect(fresh.getSnapshot().iab?.authority ?? null).toBeNull();
 });
+
+/** Grant marketing's first purpose only; the other two stay off. */
+const grantPurposeTwoOnly = (addon: ReturnType<typeof createAddon>) => {
+	addon.rejectAll();
+	addon.setPurposeConsent(2, true);
+};
+
+test('a partial purpose selection saved through IAB is restored on the next load', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	grantPurposeTwoOnly(addon);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.purposeConsents[2]).toBe(true)
+	);
+	await addon.save();
+	storage.reconcile();
+	// The category needs every one of its purposes, so the choice denies it.
+	expect(kernel.getSnapshot().explicitChoice?.categories.marketing?.value).toBe(
+		false
+	);
+	const tcString = kernel.getSnapshot().iab?.authority?.tcString;
+
+	const fresh = makeKernel();
+	const freshStorage = createPersistence({ kernel: fresh, sync: false });
+	disposers.push(freshStorage.dispose);
+	createAddon(fresh);
+	await vi.waitFor(() =>
+		expect(fresh.getSnapshot().iab?.authority?.tcString).toBe(tcString)
+	);
+});
+
+test('a later category denial withdraws a TC string granting any of its purposes', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	grantPurposeTwoOnly(addon);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.purposeConsents[2]).toBe(true)
+	);
+	await addon.save();
+	storage.reconcile();
+	expect(kernel.getSnapshot().iab?.authority).not.toBeNull();
+
+	// Another runtime denies every category later, without a TC string.
+	vi.setSystemTime(NOW + 1000);
+	const other = makeKernel();
+	const otherStorage = createPersistence({ kernel: other, sync: false });
+	disposers.push(otherStorage.dispose);
+	await other.commands.save('none');
+	otherStorage.reconcile();
+
+	expect(storage.reconcile()).toBe(true);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority ?? null).toBeNull()
+	);
+	expect(kernel.getSnapshot().iab?.purposeConsents[2]).toBe(false);
+
+	const fresh = makeKernel();
+	const freshStorage = createPersistence({ kernel: fresh, sync: false });
+	disposers.push(freshStorage.dispose);
+	createAddon(fresh);
+	await vi.advanceTimersByTimeAsync(1);
+	expect(fresh.getSnapshot().iab?.authority ?? null).toBeNull();
+});

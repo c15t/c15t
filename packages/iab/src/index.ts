@@ -303,8 +303,14 @@ const changedIABDraft = function changedIABDraft(
 };
 
 /**
- * Whether a TC authority grants a category the explicit choice denies, by
- * the same purpose mapping a save uses to record categories.
+ * Whether a TC authority grants something the explicit choice denies.
+ *
+ * A denial recorded after the authority was confirmed denies every purpose
+ * of its category: any one of them granted is a conflict. A denial from the
+ * same IAB save (or an older one) is how that save summarised a partial
+ * selection, since a category counts as granted only when all its purposes
+ * are; there only a TC string granting every purpose of the category
+ * conflicts, so the visitor's own partial selection stands.
  */
 const grantsDeniedCategory = function grantsDeniedCategory(
 	authority: KernelIABAuthority,
@@ -313,12 +319,18 @@ const grantsDeniedCategory = function grantsDeniedCategory(
 	if (!choice) {
 		return false;
 	}
-	const implied = iabPurposesToC15tConsents(authority.purposeConsents);
-	return Object.entries(choice.categories).some(
-		([category, decision]) =>
-			decision?.value === false &&
-			implied[category as keyof typeof implied] === true
-	);
+	return Object.entries(choice.categories).some(([category, decision]) => {
+		if (decision?.value !== false) {
+			return false;
+		}
+		const purposes =
+			C15T_TO_IAB_PURPOSE_MAP[category as keyof typeof C15T_TO_IAB_PURPOSE_MAP];
+		const granted = (purpose: number) =>
+			authority.purposeConsents[purpose] === true;
+		return decision.confirmedAt > authority.confirmedAt
+			? purposes.some(granted)
+			: purposes.every(granted);
+	});
 };
 
 /** The editable selections a confirmed authority records. */
