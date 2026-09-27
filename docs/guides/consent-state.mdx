@@ -139,15 +139,24 @@ Stored records are merged into the ones in memory:
   at least as new as the one in memory replaces it; an older one is ignored.
 - When two tabs record decisions in the same millisecond, the one stored first
   wins in both tabs.
-- Tabs keep one subject. A tab that opened before another tab stored a subject
-  adopts the stored one, unless it identified a different user with
-  `identify()`.
+- Tabs keep one subject. A stored subject is considered only when the record
+  that carries it changed, never on focus alone. It replaces a subject the tab
+  generated on its first save or copied from storage, so a tab that opened
+  before another tab stored a subject joins it. A subject id the server
+  resolved (at init, from a prefetch or in a save response) is replaced only by
+  a strictly newer stored choice, and an identity set with `identify()` is
+  never replaced.
 - Under an IAB policy, the `@c15t/iab` module then loads the TC string the other
-  tab stored, so `__tcfapi` reports the choice now in force. A missing or older
-  stored TC string leaves the current one in place.
-- A record removed from readable storage since this tab last read or wrote it
-  is cleared, and the active policy decides again. A record held only in
-  memory, such as a receipt merged from the server after `identify()`, stays.
+  tab stored, together with its purpose, vendor and special-feature selections,
+  so `__tcfapi` and the preference controls show the choice now in force.
+  Selections the visitor changed in this tab without saving are kept. A missing
+  or older stored TC string leaves the current one in place, unless the current
+  one grants a category the reconciled choice denies: then it is withdrawn and
+  `__tcfapi` reports no consent until the next save.
+- A record removed from readable storage since this tab last saw it present is
+  cleared, and the active policy decides again. A record this tab never saw in
+  storage, such as a receipt merged from the server after `identify()` or a
+  choice seeded while storage was blocked, stays.
 - Blocked storage, or bytes that do not decode, change nothing. A failed read
   never grants a category.
 

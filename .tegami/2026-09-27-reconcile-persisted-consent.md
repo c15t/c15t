@@ -33,12 +33,18 @@ reads, a choice write stores the per-category merge with what storage holds, a
 directive write keeps every stored directive, and the rewrite that adds a
 server subject id no longer recreates records another tab cleared. When two
 tabs act in the same millisecond, the record stored first wins in both. A
-tab that opened before another stored a subject keeps the stored subject
-unless it identified a different user.
+tab that opened before another stored a subject joins the stored subject
+unless it identified a different user; a subject id the server resolved is
+kept unless a strictly newer stored choice carries another one. Only a
+record this tab saw in storage is cleared when it disappears, so a choice
+seeded while storage was blocked survives storage becoming readable.
 
 Under an IAB policy, `@c15t/iab` loads the TC string another tab stored once
-its choice is reconciled, so `__tcfapi` no longer reports the previous
-choice. A missing or older stored TC string leaves the current one in place.
+its choice is reconciled, with its purpose, vendor and special-feature
+selections, so `__tcfapi` and the preference controls no longer show the
+previous choice. Selections changed in this tab without saving are kept. A
+TC string that grants a category the reconciled choice denies is withdrawn
+and not restored on the next page load.
 
 New API:
 

@@ -20,14 +20,17 @@
  *   acting in the same millisecond converge on what storage holds. A
  *   record storage still holds from this runtime is its own, so its later
  *   action in the same millisecond wins.
- * - The stored subject is carried into a merged write unless this runtime
- *   identified a different user, and reconciliation adopts it on the same
- *   terms, so every runtime saves under one identity.
+ * - One subject: a subject this runtime generated on a save or copied from
+ *   storage yields to the stored one, in merged writes and in
+ *   reconciliation of a changed record. A subject id the server resolved
+ *   yields only to a strictly newer stored choice, and an identity set by
+ *   `identify()` never yields.
  * - Removing a record is the one way back. Readable storage that lost a
- *   record since this runtime last read or wrote it clears the in-memory
- *   record; storage that cannot be read, or bytes that do not decode, leave
- *   it as is. A record held only in memory (a receipt merged from the
- *   server, say) is never cleared for being absent from storage.
+ *   record this runtime last saw present clears the in-memory record;
+ *   storage that cannot be read, or bytes that do not decode, leave it as
+ *   is. A record this runtime never saw in storage (a receipt merged from
+ *   the server, or a choice seeded while storage was blocked) is never
+ *   cleared for being absent.
  *
  * Pure. Nothing here reads storage or evaluates expiry; the consent
  * evaluator judges the applied records at the reconciliation time.
