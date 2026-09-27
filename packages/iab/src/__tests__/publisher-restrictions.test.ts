@@ -377,4 +377,21 @@ describe('publisher restrictions: CMP API', () => {
 			api.destroy();
 		}
 	});
+
+	test('an update during decoding never pairs a string with older data', async () => {
+		const api = createCMPApi({ cmpId: 28, gvl: createMockGVL() });
+		try {
+			api.updateConsent(PURPOSE_PROHIBITED_TC_STRING);
+			// Starts decoding the first string, then replaces it before the
+			// decode settles.
+			const pending = readTCData();
+			api.updateConsent(LEGITIMATE_INTEREST_REQUIRED_TC_STRING);
+			const tcData = await pending;
+			expect(tcData.tcString).toBe(LEGITIMATE_INTEREST_REQUIRED_TC_STRING);
+			expect(tcData.publisher.restrictions).toEqual({ 2: { 755: 2 } });
+			expect(tcData.vendor.consents).toEqual({ 755: true });
+		} finally {
+			api.destroy();
+		}
+	});
 });

@@ -99,42 +99,40 @@ export const createCMPApi = function createCMPApi(
 	let cachedTCData: TCData | null = null;
 	let currentConsentData: TCFConsentData | null = null;
 	/**
-	 * Builds TC Data from current state.
+	 * Builds TC Data for one TC string and the consent data published with it.
 	 */
-	const buildTCData = async function buildTCData(
+	const composeTCData = async function composeTCData(
+		string: string,
+		consentData: TCFConsentData | null,
 		eventStatus?: EventStatus,
 		listenerId?: number
 	): Promise<TCData> {
-		// Use cached data if available and tc string hasn't changed
-		if (cachedTCData && cachedTCData.tcString === tcString && !eventStatus) {
-			return { ...cachedTCData, listenerId };
-		}
-
 		let purposeConsents: Record<number, boolean> =
-			currentConsentData?.purposeConsents ?? {};
+			consentData?.purposeConsents ?? {};
 		let purposeLegitInterests: Record<number, boolean> =
-			currentConsentData?.purposeLegitimateInterests ?? {};
+			consentData?.purposeLegitimateInterests ?? {};
 		let vendorConsents: Record<number, boolean> = Object.fromEntries(
-			Object.entries(currentConsentData?.vendorConsents ?? {}).map(
-				([id, value]) => [Number(id), value]
-			)
+			Object.entries(consentData?.vendorConsents ?? {}).map(([id, value]) => [
+				Number(id),
+				value,
+			])
 		);
 		let vendorLegitInterests: Record<number, boolean> = Object.fromEntries(
-			Object.entries(currentConsentData?.vendorLegitimateInterests ?? {}).map(
+			Object.entries(consentData?.vendorLegitimateInterests ?? {}).map(
 				([id, value]) => [Number(id), value]
 			)
 		);
 		let specialFeatureOptins: Record<number, boolean> =
-			currentConsentData?.specialFeatureOptIns ?? {};
+			consentData?.specialFeatureOptIns ?? {};
 		// Restrictions always come from the string vendors receive.
 		let restrictions: Record<number, Record<number, number>> = {};
 
 		// Decode TC string if present
-		if (tcString) {
+		if (string) {
 			try {
-				const decoded = await decodeTCString(tcString);
+				const decoded = await decodeTCString(string);
 				restrictions = toTCDataRestrictions(decoded.publisherRestrictions);
-				if (!currentConsentData) {
+				if (!consentData) {
 					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 					purposeConsents = decoded.purposeConsents;
 					purposeLegitInterests = decoded.purposeLegitimateInterests;
@@ -176,7 +174,7 @@ export const createCMPApi = function createCMPApi(
 			},
 			purposeOneTreatment: false,
 			specialFeatureOptins,
-			tcString,
+			tcString: string,
 			tcfPolicyVersion: gvl.tcfPolicyVersion,
 			useNonStandardTexts: false,
 			vendor: {
@@ -184,6 +182,34 @@ export const createCMPApi = function createCMPApi(
 				legitimateInterests: vendorLegitInterests,
 			},
 		};
+
+		return tcData;
+	};
+
+	/**
+	 * Builds TC Data from current state.
+	 */
+	const buildTCData = async function buildTCData(
+		eventStatus?: EventStatus,
+		listenerId?: number
+	): Promise<TCData> {
+		// Use cached data if available and tc string hasn't changed
+		if (cachedTCData && cachedTCData.tcString === tcString && !eventStatus) {
+			return { ...cachedTCData, listenerId };
+		}
+		const string = tcString;
+		const consentData = currentConsentData;
+		const tcData = await composeTCData(
+			string,
+			consentData,
+			eventStatus,
+			listenerId
+		);
+		// An update can land while the string decodes. Never pair its string
+		// with the earlier vectors: build again from the newer state.
+		if (tcString !== string || currentConsentData !== consentData) {
+			return buildTCData(eventStatus, listenerId);
+		}
 
 		// Cache the data
 		if (!eventStatus) {
