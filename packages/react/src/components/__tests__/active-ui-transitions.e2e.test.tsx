@@ -11,7 +11,10 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
-import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import {
+	ComponentFixtureProvider as ConsentProvider,
+	DEFAULT_KEY_STORAGE,
+} from '~/__tests__/component-fixture-provider';
 import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
 import { ConsentDialog } from '~/components/panel';
@@ -75,6 +78,8 @@ const defaultOptions: ConsentProviderOptions = {
 		prompt: 'choice',
 		scopeMode: 'permissive',
 	}),
+	// These tests seed or read records under the default key.
+	storageConfig: DEFAULT_KEY_STORAGE,
 };
 
 const storedAcceptAllConsent = () => ({
