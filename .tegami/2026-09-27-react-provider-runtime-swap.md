@@ -10,4 +10,6 @@ switches to it. Hooks and `KernelContext` consumers unsubscribe from the
 previous runtime's kernel and read the new one. Previously the provider kept
 rendering the first runtime it received, so consumers could show that
 runtime's consent after you replaced it. The provider still leaves both
-runtimes to their owner and disposes neither.
+runtimes to their owner and disposes neither. Queued IAB actions for the
+previous runtime reject with an `AbortError`. Moving between a borrowed
+runtime and one the provider creates still requires a remount.
