@@ -33,7 +33,10 @@ together.
 Saved TC Strings carry the restrictions in their `PubRestrictions` section, and
 `__tcfapi('getTCData')` reports them as `publisher.restrictions`, keyed by
 purpose ID, then vendor ID. A stored TC String whose restrictions differ from
-the current configuration is not restored, so the visitor is asked again.
+the current configuration is not restored. If the visitor's stored choice is
+otherwise current, the banner opens again, as it does after a policy change.
+IAB gates that depend on the TC String stay denied until the visitor saves.
+An unchanged configuration restores the stored TC String without asking.
 When reading a string written under TCF policy version 2 or 3, c15t accepts
 type `2` for purposes 3 to 6, which those versions allowed. Strings c15t
 writes always follow the current policy.
