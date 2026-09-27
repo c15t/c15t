@@ -15,7 +15,9 @@
  * cells consume.
  *
  * Usage: `bun ../shared/scripts/pack.ts` from a cell directory (its `build`
- * script), or with the cell directory as the first argument.
+ * script), or with the cell directory as the first argument. Other fixtures
+ * that must consume published artifacts import {@link installPackedPackages}
+ * with their own root packages.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -67,7 +69,8 @@ const indexWorkspacePackages = function indexWorkspacePackages(): Map<
 };
 
 const collectClosure = function collectClosure(
-	index: Map<string, string>
+	index: Map<string, string>,
+	roots: readonly string[]
 ): string[] {
 	const seen = new Set<string>();
 	const visit = function visit(name: string) {
@@ -82,7 +85,9 @@ const collectClosure = function collectClosure(
 			visit(dependency);
 		}
 	};
-	visit(ROOT_PACKAGE);
+	for (const root of roots) {
+		visit(root);
+	}
 	return [...seen];
 };
 
@@ -207,25 +212,53 @@ const copyShared = function copyShared(cellModules: string) {
 	}
 };
 
-const main = function main() {
-	const cellDir = resolve(process.argv[2] ?? process.cwd());
-	if (!existsSync(join(cellDir, 'next.config.ts'))) {
-		throw new Error(`${cellDir} is not a compatibility cell`);
-	}
-	const cellModules = join(cellDir, 'node_modules');
-	const tarballDir = join(cellModules, '.next-compat-tarballs');
+/** Options for {@link installPackedPackages}. */
+export interface InstallPackedPackagesOptions {
+	/** Directory whose `node_modules` receives the extracted packages. */
+	targetDir: string;
+	/** Workspace packages whose runtime dependency closure is packed. */
+	roots: readonly string[];
+}
+
+/**
+ * Packs the workspace dependency closure of `roots` with `bun pm pack`,
+ * extracts every tarball as a real directory under
+ * `<targetDir>/node_modules`, and links the closure's third-party runtime
+ * dependencies beside them.
+ *
+ * @param options - Target directory and root packages.
+ * @returns The names of the packed workspace packages.
+ */
+export const installPackedPackages = function installPackedPackages(
+	options: InstallPackedPackagesOptions
+): string[] {
+	const targetModules = join(options.targetDir, 'node_modules');
+	const tarballDir = join(targetModules, '.packed-tarballs');
 	const index = indexWorkspacePackages();
-	const closure = collectClosure(index);
+	const closure = collectClosure(index, options.roots);
 
 	rmSync(tarballDir, { force: true, recursive: true });
 	mkdirSync(tarballDir, { recursive: true });
 	for (const name of closure) {
 		const dir = index.get(name);
 		if (dir) {
-			extract(packOne(dir, tarballDir), join(cellModules, name));
+			extract(packOne(dir, tarballDir), join(targetModules, name));
 		}
 	}
-	linkThirdPartyDependencies(cellModules, closure, index);
+	linkThirdPartyDependencies(targetModules, closure, index);
+	return closure;
+};
+
+const main = function main() {
+	const cellDir = resolve(process.argv[2] ?? process.cwd());
+	if (!existsSync(join(cellDir, 'next.config.ts'))) {
+		throw new Error(`${cellDir} is not a compatibility cell`);
+	}
+	const cellModules = join(cellDir, 'node_modules');
+	const closure = installPackedPackages({
+		roots: [ROOT_PACKAGE],
+		targetDir: cellDir,
+	});
 	copyShared(cellModules);
 	// webpack's persistent cache treats node_modules as immutable unless the
 	// package version changes, so a re-packed package with the same version
@@ -239,4 +272,6 @@ const main = function main() {
 	);
 };
 
-main();
+if (import.meta.main) {
+	main();
+}
