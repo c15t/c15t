@@ -727,18 +727,6 @@ export interface CommandDeps {
 /**
  * Build the `kernel.commands.*` object given the kernel's runtime deps.
  */
-/**
- * The payload to queue after a failed save, or `null`. A save the backend
- * refused for good would be refused again on every replay; the choice stays
- * recorded locally either way.
- */
-const worthReplaying = function worthReplaying(
-	payload: SavePayload | null,
-	error: unknown
-): SavePayload | null {
-	return isConsentSaveRejection(error) ? null : payload;
-};
-
 // oxlint-disable-next-line max-lines-per-function -- Commands share retry, timer and replay state through closures.
 export const buildCommands = function buildCommands(deps: CommandDeps) {
 	const { runtime, transport, initRetry } = deps;
@@ -1044,6 +1032,24 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	};
 
 	/**
+	 * Queue a save the transport threw on, unless the backend refused it for
+	 * good: that one would be refused again on every replay. Queued older
+	 * saves it replaced are dropped instead, so they can't replay over the
+	 * newer choice. The choice stays recorded locally either way.
+	 */
+	const settleThrownSave = async function settleThrownSave(
+		payload: SavePayload,
+		error: unknown
+	): Promise<void> {
+		if (isConsentSaveRejection(error)) {
+			await pendingSaves?.discard(payload);
+			return;
+		}
+		await pendingSaves?.enqueue(payload);
+		ensureOnlineListener();
+	};
+
+	/**
 	 * Transport phase of a save. The outcome only touches the replay queue
 	 * while this action's confirmed receipts are current. Disjoint category
 	 * actions remain independent. Only the newest action can map the subject
@@ -1135,10 +1141,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			return { ...result, confirmed };
 		} catch (error) {
 			emit({ command: 'save', error, type: 'command:error' });
-			const remaining = worthReplaying(currentPayload(), error);
+			const remaining = currentPayload();
 			if (remaining) {
-				await pendingSaves?.enqueue(remaining);
-				ensureOnlineListener();
+				await settleThrownSave(remaining, error);
 			}
 			return { confirmed, ok: false };
 		}

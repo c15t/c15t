@@ -1651,6 +1651,34 @@ describe('kernel transport: failed save replay', () => {
 		kernel.dispose();
 	});
 
+	test('a save refused for good drops the queued saves it replaced', async () => {
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockRejectedValueOnce(refused('POLICY_SNAPSHOT_EXPIRED'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+
+		// An offline grant is queued, then the visitor rejects everything and
+		// the backend refuses that newer choice for good.
+		await kernel.commands.save('all');
+		expect(
+			JSON.parse(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]')
+		).toHaveLength(1);
+		await kernel.commands.save('none');
+
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		// The stale grant never replays on the next load.
+		await kernel.commands.init();
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20);
+		});
+		expect(saveSpy).toHaveBeenCalledTimes(2);
+		kernel.dispose();
+	});
+
 	test('a replay refused for good leaves the queue instead of retrying', async () => {
 		vi.useFakeTimers({ now: 1_800_000_000_000, toFake: ['Date'] });
 		try {
