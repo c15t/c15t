@@ -30,6 +30,12 @@ import type { ConsentManagerOptions } from './types';
 const CONSENT_CONTEXT_KEY = Symbol('c15t-v3-consent');
 const THEME_CONTEXT_KEY = Symbol('c15t-v3-theme');
 
+/**
+ * The latest IAB save per kernel. A newer save or explicit navigation
+ * replaces it, so an older save's completion never restores a surface.
+ */
+const iabActions = new WeakMap<ConsentKernel, object>();
+
 export type SaveType = 'all' | 'custom' | 'necessary';
 
 export interface SvelteIABState extends KernelIABState {
@@ -441,6 +447,7 @@ const createConsentState = function createConsentState(
 		},
 		setActiveUI(ui: ActiveUI) {
 			actionSequence += 1;
+			iabActions.set(kernel, {});
 			(
 				kernel.set as typeof kernel.set & {
 					activeUI: (ui: KernelActiveUI) => void;
@@ -624,8 +631,9 @@ export const getHeadlessConsent = function getHeadlessConsent() {
  * An IAB choice commits once its TC string is encoded, which can wait on the
  * TCF library chunk but never on the backend. The surface comes back only
  * when that local step recorded nothing (the vendor list failed to load, or
- * the policy changed underneath), so the visitor can try again. A failed
- * backend request never reopens it.
+ * the policy changed underneath) and no newer save or explicit navigation
+ * came first, so the visitor can try again. A failed backend request never
+ * reopens it.
  *
  * @internal
  */
@@ -633,6 +641,8 @@ export const saveIABChoice = async function saveIABChoice(
 	kernel: ConsentKernel,
 	save: () => Promise<void>
 ): Promise<void> {
+	const action = {};
+	iabActions.set(kernel, action);
 	const before = kernel.getSnapshot();
 	const surface = before.activeUI;
 	if (surface !== 'none') {
@@ -644,6 +654,7 @@ export const saveIABChoice = async function saveIABChoice(
 		const after = kernel.getSnapshot();
 		if (
 			surface !== 'none' &&
+			iabActions.get(kernel) === action &&
 			after.iab?.authority === before.iab?.authority &&
 			after.activeUI === 'none'
 		) {
