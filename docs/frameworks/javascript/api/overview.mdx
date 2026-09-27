@@ -66,9 +66,11 @@ when you need one owner shared by multiple UI roots. Constructing a runtime does
 not activate browser side effects; the owner calls `start()` after mount and
 `dispose()` at teardown.
 
-Browser persistence follows choices made in other tabs of the same site. It
-reads stored records again on the `storage` event, when the page becomes
-visible and when the window regains focus. Call `persistence.reconcile()` or
+Browser persistence follows choices made in other tabs. Tabs on the same origin
+share localStorage, so a change there arrives at once through the `storage`
+event. A tab on another subdomain that shares only the consent cookie gets no
+such event; it reads stored records again when the page becomes visible or the
+window regains focus. Call `persistence.reconcile()` or
 `runtime.reconcileStorage()` to read them at another moment, for example after
 a response set the consent cookie. See
 [keep open tabs in step](/docs/guides/consent-state#keep-open-tabs-in-step)

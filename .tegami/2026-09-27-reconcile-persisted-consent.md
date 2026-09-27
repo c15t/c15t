@@ -13,20 +13,24 @@ packages:
 
 ### Keep open tabs in step with stored consent
 
-A choice saved in one tab now reaches every other open tab of the site. Before,
-a tab kept a grant after another tab stored a denial, and neither
-`kernel.refresh()` nor `runtime.reinit()` read storage again.
+A choice saved in one tab now reaches the other open tabs on the same origin
+without a reload. Before, a tab kept a grant after another tab stored a denial,
+and neither `kernel.refresh()` nor `runtime.reinit()` read storage again.
 
-Browser persistence reads stored records again when another tab changes a c15t
-localStorage key, when the page becomes visible and when the window regains
-focus. A stored record replaces the one in memory unless it is older. A record
-removed from storage is cleared, so the active policy decides again. Blocked
-storage or bytes that do not decode change nothing. Reconnecting does not read
-storage.
+Browser persistence reads stored records again when another tab on the same
+origin changes a c15t localStorage key, when the page becomes visible and when
+the window regains focus. A tab on another subdomain that shares the consent
+cookie gets no `storage` event and catches up on its next focus or visibility
+change. Category decisions merge per category, keeping the newer decision for
+each, and privacy directives merge as a union. A stored notice or vendor record
+replaces the one in memory unless it is older. A record removed from storage is
+cleared, so the active policy decides again. Blocked storage or bytes that do
+not decode change nothing. Reconnecting does not read storage.
 
-Queued writes follow the same ordering. A tab lands its own pending write
-before it reads, a write never replaces a newer stored record, and the rewrite
-that adds a server subject id no longer recreates records another tab cleared.
+Queued writes follow the same rules. A tab lands its own pending write before it
+reads, a choice write stores the per-category merge with what storage holds, a
+directive write keeps every stored directive, and the rewrite that adds a
+server subject id no longer recreates records another tab cleared.
 
 New API:
 

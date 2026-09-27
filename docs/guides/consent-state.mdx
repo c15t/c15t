@@ -93,18 +93,24 @@ custom transports and backend contract changes.
 
 ## Keep open tabs in step
 
-Tabs and windows of one site share the consent cookie and localStorage. When a
-visitor rejects in one tab, every other open tab applies the rejection without a
-reload. Scripts and features gated on `effectivePermissions` lose permission,
-subscribers are notified once and `onPermissionsChanged` fires. Clearing records
-in one tab returns the others to the active policy's defaults: an opt-in policy
-denies optional categories and shows the prompt again.
+Tabs and windows on the same origin (scheme, host and port) share the consent
+cookie and localStorage. When a visitor rejects in one tab, every other open tab
+on that origin applies the rejection without a reload. Scripts and features
+gated on `effectivePermissions` lose permission, subscribers are notified once
+and `onPermissionsChanged` fires. Clearing records in one tab returns the others
+to the active policy's defaults: an opt-in policy denies optional categories and
+shows the prompt again.
+
+Tabs on another subdomain that shares the consent cookie do not share
+localStorage, so the browser sends them no `storage` event. They pick up the
+change on their next focus or visibility change, or when you reconcile
+yourself (see below).
 
 Browser persistence reads stored records again at these moments:
 
 | Moment | What happens |
 | --- | --- |
-| Another tab or window changes a c15t localStorage key | Reconciles on the `storage` event |
+| Another tab or window on the same origin changes a c15t localStorage key | Reconciles on the `storage` event |
 | The page becomes visible again | Reconciles on `visibilitychange` |
 | The window regains focus | Reconciles on `focus` |
 | The network reconnects | No storage read |
@@ -122,16 +128,18 @@ TanStack Start providers, Vue, Svelte, Astro, the script tag and
 
 ### What a reconciliation applies
 
-Only records whose stored value changed since this tab last read or wrote them
-are considered. A record held only in memory, such as a receipt merged from the
-server after `identify()`, stays. For each changed record:
+Stored records are merged into the ones in memory:
 
-- A stored record at least as new as the one in memory replaces it. Times come
-  from the record itself: category confirmation, notice dismissal, vendor
-  confirmation and privacy directive times.
-- A stored record older than the one in memory is ignored.
-- A record removed from readable storage is cleared, and the active policy
-  decides again.
+- Category decisions merge per category. Each category keeps the decision with
+  the newer confirmation time, so a tab that only changed marketing never
+  reverts another tab's newer measurement decision.
+- Privacy directives, such as a Global Privacy Control opt-out, merge as a
+  union. A directive only restricts, so none is dropped.
+- The notice dismissal and the vendor record are single decisions. A stored one
+  at least as new as the one in memory replaces it; an older one is ignored.
+- A record removed from readable storage since this tab last read or wrote it
+  is cleared, and the active policy decides again. A record held only in
+  memory, such as a receipt merged from the server after `identify()`, stays.
 - Blocked storage, or bytes that do not decode, change nothing. A failed read
   never grants a category.
 
@@ -142,14 +150,18 @@ read, the same way as at startup.
 
 A tab writes its own choices in a later task, not during the click. Before it
 reads storage, it lands its own queued writes, so a reconciliation never undoes
-the visitor's latest action in that tab. A queued write never replaces a stored
-record newer than the one it carries. When a slow save response returns a
-server subject id, the tab adds it only to the record it wrote; it does not
-recreate records another tab cleared or overwrite another tab's newer choice.
+the visitor's latest action in that tab. A queued write follows the same rules
+as a read: it stores the per-category merge of its choice and the stored one,
+the union of directives, and never replaces a newer notice or vendor record.
+When a slow save response returns a server subject id, the tab adds it only to
+the record it wrote; it does not recreate records another tab cleared or
+overwrite another tab's newer choice.
 
-If another tab's choice arrives while this tab's save request is still in
-flight, this tab neither sends that save nor queues it for retry. The other tab
-sends its own. A save already queued for retry keeps its original decision time.
+If another tab's change reaches this tab while one of its saves is pending, the
+save depends on how far it got. A save not yet sent is dropped. A request
+already sent still reaches the backend, which may record it; this tab ignores
+the response, so it queues no retry and applies no subject id from it. A save
+already queued for retry keeps its original decision time.
 
 ### Reconcile yourself or turn it off
 
