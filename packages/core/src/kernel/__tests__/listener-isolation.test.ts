@@ -112,6 +112,29 @@ describe('a throwing subscriber', () => {
 		expect(observed).toEqual([false]);
 	});
 
+	test('a listener cannot change what the save sends', async () => {
+		const sent: unknown[] = [];
+		const kernel = createConsentKernel({
+			now: NOW,
+			transport: {
+				save: (payload) => {
+					sent.push(payload.confirmed.categories);
+					return Promise.resolve({ ok: true });
+				},
+			},
+		});
+		kernel.events.on('choice:recorded', (event) => {
+			(event.confirmed as string[]).splice(0);
+		});
+
+		const pending = kernel.commands.save({ measurement: true });
+		await vi.runAllTimersAsync();
+		const result = await pending;
+
+		expect(sent).toEqual([{ measurement: true }]);
+		expect(result.confirmed).toEqual(['measurement']);
+	});
+
 	test('a synchronous setter still notifies every subscriber', () => {
 		const kernel = createConsentKernel({ now: NOW });
 		kernel.subscribe(fail);

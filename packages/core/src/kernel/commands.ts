@@ -1368,7 +1368,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				if (categoriesChanged) {
 					emit({
 						actionAt,
-						confirmed: recorded.confirmed,
+						// Listeners run before the payload below is built. A frozen
+						// copy keeps them from changing what this save sends.
+						confirmed: Object.freeze([...recorded.confirmed]),
 						snapshot: committed,
 						type: 'choice:recorded',
 					});
