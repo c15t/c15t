@@ -316,12 +316,13 @@ export interface ConsentRuntime {
 	 * yourself after a change no browser event reports: a second runtime
 	 * on the same page, or cookies rewritten without a localStorage change.
 	 *
-	 * This runtime's queued writes land first. Only records whose stored
-	 * value changed since this runtime last read or wrote them are applied:
-	 * a stored record replaces the in-memory one unless it is older, a
-	 * removed record clears it so the active policy applies, and unreadable
-	 * storage changes nothing. Subscribers are notified once when anything
-	 * changed.
+	 * This runtime's queued writes land first. Category decisions then
+	 * merge per category, keeping the newer decision for each; privacy
+	 * directives merge as a union; a stored notice or vendor record replaces
+	 * the in-memory one unless it is older. A record removed from storage
+	 * since this runtime last read or wrote it is cleared so the active
+	 * policy applies, and unreadable storage changes nothing. Subscribers
+	 * are notified once when anything changed.
 	 *
 	 * @returns Whether any in-memory record changed. `false` before
 	 * {@link ConsentRuntime.start}, after {@link ConsentRuntime.dispose}, and

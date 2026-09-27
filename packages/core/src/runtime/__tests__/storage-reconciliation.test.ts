@@ -14,7 +14,13 @@ import {
 	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
-import { clearStoredConsentRecords } from '../../modules/persistence/record-storage';
+import {
+	clearStoredConsentRecords,
+	clearStoredPrivacyOptOuts,
+	readStoredPrivacyOptOuts,
+	writeStoredPrivacyOptOuts,
+	writeStoredVendorChoice,
+} from '../../modules/persistence/record-storage';
 import { custom } from '../../transports/mode';
 import type { KernelTransport } from '../../types';
 import { createConsentRuntime } from '../index';
@@ -357,4 +363,147 @@ test('dispose removes the listeners and cancels a scheduled reconciliation', asy
 	await nextTask();
 	expect(measurement(active)).toBe(true);
 	expect(active.reconcileStorage()).toBe(false);
+});
+
+const threeCategories: Partial<ConsentRuntimeOptions> = {
+	consentCategories: ['necessary', 'measurement', 'marketing'],
+};
+
+const decision = (
+	runtime: ConsentRuntime,
+	category: 'measurement' | 'marketing'
+) => runtime.kernel.getSnapshot().explicitChoice?.categories[category]?.value;
+
+test("a stale runtime's partial save keeps another runtime's newer category decision", async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	await start(threeCategories).kernel.commands.save('all');
+	await nextTask();
+	// Both runtimes read the grant for every category.
+	const stale = start(threeCategories);
+	const other = start(threeCategories);
+
+	vi.setSystemTime(1_800_000_001_000);
+	await other.kernel.commands.save({ measurement: false });
+	await nextTask();
+
+	// Later, the stale runtime decides marketing alone. Its envelope still
+	// carries the old measurement grant.
+	vi.setSystemTime(1_800_000_002_000);
+	await stale.kernel.commands.save({ marketing: false });
+	await nextTask();
+
+	const fresh = start(threeCategories);
+	expect(decision(fresh, 'measurement')).toBe(false);
+	expect(decision(fresh, 'marketing')).toBe(false);
+	expect(stale.reconcileStorage()).toBe(true);
+	expect(decision(stale, 'measurement')).toBe(false);
+	expect(decision(stale, 'marketing')).toBe(false);
+});
+
+test("reconciling keeps this runtime's newer queued category decision", async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	await start(threeCategories).kernel.commands.save('all');
+	await nextTask();
+	const active = start(threeCategories);
+
+	// This runtime denies measurement; its write is still queued.
+	vi.setSystemTime(1_800_000_001_000);
+	void active.kernel.commands.save({ measurement: false });
+
+	// Another runtime denies marketing later and lands its write first.
+	vi.setSystemTime(1_800_000_002_000);
+	const other = start(threeCategories);
+	void other.kernel.commands.save({ marketing: false });
+	other.dispose();
+
+	expect(active.reconcileStorage()).toBe(true);
+	expect(decision(active, 'measurement')).toBe(false);
+	expect(decision(active, 'marketing')).toBe(false);
+	const fresh = start(threeCategories);
+	expect(decision(fresh, 'measurement')).toBe(false);
+	expect(decision(fresh, 'marketing')).toBe(false);
+});
+
+const directive = (
+	categories: ('measurement' | 'marketing')[],
+	recordedAt: number
+) => ({ categories, recordedAt, source: 'gpc' as const });
+
+const directiveCategories = (runtime: ConsentRuntime) =>
+	runtime.kernel
+		.getSnapshot()
+		.optOutDirectives.flatMap((entry) => entry.categories)
+		.sort();
+
+test('an older stored privacy list does not drop a newer directive held in memory', () => {
+	const active = start();
+	const now = Date.now();
+	// A directive the kernel holds but storage never had, as from a server.
+	active.kernel.hydrate({
+		now,
+		optOutDirectives: [directive(['measurement'], now)],
+	});
+
+	writeStoredPrivacyOptOuts(
+		[directive(['marketing'], now - 5000)],
+		undefined,
+		now
+	);
+	active.reconcileStorage();
+	expect(directiveCategories(active)).toEqual(['marketing', 'measurement']);
+
+	// Removing the stored list still clears.
+	clearStoredPrivacyOptOuts();
+	expect(active.reconcileStorage()).toBe(true);
+	expect(directiveCategories(active)).toEqual([]);
+});
+
+test("recording a directive keeps another runtime's stored directive", async () => {
+	resolution = matchedResolution(
+		optOutRule({ privacySignals: { gpc: { denyCategories: ['measurement'] } } })
+	);
+	const active = start();
+	expect(active.kernel.getSnapshot().optOutDirectives).toEqual([]);
+	const now = Date.now();
+	writeStoredPrivacyOptOuts(
+		[directive(['marketing'], now - 5000)],
+		undefined,
+		now
+	);
+
+	// The browser's privacy signal records a directive in this runtime.
+	active.kernel.set.privacySignals({ gpc: true });
+	expect(active.kernel.getSnapshot().optOutDirectives).toHaveLength(1);
+	await nextTask();
+
+	const stored = readStoredPrivacyOptOuts(undefined, Date.now());
+	const recordedAt = stored?.ok
+		? stored.record.directives.map((entry) => entry.recordedAt)
+		: [];
+	expect(recordedAt).toContain(now - 5000);
+	expect(recordedAt).toHaveLength(2);
+});
+
+test('applies the subject a vendor record carries when the choice is unreadable', () => {
+	const active = start();
+	const now = Date.now();
+	document.cookie = 'c15t=not-a-record; path=/';
+	writeStoredVendorChoice(
+		{
+			confirmedAt: now - 1000,
+			denied: ['meta-pixel'],
+			subject: { subjectId: 'sub_vendor' },
+			version: 1,
+		},
+		undefined,
+		now
+	);
+
+	expect(active.reconcileStorage()).toBe(true);
+	expect(active.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+		'meta-pixel',
+	]);
+	expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_vendor');
 });

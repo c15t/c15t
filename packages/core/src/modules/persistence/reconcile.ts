@@ -3,20 +3,23 @@
  *
  * Several runtimes can share one browser's storage: two tabs, a tab and a
  * restored back/forward page, or two runtimes on one page. Each one writes
- * its own decisions and reads the others' back. Two rules keep them from
+ * its own decisions and reads the others' back. These rules keep them from
  * undoing each other:
  *
- * - A decision is only replaced by one made at the same time or later,
- *   compared by the time the record carries (`confirmedAt`, `dismissedAt`,
- *   `recordedAt`). This holds in both directions: a queued write never
- *   replaces a newer stored record, and reconciliation never replaces a
- *   newer in-memory record with an older stored one.
- * - Removing a record is the one way back. Readable storage with no record
- *   clears the in-memory record; storage that cannot be read, or bytes that
- *   do not decode, leave it as is.
- * - Reconciliation acts only on what changed in storage since this runtime
- *   last read or wrote it, so a record held only in memory (a receipt
- *   merged from the server, say) is never cleared for being absent.
+ * - Category decisions merge per category. Each category keeps the decision
+ *   with the newer `confirmedAt`, so a runtime that only decided marketing
+ *   never reverts another runtime's newer measurement decision. This holds
+ *   in both directions: a queued write stores the merge of what it carries
+ *   and what storage holds, and reconciliation merges storage into memory.
+ * - Privacy directives only restrict, so both directions keep the union of
+ *   the two lists.
+ * - The notice dismissal and the vendor record are single decisions: the
+ *   one with the newer time (`dismissedAt`, `confirmedAt`) wins.
+ * - Removing a record is the one way back. Readable storage that lost a
+ *   record since this runtime last read or wrote it clears the in-memory
+ *   record; storage that cannot be read, or bytes that do not decode, leave
+ *   it as is. A record held only in memory (a receipt merged from the
+ *   server, say) is never cleared for being absent from storage.
  *
  * Pure. Nothing here reads storage or evaluates expiry; the consent
  * evaluator judges the applied records at the reconciliation time.
@@ -26,6 +29,7 @@ import type {
 	NoticeDismissal,
 	PrivacyOptOut,
 } from '../../consent-record/types';
+import { mergeNewestChoice } from '../../kernel/records';
 import type {
 	ConsentSnapshot,
 	HydrationRecords,
@@ -64,16 +68,32 @@ const latestDecisionAt = function latestDecisionAt(
 	return latest;
 };
 
-const latestDirectiveAt = function latestDirectiveAt(
-	directives: readonly PrivacyOptOut[] | null | undefined
-): number {
-	let latest = Number.NEGATIVE_INFINITY;
-	for (const directive of directives ?? []) {
-		if (directive.recordedAt > latest) {
-			latest = directive.recordedAt;
+const directiveKey = function directiveKey(directive: PrivacyOptOut): string {
+	return JSON.stringify([
+		directive.recordedAt,
+		directive.source,
+		[...directive.categories].sort(),
+	]);
+};
+
+/**
+ * Union of two directive lists, without duplicates, oldest first. Both
+ * runtimes derive the same list from the same inputs, so they converge.
+ */
+const mergeDirectives = function mergeDirectives(
+	left: readonly PrivacyOptOut[],
+	right: readonly PrivacyOptOut[]
+): PrivacyOptOut[] {
+	const byKey = new Map<string, PrivacyOptOut>();
+	for (const directive of [...left, ...right]) {
+		const key = directiveKey(directive);
+		if (!byKey.has(key)) {
+			byKey.set(key, directive);
 		}
 	}
-	return latest;
+	return [...byKey.entries()]
+		.sort(([leftKey], [rightKey]) => (leftKey < rightKey ? -1 : 1))
+		.map(([, directive]) => directive);
 };
 
 // ---------------------------------------------------------------------------
@@ -81,37 +101,41 @@ const latestDirectiveAt = function latestDirectiveAt(
 // ---------------------------------------------------------------------------
 
 /**
- * Whether the choice envelope may be written over what storage holds.
+ * The choice to write over what storage holds, or `null` to skip the write.
  *
- * A write that follows a recorded choice lands unless storage already holds
- * a newer decision. A write that only acknowledges the server's subject id
- * carries no new decision, so it lands only on a record that still holds
- * exactly this runtime's decisions: it never recreates a record another
- * runtime cleared, and never replaces one another runtime wrote.
+ * A write that follows a recorded choice stores the per-category merge of
+ * this runtime's choice and the stored one, so a category another runtime
+ * decided more recently keeps that decision. A write that only
+ * acknowledges the server's subject id carries no new decision, so it lands
+ * only on a record that still holds exactly this runtime's decisions: it
+ * never recreates a record another runtime cleared, and never replaces one
+ * another runtime wrote.
  *
  * @param ours - The in-memory choice about to be written.
  * @param stored - The choice storage holds now, or `null`.
  * @param subjectOnly - Whether no choice was recorded since the last write.
- * @returns `true` when the write may proceed.
+ * @returns The choice to write, or `null` when nothing should be written.
  */
-export const mayWriteChoice = function mayWriteChoice(
+export const choiceToWrite = function choiceToWrite(
 	ours: ExplicitChoice | null,
 	stored: ExplicitChoice | null,
 	subjectOnly: boolean
-): boolean {
+): ExplicitChoice | null {
 	if (!ours) {
-		return true;
+		return null;
 	}
 	if (subjectOnly) {
-		return stored !== null && sameRecord(stored.categories, ours.categories);
+		return stored !== null && sameRecord(stored.categories, ours.categories)
+			? ours
+			: null;
 	}
-	return stored === null || latestDecisionAt(stored) <= latestDecisionAt(ours);
+	return mergeNewestChoice(ours, stored);
 };
 
 /**
- * Whether the vendor record may be written over what storage holds. Same
- * rules as {@link mayWriteChoice}; an in-memory `null` never deletes a
- * stored record.
+ * Whether the vendor record may be written over what storage holds. The
+ * newer record wins, and a subject-only rewrite follows the rule of
+ * {@link choiceToWrite}. An in-memory `null` never deletes a stored record.
  */
 export const mayWriteVendorChoice = function mayWriteVendorChoice(
 	ours: VendorChoice | null,
@@ -144,12 +168,15 @@ export const mayWriteNotice = function mayWriteNotice(
 	return stored.dismissedAt <= ours.dismissedAt;
 };
 
-/** Whether the privacy directives may be written over what storage holds. */
-export const mayWritePrivacy = function mayWritePrivacy(
+/**
+ * The privacy directives to write: this runtime's list plus every directive
+ * another runtime already stored.
+ */
+export const directivesToWrite = function directivesToWrite(
 	ours: readonly PrivacyOptOut[],
 	stored: readonly PrivacyOptOut[] | null
-): boolean {
-	return latestDirectiveAt(stored) <= latestDirectiveAt(ours);
+): PrivacyOptOut[] {
+	return mergeDirectives(stored ?? [], ours);
 };
 
 // ---------------------------------------------------------------------------
@@ -196,55 +223,105 @@ export const fingerprintStoredRecords = function fingerprintStoredRecords(
 	return prints;
 };
 
-/** How a changed stored record relates to its in-memory counterpart. */
-type Outcome = 'adopt' | 'keep' | 'same';
+type Changed = (kind: StoredRecordKind) => boolean;
 
-const compare = function compare<RecordType>(
+/** Whether a changed single-decision record should replace memory. */
+const adoptNewer = function adoptNewer<RecordType>(
 	current: RecordType | null,
 	stored: RecordType | null,
 	timeOf: (record: RecordType) => number
-): Outcome {
+): boolean {
 	if (sameRecord(current, stored)) {
-		return 'same';
+		return false;
 	}
 	if (stored === null || current === null) {
 		// Removal clears; a first record is adopted.
-		return 'adopt';
+		return true;
 	}
-	return timeOf(current) > timeOf(stored) ? 'keep' : 'adopt';
+	return timeOf(stored) >= timeOf(current);
 };
 
 /**
- * Choice and subject records to apply for a changed stored choice. The
- * subject belongs to the choice it was stored with. When the choices
- * already agree, a stored subject still carries the id a save resolved
- * later; an absent one never erases the identity held in memory.
+ * The subject to apply, or `undefined` to keep the one in memory. The
+ * subject belongs to the record it was stored with: the envelope, or the
+ * vendor record for a visitor whose only decision is about vendors. A
+ * stored subject replaces the one in memory when the stored choice is at
+ * least as recent overall; an absent one never erases an identity held
+ * alongside a choice.
  */
+const reconcileSubject = function reconcileSubject(
+	snapshot: ConsentSnapshot,
+	stored: HydrationRecords,
+	records: HydrationRecords,
+	changed: Changed
+): HydrationRecords['subject'] {
+	const { explicitChoice } = snapshot;
+	let candidate: HydrationRecords['subject'];
+	if (records.choice === null) {
+		// The choice was cleared: take whatever identity storage still has.
+		candidate = stored.subject ?? null;
+	} else if (stored.choice) {
+		const current =
+			explicitChoice === null ||
+			latestDecisionAt(stored.choice) >= latestDecisionAt(explicitChoice);
+		const relevant = changed('choice') || records.choice !== undefined;
+		candidate =
+			current && relevant && stored.subject ? stored.subject : undefined;
+	} else if (explicitChoice === null) {
+		// No choice on either side, or an unreadable one: the vendor record
+		// carries the subject.
+		const relevant =
+			stored.choice === null ? changed('choice') : changed('vendors');
+		candidate =
+			relevant && (stored.choice === null || stored.subject)
+				? stored.subject
+				: undefined;
+	}
+	return candidate !== undefined && !sameRecord(snapshot.subject, candidate)
+		? candidate
+		: undefined;
+};
+
+/** Choice records to apply: a per-category merge, or a clear. */
 const reconcileChoice = function reconcileChoice(
 	snapshot: ConsentSnapshot,
-	stored: HydrationRecords
+	stored: HydrationRecords,
+	changed: Changed
 ): HydrationRecords {
 	const records: HydrationRecords = {};
-	const choice = compare(
-		snapshot.explicitChoice,
-		stored.choice ?? null,
-		latestDecisionAt
-	);
-	if (choice === 'adopt') {
-		records.choice = stored.choice ?? null;
+	const { explicitChoice } = snapshot;
+	if (stored.choice === null) {
+		if (changed('choice') && explicitChoice !== null) {
+			records.choice = null;
+		}
+	} else if (stored.choice) {
+		const merged = mergeNewestChoice(explicitChoice, stored.choice);
+		if (!sameRecord(merged, explicitChoice)) {
+			records.choice = merged;
+		}
 	}
-	const subjectFollows =
-		choice === 'adopt' ||
-		(choice === 'same' &&
-			(snapshot.explicitChoice === null || Boolean(stored.subject)));
-	if (
-		subjectFollows &&
-		stored.subject !== undefined &&
-		!sameRecord(snapshot.subject, stored.subject)
-	) {
-		records.subject = stored.subject;
+	const subject = reconcileSubject(snapshot, stored, records, changed);
+	if (subject !== undefined) {
+		records.subject = subject;
 	}
 	return records;
+};
+
+/** Directive list to apply: the union, or a clear. */
+const reconcileDirectives = function reconcileDirectives(
+	current: readonly PrivacyOptOut[],
+	stored: readonly PrivacyOptOut[] | undefined,
+	changed: Changed
+): readonly PrivacyOptOut[] | undefined {
+	if (!stored) {
+		return undefined;
+	}
+	if (stored.length === 0) {
+		// An emptied list is a clear, but only once it changed.
+		return changed('privacy') && current.length > 0 ? [] : undefined;
+	}
+	const merged = mergeDirectives(current, stored);
+	return sameRecord(merged, mergeDirectives(current, [])) ? undefined : merged;
 };
 
 /** Result of {@link selectReconciledRecords}. */
@@ -256,14 +333,9 @@ export interface ReconciledRecords {
 }
 
 /**
- * Records to apply so the kernel reflects what changed in storage.
- *
- * Only a record whose stored value changed since this runtime last read or
- * wrote it is considered. A record the kernel holds but storage never had,
- * such as a receipt merged from the server, is not a change and stays. A
- * changed record is then adopted, cleared or ignored by the rules at the
- * top of this file. Only differences are returned, so an unchanged read
- * never touches the kernel or notifies anyone.
+ * Records to apply so the kernel reflects what storage holds, by the rules
+ * at the top of this file. Only differences are returned, so an unchanged
+ * read never touches the kernel or notifies anyone.
  *
  * @param snapshot - The kernel's current snapshot.
  * @param stored - Records read from storage; omitted keys were unreadable.
@@ -278,41 +350,39 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	now: number
 ): ReconciledRecords {
 	const current = fingerprintStoredRecords(stored);
-	const changedSince = (kind: StoredRecordKind): boolean =>
+	const changed: Changed = (kind) =>
 		current[kind] !== undefined && current[kind] !== seen[kind];
-	const records: HydrationRecords = changedSince('choice')
-		? reconcileChoice(snapshot, stored)
-		: {};
+	const records = reconcileChoice(snapshot, stored, changed);
 
 	if (
-		changedSince('vendors') &&
-		compare(
+		changed('vendors') &&
+		adoptNewer(
 			snapshot.vendorChoice,
 			stored.vendorChoice ?? null,
 			(record) => record.confirmedAt
-		) === 'adopt'
+		)
 	) {
 		records.vendorChoice = stored.vendorChoice ?? null;
 	}
 
 	if (
-		changedSince('notice') &&
-		compare(
+		changed('notice') &&
+		adoptNewer(
 			snapshot.noticeDismissal,
 			stored.noticeDismissal ?? null,
 			(record) => record.dismissedAt
-		) === 'adopt'
+		)
 	) {
 		records.noticeDismissal = stored.noticeDismissal ?? null;
 	}
 
-	// Directives are replaced as a list. A cleared list comes back empty.
-	if (
-		changedSince('privacy') &&
-		stored.optOutDirectives &&
-		!sameRecord(snapshot.optOutDirectives, stored.optOutDirectives)
-	) {
-		records.optOutDirectives = stored.optOutDirectives;
+	const directives = reconcileDirectives(
+		snapshot.optOutDirectives,
+		stored.optOutDirectives,
+		changed
+	);
+	if (directives) {
+		records.optOutDirectives = directives;
 	}
 
 	return {

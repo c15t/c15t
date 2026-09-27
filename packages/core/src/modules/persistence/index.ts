@@ -33,9 +33,10 @@
  * - `clear()` cancels queued writes before it removes storage, so a
  *   pending flush cannot recreate what was just cleared.
  * - Writes and `reconcile()` follow the ordering rules in `reconcile.ts`:
- *   a write never replaces a newer stored record, a subject-only rewrite
- *   never recreates a cleared one, and reconciliation lands queued writes
- *   before it reads.
+ *   choices merge per category and directives as a union, a notice or
+ *   vendor write never replaces a newer stored record, a subject-only
+ *   rewrite never recreates a cleared one, and reconciliation lands queued
+ *   writes before it reads.
  * - With `sync` on (the default), `storage`, `visibilitychange` and `focus`
  *   schedule one coalesced `reconcile()`. `dispose()` removes the
  *   listeners and cancels the scheduled run.
@@ -43,10 +44,10 @@
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
 import {
+	choiceToWrite,
+	directivesToWrite,
 	fingerprintStoredRecords,
-	mayWriteChoice,
 	mayWriteNotice,
-	mayWritePrivacy,
 	mayWriteVendorChoice,
 	selectReconciledRecords,
 } from './reconcile';
@@ -127,15 +128,18 @@ export const createPersistence = function createPersistence(
 		const snapshot = kernel.getSnapshot();
 		const at = now();
 		const stored = readStoredConsentRecord(storageConfig, at).selected;
-		if (
-			snapshot.explicitChoice &&
-			mayWriteChoice(
-				snapshot.explicitChoice,
-				stored?.choice ?? null,
-				subjectOnly
-			)
-		) {
-			writeChoiceToStorage(snapshot, storedIab, storageConfig, at);
+		const explicitChoice = choiceToWrite(
+			snapshot.explicitChoice,
+			stored?.choice ?? null,
+			subjectOnly
+		);
+		if (explicitChoice) {
+			writeChoiceToStorage(
+				{ ...snapshot, explicitChoice },
+				storedIab,
+				storageConfig,
+				at
+			);
 			observe('choice');
 		}
 	});
@@ -158,15 +162,12 @@ export const createPersistence = function createPersistence(
 		const snapshot = kernel.getSnapshot();
 		const at = now();
 		const stored = readStoredPrivacyOptOuts(storageConfig, at);
-		if (
-			mayWritePrivacy(
-				snapshot.optOutDirectives,
-				stored?.ok ? stored.record.directives : null
-			)
-		) {
-			writePrivacyToStorage(snapshot, storageConfig, at);
-			observe('privacy');
-		}
+		const optOutDirectives = directivesToWrite(
+			snapshot.optOutDirectives,
+			stored?.ok ? stored.record.directives : null
+		);
+		writePrivacyToStorage({ ...snapshot, optOutDirectives }, storageConfig, at);
+		observe('privacy');
 	});
 	const vendorWrites = createWriteScheduler(() => {
 		const subjectOnly = !vendorsRecorded;
@@ -288,8 +289,9 @@ export const createPersistence = function createPersistence(
 		if (disposed || typeof document === 'undefined') {
 			return false;
 		}
-		// Land this runtime's queued writes first. Each one is guarded, so it
-		// cannot replace a newer record another runtime stored meanwhile.
+		// Land this runtime's queued writes first. Each one merges with what
+		// storage holds, so it cannot undo a newer decision another runtime
+		// stored meanwhile.
 		flushAll();
 		const at = now();
 		const stored = readStoredRecordsForReconcile(storageConfig, at);
