@@ -15,6 +15,14 @@
  *   the two lists.
  * - The notice dismissal and the vendor record are single decisions: the
  *   one with the newer time (`dismissedAt`, `confirmedAt`) wins.
+ * - On equal times, a record another runtime stored since this runtime
+ *   last read or wrote it wins, in writes and reads alike, so two runtimes
+ *   acting in the same millisecond converge on what storage holds. A
+ *   record storage still holds from this runtime is its own, so its later
+ *   action in the same millisecond wins.
+ * - The stored subject is carried into a merged write unless this runtime
+ *   identified a different user, and reconciliation adopts it on the same
+ *   terms, so every runtime saves under one identity.
  * - Removing a record is the one way back. Readable storage that lost a
  *   record since this runtime last read or wrote it clears the in-memory
  *   record; storage that cannot be read, or bytes that do not decode, leave
@@ -25,6 +33,7 @@
  * evaluator judges the applied records at the reconciliation time.
  */
 import type {
+	ConsentSubject,
 	ExplicitChoice,
 	NoticeDismissal,
 	PrivacyOptOut,
@@ -51,7 +60,10 @@ const canonical = function canonical(value: unknown): unknown {
 };
 
 /** Structural equality for plain record data, ignoring key order. */
-const sameRecord = function sameRecord(left: unknown, right: unknown): boolean {
+export const sameRecord = function sameRecord(
+	left: unknown,
+	right: unknown
+): boolean {
 	return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 };
 
@@ -101,25 +113,70 @@ const mergeDirectives = function mergeDirectives(
 // ---------------------------------------------------------------------------
 
 /**
+ * Whether a subject carries an identity the other lacks: an external id or
+ * identity provider set by `identify()` in this runtime.
+ */
+const hasNewerIdentity = function hasNewerIdentity(
+	subject: ConsentSubject | null | undefined,
+	than: ConsentSubject | null | undefined
+): boolean {
+	return Boolean(
+		(subject?.externalId && subject.externalId !== than?.externalId) ||
+		(subject?.identityProvider &&
+			subject.identityProvider !== than?.identityProvider)
+	);
+};
+
+/**
+ * The subject to store with a merged record. A runtime opened before
+ * another one stored a subject generates its own id on its first save; the
+ * stored identity is carried forward so a reload and later backend saves
+ * keep one subject. The runtime's own subject wins only when it carries a
+ * newer identity from `identify()`.
+ *
+ * @param ours - The subject in memory.
+ * @param stored - The subject storage holds now, or `null`.
+ * @returns The subject to write.
+ */
+export const subjectToWrite = function subjectToWrite(
+	ours: ConsentSubject | null,
+	stored: ConsentSubject | null | undefined
+): ConsentSubject | null {
+	if (!stored || Object.keys(stored).length === 0) {
+		return ours;
+	}
+	if (!ours || hasNewerIdentity(ours, stored)) {
+		return ours ?? { ...stored };
+	}
+	return { ...ours, ...stored };
+};
+
+/**
  * The choice to write over what storage holds, or `null` to skip the write.
  *
  * A write that follows a recorded choice stores the per-category merge of
  * this runtime's choice and the stored one, so a category another runtime
- * decided more recently keeps that decision. A write that only
- * acknowledges the server's subject id carries no new decision, so it lands
- * only on a record that still holds exactly this runtime's decisions: it
- * never recreates a record another runtime cleared, and never replaces one
+ * decided more recently keeps that decision. On equal times the stored
+ * decision wins when another runtime stored it since this runtime last read
+ * or wrote the record; otherwise the record is this runtime's own and its
+ * later action in the same millisecond wins. A write that only acknowledges
+ * the server's subject id carries no new decision, so it lands only on a
+ * record that still holds exactly this runtime's decisions: it never
+ * recreates a record another runtime cleared, and never replaces one
  * another runtime wrote.
  *
  * @param ours - The in-memory choice about to be written.
  * @param stored - The choice storage holds now, or `null`.
  * @param subjectOnly - Whether no choice was recorded since the last write.
+ * @param storedWinsTies - Whether storage changed since this runtime last
+ * read or wrote it.
  * @returns The choice to write, or `null` when nothing should be written.
  */
 export const choiceToWrite = function choiceToWrite(
 	ours: ExplicitChoice | null,
 	stored: ExplicitChoice | null,
-	subjectOnly: boolean
+	subjectOnly: boolean,
+	storedWinsTies: boolean
 ): ExplicitChoice | null {
 	if (!ours) {
 		return null;
@@ -129,18 +186,34 @@ export const choiceToWrite = function choiceToWrite(
 			? ours
 			: null;
 	}
-	return mergeNewestChoice(ours, stored);
+	if (!stored) {
+		return ours;
+	}
+	return storedWinsTies
+		? mergeNewestChoice(stored, ours)
+		: mergeNewestChoice(ours, stored);
+};
+
+/** Whether `ours`, stamped at `oursAt`, may replace a record from `storedAt`. */
+const isNewerThanStored = function isNewerThanStored(
+	oursAt: number,
+	storedAt: number,
+	storedWinsTies: boolean
+): boolean {
+	return storedWinsTies ? oursAt > storedAt : oursAt >= storedAt;
 };
 
 /**
  * Whether the vendor record may be written over what storage holds. The
- * newer record wins, and a subject-only rewrite follows the rule of
- * {@link choiceToWrite}. An in-memory `null` never deletes a stored record.
+ * newer record wins, ties follow the rule of {@link choiceToWrite}, and a
+ * subject-only rewrite lands only on this runtime's own record. An
+ * in-memory `null` never deletes a stored record.
  */
 export const mayWriteVendorChoice = function mayWriteVendorChoice(
 	ours: VendorChoice | null,
 	stored: VendorChoice | null,
-	subjectOnly: boolean
+	subjectOnly: boolean,
+	storedWinsTies: boolean
 ): boolean {
 	if (!stored) {
 		return !subjectOnly;
@@ -154,18 +227,30 @@ export const mayWriteVendorChoice = function mayWriteVendorChoice(
 			sameRecord(stored.denied, ours.denied)
 		);
 	}
-	return stored.confirmedAt <= ours.confirmedAt;
+	return isNewerThanStored(
+		ours.confirmedAt,
+		stored.confirmedAt,
+		storedWinsTies
+	);
 };
 
-/** Whether the notice dismissal may be written over what storage holds. */
+/**
+ * Whether the notice dismissal may be written over what storage holds. The
+ * newer dismissal wins; ties follow the rule of {@link choiceToWrite}.
+ */
 export const mayWriteNotice = function mayWriteNotice(
 	ours: NoticeDismissal | null,
-	stored: NoticeDismissal | null
+	stored: NoticeDismissal | null,
+	storedWinsTies: boolean
 ): boolean {
 	if (!(ours && stored)) {
 		return true;
 	}
-	return stored.dismissedAt <= ours.dismissedAt;
+	return isNewerThanStored(
+		ours.dismissedAt,
+		stored.dismissedAt,
+		storedWinsTies
+	);
 };
 
 /**
@@ -261,12 +346,17 @@ const reconcileSubject = function reconcileSubject(
 		// The choice was cleared: take whatever identity storage still has.
 		candidate = stored.subject ?? null;
 	} else if (stored.choice) {
+		// A stored subject at least as recent as the choice in memory is the
+		// shared identity, unless this runtime identified a different user.
 		const current =
 			explicitChoice === null ||
 			latestDecisionAt(stored.choice) >= latestDecisionAt(explicitChoice);
-		const relevant = changed('choice') || records.choice !== undefined;
 		candidate =
-			current && relevant && stored.subject ? stored.subject : undefined;
+			current &&
+			stored.subject &&
+			!hasNewerIdentity(snapshot.subject, stored.subject)
+				? stored.subject
+				: undefined;
 	} else if (explicitChoice === null) {
 		// No choice on either side, or an unreadable one: the vendor record
 		// carries the subject.
@@ -295,7 +385,11 @@ const reconcileChoice = function reconcileChoice(
 			records.choice = null;
 		}
 	} else if (stored.choice) {
-		const merged = mergeNewestChoice(explicitChoice, stored.choice);
+		// On equal times a decision another runtime stored since this one
+		// last looked wins; otherwise the stored record is this runtime's own.
+		const merged = changed('choice')
+			? mergeNewestChoice(stored.choice, explicitChoice)
+			: mergeNewestChoice(explicitChoice, stored.choice);
 		if (!sameRecord(merged, explicitChoice)) {
 			records.choice = merged;
 		}

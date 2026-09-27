@@ -11,13 +11,18 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import {
 	explicitChoice,
 	matchedResolution,
+	noticeRule,
 	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import {
 	clearStoredConsentRecords,
 	clearStoredPrivacyOptOuts,
+	readStoredConsentRecord,
+	readStoredNoticeDismissal,
 	readStoredPrivacyOptOuts,
+	readStoredVendorChoice,
+	writeStoredNoticeDismissal,
 	writeStoredPrivacyOptOuts,
 	writeStoredVendorChoice,
 } from '../../modules/persistence/record-storage';
@@ -506,4 +511,134 @@ test('applies the subject a vendor record carries when the choice is unreadable'
 		'meta-pixel',
 	]);
 	expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_vendor');
+});
+
+const storedSubject = () =>
+	readStoredConsentRecord(undefined, Date.now()).selected?.subject ?? null;
+
+test('on equal decision times, the record another runtime stored wins', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	await start().kernel.commands.save('all');
+	await nextTask();
+	const stale = start();
+	const other = start();
+
+	// Both runtimes act in the same millisecond. The other runtime's denial
+	// lands first; this runtime's grant is still queued.
+	vi.setSystemTime(1_800_000_001_000);
+	void stale.kernel.commands.save('all');
+	void other.kernel.commands.save('none');
+	other.dispose();
+
+	stale.reconcileStorage();
+	expect(measurement(stale)).toBe(false);
+	expect(measurement(start())).toBe(false);
+});
+
+test("a runtime's own second action in the same millisecond still lands", async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	const active = start();
+	await active.kernel.commands.save('all');
+	await nextTask();
+	await active.kernel.commands.save('none');
+	await nextTask();
+
+	expect(measurement(start())).toBe(false);
+	active.reconcileStorage();
+	expect(measurement(active)).toBe(false);
+});
+
+test('on an equal dismissal time, the notice another runtime stored wins', () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	resolution = matchedResolution(noticeRule());
+	const active = start();
+	void active.kernel.commands.dismissNotice();
+
+	const other = {
+		dismissedAt: Date.now(),
+		fingerprint: 'another-notice',
+		version: 1 as const,
+	};
+	writeStoredNoticeDismissal(other, undefined, Date.now());
+
+	active.reconcileStorage();
+	const stored = readStoredNoticeDismissal(undefined, Date.now());
+	expect(stored?.ok ? stored.record.fingerprint : null).toBe('another-notice');
+	expect(active.kernel.getSnapshot().noticeDismissal?.fingerprint).toBe(
+		'another-notice'
+	);
+});
+
+test('on an equal vendor decision time, the vendor record another runtime stored wins', () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	const vendors = [
+		{
+			category: 'measurement' as const,
+			id: 'analytics-one',
+			name: 'Analytics One',
+			privacyPolicyUrl: 'https://example.com/privacy',
+		},
+	];
+	const active = start({ vendors });
+	void active.kernel.commands.save({
+		measurement: true,
+		vendors: { 'analytics-one': false },
+	});
+	expect(active.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+		'analytics-one',
+	]);
+
+	writeStoredVendorChoice(
+		{ confirmedAt: Date.now(), denied: [], version: 1 },
+		undefined,
+		Date.now()
+	);
+
+	active.reconcileStorage();
+	const stored = readStoredVendorChoice(undefined, Date.now());
+	expect(stored?.ok ? stored.record.denied : null).toEqual([]);
+	expect(active.kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
+});
+
+test("a stale runtime's save keeps the subject another runtime stored", async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	// Opened before anything was stored.
+	const stale = start(threeCategories);
+	const other = start(threeCategories);
+	await other.kernel.commands.save('all');
+	await nextTask();
+	const subjectId = other.kernel.getSnapshot().subject?.subjectId;
+	expect(storedSubject()?.subjectId).toBe(subjectId);
+
+	vi.setSystemTime(1_800_000_001_000);
+	await stale.kernel.commands.save({ marketing: false });
+	await nextTask();
+
+	expect(storedSubject()?.subjectId).toBe(subjectId);
+	stale.reconcileStorage();
+	expect(stale.kernel.getSnapshot().subject?.subjectId).toBe(subjectId);
+});
+
+test('a save after identifying a different user stores that identity', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(1_800_000_000_000);
+	const active = start(threeCategories);
+	const other = start(threeCategories);
+	await other.kernel.commands.save('all');
+	await nextTask();
+
+	await active.identify({ externalId: 'user_2', identityProvider: 'test' });
+	vi.setSystemTime(1_800_000_001_000);
+	await active.kernel.commands.save({ marketing: false });
+	await nextTask();
+
+	expect(storedSubject()?.externalId).toBe('user_2');
+	expect(storedSubject()?.subjectId).toBe(
+		active.kernel.getSnapshot().subject?.subjectId
+	);
 });

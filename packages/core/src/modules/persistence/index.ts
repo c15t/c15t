@@ -49,7 +49,9 @@ import {
 	fingerprintStoredRecords,
 	mayWriteNotice,
 	mayWriteVendorChoice,
+	sameRecord,
 	selectReconciledRecords,
+	subjectToWrite,
 } from './reconcile';
 import type { StorageFingerprints, StoredRecordKind } from './reconcile';
 import type { StoredIabMetadata } from './record-codec';
@@ -122,6 +124,20 @@ export const createPersistence = function createPersistence(
 		}
 	};
 
+	/**
+	 * Whether another runtime changed a record since this runtime last read
+	 * or wrote it. Such a record wins a tie with a queued write.
+	 */
+	const changedSinceSeen = function changedSinceSeen(
+		kind: StoredRecordKind,
+		at: number
+	): boolean {
+		const prints = fingerprintStoredRecords(
+			readStoredRecordsForReconcile(storageConfig, at).records
+		);
+		return prints[kind] !== undefined && prints[kind] !== seen[kind];
+	};
+
 	const choiceWrites = createWriteScheduler(() => {
 		const subjectOnly = !choiceRecorded;
 		choiceRecorded = false;
@@ -131,16 +147,27 @@ export const createPersistence = function createPersistence(
 		const explicitChoice = choiceToWrite(
 			snapshot.explicitChoice,
 			stored?.choice ?? null,
-			subjectOnly
+			subjectOnly,
+			changedSinceSeen('choice', at)
 		);
 		if (explicitChoice) {
+			const subject = subjectOnly
+				? snapshot.subject
+				: subjectToWrite(snapshot.subject, stored?.subject);
 			writeChoiceToStorage(
-				{ ...snapshot, explicitChoice },
+				{ ...snapshot, explicitChoice, subject },
 				storedIab,
 				storageConfig,
 				at
 			);
-			observe('choice');
+			// A write that took anything from storage leaves the record marked
+			// as changed, so the next reconciliation brings it into memory.
+			if (
+				sameRecord(explicitChoice, snapshot.explicitChoice) &&
+				sameRecord(subject, snapshot.subject)
+			) {
+				observe('choice');
+			}
 		}
 	});
 	const noticeWrites = createWriteScheduler(() => {
@@ -151,7 +178,8 @@ export const createPersistence = function createPersistence(
 			snapshot.noticeDismissal &&
 			mayWriteNotice(
 				snapshot.noticeDismissal,
-				stored?.ok ? stored.record : null
+				stored?.ok ? stored.record : null,
+				changedSinceSeen('notice', at)
 			)
 		) {
 			writeNoticeToStorage(snapshot, storageConfig, at);
@@ -174,15 +202,20 @@ export const createPersistence = function createPersistence(
 		vendorsRecorded = false;
 		const snapshot = kernel.getSnapshot();
 		const at = now();
-		const stored = readStoredVendorChoice(storageConfig, at);
+		const read = readStoredVendorChoice(storageConfig, at);
+		const stored = read?.ok ? read.record : null;
 		if (
 			mayWriteVendorChoice(
 				snapshot.vendorChoice,
-				stored?.ok ? stored.record : null,
-				subjectOnly
+				stored,
+				subjectOnly,
+				changedSinceSeen('vendors', at)
 			)
 		) {
-			writeVendorChoiceToStorage(snapshot, storageConfig, at);
+			const subject = subjectOnly
+				? snapshot.subject
+				: subjectToWrite(snapshot.subject, stored?.subject);
+			writeVendorChoiceToStorage({ ...snapshot, subject }, storageConfig, at);
 			observe('vendors');
 		}
 	});
