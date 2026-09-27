@@ -730,7 +730,7 @@ export interface CommandDeps {
 // oxlint-disable-next-line max-lines-per-function -- Commands share retry, timer and replay state through closures.
 export const buildCommands = function buildCommands(deps: CommandDeps) {
 	const { runtime, transport, initRetry } = deps;
-	const { getSnapshot, commit, emit } = runtime;
+	const { batch, getSnapshot, commit, emit } = runtime;
 	const retryPolicy = resolveInitRetryPolicy(initRetry);
 	const pendingSaves = transport?.save
 		? createPendingSaveQueue({ emit, save: transport.save })
@@ -822,9 +822,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		now: number
 	): void {
 		const patch: SnapshotPatch = { now, policyPending: false };
-		if (commit(patch)) {
-			emit({ snapshot: getSnapshot(), type: 'init:applied' });
-		}
+		batch(() => {
+			if (commit(patch)) {
+				emit({ snapshot: getSnapshot(), type: 'init:applied' });
+			}
+		});
 	};
 
 	const runInitAttempt = async function runInitAttempt(
@@ -887,10 +889,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					applied.recordIssues
 				);
 			}
-			const changed = commit(applied.patch);
-			if (changed || snapshot.policyPending) {
-				emit({ snapshot: getSnapshot(), type: 'init:applied' });
-			}
+			batch(() => {
+				const changed = commit(applied.patch);
+				if (changed || snapshot.policyPending) {
+					emit({ snapshot: getSnapshot(), type: 'init:applied' });
+				}
+			});
 			finishLifecycle(now, recordsGeneration === runtime.getGeneration());
 			clearRetryTimer();
 			pendingRetryAttempt = null;
@@ -1129,10 +1133,15 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					getSnapshot().explicitChoice === actionSnapshot.explicitChoice &&
 					getSnapshot().subject?.subjectId === actionSnapshot.subject?.subjectId
 				) {
-					commit({
-						subject: { ...getSnapshot().subject, subjectId: result.subjectId },
+					batch(() => {
+						commit({
+							subject: {
+								...getSnapshot().subject,
+								subjectId: result.subjectId,
+							},
+						});
+						emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
 					});
-					emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
 				}
 				// The accepted save established or confirmed the subject: standing
 				// directives recorded while anonymous can be forwarded now.
@@ -1161,8 +1170,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				fingerprint: snapshot.evaluationPolicy.notice.fingerprint,
 				version: 1 as const,
 			};
-			commit({ noticeDismissal: dismissal, now: actionAt });
-			emit({ dismissal, snapshot: getSnapshot(), type: 'notice:dismissed' });
+			batch(() => {
+				commit({ noticeDismissal: dismissal, now: actionAt });
+				emit({ dismissal, snapshot: getSnapshot(), type: 'notice:dismissed' });
+			});
 			runtime.armDeadlineTimer();
 			return Promise.resolve({ dismissal, ok: true });
 		},
@@ -1177,8 +1188,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			if (iab) {
 				patch.iab = { ...iab, authority: null, tcString: null };
 			}
-			commit(patch);
-			emit({ snapshot: getSnapshot(), type: 'user:identified' });
+			batch(() => {
+				commit(patch);
+				emit({ snapshot: getSnapshot(), type: 'user:identified' });
+			});
 			if (transport?.identify) {
 				try {
 					await transport.identify({ ...user }, subjectId);
@@ -1341,13 +1354,30 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				patch.vendorChoice = nextVendorChoice;
 			}
 			applySaveAuthority(patch, before, context?.iabAuthority);
-			commit(patch);
-			const after = getSnapshot();
-			// Records generation at the moment the action landed. A hydration
-			// boundary (storage clear, server record) that replaces the choice
-			// afterwards supersedes this action: its outcome must not queue a
-			// replay or touch the subject.
-			const generation = runtime.getGeneration();
+			// Listeners run when the batch closes, after this action's events
+			// are queued: `after` and the events carry this action's snapshot
+			// even when a listener records another choice in response.
+			const { after, generation } = batch(() => {
+				commit(patch);
+				const committed = getSnapshot();
+				// Records generation at the moment the action landed. A hydration
+				// boundary (storage clear, server record) that replaces the choice
+				// afterwards supersedes this action: its outcome must not queue a
+				// replay or touch the subject.
+				const recordsGeneration = runtime.getGeneration();
+				if (categoriesChanged) {
+					emit({
+						actionAt,
+						confirmed: recorded.confirmed,
+						snapshot: committed,
+						type: 'choice:recorded',
+					});
+				}
+				if (vendorsChanged) {
+					emit({ actionAt, snapshot: committed, type: 'vendors:recorded' });
+				}
+				return { after: committed, generation: recordsGeneration };
+			});
 			// Exactly the confirmed keys with their recorded values, copied so a
 			// caller mutating its input object cannot change the queued payload.
 			const confirmedCategories: Partial<
@@ -1358,17 +1388,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				if (decision) {
 					confirmedCategories[category] = decision.value;
 				}
-			}
-			if (categoriesChanged) {
-				emit({
-					actionAt,
-					confirmed: recorded.confirmed,
-					snapshot: after,
-					type: 'choice:recorded',
-				});
-			}
-			if (vendorsChanged) {
-				emit({ actionAt, snapshot: after, type: 'vendors:recorded' });
 			}
 			runtime.armDeadlineTimer();
 

@@ -20,6 +20,24 @@ await kernel.commands.init();
 This fragment assumes the initialized kernel setup from the quickstart. Retain
 `unsubscribe` and call it during teardown.
 
+## How listeners are notified
+
+`kernel.subscribe()` and `kernel.events.on()` listeners run synchronously when
+a change commits, in registration order. Each receives the frozen snapshot that
+change produced.
+
+- A listener that throws does not stop the listeners after it or fail the
+  command that caused the change. c15t passes the error to `reportError` in
+  browsers, or logs it with `console.error` where `reportError` is missing.
+- A listener can call commands and setters. Before the nested call returns,
+  every other listener receives the change in progress and then the new one.
+  No listener misses a change, such as a denial that another listener
+  immediately reverses, or receives changes out of order.
+- A listener added during a notification first receives the next change. A
+  listener removed during a notification is not called again.
+- Listeners that keep changing consent in response to each other are stopped
+  after 100 nested notifications, and the error is reported.
+
 ## Choose commands by intent
 
 | Command | Effect |
