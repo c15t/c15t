@@ -1,8 +1,12 @@
+import { holdNetworkRequests } from '@c15t/core/modules/network-hold';
 import { afterEach, expect, test, vi } from 'vitest';
 import { createApp, defineComponent, h, inject, onMounted } from 'vue';
 
 import { c15tVue } from '../index';
-import { createVueConsentKernelContext } from '../runtime/kernel';
+import {
+	createVueConsentKernelContext,
+	startVueConsentRuntime,
+} from '../runtime/kernel';
 import type { RuntimeConsentConfig } from '../runtime/kernel';
 import { symbolKernel } from '../runtime/utils/symbols';
 
@@ -120,11 +124,29 @@ test('holds tracker requests from child mount hooks until the blocker decides th
 	).toBe(false);
 });
 
-test('a context disposed before the blocker loads fails its held requests closed', async () => {
+const tick = () =>
+	new Promise<void>((resolve) => {
+		setTimeout(resolve, 0);
+	});
+
+const settles = (request: Promise<Response>) => {
+	const state = { settled: false };
+	void request.finally(() => {
+		state.settled = true;
+	});
+	return state;
+};
+
+test('a context disposed before startup ends only its own hold', async () => {
 	const network = vi.fn((_input: RequestInfo | URL) =>
 		Promise.resolve(new Response('{}', { status: 200 }))
 	);
 	vi.stubGlobal('fetch', network);
+	// Another caller holds its own rules.
+	const other = holdNetworkRequests([
+		{ category: 'marketing', domain: 'ads.example' },
+	]);
+	cleanups.push(() => other.release()());
 	const context = createVueConsentKernelContext({
 		config: {
 			backendURL: 'https://consent.example.test',
@@ -133,24 +155,49 @@ test('a context disposed before the blocker loads fails its held requests closed
 			},
 		},
 	});
-	let settled = false;
-	const early = window.fetch('https://tracker.example/collect').finally(() => {
-		settled = true;
-	});
-	await new Promise<void>((resolve) => {
-		setTimeout(resolve, 0);
-	});
-	expect(settled).toBe(false);
+	const own = window.fetch('https://tracker.example/collect');
+	const ads = settles(window.fetch('https://ads.example/pixel'));
+	await tick();
 
 	// A failed root mount: the context goes away before startup runs.
 	context.dispose();
 
-	// Nothing checked consent for it: answered as blocked, not sent or hung.
-	expect((await early).status).toBe(451);
+	expect((await own).status).toBe(200);
+	await tick();
+	expect(ads.settled).toBe(false);
 	expect(
-		network.mock.calls.some(([input]) =>
-			String(input).includes('tracker.example')
-		)
+		network.mock.calls.some(([input]) => String(input).includes('ads.example'))
 	).toBe(false);
-	expect(window.fetch).toBe(network);
+});
+
+test('a disabled Vue blocker leaves other callers holding', async () => {
+	vi.spyOn(console, 'warn').mockImplementation(() => {});
+	const network = vi.fn((_input: RequestInfo | URL) =>
+		Promise.resolve(new Response('{}', { status: 503 }))
+	);
+	vi.stubGlobal('fetch', network);
+	const other = holdNetworkRequests([
+		{ category: 'marketing', domain: 'ads.example' },
+	]);
+	cleanups.push(() => other.release()());
+	const config: RuntimeConsentConfig = {
+		backendURL: 'https://consent.example.test',
+		networkBlocker: {
+			enabled: false,
+			rules: [{ category: 'marketing', domain: 'ads.example' }],
+		},
+	};
+	const context = createVueConsentKernelContext({ config });
+	const ads = settles(window.fetch('https://ads.example/pixel'));
+	await tick();
+
+	const stop = startVueConsentRuntime(context, config, { runInit: false });
+	cleanups.push(stop);
+	await tick();
+
+	// The disabled blocker's pass-through would send it unchecked.
+	expect(ads.settled).toBe(false);
+	expect(
+		network.mock.calls.some(([input]) => String(input).includes('ads.example'))
+	).toBe(false);
 });

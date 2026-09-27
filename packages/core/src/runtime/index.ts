@@ -36,10 +36,8 @@ import { resolveVendors } from '../libs/vendors';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
-import {
-	blockHeldRequests,
-	holdNetworkRequests,
-} from '../modules/network-blocker/hold';
+import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
+import type { NetworkHold } from '../modules/network-blocker/hold';
 import { createPersistence } from '../modules/persistence';
 import type { PersistenceHandle } from '../modules/persistence';
 import { createScriptLoader } from '../modules/script-loader';
@@ -389,17 +387,15 @@ export const createConsentRuntime = function createConsentRuntime(
 	const persistenceOptions = normalizePersistenceOptions(options);
 	const kernel = createRuntimeKernel(options);
 	// `start()` installs the blocker, often after the host rendered its
-	// children. Hold matching requests until then; the blocker replays them.
-	// A runtime disposed before it started ends its hold itself.
-	let holding = false;
-	if (
+	// children. Hold matching requests until then; the blocker takes over this
+	// runtime's hold and replays them. A runtime disposed before it started
+	// ends its hold itself. Either way, other callers' holds stay in place.
+	let hold: NetworkHold | null =
 		enabled &&
 		options.networkBlocker &&
 		options.networkBlocker.enabled !== false
-	) {
-		holdNetworkRequests(options.networkBlocker.rules);
-		holding = true;
-	}
+			? holdNetworkRequests(options.networkBlocker.rules)
+			: null;
 
 	let iabHandle: ConsentRuntimeIABHandle | null = null;
 	let started = false;
@@ -540,13 +536,10 @@ export const createConsentRuntime = function createConsentRuntime(
 				dispose();
 			}
 			disposers.length = 0;
-			if (holding && options.networkBlocker) {
-				// No blocker took over, so nothing else ends the hold, and
-				// nothing checked consent for what it held: those requests
-				// fail as blocked rather than wait for the rest of the page.
-				holding = false;
-				blockHeldRequests(options.networkBlocker.rules);
-			}
+			// No blocker took the hold over, so nothing else ends it. Without
+			// this, matching requests would wait for the rest of the page.
+			hold?.release()();
+			hold = null;
 			iabListeners.clear();
 			iabHandle = null;
 			persistenceHandle = null;
@@ -640,15 +633,17 @@ export const createConsentRuntime = function createConsentRuntime(
 			}
 
 			if (enabled && options.networkBlocker) {
-				// The blocker takes over the hold and replays what it held.
-				holding = false;
 				const blocker = createNetworkBlocker({
 					enabled: options.networkBlocker.enabled,
+					// Never omitted: without a hold, the blocker ends every
+					// caller's hold, including ones a disabled blocker must not.
+					hold: hold ?? NOT_HELD,
 					kernel,
 					logBlockedRequests: options.networkBlocker.logBlockedRequests,
 					onRequestBlocked: options.networkBlocker.onRequestBlocked,
 					rules: options.networkBlocker.rules,
 				});
+				hold = null;
 				disposers.push(() => blocker.dispose());
 			}
 

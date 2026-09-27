@@ -6,6 +6,7 @@ import { resolvePolicyRules } from '@c15t/schema/types';
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { holdNetworkRequests } from '../../modules/network-blocker/hold';
 import { custom } from '../../transports/mode';
 import type { KernelTransport } from '../../types';
 import {
@@ -675,5 +676,89 @@ describe('windowDebug', () => {
 
 		runtime.dispose();
 		expect((window as DebugWindow).c15t).toBe(owned);
+	});
+});
+
+describe('the runtime network hold', () => {
+	const settles = (request: Promise<Response>) => {
+		const state = { settled: false };
+		void request.finally(() => {
+			state.settled = true;
+		});
+		return state;
+	};
+	const tick = () =>
+		new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+
+	test("disposing before `start()` ends only this runtime's hold", async () => {
+		const nativeFetch = window.fetch;
+		const network = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = network as unknown as typeof window.fetch;
+		// Another caller, such as a component, holds its own rules.
+		const other = holdNetworkRequests([
+			{ category: 'marketing', domain: 'ads.example' },
+		]);
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			const own = window.fetch('https://tracker.example/collect');
+			const ads = settles(window.fetch('https://ads.example/pixel'));
+			await tick();
+
+			runtime.dispose();
+
+			expect((await own).status).toBe(200);
+			await tick();
+			expect(ads.settled).toBe(false);
+			expect(network).not.toHaveBeenCalledWith(
+				'https://ads.example/pixel',
+				undefined
+			);
+		} finally {
+			other.release()();
+			window.fetch = nativeFetch;
+		}
+	});
+
+	test('a disabled blocker leaves other callers holding', async () => {
+		const nativeFetch = window.fetch;
+		const network = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = network as unknown as typeof window.fetch;
+		const other = holdNetworkRequests([
+			{ category: 'marketing', domain: 'ads.example' },
+		]);
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					enabled: false,
+					rules: [{ category: 'marketing', domain: 'ads.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			const ads = settles(window.fetch('https://ads.example/pixel'));
+			await tick();
+
+			runtime.start();
+			await tick();
+
+			// The disabled blocker's pass-through would send it unchecked.
+			expect(ads.settled).toBe(false);
+			expect(network).not.toHaveBeenCalledWith(
+				'https://ads.example/pixel',
+				undefined
+			);
+			runtime.dispose();
+		} finally {
+			other.release()();
+			window.fetch = nativeFetch;
+		}
 	});
 });
