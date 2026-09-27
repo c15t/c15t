@@ -233,6 +233,20 @@ ever leaves the visitor with less permission. A server render sees only the
 cookie; after a dropped write that carried a denial, the browser is the stricter
 of the two.
 
+When the two copies were written under different clear epochs, each loses its
+decisions from before the later epoch first, and the same rule applies to what
+remains. A later epoch in the local copy never lets its grant replace a cookie
+denial.
+
+A server render cannot know about a clear that never reached a cookie. If the
+page could write localStorage but its cookie writes failed during
+`clearRecords()` (cookies blocked for the page, or a cookie setter that
+throws), the removal of the consent cookie failed too, and so did the epoch
+cookie. The browser then applies the clear from localStorage, while a server
+render still reads the old consent cookie until the next successful cookie
+write. The same applies to a consent cookie set with a different `domain` than
+the current `storageConfig` uses, which the clear cannot remove.
+
 ### Ordering with pending writes
 
 A tab writes its own choices in a later task, not during the click. Before it

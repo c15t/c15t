@@ -63,7 +63,8 @@ reads as 0, and a record whose epoch field is corrupt is kept.
 
 The consent cookie stays authoritative, but a denial in its localStorage copy
 that is newer than the cookie's decision is now applied on top of it, so a
-dropped cookie write no longer keeps an older grant in force. A newer local
+dropped cookie write no longer keeps an older grant in force. Copies written
+under different clear epochs are cut to the later epoch first. A newer local
 grant is still not applied.
 
 This changes the stored format: after a clear, the consent cookie gains
