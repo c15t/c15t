@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { CompleteTranslations } from '@c15t/translations';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 
 import '@c15t/ui/styles/components/consent-banner.css';
@@ -8,45 +7,11 @@ import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 import '@c15t/ui/styles/components/consent-dialog.css';
 import { computed } from 'vue';
 
-import { useConsentConfig, useConsentInit } from '#c15t/composables';
-
-import { useConsentSnapshot } from '../composables/kernel';
-import ConsentLegalLinks from './legal-links.vue';
+import DescriptionContent from './description-content.vue';
 
 const props = defineProps<{
 	context: 'banner' | 'dialog' | 'manager';
 }>();
-
-const init = useConsentInit();
-const config = useConsentConfig();
-const snapshot = useConsentSnapshot();
-
-/**
- * A notice prompt explains and points at the opt-out instead of asking;
- * it reads the notice copy and falls back to the choice copy.
- */
-const bannerDescription = computed(() => {
-	const cookieBanner = (
-		init.value?.translations?.translations as
-			| Partial<CompleteTranslations>
-			| undefined
-	)?.cookieBanner;
-	if (snapshot.value.policyRule.prompt === 'notice') {
-		return cookieBanner?.noticeDescription ?? cookieBanner?.description;
-	}
-	return cookieBanner?.description;
-});
-
-const legalLinks = computed(() => {
-	if (props.context === 'banner') {
-		return config.value.bannerLegalLinks;
-	}
-	return config.value.dialogLegalLinks;
-});
-
-const linkContext = computed(() =>
-	props.context === 'manager' ? 'manager' : props.context
-);
 
 /**
  * The banner and the dialog each style their description in their own
@@ -58,44 +23,18 @@ const descriptionClass = computed(() =>
 		? bannerStyles.description
 		: dialogStyles.description
 );
-
-// Only the dialog's description is referenced, by the dialog's
-// `aria-describedby`.
-const descriptionId = computed(() =>
-	props.context === 'banner' ? undefined : 'consent-dialog-description'
-);
-
-const testId = computed(() =>
-	props.context === 'banner'
-		? 'consent-banner-description'
-		: 'consent-dialog-description'
-);
 </script>
 
 <template>
-	<div
-		v-bind="config.components?.description?.[context]"
-		:id="descriptionId"
-		:data-testid="testId"
-		:class="
-			context === 'dialog' ? dialogStyles.description : bannerStyles.description
-		"
-		:data-context="context"
+	<DescriptionContent
+		:context="context"
+		:description-class="descriptionClass"
 	>
-		<slot>
-			<template v-if="context === 'banner'">
-				{{ bannerDescription }}
-			</template>
-			<template v-else>
-				{{
-					init?.translations?.translations?.consentManagerDialog?.description
-				}}
-			</template>
-		</slot>
-		<ConsentLegalLinks
-			v-if="legalLinks !== undefined && legalLinks !== null"
-			:context="linkContext"
-			:links="legalLinks"
-		/>
-	</div>
+		<template
+			v-if="$slots.default"
+			#default
+		>
+			<slot />
+		</template>
+	</DescriptionContent>
 </template>
