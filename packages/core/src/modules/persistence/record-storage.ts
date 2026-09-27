@@ -589,9 +589,41 @@ export const decodeStoredConsentCandidate =
 		};
 	};
 
+/** Time of the newest category decision in a decoded record. */
+const newestDecisionAt = function newestDecisionAt(
+	record: DecodedStoredConsent
+): number {
+	let newest = Number.NEGATIVE_INFINITY;
+	for (const decision of Object.values(record.choice.categories)) {
+		if (decision && decision.confirmedAt > newest) {
+			newest = decision.confirmedAt;
+		}
+	}
+	return newest;
+};
+
 /**
- * Decodes candidates in order and selects the first structurally valid
- * one. Semantic freshness is not consulted here; that belongs to the
+ * Whether `candidate` is strictly more recent than `current`: a later clear
+ * epoch first, then a newer decision. A tie keeps the earlier one in read
+ * order, the cookie, which is what a server render read.
+ */
+const isMoreRecent = function isMoreRecent(
+	candidate: DecodedStoredConsent,
+	current: DecodedStoredConsent
+): boolean {
+	if (candidate.epoch !== current.epoch) {
+		return candidate.epoch > current.epoch;
+	}
+	return newestDecisionAt(candidate) > newestDecisionAt(current);
+};
+
+/**
+ * Decodes candidates and selects one. The cookie and the configured
+ * localStorage key hold two projections of the same record; the more
+ * recent valid one wins (see {@link isMoreRecent}), so a cookie the browser
+ * dropped (over the size limit, say) cannot keep an older choice in force.
+ * The legacy localStorage key is read only when neither holds a valid
+ * record. Semantic freshness is not consulted here; that belongs to the
  * evaluator with the same `now`.
  */
 export const selectStoredConsent = function selectStoredConsent(
@@ -600,20 +632,30 @@ export const selectStoredConsent = function selectStoredConsent(
 ): StoredConsentSelection {
 	const candidates: StoredConsentCandidate[] = [];
 	let selected: DecodedStoredConsent | null = null;
+	let legacy: DecodedStoredConsent | null = null;
 	for (const raw of rawCandidates) {
 		const candidate = decodeStoredConsentCandidate(raw, now);
 		candidates.push(candidate);
-		if (!selected && candidate.status === 'valid') {
+		if (candidate.status !== 'valid') {
+			continue;
+		}
+		if (candidate.source === 'legacy-local-storage') {
+			legacy ??= candidate.record;
+		} else if (!selected || isMoreRecent(candidate.record, selected)) {
 			selected = candidate.record;
 		}
 	}
-	return { candidates, selected };
+	return { candidates, selected: selected ?? legacy };
 };
 
 /**
- * Browser read: cookie, then configured localStorage, then legacy
- * localStorage. Returns the first structurally valid record with the
- * full candidate report for diagnostics. Never writes.
+ * Browser read of the cookie, the configured localStorage key and the
+ * legacy localStorage key. Returns the more recent of the cookie and
+ * configured copies, or the legacy record when neither is valid, with the
+ * full candidate report for diagnostics. A server render reads the cookie
+ * alone, so the two agree whenever the cookie holds the latest record;
+ * when the browser dropped the cookie write, the browser applies the newer
+ * localStorage copy instead. Never writes.
  */
 export const readStoredConsentRecord = function readStoredConsentRecord(
 	config: StorageConfig | undefined,

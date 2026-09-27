@@ -113,7 +113,7 @@ describe('raw candidate reading', () => {
 		expect(snapshotStores()).toEqual(before);
 	});
 
-	it('keeps an expired but valid cookie over fresher localStorage grants', () => {
+	it('prefers a fresher localStorage copy over an older, expired cookie', () => {
 		setCookie(
 			STORAGE_KEY_V2,
 			legacyRecord({ marketing: true, necessary: true }, NOW - 400 * DAY)
@@ -127,10 +127,9 @@ describe('raw candidate reading', () => {
 
 		const { selected } = readStoredConsentRecord(undefined, NOW);
 
-		expect(selected?.source).toBe('cookie');
-		expect(selected?.choice.categories.marketing?.confirmedAt).toBe(
-			NOW - 400 * DAY
-		);
+		// The cookie is the copy the browser failed to update.
+		expect(selected?.source).toBe('local-storage');
+		expect(selected?.choice.categories.marketing?.confirmedAt).toBe(NOW - DAY);
 
 		const evaluation = evaluateConsentRecord({
 			choice: selected?.choice ?? null,
@@ -140,8 +139,7 @@ describe('raw candidate reading', () => {
 				choice: { fingerprint: CHOICE_FP, maxAgeMs: 365 * DAY },
 			}),
 		});
-		expect(evaluation.permissions.marketing).toBe(false);
-		expect(evaluation.categories.marketing.authority).toBe('expired');
+		expect(evaluation.permissions.marketing).toBe(true);
 	});
 
 	it('preserves JSON partial coverage and restores compact omitted false', () => {
@@ -575,11 +573,12 @@ describe('v3 writes', () => {
 				'"version":3'
 			);
 
-			// Read precedence is unchanged: the untouched old cookie still wins.
+			// The newer localStorage copy wins over the cookie the browser
+			// refused to update, so the old grant is not kept in force.
 			const { selected } = readStoredConsentRecord(undefined, NOW);
-			expect(selected?.source).toBe('cookie');
-			expect(selected?.format).toBe('legacy-v2');
-			expect(selected?.choice.categories.marketing?.value).toBe(true);
+			expect(selected?.source).toBe('local-storage');
+			expect(selected?.format).toBe('v3');
+			expect(selected?.choice.categories.marketing?.value).toBe(false);
 		} finally {
 			if (descriptor) {
 				Object.defineProperty(document, 'cookie', descriptor);

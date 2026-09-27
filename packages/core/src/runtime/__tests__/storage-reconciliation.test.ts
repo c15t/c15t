@@ -1150,3 +1150,24 @@ test('a removed choice does not replace a server subject with an older vendor su
 	expect(active.kernel.getSnapshot().explicitChoice).toBeNull();
 	expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
 });
+
+test('reconciling prefers the newer localStorage copy when the cookie write was dropped', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	const active = start();
+	await active.kernel.commands.save('all');
+	await nextTask();
+	const grantCookie = document.cookie
+		.split('; ')
+		.find((part) => part.startsWith('c15t='));
+
+	// Another runtime denies; its cookie write is lost, localStorage lands.
+	vi.setSystemTime(T + 1000);
+	const other = start();
+	await other.kernel.commands.save('none');
+	await nextTask();
+	document.cookie = `${grantCookie}; path=/`;
+
+	active.reconcileStorage();
+	expect(measurement(active)).toBe(false);
+});
