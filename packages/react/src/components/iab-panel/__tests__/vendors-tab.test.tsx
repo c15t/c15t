@@ -17,6 +17,7 @@ import { policyFixture } from '~/__tests__/policy-fixture';
 import { KernelContext } from '~/context';
 import { offline } from '~/transports/offline';
 
+import { StackItem } from '../atoms/stack-item';
 import { IABConsentDialog } from '../iab-panel';
 
 const getDefined = <Value,>(
@@ -395,5 +396,49 @@ describe('IAB purposes tab with publisher restrictions', () => {
 		await userEvent.click(objection);
 		await userEvent.click(button('Save Settings'));
 		await vi.waitFor(() => expect(gate()).toBe(false), { timeout: 5000 });
+	});
+});
+
+describe('IAB stack switch without an objection handler', () => {
+	test('reflects and sets consent for purposes with no consent basis', async () => {
+		const onToggle = vi.fn();
+		render(
+			<ConsentProvider options={defaultIABOptions}>
+				<StackItem
+					consents={{}}
+					onToggle={onToggle}
+					onVendorClick={vi.fn()}
+					onVendorToggle={vi.fn()}
+					stack={{
+						description: '',
+						id: 1,
+						name: 'Advertising',
+						purposes: [
+							{
+								description: '',
+								hasConsentBasis: false,
+								id: 7,
+								illustrations: [],
+								name: 'Measure advertising performance',
+								vendors: [],
+							},
+						],
+					}}
+					vendorConsents={{}}
+				/>
+			</ConsentProvider>
+		);
+		// With no objection control to fall back on, the rows keep their
+		// consent switch, so the stack switch must cover them too.
+		const stackSwitch = await vi.waitFor(() =>
+			getDefined(
+				document.querySelector<HTMLElement>(
+					'[role="switch"][aria-label="Advertising"]'
+				)
+			)
+		);
+		expect(stackSwitch.getAttribute('aria-checked')).toBe('false');
+		await userEvent.click(stackSwitch);
+		expect(onToggle).toHaveBeenCalledWith(7, true);
 	});
 });

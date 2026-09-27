@@ -53,9 +53,12 @@
 	let stackChecked = $state(false);
 
 	// The stack switch covers the purposes some vendor processes on consent.
-	// The others offer only their own objection control.
+	// The others offer only their own objection control; without one, the
+	// rows keep their consent switch and the stack covers them too.
 	const consentPurposes = $derived(
-		stack.purposes.filter((p) => p.hasConsentBasis !== false)
+		stack.purposes.filter(
+			(p) => p.hasConsentBasis !== false || !onPurposeLegitimateInterestToggle
+		)
 	);
 	const allEnabled = $derived(
 		consentPurposes.every((p) => consents[p.id] ?? false)
@@ -116,7 +119,7 @@
 				>
 				<div class={noStyle ? '' : styles.partialIndicator || ''}></div>
 			{/if}
-			{#if consentPurposes.length > 0 || !onPurposeLegitimateInterestToggle}
+			{#if consentPurposes.length > 0}
 				<Switch.Root
 					aria-label={stack.name}
 					bind:checked={stackChecked}

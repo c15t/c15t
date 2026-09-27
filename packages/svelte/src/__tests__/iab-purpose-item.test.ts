@@ -81,4 +81,29 @@ describe('IAB purpose row consent switch', () => {
 			container.querySelectorAll('[role="switch"][aria-label="Advertising"]')
 		).toHaveLength(0);
 	});
+
+	test('without an objection handler the stack switch still reflects and sets consent', async () => {
+		const onToggle = vi.fn();
+		const { container } = render(IABStackItem, {
+			consents: {},
+			iabT: getIABTranslations(),
+			onToggle,
+			onVendorClick: vi.fn(),
+			onVendorToggle: vi.fn(),
+			stack: {
+				description: '',
+				id: 1,
+				name: 'Advertising',
+				purposes: [purpose(false)],
+			},
+			vendorConsents: {},
+		});
+		const stackSwitch = container.querySelector<HTMLElement>(
+			'[role="switch"][aria-label="Advertising"]'
+		);
+		expect(stackSwitch?.getAttribute('aria-checked')).toBe('false');
+		stackSwitch?.click();
+		await Promise.resolve();
+		expect(onToggle).toHaveBeenCalledWith(7, true);
+	});
 });

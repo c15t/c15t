@@ -63,9 +63,12 @@ export const StackItem: FC<StackItemProps> = ({
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	// The stack switch covers the purposes some vendor processes on consent.
-	// The others offer only their own objection control.
+	// The others offer only their own objection control; without one, the
+	// rows keep their consent switch and the stack covers them too.
 	const consentPurposes = stack.purposes.filter(
-		(p) => p.hasConsentBasis !== false
+		(p) =>
+			p.hasConsentBasis !== false ||
+			onPurposeLegitimateInterestToggle === undefined
 	);
 	const allEnabled = consentPurposes.every((p) => consents[p.id] ?? false);
 	const someEnabled =
@@ -154,8 +157,7 @@ export const StackItem: FC<StackItemProps> = ({
 							<div className={styles.partialIndicator} />
 						</>
 					)}
-					{(consentPurposes.length > 0 ||
-						onPurposeLegitimateInterestToggle === undefined) && (
+					{consentPurposes.length > 0 && (
 						<Switch.Root
 							aria-label={stack.name}
 							checked={allEnabled}
