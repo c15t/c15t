@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives';
+	import { getFocusableElements } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 
@@ -50,10 +51,12 @@
 
 			const { activeElement } = document;
 			if (!activeElement || !node.contains(activeElement)) {
+				// Same target as the trap's `first-tabbable`, chosen here so the
+				// trap never has to move focus a second time.
 				const preferredFocusTarget = node.querySelector<HTMLElement>(
 					'[data-c15t-dialog-focus="true"]'
 				);
-				(preferredFocusTarget ?? node).focus();
+				(preferredFocusTarget ?? getFocusableElements(node)[0] ?? node).focus();
 			}
 		});
 	});
