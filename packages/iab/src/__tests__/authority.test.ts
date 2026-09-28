@@ -1183,3 +1183,81 @@ test('an equal-time receipt with different custom-vendor selections replaces the
 		)
 	);
 });
+
+const storedCustomConsent = (id: string): unknown =>
+	JSON.parse(localStorage.getItem('c15t-iab-authority-v1') ?? '{}')
+		.customConsents?.[id];
+
+const tiedCustomSaves = async (thisRevokes: boolean) => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createIAB({
+		cmpId: 28,
+		customVendors,
+		gvl: completeGVL,
+		kernel,
+	});
+	disposers.push(addon.dispose);
+	addon.acceptAll();
+	await addon.save();
+	storage.reconcile();
+
+	const other = makeKernel();
+	const otherStorage = createPersistence({ kernel: other, sync: false });
+	disposers.push(otherStorage.dispose);
+	const otherAddon = createIAB({
+		cmpId: 28,
+		customVendors,
+		gvl: completeGVL,
+		kernel: other,
+	});
+	disposers.push(otherAddon.dispose);
+	await vi.waitFor(() =>
+		expect(other.getSnapshot().iab?.authority).not.toBeNull()
+	);
+
+	// Both save in the same millisecond. This runtime's save lands first,
+	// the other one's receipt lands last in storage.
+	const tie = NOW + 60_000;
+	vi.setSystemTime(tie);
+	addon.acceptAll();
+	if (thisRevokes) {
+		addon.setVendorConsent(9001, false);
+	}
+	await addon.save();
+	storage.reconcile();
+	vi.setSystemTime(tie);
+	otherAddon.acceptAll();
+	if (!thisRevokes) {
+		otherAddon.setVendorConsent(9001, false);
+	}
+	await otherAddon.save();
+	otherStorage.reconcile();
+	expect(kernel.getSnapshot().iab?.authority?.confirmedAt).toBe(
+		other.getSnapshot().iab?.authority?.confirmedAt
+	);
+
+	storage.reconcile();
+	receiptEvent();
+	await vi.advanceTimersByTimeAsync(10);
+	return kernel;
+};
+
+test('a stale grant stored last in the same millisecond does not un-revoke a vendor', async () => {
+	const kernel = await tiedCustomSaves(true);
+	expect(kernel.getSnapshot().iab?.authority?.vendorConsents['9001']).toBe(
+		false
+	);
+	// The more restrictive receipt is written back for every other tab.
+	expect(storedCustomConsent('9001')).toBe(false);
+});
+
+test('a revocation stored last in the same millisecond is adopted', async () => {
+	const kernel = await tiedCustomSaves(false);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority?.vendorConsents['9001']).toBe(
+			false
+		)
+	);
+});

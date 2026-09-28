@@ -421,12 +421,13 @@ const sameVendorSelections = function sameVendorSelections(
 
 /**
  * Whether a stored receipt should replace the held authority: it fits the
- * choice (see {@link fitsChoice}) and is newer, or replaces a held
+ * choice (see {@link fitsChoice}) and is strictly newer, or replaces a held
  * authority that no longer fits. The TC string alone is no identity: its
  * timestamps round to the UTC day and custom-vendor selections live only
  * in the receipt, so a later save can produce the same string. A newer
  * receipt with the same string is still installed, carrying its own
- * confirmation and expiry times and custom-vendor selections.
+ * confirmation and expiry times and custom-vendor selections. An equal
+ * time is settled by {@link settleTie}.
  */
 const shouldInstallReceipt = function shouldInstallReceipt(
 	receipt: KernelIABAuthority | null,
@@ -437,20 +438,64 @@ const shouldInstallReceipt = function shouldInstallReceipt(
 	if (!receipt || !fitsChoice(receipt, choice)) {
 		return false;
 	}
-	if (held === null) {
+	if (held === null || heldUnfit) {
 		return true;
 	}
-	if (receipt.tcString === held.tcString) {
-		// An equal time with different custom-vendor selections is another
-		// save in the same millisecond; the stored receipt is the one that
-		// landed last, so every tab converges on it.
-		return (
-			receipt.confirmedAt > held.confirmedAt ||
-			(receipt.confirmedAt === held.confirmedAt &&
-				!sameVendorSelections(receipt, held))
+	return receipt.confirmedAt > held.confirmedAt;
+};
+
+const SELECTION_MAPS = [
+	'purposeConsents',
+	'purposeLegitimateInterests',
+	'specialFeatureOptIns',
+	'vendorConsents',
+	'vendorLegitimateInterests',
+] as const;
+
+/** Whether `authority` grants anything `other` does not. */
+const grantsBeyond = function grantsBeyond(
+	authority: KernelIABAuthority,
+	other: KernelIABAuthority
+): boolean {
+	return SELECTION_MAPS.some((name) => {
+		const theirs = other[name] as Record<string, boolean>;
+		return Object.entries(authority[name]).some(
+			([id, granted]) => granted === true && theirs[id] !== true
 		);
+	});
+};
+
+/**
+ * How to settle a stored receipt confirmed in the same millisecond as the
+ * held authority but recording different selections: two saves that cannot
+ * be ordered. The more restrictive one wins, so a same-millisecond write
+ * never lifts a revocation. `store` keeps the held authority and writes it
+ * back, so every tab converges on it; `withdraw` covers two receipts that
+ * each grant something the other denies, where neither is safe to publish.
+ */
+const settleTie = function settleTie(
+	receipt: KernelIABAuthority,
+	held: KernelIABAuthority
+): 'install' | 'store' | 'withdraw' {
+	if (!grantsBeyond(receipt, held)) {
+		return 'install';
 	}
-	return heldUnfit || held.confirmedAt <= receipt.confirmedAt;
+	return grantsBeyond(held, receipt) ? 'withdraw' : 'store';
+};
+
+/** Whether a stored receipt ties with the held authority. */
+const isTie = function isTie(
+	receipt: KernelIABAuthority | null,
+	held: KernelIABAuthority | null,
+	choice: ExplicitChoice
+): receipt is KernelIABAuthority {
+	return Boolean(
+		receipt &&
+		held &&
+		fitsChoice(receipt, choice) &&
+		receipt.confirmedAt === held.confirmedAt &&
+		(receipt.tcString !== held.tcString || !sameVendorSelections(receipt, held))
+	);
 };
 
 const changedSelections = (
@@ -742,7 +787,25 @@ export const createIAB = function createIAB(
 		// predates it, is withdrawn unless a fitting receipt replaces it.
 		const heldConflicts = held !== null && !fitsChoice(held, choice);
 		const keepSelections = selectionRevision !== revisionAtAuthority;
-		if (shouldInstallReceipt(receipt, held, heldConflicts, choice)) {
+		const tie =
+			held && !heldConflicts && isTie(receipt, held, choice)
+				? settleTie(receipt, held)
+				: null;
+		if (tie === 'store' && held) {
+			if (options.persistence !== false) {
+				storeAuthority(held);
+			}
+			return;
+		}
+		if (tie === 'withdraw') {
+			withdrawAuthority(choice);
+			return;
+		}
+		if (
+			receipt &&
+			(tie === 'install' ||
+				shouldInstallReceipt(receipt, held, heldConflicts, choice))
+		) {
 			const update: Partial<KernelIABState> = {
 				authority: receipt,
 				tcString: receipt.tcString,
