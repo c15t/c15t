@@ -83,6 +83,41 @@ test('ordinary kernels cannot be switched to external authority after creation',
 	runtime.dispose();
 });
 
+test('a failed external subscription reports the error without aborting startup or granting consent', () => {
+	const onError = vi.fn();
+	const initialized = vi.fn();
+	const openPreferences = vi.fn();
+	let notify = () => {};
+	const runtime = createConsentRuntime({
+		callbacks: { onError },
+		consentSource: {
+			getPermissions: () => ({ measurement: true }),
+			openPreferences,
+			subscribe: (listener) => {
+				notify = listener;
+				throw new Error('CMP unavailable');
+			},
+		},
+		iframeBlocker: false,
+		mode: custom(createOfflineTransport()),
+	});
+	runtime.kernel.events.on('init:applied', initialized);
+	try {
+		expect(() => runtime.start()).not.toThrow();
+		expect(onError).toHaveBeenCalledWith({ error: 'CMP unavailable' });
+		expect(initialized).toHaveBeenCalledOnce();
+		notify();
+		expect(runtime.kernel.getSnapshot().effectivePermissions).toMatchObject({
+			marketing: false,
+			measurement: false,
+		});
+		runtime.kernel.set.activeUI('dialog');
+		expect(openPreferences).not.toHaveBeenCalled();
+	} finally {
+		runtime.dispose();
+	}
+});
+
 test('reloads once after withdrawal, and cancels a pending reload when disposed', async () => {
 	const reload = vi.fn();
 	const originalWindow = window;

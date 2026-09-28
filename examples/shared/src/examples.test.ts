@@ -239,10 +239,8 @@ for (const target of selectedTargets()) {
 				await expect.poll(() => requests.posthog).toBe(1);
 				await expect
 					.poll(() =>
-						page.evaluate(
-							() =>
-								(window as Window & { __examplePosthogConsent?: string })
-									.__examplePosthogConsent
+						page.evaluate(() =>
+							sessionStorage.getItem('__examplePosthogConsent')
 						)
 					)
 					.toBe('granted');
@@ -255,17 +253,34 @@ for (const target of selectedTargets()) {
 				await openPreferences(page);
 				await setCategory(page, 'Measurement', false);
 				await setCategory(page, 'Marketing', false);
-				await saveButton(page).click();
+				if (target.id === 'javascript') {
+					// The bare-kernel example owns its lifecycle without auto-reload.
+					await saveButton(page).click();
+				} else {
+					// Providers reload after revocation. Assert against the new page.
+					await Promise.all([
+						page.waitForEvent('load'),
+						saveButton(page).click(),
+					]);
+				}
 				await expect.poll(() => video(page).count()).toBe(0);
 				await expect
 					.poll(() =>
-						page.evaluate(
-							() =>
-								(window as Window & { __examplePosthogConsent?: string })
-									.__examplePosthogConsent
+						page.evaluate(() =>
+							sessionStorage.getItem('__examplePosthogConsent')
 						)
 					)
 					.toBe('denied');
+				await openPreferences(page);
+				expect(await categoryControl(page, 'Measurement').isChecked()).toBe(
+					false
+				);
+				expect(await categoryControl(page, 'Marketing').isChecked()).toBe(
+					false
+				);
+				expect(requests.posthog).toBe(1);
+				expect(requests.xPixel).toBe(1);
+				expect(await video(page).count()).toBe(0);
 				expect(requests.unexpected).toEqual([]);
 			});
 

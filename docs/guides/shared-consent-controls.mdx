@@ -42,6 +42,11 @@ Return `null` until the CMP is ready. `subscribe` must notify on initialization,
 changes, withdrawal, and expiration, and return a function that removes listeners.
 Keep browser access inside these functions so importing the adapter during SSR is safe.
 
+If `subscribe` throws, c15t reports the failure through `callbacks.onError` and
+continues startup with optional categories denied. The failed connection ignores
+later notifications and does not forward preference requests. Recreate the owner
+after the CMP is available to connect again.
+
 ## Pass the controls to your framework
 
 The same `consentSource` and `reloadOnRevocation` options are available at these

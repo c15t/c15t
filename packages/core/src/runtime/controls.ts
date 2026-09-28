@@ -56,10 +56,13 @@ export const connectConsentSource = (
 	try {
 		unsubscribe = source.subscribe(sync);
 	} catch (error) {
-		disposed = true;
 		kernel.set.externalPermissions({});
+		report(error);
+		disposed = true;
 		unsubscribePreferences();
-		throw error;
+		return () => {
+			// The failed connection is already disposed.
+		};
 	}
 	sync();
 	return () => {
