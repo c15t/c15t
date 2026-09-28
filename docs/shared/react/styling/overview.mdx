@@ -9,6 +9,12 @@ group: reference
 <section id="tailwind-layers">
   Every rule lives in `@layer components`, so unlayered utilities from Tailwind
   v4 and atomic classes from StyleX override it without specificity tricks.
+  The stylesheet opens with Tailwind v4's layer order,
+  `@layer properties, theme, base, components, utilities;`. Cascade layers rank
+  by the order they are first named, so `components` stays above Tailwind's
+  preflight in `base` even when the c15t stylesheet loads before Tailwind's.
+  Without Tailwind the other layers stay empty. If your CSS declares its own
+  layer order, load that statement before the c15t stylesheet.
   Tailwind v3 treats `@layer components` as its own directive, so import the
   Tailwind 3 build from your Tailwind entry instead, between the `components`
   and `utilities` directives:

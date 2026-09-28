@@ -132,7 +132,9 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 	});
 
 	test('emits the tokens first, so they read as the file preamble', () => {
-		expect(css.startsWith('/* default theme tokens')).toBe(true);
+		// Only the layer order statement may precede them.
+		const preamble = css.replace(/^@layer [^;{]+;\s*/u, '');
+		expect(preamble.startsWith('/* default theme tokens')).toBe(true);
 	});
 
 	test('matches what a host passing theme: defaultTheme would inject', () => {
@@ -149,7 +151,7 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		// override — in charge. If a host imports this stylesheet into a layer
 		// (`@import ... layer(c15t)`, as examples/sveltekit-demo does), the
 		// override wins by layer precedence instead.
-		const layerStart = css.indexOf('@layer');
+		const layerStart = css.indexOf('@layer components');
 		const tokensStart = findBlockStart(css, LIGHT_SELECTOR);
 		expect(tokensStart).toBeGreaterThanOrEqual(0);
 		const tokensEnd = css.indexOf('}', tokensStart);
@@ -184,16 +186,18 @@ describe('an app that imports the stylesheet without a theme', () => {
 	 * jsdom's CSS parser rejects the whole stylesheet — it does not understand
 	 * `@layer`, `color-mix()` or range media queries — and a rejected sheet
 	 * contributes nothing to the cascade. Mount the real artifact's token
-	 * preamble instead: still the shipped bytes, minus the component rules
-	 * jsdom could not apply anyway.
+	 * preamble instead: still the shipped bytes, minus the layer order
+	 * statement and the component rules jsdom could not apply anyway.
 	 */
 	const mountStylesheet = function mountStylesheet() {
 		const css = readEntrypoint('styles.css');
+		const tokensStart = css.indexOf('/* default theme tokens');
 		const componentsStart = css.indexOf('/* primitives/');
-		expect(componentsStart).toBeGreaterThan(0);
+		expect(tokensStart).toBeGreaterThanOrEqual(0);
+		expect(componentsStart).toBeGreaterThan(tokensStart);
 
 		const style = document.createElement('style');
-		style.textContent = css.slice(0, componentsStart);
+		style.textContent = css.slice(tokensStart, componentsStart);
 		document.head.appendChild(style);
 	};
 
