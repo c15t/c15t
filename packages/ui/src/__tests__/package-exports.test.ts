@@ -202,7 +202,6 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 				'utf-8'
 			);
 
-			expect(contents).toContain(`./${filename}.css`);
 			for (const marker of STYLE_LOADER_MARKERS) {
 				expect(contents).not.toContain(marker);
 			}
@@ -213,8 +212,8 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 /**
  * Runtimes that load the package with plain Node (the Next.js Pages Router
  * externalising node_modules, for example) cannot import CSS. The `node`
- * export condition serves the same class map without the side-effect import;
- * those consumers load the aggregated stylesheet instead.
+ * export condition keeps serving `<name>.node.js`, which is now identical to
+ * the bundler class map: neither imports CSS.
  */
 describe('package exports: node condition serves class maps without CSS imports', () => {
 	for (const name of COMPONENT_STYLE_MODULES) {
@@ -237,7 +236,7 @@ describe('package exports: node condition serves class maps without CSS imports'
 			}
 		});
 
-		test(`components/${name}.node.js is ${name}.js minus the CSS import`, async () => {
+		test(`components/${name}.node.js is identical to ${name}.js`, async () => {
 			const bundlerPath = resolveExport(
 				`./styles/components/${name}`,
 				BUNDLER_CONDITIONS
@@ -254,12 +253,7 @@ describe('package exports: node condition serves class maps without CSS imports'
 			for (const marker of STYLE_LOADER_MARKERS) {
 				expect(nodeContents).not.toContain(marker);
 			}
-			expect(nodeContents).toBe(
-				bundlerContents.replace(
-					new RegExp(`import\\s*["']\\./${filename}\\.css["']\\s*;?`, 'u'),
-					''
-				)
-			);
+			expect(nodeContents).toBe(bundlerContents);
 
 			const classMap = (await import(nodePath)) as {
 				default: Record<string, string>;

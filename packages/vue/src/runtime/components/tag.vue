@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import brandingStyles from '@c15t/ui/styles/components/branding';
+
+import '@c15t/ui/styles/components/branding.css';
 import { computed, onMounted, ref } from 'vue';
 
 import { useConsentConfig, useConsentInit } from '#c15t/composables';

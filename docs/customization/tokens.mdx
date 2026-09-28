@@ -10,6 +10,11 @@ React, Next.js and Svelte provide `styles.css`. Import the adapter's stylesheet
 at the app's global entry point. Vue includes styles in its components; Astro
 adds styles through its integration.
 
+The stylesheet holds every component rule, the default tokens and the shared
+primitive styles. React, Next.js, TanStack Start and Svelte components do not
+load CSS themselves, so each rule reaches the page once, from this file. A
+component rendered without it is unstyled.
+
 ```tsx
 import 'c15t/react/styles.css';
 ```
