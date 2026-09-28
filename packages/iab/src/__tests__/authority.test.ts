@@ -7,11 +7,12 @@ import {
 	normalizePolicyRule,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createAuthorityReceipt, validateAuthority } from '../authority';
 import { createIAB } from '../index';
 import type { IABHandle } from '../index';
+import { PublisherRestrictionError } from '../tcf/publisher-restrictions';
 import { decodeTCString, generateTCString } from '../tcf/tc-string';
 import { completeGVL } from './fixtures/gvl-sample';
 
@@ -81,11 +82,16 @@ test('validates actual TC and rejects stale, future, malformed and mismatched re
 	const kernel = makeKernel();
 	const tcString = await generateTCString(data, completeGVL, { cmpId: 28 });
 	const receipt = createAuthorityReceipt(kernel.getSnapshot(), tcString, NOW);
-	const authority = await validateAuthority(receipt, kernel.getSnapshot(), NOW);
+	const authority = await validateAuthority(
+		receipt,
+		kernel.getSnapshot(),
+		NOW,
+		[]
+	);
 	expect(authority?.vendorConsents['755']).toBe(true);
 	expect(authority?.confirmedAt).toBe(NOW);
 	expect(
-		await validateAuthority(receipt, kernel.getSnapshot(), NOW + DAY)
+		await validateAuthority(receipt, kernel.getSnapshot(), NOW + DAY, [])
 	).toBeNull();
 	await Promise.all(
 		[
@@ -99,7 +105,8 @@ test('validates actual TC and rejects stale, future, malformed and mismatched re
 				await validateAuthority(
 					{ ...receipt, ...patch },
 					kernel.getSnapshot(),
-					NOW
+					NOW,
+					[]
 				)
 			).toBeNull();
 		})
@@ -586,46 +593,69 @@ test.each(['subject', 'identity', 'new-save'] as const)(
 	}
 );
 
-test.each(['clock', 'fingerprint', 'maps', 'expiry'] as const)(
-	'invalid addon %s is an atomic no-op',
-	async (field) => {
-		const original = makeKernel();
-		const addon = createAddon(original);
-		addon.acceptAll();
-		await addon.save();
-		const authority = original.getSnapshot().iab?.authority;
-		if (!authority) {
-			throw new Error('Missing valid fixture authority');
-		}
-		const invalid = { ...authority };
-		if (field === 'clock') {
-			invalid.confirmedAt = NOW - 1;
-		}
-		if (field === 'fingerprint') {
-			invalid.choiceFingerprint = 'stale';
-		}
-		if (field === 'maps') {
-			Reflect.set(invalid, 'vendorConsents', null);
-		}
-		if (field === 'expiry') {
-			invalid.expiresAt = NOW;
-		}
-		const send = vi.fn();
-		const kernel = makeKernel({ save: send });
-		const before = kernel.getSnapshot();
-		const emit = vi.fn();
-		kernel.events.on('command:save:started', emit);
-		kernel.events.on('choice:recorded', emit);
-		const result = await kernel.commands.save('all', {
-			actionAt: NOW,
-			iabAuthority: invalid,
-		});
-		expect(result.ok).toBe(false);
-		expect(kernel.getSnapshot()).toBe(before);
-		expect(emit).not.toHaveBeenCalled();
-		expect(send).not.toHaveBeenCalled();
+test.each([
+	'clock',
+	'fingerprint',
+	'maps',
+	'expiry',
+	'restrictions',
+	'sparse restrictions',
+	'sparse vendor IDs',
+] as const)('invalid addon %s is an atomic no-op', async (field) => {
+	const original = makeKernel();
+	const addon = createAddon(original);
+	addon.acceptAll();
+	await addon.save();
+	const authority = original.getSnapshot().iab?.authority;
+	if (!authority) {
+		throw new Error('Missing valid fixture authority');
 	}
-);
+	const invalid = { ...authority };
+	if (field === 'clock') {
+		invalid.confirmedAt = NOW - 1;
+	}
+	if (field === 'fingerprint') {
+		invalid.choiceFingerprint = 'stale';
+	}
+	if (field === 'maps') {
+		Reflect.set(invalid, 'vendorConsents', null);
+	}
+	if (field === 'expiry') {
+		invalid.expiresAt = NOW;
+	}
+	if (field === 'restrictions') {
+		Reflect.set(invalid, 'publisherRestrictions', [
+			{ purposeId: 2, restrictionType: 3, vendorIds: [755] },
+		]);
+	}
+	// `every` skips holes, so these must be rejected explicitly.
+	if (field === 'sparse restrictions') {
+		const restrictions: unknown[] = [];
+		restrictions[1] = { purposeId: 2, restrictionType: 0, vendorIds: [755] };
+		Reflect.set(invalid, 'publisherRestrictions', restrictions);
+	}
+	if (field === 'sparse vendor IDs') {
+		const vendorIds: number[] = [];
+		vendorIds[1] = 755;
+		Reflect.set(invalid, 'publisherRestrictions', [
+			{ purposeId: 2, restrictionType: 0, vendorIds },
+		]);
+	}
+	const send = vi.fn();
+	const kernel = makeKernel({ save: send });
+	const before = kernel.getSnapshot();
+	const emit = vi.fn();
+	kernel.events.on('command:save:started', emit);
+	kernel.events.on('choice:recorded', emit);
+	const result = await kernel.commands.save('all', {
+		actionAt: NOW,
+		iabAuthority: invalid,
+	});
+	expect(result.ok).toBe(false);
+	expect(kernel.getSnapshot()).toBe(before);
+	expect(emit).not.toHaveBeenCalled();
+	expect(send).not.toHaveBeenCalled();
+});
 
 test("reconciling another runtime's IAB save publishes that runtime's authority", async () => {
 	const first = makeKernel();
@@ -1452,4 +1482,975 @@ test('a save refusing consent but keeping legitimate interest keeps its TC strin
 	expect(storage.reconcile()).toBe(true);
 	await vi.advanceTimersByTimeAsync(10);
 	expect(kernel.getSnapshot().iab?.authority ?? null).toBeNull();
+});
+
+test('save encodes configured publisher restrictions and gates apply them', async () => {
+	const kernel = makeKernel();
+	const publisherRestrictions = [
+		{ purposeId: 2, restrictionType: 2 as const, vendorIds: [755] },
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel,
+		publisherRestrictions,
+	});
+	disposers.push(addon.dispose);
+	// Preference UIs read the configured restrictions from the kernel.
+	expect(kernel.getSnapshot().iab?.publisherRestrictions).toEqual(
+		publisherRestrictions
+	);
+	await addon.whenReady();
+	addon.acceptAll();
+	// Vendor 755 declares no LI purposes; the LI restriction still needs its signal.
+	expect(kernel.getSnapshot().iab?.vendorLegitimateInterests['755']).toBe(true);
+	await addon.save();
+	const authority = kernel.getSnapshot().iab?.authority;
+	expect(authority?.publisherRestrictions).toEqual(publisherRestrictions);
+	expect(
+		(await decodeTCString(authority?.tcString ?? '')).publisherRestrictions
+	).toEqual(publisherRestrictions);
+
+	const gate = (iabPurposes: number[]) =>
+		evaluateConsent(
+			{ category: 'marketing', iabPurposes, vendorId: 755 },
+			kernel.getSnapshot()
+		);
+	expect(gate([1])).toBe(true);
+	expect(gate([7])).toBe(false);
+	expect(gate([2])).toBe(true);
+
+	const tcData = await new Promise<unknown>((resolve) => {
+		window.__tcfapi?.('getTCData', 2, (value) => resolve(value));
+	});
+	expect(tcData).toMatchObject({
+		publisher: { restrictions: { 2: { 755: 2 }, 7: { 755: 0 } } },
+	});
+
+	addon.setPurposeLegitimateInterest(2, false);
+	await addon.save();
+	// Consent alone no longer satisfies purpose 2 for vendor 755.
+	expect(kernel.getSnapshot().iab?.authority?.purposeConsents[2]).toBe(true);
+	expect(gate([2])).toBe(false);
+});
+
+test('unsupported publisher restrictions reject readiness and save', async () => {
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel,
+		// Vendor 755 declares purpose 2 for consent, so requiring consent is void.
+		publisherRestrictions: [
+			{ purposeId: 2, restrictionType: 1, vendorIds: [755] },
+		],
+	});
+	disposers.push(addon.dispose);
+	const fetchList = vi.fn();
+	vi.stubGlobal('fetch', fetchList);
+	disposers.push(() => vi.unstubAllGlobals());
+	// A configuration error is terminal: retrying must neither drop the
+	// supplied list nor fetch another one.
+	const first = addon.whenReady();
+	await expect(first).rejects.toBeInstanceOf(PublisherRestrictionError);
+	await expect(first).rejects.toThrow(/Vendor 755 must declare purpose 2/u);
+	await expect(addon.whenReady()).rejects.toBe(await first.catch((e) => e));
+	expect(fetchList).not.toHaveBeenCalled();
+	addon.acceptAll();
+	await expect(addon.save()).rejects.toBeInstanceOf(PublisherRestrictionError);
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+	expect(kernel.getSnapshot().explicitChoice).toBeNull();
+});
+
+test('changing the restrictions array after mount does not change what is encoded', async () => {
+	const kernel = makeKernel();
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as 0 | 1 | 2, vendorIds: [755] },
+	];
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel,
+		publisherRestrictions,
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	publisherRestrictions.push({
+		purposeId: 2,
+		restrictionType: 2,
+		vendorIds: [755],
+	});
+	addon.acceptAll();
+	await addon.save();
+	const authority = kernel.getSnapshot().iab?.authority;
+	expect(authority?.publisherRestrictions).toEqual([
+		{ purposeId: 7, restrictionType: 0, vendorIds: [755] },
+	]);
+});
+
+test('a replacement list that invalidates a restriction clears retained authority', async () => {
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		kernel,
+		publisherRestrictions: [
+			{ purposeId: 7, restrictionType: 0, vendorIds: [755] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	addon.acceptAll();
+	await addon.save();
+	const gate = { category: 'marketing' as const, vendorId: 755 };
+	expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(true);
+	expect(localStorage.getItem('euconsent-v2')).toBeTruthy();
+
+	// Vendor 755 stops declaring purpose 7, so prohibiting it is unsupported.
+	const { 755: vendor755 } = completeGVL.vendors;
+	if (!vendor755) {
+		throw new Error('Missing vendor 755 fixture');
+	}
+	kernel.set.iab({
+		gvl: {
+			...completeGVL,
+			vendors: {
+				...completeGVL.vendors,
+				755: {
+					...vendor755,
+					flexiblePurposes: [2],
+					purposes: vendor755.purposes.filter((id) => id !== 7),
+				},
+			},
+		},
+	});
+	await expect(addon.whenReady()).rejects.toBeInstanceOf(
+		PublisherRestrictionError
+	);
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+	expect(kernel.getSnapshot().iab?.tcString).toBe('');
+	expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(false);
+	// Vendors reading standard storage must not find the withdrawn string.
+	expect(localStorage.getItem('euconsent-v2')).toBeNull();
+	expect(document.cookie).not.toContain('euconsent-v2=');
+	expect(addon.cmpApi?.loadFromStorage()).toBeNull();
+});
+
+test('expired authority also removes the standard TC string', async () => {
+	const kernel = makeKernel();
+	const addon = createAddon(kernel);
+	addon.acceptAll();
+	await addon.save();
+	expect(localStorage.getItem('euconsent-v2')).toBeTruthy();
+	await vi.advanceTimersByTimeAsync(DAY);
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+	expect(localStorage.getItem('euconsent-v2')).toBeNull();
+	expect(document.cookie).not.toContain('euconsent-v2=');
+});
+
+test('expiring authority keeps a newer TC string another tab stored', async () => {
+	const kernel = makeKernel();
+	const addon = createAddon(kernel);
+	addon.acceptAll();
+	await addon.save();
+	// Another tab saved since; this tab has not reconciled yet.
+	localStorage.setItem('euconsent-v2', 'newer-from-another-tab');
+	await vi.advanceTimersByTimeAsync(DAY);
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+	expect(localStorage.getItem('euconsent-v2')).toBe('newer-from-another-tab');
+});
+
+test('encoding refuses restrictions the CMP rejected, whatever list the kernel holds', async () => {
+	const kernel = makeKernel();
+	const { 755: vendor755 } = completeGVL.vendors;
+	if (!vendor755) {
+		throw new Error('Missing vendor 755 fixture');
+	}
+	// In this list vendor 755 does not declare purpose 7.
+	const rejecting = {
+		...completeGVL,
+		vendors: {
+			...completeGVL.vendors,
+			755: {
+				...vendor755,
+				flexiblePurposes: [2],
+				purposes: vendor755.purposes.filter((id) => id !== 7),
+			},
+		},
+	};
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: rejecting,
+		kernel,
+		publisherRestrictions: [
+			{ purposeId: 7, restrictionType: 0, vendorIds: [755] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await expect(addon.whenReady()).rejects.toBeInstanceOf(
+		PublisherRestrictionError
+	);
+	// A later init response replaces the kernel's list with one the
+	// restriction would pass against. The CMP never validated or published it.
+	kernel.set.iab({ gvl: completeGVL });
+	addon.acceptAll();
+	await expect(addon.generateTCString()).rejects.toBeInstanceOf(
+		PublisherRestrictionError
+	);
+	await expect(addon.save()).rejects.toBeInstanceOf(PublisherRestrictionError);
+	expect(kernel.getSnapshot().iab?.tcString).toBeFalsy();
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+});
+
+test('stored authority must carry the configured publisher restrictions', async () => {
+	const kernel = makeKernel();
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	const tcString = await generateTCString(
+		{ ...data, publisherRestrictions },
+		completeGVL,
+		{ cmpId: 28 }
+	);
+	const receipt = createAuthorityReceipt(kernel.getSnapshot(), tcString, NOW);
+	expect(
+		await validateAuthority(receipt, kernel.getSnapshot(), NOW, [])
+	).toBeNull();
+	expect(
+		await validateAuthority(receipt, kernel.getSnapshot(), NOW, [
+			{ purposeId: 7, restrictionType: 0, vendorIds: [755, 2] },
+		])
+	).toBeNull();
+	const authority = await validateAuthority(
+		receipt,
+		kernel.getSnapshot(),
+		NOW,
+		publisherRestrictions
+	);
+	expect(authority?.publisherRestrictions).toEqual(publisherRestrictions);
+});
+
+test("reconciling another runtime's restricted save publishes its authority", async () => {
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	const restrictedAddon = (kernel: ConsentKernel) => {
+		const addon = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+			publisherRestrictions,
+		});
+		disposers.push(addon.dispose);
+		return addon;
+	};
+	const first = makeKernel();
+	const firstStorage = createPersistence({ kernel: first, sync: false });
+	disposers.push(firstStorage.dispose);
+	const firstAddon = restrictedAddon(first);
+	firstAddon.acceptAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+
+	const second = makeKernel();
+	const secondStorage = createPersistence({ kernel: second, sync: false });
+	disposers.push(secondStorage.dispose);
+	restrictedAddon(second);
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority?.tcString).toBe(
+			first.getSnapshot().iab?.authority?.tcString
+		)
+	);
+
+	vi.setSystemTime(NOW + 1000);
+	firstAddon.rejectAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+	const rejected = first.getSnapshot().iab?.authority?.tcString;
+	expect(secondStorage.reconcile()).toBe(true);
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority?.tcString).toBe(rejected)
+	);
+	expect(evaluateConsent(target, second.getSnapshot(), NOW + 1000)).toBe(false);
+});
+
+test('a list that accepts the restrictions after a rejected one restores stored authority', async () => {
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	const original = makeKernel();
+	const saved = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel: original,
+		publisherRestrictions,
+	});
+	saved.acceptAll();
+	await saved.save();
+	saved.dispose();
+
+	// The first list rejects the restriction, so none is validated yet.
+	const { 755: vendor755 } = completeGVL.vendors;
+	if (!vendor755) {
+		throw new Error('Missing vendor 755 fixture');
+	}
+	const rejecting = {
+		...completeGVL,
+		vendors: {
+			...completeGVL.vendors,
+			755: {
+				...vendor755,
+				flexiblePurposes: [2],
+				purposes: vendor755.purposes.filter((id) => id !== 7),
+			},
+		},
+	};
+	const kernel = createConsentKernel({
+		initialIab: { cmpId: 28, enabled: true, gvl: rejecting },
+		transport: {
+			init: () =>
+				Promise.resolve({
+					policyResolution: writePolicyResolutionWire(
+						original.getSnapshot().resolution
+					),
+				}),
+		},
+	});
+	disposers.push(kernel.dispose);
+	const addon = createIAB({ cmpId: 28, kernel, publisherRestrictions });
+	disposers.push(addon.dispose);
+	await expect(addon.whenReady()).rejects.toBeInstanceOf(
+		PublisherRestrictionError
+	);
+	// Policy resolves while no restriction is validated: nothing restores.
+	await kernel.commands.init();
+	await vi.advanceTimersByTimeAsync(1);
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+
+	// A list that accepts the restriction must still restore the receipt.
+	kernel.set.iab({ gvl: completeGVL });
+	await addon.whenReady();
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority).not.toBeNull()
+	);
+});
+
+test('restrictions decoded from a range never reach an unlisted custom vendor', async () => {
+	const kernel = makeKernel();
+	// No listed vendor sits between 2 and 10, so the encoder writes one
+	// range 2-10, which decodes to IDs 3 to 9 as well.
+	const addon = createIAB({
+		cmpId: 28,
+		customVendors: [
+			{
+				id: 3,
+				name: 'Custom vendor 3',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [2],
+			},
+		],
+		gvl: completeGVL,
+		kernel,
+		publisherRestrictions: [
+			{ purposeId: 2, restrictionType: 0, vendorIds: [2, 10] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	addon.acceptAll();
+	await addon.save();
+	const authority = kernel.getSnapshot().iab?.authority;
+	// The TC string still carries the range as encoded.
+	expect(
+		(await decodeTCString(authority?.tcString ?? '')).publisherRestrictions
+	).toEqual([
+		{
+			purposeId: 2,
+			restrictionType: 0,
+			vendorIds: [2, 3, 4, 5, 6, 7, 8, 9, 10],
+		},
+	]);
+	expect(authority?.publisherRestrictions).toEqual([
+		{ purposeId: 2, restrictionType: 0, vendorIds: [2, 10] },
+	]);
+	const gate = (vendorId: number) =>
+		evaluateConsent(
+			{ category: 'marketing', iabPurposes: [2], vendorId },
+			kernel.getSnapshot()
+		);
+	expect(gate(3)).toBe(true);
+	expect(gate(2)).toBe(false);
+});
+
+test('a receipt arriving while a replacement list loads is not checked against the old list', async () => {
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	// No explicit gvl: the CMP follows the kernel's list.
+	const restrictedAddon = (kernel: ConsentKernel) => {
+		const addon = createIAB({ cmpId: 28, kernel, publisherRestrictions });
+		disposers.push(addon.dispose);
+		return addon;
+	};
+	const first = makeKernel();
+	const firstStorage = createPersistence({ kernel: first, sync: false });
+	disposers.push(firstStorage.dispose);
+	const second = makeKernel();
+	const secondStorage = createPersistence({ kernel: second, sync: false });
+	disposers.push(secondStorage.dispose);
+	const firstAddon = restrictedAddon(first);
+	const secondAddon = restrictedAddon(second);
+	await secondAddon.whenReady();
+	firstAddon.acceptAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+
+	// The other runtime's save lands in the same turn as a replacement list
+	// on which vendor 755 no longer declares purpose 7.
+	const { 755: vendor755 } = completeGVL.vendors;
+	if (!vendor755) {
+		throw new Error('Missing vendor 755 fixture');
+	}
+	expect(secondStorage.reconcile()).toBe(true);
+	second.set.iab({
+		gvl: {
+			...completeGVL,
+			vendors: {
+				...completeGVL.vendors,
+				755: {
+					...vendor755,
+					flexiblePurposes: [2],
+					purposes: vendor755.purposes.filter((id) => id !== 7),
+				},
+			},
+		},
+	});
+	await expect(secondAddon.whenReady()).rejects.toBeInstanceOf(
+		PublisherRestrictionError
+	);
+	await vi.advanceTimersByTimeAsync(10);
+	expect(second.getSnapshot().iab?.authority).toBeNull();
+});
+
+test('a receipt deferred during a list load is reconciled once the list publishes', async () => {
+	// Earlier tests leave consent cookies behind; start from none.
+	for (const entry of document.cookie.split(';')) {
+		document.cookie = `${entry.split('=')[0]?.trim()}=; Max-Age=0; path=/`;
+	}
+	const publisherRestrictions = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+	const restrictedAddon = (kernel: ConsentKernel) => {
+		const addon = createIAB({ cmpId: 28, kernel, publisherRestrictions });
+		disposers.push(addon.dispose);
+		return addon;
+	};
+	const first = makeKernel();
+	const firstStorage = createPersistence({ kernel: first, sync: false });
+	disposers.push(firstStorage.dispose);
+	const second = makeKernel();
+	const secondStorage = createPersistence({ kernel: second, sync: false });
+	disposers.push(secondStorage.dispose);
+	const firstAddon = restrictedAddon(first);
+	const secondAddon = restrictedAddon(second);
+	await secondAddon.whenReady();
+	firstAddon.acceptAll();
+	await firstAddon.save();
+	firstStorage.reconcile();
+
+	expect(secondStorage.reconcile()).toBe(true);
+	// An equivalent replacement list: the restrictions stay valid.
+	second.set.iab({ gvl: { ...completeGVL } });
+	await secondAddon.whenReady();
+	await vi.waitFor(() =>
+		expect(second.getSnapshot().iab?.authority?.tcString).toBe(
+			first.getSnapshot().iab?.authority?.tcString
+		)
+	);
+});
+
+describe('returning visitors and changed publisher restrictions', () => {
+	const savedWith = async (
+		publisherRestrictions: {
+			purposeId: number;
+			restrictionType: 0 | 1 | 2;
+			vendorIds: number[];
+		}[]
+	) => {
+		const original = makeKernel();
+		const storage = createPersistence({ kernel: original, sync: false });
+		const addon = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel: original,
+			publisherRestrictions,
+		});
+		addon.acceptAll();
+		await addon.save();
+		storage.reconcile();
+		addon.dispose();
+		storage.dispose();
+		original.dispose();
+	};
+	const returning = (
+		publisherRestrictions: {
+			purposeId: number;
+			restrictionType: 0 | 1 | 2;
+			vendorIds: number[];
+		}[],
+		gvl: typeof completeGVL = completeGVL
+	) => {
+		const kernel = makeKernel();
+		const storage = createPersistence({ kernel, sync: false });
+		disposers.push(storage.dispose);
+		const addon = createIAB({
+			cmpId: 28,
+			gvl,
+			kernel,
+			publisherRestrictions,
+		});
+		disposers.push(addon.dispose);
+		return { addon, kernel };
+	};
+	const gate = { category: 'marketing' as const, vendorId: 755 };
+	const prohibit7 = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
+	];
+
+	test('a restriction change is caught when the policy version changed too', async () => {
+		await savedWith([]);
+		expect(localStorage.getItem('euconsent-v2')).toBeTruthy();
+		const { addon, kernel } = returning(prohibit7, {
+			...completeGVL,
+			tcfPolicyVersion: completeGVL.tcfPolicyVersion + 1,
+		});
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(localStorage.getItem('euconsent-v2')).toBeNull();
+	});
+
+	test('a policy version change alone still asks nothing', async () => {
+		await savedWith([]);
+		const stored = localStorage.getItem('euconsent-v2');
+		const { addon, kernel } = returning([], {
+			...completeGVL,
+			tcfPolicyVersion: completeGVL.tcfPolicyVersion + 1,
+		});
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		expect(localStorage.getItem('euconsent-v2')).toBe(stored);
+	});
+
+	test('a newer list that rejects the restrictions clears the stored TC string at startup', async () => {
+		await savedWith(prohibit7);
+		const stored = localStorage.getItem('euconsent-v2');
+		expect(stored).toBeTruthy();
+		const receipt = localStorage.getItem('c15t-iab-authority-v1');
+		const { 755: vendor755 } = completeGVL.vendors;
+		if (!vendor755) {
+			throw new Error('Missing vendor 755 fixture');
+		}
+		// Vendor 755 stops declaring purpose 7, so prohibiting it is unsupported.
+		const { addon, kernel } = returning(prohibit7, {
+			...completeGVL,
+			vendorListVersion: completeGVL.vendorListVersion + 1,
+			vendors: {
+				...completeGVL.vendors,
+				755: {
+					...vendor755,
+					flexiblePurposes: [2],
+					purposes: vendor755.purposes.filter((id) => id !== 7),
+				},
+			},
+		});
+		await expect(addon.whenReady()).rejects.toBeInstanceOf(
+			PublisherRestrictionError
+		);
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(localStorage.getItem('euconsent-v2')).toBeNull();
+		expect(document.cookie).not.toContain('euconsent-v2=');
+		// The private receipt stays; it cannot grant under this list.
+		expect(localStorage.getItem('c15t-iab-authority-v1')).toBe(receipt);
+	});
+
+	test('a save in another tab during the check keeps its TC string and asks nothing', async () => {
+		const RECEIPT = 'c15t-iab-authority-v1';
+		const STORED = 'euconsent-v2';
+		const setStored = (receipt: string, tcString: string) => {
+			localStorage.setItem(RECEIPT, receipt);
+			localStorage.setItem(STORED, tcString);
+			document.cookie = `${STORED}=${encodeURIComponent(tcString)}; path=/`;
+		};
+		// The other tab saves under the new restrictions. Capture what it
+		// writes, then put the old save back.
+		await savedWith(prohibit7);
+		const newer = {
+			receipt: localStorage.getItem(RECEIPT) ?? '',
+			tcString: localStorage.getItem(STORED) ?? '',
+		};
+		await savedWith([]);
+		const older = localStorage.getItem(STORED);
+		expect(newer.tcString).toBeTruthy();
+		expect(older).not.toBe(newer.tcString);
+
+		// The other tab's save lands while this tab checks the old receipt.
+		const read = Storage.prototype.getItem;
+		let landed = false;
+		vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function getItem(
+			this: Storage,
+			key: string
+		) {
+			const value = read.call(this, key);
+			if (key === RECEIPT && !landed && value !== newer.receipt) {
+				landed = true;
+				queueMicrotask(() => setStored(newer.receipt, newer.tcString));
+			}
+			return value;
+		});
+		const { addon, kernel } = returning(prohibit7);
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(landed).toBe(true);
+		expect(localStorage.getItem(STORED)).toBe(newer.tcString);
+		expect(document.cookie).toContain(
+			`${STORED}=${encodeURIComponent(newer.tcString)}`
+		);
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		// Checking again finds the other tab's receipt, which matches.
+		await vi.waitFor(() =>
+			expect(kernel.getSnapshot().iab?.authority?.tcString).toBe(newer.tcString)
+		);
+	});
+
+	test('a restriction change clears the old TC string even with the dialog open', async () => {
+		await savedWith([]);
+		expect(localStorage.getItem('euconsent-v2')).toBeTruthy();
+		const { addon, kernel } = returning(prohibit7);
+		// The visitor opens preferences before the stored receipt is checked.
+		kernel.set.activeUI('dialog');
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('dialog');
+		expect(localStorage.getItem('euconsent-v2')).toBeNull();
+		expect(document.cookie).not.toContain('euconsent-v2=');
+	});
+
+	test('a receipt that changes only its custom choices during the check is checked again', async () => {
+		const RECEIPT = 'c15t-iab-authority-v1';
+		const oneCustomVendor = [
+			{
+				id: 'custom',
+				name: 'Custom vendor',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [1],
+			},
+		];
+		const original = makeKernel();
+		const saved = createIAB({
+			cmpId: 28,
+			customVendors: oneCustomVendor,
+			gvl: completeGVL,
+			kernel: original,
+		});
+		saved.acceptAll();
+		await saved.save();
+		saved.dispose();
+		const stored = JSON.parse(localStorage.getItem(RECEIPT) ?? '{}');
+		expect(stored.customConsents.custom).toBe(true);
+		// Same TC string and time, different custom choice.
+		const changed = JSON.stringify({
+			...stored,
+			customConsents: { ...stored.customConsents, custom: false },
+		});
+		const read = Storage.prototype.getItem;
+		let landed = false;
+		vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function getItem(
+			this: Storage,
+			key: string
+		) {
+			const value = read.call(this, key);
+			if (key === RECEIPT && !landed) {
+				landed = true;
+				queueMicrotask(() => localStorage.setItem(RECEIPT, changed));
+			}
+			return value;
+		});
+		const kernel = makeKernel();
+		const addon = createIAB({
+			cmpId: 28,
+			customVendors: oneCustomVendor,
+			gvl: completeGVL,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		await vi.waitFor(() =>
+			expect(kernel.getSnapshot().iab?.authority).not.toBeNull()
+		);
+		expect(landed).toBe(true);
+		expect(kernel.getSnapshot().iab?.authority?.vendorConsents.custom).toBe(
+			false
+		);
+	});
+
+	test('a new handle with changed restrictions on a live kernel asks again', async () => {
+		const kernel = makeKernel();
+		const storage = createPersistence({ kernel, sync: false });
+		disposers.push(storage.dispose);
+		const first = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+		await first.whenReady();
+		first.acceptAll();
+		await first.save();
+		first.dispose();
+		expect(kernel.getSnapshot().iab?.authority).not.toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+
+		// The page mounts the CMP again with new restrictions.
+		const second = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+			publisherRestrictions: prohibit7,
+		});
+		disposers.push(second.dispose);
+		await second.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(false);
+
+		second.acceptAll();
+		await second.save();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(true);
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+	});
+
+	test('a restriction change asks again and gates wait for the new save', async () => {
+		await savedWith([]);
+		const { addon, kernel } = returning(prohibit7);
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		// The stored choice is current, so only the IAB change can ask.
+		expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(false);
+
+		addon.acceptAll();
+		await addon.save();
+		expect(kernel.getSnapshot().iab?.authority?.publisherRestrictions).toEqual(
+			prohibit7
+		);
+		expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(true);
+		// The built-in banners only save; the banner this opened must close.
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+
+		// The next page load restores the new authority without asking.
+		const reloaded = returning(prohibit7);
+		await reloaded.addon.whenReady();
+		await vi.waitFor(() =>
+			expect(reloaded.kernel.getSnapshot().iab?.authority).not.toBeNull()
+		);
+		expect(reloaded.kernel.getSnapshot().activeUI).toBe('none');
+	});
+
+	test('a restriction change removes the superseded standard TC string', async () => {
+		await savedWith([]);
+		const stored = localStorage.getItem('euconsent-v2');
+		expect(stored).toBeTruthy();
+		expect(document.cookie).toContain('euconsent-v2=');
+		const receipt = localStorage.getItem('c15t-iab-authority-v1');
+		const { addon, kernel } = returning(prohibit7);
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(localStorage.getItem('euconsent-v2')).toBeNull();
+		expect(document.cookie).not.toContain('euconsent-v2=');
+		expect(addon.cmpApi?.loadFromStorage()).toBeNull();
+		// The private receipt stays: it cannot grant under these restrictions.
+		expect(localStorage.getItem('c15t-iab-authority-v1')).toBe(receipt);
+	});
+
+	test.each([
+		['without restrictions', []],
+		['with the same restrictions', prohibit7],
+	])(
+		'an unchanged configuration %s never asks again',
+		async (_name, config) => {
+			await savedWith(config);
+			const { addon, kernel } = returning(config);
+			await addon.whenReady();
+			await vi.waitFor(() =>
+				expect(kernel.getSnapshot().iab?.authority).not.toBeNull()
+			);
+			expect(kernel.getSnapshot().activeUI).toBe('none');
+		}
+	);
+});
+
+describe('category decisions for purposes with no consent basis', () => {
+	// Every vendor for purpose 7 ends up on legitimate interest: vendor 1 may
+	// not use it, vendors 2 and 755 must use LI, and vendor 10 declares LI.
+	const liOnly7 = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [1] },
+		{ purposeId: 7, restrictionType: 2 as const, vendorIds: [2, 755] },
+	];
+	const liVendor = {
+		category: 'measurement' as const,
+		iabLegIntPurposes: [7],
+		vendorId: 10,
+	};
+	const saveGranular = async (consentPurposes: number[]) => {
+		const kernel = makeKernel();
+		const addon = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+			publisherRestrictions: liOnly7,
+		});
+		disposers.push(addon.dispose);
+		await addon.whenReady();
+		// What the preference centre allows: no consent switch for purpose 7.
+		for (const purposeId of consentPurposes) {
+			addon.setPurposeConsent(purposeId, true);
+		}
+		addon.setPurposeLegitimateInterest(7, true);
+		addon.setVendorLegitimateInterest(10, true);
+		await addon.save();
+		return kernel;
+	};
+
+	test('the remaining purposes decide the category, so the LI vendor runs', async () => {
+		const kernel = await saveGranular([8, 9]);
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(true);
+		expect(evaluateConsent(liVendor, kernel.getSnapshot())).toBe(true);
+	});
+
+	test('legitimate interest never grants the category on its own', async () => {
+		const kernel = await saveGranular([8]);
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(false);
+		// The refused category blocks scripts that depend on it. The LI-only
+		// vendor is decided by its own legitimate interest signals instead.
+		expect(
+			evaluateConsent({ category: 'measurement' }, kernel.getSnapshot())
+		).toBe(false);
+		expect(evaluateConsent(liVendor, kernel.getSnapshot())).toBe(true);
+	});
+});
+
+describe('a category left with only legitimate interest', () => {
+	// Every vendor for purposes 7, 8 and 9 (all of measurement) ends up on
+	// legitimate interest or prohibited.
+	const allLIMeasurement = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [1] },
+		{ purposeId: 7, restrictionType: 2 as const, vendorIds: [2, 755] },
+		{ purposeId: 8, restrictionType: 0 as const, vendorIds: [755] },
+		{ purposeId: 8, restrictionType: 2 as const, vendorIds: [2] },
+		{ purposeId: 9, restrictionType: 0 as const, vendorIds: [1] },
+		{ purposeId: 9, restrictionType: 2 as const, vendorIds: [2, 755] },
+	];
+	const liVendor = {
+		category: 'measurement' as const,
+		iabLegIntPurposes: [7],
+		vendorId: 10,
+	};
+	const saveSettings = async (allowVendorLI: boolean) => {
+		const kernel = makeKernel();
+		const addon = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+			publisherRestrictions: allLIMeasurement,
+		});
+		disposers.push(addon.dispose);
+		await addon.whenReady();
+		// Save Settings: no consent switch exists for these purposes.
+		addon.setPurposeLegitimateInterest(7, true);
+		addon.setVendorLegitimateInterest(10, allowVendorLI);
+		await addon.save();
+		return kernel;
+	};
+
+	test('its legitimate-interest vendor runs after Save Settings', async () => {
+		const kernel = await saveSettings(true);
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(false);
+		expect(evaluateConsent(liVendor, kernel.getSnapshot())).toBe(true);
+		// Scripts that only name the category stay blocked.
+		expect(
+			evaluateConsent({ category: 'measurement' }, kernel.getSnapshot())
+		).toBe(false);
+	});
+
+	test('an objection blocks the vendor', async () => {
+		const kernel = await saveSettings(false);
+		expect(evaluateConsent(liVendor, kernel.getSnapshot())).toBe(false);
+	});
+});
+
+test('an untouched Save Settings keeps legitimate interest a restriction introduces', async () => {
+	// Vendor 755 declares purpose 7 for consent only; the restriction moves it
+	// to legitimate interest, which the preference controls show as allowed
+	// until the visitor objects.
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel,
+		publisherRestrictions: [
+			{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	expect(
+		kernel.getSnapshot().iab?.purposeLegitimateInterests[7]
+	).toBeUndefined();
+	expect(
+		kernel.getSnapshot().iab?.vendorLegitimateInterests['755']
+	).toBeUndefined();
+	await addon.save();
+	const tcString = kernel.getSnapshot().iab?.authority?.tcString ?? '';
+	const decoded = await decodeTCString(tcString);
+	expect(decoded.purposeLegitimateInterests[7]).toBe(true);
+	expect(decoded.vendorLegitimateInterests[755]).toBe(true);
+	expect(
+		evaluateConsent(
+			{ category: 'necessary', iabPurposes: [7], vendorId: 755 },
+			kernel.getSnapshot()
+		)
+	).toBe(true);
+});
+
+test('an objection overrides the legitimate interest a restriction introduces', async () => {
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel,
+		publisherRestrictions: [
+			{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	addon.setVendorLegitimateInterest(755, false);
+	await addon.save();
+	expect(
+		evaluateConsent(
+			{ category: 'necessary', iabPurposes: [7], vendorId: 755 },
+			kernel.getSnapshot()
+		)
+	).toBe(false);
 });

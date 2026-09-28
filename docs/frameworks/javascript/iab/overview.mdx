@@ -21,6 +21,33 @@ Supply your deployment's CMP ID and vendor configuration. Do not copy a demo ID
 into production. The module installs the CMP API, manages vendor data and can
 encode the TC String. It does not render your banner or preferences UI.
 
+## Restrict how vendors use a purpose
+
+Publisher restrictions override a vendor's declared use of one purpose. Pass
+them as `publisherRestrictions` to `createIAB`, in the runtime's `iab`
+options, or in the `iab` options of the Astro integration. The vendor IDs
+below are placeholders; use vendors from your list whose declarations allow
+each restriction.
+
+```ts
+import { createIAB } from '@c15t/iab';
+
+function attachIAB(kernel: Parameters<typeof createIAB>[0]['kernel'], cmpId: number) {
+  return createIAB({
+    kernel,
+    cmpId,
+    publisherRestrictions: [
+      // Vendors 10 and 755 may not use purpose 4.
+      { purposeId: 4, restrictionType: 0, vendorIds: [10, 755] },
+      // Vendor 755 must use legitimate interest for purpose 7.
+      { purposeId: 7, restrictionType: 2, vendorIds: [755] },
+    ],
+  });
+}
+```
+
+<include src="../../../shared/iab-publisher-restrictions.mdx" />
+
 ## Own the lifecycle
 
 Dispose the IAB handle before disposing its kernel. When using a shared runtime,

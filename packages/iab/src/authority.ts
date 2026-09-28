@@ -1,5 +1,7 @@
 import type { ConsentSnapshot, KernelIABAuthority } from '@c15t/core';
 
+import type { PublisherRestriction } from './tcf/iab-tcf-types';
+import { sameListedRestrictions } from './tcf/publisher-restrictions';
 import { decodeTCString } from './tcf/tc-string';
 import type { DecodedTCString } from './tcf/tc-string';
 
@@ -155,12 +157,48 @@ const compatibleTC = function compatibleTC(
 	);
 };
 
-/** Decode TC authority and check its receipt, current policy and original clock. */
-export const validateAuthority = async function validateAuthority(
+/**
+ * Keeps the vendor list's vendors in each restriction. A decoded range can
+ * cover IDs the list does not have, and gates must not apply it to a custom
+ * vendor that happens to use one of those numbers. The TC string itself
+ * still carries the range as encoded.
+ */
+const listedRestrictions = function listedRestrictions(
+	restrictions: readonly PublisherRestriction[],
+	vendors: Record<string, unknown> | undefined
+): PublisherRestriction[] {
+	return restrictions
+		.map((restriction) => ({
+			...restriction,
+			vendorIds: restriction.vendorIds.filter((id) =>
+				Object.hasOwn(vendors ?? {}, id)
+			),
+		}))
+		.filter((restriction) => restriction.vendorIds.length > 0);
+};
+
+/** Result of checking a stored receipt, with the reason it failed. */
+export interface AuthorityCheck {
+	authority: KernelIABAuthority | null;
+	/**
+	 * The receipt is valid for the current policy and list, and only its
+	 * publisher restrictions differ from the configured ones. The visitor
+	 * agreed to different terms, so they should be asked again.
+	 */
+	restrictionsChanged: boolean;
+}
+
+/**
+ * `validateAuthority`, also reporting whether the receipt failed only
+ * because the configured publisher restrictions changed.
+ */
+export const checkAuthority = async function checkAuthority(
 	input: unknown,
 	snapshot: ConsentSnapshot,
-	now: number
-): Promise<KernelIABAuthority | null> {
+	now: number,
+	publisherRestrictions: readonly PublisherRestriction[]
+): Promise<AuthorityCheck> {
+	const rejected = { authority: null, restrictionsChanged: false };
 	if (
 		!input ||
 		typeof input !== 'object' ||
@@ -169,17 +207,24 @@ export const validateAuthority = async function validateAuthority(
 		snapshot.model !== 'iab' ||
 		!snapshot.iab?.enabled
 	) {
-		return null;
+		return rejected;
 	}
 	const receipt = readReceipt(input as Record<string, unknown>, snapshot, now);
 	if (!receipt) {
-		return null;
+		return rejected;
 	}
 	const { tcString, confirmedAt, expiresAt, choiceFingerprint } = receipt;
 	try {
 		const decoded = await decodeTCString(tcString);
-		if (!compatibleTC(decoded, receipt, snapshot)) {
-			return null;
+		// Compared on its own: a deployment can change the restrictions and
+		// another compatibility field, such as the policy version, together.
+		const restrictionsChanged = !sameListedRestrictions(
+			decoded.publisherRestrictions,
+			publisherRestrictions,
+			snapshot.iab.gvl?.vendors
+		);
+		if (restrictionsChanged || !compatibleTC(decoded, receipt, snapshot)) {
+			return { authority: null, restrictionsChanged };
 		}
 		const vendorConsents = { ...decoded.vendorConsents };
 		const vendorLegitimateInterests = { ...decoded.vendorLegitimateInterests };
@@ -200,10 +245,14 @@ export const validateAuthority = async function validateAuthority(
 				value: customLI[id] === true && Object.hasOwn(customLI, id),
 			});
 		}
-		return {
+		const authority: KernelIABAuthority = {
 			choiceFingerprint,
 			confirmedAt,
 			expiresAt,
+			publisherRestrictions: listedRestrictions(
+				decoded.publisherRestrictions,
+				snapshot.iab.gvl?.vendors
+			),
 			purposeConsents: decoded.purposeConsents,
 			purposeLegitimateInterests: decoded.purposeLegitimateInterests,
 			specialFeatureOptIns: decoded.specialFeatureOptIns,
@@ -211,9 +260,26 @@ export const validateAuthority = async function validateAuthority(
 			vendorConsents,
 			vendorLegitimateInterests,
 		};
+		return { authority, restrictionsChanged: false };
 	} catch {
-		return null;
+		return rejected;
 	}
+};
+
+/**
+ * Decode TC authority and check its receipt, current policy and original clock.
+ * The string's publisher restrictions must match the configured ones for
+ * every listed vendor; a configuration change asks the visitor again. Pass
+ * the handle's validated restrictions, or `[]` when none are configured.
+ */
+export const validateAuthority = async function validateAuthority(
+	input: unknown,
+	snapshot: ConsentSnapshot,
+	now: number,
+	publisherRestrictions: readonly PublisherRestriction[]
+): Promise<KernelIABAuthority | null> {
+	return (await checkAuthority(input, snapshot, now, publisherRestrictions))
+		.authority;
 };
 
 /**

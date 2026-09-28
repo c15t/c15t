@@ -655,6 +655,47 @@ const isRecord = function isRecord(
 	return value !== null && typeof value === 'object' && !Array.isArray(value);
 };
 
+const isIntegerIn = (value: unknown, min: number, max: number): boolean =>
+	typeof value === 'number' &&
+	Number.isInteger(value) &&
+	value >= min &&
+	value <= max;
+
+/**
+ * Every index of a list, holes included. `every` skips holes, which would
+ * let a sparse list through and hand `undefined` to the IAB gate.
+ */
+const everyIndex = (
+	list: readonly unknown[],
+	check: (entry: unknown) => boolean
+): boolean => {
+	for (let index = 0; index < list.length; index += 1) {
+		if (!(index in list && check(list[index]))) {
+			return false;
+		}
+	}
+	return true;
+};
+
+/** Absent, or a dense list of well-formed TC publisher restrictions. */
+const validPublisherRestrictions = function validPublisherRestrictions(
+	value: unknown
+): boolean {
+	return (
+		value === undefined ||
+		(Array.isArray(value) &&
+			everyIndex(
+				value,
+				(restriction) =>
+					isRecord(restriction) &&
+					isIntegerIn(restriction.purposeId, 1, 63) &&
+					isIntegerIn(restriction.restrictionType, 0, 2) &&
+					Array.isArray(restriction.vendorIds) &&
+					everyIndex(restriction.vendorIds, (id) => isIntegerIn(id, 1, 65_535))
+			))
+	);
+};
+
 /** Validate addon metadata before the local action can mutate any state. */
 const validSaveAuthority = function validSaveAuthority(
 	value: unknown,
@@ -685,6 +726,7 @@ const validSaveAuthority = function validSaveAuthority(
 					snapshot.evaluationPolicy.choice.maxAgeMs ?? 395 * 86400000,
 					395 * 86400000
 				) &&
+		validPublisherRestrictions(authority.publisherRestrictions) &&
 		[
 			authority.vendorConsents,
 			authority.vendorLegitimateInterests,

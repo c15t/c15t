@@ -37,6 +37,7 @@ import type {
 import type { RecordIssue } from './consent-record/validation';
 import type { AllConsentNames } from './consent/consent-types';
 import type { HasCondition } from './libs/has';
+import type { PublisherRestriction } from './options/iab-tcf';
 
 // Re-export schema types that consumers need so they don't have to
 // import from @c15t/schema directly for routine work.
@@ -175,6 +176,11 @@ export interface KernelIABAuthority {
 	purposeConsents: Record<number, boolean>;
 	purposeLegitimateInterests: Record<number, boolean>;
 	specialFeatureOptIns: Record<number, boolean>;
+	/**
+	 * Publisher restrictions decoded from `tcString`. IAB gates apply them to
+	 * the target's `vendorId`. Absent means none.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 }
 
 export interface KernelIABState {
@@ -203,6 +209,12 @@ export interface KernelIABState {
 	specialFeatureOptIns: Record<number, boolean>;
 	/** Latest TC string, set after `save()` encodes one. */
 	tcString: string | null;
+	/**
+	 * Publisher restrictions configured on the CMP. Preference UIs list each
+	 * vendor under the legal basis these leave it. Gates enforce the ones in
+	 * the confirmed `authority`, not these.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 }
 
 /**

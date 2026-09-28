@@ -11,6 +11,7 @@
 
 import type { GlobalVendorList, NonIABVendor } from '@c15t/core';
 
+import { applyPublisherRestrictionsToGVL } from './effective-vendor-list';
 import type {
 	HeadlessIABDialogData,
 	HeadlessIABProcessedFeature,
@@ -285,7 +286,10 @@ export const processGVLForDialog = function processGVLForDialog(
 		};
 	}
 
-	const { gvl } = iab;
+	const gvl = applyPublisherRestrictionsToGVL(
+		iab.gvl,
+		iab.publisherRestrictions
+	);
 	const customVendors = getCustomVendors(iab);
 	const purposes = processPurposes(gvl, customVendors);
 	const specialPurposes = processSpecialPurposes(gvl);

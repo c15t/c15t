@@ -13,6 +13,11 @@ export {
 } from './headless/banner-summary';
 export type { ResolveIABBannerSummaryOptions } from './headless/banner-summary';
 export {
+	applyPublisherRestrictionsToGVL,
+	introducedLegitimateInterest,
+	type IntroducedLegitimateInterest,
+} from './headless/effective-vendor-list';
+export {
 	type HeadlessIABDialogDisplayModel,
 	type HeadlessIABDisplayConsentRow,
 	type HeadlessIABDisplayRow,

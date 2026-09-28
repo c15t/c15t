@@ -20,6 +20,7 @@ import type {
 	TCFApiCallback,
 	TCFConsentData,
 } from './iab-tcf-types';
+import { toTCDataRestrictions } from './publisher-restrictions';
 import { clearStubQueue, getStubQueue } from './stub';
 import { decodeTCString } from './tc-string';
 
@@ -52,6 +53,64 @@ const getCookie = function getCookie(name: string): string | null {
 		return decodeURIComponent(match[2]);
 	}
 	return null;
+};
+
+/**
+ * Removes a superseded TC string from the `euconsent-v2` cookie and its
+ * localStorage copy, so vendors reading storage directly, and
+ * `loadFromStorage()`, no longer find it. Each entry is removed only while
+ * it still holds `tcString`: another tab may have saved a newer one.
+ *
+ * @param tcString - The superseded TC string.
+ *
+ * @internal
+ */
+export const clearStoredTCString = function clearStoredTCString(
+	tcString: string
+): void {
+	// Each store is cleared on its own: a malformed cookie must not keep the
+	// localStorage copy alive.
+	try {
+		if (
+			typeof document !== 'undefined' &&
+			getCookie(IAB_STORAGE_KEYS.TC_STRING_COOKIE) === tcString
+		) {
+			document.cookie = `${IAB_STORAGE_KEYS.TC_STRING_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
+		}
+	} catch {
+		// The cookie value can be malformed.
+	}
+	try {
+		if (localStorage.getItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL) === tcString) {
+			localStorage.removeItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL);
+		}
+	} catch {
+		// Storage can be unavailable.
+	}
+};
+
+/**
+ * Copies consent data down to its vectors, so the API's copy is never
+ * shared with the caller.
+ */
+const copyConsentData = function copyConsentData(
+	consentData: TCFConsentData
+): TCFConsentData {
+	return {
+		...consentData,
+		publisherRestrictions: consentData.publisherRestrictions?.map(
+			(restriction) => ({
+				...restriction,
+				vendorIds: [...restriction.vendorIds],
+			})
+		),
+		purposeConsents: { ...consentData.purposeConsents },
+		purposeLegitimateInterests: { ...consentData.purposeLegitimateInterests },
+		specialFeatureOptIns: { ...consentData.specialFeatureOptIns },
+		vendorConsents: { ...consentData.vendorConsents },
+		vendorLegitimateInterests: { ...consentData.vendorLegitimateInterests },
+		vendorsDisclosed: { ...consentData.vendorsDisclosed },
+	};
 };
 
 /**
@@ -98,45 +157,48 @@ export const createCMPApi = function createCMPApi(
 	let cachedTCData: TCData | null = null;
 	let currentConsentData: TCFConsentData | null = null;
 	/**
-	 * Builds TC Data from current state.
+	 * Builds TC Data for one TC string and the consent data published with it.
 	 */
-	const buildTCData = async function buildTCData(
+	const composeTCData = async function composeTCData(
+		string: string,
+		consentData: TCFConsentData | null,
 		eventStatus?: EventStatus,
 		listenerId?: number
 	): Promise<TCData> {
-		// Use cached data if available and tc string hasn't changed
-		if (cachedTCData && cachedTCData.tcString === tcString && !eventStatus) {
-			return { ...cachedTCData, listenerId };
-		}
-
 		let purposeConsents: Record<number, boolean> =
-			currentConsentData?.purposeConsents ?? {};
+			consentData?.purposeConsents ?? {};
 		let purposeLegitInterests: Record<number, boolean> =
-			currentConsentData?.purposeLegitimateInterests ?? {};
+			consentData?.purposeLegitimateInterests ?? {};
 		let vendorConsents: Record<number, boolean> = Object.fromEntries(
-			Object.entries(currentConsentData?.vendorConsents ?? {}).map(
-				([id, value]) => [Number(id), value]
-			)
+			Object.entries(consentData?.vendorConsents ?? {}).map(([id, value]) => [
+				Number(id),
+				value,
+			])
 		);
 		let vendorLegitInterests: Record<number, boolean> = Object.fromEntries(
-			Object.entries(currentConsentData?.vendorLegitimateInterests ?? {}).map(
+			Object.entries(consentData?.vendorLegitimateInterests ?? {}).map(
 				([id, value]) => [Number(id), value]
 			)
 		);
 		let specialFeatureOptins: Record<number, boolean> =
-			currentConsentData?.specialFeatureOptIns ?? {};
+			consentData?.specialFeatureOptIns ?? {};
+		// Restrictions always come from the string vendors receive.
+		let restrictions: Record<number, Record<number, number>> = {};
 
 		// Decode TC string if present
-		if (tcString && !currentConsentData) {
+		if (string) {
 			try {
-				const decoded = await decodeTCString(tcString);
-				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-				purposeConsents = decoded.purposeConsents;
-				purposeLegitInterests = decoded.purposeLegitimateInterests;
-				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-				vendorConsents = decoded.vendorConsents;
-				vendorLegitInterests = decoded.vendorLegitimateInterests;
-				specialFeatureOptins = decoded.specialFeatureOptIns;
+				const decoded = await decodeTCString(string);
+				restrictions = toTCDataRestrictions(decoded.publisherRestrictions);
+				if (!consentData) {
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+					purposeConsents = decoded.purposeConsents;
+					purposeLegitInterests = decoded.purposeLegitimateInterests;
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+					vendorConsents = decoded.vendorConsents;
+					vendorLegitInterests = decoded.vendorLegitimateInterests;
+					specialFeatureOptins = decoded.specialFeatureOptIns;
+				}
 			} catch {
 				// Invalid TC string, use empty values
 			}
@@ -161,7 +223,7 @@ export const createCMPApi = function createCMPApi(
 					legitimateInterests: {},
 				},
 				legitimateInterests: {},
-				restrictions: {},
+				restrictions,
 			},
 			publisherCC: 'US',
 			purpose: {
@@ -170,7 +232,7 @@ export const createCMPApi = function createCMPApi(
 			},
 			purposeOneTreatment: false,
 			specialFeatureOptins,
-			tcString,
+			tcString: string,
 			tcfPolicyVersion: gvl.tcfPolicyVersion,
 			useNonStandardTexts: false,
 			vendor: {
@@ -179,9 +241,39 @@ export const createCMPApi = function createCMPApi(
 			},
 		};
 
-		// Cache the data
+		return tcData;
+	};
+
+	/**
+	 * Builds TC Data from current state.
+	 */
+	const buildTCData = async function buildTCData(
+		eventStatus?: EventStatus,
+		listenerId?: number
+	): Promise<TCData> {
+		// Use cached data if available and tc string hasn't changed. Callers
+		// get their own copy, down to the nested maps, so changing a result
+		// never changes the next one.
+		if (cachedTCData && cachedTCData.tcString === tcString && !eventStatus) {
+			return { ...structuredClone(cachedTCData), listenerId };
+		}
+		const string = tcString;
+		const consentData = currentConsentData;
+		const tcData = await composeTCData(
+			string,
+			consentData,
+			eventStatus,
+			listenerId
+		);
+		// An update can land while the string decodes. Never pair its string
+		// with the earlier vectors: build again from the newer state.
+		if (tcString !== string || currentConsentData !== consentData) {
+			return buildTCData(eventStatus, listenerId);
+		}
+
+		// Cache a private copy of the data
 		if (!eventStatus) {
-			cachedTCData = tcData;
+			cachedTCData = structuredClone(tcData);
 		}
 
 		return tcData;
@@ -416,7 +508,10 @@ export const createCMPApi = function createCMPApi(
 		) => {
 			gdprApplies = applies ?? gdprApplies;
 			tcString = newTcString;
-			currentConsentData = newTcString ? (consentData ?? null) : null;
+			// Keep a private copy: a caller changing its object in place must
+			// not change, or half change, the vectors published for this string.
+			currentConsentData =
+				newTcString && consentData ? copyConsentData(consentData) : null;
 			// Invalidate cache
 			cachedTCData = null;
 			if (cmpStatus === 'loaded') {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
 import {
+	applyPublisherRestrictionsToGVL,
 	resolveIABBannerSummary,
 	resolveIABDialogDisplayModel,
 } from '@c15t/iab/headless';
@@ -145,10 +146,26 @@ const labels = computed(() => ({
 // Which rows this surface renders, and in what order, comes from the
 // shared display model in `@c15t/iab/headless` — the same one React,
 // Svelte and the Astro server render read.
+const publisherRestrictions = computed(
+	() => snapshot.value.iab?.publisherRestrictions
+);
 const display = computed(() =>
 	resolveIABDialogDisplayModel(
-		gvl.value ? { customVendors: customVendors.value, gvl: gvl.value } : null
+		gvl.value
+			? {
+					customVendors: customVendors.value,
+					gvl: gvl.value,
+					publisherRestrictions: publisherRestrictions.value,
+				}
+			: null
 	)
+);
+// The vendor tab reads declarations directly, so give it the ones
+// publisher restrictions leave.
+const vendorData = computed(() =>
+	gvl.value
+		? applyPublisherRestrictionsToGVL(gvl.value, publisherRestrictions.value)
+		: null
 );
 
 const isStackRow = function isStackRow(
@@ -721,7 +738,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 										value="vendors"
 									>
 										<IabVendorList
-											:vendor-data="gvl"
+											:vendor-data="vendorData"
 											:purposes="display.data.purposes"
 											:vendor-consents="draftIab.vendorConsents"
 											:selected-vendor-id="selectedVendorId"
@@ -731,6 +748,10 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											"
 											@vendor-toggle="
 												(vendorId, value) => setVendorConsent(vendorId, value)
+											"
+											@vendor-legitimate-interest-toggle="
+												(vendorId, value) =>
+													setVendorLegitimateInterest(vendorId, value)
 											"
 											@clear-selection="selectedVendorId = null"
 										/>

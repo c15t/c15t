@@ -1,5 +1,5 @@
 import type { GlobalVendorList, NonIABVendor } from '../types';
-import type { TCFConsentData } from './iab-tcf';
+import type { PublisherRestriction, TCFConsentData } from './iab-tcf';
 
 /**
  * Configuration for the IAB TCF 2.3 integration.
@@ -19,6 +19,12 @@ export interface IABConfig {
 	publisherCountryCode?: string;
 	/** Whether consent is service-specific rather than global. */
 	isServiceSpecific?: boolean;
+	/**
+	 * Publisher restrictions to encode into the TC string and apply to IAB
+	 * gates. Requires a service-specific CMP. `@c15t/iab` rejects
+	 * restrictions that do not match the vendor list's declarations.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 	/** Pre-fetched Global Vendor List. */
 	gvl?: GlobalVendorList;
 }

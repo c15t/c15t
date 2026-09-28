@@ -34,6 +34,7 @@ import type {
 
 import {
 	AUTHORITY_KEY,
+	checkAuthority,
 	clearAuthorityReceipt,
 	createAuthorityReceipt,
 	readAuthorityReceipt,
@@ -41,9 +42,19 @@ import {
 	storeAuthority,
 	validateAuthority,
 } from './authority';
-import { createCMPApi } from './tcf/cmp-api';
+import {
+	applyPublisherRestrictionsToGVL,
+	introducedLegitimateInterest,
+} from './headless/effective-vendor-list';
+import { clearStoredTCString, createCMPApi } from './tcf/cmp-api';
 import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
+import type { PublisherRestriction } from './tcf/iab-tcf-types';
 import { getTCFCore } from './tcf/lazy-load';
+import {
+	copyPublisherRestrictionInput,
+	PublisherRestrictionError,
+	validatePublisherRestrictions,
+} from './tcf/publisher-restrictions';
 import {
 	C15T_TO_IAB_PURPOSE_MAP,
 	c15tConsentsToIabPurposes,
@@ -71,6 +82,16 @@ export interface CreateIABOptions {
 	publisherCountryCode?: string;
 	/** Whether the CMP is service-specific. Default: true. */
 	isServiceSpecific?: boolean;
+	/**
+	 * Publisher restrictions encoded into every TC string this CMP saves and
+	 * applied when c15t gates IAB scripts. Checked against the vendor list
+	 * once it loads: an unsupported restriction rejects `whenReady()`,
+	 * `generateTCString()` and `save()` with a `PublisherRestrictionError`.
+	 * `whenReady()` does not retry it. With an explicit `gvl` it lasts for the
+	 * handle; otherwise a replacement vendor list is checked again.
+	 * The array is copied when the handle is created.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 	/** Store saved TC strings in cookies and localStorage. Default: true.
 	 * Set false for an in-memory playground; the kernel save transport still runs.
 	 */
@@ -135,6 +156,14 @@ const createIABProviderConfig = function createIABProviderConfig(
 
 export { createIABProviderConfig as iab };
 export { initializeIABStub, destroyIABStub } from './tcf/stub';
+export type { PublisherRestriction } from './tcf/iab-tcf-types';
+export {
+	CONSENT_ONLY_PURPOSES,
+	PUBLISHER_RESTRICTION_TYPES,
+	PublisherRestrictionError,
+	validatePublisherRestrictions,
+} from './tcf/publisher-restrictions';
+export type { PublisherRestrictionContext } from './tcf/publisher-restrictions';
 
 /**
  * Handle returned by `createIAB`. Provides imperative control over the
@@ -186,7 +215,8 @@ export interface IABHandle {
 const seedInitialIAB = function seedInitialIAB(
 	kernel: ConsentKernel,
 	options: CreateIABOptions,
-	gvl: GlobalVendorList | null
+	gvl: GlobalVendorList | null,
+	publisherRestrictions: PublisherRestriction[]
 ): void {
 	let reference =
 		options.gvl === undefined
@@ -205,6 +235,7 @@ const seedInitialIAB = function seedInitialIAB(
 				Boolean(kernel.getSnapshot().iab?.gvlReference)),
 		gvl,
 		gvlReference: reference,
+		publisherRestrictions,
 	});
 };
 
@@ -237,10 +268,15 @@ const readIAB = function readIAB(kernel: ConsentKernel) {
 const applyBlanket = function applyBlanket(
 	kernel: ConsentKernel,
 	gvl: GlobalVendorList,
-	value: boolean
+	value: boolean,
+	restrictions: readonly PublisherRestriction[] = []
 ): void {
+	// A restriction can move a vendor's flexible purpose to the other legal
+	// basis, so that basis needs the vendor signal instead.
 	const vendors = [
-		...Object.values(gvl.vendors ?? {}),
+		...Object.values(
+			applyPublisherRestrictionsToGVL(gvl, restrictions).vendors ?? {}
+		),
 		...readIAB(kernel).customVendors,
 	];
 	const purposeIds = Object.keys(gvl.purposes ?? {}).map(Number);
@@ -275,6 +311,59 @@ const applyBlanket = function applyBlanket(
 		vendorConsents,
 		vendorLegitimateInterests,
 	});
+};
+
+/**
+ * Restrictions preference UIs read from the kernel before the vendor list
+ * is known. Invalid input shows none: the CMP rejects it before saving.
+ */
+const restrictionsForDisplay = function restrictionsForDisplay(
+	input: unknown,
+	isServiceSpecific: boolean
+): PublisherRestriction[] {
+	try {
+		return validatePublisherRestrictions(input, { isServiceSpecific });
+	} catch {
+		return [];
+	}
+};
+
+/**
+ * Purposes some vendor processes on consent once restrictions apply. A
+ * purpose outside this set has no consent switch, so it must not decide a
+ * category.
+ */
+const consentBasisPurposes = function consentBasisPurposes(
+	gvl: GlobalVendorList,
+	restrictions: readonly PublisherRestriction[],
+	customVendors: readonly NonIABVendor[]
+): Set<number> {
+	return new Set(
+		[
+			...Object.values(
+				applyPublisherRestrictionsToGVL(gvl, restrictions).vendors ?? {}
+			),
+			...customVendors,
+		].flatMap((vendor) => vendor.purposes ?? [])
+	);
+};
+
+/**
+ * Identifies a stored receipt by everything a restore reads from it: the TC
+ * string, the confirmation time and the custom vendor choices.
+ */
+const receiptIdentity = function receiptIdentity(value: unknown): string {
+	if (!value || typeof value !== 'object') {
+		return '';
+	}
+	const { tcString, confirmedAt, customConsents, customLegitimateInterests } =
+		value as Record<string, unknown>;
+	return JSON.stringify([
+		tcString,
+		confirmedAt,
+		customConsents,
+		customLegitimateInterests,
+	]);
 };
 
 const sameConfirmationContext = function sameConfirmationContext(
@@ -612,6 +701,24 @@ export const createIAB = function createIAB(
 	options: CreateIABOptions
 ): IABHandle {
 	const { kernel, cmpId, cmpVersion = 1, vendors, gvlURL } = options;
+	const isServiceSpecific = options.isServiceSpecific ?? true;
+	/** Restrictions checked against the most recently published list. */
+	let publisherRestrictions: PublisherRestriction[] = [];
+	// Later changes to the caller's array must not change what is encoded.
+	const configuredRestrictions = copyPublisherRestrictionInput(
+		options.publisherRestrictions
+	);
+	const restrictionsForBlanket = (gvl: GlobalVendorList) => {
+		try {
+			return validatePublisherRestrictions(configuredRestrictions, {
+				gvl,
+				isServiceSpecific,
+			});
+		} catch {
+			// whenReady(), generateTCString() and save() report this error.
+			return [];
+		}
+	};
 
 	const preloadedGvl = resolvePreloadedGvl(kernel, options);
 	let reference =
@@ -622,7 +729,12 @@ export const createIAB = function createIAB(
 	// Seed the iab slice immediately so downstream consumers see the
 	// cmpId and any preloaded GVL. A reference keeps the server-rendered
 	// banner enabled while its list loads.
-	seedInitialIAB(kernel, options, preloadedGvl ?? null);
+	seedInitialIAB(
+		kernel,
+		options,
+		preloadedGvl ?? null,
+		restrictionsForDisplay(configuredRestrictions, isServiceSpecific)
+	);
 
 	let cmpApi: CMPApi | null = null;
 	let disposed = false;
@@ -691,6 +803,12 @@ export const createIAB = function createIAB(
 	};
 
 	let restoredFingerprint: string | null = null;
+	/**
+	 * This handle opened the banner for changed restrictions. The prompt
+	 * requirement stays `none`, so the kernel never closes it; close it once
+	 * the visitor's new authority lands.
+	 */
+	let openedForRestrictions = false;
 	let hydrationCancelled = false;
 	/** Whether nothing changed while a stored receipt was being validated. */
 	const unchangedSince = function unchangedSince(
@@ -710,6 +828,22 @@ export const createIAB = function createIAB(
 			current.evaluationPolicy.choice.fingerprint ===
 				before.evaluationPolicy.choice.fingerprint
 		);
+	};
+	/**
+	 * Ask again with the surface a changed policy shows, unless the visitor
+	 * has no choice yet (the kernel prompts) or already has a surface open.
+	 * Gates wait for the new save; the banner closes once it lands.
+	 */
+	const promptForChangedRestrictions = (...conditions: boolean[]): void => {
+		const current = kernel.getSnapshot();
+		if (
+			conditions.every(Boolean) &&
+			current.explicitChoice &&
+			current.activeUI === 'none'
+		) {
+			openedForRestrictions = true;
+			kernel.set.activeUI('banner');
+		}
 	};
 	const restoreAuthority = async function restoreAuthority(): Promise<void> {
 		if (options.persistence === false) {
@@ -733,11 +867,29 @@ export const createIAB = function createIAB(
 		}
 		restoredFingerprint = fingerprint;
 		const generation = confirmationGeneration;
-		const authority = await validateAuthority(
-			readAuthorityReceipt(),
+		const checked = readAuthorityReceipt();
+		const { authority, restrictionsChanged } = await checkAuthority(
+			checked,
 			hydrationSnapshot,
-			Date.now()
+			Date.now(),
+			publisherRestrictions
 		);
+		// Another tab can save while the receipt is checked. Its new receipt
+		// is not the one this result describes: check that one instead.
+		if (receiptIdentity(readAuthorityReceipt()) !== receiptIdentity(checked)) {
+			restoredFingerprint = null;
+			void restoreAuthority();
+			return;
+		}
+		if (
+			restrictionsChanged &&
+			unchangedSince(hydrationSnapshot, recordsGeneration, generation)
+		) {
+			// A material change to what the visitor agreed to. Vendors reading
+			// storage must not find the old string, whatever is on screen.
+			clearStoredTCString(String((checked as { tcString: unknown }).tcString));
+			promptForChangedRestrictions();
+		}
 		if (
 			authority &&
 			unchangedSince(hydrationSnapshot, recordsGeneration, generation) &&
@@ -840,6 +992,10 @@ export const createIAB = function createIAB(
 		}
 		armAuthorityTimer();
 	};
+	let listGeneration = 0;
+	/** The list generation last published, and a reload waiting for it. */
+	let publishedListGeneration = 0;
+	let reloadAfterList = false;
 	/**
 	 * Records replaced at a hydration boundary, such as a choice another tab
 	 * stored, can come with a newer authority receipt that tab wrote. Read
@@ -860,12 +1016,26 @@ export const createIAB = function createIAB(
 		const recordsGeneration = kernel.getRecordsGeneration();
 		const generation = confirmationGeneration;
 		const receiptText = readAuthorityReceiptText();
-		const receipt = await validateAuthority(
-			readAuthorityReceipt(receiptText),
-			snapshot,
-			Date.now()
-		);
+		// While a list loads, the restrictions and the snapshot's list still
+		// describe the previous one. Check the receipt once it is published;
+		// until then only withdraw a held authority the choice denies.
+		const listLoading = publishedListGeneration !== listGeneration;
+		if (listLoading) {
+			reloadAfterList = true;
+		}
+		const receipt = listLoading
+			? null
+			: await validateAuthority(
+					readAuthorityReceipt(receiptText),
+					snapshot,
+					Date.now(),
+					publisherRestrictions
+				);
 		const current = kernel.getSnapshot();
+		if (!listLoading && publishedListGeneration !== listGeneration) {
+			reloadAfterList = true;
+			return;
+		}
 		// A receipt replaced or removed while it was decoded is stale: the
 		// storage event for that change starts its own reload, and a removal
 		// has already withdrawn the held authority.
@@ -969,34 +1139,87 @@ export const createIAB = function createIAB(
 			? authority.tcString
 			: '';
 	};
+	/** Record a published list and run a reload that waited for it. */
+	const markListPublished = (generation: number): void => {
+		publishedListGeneration = generation;
+		if (reloadAfterList) {
+			reloadAfterList = false;
+			void reloadAuthority();
+		}
+	};
 	const unsubscribeClear = kernel.events.on('records:cleared', () => {
+		openedForRestrictions = false;
 		hydrationCancelled = true;
 		confirmationGeneration += 1;
 		clearAuthorityReceipt();
 	});
-	let listGeneration = 0;
 	let publishedList = preloadedGvl ?? null;
 	let initializationError: unknown;
 	const retainedAuthorityMatchesList = async (
 		snapshot: ConsentSnapshot,
 		gvl: GlobalVendorList
-	): Promise<boolean> => {
+	): Promise<{ valid: boolean; restrictionsChanged: boolean }> => {
 		const { iab } = snapshot;
 		const retained = iab?.authority;
 		if (!retained || !iab) {
-			return true;
+			return { restrictionsChanged: false, valid: true };
 		}
-		return Boolean(
-			await validateAuthority(
-				{
-					...retained,
-					customConsents: retained.vendorConsents,
-					customLegitimateInterests: retained.vendorLegitimateInterests,
-				},
-				{ ...snapshot, iab: { ...iab, gvl } },
-				Date.now()
-			)
+		const { authority, restrictionsChanged } = await checkAuthority(
+			{
+				...retained,
+				customConsents: retained.vendorConsents,
+				customLegitimateInterests: retained.vendorLegitimateInterests,
+			},
+			{ ...snapshot, iab: { ...iab, gvl } },
+			Date.now(),
+			publisherRestrictions
 		);
+		return { restrictionsChanged, valid: Boolean(authority) };
+	};
+	/** The kernel update that publishes a list, withdrawing authority if needed. */
+	const publishListPatch = (
+		gvl: GlobalVendorList,
+		withdrawn: boolean
+	): Partial<KernelIABState> => {
+		const update: Partial<KernelIABState> = {
+			enabled: true,
+			gvl,
+			gvlReference: undefined,
+		};
+		if (withdrawn) {
+			update.authority = null;
+			update.tcString = '';
+		}
+		return update;
+	};
+	/** Whether the retained authority is withdrawn for the new list. */
+	const retainedWithdrawn = (
+		retained: KernelIABAuthority | null | undefined,
+		valid: boolean
+	): boolean => !valid && readIAB(kernel).authority === retained;
+	const restrictionsForList = (gvl: GlobalVendorList) => {
+		try {
+			return validatePublisherRestrictions(configuredRestrictions, {
+				gvl,
+				isServiceSpecific,
+			});
+		} catch (error) {
+			// Authority confirmed against an earlier list must not keep gating
+			// scripts once this CMP can no longer publish a string.
+			if (readIAB(kernel).authority) {
+				kernel.set.iab({ authority: null, tcString: '' });
+			}
+			// Nor may vendors keep reading the string a stored receipt names,
+			// which no authority in memory stands for yet at startup.
+			const stored = readAuthorityReceipt() as { tcString?: unknown } | null;
+			if (
+				options.persistence !== false &&
+				typeof stored?.tcString === 'string'
+			) {
+				clearStoredTCString(stored.tcString);
+			}
+			throw error;
+		}
 	};
 	const initialize = async (
 		preloaded: GlobalVendorList | null | undefined,
@@ -1016,9 +1239,12 @@ export const createIAB = function createIAB(
 				kernel.set.iab({ enabled: false, gvl: null });
 				return;
 			}
+			// An unsupported restriction stops the CMP here, before any TC
+			// string could be written or published without it.
+			publisherRestrictions = restrictionsForList(gvl);
 			const beforePublish = kernel.getSnapshot();
 			const retained = beforePublish.iab?.authority;
-			const validAuthority = await retainedAuthorityMatchesList(
+			const retainedCheck = await retainedAuthorityMatchesList(
 				beforePublish,
 				gvl
 			);
@@ -1027,20 +1253,21 @@ export const createIAB = function createIAB(
 			}
 			const mayHydrate =
 				kernel.getSnapshot().iab === initializationSnapshot.iab;
-			const update: Parameters<typeof kernel.set.iab>[0] = {
-				enabled: true,
-				gvl,
-				gvlReference: undefined,
-			};
-			if (!validAuthority && readIAB(kernel).authority === retained) {
-				update.authority = null;
-				update.tcString = '';
-			}
+			const withdrawn = retainedWithdrawn(retained, retainedCheck.valid);
+			const update = publishListPatch(gvl, withdrawn);
 			const existingApi = cmpApi;
 			existingApi?.updateVendorList(gvl);
 			publishedList = gvl;
 			const beforeUpdate = kernel.getSnapshot();
 			kernel.set.iab(update);
+			markListPublished(generation);
+			// Authority held under other restrictions, for example by a CMP
+			// mounted earlier with another configuration: ask again, as for a
+			// returning visitor. Withdrawing it removed its TC string.
+			promptForChangedRestrictions(
+				withdrawn,
+				retainedCheck.restrictionsChanged
+			);
 			try {
 				cmpApi ??= createCMPApi({
 					cmpId,
@@ -1078,7 +1305,13 @@ export const createIAB = function createIAB(
 
 	const whenReady = async (): Promise<void> => {
 		// A later user action retries a failed request; concurrent callers share it.
-		if (initializationError && !disposed) {
+		// Invalid restrictions stay invalid, so retrying would only replace a
+		// supplied list with a fetched one.
+		if (
+			initializationError &&
+			!disposed &&
+			!(initializationError instanceof PublisherRestrictionError)
+		) {
 			initialization = initialize(undefined, reference);
 		}
 		let pending: Promise<void>;
@@ -1088,6 +1321,9 @@ export const createIAB = function createIAB(
 			// oxlint-disable-next-line no-await-in-loop -- Each iteration follows a new initialization generation.
 			await Promise.race([pending, replaced]);
 		} while (pending !== initialization);
+		if (initializationError instanceof PublisherRestrictionError) {
+			throw initializationError;
+		}
 		if (initializationError) {
 			throw new Error(
 				`Unable to load IAB privacy settings: ${initializationError instanceof Error ? initializationError.message : 'vendor list request failed'}`,
@@ -1123,7 +1359,7 @@ export const createIAB = function createIAB(
 			if ((await waitForReferencedList()) && revision === selectionRevision) {
 				const { gvl } = readIAB(kernel);
 				if (gvl) {
-					applyBlanket(kernel, gvl, value);
+					applyBlanket(kernel, gvl, value, restrictionsForBlanket(gvl));
 				}
 			}
 		} catch {
@@ -1177,6 +1413,15 @@ export const createIAB = function createIAB(
 
 	// Keep the CMP API state in sync with snapshot changes. v2 calls
 	// `cmpApi.updateConsent(tcString)` on save — we mirror that here.
+	/** Close the banner opened for changed restrictions, after this notification. */
+	const closeRestrictionPrompt = (): void => {
+		openedForRestrictions = false;
+		queueMicrotask(() => {
+			if (!disposed && kernel.getSnapshot().activeUI === 'banner') {
+				kernel.set.activeUI('none');
+			}
+		});
+	};
 	let previousAuthority = kernel.getSnapshot().iab?.authority;
 	let previousDisplay = cmpDisplayStatus(kernel.getSnapshot());
 	let previousSnapshot = kernel.getSnapshot();
@@ -1223,9 +1468,17 @@ export const createIAB = function createIAB(
 			});
 		}
 		if (previousAuthority && !snapshot.iab?.authority && !keepReceipt) {
+			// This tab withdrew its authority: the standard TC string it wrote
+			// goes with the receipt, or vendors reading storage would reuse it.
 			clearAuthorityReceipt();
+			if (options.persistence !== false) {
+				clearStoredTCString(previousAuthority.tcString);
+			}
 		}
 		previousAuthority = snapshot.iab?.authority;
+		if (openedForRestrictions && snapshot.iab?.authority) {
+			closeRestrictionPrompt();
+		}
 		armAuthorityTimer();
 		if (!cmpApi) {
 			return;
@@ -1256,11 +1509,19 @@ export const createIAB = function createIAB(
 						Object.hasOwn(iab.gvl?.vendors ?? {}, id) && !customIds.has(id)
 				)
 			);
+		// Legitimate interest a restriction introduces applies until the
+		// visitor objects, as the preference controls show. Draft values win.
+		const introduced = iab.gvl
+			? introducedLegitimateInterest(iab.gvl, publisherRestrictions)
+			: { purposes: [], vendors: [] };
+		const allowed = (ids: number[]) =>
+			Object.fromEntries(ids.map((id) => [id, true]));
 		// Custom choices stay in kernel state, never in registered TCF vectors.
 		const vendorConsents = registeredChoices(iab.vendorConsents);
-		const vendorLegitimateInterests = registeredChoices(
-			iab.vendorLegitimateInterests
-		);
+		const vendorLegitimateInterests = registeredChoices({
+			...allowed(introduced.vendors),
+			...iab.vendorLegitimateInterests,
+		});
 		// `vendorsDisclosed` should reflect every vendor the CMP made
 		// available to the user, per TCF 2.3. For MVP we mirror the set
 		// of vendors whose consent has been considered.
@@ -1272,8 +1533,15 @@ export const createIAB = function createIAB(
 			disclosed[id] = true;
 		}
 		return {
+			// Validated again by the encoder, which rejects unsupported input.
+			publisherRestrictions: configuredRestrictions as
+				| PublisherRestriction[]
+				| undefined,
 			purposeConsents: { ...iab.purposeConsents },
-			purposeLegitimateInterests: { ...iab.purposeLegitimateInterests },
+			purposeLegitimateInterests: {
+				...allowed(introduced.purposes),
+				...iab.purposeLegitimateInterests,
+			},
 			specialFeatureOptIns: { ...iab.specialFeatureOptIns },
 			vendorConsents: { ...vendorConsents },
 			vendorLegitimateInterests: { ...vendorLegitimateInterests },
@@ -1281,10 +1549,23 @@ export const createIAB = function createIAB(
 		};
 	};
 
+	/**
+	 * Rethrows a configuration error from list setup. Encoding reads the
+	 * kernel's list, which can hold a list this CMP never validated, so it
+	 * must not run once the restrictions were rejected. Synchronous, so the
+	 * action clock and cancellation checks keep their current timing.
+	 */
+	const rejectInvalidRestrictions = (): void => {
+		if (initializationError instanceof PublisherRestrictionError) {
+			throw initializationError;
+		}
+	};
+
 	const generateTC = async function generateTC(): Promise<string> {
 		if (!readIAB(kernel).gvl && reference && !(await waitForReferencedList())) {
 			throw new Error('IAB action cancelled while loading vendor data.');
 		}
+		rejectInvalidRestrictions();
 		const snapshot = kernel.getSnapshot();
 		const recordsGeneration = kernel.getRecordsGeneration();
 		const generation = confirmationGeneration;
@@ -1300,7 +1581,7 @@ export const createIAB = function createIAB(
 		const tcString = await generateTCString(consentData, iab.gvl, {
 			cmpId,
 			cmpVersion,
-			isServiceSpecific: options.isServiceSpecific ?? true,
+			isServiceSpecific,
 			publisherCountryCode: options.publisherCountryCode ?? 'US',
 		});
 		if (
@@ -1327,7 +1608,7 @@ export const createIAB = function createIAB(
 			if (!gvl) {
 				return;
 			}
-			applyBlanket(kernel, gvl, true);
+			applyBlanket(kernel, gvl, true, restrictionsForBlanket(gvl));
 		},
 		get cmpApi() {
 			return cmpApi;
@@ -1368,7 +1649,7 @@ export const createIAB = function createIAB(
 			if (!gvl) {
 				return;
 			}
-			applyBlanket(kernel, gvl, false);
+			applyBlanket(kernel, gvl, false, restrictionsForBlanket(gvl));
 		},
 		// oxlint-disable-next-line complexity -- Keep the async save cancellation checks together.
 		async save() {
@@ -1379,6 +1660,7 @@ export const createIAB = function createIAB(
 			) {
 				throw new Error('IAB action cancelled while loading vendor data.');
 			}
+			rejectInvalidRestrictions();
 			if (disposed) {
 				return;
 			}
@@ -1396,13 +1678,14 @@ export const createIAB = function createIAB(
 				cmpId,
 				cmpVersion,
 				confirmedAt: actionAt,
-				isServiceSpecific: options.isServiceSpecific ?? true,
+				isServiceSpecific,
 				publisherCountryCode: options.publisherCountryCode ?? 'US',
 			});
 			const authority = await validateAuthority(
 				{ ...receipt, tcString },
 				snapshot,
-				Date.now()
+				Date.now(),
+				publisherRestrictions
 			);
 			if (
 				!authority ||
@@ -1413,7 +1696,14 @@ export const createIAB = function createIAB(
 			) {
 				return;
 			}
-			const consents = iabPurposesToC15tConsents(consentData.purposeConsents);
+			const consents = iabPurposesToC15tConsents(
+				consentData.purposeConsents,
+				consentBasisPurposes(
+					snapshot.iab.gvl,
+					publisherRestrictions,
+					snapshot.iab.customVendors
+				)
+			);
 			const scope = new Set<string>(snapshot.policyRule.scope);
 			// Refusals must replace old grants even after a category leaves scope.
 			const consentPatch = Object.fromEntries(

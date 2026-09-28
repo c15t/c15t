@@ -147,6 +147,12 @@ export const c15tConsentsToIabPurposes = function c15tConsentsToIabPurposes(
  * the category is considered consented only if ALL its purposes are consented.
  *
  * @param purposeConsents - IAB purpose consent state
+ * @param consentPurposes - Purposes some vendor processes on consent once
+ * publisher restrictions apply. When given, a category is decided by its
+ * purposes in this set: the visitor has no consent to give for the others,
+ * and their legitimate interest is enforced per vendor by the IAB gate. A
+ * category with none of its purposes in the set falls back to all of them,
+ * so legitimate interest alone never grants a category.
  * @returns c15t consent state object
  *
  * @example
@@ -172,7 +178,8 @@ export const c15tConsentsToIabPurposes = function c15tConsentsToIabPurposes(
  * @public
  */
 export const iabPurposesToC15tConsents = function iabPurposesToC15tConsents(
-	purposeConsents: Record<number, boolean>
+	purposeConsents: Record<number, boolean>,
+	consentPurposes?: ReadonlySet<number>
 ): Record<AllConsentNames, boolean> {
 	const c15tConsents: Record<AllConsentNames, boolean> = {
 		experience: false,
@@ -186,8 +193,11 @@ export const iabPurposesToC15tConsents = function iabPurposesToC15tConsents(
 		if (category === 'necessary') {
 			continue;
 		}
-		// Category is consented if ALL its purposes are consented
-		const allConsented = purposes.every(
+		// Category is consented if ALL its deciding purposes are consented
+		const deciding = consentPurposes
+			? purposes.filter((purposeId) => consentPurposes.has(purposeId))
+			: [];
+		const allConsented = (deciding.length ? deciding : purposes).every(
 			(purposeId) => purposeConsents[purposeId] === true
 		);
 		c15tConsents[category as AllConsentNames] = allConsented;

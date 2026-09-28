@@ -1,6 +1,7 @@
 import type { ConsentSnapshot } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { whenIABReady } from '../browser/iab';
 import {
 	attachBannerActions,
 	boot,
@@ -13,7 +14,7 @@ import {
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
-import type { C15tAstroOptions } from '../types';
+import type { C15tAstroOptions, C15tIABOptions } from '../types';
 import { registerDialogAdapter } from '../ui/adapter';
 import type { ConsentDialogHandle } from '../ui/adapter';
 import { testResolution, testRule } from './policy-fixture';
@@ -126,6 +127,46 @@ describe('boot', () => {
 	it('returns a no-op subscription before boot', () => {
 		expect(getConsent()).toBeNull();
 		expect(() => subscribe(vi.fn())()).not.toThrow();
+	});
+});
+
+describe('IAB options', () => {
+	it('forwards publisher restrictions to the CMP', async () => {
+		const publisherRestrictions = [
+			{ purposeId: 2, restrictionType: 0 as const, vendorIds: [755] },
+		];
+		const gvl = {
+			features: {},
+			purposes: { 2: { description: '', id: 2, illustrations: [], name: '' } },
+			specialFeatures: {},
+			specialPurposes: {},
+			stacks: {},
+			tcfPolicyVersion: 5,
+			vendorListVersion: 1,
+			vendors: {
+				755: {
+					features: [],
+					flexiblePurposes: [],
+					id: 755,
+					legIntPurposes: [],
+					name: 'Vendor',
+					purposes: [2],
+					specialFeatures: [],
+					specialPurposes: [],
+					urls: [],
+					usesCookies: false,
+					usesNonCookieAccess: false,
+				},
+			},
+		} as unknown as NonNullable<C15tIABOptions['gvl']>;
+		const booted = start({
+			...OPTIONS,
+			iab: { cmpId: 28, gvl, publisherRestrictions },
+		});
+		await whenIABReady();
+		expect(booted.getConsent().iab?.publisherRestrictions).toEqual(
+			publisherRestrictions
+		);
 	});
 });
 
