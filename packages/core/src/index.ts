@@ -88,6 +88,10 @@ export type { HostedInitRequest } from './transports/hosted-init-request';
 export { createHostedInitRequest } from './transports/hosted-init-request';
 export { hasPrefetchedInitialData } from './libs/prefetch/window-key';
 export {
+	ConsentSaveRejectedError,
+	isConsentSaveRejection,
+} from './transports/save-rejection';
+export {
 	initOutputToKernelConfig,
 	initResponseToKernelConfig,
 	kernelConfigToInitResponse,

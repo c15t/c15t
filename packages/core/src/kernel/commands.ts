@@ -23,6 +23,7 @@ import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
+import { isConsentSaveRejection } from '../transports/save-rejection';
 import type {
 	ConsentSnapshot,
 	ConsentState,
@@ -1031,6 +1032,24 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	};
 
 	/**
+	 * Queue a save the transport threw on, unless the backend refused it for
+	 * good: that one would be refused again on every replay. Queued older
+	 * saves it replaced are dropped instead, so they can't replay over the
+	 * newer choice. The choice stays recorded locally either way.
+	 */
+	const settleThrownSave = async function settleThrownSave(
+		payload: SavePayload,
+		error: unknown
+	): Promise<void> {
+		if (isConsentSaveRejection(error)) {
+			await pendingSaves?.discard(payload);
+			return;
+		}
+		await pendingSaves?.enqueue(payload);
+		ensureOnlineListener();
+	};
+
+	/**
 	 * Transport phase of a save. The outcome only touches the replay queue
 	 * while this action's confirmed receipts are current. Disjoint category
 	 * actions remain independent. Only the newest action can map the subject
@@ -1124,8 +1143,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			emit({ command: 'save', error, type: 'command:error' });
 			const remaining = currentPayload();
 			if (remaining) {
-				await pendingSaves?.enqueue(remaining);
-				ensureOnlineListener();
+				await settleThrownSave(remaining, error);
 			}
 			return { confirmed, ok: false };
 		}
