@@ -26,7 +26,7 @@ import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useMounted } from '../composables/use-mounted';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './actions.vue';
-import ConsentDescription from './description.vue';
+import DescriptionContent from './description-content.vue';
 import ConsentTag from './tag.vue';
 
 /**
@@ -294,7 +294,10 @@ const onAction = function onAction(action: PresentationAction) {
 							>
 								{{ bannerTitle }}
 							</h2>
-							<ConsentDescription context="banner" />
+							<DescriptionContent
+								context="banner"
+								:description-class="bannerStyles.description"
+							/>
 						</div>
 						<ConsentActions
 							data-testid="consent-banner-footer"
