@@ -43,7 +43,7 @@ import {
 	validateAuthority,
 } from './authority';
 import { applyPublisherRestrictionsToGVL } from './headless/effective-vendor-list';
-import { createCMPApi } from './tcf/cmp-api';
+import { clearStoredTCString, createCMPApi } from './tcf/cmp-api';
 import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
 import type { PublisherRestriction } from './tcf/iab-tcf-types';
 import { getTCFCore } from './tcf/lazy-load';
@@ -762,6 +762,12 @@ export const createIAB = function createIAB(
 	};
 
 	let restoredFingerprint: string | null = null;
+	/**
+	 * This handle opened the banner for changed restrictions. The prompt
+	 * requirement stays `none`, so the kernel never closes it; close it once
+	 * the visitor's new authority lands.
+	 */
+	let openedForRestrictions = false;
 	let hydrationCancelled = false;
 	/** Whether nothing changed while a stored receipt was being validated. */
 	const unchangedSince = function unchangedSince(
@@ -817,7 +823,10 @@ export const createIAB = function createIAB(
 			kernel.getSnapshot().activeUI === 'none'
 		) {
 			// A material change to what the visitor agreed to: show the
-			// surface a changed policy shows. Gates wait for the new save.
+			// surface a changed policy shows. Gates wait for the new save,
+			// and vendors reading storage must not find the old string.
+			clearStoredTCString();
+			openedForRestrictions = true;
 			kernel.set.activeUI('banner');
 		}
 		if (
@@ -1078,6 +1087,7 @@ export const createIAB = function createIAB(
 		}
 	};
 	const unsubscribeClear = kernel.events.on('records:cleared', () => {
+		openedForRestrictions = false;
 		hydrationCancelled = true;
 		confirmationGeneration += 1;
 		clearAuthorityReceipt();
@@ -1313,6 +1323,15 @@ export const createIAB = function createIAB(
 
 	// Keep the CMP API state in sync with snapshot changes. v2 calls
 	// `cmpApi.updateConsent(tcString)` on save — we mirror that here.
+	/** Close the banner opened for changed restrictions, after this notification. */
+	const closeRestrictionPrompt = (): void => {
+		openedForRestrictions = false;
+		queueMicrotask(() => {
+			if (!disposed && kernel.getSnapshot().activeUI === 'banner') {
+				kernel.set.activeUI('none');
+			}
+		});
+	};
 	let previousAuthority = kernel.getSnapshot().iab?.authority;
 	let previousDisplay = cmpDisplayStatus(kernel.getSnapshot());
 	let previousSnapshot = kernel.getSnapshot();
@@ -1362,6 +1381,9 @@ export const createIAB = function createIAB(
 			clearAuthorityReceipt();
 		}
 		previousAuthority = snapshot.iab?.authority;
+		if (openedForRestrictions && snapshot.iab?.authority) {
+			closeRestrictionPrompt();
+		}
 		armAuthorityTimer();
 		if (!cmpApi) {
 			return;

@@ -2005,6 +2005,33 @@ describe('returning visitors and changed publisher restrictions', () => {
 			prohibit7
 		);
 		expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(true);
+		// The built-in banners only save; the banner this opened must close.
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+
+		// The next page load restores the new authority without asking.
+		const reloaded = returning(prohibit7);
+		await reloaded.addon.whenReady();
+		await vi.waitFor(() =>
+			expect(reloaded.kernel.getSnapshot().iab?.authority).not.toBeNull()
+		);
+		expect(reloaded.kernel.getSnapshot().activeUI).toBe('none');
+	});
+
+	test('a restriction change removes the superseded standard TC string', async () => {
+		await savedWith([]);
+		const stored = localStorage.getItem('euconsent-v2');
+		expect(stored).toBeTruthy();
+		expect(document.cookie).toContain('euconsent-v2=');
+		const receipt = localStorage.getItem('c15t-iab-authority-v1');
+		const { addon, kernel } = returning(prohibit7);
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(localStorage.getItem('euconsent-v2')).toBeNull();
+		expect(document.cookie).not.toContain('euconsent-v2=');
+		expect(addon.cmpApi?.loadFromStorage()).toBeNull();
+		// The private receipt stays: it cannot grant under these restrictions.
+		expect(localStorage.getItem('c15t-iab-authority-v1')).toBe(receipt);
 	});
 
 	test.each([

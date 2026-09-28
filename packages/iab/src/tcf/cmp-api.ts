@@ -41,6 +41,24 @@ const setCookie = function setCookie(
 };
 
 /**
+ * Removes the standard TC string from the `euconsent-v2` cookie and its
+ * localStorage copy, so vendors reading storage directly, and
+ * `loadFromStorage()`, no longer find a superseded string.
+ *
+ * @internal
+ */
+export const clearStoredTCString = function clearStoredTCString(): void {
+	if (typeof document !== 'undefined') {
+		document.cookie = `${IAB_STORAGE_KEYS.TC_STRING_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
+	}
+	try {
+		localStorage.removeItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL);
+	} catch {
+		// Storage can be unavailable.
+	}
+};
+
+/**
  * Gets a cookie value.
  */
 const getCookie = function getCookie(name: string): string | null {
