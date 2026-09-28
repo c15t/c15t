@@ -970,3 +970,37 @@ test.each([
 		expect(adopted?.vendorConsents['9001']).toBe(newer?.vendorConsents['9001']);
 	}
 );
+
+test('vendors never see the stale grant after another runtime stores a denial', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	await addon.whenReady?.();
+	addon.acceptAll();
+	await addon.save();
+	storage.reconcile();
+	const granted = kernel.getSnapshot().iab?.authority?.tcString;
+	expect(granted).toBeTruthy();
+
+	const published: (string | undefined)[] = [];
+	window.__tcfapi?.('addEventListener', 2, (tcData: { tcString?: string }) => {
+		published.push(tcData?.tcString);
+	});
+	await vi.advanceTimersByTimeAsync(1);
+	published.length = 0;
+
+	// Another runtime denies every category without a TC string.
+	vi.setSystemTime(NOW + 1000);
+	const other = makeKernel();
+	const otherStorage = createPersistence({ kernel: other, sync: false });
+	disposers.push(otherStorage.dispose);
+	await other.commands.save('none');
+	otherStorage.reconcile();
+
+	expect(storage.reconcile()).toBe(true);
+	await vi.advanceTimersByTimeAsync(10);
+	expect(kernel.getSnapshot().iab?.authority ?? null).toBeNull();
+	expect(published.length).toBeGreaterThan(0);
+	expect(published).not.toContain(granted);
+});

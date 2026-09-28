@@ -655,6 +655,37 @@ export const createIAB = function createIAB(
 		}
 	};
 	/**
+	 * Withdraw the held authority because it no longer fits `choice`, without
+	 * deleting the shared receipt, which may be another tab's. Unless the
+	 * visitor changed selections here without saving, the purposes of every
+	 * denied category are switched off too.
+	 */
+	const withdrawAuthority = function withdrawAuthority(
+		choice: ExplicitChoice
+	): void {
+		const keepSelections = selectionRevision !== revisionAtAuthority;
+		const update: Partial<KernelIABState> = {
+			authority: null,
+			tcString: null,
+		};
+		if (!keepSelections) {
+			update.purposeConsents = withoutDeniedPurposes(
+				readIAB(kernel).purposeConsents,
+				choice
+			);
+		}
+		keepReceipt = true;
+		try {
+			kernel.set.iab(update);
+		} finally {
+			keepReceipt = false;
+		}
+		if (!keepSelections) {
+			revisionAtAuthority = selectionRevision;
+		}
+		armAuthorityTimer();
+	};
+	/**
 	 * Bring the held authority in line with the reconciled `choice`: install
 	 * `receipt` when it is compatible and at least as new, or when the held
 	 * one conflicts; otherwise withdraw a conflicting held authority without
@@ -680,22 +711,8 @@ export const createIAB = function createIAB(
 			}
 			kernel.set.iab(update);
 		} else if (heldConflicts) {
-			const update: Partial<KernelIABState> = {
-				authority: null,
-				tcString: null,
-			};
-			if (!keepSelections) {
-				update.purposeConsents = withoutDeniedPurposes(
-					readIAB(kernel).purposeConsents,
-					choice
-				);
-			}
-			keepReceipt = true;
-			try {
-				kernel.set.iab(update);
-			} finally {
-				keepReceipt = false;
-			}
+			withdrawAuthority(choice);
+			return;
 		} else {
 			return;
 		}
@@ -954,6 +971,20 @@ export const createIAB = function createIAB(
 	let previousSnapshot = kernel.getSnapshot();
 	let previousRecordsGeneration = kernel.getRecordsGeneration();
 	const unsubscribe = kernel.subscribe((snapshot: ConsentSnapshot) => {
+		// A held authority that grants what the choice now denies (after a
+		// reconciled denial, say) is withdrawn before anything is published,
+		// so no vendor sees the stale grant. The withdrawal notifies again,
+		// and that notification publishes.
+		const held = snapshot.iab?.authority;
+		if (
+			held &&
+			snapshot.model === 'iab' &&
+			grantsDeniedCategory(held, snapshot.explicitChoice)
+		) {
+			previousSnapshot = snapshot;
+			withdrawAuthority(snapshot.explicitChoice as ExplicitChoice);
+			return;
+		}
 		const previous = previousSnapshot;
 		previousSnapshot = snapshot;
 		// Hydration advances the records generation after it notifies, so
