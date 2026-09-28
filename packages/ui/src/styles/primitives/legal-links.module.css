@@ -6,9 +6,11 @@
 	--legal-links-text-decoration-hover: underline;
 	--legal-links-outline: 2px solid currentColor;
 	--legal-links-outline-offset: 2px;
-	--legal-links-color: hsl(227.93, 100%, 63.92%);
-	--legal-links-focus-color: hsl(227.93, 100%, 63.92%);
-	--legal-links-focus-color-dark: hsl(228.07, 69.8%, 48.04%);
+	/* The dark palette redefines --c15t-primary under .c15t-dark, so the
+	   -dark variable follows it too. */
+	--legal-links-color: var(--c15t-primary);
+	--legal-links-focus-color: var(--c15t-primary);
+	--legal-links-focus-color-dark: var(--c15t-primary);
 }
 
 @layer components {

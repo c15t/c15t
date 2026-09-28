@@ -887,7 +887,8 @@
 	.searchInput:focus {
 		outline: none;
 		border-color: var(--iab-cd-primary-color);
-		box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
+		box-shadow: 0 0 0 2px
+			color-mix(in srgb, var(--iab-cd-primary-color) 20%, transparent);
 	}
 
 	:global(.c15t-dark) .searchInput {
@@ -913,18 +914,19 @@
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.5rem 0.625rem;
-		background-color: rgb(219 234 254);
-		border: 1px solid rgb(59 130 246 / 0.3);
+		/* A tint of the theme's primary on its surface, in either palette. */
+		background-color: color-mix(
+			in srgb,
+			var(--iab-cd-primary-color) 14%,
+			var(--c15t-surface)
+		);
+		border: 1px solid
+			color-mix(in srgb, var(--iab-cd-primary-color) 30%, transparent);
 		border-radius: var(--c15t-radius-md);
 		margin-bottom: 0.5rem;
 		z-index: 100;
 		isolation: isolate;
-		box-shadow: 0 2px 4px rgb(0 0 0 / 0.05);
-	}
-
-	:global(.c15t-dark) .selectedVendorBanner {
-		background-color: rgb(30 58 138);
-		border-color: rgb(59 130 246 / 0.4);
+		box-shadow: var(--c15t-shadow-sm);
 	}
 
 	.selectedVendorText {

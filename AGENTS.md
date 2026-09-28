@@ -76,6 +76,7 @@ Enforced by `oxlint.config.ts` and `oxfmt.config.ts` (root):
 - Tabs, line width 80, single quotes, semicolons, LF. JSX uses double quotes.
 - Oxlint extends Ultracite's core, React, and Vue presets. Rules with existing violations are listed as deferred in `oxlint.config.ts`; all other preset rules remain errors.
 - Oxfmt deliberately leaves import, package JSON, and Tailwind sorting disabled to avoid unrelated reorder-only diffs.
+- `@c15t/ui` component CSS takes colors, shadows, fonts, font sizes and weights, line heights, radii, spacing and motion from `var()`: a `--c15t-*` theme token, or a component variable that defaults to one. `packages/ui/src/styles/__tests__/design-token-literals.test.ts` fails on new literals. Older ones are listed in `design-token-baseline.json`, which should only shrink.
 
 Conventions not enforced by tooling (hold new code to these; older code has exceptions):
 
