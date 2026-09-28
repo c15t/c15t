@@ -225,7 +225,9 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	}, [isOpen, disableAnimation, animationDuration]);
 
 	// Trap focus when dialog open
-	useFocusTrap(isOpen && trapFocus, contentRef as RefObject<HTMLElement>);
+	useFocusTrap(isOpen && trapFocus, contentRef as RefObject<HTMLElement>, {
+		initialFocus: 'first-tabbable',
+	});
 
 	useEffect(() => {
 		if (!isOpen) {

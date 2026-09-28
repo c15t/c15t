@@ -71,7 +71,10 @@
 		class={className}
 		data-slot="dialog-content"
 		data-state={dataState}
-		use:focusTrap={open && dialog.trapFocus}
+		use:focusTrap={{
+			enabled: open && dialog.trapFocus,
+			initialFocus: 'first-tabbable',
+		}}
 		use:scrollLock={open && dialog.preventScroll}
 		{...restProps}
 		onkeydown={handleKeyDown}

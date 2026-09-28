@@ -319,6 +319,31 @@ describe('setupFocusTrap focus restore', () => {
 		expect(document.activeElement).toBe(trigger);
 	});
 
+	test('focuses the first tabbable element when asked to', async () => {
+		const link = document.createElement('a');
+		link.href = '#';
+		const button = document.createElement('button');
+		dialog.append(link, button);
+
+		const release = setupFocusTrap(dialog, { initialFocus: 'first-tabbable' });
+		await flushFocusTimers();
+
+		expect(document.activeElement).toBe(link);
+		release();
+	});
+
+	test('falls back to the container when nothing inside is tabbable', async () => {
+		const label = document.createElement('p');
+		label.textContent = 'Nothing to press';
+		dialog.append(label);
+
+		const release = setupFocusTrap(dialog, { initialFocus: 'first-tabbable' });
+		await flushFocusTimers();
+
+		expect(document.activeElement).toBe(dialog);
+		release();
+	});
+
 	test('does not steal focus already moved inside the trap before initial focus runs', async () => {
 		const button = document.createElement('button');
 		dialog.appendChild(button);

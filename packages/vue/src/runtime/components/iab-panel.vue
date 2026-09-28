@@ -338,7 +338,9 @@ const shouldTrapFocus = computed(() =>
 	Boolean(isOpen.value && presentation.value.blocking)
 );
 const card = ref<HTMLElement | null>(null);
-useFocusTrap(card, () => shouldTrapFocus.value);
+useFocusTrap(card, () => shouldTrapFocus.value, {
+	initialFocus: 'first-tabbable',
+});
 </script>
 
 <template>

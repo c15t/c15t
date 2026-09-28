@@ -53,7 +53,7 @@ const IABConsentDialogCard = createForwardRef<
 	const iabTranslations = useIABTranslations();
 	const [isVisible, setIsVisible] = useState(false);
 
-	useFocusTrap(Boolean(trapFocus), cardRef);
+	useFocusTrap(Boolean(trapFocus), cardRef, { initialFocus: 'first-tabbable' });
 
 	useEffect(() => {
 		const frame = requestAnimationFrame(() => setIsVisible(true));

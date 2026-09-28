@@ -273,7 +273,10 @@
 				aria-modal={preferences.blocking ? 'true' : undefined}
 				aria-label={iabT.preferenceCenter.title}
 				tabindex="-1"
-				use:focusTrap={preferences.blocking}
+				use:focusTrap={{
+					enabled: preferences.blocking,
+					initialFocus: 'first-tabbable',
+				}}
 				use:scrollLock={preferences.blocking}
 				onkeydown={handleDialogKeydown}
 			>

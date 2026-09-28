@@ -247,7 +247,23 @@ const readActiveElement = (): Element | null => {
  * Traps focus within a container.
  * @returns Cleanup function to remove listeners and restore focus
  */
-export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
+/** Where a focus trap puts focus when it starts. */
+export interface FocusTrapOptions {
+	/**
+	 * `'first-tabbable'` focuses the first tabbable element inside the
+	 * container, the way dialog libraries such as Base UI do, so a keyboard
+	 * user sees the ring on a control. `'container'`, the default, focuses the
+	 * container itself; a blocking banner uses it so no action button is
+	 * favored. Both fall back to the container when nothing inside is
+	 * tabbable.
+	 */
+	initialFocus?: 'container' | 'first-tabbable';
+}
+
+export const setupFocusTrap = function setupFocusTrap(
+	container: HTMLElement,
+	options: FocusTrapOptions = {}
+) {
 	const activeElement = readActiveElement() as HTMLElement | null;
 	const previousFocus =
 		activeElement &&
@@ -256,12 +272,17 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 			? activeElement
 			: lastFocusedElement;
 
-	// Focus the container itself so the user can read the content first,
-	// then Tab into interactive elements (links, then buttons).
-	// This avoids biasing initial focus toward a specific action button.
+	// The container stays focusable so the trap can land on it when nothing
+	// inside is tabbable, and so a blocking banner can start there without
+	// favoring an action button. `aria-labelledby` and `aria-describedby`
+	// carry the title and description to a screen reader either way.
 	if (container.tabIndex < 0) {
 		container.tabIndex = -1;
 	}
+	const initialTarget = () =>
+		(options.initialFocus === 'first-tabbable'
+			? getFocusableElements(container)[0]
+			: undefined) ?? container;
 	const focusTimer = setTimeout(() => {
 		try {
 			const activeElementLocal = readActiveElement();
@@ -272,7 +293,7 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 			) {
 				return;
 			}
-			container.focus({ preventScroll: true });
+			initialTarget().focus({ preventScroll: true });
 		} catch {
 			// Silently handle focus errors
 		}

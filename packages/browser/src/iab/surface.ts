@@ -322,7 +322,12 @@ export const createIABSurface = (
 		}
 		ctx.root.append(root);
 		if (actions.blocking) {
-			release.push(setupScrollLock(), setupFocusTrap(content));
+			release.push(
+				setupScrollLock(),
+				setupFocusTrap(content, {
+					initialFocus: dialog ? 'first-tabbable' : 'container',
+				})
+			);
 		}
 		updateFeedback();
 	};

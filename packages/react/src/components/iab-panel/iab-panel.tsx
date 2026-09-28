@@ -282,7 +282,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	// Focus trap
 	useFocusTrap(
 		Boolean(isMounted && isOpen && config.trapFocus),
-		cardRef as RefObject<HTMLElement>
+		cardRef as RefObject<HTMLElement>,
+		{ initialFocus: 'first-tabbable' }
 	);
 
 	// Scroll lock
