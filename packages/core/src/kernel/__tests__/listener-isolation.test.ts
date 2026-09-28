@@ -85,9 +85,10 @@ describe('a throwing subscriber', () => {
 		expect(reported).toHaveBeenCalledTimes(2);
 	});
 
-	test('reports through reportError when the platform provides it', async () => {
+	test('reports through the page reportError', async () => {
 		const reportError = vi.fn();
-		vi.stubGlobal('reportError', reportError);
+		vi.stubGlobal('window', { reportError });
+		vi.stubGlobal('document', {});
 		const kernel = await grantedKernel();
 		kernel.subscribe(fail);
 
@@ -97,8 +98,27 @@ describe('a throwing subscriber', () => {
 		expect(reported).not.toHaveBeenCalled();
 	});
 
+	test('a server runtime logs instead of calling its global reportError', async () => {
+		// Bun and Deno define reportError, where it ends the process.
+		const reportError = vi.fn();
+		vi.stubGlobal('reportError', reportError);
+		vi.stubGlobal('document', undefined);
+		const kernel = await grantedKernel();
+		kernel.subscribe(fail);
+
+		const result = await kernel.commands.save({ measurement: false });
+
+		expect(result.ok).toBe(true);
+		expect(reportError).not.toHaveBeenCalled();
+		expect(reported).toHaveBeenCalledWith(
+			expect.stringContaining('[c15t]'),
+			failure
+		);
+	});
+
 	test('a throwing reporter cannot recurse into delivery', async () => {
-		vi.stubGlobal('reportError', fail);
+		vi.stubGlobal('window', { reportError: fail });
+		vi.stubGlobal('document', {});
 		const kernel = await grantedKernel();
 		const observed: boolean[] = [];
 		kernel.subscribe(fail);
@@ -246,14 +266,42 @@ describe('a subscriber that updates consent while notified', () => {
 
 		await kernel.commands.save({ measurement: false });
 
-		expect(calls).toBeLessThanOrEqual(MAX_DELIVERY_DEPTH);
+		// The feedback listener is called once more in the final pass.
+		expect(calls).toBeLessThanOrEqual(MAX_DELIVERY_DEPTH + 1);
 		expect(reported).toHaveBeenCalledWith(
 			expect.stringContaining('[c15t]'),
 			expect.objectContaining({
-				message: expect.stringContaining('pending notifications were dropped'),
+				message: expect.stringContaining('further notifications'),
 			})
 		);
 	});
+
+	test.each([
+		['after', false],
+		['before', true],
+	])(
+		'a subscriber registered %s a feedback loop ends on the current snapshot',
+		async (_label, observerFirst) => {
+			const kernel = await grantedKernel();
+			let last: ReturnType<ConsentKernel['getSnapshot']> | undefined;
+			const observer = (snapshot: ReturnType<ConsentKernel['getSnapshot']>) => {
+				last = snapshot;
+			};
+			const feedback = (snapshot: ReturnType<ConsentKernel['getSnapshot']>) => {
+				void kernel.commands.save({
+					measurement: !snapshot.effectivePermissions.measurement,
+				});
+			};
+			kernel.subscribe(observerFirst ? observer : feedback);
+			kernel.subscribe(observerFirst ? feedback : observer);
+
+			await kernel.commands.save({ measurement: false });
+
+			// A network blocker holding an older snapshot could let through
+			// requests the current one denies.
+			expect(last).toBe(kernel.getSnapshot());
+		}
+	);
 
 	test('a subscriber added during delivery waits for the next transition', async () => {
 		const kernel = await grantedKernel();

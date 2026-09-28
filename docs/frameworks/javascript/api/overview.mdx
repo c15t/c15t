@@ -27,8 +27,9 @@ a change commits, in registration order. Each receives the frozen snapshot that
 change produced.
 
 - A listener that throws does not stop the listeners after it or fail the
-  command that caused the change. c15t passes the error to `reportError` in
-  browsers, or logs it with `console.error` where `reportError` is missing.
+  command that caused the change. In a browser page c15t passes the error to
+  `reportError`. Everywhere else, including Bun and Deno servers where
+  `reportError` would end the process, it logs the error with `console.error`.
 - A listener can call commands and setters. Before the nested call returns,
   every other listener receives the change in progress and then the new one.
   No listener misses a change, such as a denial that another listener
@@ -36,7 +37,9 @@ change produced.
 - A listener added during a notification first receives the next change. A
   listener removed during a notification is not called again.
 - Listeners that keep changing consent in response to each other are stopped
-  after 100 nested notifications, and the error is reported.
+  after 100 nested notifications, and the error is reported. Notifications
+  already queued still arrive, so other listeners end on the current snapshot.
+  A listener that changes consent after that point is not called again.
 
 ## Choose commands by intent
 

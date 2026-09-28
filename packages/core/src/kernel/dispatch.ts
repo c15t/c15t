@@ -13,7 +13,12 @@
  *   every listener before it returns, so a listener mid-work (a script
  *   mount, say) learns about a revocation immediately.
  * - Listeners that keep updating consent in response to each other are
- *   cut off at `MAX_DELIVERY_DEPTH` instead of overflowing the stack.
+ *   cut off at `MAX_DELIVERY_DEPTH` instead of overflowing the stack. The
+ *   deliveries already queued still finish, so a listener outside the loop
+ *   (a network blocker, say) ends on the current snapshot rather than an
+ *   older one. During that last pass a listener that updates consent is not
+ *   called again, and every other listener only receives the newest value
+ *   queued for it.
  */
 import type { Listener, Unsubscribe } from '../types';
 
@@ -84,14 +89,34 @@ interface Delivery {
 }
 
 /**
- * Report a listener exception without rethrowing into delivery. Uses the
- * platform `reportError` where available (the same path `EventTarget` uses
- * for a throwing listener) so error tracking sees it.
+ * The page's `reportError`, when there is a page. Bun and Deno define a
+ * global `reportError` as well, but there it ends the process like an
+ * uncaught exception, so outside a document the error is only logged.
+ */
+const pageReportError = function pageReportError():
+	| ((error: unknown) => void)
+	| undefined {
+	if (typeof window === 'undefined' || typeof document === 'undefined') {
+		return undefined;
+	}
+	const report = (window as { reportError?: unknown }).reportError;
+	return typeof report === 'function'
+		? (error) => {
+				report.call(window, error);
+			}
+		: undefined;
+};
+
+/**
+ * Report a listener exception without rethrowing into delivery. In a page
+ * this uses `reportError` (the same path `EventTarget` uses for a throwing
+ * listener) so error tracking sees it; elsewhere it logs.
  */
 const reportListenerError = function reportListenerError(error: unknown): void {
 	try {
-		if (typeof globalThis.reportError === 'function') {
-			globalThis.reportError(error);
+		const report = pageReportError();
+		if (report) {
+			report(error);
 			return;
 		}
 		console.error('[c15t] A consent listener threw.', error);
@@ -104,15 +129,64 @@ export const createDispatcher = function createDispatcher(): Dispatcher {
 	const pending: Delivery[] = [];
 	let held = 0;
 	let depth = 0;
+	// Counts deliveries queued, so a call can tell whether it queued any.
+	let queued = 0;
+	// Set once the depth limit is hit, until the queue is empty again.
+	// Listeners that queued a delivery during the final pass (the ones
+	// feeding the loop) are not called again.
+	let cutOff: Set<Registration<unknown>> | null = null;
+
+	// A later queued delivery to the same registration carries a newer
+	// value, so the final pass skips this one.
+	const supersededLater = function supersededLater(
+		from: number,
+		listeners: ListenerSet<unknown>,
+		target: Registration<unknown>
+	): boolean {
+		for (let index = from + 1; index < pending.length; index += 1) {
+			const later = pending[index];
+			if (later?.listeners === listeners && later.targets.includes(target)) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	const call = function call(
+		delivery: Delivery,
+		target: Registration<unknown>
+	): void {
+		if (cutOff) {
+			if (
+				cutOff.has(target) ||
+				supersededLater(0, delivery.listeners, target)
+			) {
+				return;
+			}
+		}
+		const before = queued;
+		try {
+			target.listener(delivery.value);
+		} catch (error) {
+			reportListenerError(error);
+		}
+		if (cutOff && queued !== before) {
+			cutOff.add(target);
+		}
+	};
 
 	// Reentrant: a nested call continues the same cursors, so older
 	// deliveries finish before newer ones start.
 	const drain = function drain(): void {
+		if (cutOff) {
+			// The outermost drain runs the final pass.
+			return;
+		}
 		if (depth >= MAX_DELIVERY_DEPTH) {
-			pending.length = 0;
+			cutOff = new Set();
 			reportListenerError(
 				new Error(
-					'[c15t] Consent listeners kept updating consent in response to each other; pending notifications were dropped.'
+					'[c15t] Consent listeners kept updating consent in response to each other; further notifications from them were dropped.'
 				)
 			);
 			return;
@@ -127,17 +201,15 @@ export const createDispatcher = function createDispatcher(): Dispatcher {
 					continue;
 				}
 				delivery.next += 1;
-				if (delivery.listeners.registrations.get(target.listener) !== target) {
-					continue;
-				}
-				try {
-					target.listener(delivery.value);
-				} catch (error) {
-					reportListenerError(error);
+				if (delivery.listeners.registrations.get(target.listener) === target) {
+					call(delivery, target);
 				}
 			}
 		} finally {
 			depth -= 1;
+			if (depth === 0) {
+				cutOff = null;
+			}
 		}
 	};
 
@@ -164,6 +236,7 @@ export const createDispatcher = function createDispatcher(): Dispatcher {
 				targets: [...registrations.values()] as Registration<unknown>[],
 				value,
 			});
+			queued += 1;
 			if (held === 0) {
 				drain();
 			}
