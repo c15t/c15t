@@ -19,7 +19,10 @@ import type {
 	Script,
 	StorageConfig,
 } from '@c15t/core';
-import type { RuntimeNetworkBlockerOptions } from '@c15t/core/runtime';
+import type {
+	ConsentRuntimeOptions,
+	RuntimeNetworkBlockerOptions,
+} from '@c15t/core/runtime';
 import type {
 	PolicyRule,
 	PolicyResolution,
@@ -175,9 +178,10 @@ export interface C15tAstroOptions {
 
 	/**
 	 * Reload the page after an accept, reject or save turns off a category or
-	 * vendor that was granted. Removing a script cannot stop code that already
-	 * ran, so the reload starts a document with only permitted code. Waits for
-	 * the save request. Set `false` to handle revocation yourself.
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
 	 * @default true
 	 */
 	reloadOnConsentRevoked?: boolean;
@@ -363,7 +367,9 @@ export interface C15tClientOptionsExtension {
 	 * `onRequestBlocked`.
 	 */
 	networkBlocker?: RuntimeNetworkBlockerOptions | false;
-	callbacks?: Record<string, unknown>;
+	callbacks?: ConsentRuntimeOptions['callbacks'];
+	/** External CMP owns consent decisions and preferences. */
+	consentSource?: ConsentRuntimeOptions['consentSource'];
 	/**
 	 * Merged over the serialized theme for slot styles and consent-action
 	 * variants. Design tokens here are not applied: the browser no longer

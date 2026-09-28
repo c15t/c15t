@@ -213,22 +213,32 @@ describe('iframe blocker on demand', () => {
 		expect(iframe.getAttribute('data-src')).toBe(FRAME_URL);
 	});
 
-	test('an invalid data-category surfaces as an error once the blocker loads', async () => {
+	test('an invalid data-category stays blocked and warns once the blocker loads', async () => {
 		const reasons: unknown[] = [];
 		const onRejection = (event: PromiseRejectionEvent) => {
 			reasons.push(event.reason);
 			event.preventDefault();
 		};
 		window.addEventListener('unhandledrejection', onRejection);
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			/* asserted below */
+		});
 		try {
-			await renderProvider(policyFixture());
-			insertFrame({ 'data-category': 'not-a-category', src: FRAME_URL });
+			await renderProvider(policyFixture({ marketing: true }));
+			const iframe = insertFrame({
+				'data-category': 'not-a-category',
+				sandbox: '',
+				src: FRAME_URL,
+			});
 			await vi.waitFor(() =>
-				expect(String(reasons[0])).toContain(
-					'invalid data-category "not-a-category"'
+				expect(warn).toHaveBeenCalledWith(
+					expect.stringContaining('invalid data-category "not-a-category"')
 				)
 			);
+			expect(iframe.getAttribute('src')).toBeNull();
+			expect(reasons).toEqual([]);
 		} finally {
+			warn.mockRestore();
 			window.removeEventListener('unhandledrejection', onRejection);
 		}
 	});
@@ -245,6 +255,29 @@ describe('frames the watcher holds before the blocker loads', () => {
 		});
 		await sleep(20);
 		watch.stop();
+
+		expect(iframe.getAttribute('src')).toBeNull();
+		expect(iframe.getAttribute('data-src')).toBe(FRAME_URL);
+	});
+
+	test('holds a frame added in the same batch as a node page script cannot read', async () => {
+		const watch = watchAndRecord(kernelWithVendorChoice(['youtube']));
+		// Firefox throws this for some nodes, such as ones an extension inserted.
+		const unreadable = document.createElement('div');
+		Object.defineProperty(unreadable, 'nodeType', {
+			get() {
+				throw new Error('Permission denied to access property "nodeType"');
+			},
+		});
+		const iframe = document.createElement('iframe');
+		iframe.setAttribute('data-category', 'marketing');
+		iframe.setAttribute('data-vendor', 'youtube');
+		iframe.setAttribute('sandbox', '');
+		iframe.setAttribute('src', FRAME_URL);
+		document.body.append(unreadable, iframe);
+		await sleep(20);
+		watch.stop();
+		unreadable.remove();
 
 		expect(iframe.getAttribute('src')).toBeNull();
 		expect(iframe.getAttribute('data-src')).toBe(FRAME_URL);

@@ -13,6 +13,10 @@ import {
 import { evaluateConsentRecord } from '../../consent-record/evaluate';
 import type { ConsentSnapshot } from '../../types';
 import { createDispatcher } from '../dispatch';
+import {
+	evaluateExternalPermissions,
+	normalizeExternalPermissions,
+} from '../external-permissions';
 import { buildNextSnapshot, snapshotChanged } from '../patch';
 import type { SnapshotPatch } from '../patch';
 import { createRuntime } from '../runtime';
@@ -44,14 +48,16 @@ const checkCommit = (initial: ConsentSnapshot, patch: SnapshotPatch) => {
 	expect(emit).toHaveBeenCalledTimes(
 		expected.effectivePermissions === initial.effectivePermissions ? 0 : 1
 	);
-	const evaluation = evaluateConsentRecord({
-		choice: actual.explicitChoice,
-		gpc: actual.privacySignals.gpc.active,
-		noticeDismissal: actual.noticeDismissal,
-		now: patch.now ?? initial.evaluatedAt,
-		optOuts: actual.optOutDirectives,
-		policy: actual.evaluationPolicy,
-	});
+	const evaluation = actual.externalPermissions
+		? evaluateExternalPermissions(actual.externalPermissions)
+		: evaluateConsentRecord({
+				choice: actual.explicitChoice,
+				gpc: actual.privacySignals.gpc.active,
+				noticeDismissal: actual.noticeDismissal,
+				now: patch.now ?? initial.evaluatedAt,
+				optOuts: actual.optOutDirectives,
+				policy: actual.evaluationPolicy,
+			});
 	expect(actual.effectivePermissions).toEqual(evaluation.permissions);
 	expect(actual.promptRequirement).toEqual(evaluation.promptRequirement);
 	expect(actual.restrictions).toEqual(evaluation.restrictions);
@@ -66,6 +72,9 @@ test('every patch input agrees with full snapshot derivation', () => {
 		branding: { branding: 'consent' },
 		consentCategories: { consentCategories: ['necessary', 'measurement'] },
 		explicitChoice: { explicitChoice: explicitChoice({ marketing: true }) },
+		externalPermissions: {
+			externalPermissions: normalizeExternalPermissions({ measurement: true }),
+		},
 		iab: { iab: { ...DEFAULT_IAB, enabled: true } },
 		location: { location: { countryCode: 'DE', regionCode: null } },
 		noticeDismissal: {

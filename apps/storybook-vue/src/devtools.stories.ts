@@ -59,8 +59,7 @@ export const Default: Story = {
 						)
 					),
 				presentation: devToolsPresentation,
-				// The flow revokes a category and reads the panel in the same
-				// document, so the reload on revocation stays off.
+				// The shared play verifies script cleanup after rejecting consent.
 				reloadOnConsentRevoked: false,
 			};
 			const context = createVueConsentKernelContext({

@@ -27,6 +27,25 @@ describe('googleTagManager', () => {
 		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
+	it.each(['customQueue', 'gtag', 'app.layer'])(
+		'sends denied defaults to %s before loading the container',
+		(dataLayer) => {
+			const globalRef = getTestGlobal();
+			vi.stubGlobal(dataLayer, undefined);
+			vi.stubGlobal(`${dataLayer}Gtag`, undefined);
+			const script = googleTagManager({
+				dataLayer,
+				id: 'GTM-CUSTOM',
+			});
+			runOnBeforeLoad(script, { consents: deniedConsentState });
+			const queue = globalRef[dataLayer] as unknown[];
+			expectGoogleConsentDefault(queue[0]);
+			expect(queue[1]).toMatchObject({ event: 'gtm.js' });
+			expect(script.src).toContain(`&l=${dataLayer}`);
+			expect(script.attributes?.['data-c15t-layer']).toBe(dataLayer);
+		}
+	);
+
 	it('resolves gtm.start when the script lifecycle runs', () => {
 		const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_777_777_777_777);
 		try {
