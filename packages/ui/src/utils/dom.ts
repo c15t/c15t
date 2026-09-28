@@ -239,6 +239,22 @@ const findFocusRestoreEquivalent = function findFocusRestoreEquivalent(
 };
 
 /** Read focus inside nested shadow roots as well as the document. */
+/** Whether `node` is `target` or inside it, crossing shadow roots. */
+const containsComposed = function containsComposed(
+	target: Element,
+	node: Element | null
+): boolean {
+	let current: Node | null = node;
+	while (current) {
+		if (current === target || target.contains(current)) {
+			return true;
+		}
+		const root = current.getRootNode();
+		current = root instanceof ShadowRoot ? root.host : null;
+	}
+	return false;
+};
+
 const readActiveElement = (): Element | null => {
 	let active = document.activeElement;
 	while (active?.shadowRoot?.activeElement) {
@@ -325,8 +341,13 @@ export const setupFocusTrap = function setupFocusTrap(
 			const target = initialTarget();
 			target.focus({ preventScroll: true });
 			// A control the browser would not focus after all leaves focus
-			// outside the modal; the container is always focusable.
-			if (target !== container && readActiveElement() !== target) {
+			// outside the modal; the container is always focusable. A shadow
+			// host that delegates focus reports the inner element as active,
+			// so containment is checked across shadow boundaries.
+			if (
+				target !== container &&
+				!containsComposed(target, readActiveElement())
+			) {
 				container.focus({ preventScroll: true });
 			}
 		} catch {

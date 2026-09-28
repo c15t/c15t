@@ -272,6 +272,7 @@
 				role="dialog"
 				aria-modal={preferences.blocking ? 'true' : undefined}
 				aria-label={iabT.preferenceCenter.title}
+				aria-describedby="iab-consent-dialog-description"
 				tabindex="-1"
 				use:focusTrap={{
 					enabled: preferences.blocking,
@@ -286,7 +287,10 @@
 						<h2 class={noStyle ? '' : styles.title || ''}>
 							{iabT.preferenceCenter.title}
 						</h2>
-						<p class={noStyle ? '' : styles.description || ''}>
+						<p
+							class={noStyle ? '' : styles.description || ''}
+							id="iab-consent-dialog-description"
+						>
 							{iabT.preferenceCenter.description}
 						</p>
 					</div>

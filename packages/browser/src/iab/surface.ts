@@ -130,6 +130,7 @@ export const createIABSurface = (
 			? t.preferenceCenter.title
 			: (bannerOptions.title ?? t.banner.title);
 		const content = h('div', {
+			'aria-describedby': dialog ? `${prefix}-description` : undefined,
 			'aria-labelledby': `${prefix}-title`,
 			'aria-modal': actions.blocking ? 'true' : undefined,
 			class: css(styles.card),
@@ -176,7 +177,7 @@ export const createIABSurface = (
 			headerCopy.append(
 				h(
 					'p',
-					{ class: css(styles.description) },
+					{ class: css(styles.description), id: `${prefix}-description` },
 					t.preferenceCenter.description
 				)
 			);

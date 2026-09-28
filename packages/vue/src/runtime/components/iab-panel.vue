@@ -397,6 +397,7 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 						role="dialog"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.preferenceCenter?.title"
+						aria-describedby="iab-consent-dialog-description"
 						tabindex="-1"
 						@keydown="onDialogKeydown"
 					>
@@ -417,6 +418,7 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 								<p
 									v-bind="config.components?.['iab-dialog']?.description"
 									:class="dialogStyles.description"
+									id="iab-consent-dialog-description"
 								>
 									{{ iabT?.preferenceCenter?.description }}
 								</p>

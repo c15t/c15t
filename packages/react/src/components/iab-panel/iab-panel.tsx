@@ -577,6 +577,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					<div
 						{...cardProps}
 						ref={cardRef}
+						aria-describedby="iab-consent-dialog-description"
 						aria-label={iabTranslations.preferenceCenter.title}
 						aria-modal={config.trapFocus ? 'true' : undefined}
 						// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- A native `dialog` brings the user agent's 1em padding, which the card sets for itself.
@@ -590,7 +591,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 								<h2 {...titleProps}>
 									{iabTranslations.preferenceCenter.title}
 								</h2>
-								<p {...descriptionProps}>
+								<p
+									{...descriptionProps}
+									id="iab-consent-dialog-description"
+								>
 									{iabTranslations.preferenceCenter.description}
 								</p>
 							</div>
