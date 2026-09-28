@@ -41,6 +41,7 @@ import { logRocket } from '../src/vendors/analytics/logrocket';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
+import { oneDollarStats } from '../src/vendors/analytics/one-dollar-stats';
 import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
 import { posthog } from '../src/vendors/analytics/posthog';
@@ -826,6 +827,23 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 
 		tier: 'full',
 		vendor: 'posthog',
+	},
+	{
+		createScript: () =>
+			oneDollarStats({ devmode: 'true', hostname: 'c15t-live-probe.invalid' }),
+		loaderUrlSubstring: 'assets.onedollarstats.com/stonks.js',
+		runtimeCheck: () => {
+			const { stonks } = window as Window & {
+				stonks?: { event?: unknown; view?: unknown };
+			};
+			return check(
+				typeof stonks?.view === 'function' &&
+					typeof stonks?.event === 'function',
+				'window.stonks view and event present after loader executed'
+			);
+		},
+		tier: 'full',
+		vendor: 'one-dollar-stats',
 	},
 	{
 		createScript: () =>

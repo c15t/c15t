@@ -293,6 +293,7 @@ export default defineDocsConfig({
 						'heap',
 						'matomo-analytics',
 						'mixpanel-analytics',
+						'one-dollar-stats',
 						'hotjar',
 						'hightouch',
 						'logrocket',

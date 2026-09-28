@@ -1,0 +1,53 @@
+---
+title: OneDollarStats
+description: Load the OneDollarStats tracker with measurement permission, forward its settings and verify loading and revocation.
+group: integrations
+---
+
+## Configure OneDollarStats
+
+OneDollarStats needs no API key. The helper loads the tracker after
+measurement permission and forwards its settings as `data-*` attributes.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { oneDollarStats } from '@c15t/scripts/one-dollar-stats';
+
+export const scripts = [oneDollarStats()];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+Every setting is a string without the `data-` prefix. Setting names use
+lowercase letters, digits and hyphens. Unknown names are forwarded so newer
+tracker settings work.
+
+| Option | Behavior |
+| --- | --- |
+| `hostname` | Bare host, optionally with a port. Overrides the event hostname on every host, including production. |
+| `devmode` | `'true'` records local visits. Local testing needs `hostname` as well. |
+| `autocollect` | `'false'` turns off automatic page view and click collection. |
+| `hash-routing` | `'true'` tracks hash routes. `'false'` omits the attribute, because the tracker turns hash routing on whenever it is present. |
+| `url` | Custom collection endpoint. |
+
+The tracker follows client-side navigation itself. See the
+[vendor reference](https://docs.onedollarstats.com/installation) for its
+settings.
+
+## Consent behavior
+
+Measurement permission gates the tracker. The tracker installs history hooks
+and event listeners that removing its script cannot undo, so c15t reloads the
+page when a visitor revokes measurement permission. Keep
+`reloadOnConsentRevoked` enabled, and check measurement permission before any
+manual tracking call.
+
+## Verify the integration
+
+Use a fresh session with an opt-in policy and confirm the tracker is absent.
+Grant `measurement`, navigate between routes and confirm page views arrive. Then
+revoke it, confirm the page reloads, and check that later navigation sends no
+events. Follow the [consent verification guide](/docs/guides/verify-consent).

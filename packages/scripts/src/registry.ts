@@ -228,6 +228,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'measurement',
+		docsSlug: 'one-dollar-stats',
+		hint: 'Website analytics with no API key',
+		integrationCategory: 'analytics',
+		key: 'oneDollarStats',
+		label: 'OneDollarStats',
+		packageSubpath: 'one-dollar-stats',
+		vendor: 'one-dollar-stats',
+	},
+	{
+		consentCategory: 'measurement',
 		docsSlug: 'hotjar',
 		hint: 'Heatmaps and session recordings',
 		integrationCategory: 'analytics',
