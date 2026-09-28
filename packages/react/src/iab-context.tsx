@@ -262,9 +262,12 @@ export const useIAB = function useIAB(): ReactIABState | null {
 			// Intentionally empty.
 		};
 		// Rendering keys on kernel state so a server-resolved GVL renders the
-		// IAB surfaces into the first HTML. Until the provider's effect has
-		// created the handle, actions queue through `run` and replay against
-		// it; outside any IAB provider they are no-ops.
+		// IAB surfaces into the first HTML. Every action goes through the
+		// provider's `run`, even when this render already has a handle: `run`
+		// acts at once on the current handle, queues until the provider creates
+		// one, and aborts an action from a result kept across a runtime switch
+		// instead of applying it to the previous runtime's handle. Outside any
+		// IAB provider there is no handle and actions are no-ops.
 		const deferred =
 			iabContext?.run ??
 			((action: (mounted: IABHandle) => void | Promise<void>) =>
@@ -274,10 +277,6 @@ export const useIAB = function useIAB(): ReactIABState | null {
 				method: (mounted: IABHandle) => (...args: Args) => void
 			) =>
 			(...args: Args) => {
-				if (handle) {
-					method(handle)(...args);
-					return;
-				}
 				void deferred((mounted) => method(mounted)(...args));
 			};
 
@@ -297,8 +296,7 @@ export const useIAB = function useIAB(): ReactIABState | null {
 			nonIABVendors: iabContext?.customVendors ?? iab.customVendors,
 			preferenceCenterTab: iabContext?.tab ?? 'purposes',
 			rejectAll: act((mounted) => mounted.rejectAll),
-			save: () =>
-				handle ? handle.save() : deferred((mounted) => mounted.save()),
+			save: () => deferred((mounted) => mounted.save()),
 			setPreferenceCenterTab: iabContext?.setTab ?? noop,
 			setPurposeConsent: act((mounted) => mounted.setPurposeConsent),
 			setPurposeLegitimateInterest: act(

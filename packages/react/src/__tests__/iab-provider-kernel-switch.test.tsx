@@ -122,6 +122,16 @@ const SwitchActor = ({
 	return null;
 };
 
+/** Reports every render's kernel and `useIAB()` result. */
+const StateProbe = ({
+	onState,
+}: {
+	onState: (kernel: ConsentKernel | null, state: ReactIABState | null) => void;
+}) => {
+	onState(useContext(KernelContext), useIAB());
+	return null;
+};
+
 describe('IABProvider when the context kernel changes', () => {
 	test('actions taken in a layout effect right after the switch reach the new kernel', async () => {
 		const first = createKernel();
@@ -249,6 +259,55 @@ describe('IABProvider when the context kernel changes', () => {
 			expect(handleOf(first).save).not.toHaveBeenCalled();
 			expect(handleOf(second).save).not.toHaveBeenCalled();
 			expect(handleOf(first).dispose).toHaveBeenCalledOnce();
+		} finally {
+			screen.unmount();
+		}
+	});
+
+	test('a useIAB result kept from before the switch cannot act on either kernel', async () => {
+		const first = createKernel();
+		const second = createKernel();
+		let latest: { kernel: ConsentKernel | null; state: ReactIABState | null } =
+			{ kernel: null, state: null };
+		const onState = (
+			kernel: ConsentKernel | null,
+			state: ReactIABState | null
+		) => {
+			latest = { kernel, state };
+		};
+		const tree = (kernel: ConsentKernel) => (
+			<KernelContext.Provider value={kernel}>
+				<IABProvider cmpId={42}>
+					<StateProbe onState={onState} />
+				</IABProvider>
+			</KernelContext.Provider>
+		);
+		const screen = await render(tree(first));
+		try {
+			// Wait for a render on the first kernel with its handle published,
+			// so the kept result would act on that handle directly.
+			await vi.waitFor(() => expect(iab.handles.has(first)).toBe(true));
+			await screen.rerender(tree(first));
+			const retained = latest.state;
+			expect(latest.kernel).toBe(first);
+			retained?.acceptAll();
+			expect(handleOf(first).acceptAll).toHaveBeenCalledOnce();
+			handleOf(first).acceptAll.mockClear();
+
+			await screen.rerender(tree(second));
+			await vi.waitFor(() => expect(iab.handles.has(second)).toBe(true));
+
+			retained?.acceptAll();
+			retained?.setPurposeConsent(1, true);
+			await expect(retained?.save()).rejects.toMatchObject({
+				name: 'AbortError',
+			});
+
+			for (const handle of [handleOf(first), handleOf(second)]) {
+				expect(handle.acceptAll).not.toHaveBeenCalled();
+				expect(handle.setPurposeConsent).not.toHaveBeenCalled();
+				expect(handle.save).not.toHaveBeenCalled();
+			}
 		} finally {
 			screen.unmount();
 		}

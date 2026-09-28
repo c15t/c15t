@@ -17,13 +17,18 @@ An open preference UI switches too. `ConsentDraftProvider`,
 the previous runtime and start a new one from the new runtime's record, so a
 save only records into the new runtime. A draft inherited from an outer
 `ConsentDraftProvider` is only shared while both providers use the same
-runtime, so a nested provider on another runtime keeps its own.
+runtime, so a nested provider on another runtime keeps its own. A draft
+handle kept from before the switch, for example by an async submit, no longer
+saves: `save()` resolves `{ ok: false }` and records into neither runtime. A
+handle kept after the preference UI unmounts, with no switch, still saves.
 
 `IABProvider` stops exposing the previous runtime's handle. An IAB action
 taken right after the switch waits for the new runtime's handle, including
 when you switch back to a runtime the provider rendered before. An action
 still addressed to the previous runtime rejects with an `AbortError` and is
-not applied to either runtime. Actions still waiting when `IABProvider`
-unmounts, for example because its CMP failed to start, also reject with an
-`AbortError` instead of never settling. Moving between a borrowed runtime and one the
-provider creates still requires a remount.
+not applied to either runtime. That includes actions on a `useIAB()` result
+kept from before the switch: its `save()` rejects and its setters do nothing.
+Actions still waiting when `IABProvider` unmounts, for example because its
+CMP failed to start, also reject with an `AbortError` instead of never
+settling. Moving between a borrowed runtime and one the provider creates
+still requires a remount.
