@@ -331,7 +331,7 @@ omits both the default backdrop and a supplied `overlay`. To retain a custom
 backdrop when migrating from `trapFocus: false`, set
 `presentation.preferences.blocking: true` and keep your `overlay` prop.
 
-## Next.js and TanStack Start renames
+## Next.js, TanStack Start, Svelte and Astro renames
 
 These names changed without deprecated aliases. `defineConsentConfig`,
 `ConsentConfig` (the URL config) and `ConsentProvider` from `@c15t/react` are
@@ -366,6 +366,22 @@ TanStack Start (`c15t/tanstack-start`, `c15t/tanstack-start/server`):
 
 `consentLoaderOptions`, `backendURL`, `initRoute` and `DEFAULT_INIT_ROUTE` are
 unchanged.
+
+Svelte (`@c15t/svelte/server`, `@c15t/svelte/kit`):
+
+| v2 | v3 |
+| --- | --- |
+| `prefetchInitialConsent(options)` | `resolveConsent(options)` with `backendURL` |
+| `readInitialConsentConfig(options)` | `resolveConsent(options)` without `backendURL` |
+| `KernelConfig` where it named the returned value | `ConsentState` |
+| `PrefetchInitialConsentOptions`, `ReadInitialConsentConfigOptions` | `ResolveConsentOptions` |
+
+`loadConsent`, `c15tHandle` and `event.locals.c15t.config` now use
+`ConsentState`. `ConsentRequestOptions` is also exported from
+`@c15t/svelte/server`.
+
+Astro (`@c15t/astro/server`): `readInitialConsentConfig` is no longer
+exported. Use `resolveConsentContext`, which the middleware already calls.
 
 ## `Frame` is now `ConsentGate`
 

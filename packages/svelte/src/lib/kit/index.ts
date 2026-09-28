@@ -29,6 +29,7 @@ export type {
 	ConsentManifestOptions,
 	ConsentRequestInputs,
 	ConsentRequestOptions,
+	ConsentState,
 } from './types';
 
 export type { KernelConfig } from '@c15t/core';
