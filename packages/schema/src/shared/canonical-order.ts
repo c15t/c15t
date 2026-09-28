@@ -38,18 +38,30 @@ for (let index = 0; index < ASCII_ORDER.length; index += 1) {
 	}
 }
 
-const isPrintableAscii = function isPrintableAscii(value: string): boolean {
-	for (let index = 0; index < value.length; index += 1) {
-		const code = value.charCodeAt(index);
-		if (code < FIRST_PRINTABLE || code > LAST_PRINTABLE) {
-			return false;
-		}
-	}
-	return true;
+const isPrintable = function isPrintable(code: number): boolean {
+	return code >= FIRST_PRINTABLE && code <= LAST_PRINTABLE;
 };
 
 const isUppercase = function isUppercase(code: number): boolean {
 	return code >= UPPER_A && code <= UPPER_Z;
+};
+
+const hasNonPrintable = function hasNonPrintable(
+	value: string,
+	from: number
+): boolean {
+	for (let index = from; index < value.length; index += 1) {
+		if (!isPrintable(value.charCodeAt(index))) {
+			return true;
+		}
+	}
+	return false;
+};
+
+const collate = function collate(left: string, right: string): number {
+	// The table above is the `en` order, so the fallback must be too;
+	// mixing it with the runtime locale would not give a total order.
+	return left.localeCompare(right, 'en');
 };
 
 /**
@@ -70,29 +82,33 @@ export const compareCanonical = function compareCanonical(
 	left: string,
 	right: string
 ): number {
-	if (!(isPrintableAscii(left) && isPrintableAscii(right))) {
-		// The table above is the `en` order, so the fallback must be too;
-		// mixing it with the runtime locale would not give a total order.
-		return left.localeCompare(right, 'en');
-	}
+	// One pass, leaving at the first primary difference: the sorts on the
+	// init path compare short strings thousands of times, so this has to
+	// cost no more than the collator it replaces.
 	const shared = Math.min(left.length, right.length);
+	let caseDifference = 0;
 	for (let index = 0; index < shared; index += 1) {
-		const difference =
-			(PRIMARY[left.charCodeAt(index)] as number) -
-			(PRIMARY[right.charCodeAt(index)] as number);
-		if (difference !== 0) {
-			return difference;
+		const leftCode = left.charCodeAt(index);
+		const rightCode = right.charCodeAt(index);
+		if (!(isPrintable(leftCode) && isPrintable(rightCode))) {
+			return collate(left, right);
 		}
+		if (leftCode !== rightCode) {
+			const difference =
+				(PRIMARY[leftCode] as number) - (PRIMARY[rightCode] as number);
+			if (difference !== 0) {
+				return difference;
+			}
+			if (caseDifference === 0) {
+				caseDifference = isUppercase(leftCode) ? 1 : -1;
+			}
+		}
+	}
+	if (hasNonPrintable(left, shared) || hasNonPrintable(right, shared)) {
+		return collate(left, right);
 	}
 	if (left.length !== right.length) {
 		return left.length - right.length;
 	}
-	for (let index = 0; index < shared; index += 1) {
-		const leftUpper = isUppercase(left.charCodeAt(index));
-		const rightUpper = isUppercase(right.charCodeAt(index));
-		if (leftUpper !== rightUpper) {
-			return leftUpper ? 1 : -1;
-		}
-	}
-	return 0;
+	return caseDifference;
 };
