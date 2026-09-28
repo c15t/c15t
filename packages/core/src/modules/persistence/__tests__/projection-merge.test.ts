@@ -264,3 +264,48 @@ describe('directive merge order', () => {
 		expect(directivesToWrite(cookie, local)).toEqual(readOrder);
 	});
 });
+
+describe('consent envelope ties between the copies', () => {
+	const at = (value: boolean, confirmedAt: number) => ({
+		basis,
+		confirmedAt,
+		value,
+	});
+
+	it('lets a local denial win over a cookie grant from the same millisecond', () => {
+		both(
+			STORAGE_KEY_V2,
+			encodeStoredConsentEnvelopeCompact({
+				categories: { marketing: at(true, T - 1000) },
+				version: 3,
+			}),
+			encodeStoredConsentEnvelopeJson({
+				categories: { marketing: at(false, T - 1000) },
+				version: 3,
+			})
+		);
+
+		const { records } = readStoredRecords(undefined, T);
+		expect(records.choice?.categories.marketing?.value).toBe(false);
+	});
+
+	it('keeps the subject a local-only acknowledgement stored', () => {
+		const categories = { marketing: at(false, T - 1000) };
+		both(
+			STORAGE_KEY_V2,
+			encodeStoredConsentEnvelopeCompact({
+				categories,
+				subject: { subjectId: 'sub_generated' },
+				version: 3,
+			}),
+			encodeStoredConsentEnvelopeJson({
+				categories,
+				subject: { subjectId: 'sub_server' },
+				version: 3,
+			})
+		);
+
+		const { records } = readStoredRecords(undefined, T);
+		expect(records.subject?.subjectId).toBe('sub_server');
+	});
+});

@@ -58,6 +58,7 @@ import {
 } from '../../libs/storage-keys';
 import { mergeDirectives } from './directives';
 import { choiceSinceEpoch } from './epoch';
+import { sameRecord } from './reconcile';
 import {
 	decodeClearEpoch,
 	decodeNoticeDismissal,
@@ -623,6 +624,28 @@ const categoriesSinceEpoch = function categoriesSinceEpoch(
  * same rule then applies, so a later epoch never lets a local grant replace
  * a cookie denial.
  */
+/**
+ * The cookie record, carrying the local copy's subject when the two hold
+ * exactly the same decisions but different subjects. A subject-only
+ * rewrite (the id a save response resolved) changes nothing else, so this
+ * is the cookie write the browser dropped, most often for size; a failed
+ * localStorage write is reported and a blocked one leaves no copy at all.
+ */
+const withLocalSubject = function withLocalSubject(
+	cookie: DecodedStoredConsent,
+	local: DecodedStoredConsent
+): DecodedStoredConsent {
+	if (
+		local.epoch !== cookie.epoch ||
+		!local.subject ||
+		sameRecord(local.subject, cookie.subject) ||
+		!sameRecord(local.choice.categories, cookie.choice.categories)
+	) {
+		return cookie;
+	}
+	return { ...cookie, subject: local.subject };
+};
+
 const withNewerLocalDenials = function withNewerLocalDenials(
 	cookie: DecodedStoredConsent,
 	local: DecodedStoredConsent
@@ -637,17 +660,22 @@ const withNewerLocalDenials = function withNewerLocalDenials(
 		categoriesSinceEpoch(local, epoch)
 	)) {
 		const current = categories[category as keyof typeof categories];
+		// A denial from the same millisecond as a cookie grant wins too: two
+		// conflicting decisions that cannot be ordered fall back to the
+		// restrictive one.
 		if (
 			decision &&
 			decision.value === false &&
-			(!current || decision.confirmedAt > current.confirmedAt)
+			(!current ||
+				decision.confirmedAt > current.confirmedAt ||
+				(decision.confirmedAt === current.confirmedAt && current.value))
 		) {
 			categories[category as keyof typeof categories] = decision;
 			changed = true;
 		}
 	}
 	if (!changed) {
-		return cookie;
+		return withLocalSubject(cookie, local);
 	}
 	// The subject and IAB metadata belong to the clear history they were
 	// written in. A copy from before the later epoch never saw that clear,
