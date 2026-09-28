@@ -81,5 +81,7 @@ export const devToolsProviderOptions = {
 	persistence: false,
 	prefetch: devToolsPrefetch,
 	presentation: devToolsPresentation,
+	// Keep the accept/reject play sequence in one document.
+	reloadOnConsentRevoked: false,
 	scripts: devToolsScripts,
 };
