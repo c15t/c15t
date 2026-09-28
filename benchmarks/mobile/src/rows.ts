@@ -265,7 +265,7 @@ export const ROWS = {
 		unit: 'count',
 	},
 	kotlinBootstrapCold: {
-		budgetKey: 'native_bootstrap_to_snapshot_cold_ms',
+		budgetKey: 'kotlin_bootstrap_to_snapshot_cold_ms',
 		id: 'kotlin_bootstrap_to_snapshot_cold_ms',
 		label: 'bootstrap() to first snapshot(), cold',
 		surface: 'kotlin-core',
@@ -300,7 +300,7 @@ export const ROWS = {
 		unit: 'us',
 	},
 	kotlinSnapshotAndAllowed: {
-		budgetKey: 'native_is_allowed_us',
+		budgetKey: 'kotlin_snapshot_plus_is_allowed_us',
 		id: 'kotlin_snapshot_plus_is_allowed_us',
 		label: 'snapshot() plus three isAllowed() reads',
 		surface: 'kotlin-core',

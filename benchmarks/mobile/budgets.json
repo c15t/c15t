@@ -244,6 +244,18 @@
 			"unit": "count",
 			"source": "allowance",
 			"note": "Modules reachable from the built entry, which is the version of this budget that cannot be hidden by minifying. Measured 48: 46 from this package plus the consent-category module and the one-line alias that exports it. 80 is the ceiling, set with room for the components still to come, because the barrel edge announced itself as 131 modules well before anybody read the byte row."
+		},
+		"kotlin_bootstrap_to_snapshot_cold_ms": {
+			"max": 40,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "bootstrap() to first synchronous snapshot(), cold, on the Kotlin core. The contract's 15 ms is a device-profile number and the Swift row keeps it; this row runs in a fresh JVM on a shared Ubuntu runner, where it measured 14.2 to 14.9 ms, most of it class loading. 40 ms is a blow-up guard rather than a promise, so a slow runner does not fail a row the device never sees."
+		},
+		"kotlin_snapshot_plus_is_allowed_us": {
+			"max": 10,
+			"unit": "us",
+			"source": "allowance",
+			"note": "snapshot() plus three isAllowed() reads on the Kotlin core. The contract's requirement is that neither read touches I/O; the Swift row keeps the 2 us guard. On a shared runner's JVM this measured 1.5 to 1.8 us, so 2 us fails on scheduler noise. 10 us still catches an I/O read, which costs tens of microseconds at the least."
 		}
 	}
 }
