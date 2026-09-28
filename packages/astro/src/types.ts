@@ -97,9 +97,10 @@ export type C15tUIAdapterName = 'svelte' | 'react' | 'vue';
  * Dark mode is the `c15t-dark` class on `<html>`, not a
  * `prefers-color-scheme` block, so something has to set it. `'system'`
  * follows `prefers-color-scheme` and keeps following it; `'light'` and
- * `'dark'` pin it.
+ * `'dark'` pin it. `'none'` leaves the class to the site: c15t never adds
+ * or removes it, so a site with its own theme switch toggles it itself.
  */
-export type C15tColorScheme = 'light' | 'dark' | 'system';
+export type C15tColorScheme = 'light' | 'dark' | 'system' | 'none';
 
 /** Route paths the integration can inject. */
 export interface C15tEndpointOptions {
@@ -223,6 +224,10 @@ export interface C15tAstroOptions {
 	 * the visitor changes it. `<ConsentScript />` writes the class from a
 	 * tiny inline script in `<head>`, so the server-rendered banner is
 	 * already dark on its first paint rather than flashing light.
+	 *
+	 * `'none'` hands the `c15t-dark` class on `<html>` to the site: c15t
+	 * neither sets nor clears it, on boot, on ClientRouter navigation or when
+	 * a dialog opens. Use it when the site's own theme switch toggles it.
 	 *
 	 * @default 'system'
 	 */

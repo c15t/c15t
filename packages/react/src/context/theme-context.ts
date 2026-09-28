@@ -51,10 +51,10 @@ export interface ThemeContextValue {
 	trapFocus?: boolean;
 
 	/**
-	 * Color scheme preference.
+	 * Color scheme preference. `null` when the provider leaves the class alone.
 	 * @default 'system'
 	 */
-	colorScheme?: 'light' | 'dark' | 'system';
+	colorScheme?: 'light' | 'dark' | 'system' | null;
 }
 
 /**

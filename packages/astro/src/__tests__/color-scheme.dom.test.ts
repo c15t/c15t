@@ -14,6 +14,9 @@ import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import type { C15tAstroOptions, C15tColorScheme } from '../types';
+import { registerDialogAdapter, registerDialogSurface } from '../ui/adapter';
+import { reactDialogAdapter } from '../ui/react';
+import { testRule } from './policy-fixture';
 
 interface MediaQueryStub {
 	matches: boolean;
@@ -45,9 +48,10 @@ const stubMatchMedia = function stubMatchMedia(matches: boolean): void {
 };
 
 const start = function start(
-	colorScheme?: C15tColorScheme
+	colorScheme?: C15tColorScheme,
+	extra: Partial<C15tAstroOptions> = {}
 ): AstroConsentClient {
-	const options: C15tAstroOptions = { mode: offlineMode() };
+	const options: C15tAstroOptions = { mode: offlineMode(), ...extra };
 	if (colorScheme) {
 		options.colorScheme = colorScheme;
 	}
@@ -68,6 +72,7 @@ beforeEach(() => {
 afterEach(() => {
 	client?.dispose();
 	client = null;
+	document.getElementById('c15t-dialog-host')?.remove();
 	vi.unstubAllGlobals();
 });
 
@@ -156,5 +161,78 @@ describe('dispose', () => {
 		expect(
 			(window as unknown as Record<string, unknown>).__c15tAstroColorScheme
 		).toBeUndefined();
+	});
+});
+
+describe("colorScheme: 'none'", () => {
+	it('leaves a class the site set through boot and navigation', () => {
+		stubMatchMedia(false);
+		document.documentElement.classList.add('c15t-dark');
+		start('none');
+		expect(isDark()).toBe(true);
+		expect(media.listeners.size).toBe(0);
+
+		// The site's own after-swap handler has already re-applied its theme.
+		document.dispatchEvent(new Event('astro:after-swap'));
+		expect(isDark()).toBe(true);
+	});
+
+	it('adds no class when the system is dark', () => {
+		stubMatchMedia(true);
+		start('none');
+		expect(isDark()).toBe(false);
+
+		document.dispatchEvent(new Event('astro:after-swap'));
+		expect(isDark()).toBe(false);
+		expect(media.listeners.size).toBe(0);
+	});
+});
+
+describe('opening the React dialog', () => {
+	const openReactDialog = async function openReactDialog(
+		colorScheme: C15tColorScheme
+	): Promise<void> {
+		registerDialogAdapter('react', () => Promise.resolve(reactDialogAdapter));
+		registerDialogSurface(
+			'react',
+			() => import('../components/islands/panel-surface')
+		);
+		const opened = start(colorScheme, {
+			mode: offlineMode({ policyRules: [testRule] }),
+			ui: 'react',
+		});
+		await opened.openDialog();
+		await vi.waitFor(() =>
+			expect(
+				document.querySelector(
+					'[data-testid="consent-widget-footer-save-button"]'
+				)
+			).not.toBeNull()
+		);
+	};
+
+	it('keeps a pinned dark scheme on a page without a .dark class', async () => {
+		await openReactDialog('dark');
+		expect(isDark()).toBe(true);
+
+		// A class change on `<html>` is what a provider watching for `.dark`
+		// would react to.
+		document.documentElement.classList.add('site-theme');
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(isDark()).toBe(true);
+	});
+
+	it("leaves the site's class alone with colorScheme: 'none'", async () => {
+		document.documentElement.classList.add('c15t-dark');
+		await openReactDialog('none');
+		expect(isDark()).toBe(true);
+
+		document.documentElement.classList.remove('c15t-dark');
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(isDark()).toBe(false);
 	});
 });

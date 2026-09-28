@@ -18,6 +18,15 @@ import type { C15tResolvedOptions } from '../types';
  * widening to `Record<string, unknown>` and casting it back.
  */
 export interface DialogPresentationOptions {
+	/**
+	 * Always `null`: the island's provider must leave `c15t-dark` alone.
+	 *
+	 * The page's client boot owns the class on `<html>`, or the site does
+	 * with `colorScheme: 'none'`. A provider given no scheme falls back to
+	 * mirroring a `.dark` class and watching `<html>` while it is mounted,
+	 * so opening a dialog on a page without `.dark` would turn it light.
+	 */
+	colorScheme: null;
 	consentCategories?: C15tResolvedOptions['consentCategories'];
 	legalLinks?: C15tResolvedOptions['legalLinks'];
 	presentation?: C15tResolvedOptions['presentation'];
@@ -45,6 +54,7 @@ export const buildProviderProps = function buildProviderProps(
 ): DialogProviderProps {
 	return {
 		options: {
+			colorScheme: null,
 			consentCategories: options.consentCategories,
 			legalLinks: options.legalLinks,
 			presentation: options.presentation,

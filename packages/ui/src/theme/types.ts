@@ -478,10 +478,11 @@ export interface UIOptions {
 	 * Color scheme preference.
 	 * With this option, you can force the theme to be light, dark or system.
 	 * Otherwise, the theme will be detected if you have '.dark' classname in your document.
+	 * `null` leaves the `c15t-dark` class on `<html>` to something else.
 	 *
 	 * @see https://c15t.com/docs/frameworks/react/styling/color-scheme
 	 */
-	colorScheme?: 'light' | 'dark' | 'system';
+	colorScheme?: 'light' | 'dark' | 'system' | null;
 
 	/**
 	 * Whether to disable default styles.

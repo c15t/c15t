@@ -197,6 +197,34 @@ server-rendered banner and the dialog islands share them from the first paint.
 A `theme` in the client entrypoint only adds slot styles and `consentActions`;
 put tokens in the integration's `theme`.
 
+### Color scheme
+
+The banner and dialogs turn dark when `<html>` has the `c15t-dark` class. The
+integration's `colorScheme` option decides who sets it:
+
+| Value | Behavior |
+| --- | --- |
+| `'system'` (default) | Follows `prefers-color-scheme`, including changes while the page is open. |
+| `'dark'` | Always adds the class. |
+| `'light'` | Always removes the class. |
+| `'none'` | Never adds or removes the class. Your site sets it. |
+
+With the first three values, `ConsentScript` applies the setting before the
+first paint, and the browser runtime applies it again after each ClientRouter
+navigation. Opening a preference dialog does not change the class.
+
+Use `'none'` when your site has its own theme switch. Toggle `c15t-dark` on
+`<html>` together with your own dark class, and set it again after
+ClientRouter navigations if your theme script does not already run on
+`astro:after-swap`:
+
+```js title="astro.config.mjs"
+c15t({
+  mode: hosted({ url: backendURL }),
+  colorScheme: 'none',
+});
+```
+
 Keep the c15t stylesheet when you restyle the surfaces. The browser runtime
 hides the banner with the `hidden` attribute, and the stylesheet makes that
 attribute beat the banner's own `display`.

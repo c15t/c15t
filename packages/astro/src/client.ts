@@ -173,6 +173,9 @@ const readInlinedConfig = function readInlinedConfig(): KernelConfig {
  * list the swap may have replaced: re-applying needs to drop the previous
  * listener first, or every navigation leaks one.
  *
+ * `'none'` drops any previous listener and stops there: the site owns the
+ * class, so whatever it has put on `<html>` stays.
+ *
  * @param colorScheme - The resolved colour scheme.
  */
 const applyColorScheme = function applyColorScheme(
@@ -184,6 +187,9 @@ const applyColorScheme = function applyColorScheme(
 	}
 	browserWindow[COLOR_SCHEME_KEY]?.();
 	browserWindow[COLOR_SCHEME_KEY] = undefined;
+	if (colorScheme === 'none') {
+		return;
+	}
 
 	// `setupColorScheme` reaches for `matchMedia` whichever scheme it is
 	// given, and a few embedded webviews do not have it. The boot is the

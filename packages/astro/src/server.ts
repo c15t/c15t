@@ -808,7 +808,8 @@ export const buildThemeCSS = function buildThemeCSS(
  * module script would be deferred and lose the race.
  *
  * `'light'` emits nothing. Light is the absence of the class, so there is
- * nothing to do before paint.
+ * nothing to do before paint. `'none'` emits nothing either: the site owns
+ * the class and sets it itself.
  *
  * @param colorScheme - The resolved colour scheme.
  * @returns Script source, or an empty string when none is needed.
@@ -820,7 +821,7 @@ export const buildThemeCSS = function buildThemeCSS(
 export const buildColorSchemeScript = function buildColorSchemeScript(
 	colorScheme: C15tColorScheme
 ): string {
-	if (colorScheme === 'light') {
+	if (colorScheme === 'light' || colorScheme === 'none') {
 		return '';
 	}
 	if (colorScheme === 'dark') {
