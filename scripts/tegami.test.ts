@@ -580,11 +580,19 @@ it('drafts the real workspace without bumping private packages or leaving alpha'
 	// Tegami silently ignores malformed note files. Check that none were lost.
 	expect(draft.getChangelogs()).toHaveLength(notes.length);
 	await draft.apply();
-	const manifests = readdirSync(join(root, 'packages')).map((directory) =>
+	const directories = readdirSync(join(root, 'packages'));
+	const manifests = directories.map((directory) =>
 		readManifest(root, directory)
 	);
-	for (const manifest of manifests.filter((pkg) => pkg.private)) {
-		expect(manifest.version).toBeUndefined();
+	// Private packages may carry a placeholder version so published packages
+	// can pack their workspace devDependencies. Tegami must leave it alone.
+	const privateDirectories = directories.filter(
+		(_, index) => manifests[index]?.private
+	);
+	for (const directory of privateDirectories) {
+		expect(readManifest(root, directory).version).toBe(
+			readManifest(repository, directory).version
+		);
 	}
 	for (const manifest of manifests.filter((pkg) => !pkg.private)) {
 		expect(manifest.version).toMatch(/^3\.0\.0-alpha\.\d+$/u);
