@@ -552,12 +552,14 @@ export interface ReconciledRecords {
  * The in-memory records as the clear epoch leaves them: decisions confirmed
  * before `epoch` are void. When the epoch moved past the one this runtime
  * last saw, another runtime cleared the records and the subject in memory
- * belongs to the cleared history, so it does not survive either.
+ * belongs to the cleared history, so it does not survive either, unless a
+ * save made after the epoch generated it (`subjectSurvives`).
  */
 const sinceEpoch = function sinceEpoch(
 	snapshot: ConsentSnapshot,
 	epoch: number,
-	clearMissed: boolean
+	clearMissed: boolean,
+	subjectSurvives: boolean
 ): ConsentSnapshot {
 	return {
 		...snapshot,
@@ -568,7 +570,7 @@ const sinceEpoch = function sinceEpoch(
 		),
 		noticeDismissal: noticeSinceEpoch(snapshot.noticeDismissal, epoch),
 		optOutDirectives: directivesSinceEpoch(snapshot.optOutDirectives, epoch),
-		subject: clearMissed ? null : snapshot.subject,
+		subject: clearMissed && !subjectSurvives ? null : snapshot.subject,
 		vendorChoice: vendorChoiceSinceEpoch(snapshot.vendorChoice, epoch),
 	};
 };
@@ -614,6 +616,9 @@ const applyVoided = function applyVoided(
  * @param unadopted - Records this runtime wrote with parts memory lacks;
  * they count as changed even when storage still holds what was written.
  * @param memoryEpoch - The clear epoch the in-memory records belong to.
+ * @param subjectBornAfterEpoch - Whether a save made after the stored epoch
+ * generated the in-memory subject, so it survives a clear this runtime
+ * missed.
  * @returns The records to hydrate and the fingerprints to keep.
  */
 export const selectReconciledRecords = function selectReconciledRecords(
@@ -623,13 +628,19 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	now: number,
 	subjectYields: boolean,
 	unadopted: ReadonlySet<StoredRecordKind>,
-	memoryEpoch: number
+	memoryEpoch: number,
+	subjectBornAfterEpoch = false
 ): ReconciledRecords {
 	const { records: stored } = read;
 	const clearMissed = read.epoch > memoryEpoch;
 	// Reconcile against memory as the clear left it, then drop from the
 	// kernel whatever the clear voided.
-	const view = sinceEpoch(snapshot, read.epoch, clearMissed);
+	const view = sinceEpoch(
+		snapshot,
+		read.epoch,
+		clearMissed,
+		subjectBornAfterEpoch
+	);
 	const current = fingerprintStoredRecords(read);
 	const movement: Movement = {
 		changed: (kind) =>

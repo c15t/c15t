@@ -1171,3 +1171,27 @@ test('reconciling prefers the newer localStorage copy when the cookie write was 
 	active.reconcileStorage();
 	expect(measurement(active)).toBe(false);
 });
+
+test('a subject created with the first choice after a missed clear is kept', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T - 2000);
+	// Opened on empty storage, with no subject.
+	const active = start(threeCategories);
+	const other = start(threeCategories);
+	await other.kernel.commands.save('all');
+	await nextTask();
+	vi.setSystemTime(T - 1000);
+	other.clearRecords();
+
+	// This runtime missed the clear and now makes its first choice.
+	vi.setSystemTime(T);
+	await active.kernel.commands.save({ marketing: false });
+	await nextTask();
+	const created = active.kernel.getSnapshot().subject?.subjectId;
+	expect(created).toBeTruthy();
+
+	expect(storedSubject()?.subjectId).toBe(created);
+	active.reconcileStorage();
+	expect(active.kernel.getSnapshot().subject?.subjectId).toBe(created);
+	expect(decision(active, 'marketing')).toBe(false);
+});
