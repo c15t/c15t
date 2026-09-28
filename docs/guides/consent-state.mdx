@@ -36,6 +36,39 @@ confirmation times. Do not call all three in one handler.
 changes in effective permissions, including changes caused by expiry or privacy
 signals. Hydration must not be counted as another visitor choice.
 
+## When a choice is saved
+
+A save records the choice in the browser first and sends it to the backend
+afterwards. The stock banner, preference dialog and IAB surfaces in every
+framework adapter, and the browser client's `acceptAll()`, `rejectAll()`
+and `save()`, close without waiting for the backend. In order:
+
+1. In the click task, the explicit choice and effective permissions change,
+   `onChoiceRecorded` and `onPermissionsChanged` run, gated scripts, iframes
+   and network rules follow the new permissions, and the surface leaves the
+   active state. Its exit animation still plays.
+2. In the next task, the choice is written to the cookie and localStorage.
+3. After that write is queued, the request to the backend starts.
+4. When the request settles, the kernel emits `command:save:completed`. The
+   promise returned by `kernel.commands.save()`, React's `performAction()` and
+   Svelte's `saveConsents()` resolves or rejects only then.
+
+A failed request does not reopen the surface or roll the choice back. The
+kernel emits `command:error`, which reaches the `onError` callback in adapters
+that accept one, and queues the payload in localStorage. The queue is replayed
+after the next successful initialization and when the browser comes back
+online, up to 10 attempts over 7 days. A replay carries the original action
+time and policy snapshot token, so the backend records when the visitor
+decided, and a duplicate submission resolves to the same consent record. A
+backend that signs policy snapshot tokens rejects a replay made after the
+token expires, which is 30 minutes by default for the self-hosted backend. A
+save still queued by then is recorded only in the browser.
+
+IAB surfaces close in the click task too, but an IAB choice is recorded only
+after its TC string is encoded, which can wait for the TCF library to load.
+If that local step records nothing, for example because the vendor list
+failed to load, the surface comes back so the visitor can try again.
+
 ## Treat notices and privacy signals separately
 
 `commands.dismissNotice()` acknowledges the current notice. It does not grant

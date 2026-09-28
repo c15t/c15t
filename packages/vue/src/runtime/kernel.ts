@@ -52,6 +52,7 @@ import {
 	isServerManifestModeEnabled,
 	resolveClientManifestURL,
 } from './manifest';
+import { invalidateIABChoice } from './utils/save-iab-choice';
 
 export const INIT_HEADER_NAMES = [...CONSENT_REQUEST_HEADER_NAMES] as const;
 
@@ -623,7 +624,10 @@ export const createVueConsentKernelContext =
 		const init = computed(() => snapshotToDisplayData(snapshot.value));
 		const activeUI = computed<ConsentActiveUI>({
 			get: () => toVueActiveUI(snapshot.value.activeUI),
-			set: (value) => kernel.set.activeUI(toKernelActiveUI(value)),
+			set: (value) => {
+				invalidateIABChoice(kernel);
+				kernel.set.activeUI(toKernelActiveUI(value));
+			},
 		});
 		const storedConsent = computed(() => snapshot.value.explicitChoice);
 		const unsubscribeChoice = kernel.events.on(

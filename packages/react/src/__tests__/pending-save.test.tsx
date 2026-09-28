@@ -2,7 +2,7 @@ import type { ConsentKernel } from '@c15t/core';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { useContext, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { useHeadlessConsentUI } from '../component-hooks/use-headless-consent-ui';
 import { useConsentManager } from '../component-hooks/use-manager';
@@ -10,119 +10,216 @@ import { ConsentDialog } from '../components/panel';
 import { KernelContext } from '../context';
 import { ConsentProvider } from '../provider';
 
-for (const action of ['accept', 'reject', 'save'] as const) {
-	test(`actual React dialog preserves ${action} pending and failure`, async () => {
-		const pending = Promise.withResolvers<{ ok: boolean }>();
-		const retry = Promise.withResolvers<{ ok: boolean }>();
-		const save = vi
-			.fn()
-			.mockImplementationOnce(() => pending.promise)
-			.mockImplementationOnce(() => retry.promise);
-		const resolution = resolvePolicyRules({
-			countryCode: null,
-			regionCode: null,
-			rules: [
-				{
-					categories: ['marketing', 'measurement'],
-					id: 'react-pending',
-					match: { isDefault: true },
-					model: 'opt-in',
-					prompt: 'choice',
-					scopeMode: 'permissive',
-				},
-			],
-		});
-		expect(resolution.status).toBe('matched');
-		let kernel!: ConsentKernel;
-		const Capture = () => {
-			const current = useContext(KernelContext);
-			if (!current) {
-				throw new Error('Missing kernel');
-			}
-			useEffect(() => {
-				kernel = current;
-				current.set.activeUI('dialog');
-			}, [current]);
-			return null;
-		};
-		const container = document.createElement('div');
-		document.body.append(container);
-		const view = createRoot(container);
-		view.render(
-			<ConsentProvider
-				options={{
-					enabled: true,
-					mode: Object.assign(() => ({ save }), { kind: 'custom' as const }),
-					persistence: false,
-					prefetch: { initialPolicyResolution: resolution },
-				}}
-			>
-				<Capture />
-				<ConsentDialog disableAnimation />
-			</ConsentProvider>
-		);
-		try {
-			await vi.waitFor(() =>
-				expect(
-					document.querySelector('[data-testid="consent-dialog-root"]')
-				).not.toBeNull()
-			);
-			expect(kernel.getSnapshot().resolution.status).toBe('matched');
-			expect(kernel.getSnapshot().policyRule.id).toBe('react-pending');
-			expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
-			const id = {
-				accept: 'consent-widget-footer-accept-all-button',
-				reject: 'consent-widget-reject-button',
-				save: 'consent-widget-footer-save-button',
-			}[action];
-			const button = document.querySelector<HTMLButtonElement>(
-				`[data-testid="${id}"]`
-			);
-			expect(button).not.toBeNull();
-			const completed = vi.fn();
-			kernel.events.on('command:save:completed', completed);
-			button?.click();
-			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
-			expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
-			expect.soft(kernel.getSnapshot().activeUI).toBe('dialog');
-			expect
-				.soft(document.querySelector('[data-testid="consent-dialog-root"]'))
-				.not.toBeNull();
-			pending.resolve({ ok: false });
-			await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
-			expect(completed.mock.calls[0]?.[0].result.ok).toBe(false);
-			expect.soft(kernel.getSnapshot().activeUI).toBe('dialog');
-			expect
-				.soft(document.querySelector('[data-testid="consent-dialog-root"]'))
-				.not.toBeNull();
-			kernel.set.activeUI('dialog');
-			await vi.waitFor(() =>
-				expect(
-					document.querySelector('[data-testid="consent-dialog-root"]')
-				).not.toBeNull()
-			);
-			document
-				.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`)
-				?.click();
-			await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
-			expect.soft(kernel.getSnapshot().activeUI).toBe('dialog');
-			retry.resolve({ ok: true });
-			await vi.waitFor(() => expect(completed).toHaveBeenCalledTimes(2));
-			expect(completed.mock.calls[1]?.[0].result.ok).toBe(true);
-			await vi.waitFor(() =>
-				expect(kernel.getSnapshot().activeUI).toBe('none')
-			);
-			expect(
-				document.querySelector('[data-testid="consent-dialog-root"]')
-			).toBeNull();
-		} finally {
-			pending.resolve({ ok: false });
-			retry.resolve({ ok: false });
-			view.unmount();
-			container.remove();
-		}
+const STORAGE_KEY = 'c15t';
+const nextFrame = () =>
+	new Promise((resolve) => {
+		requestAnimationFrame(() => resolve(undefined));
 	});
+
+// Browser-mode test files that share a worker run in the same browser
+// context, so localStorage and cookies from an earlier file are still there
+// when this one starts. A stored choice would make the first visitor here a
+// returning one, so clear before each test as well as after.
+const clearStoredConsent = function clearStoredConsent() {
+	localStorage.clear();
+	for (const cookie of document.cookie.split(';')) {
+		const name = cookie.split('=')[0]?.trim();
+		if (name) {
+			document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+		}
+	}
+};
+
+beforeEach(clearStoredConsent);
+afterEach(clearStoredConsent);
+
+const mountDialog = async function mountDialog(
+	save: () => Promise<{ ok: boolean }>
+) {
+	const onError = vi.fn();
+	const onBeforeLoad = vi.fn();
+	const onLoaderReady = vi.fn();
+	let kernel!: ConsentKernel;
+	const Capture = () => {
+		const current = useContext(KernelContext);
+		if (!current) {
+			throw new Error('Missing kernel');
+		}
+		useEffect(() => {
+			kernel = current;
+			current.set.activeUI('dialog');
+		}, [current]);
+		return null;
+	};
+	const container = document.createElement('div');
+	document.body.append(container);
+	const view = createRoot(container);
+	view.render(
+		<ConsentProvider
+			options={{
+				callbacks: { onError },
+				enabled: true,
+				mode: Object.assign(() => ({ save }), { kind: 'custom' as const }),
+				prefetch: {
+					initialPolicyResolution: resolvePolicyRules({
+						countryCode: null,
+						regionCode: null,
+						rules: [
+							{
+								categories: ['marketing', 'measurement'],
+								id: 'react-pending',
+								match: { isDefault: true },
+								model: 'opt-in',
+								prompt: 'choice',
+								scopeMode: 'permissive',
+							},
+						],
+					}),
+				},
+				scripts: [
+					{
+						callbackOnly: true,
+						category: 'marketing',
+						id: 'optimistic-marketing',
+						onBeforeLoad,
+					},
+					{
+						alwaysLoad: true,
+						callbackOnly: true,
+						category: 'necessary',
+						id: 'loader-ready',
+						onBeforeLoad: onLoaderReady,
+					},
+				],
+			}}
+		>
+			<Capture />
+			<ConsentDialog disableAnimation />
+		</ConsentProvider>
+	);
+	const dialog = () =>
+		document.querySelector('[data-testid="consent-dialog-root"]');
+	const dispose = () => {
+		view.unmount();
+		container.remove();
+	};
+	try {
+		await vi.waitFor(() => expect(dialog()).not.toBeNull());
+		// The provider attaches the script loader after a dynamic import, which
+		// can finish after the dialog renders on a loaded machine. Wait for it,
+		// so the click below measures enforcement rather than chunk loading.
+		await vi.waitFor(() => expect(onLoaderReady).toHaveBeenCalledOnce());
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+	} catch (error) {
+		// A dialog left mounted here would satisfy the next test's wait
+		// before that test's own kernel exists.
+		dispose();
+		throw error;
+	}
+	return {
+		dialog,
+		dispose,
+		kernel,
+		onBeforeLoad,
+		onError,
+	};
+};
+
+const buttons = {
+	accept: 'consent-widget-footer-accept-all-button',
+	reject: 'consent-widget-reject-button',
+	save: 'consent-widget-footer-save-button',
+} as const;
+
+for (const action of ['accept', 'reject', 'save'] as const) {
+	for (const outcome of ['pending', 'rejected'] as const) {
+		test(`dialog ${action} closes before a ${outcome} save settles`, async () => {
+			const never = Promise.withResolvers<{ ok: boolean }>().promise;
+			let storedAtSave: string | null = null;
+			const save = vi.fn(() => {
+				storedAtSave = localStorage.getItem(STORAGE_KEY);
+				return outcome === 'pending'
+					? never
+					: Promise.reject(new Error('offline'));
+			});
+			const fixture = await mountDialog(save);
+			try {
+				document
+					.querySelector<HTMLButtonElement>(
+						`[data-testid="${buttons[action]}"]`
+					)
+					?.click();
+				// Closed in the click task, before the transport is even called.
+				expect(save).not.toHaveBeenCalled();
+				expect(fixture.kernel.getSnapshot().activeUI).toBe('none');
+				expect(
+					fixture.kernel.getSnapshot().explicitChoice?.categories.marketing
+						?.value
+				).toBe(action === 'accept');
+				// Enforcement follows the local choice without waiting on the backend.
+				expect(fixture.onBeforeLoad).toHaveBeenCalledTimes(
+					action === 'accept' ? 1 : 0
+				);
+				await nextFrame();
+				expect(fixture.dialog()).toBeNull();
+				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+				// Storage is written before the request starts, not after it.
+				expect(storedAtSave).toContain('marketing');
+				// A failed request reaches the error event once; a pending one never.
+				await vi.waitFor(() =>
+					expect(fixture.onError).toHaveBeenCalledTimes(
+						outcome === 'rejected' ? 1 : 0
+					)
+				);
+				await new Promise((resolve) => {
+					setTimeout(resolve, 20);
+				});
+				expect(fixture.kernel.getSnapshot().activeUI).toBe('none');
+				expect(fixture.dialog()).toBeNull();
+				expect(
+					fixture.kernel.getSnapshot().explicitChoice?.categories.marketing
+						?.value
+				).toBe(action === 'accept');
+			} finally {
+				fixture.dispose();
+			}
+		});
+	}
 }
+
+test('a returning visitor’s dialog closes before its save settles', async () => {
+	const replies: ((result: { ok: boolean }) => void)[] = [];
+	const save = vi.fn(
+		() =>
+			new Promise<{ ok: boolean }>((resolve) => {
+				replies.push(resolve);
+			})
+	);
+	const fixture = await mountDialog(save);
+	try {
+		fixture.kernel.commands.save('none');
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		replies[0]?.({ ok: true });
+		expect(fixture.kernel.getSnapshot().promptRequirement.kind).toBe('none');
+		fixture.kernel.set.activeUI('dialog');
+		await vi.waitFor(() => expect(fixture.dialog()).not.toBeNull());
+		document
+			.querySelector<HTMLButtonElement>(`[data-testid="${buttons.accept}"]`)
+			?.click();
+		expect(fixture.kernel.getSnapshot().activeUI).toBe('none');
+		expect(fixture.onBeforeLoad).toHaveBeenCalledOnce();
+		await nextFrame();
+		expect(fixture.dialog()).toBeNull();
+		await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+		replies[1]?.({ ok: false });
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20);
+		});
+		expect(fixture.kernel.getSnapshot().activeUI).toBe('none');
+	} finally {
+		fixture.dispose();
+	}
+});
 
 const mountActions = async function mountActions() {
 	const replies: ReturnType<typeof Promise.withResolvers<{ ok: boolean }>>[] =
@@ -221,7 +318,7 @@ test('manager saves its local custom selection without a draft provider', async 
 });
 
 for (const selection of ['all', 'custom'] as const) {
-	test(`a pending ${selection} save preserves later draft edits and keeps them open`, async () => {
+	test(`a pending ${selection} save closes and keeps later draft edits`, async () => {
 		const fixture = await mountActions();
 		try {
 			fixture.controls.manager.setSelectedConsent('marketing', true);
@@ -229,6 +326,7 @@ for (const selection of ['all', 'custom'] as const) {
 				expect(fixture.controls.manager.selectedConsents.marketing).toBe(true)
 			);
 			const pending = fixture.controls.manager.saveConsents(selection);
+			expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
 			await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledOnce());
 			fixture.controls.manager.setSelectedConsent('marketing', false);
 			await vi.waitFor(() =>
@@ -237,43 +335,47 @@ for (const selection of ['all', 'custom'] as const) {
 			fixture.replies[0]?.resolve({ ok: true });
 			await pending;
 			expect(fixture.controls.manager.selectedConsents.marketing).toBe(false);
-			expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('dialog');
+			expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
 		} finally {
 			fixture.dispose();
 		}
 	});
 }
 
-for (const navigation of ['close', 'reopen', 'same-dialog'] as const) {
-	test(`successful completion respects explicit ${navigation} navigation`, async () => {
-		const fixture = await mountActions();
-		try {
-			const pending = fixture.controls.headless.performAction('accept');
-			await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledOnce());
-			if (navigation !== 'same-dialog') {
-				fixture.controls.manager.setActiveUI('none');
+for (const navigation of ['close', 'reopen'] as const) {
+	for (const ok of [true, false]) {
+		test(`a ${ok ? 'successful' : 'failed'} save leaves later ${navigation} navigation alone`, async () => {
+			const fixture = await mountActions();
+			try {
+				const pending = fixture.controls.headless.performAction('accept');
+				expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
+				await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledOnce());
+				if (navigation === 'reopen') {
+					fixture.controls.manager.setActiveUI('dialog');
+				}
+				fixture.replies[0]?.resolve({ ok });
+				await pending;
+				expect(fixture.controls.kernel.getSnapshot().activeUI).toBe(
+					navigation === 'close' ? 'none' : 'dialog'
+				);
+			} finally {
+				fixture.dispose();
 			}
-			if (navigation !== 'close') {
-				fixture.controls.manager.setActiveUI('dialog');
-			}
-			fixture.replies[0]?.resolve({ ok: true });
-			await pending;
-			expect(fixture.controls.kernel.getSnapshot().activeUI).toBe(
-				navigation === 'close' ? 'none' : 'dialog'
-			);
-		} finally {
-			fixture.dispose();
-		}
-	});
+		});
+	}
 }
 
-test('older save completion cannot close a newer action from another hook', async () => {
+test('older save outcomes cannot close a dialog reopened after them', async () => {
 	const fixture = await mountActions();
 	try {
 		const older = fixture.controls.manager.saveConsents('all');
+		expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
 		await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledOnce());
+		fixture.controls.manager.setActiveUI('dialog');
 		const newer = fixture.controls.headless.performAction('reject');
+		expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
 		await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledTimes(2));
+		fixture.controls.manager.setActiveUI('dialog');
 		fixture.replies[0]?.resolve({ ok: true });
 		await older;
 		expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('dialog');

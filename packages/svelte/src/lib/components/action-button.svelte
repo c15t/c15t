@@ -69,15 +69,26 @@
 			return;
 		}
 		const { state } = consent;
+		// The surface closes as soon as the choice is recorded locally. A
+		// failed request is reported through `onError` and stays queued for
+		// replay; a stale draft keeps the dialog open for review. Either way
+		// the click handler has nobody to rethrow the rejection to.
+		const save = async (type: 'all' | 'necessary' | 'custom') => {
+			try {
+				await state.saveConsents(type);
+			} catch {
+				// See above.
+			}
+		};
 		switch (action) {
 			case 'accept-consent':
-				await state.saveConsents('all');
+				await save('all');
 				return;
 			case 'reject-consent':
-				await state.saveConsents('necessary');
+				await save('necessary');
 				return;
 			case 'custom-consent':
-				await state.saveConsents('custom');
+				await save('custom');
 				return;
 			case 'dismiss-notice':
 				await state.dismissNotice();
