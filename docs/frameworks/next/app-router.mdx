@@ -160,9 +160,8 @@ strips the banner's padding, borders and button styles.
 
 The layout stays synchronous with `cacheComponents: true`, so Next.js can
 prerender the page into the static shell. A `ConsentGate` rendered in that
-shell fails `next build` with an unstable `Date.now()` error because it reads
-the clock while rendering. Wrap each `ConsentGate` in its own `Suspense`
-boundary, with a fallback that reserves the embed's size. If `next dev`
+shell does not read the clock while rendering, so it needs no `Suspense`
+boundary of its own. If `next dev`
 reports an unstable `Date.now()` at the `resolveConsent` call, see
 [troubleshooting](/docs/frameworks/next/troubleshooting#why-does-nextjs-report-an-unstable-datenow-during-prerendering).
 

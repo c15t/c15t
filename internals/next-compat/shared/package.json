@@ -11,7 +11,8 @@
 		"./fixture": "./src/fixture/index.ts",
 		"./fixture/node-adapter": "./src/fixture/node-adapter.ts",
 		"./network-beacons": "./src/network-beacons.tsx",
-		"./sibling-beacon": "./src/sibling-beacon.tsx"
+		"./sibling-beacon": "./src/sibling-beacon.tsx",
+		"./gated-embed": "./src/gated-embed.tsx"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit",

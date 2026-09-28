@@ -55,8 +55,8 @@ consent UI, await the result as shown below.
 
 Keep the shared config and manifest route from that guide. This form also
 works with `cacheComponents: true`, where the page can stay in the prerendered
-static shell. A `ConsentGate` in that shell reads the clock while rendering and
-fails `next build`; give it its own `Suspense` boundary. Request helpers still
+static shell. A `ConsentGate` in that shell does not read the clock while
+rendering, so it needs no `Suspense` boundary of its own. Request helpers still
 need a visitor request; passing a promise does not make this a static-export
 setup.
 

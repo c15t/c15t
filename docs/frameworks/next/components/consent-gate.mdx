@@ -41,6 +41,12 @@ non-empty `options.consentCategories` list on `ConsentRoot`, include
 `marketing` there too so the preference center can display and save it.
 `ConsentGate` does not add categories to that list.
 
+`ConsentGate` does not read the clock during server rendering, so a page that
+renders it can still be prerendered, including with `cacheComponents: true`.
+It does not need a `Suspense` boundary of its own. On a static page the
+prerendered HTML contains the placeholder, and the embed replaces it after
+the browser resolves policy and the category is allowed.
+
 The placeholder names the category using its title from your translations. Set
 `className` or `style` on `ConsentGate` to reserve the embed's space, so the page
 does not shift when the placeholder is replaced.
@@ -48,24 +54,7 @@ does not shift when the placeholder is replaced.
 With the default App Router layout, which passes the pending
 `resolveConsent` result, the server HTML contains the placeholder, and the
 browser swaps in the embed after it applies the resolved state if the
-category is granted. No request reaches the embed's host before that. With
-`cacheComponents: true`, a page that renders `ConsentGate` in its prerendered
-static shell fails `next build` with an unstable `Date.now()` error, because
-`ConsentGate` reads the clock while rendering. Give it a `Suspense` boundary
-whose fallback reserves the embed's size:
-
-```tsx title="app/product/page.tsx"
-import { Suspense } from 'react';
-import { ProductVideo } from '../../components/product-video';
-
-export default function ProductPage() {
-  return (
-    <Suspense fallback={<div className="video-frame" />}>
-      <ProductVideo />
-    </Suspense>
-  );
-}
-```
+category is granted. No request reaches the embed's host before that.
 
 With the
 [awaited layout](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html),

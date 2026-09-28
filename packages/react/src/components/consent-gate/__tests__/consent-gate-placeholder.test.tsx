@@ -177,6 +177,28 @@ describe('ConsentGate server rendering', () => {
 		expect(html).not.toContain('data-testid="frame-open-dialog"');
 	});
 
+	// Next.js `cacheComponents` fails a prerender that reads the clock in a
+	// Client Component, so the gate must decide from the snapshot alone.
+	test.each([false, true])(
+		'reads no clock while rendering on the server (granted: %s)',
+		(marketing) => {
+			const app = frameApp(content, { marketing, necessary: true });
+			const clock = vi.spyOn(Date, 'now').mockImplementation(() => {
+				throw new Error('Date.now() read during server rendering');
+			});
+			try {
+				const html = renderToString(app);
+				expect(html).toContain(
+					marketing
+						? 'data-testid="frame-content"'
+						: 'data-testid="frame-placeholder"'
+				);
+			} finally {
+				clock.mockRestore();
+			}
+		}
+	);
+
 	test.each([false, true])(
 		'hydrates the server content without replacing it (granted: %s)',
 		async (marketing) => {
