@@ -18,6 +18,7 @@ import type {
 	Script,
 	StorageConfig,
 } from '@c15t/core';
+import type { RuntimeNetworkBlockerOptions } from '@c15t/core/runtime';
 import type {
 	PolicyRule,
 	PolicyResolution,
@@ -154,6 +155,16 @@ export interface C15tAstroOptions {
 
 	/** Browser data to remove when its consent permission is revoked. */
 	clearOnRevocation?: ClearOnRevocationConfig;
+
+	/**
+	 * Block `fetch` and XHR requests that match these rules until the
+	 * visitor's consent allows them. Omitted or `false` disables it.
+	 * `onRequestBlocked` is a callback, so it belongs in
+	 * {@link C15tClientOptionsExtension.networkBlocker}.
+	 */
+	networkBlocker?:
+		| Omit<RuntimeNetworkBlockerOptions, 'onRequestBlocked'>
+		| false;
 
 	/**
 	 * IAB TCF configuration. `false` disables it.
@@ -312,6 +323,11 @@ export interface C15tClientOptionsExtension {
 	scripts?: Script[];
 	/** Overrides cleanup targets from the integration options. */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Replaces {@link C15tAstroOptions.networkBlocker}. Use it to pass
+	 * `onRequestBlocked`.
+	 */
+	networkBlocker?: RuntimeNetworkBlockerOptions | false;
 	callbacks?: Record<string, unknown>;
 	/** Merged over the serialized theme. */
 	theme?: Theme;

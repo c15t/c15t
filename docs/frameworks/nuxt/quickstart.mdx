@@ -59,6 +59,25 @@ cookieless capture. X Pixel waits for marketing permission.
 
 <include src="../../shared/examples/nuxt-scripts.mdx" />
 
+## Block tracking requests
+
+`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
+until the visitor grants the rule's category. A blocked `fetch` resolves to a
+`451` response and nothing is sent.
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  c15t: {
+    networkBlocker: {
+      rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
+    },
+  },
+});
+```
+
+Module options reach the browser as JSON, so `onRequestBlocked` is not
+available here.
+
 ## Mount the root once
 
 ```vue title="app/app.vue"

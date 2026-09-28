@@ -13,6 +13,7 @@ import type { NuxtModule } from '@nuxt/schema';
 import { defu } from 'defu';
 
 import type { ConsentConfig } from './runtime/config';
+import type { UseNetworkBlockerOptions } from './runtime/kernel';
 import {
 	resolveManifestMode,
 	resolveNuxtInitRoute,
@@ -21,12 +22,24 @@ import {
 
 export { defineTheme, type Theme } from '@c15t/ui/theme';
 
+/** The Nuxt module's configuration under the `c15t` key. */
+export interface C15tNuxtConfig extends ConsentConfig {
+	/**
+	 * Block `fetch` and XHR requests that match these rules until the
+	 * visitor's consent allows them. Omitted or `false` disables it.
+	 *
+	 * Module options reach the browser through `runtimeConfig.public` as
+	 * JSON, so the `onRequestBlocked` callback is not accepted here.
+	 */
+	networkBlocker?: Omit<UseNetworkBlockerOptions, 'onRequestBlocked'> | false;
+}
+
 /** Options accepted by the Nuxt module. */
-export type ModuleOptions = Partial<ConsentConfig>;
+export type ModuleOptions = Partial<C15tNuxtConfig>;
 
 // Annotated explicitly: the inferred type names `NuxtModule` through
 // @nuxt/schema's store path, which is not portable across installs (TS2883).
-const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
+const module: NuxtModule<C15tNuxtConfig> = defineNuxtModule<C15tNuxtConfig>({
 	defaults: () => ({
 		...defaultConsentConfig,
 		initRoute: resolveNuxtInitRoute({}),

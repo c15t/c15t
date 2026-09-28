@@ -53,6 +53,22 @@ export default {
 } satisfies C15tClientOptionsExtension;
 ```
 
+## Block tracking requests
+
+`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
+until the visitor grants the rule's category. A blocked `fetch` resolves to a
+`451` response and nothing is sent. Set the rules in the integration options,
+next to `mode`:
+
+```js
+networkBlocker: {
+  rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
+},
+```
+
+To pass `onRequestBlocked`, set `networkBlocker` in the client extension
+instead. It replaces the integration option.
+
 ## Configure the integration
 
 ```js title="astro.config.mjs"
