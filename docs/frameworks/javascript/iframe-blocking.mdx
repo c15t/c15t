@@ -21,6 +21,8 @@ For vanilla JavaScript, use `data-category` and `data-src` attributes on `<ifram
 
 When consent for the specified category is granted, c15t automatically swaps `data-src` to `src`, loading the iframe. When consent is revoked, `src` is moved back to `data-src`.
 
+The `data-category` value must be one of `necessary`, `functionality`, `measurement`, `experience`, or `marketing`. An iframe with any other value stays blocked, and c15t logs a warning to the console.
+
 ### Dynamic Iframes
 
 c15t uses a `MutationObserver` to watch for dynamically added iframes. Any iframe with `data-category` added to the DOM after initialization is automatically processed.

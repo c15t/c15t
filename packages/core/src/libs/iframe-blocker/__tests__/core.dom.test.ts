@@ -106,41 +106,42 @@ describe('iframe blocker resilience', () => {
 			expect(iframe.getAttribute('src')).toBeNull();
 		});
 
-		it('blocks iframes added in the same batch as an invalid-category iframe', async () => {
+		it('blocks an invalid-category iframe and the iframes added with it', async () => {
 			start();
+			const invalid = createIframe('bogus');
 			const iframe = createIframe('marketing');
 
-			document.body.append(createIframe('bogus'), iframe);
+			document.body.append(invalid, iframe);
 			await flushMutations();
 
+			expect(invalid.getAttribute('src')).toBeNull();
 			expect(iframe.getAttribute('src')).toBeNull();
 			expect(warnSpy).toHaveBeenCalledWith(
-				'[c15t] Skipped iframe:',
-				expect.objectContaining({
-					message: expect.stringContaining(
-						'Invalid category attribute "bogus"'
-					),
-				})
+				expect.stringContaining('invalid data-category "bogus"')
 			);
 		});
 	});
 
 	describe('initial scan', () => {
-		it('processAllIframes blocks iframes after an invalid-category iframe', () => {
+		it('processAllIframes blocks an invalid-category iframe and the iframes after it', () => {
+			const invalid = createIframe('bogus');
 			const iframe = createIframe('marketing');
-			document.body.append(createIframe('bogus'), iframe);
+			document.body.append(invalid, iframe);
 
 			expect(() => processAllIframes(consents)).not.toThrow();
+			expect(invalid.getAttribute('src')).toBeNull();
 			expect(iframe.getAttribute('src')).toBeNull();
 		});
 
-		it('createIframeBlocker blocks iframes after an invalid-category iframe', () => {
+		it('createIframeBlocker blocks an invalid-category iframe and the iframes after it', () => {
+			const invalid = createIframe('bogus');
 			const iframe = createIframe('marketing');
-			document.body.append(createIframe('bogus'), iframe);
+			document.body.append(invalid, iframe);
 
 			const blocker = createIframeBlocker({}, consents);
 			cleanups.push(blocker.destroy);
 
+			expect(invalid.getAttribute('src')).toBeNull();
 			expect(iframe.getAttribute('src')).toBeNull();
 		});
 	});

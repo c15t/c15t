@@ -120,27 +120,33 @@ describe('createIframeBlocker', () => {
 			);
 		});
 
-		it('should warn instead of throwing for invalid category attribute', () => {
+		it('should keep iframes with an invalid category blocked, even with every consent granted', () => {
 			const warnSpy = vi
 				.spyOn(console, 'warn')
 				.mockImplementation(() => undefined);
-			const blocker = createIframeBlocker();
+			const blocker = createIframeBlocker(
+				{},
+				{
+					necessary: true,
+					functionality: true,
+					experience: true,
+					marketing: true,
+					measurement: true,
+				}
+			);
 
 			// Create iframe with invalid category
 			const iframe = document.createElement('iframe');
+			iframe.src = 'https://youtube.com/embed/123';
 			iframe.setAttribute('data-category', 'invalid-category');
 			document.body.appendChild(iframe);
 
 			expect(() => {
 				blocker.processIframes();
 			}).not.toThrow();
+			expect(iframe.src).toBe('');
 			expect(warnSpy).toHaveBeenCalledWith(
-				'[c15t] Skipped iframe:',
-				expect.objectContaining({
-					message: expect.stringContaining(
-						'Invalid category attribute "invalid-category"'
-					),
-				})
+				expect.stringContaining('invalid data-category "invalid-category"')
 			);
 			warnSpy.mockRestore();
 		});

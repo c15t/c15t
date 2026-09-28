@@ -35,13 +35,12 @@ function createDefaultConsentState(): ConsentState {
  * Determine the required consent for an iframe based on its category attribute
  *
  * @param iframe - The iframe element to check
- * @returns The required consent type or undefined if no consent is required
- *
- * @throws {Error} When the category attribute contains an invalid consent name
+ * @returns The required consent type, `undefined` if no consent is required,
+ * or `null` if the category attribute names no known consent category
  */
 function determineRequiredConsent(
 	iframe: HTMLIFrameElement
-): AllConsentNames | undefined {
+): AllConsentNames | null | undefined {
 	const categoryAttr = iframe.getAttribute('data-category');
 
 	if (!categoryAttr) {
@@ -51,9 +50,7 @@ function determineRequiredConsent(
 
 	// Validate that it's a valid consent name
 	if (!allConsentNames.includes(categoryAttr as AllConsentNames)) {
-		throw new Error(
-			`Invalid category attribute "${categoryAttr}" on iframe. Must be one of: ${allConsentNames.join(', ')}`
-		);
+		return null;
 	}
 
 	return categoryAttr as AllConsentNames;
@@ -62,9 +59,12 @@ function determineRequiredConsent(
 /**
  * Process a single iframe element based on consent settings
  *
+ * An iframe whose category attribute names no known consent category stays
+ * blocked and is reported with a warning. Throwing here used to stop every
+ * other iframe in the pass from being blocked.
+ *
  * @param iframe - The iframe element to process
  * @param consents - Current consent state
- * @throws {Error} When the iframe has an invalid category attribute
  */
 function processIframeElement(
 	iframe: HTMLIFrameElement,
@@ -74,11 +74,19 @@ function processIframeElement(
 	const requiredConsent = determineRequiredConsent(iframe);
 
 	// If no consent is required, allow the iframe to load normally
-	if (!requiredConsent) {
+	if (requiredConsent === undefined) {
 		return;
 	}
 
-	const hasConsent = has(requiredConsent, consents);
+	if (requiredConsent === null) {
+		console.warn(
+			`[c15t] iframe-blocker: invalid data-category "${iframe.getAttribute(
+				'data-category'
+			)}". Must be one of: ${allConsentNames.join(', ')}. The iframe stays blocked.`
+		);
+	}
+
+	const hasConsent = requiredConsent !== null && has(requiredConsent, consents);
 
 	// If iframe has consent, load it
 	if (hasConsent) {
@@ -92,26 +100,6 @@ function processIframeElement(
 		if (iframe.src) {
 			iframe.removeAttribute('src');
 		}
-	}
-}
-
-/**
- * Process a single iframe without letting it stop the caller's loop.
- *
- * An iframe with an invalid category is left unchanged and reported with a
- * warning, so the remaining iframes are still blocked or loaded.
- *
- * @param iframe - The iframe element to process
- * @param consents - Current consent state
- */
-function processIframeSafely(
-	iframe: HTMLIFrameElement,
-	consents: ConsentState
-): void {
-	try {
-		processIframeElement(iframe, consents);
-	} catch (error) {
-		console.warn('[c15t] Skipped iframe:', error);
 	}
 }
 
@@ -189,7 +177,7 @@ export function createIframeBlocker(
 		const iframes = document.querySelectorAll('iframe');
 
 		iframes.forEach((iframe) => {
-			processIframeSafely(iframe, consents);
+			processIframeElement(iframe, consents);
 		});
 	}
 
@@ -201,7 +189,7 @@ export function createIframeBlocker(
 			mutations.forEach((mutation) => {
 				mutation.addedNodes.forEach((node) => {
 					for (const iframe of getAddedIframes(node)) {
-						processIframeSafely(iframe, consents);
+						processIframeElement(iframe, consents);
 					}
 				});
 			});
@@ -318,7 +306,7 @@ export function processAllIframes(consents: ConsentState): void {
 	}
 
 	iframes.forEach((iframe) => {
-		processIframeSafely(iframe, consents);
+		processIframeElement(iframe, consents);
 	});
 }
 
@@ -353,7 +341,7 @@ export function setupIframeObserver(
 		mutations.forEach((mutation) => {
 			mutation.addedNodes.forEach((node) => {
 				for (const iframe of getAddedIframes(node)) {
-					processIframeSafely(iframe, currentConsents);
+					processIframeElement(iframe, currentConsents);
 					// Check if iframe has a data-category attribute
 					if (iframe.hasAttribute('data-category')) {
 						hasNewCategories = true;
