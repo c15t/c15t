@@ -75,6 +75,10 @@ import {
 	mixpanelAnalytics,
 	mixpanelAnalyticsManifest,
 } from './vendors/analytics/mixpanel-analytics';
+import {
+	oneDollarStats,
+	oneDollarStatsManifest,
+} from './vendors/analytics/one-dollar-stats';
 import { pirsch, pirschManifest } from './vendors/analytics/pirsch';
 import {
 	plausibleAnalytics,
@@ -270,6 +274,14 @@ const helperParityCases = {
 			src: 'https://analytics.example.com/matomo.js',
 		},
 	},
+	oneDollarStats: {
+		script: oneDollarStats(),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://assets.onedollarstats.com/stonks.js',
+		},
+	},
 	posthog: {
 		script: posthog({ id: 'phc_123' }),
 		expected: {
@@ -451,6 +463,7 @@ const vendorManifests = [
 	hightouchManifest,
 	logRocketManifest,
 	matomoAnalyticsManifest,
+	oneDollarStatsManifest,
 	posthogManifest,
 	promptwatchManifest,
 	pirschManifest,

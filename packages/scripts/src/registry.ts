@@ -267,6 +267,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'oneDollarStats',
+		vendor: 'one-dollar-stats',
+		label: 'OneDollarStats',
+		hint: 'Website analytics with no API key',
+		docsSlug: 'one-dollar-stats',
+		packageSubpath: 'one-dollar-stats',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'posthog',
 		vendor: 'posthog',
 		label: 'PostHog',

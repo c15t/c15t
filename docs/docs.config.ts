@@ -278,6 +278,7 @@ const generateDocsConfig = () => {
 							'hightouch',
 							'logrocket',
 							'plausible-analytics',
+							'one-dollar-stats',
 							'posthog',
 							'promptwatch',
 							'pirsch',
