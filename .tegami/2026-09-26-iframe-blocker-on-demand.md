@@ -1,6 +1,8 @@
 ---
 packages:
-  "@c15t/react": patch
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
 ---
 
 ### Load the iframe blocker when a gated iframe is on the page

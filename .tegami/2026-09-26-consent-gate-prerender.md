@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/react': patch
-  '@c15t/nextjs': patch
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
 ---
 
 ### Prerender pages that render `ConsentGate`

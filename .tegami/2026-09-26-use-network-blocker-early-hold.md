@@ -1,9 +1,17 @@
 ---
 packages:
-  c15t: patch
-  "@c15t/core": patch
-  "@c15t/react": patch
-  "@c15t/vue": patch
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### `useNetworkBlocker` holds matching requests from its first render

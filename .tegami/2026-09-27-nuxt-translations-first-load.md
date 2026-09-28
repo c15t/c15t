@@ -1,7 +1,11 @@
 ---
 packages:
-  c15t: patch
-  "@c15t/vue": patch
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Stop Nuxt pages from downloading every locale on first load

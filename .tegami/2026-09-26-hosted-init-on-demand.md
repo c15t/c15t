@@ -1,7 +1,11 @@
 ---
 packages:
-  "@c15t/core": minor
-  "@c15t/nextjs": patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
 ---
 
 ### Load the hosted init path only when init runs

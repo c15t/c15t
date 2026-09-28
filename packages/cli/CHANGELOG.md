@@ -1,3 +1,98 @@
+## @c15t/cli@3.0.0-alpha.3 (alpha)
+
+### Encode and enforce IAB publisher restrictions
+
+Configure TCF publisher restrictions with `publisherRestrictions` on `createIAB`, `IABProvider`, the runtime's `iab` options or the Astro integration's `iab` options. c15t writes them into the TC string's `PubRestrictions` section, decodes them from stored strings, and reports them through `__tcfapi('getTCData')` as `publisher.restrictions`. Previously that map was always empty and configured restrictions were not encoded.
+
+Consent-gated scripts, network rules and iframes with a `vendorId` now apply the confirmed restrictions: type 0 blocks the purpose, type 1 requires consent and type 2 requires legitimate interest for purposes the vendor list marks as flexible. Accept all grants the vendor signal a restriction needs. Legitimate interest a restriction introduces applies until the visitor objects, so Save Settings encodes it as allowed, matching what the preference centres show.
+
+The React, Vue, Svelte and `@c15t/browser/iab` preference centres list each vendor under the legal basis the restrictions leave it, so a vendor moved to legitimate interest gets an objection control instead of a consent toggle. A purpose whose vendors all use legitimate interest shows no consent switch, only the objection, and display-model rows report this as `hasConsentBasis`. Such a purpose no longer decides its c15t category, so a granular save no longer records a denial that blocks its legitimate-interest vendors; legitimate interest never grants a category on its own. Custom UIs can use `applyPublisherRestrictionsToGVL` from `@c15t/iab/headless` or pass `publisherRestrictions` to `processGVLForDialog`.
+
+IAB gates no longer let a refused c15t category block a target that uses only legitimate interest after publisher restrictions. Such a target needs no consent under TCF, so its purpose and vendor legitimate interest signals, and the visitor's objection, decide. Previously every restriction on a referenced category blocked IAB targets; GPC, opt-out directives and strict scope still do, and the refused category still blocks scripts that name only the category or declare a consent purpose.
+
+Unsupported restrictions throw `PublisherRestrictionError` instead of being dropped. This covers reserved type 3, vendors or purposes missing from the vendor list, legitimate interest for purposes 1 and 3 to 6, basis changes on purposes the vendor does not declare as flexible, conflicting types for one vendor, and restrictions in a string that is not service-specific. `whenReady()`, `save()` and `generateTCString()` reject, and no TC string is written. Retrying `whenReady()` does not fetch another vendor list. With an explicit `gvl`, the error lasts for the handle and saving keeps failing even if the kernel later holds a different list; a CMP following the kernel's list checks a replacement list again. When a replacement vendor list makes a restriction unsupported, the TC authority confirmed under the previous list is cleared. Whenever the CMP withdraws its own authority, including on expiry, it also removes the `euconsent-v2` cookie and localStorage entry. A stored TC string whose restrictions differ from the configuration is not restored; the banner opens again for a returning visitor and closes once they save, IAB gates stay denied until then, and the superseded `euconsent-v2` cookie and localStorage entry are removed. Decoding a string written under TCF policy version 2 or 3 accepts legitimate interest required for purposes 3 to 6, which those versions allowed.
+
+### Show the Astro banner on prerendered pages
+
+`ConsentBanner` rendered nothing on a prerendered page, because the build had
+no policy, and the browser could only show or hide a banner that was already in
+the HTML.
+
+- In `offline()` mode the build now resolves the policy and renders the banner
+  hidden. The browser shows it to visitors who have not chosen yet.
+- In `hosted()` and `manifest()` mode, `ConsentBanner` leaves a placeholder.
+  The browser renders the banner there, with the same markup as the server
+  version, once its init returns a policy that needs one. Returning visitors
+  do not download the renderer.
+- A banner hidden after a choice no longer stays on screen: the stylesheet
+  now makes the `hidden` attribute beat the banner's own `display`.
+- The CLI's Astro boilerplate no longer tells you to avoid prerendering.
+
+### Add a Front Chat integration
+
+`frontChat()` from `@c15t/scripts/front-chat` loads Front's chat widget after functionality permission and initializes it once the SDK loads. It forwards CSP nonces, including a loader-level nonce, to Front's generated scripts. `shutdownFrontChat()` asks Front to clear the visitor's session; call it from `onBeforeConsentRevocationReload`. The CLI offers Front Chat in its integration picker.
+
+### Ship Astro consent styles automatically
+
+The quickstart said the integration supplies styles, but it did not. On the
+server, the components read class names through the `node` export condition,
+which imports no CSS, so the banner and dialog rendered unstyled unless you
+imported the stylesheet yourself.
+
+The integration now adds `@c15t/astro/styles.css` to every page, plus the new
+`@c15t/astro/iab/styles.css` when `iab` is set. Remove your own import of the
+stylesheet. Set `styles: false` to keep loading it yourself, for example from
+a global stylesheet that orders its own cascade layers.
+
+The CLI's Astro boilerplate no longer imports the stylesheet.
+
+### Stream consent in the generated Next.js App Router wrapper
+
+With `--ssr` (or "Enable SSR consent prefetch"), `c15t setup` generated an async `ConsentManager` that awaited `resolveConsent` before rendering anything inside it. The layout wraps the whole page in that component, so every response waited for the consent backend's `/init` round trip before its first byte.
+
+The generated `ConsentManager` is now synchronous. It starts `resolveConsent` and passes the pending result to the client provider, which applies it when it arrives. Pages render without waiting for the backend; the banner mounts after hydration. The generated provider's `state` prop accepts either the promise or a resolved state.
+
+To keep the banner in the server HTML, make `ConsentManager` async, await `resolveConsent`, and wrap it in `<Suspense>` in the layout. The page then waits for consent. Existing generated files are not changed.
+
+### Add a OneDollarStats integration
+
+`oneDollarStats()` from `@c15t/scripts/one-dollar-stats` loads the OneDollarStats tracker after measurement permission. It needs no API key. Tracker settings are forwarded as `data-*` attributes; `hostname` must be a bare host, setting names must be valid attribute names, and `'hash-routing': 'false'` omits the attribute because the tracker treats any value as on. The CLI offers OneDollarStats in its integration picker.
+
+### Remove `useConsentManager()`
+
+**Breaking.** `useConsentManager()` is no longer exported from `@c15t/react`, `@c15t/nextjs`, `@c15t/tanstack-start`, their `/headless` entries, or the `c15t/react`, `c15t/next` and `c15t/tanstack-start` umbrella entries. The undocumented `useConsentManagerDraft()` on `@c15t/react/draft` is gone with it. The hook subscribed to the whole consent snapshot, so each caller re-rendered on every change. Read each field through its own hook, which re-renders only when that value changes.
+
+`useSubscribeToConsentChanges()` and `useRegisterConsentCategories()` are now exported from the main entries as well as `@c15t/react/hooks`.
+
+| `useConsentManager()` field | Replacement |
+| --- | --- |
+| `activeUI`, `setActiveUI` | `useActiveUI()` (can be `null`), `useSetActiveUI()` |
+| `has(category)` | `useConsent(category)` |
+| `consents`, `effectivePermissions`, `explicitChoice` | `useConsents()`, `useEffectivePermissions()`, `useExplicitChoice()` |
+| `promptRequirement`, `noticeDismissal`, `privacySignals`, `optOutDirectives`, `restrictions` | `usePromptRequirement()`, `useNoticeDismissal()`, `usePrivacySignals()`, `useOptOutDirectives()`, `useRestrictions()` |
+| `resolution`, `policyRule`, `policyScopeMode` | `usePolicyResolution()`, `usePolicyRule()`, `usePolicyScopeMode()` |
+| `policyCategories` | `usePolicyCategories()` (without the leading `'necessary'`) |
+| `policyBanner`, `policyDialog` | `usePromptPresentation()`, `usePreferencesPresentation()` |
+| `model`, `branding` | `useModel()`, `useBranding()` (both can be `null`) |
+| `iab`, `vendors`, `vendorChoice` | `useIABSnapshot()`, `useDeclaredVendors()`, `useVendorChoice()` |
+| `getDisplayedVendors(category)` | `useDeclaredVendors()` filtered by category |
+| `subscribeToConsentChanges`, `updateConsentCategories` | `useSubscribeToConsentChanges()`, `useRegisterConsentCategories()` |
+| `translationConfig` | `useTranslations()` |
+| `selectedConsents`, `setSelectedConsent`, `selectedVendors`, `setSelectedVendor`, `resetDraft`, `draftIsStale` | `useConsentDraft()`: `values`, `set`, `vendors`, `setVendor`, `reset`, `isStale` |
+| `consentCategories`, `consentTypes`, `getDisplayedConsents()` | `useConsentDraft().displayedCategories` with `useTranslations().consentTypes` |
+| `saveConsents('all' \| 'necessary' \| 'custom')` | `useHeadlessConsentUI().performAction('accept' \| 'reject' \| 'save')` |
+| `manager` | Nothing; it was always `null` |
+
+Render components that stage choices with `useConsentDraft()` and save them with `useHeadlessConsentUI()` inside one `ConsentDraftProvider`, so both use the same draft.
+
+`c15t codemods use-consent-manager-to-hooks` rewrites common destructuring forms. Fields it cannot rewrite stay on a `useConsentManager()` call under a `TODO(c15t v3)` comment naming the replacement.
+
+The stock dialog, preference rows, vendor lists, dialog trigger and `ConsentGate` now read only the values they render. Toggling one category in the preferences dialog re-renders that category's row instead of every row.
+
+### Add a Pinterest Tag integration
+
+`pinterestTag()` from `@c15t/scripts/pinterest-tag` recreates Pinterest's base code and loads `core.js` after marketing permission. On revocation it keeps the tag and calls `pintrk('setconsent', false)`, which stops events and clears Pinterest's first-party cookies; a later grant calls `setconsent(true)`. `pinterestTagEvent()` sends typed events for Pinterest's 20 event types and user-defined names. The CLI offers Pinterest Tag in its integration picker.
+
 ## @c15t/cli@3.0.0-alpha.2 (alpha)
 
 ### Fix declaration imports for Node16 and NodeNext
