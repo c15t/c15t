@@ -9,7 +9,7 @@ import type { Script } from '@c15t/core/modules/script-loader';
  * it to the React provider as `options.prefetch`. Kernel creation,
  * persistence, init, and module wiring live in `@c15t/react`.
  */
-import { custom, hosted } from '@c15t/react';
+import { custom } from '@c15t/react';
 import type { ProviderTransportFactory } from '@c15t/react';
 import type {
 	UseNetworkBlockerOptions,
@@ -22,7 +22,10 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 import type { ConsentConfig } from './config';
-import { createLazyManifestTransport } from './lazy-manifest-transport';
+import {
+	createLazyManifestTransport,
+	lazyHosted,
+} from './lazy-manifest-transport';
 import type { ConsentState } from './types';
 
 export interface ConsentRootProps {
@@ -157,7 +160,7 @@ const resolveMode = function resolveMode(input: {
 		return lazyOffline();
 	}
 	if (input.config?.initURL) {
-		return hosted({
+		return lazyHosted({
 			assertDecisionInputs: true,
 			initURL: input.config.initURL,
 			url: input.backendURL,
@@ -166,7 +169,7 @@ const resolveMode = function resolveMode(input: {
 	if (input.manifestTransport) {
 		return custom(input.manifestTransport);
 	}
-	return hosted({ url: input.backendURL });
+	return lazyHosted({ url: input.backendURL });
 };
 
 /**

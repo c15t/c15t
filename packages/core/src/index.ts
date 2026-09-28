@@ -78,6 +78,14 @@ export type {
 export { clearGvlCache, fetchCachedGvl } from './transports/gvl-cache';
 export type { HostedTransportOptions } from './transports/hosted';
 export { createHostedTransport } from './transports/hosted';
+export type {
+	HostedRecordTransport,
+	HostedRecordTransportOptions,
+} from './transports/hosted-records';
+export { createHostedRecordTransport } from './transports/hosted-records';
+export type { HostedInitRequest } from './transports/hosted-init-request';
+export { createHostedInitRequest } from './transports/hosted-init-request';
+export { hasPrefetchedInitialData } from './libs/prefetch/window-key';
 export {
 	initOutputToKernelConfig,
 	initResponseToKernelConfig,
@@ -92,7 +100,8 @@ export type {
 	ProviderTransportFactory,
 	ProviderTransportKind,
 } from './transports/mode';
-export { custom, hosted } from './transports/mode';
+export { custom } from './transports/custom';
+export { hosted } from './transports/mode';
 export type {
 	OfflineKernelTransport,
 	OfflineTransportOptions,
