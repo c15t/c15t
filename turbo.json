@@ -496,6 +496,27 @@
 			],
 			"env": ["C15T_TEST_PG_URL", "C15T_TEST_MYSQL_URL"]
 		},
+		"@c15t/react-native#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": [
+				"coverage/coverage-summary.json",
+				"coverage/coverage-final.json",
+				"coverage/html/**"
+			],
+			"env": [
+				"C15T_TEST_PG_URL",
+				"C15T_TEST_MYSQL_URL",
+				"C15T_COVERAGE_RATCHET"
+			]
+		},
+		"@c15t/react-native#test:coverage": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": [
+				"coverage/coverage-summary.json",
+				"coverage/coverage-final.json",
+				"coverage/html/**"
+			]
+		},
 		"@c15t/next-compat-15-app#check-types": {
 			"dependsOn": []
 		},

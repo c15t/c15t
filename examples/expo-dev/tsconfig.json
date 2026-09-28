@@ -1,0 +1,10 @@
+{
+	"extends": "expo/tsconfig.base",
+	"compilerOptions": {
+		"noUncheckedIndexedAccess": true,
+		"strict": true,
+		"types": ["react-native", "node"]
+	},
+	"include": ["**/*.ts", "**/*.tsx"],
+	"exclude": ["**/node_modules", "**/Pods", ".artifacts", "ios", "android"]
+}

@@ -12,6 +12,21 @@ import type { GlobalVendorList } from '@c15t/core';
 import { GVL_ENDPOINT } from './constants';
 
 /**
+ * The most vendor ids ever put in the GVL request query string.
+ *
+ * The endpoint filters server-side, which is what keeps a scoped publisher from
+ * downloading all 1,200-odd vendors, but the filter travels as a query string:
+ * two hundred ids is already a 700-byte query, and a publisher that scopes a
+ * few thousand pushes the request past the request-line limit a CDN enforces,
+ * which fails the whole consent surface rather than just the filter. Above the
+ * cap the endpoint returns the full list and callers narrow it locally, which
+ * costs bytes instead of breaking.
+ *
+ * @internal
+ */
+const MAX_GVL_QUERY_VENDOR_IDS = 500;
+
+/**
  * In-flight request promises for deduplication, keyed by request parameters.
  * When multiple components request the GVL simultaneously with the same
  * parameters, they share the same promise to avoid duplicate network calls.
@@ -133,7 +148,10 @@ export const fetchGVL = function fetchGVL(
 		endpoint,
 		typeof window === 'undefined' ? undefined : window.location.href
 	);
-	if (sortedVendorIds.length > 0) {
+	if (
+		sortedVendorIds.length > 0 &&
+		sortedVendorIds.length <= MAX_GVL_QUERY_VENDOR_IDS
+	) {
 		url.searchParams.set('vendorIds', sortedVendorIds.join(','));
 	}
 
@@ -168,8 +186,18 @@ export const fetchGVL = function fetchGVL(
 				return null;
 			}
 
-			// Validate the response has required fields
-			if (!gvl.vendorListVersion || !gvl.purposes || !gvl.vendors) {
+			// Validate the response has required fields. tcfPolicyVersion belongs
+			// in this list even though no caller reads it: the TC String derives its
+			// TcfPolicyVersion from the vendor list rather than from config, so a
+			// list carrying no usable version would encode a string that a reader
+			// cannot grade against the policy it was collected under.
+			if (
+				!gvl.vendorListVersion ||
+				!gvl.purposes ||
+				!gvl.vendors ||
+				!Number.isSafeInteger(gvl.tcfPolicyVersion) ||
+				gvl.tcfPolicyVersion < 1
+			) {
 				throw new Error('Invalid GVL response: missing required fields');
 			}
 

@@ -7,6 +7,7 @@ import { resolvePolicyRules } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import { createIAB } from '../index';
+import { CMP_VERSION_NUMBER } from '../tcf/cmp-defaults';
 import type { TCFConsentData } from '../tcf/iab-tcf-types';
 import { decodeTCString, generateTCString } from '../tcf/tc-string';
 import { MINIMAL_TC_STRING } from './fixtures/tc-strings';
@@ -178,6 +179,35 @@ describe('@c15t/iab TC string encode/decode', () => {
 			2: true,
 			755: true,
 		});
+	});
+
+	test.each([0, 1, undefined])(
+		'refuses to encode a TC string for cmpId %p',
+		async (cmpId) => {
+			// The 12-bit core-string field starts at 2. Pinning the encoder rule keeps
+			// the createIAB boundary honest: it may not accept a wider range than the
+			// library can encode, and nothing may default a missing id.
+			await expect(
+				generateTCString(createMockTCFConsentAllGranted(), createMockGVL(), {
+					cmpId: cmpId as number,
+				})
+			).rejects.toThrow(/cmpId/u);
+		}
+	);
+
+	test('reports the package major as cmpVersion when unset', async () => {
+		const kernel = createConsentKernel();
+		const iab = createIAB({ cmpId: 28, gvl: createMockGVL(), kernel });
+
+		try {
+			iab.setPurposeConsent(1, true);
+			const decoded = await decodeTCString(await iab.generateTCString());
+
+			expect(decoded.cmpVersion).toBe(CMP_VERSION_NUMBER);
+			expect(decoded.policyVersion).toBe(5);
+		} finally {
+			iab.dispose();
+		}
 	});
 
 	test('createIAB encodes vendorsDisclosed from considered vendor consent state', async () => {

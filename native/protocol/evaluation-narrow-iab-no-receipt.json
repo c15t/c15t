@@ -1,0 +1,181 @@
+{
+	"description": "An IAB rule with a narrow scope on a device with no receipt. The in-scope category waits for a grant exactly as it would under opt-in, and the category outside a permissive scope is allowed; the snapshot reports the model as opt-in because the fixture kernel runs without the IAB module.",
+	"expected": {
+		"snapshot": {
+			"activeUI": "banner",
+			"consentCategories": ["necessary", "functionality"],
+			"effectivePermissions": {
+				"necessary": true,
+				"functionality": false,
+				"experience": true,
+				"measurement": true,
+				"marketing": true
+			},
+			"error": null,
+			"evaluatedAt": 1770000000000,
+			"explicitChoice": null,
+			"iab": null,
+			"location": {
+				"countryCode": "PT",
+				"regionCode": null
+			},
+			"model": "opt-in",
+			"nextDeadline": null,
+			"optOutDirectives": [],
+			"overrides": {
+				"country": "PT",
+				"gpc": null,
+				"language": "en",
+				"region": null
+			},
+			"policyPending": false,
+			"policySnapshotToken": "tok-narrow-iab",
+			"privacySignals": {
+				"gpc": {
+					"active": false,
+					"detected": false,
+					"override": null
+				}
+			},
+			"promptRequirement": {
+				"kind": "choice",
+				"reason": "missing"
+			},
+			"ready": true,
+			"resolution": {
+				"fingerprint": "19df01ec384d2290e46d948ad65352593af25550090a6f1f511d05d5673003de",
+				"policyId": "fixture_narrow_iab_permissive",
+				"status": "matched"
+			},
+			"restrictions": {},
+			"revision": 1,
+			"subject": {
+				"subjectId": "sub_1119tDZHoarNxm6kSm3BN6ze9d"
+			},
+			"translations": {
+				"language": "en",
+				"translations": {
+					"common": {
+						"acceptAll": "Accept all",
+						"customize": "Customize",
+						"rejectAll": "Reject all",
+						"save": "Save"
+					},
+					"consentManagerDialog": {},
+					"consentTypes": {},
+					"cookieBanner": {},
+					"rights": {}
+				}
+			}
+		}
+	},
+	"id": "evaluation-narrow-iab-no-receipt",
+	"input": {
+		"hydrated": true,
+		"now": 1770000000000,
+		"overrides": {
+			"country": null,
+			"gpc": null,
+			"language": "en",
+			"region": null
+		},
+		"privacySignals": {
+			"gpc": {
+				"detected": false,
+				"override": null
+			}
+		},
+		"storedRecords": {
+			"choice": null,
+			"noticeDismissal": null,
+			"subject": {
+				"subjectId": "sub_1119tDZHoarNxm6kSm3BN6ze9d"
+			}
+		},
+		"transport": {
+			"body": {
+				"branding": "c15t",
+				"jurisdiction": "GDPR",
+				"location": {
+					"countryCode": "PT",
+					"regionCode": null
+				},
+				"policyResolution": {
+					"fingerprints": {
+						"choice": "b5381d13272c92f7ea3cf8b41dd058942f3e6ece917823a14b178d89ff44a8f1",
+						"notice": "6e6c46607caa99cf49914a1a6735dd830ae588b2fe0834bb9513a5a4c2e2aee8",
+						"policy": "19df01ec384d2290e46d948ad65352593af25550090a6f1f511d05d5673003de"
+					},
+					"matchedBy": "country",
+					"policy": {
+						"actions": {
+							"allowed": ["accept", "customize", "reject"],
+							"equivalent": [["accept", "reject"]],
+							"required": ["accept", "reject"]
+						},
+						"copyRevision": null,
+						"id": "fixture_narrow_iab_permissive",
+						"model": "iab",
+						"preselectedCategories": [],
+						"privacySignals": {
+							"gpc": {
+								"denyCategories": []
+							}
+						},
+						"prompt": "choice",
+						"proof": {
+							"storeIp": false,
+							"storeLanguage": false,
+							"storeUserAgent": false
+						},
+						"rights": ["disclosure", "preferences"],
+						"scope": ["functionality"],
+						"scopeMode": "permissive",
+						"validity": {
+							"choiceMs": 2592000000,
+							"noticeMs": 31536000000
+						}
+					},
+					"policyId": "fixture_narrow_iab_permissive",
+					"status": "matched",
+					"version": 1
+				},
+				"translations": {
+					"language": "en",
+					"translations": {
+						"common": {
+							"acceptAll": "Accept all",
+							"customize": "Customize",
+							"rejectAll": "Reject all",
+							"save": "Save"
+						},
+						"consentManagerDialog": {},
+						"consentTypes": {},
+						"cookieBanner": {},
+						"rights": {}
+					}
+				},
+				"policySnapshotToken": "tok-narrow-iab"
+			},
+			"headers": {
+				"x-c15t-policy-contract": "1"
+			},
+			"status": 200
+		},
+		"user": null
+	},
+	"kind": "evaluation",
+	"notes": [
+		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
+		"transport is the /init response to serve, headers included. Answer it once, before any save.",
+		"storedRecords is what protected storage holds before the core starts. A null member means nothing is stored for it. The subject id is always supplied, never generated, so no fixture depends on a random uuid.",
+		"input.overrides and input.privacySignals are what the device reports. expected.overrides and expected.privacySignals are what the kernel settled: init.location sets country and region, init.translations sets language, and privacySignals.gpc.active is the override when set, otherwise the detection.",
+		"there is no test override and no msa signal. Overrides are country, region, language, and gpc; gpc is a detected / override / active triple. See \"Corrections to this contract\" in native/CONTRACT.md.",
+		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation. It is not a count of the steps a runner took: an active privacy signal commits a standing directive during init, so that fixture is already at 2 after init where the others reach 1. Compare it as a number, and read the pinned value rather than deriving it.",
+		"optOutDirectives holds the standing directives the kernel recorded, each with source, categories, and recordedAt. It is not always empty: a fixture with an active privacy signal carries the directive that signal produced, and recordedAt equals input.now.",
+		"evaluatedAt equals input.now. Both it and ready are native lifecycle facts, not kernel output: ready is latched by a hydrate() that found a stored envelope and by the first /init that lands a definitive answer, which is a negotiated contract header over a 200 body. Nothing stored plus a resolved init is therefore ready true, and only an init that was refused or never arrived leaves it false.",
+		"error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.",
+		"Any field this file does not mention must not be invented. Unknown wire values fail closed."
+	],
+	"protocolVersion": 1
+}

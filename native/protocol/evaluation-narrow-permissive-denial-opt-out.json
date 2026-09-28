@@ -1,0 +1,222 @@
+{
+	"description": "A permissive scope under the opt-out model with the same recorded refusal. The model default allows and the receipt denies, and the denial wins: this is the cell where reading the model instead of the record turns a subject no into a yes.",
+	"expected": {
+		"snapshot": {
+			"activeUI": "none",
+			"consentCategories": ["necessary", "functionality"],
+			"effectivePermissions": {
+				"necessary": true,
+				"functionality": true,
+				"experience": true,
+				"measurement": true,
+				"marketing": false
+			},
+			"error": null,
+			"evaluatedAt": 1770000000000,
+			"explicitChoice": {
+				"categories": {
+					"functionality": {
+						"basis": {
+							"fingerprint": "8c1b0a34e433d6dd92869a2e1d8fac0fa646f2029925e59b0bab5227941e48dc",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"marketing": {
+						"basis": {
+							"fingerprint": "8c1b0a34e433d6dd92869a2e1d8fac0fa646f2029925e59b0bab5227941e48dc",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": false
+					}
+				},
+				"version": 3
+			},
+			"iab": null,
+			"location": {
+				"countryCode": "ES",
+				"regionCode": null
+			},
+			"model": "opt-out",
+			"nextDeadline": 1772592000000,
+			"optOutDirectives": [],
+			"overrides": {
+				"country": "ES",
+				"gpc": null,
+				"language": "en",
+				"region": null
+			},
+			"policyPending": false,
+			"policySnapshotToken": "tok-narrow-permissive-opt-out",
+			"privacySignals": {
+				"gpc": {
+					"active": false,
+					"detected": false,
+					"override": null
+				}
+			},
+			"promptRequirement": {
+				"kind": "none"
+			},
+			"ready": true,
+			"resolution": {
+				"fingerprint": "b9329b4577a201c3e8c16d4207b57a4e3ef596c2cb9d761daba9e12d3936d8cb",
+				"policyId": "fixture_narrow_permissive_opt_out",
+				"status": "matched"
+			},
+			"restrictions": {
+				"marketing": ["explicit-denial"]
+			},
+			"revision": 1,
+			"subject": {
+				"subjectId": "sub_1119tDZHoarNxm6kSm3BN6ze9d"
+			},
+			"translations": {
+				"language": "en",
+				"translations": {
+					"common": {
+						"acceptAll": "Accept all",
+						"customize": "Customize",
+						"rejectAll": "Reject all",
+						"save": "Save"
+					},
+					"consentManagerDialog": {},
+					"consentTypes": {},
+					"cookieBanner": {},
+					"rights": {}
+				}
+			}
+		}
+	},
+	"id": "evaluation-narrow-permissive-denial-opt-out",
+	"input": {
+		"hydrated": true,
+		"now": 1770000000000,
+		"overrides": {
+			"country": null,
+			"gpc": null,
+			"language": "en",
+			"region": null
+		},
+		"privacySignals": {
+			"gpc": {
+				"detected": false,
+				"override": null
+			}
+		},
+		"storedRecords": {
+			"choice": {
+				"categories": {
+					"functionality": {
+						"basis": {
+							"fingerprint": "8c1b0a34e433d6dd92869a2e1d8fac0fa646f2029925e59b0bab5227941e48dc",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"marketing": {
+						"basis": {
+							"fingerprint": "8c1b0a34e433d6dd92869a2e1d8fac0fa646f2029925e59b0bab5227941e48dc",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": false
+					}
+				},
+				"version": 3
+			},
+			"noticeDismissal": null,
+			"subject": {
+				"subjectId": "sub_1119tDZHoarNxm6kSm3BN6ze9d"
+			}
+		},
+		"transport": {
+			"body": {
+				"branding": "c15t",
+				"jurisdiction": "GDPR",
+				"location": {
+					"countryCode": "ES",
+					"regionCode": null
+				},
+				"policyResolution": {
+					"fingerprints": {
+						"choice": "8c1b0a34e433d6dd92869a2e1d8fac0fa646f2029925e59b0bab5227941e48dc",
+						"notice": "38dd15d10dc953d1cce5ba650377ead11376727532743523dee681ab08f58db9",
+						"policy": "b9329b4577a201c3e8c16d4207b57a4e3ef596c2cb9d761daba9e12d3936d8cb"
+					},
+					"matchedBy": "country",
+					"policy": {
+						"actions": {
+							"allowed": ["accept", "customize", "reject"],
+							"equivalent": [["accept", "reject"]],
+							"required": ["accept", "reject"]
+						},
+						"copyRevision": null,
+						"id": "fixture_narrow_permissive_opt_out",
+						"model": "opt-out",
+						"preselectedCategories": [],
+						"privacySignals": {
+							"gpc": {
+								"denyCategories": []
+							}
+						},
+						"prompt": "choice",
+						"proof": {
+							"storeIp": false,
+							"storeLanguage": false,
+							"storeUserAgent": false
+						},
+						"rights": ["disclosure", "opt-out", "preferences"],
+						"scope": ["functionality"],
+						"scopeMode": "permissive",
+						"validity": {
+							"choiceMs": 2592000000,
+							"noticeMs": 31536000000
+						}
+					},
+					"policyId": "fixture_narrow_permissive_opt_out",
+					"status": "matched",
+					"version": 1
+				},
+				"translations": {
+					"language": "en",
+					"translations": {
+						"common": {
+							"acceptAll": "Accept all",
+							"customize": "Customize",
+							"rejectAll": "Reject all",
+							"save": "Save"
+						},
+						"consentManagerDialog": {},
+						"consentTypes": {},
+						"cookieBanner": {},
+						"rights": {}
+					}
+				},
+				"policySnapshotToken": "tok-narrow-permissive-opt-out"
+			},
+			"headers": {
+				"x-c15t-policy-contract": "1"
+			},
+			"status": 200
+		},
+		"user": null
+	},
+	"kind": "evaluation",
+	"notes": [
+		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
+		"transport is the /init response to serve, headers included. Answer it once, before any save.",
+		"storedRecords is what protected storage holds before the core starts. A null member means nothing is stored for it. The subject id is always supplied, never generated, so no fixture depends on a random uuid.",
+		"input.overrides and input.privacySignals are what the device reports. expected.overrides and expected.privacySignals are what the kernel settled: init.location sets country and region, init.translations sets language, and privacySignals.gpc.active is the override when set, otherwise the detection.",
+		"there is no test override and no msa signal. Overrides are country, region, language, and gpc; gpc is a detected / override / active triple. See \"Corrections to this contract\" in native/CONTRACT.md.",
+		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation. It is not a count of the steps a runner took: an active privacy signal commits a standing directive during init, so that fixture is already at 2 after init where the others reach 1. Compare it as a number, and read the pinned value rather than deriving it.",
+		"optOutDirectives holds the standing directives the kernel recorded, each with source, categories, and recordedAt. It is not always empty: a fixture with an active privacy signal carries the directive that signal produced, and recordedAt equals input.now.",
+		"evaluatedAt equals input.now. Both it and ready are native lifecycle facts, not kernel output: ready is latched by a hydrate() that found a stored envelope and by the first /init that lands a definitive answer, which is a negotiated contract header over a 200 body. Nothing stored plus a resolved init is therefore ready true, and only an init that was refused or never arrived leaves it false.",
+		"error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.",
+		"Any field this file does not mention must not be invented. Unknown wire values fail closed."
+	],
+	"protocolVersion": 1
+}

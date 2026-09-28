@@ -5,6 +5,10 @@
  * optional category, each carrying its own confirmation time and
  * policy-compatibility basis, with no history. The kernel snapshot exposes
  * these shapes directly; `@c15t/core/consent-record` re-exports them.
+ *
+ * An integration that wants only the category vocabulary, and no part of the
+ * kernel behind it, imports `@c15t/core/consent-categories`. This file has no
+ * imports of its own, so that subpath is the whole cost.
  */
 
 /** Every category the runtime knows about, in stable display order. */

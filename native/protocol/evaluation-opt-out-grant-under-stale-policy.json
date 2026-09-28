@@ -1,0 +1,233 @@
+{
+	"description": "The same revised policy against a stored grant for marketing and a refusal of measurement. The grant is not an authority under a basis the subject no longer stands under, and under opt-out marketing is allowed by default anyway with no reason recorded, while measurement keeps its denial.",
+	"expected": {
+		"snapshot": {
+			"activeUI": "none",
+			"consentCategories": [
+				"necessary",
+				"experience",
+				"functionality",
+				"marketing",
+				"measurement"
+			],
+			"effectivePermissions": {
+				"necessary": true,
+				"functionality": true,
+				"experience": true,
+				"measurement": false,
+				"marketing": true
+			},
+			"error": null,
+			"evaluatedAt": 1770000000000,
+			"explicitChoice": {
+				"categories": {
+					"marketing": {
+						"basis": {
+							"fingerprint": "534668ccfe92d933b9093e39863ab9b67d4214828cdaa61b005fcf0a09a0a435",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"measurement": {
+						"basis": {
+							"fingerprint": "534668ccfe92d933b9093e39863ab9b67d4214828cdaa61b005fcf0a09a0a435",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": false
+					}
+				},
+				"version": 3
+			},
+			"iab": null,
+			"location": {
+				"countryCode": "US",
+				"regionCode": "CA"
+			},
+			"model": "opt-out",
+			"nextDeadline": null,
+			"optOutDirectives": [],
+			"overrides": {
+				"country": "US",
+				"gpc": null,
+				"language": "en",
+				"region": "CA"
+			},
+			"policyPending": false,
+			"policySnapshotToken": "tok-stale-replay",
+			"privacySignals": {
+				"gpc": {
+					"active": false,
+					"detected": false,
+					"override": null
+				}
+			},
+			"promptRequirement": {
+				"kind": "none"
+			},
+			"ready": true,
+			"resolution": {
+				"fingerprint": "95c5965ca5e28268b5a03d8380379c7cf5fdd0fe1f8431241396ce76124a4bf4",
+				"policyId": "fixture_california_opt_out",
+				"status": "matched"
+			},
+			"restrictions": {
+				"measurement": ["explicit-denial"]
+			},
+			"revision": 1,
+			"subject": {
+				"subjectId": "sub_1119tDZHoaqHUq5FWvuwaoswjM"
+			},
+			"translations": {
+				"language": "en",
+				"translations": {
+					"common": {
+						"acceptAll": "Accept all",
+						"customize": "Customize",
+						"rejectAll": "Reject all",
+						"save": "Save"
+					},
+					"consentManagerDialog": {},
+					"consentTypes": {},
+					"cookieBanner": {},
+					"rights": {}
+				}
+			}
+		}
+	},
+	"id": "evaluation-opt-out-grant-under-stale-policy",
+	"input": {
+		"hydrated": true,
+		"now": 1770000000000,
+		"overrides": {
+			"country": null,
+			"gpc": null,
+			"language": "en",
+			"region": null
+		},
+		"privacySignals": {
+			"gpc": {
+				"detected": false,
+				"override": null
+			}
+		},
+		"storedRecords": {
+			"choice": {
+				"categories": {
+					"marketing": {
+						"basis": {
+							"fingerprint": "534668ccfe92d933b9093e39863ab9b67d4214828cdaa61b005fcf0a09a0a435",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": true
+					},
+					"measurement": {
+						"basis": {
+							"fingerprint": "534668ccfe92d933b9093e39863ab9b67d4214828cdaa61b005fcf0a09a0a435",
+							"kind": "choice-v1"
+						},
+						"confirmedAt": 1770000000000,
+						"value": false
+					}
+				},
+				"version": 3
+			},
+			"noticeDismissal": null,
+			"subject": {
+				"subjectId": "sub_1119tDZHoaqHUq5FWvuwaoswjM"
+			}
+		},
+		"transport": {
+			"body": {
+				"branding": "c15t",
+				"jurisdiction": "CCPA",
+				"location": {
+					"countryCode": "US",
+					"regionCode": "CA"
+				},
+				"policyResolution": {
+					"fingerprints": {
+						"choice": "8b7671a176aa4750b0b34c45a92603cf50ccd2ade9073d30d3614e17760649be",
+						"notice": "9513125a7ec7401a5c6da7f683bb7f7b362c1f503733ea1e79598828c88048bd",
+						"policy": "95c5965ca5e28268b5a03d8380379c7cf5fdd0fe1f8431241396ce76124a4bf4"
+					},
+					"matchedBy": "country",
+					"policy": {
+						"actions": {
+							"allowed": ["accept", "customize", "reject"],
+							"equivalent": [["accept", "reject"]],
+							"required": ["accept", "reject"]
+						},
+						"copyRevision": "v2",
+						"id": "fixture_california_opt_out",
+						"model": "opt-out",
+						"preselectedCategories": [],
+						"privacySignals": {
+							"gpc": {
+								"denyCategories": []
+							}
+						},
+						"prompt": "choice",
+						"proof": {
+							"storeIp": false,
+							"storeLanguage": false,
+							"storeUserAgent": false
+						},
+						"rights": ["disclosure", "opt-out", "preferences"],
+						"scope": [
+							"experience",
+							"functionality",
+							"marketing",
+							"measurement"
+						],
+						"scopeMode": "permissive",
+						"validity": {
+							"choiceMs": 2592000000,
+							"noticeMs": 31536000000
+						}
+					},
+					"policyId": "fixture_california_opt_out",
+					"status": "matched",
+					"version": 1
+				},
+				"translations": {
+					"language": "en",
+					"translations": {
+						"common": {
+							"acceptAll": "Accept all",
+							"customize": "Customize",
+							"rejectAll": "Reject all",
+							"save": "Save"
+						},
+						"consentManagerDialog": {},
+						"consentTypes": {},
+						"cookieBanner": {},
+						"rights": {}
+					}
+				},
+				"policySnapshotToken": "tok-stale-replay"
+			},
+			"headers": {
+				"x-c15t-policy-contract": "1"
+			},
+			"status": 200
+		},
+		"user": null
+	},
+	"kind": "evaluation",
+	"notes": [
+		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
+		"transport is the /init response to serve, headers included. Answer it once, before any save.",
+		"storedRecords is what protected storage holds before the core starts. A null member means nothing is stored for it. The subject id is always supplied, never generated, so no fixture depends on a random uuid.",
+		"input.overrides and input.privacySignals are what the device reports. expected.overrides and expected.privacySignals are what the kernel settled: init.location sets country and region, init.translations sets language, and privacySignals.gpc.active is the override when set, otherwise the detection.",
+		"there is no test override and no msa signal. Overrides are country, region, language, and gpc; gpc is a detected / override / active triple. See \"Corrections to this contract\" in native/CONTRACT.md.",
+		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation. It is not a count of the steps a runner took: an active privacy signal commits a standing directive during init, so that fixture is already at 2 after init where the others reach 1. Compare it as a number, and read the pinned value rather than deriving it.",
+		"optOutDirectives holds the standing directives the kernel recorded, each with source, categories, and recordedAt. It is not always empty: a fixture with an active privacy signal carries the directive that signal produced, and recordedAt equals input.now.",
+		"evaluatedAt equals input.now. Both it and ready are native lifecycle facts, not kernel output: ready is latched by a hydrate() that found a stored envelope and by the first /init that lands a definitive answer, which is a negotiated contract header over a 200 body. Nothing stored plus a resolved init is therefore ready true, and only an init that was refused or never arrived leaves it false.",
+		"error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.",
+		"Any field this file does not mention must not be invented. Unknown wire values fail closed."
+	],
+	"protocolVersion": 1
+}

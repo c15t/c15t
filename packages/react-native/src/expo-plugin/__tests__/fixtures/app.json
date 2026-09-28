@@ -1,0 +1,28 @@
+{
+	"expo": {
+		"name": "Consent Demo",
+		"slug": "consent-demo",
+		"version": "1.0.0",
+		"sdkVersion": "57.0.0",
+		"platforms": ["ios", "android"],
+		"runtimeVersion": {
+			"policy": "fingerprint"
+		},
+		"updates": {
+			"url": "https://u.expo.dev/11111111-2222-3333-4444-555555555555"
+		},
+		"extra": {
+			"keepMe": true
+		},
+		"plugins": [],
+		"ios": {
+			"bundleIdentifier": "com.example.consentdemo",
+			"infoPlist": {
+				"ITSAppUsesNonExemptEncryption": false
+			}
+		},
+		"android": {
+			"package": "com.example.consentdemo"
+		}
+	}
+}

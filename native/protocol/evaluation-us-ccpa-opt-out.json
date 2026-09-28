@@ -1,0 +1,192 @@
+{
+	"description": "California resolves the CCPA opt-out rule. Optional categories are allowed until denied, no prompt is owed, and no surface renders.",
+	"expected": {
+		"snapshot": {
+			"activeUI": "none",
+			"consentCategories": [
+				"necessary",
+				"experience",
+				"functionality",
+				"marketing",
+				"measurement"
+			],
+			"effectivePermissions": {
+				"necessary": true,
+				"functionality": true,
+				"experience": true,
+				"measurement": true,
+				"marketing": true
+			},
+			"error": null,
+			"evaluatedAt": 1770000000000,
+			"explicitChoice": null,
+			"iab": null,
+			"location": {
+				"countryCode": "US",
+				"regionCode": "CA"
+			},
+			"model": "opt-out",
+			"nextDeadline": null,
+			"optOutDirectives": [],
+			"overrides": {
+				"country": "US",
+				"gpc": null,
+				"language": "en",
+				"region": "CA"
+			},
+			"policyPending": false,
+			"policySnapshotToken": "tok-california-opt-out",
+			"privacySignals": {
+				"gpc": {
+					"active": false,
+					"detected": false,
+					"override": null
+				}
+			},
+			"promptRequirement": {
+				"kind": "none"
+			},
+			"ready": true,
+			"resolution": {
+				"fingerprint": "2add89cb0c497ef5bccaef815bae6277006e37bdc10d4d0e6b1f494aa754c087",
+				"policyId": "california_opt_out",
+				"status": "matched"
+			},
+			"restrictions": {},
+			"revision": 1,
+			"subject": {
+				"subjectId": "sub_1119tDZHoaqHUq5FWvuwaoswjM"
+			},
+			"translations": {
+				"language": "en",
+				"translations": {
+					"common": {
+						"acceptAll": "Accept all",
+						"customize": "Customize",
+						"rejectAll": "Reject all",
+						"save": "Save"
+					},
+					"consentManagerDialog": {},
+					"consentTypes": {},
+					"cookieBanner": {},
+					"rights": {}
+				}
+			}
+		}
+	},
+	"id": "evaluation-us-ccpa-opt-out",
+	"input": {
+		"hydrated": true,
+		"now": 1770000000000,
+		"overrides": {
+			"country": null,
+			"gpc": null,
+			"language": "en",
+			"region": null
+		},
+		"privacySignals": {
+			"gpc": {
+				"detected": false,
+				"override": null
+			}
+		},
+		"storedRecords": {
+			"choice": null,
+			"noticeDismissal": null,
+			"subject": {
+				"subjectId": "sub_1119tDZHoaqHUq5FWvuwaoswjM"
+			}
+		},
+		"transport": {
+			"body": {
+				"branding": "c15t",
+				"jurisdiction": "CCPA",
+				"location": {
+					"countryCode": "US",
+					"regionCode": "CA"
+				},
+				"policyResolution": {
+					"fingerprints": {
+						"choice": "f0a9519130a3c7706acc1dcb795f48eee79cfcde7de85e4384394583bd0db1b0",
+						"notice": "8d9a703452d973d7243cbba8bce68bd86d75d3edd7dff5b1e27d9e31dcb17cee",
+						"policy": "2add89cb0c497ef5bccaef815bae6277006e37bdc10d4d0e6b1f494aa754c087",
+						"legacyMaterial": "071ca579036f43b53790c7d934ece26b9535eb394ef101f4e18c547acc7b82da"
+					},
+					"matchedBy": "region",
+					"policy": {
+						"actions": {
+							"allowed": [],
+							"equivalent": [],
+							"required": []
+						},
+						"copyRevision": null,
+						"id": "california_opt_out",
+						"model": "opt-out",
+						"preselectedCategories": [],
+						"privacySignals": {
+							"gpc": {
+								"denyCategories": ["marketing", "measurement"]
+							}
+						},
+						"prompt": "none",
+						"proof": {
+							"storeIp": true,
+							"storeLanguage": true,
+							"storeUserAgent": true
+						},
+						"rights": ["disclosure", "opt-out", "preferences"],
+						"scope": [
+							"experience",
+							"functionality",
+							"marketing",
+							"measurement"
+						],
+						"scopeMode": "permissive",
+						"validity": {
+							"choiceMs": 31536000000,
+							"noticeMs": 31536000000
+						}
+					},
+					"policyId": "california_opt_out",
+					"status": "matched",
+					"version": 1
+				},
+				"translations": {
+					"language": "en",
+					"translations": {
+						"common": {
+							"acceptAll": "Accept all",
+							"customize": "Customize",
+							"rejectAll": "Reject all",
+							"save": "Save"
+						},
+						"consentManagerDialog": {},
+						"consentTypes": {},
+						"cookieBanner": {},
+						"rights": {}
+					}
+				},
+				"policySnapshotToken": "tok-california-opt-out"
+			},
+			"headers": {
+				"x-c15t-policy-contract": "1"
+			},
+			"status": 200
+		},
+		"user": null
+	},
+	"kind": "evaluation",
+	"notes": [
+		"Compare parsed values, not serialized bytes: object key order is not part of the contract.",
+		"transport is the /init response to serve, headers included. Answer it once, before any save.",
+		"storedRecords is what protected storage holds before the core starts. A null member means nothing is stored for it. The subject id is always supplied, never generated, so no fixture depends on a random uuid.",
+		"input.overrides and input.privacySignals are what the device reports. expected.overrides and expected.privacySignals are what the kernel settled: init.location sets country and region, init.translations sets language, and privacySignals.gpc.active is the override when set, otherwise the detection.",
+		"there is no test override and no msa signal. Overrides are country, region, language, and gpc; gpc is a detected / override / active triple. See \"Corrections to this contract\" in native/CONTRACT.md.",
+		"revision is a monotonic counter that starts at 0 and bumps once per committed mutation. It is not a count of the steps a runner took: an active privacy signal commits a standing directive during init, so that fixture is already at 2 after init where the others reach 1. Compare it as a number, and read the pinned value rather than deriving it.",
+		"optOutDirectives holds the standing directives the kernel recorded, each with source, categories, and recordedAt. It is not always empty: a fixture with an active privacy signal carries the directive that signal produced, and recordedAt equals input.now.",
+		"evaluatedAt equals input.now. Both it and ready are native lifecycle facts, not kernel output: ready is latched by a hydrate() that found a stored envelope and by the first /init that lands a definitive answer, which is a negotiated contract header over a 200 body. Nothing stored plus a resolved init is therefore ready true, and only an init that was refused or never arrived leaves it false.",
+		"error is null in every fixture: no fixture exercises a transport failure or an unreadable wire.",
+		"Any field this file does not mention must not be invented. Unknown wire values fail closed."
+	],
+	"protocolVersion": 1
+}

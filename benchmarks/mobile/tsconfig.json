@@ -1,0 +1,11 @@
+{
+	"extends": "@c15t/typescript-config/base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"types": ["node"],
+		"paths": {
+			"react-native": ["./src/support/react-native-stub.ts"]
+		}
+	},
+	"include": ["src/**/*.ts", "src/**/*.tsx", "vitest.config.ts"]
+}
