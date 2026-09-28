@@ -126,16 +126,16 @@
 			"note": "Resident-set growth across the quiet window: 256 KiB allows the allocator's own slack and rejects a per-tick leak."
 		},
 		"js_shipped_bytes": {
-			"max": 102400,
+			"max": 262144,
 			"unit": "bytes",
 			"source": "allowance",
-			"note": "Unpacked JavaScript in the @c15t/react-native tarball. 100 KiB is a ceiling for the boundary layer, which holds no kernel, no translations, and no policy engine. It moved from 96 KiB at 98,546 B measured: the package grew a decision-carrying gate and a wire-shape checker, and both belong here rather than in a dev-only side door, because the thing being guarded is what crosses the bridge. This is now the larger of the two size rows, and js_closure_bytes is the one that matters: 24,220 B of what ships is the Expo config plugin, which runs in Node at build time and never reaches a device."
+			"note": "Unpacked JavaScript in the @c15t/react-native tarball. Measured 200,638 B once the public entry carried the banner, dialog, preference centre, IAB drawer, and the tracking journey; 256 KiB leaves a quarter of that again for the surfaces to grow. This row counts 24 KiB of Expo config plugin that runs in Node at build time and never reaches a device, so js_closure_bytes is the row that says what an app carries."
 		},
 		"js_shipped_gzip_bytes": {
-			"max": 24576,
+			"max": 49152,
 			"unit": "bytes",
 			"source": "allowance",
-			"note": "Gzipped JavaScript the tarball ships. 24 KiB is the ceiling for a boundary layer: no kernel, no translations, no policy engine, no UI components in the public entry."
+			"note": "Gzipped JavaScript the tarball ships. Measured 40,254 B with the surfaces in the public entry; 48 KiB is the ceiling."
 		},
 		"ios_binary_bytes": {
 			"max": 1048576,
@@ -150,10 +150,10 @@
 			"note": "TurboModule binding bytes on iOS. 256 KiB is the ceiling for a Codegen spec, a JSON marshalling layer, and an event emitter, with no consent logic in it."
 		},
 		"android_binary_bytes": {
-			"max": 1048576,
+			"max": 1572864,
 			"unit": "bytes",
 			"source": "allowance",
-			"note": "Bytes the Kotlin core plus the bridge add to an Android app, measured as the uncompressed class bytes of the release artifacts. 1 MiB matches the iOS ceiling for the same engine."
+			"note": "Bytes the Kotlin core plus the bridge add to an Android app, measured as the uncompressed class bytes of the release artifacts. Measured 1,281,139 B with the TCF disclosure, the served vendor list slot, and the IABTCF bus in the core; 1.5 MiB is the ceiling."
 		},
 		"js_hydrate_envelope_ms": {
 			"max": 3,
@@ -186,10 +186,10 @@
 			"note": "Applying one rule set through the reference evaluator: build the kernel, feed it the fixture's /init body, read the snapshot back. The contract sets no number for this span and it is a wider one than the native `policy_evaluation_us` rows, which evaluate in isolation. 100 us is the regression guard the first measured run supported: 17-24 us across eight rule sets, so this trips on a 4x blow-up rather than on sampling noise."
 		},
 		"cold_start_js_to_first_consent_ms": {
-			"max": 40,
+			"max": 120,
 			"unit": "ms",
 			"source": "allowance",
-			"note": "Built entry to a readable snapshot, in a process that has never seen c15t: module evaluation plus the first handshake. Measured 10.9 ms on the development machine, 10.7 ms of it evaluating the entry and what it links. It read 31-44 ms while the built barrel pulled the @c15t/core graph into every app, which is the whole argument for the js_closure_bytes ceiling above. 40 ms is a blow-up guard, not a promise: it allows a runner three times as slow, and Node's specifier resolution charges c15t for work a bundled app does not do. It is deliberately not the contract's 10 ms, which is a device-profile number."
+			"note": "Built entry to a readable snapshot, in a process that has never seen c15t: module evaluation plus the first handshake. Measured 10.9 ms on the development machine when the entry was a boundary layer; the entry now links the surfaces and the IAB drawer too, and reads 46 ms on a macOS runner and 75 ms on an Ubuntu runner. 120 ms is a blow-up guard, not a promise: it leaves a shared runner half again as slow, and Node's specifier resolution charges c15t for work a bundled app does not do. It is deliberately not the contract's 10 ms, which is a device-profile number."
 		},
 		"cached_consent_available_ms": {
 			"max": 3,
@@ -222,16 +222,16 @@
 			"note": "Tap on the primary action to the module holding the intent, measured through the rendered control rather than a client call, so the React layer is inside the span. Measured 0.72 ms against a fake that answers offline. The 50 ms contract ceiling gates the client span below; 10 ms here says the render path must not add an order of magnitude to it."
 		},
 		"js_closure_bytes": {
-			"max": 131072,
+			"max": 196608,
 			"unit": "bytes",
 			"source": "allowance",
-			"note": "Unpacked JavaScript an app carries because c15t is installed: every module reachable from the built entry. Measured 74,507 B over 48 modules, 46 of them this package and two the consent-category vocabulary it reads through @c15t/core/consent-categories. 128 KiB is the ceiling. It allows the boundary layer to grow by half again, and it fails the moment a runtime import to the @c15t/core barrel comes back: that edge measured 389,639 B over 131 modules, because behind two string arrays sits the kernel, the schema, and the translations."
+			"note": "Unpacked JavaScript an app carries because c15t is installed: every module reachable from the built entry. Measured 74,507 B over 48 modules as a boundary layer, and 165,270 B once the surfaces and the IAB drawer joined the entry. 192 KiB is the ceiling. It still fails the moment a runtime import to the @c15t/core barrel comes back: that edge measured 389,639 B over 131 modules, because behind two string arrays sits the kernel, the schema, and the translations."
 		},
 		"js_closure_gzip_bytes": {
-			"max": 24576,
+			"max": 40960,
 			"unit": "bytes",
 			"source": "allowance",
-			"note": "The same closure gzipped, which is the shape it travels in. Measured 14,956 B over 48 modules. 24 KiB is deliberately the same ceiling as js_shipped_gzip_bytes, so the two cannot be traded against each other; the barrel edge this guards measured 90,701 B gzipped, so the ceiling is nowhere near the regression it exists to catch. Third-party packages the closure reaches (valibot, base-x) are named in the detail and not counted."
+			"note": "The same closure gzipped, which is the shape it travels in. Measured 14,956 B as a boundary layer and 31,623 B with the surfaces in the entry. 40 KiB is the ceiling, below the 48 KiB shipped-gzip row so the closure cannot quietly become the whole tarball, and well under the 90,701 B the @c15t/core barrel edge measured, which is the regression this row exists to catch. Third-party packages the closure reaches (valibot, base-x) are named in the detail and not counted."
 		},
 		"idle_heap_growth_bytes": {
 			"max": 262144,
