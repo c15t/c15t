@@ -1,6 +1,7 @@
 import type {
 	ConsentPresentation,
 	ClearOnRevocationConfig,
+	ConsentState,
 	KernelEvent,
 	HydrationRecords,
 	Vendor,
@@ -81,6 +82,14 @@ export interface ConsentConfig
 	vendors?: Vendor[];
 	/** Remove configured browser data when its consent permission is revoked. */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted. Removing a script cannot stop code that already
+	 * ran, so the reload starts a document with only permitted code. Waits for
+	 * the save request. Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	/** Resolved server init data, reused for the first client render. */
 	prefetch?: InitOutput;
 	/** Raw server records with their request evaluation clock. */
@@ -95,5 +104,9 @@ export interface ConsentConfig
 		onPermissionsChanged?: (
 			event: Omit<Extract<KernelEvent, { type: 'permissions:changed' }>, 'type'>
 		) => void;
+		/** Runs synchronously before a revocation reload. */
+		onBeforeConsentRevocationReload?: (event: {
+			preferences: ConsentState;
+		}) => void;
 	};
 }

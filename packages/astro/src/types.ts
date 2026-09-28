@@ -174,6 +174,15 @@ export interface C15tAstroOptions {
 	clearOnRevocation?: ClearOnRevocationConfig;
 
 	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted. Removing a script cannot stop code that already
+	 * ran, so the reload starts a document with only permitted code. Waits for
+	 * the save request. Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
+
+	/**
 	 * Block `fetch` and XHR requests that match these rules until the
 	 * visitor's consent allows them. Omitted or `false` disables it.
 	 * `onRequestBlocked` is a callback, so it belongs in

@@ -2,6 +2,7 @@
 
 import {
 	extractConsentNamesFromCondition,
+	watchRevocationReload,
 	createConsentKernel,
 	disabledPolicyResolution,
 	kernelConfigToInitResponse,
@@ -76,7 +77,10 @@ declare const process: { env: { NODE_ENV?: string } };
 /** Events emitted by the mounted provider without snapshot-derived consent aliases. */
 export type ConsentProviderCallbacks = Pick<
 	Callbacks,
-	'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+	| 'onChoiceRecorded'
+	| 'onPermissionsChanged'
+	| 'onError'
+	| 'onBeforeConsentRevocationReload'
 >;
 /** Prepared policy and records; legacy consent projections are not provider inputs. */
 export type ConsentProviderPrefetch = Omit<
@@ -166,6 +170,14 @@ export interface ConsentProviderOptions extends Pick<
 	 * Initial-only: remount the provider to replace its cleanup configuration.
 	 */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted. Removing a script cannot stop code that already
+	 * ran, so the reload starts a document with only permitted code. Waits for
+	 * the save request. Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	scripts?: Script[];
 	/**
 	 * Vendors offered for vendor-level consent outside IAB. Each sits inside a
@@ -631,13 +643,27 @@ const stringifyError = function stringifyError(error: unknown): string {
 
 const useProviderCallbacks = function useProviderCallbacks(
 	kernel: ConsentKernel,
-	callbacks: ConsentProviderCallbacks | undefined
+	callbacks: ConsentProviderCallbacks | undefined,
+	reloadOnConsentRevoked: boolean | undefined
 ) {
 	const callbacksRef = useRef(callbacks);
+	const reloadRef = useRef(reloadOnConsentRevoked);
 
 	useEffect(() => {
 		callbacksRef.current = callbacks;
-	}, [callbacks]);
+		reloadRef.current = reloadOnConsentRevoked;
+	}, [callbacks, reloadOnConsentRevoked]);
+
+	useEffect(
+		() =>
+			watchRevocationReload({
+				getOnBeforeReload: () =>
+					callbacksRef.current?.onBeforeConsentRevocationReload,
+				isEnabled: () => reloadRef.current !== false,
+				kernel,
+			}),
+		[kernel]
+	);
 
 	useEffect(() => {
 		const subscriptions = [
@@ -874,11 +900,13 @@ const useProviderOptionSync = function useProviderOptionSync(
 const ProviderCallbacksMount = ({
 	kernel,
 	callbacks,
+	reloadOnConsentRevoked,
 }: {
 	kernel: ConsentKernel;
 	callbacks?: ConsentProviderCallbacks;
+	reloadOnConsentRevoked?: boolean;
 }) => {
-	useProviderCallbacks(kernel, callbacks);
+	useProviderCallbacks(kernel, callbacks, reloadOnConsentRevoked);
 	return null;
 };
 
@@ -1371,6 +1399,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					<ProviderCallbacksMount
 						kernel={kernel}
 						callbacks={options.callbacks}
+						reloadOnConsentRevoked={options.reloadOnConsentRevoked}
 					/>
 					<WindowDebugMount
 						pkg={windowDebugPkg}

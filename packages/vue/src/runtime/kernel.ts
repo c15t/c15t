@@ -5,6 +5,7 @@ import {
 	createHostedTransport,
 	initOutputToKernelConfig,
 	resolveVendors,
+	watchRevocationReload,
 } from '@c15t/core';
 import type {
 	ConsentKernel,
@@ -597,6 +598,22 @@ const trackUnclaimedHold = function trackUnclaimedHold(
 	}
 };
 
+/** Reload after an explicit revocation. A borrowed runtime does this itself. */
+const watchOwnedRevocationReload = function watchOwnedRevocationReload(
+	ownsKernel: boolean,
+	kernel: ConsentKernel,
+	config: RuntimeConsentConfig
+): () => void {
+	if (!ownsKernel) {
+		return () => undefined;
+	}
+	return watchRevocationReload({
+		getOnBeforeReload: () => config.callbacks?.onBeforeConsentRevocationReload,
+		isEnabled: () => config.reloadOnConsentRevoked !== false,
+		kernel,
+	});
+};
+
 /** Take a context's hold, so only one owner ends it. */
 const claimHold = function claimHold(
 	context: VueConsentKernelContext
@@ -728,6 +745,12 @@ export const createVueConsentKernelContext =
 			}
 		);
 
+		const unsubscribeRevocationReload = watchOwnedRevocationReload(
+			ownsKernel,
+			kernel,
+			options.config
+		);
+
 		// Assigned after context creation because the subscription updates that context.
 		// oxlint-disable-next-line prefer-const
 		let unsubscribeIab: (() => void) | undefined;
@@ -752,6 +775,7 @@ export const createVueConsentKernelContext =
 				unsubscribeChoice();
 				unsubscribeVendorCategories();
 				unsubscribePermissions();
+				unsubscribeRevocationReload();
 				if (ownsKernel) {
 					kernel.dispose();
 				}

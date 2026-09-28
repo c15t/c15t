@@ -319,6 +319,11 @@ export {
 	getEffectiveGateState,
 	isVendorDenied,
 } from './modules/has';
+export type { RevocationReloadOptions } from './modules/revocation-reload';
+export {
+	hasRevokedPermission,
+	watchRevocationReload,
+} from './modules/revocation-reload';
 export type { ResolveVendorsInput, VendorOwner } from './libs/vendors';
 export {
 	declareOwnedVendors,

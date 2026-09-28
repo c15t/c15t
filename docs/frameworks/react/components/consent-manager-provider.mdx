@@ -46,6 +46,7 @@ mechanism for switching visitors or backends.
 | `i18n` | Languages and message overrides |
 | `storageConfig` | Browser record storage configuration |
 | `enabled` | Set false only when intentionally bypassing consent enforcement |
+| `reloadOnConsentRevoked` | Reload the page after the visitor turns off a granted category or vendor; defaults to `true` |
 
 `enabled: false` grants categories and allows gated loading while suppressing
 consent UI. It is not a way to fix failed initialization or hide a banner in
@@ -69,6 +70,18 @@ wait for that handle. If the provider unmounts or switches runtimes first, a
 pending `save()` rejects with an `AbortError` instead of waiting indefinitely.
 See [consent state](/docs/guides/consent-state) and
 [deployment modes](/docs/guides/deployment-modes).
+
+## Reload after revocation
+
+Removing a script cannot stop code that already ran. A vendor's listeners,
+timers and widgets keep working until the page unloads. When an accept, reject
+or save turns off a category or vendor that was granted, the provider reloads
+the page once the save request settles, so the next page runs only permitted
+code. `onBeforeConsentRevocationReload` runs just before the reload.
+
+Expiry, policy changes and privacy signals do not reload the page. Set
+`reloadOnConsentRevoked: false` only when every gated vendor stops itself on
+revocation, for example through its own opt-out API.
 
 ## Clear data when consent is denied
 
