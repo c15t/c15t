@@ -1181,6 +1181,9 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		vendor: 'openai-pixel',
 	},
 	{
+		// core.js loads the versioned runtime from this path. Collection uses
+		// ct.pinterest.com and must remain blocked by the probe.
+		allowUrlSubstrings: ['https://s.pinimg.com/ct/lib/'],
 		bootstrapCheck: () => {
 			const stub = window.pintrk;
 

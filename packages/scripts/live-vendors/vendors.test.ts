@@ -45,6 +45,23 @@ describe('live vendor probe configs', () => {
 		}
 	});
 
+	it('allows Pinterest runtime bundles while blocking collection endpoints', () => {
+		const [config] = configsForVendor('pinterest-tag');
+		const allowedUrls = [
+			config?.loaderUrlSubstring,
+			...(config?.allowUrlSubstrings ?? []),
+		].filter((value): value is string => Boolean(value));
+		const isAllowed = (url: string) =>
+			allowedUrls.some((substring) => url.includes(substring));
+
+		expect(isAllowed('https://s.pinimg.com/ct/core.js')).toBe(true);
+		expect(isAllowed('https://s.pinimg.com/ct/lib/main.340b6cee.js')).toBe(
+			true
+		);
+		expect(isAllowed('https://ct.pinterest.com/v3/')).toBe(false);
+		expect(isAllowed('https://ct.pinterest.com/stats/')).toBe(false);
+	});
+
 	it('documents every vendor that asserts no runtime behavior', () => {
 		// A vendor whose loader answers placeholder credentials with an error
 		// page cannot prove its SDK started, so the probe reduces to "the
