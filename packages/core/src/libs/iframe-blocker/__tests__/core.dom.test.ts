@@ -18,6 +18,7 @@ import {
 import type { ConsentState } from '../../../types';
 import {
 	createIframeBlocker,
+	getIframeConsentCategories,
 	processAllIframes,
 	setupIframeObserver,
 } from '../core';
@@ -49,6 +50,22 @@ function createUnreadableNode(): HTMLDivElement {
 		},
 	});
 	return node;
+}
+
+/**
+ * An iframe whose own properties page script can't read, as can happen when
+ * an unreadable node carries or contains the iframe.
+ */
+function createUnreadableIframe(): HTMLIFrameElement {
+	const iframe = createIframe('marketing');
+	for (const method of ['getAttribute', 'hasAttribute']) {
+		Object.defineProperty(iframe, method, {
+			value() {
+				throw new Error(`Permission denied to access property "${method}"`);
+			},
+		});
+	}
+	return iframe;
 }
 
 async function flushMutations(): Promise<void> {
@@ -106,6 +123,18 @@ describe('iframe blocker resilience', () => {
 			expect(iframe.getAttribute('src')).toBeNull();
 		});
 
+		it('blocks iframes added in the same batch as an unreadable nested iframe', async () => {
+			start();
+			const container = document.createElement('div');
+			container.append(createUnreadableIframe());
+			const iframe = createIframe('marketing');
+
+			document.body.append(container, iframe);
+			await flushMutations();
+
+			expect(iframe.getAttribute('src')).toBeNull();
+		});
+
 		it('blocks an invalid-category iframe and the iframes added with it', async () => {
 			start();
 			const invalid = createIframe('bogus');
@@ -144,5 +173,31 @@ describe('iframe blocker resilience', () => {
 			expect(invalid.getAttribute('src')).toBeNull();
 			expect(iframe.getAttribute('src')).toBeNull();
 		});
+
+		it('processAllIframes blocks iframes after an unreadable iframe', () => {
+			const iframe = createIframe('marketing');
+			document.body.append(createUnreadableIframe(), iframe);
+
+			expect(() => processAllIframes(consents)).not.toThrow();
+			expect(iframe.getAttribute('src')).toBeNull();
+		});
+
+		it('keeps an iframe with an empty data-category blocked', () => {
+			const iframe = createIframe('');
+			document.body.append(iframe);
+
+			processAllIframes({ ...consents, marketing: true, measurement: true });
+
+			expect(iframe.getAttribute('src')).toBeNull();
+			expect(warnSpy).toHaveBeenCalledWith(
+				expect.stringContaining('invalid data-category ""')
+			);
+		});
+	});
+
+	it('getIframeConsentCategories skips an unreadable iframe', () => {
+		document.body.append(createUnreadableIframe(), createIframe('measurement'));
+
+		expect(getIframeConsentCategories()).toEqual(['measurement']);
 	});
 });

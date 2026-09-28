@@ -37,13 +37,14 @@ function createDefaultConsentState(): ConsentState {
  * @param iframe - The iframe element to check
  * @returns The required consent type, `undefined` if no consent is required,
  * or `null` if the category attribute names no known consent category
+ * (including an empty value)
  */
 function determineRequiredConsent(
 	iframe: HTMLIFrameElement
 ): AllConsentNames | null | undefined {
 	const categoryAttr = iframe.getAttribute('data-category');
 
-	if (!categoryAttr) {
+	if (categoryAttr === null) {
 		// No category attribute means no consent required
 		return undefined;
 	}
@@ -100,6 +101,30 @@ function processIframeElement(
 		if (iframe.src) {
 			iframe.removeAttribute('src');
 		}
+	}
+}
+
+/**
+ * Process a single iframe, skipping it if page script can't read it.
+ *
+ * Some browsers throw when page script reads a node it has no access to,
+ * such as one inserted by an extension (Firefox raises "Permission denied to
+ * access property"). One such iframe must not stop the rest of the pass.
+ *
+ * @param iframe - The iframe element to process
+ * @param consents - Current consent state
+ * @returns Whether the iframe has a `data-category` attribute
+ */
+function processIframeSafely(
+	iframe: HTMLIFrameElement,
+	consents: ConsentState
+): boolean {
+	try {
+		processIframeElement(iframe, consents);
+		return iframe.hasAttribute('data-category');
+	} catch {
+		// The iframe can't be read by page script, so it can't be managed either.
+		return false;
 	}
 }
 
@@ -177,7 +202,7 @@ export function createIframeBlocker(
 		const iframes = document.querySelectorAll('iframe');
 
 		iframes.forEach((iframe) => {
-			processIframeElement(iframe, consents);
+			processIframeSafely(iframe, consents);
 		});
 	}
 
@@ -189,7 +214,7 @@ export function createIframeBlocker(
 			mutations.forEach((mutation) => {
 				mutation.addedNodes.forEach((node) => {
 					for (const iframe of getAddedIframes(node)) {
-						processIframeElement(iframe, consents);
+						processIframeSafely(iframe, consents);
 					}
 				});
 			});
@@ -259,7 +284,13 @@ export function getIframeConsentCategories(): AllConsentNames[] {
 	}
 
 	iframes.forEach((iframe) => {
-		const categoryAttr = iframe.getAttribute('data-category');
+		let categoryAttr: string | null;
+		try {
+			categoryAttr = iframe.getAttribute('data-category');
+		} catch {
+			// The iframe can't be read by page script; see processIframeSafely.
+			return;
+		}
 
 		if (!categoryAttr) {
 			return;
@@ -306,7 +337,7 @@ export function processAllIframes(consents: ConsentState): void {
 	}
 
 	iframes.forEach((iframe) => {
-		processIframeElement(iframe, consents);
+		processIframeSafely(iframe, consents);
 	});
 }
 
@@ -341,9 +372,7 @@ export function setupIframeObserver(
 		mutations.forEach((mutation) => {
 			mutation.addedNodes.forEach((node) => {
 				for (const iframe of getAddedIframes(node)) {
-					processIframeElement(iframe, currentConsents);
-					// Check if iframe has a data-category attribute
-					if (iframe.hasAttribute('data-category')) {
+					if (processIframeSafely(iframe, currentConsents)) {
 						hasNewCategories = true;
 					}
 				}
