@@ -37,6 +37,7 @@ export {
 	validateNoticeDismissal,
 } from './consent-record';
 export { createConsentKernel } from './kernel';
+export { disabledPolicyResolution } from './policy';
 export {
 	resolveIABBannerSummary,
 	IAB_BANNER_MAX_DISPLAY_ITEMS,

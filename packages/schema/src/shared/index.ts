@@ -96,10 +96,13 @@ export {
 } from './policy-fingerprint';
 export {
 	matchPolicyRules,
-	POLICY_CONTRACT_HEADER,
-	POLICY_CONTRACT_VERSION,
 	type PolicyMatchEntry,
 	type PolicyMatchOutcome,
+	resolvePolicyRules,
+} from './policy-resolution';
+export {
+	POLICY_CONTRACT_HEADER,
+	POLICY_CONTRACT_VERSION,
 	type PolicyResolution,
 	type PolicyResolutionFailed,
 	type PolicyResolutionFailure,
@@ -109,28 +112,23 @@ export {
 	type PolicyResolutionWire,
 	parsePolicyContractHeader,
 	readPolicyResolutionWire,
-	resolvePolicyRules,
 	SAFE_FALLBACK_POLICY_FINGERPRINTS,
 	SAFE_FALLBACK_POLICY_ID,
 	type SafeFallbackPolicyInput,
 	safeFallbackPolicyInput,
 	safeFallbackPolicyRule,
 	writePolicyResolutionWire,
-} from './policy-resolution';
+} from './policy-resolution-wire';
 export {
 	canonicalizePolicySet,
 	collectResolvedPolicyRuleIssues,
-	DEFAULT_CHOICE_VALIDITY_DAYS,
-	DEFAULT_NOTICE_VALIDITY_DAYS,
 	expectedPolicyActions,
-	inspectPolicyRules,
 	isPlainPolicyObject,
 	isPolicyOptionalCategory,
 	isPolicyPrompt,
 	isPolicyRight,
 	isPolicyRuleModel,
 	isValidPolicyPromptForModel,
-	normalizePolicyRule,
 	POLICY_CONSENT_CATEGORIES,
 	POLICY_MODEL_PROMPTS,
 	POLICY_OPTIONAL_CATEGORIES,
@@ -138,6 +136,13 @@ export {
 	POLICY_PROMPTS,
 	POLICY_RIGHTS,
 	POLICY_RULE_MODELS,
+	requiredPolicyRights,
+} from './policy-rule-invariants';
+export {
+	DEFAULT_CHOICE_VALIDITY_DAYS,
+	DEFAULT_NOTICE_VALIDITY_DAYS,
+	inspectPolicyRules,
+	normalizePolicyRule,
 	type PolicyActionConstraints,
 	type PolicyChoiceAction,
 	type PolicyConsentCategory,
@@ -148,7 +153,6 @@ export {
 	type PolicyRule,
 	type PolicyRuleModel,
 	type PolicyRuleReview,
-	requiredPolicyRights,
 	type ResolvedPolicyRule,
 	validatePolicyRules,
 } from './policy-rule';
