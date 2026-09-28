@@ -171,9 +171,11 @@ export const createIframeBlocker = function createIframeBlocker(
 		// here: one that left the page, or stayed but dropped its gate
 		// attributes, takes its declaration with it. Without an observer,
 		// under `disableAutomaticBlocking`, this is the only place that can.
+		// A frame page script can no longer read keeps its declaration:
+		// nothing shows it left or changed, and `dispose` still drops it.
 		for (const iframe of [...framed.keys()]) {
 			const gate = readGate(iframe);
-			if (!(gate?.isConnected && gate.vendor && gate.category)) {
+			if (gate && !(gate.isConnected && gate.vendor && gate.category)) {
 				framed.delete(iframe);
 			}
 		}
