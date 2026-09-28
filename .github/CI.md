@@ -6,7 +6,7 @@ benchmark should reuse an existing group unless it proves a different contract.
 | Group | Owns | Does not need another copy in |
 | --- | --- | --- |
 | Repository and docs | Lint, format, selectors, tooling contracts, generated docs | Package runtime builds |
-| Package behavior and types | Kernel/storage/policy logic, adapter components, public types, test fixture types, benchmark helper units | Every example journey |
+| Package behavior and types | Kernel/storage/policy logic, adapter components, public types, test fixture types, external observers of packed exports, benchmark helper units | Every example journey |
 | Database behavior | SQLite, PGlite, real Postgres/MySQL, migrations and audit contracts | Browser acceptance |
 | Example acceptance | Production setup, vendor and iframe gating, revocation, navigation and outage recovery | Each benchmark timing loop |
 | Next compatibility | Packed exports, Next 15/16, App/Pages, Cache Components, static export, first HTML and request/cache contracts | A second version matrix |
@@ -25,12 +25,22 @@ bun scripts/ci-run.ts build
 bun scripts/ci-run.ts types
 bun scripts/ci-run.ts testTypes
 bun scripts/ci-run.ts tests
+bun turbo run test --filter=@c15t/consent-observers
 CI_INTEGRATION=examples CI_TARGETS=react,vue bun scripts/ci-browser.ts
 CI_INTEGRATION=compat CI_TARGETS=16-app,16-static-export bun scripts/ci-browser.ts
 CI_INTEGRATION=parity CI_TARGETS=react,svelte,vue,astro bun scripts/ci-browser.ts
 CI_INTEGRATION=journeys CI_TARGETS=nextjs,nuxt,sveltekit bun scripts/ci-browser.ts
 CI_INTEGRATION=styles CI_TARGETS=all bun scripts/ci-browser.ts
 ```
+
+`internals/consent-observers` is an ordinary package test with a different
+install. Its `test` script packs the `c15t` closure with the next-compat pack
+step, type-checks against the extracted `dist-types`, then runs Vitest against
+the extracted `dist`. It owns the external-observer contract: reading and
+subscribing through `c15t/runtime` and `c15t/react/context`, provider
+replacement and isolation, StrictMode, borrowed-runtime ownership, and Next.js
+and TanStack Start request isolation. Any change to a package in that closure
+selects it.
 
 The selector compares committed changes with the merge base. Without
 `CI_DIFF_BASE`, it selects a full run. Its regression tests use the real

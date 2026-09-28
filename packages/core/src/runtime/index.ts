@@ -26,7 +26,6 @@
  * runtime.start();
  * ```
  */
-import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { I18nConfig } from '@c15t/translations';
 
@@ -37,14 +36,18 @@ import { resolveVendors } from '../libs/vendors';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
+import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
+import type { NetworkHold } from '../modules/network-blocker/hold';
 import { createPersistence } from '../modules/persistence';
 import type { PersistenceHandle } from '../modules/persistence';
+import { watchRevocationReload } from '../modules/revocation-reload';
 import { createScriptLoader } from '../modules/script-loader';
 import {
 	createWindowDebug,
 	resolveWindowDebugMode,
 } from '../modules/window-debug';
 import type { User } from '../options/user';
+import { disabledPolicyResolution } from '../policy';
 import { defaultTranslationConfig } from '../translations';
 import type { ProviderTransportContext } from '../transports/mode';
 import type {
@@ -176,19 +179,6 @@ export const resolveRuntimeTranslations = function resolveRuntimeTranslations(
 	};
 };
 
-const DISABLED_RESOLUTION = resolvePolicyRules({
-	countryCode: null,
-	regionCode: null,
-	rules: [
-		{
-			id: 'disabled',
-			match: { fallback: true },
-			model: 'opt-out',
-			prompt: 'none',
-		},
-	],
-});
-
 const normalizePersistenceOptions = function normalizePersistenceOptions(
 	options: ConsentRuntimeOptions
 ): RuntimePersistenceOptions | false {
@@ -202,6 +192,7 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 	return {
 		skipHydration: options.persistence.skipHydration,
 		storageConfig: options.persistence.storageConfig ?? storageConfig,
+		sync: options.persistence.sync,
 	};
 };
 
@@ -304,7 +295,8 @@ export const createRuntimeKernel = function createRuntimeKernel(
 				extractConsentNamesFromCondition(vendor.category)
 			),
 		],
-		initialExternalPermissions: options.consentSource ? {} : undefined,
+		initialExternalPermissions:
+			enabled && options.consentSource ? {} : undefined,
 		initialIab:
 			prefetch.initialIab?.gvlReference &&
 			options.iab &&
@@ -327,7 +319,7 @@ export const createRuntimeKernel = function createRuntimeKernel(
 				(enabled && !prefetch.initialPolicyResolution)),
 		initialPolicyResolution: enabled
 			? prefetch.initialPolicyResolution
-			: DISABLED_RESOLUTION,
+			: disabledPolicyResolution(),
 		// A disabled runtime grants everything, so stored records, including a
 		// vendor denial list, must not narrow what loads.
 		initialRecords:
@@ -369,6 +361,7 @@ const normalizeIABOptions = function normalizeIABOptions(
 		gvlURL: iab.gvlURL,
 		isServiceSpecific: iab.isServiceSpecific,
 		publisherCountryCode: iab.publisherCountryCode,
+		publisherRestrictions: iab.publisherRestrictions,
 		vendors: iab.vendors,
 	};
 };
@@ -407,6 +400,17 @@ export const createConsentRuntime = function createConsentRuntime(
 		? false
 		: normalizePersistenceOptions(options);
 	const kernel = createRuntimeKernel(options);
+	// `start()` installs the blocker, often after the host rendered its
+	// children. Hold matching requests until then; the blocker takes over this
+	// runtime's hold and replays them. A runtime disposed before it started
+	// ends its hold itself, failing what it held closed. Either way, other
+	// callers' holds stay in place.
+	let hold: NetworkHold | null =
+		enabled &&
+		options.networkBlocker &&
+		options.networkBlocker.enabled !== false
+			? holdNetworkRequests(options.networkBlocker.rules)
+			: null;
 
 	let iabHandle: ConsentRuntimeIABHandle | null = null;
 	let started = false;
@@ -428,6 +432,12 @@ export const createConsentRuntime = function createConsentRuntime(
 	disposers.push(
 		wireRuntimeCallbacks({
 			callbacks: options.callbacks,
+			kernel,
+		}),
+		watchRevocationReload({
+			getOnBeforeReload: () =>
+				options.callbacks?.onBeforeConsentRevocationReload,
+			isEnabled: () => options.reloadOnConsentRevoked !== false,
 			kernel,
 		})
 	);
@@ -466,6 +476,7 @@ export const createConsentRuntime = function createConsentRuntime(
 				persistenceOptions.skipHydration ??
 				Boolean(options.prefetch?.initialRecords),
 			storageConfig: persistenceOptions.storageConfig,
+			sync: persistenceOptions.sync,
 		});
 		persistenceHandle = persistence;
 		disposers.push(() => {
@@ -547,6 +558,11 @@ export const createConsentRuntime = function createConsentRuntime(
 				dispose();
 			}
 			disposers.length = 0;
+			// No blocker took the hold over, so nothing else ends it, and
+			// nothing checked consent for what it held: those requests fail
+			// as blocked rather than wait for the rest of the page.
+			hold?.block();
+			hold = null;
 			iabListeners.clear();
 			iabHandle = null;
 			persistenceHandle = null;
@@ -571,6 +587,9 @@ export const createConsentRuntime = function createConsentRuntime(
 			return function unsubscribeIAB() {
 				iabListeners.delete(listener);
 			};
+		},
+		reconcileStorage() {
+			return persistenceHandle?.reconcile() ?? false;
 		},
 		async reinit() {
 			if (!enabled || disposed) {
@@ -606,8 +625,12 @@ export const createConsentRuntime = function createConsentRuntime(
 			}
 
 			startPersistence();
-			if (options.consentSource) {
+			if (enabled && options.consentSource) {
 				disposers.push(connectConsentSource(kernel, options.consentSource));
+				kernel.events.emit({
+					snapshot: kernel.getSnapshot(),
+					type: 'init:applied',
+				});
 			}
 
 			// A server-resolved prefetch already holds the init answer; asking
@@ -650,11 +673,15 @@ export const createConsentRuntime = function createConsentRuntime(
 			if (enabled && options.networkBlocker) {
 				const blocker = createNetworkBlocker({
 					enabled: options.networkBlocker.enabled,
+					// Never omitted: without a hold, the blocker ends every
+					// caller's hold, including ones a disabled blocker must not.
+					hold: hold ?? NOT_HELD,
 					kernel,
 					logBlockedRequests: options.networkBlocker.logBlockedRequests,
 					onRequestBlocked: options.networkBlocker.onRequestBlocked,
 					rules: options.networkBlocker.rules,
 				});
+				hold = null;
 				disposers.push(() => blocker.dispose());
 			}
 

@@ -1,0 +1,51 @@
+/* The documented aggregate import, as a production site uses it. */
+
+:root {
+	color-scheme: light dark;
+	font-family: system-ui, sans-serif;
+	line-height: 1.5;
+}
+
+body {
+	margin: 0;
+}
+
+.page {
+	margin: 0 auto;
+	max-width: 48rem;
+	padding: 3rem 1.5rem;
+}
+
+.lede {
+	font-size: 1.25rem;
+}
+
+.cards {
+	display: grid;
+	gap: 1rem;
+	grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.cards article {
+	border: 1px solid #e0e0e0;
+	border-radius: 0.5rem;
+	padding: 1rem;
+}
+
+.links {
+	align-items: center;
+	display: flex;
+	gap: 1rem;
+	margin-top: 2rem;
+}
+
+.docs pre {
+	background: #f5f5f5;
+	border-radius: 0.5rem;
+	overflow-x: auto;
+	padding: 1rem;
+}
+
+.breadcrumb {
+	font-size: 0.875rem;
+}

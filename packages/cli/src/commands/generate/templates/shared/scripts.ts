@@ -69,6 +69,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "fathomAnalytics({ site: 'YOUR_SITE_ID' })",
 		importName: 'fathomAnalytics',
 	},
+	'front-chat': {
+		example: "frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })",
+		importName: 'frontChat',
+	},
 	'google-tag': {
 		example: "gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })",
 		importName: 'gtag',
@@ -122,9 +126,17 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "mixpanelAnalytics({ token: 'YOUR_32_CHAR_PROJECT_TOKEN' })",
 		importName: 'mixpanelAnalytics',
 	},
+	'one-dollar-stats': {
+		example: 'oneDollarStats()',
+		importName: 'oneDollarStats',
+	},
 	'openai-pixel': {
 		example: "openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })",
 		importName: 'openaiPixel',
+	},
+	'pinterest-tag': {
+		example: "pinterestTag({ tagId: 'XXXXXXXX' })",
+		importName: 'pinterestTag',
 	},
 	pirsch: {
 		example: "pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' })",

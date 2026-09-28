@@ -9,7 +9,6 @@ import styles from '@c15t/ui/styles/components/consent-manager';
 import { useMemo } from 'react';
 import type { FC, ReactNode } from 'react';
 
-import { useConsentManager } from '~/component-hooks/use-manager';
 import { Box } from '~/components/shared/primitives/box';
 import {
 	ConsentTrackingContext,
@@ -20,6 +19,7 @@ import type { ThemeContextValue } from '~/context/theme-context';
 import { ConsentDraftProvider } from '~/draft';
 import { useHasConsentUI } from '~/hooks';
 import { useTextDirection } from '~/hooks/use-text-direction';
+import { useTranslationLanguage } from '~/kernel-selector';
 
 /**
  * Props for the ConsentWidgetRoot component.
@@ -107,8 +107,8 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	useProvider = true,
 	uiSource,
 }) => {
-	const { translationConfig } = useConsentManager();
-	const textDirection = useTextDirection(translationConfig.defaultLanguage);
+	const language = useTranslationLanguage();
+	const textDirection = useTextDirection(language);
 	const parentTracking = useConsentTracking();
 
 	/**

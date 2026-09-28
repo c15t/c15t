@@ -63,7 +63,7 @@ export { portal } from './actions/portal';
 export { scrollLock } from './actions/scroll-lock';
 export { default as ConsentBanner } from './components/prompt.svelte';
 export { default as ConsentButton } from './components/action-button.svelte';
-export { default as ConsentDialog } from './components/panel.svelte';
+export { default as ConsentDialog } from './components/deferred-panel.svelte';
 export { default as ConsentDialogLink } from './components/panel-link.svelte';
 export { default as ConsentDialogTrigger } from './components/panel-trigger.svelte';
 export { default as ConsentManagerProvider } from './components/manager-provider.svelte';
@@ -100,6 +100,7 @@ export type {
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from './types';
+export type { DialogPreload } from './dialog-warming';
 export type { OfflineModeOptions } from './transports/offline';
 export { offline } from './transports/offline';
 

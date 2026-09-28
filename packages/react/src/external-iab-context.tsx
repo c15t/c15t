@@ -28,6 +28,7 @@ import type { ReactNode } from 'react';
 
 import { IABContext } from './context/iab-context-value';
 import type { IABContextValue } from './context/iab-context-value';
+import { useCommittedRef } from './hooks/use-committed-ref';
 
 /** Props for {@link ExternalIABProvider}. */
 export interface ExternalIABProviderProps {
@@ -91,6 +92,11 @@ export const ExternalIABProvider = ({
 
 	// Keep pending actions attached to the runtime they were requested against.
 	const queue = useMemo(() => createActionQueue(runtime), [runtime]);
+	// The queue closes in the passive cleanup, after the switch commit's layout
+	// effects. An action from a result kept across the switch still carries
+	// the previous queue, so compare it with the queue last committed, which
+	// changes before any of those layout effects run.
+	const committedQueueRef = useCommittedRef(queue);
 	useEffect(() => {
 		queue.activate();
 		const flush = () => {
@@ -118,7 +124,7 @@ export const ExternalIABProvider = ({
 							'AbortError'
 						)
 					);
-				if (queue.isClosed()) {
+				if (queue.isClosed() || committedQueueRef.current !== queue) {
 					cancel();
 					return;
 				}
@@ -143,7 +149,7 @@ export const ExternalIABProvider = ({
 			void pending.catch(() => undefined);
 			return pending;
 		},
-		[queue]
+		[committedQueueRef, queue]
 	);
 
 	const value = useMemo<IABContextValue>(

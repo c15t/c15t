@@ -13,14 +13,32 @@ export interface EventDispatcherOptions {
 	globals?: object;
 }
 
-/** Deliver only to configured, currently permitted integrations. Never queues denied events. */
+/**
+ * Deliver events only to configured integrations with current analytics consent.
+ * Denied events are discarded, and a vendor error does not stop other deliveries.
+ *
+ * @param options - Scripts, current consent snapshot, optional SPA integrations
+ * and browser globals used to call their SDKs.
+ * @returns A dispatcher with `track` for named events and `pageview` for SPA
+ * navigation. The first pageview seeds the path without sending; later calls
+ * ignore duplicate paths and hash-only changes. Only configured `pageviews`
+ * integrations receive navigation events.
+ * @example
+ * ```ts
+ * const events = createEventDispatcher({ scripts, getSnapshot: kernel.getSnapshot,
+ *   pageviews: ['segment'] });
+ * events.pageview(location.pathname);
+ * events.track('search', { length: 4 });
+ * events.pageview('/results');
+ * ```
+ */
 export const createEventDispatcher = (options: EventDispatcherOptions) => {
 	let previousPath: string | undefined;
 	const globals =
 		options.globals ?? (typeof window === 'undefined' ? {} : window);
-	const call = (path: string, args: unknown[]) => {
+	const call = (path: string | readonly string[], args: unknown[]) => {
 		let owner: unknown = globals;
-		const keys = path.split('.');
+		const keys = typeof path === 'string' ? path.split('.') : [...path];
 		const method = keys.pop();
 		for (const key of keys) {
 			if (
@@ -57,7 +75,11 @@ export const createEventDispatcher = (options: EventDispatcherOptions) => {
 		);
 	};
 	return {
-		/** Seed with the initial path, then call after navigation. Hash-only changes are ignored. */
+		/**
+		 * Seed the initial path, then deliver permitted navigation events.
+		 * @param path - Current path, including any query and hash. Hash-only changes are ignored.
+		 * @returns Nothing. The first call and duplicate paths do not send events.
+		 */
 		pageview(path: string) {
 			const [next] = path.split('#');
 			const changed = previousPath !== undefined && previousPath !== next;
@@ -91,6 +113,12 @@ export const createEventDispatcher = (options: EventDispatcherOptions) => {
 				}
 			}
 		},
+		/**
+		 * Send a named event to each configured, currently permitted integration.
+		 * @param event - Application event name understood by the configured SDKs.
+		 * @param properties - Flat metadata copied for each vendor delivery.
+		 * @returns Nothing. Denied events are discarded and SDK errors are isolated.
+		 */
 		// oxlint-disable-next-line complexity -- One explicit branch for each supported vendor event API.
 		track(event: string, properties: EventProperties = {}) {
 			const sent = new Set<string>();
@@ -105,7 +133,7 @@ export const createEventDispatcher = (options: EventDispatcherOptions) => {
 					switch (vendor) {
 						case 'google-tag-manager':
 							call(
-								`${script.attributes?.['data-c15t-layer'] ?? 'dataLayer'}.push`,
+								[script.attributes?.['data-c15t-layer'] ?? 'dataLayer', 'push'],
 								[{ ...props, event }]
 							);
 							break;
@@ -170,15 +198,18 @@ export const createEventDispatcher = (options: EventDispatcherOptions) => {
 							]);
 							break;
 						case 'umami':
+						case 'umami-analytics':
 							call('umami.track', [event, props]);
 							break;
 						case 'rybbit':
+						case 'rybbit-analytics':
 							call('rybbit.event', [event, props]);
 							break;
 						case 'rudderstack':
 							call('rudderanalytics.track', [event, props]);
 							break;
 						case 'matomo':
+						case 'matomo-analytics':
 							call('_paq.push', [['trackEvent', 'custom', event]]);
 							break;
 						default:

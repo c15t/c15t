@@ -132,8 +132,11 @@ export const googleTagManager = function googleTagManager({
 		// Manifest values are JSON; substitute only exact queue/signal tokens.
 		manifest = JSON.parse(
 			JSON.stringify(manifest)
-				.replaceAll('"dataLayer"', JSON.stringify(dataLayer))
-				.replaceAll('"gtag"', JSON.stringify(`${dataLayer}Gtag`))
+				.replace(/"(?:dataLayer|gtag)"/gu, (token) =>
+					JSON.stringify(
+						token === '"dataLayer"' ? dataLayer : `${dataLayer}Gtag`
+					)
+				)
 				.replace(
 					'gtm.js?id={{id}}',
 					`gtm.js?id={{id}}&l=${encodeURIComponent(dataLayer)}`

@@ -1,15 +1,25 @@
 'use client';
 
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 
+import { KernelContext } from '../context';
+import {
+	useActiveUI,
+	usePreferencesPresentation,
+	usePromptPresentation,
+	useSetActiveUI,
+} from '../hooks';
 import { useIAB } from '../iab-context';
-import { useConsentManager } from './use-manager';
+import { saveIABConsentUI } from '../ui-save';
 
 export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 	const iab = useIAB();
-	const { activeUI, policyBanner, policyDialog, setActiveUI } =
-		useConsentManager();
+	const kernel = useContext(KernelContext);
+	const activeUI = useActiveUI() ?? 'none';
+	const policyBanner = usePromptPresentation();
+	const policyDialog = usePreferencesPresentation();
+	const setActiveUI = useSetActiveUI();
 
 	const banner = useMemo(() => resolveIABBannerSummary(iab), [iab]);
 
@@ -29,38 +39,37 @@ export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 		[iab, setActiveUI]
 	);
 
+	// The surface closes in the click task; see `saveIABConsentUI`.
+	const saveChoice = useCallback(
+		async (selection?: 'accept' | 'reject') => {
+			if (!iab) {
+				return;
+			}
+			if (selection === 'accept') {
+				iab.acceptAll();
+			} else if (selection === 'reject') {
+				iab.rejectAll();
+			}
+			await (kernel ? saveIABConsentUI(kernel, iab.save) : iab.save());
+		},
+		[iab, kernel]
+	);
+
 	const performBannerAction = useCallback(
 		async (action: 'accept' | 'reject' | 'customize') => {
-			if (action === 'accept') {
-				iab?.acceptAll();
-				await iab?.save();
+			if (action === 'customize') {
+				openDialog();
 				return;
 			}
-			if (action === 'reject') {
-				iab?.rejectAll();
-				await iab?.save();
-				return;
-			}
-			openDialog();
+			await saveChoice(action);
 		},
-		[iab, openDialog]
+		[openDialog, saveChoice]
 	);
 
 	const performDialogAction = useCallback(
-		async (action: 'accept' | 'reject' | 'customize') => {
-			if (action === 'accept') {
-				iab?.acceptAll();
-				await iab?.save();
-				return;
-			}
-			if (action === 'reject') {
-				iab?.rejectAll();
-				await iab?.save();
-				return;
-			}
-			await iab?.save();
-		},
-		[iab]
+		(action: 'accept' | 'reject' | 'customize') =>
+			saveChoice(action === 'customize' ? undefined : action),
+		[saveChoice]
 	);
 
 	return {

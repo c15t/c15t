@@ -23,6 +23,7 @@ import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
+import { isConsentSaveRejection } from '../transports/save-rejection';
 import type {
 	ConsentSnapshot,
 	ConsentState,
@@ -654,6 +655,47 @@ const isRecord = function isRecord(
 	return value !== null && typeof value === 'object' && !Array.isArray(value);
 };
 
+const isIntegerIn = (value: unknown, min: number, max: number): boolean =>
+	typeof value === 'number' &&
+	Number.isInteger(value) &&
+	value >= min &&
+	value <= max;
+
+/**
+ * Every index of a list, holes included. `every` skips holes, which would
+ * let a sparse list through and hand `undefined` to the IAB gate.
+ */
+const everyIndex = (
+	list: readonly unknown[],
+	check: (entry: unknown) => boolean
+): boolean => {
+	for (let index = 0; index < list.length; index += 1) {
+		if (!(index in list && check(list[index]))) {
+			return false;
+		}
+	}
+	return true;
+};
+
+/** Absent, or a dense list of well-formed TC publisher restrictions. */
+const validPublisherRestrictions = function validPublisherRestrictions(
+	value: unknown
+): boolean {
+	return (
+		value === undefined ||
+		(Array.isArray(value) &&
+			everyIndex(
+				value,
+				(restriction) =>
+					isRecord(restriction) &&
+					isIntegerIn(restriction.purposeId, 1, 63) &&
+					isIntegerIn(restriction.restrictionType, 0, 2) &&
+					Array.isArray(restriction.vendorIds) &&
+					everyIndex(restriction.vendorIds, (id) => isIntegerIn(id, 1, 65_535))
+			))
+	);
+};
+
 /** Validate addon metadata before the local action can mutate any state. */
 const validSaveAuthority = function validSaveAuthority(
 	value: unknown,
@@ -684,6 +726,7 @@ const validSaveAuthority = function validSaveAuthority(
 					snapshot.evaluationPolicy.choice.maxAgeMs ?? 395 * 86400000,
 					395 * 86400000
 				) &&
+		validPublisherRestrictions(authority.publisherRestrictions) &&
 		[
 			authority.vendorConsents,
 			authority.vendorLegitimateInterests,
@@ -729,7 +772,7 @@ export interface CommandDeps {
 // oxlint-disable-next-line max-lines-per-function -- Commands share retry, timer and replay state through closures.
 export const buildCommands = function buildCommands(deps: CommandDeps) {
 	const { runtime, transport, initRetry } = deps;
-	const { getSnapshot, commit, emit } = runtime;
+	const { batch, getSnapshot, commit, emit } = runtime;
 	const retryPolicy = resolveInitRetryPolicy(initRetry);
 	const pendingSaves = transport?.save
 		? createPendingSaveQueue({ emit, save: transport.save })
@@ -821,9 +864,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		now: number
 	): void {
 		const patch: SnapshotPatch = { now, policyPending: false };
-		if (commit(patch)) {
-			emit({ snapshot: getSnapshot(), type: 'init:applied' });
-		}
+		batch(() => {
+			if (commit(patch)) {
+				emit({ snapshot: getSnapshot(), type: 'init:applied' });
+			}
+		});
 	};
 
 	const runInitAttempt = async function runInitAttempt(
@@ -886,10 +931,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					applied.recordIssues
 				);
 			}
-			const changed = commit(applied.patch);
-			if (changed || snapshot.policyPending) {
-				emit({ snapshot: getSnapshot(), type: 'init:applied' });
-			}
+			batch(() => {
+				const changed = commit(applied.patch);
+				if (changed || snapshot.policyPending) {
+					emit({ snapshot: getSnapshot(), type: 'init:applied' });
+				}
+			});
 			finishLifecycle(now, recordsGeneration === runtime.getGeneration());
 			clearRetryTimer();
 			pendingRetryAttempt = null;
@@ -1031,6 +1078,24 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	};
 
 	/**
+	 * Queue a save the transport threw on, unless the backend refused it for
+	 * good: that one would be refused again on every replay. Queued older
+	 * saves it replaced are dropped instead, so they can't replay over the
+	 * newer choice. The choice stays recorded locally either way.
+	 */
+	const settleThrownSave = async function settleThrownSave(
+		payload: SavePayload,
+		error: unknown
+	): Promise<void> {
+		if (isConsentSaveRejection(error)) {
+			await pendingSaves?.discard(payload);
+			return;
+		}
+		await pendingSaves?.enqueue(payload);
+		ensureOnlineListener();
+	};
+
+	/**
 	 * Transport phase of a save. The outcome only touches the replay queue
 	 * while this action's confirmed receipts are current. Disjoint category
 	 * actions remain independent. Only the newest action can map the subject
@@ -1110,10 +1175,15 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					getSnapshot().explicitChoice === actionSnapshot.explicitChoice &&
 					getSnapshot().subject?.subjectId === actionSnapshot.subject?.subjectId
 				) {
-					commit({
-						subject: { ...getSnapshot().subject, subjectId: result.subjectId },
+					batch(() => {
+						commit({
+							subject: {
+								...getSnapshot().subject,
+								subjectId: result.subjectId,
+							},
+						});
+						emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
 					});
-					emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
 				}
 				// The accepted save established or confirmed the subject: standing
 				// directives recorded while anonymous can be forwarded now.
@@ -1124,8 +1194,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			emit({ command: 'save', error, type: 'command:error' });
 			const remaining = currentPayload();
 			if (remaining) {
-				await pendingSaves?.enqueue(remaining);
-				ensureOnlineListener();
+				await settleThrownSave(remaining, error);
 			}
 			return { confirmed, ok: false };
 		}
@@ -1143,8 +1212,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				fingerprint: snapshot.evaluationPolicy.notice.fingerprint,
 				version: 1 as const,
 			};
-			commit({ noticeDismissal: dismissal, now: actionAt });
-			emit({ dismissal, snapshot: getSnapshot(), type: 'notice:dismissed' });
+			batch(() => {
+				commit({ noticeDismissal: dismissal, now: actionAt });
+				emit({ dismissal, snapshot: getSnapshot(), type: 'notice:dismissed' });
+			});
 			runtime.armDeadlineTimer();
 			return Promise.resolve({ dismissal, ok: true });
 		},
@@ -1162,8 +1233,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			if (iab) {
 				patch.iab = { ...iab, authority: null, tcString: null };
 			}
-			commit(patch);
-			emit({ snapshot: getSnapshot(), type: 'user:identified' });
+			batch(() => {
+				commit(patch);
+				emit({ snapshot: getSnapshot(), type: 'user:identified' });
+			});
 			if (transport?.identify) {
 				try {
 					await transport.identify({ ...user }, subjectId);
@@ -1335,13 +1408,32 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				patch.vendorChoice = nextVendorChoice;
 			}
 			applySaveAuthority(patch, before, context?.iabAuthority);
-			commit(patch);
-			const after = getSnapshot();
-			// Records generation at the moment the action landed. A hydration
-			// boundary (storage clear, server record) that replaces the choice
-			// afterwards supersedes this action: its outcome must not queue a
-			// replay or touch the subject.
-			const generation = runtime.getGeneration();
+			// Listeners run when the batch closes, after this action's events
+			// are queued: `after` and the events carry this action's snapshot
+			// even when a listener records another choice in response.
+			const { after, generation } = batch(() => {
+				commit(patch);
+				const committed = getSnapshot();
+				// Records generation at the moment the action landed. A hydration
+				// boundary (storage clear, server record) that replaces the choice
+				// afterwards supersedes this action: its outcome must not queue a
+				// replay or touch the subject.
+				const recordsGeneration = runtime.getGeneration();
+				if (categoriesChanged) {
+					emit({
+						actionAt,
+						// Listeners run before the payload below is built. A frozen
+						// copy keeps them from changing what this save sends.
+						confirmed: Object.freeze([...recorded.confirmed]),
+						snapshot: committed,
+						type: 'choice:recorded',
+					});
+				}
+				if (vendorsChanged) {
+					emit({ actionAt, snapshot: committed, type: 'vendors:recorded' });
+				}
+				return { after: committed, generation: recordsGeneration };
+			});
 			// Exactly the confirmed keys with their recorded values, copied so a
 			// caller mutating its input object cannot change the queued payload.
 			const confirmedCategories: Partial<
@@ -1352,17 +1444,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				if (decision) {
 					confirmedCategories[category] = decision.value;
 				}
-			}
-			if (categoriesChanged) {
-				emit({
-					actionAt,
-					confirmed: recorded.confirmed,
-					snapshot: after,
-					type: 'choice:recorded',
-				});
-			}
-			if (vendorsChanged) {
-				emit({ actionAt, snapshot: after, type: 'vendors:recorded' });
 			}
 			runtime.armDeadlineTimer();
 

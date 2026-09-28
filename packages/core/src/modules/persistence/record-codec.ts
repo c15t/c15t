@@ -62,6 +62,14 @@ export interface StoredIabMetadata {
 export interface StoredConsentEnvelope {
 	version: 3;
 	subject?: ConsentSubject;
+	/**
+	 * Clear epoch the envelope was written under: the time of the last
+	 * `clear()` its writer knew about, in epoch milliseconds. Absent means
+	 * epoch 0, a record from before any clear (every v2 or legacy record,
+	 * and every envelope written before epochs existed). Decisions
+	 * confirmed before the current epoch are void.
+	 */
+	epoch?: number;
 	categories: ExplicitChoice['categories'];
 	iab?: StoredIabMetadata;
 }
@@ -148,6 +156,7 @@ const CODE_TO_IAB_KEY: ReadonlyMap<string, keyof StoredIabMetadata> = new Map(
 );
 
 const BASIS_FIELD = 'b';
+const EPOCH_FIELD = 'e';
 const VERSION_FIELD = 'v';
 
 const SUBJECT_KEYS = ['subjectId', 'externalId', 'identityProvider'] as const;
@@ -277,7 +286,41 @@ export const validateIabMetadata = function validateIabMetadata(
 	return metadata;
 };
 
-const ENVELOPE_KEYS = ['version', 'subject', 'categories', 'iab'] as const;
+const ENVELOPE_KEYS = [
+	'version',
+	'subject',
+	'epoch',
+	'categories',
+	'iab',
+] as const;
+
+/**
+ * How far a clear epoch may lie ahead of the clock and still count: one
+ * hour. A clock set back after a clear leaves the epoch in the future, and
+ * dropping it would let cleared records back in, so a small lead is kept.
+ * A larger one is taken as corrupt, since it would void every decision for
+ * as long as it stays ahead.
+ */
+export const EPOCH_CLOCK_TOLERANCE_MS = 60 * 60 * 1000;
+
+/**
+ * Reads a clear epoch: a whole, non-negative time at most
+ * {@link EPOCH_CLOCK_TOLERANCE_MS} ahead of `now`, or `undefined`. The
+ * epoch only voids decisions, so an unreadable one is dropped rather than
+ * rejecting the record that carries it: a bad epoch never discards a
+ * stored denial.
+ */
+const readEpoch = function readEpoch(
+	value: unknown,
+	now: number
+): number | undefined {
+	return typeof value === 'number' &&
+		Number.isSafeInteger(value) &&
+		value >= 0 &&
+		value <= now + EPOCH_CLOCK_TOLERANCE_MS
+		? value
+		: undefined;
+};
 
 /**
  * Validates a parsed v3 envelope object. Reuses the consent-record
@@ -303,6 +346,8 @@ export const validateStoredConsentEnvelope =
 			}
 		}
 		const subject = validateSubject(ownValue(input, 'subject'), issues);
+		const rawEpoch = ownValue(input, 'epoch');
+		const epoch = rawEpoch === undefined ? undefined : readEpoch(rawEpoch, now);
 		const rawIab = ownValue(input, 'iab');
 		let iab: StoredIabMetadata | undefined;
 		if (isPlainRecord(rawIab)) {
@@ -329,6 +374,9 @@ export const validateStoredConsentEnvelope =
 		};
 		if (subject) {
 			envelope.subject = subject;
+		}
+		if (epoch) {
+			envelope.epoch = epoch;
 		}
 		if (iab) {
 			envelope.iab = iab;
@@ -380,6 +428,9 @@ export const encodeStoredConsentEnvelopeJson =
 		if (envelope.subject && Object.keys(envelope.subject).length > 0) {
 			ordered.subject = envelope.subject;
 		}
+		if (envelope.epoch) {
+			ordered.epoch = envelope.epoch;
+		}
 		ordered.categories = categories;
 		if (envelope.iab) {
 			ordered.iab = envelope.iab;
@@ -422,6 +473,7 @@ const encodeBooleanMap = function encodeBooleanMap(
  * sid=<uri-encoded subjectId>          (optional)
  * eid=<uri-encoded externalId>         (optional)
  * idp=<uri-encoded identityProvider>   (optional)
+ * e=<clear epoch>                      (optional, only after a clear)
  * b=<basis>|<basis>                    (when any category is present)
  * fn=<0|1>.<confirmedAt>.<basisIndex>  (per present category: fn ex me mk)
  * icv=<0|1>.<uri-encoded vendorId>|... (optional)
@@ -447,6 +499,9 @@ export const encodeStoredConsentEnvelopeCompact =
 					`${SUBJECT_CODES[key]}${KEY_VALUE_SEPARATOR}${encodeURIComponent(value)}`
 				);
 			}
+		}
+		if (envelope.epoch) {
+			fields.push(`${EPOCH_FIELD}${KEY_VALUE_SEPARATOR}${envelope.epoch}`);
 		}
 
 		const bases: string[] = [];
@@ -661,6 +716,15 @@ export const decodeStoredConsentEnvelopeCompact =
 		fields.delete(BASIS_FIELD);
 		const bases =
 			rawBases === undefined ? [] : parseBasisList(rawBases, issues);
+		const rawEpoch = fields.get(EPOCH_FIELD);
+		fields.delete(EPOCH_FIELD);
+		const epoch =
+			rawEpoch === undefined
+				? undefined
+				: readEpoch(
+						DIGITS_ONLY.test(rawEpoch) ? Number(rawEpoch) : rawEpoch,
+						now
+					);
 
 		const subject: ConsentSubject = {};
 		const categories: ExplicitChoice['categories'] = {};
@@ -702,6 +766,9 @@ export const decodeStoredConsentEnvelopeCompact =
 		const envelope: StoredConsentEnvelope = { categories, version: 3 };
 		if (Object.keys(subject).length > 0) {
 			envelope.subject = subject;
+		}
+		if (epoch) {
+			envelope.epoch = epoch;
 		}
 		if (Object.keys(iab).length > 0) {
 			envelope.iab = iab;
@@ -1201,4 +1268,37 @@ export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
 		candidate.subject = subject;
 	}
 	return decodeVendorChoice(candidate, now);
+};
+
+// ---------------------------------------------------------------------------
+// Clear epoch (cookie and localStorage)
+// ---------------------------------------------------------------------------
+
+/**
+ * Serializes the clear epoch record: the time of the last `clear()` in
+ * epoch milliseconds, as plain decimal digits. The same text is stored in
+ * the `<key>-epoch` cookie and localStorage entry.
+ */
+export const encodeClearEpoch = function encodeClearEpoch(
+	epoch: number
+): string {
+	return String(epoch);
+};
+
+/**
+ * Parses a clear epoch record. Anything but a whole time at most
+ * {@link EPOCH_CLOCK_TOLERANCE_MS} ahead of `now` is rejected, and a
+ * rejected epoch reads as `0`: a corrupt epoch voids nothing.
+ */
+export const decodeClearEpoch = function decodeClearEpoch(
+	text: string,
+	now: number
+): DecodeResult<number> {
+	const epoch = DIGITS_ONLY.test(text)
+		? readEpoch(Number(text), now)
+		: undefined;
+	if (epoch === undefined) {
+		return { issues: [{ code: 'malformed-encoding', path: '' }], ok: false };
+	}
+	return { ok: true, record: epoch };
 };

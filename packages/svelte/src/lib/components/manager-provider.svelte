@@ -13,7 +13,6 @@
 	} from '@c15t/core/runtime';
 	import type { ConsentRuntime } from '@c15t/core/runtime';
 	import type { IABHandle } from '@c15t/iab';
-	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import { onDestroy, onMount, untrack } from 'svelte';
@@ -563,6 +562,9 @@
 		get noStyle() {
 			return options.noStyle;
 		},
+		get preloadDialog() {
+			return options.preloadDialog;
+		},
 		get scrollLock() {
 			return options.scrollLock;
 		},
@@ -572,41 +574,6 @@
 		get trapFocus() {
 			return options.trapFocus;
 		},
-	});
-
-	const themeCSS = $derived(userTheme ? generateThemeCSS(userTheme) : '');
-
-	let themeStyleEl: HTMLStyleElement | null = null;
-	let ownedStyleEl = false;
-
-	$effect(() => {
-		if (typeof document === 'undefined') {
-			return;
-		}
-		if (!themeCSS) {
-			if (ownedStyleEl && themeStyleEl) {
-				themeStyleEl.remove();
-				themeStyleEl = null;
-				ownedStyleEl = false;
-			}
-			return;
-		}
-		if (!themeStyleEl) {
-			themeStyleEl = document.getElementById(
-				'c15t-theme'
-			) as HTMLStyleElement | null;
-			if (!themeStyleEl) {
-				themeStyleEl = document.createElement('style');
-				themeStyleEl.id = 'c15t-theme';
-				document.head.appendChild(themeStyleEl);
-				ownedStyleEl = true;
-			}
-		}
-		// A nonce-based CSP rejects the injected block without it.
-		if (options.nonce) {
-			themeStyleEl.nonce = options.nonce;
-		}
-		themeStyleEl.textContent = themeCSS;
 	});
 
 	$effect(() => {
@@ -619,11 +586,6 @@
 	onDestroy(() => {
 		unsubscribe();
 		unsubscribeIAB();
-		if (ownedStyleEl && themeStyleEl) {
-			themeStyleEl.remove();
-			themeStyleEl = null;
-			ownedStyleEl = false;
-		}
 	});
 </script>
 

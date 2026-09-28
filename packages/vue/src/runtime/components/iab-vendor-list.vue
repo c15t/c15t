@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+
+import '@c15t/ui/styles/components/iab-consent-dialog.css';
 import { computed, ref, toValue, watch } from 'vue';
 
 import {
@@ -23,6 +25,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
 	vendorToggle: [vendorId: IabVendorId, value: boolean];
+	vendorLegitimateInterestToggle: [vendorId: IabVendorId, value: boolean];
 	clearSelection: [];
 }>();
 
@@ -37,11 +40,15 @@ const iabVendors = computed(() => {
 		return [];
 	}
 
+	// The panel passes declarations after publisher restrictions, so these
+	// are the legal bases each vendor actually uses.
 	return Object.entries(props.vendorData.vendors).map(([id, vendor]) => ({
 		id: Number(id),
 		isCustom: false,
 		name: vendor.name,
 		policyUrl: (vendor as { policyUrl?: string }).policyUrl ?? '',
+		usesConsent: (vendor.purposes?.length ?? 0) > 0,
+		usesLegitimateInterest: (vendor.legIntPurposes?.length ?? 0) > 0,
 	}));
 });
 
@@ -51,6 +58,8 @@ const customVendorItems = computed(() =>
 		isCustom: true,
 		name: vendor.name,
 		policyUrl: vendor.privacyPolicyUrl,
+		usesConsent: (vendor.purposes?.length ?? 0) > 0,
+		usesLegitimateInterest: (vendor.legIntPurposes?.length ?? 0) > 0,
 	}))
 );
 
@@ -98,6 +107,13 @@ const filteredCount = computed(
 
 const getVendorConsent = function getVendorConsent(vendorId: IabVendorId) {
 	return props.vendorConsents[String(vendorId)] ?? false;
+};
+
+/** Legitimate interest is allowed until the visitor objects. */
+const isLegitimateInterestAllowed = function isLegitimateInterestAllowed(
+	vendorId: IabVendorId
+) {
+	return props.vendorLegitimateInterests?.[String(vendorId)] ?? true;
 };
 
 watch(
@@ -223,6 +239,7 @@ watch(
 						</div>
 						<div :class="dialogStyles.vendorConsentControl">
 							<ConsentSwitch
+								v-if="vendor.usesConsent"
 								:test-id="null"
 								:model-value="getVendorConsent(vendor.id)"
 								:class="dialogStyles.vendorConsentSwitch"
@@ -230,6 +247,30 @@ watch(
 									(value) => emit('vendorToggle', vendor.id, Boolean(value))
 								"
 							/>
+							<button
+								v-if="vendor.usesLegitimateInterest"
+								type="button"
+								:class="[
+									dialogStyles.objectButton,
+									isLegitimateInterestAllowed(vendor.id)
+										? ''
+										: dialogStyles.objectButtonActive,
+								]"
+								:aria-pressed="!isLegitimateInterestAllowed(vendor.id)"
+								@click="
+									emit(
+										'vendorLegitimateInterestToggle',
+										vendor.id,
+										!isLegitimateInterestAllowed(vendor.id)
+									)
+								"
+							>
+								{{
+									isLegitimateInterestAllowed(vendor.id)
+										? iabT?.preferenceCenter?.purposeItem?.objectButton
+										: iabT?.preferenceCenter?.purposeItem?.objected
+								}}
+							</button>
 						</div>
 					</div>
 					<div
@@ -271,6 +312,7 @@ watch(
 						</div>
 						<div :class="dialogStyles.vendorConsentControl">
 							<ConsentSwitch
+								v-if="vendor.usesConsent"
 								:test-id="null"
 								:model-value="getVendorConsent(vendor.id)"
 								:class="dialogStyles.vendorConsentSwitch"
@@ -278,6 +320,30 @@ watch(
 									(value) => emit('vendorToggle', vendor.id, Boolean(value))
 								"
 							/>
+							<button
+								v-if="vendor.usesLegitimateInterest"
+								type="button"
+								:class="[
+									dialogStyles.objectButton,
+									isLegitimateInterestAllowed(vendor.id)
+										? ''
+										: dialogStyles.objectButtonActive,
+								]"
+								:aria-pressed="!isLegitimateInterestAllowed(vendor.id)"
+								@click="
+									emit(
+										'vendorLegitimateInterestToggle',
+										vendor.id,
+										!isLegitimateInterestAllowed(vendor.id)
+									)
+								"
+							>
+								{{
+									isLegitimateInterestAllowed(vendor.id)
+										? iabT?.preferenceCenter?.purposeItem?.objectButton
+										: iabT?.preferenceCenter?.purposeItem?.objected
+								}}
+							</button>
 						</div>
 					</div>
 					<div

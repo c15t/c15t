@@ -20,6 +20,27 @@ await kernel.commands.init();
 This fragment assumes the initialized kernel setup from the quickstart. Retain
 `unsubscribe` and call it during teardown.
 
+## How listeners are notified
+
+`kernel.subscribe()` and `kernel.events.on()` listeners run synchronously when
+a change commits, in registration order. Each receives the frozen snapshot that
+change produced.
+
+- A listener that throws does not stop the listeners after it or fail the
+  command that caused the change. In a browser page c15t passes the error to
+  `reportError`. Everywhere else, including Bun and Deno servers where
+  `reportError` would end the process, it logs the error with `console.error`.
+- A listener can call commands and setters. Before the nested call returns,
+  every other listener receives the change in progress and then the new one.
+  No listener misses a change, such as a denial that another listener
+  immediately reverses, or receives changes out of order.
+- A listener added during a notification first receives the next change. A
+  listener removed during a notification is not called again.
+- Listeners that keep changing consent in response to each other are stopped
+  after 100 nested notifications, and the error is reported. Notifications
+  already queued still arrive, so other listeners end on the current snapshot.
+  A listener that changes consent after that point is not called again.
+
 ## Choose commands by intent
 
 | Command | Effect |
@@ -44,3 +65,13 @@ use the kernel directly. Dispose their handles before disposing the kernel.
 when you need one owner shared by multiple UI roots. Constructing a runtime does
 not activate browser side effects; the owner calls `start()` after mount and
 `dispose()` at teardown.
+
+Browser persistence follows choices made in other tabs. Tabs on the same origin
+share localStorage, so a change there arrives at once through the `storage`
+event. A tab on another subdomain that shares only the consent cookie gets no
+such event; it reads stored records again when the page becomes visible or the
+window regains focus. Call `persistence.reconcile()` or
+`runtime.reconcileStorage()` to read them at another moment, for example after
+a response set the consent cookie. See
+[keep open tabs in step](/docs/guides/consent-state#keep-open-tabs-in-step)
+for the rules, ordering and the `sync: false` option.

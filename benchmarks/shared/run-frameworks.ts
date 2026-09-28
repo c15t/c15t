@@ -58,6 +58,9 @@ export const comparedMetrics = [
 	'bannerReadyMs',
 	'bannerVisibleMs',
 	'bannerPaintMs',
+	'bannerDomMs',
+	'fcpMs',
+	'lcpMs',
 	'jsBytes',
 	'interactionLatencyMs',
 	'initRequestsAfterLoad',
@@ -73,6 +76,8 @@ const scenarioOrder = [
 	'manifest-client',
 	'ssr',
 	'manifest-ssr',
+	'saved-consent-accept',
+	'saved-consent-reject',
 	'repeat-visitor',
 ] as const;
 
@@ -91,7 +96,10 @@ export interface FrameworkScenarioSummary {
 	scenario: string;
 	file: string;
 	timestamp: string;
-	bannerInFirstHtml: boolean | null;
+	/** Banner markup in the first streamed body chunk. */
+	bannerInFirstChunk: boolean | null;
+	/** Banner markup anywhere in the server HTML. */
+	bannerInServerHtml: boolean | null;
 	metadata: BenchmarkMetadata;
 	metrics: Record<string, FrameworkMetricSummary>;
 }
@@ -171,9 +179,13 @@ const summarizeResult = function summarizeResult(
 		};
 	}
 	return {
-		bannerInFirstHtml: readMetadataBoolean(
+		bannerInFirstChunk: readMetadataBoolean(
 			result.metadata,
-			'bannerInFirstHtml'
+			'bannerInFirstChunk'
+		),
+		bannerInServerHtml: readMetadataBoolean(
+			result.metadata,
+			'bannerInServerHtml'
 		),
 		file,
 		framework,
@@ -331,14 +343,16 @@ const renderSharedTable = function renderSharedTable(
 		lines.push(`| ${cells.join(' | ')} |`);
 	}
 
-	const bannerCells = ['`bannerInFirstHtml`'];
-	for (const arm of arms) {
-		bannerCells.push(formatBoolean(arm.bannerInFirstHtml), '');
+	for (const field of ['bannerInFirstChunk', 'bannerInServerHtml'] as const) {
+		const bannerCells = [`\`${field}\``];
+		for (const arm of arms) {
+			bannerCells.push(formatBoolean(arm[field]), '');
+		}
+		for (const _arm of others) {
+			bannerCells.push('');
+		}
+		lines.push(`| ${bannerCells.join(' | ')} |`);
 	}
-	for (const _arm of others) {
-		bannerCells.push('');
-	}
-	lines.push(`| ${bannerCells.join(' | ')} |`);
 };
 
 const renderExclusiveTable = function renderExclusiveTable(
@@ -354,7 +368,8 @@ const renderExclusiveTable = function renderExclusiveTable(
 		);
 	}
 	lines.push(
-		`| \`bannerInFirstHtml\` | ${formatBoolean(arm.bannerInFirstHtml)} | |`
+		`| \`bannerInFirstChunk\` | ${formatBoolean(arm.bannerInFirstChunk)} | |`,
+		`| \`bannerInServerHtml\` | ${formatBoolean(arm.bannerInServerHtml)} | |`
 	);
 };
 

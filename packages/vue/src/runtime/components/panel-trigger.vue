@@ -4,6 +4,8 @@ import type {
 	ConsentDialogTriggerSize,
 } from '@c15t/schema/config';
 import triggerStyles from '@c15t/ui/styles/components/consent-dialog-trigger';
+
+import '@c15t/ui/styles/components/consent-dialog-trigger.css';
 import { computed, ref, watch } from 'vue';
 
 import {

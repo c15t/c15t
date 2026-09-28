@@ -93,6 +93,8 @@ export interface ConsentRuntimeIABFactoryOptions {
 	publisherCountryCode?: string;
 	/** Whether the CMP is service-specific rather than global. */
 	isServiceSpecific?: boolean;
+	/** Publisher restrictions to encode and enforce. */
+	publisherRestrictions?: IABConfig['publisherRestrictions'];
 	/** Pre-fetched Global Vendor List, or `null` to disable IAB mode. */
 	gvl?: GlobalVendorList | null;
 	/** Override the GVL endpoint. */
@@ -197,6 +199,14 @@ export interface ConsentRuntimeOptions {
 	 * Cleanup waits for policy resolution. Initial-only; omitted disables it.
 	 */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted. Removing a script cannot stop code that already
+	 * ran, so the reload starts a document with only permitted code. Waits for
+	 * the save request. Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	/** Subject identity forwarded to the backend on `identify`. */
 	user?: User | KernelUser;
 	/** Decision inputs (country, region, language, GPC) forced by the host. */
@@ -208,7 +218,10 @@ export interface ConsentRuntimeOptions {
 	/** Lifecycle callbacks invoked as consent is fetched, set and changed. */
 	callbacks?: Pick<
 		Callbacks,
-		'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+		| 'onChoiceRecorded'
+		| 'onPermissionsChanged'
+		| 'onError'
+		| 'onBeforeConsentRevocationReload'
 	>;
 	/** Consent-gated scripts the loader mounts as categories are granted. */
 	scripts?: Script[];
@@ -251,7 +264,9 @@ export interface ConsentRuntimeOptions {
 	createIAB?: ConsentRuntimeIABFactory;
 	/**
 	 * Storage persistence. `true`/omitted hydrates from cookie +
-	 * localStorage on start; `false` disables storage entirely.
+	 * localStorage on start and reconciles with other tabs; `false` disables
+	 * storage entirely. Pass `{ sync: false }` to keep storage but reconcile
+	 * only through {@link ConsentRuntime.reconcileStorage}.
 	 */
 	persistence?: boolean | RuntimePersistenceOptions;
 	/** Ordered policy rules evaluated by local transports. */
@@ -314,8 +329,41 @@ export interface ConsentRuntime {
 	setOverrides: (overrides: KernelOverrides) => void;
 	/**
 	 * Re-run `kernel.commands.init()` and evaluate the current records. A no-op when `enabled` is `false`.
+	 *
+	 * Does not read storage. Use {@link ConsentRuntime.reconcileStorage} for
+	 * records another runtime changed.
 	 */
 	reinit: () => Promise<void>;
+	/**
+	 * Read stored consent records again and apply what another runtime
+	 * changed, such as a denial saved or records cleared in another tab.
+	 *
+	 * With persistence on, the runtime already does this when another tab
+	 * changes c15t's localStorage keys, when the page becomes visible and
+	 * when the window regains focus (see `persistence.sync`). Call it
+	 * yourself after a change no browser event reports: a second runtime
+	 * on the same page, or cookies rewritten without a localStorage change.
+	 *
+	 * This runtime's queued writes land first. Category decisions then
+	 * merge per category, keeping the newer decision for each; privacy
+	 * directives merge as a union; a stored notice or vendor record replaces
+	 * the in-memory one unless it is older. A record removed from storage
+	 * since this runtime last read or wrote it is cleared so the active
+	 * policy applies, and unreadable storage changes nothing. Subscribers
+	 * are notified once when anything changed.
+	 *
+	 * @returns Whether any in-memory record changed. `false` before
+	 * {@link ConsentRuntime.start}, after {@link ConsentRuntime.dispose}, and
+	 * when persistence is off or the runtime is disabled.
+	 *
+	 * @example
+	 * ```ts
+	 * // The response sets the consent cookie; no browser event reports it.
+	 * await fetch('/account/restore-consent', { method: 'POST' });
+	 * runtime.reconcileStorage();
+	 * ```
+	 */
+	reconcileStorage: () => boolean;
 	/** Replace configured categories; retain categories discovered from integrations. */
 	setConsentCategories: (categories: AllConsentNames[]) => void;
 	/**

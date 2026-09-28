@@ -127,7 +127,14 @@ const resolveMiddleware = function resolveMiddleware(
 		typeof options.middleware === 'boolean'
 			? { enabled: options.middleware }
 			: (options.middleware ?? {});
-	return { enabled: raw.enabled ?? true, skip: raw.skip ?? [] };
+	const resolved: C15tResolvedOptions['middleware'] = {
+		enabled: raw.enabled ?? true,
+		skip: raw.skip ?? [],
+	};
+	if (raw.timeoutMs !== undefined) {
+		resolved.timeoutMs = raw.timeoutMs;
+	}
+	return resolved;
 };
 
 const resolveEndpoints = function resolveEndpoints(
@@ -294,6 +301,12 @@ export const buildStylesImport = function buildStylesImport(
 		return '';
 	}
 	const lines = [`import ${quote('@c15t/astro/styles.css')};`];
+	// The React and Svelte dialog islands import the dialog stylesheet, so
+	// it arrives with their chunk. Astro's build drops the stylesheets the
+	// Vue island's components import, so for Vue the page carries them.
+	if (resolved.ui === 'vue') {
+		lines.push(`import ${quote('@c15t/ui/styles/dialog.css')};`);
+	}
 	if (isIABConfigured(resolved.iab)) {
 		lines.push(`import ${quote('@c15t/astro/iab/styles.css')};`);
 	}

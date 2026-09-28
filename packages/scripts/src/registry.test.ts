@@ -28,6 +28,10 @@ import {
 	openaiPixelManifest,
 } from './vendors/ads-and-pixels/openai-pixel';
 import {
+	pinterestTag,
+	pinterestTagManifest,
+} from './vendors/ads-and-pixels/pinterest-tag';
+import {
 	redditPixel,
 	redditPixelManifest,
 } from './vendors/ads-and-pixels/reddit-pixel';
@@ -76,6 +80,10 @@ import {
 	mixpanelAnalytics,
 	mixpanelAnalyticsManifest,
 } from './vendors/analytics/mixpanel-analytics';
+import {
+	oneDollarStats,
+	oneDollarStatsManifest,
+} from './vendors/analytics/one-dollar-stats';
 import { pirsch, pirschManifest } from './vendors/analytics/pirsch';
 import {
 	plausibleAnalytics,
@@ -104,6 +112,7 @@ import {
 	vercelAnalyticsManifest,
 } from './vendors/analytics/vercel-analytics';
 import { crisp, crispManifest } from './vendors/functional/crisp';
+import { frontChat, frontChatManifest } from './vendors/functional/front-chat';
 import { intercom, intercomManifest } from './vendors/functional/intercom';
 import { cloudflareZaraz } from './vendors/tag-managers/cloudflare-zaraz';
 import {
@@ -199,6 +208,14 @@ const helperParityCases = {
 			src: 'https://cdn.usefathom.com/script.js',
 		},
 		script: fathomAnalytics({ site: 'SITE123' }),
+	},
+	frontChat: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://chat-assets.frontapp.com/v1/chat.bundle.js',
+		},
+		script: frontChat({ chatId: 'front-chat-123' }),
 	},
 	googleTagManager: {
 		expected: {
@@ -309,6 +326,14 @@ const helperParityCases = {
 			token: '1234567890abcdef1234567890abcdef',
 		}),
 	},
+	oneDollarStats: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://assets.onedollarstats.com/stonks.js',
+		},
+		script: oneDollarStats(),
+	},
 	openaiPixel: {
 		expected: {
 			alwaysLoad: undefined,
@@ -316,6 +341,14 @@ const helperParityCases = {
 			src: 'https://bzrcdn.openai.com/sdk/oaiq.min.js',
 		},
 		script: openaiPixel({ pixelId: 'OPENAI-CONTRACT' }),
+	},
+	pinterestTag: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://s.pinimg.com/ct/core.js',
+		},
+		script: pinterestTag({ tagId: '2613654212508' }),
 	},
 	pirsch: {
 		expected: {
@@ -450,6 +483,7 @@ const vendorManifests = [
 	fathomAnalyticsManifest,
 	heapManifest,
 	mixpanelAnalyticsManifest,
+	oneDollarStatsManifest,
 	hotjarManifest,
 	hightouchManifest,
 	logRocketManifest,
@@ -464,9 +498,11 @@ const vendorManifests = [
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
 	crispManifest,
+	frontChatManifest,
 	intercomManifest,
 	metaPixelManifest,
 	openaiPixelManifest,
+	pinterestTagManifest,
 	redditPixelManifest,
 	tiktokPixelManifest,
 	linkedinInsightsManifest,

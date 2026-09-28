@@ -1,9 +1,10 @@
 import type { ConsentKernel, ConsentState } from '@c15t/core';
 import { mount } from '@vue/test-utils';
 import { expect, test, vi } from 'vitest';
-import { defineComponent, h, inject } from 'vue';
+import { defineComponent, h, inject, nextTick } from 'vue';
 
 import { c15tVue } from '../index';
+import PanelTrigger from '../runtime/components/panel-trigger.vue';
 import { symbolKernel, symbolActiveUI } from '../runtime/utils/symbols';
 
 test('Vue plugin options own one external authority and share script lifecycle', async () => {
@@ -86,4 +87,37 @@ test('Vue plugin options own one external authority and share script lifecycle',
 		vi.unstubAllGlobals();
 	}
 	expect(detach).toHaveBeenCalledTimes(1);
+});
+
+test('the persistent Vue trigger opens external preferences through the manager mapping', async () => {
+	const openPreferences = vi.fn();
+	const view = mount(PanelTrigger, {
+		attachTo: document.body,
+		global: {
+			plugins: [
+				[
+					c15tVue,
+					{
+						consentSource: {
+							getPermissions: () => ({}),
+							openPreferences,
+							subscribe: () => () => {},
+						},
+						iframeBlocker: false,
+					},
+				],
+			],
+		},
+	});
+	try {
+		await nextTick();
+		const trigger = document.querySelector<HTMLButtonElement>(
+			'[data-c15t-trigger]'
+		);
+		expect(trigger).not.toBeNull();
+		trigger?.click();
+		expect(openPreferences).toHaveBeenCalledOnce();
+	} finally {
+		view.unmount();
+	}
 });

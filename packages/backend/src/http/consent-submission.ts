@@ -20,6 +20,13 @@
  *   uses; a disagreement is a 422, not a record written against the wrong
  *   policy. Recording without either only happens when there is no policy to
  *   attest to.
+ * - Late saves: a replayed save whose token expired before it arrived is
+ *   verified at its `givenAt` instead (see `policy-snapshot.ts`) and filed
+ *   with `runtimePolicySource: 'snapshot_token_replayed'`. A token whose
+ *   policy is no longer in the manifest under the same fingerprint is a
+ *   `STALE_POLICY` 422 with reason `policy-changed`, live or late: the
+ *   visitor saw that policy, and recording against its replacement would
+ *   claim consent to text they never saw.
  * - Scope: a receipt granting a category the resolved policy does not offer
  *   is refused. A denial outside scope is kept, because a persistent refusal
  *   must remain possible there.
@@ -109,7 +116,14 @@ export interface SubmissionContext {
 /** The resolved decision behind a submission, when there is one. */
 export interface ResolvedDecision {
 	readonly input: DecisionInput;
-	readonly source: 'snapshot_token' | 'write_time_fallback';
+	/**
+	 * `snapshot_token_replayed`: the token had expired when the save arrived
+	 * and was verified at the save's `givenAt`.
+	 */
+	readonly source:
+		| 'snapshot_token'
+		| 'snapshot_token_replayed'
+		| 'write_time_fallback';
 	/** Canonical rule authenticated by the snapshot or asserted resolution. */
 	readonly rule: ResolvedPolicyRule;
 	readonly jurisdiction: string;
@@ -212,28 +226,35 @@ const asString = (value: unknown): string | undefined =>
 const asNullableString = (value: unknown): string | null =>
 	typeof value === 'string' ? value : null;
 
-/** A decision rebuilt from verified token claims. */
+/**
+ * A decision rebuilt from verified token claims, `malformed` when the claims
+ * are incomplete, or `policy-changed` when the manifest no longer has the
+ * policy they name under the same fingerprint and model.
+ */
 const decisionFromClaims = (
 	claims: Record<string, unknown>,
 	manifest: ConsentManifest,
-	context: SubmissionContext
-): ResolvedDecision | undefined => {
+	context: SubmissionContext,
+	late: boolean
+): ResolvedDecision | 'malformed' | 'policy-changed' => {
 	const policyId = asString(claims.policyId);
 	const fingerprint = asString(claims.fingerprint);
 	const matchedBy = asString(claims.matchedBy);
 	const jurisdiction = asString(claims.jurisdiction);
 	const model = asString(claims.model);
 	if (!policyId || !fingerprint || !matchedBy || !jurisdiction || !model) {
-		return undefined;
+		return 'malformed';
+	}
+	if (manifest.policyFailure) {
+		return 'malformed';
 	}
 	const pack = packById(manifest, policyId);
 	if (
 		!pack ||
 		pack.fingerprints.policy !== fingerprint ||
-		pack.rule.model !== model ||
-		manifest.policyFailure
+		pack.rule.model !== model
 	) {
-		return undefined;
+		return 'policy-changed';
 	}
 	const { rule } = pack;
 	const countryCode = asNullableString(claims.country);
@@ -266,7 +287,7 @@ const decisionFromClaims = (
 		jurisdiction,
 		language,
 		rule,
-		source: 'snapshot_token',
+		source: late ? 'snapshot_token_replayed' : 'snapshot_token',
 	};
 };
 
@@ -371,21 +392,36 @@ const resolveDecision = Effect.fn('submission.resolveDecision')(
 				verifyPolicySnapshotToken(
 					input.policySnapshotToken,
 					context.policySnapshot,
-					context.tenantId
+					context.tenantId,
+					{ decidedAt: input.givenAt, receivedAt: context.now }
 				)
 			);
 			if (!verification.valid) {
-				return yield* new PolicySnapshotError({
-					code: 'POLICY_SNAPSHOT_INVALID',
-					message: 'Policy snapshot token is invalid',
-				});
+				return yield* verification.reason === 'expired'
+					? new PolicySnapshotError({
+							code: 'POLICY_SNAPSHOT_EXPIRED',
+							message:
+								'Policy snapshot token had expired when this choice was made, or the save arrived after the replay window',
+						})
+					: new PolicySnapshotError({
+							code: 'POLICY_SNAPSHOT_INVALID',
+							message: 'Policy snapshot token is invalid',
+						});
 			}
 			const decision = decisionFromClaims(
 				verification.payload,
 				manifest,
-				context
+				context,
+				verification.late
 			);
-			if (!decision) {
+			if (decision === 'policy-changed') {
+				return yield* new StalePolicyError({
+					message:
+						'The policy this token names is no longer in the manifest under the same fingerprint',
+					reason: 'policy-changed',
+				});
+			}
+			if (decision === 'malformed') {
 				return yield* new PolicySnapshotError({
 					code: 'POLICY_SNAPSHOT_INVALID',
 					message: 'Policy snapshot token is missing decision claims',

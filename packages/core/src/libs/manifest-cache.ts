@@ -20,12 +20,19 @@ import {
 } from './manifest-cache-runtime';
 
 export {
+	DEFAULT_RESOLVE_TIMEOUT_MS,
 	getManifestAge,
 	getManifestSMaxAge,
 	MANIFEST_DEDUPE_TTL_SECONDS,
+	MANIFEST_FAILURE_RETRY_MAX_MS,
+	MANIFEST_FAILURE_RETRY_MIN_MS,
+	MANIFEST_FETCH_TIMEOUT_MS,
+	ManifestUnavailableError,
 	parseCacheDirectiveSeconds,
 	resolveManifestCacheTtlSeconds,
+	withResolutionBudget,
 } from './manifest-cache-runtime';
+export type { ManifestUnavailableReason } from './manifest-cache-runtime';
 
 export type ManifestFetch = (
 	input: string | URL | Request,
@@ -48,8 +55,14 @@ export interface FetchCachedManifestOptions {
 	/** Clock override for tests. */
 	now?: number;
 	/**
-	 * Receives the promise of a background revalidation started on this read,
-	 * for hosts that must register detached work with the platform (Next.js
+	 * Longest the call waits for the upstream when nothing servable is cached.
+	 * See the runtime option of the same name.
+	 */
+	timeoutMs?: number;
+	/**
+	 * Receives the promise of upstream work that outlives this read (a
+	 * background revalidation, or a fill the read stopped waiting for), for
+	 * hosts that must register detached work with the platform (Next.js
 	 * `after`, Vercel `waitUntil`). See the runtime option of the same name.
 	 */
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
@@ -69,6 +82,7 @@ export const fetchCachedManifest = (
 		now: options.now,
 		onBackgroundRevalidate: options.onBackgroundRevalidate,
 		sourceURL: options.url,
+		timeoutMs: options.timeoutMs,
 	});
 
 /** Clears cached manifests and invalidates pending fills. */

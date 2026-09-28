@@ -11,7 +11,11 @@ import {
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../kernel';
 import { hasGlobalPrivacyControlSignal } from '../../libs/global-privacy-control';
-import type { ConsentKernel, KernelIABAuthority } from '../../types';
+import type {
+	ConsentKernel,
+	GlobalVendorList,
+	KernelIABAuthority,
+} from '../../types';
 import { evaluateConsent } from '../has';
 import { createIframeBlocker } from '../iframe-blocker';
 import { createNetworkBlocker } from '../network-blocker';
@@ -277,6 +281,199 @@ test('historical addon confirmation evaluates expiry using the current clock', a
 		kernel.getSnapshot().explicitChoice?.categories.marketing?.confirmedAt
 	).toBe(NOW);
 	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+});
+
+describe('legitimate-interest-only IAB targets', () => {
+	const vendors = {
+		10: { flexiblePurposes: [], legIntPurposes: [7], purposes: [] },
+		755: { flexiblePurposes: [2], legIntPurposes: [], purposes: [2, 8] },
+	};
+	/** An IAB kernel where the visitor refused measurement. */
+	const refusedMeasurement = (choice = true) => {
+		const resolution = matchedResolution(iabRule());
+		const kernel = createConsentKernel({
+			initialIab: {
+				enabled: true,
+				gvl: { vendors } as unknown as GlobalVendorList,
+			},
+			initialPolicyResolution: resolution,
+			initialRecords: choice
+				? choiceRecords(
+						{ marketing: true, measurement: false },
+						{
+							confirmedAt: NOW,
+							fingerprint: resolution.fingerprints.choice,
+							now: NOW,
+						}
+					)
+				: undefined,
+			now: NOW,
+		});
+		disposers.push(kernel.dispose);
+		return kernel;
+	};
+	const liOnly = {
+		category: 'measurement' as const,
+		iabLegIntPurposes: [7],
+		vendorId: 10,
+	};
+	const allowLI = {
+		purposeLegitimateInterests: { 7: true },
+		vendorLegitimateInterests: { '10': true },
+	};
+
+	test('an explicit category refusal does not block legitimate interest', () => {
+		const kernel = refusedMeasurement();
+		installAuthority(kernel, allowLI);
+		expect(kernel.getSnapshot().restrictions.measurement).toEqual([
+			'explicit-denial',
+		]);
+		expect(evaluateConsent(liOnly, kernel.getSnapshot(), NOW)).toBe(true);
+	});
+
+	test('a purpose a restriction moved to legitimate interest counts too', () => {
+		const kernel = refusedMeasurement();
+		installAuthority(kernel, {
+			publisherRestrictions: [
+				{ purposeId: 2, restrictionType: 2, vendorIds: [755] },
+			],
+			purposeLegitimateInterests: { 2: true },
+			vendorLegitimateInterests: { '755': true },
+		});
+		const target = {
+			category: 'measurement' as const,
+			iabPurposes: [2],
+			vendorId: 755,
+		};
+		expect(evaluateConsent(target, kernel.getSnapshot(), NOW)).toBe(true);
+	});
+
+	test('an objection still blocks the vendor', () => {
+		const kernel = refusedMeasurement();
+		installAuthority(kernel, {
+			...allowLI,
+			vendorLegitimateInterests: { '10': false },
+		});
+		expect(evaluateConsent(liOnly, kernel.getSnapshot(), NOW)).toBe(false);
+	});
+
+	test('a target with a consent purpose still honours the refusal', () => {
+		const kernel = refusedMeasurement();
+		installAuthority(kernel, {
+			...allowLI,
+			purposeConsents: { 8: true },
+			vendorConsents: { '755': true },
+		});
+		expect(
+			evaluateConsent(
+				{ category: 'measurement', iabPurposes: [8], vendorId: 755 },
+				kernel.getSnapshot(),
+				NOW
+			)
+		).toBe(false);
+		expect(
+			evaluateConsent(
+				{
+					category: 'measurement',
+					iabLegIntPurposes: [7],
+					iabPurposes: [8],
+					vendorId: 755,
+				},
+				kernel.getSnapshot(),
+				NOW
+			)
+		).toBe(false);
+	});
+
+	test('legitimate interest never grants the category to other scripts', () => {
+		const kernel = refusedMeasurement();
+		installAuthority(kernel, allowLI);
+		expect(
+			evaluateConsent({ category: 'measurement' }, kernel.getSnapshot(), NOW)
+		).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(false);
+	});
+
+	test.each(['gpc', 'opt-out-directive', 'strict-scope'] as const)(
+		'a %s restriction still blocks the target',
+		(restriction) => {
+			const kernel = refusedMeasurement();
+			installAuthority(kernel, allowLI);
+			const snapshot = kernel.getSnapshot();
+			expect(
+				evaluateConsent(
+					liOnly,
+					{
+						...snapshot,
+						restrictions: {
+							...snapshot.restrictions,
+							measurement: ['explicit-denial', restriction],
+						},
+					},
+					NOW
+				)
+			).toBe(false);
+		}
+	);
+
+	test('before any choice the target stays blocked', () => {
+		const kernel = refusedMeasurement(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		expect(evaluateConsent(liOnly, kernel.getSnapshot(), NOW)).toBe(false);
+	});
+});
+
+test('IAB gates apply confirmed publisher restrictions with list flexibility', () => {
+	const kernel = createConsentKernel({
+		initialIab: {
+			enabled: true,
+			gvl: {
+				vendors: {
+					755: { flexiblePurposes: [2], legIntPurposes: [], purposes: [2] },
+				},
+			} as unknown as GlobalVendorList,
+		},
+		initialPolicyResolution: matchedResolution(iabRule()),
+		now: NOW,
+	});
+	disposers.push(kernel.dispose);
+	const target = {
+		category: 'marketing' as const,
+		iabPurposes: [2],
+		vendorId: 755,
+	};
+	installAuthority(kernel, {
+		purposeConsents: { 2: true },
+		purposeLegitimateInterests: { 2: true },
+		vendorLegitimateInterests: { '755': true },
+	});
+	expect(evaluateConsent(target, kernel.getSnapshot())).toBe(true);
+
+	installAuthority(kernel, {
+		publisherRestrictions: [
+			{ purposeId: 2, restrictionType: 0, vendorIds: [755] },
+		],
+		purposeConsents: { 2: true },
+	});
+	expect(evaluateConsent(target, kernel.getSnapshot())).toBe(false);
+
+	// Required LI: the list marks purpose 2 flexible, so LI satisfies it.
+	installAuthority(kernel, {
+		publisherRestrictions: [
+			{ purposeId: 2, restrictionType: 2, vendorIds: [755] },
+		],
+		purposeConsents: { 2: true },
+		purposeLegitimateInterests: { 2: true },
+		vendorLegitimateInterests: { '755': true },
+	});
+	expect(evaluateConsent(target, kernel.getSnapshot())).toBe(true);
+	installAuthority(kernel, {
+		publisherRestrictions: [
+			{ purposeId: 2, restrictionType: 2, vendorIds: [755] },
+		],
+		purposeConsents: { 2: true },
+	});
+	expect(evaluateConsent(target, kernel.getSnapshot())).toBe(false);
 });
 
 test('strict scope and changed policy reject IAB authority', () => {

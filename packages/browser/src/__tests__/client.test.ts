@@ -52,8 +52,8 @@ afterEach(() => {
 });
 
 describe('createConsentClient', () => {
-	it('keeps preferences open and reports a transport failure', async () => {
-		const client = start({
+	const withSave = (save: () => Promise<{ ok: boolean }>) =>
+		start({
 			mode: custom({
 				init: () =>
 					Promise.resolve({
@@ -70,19 +70,53 @@ describe('createConsentClient', () => {
 							})
 						),
 					}),
-				save: () => Promise.reject(new Error('offline')),
+				save,
 			}),
 		});
-		await client.ready();
-		const onError = vi.fn();
-		client.on('error', onError);
-		client.openDialog();
-		expect(
-			(await client.save({ marketing: false, measurement: true })).ok
-		).toBe(false);
-		expect(client.getSnapshot().activeUI).toBe('dialog');
-		expect(onError).toHaveBeenCalled();
-	});
+
+	for (const surface of ['banner', 'dialog'] as const) {
+		for (const outcome of ['pending', 'rejected'] as const) {
+			it(`closes the ${surface} before a ${outcome} save settles`, async () => {
+				const save = vi.fn(() =>
+					outcome === 'pending'
+						? Promise.withResolvers<{ ok: boolean }>().promise
+						: Promise.reject(new Error('offline'))
+				);
+				const client = withSave(save);
+				await client.ready();
+				const onError = vi.fn();
+				client.on('error', onError);
+				if (surface === 'dialog') {
+					client.openDialog();
+				}
+				expect(client.getSnapshot().activeUI).toBe(surface);
+				const saving = client.save({ marketing: false, measurement: true });
+				// Closed in the calling task, before the request starts.
+				expect(client.getSnapshot().activeUI).toBe('none');
+				expect(save).not.toHaveBeenCalled();
+				expect(client.hasConsented()).toBe(true);
+				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+				expect(localStorage.getItem('c15t')).toContain('measurement');
+				const settled = await Promise.race([
+					saving,
+					new Promise<null>((resolve) => {
+						setTimeout(() => resolve(null), 20);
+					}),
+				]);
+				// A failed request resolves `save()` with ok: false and reaches
+				// the error event once; a pending one does neither.
+				expect(settled?.ok ?? null).toBe(outcome === 'rejected' ? false : null);
+				expect(onError).toHaveBeenCalledTimes(outcome === 'rejected' ? 1 : 0);
+				await new Promise((resolve) => {
+					setTimeout(resolve, 20);
+				});
+				expect(client.getSnapshot().activeUI).toBe('none');
+				expect(
+					client.getSnapshot().explicitChoice?.categories.measurement?.value
+				).toBe(true);
+			});
+		}
+	}
 
 	it('does not let an older save close preferences reopened while saving', async () => {
 		const { promise, resolve: complete } = Promise.withResolvers<{

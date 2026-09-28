@@ -40,6 +40,7 @@ import { fetchCachedGvl } from './gvl-cache';
 import { deferInitGvl, deferInitGvlToRoute } from './gvl-reference';
 import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
+import { saveFailure } from './save-rejection';
 import { buildSubjectPostBody } from './subject-body';
 import type { SubjectSavePayload } from './subject-body';
 import {
@@ -541,9 +542,7 @@ export const createManifestTransport = function createManifestTransport(
 			);
 
 			if (!response.ok) {
-				throw new Error(
-					`c15t manifest transport: /subjects responded ${response.status} ${response.statusText}`
-				);
+				throw await saveFailure(response, 'c15t manifest transport');
 			}
 
 			return toSaveResult(await response.json());

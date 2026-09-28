@@ -6,6 +6,7 @@ import { render } from 'vitest-browser-react';
 
 import { KernelContext } from '../context';
 import { useHasConsentUI, useSetActiveUI } from '../hooks';
+import { IABProvider, useIAB } from '../iab-context';
 import { ConsentProvider } from '../provider';
 
 let kernel: ConsentKernel;
@@ -94,4 +95,53 @@ test('standard React options share external authority, scripts and preferences u
 	const before = detach.mock.calls.length;
 	await view.unmount();
 	expect(detach).toHaveBeenCalledTimes(before + 1);
+});
+
+test('external IAB saves reject instead of waiting for a handle that cannot mount', async () => {
+	const settled = vi.fn();
+	const SaveIAB = () => {
+		const iab = useIAB();
+		return (
+			<button
+				type="button"
+				onClick={async () => {
+					try {
+						await iab?.save();
+						settled('saved');
+					} catch (error) {
+						settled(error);
+					}
+				}}
+			>
+				Save IAB
+			</button>
+		);
+	};
+	const view = await render(
+		<ConsentProvider
+			options={{
+				consentSource: {
+					getPermissions: () => ({}),
+					openPreferences: () => {},
+					subscribe: () => () => {},
+				},
+				iframeBlocker: false,
+				mode: custom({ init: vi.fn() }),
+				prefetch: { initialIab: { cmpId: 42, enabled: true } },
+			}}
+		>
+			<IABProvider cmpId={42}>
+				<SaveIAB />
+			</IABProvider>
+		</ConsentProvider>
+	);
+	await view.getByRole('button', { name: 'Save IAB' }).click();
+	await vi.waitFor(() =>
+		expect(settled).toHaveBeenCalledWith(
+			expect.objectContaining({
+				message: expect.stringContaining('external CMP'),
+			})
+		)
+	);
+	await view.unmount();
 });

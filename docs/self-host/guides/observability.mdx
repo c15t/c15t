@@ -49,7 +49,9 @@ Correlate the request's HTTP status and error code with its server event. SQL
 failures deliberately omit database details from the public response. The
 server log records the underlying error. Consent writes include whether the
 submission created a record or replayed an existing one, plus receipt and
-decision identifiers when present.
+decision identifiers when present. `consent.decisionSource` is
+`snapshot_token_replayed` for a save that arrived after its policy token
+expired; see [late saves](/docs/self-host/api/endpoints#late-saves).
 
 A valid HTTP response with a failed policy resolution needs a configuration
 check too. Invalid `manifest.policyRules` produce a startup warning and a failed

@@ -138,11 +138,18 @@ for (const target of selectedTargets()) {
 
 		for (const route of target.routes) {
 			if (target.id === 'nextjs') {
-				test(`${route}: initial HTML contains consent UI before hydration`, async () => {
+				// The App Router layout passes the pending consent state without
+				// awaiting it, so the page renders first and the banner mounts
+				// after hydration. The Pages Router awaits it in
+				// getServerSideProps and renders the banner on the server.
+				const bannerInHTML = route !== '/app-router';
+				test(`${route}: initial HTML renders the page with embeds blocked`, async () => {
 					const response = await fetch(`${server.baseURL}${route}`);
 					expect(response.ok).toBe(true);
 					const html = await response.text();
-					expect(html).toContain('data-testid="consent-banner-root"');
+					expect(html.includes('data-testid="consent-banner-root"')).toBe(
+						bannerInHTML
+					);
 					expect(html).toContain('data-testid="frame-placeholder"');
 					expect(html).not.toContain('<iframe');
 				});

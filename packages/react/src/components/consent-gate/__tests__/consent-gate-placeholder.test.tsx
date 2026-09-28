@@ -160,11 +160,14 @@ describe('ConsentGate server rendering', () => {
 		expect(html).not.toContain('data-testid="frame-content"');
 	});
 
-	test('includes children in the first HTML when effective permission is granted', () => {
+	// Inside a streamed Suspense boundary React moves the server HTML into
+	// place after parsing it, which reloads an iframe that was already
+	// loading. Granted children therefore mount after hydration only.
+	test('leaves granted children out of the first HTML', () => {
 		const html = renderToString(
 			frameApp(content, { marketing: true, necessary: true })
 		);
-		expect(html).toContain('data-testid="frame-content"');
+		expect(html).not.toContain('data-testid="frame-content"');
 		expect(html).not.toContain('data-testid="frame-placeholder"');
 	});
 
@@ -177,44 +180,89 @@ describe('ConsentGate server rendering', () => {
 		expect(html).not.toContain('data-testid="frame-open-dialog"');
 	});
 
+	// Next.js `cacheComponents` fails a prerender that reads the clock in a
+	// Client Component, so the gate must decide from the snapshot alone.
 	test.each([false, true])(
-		'hydrates the server content without replacing it (granted: %s)',
-		async (marketing) => {
-			const onHydrated = vi.fn();
-			const Hydrated = () => {
-				useEffect(() => {
-					onHydrated();
-				}, []);
-				return null;
-			};
-			const app = frameApp(
-				<>
-					{content}
-					<Hydrated />
-				</>,
-				{ marketing, necessary: true }
-			);
-			const host = document.createElement('div');
-			host.innerHTML = renderToString(app);
-			document.body.append(host);
-			const selector = marketing
-				? '[data-testid="frame-content"]'
-				: '[data-testid="frame-placeholder"]';
-			const serverContent = host.querySelector(selector);
-			expect(serverContent).not.toBeNull();
-			const onRecoverableError = vi.fn();
-			let root: ReturnType<typeof hydrateRoot> | undefined;
+		'reads no clock while rendering on the server (granted: %s)',
+		(marketing) => {
+			const app = frameApp(content, { marketing, necessary: true });
+			const clock = vi.spyOn(Date, 'now').mockImplementation(() => {
+				throw new Error('Date.now() read during server rendering');
+			});
 			try {
-				root = hydrateRoot(host, app, { onRecoverableError });
-				await vi.waitFor(() => expect(onHydrated).toHaveBeenCalled());
-				expect(host.querySelector(selector)).toBe(serverContent);
-				expect(onRecoverableError).not.toHaveBeenCalled();
+				const html = renderToString(app);
+				expect(html.includes('data-testid="frame-placeholder"')).toBe(
+					!marketing
+				);
 			} finally {
-				root?.unmount();
-				host.remove();
+				clock.mockRestore();
 			}
 		}
 	);
+
+	const hydrate = async function hydrate(marketing: boolean) {
+		const onHydrated = vi.fn();
+		const Hydrated = () => {
+			useEffect(() => {
+				onHydrated();
+			}, []);
+			return null;
+		};
+		const app = frameApp(
+			<>
+				{content}
+				<Hydrated />
+			</>,
+			{ marketing, necessary: true }
+		);
+		const host = document.createElement('div');
+		host.innerHTML = renderToString(app);
+		document.body.append(host);
+		const onRecoverableError = vi.fn();
+		const before = {
+			placeholder: host.querySelector('[data-testid="frame-placeholder"]'),
+			wrapper: host.firstElementChild,
+		};
+		const root = hydrateRoot(host, app, { onRecoverableError });
+		await vi.waitFor(() => expect(onHydrated).toHaveBeenCalled());
+		return {
+			before,
+			cleanup: () => {
+				root.unmount();
+				host.remove();
+			},
+			host,
+			onRecoverableError,
+		};
+	};
+
+	test('hydrates the server placeholder without replacing it', async () => {
+		const { before, cleanup, host, onRecoverableError } = await hydrate(false);
+		try {
+			expect(before.placeholder).not.toBeNull();
+			expect(host.querySelector('[data-testid="frame-placeholder"]')).toBe(
+				before.placeholder
+			);
+			expect(onRecoverableError).not.toHaveBeenCalled();
+		} finally {
+			cleanup();
+		}
+	});
+
+	test('mounts granted children once hydration completes', async () => {
+		const { before, cleanup, host, onRecoverableError } = await hydrate(true);
+		try {
+			await vi.waitFor(() =>
+				expect(
+					host.querySelectorAll('[data-testid="frame-content"]')
+				).toHaveLength(1)
+			);
+			expect(host.firstElementChild).toBe(before.wrapper);
+			expect(onRecoverableError).not.toHaveBeenCalled();
+		} finally {
+			cleanup();
+		}
+	});
 });
 
 describe('Frame alias', () => {

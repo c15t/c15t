@@ -112,9 +112,14 @@ also owns starting and disposing it.
 `reloadOnRevocation` defaults to `false`. With configured scripts and the option
 enabled, losing any optional permission schedules one browser reload after
 synchronous consent callbacks and cleanup. Disposing the owner cancels a pending
-reload. Use it for SDKs that cannot fully stop after execution. When disabled,
+reload. Use it for external SDKs that cannot fully stop after execution. When disabled,
 c15t still updates gates and invokes script consent callbacks; removing a script
 element cannot undo JavaScript that already ran.
+
+`reloadOnConsentRevoked` separately handles c15t-owned save actions and defaults
+to `true`. It waits for saves and persistence to finish. External CMPs own their
+own persistence, so coordinate withdrawal with the provider before notifying
+c15t when using `reloadOnRevocation`.
 
 `createEventDispatcher` from `@c15t/scripts/events` also has no framework dependency:
 

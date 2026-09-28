@@ -103,7 +103,6 @@ export type {
 	VendorDraftHandle,
 } from './draft';
 export { ConsentDraftProvider, useConsentDraft, useVendorDraft } from './draft';
-export { useConsentManager } from './component-hooks/use-manager';
 export { useTranslations } from './component-hooks/use-translations';
 export {
 	useActiveUI,
@@ -125,12 +124,14 @@ export {
 	usePreferencesPresentation,
 	usePolicyScopeMode,
 	usePurposeConsent,
+	useRegisterConsentCategories,
 	useSaveConsents,
 	useSetActiveUI,
 	useSetLanguage,
 	useSetOverrides,
 	useSnapshot,
 	useSpecialFeatureOptIn,
+	useSubscribeToConsentChanges,
 	useTCString,
 	useUser,
 	useDeclaredVendors,
@@ -160,6 +161,8 @@ export type {
 	OwnedRuntimeProviderProps,
 } from './provider';
 export { ConsentProvider } from './provider';
+export { ConsentTheme } from './consent-theme';
+export type { ConsentThemeProps } from './consent-theme';
 export type { ReactUIOptions } from './types/manager';
 export { defineTheme, type Theme } from './types/theme';
 

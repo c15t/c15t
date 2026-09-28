@@ -2,8 +2,10 @@
  * @c15t/astro — prebuilt component styles.
  *
  * The integration injects this into every page unless `styles: false` is
- * set. It covers the theme tokens, the server-rendered banner and the dialog
- * islands of every `ui` adapter.
+ * set. It covers the theme tokens, every c15t CSS variable and the
+ * server-rendered banner. The React and Svelte dialog islands import the
+ * dialog rules (`@c15t/ui/styles/dialog.css`) themselves; for Vue the
+ * integration injects them next to this file.
  *
  * Usage with `styles: false` (src/styles/global.css):
  *   @import "@c15t/astro/styles.css";

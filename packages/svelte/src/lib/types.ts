@@ -12,6 +12,8 @@ import type {
 import type { CreateIABOptions } from '@c15t/iab';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 
+import type { DialogPreload } from './dialog-warming';
+
 /** IAB options a provider accepts, or `false` to leave IAB unmounted. */
 export type ProviderIABOptions =
 	| (Partial<Omit<CreateIABOptions, 'kernel' | 'gvl'>> &
@@ -90,7 +92,23 @@ export interface ConsentManagerOptions
 	iab?: ProviderIABOptions;
 	/** Links rendered in the banner and preference-center footers. */
 	legalLinks?: LegalLinks;
-	/** Design-token overrides applied as a `<style id="c15t-theme">` block. */
+	/**
+	 * When `ConsentDialog` starts loading before its first open. It is not
+	 * part of the first load: `'idle'` loads it in browser idle time after
+	 * the page's load event while a button that opens it is mounted, and on
+	 * hover or focus of that button. `'intent'` loads it on hover or focus
+	 * only. Idle loading is skipped with Save-Data, on 2G connections and
+	 * offline.
+	 *
+	 * @default 'idle'
+	 */
+	preloadDialog?: DialogPreload;
+	/**
+	 * Slot styles and consent-action variants. Design tokens (colors, dark,
+	 * typography, spacing, radius, shadows, motion) are not applied in the
+	 * browser: render `generateThemeCSS(theme)` from `@c15t/ui/theme` in a
+	 * server `load` or a stylesheet instead.
+	 */
 	theme?: Theme;
 }
 

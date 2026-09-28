@@ -15,6 +15,14 @@ Astro renders the banner with native `.astro` components. Preference dialogs use
 an on-demand Svelte, React or Vue island. Choose the framework your site already
 uses; set `ui` explicitly. This example uses Svelte.
 
+The island downloads when a visitor points at or focuses a control that opens
+the preference dialog, such as the banner's Customize button or
+`ConsentDialogTrigger`, so a mouse click usually finds it loaded. Visitors who
+only accept or reject never download it. Taps and keyboard presses give no
+warning; to make the first open instant for them too, add `preload` to
+`ConsentDialog`, which downloads the island once the browser is idle on every
+page that renders it.
+
 <CommandTabs command="c15t @astrojs/svelte svelte @c15t/scripts" mode="install" />
 
 ## Register consent-gated scripts
@@ -52,6 +60,22 @@ export default {
   ),
 } satisfies C15tClientOptionsExtension;
 ```
+
+## Block tracking requests
+
+`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
+until the visitor grants the rule's category. A blocked `fetch` resolves to a
+`451` response and nothing is sent. Set the rules in the integration options,
+next to `mode`:
+
+```js
+networkBlocker: {
+  rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
+},
+```
+
+To pass `onRequestBlocked`, set `networkBlocker` in the client extension
+instead. It replaces the integration option.
 
 ## Configure the integration
 
@@ -142,9 +166,11 @@ not create separate runtimes for each consent island.
 ## Styles
 
 The integration adds `c15t/astro/styles.css` to every page, and
-`c15t/astro/iab/styles.css` when `iab` is set. The stylesheet covers the
-banner and the dialogs of every `ui` adapter: about 125 KB, or 16 KB gzipped.
-Do not import it again.
+`c15t/astro/iab/styles.css` when `iab` is set. The stylesheet covers the tokens
+and the banner: about 66 KB, or 9 KB gzipped. The React and Svelte dialog
+islands import the dialog's rules themselves, and Astro links that stylesheet
+on each page next to this one. With `ui: 'vue'`, the integration adds the
+dialog's rules to the page. Do not import `c15t/astro/styles.css` again.
 
 To load it yourself, for example from a global stylesheet that orders its own
 cascade layers, set `styles: false` and import the same files. Sites that set
@@ -153,9 +179,17 @@ unstyled.
 
 ```css title="src/styles/global.css"
 @import 'c15t/astro/styles.css';
+/* Only with `ui: 'vue'`. */
+@import '@c15t/ui/styles/dialog.css';
 /* Only when the integration sets `iab`. */
 @import 'c15t/astro/iab/styles.css';
 ```
+
+The integration's `theme` tokens are rendered on the server as a
+`<style id="c15t-theme">` element next to the config script, so the
+server-rendered banner and the dialog islands share them from the first paint.
+A `theme` in the client entrypoint only adds slot styles and `consentActions`;
+put tokens in the integration's `theme`.
 
 Keep the c15t stylesheet when you restyle the surfaces. The browser runtime
 hides the banner with the `hidden` attribute, and the stylesheet makes that
@@ -193,6 +227,24 @@ of constructing records from permission booleans. To render only the banner per
 request on an otherwise cached page, use `ConsentBannerDeferred`, which needs an
 adapter for its server island.
 
+The middleware runs before the page renders, so the response waits for the
+backend. It waits at most 500 ms. If the backend has not answered by then, for
+example on a cold manifest cache or during an outage, the page renders without
+the server decision: no banner in the HTML, optional categories denied, and
+consent-gated scripts and iframes blocked. The browser then asks for the policy
+itself and shows the banner when it arrives. A manifest request keeps running
+and fills the cache for the next render. Change the budget with
+`middleware: { timeoutMs }`, or set `timeoutMs: false` to wait for the backend
+however long it takes. In hosted mode every server render calls the backend's
+`/init`, so keep the budget above its usual response time.
+
+```js title="astro.config.mjs"
+c15t({
+  mode: hosted({ url: backendURL }),
+  middleware: { timeoutMs: 800 },
+});
+```
+
 The middleware handles both cases. If you call `resolveConsentContext` from
 `@c15t/astro/server` yourself, pass `prerendered: true` only for a render that
 every visitor shares. It ignores the request's headers and cookies, leaves
@@ -227,7 +279,7 @@ through React, Vue, Svelte, and the browser client.
 
 An existing CMP can own consent decisions, UI, records, expiry, and privacy-signal handling while c15t owns the script runtime. Export `consentSource` from the browser client entrypoint. Its `getPermissions()` returns a complete current decision; omitted optional categories are denied. Notify on initialization, changes, withdrawal, expiry, and loss of availability.
 
-```ts title="src/consent.client.ts"
+```ts title="src/consent-client.ts"
 import type { C15tClientOptionsExtension } from '@c15t/astro';
 import { provider } from './your-consent-provider';
 import { posthog } from '@c15t/scripts/posthog';
@@ -253,7 +305,7 @@ For SDKs that cannot stop after they have executed, set `reloadOnRevocation: tru
 ```ts title="src/events.ts"
 import { getConsentClient } from '@c15t/astro/client';
 import { createEventDispatcher } from '@c15t/scripts/events';
-import options from './consent.client';
+import options from './consent-client';
 
 export function trackSearch(resultCount: number) {
   const client = getConsentClient();

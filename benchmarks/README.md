@@ -11,9 +11,11 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
 - `bundle-test-app`
   Builds a dedicated Next app and records route-level client script size plus publish tarball sizes for `c15t`, `@c15t/react`, and `@c15t/nextjs`.
 - `react-browser-bench`
-  Runs Playwright against a React-flavoured benchmark app with local deterministic API routes.
+  Runs Playwright against a React-flavoured benchmark app with local deterministic API routes, plus `saved-consent-accept` and `saved-consent-reject` visits.
 - `nextjs-browser-bench`
-  Runs Playwright against a Next integration benchmark app covering client, prefetch, SSR, and repeat-visitor paths.
+  Runs Playwright against a Next integration benchmark app covering client, manifest, SSR, and saved-consent paths.
+- `nextjs-browser-bench` (`bench:production-consumer`)
+  Packs c15t (or installs a published version) into a Next.js consumer outside the workspace, with the aggregate stylesheet, a custom theme, server consent under a Suspense boundary, and the deferred dialog. Measures arms interleaved and reports stylesheet count, bytes, and cross-stylesheet class overlap per route. Not wired into CI. See [the visit-definitions report](./reports/visit-definitions-2026-09-25/README.md).
 - `tanstack-start-browser-bench`
   Runs Playwright against a TanStack Start integration benchmark app with the same fixture, scenarios, and metrics as the Next arm, plus a proxied-save arm. See its README for the head-to-head numbers.
 - `nuxt-browser-bench`
@@ -30,6 +32,8 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
   Loads `/policy/<fixture>` against an init route that resolves the fixture through the installed schema package, then records prompt readiness, probe render count, request and console-error invariants, the cookie and localStorage bytes the browser holds after an explicit choice or notice dismissal, and, for the persisted repeat visitor, the synchronous persistence hydration cost against the real stored record.
 - `nextjs-browser-bench` (`ssr-repeat` scenario and SSR consistency metrics)
   Adds a persisted repeat visitor over the SSR route plus `consoleErrorCount`, `hydrationWarningCount`, `promptTransitionCount`, and `promptShownCount` for every scenario, so matching server and client inputs must settle on the same prompt without a flash or a hydration warning.
+- `bundle-test-app/client-payload`
+  Builds one Next.js consumer with no consent library, v2, and several v3 setups, installed from npm or packed tarballs, and attributes initial, dialog-open and first-accept JS/CSS to packages and modules through production source maps. Run by hand; see `benchmarks/reports/client-payload-2026-09-25/`.
 - `bundle-test-app` (`bench:entries`, `ordinary-react` entry)
   Builds a synthetic esbuild entry for the ordinary non-IAB React path and reports `iabInputBytes`, `devtoolsInputBytes`, and `allLocalesInputBytes` from the metafile so the import boundary is measured, not assumed.
 - `shared`
@@ -273,7 +277,11 @@ Future framework benchmark apps should follow the same shape as the React and Ne
 
 Each framework benchmark app should provide:
 
-- routes or pages for `headless`, `full-ui`, `repeat-visitor`, and `vanilla-core`
+- routes or pages for `headless`, `full-ui`, and `vanilla-core`
+- saved-consent visits that carry a real stored choice (the storage of an
+  accepting or rejecting visit, or a cookie from `createRepeatVisitorCookie()`)
+  and assert the banner stays hidden; a new browser context without that
+  storage is a first-time visitor, whatever the scenario is called
 - `client`, `ssr`, and `prefetch` routes where the framework supports them
 - a browser-exposed benchmark object with normalized timing and lifecycle fields
 - local deterministic init/subject endpoints or equivalent local fixtures
@@ -282,8 +290,11 @@ Each framework benchmark app should provide:
 Normalized benchmark state should include:
 
 - `scenario`
-- `bannerReadyMs`
+- `bannerReadyMs` (hydrated readiness; the shared observer records DOM
+  insertion, first frame, Element Timing paint, FCP, and LCP separately)
 - `bannerVisibleMs`
+- `promptSettledMs` and whether a stored choice was restored, for visits
+  without a banner
 - `mountCount`
 - `renderCount` or equivalent reactive update count
 - interaction timings

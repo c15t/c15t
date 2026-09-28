@@ -30,7 +30,7 @@ Pending projects do not have a usable backend. Wait for provisioning before gene
 | `--project <id or organization/name>` | Resolve an authenticated hosted project's backend. |
 | `--env` | Put the backend URL in an environment file using supported bundler conventions. |
 | `--proxy` | Configure a Next.js rewrite for a hosted backend. |
-| `--ssr` | Enable server-rendered consent state for hosted Next.js App Router applications. |
+| `--ssr` | Start consent resolution on the server in hosted Next.js App Router applications. The generated wrapper passes the pending state to the provider, so pages render without waiting for the backend and the banner mounts after hydration. |
 | `--devtools` | Include development tools. |
 | `--ui-style prebuilt or expanded` | Choose prebuilt or compound React components. |
 | `--theme none, minimal, dark, or tailwind` | Select a UI theme. |

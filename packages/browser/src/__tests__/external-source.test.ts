@@ -31,8 +31,14 @@ test('browser client delegates preferences and loads scripts only for external g
 		iframeBlocker: false,
 		scripts: [script],
 	});
+	const ready = vi.fn();
+	client.on('ready', ready);
 	client.start();
 	try {
+		await expect(client.ready()).resolves.toMatchObject({
+			externalPermissions: { measurement: false },
+		});
+		expect(ready).toHaveBeenCalledOnce();
 		expect(loaded).not.toHaveBeenCalled();
 		permissions = { measurement: true };
 		notify();

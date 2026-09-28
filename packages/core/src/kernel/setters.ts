@@ -162,7 +162,7 @@ export const buildSetters = function buildSetters(
 	runtime: KernelRuntime,
 	config: KernelConfig
 ) {
-	const { getSnapshot, commit, emit } = runtime;
+	const { batch, getSnapshot, commit, emit } = runtime;
 
 	let configured = config.consentCategories
 		? [...config.consentCategories]
@@ -225,23 +225,29 @@ export const buildSetters = function buildSetters(
 			if (!changed) {
 				return;
 			}
-			if (commit({ iab: next })) {
-				emit({ snapshot: getSnapshot(), type: 'iab:set' });
-			}
+			batch(() => {
+				if (commit({ iab: next })) {
+					emit({ snapshot: getSnapshot(), type: 'iab:set' });
+				}
+			});
 		},
 		language(code: string): void {
 			const snapshot = getSnapshot();
 			if (snapshot.overrides.language === code) {
 				return;
 			}
-			commit({ overrides: { ...snapshot.overrides, language: code } });
-			emit({ snapshot: getSnapshot(), type: 'overrides:set' });
+			batch(() => {
+				commit({ overrides: { ...snapshot.overrides, language: code } });
+				emit({ snapshot: getSnapshot(), type: 'overrides:set' });
+			});
 		},
 		overrides(input: KernelOverrides): void {
 			const snapshot = getSnapshot();
 			const at = runtime.now();
-			commit({ now: at, overrides: { ...snapshot.overrides, ...input } });
-			emit({ snapshot: getSnapshot(), type: 'overrides:set' });
+			batch(() => {
+				commit({ now: at, overrides: { ...snapshot.overrides, ...input } });
+				emit({ snapshot: getSnapshot(), type: 'overrides:set' });
+			});
 			runtime.reconcilePrivacy(at);
 			runtime.armDeadlineTimer();
 		},
@@ -301,9 +307,11 @@ export const buildSetters = function buildSetters(
 			if (!changed) {
 				return;
 			}
-			if (commit({ vendors: next })) {
-				emit({ snapshot: getSnapshot(), type: 'vendors:set' });
-			}
+			batch(() => {
+				if (commit({ vendors: next })) {
+					emit({ snapshot: getSnapshot(), type: 'vendors:set' });
+				}
+			});
 		},
 	};
 };

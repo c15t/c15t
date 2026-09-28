@@ -1,4 +1,5 @@
 import { getIABControls } from '@c15t/core';
+import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import { computed } from 'vue';
 import type { Ref } from 'vue';
@@ -201,10 +202,16 @@ export const useConsentIabSave = function useConsentIabSave() {
 				'IAB action cancelled because the consent runtime changed.'
 			);
 		}
-		const gvlData = init.value?.gvl;
-		if (!gvlData) {
+		const listed = init.value?.gvl;
+		if (!listed) {
 			return;
 		}
+		// Grant or refuse the legal basis each vendor may use once publisher
+		// restrictions apply, not the one the list declares.
+		const gvlData = applyPublisherRestrictionsToGVL(
+			listed,
+			kernel.getSnapshot().iab?.publisherRestrictions
+		);
 
 		const customVendors = init.value?.customVendors ?? [];
 		const resolvedTab = tab ?? selection.value.preferenceCenterTab;

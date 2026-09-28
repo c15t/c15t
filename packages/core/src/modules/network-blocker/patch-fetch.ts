@@ -11,6 +11,7 @@
  */
 import type { ConsentSnapshot } from '../../types';
 import { evaluateBlock } from './decide';
+import { blockedResponse } from './hold';
 import type { BlockedRequestInfo, NetworkBlockerRule } from './types';
 import { normalizeMethod, parseUrl } from './url';
 
@@ -19,6 +20,11 @@ export interface FetchPatchDeps {
 	getSnapshot: () => ConsentSnapshot;
 	isEnabled: () => boolean;
 	notifyBlocked: (info: BlockedRequestInfo) => void;
+	/**
+	 * Promise that settles once consent is known, or `null` when it already
+	 * is. A request that would be blocked waits for it and is evaluated again.
+	 */
+	whenSettled?: () => Promise<void> | null;
 }
 
 /**
@@ -56,17 +62,16 @@ export const installFetchPatch = function installFetchPatch(
 			deps.getSnapshot()
 		);
 		if (decision.shouldBlock) {
+			const settled = deps.whenSettled?.();
+			if (settled) {
+				return settled.then(() => patchedFetch(input, init));
+			}
 			deps.notifyBlocked({
 				method,
 				rule: decision.rule,
 				url: url.toString(),
 			});
-			return Promise.resolve(
-				new Response(null, {
-					status: 451,
-					statusText: 'Request blocked by consent',
-				})
-			);
+			return Promise.resolve(blockedResponse());
 		}
 		return originalFetch(input, init);
 	};

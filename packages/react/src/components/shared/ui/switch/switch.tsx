@@ -1,6 +1,8 @@
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives/switch';
 import styles from '@c15t/ui/styles/components/switch';
+// These classes' rules are in the dialog stylesheet, not styles.css.
+import '@c15t/ui/styles/dialog';
 import { forwardRef as createForwardRef } from 'react';
 import type { ButtonHTMLAttributes, KeyboardEvent } from 'react';
 

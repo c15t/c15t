@@ -87,7 +87,8 @@ export const reactBrowserScenarios = [
 	'css-banner-modules',
 	'full-ui',
 	'headless',
-	'repeat-visitor',
+	'saved-consent-accept',
+	'saved-consent-reject',
 	'policy-fresh',
 	'policy-reject',
 	'policy-notice',
@@ -101,7 +102,8 @@ export const nextjsBrowserScenarios = [
 	'manifest-client',
 	'ssr',
 	'manifest-ssr',
-	'repeat-visitor',
+	'saved-consent-accept',
+	'saved-consent-reject',
 	'ssr-repeat',
 ] as const;
 
@@ -191,7 +193,8 @@ export const expectedBenchmarkResults: ExpectedBenchmarkResult[] = [
 		'ssr',
 		'manifest-ssr',
 		'manifest-ssr-proxy',
-		'repeat-visitor',
+		'saved-consent-accept',
+		'saved-consent-reject',
 	].map((scenario) =>
 		expect(
 			'@c15t/tanstack-start-browser-bench',

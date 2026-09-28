@@ -2,7 +2,9 @@
 
 import {
 	extractConsentNamesFromCondition,
+	watchRevocationReload,
 	createConsentKernel,
+	disabledPolicyResolution,
 	kernelConfigToInitResponse,
 	declareOwnedVendors,
 	forgetOwnedVendors,
@@ -43,13 +45,12 @@ import {
 	connectConsentSource,
 	reloadOnConsentRevocation,
 } from '@c15t/core/runtime/controls';
-import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
-import { defaultTheme, generateThemeCSS } from '@c15t/ui/theme';
 import type { ReactNode } from 'react';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
+import type { DialogPreload } from './chunk-warming';
 import { KernelContext, ProviderServicesContext } from './context';
 import { ExternalIABProvider } from './external-iab-context';
 import { useColorScheme } from './hooks/use-color-scheme';
@@ -58,8 +59,9 @@ import type {
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from './module-hooks';
-import { useIframeBlocker } from './module-hooks/iframe-blocker';
+import { useIframeBlockerOnDemand } from './module-hooks/iframe-blocker';
 import type { UseIframeBlockerOptions } from './module-hooks/iframe-blocker';
+import { useEarlyNetworkHold } from './module-hooks/network-hold';
 import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
 import type { ReactUIOptions } from './types/manager';
@@ -73,10 +75,16 @@ const loadScriptLoaderModule = () => import('@c15t/core/modules/script-loader');
 const loadClearOnRevocationModule = () =>
 	import('@c15t/core/modules/clear-on-revocation');
 
+/** Replaced by the app's bundler; see the theme-token warning below. */
+declare const process: { env: { NODE_ENV?: string } };
+
 /** Events emitted by the mounted provider without snapshot-derived consent aliases. */
 export type ConsentProviderCallbacks = Pick<
 	Callbacks,
-	'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+	| 'onChoiceRecorded'
+	| 'onPermissionsChanged'
+	| 'onError'
+	| 'onBeforeConsentRevocationReload'
 >;
 /** Prepared policy and records; legacy consent projections are not provider inputs. */
 export type ConsentProviderPrefetch = Omit<
@@ -103,9 +111,10 @@ export interface ConsentProviderOptions
 	 *
 	 * @remarks
 	 * Set this when your CSP uses a nonce-based policy instead of
-	 * `'unsafe-inline'`. The provider forwards it to the injected theme
-	 * `<style>` element and to every `<script>` element created by the
-	 * script loader. A per-script `nonce` still takes precedence.
+	 * `'unsafe-inline'`. The provider forwards it to every `<script>`
+	 * element created by the script loader. A per-script `nonce` still takes
+	 * precedence. Pass the same nonce to `ConsentTheme`, which renders the
+	 * theme `<style>` element.
 	 */
 	nonce?: string;
 	/**
@@ -168,6 +177,14 @@ export interface ConsentProviderOptions
 	 * Initial-only: remount the provider to replace its cleanup configuration.
 	 */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted. Removing a script cannot stop code that already
+	 * ran, so the reload starts a document with only permitted code. Waits for
+	 * the save request. Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	scripts?: Script[];
 	/**
 	 * Vendors offered for vendor-level consent outside IAB. Each sits inside a
@@ -179,7 +196,12 @@ export interface ConsentProviderOptions
 	vendors?: Vendor[];
 	scriptLoader?: UseScriptLoaderOptions;
 	networkBlocker?: UseNetworkBlockerOptions | false;
-	/** Discover and gate DOM iframes with data-category. Enabled by default. */
+	/**
+	 * Discover and gate DOM iframes with data-category. Enabled by default.
+	 * The blocker loads when the first gated iframe is on the page; until it
+	 * runs, a gated iframe that arrives with a `src` consent does not allow
+	 * is paused.
+	 */
 	iframeBlocker?: UseIframeBlockerOptions | false;
 	persistence?: boolean | UsePersistenceOptions;
 	i18n?: Partial<I18nConfig>;
@@ -188,6 +210,21 @@ export interface ConsentProviderOptions
 	/** Per-component slot attribute overrides (shared contract with @c15t/vue). */
 	components?: ReactComponentSlots;
 	legalLinks?: LegalLinks;
+	/**
+	 * When the deferred `<ConsentDialog />` starts loading before it opens.
+	 *
+	 * - `'idle'` (default): after the page's load event, in browser idle time,
+	 *   while the banner is shown or a button that opens the dialog is
+	 *   mounted, and on hover or focus of such a button. Skipped when the
+	 *   visitor has Save-Data on or a 2G-class connection.
+	 * - `'intent'`: only on hover or focus of a button that opens the dialog.
+	 *
+	 * Neither loads the dialog on a visit that shows no banner and has no
+	 * dialog trigger.
+	 *
+	 * @default 'idle'
+	 */
+	preloadDialog?: DialogPreload;
 	/**
 	 * Adapter package name reported by `window.c15t`.
 	 * @internal
@@ -229,19 +266,6 @@ export interface ExternalRuntimeProviderProps {
 export type ConsentProviderProps =
 	| OwnedRuntimeProviderProps
 	| ExternalRuntimeProviderProps;
-
-const DISABLED_RESOLUTION = resolvePolicyRules({
-	countryCode: null,
-	regionCode: null,
-	rules: [
-		{
-			id: 'disabled',
-			match: { fallback: true },
-			model: 'opt-out',
-			prompt: 'none',
-		},
-	],
-});
 
 const DEFAULT_TRANSLATIONS: KernelTranslations = {
 	language: 'en',
@@ -581,7 +605,8 @@ const createProviderKernel = function createProviderKernel(
 			),
 		],
 		initialVendors,
-		initialExternalPermissions: options.consentSource ? {} : undefined,
+		initialExternalPermissions:
+			enabled && options.consentSource ? {} : undefined,
 		initialRecords:
 			enabled && !options.consentSource ? prefetch.initialRecords : undefined,
 		initialPrivacySignals: enabled ? prefetch.initialPrivacySignals : undefined,
@@ -595,7 +620,7 @@ const createProviderKernel = function createProviderKernel(
 		transport,
 		initialPolicyResolution: enabled
 			? prefetch.initialPolicyResolution
-			: DISABLED_RESOLUTION,
+			: disabledPolicyResolution(),
 		initialOverrides: {
 			...(prefetch.initialOverrides ?? {}),
 			...(options.overrides ?? {}),
@@ -631,13 +656,27 @@ const stringifyError = function stringifyError(error: unknown): string {
 
 const useProviderCallbacks = function useProviderCallbacks(
 	kernel: ConsentKernel,
-	callbacks: ConsentProviderCallbacks | undefined
+	callbacks: ConsentProviderCallbacks | undefined,
+	reloadOnConsentRevoked: boolean | undefined
 ) {
 	const callbacksRef = useRef(callbacks);
+	const reloadRef = useRef(reloadOnConsentRevoked);
 
 	useEffect(() => {
 		callbacksRef.current = callbacks;
-	}, [callbacks]);
+		reloadRef.current = reloadOnConsentRevoked;
+	}, [callbacks, reloadOnConsentRevoked]);
+
+	useEffect(
+		() =>
+			watchRevocationReload({
+				getOnBeforeReload: () =>
+					callbacksRef.current?.onBeforeConsentRevocationReload,
+				isEnabled: () => reloadRef.current !== false,
+				kernel,
+			}),
+		[kernel]
+	);
 
 	useEffect(() => {
 		const subscriptions = [
@@ -874,11 +913,13 @@ const useProviderOptionSync = function useProviderOptionSync(
 const ProviderCallbacksMount = ({
 	kernel,
 	callbacks,
+	reloadOnConsentRevoked,
 }: {
 	kernel: ConsentKernel;
 	callbacks?: ConsentProviderCallbacks;
+	reloadOnConsentRevoked?: boolean;
 }) => {
-	useProviderCallbacks(kernel, callbacks);
+	useProviderCallbacks(kernel, callbacks, reloadOnConsentRevoked);
 	return null;
 };
 
@@ -1035,7 +1076,7 @@ const IframeBlockerMount = ({
 }: {
 	options?: UseIframeBlockerOptions;
 }) => {
-	useIframeBlocker(options);
+	useIframeBlockerOnDemand(options);
 	return null;
 };
 
@@ -1051,6 +1092,9 @@ const NetworkBlockerMount = ({
 		setEnabled: (enabled: boolean) => void;
 	} | null>(null);
 	const latestOptionsRef = useRef(options);
+	// The blocker loads after mount. Hold matching requests from this render
+	// on, before any child renders or runs an effect; the blocker replays them.
+	const earlyHold = useEarlyNetworkHold(options.rules, options.enabled);
 
 	useEffect(() => {
 		latestOptionsRef.current = options;
@@ -1061,6 +1105,10 @@ const NetworkBlockerMount = ({
 			return;
 		}
 		let disposed = false;
+		const hold = earlyHold.claim(
+			latestOptionsRef.current.rules,
+			latestOptionsRef.current.enabled
+		);
 		void (async () => {
 			const { createNetworkBlocker } = await loadNetworkBlockerModule();
 			if (disposed) {
@@ -1069,6 +1117,7 @@ const NetworkBlockerMount = ({
 			const latest = latestOptionsRef.current;
 			const created = createNetworkBlocker({
 				enabled: latest.enabled,
+				hold,
 				kernel,
 				logBlockedRequests: latest.logBlockedRequests,
 				onRequestBlocked: latest.onRequestBlocked,
@@ -1080,8 +1129,9 @@ const NetworkBlockerMount = ({
 			disposed = true;
 			handleRef.current?.dispose();
 			handleRef.current = null;
+			earlyHold.unmount();
 		};
-	}, [kernel]);
+	}, [earlyHold, kernel]);
 
 	useEffect(() => {
 		handleRef.current?.updateRules(options.rules);
@@ -1130,29 +1180,6 @@ const WindowDebugMount = ({
 	return null;
 };
 
-const WindowKernelMount = ({ kernel }: { kernel: ConsentKernel }) => {
-	useEffect(() => {
-		const browserWindow = window as Window & {
-			c15tKernel?: ConsentKernel;
-		};
-		const previousKernel = browserWindow.c15tKernel;
-		browserWindow.c15tKernel = kernel;
-
-		return () => {
-			if (browserWindow.c15tKernel !== kernel) {
-				return;
-			}
-			if (previousKernel) {
-				browserWindow.c15tKernel = previousKernel;
-				return;
-			}
-			delete browserWindow.c15tKernel;
-		};
-	}, [kernel]);
-
-	return null;
-};
-
 const normalizePersistenceOptions = function normalizePersistenceOptions(
 	options: ConsentProviderOptions
 ): UsePersistenceOptions | false {
@@ -1172,6 +1199,31 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 };
 
 /**
+ * Picks the kernels a provider renders.
+ *
+ * A borrowed runtime follows the `runtime` prop, so consumers move to a
+ * replacement and release the previous kernel. A kernel the provider built
+ * stays initial-only, like `mode`.
+ */
+const selectProviderKernels = function selectProviderKernels(
+	owned: {
+		disabledKernel: ConsentKernel | undefined;
+		external: ConsentRuntime | undefined;
+		kernel: ConsentKernel;
+	},
+	runtime: ConsentRuntime | undefined,
+	enabled: boolean
+) {
+	const external = owned.external ? (runtime ?? owned.external) : undefined;
+	const active = external?.kernel ?? owned.kernel;
+	return {
+		active,
+		external,
+		rendered: enabled ? active : (owned.disabledKernel ?? active),
+	};
+};
+
+/**
  * v3 ConsentProvider.
  *
  * Retains the enabled kernel while disabled mode uses a separate permissive
@@ -1184,7 +1236,9 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
  * Pass `runtime` to render a runtime someone else created. The provider
  * then borrows its kernel and mounts none of the side-effecting modules —
  * no second `init()`, no second persistence handle, no second `window.c15t`
- * — and does not dispose it on unmount.
+ * — and does not dispose it on unmount. Handing it a different runtime
+ * switches the tree to that runtime's kernel; switching between a borrowed
+ * runtime and a provider-built kernel still needs a remount.
  *
  * @example
  * ```tsx
@@ -1216,14 +1270,12 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		reloadOnRevocation: options.reloadOnRevocation,
 	}));
 	void setOwned;
+	const { clearOnRevocation: initialClearOnRevocation } = owned;
 	const {
-		clearOnRevocation: initialClearOnRevocation,
+		active: activeKernel,
 		external: externalRuntime,
-	} = owned;
-	const kernel =
-		enabled || owned.consentSource
-			? owned.kernel
-			: (owned.disabledKernel ?? owned.kernel);
+		rendered: kernel,
+	} = selectProviderKernels(owned, props.runtime, enabled);
 	const ownsRuntime = externalRuntime === undefined;
 	useEffect(() => {
 		if (ownsRuntime || options.consentCategories !== undefined) {
@@ -1268,11 +1320,11 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		: normalizePersistenceOptions(options);
 	const { scripts, networkBlocker } = options;
 	useEffect(() => {
-		if (!ownsRuntime || !owned.consentSource) {
+		if (!ownsRuntime || !owned.consentSource || !enabled) {
 			return;
 		}
 		return connectConsentSource(kernel, owned.consentSource);
-	}, [kernel, owned, ownsRuntime]);
+	}, [enabled, kernel, owned, ownsRuntime]);
 	const hasScripts = Boolean(scripts?.length);
 	useEffect(() => {
 		if (!ownsRuntime || !owned.reloadOnRevocation || !hasScripts) {
@@ -1287,7 +1339,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		? resolveWindowDebugMode(options.mode)
 		: 'hosted';
 
-	useProviderOptionSync(owned.kernel, options, enabled, ownsRuntime);
+	useProviderOptionSync(activeKernel, options, enabled, ownsRuntime);
 	const lifecycle = useRef(0);
 	useEffect(() => {
 		if (!ownsRuntime) {
@@ -1306,16 +1358,32 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	}, [owned, ownsRuntime]);
 
 	const userTheme = options.theme;
-	// Render tokens with the banner, including before hydration. CSS escapes
-	// preserve token values without allowing HTML closing tags.
-	const themeCSS = useMemo(
-		() =>
-			generateThemeCSS(userTheme ?? defaultTheme, options.colorScheme).replace(
-				/</gu,
-				'\\3c '
-			),
-		[userTheme, options.colorScheme]
-	);
+	// Development only: bundlers replace `process.env.NODE_ENV`, so production
+	// builds drop the check. Tokens need `ConsentTheme` or a stylesheet now.
+	useEffect(() => {
+		if (process.env.NODE_ENV === 'production') {
+			return;
+		}
+		const tokenKeys = [
+			'colors',
+			'dark',
+			'motion',
+			'radius',
+			'shadows',
+			'spacing',
+			'typography',
+		];
+		if (
+			!userTheme ||
+			!tokenKeys.some((key) => key in userTheme) ||
+			document.getElementById('c15t-theme')
+		) {
+			return;
+		}
+		console.warn(
+			'c15t: `theme` tokens are no longer turned into CSS in the browser. Render <ConsentTheme theme={theme} /> on the server, or put the CSS from generateThemeCSS() in your stylesheet. See https://c15t.com/docs/frameworks/react/styling/overview'
+		);
+	}, [userTheme]);
 
 	const themeContextValue = useMemo(
 		() => ({
@@ -1340,15 +1408,21 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		() => ({
 			components: options.components,
 			legalLinks: options.legalLinks,
+			preloadDialog: options.preloadDialog,
 			presentation: options.presentation,
 		}),
-		[options.components, options.legalLinks, options.presentation]
+		[
+			options.components,
+			options.legalLinks,
+			options.preloadDialog,
+			options.presentation,
+		]
 	);
 
 	useColorScheme(options.colorScheme);
 
-	// Everything below `WindowKernelMount` is a side-effecting module the
-	// runtime already mounts. A borrowed runtime renders none of it.
+	// Everything under `ownsRuntime` is a side-effecting module the runtime
+	// already mounts. A borrowed runtime renders none of it.
 	const providerChildren = (
 		<>
 			{ownsRuntime ? (
@@ -1356,12 +1430,12 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					<ProviderCallbacksMount
 						kernel={kernel}
 						callbacks={options.callbacks}
+						reloadOnConsentRevoked={options.reloadOnConsentRevoked}
 					/>
 					<WindowDebugMount
 						pkg={windowDebugPkg}
 						mode={windowDebugMode}
 					/>
-					<WindowKernelMount kernel={kernel} />
 					{enabled && persistenceOptions ? (
 						<PersistenceMount
 							options={persistenceOptions}
@@ -1412,12 +1486,6 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					themeConfig={themeContextValue}
 					uiConfig={uiConfigValue}
 				>
-					<style
-						id="c15t-theme"
-						nonce={options.nonce}
-						// oxlint-disable-next-line react/no-danger -- CSS escapes
-						dangerouslySetInnerHTML={{ __html: themeCSS }}
-					/>
 					{providerChildren}
 				</V3ThemeProvider>
 			</ProviderServicesContext.Provider>

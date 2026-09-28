@@ -18,7 +18,7 @@ import { components, theme } from './theme';
 
 interface Props {
 	children: ReactNode;
-	state: ConsentState;
+	state: ConsentState | Promise<ConsentState>;
 }
 
 /**

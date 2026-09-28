@@ -291,6 +291,9 @@ export const register = function register({
 						consent: {
 							created: submission.created,
 							decisionId: submission.decisionId ?? null,
+							// `snapshot_token_replayed` marks a save that arrived after
+							// its token expired; see `policy-snapshot.ts`.
+							decisionSource: prepared.decision?.source ?? null,
 							id: submission.consentId,
 							receipts: prepared.choice
 								? Object.keys(prepared.choice.categories)

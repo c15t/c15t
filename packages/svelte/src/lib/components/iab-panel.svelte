@@ -5,6 +5,7 @@
 		resolveIABBannerSummary,
 	} from '@c15t/core';
 	import type { Model } from '@c15t/core';
+	import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
 	import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
@@ -14,7 +15,11 @@
 	import { focusTrap } from '../actions/focus-trap';
 	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
-	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import {
+		getConsentContext,
+		getThemeContext,
+		saveIABChoice,
+	} from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
 	import { resolveIABDialogDisplayModel } from '../iab-types';
 	import type { VendorId } from '../iab-types';
@@ -137,9 +142,20 @@
 						customVendors: iabState.nonIABVendors ?? [],
 						gvl: iabState.gvl,
 						isLoadingGVL: iabState.isLoadingGVL,
+						publisherRestrictions: iabState.publisherRestrictions,
 					}
 				: null
 		)
+	);
+	// The vendor tab reads declarations directly, so give it the ones
+	// publisher restrictions leave.
+	const vendorData = $derived(
+		iabState?.gvl
+			? applyPublisherRestrictionsToGVL(
+					iabState.gvl,
+					iabState.publisherRestrictions
+				)
+			: null
 	);
 
 	const summary = $derived(resolveIABBannerSummary(iabState));
@@ -186,8 +202,9 @@
 		if (!iabState) {
 			return;
 		}
+		const state = iabState;
 		try {
-			await iabState.save();
+			await saveIABChoice(consent.kernel, () => state.save());
 		} catch {
 			// Keep the prompt available so a later action can retry the failed load/save.
 		}
@@ -233,6 +250,7 @@
 	<div use:portal>
 		{#if preferences.blocking}
 			<Overlay
+				{styles}
 				variant="iab-dialog"
 				visible={isOpen}
 			/>
@@ -468,7 +486,7 @@
 						>
 							{#if iabState}
 								<IABVendorList
-									vendorData={iabState.gvl}
+									{vendorData}
 									purposes={display.data.purposes}
 									vendorConsents={iabState.vendorConsents}
 									onVendorToggle={handleVendorToggle}

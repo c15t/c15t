@@ -356,6 +356,9 @@ export const buildNextSnapshot = function buildNextSnapshot(
 				policy: evaluationPolicy,
 			});
 	if (externalPermissions) {
+		if (iab && (iab.enabled || iab.authority)) {
+			iab = { ...iab, authority: null, enabled: false };
+		}
 		evaluation = evaluateExternalPermissions(externalPermissions);
 	}
 

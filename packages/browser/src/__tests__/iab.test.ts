@@ -244,7 +244,7 @@ describe('IAB browser entry', () => {
 			'true'
 		);
 	});
-	it('keeps preferences available after a failed backend save', async () => {
+	it('closes preferences on the local record when the backend save fails', async () => {
 		const factory = offline();
 		const mode: typeof factory = Object.assign(
 			(context: Parameters<typeof factory>[0]) => ({
@@ -257,15 +257,24 @@ describe('IAB browser entry', () => {
 		client.openDialog();
 		const errors = vi.fn();
 		client.on('error', errors);
-		expect((await client.acceptAll()).ok).toBe(false);
-		expect(client.getSnapshot().activeUI).toBe('dialog');
+		const saving = client.acceptAll();
+		// Closed in the calling task, before the TC string or the request.
+		expect(client.getSnapshot().activeUI).toBe('none');
+		expect((await saving).ok).toBe(false);
+		expect(client.getSnapshot().activeUI).toBe('none');
+		expect(client.getSnapshot().iab?.authority?.tcString).toBeTruthy();
 		expect(errors).toHaveBeenCalled();
+		client.openDialog();
 		query(client, 'iab-consent-dialog-accept-button').click();
-		await vi.waitFor(() =>
-			expect(
-				client.ui?.root.querySelector('[role="alert"]')?.textContent
-			).toContain('Unable to save')
-		);
+		expect(client.getSnapshot().activeUI).toBe('none');
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20);
+		});
+		client.openDialog();
+		// The recorded choice stands, so reopened preferences show no failure.
+		expect(
+			client.ui?.root.querySelector('[role="alert"]')?.textContent ?? ''
+		).not.toContain('Unable to save');
 	});
 	it('shows GVL failure and prevents confirmation without a loaded vendor list', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));

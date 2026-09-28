@@ -755,6 +755,25 @@
         "typescript": "6.0.3",
       },
     },
+    "internals/consent-observers": {
+      "name": "@c15t/consent-observers",
+      "version": "0.0.0",
+      "dependencies": {
+        "@c15t/schema": "workspace:*",
+        "c15t": "workspace:*",
+      },
+      "devDependencies": {
+        "@c15t/next-compat-shared": "workspace:*",
+        "@types/node": "25.5.0",
+        "@types/react": "19.2.17",
+        "@types/react-dom": "19.2.3",
+        "jsdom": "^25.0.0",
+        "react": "19.2.7",
+        "react-dom": "19.2.7",
+        "typescript": "6.0.3",
+        "vitest": "4.1.10",
+      },
+    },
     "internals/migration-fixtures": {
       "name": "@c15t/migration-fixtures",
       "version": "1.0.0",
@@ -1009,6 +1028,7 @@
         "@c15t/vitest-config": "workspace:*",
         "genversion": "3.2.0",
         "jsdom": "^25.0.0",
+        "postcss": "8.5.10",
         "typescript": "7.0.2",
       },
     },
@@ -1661,6 +1681,8 @@
     "@c15t/cli": ["@c15t/cli@workspace:packages/cli"],
 
     "@c15t/conformance": ["@c15t/conformance@workspace:internals/conformance"],
+
+    "@c15t/consent-observers": ["@c15t/consent-observers@workspace:internals/consent-observers"],
 
     "@c15t/core": ["@c15t/core@workspace:packages/core"],
 

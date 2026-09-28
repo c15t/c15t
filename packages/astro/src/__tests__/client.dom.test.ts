@@ -1,6 +1,7 @@
 import type { ConsentSnapshot } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { whenIABReady } from '../browser/iab';
 import {
 	attachBannerActions,
 	boot,
@@ -13,7 +14,7 @@ import {
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
-import type { C15tAstroOptions } from '../types';
+import type { C15tAstroOptions, C15tIABOptions } from '../types';
 import { registerDialogAdapter } from '../ui/adapter';
 import type { ConsentDialogHandle } from '../ui/adapter';
 import { testResolution, testRule } from './policy-fixture';
@@ -126,6 +127,46 @@ describe('boot', () => {
 	it('returns a no-op subscription before boot', () => {
 		expect(getConsent()).toBeNull();
 		expect(() => subscribe(vi.fn())()).not.toThrow();
+	});
+});
+
+describe('IAB options', () => {
+	it('forwards publisher restrictions to the CMP', async () => {
+		const publisherRestrictions = [
+			{ purposeId: 2, restrictionType: 0 as const, vendorIds: [755] },
+		];
+		const gvl = {
+			features: {},
+			purposes: { 2: { description: '', id: 2, illustrations: [], name: '' } },
+			specialFeatures: {},
+			specialPurposes: {},
+			stacks: {},
+			tcfPolicyVersion: 5,
+			vendorListVersion: 1,
+			vendors: {
+				755: {
+					features: [],
+					flexiblePurposes: [],
+					id: 755,
+					legIntPurposes: [],
+					name: 'Vendor',
+					purposes: [2],
+					specialFeatures: [],
+					specialPurposes: [],
+					urls: [],
+					usesCookies: false,
+					usesNonCookieAccess: false,
+				},
+			},
+		} as unknown as NonNullable<C15tIABOptions['gvl']>;
+		const booted = start({
+			...OPTIONS,
+			iab: { cmpId: 28, gvl, publisherRestrictions },
+		});
+		await whenIABReady();
+		expect(booted.getConsent().iab?.publisherRestrictions).toEqual(
+			publisherRestrictions
+		);
 	});
 });
 
@@ -482,6 +523,111 @@ describe('dialog lifecycle', () => {
 	});
 });
 
+describe('warming the dialog on intent', () => {
+	const registerCountingAdapter = function registerCountingAdapter(
+		preload: () => Promise<void> = () => Promise.resolve()
+	) {
+		const counts = { loads: 0, preloads: 0 };
+		registerDialogAdapter('svelte', () => {
+			counts.loads += 1;
+			return Promise.resolve({
+				mount: () =>
+					Promise.resolve({
+						close: vi.fn(),
+						destroy: vi.fn(),
+					} as ConsentDialogHandle),
+				name: 'svelte',
+				preload: () => {
+					counts.preloads += 1;
+					return preload();
+				},
+			});
+		});
+		return counts;
+	};
+
+	const button = (action: string) =>
+		document.querySelector<HTMLButtonElement>(`[data-c15t-action="${action}"]`);
+
+	it('does not download the dialog on load', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		start();
+		await tick();
+		expect(counts).toEqual({ loads: 0, preloads: 0 });
+	});
+
+	it('downloads it when the pointer reaches Customize', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		start();
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(1);
+		});
+		// More hovers reuse the first download.
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await tick();
+		expect(counts).toEqual({ loads: 1, preloads: 1 });
+	});
+
+	it('downloads it when Customize gets focus', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		start();
+		button('customize')?.focus();
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(1);
+		});
+	});
+
+	it('ignores other buttons and the IAB dialog', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<button data-c15t-action="customize" data-c15t-dialog="iab" id="iab">Partners</button>'
+		);
+		start();
+		for (const target of [
+			button('accept'),
+			button('reject'),
+			document.querySelector('#iab'),
+		]) {
+			target?.dispatchEvent(new Event('pointerover', { bubbles: true }));
+		}
+		await tick();
+		expect(counts).toEqual({ loads: 0, preloads: 0 });
+	});
+
+	it('retries after a failed download', async () => {
+		let fail = true;
+		const counts = registerCountingAdapter(() =>
+			fail ? Promise.reject(new Error('offline')) : Promise.resolve()
+		);
+		renderBanner();
+		start();
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(1);
+		});
+		await tick();
+		fail = false;
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(2);
+		});
+	});
+});
+
 it('forwards cleanup targets to its shared runtime', async () => {
 	const booted = start({
 		...OPTIONS,
@@ -496,6 +642,9 @@ it('forwards cleanup targets to its shared runtime', async () => {
 it('opens the external CMP and never records its decisions as c15t choices', async () => {
 	const openPreferences = vi.fn();
 	const onPermissionsChanged = vi.fn();
+	const trigger = document.createElement('button');
+	trigger.dataset.c15tSurface = 'trigger';
+	document.body.append(trigger);
 	client = boot(resolveOptions(OPTIONS), {
 		callbacks: { onPermissionsChanged },
 		consentSource: {
@@ -504,6 +653,7 @@ it('opens the external CMP and never records its decisions as c15t choices', asy
 			subscribe: () => () => {},
 		},
 	});
+	expect(trigger.hidden).toBe(false);
 	await client.openDialog();
 	expect(openPreferences).toHaveBeenCalledOnce();
 	expect(client.getConsent().explicitChoice).toBeNull();
@@ -511,4 +661,59 @@ it('opens the external CMP and never records its decisions as c15t choices', asy
 	expect(client.getConsent().effectivePermissions.measurement).toBe(true);
 	expect(onPermissionsChanged).toHaveBeenCalled();
 	await expect(client.acceptAll()).rejects.toThrow('external CMP');
+});
+
+describe('networkBlocker', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		// The consent cookie outlives the localStorage reset between tests.
+		for (const cookie of document.cookie.split(';')) {
+			const name = cookie.split('=')[0]?.trim();
+			if (name) {
+				document.cookie = `${name}=; max-age=0; path=/`;
+			}
+		}
+	});
+
+	const TRACKER = 'https://tracker.example/collect';
+	const rules = [
+		{ category: 'measurement' as const, domain: 'tracker.example' },
+	];
+
+	it('blocks matching requests until the visitor consents', async () => {
+		const network = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(new Response('ok'));
+		renderBanner();
+		const booted = start({
+			...OPTIONS,
+			networkBlocker: { logBlockedRequests: false, rules },
+		});
+
+		expect((await window.fetch(TRACKER)).status).toBe(451);
+		expect(network).not.toHaveBeenCalled();
+
+		await booted.acceptAll();
+		expect((await window.fetch(TRACKER)).status).toBe(200);
+		expect(network).toHaveBeenCalledWith(TRACKER, undefined);
+	});
+
+	it('takes onRequestBlocked from the client entrypoint', async () => {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+		const onRequestBlocked = vi.fn();
+		renderBanner();
+		(window as unknown as Record<string, unknown>).__c15tAstroConfig =
+			INLINE_CONFIG;
+		client = boot(
+			resolveOptions({ ...OPTIONS, networkBlocker: { rules: [] } }),
+			{
+				networkBlocker: { logBlockedRequests: false, onRequestBlocked, rules },
+			}
+		);
+
+		expect((await window.fetch(TRACKER)).status).toBe(451);
+		expect(onRequestBlocked).toHaveBeenCalledWith(
+			expect.objectContaining({ url: TRACKER })
+		);
+	});
 });

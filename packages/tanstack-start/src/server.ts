@@ -58,8 +58,10 @@ import type { KernelConfig } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import {
+	DEFAULT_RESOLVE_TIMEOUT_MS,
 	fetchCachedManifest,
 	resolveManifestSourceURL,
+	withResolutionBudget,
 } from '@c15t/core/transports/manifest-cache';
 import type { ManifestCache } from '@c15t/core/transports/manifest-cache';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
@@ -306,13 +308,27 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	cache?: ManifestCache;
 
 	/**
-	 * Receives the promise of a background manifest revalidation started by
-	 * this request, so the host can keep it alive past the response on
-	 * runtimes that stop detached work once a response is sent (a platform
-	 * `waitUntil`, for example). The promise never rejects. Not called when
-	 * the manifest is fresh or the request itself waits on the upstream.
+	 * Receives manifest work that outlives this request (a background
+	 * revalidation, or a manifest request `timeoutMs` stopped waiting for),
+	 * so the host can keep it alive past the response on runtimes that stop
+	 * detached work once a response is sent (a platform `waitUntil`, for
+	 * example). The promise never rejects. Not called when the manifest is
+	 * fresh or the request waits for the upstream to finish.
 	 */
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+
+	/**
+	 * Longest the render waits for the visitor's policy, in milliseconds,
+	 * counted from the manifest request. When it runs out the helper returns
+	 * the cookie-and-headers state: no consent UI in the server HTML,
+	 * optional categories denied, gated scripts and embeds blocked. The
+	 * client then runs init through the same-origin route. The manifest
+	 * request keeps running and fills the cache for the next render. `false`
+	 * waits for the manifest cache's own request timeout (5 seconds).
+	 *
+	 * @default 500
+	 */
+	timeoutMs?: number | false;
 
 	/**
 	 * Report the init this render resolved from the manifest to the
@@ -364,7 +380,8 @@ const collectForwardHeaders = function collectForwardHeaders(
 const loadManifest = async function loadManifest(
 	options: ResolveConsentOptions & { backendURL: string },
 	request: Request,
-	forward: Record<string, string>
+	forward: Record<string, string>,
+	timeoutMs: number | undefined
 ): Promise<{ backendURL: string; manifest: ConsentManifest } | null> {
 	const trust = options.trustForwardedHeaders ?? false;
 	const backendURL = resolveRequestURL(options.backendURL, request, trust);
@@ -397,6 +414,7 @@ const loadManifest = async function loadManifest(
 		headers: stripIdentityForCleartext(forward, sourceURL),
 		onBackgroundRevalidate: options.onBackgroundRevalidate,
 		sourceURL,
+		timeoutMs,
 	});
 	return { backendURL, manifest: cached.manifest };
 };
@@ -415,8 +433,10 @@ const loadManifest = async function loadManifest(
  * 3. Folds the result into the state so first paint is correct without
  *    waiting for a client roundtrip.
  *
- * Never calls the app's own `/api/c15t` route. If anything fails, returns
- * the cookie-and-headers state: the client root then runs init on mount.
+ * Never calls the app's own `/api/c15t` route. If anything fails, or the
+ * manifest does not arrive within `timeoutMs` (500 ms by default), returns
+ * the cookie-and-headers state: no consent UI in the server HTML, optional
+ * categories denied, and the client root runs init on mount.
  *
  * @param options - Request source and overrides, plus the backend location
  * and manifest source for the prefetch.
@@ -432,6 +452,11 @@ export const resolveConsent = async function resolveConsent(
 		return base;
 	}
 
+	const timeoutMs =
+		options.timeoutMs === false
+			? undefined
+			: (options.timeoutMs ?? DEFAULT_RESOLVE_TIMEOUT_MS);
+	const startedAt = Date.now();
 	try {
 		const forward = collectForwardHeaders(
 			request,
@@ -441,7 +466,8 @@ export const resolveConsent = async function resolveConsent(
 		const loaded = await loadManifest(
 			{ ...options, backendURL },
 			request,
-			forward
+			forward,
+			timeoutMs
 		);
 		if (!loaded) {
 			return base;
@@ -473,16 +499,18 @@ export const resolveConsent = async function resolveConsent(
 							waitUntil: options.onBackgroundRevalidate,
 						},
 		});
-		const response = await transport.init?.({
-			overrides: {
-				...(base.initialOverrides ?? {}),
-				...consentInputsToOverrides({ ...inputs, gpc: undefined }),
-			},
-			user: base.initialUser ?? null,
-		});
-		if (!response) {
-			return base;
-		}
+		const response = await withResolutionBudget(
+			transport.init({
+				overrides: {
+					...(base.initialOverrides ?? {}),
+					...consentInputsToOverrides({ ...inputs, gpc: undefined }),
+				},
+				user: base.initialUser ?? null,
+			}),
+			timeoutMs === undefined
+				? undefined
+				: Math.max(0, timeoutMs - (Date.now() - startedAt))
+		);
 		return stripTransport(mergeInitResponseIntoKernelConfig(base, response));
 	} catch {
 		// Silent degradation. Client-side init will retry.

@@ -172,6 +172,15 @@ export {
 export type {
 	PolicyMatchEntry,
 	PolicyMatchOutcome,
+} from './shared/policy-resolution';
+export {
+	matchPolicyRules,
+	resolvePolicyRules,
+} from './shared/policy-resolution';
+// The wire contract and the resolved-rule invariants come straight from their
+// own modules, so a client that only reads a resolution never pulls in the
+// authoring validator or fingerprint hashing behind `resolvePolicyRules`.
+export type {
 	PolicyResolution,
 	PolicyResolutionFailed,
 	PolicyResolutionFailure,
@@ -180,20 +189,18 @@ export type {
 	PolicyResolutionUnconfigured,
 	PolicyResolutionWire,
 	SafeFallbackPolicyInput,
-} from './shared/policy-resolution';
+} from './shared/policy-resolution-wire';
 export {
-	matchPolicyRules,
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
 	parsePolicyContractHeader,
 	readPolicyResolutionWire,
-	resolvePolicyRules,
 	SAFE_FALLBACK_POLICY_FINGERPRINTS,
 	SAFE_FALLBACK_POLICY_ID,
 	safeFallbackPolicyInput,
 	safeFallbackPolicyRule,
 	writePolicyResolutionWire,
-} from './shared/policy-resolution';
+} from './shared/policy-resolution-wire';
 export type {
 	PolicyActionConstraints,
 	PolicyChoiceAction,
@@ -208,19 +215,22 @@ export type {
 	ResolvedPolicyRule,
 } from './shared/policy-rule';
 export {
-	canonicalizePolicySet,
-	collectResolvedPolicyRuleIssues,
 	DEFAULT_CHOICE_VALIDITY_DAYS,
 	DEFAULT_NOTICE_VALIDITY_DAYS,
-	expectedPolicyActions,
 	inspectPolicyRules,
+	normalizePolicyRule,
+	validatePolicyRules,
+} from './shared/policy-rule';
+export {
+	canonicalizePolicySet,
+	collectResolvedPolicyRuleIssues,
+	expectedPolicyActions,
 	isPlainPolicyObject,
 	isPolicyOptionalCategory,
 	isPolicyPrompt,
 	isPolicyRight,
 	isPolicyRuleModel,
 	isValidPolicyPromptForModel,
-	normalizePolicyRule,
 	POLICY_CONSENT_CATEGORIES,
 	POLICY_MODEL_PROMPTS,
 	POLICY_OPTIONAL_CATEGORIES,
@@ -229,8 +239,7 @@ export {
 	POLICY_RIGHTS,
 	POLICY_RULE_MODELS,
 	requiredPolicyRights,
-	validatePolicyRules,
-} from './shared/policy-rule';
+} from './shared/policy-rule-invariants';
 export type {
 	ChoicePromptFingerprintInput,
 	JsonValue,

@@ -44,7 +44,7 @@ export const connectConsentSource = (
 		if (disposed) {
 			return;
 		}
-		let permissions = null;
+		let permissions: Partial<ConsentState> | null = null;
 		try {
 			permissions = source.getPermissions();
 		} catch {
@@ -92,7 +92,7 @@ export const reloadOnConsentRevocation = (
 		if (revoked && !scheduled) {
 			scheduled = true;
 			queueMicrotask(() => {
-				if (!disposed) {
+				if (!disposed && typeof window !== 'undefined') {
 					window.location.reload();
 				}
 			});

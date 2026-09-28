@@ -3,8 +3,14 @@
 import type { AllConsentNames } from '@c15t/core';
 import { forwardRef as createForwardRef, useEffect } from 'react';
 
-import { useConsentManager } from '~/component-hooks/use-manager';
 import { useTranslations } from '~/component-hooks/use-translations';
+import {
+	usePolicyCategories,
+	usePolicyScopeMode,
+	useRegisterConsentCategories,
+} from '~/hooks';
+import { useIsHydrated } from '~/hooks/use-is-hydrated';
+import { useCategoryAllowed } from '~/kernel-selector';
 
 import { ConsentGateButton, ConsentGateRoot, ConsentGateTitle } from './atoms';
 import type { ConsentGateProps } from './types';
@@ -41,17 +47,20 @@ const ConsentGateComponent = createForwardRef<HTMLDivElement, ConsentGateProps>(
 		},
 		ref
 	) => {
-		const { has, updateConsentCategories, policyCategories, policyScopeMode } =
-			useConsentManager();
+		// Never reads the clock while server rendering, so the gate can sit in
+		// a statically prerendered page.
+		const hasConsent = useCategoryAllowed(category);
+		const isHydrated = useIsHydrated();
+		const policyScope = usePolicyCategories();
+		const policyScopeMode = usePolicyScopeMode();
+		const updateConsentCategories = useRegisterConsentCategories();
 		const { frame } = useTranslations();
 
-		const hasConsent = has(category);
-		const hasPolicyScope =
-			Array.isArray(policyCategories) &&
-			policyCategories.length > 0 &&
-			!(policyCategories as readonly string[]).includes('*');
+		// `necessary` is always in scope; a wildcard scope covers every category.
 		const isOutOfPolicyCategory =
-			hasPolicyScope && !policyCategories.includes(category);
+			category !== 'necessary' &&
+			!(policyScope as readonly string[]).includes('*') &&
+			!policyScope.includes(category);
 		const isStrictPolicyBlocked =
 			policyScopeMode === 'strict' && isOutOfPolicyCategory;
 
@@ -62,7 +71,12 @@ const ConsentGateComponent = createForwardRef<HTMLDivElement, ConsentGateProps>(
 		const renderContent = () => {
 			// The kernel supplies the same permission snapshot for SSR and hydration.
 			if (hasConsent) {
-				return children;
+				// Granted children mount after hydration, never in the server
+				// HTML. When the gate streams inside a Suspense boundary, React
+				// parses that HTML into a hidden segment and then moves it into
+				// place, and moving an iframe reloads it: an embed in the server
+				// HTML would load twice.
+				return isHydrated ? children : null;
 			}
 
 			// Otherwise show placeholder

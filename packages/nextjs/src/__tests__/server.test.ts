@@ -7,11 +7,17 @@
  * cookies and headers independently.
  */
 
+import { createConsentKernel } from '@c15t/core';
 import type { KernelConfig } from '@c15t/core';
+import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
+import { writePolicyResolutionWire } from '@c15t/schema/types';
+import type { PolicyRule } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persistence/record-codec';
 import { resolveConsent as baseResolveConsent } from '../server';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
+import { policyFixture } from './policy-fixture';
 
 const cookieStore = new Map<string, string>();
 const headerStore = new Map<string, string>();
@@ -49,6 +55,8 @@ const resolveConsent = (
 beforeEach(() => {
 	cookieStore.clear();
 	headerStore.clear();
+	// resolveConsent reads manifests through the shared in-process cache.
+	clearManifestCache();
 });
 
 afterEach(() => {
@@ -184,29 +192,93 @@ describe('resolveConsent: language', () => {
 });
 
 describe('resolveConsent: fluid-compute safety', () => {
-	// Two concurrent calls with different cookie values must produce
-	// distinct configs. If a module-level cache had crept in, this
-	// would fail.
-	test('concurrent calls do not cross-contaminate', async () => {
-		const calls: Promise<KernelConfig>[] = [];
+	const rule = {
+		categories: ['marketing'],
+		scopeMode: 'strict',
+	} satisfies Partial<PolicyRule>;
 
-		cookieStore.set(
-			'c15t-consent',
-			encodeURIComponent(JSON.stringify({ marketing: true }))
+	/** The `Cookie` header of a visitor whose stored choice is `prepared`'s. */
+	const visitorCookie = (prepared: KernelConfig) => {
+		const choice = prepared.initialRecords?.choice;
+		if (!choice) {
+			throw new Error('fixture has no stored choice');
+		}
+		const raw = encodeStoredConsentEnvelopeJson({
+			categories: choice.categories,
+			choice,
+			version: 3,
+		});
+		return `c15t=${encodeURIComponent(raw)}`;
+	};
+
+	/** A request context of its own, not the shared mutable stores above. */
+	const visitorRequest = (cookie: string) => ({
+		cookies: () => Promise.resolve({ toString: () => cookie }),
+		headers: () =>
+			Promise.resolve(new Headers({ cookie, host: 'example.test' })),
+	});
+
+	const permissionsOf = (state: KernelConfig) => {
+		const kernel = createConsentKernel(state);
+		try {
+			return kernel.getSnapshot().effectivePermissions;
+		} finally {
+			kernel.dispose();
+		}
+	};
+
+	// Two visitors with opposite stored choices resolve at the same time, and
+	// the backend answers the second request first. A module-level cache or
+	// request state shared between calls would hand one visitor the other's
+	// consent; returning distinct objects would not catch that.
+	test("concurrent requests keep each visitor's permissions", async () => {
+		const granted = policyFixture({ marketing: true }, rule);
+		const denied = policyFixture({ marketing: false }, rule);
+		const answers: (() => void)[] = [];
+		const fetch = vi.fn(
+			() =>
+				new Promise<Response>((resolve) => {
+					answers.push(() => {
+						resolve(
+							new Response(
+								JSON.stringify({
+									location: { countryCode: null, regionCode: null },
+									policyResolution: writePolicyResolutionWire(
+										granted.initialPolicyResolution
+									),
+									translations: { language: 'en', translations: {} },
+								}),
+								{ headers: { 'x-c15t-policy-contract': '1' } }
+							)
+						);
+					});
+				})
 		);
-		calls.push(resolveConsent());
+		const resolveVisitor = (prepared: KernelConfig) =>
+			baseResolveConsent({
+				backendURL: 'https://consent.example.com',
+				fetch,
+				request: visitorRequest(visitorCookie(prepared)),
+			});
 
-		cookieStore.set(
-			'c15t-consent',
-			encodeURIComponent(JSON.stringify({ marketing: false }))
-		);
-		calls.push(resolveConsent());
+		const resolving = Promise.all([
+			resolveVisitor(granted),
+			resolveVisitor(denied),
+		]);
+		await vi.waitFor(() => expect(answers).toHaveLength(2));
+		for (const answer of [...answers].reverse()) {
+			answer();
+		}
+		const [grantedState, deniedState] = await resolving;
 
-		const results = await Promise.all(calls);
-		// Both calls read the same mutable mock store — that's expected.
-		// The point is that each call goes through the live `cookies()`
-		// helper every time, not a cached config from a previous call.
-		expect(results[0]).not.toBe(results[1]);
+		expect(
+			grantedState.initialRecords?.choice?.categories.marketing?.value
+		).toBe(true);
+		expect(
+			deniedState.initialRecords?.choice?.categories.marketing?.value
+		).toBe(false);
+		expect(permissionsOf(grantedState).marketing).toBe(true);
+		expect(permissionsOf(deniedState).marketing).toBe(false);
 	});
 });
 

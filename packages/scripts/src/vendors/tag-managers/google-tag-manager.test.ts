@@ -27,19 +27,22 @@ describe('googleTagManager', () => {
 		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
-	it('sends denied defaults to a custom queue before loading the container', () => {
-		const globalRef = getTestGlobal();
-		const script = googleTagManager({
-			dataLayer: 'customQueue',
-			id: 'GTM-CUSTOM',
-		});
-		runOnBeforeLoad(script, { consents: deniedConsentState });
-		const queue = globalRef.customQueue as unknown[];
-		expectGoogleConsentDefault(queue[0]);
-		expect(queue[1]).toMatchObject({ event: 'gtm.js' });
-		expect(script.src).toContain('&l=customQueue');
-		expect(script.attributes?.['data-c15t-layer']).toBe('customQueue');
-	});
+	it.each(['customQueue', 'gtag', 'app.layer'])(
+		'sends denied defaults to %s before loading the container',
+		(dataLayer) => {
+			const globalRef = getTestGlobal();
+			const script = googleTagManager({
+				dataLayer,
+				id: 'GTM-CUSTOM',
+			});
+			runOnBeforeLoad(script, { consents: deniedConsentState });
+			const queue = globalRef[dataLayer] as unknown[];
+			expectGoogleConsentDefault(queue[0]);
+			expect(queue[1]).toMatchObject({ event: 'gtm.js' });
+			expect(script.src).toContain(`&l=${dataLayer}`);
+			expect(script.attributes?.['data-c15t-layer']).toBe(dataLayer);
+		}
+	);
 
 	it('resolves gtm.start when the script lifecycle runs', () => {
 		const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_777_777_777_777);

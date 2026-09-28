@@ -1,0 +1,22 @@
+/* Same shape as the c15t docs site's global.css: Tailwind 4 plus the
+   documented aggregate c15t stylesheet, imported once. */
+@import 'tailwindcss';
+@import 'c15t/react/styles.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+	--background: #ffffff;
+	--foreground: #0a0a0a;
+}
+
+.dark {
+	--background: #0a0a0a;
+	--foreground: #fafafa;
+}
+
+body {
+	background: var(--background);
+	color: var(--foreground);
+	font-family: system-ui, sans-serif;
+}

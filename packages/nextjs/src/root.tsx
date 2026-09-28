@@ -9,7 +9,7 @@ import type { Script } from '@c15t/core/modules/script-loader';
  * it to the React provider as `options.prefetch`. Kernel creation,
  * persistence, init, and module wiring live in `@c15t/react`.
  */
-import { custom, hosted, offline } from '@c15t/react';
+import { custom } from '@c15t/react';
 import type { ProviderTransportFactory } from '@c15t/react';
 import type {
 	UseNetworkBlockerOptions,
@@ -22,6 +22,10 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 import type { ConsentConfig } from './config';
+import {
+	createLazyManifestTransport,
+	lazyHosted,
+} from './lazy-manifest-transport';
 import type { ConsentState } from './types';
 
 export interface ConsentRootProps {
@@ -110,64 +114,37 @@ export interface ConsentRootProps {
 	children: ReactNode;
 }
 
-type ManifestModeOptions = Pick<ConsentConfig, 'backendURL'> & {
-	manifestURL: string;
-};
-
 /**
- * Manifest transport that loads `@c15t/core/transports/manifest` on first
- * use. The resolver pulls in every translation language, so a static
- * import would land in the client bundle of every app that renders the
- * root, manifest mode or not.
+ * Offline mode that loads `offline()` on first init. `offline()` carries
+ * the recommended policy-rule pack, so a static import would ship that pack
+ * to every app that renders the root with a backend URL, where it never runs.
  */
-const loadManifestTransport = async function loadManifestTransport(
-	options: ManifestModeOptions
-): Promise<KernelTransport> {
-	const { createManifestTransport } =
-		await import('@c15t/core/transports/manifest');
-	return createManifestTransport(options);
-};
-
-const createLazyManifestTransport = function createLazyManifestTransport(
-	options: ManifestModeOptions
-): KernelTransport {
-	let transportPromise: Promise<KernelTransport> | undefined;
-	const load = function load(): Promise<KernelTransport> {
-		transportPromise ??= (async () => {
-			try {
-				return await loadManifestTransport(options);
-			} catch (error) {
-				// A failed chunk load must not poison every later init/save;
-				// the kernel's retry gets a fresh import attempt.
-				transportPromise = undefined;
-				throw error;
-			}
-		})();
-		return transportPromise;
-	};
-
-	return {
-		async identify(user, subjectId) {
-			await (await load()).identify?.(user, subjectId);
+const lazyOffline = function lazyOffline(): ProviderTransportFactory {
+	return Object.assign(
+		(context: Parameters<ProviderTransportFactory>[0]): KernelTransport => {
+			let transportPromise: Promise<KernelTransport> | undefined;
+			const load = function load(): Promise<KernelTransport> {
+				transportPromise ??= (async () => {
+					try {
+						const { offline } = await import('./offline-mode');
+						return offline()(context);
+					} catch (error) {
+						// Let the kernel's retry make a fresh import attempt.
+						transportPromise = undefined;
+						throw error;
+					}
+				})();
+				return transportPromise;
+			};
+			return {
+				async init(ctx) {
+					const transport = await load();
+					return (await transport.init?.(ctx)) ?? {};
+				},
+			};
 		},
-		async init(ctx) {
-			const transport = await load();
-			return (await transport.init?.(ctx)) ?? {};
-		},
-		async loadSubjectRecord(subjectId) {
-			return (await (await load()).loadSubjectRecord?.(subjectId)) ?? null;
-		},
-		async recordPrivacyOptOut(directive, subjectId) {
-			await (await load()).recordPrivacyOptOut?.(directive, subjectId);
-		},
-		async save(payload) {
-			const transport = await load();
-			if (!transport.save) {
-				throw new Error('@c15t/nextjs: manifest transport cannot save.');
-			}
-			return await transport.save(payload);
-		},
-	};
+		{ kind: 'offline' as const }
+	);
 };
 
 const resolveMode = function resolveMode(input: {
@@ -180,10 +157,10 @@ const resolveMode = function resolveMode(input: {
 		return input.mode;
 	}
 	if (!input.backendURL) {
-		return offline();
+		return lazyOffline();
 	}
 	if (input.config?.initURL) {
-		return hosted({
+		return lazyHosted({
 			assertDecisionInputs: true,
 			initURL: input.config.initURL,
 			url: input.backendURL,
@@ -192,7 +169,7 @@ const resolveMode = function resolveMode(input: {
 	if (input.manifestTransport) {
 		return custom(input.manifestTransport);
 	}
-	return hosted({ url: input.backendURL });
+	return lazyHosted({ url: input.backendURL });
 };
 
 /**

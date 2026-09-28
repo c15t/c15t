@@ -9,8 +9,9 @@ import {
 	matchesStoredRequestContext,
 } from '../request-context';
 import type { PrefetchOptions } from './types';
+import { PREFETCH_WINDOW_KEY } from './window-key';
 
-const WINDOW_PROMISES_KEY = '__c15tInitialDataPromises';
+const WINDOW_PROMISES_KEY = PREFETCH_WINDOW_KEY;
 
 /** Raw init response and producer declaration retained until transport initialization. */
 export interface PrefetchedInitialData extends SSRInitialData {

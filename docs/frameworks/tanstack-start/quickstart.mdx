@@ -114,6 +114,69 @@ settings. The server resolves the visitor's `ConsentState`; `ConsentRoot`
 uses it for the first client render. `initRoute={false}` sends browser
 initialization to `${backendURL}/init`, matching this direct-backend setup.
 
+## Stream the page while consent resolves
+
+The loader above awaits the server function, so TanStack Start sends no part
+of the response until the consent state is ready. With a warm manifest cache
+that takes a few milliseconds. The first request after a server starts, or any
+request while the backend is slow or down, waits for the backend, for at most
+the prefetch's `timeoutMs` (500 ms by default; see
+[add a same-origin proxy](#add-a-same-origin-proxy-when-needed)).
+
+To send the page without waiting, return the pending server function call
+from the loader instead of awaiting it. TanStack Router streams the promise,
+and `ConsentRoot` accepts it as `state`. This partial example keeps the
+imports, `scripts`, `backendURL` and `getConsentState` from the root-route
+setup above:
+
+```tsx title="src/routes/__root.tsx"
+export const Route = createRootRoute({
+  ...consentLoaderOptions,
+  loader: () => ({ consent: getConsentState() }),
+  head: () => ({ links: [{ rel: 'stylesheet', href: consentCss }] }),
+  component: Root,
+});
+
+function Root() {
+  const { consent } = Route.useLoaderData();
+  return (
+    <html lang="en">
+      <head><HeadContent /></head>
+      <body>
+        <ConsentRoot state={consent} backendURL={backendURL} initRoute={false} scripts={scripts}>
+          <Outlet />
+          <ConsentBanner />
+          <ConsentDialog />
+          <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+        </ConsentRoot>
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+```
+
+The trade-off is the banner. The awaited loader puts the banner in the server
+HTML, so it paints with the page. The streamed loader renders the page without
+consent UI; the banner mounts after hydration, once the promise resolves. Until
+then no optional category is granted, so gated scripts and embeds stay
+blocked, and a returning visitor's stored choice applies when the state
+arrives. If the server gives up on the manifest after `timeoutMs`, the promise
+resolves to the cookie-and-headers state and the browser runs init itself.
+
+In a test app on a 170 ms round trip with 4× CPU throttling, a cold manifest
+cache and a backend answering in 200 ms, the awaited loader painted at 628 ms
+and the streamed one at 428 ms. With a warm cache both painted at 424 ms, and
+the banner appeared at 433 ms with the awaited loader and 719 ms with the
+streamed one. When the backend stopped answering, the awaited loader held the
+page for over 10 seconds, measured before the prefetch had a `timeoutMs`; it
+now gives up after 500 ms by default. The streamed one painted at 424 ms.
+
+Keep the awaited loader when the banner should be in the first paint and the
+backend is reliable. Stream when even the `timeoutMs` wait for a slow or
+unavailable backend must not delay the page, for example on serverless hosts where many requests start with a
+cold manifest cache.
+
 ## Customize the theme
 
 Import `defineTheme` from `c15t/tanstack-start` to define colors and radius
@@ -128,29 +191,53 @@ export const theme = defineTheme({
 });
 ```
 
-In `src/routes/__root.tsx`, import the theme and add it to the existing boundary's
-`options`. This partial example keeps the loader, transport and children from
-the root-route setup:
+The browser does not turn tokens into CSS, so generate it in a server
+function and render it in the document head. In `src/routes/__root.tsx`, add
+the server function next to `getConsentState`, return its result from the
+loader and render it. This partial example keeps the rest of the root-route
+setup:
 
 ```tsx title="src/routes/__root.tsx"
+import { generateThemeCSS } from '@c15t/ui/theme';
 import { theme } from '../consent-theme';
 
-<ConsentBoundary
-  config={config}
-  backendURL={backendURL}
-  initRoute={false}
-  scripts={scripts}
-  options={{ theme }}
->
-  <Outlet />
-  <ConsentBanner />
-  <ConsentDialog />
-  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-</ConsentBoundary>;
+const getThemeCSS = createServerFn({ method: 'GET' }).handler(() =>
+  generateThemeCSS(theme),
+);
+
+export const Route = createRootRoute({
+  ...consentLoaderOptions,
+  loader: async () => {
+    const [state, themeCSS] = await Promise.all([getConsentState(), getThemeCSS()]);
+    return { state, themeCSS };
+  },
+  head: () => ({ links: [{ rel: 'stylesheet', href: consentCss }] }),
+  component: Root,
+});
+
+function Root() {
+  const { state, themeCSS } = Route.useLoaderData();
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+        <style id="c15t-theme" dangerouslySetInnerHTML={{ __html: themeCSS }} />
+      </head>
+      <body>
+        {/* ConsentRoot and its children as above */}
+      </body>
+    </html>
+  );
+}
 ```
 
-The consent UI uses a green primary color and a 4px large-radius token. Merge
-`theme` with any other boundary options you already use.
+Install `@c15t/ui` for `generateThemeCSS`; it escapes `<`, so its output is
+safe inside `<style>`. The consent UI uses a green primary color and a 4px
+large-radius token from the first server render. Rendering
+`<ConsentTheme theme={theme} />` from `c15t/tanstack-start` in `Root` also
+works, but the root component runs in the browser too, so it ships the theme
+generator. Pass `theme` to `ConsentRoot` through `options` only when it holds
+`consentActions` or slot styles.
 
 ## Granular consent
 
@@ -211,6 +298,17 @@ it their session report: after each resolution they post a small report to
 the backend's `POST /sessions`, server-to-server, so the backend still counts
 visitors it never served `/init` to. Pass `reportSessions: false` to send
 none.
+
+The prefetch waits at most `timeoutMs` (500 ms by default) for the manifest.
+If the backend is slow or down, the page renders without consent UI in the
+server HTML, optional categories stay denied, consent-gated scripts and iframes
+stay blocked, and `ConsentRoot` initializes in the browser, showing the banner
+once the backend answers. The manifest request keeps running and fills the
+cache for the next request; `onBackgroundRevalidate` receives it too. After a
+failed manifest request with nothing cached, the cache waits 1 second before
+asking the backend again, doubling up to 5 seconds while failures continue, so
+an outage does not turn every page view into a backend request. Set
+`timeoutMs: false` to wait for the cache's 5 second request timeout instead.
 
 ## Verify the server path
 

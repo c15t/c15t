@@ -18,7 +18,12 @@ const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
 const EMPTY_PURPOSE_INTERESTS: Record<number, boolean> = {};
 
 interface StackItemProps {
-	stack: ProcessedStack;
+	/** A stack, or a display-model stack row whose purposes carry `hasConsentBasis`. */
+	stack: Omit<ProcessedStack, 'purposes'> & {
+		purposes: (ProcessedStack['purposes'][number] & {
+			hasConsentBasis?: boolean;
+		})[];
+	};
 	consents: Record<number, boolean>;
 	onToggle: (purposeId: number, value: boolean) => void;
 	vendorConsents: Record<string, boolean>;
@@ -57,13 +62,21 @@ export const StackItem: FC<StackItemProps> = ({
 	const iab = useIABTranslations();
 	const [isExpanded, setIsExpanded] = useState(false);
 
-	const allEnabled = stack.purposes.every((p) => consents[p.id] ?? false);
+	// The stack switch covers the purposes some vendor processes on consent.
+	// The others offer only their own objection control; without one, the
+	// rows keep their consent switch and the stack covers them too.
+	const consentPurposes = stack.purposes.filter(
+		(p) =>
+			p.hasConsentBasis !== false ||
+			onPurposeLegitimateInterestToggle === undefined
+	);
+	const allEnabled = consentPurposes.every((p) => consents[p.id] ?? false);
 	const someEnabled =
-		stack.purposes.some((p) => consents[p.id] ?? false) && !allEnabled;
+		consentPurposes.some((p) => consents[p.id] ?? false) && !allEnabled;
 
 	const handleStackToggle = (value: boolean) => {
-		// Toggle all purposes in the stack
-		for (const purpose of stack.purposes) {
+		// Toggle all consent purposes in the stack
+		for (const purpose of consentPurposes) {
 			onToggle(purpose.id, value);
 			// Also toggle all vendors associated with this purpose
 			for (const vendor of purpose.vendors) {
@@ -144,11 +157,13 @@ export const StackItem: FC<StackItemProps> = ({
 							<div className={styles.partialIndicator} />
 						</>
 					)}
-					<Switch.Root
-						aria-label={stack.name}
-						checked={allEnabled}
-						onCheckedChange={handleStackToggle}
-					/>
+					{consentPurposes.length > 0 && (
+						<Switch.Root
+							aria-label={stack.name}
+							checked={allEnabled}
+							onCheckedChange={handleStackToggle}
+						/>
+					)}
 				</PreferenceItem.Control>
 			</div>
 			<PreferenceItem.Content noStyle={noStyle}>

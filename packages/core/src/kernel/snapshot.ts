@@ -141,6 +141,14 @@ export const copyIABAuthority = function copyIABAuthority(
 	}
 	return {
 		...authority,
+		...(authority.publisherRestrictions && {
+			publisherRestrictions: authority.publisherRestrictions.map(
+				(restriction) => ({
+					...restriction,
+					vendorIds: [...restriction.vendorIds],
+				})
+			),
+		}),
 		purposeConsents: { ...authority.purposeConsents },
 		purposeLegitimateInterests: { ...authority.purposeLegitimateInterests },
 		specialFeatureOptIns: { ...authority.specialFeatureOptIns },
@@ -319,7 +327,15 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const subject = records?.subject ?? null;
 	const vendorChoice = records?.vendorChoice ?? null;
 
-	const iab = buildInitialIab(config.initialIab);
+	const iab = buildInitialIab(
+		config.initialExternalPermissions === undefined
+			? config.initialIab
+			: config.initialIab && {
+					...config.initialIab,
+					authority: null,
+					enabled: false,
+				}
+	);
 	const vendors = buildInitialVendors(config.initialVendors);
 	const override = config.initialOverrides?.gpc;
 	const detected = config.initialPrivacySignals?.gpc === true;

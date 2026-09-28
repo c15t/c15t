@@ -62,7 +62,10 @@ export interface ConsentSubmissionRequest {
 	/** Present when the request resolved a policy; absent for a bare consent. */
 	readonly decision?: DecisionInput;
 	/** Where the decision came from: a verified token or a recompute. */
-	readonly runtimePolicySource?: 'snapshot_token' | 'write_time_fallback';
+	readonly runtimePolicySource?:
+		| 'snapshot_token'
+		| 'snapshot_token_replayed'
+		| 'write_time_fallback';
 }
 
 export interface SubmissionResult {

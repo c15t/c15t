@@ -1,6 +1,13 @@
 /** @vitest-environment jsdom */
 import { expect, test, vi } from 'vitest';
 
+import {
+	matchedResolution,
+	optInRule,
+	NOW,
+} from '../../__tests__/fixtures/kernel-fixtures';
+import { createConsentKernel } from '../../kernel';
+import { evaluateConsent } from '../../modules/has';
 import { custom } from '../../transports/mode';
 import { createOfflineTransport } from '../../transports/offline';
 import type { ConsentState } from '../../types';
@@ -161,10 +168,87 @@ test('all framework preference setters delegate without opening c15t UI, and err
 	runtime.kernel.set.activeUI('dialog');
 	expect(onError).toHaveBeenCalledTimes(2);
 	await runtime.kernel.commands.init();
-	await runtime.kernel.commands.identify({ id: 'external-user' });
+	await runtime.kernel.commands.identify({ externalId: 'external-user' });
 	expect(init).not.toHaveBeenCalled();
 	expect(identify).not.toHaveBeenCalled();
 	runtime.dispose();
 	runtime.kernel.set.activeUI('dialog');
 	expect(openPreferences).toHaveBeenCalledTimes(3);
+});
+
+test('disabled runtimes ignore external denials and load optional scripts', async () => {
+	const source = {
+		getPermissions: vi.fn(() => ({})),
+		openPreferences: vi.fn(),
+		subscribe: vi.fn(() => () => {}),
+	};
+	const loaded = vi.fn();
+	const runtime = createConsentRuntime({
+		consentSource: source,
+		enabled: false,
+		iframeBlocker: false,
+		mode: custom(createOfflineTransport()),
+		scripts: [
+			{
+				callbackOnly: true,
+				category: 'measurement',
+				id: 'disabled-tracker',
+				onLoad: loaded,
+			},
+		],
+	});
+	try {
+		expect(runtime.kernel.getSnapshot().effectivePermissions.measurement).toBe(
+			true
+		);
+		runtime.start();
+		await vi.waitFor(() => expect(loaded).toHaveBeenCalledOnce());
+		expect(source.subscribe).not.toHaveBeenCalled();
+	} finally {
+		runtime.dispose();
+	}
+});
+
+test('external authority disables seeded and subsequently applied IAB grants', () => {
+	const resolution = matchedResolution(optInRule({ model: 'iab' }));
+	const authority = {
+		choiceFingerprint: resolution.fingerprints.choice,
+		confirmedAt: NOW,
+		expiresAt: NOW + 1000,
+		purposeConsents: { '1': true },
+		purposeLegitimateInterests: {},
+		specialFeatureOptIns: {},
+		tcString: 'stored-tc-string',
+		vendorConsents: { '7': true },
+		vendorLegitimateInterests: {},
+	};
+	const kernel = createConsentKernel({
+		initialExternalPermissions: {},
+		initialIab: { authority, enabled: true },
+		initialPolicyResolution: resolution,
+		now: NOW,
+	});
+	try {
+		expect(
+			evaluateConsent(
+				{ category: 'measurement', iabPurposes: [1], vendorId: 7 },
+				kernel.getSnapshot(),
+				NOW
+			)
+		).toBe(false);
+		kernel.set.iab({ authority, enabled: true });
+		expect(
+			evaluateConsent(
+				{ category: 'measurement', iabPurposes: [1], vendorId: 7 },
+				kernel.getSnapshot(),
+				NOW
+			)
+		).toBe(false);
+		expect(kernel.getSnapshot().iab).toMatchObject({
+			authority: null,
+			enabled: false,
+		});
+	} finally {
+		kernel.dispose();
+	}
 });

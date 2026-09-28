@@ -13,6 +13,7 @@
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import { validateExplicitChoice } from '../consent-record/validation';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
+import { isConsentSaveRejection } from '../transports/save-rejection';
 import type { KernelEvent, KernelTransport, SavePayload } from '../types';
 import { selectSavePayload } from './save-selection';
 
@@ -356,10 +357,13 @@ const isSamePendingSave = function isSamePendingSave(
 	);
 };
 
+/** `retry` keeps the entry for another attempt; the others remove it. */
+type ReplayOutcome = 'saved' | 'retry' | 'rejected';
+
 const recordReplayResult = function recordReplayResult(
 	storage: Storage,
 	entry: PendingSaveEntry,
-	ok: boolean
+	outcome: ReplayOutcome
 ): void {
 	const next: PendingSaveEntry[] = [];
 	for (const candidate of readPendingSaves(storage)) {
@@ -369,7 +373,7 @@ const recordReplayResult = function recordReplayResult(
 		}
 
 		const attempts = candidate.attempts + 1;
-		if (!ok && attempts < MAX_REPLAY_ATTEMPTS) {
+		if (outcome === 'retry' && attempts < MAX_REPLAY_ATTEMPTS) {
 			next.push({ ...candidate, attempts });
 		}
 	}
@@ -429,7 +433,9 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 
 	/**
 	 * Replay one entry. Returns `null` when another tab already replayed or
-	 * dropped it, otherwise the replay outcome.
+	 * dropped it, otherwise the replay outcome. A save the backend refused
+	 * for good (a `ConsentSaveRejectedError`) leaves the queue at once
+	 * instead of using up its attempts.
 	 *
 	 * The lock is only held around the queue reads and writes, never across
 	 * the network call: a hung transport must not block other tabs from
@@ -440,7 +446,7 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 	const replayEntry = async function replayEntry(
 		storage: Storage,
 		entry: PendingSaveEntry
-	): Promise<boolean | null> {
+	): Promise<{ ok: boolean; rejected?: string } | null> {
 		const stillQueued = await withQueueLock(() =>
 			readPendingSaves(storage).some((candidate) =>
 				isSamePendingSave(candidate, entry)
@@ -450,14 +456,22 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 			return null;
 		}
 
-		let ok = false;
+		let outcome: ReplayOutcome = 'retry';
+		let rejected: string | undefined;
 		try {
-			({ ok } = await options.save(entry.payload));
-		} catch {
-			// Keep the entry for a later init or online event.
+			const { ok } = await options.save(entry.payload);
+			outcome = ok ? 'saved' : 'retry';
+		} catch (error) {
+			// Anything else keeps the entry for a later init or online event.
+			if (isConsentSaveRejection(error)) {
+				outcome = 'rejected';
+				rejected = error.code;
+			}
 		}
-		await withQueueLock(() => recordReplayResult(storage, entry, ok));
-		return ok;
+		await withQueueLock(() => recordReplayResult(storage, entry, outcome));
+		return rejected === undefined
+			? { ok: outcome === 'saved' }
+			: { ok: false, rejected };
 	};
 
 	const runReplay = async function runReplay(): Promise<boolean> {
@@ -471,12 +485,12 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 			// Preserve save order and avoid burst replays against the consent
 			// endpoint.
 			// oxlint-disable-next-line no-await-in-loop
-			const ok = await replayEntry(storage, entry);
-			if (ok === null) {
+			const result = await replayEntry(storage, entry);
+			if (result === null) {
 				continue;
 			}
 			options.emit({
-				ok,
+				...result,
 				subjectId: entry.payload.subjectId,
 				type: 'save:replayed',
 			});

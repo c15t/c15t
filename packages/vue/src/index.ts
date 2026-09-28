@@ -4,11 +4,11 @@ import { getCurrentInstance } from 'vue';
 import type { App, Plugin } from 'vue';
 
 import { consentConfigKey } from './runtime/composables/config';
-import type { ConsentConfig } from './runtime/config';
 import {
 	createVueConsentKernelContext,
 	startVueConsentRuntime,
 } from './runtime/kernel';
+import type { RuntimeConsentConfig } from './runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -25,9 +25,17 @@ export type {
 	ConsentConfig,
 	ConsentConfig as VueConsentConfig,
 } from './runtime/config';
+export type {
+	RuntimeConsentConfig,
+	UseNetworkBlockerOptions,
+} from './runtime/kernel';
 
-/** Options accepted by the {@link c15tVue} plugin. */
-export type C15tVuePluginOptions = Partial<ConsentConfig> & {
+/**
+ * Options accepted by the {@link c15tVue} plugin: the consent config plus
+ * the browser modules the plugin starts on mount (`scripts`,
+ * `networkBlocker`, `iframeBlocker`, `storageConfig`, `nonce`).
+ */
+export type C15tVuePluginOptions = Partial<RuntimeConsentConfig> & {
 	/**
 	 * A runtime this app should render instead of building its own kernel.
 	 *
@@ -55,7 +63,7 @@ export const c15tVue: Plugin<[C15tVuePluginOptions?]> = {
 		}
 
 		const { runtime, ...rest } = options ?? {};
-		const config = rest as ConsentConfig;
+		const config = rest as RuntimeConsentConfig;
 		const context = createVueConsentKernelContext({ config, runtime });
 		app.provide(symbolKernelContext, context);
 		app.provide(symbolKernel, context.kernel);

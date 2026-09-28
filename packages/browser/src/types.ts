@@ -178,6 +178,14 @@ export interface ConsentClientOptions extends Pick<
 	scripts?: Script[];
 	/** Browser data to remove when its consent category is denied. Initial-only. */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted. Removing a script cannot stop code that already
+	 * ran, so the reload starts a document with only permitted code. Waits for
+	 * the save request. Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	/** Lifecycle callbacks. */
 	callbacks?: Callbacks;
 	/** Cookie and storage settings. */
