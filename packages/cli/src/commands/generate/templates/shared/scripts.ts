@@ -130,6 +130,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		importName: 'crisp',
 		example: "crisp({ websiteId: 'YOUR_WEBSITE_ID' })",
 	},
+	'front-chat': {
+		importName: 'frontChat',
+		example: "frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })",
+	},
 	intercom: {
 		importName: 'intercom',
 		example: "intercom({ appId: 'YOUR_APP_ID' })",

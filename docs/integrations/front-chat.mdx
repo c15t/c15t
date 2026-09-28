@@ -1,0 +1,170 @@
+---
+title: Front Chat
+description: Load Front Chat after functionality consent and initialize the widget when its SDK is ready.
+group: integrations
+---
+
+Front Chat adds a live chat widget connected to your Front inbox. c15t waits for
+functionality consent before loading the widget's SDK and calling `FrontChat('init')`.
+
+## Official Front documentation
+
+- [Set up a Front Chat inbox and install the widget](https://help.front.com/en/articles/2049)
+- [Chat Widget SDK reference](https://dev.frontapp.com/docs/chat-sdk-reference)
+
+## Integrate with c15t
+
+Copy the `chatId` from the widget code snippet in your Front Chat channel's
+**Installation** tab. Pass that value to `frontChat()` instead of adding Front's
+script snippet separately.
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { frontChat } from '@c15t/scripts/front-chat';
+
+    const scripts = [frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { frontChat } from '@c15t/scripts/front-chat';
+
+    const scripts = [frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { frontChat } from '@c15t/scripts/front-chat';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** `functionality` (Functional)
+- **Loads when:** functionality consent is granted
+- **Script:** `https://chat-assets.frontapp.com/v1/chat.bundle.js`
+- **After load:** c15t calls `window.FrontChat('init', ...)` with your chat ID and launcher options
+- **On revocation:** c15t reloads the page by default and leaves Front Chat unloaded while functionality consent is denied
+
+Keep the default `reloadOnConsentRevoked: true` behavior. Removing a script tag
+does not stop a widget that has already initialized, and this integration does
+not provide automatic widget shutdown when you disable the reload.
+
+## Configure the integration
+
+`chatId` must be a non-empty string. The default launcher is enabled unless you
+set `useDefaultLauncher` to `false`:
+
+```ts
+frontChat({
+  chatId: 'YOUR_FRONT_CHAT_ID',
+  useDefaultLauncher: false,
+})
+```
+
+With the default launcher hidden, use Front's SDK to open the widget from your
+own launcher after consent is granted and the widget has initialized. See the
+[SDK reference](https://dev.frontapp.com/docs/chat-sdk-reference) for commands
+and initialization requirements.
+
+### Content Security Policy
+
+If your Content Security Policy (CSP) uses nonces, pass the server-generated nonce
+for the current response. c15t applies it to the loader script and forwards it
+to Front's initialization call:
+
+```ts
+function createChatScripts(nonce: string) {
+  return [frontChat({ chatId: 'YOUR_FRONT_CHAT_ID', nonce })];
+}
+```
+
+Front creates additional resources for the widget. Follow Front's
+[CSP setup instructions](https://help.front.com/en/articles/2049) for the
+remaining policy requirements. You can override the loader URL with `scriptSrc`
+if you serve the SDK through your own proxy; this does not proxy the widget's
+other requests.
+
+### Optional session cleanup
+
+`frontChat()` does not automatically delete an existing Front session. You can
+also request session cleanup before c15t's revocation reload using
+`shutdownFrontChat()`:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+import { frontChat, shutdownFrontChat } from '@c15t/scripts/front-chat';
+
+getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  scripts: [frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })],
+  callbacks: {
+    onBeforeConsentRevocationReload: ({ preferences }) => {
+      if (!preferences.functionality) {
+        shutdownFrontChat();
+      }
+    },
+  },
+});
+```
+
+The function calls Front's `shutdown` command with `clearSession: true` when
+the SDK is available. This is a best-effort request: the reload does not wait
+for Front to finish clearing its session. Keep reload on revocation enabled;
+the cleanup call does not replace it.
+
+## Types
+
+### FrontChatOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/functional/front-chat.ts" name="FrontChatOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

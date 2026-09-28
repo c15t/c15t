@@ -99,6 +99,7 @@ import {
 	vercelAnalyticsManifest,
 } from './vendors/analytics/vercel-analytics';
 import { crisp, crispManifest } from './vendors/functional/crisp';
+import { frontChat, frontChatManifest } from './vendors/functional/front-chat';
 import { intercom, intercomManifest } from './vendors/functional/intercom';
 import {
 	googleTagManager,
@@ -339,6 +340,14 @@ const helperParityCases = {
 			src: 'https://client.crisp.chat/l.js',
 		},
 	},
+	frontChat: {
+		script: frontChat({ chatId: 'front-chat-123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://chat-assets.frontapp.com/v1/chat.bundle.js',
+		},
+	},
 	intercom: {
 		script: intercom({ appId: 'abc123' }),
 		expected: {
@@ -440,6 +449,7 @@ const vendorManifests = [
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
 	crispManifest,
+	frontChatManifest,
 	intercomManifest,
 	metaPixelManifest,
 	redditPixelManifest,
