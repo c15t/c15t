@@ -33,7 +33,7 @@ export const getSSROption = async function getSSROption({
 		'Tradeoff: this uses Next.js headers() and makes the route dynamic (not fully static).'
 	);
 	context.logger.info(
-		'On slow backends or cross-region setups, SSR can increase TTFB. Measure both TTFB and banner visibility.'
+		'The generated layout passes the pending consent state to the provider, so pages render without waiting for the backend; the banner appears after hydration.'
 	);
 	context.logger.info(
 		'Learn more: https://c15t.com/docs/frameworks/next/server-side'
