@@ -69,6 +69,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "fathomAnalytics({ site: 'YOUR_SITE_ID' })",
 		importName: 'fathomAnalytics',
 	},
+	'front-chat': {
+		example: "frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })",
+		importName: 'frontChat',
+	},
 	'google-tag': {
 		example: "gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })",
 		importName: 'gtag',

@@ -178,6 +178,11 @@
 			"import": "./dist/vendors/functional/crisp.js",
 			"default": "./dist/vendors/functional/crisp.js"
 		},
+		"./front-chat": {
+			"types": "./dist-types/vendors/functional/front-chat.d.ts",
+			"import": "./dist/vendors/functional/front-chat.js",
+			"default": "./dist/vendors/functional/front-chat.js"
+		},
 		"./intercom": {
 			"types": "./dist-types/vendors/functional/intercom.d.ts",
 			"import": "./dist/vendors/functional/intercom.js",
