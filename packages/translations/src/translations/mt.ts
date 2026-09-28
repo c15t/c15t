@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			"Personalizza s-settings tal-privatezza tiegħek hawn. Tista' tagħżel liema tipi ta' cookies u teknoloġiji ta' traċċar tippermetti.",
 		title: 'Settings tal-privatezza',
+		vendors: {
+			disabledByCategory: 'Ixgħel din il-kategorija biex tagħżel il-bejjiegħa.',
+			privacyPolicy: 'Politika tal-Privatezza',
+			switchLabel: 'Ħalli {vendor}',
+			title: 'Bejjiegħa ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

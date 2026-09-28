@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Kohandage siin oma privaatsusseadeid. Saate valida, milliseid küpsiseid ja jälgimistehnoloogiaid lubate.',
 		title: 'Privaatsusseaded',
+		vendors: {
+			disabledByCategory:
+				'Lülita see kategooria sisse, et valida teenusepakkujaid.',
+			privacyPolicy: 'Privaatsuspoliitika',
+			switchLabel: 'Luba {vendor}',
+			title: 'Teenusepakkujad ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

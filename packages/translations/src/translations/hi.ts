@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'यहां अपनी गोपनीयता सेटिंग्स अनुकूलित करें। आप चुन सकते हैं कि किस प्रकार की कुकीज़ और ट्रैकिंग तकनीकों की अनुमति देनी है।',
 		title: 'गोपनीयता सेटिंग्स',
+		vendors: {
+			disabledByCategory: 'विक्रेता चुनने के लिए यह श्रेणी चालू करें।',
+			privacyPolicy: 'गोपनीयता नीति',
+			switchLabel: '{vendor} को अनुमति दें',
+			title: 'विक्रेता ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

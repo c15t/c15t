@@ -223,6 +223,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 	consentRows: [
 		{
 			description: 'Cookies, device or similar online identifiers...',
+			hasConsentBasis: true,
 			id: 1,
 			illustrations: ['Most purposes explained in this notice...'],
 			kind: 'purpose',
@@ -240,6 +241,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 			purposes: [
 				{
 					description: 'Information about your activity on this service...',
+					hasConsentBasis: true,
 					id: 3,
 					illustrations: [],
 					kind: 'purpose',
@@ -252,6 +254,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 				{
 					description:
 						'Advertising can be presented to you based on a profile...',
+					hasConsentBasis: true,
 					id: 4,
 					illustrations: [],
 					kind: 'purpose',
@@ -264,6 +267,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 				{
 					description:
 						'Reports can be generated based on the combination of data sets...',
+					hasConsentBasis: true,
 					id: 9,
 					illustrations: [],
 					kind: 'purpose',
@@ -289,6 +293,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 			purposes: [
 				{
 					description: 'Information about your activity on this service...',
+					hasConsentBasis: true,
 					id: 5,
 					illustrations: [],
 					kind: 'purpose',
@@ -300,6 +305,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 				},
 				{
 					description: 'Content can be presented to you based on a profile...',
+					hasConsentBasis: true,
 					id: 6,
 					illustrations: [],
 					kind: 'purpose',
@@ -312,6 +318,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 				{
 					description:
 						'Content can be presented to you based on limited data...',
+					hasConsentBasis: true,
 					id: 11,
 					illustrations: [],
 					kind: 'purpose',
@@ -333,6 +340,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 				{
 					description:
 						'Advertising can be presented to you based on limited data...',
+					hasConsentBasis: true,
 					id: 2,
 					illustrations: [],
 					kind: 'purpose',
@@ -349,6 +357,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 				},
 				{
 					description: 'The performance and effectiveness of ads...',
+					hasConsentBasis: true,
 					id: 7,
 					illustrations: [],
 					kind: 'purpose',
@@ -374,6 +383,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 			purposes: [
 				{
 					description: 'The performance and effectiveness of content...',
+					hasConsentBasis: true,
 					id: 8,
 					illustrations: [],
 					kind: 'purpose',
@@ -385,6 +395,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 				},
 				{
 					description: 'Your data can be used to improve existing systems...',
+					hasConsentBasis: true,
 					id: 10,
 					illustrations: [],
 					kind: 'purpose',
@@ -404,6 +415,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 		},
 		{
 			description: 'With your acceptance, your precise location...',
+			hasConsentBasis: true,
 			id: 1,
 			illustrations: [],
 			kind: 'special-feature',
@@ -416,6 +428,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 		{
 			description:
 				'With your acceptance, certain characteristics specific to your device...',
+			hasConsentBasis: true,
 			id: 2,
 			illustrations: [],
 			kind: 'special-feature',
@@ -761,6 +774,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 		{
 			description:
 				'Your data can be used to monitor for and prevent unusual...',
+			hasConsentBasis: true,
 			id: 1,
 			illustrations: [],
 			kind: 'special-purpose',
@@ -773,6 +787,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 		{
 			description:
 				'Certain information is used to ensure technical compatibility...',
+			hasConsentBasis: true,
 			id: 2,
 			illustrations: [],
 			kind: 'special-purpose',
@@ -784,6 +799,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 		},
 		{
 			description: 'Information about your activity on this service...',
+			hasConsentBasis: true,
 			id: 1,
 			illustrations: [],
 			kind: 'feature',
@@ -795,6 +811,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 		},
 		{
 			description: 'In support of the purposes explained in this notice...',
+			hasConsentBasis: true,
 			id: 2,
 			illustrations: [],
 			kind: 'feature',
@@ -806,6 +823,7 @@ export const IAB_DEMO_DISPLAY_MODEL: ConsentIabDisplayModel = {
 		},
 		{
 			description: 'Your device might be distinguished from other devices...',
+			hasConsentBasis: true,
 			id: 3,
 			illustrations: [],
 			kind: 'feature',

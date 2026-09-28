@@ -7,9 +7,14 @@
  */
 
 import type { GlobalVendorList } from '@c15t/core';
+import type { PurposeRestrictionVector } from '@iabtechlabtcf/core';
 
-import type { TCFConsentData } from './iab-tcf-types';
+import type { PublisherRestriction, TCFConsentData } from './iab-tcf-types';
 import { getTCFCore } from './lazy-load';
+import {
+	PublisherRestrictionError,
+	validatePublisherRestrictions,
+} from './publisher-restrictions';
 
 /**
  * Configuration for TC String generation.
@@ -45,6 +50,10 @@ export interface TCStringConfig {
  * @param gvlData - The Global Vendor List
  * @param config - Configuration for the TC String
  * @returns The encoded TC String
+ * @throws {TypeError} When `config.confirmedAt` is not a past or current
+ * timestamp.
+ * @throws {PublisherRestrictionError} When a publisher restriction cannot
+ * be encoded for the vendor list. See {@link validatePublisherRestrictions}.
  *
  * @example
  * ```typescript
@@ -81,7 +90,12 @@ export const generateTCString = async function generateTCString(
 			'TC confirmation time must be a valid past or current timestamp.'
 		);
 	}
-	const { TCModel, TCString, GVL } = await getTCFCore();
+	const isServiceSpecific = config.isServiceSpecific ?? true;
+	const publisherRestrictions = validatePublisherRestrictions(
+		consentData.publisherRestrictions,
+		{ gvl: gvlData, isServiceSpecific }
+	);
+	const { TCModel, TCString, GVL, PurposeRestriction } = await getTCFCore();
 
 	// Create GVL instance
 	// oxlint-disable-next-line typescript/no-explicit-any -- GVL library types don't match our domain types
@@ -104,7 +118,7 @@ export const generateTCString = async function generateTCString(
 	tcModel.consentScreen = config.consentScreen ?? 1;
 	tcModel.consentLanguage = config.consentLanguage ?? 'EN';
 	tcModel.publisherCountryCode = config.publisherCountryCode ?? 'US';
-	tcModel.isServiceSpecific = config.isServiceSpecific ?? true;
+	tcModel.isServiceSpecific = isServiceSpecific;
 
 	// Set purpose consents
 	for (const [purposeId, value] of Object.entries(
@@ -161,8 +175,50 @@ export const generateTCString = async function generateTCString(
 		}
 	}
 
+	// The encoder drops restrictions its vendor list does not allow. Those
+	// were rejected above; confirm none was dropped anyway.
+	for (const {
+		purposeId,
+		restrictionType,
+		vendorIds,
+	} of publisherRestrictions) {
+		const restriction = new PurposeRestriction(purposeId, restrictionType);
+		for (const vendorId of vendorIds) {
+			tcModel.publisherRestrictions.add(vendorId, restriction);
+			if (
+				tcModel.publisherRestrictions.getRestrictionType(
+					vendorId,
+					purposeId
+				) !== restrictionType
+			) {
+				throw new PublisherRestrictionError(
+					`The TC string encoder rejected restriction type ${restrictionType} for vendor ${vendorId} and purpose ${purposeId}.`
+				);
+			}
+		}
+	}
+
 	// Encode and return
 	return TCString.encode(tcModel);
+};
+
+/**
+ * Reads restrictions from a decoded purpose restriction vector.
+ */
+const readPublisherRestrictions = function readPublisherRestrictions(
+	vector: PurposeRestrictionVector,
+	isServiceSpecific: boolean,
+	policyVersion: number
+): PublisherRestriction[] {
+	return validatePublisherRestrictions(
+		vector.getRestrictions().map((restriction) => ({
+			purposeId: restriction.purposeId,
+			restrictionType: restriction.restrictionType,
+			vendorIds: vector.getVendors(restriction),
+		})),
+		// Judge the string by the policy it was written under.
+		{ isServiceSpecific, policyVersion }
+	);
 };
 
 /**
@@ -212,6 +268,12 @@ export interface DecodedTCString {
 
 	/** Policy version */
 	policyVersion: number;
+
+	/**
+	 * Publisher restrictions, ordered by purpose then type. Vendor ranges are
+	 * expanded; a range may include IDs missing from the vendor list.
+	 */
+	publisherRestrictions: PublisherRestriction[];
 }
 
 /**
@@ -219,6 +281,14 @@ export interface DecodedTCString {
  *
  * @param tcString - The TC String to decode
  * @returns The decoded consent data
+ * @throws {Error} When the string is not a valid TC string, including a
+ * restriction with the reserved type `3`, purpose ID `0` or a vendor range
+ * that ends before it starts.
+ * @throws {PublisherRestrictionError} When the string carries a
+ * restriction c15t does not support: vendor ID `0`, legitimate interest
+ * required for a purpose that is consent-only under the string's policy
+ * version, two types for one vendor and
+ * purpose, or any restriction in a string that is not service-specific.
  *
  * @example
  * ```typescript
@@ -258,6 +328,11 @@ export const decodeTCString = async function decodeTCString(
 		isServiceSpecific: tcModel.isServiceSpecific,
 		lastUpdated: tcModel.lastUpdated,
 		policyVersion: tcModel.policyVersion as number,
+		publisherRestrictions: readPublisherRestrictions(
+			tcModel.publisherRestrictions,
+			tcModel.isServiceSpecific,
+			tcModel.policyVersion as number
+		),
 		purposeConsents: vectorToRecord(tcModel.purposeConsents, 11),
 		purposeLegitimateInterests: vectorToRecord(
 			tcModel.purposeLegitimateInterests,

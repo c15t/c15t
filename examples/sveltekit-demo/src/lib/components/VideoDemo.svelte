@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Frame } from '@c15t/svelte';
+	import { ConsentGate } from '@c15t/svelte';
 </script>
 
 <section
@@ -17,7 +17,7 @@
 				</p>
 			</div>
 
-			<Frame
+			<ConsentGate
 				category="experience"
 				class="relative aspect-video w-full"
 			>
@@ -28,7 +28,7 @@
 					allowfullscreen
 					class="inset-0 h-full w-full"
 				></iframe>
-			</Frame>
+			</ConsentGate>
 		</div>
 	</div>
 </section>

@@ -5,6 +5,7 @@ import { globalVendorListSchema } from '~/shared/gvl';
 import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
 import { nonIABVendorSchema } from '~/shared/non-iab-vendor';
 import { policyResolutionWireSchema } from '~/shared/policy-wire-schema';
+import { vendorSchema } from '~/shared/vendor';
 
 /**
  * Title and description schema for translations
@@ -42,6 +43,36 @@ export const partialCookieBannerTranslationsSchema = v.object({
 });
 
 /**
+ * Copy for the vendor rows nested under a category in the preference
+ * center. Every field is optional so a backend that predates vendor rows
+ * still validates and the bundled defaults fill the gaps.
+ */
+export const vendorListTranslationsSchema = v.optional(
+	v.object({
+		disabledByCategory: v.optional(v.string()),
+		privacyPolicy: v.optional(v.string()),
+		switchLabel: v.optional(v.string()),
+		title: v.optional(v.string()),
+	})
+);
+
+/**
+ * Preference center copy, with the vendor rows' copy alongside.
+ */
+export const consentManagerDialogTranslationsSchema = v.object({
+	...titleDescriptionSchema.entries,
+	vendors: vendorListTranslationsSchema,
+});
+
+/**
+ * Partial preference center copy for older backend versions
+ */
+export const partialConsentManagerDialogTranslationsSchema = v.object({
+	...partialTitleDescriptionSchema.entries,
+	vendors: vendorListTranslationsSchema,
+});
+
+/**
  * Labels for persistent rights a surface exposes when no prompt action
  * covers them, such as the opt-out and preferences links on a notice.
  * Optional so older backends still validate.
@@ -66,7 +97,7 @@ export const completeTranslationsSchema = v.object({
 		rejectAll: v.string(),
 		save: v.string(),
 	}),
-	consentManagerDialog: titleDescriptionSchema,
+	consentManagerDialog: consentManagerDialogTranslationsSchema,
 	consentTypes: v.object({
 		experience: titleDescriptionSchema,
 		functionality: titleDescriptionSchema,
@@ -104,7 +135,7 @@ export const partialTranslationsSchema = v.object({
 			save: v.optional(v.string()),
 		})
 	),
-	consentManagerDialog: partialTitleDescriptionSchema,
+	consentManagerDialog: partialConsentManagerDialogTranslationsSchema,
 	consentTypes: v.partial(
 		v.object({
 			experience: partialTitleDescriptionSchema,
@@ -217,6 +248,16 @@ export const initOutputSchema = v.object({
 		language: v.string(),
 		translations: translationsSchema,
 	}),
+	/**
+	 * Version label of the declared vendor list. Shown in the preference
+	 * surface and recorded for audit; it never forces re-consent.
+	 */
+	vendorListVersion: v.optional(v.string()),
+	/**
+	 * Vendors the publisher declares for vendor-level consent outside IAB.
+	 * Merged with vendors declared in code by the client.
+	 */
+	vendors: v.optional(v.array(vendorSchema)),
 });
 
 export type InitOutput = v.InferOutput<typeof initOutputSchema>;

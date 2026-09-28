@@ -127,6 +127,14 @@ export interface ConsentIabProcessedVendor {
 export interface ConsentIabDisplayRow {
 	/** What the row covers, in the GVL's own words. */
 	description: string;
+	/**
+	 * Whether any partner processes this purpose on consent once publisher
+	 * restrictions apply. `false` when every partner relies on legitimate
+	 * interest alone, so a consent switch would change nothing they rely on
+	 * and the row offers only the objection control. Always `true` for rows
+	 * that are not purposes.
+	 */
+	hasConsentBasis: boolean;
 	/** The GVL id within its own kind. Not unique across kinds. */
 	id: number;
 	/** Illustrations the GVL gives for the row, one per entry. */

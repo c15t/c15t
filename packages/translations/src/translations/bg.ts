@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'Персонализирайте вашите настройки за поверителност тук. Можете да изберете кои видове бисквитки и технологии за проследяване разрешавате.',
 		title: 'Настройки за поверителност',
+		vendors: {
+			disabledByCategory: 'Включете тази категория, за да изберете доставчици.',
+			privacyPolicy: 'Политика за поверителност',
+			switchLabel: 'Разреши {vendor}',
+			title: 'Доставчици ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

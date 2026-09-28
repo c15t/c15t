@@ -49,6 +49,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup
+        with:
+          node-version: '24'
       - name: Select checks
         id: plan
         run: bun scripts/ci-plan.ts
@@ -260,11 +262,14 @@ jobs:
             report: mobile-android-js
             runner: ubuntu-latest
     env:
-      # The version native/CONTRACT.md and packages/react-native/ios/README.md
-      # standardise on. DEVELOPER_DIR is set per run rather than switched with `sudo
-      # xcode-select`, because the machine's selection may point at Command Line Tools,
-      # whose SwiftPM cannot build an iOS slice.
-      C15T_XCODE_VERSION: '27'
+      # Xcode versions this job accepts, most preferred first. 27 is the version
+      # native/CONTRACT.md and packages/react-native/ios/README.md standardise on, and the
+      # one that carries the iOS 27.2 SDK; 26 still builds every Swift source here because
+      # the expanded tracking request is reached by selector at runtime, never by
+      # declaration. macos-latest ships 26 only; 27 is a preview runner image. DEVELOPER_DIR
+      # is set per run rather than switched with `sudo xcode-select`, because the machine's
+      # selection may point at Command Line Tools, whose SwiftPM cannot build an iOS slice.
+      C15T_XCODE_VERSIONS: '27 26'
       # Where the mobile harness stores its run, so the artifact is this leg's evidence.
       BENCH_OUTPUT_DIR: ${{ github.workspace }}/.ci-reports/${{ matrix.report }}
     steps:
@@ -278,14 +283,23 @@ jobs:
         if: matrix.kind == 'ios-toolchain'
         run: |
           target=""
-          for candidate in "/Applications/Xcode_${C15T_XCODE_VERSION}.app" "/Applications/Xcode-${C15T_XCODE_VERSION}.app" /Applications/Xcode.app; do
-            if [ -d "${candidate}/Contents/Developer" ]; then
-              target="${candidate}"
+          for version in ${C15T_XCODE_VERSIONS}; do
+            # Newest point release of this major first; the glob sorts lexically, so
+            # take the last match. A missing major expands to no matches at all.
+            for candidate in /Applications/Xcode_${version}*.app /Applications/Xcode-${version}*.app; do
+              if [ -d "${candidate}/Contents/Developer" ]; then
+                target="${candidate}"
+              fi
+            done
+            if [ -n "${target}" ]; then
               break
             fi
           done
+          if [ -z "${target}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+            target=/Applications/Xcode.app
+          fi
           if [ -z "${target}" ]; then
-            echo "No Xcode ${C15T_XCODE_VERSION} in /Applications. This runner has:" >&2
+            echo "No Xcode ${C15T_XCODE_VERSIONS} in /Applications. This runner has:" >&2
             ls /Applications >&2
             exit 1
           fi
@@ -297,8 +311,9 @@ jobs:
           echo "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer" >> "${GITHUB_ENV}"
           xcodebuild -version
           # Fail here with a version number instead of inside a Swift step minutes later.
-          xcodebuild -version | head -n 1 | grep -q "^Xcode ${C15T_XCODE_VERSION}" || {
-            echo "Expected Xcode ${C15T_XCODE_VERSION}, found the version above." >&2
+          accepted="$(printf '%s' "${C15T_XCODE_VERSIONS}" | tr ' ' '|')"
+          xcodebuild -version | head -n 1 | grep -qE "^Xcode (${accepted})[. ]" || {
+            echo "Expected Xcode ${C15T_XCODE_VERSIONS}, found the version above." >&2
             exit 1
           }
       - name: Use the JDK the Gradle toolchain asks for
@@ -456,7 +471,8 @@ jobs:
           - kind: android
             runner: ubuntu-latest
     env:
-      C15T_XCODE_VERSION: '27'
+      # Same acceptance list as the mobile job above, and for the same reason.
+      C15T_XCODE_VERSIONS: '27 26'
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -468,14 +484,23 @@ jobs:
         if: matrix.kind == 'ios'
         run: |
           target=""
-          for candidate in "/Applications/Xcode_${C15T_XCODE_VERSION}.app" "/Applications/Xcode-${C15T_XCODE_VERSION}.app" /Applications/Xcode.app; do
-            if [ -d "${candidate}/Contents/Developer" ]; then
-              target="${candidate}"
+          for version in ${C15T_XCODE_VERSIONS}; do
+            # Newest point release of this major first; the glob sorts lexically, so
+            # take the last match. A missing major expands to no matches at all.
+            for candidate in /Applications/Xcode_${version}*.app /Applications/Xcode-${version}*.app; do
+              if [ -d "${candidate}/Contents/Developer" ]; then
+                target="${candidate}"
+              fi
+            done
+            if [ -n "${target}" ]; then
               break
             fi
           done
+          if [ -z "${target}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
+            target=/Applications/Xcode.app
+          fi
           if [ -z "${target}" ]; then
-            echo "No Xcode ${C15T_XCODE_VERSION} in /Applications. This runner has:" >&2
+            echo "No Xcode ${C15T_XCODE_VERSIONS} in /Applications. This runner has:" >&2
             ls /Applications >&2
             exit 1
           fi
@@ -484,8 +509,9 @@ jobs:
           fi
           echo "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer" >> "${GITHUB_ENV}"
           xcodebuild -version
-          xcodebuild -version | head -n 1 | grep -q "^Xcode ${C15T_XCODE_VERSION}" || {
-            echo "Expected Xcode ${C15T_XCODE_VERSION}, found the version above." >&2
+          accepted="$(printf '%s' "${C15T_XCODE_VERSIONS}" | tr ' ' '|')"
+          xcodebuild -version | head -n 1 | grep -qE "^Xcode (${accepted})[. ]" || {
+            echo "Expected Xcode ${C15T_XCODE_VERSIONS}, found the version above." >&2
             exit 1
           }
       - name: Use the JDK the Gradle toolchain asks for

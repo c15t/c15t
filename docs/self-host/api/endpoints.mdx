@@ -16,6 +16,7 @@ you are building a custom transport or server integration.
 | `GET /status` | Service status and configured version. | No |
 | `GET /manifest` | Geo-independent policy configuration, optionally sliced with `?language=en`. | No |
 | `GET /init` | Resolve configuration for this request's location, language and privacy signals. | No |
+| `POST /sessions` | Report an init a host resolved from a cached manifest. Server-to-server only; nothing is stored. | No |
 | `POST /subjects` | Record a consent submission and its category receipts. | Optional, affects asserted identity authority |
 | `GET /subjects/:id` | Read this subject's consent status, merged choices and privacy directives. Optional `?type=a,b` filter. | No, the subject ID is the capability |
 | `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. | Optional, distinguishes browser and API authority |
@@ -68,6 +69,43 @@ request-time framework rendering, prefer a cached manifest and local resolution
 when the adapter supports it. Do not cache one visitor's resolved `/init` result
 as shared configuration.
 
+## Report a session
+
+```bash
+curl -i 'http://localhost:3000/api/c15t/sessions' \
+  -H 'Content-Type: application/json' \
+  -H 'X-C15T-Version: 3.0.0' \
+  -H 'X-C15T-Client-IP: 203.0.113.42' \
+  -H 'User-Agent: Mozilla/5.0' \
+  -d '{"source":"route","revision":"…","resolution":"matched","policy":{"id":"eu-opt-in","fingerprint":"…","matchedBy":"country","model":"opt-in"},"jurisdiction":"GDPR","country":"DE","region":null,"language":"de","gpc":false}'
+```
+
+A host that resolves init from a cached manifest never calls `/init`, so the
+backend would not know a visitor was served. The framework adapters send this
+report server-to-server after each resolution, detached from the response. The
+route accepts nothing a page could have sent: a request carrying `Origin`, or
+one without the `X-C15T-Version` header every c15t client sends, is rejected
+with `400`. The
+visitor's user agent travels as `User-Agent` and the visitor's address on
+`X-C15T-Client-IP`, a dedicated header because a platform in front of the
+backend rewrites `X-Forwarded-For` to the connecting server. The backend applies
+its `ipAddress` masking and tracking settings to that value, records the report
+on the request's wide event, hands it to the `sessions.onReport` sink, waits for
+the sink, and answers `204`. It writes nothing to the database.
+
+The body shape is `consentSessionReportSchema` in `@c15t/schema`. `source` is
+`route` for an init route and `render` for a server-rendered page; `init` is
+reserved for the backend's own `/init`, which emits the same event, and a report
+claiming it is rejected with `400`. Neither route reports a prefetch or
+prerender (`Sec-Purpose`, `Purpose`, `Next-Router-Prefetch`), nor a `HEAD` probe.
+Each report is one resolution, not one visitor. A page view can produce more
+than one, for example a `render` followed by a `route` when the client
+re-initialises, and every full page load produces a new one. The report carries
+no visitor identifier and nothing ties a `render` to the `route` from the same
+page view, so a consumer that wants sessions builds them: group reports by the
+forwarded address and user agent within a window, and count a visitor once per
+window. That count is approximate by design.
+
 ## GET /c15t.js
 
 The [script-tag build](/docs/frameworks/javascript/script-tag) of the consent banner, pre-configured for this backend. The response is the `@c15t/browser` bundle behind a queued `config` call that carries the instance's manifest, the backend origin, and the defaults set in the `script` option. `GET /c15t.headless.js` serves the build with no UI. `GET /c15t.iab.js` serves the optional IAB CMP and preference UI. Use `script.iabPath` to change its path and `script.config.iab` to set CMP options.
@@ -90,6 +128,58 @@ The response includes `subjectId`, `consentId`, `appliedPreferences` and `givenA
 Read `GET /subjects/:id` to inspect merged category choices. A type filter changes
 which consent records are returned and how `isValid` is calculated; it does not
 filter away the subject's cookie-banner choice state.
+
+When the client declares vendors, a save also carries `vendorChoice`: the complete
+per-vendor grant map with one confirmation time. The backend stores it as sent on
+the consent row, including vendors the client declared in code rather than in the
+manifest, and returns `subjectVendorChoice`: the most recent act decides every
+vendor it names, and a vendor an earlier act decided but the latest one omits
+keeps that earlier grant. The aggregate's `confirmedAt` is the time of the oldest
+decision still in it, so a retained grant is never presented as newer than it is. A map that omits a vendor the manifest declares is
+stored too: the client saw an older manifest, so its silence about that vendor
+is not a decision. A vendor no act ever named follows its category.
+Retrying the same act with a different map is a `CONFLICT`, like a retry with
+different receipts, and so is any retry against a stored map that cannot be
+read. Migration `4-vendor-choice` adds the column.
+
+### Late saves
+
+A browser that can't deliver a save keeps it and sends it again on the next
+page load or when it comes back online, for up to 7 days. The replay carries
+the original `givenAt` (the click time) and the `policySnapshotToken` from the
+`/init` the visitor saw. Tokens expire after `ttlSeconds` (30 minutes by
+default), so a replay often arrives with an expired token.
+
+With signing configured, the backend accepts such a save when all of these
+hold:
+
+- The token's signature, issuer and tenant audience verify.
+- The token was valid at `givenAt`: `givenAt` is between the token's issue
+  time and its expiry, with 10 minutes of slack for the visitor's clock.
+- The request arrives no later than `policySnapshot.replayWindowSeconds` after
+  the token expired (7 days by default).
+- The manifest still has the policy the token names under the same
+  fingerprint.
+
+The record keeps `givenAt` as sent, `createdAt` is when the backend received
+it, and `runtimePolicySource` is `snapshot_token_replayed` instead of
+`snapshot_token`. The request's wide event carries the same value as
+`consent.decisionSource`. A save that arrived before its token expired is
+unchanged. Retrying a save that already landed returns the existing record.
+
+The backend refuses these, and the c15t client drops them from its replay
+queue instead of retrying:
+
+| Response | When |
+| --- | --- |
+| `409 POLICY_SNAPSHOT_EXPIRED` | `givenAt` is outside the token's lifetime, or the request arrived after the replay window |
+| `409 POLICY_SNAPSHOT_INVALID` | The token doesn't verify, or its claims are incomplete |
+| `422 STALE_POLICY`, reason `policy-changed` | The policy the token names is no longer in the manifest under that fingerprint. The visitor saw the old text, so the choice is not recorded against the new one. |
+
+A refused save stays recorded in the visitor's browser only. `givenAt` is
+supplied by the client. A late save can only claim a time inside the lifetime
+of a token this backend signed, for a policy that is still current, but within
+that range the backend can't tell a genuine click time from a chosen one.
 
 Privacy directives are stored separately from consent records. Saving consent
 does not delete an existing directive. An API-authenticated identity link has

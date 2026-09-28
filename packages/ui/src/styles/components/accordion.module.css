@@ -188,12 +188,14 @@
 		pointer-events: none;
 	}
 
+	/* The content is inset the same on both sides, by the width of the
+	   icon and its gap, so the description and the vendor cards nested
+	   under it sit centred in the row instead of hugging the right edge. */
 	.contentViewport:not(:global(.headless)) {
 		min-height: 0;
 		overflow: hidden;
 		padding-top: 0;
-		padding-inline-end: var(--accordion-padding, var(--c15t-space-sm));
-		padding-inline-start: calc(
+		padding-inline: calc(
 			var(--accordion-icon-size, 1.25rem) +
 				var(--accordion-gap, var(--c15t-space-xs))
 		);

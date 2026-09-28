@@ -39,6 +39,8 @@ import type {
 	KernelPrivacySignals,
 	KernelTranslations,
 	KernelUser,
+	KernelVendorsState,
+	VendorChoice,
 } from '../types';
 import { freezeSnapshot } from './snapshot';
 
@@ -67,6 +69,8 @@ export interface SnapshotPatch {
 	activeUI?: KernelActiveUI;
 	policyPending?: boolean;
 	iab?: KernelIABState | null;
+	vendors?: KernelVendorsState | null;
+	vendorChoice?: VendorChoice | null;
 	/** Evaluation time. Defaults to the current `evaluatedAt`. */
 	now?: number;
 }
@@ -122,7 +126,9 @@ export const isUnchangedPatch = function isUnchangedPatch(
 		pick(patch.activeUI, current.activeUI) === current.activeUI &&
 		pick(patch.policyPending, current.policyPending) ===
 			current.policyPending &&
-		pick(patch.iab, current.iab) === current.iab
+		pick(patch.iab, current.iab) === current.iab &&
+		pick(patch.vendors, current.vendors) === current.vendors &&
+		pick(patch.vendorChoice, current.vendorChoice) === current.vendorChoice
 	);
 };
 
@@ -405,6 +411,8 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		subject,
 		translations: pick(patch.translations, current.translations),
 		user: pick(patch.user, current.user),
+		vendorChoice: pick(patch.vendorChoice, current.vendorChoice),
+		vendors: pick(patch.vendors, current.vendors),
 	};
 };
 

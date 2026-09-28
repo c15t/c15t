@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Pielāgojiet savus privātuma iestatījumus šeit. Jūs varat izvēlēties, kāda veida sīkdatnes un izsekošanas tehnoloģijas atļaut.',
 		title: 'Privātuma iestatījumi',
+		vendors: {
+			disabledByCategory:
+				'Ieslēdziet šo kategoriju, lai izvēlētos piegādātājus.',
+			privacyPolicy: 'Privātuma politika',
+			switchLabel: 'Atļaut {vendor}',
+			title: 'Piegādātāji ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/schema",
-	"version": "3.0.0-alpha.0",
+	"version": "3.0.0-alpha.1",
 	"description": "Framework-agnostic Valibot schemas and TypeScript types for c15t consent management",
 	"keywords": [
 		"ccpa",

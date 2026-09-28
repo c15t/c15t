@@ -1,0 +1,70 @@
+---
+title: Front Chat
+description: Load the Front Chat widget with functionality permission, forward CSP nonces and clear the session on revocation.
+group: integrations
+---
+
+## Configure Front Chat
+
+Copy the `chatId` from the widget snippet in your Front Chat channel's
+**Installation** tab. The helper loads Front's SDK once functionality permission
+is granted, then calls `FrontChat('init')` with your chat ID.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { frontChat } from '@c15t/scripts/front-chat';
+
+export const scripts = [frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `chatId` | Required public chat ID. An empty value throws. |
+| `useDefaultLauncher` | Shows Front's launcher. Defaults to `true`. With `false`, open the widget from your own launcher through Front's [SDK](https://dev.frontapp.com/docs/chat-sdk-reference). |
+| `nonce` | CSP nonce for the loader and Front's generated scripts. A loader-level nonce from your provider is forwarded too. |
+| `scriptSrc` | Defaults to `https://chat-assets.frontapp.com/v1/chat.bundle.js`. A proxy here does not proxy the widget's other requests. |
+
+Front creates more resources for the widget. Follow Front's
+[CSP instructions](https://help.front.com/en/articles/2049) for the rest of the
+policy.
+
+## Consent behavior
+
+The widget waits for functionality permission. When a visitor revokes it, c15t
+reloads the page, which removes the running widget. Keep
+`reloadOnConsentRevoked` enabled: removing the loader cannot stop a widget that
+already initialized.
+
+To also clear the visitor's Front session, call `shutdownFrontChat()` from
+`onBeforeConsentRevocationReload`:
+
+```ts
+import { shutdownFrontChat } from '@c15t/scripts/front-chat';
+
+const callbacks = {
+	onBeforeConsentRevocationReload: ({ preferences }) => {
+		if (!preferences.functionality) {
+			shutdownFrontChat();
+		}
+	},
+};
+```
+
+It sends Front's `shutdown` command with `clearSession: true` when the SDK has
+loaded. Front returns no completion signal, so the reload does not wait for the
+session to clear.
+
+## Verify the integration
+
+Reject functionality permission and confirm the loader is absent. Grant it and
+confirm the widget opens and connects to your Front inbox. Then revoke it and
+confirm the page reloads without the widget. Keep another support contact
+available while chat is blocked.
+
+Removing a script cannot undo requests that already ran. Follow the
+[consent verification guide](/docs/guides/verify-consent).

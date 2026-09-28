@@ -69,6 +69,23 @@ test('accepts template literals matching a pattern', async () => {
 	}
 });
 
+test('accepts the vendor name id and rejects one without a vendor segment', async () => {
+	const dir = makeTempProject({
+		'src/ok.svelte':
+			'<span data-testid="consent-widget-vendor-name-marketing-meta-pixel"></span>',
+		'src/short.svelte':
+			'<span data-testid="consent-widget-vendor-name-marketing"></span>',
+	});
+	try {
+		const violations = await runTestIdLint([dir]);
+		expect(violations.map((violation) => violation.testId)).toEqual([
+			'consent-widget-vendor-name-marketing',
+		]);
+	} finally {
+		rmSync(dir, { recursive: true });
+	}
+});
+
 test('rejects template literals that no pattern matches', async () => {
 	const nameToken = `\${name}`;
 	const dir = makeTempProject({

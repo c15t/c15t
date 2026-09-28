@@ -180,6 +180,13 @@ promise to their equivalent, such as `waitUntil` on Vercel or Cloudflare.
 Without it the response still returns at once; only the refresh may be cut
 short, in which case the next request starts another.
 
+The same hook receives the init route's session report. A host that resolves
+init from the manifest never calls `/init`, so after each resolution the route
+posts a small report to the backend's `POST /sessions`, server-to-server, and
+the backend counts the visitor from that instead. The browser makes no request.
+`resolveConsent` reports its renders the same way through its `waitUntil`
+option. Pass `reportSessions: false` to either to send none.
+
 ## Avoid repeating startup work
 
 Keep one boundary in the App Router root layout or Pages Router `_app.tsx`.

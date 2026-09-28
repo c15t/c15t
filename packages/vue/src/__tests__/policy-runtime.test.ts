@@ -7,7 +7,7 @@ import {
 import type { PolicyResolution, PolicyRule } from '@c15t/schema/types';
 import { translations } from '@c15t/translations/en';
 import { afterEach, expect, test, vi } from 'vitest';
-import { createApp, defineComponent, h } from 'vue';
+import { createApp, defineComponent, h, nextTick } from 'vue';
 
 import { consentConfigKey } from '../runtime/composables/config';
 import { useConsentDraft } from '../runtime/composables/draft';
@@ -365,3 +365,148 @@ test.each(['header', 'browser', 'header-with-browser-false'] as const)(
 		}
 	}
 );
+
+test('a vendor record saved by another surface keeps a dirty draft', async () => {
+	const context = createVueConsentKernelContext({
+		config: {
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'google-ads',
+					name: 'Google Ads',
+					privacyPolicyUrl: 'https://policies.google.com/privacy',
+				},
+			],
+		},
+		kernelConfig: { initialPolicyResolution: resolution() },
+	});
+	await context.kernel.commands.save('all');
+	let draft!: ReturnType<typeof useConsentDraft>;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				draft = useConsentDraft();
+				return () => h('div');
+			},
+		})
+	);
+	app.provide(symbolKernelContext, context);
+	app.provide(consentConfigKey, {});
+	app.mount(document.createElement('div'));
+	try {
+		draft.values.value.marketing = false;
+		// Another surface on the same kernel records a vendor-only save.
+		await context.kernel.commands.save({ vendors: { 'google-ads': false } });
+		await nextTick();
+		expect(context.snapshot.value.vendorChoice?.denied).toEqual(['google-ads']);
+		expect(draft.values.value.marketing).toBe(false);
+		expect(draft.isStale.value).toBe(false);
+		// A clean draft follows the new record.
+		draft.reset();
+		expect(draft.vendors.value['google-ads']).toBe(false);
+	} finally {
+		app.unmount();
+		context.dispose();
+	}
+});
+
+test('a category record saved by another surface keeps a staged vendor toggle', async () => {
+	const context = createVueConsentKernelContext({
+		config: {
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'google-ads',
+					name: 'Google Ads',
+					privacyPolicyUrl: 'https://policies.google.com/privacy',
+				},
+			],
+		},
+		kernelConfig: { initialPolicyResolution: resolution() },
+	});
+	await context.kernel.commands.save('all');
+	let draft!: ReturnType<typeof useConsentDraft>;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				draft = useConsentDraft();
+				return () => h('div');
+			},
+		})
+	);
+	app.provide(symbolKernelContext, context);
+	app.provide(consentConfigKey, {});
+	app.mount(document.createElement('div'));
+	try {
+		draft.setVendor('google-ads', false);
+		// Another surface on the same kernel turns marketing off.
+		await context.kernel.commands.save({ marketing: false });
+		await nextTick();
+		expect(
+			context.snapshot.value.explicitChoice?.categories.marketing?.value
+		).toBe(false);
+		// The staged toggle survives and the untouched category follows the
+		// new record, so this surface's save does not turn marketing back on.
+		expect(draft.vendors.value['google-ads']).toBe(false);
+		expect(draft.values.value.marketing).toBe(false);
+		expect(draft.isStale.value).toBe(false);
+		await draft.save();
+		expect(
+			context.snapshot.value.explicitChoice?.categories.marketing?.value
+		).toBe(false);
+		expect(context.snapshot.value.vendorChoice?.denied).toEqual(['google-ads']);
+	} finally {
+		app.unmount();
+		context.dispose();
+	}
+});
+
+test('a bulk save made while the draft is not syncing does not arm a later reseed', async () => {
+	const context = createVueConsentKernelContext({
+		config: {
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'google-ads',
+					name: 'Google Ads',
+					privacyPolicyUrl: 'https://policies.google.com/privacy',
+				},
+			],
+		},
+		kernelConfig: { initialPolicyResolution: resolution() },
+	});
+	await context.kernel.commands.save('all');
+	let syncing = true;
+	let draft!: ReturnType<typeof useConsentDraft>;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				draft = useConsentDraft(() => syncing);
+				return () => h('div');
+			},
+		})
+	);
+	app.provide(symbolKernelContext, context);
+	app.provide(consentConfigKey, {});
+	app.mount(document.createElement('div'));
+	try {
+		// The manager arms the latch and suppresses syncing around its own
+		// bulk save, then reseeds itself when the action completes.
+		draft.reseedOnNextRecord();
+		syncing = false;
+		await context.kernel.commands.save('none');
+		await nextTick();
+		syncing = true;
+		draft.reset();
+		expect(draft.values.value.marketing).toBe(false);
+		// A staged edit must survive the next change from another surface.
+		draft.setVendor('google-ads', false);
+		await context.kernel.commands.save({ marketing: true });
+		await nextTick();
+		expect(draft.values.value.marketing).toBe(true);
+		expect(draft.vendors.value['google-ads']).toBe(false);
+	} finally {
+		app.unmount();
+		context.dispose();
+	}
+});

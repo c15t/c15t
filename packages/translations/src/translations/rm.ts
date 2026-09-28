@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Persunalisai vossas configuraziuns da la sfera privata qua. Vus pudais tscherner tge tips da cookies e tecnologias da tracking che vus lubis.',
 		title: 'Configuraziuns da la sfera privata',
+		vendors: {
+			disabledByCategory:
+				'Activescha questa categoria per tscherner proveders.',
+			privacyPolicy: 'Directivas da protecziun da datas',
+			switchLabel: 'Permetter {vendor}',
+			title: 'Proveders ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

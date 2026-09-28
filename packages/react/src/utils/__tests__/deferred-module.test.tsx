@@ -138,7 +138,32 @@ test('renders content on the server and hydrates a cold client without losing ma
 	}
 });
 
-test('reports a failed preload through the rendering error boundary', async () => {
+test('retries the import on render after a failed preload', async () => {
+	const load = vi
+		.fn<() => Promise<typeof exports>>()
+		.mockRejectedValueOnce(new Error('chunk unavailable'))
+		.mockResolvedValue(exports);
+	const module = createDeferredModule(load);
+	const Deferred = module.component((loaded) => loaded.Content);
+	await module.preload();
+	const container = document.createElement('div');
+	document.body.append(container);
+	const root = createRoot(container);
+	try {
+		root.render(
+			<Boundary>
+				<Deferred label="Retried" />
+			</Boundary>
+		);
+		await vi.waitFor(() => expect(container.textContent).toBe('Retried: 0'));
+		expect(load).toHaveBeenCalledTimes(2);
+	} finally {
+		root.unmount();
+		container.remove();
+	}
+});
+
+test('reports a failed render import through the error boundary', async () => {
 	const fixture = deferred();
 	const Deferred = fixture.module.component((module) => module.Content);
 	const container = document.createElement('div');
@@ -146,15 +171,20 @@ test('reports a failed preload through the rendering error boundary', async () =
 	const root = createRoot(container);
 	const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 	try {
+		// A preload in flight when the export renders shares its failure.
 		const preload = fixture.module.preload();
-		fixture.reject(new Error('chunk unavailable'));
-		await preload;
 		root.render(
 			<Boundary>
 				<Deferred label="Unavailable" />
 			</Boundary>
 		);
+		// Let the render reach the lazy export before the import fails.
+		await frame();
+		await frame();
+		fixture.reject(new Error('chunk unavailable'));
+		await preload;
 		await vi.waitFor(() => expect(container.textContent).toBe('Import failed'));
+		expect(fixture.load).toHaveBeenCalledOnce();
 	} finally {
 		root.unmount();
 		container.remove();

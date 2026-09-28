@@ -18,8 +18,9 @@ const DYNAMIC_CONTEXT_SLOTS = {
 
 /**
  * Slots the schema declares for surfaces Vue does not ship. The trigger
- * toolbar is React-only today. Every entry must stay declared in the schema
- * and must stay unreachable in Vue, so the list cannot go stale silently.
+ * toolbar is React-only today. Every entry must stay declared in the
+ * schema and must stay unreachable in Vue, so the list cannot go stale
+ * silently.
  */
 const REACT_ONLY_SLOTS = [
 	'trigger.toolbar',
@@ -28,6 +29,8 @@ const REACT_ONLY_SLOTS = [
 ] as const;
 
 const MUST_BE_REACHABLE_SLOTS = [
+	'vendor-list.root',
+	'vendor-list.control',
 	'banner.cardShell',
 	'dialog.container',
 	'accordion.triggerRow',

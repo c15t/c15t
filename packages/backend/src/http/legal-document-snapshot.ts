@@ -145,7 +145,11 @@ export const verifyLegalDocumentSnapshotToken =
 					issuer: resolveIssuer(options),
 				}
 			);
-			return { payload: payload as Record<string, unknown>, valid: true };
+			return {
+				late: false,
+				payload: payload as Record<string, unknown>,
+				valid: true,
+			};
 		} catch {
 			return { reason: 'invalid', valid: false };
 		}

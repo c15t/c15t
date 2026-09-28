@@ -7,6 +7,7 @@
  * a `Map<>` argument so callers don't have to plumb identity through.
  */
 import type { AllConsentNames } from '../../consent/consent-types';
+import { isValidVendorId } from '../../libs/vendors';
 import type { NormalizedScript, Script } from './types';
 
 const anonymizedElementIds = new Map<string, string>();
@@ -45,6 +46,12 @@ export const normalizeScripts = function normalizeScripts(
 		simpleCategory:
 			typeof script.category === 'string'
 				? (script.category as AllConsentNames)
+				: null,
+		// An invalid slug is ignored here too, so the gate never denies on a
+		// vendor the preference surface cannot present or the wire cannot carry.
+		vendor:
+			typeof script.vendor === 'string' && isValidVendorId(script.vendor)
+				? script.vendor
 				: null,
 	}));
 };
@@ -88,3 +95,27 @@ export const createElementIdResolver =
 			},
 		};
 	};
+
+/** Compare the DOM resource, excluding callbacks and consent eligibility. */
+export const hasSameResource = (previous: Script, next: Script): boolean => {
+	const fields = [
+		'src',
+		'textContent',
+		'callbackOnly',
+		'anonymizeId',
+		'target',
+		'async',
+		'defer',
+		'nonce',
+		'fetchPriority',
+	] as const;
+	const attributes = previous.attributes ?? {};
+	const nextAttributes = next.attributes ?? {};
+	return (
+		fields.every((field) => previous[field] === next[field]) &&
+		Object.keys(attributes).length === Object.keys(nextAttributes).length &&
+		Object.entries(attributes).every(
+			([key, value]) => nextAttributes[key] === value
+		)
+	);
+};

@@ -129,6 +129,19 @@ export const TEST_ID_PATTERNS = [
 	/^consent-widget-accordion-content-[a-z][a-z0-9-]*$/u,
 	/^consent-widget-switch-[a-z][a-z0-9-]*$/u,
 	/^consent-widget-restriction-[a-z][a-z0-9-]*$/u,
+	// Vendor rows nested under a category, rendered by React, Vue and
+	// Svelte. Vendor ids are lowercase slugs that may contain dots.
+	/^consent-widget-vendor-list-[a-z][a-z0-9-]*$/u,
+	/^consent-widget-vendor-hint-[a-z][a-z0-9-]*$/u,
+	// Per-vendor ids are `<category>-<vendor id>`, since one vendor can sit
+	// under several categories. Each vendor is a collapsible card of its own.
+	/^consent-widget-vendor-item-[a-z][a-z0-9-]*-[a-z0-9][a-z0-9._-]*$/u,
+	/^consent-widget-vendor-trigger-[a-z][a-z0-9-]*-[a-z0-9][a-z0-9._-]*$/u,
+	// The name span is the switch's `aria-describedby` target; a test id
+	// here lets the parity normalizer mask the id in every framework.
+	/^consent-widget-vendor-name-[a-z][a-z0-9-]*-[a-z0-9][a-z0-9._-]*$/u,
+	/^consent-widget-vendor-content-[a-z][a-z0-9-]*-[a-z0-9][a-z0-9._-]*$/u,
+	/^consent-widget-vendor-switch-[a-z][a-z0-9-]*-[a-z0-9][a-z0-9._-]*$/u,
 	/^stack-item-[a-z0-9][a-z0-9-]*$/u,
 	/^purpose-item-[a-z0-9][a-z0-9-]*$/u,
 	// A GVL numbers purposes, special purposes, features and special

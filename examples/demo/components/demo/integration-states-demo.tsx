@@ -1,6 +1,6 @@
 'use client';
 
-import { ConsentProvider, Frame, offline } from 'c15t/react';
+import { ConsentGate, ConsentProvider, offline } from 'c15t/react';
 import { RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 
@@ -54,14 +54,14 @@ const LoadingState = () => {
 				</Button>
 			</StateIntroduction>
 
-			<Frame category="necessary">
+			<ConsentGate category="necessary">
 				<iframe
 					className="aspect-video w-full rounded-lg"
 					sandbox="allow-scripts"
 					src={`/api/integration-fixture?fixture=iframe&delay=8000&attempt=${attempt}`}
 					title="Delayed iframe loading fixture"
 				/>
-			</Frame>
+			</ConsentGate>
 		</section>
 	);
 };
@@ -69,18 +69,18 @@ const LoadingState = () => {
 const BlockedState = () => (
 	<section className="space-y-5">
 		<StateIntroduction
-			description="Frame leaves the third-party child unmounted until marketing consent is granted and renders its accessible placeholder in the meantime."
+			description="ConsentGate leaves the third-party child unmounted until marketing consent is granted and renders its accessible placeholder in the meantime."
 			status="Blocked"
 			title="Consent placeholder"
 		/>
-		<Frame category="marketing">
+		<ConsentGate category="marketing">
 			<iframe
 				className="aspect-video w-full rounded-lg"
 				sandbox="allow-presentation allow-scripts"
 				src="https://www.youtube-nocookie.com/embed/gwqYfNWVPpk"
 				title="Marketing consent-gated video"
 			/>
-		</Frame>
+		</ConsentGate>
 	</section>
 );
 

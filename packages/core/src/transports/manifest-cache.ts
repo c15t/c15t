@@ -28,15 +28,22 @@ export {
 	clearManifestCache,
 	createManifestCache,
 	createManifestRequestURL,
+	DEFAULT_RESOLVE_TIMEOUT_MS,
 	fetchCachedManifest,
 	getManifestAge,
 	getManifestSMaxAge,
 	getManifestStaleWhileRevalidate,
 	MANIFEST_DEDUPE_TTL_SECONDS,
+	MANIFEST_FAILURE_RETRY_MAX_MS,
+	MANIFEST_FAILURE_RETRY_MIN_MS,
+	MANIFEST_FETCH_TIMEOUT_MS,
 	MANIFEST_PASSTHROUGH_HEADERS,
+	ManifestUnavailableError,
 	resolveManifestSourceURL,
+	withResolutionBudget,
 } from '../libs/manifest-cache-runtime';
 export type {
+	ManifestUnavailableReason,
 	CachedManifestResponse,
 	FetchCachedManifestOptions,
 	ManifestCache,
@@ -44,6 +51,21 @@ export type {
 	ManifestFetch,
 	ManifestSourceOptions,
 } from '../libs/manifest-cache-runtime';
+export type {
+	BuildConsentSessionReportOptions,
+	ReportConsentSessionOptions,
+	SessionReportHeaders,
+	SessionReportInputs,
+} from '../libs/session-report';
+export {
+	buildConsentSessionReport,
+	forwardSessionReportHeaders,
+	isSpeculativeRequest,
+	reportConsentSession,
+	resolveSessionReportBackendURL,
+	SESSION_REPORT_CLIENT_IP_HEADER,
+	SESSION_REPORT_FORWARD_HEADERS,
+} from '../libs/session-report';
 
 /** Request headers accepted by {@link resolveManifestInit}. */
 export type ManifestRequestHeaders =

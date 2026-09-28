@@ -45,7 +45,12 @@ export interface ScriptLoaderDebugEvent {
 	scriptId: string;
 	elementId?: string;
 	hasConsent?: boolean;
-	callback?: 'onLoad' | 'onError' | 'onConsentChange' | 'onBeforeLoad';
+	callback?:
+		| 'onLoad'
+		| 'onError'
+		| 'onConsentChange'
+		| 'onBeforeLoad'
+		| 'onDispose';
 	data?: Record<string, unknown>;
 	timestamp: number;
 }
@@ -91,6 +96,8 @@ export interface NormalizedScript {
 	script: Script;
 	hasIabMeta: boolean;
 	simpleCategory: AllConsentNames | null;
+	/** Vendor slug for vendor-level consent outside IAB, if declared. */
+	vendor: string | null;
 }
 
 /**
@@ -104,6 +111,8 @@ export interface ReconcilePass {
 	consents: ConsentState;
 	isIabMode: boolean;
 	iab: KernelIABState | null;
+	/** Vendors the subject turned off, or `null` when none is denied. */
+	vendorDenied: ReadonlySet<string> | null;
 }
 
 /**
@@ -113,6 +122,8 @@ export interface ReconcilePass {
  * layout invalidation per append target instead of one per script.
  */
 export interface PendingMount {
+	/** Records insertion even if inline execution removes its own element. */
+	appended: boolean;
 	script: Script;
 	element: HTMLScriptElement;
 	target: HTMLElement;

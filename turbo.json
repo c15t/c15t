@@ -589,6 +589,14 @@
 			"dependsOn": ["build", "^build", "transit"],
 			"outputs": []
 		},
+		"@c15t/consent-observers#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/internals/next-compat/shared/scripts/pack.ts"
+			],
+			"outputs": []
+		},
 		"@c15t/scripts#test": {
 			"dependsOn": ["build", "^build", "transit"],
 			"outputs": [

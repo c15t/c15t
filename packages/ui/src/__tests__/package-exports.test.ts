@@ -23,6 +23,7 @@ const COMPONENT_STYLE_MODULES = [
 	'preference-item',
 	'switch',
 	'tabs',
+	'vendor-list',
 ] as const;
 
 const PRIMITIVE_CSS_MODULES = [
@@ -201,7 +202,6 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 				'utf-8'
 			);
 
-			expect(contents).toContain(`./${filename}.css`);
 			for (const marker of STYLE_LOADER_MARKERS) {
 				expect(contents).not.toContain(marker);
 			}
@@ -212,8 +212,8 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 /**
  * Runtimes that load the package with plain Node (the Next.js Pages Router
  * externalising node_modules, for example) cannot import CSS. The `node`
- * export condition serves the same class map without the side-effect import;
- * those consumers load the aggregated stylesheet instead.
+ * export condition keeps serving `<name>.node.js`, which is now identical to
+ * the bundler class map: neither imports CSS.
  */
 describe('package exports: node condition serves class maps without CSS imports', () => {
 	for (const name of COMPONENT_STYLE_MODULES) {
@@ -236,7 +236,7 @@ describe('package exports: node condition serves class maps without CSS imports'
 			}
 		});
 
-		test(`components/${name}.node.js is ${name}.js minus the CSS import`, async () => {
+		test(`components/${name}.node.js is identical to ${name}.js`, async () => {
 			const bundlerPath = resolveExport(
 				`./styles/components/${name}`,
 				BUNDLER_CONDITIONS
@@ -253,12 +253,7 @@ describe('package exports: node condition serves class maps without CSS imports'
 			for (const marker of STYLE_LOADER_MARKERS) {
 				expect(nodeContents).not.toContain(marker);
 			}
-			expect(nodeContents).toBe(
-				bundlerContents.replace(
-					new RegExp(`import\\s*["']\\./${filename}\\.css["']\\s*;?`, 'u'),
-					''
-				)
-			);
+			expect(nodeContents).toBe(bundlerContents);
 
 			const classMap = (await import(nodePath)) as {
 				default: Record<string, string>;
@@ -290,6 +285,65 @@ describe('package exports: node condition serves class maps without CSS imports'
 			resolveExport('./styles/components/button', NODE_CONDITIONS)
 		)) as { default: Record<string, string> };
 		expect(JSON.parse(result.stdout.trim())).toEqual(expected.default);
+	});
+});
+
+/**
+ * JavaScript loads the dialog rules through `@c15t/ui/styles/dialog`, never
+ * the `.css` file: bundlers follow its CSS import, and plain Node gets a
+ * module that imports nothing. `styles/dialog.css` itself stays
+ * unconditional, because Astro imports it from `page-ssr`, where a
+ * `node`-condition swap would drop the rules from the page.
+ */
+describe('package exports: @c15t/ui/styles/dialog side-effect module', () => {
+	test('bundlers get a module that imports styles/dialog.css', () => {
+		const resolvedPath = resolveExport('./styles/dialog', BUNDLER_CONDITIONS);
+
+		expect(resolvedPath).toMatch(/\/dist\/styles\/dialog\.js$/u);
+		expect(readFileSync(resolvedPath, 'utf-8')).toContain(
+			"import './dialog.css'"
+		);
+		expect(existsSync(join(dirname(resolvedPath), 'dialog.css'))).toBe(true);
+	});
+
+	test('the node condition gets a module that imports nothing', () => {
+		const resolvedPath = resolveExport('./styles/dialog', NODE_CONDITIONS);
+
+		expect(resolvedPath).toMatch(/\/dist\/styles\/dialog\.node\.js$/u);
+		expect(readFileSync(resolvedPath, 'utf-8')).not.toMatch(/\bimport\b/u);
+	});
+
+	test('styles/dialog.css resolves to the stylesheet under every condition', () => {
+		for (const conditions of [BUNDLER_CONDITIONS, NODE_CONDITIONS]) {
+			expect(resolveExport('./styles/dialog.css', conditions)).toMatch(
+				/\/dist\/styles\/dialog\.css$/u
+			);
+		}
+	});
+
+	test('sideEffects keeps the bundler module from being tree-shaken', () => {
+		const { sideEffects } = JSON.parse(
+			readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf-8')
+		) as { sideEffects: string[] };
+
+		expect(sideEffects).toContain('./dist/styles/dialog.js');
+	});
+
+	test('plain Node imports it instead of failing on the CSS', () => {
+		const nodeBinary = process.versions.bun ? 'node' : process.execPath;
+		const result = spawnSync(
+			nodeBinary,
+			[
+				'--input-type=module',
+				'-e',
+				"import('@c15t/ui/styles/dialog').then(() => console.log('ok'))",
+			],
+			{ cwd: PACKAGE_ROOT, encoding: 'utf-8' }
+		);
+
+		expect(result.stderr).not.toContain('ERR_UNKNOWN_FILE_EXTENSION');
+		expect(result.status).toBe(0);
+		expect(result.stdout.trim()).toBe('ok');
 	});
 });
 

@@ -1,6 +1,9 @@
 name: Set up workspace
 description: Install the pinned toolchain and optionally restore this run's package builds.
 inputs:
+  node-version:
+    description: Node.js version for this job. Release tooling requires Node 24.
+    default: '22'
   built:
     description: Restore package outputs and task cache from the build job.
     default: 'false'
@@ -15,7 +18,7 @@ runs:
         bun-version: 1.3.11
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
       with:
-        node-version: 22
+        node-version: ${{ inputs.node-version }}
     - shell: bash
       run: bun install --frozen-lockfile
     - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830

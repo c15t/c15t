@@ -12,6 +12,7 @@ import {
 	policyTypeSchema,
 } from '../../domain/consent-policy';
 import { subjectChoiceWireSchema } from './choice-wire';
+import { vendorChoiceWireSchema } from './vendor-choice-wire';
 
 /**
  * Base subject ID validation - must be in sub_xxx format
@@ -206,6 +207,11 @@ export const subjectCookieBannerInputSchema = v.object({
 		v.examples([{ marketing: false, measurement: true, necessary: true }])
 	),
 	type: v.literal('cookie_banner'),
+	/**
+	 * Per-vendor grants confirmed by this action, when the publisher declares
+	 * vendors. Absent when no vendor was toggled and none is declared.
+	 */
+	vendorChoice: v.optional(vendorChoiceWireSchema),
 });
 
 /**

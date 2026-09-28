@@ -16,9 +16,18 @@ export const consentSchema = v.object({
 	purposeIds: v.array(v.string()),
 	/** Runtime policy decision reference used for this consent record. */
 	runtimePolicyDecisionId: v.nullish(v.string()),
-	/** Source of runtime policy decision evidence. */
+	/**
+	 * Source of runtime policy decision evidence. `snapshot_token_replayed`
+	 * is a save that arrived after its snapshot token expired and was
+	 * verified at `givenAt`.
+	 */
 	runtimePolicySource: v.nullish(
-		v.picklist(['snapshot_token', 'write_time_fallback', 'manifest_recompute'])
+		v.picklist([
+			'snapshot_token',
+			'snapshot_token_replayed',
+			'write_time_fallback',
+			'manifest_recompute',
+		])
 	),
 	subjectId: v.string(),
 	/** IAB TCF TC String (only for IAB consents) */

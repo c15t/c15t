@@ -1,6 +1,9 @@
+import { existsSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
-import { c15t, resolveOptions } from '../integration';
+import { c15t, createOwnEntryResolver, resolveOptions } from '../integration';
 import { hostedMode, manifestMode, offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
 
@@ -10,6 +13,12 @@ interface SetupCalls {
 	injectScript: ReturnType<typeof vi.fn>;
 	updateConfig: ReturnType<typeof vi.fn>;
 }
+
+const resolveOwnEntry = await createOwnEntryResolver();
+
+/** How an injected module reads in the page script. */
+const specifier = (entry: string): string =>
+	JSON.stringify(resolveOwnEntry(entry));
 
 const runSetup = async function runSetup(options: C15tAstroOptions) {
 	const integration = c15t(options);
@@ -29,19 +38,39 @@ const runSetup = async function runSetup(options: C15tAstroOptions) {
 
 const runDone = function runDone(
 	options: C15tAstroOptions,
-	integrationNames: string[]
+	integrationNames: string[],
+	adapter?: { name: string }
 ) {
 	const integration = c15t(options);
 	const logger = { error: vi.fn(), warn: vi.fn() };
 	const run = () =>
 		integration.hooks['astro:config:done']?.({
-			config: { integrations: integrationNames.map((name) => ({ name })) },
+			config: {
+				adapter,
+				integrations: integrationNames.map((name) => ({ name })),
+			},
 			logger,
 		} as unknown as Parameters<
 			NonNullable<(typeof integration)['hooks']['astro:config:done']>
 		>[0]);
 	return Object.assign(run, { logger });
 };
+
+describe('createOwnEntryResolver', () => {
+	it('resolves an entry point to a file, for sites that cannot see @c15t/astro', () => {
+		// Under pnpm, a site that installed `c15t` has no `@c15t/astro` at its
+		// root, so Astro could not resolve the bare specifier from there.
+		const path = resolveOwnEntry('@c15t/astro/middleware');
+		expect(isAbsolute(path)).toBe(true);
+		expect(existsSync(path)).toBe(true);
+	});
+
+	it('keeps a specifier it cannot resolve', () => {
+		expect(resolveOwnEntry('@c15t/astro/not-an-entry')).toBe(
+			'@c15t/astro/not-an-entry'
+		);
+	});
+});
 
 describe('resolveOptions', () => {
 	it('defaults the ui adapter to svelte', () => {
@@ -141,7 +170,7 @@ describe('astro:config:setup', () => {
 			mode: hostedMode({ url: '/api/c15t' }),
 		});
 		expect(calls.addMiddleware).toHaveBeenCalledWith({
-			entrypoint: '@c15t/astro/middleware',
+			entrypoint: resolveOwnEntry('@c15t/astro/middleware'),
 			order: 'pre',
 		});
 	});
@@ -154,12 +183,59 @@ describe('astro:config:setup', () => {
 		expect(calls.addMiddleware).not.toHaveBeenCalled();
 	});
 
+	it('injects the component stylesheet into every page', async () => {
+		const { calls } = await runSetup({ mode: offlineMode() });
+		// The server build resolves the class maps through the `node`
+		// condition, which carries no CSS, so without this nothing is styled.
+		expect(calls.injectScript).toHaveBeenCalledWith(
+			'page-ssr',
+			`import ${specifier('@c15t/astro/styles.css')};`
+		);
+	});
+
+	it('adds the IAB stylesheet when IAB is configured', async () => {
+		const { calls } = await runSetup({
+			iab: { cmpId: 160 },
+			mode: offlineMode(),
+		});
+		const styles = calls.injectScript.mock.calls.find(
+			([stage]) => stage === 'page-ssr'
+		) as [string, string];
+		expect(styles[1]).toContain(
+			`import ${specifier('@c15t/astro/iab/styles.css')};`
+		);
+	});
+
+	it('adds the dialog stylesheet to every page only for the Vue islands', async () => {
+		// React and Svelte islands import it on their own chunk; Astro's
+		// build drops the stylesheets the Vue island's components import.
+		const pageStyles = async (ui: 'react' | 'svelte' | 'vue') => {
+			const { calls } = await runSetup({ mode: offlineMode(), ui });
+			const found = calls.injectScript.mock.calls.find(
+				([stage]) => stage === 'page-ssr'
+			) as [string, string];
+			return found[1];
+		};
+		const dialog = `import ${specifier('@c15t/ui/styles/dialog.css')};`;
+
+		expect(await pageStyles('vue')).toContain(dialog);
+		expect(await pageStyles('react')).not.toContain(dialog);
+		expect(await pageStyles('svelte')).not.toContain(dialog);
+	});
+
+	it('leaves styles to the site with `styles: false`', async () => {
+		const { calls } = await runSetup({ mode: offlineMode(), styles: false });
+		expect(
+			calls.injectScript.mock.calls.some(([stage]) => stage === 'page-ssr')
+		).toBe(false);
+	});
+
 	it('injects a page-level boot script', async () => {
 		const { calls } = await runSetup({ mode: offlineMode() });
 		const [stage, code] = calls.injectScript.mock.calls[0] as [string, string];
 		expect(stage).toBe('page');
 		expect(code).toContain("import options from 'virtual:c15t/options'");
-		expect(code).toContain("from '@c15t/astro/client'");
+		expect(code).toContain(`from ${specifier('@c15t/astro/client')}`);
 		expect(code).toContain('boot(options);');
 	});
 
@@ -174,15 +250,17 @@ describe('astro:config:setup', () => {
 			const [, code] = calls.injectScript.mock.calls[0] as [string, string];
 
 			expect(code).toContain(`registerDialogAdapter('${ui}'`);
-			expect(code).toContain(`import('${adapterModule}')`);
-			expect(code).toContain(`import('@c15t/astro/islands/${surfaceFile}')`);
+			expect(code).toContain(`import(${specifier(adapterModule)})`);
+			expect(code).toContain(
+				`import(${specifier(`@c15t/astro/islands/${surfaceFile}`)})`
+			);
 
 			// The point of injecting these: a build must never see a specifier
 			// for a framework the site did not ask for.
 			for (const other of ['svelte', 'react', 'vue'].filter(
 				(name) => name !== ui
 			)) {
-				expect(code).not.toContain(`@c15t/astro/ui/${other}`);
+				expect(code).not.toContain(resolveOwnEntry(`@c15t/astro/ui/${other}`));
 			}
 		}
 	);
@@ -240,6 +318,7 @@ describe('astro:config:setup', () => {
 		];
 		expect(vueConfig.vite.plugins.map((plugin) => plugin.name)).toEqual([
 			'c15t:options',
+			'c15t:class-maps-without-css',
 			'@c15t/vue',
 		]);
 
@@ -249,6 +328,7 @@ describe('astro:config:setup', () => {
 		];
 		expect(svelteConfig.vite.plugins.map((plugin) => plugin.name)).toEqual([
 			'c15t:options',
+			'c15t:class-maps-without-css',
 		]);
 	});
 
@@ -257,12 +337,12 @@ describe('astro:config:setup', () => {
 			mode: manifestMode({ backendURL: 'https://consent.example.com' }),
 		});
 		expect(calls.injectRoute).toHaveBeenCalledWith({
-			entrypoint: '@c15t/astro/api/init',
+			entrypoint: resolveOwnEntry('@c15t/astro/api/init'),
 			pattern: '/api/c15t/init',
 			prerender: false,
 		});
 		expect(calls.injectRoute).toHaveBeenCalledWith({
-			entrypoint: '@c15t/astro/api/manifest',
+			entrypoint: resolveOwnEntry('@c15t/astro/api/manifest'),
 			pattern: '/api/c15t/manifest',
 			prerender: false,
 		});
@@ -277,6 +357,72 @@ describe('astro:config:setup', () => {
 });
 
 describe('astro:config:done', () => {
+	/** Run setup for `command`, then done, the way Astro does. */
+	const runForCommand = async function runForCommand(
+		options: C15tAstroOptions,
+		command: string,
+		adapter?: { name: string }
+	) {
+		const integration = c15t(options);
+		await integration.hooks['astro:config:setup']?.({
+			addMiddleware: vi.fn(),
+			command,
+			injectRoute: vi.fn(),
+			injectScript: vi.fn(),
+			updateConfig: vi.fn(),
+		} as unknown as Parameters<
+			NonNullable<(typeof integration)['hooks']['astro:config:setup']>
+		>[0]);
+		return () =>
+			integration.hooks['astro:config:done']?.({
+				config: { adapter, integrations: [{ name: '@astrojs/svelte' }] },
+				logger: { error: vi.fn(), warn: vi.fn() },
+			} as unknown as Parameters<
+				NonNullable<(typeof integration)['hooks']['astro:config:done']>
+			>[0]);
+	};
+	const MANIFEST: C15tAstroOptions = {
+		mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+	};
+
+	it('names the injected routes when a build has no adapter', async () => {
+		const done = await runForCommand(MANIFEST, 'build');
+		expect(done).toThrowError(
+			/manifest mode injects on-demand routes at \/api\/c15t\/init.*need a server adapter/u
+		);
+	});
+
+	it('tells an explicit `endpoints` site how to build statically', async () => {
+		const done = await runForCommand(
+			{ endpoints: true, mode: offlineMode() },
+			'build'
+		);
+		expect(done).toThrowError(/`endpoints` injects .*set `endpoints: false`/u);
+	});
+
+	it.each(['dev', 'sync'])(
+		'lets `astro %s` run without an adapter, as Astro does',
+		async (command) => {
+			const done = await runForCommand(MANIFEST, command);
+			expect(done).not.toThrow();
+		}
+	);
+
+	it('lets manifest mode build with an adapter', async () => {
+		const done = await runForCommand(MANIFEST, 'build', {
+			name: '@astrojs/node',
+		});
+		expect(done).not.toThrow();
+	});
+
+	it('lets manifest mode build statically with `endpoints: false`', async () => {
+		const done = await runForCommand(
+			{ ...MANIFEST, endpoints: false },
+			'build'
+		);
+		expect(done).not.toThrow();
+	});
+
 	it.each([
 		['svelte', '@astrojs/svelte'],
 		['react', '@astrojs/react'],
@@ -338,7 +484,7 @@ describe('astro:config:done', () => {
 		const { calls } = await runSetup(options);
 		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
 		expect(code).toContain("registerDialogAdapter('svelte'");
-		expect(code).not.toContain('@c15t/astro/ui/react');
+		expect(code).not.toContain(resolveOwnEntry('@c15t/astro/ui/react'));
 	});
 
 	it('stays quiet when ui was chosen explicitly', () => {

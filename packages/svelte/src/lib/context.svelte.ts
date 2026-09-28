@@ -4,6 +4,7 @@ import {
 	defaultTranslationConfig,
 	has as evaluateHas,
 	resolveConsentPresentation,
+	vendorsListedUnder,
 } from '@c15t/core';
 import type {
 	ActiveUI,
@@ -18,15 +19,23 @@ import type {
 	KernelActiveUI,
 	KernelIABState,
 	Model,
+	ResolvedVendor,
 	TranslationConfig,
 } from '@c15t/core';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 import { getContext, setContext } from 'svelte';
 
+import type { DialogPreload } from './dialog-warming';
 import type { ConsentManagerOptions } from './types';
 
 const CONSENT_CONTEXT_KEY = Symbol('c15t-v3-consent');
 const THEME_CONTEXT_KEY = Symbol('c15t-v3-theme');
+
+/**
+ * The latest IAB save per kernel. A newer save or explicit navigation
+ * replaces it, so an older save's completion never restores a surface.
+ */
+const iabActions = new WeakMap<ConsentKernel, object>();
 
 export type SaveType = 'all' | 'custom' | 'necessary';
 
@@ -54,8 +63,24 @@ export interface SvelteIABState extends KernelIABState {
 
 export interface ConsentDraftState {
 	readonly values: Partial<ConsentState>;
+	/**
+	 * Granted flag per declared vendor. Seeded from the denials the gate
+	 * honors, so a vendor declared `disabled` reads `true` whatever an older
+	 * record says; every vendor not denied is `true`. Empty under an `iab`
+	 * policy.
+	 */
+	readonly vendors: Readonly<Record<string, boolean>>;
 	readonly isStale: boolean;
 	set: (name: AllConsentNames, value: boolean) => void;
+	/**
+	 * Stage one vendor's grant. Recorded by the next save. Ignored for a
+	 * vendor that is not declared or is declared `disabled`, since the kernel
+	 * would drop the grant on save.
+	 *
+	 * @param vendorId - Vendor slug as declared in `vendors` or on a script.
+	 * @param granted - Whether the vendor may load once the draft is saved.
+	 */
+	setVendor: (vendorId: string, granted: boolean) => void;
 	reset: () => void;
 	save: (categories: readonly AllConsentNames[]) => Promise<void>;
 }
@@ -81,12 +106,16 @@ export interface ConsentManagerState extends Pick<
 	| 'revision'
 	| 'translations'
 	| 'user'
+	| 'vendors'
+	| 'vendorChoice'
 > {
 	activeUI: ActiveUI;
 	branding: NonNullable<ConsentSnapshot['branding']>;
 
 	selectedConsents: Partial<ConsentState>;
 	selectedConsentTypes: Partial<ConsentState>;
+	/** Granted flag per declared vendor in the draft. */
+	selectedVendors: Readonly<Record<string, boolean>>;
 	presentation?: ConsentPresentation;
 	readonly draft: ConsentDraftState;
 	consentCategories: AllConsentNames[];
@@ -111,6 +140,15 @@ export interface ConsentManagerState extends Pick<
 	legalLinks: ConsentManagerOptions['legalLinks'];
 	translationConfig: TranslationConfig;
 	getDisplayedConsents: () => ConsentType[];
+	/**
+	 * The vendors listed under one category: presentable, naming that
+	 * category, without a negation. Empty under an `iab` policy, where the
+	 * TC string decides and vendor rows are not shown.
+	 *
+	 * @param category - The category row being rendered.
+	 * @returns The vendors to list, in declared order.
+	 */
+	getDisplayedVendors: (category: AllConsentNames) => ResolvedVendor[];
 	has: (condition: HasCondition<AllConsentNames>) => boolean;
 	dismissNotice: () => Promise<unknown>;
 	saveConsents: (type: SaveType) => Promise<void>;
@@ -118,6 +156,13 @@ export interface ConsentManagerState extends Pick<
 	setConsent: (name: AllConsentNames, value: boolean) => void;
 	setLanguage: (code: string) => void;
 	setSelectedConsent: (name: AllConsentNames, value: boolean) => void;
+	/**
+	 * Stage one vendor's grant on the draft. Recorded by the next save.
+	 *
+	 * @param vendorId - Vendor slug as declared in `vendors` or on a script.
+	 * @param granted - Whether the vendor may load once the draft is saved.
+	 */
+	setSelectedVendor: (vendorId: string, granted: boolean) => void;
 	subscribeToConsentChanges: (
 		listener: (state: ConsentState) => void
 	) => () => void;
@@ -139,6 +184,7 @@ export interface ThemeContextValue {
 	readonly trapFocus?: boolean;
 	readonly colorScheme?: UIOptions['colorScheme'];
 	readonly legalLinks?: ConsentManagerOptions['legalLinks'];
+	readonly preloadDialog?: DialogPreload;
 }
 
 export interface ConsentControllerOptions {
@@ -229,6 +275,12 @@ const createConsentState = function createConsentState(
 		// -- Methods --------------------------------------------------------------
 		getDisplayedConsents() {
 			return displayedConsentTypes(controller.consentCategories);
+		},
+		getDisplayedVendors(category: AllConsentNames) {
+			const snapshot = getSnapshotLocal();
+			return snapshot.model === 'iab'
+				? []
+				: vendorsListedUnder(snapshot.vendors?.declared ?? [], category);
 		},
 		has(condition: HasCondition<AllConsentNames>) {
 			const snapshot = getSnapshotLocal();
@@ -323,45 +375,16 @@ const createConsentState = function createConsentState(
 		async saveConsents(type: SaveType) {
 			actionSequence += 1;
 			const sequence = actionSequence;
-			const preserveDialog = kernel.getSnapshot().activeUI === 'dialog';
-			const save = async () => {
-				if (type === 'custom') {
-					await options.getDraft().save(controller.consentCategories);
-					return;
-				}
-				const result = await kernel.commands.save(
-					type === 'all' ? 'all' : 'none',
-					{
-						categories: controller.consentCategories,
-					}
+			const before = kernel.getSnapshot();
+			const fromDialog = before.activeUI === 'dialog';
+			const recorded = () => {
+				const after = kernel.getSnapshot();
+				return (
+					after.explicitChoice !== before.explicitChoice ||
+					after.vendorChoice !== before.vendorChoice
 				);
-				if (!result.ok) {
-					throw new Error('Unable to save preferences.');
-				}
-				if (sequence === actionSequence) {
-					options.getDraft().reset();
-				}
 			};
-			// The local receipt commits synchronously, before the transport settles.
-			// Restore the open dialog now so loading and failure never hide its draft.
-			const pending = save();
-			if (preserveDialog && sequence === actionSequence) {
-				kernel.set.activeUI('dialog');
-			}
-			const unsubscribe = kernel.subscribe((next) => {
-				if (
-					preserveDialog &&
-					next.activeUI !== 'dialog' &&
-					sequence === actionSequence
-				) {
-					actionSequence += 1;
-				}
-			});
-			try {
-				await pending;
-				if (sequence !== actionSequence || !preserveDialog) {
-					return;
-				}
+			const closeDialog = () => {
 				const current = kernel.getSnapshot();
 				kernel.set.activeUI(
 					current.policyPending ||
@@ -370,8 +393,49 @@ const createConsentState = function createConsentState(
 						? 'none'
 						: 'banner'
 				);
-			} finally {
-				unsubscribe();
+			};
+			const save = async () => {
+				if (type === 'custom') {
+					await options.getDraft().save(controller.consentCategories);
+					return;
+				}
+				const pendingSave = kernel.commands.save(
+					type === 'all' ? 'all' : 'none',
+					{
+						categories: controller.consentCategories,
+					}
+				);
+				// The record already holds the choice; the draft follows it now.
+				if (recorded()) {
+					options.getDraft().reset();
+				}
+				const result = await pendingSave;
+				if (!result.ok) {
+					throw new Error('Unable to save preferences.');
+				}
+				if (sequence === actionSequence) {
+					options.getDraft().reset();
+				}
+			};
+			// The kernel records the choice and updates permissions before the
+			// transport runs (storage follows one task later, still ahead of
+			// the request). Close in this task and let
+			// the backend request finish in the background: its outcome never
+			// reopens the dialog, and a failed request stays queued for replay.
+			const pending = save();
+			const closed = fromDialog && recorded();
+			if (closed && sequence === actionSequence) {
+				closeDialog();
+			}
+			await pending;
+			// A save that recorded nothing new closes once it resolves.
+			if (
+				fromDialog &&
+				!closed &&
+				sequence === actionSequence &&
+				kernel.getSnapshot().activeUI === 'dialog'
+			) {
+				closeDialog();
 			}
 		},
 		get selectedConsents() {
@@ -380,8 +444,12 @@ const createConsentState = function createConsentState(
 		get selectedConsentTypes() {
 			return options.getDraft().values;
 		},
+		get selectedVendors() {
+			return options.getDraft().vendors;
+		},
 		setActiveUI(ui: ActiveUI) {
 			actionSequence += 1;
+			iabActions.set(kernel, {});
 			(
 				kernel.set as typeof kernel.set & {
 					activeUI: (ui: KernelActiveUI) => void;
@@ -398,6 +466,9 @@ const createConsentState = function createConsentState(
 		setSelectedConsent(name: AllConsentNames, value: boolean) {
 			options.getDraft().set(name, value);
 		},
+		setSelectedVendor(vendorId: string, granted: boolean) {
+			options.getDraft().setVendor(vendorId, granted);
+		},
 
 		subscribeToConsentChanges(listener: (state: ConsentState) => void) {
 			return kernel.subscribe((snapshot: ConsentSnapshot) =>
@@ -410,6 +481,12 @@ const createConsentState = function createConsentState(
 		},
 		get translations() {
 			return getSnapshotLocal().translations;
+		},
+		get vendorChoice() {
+			return getSnapshotLocal().vendorChoice;
+		},
+		get vendors() {
+			return getSnapshotLocal().vendors;
 		},
 		get user() {
 			return getSnapshotLocal().user;
@@ -478,7 +555,8 @@ export const getSnapshot = function getSnapshot(): ConsentSnapshot {
  * Exposes both readable state (`consents`, `activeUI`, `model`, …) and
  * mutators (`setConsent`, `saveConsents`, `setActiveUI`, `setLanguage`, …).
  * This is the primary API for reading and writing consent from inside your
- * own components — equivalent to React's `useConsentManager()`.
+ * own components. React has no single equivalent; it reads each field
+ * through its own hook, such as `useConsent()` or `useActiveUI()`.
  *
  * Must be called inside a component tree wrapped in `<ConsentManagerProvider>`.
  */
@@ -548,6 +626,44 @@ export const getHeadlessConsent = function getHeadlessConsent() {
 			await consent.saveConsents('custom');
 		},
 	};
+};
+
+/**
+ * Close an IAB surface in the task that handled the click, then save.
+ *
+ * An IAB choice commits once its TC string is encoded, which can wait on the
+ * TCF library chunk but never on the backend. The surface comes back only
+ * when that local step recorded nothing (the vendor list failed to load, or
+ * the policy changed underneath) and no newer save or explicit navigation
+ * came first, so the visitor can try again. A failed backend request never
+ * reopens it.
+ *
+ * @internal
+ */
+export const saveIABChoice = async function saveIABChoice(
+	kernel: ConsentKernel,
+	save: () => Promise<void>
+): Promise<void> {
+	const action = {};
+	iabActions.set(kernel, action);
+	const before = kernel.getSnapshot();
+	const surface = before.activeUI;
+	if (surface !== 'none') {
+		kernel.set.activeUI('none');
+	}
+	try {
+		await save();
+	} finally {
+		const after = kernel.getSnapshot();
+		if (
+			surface !== 'none' &&
+			iabActions.get(kernel) === action &&
+			after.iab?.authority === before.iab?.authority &&
+			after.activeUI === 'none'
+		) {
+			kernel.set.activeUI(surface);
+		}
+	}
 };
 
 export const getIAB = function getIAB(): SvelteIABState | null {

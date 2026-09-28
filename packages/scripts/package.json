@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/scripts",
-	"version": "3.0.0-alpha.0",
+	"version": "3.0.0-alpha.1",
 	"description": "Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, and more.",
 	"keywords": [
 		"adobe-analytics",
@@ -26,6 +26,7 @@
 		"logrocket",
 		"meta-pixel",
 		"microsoft-uet",
+		"pinterest-tag",
 		"pirsch",
 		"posthog",
 		"privacy",
@@ -134,6 +135,11 @@
 			"import": "./dist/vendors/analytics/mixpanel-analytics.js",
 			"default": "./dist/vendors/analytics/mixpanel-analytics.js"
 		},
+		"./one-dollar-stats": {
+			"types": "./dist-types/vendors/analytics/one-dollar-stats.d.ts",
+			"import": "./dist/vendors/analytics/one-dollar-stats.js",
+			"default": "./dist/vendors/analytics/one-dollar-stats.js"
+		},
 		"./pirsch": {
 			"types": "./dist-types/vendors/analytics/pirsch.d.ts",
 			"import": "./dist/vendors/analytics/pirsch.js",
@@ -179,10 +185,20 @@
 			"import": "./dist/vendors/functional/crisp.js",
 			"default": "./dist/vendors/functional/crisp.js"
 		},
+		"./front-chat": {
+			"types": "./dist-types/vendors/functional/front-chat.d.ts",
+			"import": "./dist/vendors/functional/front-chat.js",
+			"default": "./dist/vendors/functional/front-chat.js"
+		},
 		"./intercom": {
 			"types": "./dist-types/vendors/functional/intercom.d.ts",
 			"import": "./dist/vendors/functional/intercom.js",
 			"default": "./dist/vendors/functional/intercom.js"
+		},
+		"./cloudflare-zaraz": {
+			"types": "./dist-types/vendors/tag-managers/cloudflare-zaraz.d.ts",
+			"import": "./dist/vendors/tag-managers/cloudflare-zaraz.js",
+			"default": "./dist/vendors/tag-managers/cloudflare-zaraz.js"
 		},
 		"./google-tag-manager": {
 			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
@@ -203,6 +219,11 @@
 			"types": "./dist-types/vendors/ads-and-pixels/openai-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/openai-pixel.js",
 			"default": "./dist/vendors/ads-and-pixels/openai-pixel.js"
+		},
+		"./pinterest-tag": {
+			"types": "./dist-types/vendors/ads-and-pixels/pinterest-tag.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/pinterest-tag.js",
+			"default": "./dist/vendors/ads-and-pixels/pinterest-tag.js"
 		},
 		"./reddit-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/reddit-pixel.d.ts",

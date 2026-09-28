@@ -4,35 +4,14 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-import { resolveWorkspaceProtocol } from './workspace-protocol';
-
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-
-describe('resolveWorkspaceProtocol', () => {
-	it('pins workspace:* to the exact version, with no range operator', () => {
-		expect(resolveWorkspaceProtocol('workspace:*', '2.2.0')).toBe('2.2.0');
-		expect(
-			resolveWorkspaceProtocol('workspace:*', '2.2.0-canary-20260731105620')
-		).toBe('2.2.0-canary-20260731105620');
-	});
-
-	it('maps workspace:^ and workspace:~ to the matching range', () => {
-		expect(resolveWorkspaceProtocol('workspace:^', '2.2.0')).toBe('^2.2.0');
-		expect(resolveWorkspaceProtocol('workspace:~', '2.2.0')).toBe('~2.2.0');
-	});
-
-	it('unwraps explicit workspace ranges and passes other ranges through', () => {
-		expect(resolveWorkspaceProtocol('workspace:2.0.0', '2.2.0')).toBe('2.0.0');
-		expect(resolveWorkspaceProtocol('^2.2.0', '2.2.0')).toBe('^2.2.0');
-	});
-});
 
 /**
  * The umbrella facade must publish with exact pins on its scoped packages:
  * its committed exports map and shims are generated from specific scoped
  * manifests, so a range would let installs drift onto scoped versions the
  * umbrella was not generated against. `workspace:*` is what resolves to an
- * exact pin at publish time (see resolveWorkspaceProtocol).
+ * exact pin when Bun packs the tarball. tegami.test.ts checks the packed manifest.
  */
 describe('c15t umbrella dependencies', () => {
 	const manifest = JSON.parse(

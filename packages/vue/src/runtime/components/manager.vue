@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
+
+import '@c15t/ui/styles/components/consent-dialog.css';
 import { getTextDirection } from '@c15t/ui/utils';
 import { computed, nextTick, onUnmounted, provide, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
@@ -9,8 +11,8 @@ import {
 	useConsentActiveUI,
 	useConsentConfig,
 	useConsentInit,
+	useConsentKernel,
 	useConsentSave,
-	useConsentSnapshot,
 	useHasConsentUi,
 } from '../composables';
 import { useConsentDraft } from '../composables/draft';
@@ -35,7 +37,7 @@ const textDirection = computed(() =>
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const save = useConsentSave();
-const snapshot = useConsentSnapshot();
+const kernel = useConsentKernel();
 // No resolved policy means nothing to manage: render no surface at all.
 const hasConsentUi = useHasConsentUi();
 
@@ -44,7 +46,12 @@ let pendingActions = 0;
 let actionSequence = 0;
 let applyingSave = false;
 const draftState = useConsentDraft(() => pendingActions === 0);
-const { isStale, reset: resetDraft, save: saveDraft } = draftState;
+const {
+	isStale,
+	reseedOnNextRecord,
+	reset: resetDraft,
+	save: saveDraft,
+} = draftState;
 
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
 const isOverlayVisible = computed(() => activeUI.value === 'manager');
@@ -97,8 +104,7 @@ watch(
 	{ immediate: true }
 );
 
-// A local receipt can hide the kernel prompt before its transport settles.
-// Explicit close/reopen and newer actions invalidate the older completion.
+// Explicit close/reopen and newer actions invalidate an older completion.
 watch(
 	activeUI,
 	(ui) => {
@@ -112,10 +118,17 @@ onUnmounted(() => {
 	actionSequence += 1;
 });
 
+/** Leave the manager for the banner only when a choice is still owed. */
+const closeManager = function closeManager() {
+	activeUI.value =
+		kernel.getSnapshot().promptRequirement.kind === 'none' ? null : 'banner';
+};
+
 const onAction = async function onAction(action: PresentationAction) {
 	actionSequence += 1;
 	const sequence = actionSequence;
-	const preserveManager = activeUI.value === 'manager';
+	const fromManager = activeUI.value === 'manager';
+	const before = kernel.getSnapshot();
 	pendingActions += 1;
 	try {
 		applyingSave = true;
@@ -124,20 +137,46 @@ const onAction = async function onAction(action: PresentationAction) {
 			if (action === 'save') {
 				pending = saveDraft();
 			} else if (action === 'accept') {
+				reseedOnNextRecord();
 				pending = save('all');
 			} else if (action === 'reject') {
+				reseedOnNextRecord();
 				pending = save('none');
 			}
-			if (preserveManager && sequence === actionSequence) {
-				activeUI.value = 'manager';
+			// The kernel records the choice and updates permissions before
+			// the transport runs (storage follows one task later, still ahead
+			// of the request). Close in this task and
+			// leave the backend request to finish in the background: its
+			// outcome never reopens the manager, and reopening reseeds the
+			// draft from the record.
+			const after = kernel.getSnapshot();
+			if (
+				fromManager &&
+				sequence === actionSequence &&
+				(after.explicitChoice !== before.explicitChoice ||
+					after.vendorChoice !== before.vendorChoice)
+			) {
+				closeManager();
+				actionSequence += 1;
 			}
 		} finally {
 			applyingSave = false;
 		}
 		const result = await pending;
-		if (result?.ok && preserveManager && sequence === actionSequence) {
-			activeUI.value =
-				snapshot.value.promptRequirement.kind === 'none' ? null : 'banner';
+		// The draft does not sync while an action is pending, so it follows
+		// the record once this action, and no newer one, has succeeded; a
+		// failed action keeps the visible draft for the visitor to retry.
+		if (result?.ok && sequence === actionSequence) {
+			resetDraft();
+		}
+		// A save that recorded nothing new closes once it resolves.
+		if (
+			result?.ok &&
+			fromManager &&
+			sequence === actionSequence &&
+			activeUI.value === 'manager'
+		) {
+			closeManager();
 		}
 	} finally {
 		pendingActions -= 1;

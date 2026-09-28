@@ -40,6 +40,8 @@ import {
 	validateNoticeDismissal,
 } from '../../consent-record/validation';
 import type { RecordIssue } from '../../consent-record/validation';
+import { isValidVendorId } from '../../libs/vendors';
+import type { VendorChoice } from '../../types';
 
 /** Validated IAB transport metadata carried alongside category choices. */
 export interface StoredIabMetadata {
@@ -60,6 +62,14 @@ export interface StoredIabMetadata {
 export interface StoredConsentEnvelope {
 	version: 3;
 	subject?: ConsentSubject;
+	/**
+	 * Clear epoch the envelope was written under: the time of the last
+	 * `clear()` its writer knew about, in epoch milliseconds. Absent means
+	 * epoch 0, a record from before any clear (every v2 or legacy record,
+	 * and every envelope written before epochs existed). Decisions
+	 * confirmed before the current epoch are void.
+	 */
+	epoch?: number;
 	categories: ExplicitChoice['categories'];
 	iab?: StoredIabMetadata;
 }
@@ -75,6 +85,16 @@ export interface StoredPrivacyOptOuts {
 	version: 1;
 	directives: readonly PrivacyOptOut[];
 }
+
+/** Local vendor denial list. Version 1 matches the kernel record. */
+export type StoredVendorChoice = VendorChoice & {
+	/**
+	 * Subject identity, carried so a visitor whose first act only decided
+	 * vendors keeps the same subject after a reload. The consent envelope needs
+	 * a category choice to exist and cannot hold it for that visitor.
+	 */
+	subject?: ConsentSubject;
+};
 
 /** Structural issue found while decoding a stored record. */
 export type StorageIssue =
@@ -136,6 +156,7 @@ const CODE_TO_IAB_KEY: ReadonlyMap<string, keyof StoredIabMetadata> = new Map(
 );
 
 const BASIS_FIELD = 'b';
+const EPOCH_FIELD = 'e';
 const VERSION_FIELD = 'v';
 
 const SUBJECT_KEYS = ['subjectId', 'externalId', 'identityProvider'] as const;
@@ -265,7 +286,41 @@ export const validateIabMetadata = function validateIabMetadata(
 	return metadata;
 };
 
-const ENVELOPE_KEYS = ['version', 'subject', 'categories', 'iab'] as const;
+const ENVELOPE_KEYS = [
+	'version',
+	'subject',
+	'epoch',
+	'categories',
+	'iab',
+] as const;
+
+/**
+ * How far a clear epoch may lie ahead of the clock and still count: one
+ * hour. A clock set back after a clear leaves the epoch in the future, and
+ * dropping it would let cleared records back in, so a small lead is kept.
+ * A larger one is taken as corrupt, since it would void every decision for
+ * as long as it stays ahead.
+ */
+export const EPOCH_CLOCK_TOLERANCE_MS = 60 * 60 * 1000;
+
+/**
+ * Reads a clear epoch: a whole, non-negative time at most
+ * {@link EPOCH_CLOCK_TOLERANCE_MS} ahead of `now`, or `undefined`. The
+ * epoch only voids decisions, so an unreadable one is dropped rather than
+ * rejecting the record that carries it: a bad epoch never discards a
+ * stored denial.
+ */
+const readEpoch = function readEpoch(
+	value: unknown,
+	now: number
+): number | undefined {
+	return typeof value === 'number' &&
+		Number.isSafeInteger(value) &&
+		value >= 0 &&
+		value <= now + EPOCH_CLOCK_TOLERANCE_MS
+		? value
+		: undefined;
+};
 
 /**
  * Validates a parsed v3 envelope object. Reuses the consent-record
@@ -291,6 +346,8 @@ export const validateStoredConsentEnvelope =
 			}
 		}
 		const subject = validateSubject(ownValue(input, 'subject'), issues);
+		const rawEpoch = ownValue(input, 'epoch');
+		const epoch = rawEpoch === undefined ? undefined : readEpoch(rawEpoch, now);
 		const rawIab = ownValue(input, 'iab');
 		let iab: StoredIabMetadata | undefined;
 		if (isPlainRecord(rawIab)) {
@@ -317,6 +374,9 @@ export const validateStoredConsentEnvelope =
 		};
 		if (subject) {
 			envelope.subject = subject;
+		}
+		if (epoch) {
+			envelope.epoch = epoch;
 		}
 		if (iab) {
 			envelope.iab = iab;
@@ -368,6 +428,9 @@ export const encodeStoredConsentEnvelopeJson =
 		if (envelope.subject && Object.keys(envelope.subject).length > 0) {
 			ordered.subject = envelope.subject;
 		}
+		if (envelope.epoch) {
+			ordered.epoch = envelope.epoch;
+		}
 		ordered.categories = categories;
 		if (envelope.iab) {
 			ordered.iab = envelope.iab;
@@ -410,6 +473,7 @@ const encodeBooleanMap = function encodeBooleanMap(
  * sid=<uri-encoded subjectId>          (optional)
  * eid=<uri-encoded externalId>         (optional)
  * idp=<uri-encoded identityProvider>   (optional)
+ * e=<clear epoch>                      (optional, only after a clear)
  * b=<basis>|<basis>                    (when any category is present)
  * fn=<0|1>.<confirmedAt>.<basisIndex>  (per present category: fn ex me mk)
  * icv=<0|1>.<uri-encoded vendorId>|... (optional)
@@ -435,6 +499,9 @@ export const encodeStoredConsentEnvelopeCompact =
 					`${SUBJECT_CODES[key]}${KEY_VALUE_SEPARATOR}${encodeURIComponent(value)}`
 				);
 			}
+		}
+		if (envelope.epoch) {
+			fields.push(`${EPOCH_FIELD}${KEY_VALUE_SEPARATOR}${envelope.epoch}`);
 		}
 
 		const bases: string[] = [];
@@ -649,6 +716,15 @@ export const decodeStoredConsentEnvelopeCompact =
 		fields.delete(BASIS_FIELD);
 		const bases =
 			rawBases === undefined ? [] : parseBasisList(rawBases, issues);
+		const rawEpoch = fields.get(EPOCH_FIELD);
+		fields.delete(EPOCH_FIELD);
+		const epoch =
+			rawEpoch === undefined
+				? undefined
+				: readEpoch(
+						DIGITS_ONLY.test(rawEpoch) ? Number(rawEpoch) : rawEpoch,
+						now
+					);
 
 		const subject: ConsentSubject = {};
 		const categories: ExplicitChoice['categories'] = {};
@@ -690,6 +766,9 @@ export const decodeStoredConsentEnvelopeCompact =
 		const envelope: StoredConsentEnvelope = { categories, version: 3 };
 		if (Object.keys(subject).length > 0) {
 			envelope.subject = subject;
+		}
+		if (epoch) {
+			envelope.epoch = epoch;
 		}
 		if (Object.keys(iab).length > 0) {
 			envelope.iab = iab;
@@ -1013,4 +1092,213 @@ export const decodePrivacyOptOutsCompact = function decodePrivacyOptOutsCompact(
 		}
 	}
 	return decodePrivacyOptOuts({ directives, version: 1 }, now);
+};
+
+// ---------------------------------------------------------------------------
+// Vendor denial list (local-only, JSON + compact cookie projection)
+// ---------------------------------------------------------------------------
+
+/** Prefix of the compact vendor-choice cookie projection. */
+export const COMPACT_VENDORS_PREFIX = 'v=1';
+
+const VENDOR_CHOICE_KEYS = [
+	'version',
+	'confirmedAt',
+	'denied',
+	'subject',
+] as const;
+
+/** Validates a parsed vendor denial list. */
+export const decodeVendorChoice = function decodeVendorChoice(
+	input: unknown,
+	now: number
+): DecodeResult<StoredVendorChoice> {
+	if (!isPlainRecord(input)) {
+		return { issues: [{ code: 'not-an-object', path: '' }], ok: false };
+	}
+	if (ownValue(input, 'version') !== 1) {
+		return {
+			issues: [{ code: 'unsupported-version', path: 'version' }],
+			ok: false,
+		};
+	}
+	const issues: StorageIssue[] = [];
+	for (const key of ownKeys(input)) {
+		if (
+			!VENDOR_CHOICE_KEYS.includes(key as (typeof VENDOR_CHOICE_KEYS)[number])
+		) {
+			issues.push({ code: 'unknown-key', path: key });
+		}
+	}
+	const confirmedAt = ownValue(input, 'confirmedAt');
+	const timestampIssue = checkTimestamp(confirmedAt, now);
+	if (timestampIssue) {
+		issues.push({ code: timestampIssue, path: 'confirmedAt' });
+	}
+	const subject = validateSubject(ownValue(input, 'subject'), issues);
+	const rawDenied = ownValue(input, 'denied');
+	const denied: string[] = [];
+	if (Array.isArray(rawDenied)) {
+		for (const [index, entry] of rawDenied.entries()) {
+			// The same slug shape a declaration must have. A stored id outside
+			// it would ride into every later grant map and fail the wire schema.
+			if (!isNonEmptyString(entry) || !isValidVendorId(entry)) {
+				issues.push({ code: 'invalid-identifier', path: `denied[${index}]` });
+				continue;
+			}
+			if (denied.includes(entry)) {
+				issues.push({ code: 'duplicate-key', path: `denied[${index}]` });
+				continue;
+			}
+			denied.push(entry);
+		}
+	} else {
+		issues.push({ code: 'not-an-object', path: 'denied' });
+	}
+	if (issues.length > 0) {
+		return { issues, ok: false };
+	}
+	const record: StoredVendorChoice = {
+		confirmedAt: confirmedAt as number,
+		denied: denied.sort(),
+		version: 1,
+	};
+	if (subject) {
+		record.subject = subject;
+	}
+	return { ok: true, record };
+};
+
+/** Serializes the vendor denial list for localStorage. */
+export const encodeVendorChoice = function encodeVendorChoice(
+	record: StoredVendorChoice
+): string {
+	const encoded: StoredVendorChoice = {
+		confirmedAt: record.confirmedAt,
+		denied: [...record.denied].sort(),
+		version: 1,
+	};
+	if (record.subject && Object.keys(record.subject).length > 0) {
+		encoded.subject = { ...record.subject };
+	}
+	return JSON.stringify(encoded);
+};
+
+/**
+ * Compact vendor denials for the `<key>-vendors` cookie:
+ * `v=1&t=<confirmedAt>&d=<uri-encoded id>|<uri-encoded id>`, followed by the
+ * subject fields the consent envelope also uses (`sid`, `eid`, `idp`).
+ * The `d` field is omitted when nothing is denied.
+ */
+export const encodeVendorChoiceCompact = function encodeVendorChoiceCompact(
+	record: StoredVendorChoice
+): string {
+	const parts = [
+		COMPACT_VENDORS_PREFIX,
+		`t${KEY_VALUE_SEPARATOR}${record.confirmedAt}`,
+	];
+	if (record.denied.length > 0) {
+		parts.push(
+			`d${KEY_VALUE_SEPARATOR}${[...record.denied]
+				.sort()
+				.map((id) => encodeURIComponent(id))
+				.join(LIST_SEPARATOR)}`
+		);
+	}
+	for (const key of SUBJECT_KEYS) {
+		const value = record.subject?.[key];
+		if (value) {
+			parts.push(
+				`${SUBJECT_CODES[key]}${KEY_VALUE_SEPARATOR}${encodeURIComponent(value)}`
+			);
+		}
+	}
+	return parts.join(FIELD_SEPARATOR);
+};
+
+/** Decodes compact vendor denials through the shared validator. */
+export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
+	rawValue: string,
+	now: number
+): DecodeResult<StoredVendorChoice> {
+	const issues: StorageIssue[] = [];
+	const fields = parseCompactFields(rawValue, COMPACT_VENDORS_PREFIX, issues);
+	if (!fields) {
+		return { issues, ok: false };
+	}
+	const subject: ConsentSubject = {};
+	for (const [key, value] of fields) {
+		const subjectKey = CODE_TO_SUBJECT_KEY.get(key);
+		if (subjectKey) {
+			const decoded = decodeComponent(value);
+			if (decoded === null || decoded.length === 0) {
+				issues.push({ code: 'invalid-identifier', path: key });
+			} else {
+				subject[subjectKey] = decoded;
+			}
+			continue;
+		}
+		if (key !== 't' && key !== 'd') {
+			issues.push({ code: 'unknown-key', path: key });
+		}
+	}
+	if (issues.length > 0) {
+		return { issues, ok: false };
+	}
+	const list = fields.get('d');
+	const denied: unknown[] = [];
+	if (list !== undefined && list !== '') {
+		for (const [index, entry] of list.split(LIST_SEPARATOR).entries()) {
+			const id = decodeComponent(entry);
+			if (id === null) {
+				return {
+					issues: [{ code: 'malformed-encoding', path: `d[${index}]` }],
+					ok: false,
+				};
+			}
+			denied.push(id);
+		}
+	}
+	const candidate: Record<string, unknown> = {
+		confirmedAt: parseCompactInteger(fields.get('t')),
+		denied,
+		version: 1,
+	};
+	if (Object.keys(subject).length > 0) {
+		candidate.subject = subject;
+	}
+	return decodeVendorChoice(candidate, now);
+};
+
+// ---------------------------------------------------------------------------
+// Clear epoch (cookie and localStorage)
+// ---------------------------------------------------------------------------
+
+/**
+ * Serializes the clear epoch record: the time of the last `clear()` in
+ * epoch milliseconds, as plain decimal digits. The same text is stored in
+ * the `<key>-epoch` cookie and localStorage entry.
+ */
+export const encodeClearEpoch = function encodeClearEpoch(
+	epoch: number
+): string {
+	return String(epoch);
+};
+
+/**
+ * Parses a clear epoch record. Anything but a whole time at most
+ * {@link EPOCH_CLOCK_TOLERANCE_MS} ahead of `now` is rejected, and a
+ * rejected epoch reads as `0`: a corrupt epoch voids nothing.
+ */
+export const decodeClearEpoch = function decodeClearEpoch(
+	text: string,
+	now: number
+): DecodeResult<number> {
+	const epoch = DIGITS_ONLY.test(text)
+		? readEpoch(Number(text), now)
+		: undefined;
+	if (epoch === undefined) {
+		return { issues: [{ code: 'malformed-encoding', path: '' }], ok: false };
+	}
+	return { ok: true, record: epoch };
 };

@@ -2,8 +2,13 @@
 
 import {
 	extractConsentNamesFromCondition,
+	watchRevocationReload,
 	createConsentKernel,
+	disabledPolicyResolution,
 	kernelConfigToInitResponse,
+	declareOwnedVendors,
+	forgetOwnedVendors,
+	resolveVendors,
 } from '@c15t/core';
 import type {
 	AllConsentNames,
@@ -26,6 +31,7 @@ import type {
 	StorageConfig,
 	TranslationsResponse,
 	User,
+	Vendor,
 } from '@c15t/core';
 import type { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
 import type { Script } from '@c15t/core/modules/script-loader';
@@ -35,13 +41,12 @@ import {
 } from '@c15t/core/modules/window-debug';
 import type { WindowDebugMode } from '@c15t/core/modules/window-debug';
 import type { ConsentRuntime } from '@c15t/core/runtime';
-import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
-import { defaultTheme, generateThemeCSS } from '@c15t/ui/theme';
 import type { ReactNode } from 'react';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
+import type { DialogPreload } from './chunk-warming';
 import { KernelContext, ProviderServicesContext } from './context';
 import { ExternalIABProvider } from './external-iab-context';
 import { useColorScheme } from './hooks/use-color-scheme';
@@ -50,8 +55,9 @@ import type {
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from './module-hooks';
-import { useIframeBlocker } from './module-hooks/iframe-blocker';
+import { useIframeBlockerOnDemand } from './module-hooks/iframe-blocker';
 import type { UseIframeBlockerOptions } from './module-hooks/iframe-blocker';
+import { useEarlyNetworkHold } from './module-hooks/network-hold';
 import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
 import type { ReactUIOptions } from './types/manager';
@@ -65,10 +71,16 @@ const loadScriptLoaderModule = () => import('@c15t/core/modules/script-loader');
 const loadClearOnRevocationModule = () =>
 	import('@c15t/core/modules/clear-on-revocation');
 
+/** Replaced by the app's bundler; see the theme-token warning below. */
+declare const process: { env: { NODE_ENV?: string } };
+
 /** Events emitted by the mounted provider without snapshot-derived consent aliases. */
 export type ConsentProviderCallbacks = Pick<
 	Callbacks,
-	'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+	| 'onChoiceRecorded'
+	| 'onPermissionsChanged'
+	| 'onError'
+	| 'onBeforeConsentRevocationReload'
 >;
 /** Prepared policy and records; legacy consent projections are not provider inputs. */
 export type ConsentProviderPrefetch = Omit<
@@ -92,9 +104,10 @@ export interface ConsentProviderOptions extends Pick<
 	 *
 	 * @remarks
 	 * Set this when your CSP uses a nonce-based policy instead of
-	 * `'unsafe-inline'`. The provider forwards it to the injected theme
-	 * `<style>` element and to every `<script>` element created by the
-	 * script loader. A per-script `nonce` still takes precedence.
+	 * `'unsafe-inline'`. The provider forwards it to every `<script>`
+	 * element created by the script loader. A per-script `nonce` still takes
+	 * precedence. Pass the same nonce to `ConsentTheme`, which renders the
+	 * theme `<style>` element.
 	 */
 	nonce?: string;
 	/**
@@ -157,10 +170,31 @@ export interface ConsentProviderOptions extends Pick<
 	 * Initial-only: remount the provider to replace its cleanup configuration.
 	 */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted. Removing a script cannot stop code that already
+	 * ran, so the reload starts a document with only permitted code. Waits for
+	 * the save request. Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	scripts?: Script[];
+	/**
+	 * Vendors offered for vendor-level consent outside IAB. Each sits inside a
+	 * category; a visitor can grant the category and still turn one vendor
+	 * off. Scripts, network rules and iframes name a vendor through `vendor`
+	 * or `data-vendor`. Merged with vendors the backend returns and with slugs
+	 * found on scripts and rules; presentation declared here wins.
+	 */
+	vendors?: Vendor[];
 	scriptLoader?: UseScriptLoaderOptions;
 	networkBlocker?: UseNetworkBlockerOptions | false;
-	/** Discover and gate DOM iframes with data-category. Enabled by default. */
+	/**
+	 * Discover and gate DOM iframes with data-category. Enabled by default.
+	 * The blocker loads when the first gated iframe is on the page; until it
+	 * runs, a gated iframe that arrives with a `src` consent does not allow
+	 * is paused.
+	 */
 	iframeBlocker?: UseIframeBlockerOptions | false;
 	persistence?: boolean | UsePersistenceOptions;
 	i18n?: Partial<I18nConfig>;
@@ -169,6 +203,21 @@ export interface ConsentProviderOptions extends Pick<
 	/** Per-component slot attribute overrides (shared contract with @c15t/vue). */
 	components?: ReactComponentSlots;
 	legalLinks?: LegalLinks;
+	/**
+	 * When the deferred `<ConsentDialog />` starts loading before it opens.
+	 *
+	 * - `'idle'` (default): after the page's load event, in browser idle time,
+	 *   while the banner is shown or a button that opens the dialog is
+	 *   mounted, and on hover or focus of such a button. Skipped when the
+	 *   visitor has Save-Data on or a 2G-class connection.
+	 * - `'intent'`: only on hover or focus of a button that opens the dialog.
+	 *
+	 * Neither loads the dialog on a visit that shows no banner and has no
+	 * dialog trigger.
+	 *
+	 * @default 'idle'
+	 */
+	preloadDialog?: DialogPreload;
 	/**
 	 * Adapter package name reported by `window.c15t`.
 	 * @internal
@@ -185,9 +234,14 @@ export interface ConsentProviderOptions extends Pick<
  */
 export type ExternalRuntimeProviderOptions = Omit<
 	ConsentProviderOptions,
-	'mode'
+	'mode' | 'vendors'
 > & {
 	mode?: ConsentProviderOptions['mode'];
+	/**
+	 * Not accepted here: the runtime owner declares vendors through
+	 * `createConsentRuntime({ vendors })`, and the kernel carries them.
+	 */
+	vendors?: never;
 };
 
 /** The provider builds and owns its own kernel. */
@@ -205,19 +259,6 @@ export interface ExternalRuntimeProviderProps {
 export type ConsentProviderProps =
 	| OwnedRuntimeProviderProps
 	| ExternalRuntimeProviderProps;
-
-const DISABLED_RESOLUTION = resolvePolicyRules({
-	countryCode: null,
-	regionCode: null,
-	rules: [
-		{
-			id: 'disabled',
-			match: { fallback: true },
-			model: 'opt-out',
-			prompt: 'none',
-		},
-	],
-});
 
 const DEFAULT_TRANSLATIONS: KernelTranslations = {
 	language: 'en',
@@ -473,6 +514,38 @@ const resolveInitialPolicyPending = function resolveInitialPolicyPending(
 	);
 };
 
+const warnVendorDeclaration = function warnVendorDeclaration(
+	message: string
+): void {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (nodeEnv !== 'production') {
+		console.warn(message);
+	}
+};
+
+/**
+ * Declared vendors for the kernel: code declarations and script slugs merged
+ * over whatever a server prefetch already resolved. A resolved prefetch
+ * skips the initial `init()`, so nothing would merge backend vendors later.
+ */
+const resolveProviderVendors = function resolveProviderVendors(
+	options: ConsentProviderOptions,
+	integrations: readonly { vendor?: string; category: Script['category'] }[],
+	prefetch: KernelConfig
+): KernelConfig['initialVendors'] {
+	const declared = resolveVendors({
+		config: options.vendors,
+		existing: prefetch.initialVendors?.declared,
+		onWarn: warnVendorDeclaration,
+		owners: integrations,
+	});
+	const listVersion = prefetch.initialVendors?.listVersion ?? null;
+	return declared.length > 0 || listVersion !== null
+		? { declared, listVersion }
+		: undefined;
+};
+
 const createProviderKernel = function createProviderKernel(
 	options: ConsentProviderOptions
 ): ConsentKernel {
@@ -498,16 +571,32 @@ const createProviderKernel = function createProviderKernel(
 		() => kernelRef.current
 	);
 
+	const integrations = [
+		...(options.scripts ?? []),
+		...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+	];
+	const initialVendors = resolveProviderVendors(
+		options,
+		integrations,
+		prefetch
+	);
+
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const kernel = createConsentKernel({
 		...prefetch,
 		consentCategories: options.consentCategories,
 		inferredConsentCategories: [
-			...(options.scripts ?? []),
-			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
-		].flatMap((integration) =>
-			extractConsentNamesFromCondition(integration.category)
-		),
+			...integrations.flatMap((integration) =>
+				extractConsentNamesFromCondition(integration.category)
+			),
+			// A vendor declared in code or already resolved by a server prefetch
+			// makes its category selectable; a resolved prefetch skips init, so
+			// nothing would register it later.
+			...(initialVendors?.declared ?? []).flatMap((vendor) =>
+				extractConsentNamesFromCondition(vendor.category)
+			),
+		],
+		initialVendors,
 		initialRecords: enabled ? prefetch.initialRecords : undefined,
 		initialPrivacySignals: enabled ? prefetch.initialPrivacySignals : undefined,
 		// An empty shell has no expiring records to evaluate. A stable seed
@@ -520,7 +609,7 @@ const createProviderKernel = function createProviderKernel(
 		transport,
 		initialPolicyResolution: enabled
 			? prefetch.initialPolicyResolution
-			: DISABLED_RESOLUTION,
+			: disabledPolicyResolution(),
 		initialOverrides: {
 			...(prefetch.initialOverrides ?? {}),
 			...(options.overrides ?? {}),
@@ -554,16 +643,45 @@ const stringifyError = function stringifyError(error: unknown): string {
 
 const useProviderCallbacks = function useProviderCallbacks(
 	kernel: ConsentKernel,
-	callbacks: ConsentProviderCallbacks | undefined
+	callbacks: ConsentProviderCallbacks | undefined,
+	reloadOnConsentRevoked: boolean | undefined
 ) {
 	const callbacksRef = useRef(callbacks);
+	const reloadRef = useRef(reloadOnConsentRevoked);
 
 	useEffect(() => {
 		callbacksRef.current = callbacks;
-	}, [callbacks]);
+		reloadRef.current = reloadOnConsentRevoked;
+	}, [callbacks, reloadOnConsentRevoked]);
+
+	useEffect(
+		() =>
+			watchRevocationReload({
+				getOnBeforeReload: () =>
+					callbacksRef.current?.onBeforeConsentRevocationReload,
+				isEnabled: () => reloadRef.current !== false,
+				kernel,
+			}),
+		[kernel]
+	);
 
 	useEffect(() => {
 		const subscriptions = [
+			// Vendors the backend declares arrive with init. Their categories
+			// become selectable the same way a code-declared vendor's do. The
+			// kernel's inferred set only grows, so a category that lost its last
+			// vendor stays selectable until remount; that matches how a removed
+			// script's category behaves today.
+			kernel.events.on('init:applied', ({ snapshot }) => {
+				const declared = snapshot.vendors?.declared ?? [];
+				if (declared.length > 0) {
+					kernel.set.registerConsentCategories(
+						declared.flatMap((vendor) =>
+							extractConsentNamesFromCondition(vendor.category)
+						)
+					);
+				}
+			}),
 			kernel.events.on(
 				'choice:recorded',
 				({ snapshot, confirmed, actionAt }) => {
@@ -669,6 +787,97 @@ const useProviderOptionSync = function useProviderOptionSync(
 		kernel.set.activeUI('none');
 	}, [enabled, kernel, owns]);
 
+	// `vendors` is a live option like `scripts`: a list supplied or replaced
+	// after the first render is merged into the kernel and its categories
+	// registered, so the preference center shows the rows. Scripts and rules
+	// are part of the same picture, since their slugs declare vendors too: a
+	// change to either recomputes the code-declared set.
+	const previousVendorsRef = useRef<string | null>(null);
+	// The provider's own scripts and rules are one owner among several: a
+	// `useScriptLoader` or `useNetworkBlocker` hook elsewhere in the tree
+	// declares its own slugs under its own token, and the kernel keeps every
+	// module's contribution, so a slug both name stays under both categories
+	// whichever updates.
+	const ownerSourceRef = useRef<symbol>(Symbol('consent-provider'));
+	useEffect(() => {
+		if (!owns) {
+			return;
+		}
+		const owners = [
+			...(options.scripts ?? []),
+			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+		];
+		const serialized = JSON.stringify([
+			options.vendors ?? [],
+			owners.map((owner) => [owner.vendor ?? null, owner.category]),
+		]);
+		if (previousVendorsRef.current === null) {
+			previousVendorsRef.current = serialized;
+			// The initial snapshot already carries these owners; register them
+			// so a later update from another module keeps them.
+			declareOwnedVendors(kernel, owners, ownerSourceRef.current);
+			return;
+		}
+		if (previousVendorsRef.current === serialized) {
+			return;
+		}
+		previousVendorsRef.current = serialized;
+		// Resolved against the backend entries the kernel already holds, so a
+		// script that starts naming a backend vendor's slug attaches to that
+		// entry as an owner and survives the backend dropping it later. The
+		// owners they remembered are dropped first: the registry below is
+		// the whole owner set, and a stale owner would otherwise keep a
+		// vendor declared after both its script and the backend let it go.
+		const current = kernel.getSnapshot().vendors?.declared ?? [];
+		const declared = resolveVendors({
+			config: options.vendors,
+			existing: current.flatMap((vendor) => {
+				// A backend copy a config entry shadows counts too: replacing the
+				// config source restores it, so it needs the same cleanup.
+				const manifest =
+					vendor.source === 'manifest' ? vendor : vendor.shadowed;
+				if (manifest?.source !== 'manifest') {
+					return [];
+				}
+				const { ownerCategory: _stale, ...rest } = manifest;
+				return [rest];
+			}),
+			onWarn: warnVendorDeclaration,
+		});
+		// The provider owns the config source outright: its previous entries
+		// are replaced, so a vendor the parent removed disappears, while a
+		// backend entry a config copy shadowed comes back. The owners are then
+		// declared under this provider's token, which rebuilds every slug the
+		// old or new list names from what all modules declare.
+		kernel.set.vendors({ declared }, { replaceSource: 'config' });
+		declareOwnedVendors(kernel, owners, ownerSourceRef.current);
+		const names = [
+			...declared.flatMap((vendor) =>
+				extractConsentNamesFromCondition(vendor.category)
+			),
+			...owners.flatMap((owner) =>
+				extractConsentNamesFromCondition(owner.category)
+			),
+		];
+		if (names.length > 0) {
+			kernel.set.registerConsentCategories(names);
+		}
+	}, [kernel, options.networkBlocker, options.scripts, options.vendors, owns]);
+	useEffect(
+		() => () => {
+			// Forgetting drops the slugs only this provider named. The ref is
+			// reset with it so a remount, StrictMode's included, declares them
+			// again at once instead of finding nothing changed. The provider's
+			// own loader and blocker put the same slugs back when their lazy
+			// import lands, so this only closes the window until then; no
+			// synchronous assertion can see the difference, which is why it
+			// has no test of its own.
+			forgetOwnedVendors(kernel, ownerSourceRef.current);
+			previousVendorsRef.current = null;
+		},
+		[kernel]
+	);
+
 	useEffect(() => {
 		const nodeEnv = (
 			globalThis as { process?: { env?: { NODE_ENV?: string } } }
@@ -691,11 +900,13 @@ const useProviderOptionSync = function useProviderOptionSync(
 const ProviderCallbacksMount = ({
 	kernel,
 	callbacks,
+	reloadOnConsentRevoked,
 }: {
 	kernel: ConsentKernel;
 	callbacks?: ConsentProviderCallbacks;
+	reloadOnConsentRevoked?: boolean;
 }) => {
-	useProviderCallbacks(kernel, callbacks);
+	useProviderCallbacks(kernel, callbacks, reloadOnConsentRevoked);
 	return null;
 };
 
@@ -852,7 +1063,7 @@ const IframeBlockerMount = ({
 }: {
 	options?: UseIframeBlockerOptions;
 }) => {
-	useIframeBlocker(options);
+	useIframeBlockerOnDemand(options);
 	return null;
 };
 
@@ -868,6 +1079,9 @@ const NetworkBlockerMount = ({
 		setEnabled: (enabled: boolean) => void;
 	} | null>(null);
 	const latestOptionsRef = useRef(options);
+	// The blocker loads after mount. Hold matching requests from this render
+	// on, before any child renders or runs an effect; the blocker replays them.
+	const earlyHold = useEarlyNetworkHold(options.rules, options.enabled);
 
 	useEffect(() => {
 		latestOptionsRef.current = options;
@@ -878,6 +1092,10 @@ const NetworkBlockerMount = ({
 			return;
 		}
 		let disposed = false;
+		const hold = earlyHold.claim(
+			latestOptionsRef.current.rules,
+			latestOptionsRef.current.enabled
+		);
 		void (async () => {
 			const { createNetworkBlocker } = await loadNetworkBlockerModule();
 			if (disposed) {
@@ -886,6 +1104,7 @@ const NetworkBlockerMount = ({
 			const latest = latestOptionsRef.current;
 			const created = createNetworkBlocker({
 				enabled: latest.enabled,
+				hold,
 				kernel,
 				logBlockedRequests: latest.logBlockedRequests,
 				onRequestBlocked: latest.onRequestBlocked,
@@ -897,8 +1116,9 @@ const NetworkBlockerMount = ({
 			disposed = true;
 			handleRef.current?.dispose();
 			handleRef.current = null;
+			earlyHold.unmount();
 		};
-	}, [kernel]);
+	}, [earlyHold, kernel]);
 
 	useEffect(() => {
 		handleRef.current?.updateRules(options.rules);
@@ -947,29 +1167,6 @@ const WindowDebugMount = ({
 	return null;
 };
 
-const WindowKernelMount = ({ kernel }: { kernel: ConsentKernel }) => {
-	useEffect(() => {
-		const browserWindow = window as Window & {
-			c15tKernel?: ConsentKernel;
-		};
-		const previousKernel = browserWindow.c15tKernel;
-		browserWindow.c15tKernel = kernel;
-
-		return () => {
-			if (browserWindow.c15tKernel !== kernel) {
-				return;
-			}
-			if (previousKernel) {
-				browserWindow.c15tKernel = previousKernel;
-				return;
-			}
-			delete browserWindow.c15tKernel;
-		};
-	}, [kernel]);
-
-	return null;
-};
-
 const normalizePersistenceOptions = function normalizePersistenceOptions(
 	options: ConsentProviderOptions
 ): UsePersistenceOptions | false {
@@ -989,6 +1186,31 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 };
 
 /**
+ * Picks the kernels a provider renders.
+ *
+ * A borrowed runtime follows the `runtime` prop, so consumers move to a
+ * replacement and release the previous kernel. A kernel the provider built
+ * stays initial-only, like `mode`.
+ */
+const selectProviderKernels = function selectProviderKernels(
+	owned: {
+		disabledKernel: ConsentKernel | undefined;
+		external: ConsentRuntime | undefined;
+		kernel: ConsentKernel;
+	},
+	runtime: ConsentRuntime | undefined,
+	enabled: boolean
+) {
+	const external = owned.external ? (runtime ?? owned.external) : undefined;
+	const active = external?.kernel ?? owned.kernel;
+	return {
+		active,
+		external,
+		rendered: enabled ? active : (owned.disabledKernel ?? active),
+	};
+};
+
+/**
  * v3 ConsentProvider.
  *
  * Retains the enabled kernel while disabled mode uses a separate permissive
@@ -1001,7 +1223,9 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
  * Pass `runtime` to render a runtime someone else created. The provider
  * then borrows its kernel and mounts none of the side-effecting modules —
  * no second `init()`, no second persistence handle, no second `window.c15t`
- * — and does not dispose it on unmount.
+ * — and does not dispose it on unmount. Handing it a different runtime
+ * switches the tree to that runtime's kernel; switching between a borrowed
+ * runtime and a provider-built kernel still needs a remount.
  *
  * @example
  * ```tsx
@@ -1030,13 +1254,12 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			createProviderKernel({ ...options, enabled: true }),
 	}));
 	void setOwned;
+	const { clearOnRevocation: initialClearOnRevocation } = owned;
 	const {
-		clearOnRevocation: initialClearOnRevocation,
+		active: activeKernel,
 		external: externalRuntime,
-	} = owned;
-	const kernel = enabled
-		? owned.kernel
-		: (owned.disabledKernel ?? owned.kernel);
+		rendered: kernel,
+	} = selectProviderKernels(owned, props.runtime, enabled);
 	const ownsRuntime = externalRuntime === undefined;
 	useEffect(() => {
 		if (ownsRuntime || options.consentCategories !== undefined) {
@@ -1059,6 +1282,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 						noticeDismissal: null,
 						optOutDirectives: [],
 						subject: null,
+						vendorChoice: null,
 					});
 					kernel.events.emit({ type: 'records:cleared' });
 				}
@@ -1084,7 +1308,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		? resolveWindowDebugMode(options.mode)
 		: 'hosted';
 
-	useProviderOptionSync(owned.kernel, options, enabled, ownsRuntime);
+	useProviderOptionSync(activeKernel, options, enabled, ownsRuntime);
 	const lifecycle = useRef(0);
 	useEffect(() => {
 		if (!ownsRuntime) {
@@ -1103,16 +1327,32 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	}, [owned, ownsRuntime]);
 
 	const userTheme = options.theme;
-	// Render tokens with the banner, including before hydration. CSS escapes
-	// preserve token values without allowing HTML closing tags.
-	const themeCSS = useMemo(
-		() =>
-			generateThemeCSS(userTheme ?? defaultTheme, options.colorScheme).replace(
-				/</gu,
-				'\\3c '
-			),
-		[userTheme, options.colorScheme]
-	);
+	// Development only: bundlers replace `process.env.NODE_ENV`, so production
+	// builds drop the check. Tokens need `ConsentTheme` or a stylesheet now.
+	useEffect(() => {
+		if (process.env.NODE_ENV === 'production') {
+			return;
+		}
+		const tokenKeys = [
+			'colors',
+			'dark',
+			'motion',
+			'radius',
+			'shadows',
+			'spacing',
+			'typography',
+		];
+		if (
+			!userTheme ||
+			!tokenKeys.some((key) => key in userTheme) ||
+			document.getElementById('c15t-theme')
+		) {
+			return;
+		}
+		console.warn(
+			'c15t: `theme` tokens are no longer turned into CSS in the browser. Render <ConsentTheme theme={theme} /> on the server, or put the CSS from generateThemeCSS() in your stylesheet. See https://c15t.com/docs/frameworks/react/styling/overview'
+		);
+	}, [userTheme]);
 
 	const themeContextValue = useMemo(
 		() => ({
@@ -1137,15 +1377,21 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		() => ({
 			components: options.components,
 			legalLinks: options.legalLinks,
+			preloadDialog: options.preloadDialog,
 			presentation: options.presentation,
 		}),
-		[options.components, options.legalLinks, options.presentation]
+		[
+			options.components,
+			options.legalLinks,
+			options.preloadDialog,
+			options.presentation,
+		]
 	);
 
 	useColorScheme(options.colorScheme);
 
-	// Everything below `WindowKernelMount` is a side-effecting module the
-	// runtime already mounts. A borrowed runtime renders none of it.
+	// Everything under `ownsRuntime` is a side-effecting module the runtime
+	// already mounts. A borrowed runtime renders none of it.
 	const providerChildren = (
 		<>
 			{ownsRuntime ? (
@@ -1153,12 +1399,12 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					<ProviderCallbacksMount
 						kernel={kernel}
 						callbacks={options.callbacks}
+						reloadOnConsentRevoked={options.reloadOnConsentRevoked}
 					/>
 					<WindowDebugMount
 						pkg={windowDebugPkg}
 						mode={windowDebugMode}
 					/>
-					<WindowKernelMount kernel={kernel} />
 					{enabled && persistenceOptions ? (
 						<PersistenceMount
 							options={persistenceOptions}
@@ -1209,12 +1455,6 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					themeConfig={themeContextValue}
 					uiConfig={uiConfigValue}
 				>
-					<style
-						id="c15t-theme"
-						nonce={options.nonce}
-						// oxlint-disable-next-line react/no-danger -- CSS escapes
-						dangerouslySetInnerHTML={{ __html: themeCSS }}
-					/>
 					{providerChildren}
 				</V3ThemeProvider>
 			</ProviderServicesContext.Provider>

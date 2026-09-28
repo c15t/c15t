@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'Tilpass personverninnstillingene dine her. Du kan velge hvilke typer informasjonskapsler og sporingsteknologier du vil tillate.',
 		title: 'Personverninnstillinger',
+		vendors: {
+			disabledByCategory: 'Slå på denne kategorien for å velge leverandører.',
+			privacyPolicy: 'Personvernerklæring',
+			switchLabel: 'Tillat {vendor}',
+			title: 'Leverandører ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

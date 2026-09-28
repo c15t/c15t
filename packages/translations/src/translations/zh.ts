@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'在此自定义您的隐私设置。您可以选择允许哪些类型的cookies和跟踪技术。',
 		title: '隐私设置',
+		vendors: {
+			disabledByCategory: '开启此类别以选择供应商。',
+			privacyPolicy: '隐私政策',
+			switchLabel: '允许 {vendor}',
+			title: '供应商（{count}）',
+		},
 	},
 	consentTypes: {
 		experience: {

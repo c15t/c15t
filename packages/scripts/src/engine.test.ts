@@ -826,6 +826,77 @@ describe('scripts engine', () => {
 		]);
 	});
 
+	it('exposes the manifest vendor slug for vendor-level consent', () => {
+		const script = resolvedManifestToScript(
+			compileManifest(
+				createManifest({
+					category: 'marketing',
+					install: [],
+					vendor: 'meta-pixel',
+				})
+			)
+		);
+		expect(script.id).toBe('meta-pixel');
+		expect(script.vendor).toBe('meta-pixel');
+	});
+
+	it('signals every category denied when the subject turned the vendor off', () => {
+		const globalRef = globalThis as TestGlobal;
+		const calls: unknown[][] = [];
+		globalRef.gtag = (...args: unknown[]) => {
+			calls.push(args);
+		};
+
+		const manifest = createManifest({
+			category: 'marketing',
+			consentMapping: {
+				marketing: ['ad_storage'],
+				measurement: ['analytics_storage'],
+			},
+			consentSignal: 'gtag',
+			install: [],
+			vendor: 'vendor-off',
+		});
+		const script = resolvedManifestToScript(compileManifest(manifest));
+		const consents = {
+			experience: false,
+			functionality: false,
+			marketing: true,
+			measurement: true,
+			necessary: true,
+		};
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents,
+				hasConsent: false,
+				id: script.id,
+				vendor: { granted: false, id: 'vendor-off' },
+			})
+		);
+		script.onConsentChange?.(
+			createCallbackInfo({
+				consents,
+				hasConsent: true,
+				id: script.id,
+				vendor: { granted: true, id: 'vendor-off' },
+			})
+		);
+
+		expect(calls).toEqual([
+			[
+				'consent',
+				'default',
+				{ ad_storage: 'denied', analytics_storage: 'denied' },
+			],
+			[
+				'consent',
+				'update',
+				{ ad_storage: 'granted', analytics_storage: 'granted' },
+			],
+		]);
+	});
+
 	it('limits snippet-only properties and methods to queue globals', () => {
 		const globalRef = globalThis as TestGlobal;
 		const manifest = createManifest({

@@ -39,8 +39,14 @@ import {
 	setupScrollLock,
 } from '@c15t/ui/utils/dom';
 
+import {
+	IAB_PROMPT_SLOT_ATTRIBUTE,
+	PROMPT_SLOT_ATTRIBUTE,
+	readIABSpotModels,
+} from './banner/slot';
 import { lazyCreateIAB, whenIABReady } from './browser/iab';
 import { activateGatedScripts } from './browser/inline-scripts';
+import type * as PromptRenderer from './browser/render-prompt';
 import { resolveTransportFactory } from './mode';
 import type { C15tClientOptionsExtension, C15tResolvedOptions } from './types';
 import { loadDialogAdapter } from './ui/adapter';
@@ -210,6 +216,21 @@ const ensureDialogHost = function ensureDialogHost(): HTMLElement {
  */
 let releaseBlocking: (() => void) | null = null;
 
+/** A dialog warm-up in flight or done, so repeated hovers cost nothing. */
+let warming: Promise<void> | null = null;
+
+/**
+ * Download the configured dialog adapter and its surface without mounting.
+ *
+ * @param client - The page's consent client.
+ */
+const loadDialogChunks = async function loadDialogChunks(
+	client: AstroConsentClient
+): Promise<void> {
+	const adapter = await loadDialogAdapter(client.options.ui);
+	await adapter.preload?.();
+};
+
 /**
  * Show or hide the server-rendered banner to match the kernel.
  *
@@ -294,12 +315,13 @@ export const syncSurfaceVisibility = function syncSurfaceVisibility(
 	}
 };
 
+const BANNER_ROOT_SELECTOR =
+	'[data-testid="consent-banner-root"], [data-testid="iab-consent-banner-root"]';
+
 export const syncBannerVisibility = function syncBannerVisibility(
 	snapshot: ConsentSnapshot
 ): void {
-	const banner = document.querySelector<HTMLElement>(
-		'[data-testid="consent-banner-root"], [data-testid="iab-consent-banner-root"]'
-	);
+	const banner = document.querySelector<HTMLElement>(BANNER_ROOT_SELECTOR);
 	if (!banner) {
 		releaseBlocking?.();
 		return;
@@ -370,7 +392,11 @@ const createClient = function createClient(
 	options: C15tResolvedOptions,
 	extension: C15tClientOptionsExtension = {}
 ): AstroConsentClient {
-	const config = readInlinedConfig();
+	const inlined = readInlinedConfig();
+	// A prerendered page inlines no clock: the build's would age every
+	// stored record against the day the site was built.
+	const config: KernelConfig =
+		inlined.now === undefined ? { ...inlined, now: Date.now() } : inlined;
 	const scripts = [...(options.scripts ?? []), ...(extension.scripts ?? [])];
 
 	// The server already resolved translations into `prefetch`, which the
@@ -391,10 +417,12 @@ const createClient = function createClient(
 				options.mode.type === 'manifest' ? options.mode.backendURL : undefined,
 			initPath: options.endpoints.initPath,
 		}),
+		networkBlocker: extension.networkBlocker ?? options.networkBlocker,
 		pkg: '@c15t/astro',
 		policyRules:
 			options.mode.type === 'offline' ? options.mode.policyRules : undefined,
 		prefetch: config,
+		reloadOnConsentRevoked: options.reloadOnConsentRevoked,
 		scripts,
 		storageConfig: options.storageConfig,
 	});
@@ -426,6 +454,7 @@ const createClient = function createClient(
 				return;
 			}
 			disposed = true;
+			warming = null;
 			detachPageSwapListeners();
 			releaseBlocking?.();
 			void dialog?.destroy();
@@ -535,13 +564,6 @@ const createClient = function createClient(
 	return client;
 };
 
-const attach = function attach(client: AstroConsentClient): void {
-	const snapshot = client.getConsent();
-	syncBannerVisibility(snapshot);
-	syncSurfaceVisibility(snapshot);
-	activateGatedScripts(snapshot);
-};
-
 /**
  * The page's consent client, if the integration has booted.
  *
@@ -552,12 +574,258 @@ export const getConsentClient =
 		return getWindow()?.[GLOBAL_KEY] ?? null;
 	};
 
+/** A banner render in flight, and the client and page it started for. */
+interface PendingPromptRender {
+	client: AstroConsentClient;
+	body: HTMLElement;
+}
+
+let promptRender: PendingPromptRender | null = null;
+
+type PromptRendererModule = typeof PromptRenderer;
+
+const loadDefaultPromptRenderer = (): Promise<PromptRendererModule> =>
+	import('./browser/render-prompt');
+
+let loadPromptRenderer = loadDefaultPromptRenderer;
+
+/**
+ * Replaces how the banner renderer chunk is loaded, so a test can make it
+ * fail. Call with no argument to restore the real one.
+ *
+ * Tests only.
+ *
+ * @internal
+ */
+export const setPromptRendererLoaderForTest =
+	function setPromptRendererLoaderForTest(
+		loader?: () => Promise<PromptRendererModule>
+	): void {
+		loadPromptRenderer = loader ?? loadDefaultPromptRenderer;
+	};
+
+/** How often a client tries to load the banner renderer before giving up. */
+const MAX_PROMPT_LOAD_ATTEMPTS = 3;
+
+/** Failed renderer loads per client, for the retry back-off. */
+const promptLoadFailures = new WeakMap<AstroConsentClient, number>();
+
+const SPOT_SELECTOR = `[${PROMPT_SLOT_ATTRIBUTE}], [${IAB_PROMPT_SLOT_ATTRIBUTE}]`;
+
+/** Whether the banner is still owed and nothing has rendered one yet. */
+const owesBanner = function owesBanner(client: AstroConsentClient): boolean {
+	return (
+		getConsentClient() === client &&
+		client.getConsent().activeUI === 'banner' &&
+		document.querySelector(BANNER_ROOT_SELECTOR) === null
+	);
+};
+
+/**
+ * Whether the IAB banner's spot answers the snapshot.
+ *
+ * An IAB policy goes to the IAB spot while its IAB state loads. Once that
+ * state is definitively disabled (no usable vendor list) the policy runs as
+ * opt-in, and the standard banner answers it instead.
+ */
+const iabSpotAnswers = function iabSpotAnswers(
+	snapshot: ConsentSnapshot
+): boolean {
+	const iabSpot = document.querySelector(`[${IAB_PROMPT_SLOT_ATTRIBUTE}]`);
+	return (
+		iabSpot !== null &&
+		snapshot.iab?.enabled !== false &&
+		readIABSpotModels(iabSpot).includes(snapshot.policyRule.model)
+	);
+};
+
+/**
+ * Load the renderer for whichever spot answers the snapshot, and render.
+ *
+ * @returns `false` when the answer changed while the renderer loaded, so
+ * the caller should choose again.
+ */
+const renderIntoAnsweringSpot = async function renderIntoAnsweringSpot(
+	client: AstroConsentClient
+): Promise<boolean> {
+	if (iabSpotAnswers(client.getConsent())) {
+		const { renderIABPromptIntoSlot } =
+			await import('./browser/render-iab-prompt');
+		if (!iabSpotAnswers(client.getConsent())) {
+			return false;
+		}
+		if (owesBanner(client)) {
+			renderIABPromptIntoSlot(client.getConsent(), client.options);
+		}
+		return true;
+	}
+	if (!document.querySelector(`[${PROMPT_SLOT_ATTRIBUTE}]`)) {
+		return true;
+	}
+	const { renderPromptIntoSlot } = await loadPromptRenderer();
+	if (iabSpotAnswers(client.getConsent())) {
+		return false;
+	}
+	if (owesBanner(client)) {
+		renderPromptIntoSlot(client.getConsent(), client.options);
+	}
+	return true;
+};
+
+/**
+ * Fill whichever spot answers the current policy. An IAB policy goes to the
+ * IAB banner's spot, and waits there until the vendor list arrives rather
+ * than falling back to the standard banner; the next snapshot retries.
+ *
+ * @returns `false` when a renderer chunk failed to load.
+ */
+const renderPrompt = async function renderPrompt(
+	client: AstroConsentClient
+): Promise<boolean> {
+	try {
+		// A policy refresh during the import can change the answer; choose once
+		// more. A second change in one render is left to the next snapshot.
+		if (!(await renderIntoAnsweringSpot(client))) {
+			await renderIntoAnsweringSpot(client);
+		}
+		if (getConsentClient() === client) {
+			syncBannerVisibility(client.getConsent());
+		}
+		return true;
+	} catch (error) {
+		// Usually a network failure. The caller retries with a back-off.
+		console.warn('@c15t/astro: the consent banner failed to load.', error);
+		return false;
+	}
+};
+
+/**
+ * Run one render and release the in-flight marker it owns.
+ *
+ * @returns What to do next: `'again'` when a `ClientRouter` swap replaced
+ * the page during the chunk import (the swap's own `attach()` found this
+ * render in flight and stood down, so the new page still needs a look),
+ * `'later'` when the renderer failed to load, and `'done'` otherwise.
+ */
+const runPromptRender = async function runPromptRender(
+	pending: PendingPromptRender
+): Promise<'again' | 'later' | 'done'> {
+	const loaded = await renderPrompt(pending.client);
+	if (promptRender !== pending) {
+		return 'done';
+	}
+	promptRender = null;
+	if (!loaded) {
+		return 'later';
+	}
+	return document.body !== pending.body && getConsentClient() === pending.client
+		? 'again'
+		: 'done';
+};
+
+/**
+ * Render a banner in the browser when the page owes one it does not have.
+ *
+ * `<ConsentBanner />` and `<IABConsentBanner />` leave a marked spot
+ * wherever the server could not know the policy — a prerendered page in
+ * hosted or manifest mode, or a server render whose init failed — and the
+ * IAB banner also when there was no vendor list yet. Each renderer is its
+ * own chunk, so a page that never needs one never downloads it.
+ *
+ * @param client - The page's consent client.
+ * @param snapshot - The current kernel snapshot.
+ */
+const ensurePromptRendered = function ensurePromptRendered(
+	client: AstroConsentClient,
+	snapshot: ConsentSnapshot
+): void {
+	// A render for this client is already under way. One left over from a
+	// disposed client does not count: its result is discarded.
+	if (
+		promptRender?.client === client ||
+		snapshot.activeUI !== 'banner' ||
+		document.querySelector(BANNER_ROOT_SELECTOR) ||
+		!document.querySelector(SPOT_SELECTOR)
+	) {
+		return;
+	}
+	const pending = { body: document.body, client };
+	promptRender = pending;
+	void (async () => {
+		const next = await runPromptRender(pending);
+		if (next === 'again') {
+			ensurePromptRendered(client, client.getConsent());
+			return;
+		}
+		if (next !== 'later') {
+			return;
+		}
+		// Without the renderer the visitor has no way to choose, so try again
+		// after 1 s and 2 s before giving up.
+		const failures = (promptLoadFailures.get(client) ?? 0) + 1;
+		promptLoadFailures.set(client, failures);
+		if (failures < MAX_PROMPT_LOAD_ATTEMPTS) {
+			setTimeout(
+				() => {
+					if (getConsentClient() === client) {
+						ensurePromptRendered(client, client.getConsent());
+					}
+				},
+				1000 * 2 ** (failures - 1)
+			);
+		}
+	})();
+};
+
+const attach = function attach(client: AstroConsentClient): void {
+	const snapshot = client.getConsent();
+	ensurePromptRendered(client, snapshot);
+	syncBannerVisibility(snapshot);
+	syncSurfaceVisibility(snapshot);
+	activateGatedScripts(snapshot);
+};
+
+/**
+ * Start downloading the preference dialog when a visitor points at or
+ * focuses a control that opens it.
+ *
+ * The island loads on first open, so a click used to wait for the framework
+ * runtime and the surface to download. Hover and focus usually come a few
+ * hundred milliseconds before the click, and on touch `pointerover` fires
+ * on the tap's `pointerdown`. A failed warm-up is forgotten, so the next
+ * hover, focus or open tries again.
+ *
+ * @param event - A `pointerover` or `focusin` event from the document.
+ */
+const warmDialogOnIntent = function warmDialogOnIntent(event: Event): void {
+	const resolved = resolveAction(event.target);
+	const client = getConsentClient();
+	if (
+		warming ||
+		!client ||
+		resolved?.action !== 'customize' ||
+		resolved.dialog !== 'preferences'
+	) {
+		return;
+	}
+	const attempt = (async () => {
+		try {
+			await loadDialogChunks(client);
+		} catch {
+			// The open reports its own failure.
+			warming = null;
+		}
+	})();
+	warming = attempt;
+};
+
 /**
  * Wire the delegated handler for the server-rendered banner's buttons.
  *
  * The banner ships zero framework JavaScript: the buttons carry
  * `data-c15t-action` and one document-level listener turns them into
- * runtime calls. Calling this more than once is a no-op.
+ * runtime calls. Hovering or focusing a control that opens the preference
+ * dialog starts downloading it. Calling this more than once is a no-op.
  */
 export const attachBannerActions = function attachBannerActions(): void {
 	const browserWindow = getWindow() as
@@ -567,6 +835,11 @@ export const attachBannerActions = function attachBannerActions(): void {
 		return;
 	}
 	browserWindow.__c15tAstroActions = true;
+
+	document.addEventListener('pointerover', warmDialogOnIntent, {
+		passive: true,
+	});
+	document.addEventListener('focusin', warmDialogOnIntent);
 
 	document.addEventListener('click', (event) => {
 		const resolved = resolveAction(event.target);
@@ -628,6 +901,7 @@ export const boot = function boot(
 	attachBannerActions();
 
 	client.subscribe((snapshot) => {
+		ensurePromptRendered(client, snapshot);
 		syncBannerVisibility(snapshot);
 		syncSurfaceVisibility(snapshot);
 		activateGatedScripts(snapshot);
@@ -711,8 +985,7 @@ export const preloadDialog = async function preloadDialog(): Promise<void> {
 	if (!client) {
 		return;
 	}
-	const adapter = await loadDialogAdapter(client.options.ui);
-	await adapter.preload?.();
+	await loadDialogChunks(client);
 };
 
 export { activateGatedScripts } from './browser/inline-scripts';

@@ -2,7 +2,7 @@
 
 import {
 	ConsentDialogLink,
-	Frame,
+	ConsentGate,
 	useConsent,
 	usePersistence,
 } from 'c15t/next';
@@ -142,7 +142,7 @@ export const Demo = ({
 							<h2 id="video-heading">A video, when you allow it</h2>
 							<span className="category">Measurement</span>
 						</div>
-						<Frame category="measurement">
+						<ConsentGate category="measurement">
 							{/* oxlint-disable react/iframe-missing-sandbox -- This fixed cross-origin YouTube player needs its own origin for storage and playback. */}
 							<iframe
 								className="video-frame"
@@ -153,7 +153,7 @@ export const Demo = ({
 								allowFullScreen
 							/>
 							{/* oxlint-enable react/iframe-missing-sandbox */}
-						</Frame>
+						</ConsentGate>
 						<p className="caption">
 							Revoking measurement removes the iframe. Requests already sent
 							cannot be undone.

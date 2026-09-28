@@ -24,7 +24,8 @@ import {
 	validateNoticeDismissal,
 } from '../consent-record/validation';
 import type { RecordIssue } from '../consent-record/validation';
-import type { HydrationRecords } from '../types';
+import { isValidVendorId } from '../libs/vendors';
+import type { HydrationRecords, VendorChoice } from '../types';
 
 /** Validated records with the same omit/clear semantics as the input. */
 export interface ValidatedRecords {
@@ -32,6 +33,7 @@ export interface ValidatedRecords {
 	subject?: ConsentSubject | null;
 	noticeDismissal?: NoticeDismissal | null;
 	optOutDirectives?: readonly PrivacyOptOut[];
+	vendorChoice?: VendorChoice | null;
 }
 
 export type ValidateRecordsResult =
@@ -125,6 +127,63 @@ const validateDirective = function validateDirective(
 };
 
 /**
+ * Validates a version 1 vendor denial list: a past timestamp and a list of
+ * non-empty string ids. Duplicates collapse; the result is sorted so two
+ * lists with the same members compare equal by value.
+ */
+export const validateVendorChoice = function validateVendorChoice(
+	input: unknown,
+	now: number
+): { ok: true; record: VendorChoice } | { ok: false; issues: RecordIssue[] } {
+	if (!isPlainRecord(input)) {
+		return { issues: [{ code: 'not-an-object', path: '' }], ok: false };
+	}
+	if (ownValue(input, 'version') !== 1) {
+		return {
+			issues: [{ code: 'unsupported-version', path: 'version' }],
+			ok: false,
+		};
+	}
+	const issues: RecordIssue[] = [];
+	for (const key of ownKeys(input)) {
+		if (key !== 'version' && key !== 'confirmedAt' && key !== 'denied') {
+			issues.push({ code: 'unknown-key', path: key });
+		}
+	}
+	const confirmedAt = ownValue(input, 'confirmedAt');
+	const timestampIssue = checkTimestamp(confirmedAt, now);
+	if (timestampIssue) {
+		issues.push({ code: timestampIssue, path: 'confirmedAt' });
+	}
+	const rawDenied = ownValue(input, 'denied');
+	const denied = new Set<string>();
+	if (Array.isArray(rawDenied)) {
+		for (const [index, entry] of rawDenied.entries()) {
+			// The same slug shape a declaration must have. A stored id outside
+			// it would ride into every later grant map and fail the wire schema.
+			if (!isNonEmptyString(entry) || !isValidVendorId(entry)) {
+				issues.push({ code: 'invalid-identifier', path: `denied[${index}]` });
+				continue;
+			}
+			denied.add(entry);
+		}
+	} else {
+		issues.push({ code: 'not-an-object', path: 'denied' });
+	}
+	if (issues.length > 0) {
+		return { issues, ok: false };
+	}
+	return {
+		ok: true,
+		record: {
+			confirmedAt: confirmedAt as number,
+			denied: [...denied].sort(),
+			version: 1,
+		},
+	};
+};
+
+/**
  * Validate hydration input. Keys that are omitted stay omitted so the
  * caller can preserve current values; `null` and empty arrays pass through
  * as explicit clears.
@@ -194,10 +253,47 @@ export const validateHydrationRecords = function validateHydrationRecords(
 		}
 	}
 
+	if (input.vendorChoice !== undefined) {
+		if (input.vendorChoice === null) {
+			records.vendorChoice = null;
+		} else {
+			const result = validateVendorChoice(input.vendorChoice, now);
+			if (result.ok === true) {
+				records.vendorChoice = result.record;
+			} else {
+				issues.push(
+					...result.issues.map((issue) => ({
+						...issue,
+						path: `vendorChoice.${issue.path}`,
+					}))
+				);
+			}
+		}
+	}
+
 	if (issues.length > 0) {
 		return { issues, ok: false };
 	}
 	return { ok: true, records };
+};
+
+/**
+ * Keep the newer of two vendor denial lists. Ties keep the current one, so
+ * a delayed server read never replaces a newer local action.
+ */
+export const mergeNewestVendorChoice = function mergeNewestVendorChoice(
+	current: VendorChoice | null,
+	incoming: VendorChoice | null
+): VendorChoice | null {
+	if (!current) {
+		return incoming;
+	}
+	if (!incoming) {
+		return current;
+	}
+	// An empty list is a real, timestamped "nothing denied" decision, so it
+	// takes part in newest-wins like any other and is never folded to `null`.
+	return incoming.confirmedAt > current.confirmedAt ? incoming : current;
 };
 
 /**

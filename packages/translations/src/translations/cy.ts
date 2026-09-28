@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'Addaswch eich gosodiadau preifatrwydd yma. Gallwch ddewis pa fathau o gwcis a thechnolegau tracio rydych yn eu caniatáu.',
 		title: 'Gosodiadau preifatrwydd',
+		vendors: {
+			disabledByCategory: 'Trowch y categori hwn ymlaen i ddewis gwerthwyr.',
+			privacyPolicy: 'Polisi Preifatrwydd',
+			switchLabel: 'Caniatáu {vendor}',
+			title: 'Gwerthwyr ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

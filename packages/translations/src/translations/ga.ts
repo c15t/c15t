@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Saincheap do shocruithe príobháideachais anseo. Is féidir leat na cineálacha fianán agus teicneolaíochtaí rianaithe a cheadaíonn tú a roghnú.',
 		title: 'Socruithe Príobháideachais',
+		vendors: {
+			disabledByCategory:
+				'Cuir an chatagóir seo ar siúl chun soláthróirí a roghnú.',
+			privacyPolicy: 'Beartas príobháideachta',
+			switchLabel: 'Ceadaigh {vendor}',
+			title: 'Soláthróirí ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

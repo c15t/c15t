@@ -11,6 +11,7 @@ import { SqlClient } from 'effect/unstable/sql';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
+import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { singleTenant } from '../db/tenant';
 import {
 	countByExternalId,
@@ -25,6 +26,7 @@ const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
 const migrate = Effect.gen(function* migrate() {
 	yield* baseline;
 	yield* receipts;
+	yield* vendorChoice;
 	yield* indexes;
 });
 

@@ -1,8 +1,10 @@
 import type {
 	ConsentPresentation,
 	ClearOnRevocationConfig,
+	ConsentState,
 	KernelEvent,
 	HydrationRecords,
+	Vendor,
 } from '@c15t/core';
 import type { ConsentConfig as BaseConsentConfig } from '@c15t/schema/config';
 import type { InitOutput } from '@c15t/schema/types';
@@ -42,12 +44,52 @@ export interface ConsentManifestNuxtConfig {
 	 * `/api/c15t/manifest`.
 	 */
 	manifestRoute?: string;
+
+	/**
+	 * Longest server rendering waits for the visitor's policy, in
+	 * milliseconds. Past it the page renders without a resolved policy: no
+	 * consent UI in the server HTML, optional categories denied, gated
+	 * scripts and embeds blocked, and the browser resolves the policy after
+	 * hydration. In server manifest mode the manifest request keeps running
+	 * and fills the cache for the next request. Applies to the render only;
+	 * the browser's own init requests wait for the manifest. `false` removes
+	 * the budget.
+	 *
+	 * @default 500
+	 */
+	timeoutMs?: number | false;
+
+	/**
+	 * Report each init the server init route resolves to the backend's
+	 * `POST /sessions`, server-to-server and detached from the response, so
+	 * the backend still counts visitors it never served `/init` to. Needs an
+	 * absolute `backendURL`; nothing is inferred from `manifestURL`. Set
+	 * `false` to send none.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
 }
 
 export interface ConsentConfig
 	extends BaseConsentConfig<HTMLAttributes>, ConsentManifestNuxtConfig {
+	/**
+	 * Vendors the preference center lists under their category, each with
+	 * its own switch, so a visitor can grant a category and still turn one
+	 * vendor off. Scripts, network rules and iframes naming a vendor's `id`
+	 * follow that choice. Merged with vendors the backend declares.
+	 */
+	vendors?: Vendor[];
 	/** Remove configured browser data when its consent permission is revoked. */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted. Removing a script cannot stop code that already
+	 * ran, so the reload starts a document with only permitted code. Waits for
+	 * the save request. Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	/** Resolved server init data, reused for the first client render. */
 	prefetch?: InitOutput;
 	/** Raw server records with their request evaluation clock. */
@@ -62,5 +104,9 @@ export interface ConsentConfig
 		onPermissionsChanged?: (
 			event: Omit<Extract<KernelEvent, { type: 'permissions:changed' }>, 'type'>
 		) => void;
+		/** Runs synchronously before a revocation reload. */
+		onBeforeConsentRevocationReload?: (event: {
+			preferences: ConsentState;
+		}) => void;
 	};
 }

@@ -57,7 +57,7 @@ import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { createIAB } from '../../../iab/src/index';
 import type { IABHandle } from '../../../iab/src/index';
 import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
-import ConsentFrame from '../runtime/components/frame.vue';
+import ConsentGate from '../runtime/components/consent-gate.vue';
 import ConsentManager from '../runtime/components/manager.vue';
 import ConsentDialogTrigger from '../runtime/components/panel-trigger.vue';
 import ConsentPreferencesLink from '../runtime/components/preferences-link.vue';
@@ -272,6 +272,8 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		legacyKey,
 		`${keys.consent}-notice`,
 		`${keys.consent}-privacy`,
+		// A clear's epoch outlives it and would void the next seed's records.
+		keys.epoch,
 	]) {
 		localStorage.removeItem(key);
 		document.cookie = `${key}=; Max-Age=0; Path=/`;
@@ -474,7 +476,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 					h(ConsentPreferencesLink),
 					setup.probeGates
 						? h(
-								ConsentFrame,
+								ConsentGate,
 								{ category: 'marketing' },
 								{
 									default: () =>

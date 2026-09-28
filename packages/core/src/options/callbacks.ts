@@ -60,15 +60,14 @@ export interface Callbacks {
 	 * Called before the page reloads when consent is revoked.
 	 *
 	 * @remarks
-	 * This callback is triggered when `reloadOnConsentRevoked` is enabled
-	 * and a user revokes consent that was previously granted. Use this
-	 * callback to show a loading state or perform any cleanup before
-	 * the page reloads.
+	 * Runs when `reloadOnConsentRevoked` is enabled (the default) and an
+	 * accept, reject or save turns off a category or vendor that was
+	 * granted. Expiry, policy changes and privacy signals do not reload.
+	 * Use it to show a loading state or call a vendor's shutdown API.
 	 *
-	 * Note: This callback runs synchronously before the reload, so
-	 * avoid long-running operations.
+	 * Runs synchronously before the reload, so avoid long-running work.
 	 *
-	 * @param payload - The payload containing the new consent preferences
+	 * @param payload - The effective permissions after the revocation.
 	 */
 	onBeforeConsentRevocationReload?: Callback<{ preferences: ConsentState }>;
 }

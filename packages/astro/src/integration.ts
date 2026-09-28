@@ -12,10 +12,13 @@
  *    `manifest` mode, with the same semantics as `@c15t/nextjs/api`.
  * 4. A virtual module (`virtual:c15t/options`) carrying the serialized
  *    options to all of the above.
+ * 5. The component stylesheet, on every page.
  */
 
+import { isIABConfigured } from '@c15t/core/runtime';
 import type { AstroIntegration } from 'astro';
 
+import { createClassMapPlugin } from './libs/class-map-plugin';
 import type {
 	C15tAstroOptions,
 	C15tEndpointOptions,
@@ -29,6 +32,41 @@ const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 
 const DEFAULT_INIT_PATH = '/api/c15t/init';
 const DEFAULT_MANIFEST_PATH = '/api/c15t/manifest';
+
+/** Maps an `@c15t/astro/...` specifier to what Astro should load. */
+export type EntryResolver = (specifier: string) => string;
+
+/**
+ * Create a resolver for this package's own entry points.
+ *
+ * Astro and Vite resolve what the integration hands them from the site's
+ * root. A site that installed the `c15t` package rather than `@c15t/astro`
+ * cannot see `@c15t/astro` from there under a strict package manager such
+ * as pnpm, so a bare specifier would fail to resolve. A file path always
+ * does. `createRequire` resolves the package's own exports on every Node
+ * version Astro supports. It is loaded here, from the async setup hook,
+ * rather than imported at the top: the package root re-exports the
+ * integration, and browser code importing it must not pull in a Node
+ * built-in. A specifier that cannot be resolved is kept as it is.
+ *
+ * @returns The resolver.
+ */
+export const createOwnEntryResolver =
+	async function createOwnEntryResolver(): Promise<EntryResolver> {
+		try {
+			const { createRequire } = await import('node:module');
+			const require = createRequire(import.meta.url);
+			return (specifier) => {
+				try {
+					return require.resolve(specifier);
+				} catch {
+					return specifier;
+				}
+			};
+		} catch {
+			return (specifier) => specifier;
+		}
+	};
 
 /**
  * What each `ui` adapter needs from the app, keyed by adapter name.
@@ -89,7 +127,14 @@ const resolveMiddleware = function resolveMiddleware(
 		typeof options.middleware === 'boolean'
 			? { enabled: options.middleware }
 			: (options.middleware ?? {});
-	return { enabled: raw.enabled ?? true, skip: raw.skip ?? [] };
+	const resolved: C15tResolvedOptions['middleware'] = {
+		enabled: raw.enabled ?? true,
+		skip: raw.skip ?? [],
+	};
+	if (raw.timeoutMs !== undefined) {
+		resolved.timeoutMs = raw.timeoutMs;
+	}
+	return resolved;
 };
 
 const resolveEndpoints = function resolveEndpoints(
@@ -169,8 +214,13 @@ export const resolveOptions = function resolveOptions(
 	};
 };
 
+/** The one field every plugin this integration adds has in common. */
+interface VitePluginLike {
+	name: string;
+}
+
 /** Minimal Vite plugin shape, so the package does not depend on Vite types. */
-interface VirtualOptionsPlugin {
+interface VirtualOptionsPlugin extends VitePluginLike {
 	name: string;
 	resolveId: (id: string) => string | undefined;
 	load: (id: string) => string | undefined;
@@ -206,18 +256,22 @@ const createVirtualOptionsPlugin = function createVirtualOptionsPlugin(
  *
  * @param options - The options passed to `c15t()`.
  * @param ui - The resolved dialog adapter.
+ * @param resolveEntry - Maps this package's specifiers to what Astro loads.
  * @returns The module source to inject at the `page` stage.
  */
 const buildBootScript = function buildBootScript(
 	options: C15tAstroOptions,
-	ui: C15tUIAdapterName
+	ui: C15tUIAdapterName,
+	resolveEntry: EntryResolver
 ): string {
 	const adapter = UI_ADAPTERS[ui];
+	const quote = (specifier: string): string =>
+		JSON.stringify(resolveEntry(specifier));
 	const lines = [
 		`import options from '${VIRTUAL_ID}';`,
-		"import { boot, registerDialogAdapter, registerDialogSurface } from '@c15t/astro/client';",
-		`registerDialogAdapter('${ui}', async () => (await import('${adapter.adapterModule}')).${adapter.adapterExport});`,
-		`registerDialogSurface('${ui}', () => import('${adapter.surfaceModule}'));`,
+		`import { boot, registerDialogAdapter, registerDialogSurface } from ${quote('@c15t/astro/client')};`,
+		`registerDialogAdapter('${ui}', async () => (await import(${quote(adapter.adapterModule)})).${adapter.adapterExport});`,
+		`registerDialogSurface('${ui}', () => import(${quote(adapter.surfaceModule)}));`,
 	];
 	if (options.clientEntrypoint) {
 		lines.push(
@@ -231,6 +285,35 @@ const buildBootScript = function buildBootScript(
 };
 
 /**
+ * Build the stylesheet imports the integration injects into every page.
+ *
+ * @param resolved - The resolved integration options.
+ * @param resolveEntry - Maps this package's specifiers to what Astro loads.
+ * @returns The module source, or an empty string with `styles: false`.
+ */
+export const buildStylesImport = function buildStylesImport(
+	resolved: C15tResolvedOptions,
+	resolveEntry: EntryResolver
+): string {
+	const quote = (specifier: string): string =>
+		JSON.stringify(resolveEntry(specifier));
+	if (resolved.styles === false) {
+		return '';
+	}
+	const lines = [`import ${quote('@c15t/astro/styles.css')};`];
+	// The React and Svelte dialog islands import the dialog stylesheet, so
+	// it arrives with their chunk. Astro's build drops the stylesheets the
+	// Vue island's components import, so for Vue the page carries them.
+	if (resolved.ui === 'vue') {
+		lines.push(`import ${quote('@c15t/ui/styles/dialog.css')};`);
+	}
+	if (isIABConfigured(resolved.iab)) {
+		lines.push(`import ${quote('@c15t/astro/iab/styles.css')};`);
+	}
+	return lines.join('\n');
+};
+
+/**
  * The Vite plugins the app needs for the configured `ui`.
  *
  * `@c15t/vue`'s shared composables import `#imports`, which only Nuxt
@@ -238,19 +321,27 @@ const buildBootScript = function buildBootScript(
  * apps, and an Astro app is one. The import is dynamic so a site on any
  * other adapter never has to have `@c15t/vue` installed.
  *
+ * With the full stylesheet injected, the islands' own component CSS would
+ * be a second copy, so their class maps resolve without it.
+ *
  * @param resolved - The resolved integration options.
  * @returns Vite plugins to merge into the app config.
  */
-const buildVitePlugins = async function buildVitePlugins(
+export const buildVitePlugins = async function buildVitePlugins(
 	resolved: C15tResolvedOptions
-): Promise<VirtualOptionsPlugin[]> {
-	const plugins: VirtualOptionsPlugin[] = [
-		createVirtualOptionsPlugin(resolved),
-	];
+): Promise<VitePluginLike[]> {
+	const plugins: VitePluginLike[] = [createVirtualOptionsPlugin(resolved)];
+	if (resolved.styles !== false) {
+		plugins.push(
+			createClassMapPlugin({
+				iabStylesInjected: isIABConfigured(resolved.iab),
+			})
+		);
+	}
 	if (resolved.ui === 'vue') {
 		try {
 			const { default: shimVueImports } = await import('@c15t/vue/vite');
-			plugins.push(shimVueImports() as unknown as VirtualOptionsPlugin);
+			plugins.push(shimVueImports() as unknown as VitePluginLike);
 		} catch (cause) {
 			// This runs at `astro:config:setup`, before `astro:config:done`
 			// where the peer check lives, so an unresolved import would
@@ -303,12 +394,34 @@ const suggestUIAdapter = function suggestUIAdapter(
 };
 
 /**
+ * Explain why a build with the injected routes needs an adapter.
+ *
+ * Manifest mode turns the routes on by default; any other mode only has
+ * them because `endpoints` asked for them, so the fix differs.
+ *
+ * @param resolved - The resolved integration options.
+ * @returns The error message.
+ */
+const missingAdapterMessage = function missingAdapterMessage(
+	resolved: C15tResolvedOptions
+): string {
+	const { initPath, manifestPath } = resolved.endpoints;
+	const routes = `on-demand routes at ${initPath} and ${manifestPath}`;
+	if (resolved.mode.type === 'manifest') {
+		return `@c15t/astro: manifest mode injects ${routes}, which need a server adapter to build. For a static site, use hosted() or offline(), or set \`endpoints: false\` and serve those routes elsewhere.`;
+	}
+	return `@c15t/astro: \`endpoints\` injects ${routes}, which need a server adapter to build. For a static site, set \`endpoints: false\`.`;
+};
+
+/**
  * Create the c15t Astro integration.
  *
  * @param options - Consent configuration for the site.
  * @returns The Astro integration to list in `astro.config.mjs`.
- * @throws {Error} When `mode` is missing, or when the Astro integration for
- * the configured `ui` is not listed in `astro.config`.
+ * @throws {Error} When `mode` is missing, when the Astro integration for
+ * the configured `ui` is not listed in `astro.config`, or when `astro build`
+ * runs with the injected init and manifest routes enabled and no server
+ * adapter configured.
  * @example
  * ```js
  * import { defineConfig } from 'astro/config';
@@ -329,10 +442,24 @@ const suggestUIAdapter = function suggestUIAdapter(
  */
 export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 	const resolved = resolveOptions(options);
+	// Recorded at `astro:config:setup`, which runs before `astro:config:done`.
+	let command: string | undefined;
 
 	return {
 		hooks: {
 			'astro:config:done'({ config, logger }) {
+				// Astro would stop the build on its own, with a generic
+				// "no adapter" error that never mentions the routes c15t added.
+				// Only the build needs an adapter: `astro dev` and `astro sync`
+				// accept on-demand routes without one.
+				if (
+					command === 'build' &&
+					resolved.endpoints.enabled &&
+					!config.adapter
+				) {
+					throw new Error(missingAdapterMessage(resolved));
+				}
+
 				const installed = new Set(
 					config.integrations.map((integration) => integration.name)
 				);
@@ -355,33 +482,47 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 
 			async 'astro:config:setup'({
 				addMiddleware,
+				command: setupCommand,
 				injectRoute,
 				injectScript,
 				updateConfig,
 			}) {
+				command = setupCommand;
+				const resolveEntry = await createOwnEntryResolver();
 				updateConfig({
 					vite: { plugins: await buildVitePlugins(resolved) },
 				});
 
 				if (resolved.middleware.enabled) {
 					addMiddleware({
-						entrypoint: '@c15t/astro/middleware',
+						entrypoint: resolveEntry('@c15t/astro/middleware'),
 						order: 'pre',
 					});
 				}
 
 				// `page` runs the boot on every page, before any island
 				// hydrates, so the runtime exists before anything asks for it.
-				injectScript('page', buildBootScript(options, resolved.ui));
+				injectScript(
+					'page',
+					buildBootScript(options, resolved.ui, resolveEntry)
+				);
+
+				// `page-ssr` is Astro's hook for page-wide CSS. The components
+				// cannot import their own: the server build resolves the class
+				// maps through the `node` condition, which carries no CSS.
+				const styles = buildStylesImport(resolved, resolveEntry);
+				if (styles) {
+					injectScript('page-ssr', styles);
+				}
 
 				if (resolved.endpoints.enabled) {
 					injectRoute({
-						entrypoint: '@c15t/astro/api/init',
+						entrypoint: resolveEntry('@c15t/astro/api/init'),
 						pattern: resolved.endpoints.initPath,
 						prerender: false,
 					});
 					injectRoute({
-						entrypoint: '@c15t/astro/api/manifest',
+						entrypoint: resolveEntry('@c15t/astro/api/manifest'),
 						pattern: resolved.endpoints.manifestPath,
 						prerender: false,
 					});

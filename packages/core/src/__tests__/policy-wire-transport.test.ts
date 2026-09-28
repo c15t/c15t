@@ -362,13 +362,15 @@ describe('save body receipts', () => {
 		});
 	});
 
-	test('omits an empty confirmation and rejects payloads without receipts', () => {
+	test('sends an empty confirmation as an empty receipt and rejects payloads without receipts', () => {
+		// Absent `choice` reads as a 2.x body and the backend would stamp
+		// receipts from `preferences`; the empty receipt says nothing renewed.
 		expect(
 			buildConfirmedChoiceWire({
 				choice: CHOICE,
 				confirmed: { actionAt: 1, categories: {} },
 			})
-		).toBeUndefined();
+		).toEqual({ categories: {}, version: 3 });
 		const {
 			choice: _choice,
 			confirmed: _confirmed,
@@ -471,6 +473,7 @@ describe('hosted subject record boundary', () => {
 				},
 			],
 			subject: { externalId: 'person-42', subjectId: 'sub_test' },
+			vendorChoice: null,
 		});
 	});
 

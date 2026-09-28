@@ -4,8 +4,11 @@ import type {
 	ConsentSnapshot,
 	ConsentState,
 	KernelOverrides,
+	ResolvedVendor,
 } from '@c15t/core';
 import {
+	deniedVendorIds,
+	evaluateConsent,
 	CONSENT_CATEGORIES,
 	resolveConsentPresentation,
 	subscribeIABControls,
@@ -72,6 +75,69 @@ interface ViewState {
 	expandedScripts: Set<string>;
 	iab: IABPanelState;
 }
+
+/** Declared vendors with their source and current grant, read-only. */
+const renderVendors = function renderVendors(
+	document: Document,
+	container: HTMLElement,
+	snapshot: DevToolsState['snapshot']
+): void {
+	// Only reached outside IAB mode: `renderConsents` returns before this under
+	// an IAB policy, where the slugs and stored denials are inert.
+	const declared = snapshot.vendors?.declared ?? [];
+	if (declared.length === 0) {
+		return;
+	}
+	const section = createSection(
+		document,
+		'Vendors',
+		snapshot.vendors?.listVersion
+			? `Vendor list ${snapshot.vendors.listVersion}. A denied vendor stays blocked inside a granted category.`
+			: 'A denied vendor stays blocked inside a granted category.'
+	);
+	// The kernel's own gate view: a stale denial for a vendor now declared
+	// `disabled` does not count, so DevTools agrees with what loads.
+	const denied = deniedVendorIds(snapshot) ?? new Set<string>();
+	// What the gate answers for this vendor right now: its own denial first,
+	// then its category, so a row never reads as allowed while blocked.
+	const status = (vendor: ResolvedVendor): string => {
+		if (denied.has(vendor.id)) {
+			return 'Denied';
+		}
+		let categoryAllowed = false;
+		try {
+			categoryAllowed = evaluateConsent(
+				{ category: vendor.category },
+				snapshot
+			);
+		} catch {
+			categoryAllowed = false;
+		}
+		return categoryAllowed ? 'Allowed' : 'Blocked by category';
+	};
+	const list = createElement(document, 'div', 'c15t-dev-tools__control-list');
+	for (const vendor of declared) {
+		const item = createElement(document, 'div', 'c15t-dev-tools__check');
+		item.append(
+			createElement(document, 'span', undefined, vendor.name ?? vendor.id),
+			createElement(document, 'span', 'c15t-dev-tools__badge', vendor.source),
+			createElement(document, 'span', 'c15t-dev-tools__muted', status(vendor))
+		);
+		if (!vendor.presentable) {
+			item.append(
+				createElement(
+					document,
+					'span',
+					'c15t-dev-tools__muted',
+					'Slug only. Declare a name and privacy policy URL to show it.'
+				)
+			);
+		}
+		list.append(item);
+	}
+	section.append(list);
+	container.append(section);
+};
 
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
 function renderConsents(
@@ -199,6 +265,7 @@ function renderConsents(
 	actions.append(discard);
 	section.append(list, actions);
 	container.append(section);
+	renderVendors(document, container, snapshot);
 }
 
 const renderScripts = (

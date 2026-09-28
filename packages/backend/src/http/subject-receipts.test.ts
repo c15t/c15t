@@ -116,6 +116,51 @@ for (const engine of ENGINES) {
 			});
 		});
 
+		it('an empty receipt renews no category, even with new preferences and a vendor map', async () => {
+			await harness.json('POST', '/subjects', {
+				...base,
+				choice: {
+					categories: {
+						marketing: receipt(true, T0),
+						measurement: receipt(true, T0),
+					},
+					version: 3,
+				},
+				givenAt: T0,
+				preferences: { marketing: true, measurement: true, necessary: true },
+			});
+			// A vendor-only save: the client sends its complete preference map
+			// and a fresh givenAt, but confirms no category. Without `choice`
+			// this would read as a 2.x body and every receipt would be
+			// restamped at T1; the empty receipt says nothing was renewed.
+			const second = await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: {}, version: 3 },
+				givenAt: T1,
+				preferences: { marketing: true, measurement: true, necessary: true },
+				vendorChoice: {
+					confirmedAt: T1,
+					grants: { 'meta-pixel': false },
+					version: 1,
+				},
+			});
+			assert.strictEqual(second.status, 200, JSON.stringify(second.body));
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.deepStrictEqual(read.body.subjectChoice, {
+				categories: {
+					marketing: receipt(true, T0),
+					measurement: receipt(true, T0),
+				},
+				version: 3,
+			});
+			assert.deepStrictEqual(read.body.subjectVendorChoice, {
+				confirmedAt: T1,
+				grants: { 'meta-pixel': false },
+				version: 1,
+			});
+		});
+
 		it('keeps the original receipt for a category a later partial save did not mention', async () => {
 			await harness.json('POST', '/subjects', {
 				...base,

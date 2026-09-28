@@ -10,6 +10,10 @@ import {
 	parseCacheDirectiveSeconds,
 } from '@c15t/core/libs/manifest-cache';
 import {
+	reportConsentSession,
+	resolveSessionReportBackendURL,
+} from '@c15t/core/server';
+import {
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
 	resolveBackendURL,
@@ -80,6 +84,17 @@ export interface NextConsentManifestHandlersOptions {
 	 * ```
 	 */
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
+
+	/**
+	 * Report each init the route resolves to the backend's `POST /sessions`,
+	 * server-to-server and detached from the response, so the backend still
+	 * counts visitors it never served `/init` to. The report is handed to
+	 * `onBackgroundRevalidate` like a manifest refresh. Set `false` to send
+	 * none.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
 
 	fetchGvl?: (input: {
 		reference: ConsentManifestGVLReference;
@@ -174,6 +189,23 @@ const resolveManifestURL = function resolveManifestURL(
 		throw new Error('@c15t/nextjs/api: invalid C15T_BACKEND_URL.');
 	}
 	return `${resolved}/manifest`;
+};
+
+/**
+ * Where the init route reports sessions, when it can: an absolute backend,
+ * read as configured rather than resolved against the request. A relative
+ * `/api/c15t` resolved to this app's origin is its own proxy route, not a
+ * backend, and means no report; nothing is inferred from a manifest URL.
+ */
+const resolveReportBackendURL = function resolveReportBackendURL(
+	options: NextConsentManifestHandlersOptions
+): string | undefined {
+	return resolveSessionReportBackendURL({
+		backendURL:
+			options.backendURL ??
+			getEnv('C15T_BACKEND_URL') ??
+			getEnv('NEXT_PUBLIC_C15T_BACKEND_URL'),
+	});
 };
 
 const withLanguage = function withLanguage(
@@ -365,6 +397,21 @@ export const createNextConsentRouteHandlers =
 						fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
 						language,
 						reference: manifest.iab.gvl,
+					});
+				}
+
+				if (options.reportSessions !== false) {
+					reportConsentSession({
+						adapter: '@c15t/nextjs',
+						backendURL: resolveReportBackendURL(options),
+						fetch: options.fetch,
+						headers: request.headers,
+						init: payload,
+						inputs,
+						manifest,
+						method: request.method,
+						source: 'route',
+						waitUntil: options.onBackgroundRevalidate,
 					});
 				}
 

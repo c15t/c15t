@@ -1,3 +1,6 @@
+// Layout assertions below need the documented app-level stylesheet: class
+// maps carry no CSS of their own.
+import '@c15t/ui/styles.css';
 import type { ConsentKernel, KernelConfig } from '@c15t/core';
 import { custom } from '@c15t/core';
 import {
@@ -424,6 +427,53 @@ it.each([false, true])(
 		).toBeNull();
 	}
 );
+
+it('custom dialog content scrolls inside the capped card', async () => {
+	// `ConsentDialog.Content` supports custom children. The stock widget
+	// scrolls its own category list, but anything else has to scroll in the
+	// content area, or a long composition spills past the card while the
+	// blocking dialog locks the page behind it.
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				disableAnimation: true,
+				mode: custom({}),
+				persistence: false,
+				prefetch: { initialPolicyResolution: resolution(), now },
+			}}
+		>
+			<ConsentDialog.Root open>
+				<ConsentDialog.Card>
+					<ConsentDialog.Content>
+						<div
+							data-testid="tall"
+							style={{ height: 4000 }}
+						>
+							tall
+						</div>
+					</ConsentDialog.Content>
+				</ConsentDialog.Card>
+			</ConsentDialog.Root>
+		</ConsentProvider>
+	);
+	await expect.element(screen.getByTestId('consent-dialog-root')).toBeVisible();
+	const card = document.querySelector<HTMLElement>(
+		'[data-testid="consent-dialog-card"]'
+	);
+	const content = document.querySelector<HTMLElement>(
+		'[data-testid="consent-dialog-content"]'
+	);
+	expect(card).not.toBeNull();
+	expect(content).not.toBeNull();
+	if (!card || !content) {
+		return;
+	}
+	expect(card.getBoundingClientRect().height).toBeLessThanOrEqual(
+		window.innerHeight
+	);
+	expect(getComputedStyle(content).overflowY).toBe('auto');
+	expect(content.scrollHeight).toBeGreaterThan(content.clientHeight);
+});
 
 it.each([false, true])(
 	'renders a custom backdrop only with blocking=%s',

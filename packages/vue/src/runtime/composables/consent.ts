@@ -14,11 +14,20 @@ const useConsent = function useConsent() {
 
 const useHasConsent = function useHasConsent() {
 	const context = useConsentKernelContext();
-	return computed(() => {
-		const snapshot = context.snapshot.value;
-		return Object.entries(snapshot.effectivePermissions)
+	const permissions = computed(
+		() => context.snapshot.value.effectivePermissions
+	);
+	// Same list, same array: subscribers re-render only when a category
+	// actually changes, not on every kernel update.
+	return computed<CONSENT_CATEGORY[]>((previous) => {
+		const next = Object.entries(permissions.value)
 			.filter(([, enabled]) => enabled)
 			.map(([category]) => category as CONSENT_CATEGORY);
+		return previous &&
+			previous.length === next.length &&
+			previous.every((category, index) => category === next[index])
+			? previous
+			: next;
 	});
 };
 

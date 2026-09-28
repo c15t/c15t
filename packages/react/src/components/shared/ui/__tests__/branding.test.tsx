@@ -5,14 +5,14 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ConsentStateFixture } from '~/__tests__/consent-state-fixture';
 import { policyFixture } from '~/__tests__/policy-fixture';
-import type { useConsentManager } from '~/component-hooks/use-manager';
 import { ConsentDialogFooter } from '~/components/panel/atoms/card';
 import { offline } from '~/transports/offline';
 
 import { BrandingCompactLogo, BrandingLink } from '../branding';
 
-type ConsentManagerState = ReturnType<typeof useConsentManager>;
+type ConsentManagerState = ConsentStateFixture;
 
 const createMockState = function createMockState(
 	overrides: Partial<ConsentManagerState> = {}

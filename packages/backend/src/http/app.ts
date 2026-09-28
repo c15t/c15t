@@ -27,6 +27,7 @@ import { register as registerLegalDocument } from './routes/legal-document';
 import { register as registerManifest } from './routes/manifest';
 import { register as registerPrivacyDirective } from './routes/privacy-directive';
 import { register as registerScript } from './routes/script';
+import { register as registerSession } from './routes/session';
 import { register as registerStatus } from './routes/status';
 import { register as registerSubject } from './routes/subject';
 
@@ -106,6 +107,7 @@ export const createApp = function createApp(
 
 	registerInit(context);
 	registerManifest(context);
+	registerSession(context);
 	registerScript(context);
 	registerStatus(context);
 	registerLegalDocument(context);

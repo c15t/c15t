@@ -45,6 +45,18 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "cloudflareWebAnalytics({ token: 'YOUR_BEACON_TOKEN' })",
 		importName: 'cloudflareWebAnalytics',
 	},
+	'cloudflare-zaraz': {
+		example: `cloudflareZaraz({
+  purposes: { measurement: ['YOUR_ZARAZ_PURPOSE_ID'] },
+  // TODO(required): Disable Zaraz automatic pageviews and consent modal.
+  // Keep this configuration stable outside render functions before adding onReady.
+  // Follow https://c15t.com/docs/integrations/cloudflare-zaraz
+  onReady: () => {
+    // TODO(required): Send the initial Zaraz Pageview here after consent sync.
+  },
+})`,
+		importName: 'cloudflareZaraz',
+	},
 	crisp: {
 		example: "crisp({ websiteId: 'YOUR_WEBSITE_ID' })",
 		importName: 'crisp',
@@ -56,6 +68,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	'fathom-analytics': {
 		example: "fathomAnalytics({ site: 'YOUR_SITE_ID' })",
 		importName: 'fathomAnalytics',
+	},
+	'front-chat': {
+		example: "frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })",
+		importName: 'frontChat',
 	},
 	'google-tag': {
 		example: "gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })",
@@ -110,9 +126,17 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "mixpanelAnalytics({ token: 'YOUR_32_CHAR_PROJECT_TOKEN' })",
 		importName: 'mixpanelAnalytics',
 	},
+	'one-dollar-stats': {
+		example: 'oneDollarStats()',
+		importName: 'oneDollarStats',
+	},
 	'openai-pixel': {
 		example: "openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })",
 		importName: 'openaiPixel',
+	},
+	'pinterest-tag': {
+		example: "pinterestTag({ tagId: 'XXXXXXXX' })",
+		importName: 'pinterestTag',
 	},
 	pirsch: {
 		example: "pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' })",

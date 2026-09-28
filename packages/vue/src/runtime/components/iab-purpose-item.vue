@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+
+import '@c15t/ui/styles/components/iab-consent-dialog.css';
 /**
  * One row in the IAB preference centre: a purpose, a special purpose, a
  * feature or a special feature.
@@ -11,6 +13,8 @@ import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
  * three-element content, same switch stylesheet.
  */
 import switchStyles from '@c15t/ui/styles/components/switch';
+
+import '@c15t/ui/styles/components/switch.css';
 import { computed, ref, toValue } from 'vue';
 
 import {
@@ -54,6 +58,11 @@ export interface IabProcessedPurpose {
 	description: string;
 	illustrations: string[];
 	vendors: IabProcessedVendor[];
+	/**
+	 * From the shared display model: `false` when every vendor uses
+	 * legitimate interest, so only the objection control applies.
+	 */
+	hasConsentBasis?: boolean;
 }
 
 const props = defineProps<{
@@ -112,6 +121,13 @@ const isPurposeLiAllowed = computed(
 	() => props.purposeLegitimateInterests?.[props.purpose.id] ?? true
 );
 
+// With no vendor on consent, a consent switch would look like an opt-out
+// while every vendor kept processing; the objection control is the one
+// that counts.
+const showConsentSwitch = computed(
+	() => props.purpose.hasConsentBasis !== false
+);
+
 const checked = computed({
 	get: () => props.isEnabled,
 	set: (value: boolean) => {
@@ -136,7 +152,7 @@ const handlePurposeLiObjection = function handlePurposeLiObjection() {
 	const nextValue = !isPurposeLiAllowed.value;
 	emit('purposeLegitimateInterestToggle', nextValue);
 	for (const vendor of legIntVendors.value) {
-		emit('vendorToggle', vendor.id, nextValue);
+		emit('vendorLegitimateInterestToggle', vendor.id, nextValue);
 	}
 };
 
@@ -203,7 +219,7 @@ const interpolate = function interpolate(
 					</PreferenceItemAuxiliary>
 				</PreferenceItemHeader>
 			</PreferenceItemTrigger>
-			<PreferenceItemControl>
+			<PreferenceItemControl v-if="showConsentSwitch">
 				<SwitchRoot
 					v-model="checked"
 					v-bind="config.components?.switch?.root"
@@ -232,6 +248,7 @@ const interpolate = function interpolate(
 		<PreferenceItemContent
 			:inner-attrs="config.components?.['iab-purpose-item']?.content"
 			:inner-class="dialogStyles.purposeContent"
+			:no-style="false"
 		>
 			<p :class="dialogStyles.purposeDescription">{{ purpose.description }}</p>
 
@@ -293,7 +310,7 @@ const interpolate = function interpolate(
 							purpose.illustrations.length
 						}})
 					</PreferenceItemTrigger>
-					<PreferenceItemContent>
+					<PreferenceItemContent :no-style="false">
 						<ul :class="dialogStyles.examplesList">
 							<li
 								v-for="illustration in purpose.illustrations"
@@ -320,7 +337,10 @@ const interpolate = function interpolate(
 							purpose.vendors.length
 						}})
 					</PreferenceItemTrigger>
-					<PreferenceItemContent :inner-class="dialogStyles.vendorSection">
+					<PreferenceItemContent
+						:inner-class="dialogStyles.vendorSection"
+						:no-style="false"
+					>
 						<template v-if="iabConsentVendors.length > 0">
 							<h5 :class="dialogStyles.vendorSectionTitle">
 								{{ iabT?.preferenceCenter?.purposeItem?.withYourPermission }}

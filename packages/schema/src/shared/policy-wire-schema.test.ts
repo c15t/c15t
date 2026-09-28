@@ -219,6 +219,72 @@ describe('initOutputSchema', () => {
 		expect(parsed.rights).toEqual(translations.rights);
 	});
 
+	test('keeps vendor row copy on the wire, complete and partial', () => {
+		const vendors = {
+			disabledByCategory: 'Turn on this category to choose vendors.',
+			privacyPolicy: 'Privacy policy',
+			switchLabel: 'Allow {vendor}',
+			title: 'Vendors ({count})',
+		};
+		const base = {
+			branding: 'c15t',
+			jurisdiction: 'GDPR',
+			location: { countryCode: 'DE', regionCode: null },
+			policyResolution: JSON.parse(JSON.stringify(matched)) as unknown,
+		};
+		// Complete branch: every required field present.
+		const complete = v.parse(initOutputSchema, {
+			...base,
+			translations: {
+				language: 'en',
+				translations: {
+					common: {
+						acceptAll: 'a',
+						customize: 'c',
+						rejectAll: 'r',
+						save: 's',
+					},
+					consentManagerDialog: { description: 'd', title: 't', vendors },
+					consentTypes: {
+						experience: { description: 'd', title: 't' },
+						functionality: { description: 'd', title: 't' },
+						marketing: { description: 'd', title: 't' },
+						measurement: { description: 'd', title: 't' },
+						necessary: { description: 'd', title: 't' },
+					},
+					cookieBanner: { description: 'd', title: 't' },
+					frame: { actionButton: 'a', title: 't' },
+					legalLinks: {
+						cookiePolicy: 'c',
+						privacyPolicy: 'p',
+						termsOfService: 's',
+					},
+				},
+			},
+		});
+		expect(
+			complete.translations.translations.consentManagerDialog.vendors
+		).toEqual(vendors);
+		// Partial branch: a backend that only translated the privacy link.
+		const partial = v.parse(initOutputSchema, {
+			...base,
+			translations: {
+				language: 'de',
+				translations: {
+					common: {},
+					consentManagerDialog: { vendors: { privacyPolicy: 'Datenschutz' } },
+					consentTypes: {},
+					cookieBanner: {},
+				},
+			},
+		});
+		expect(
+			partial.translations.translations.consentManagerDialog.vendors
+		).toEqual({
+			privacyPolicy: 'Datenschutz',
+		});
+	});
+
 	test('accepts partial translations that omit the new keys', () => {
 		const output = v.parse(initOutputSchema, {
 			branding: 'c15t',

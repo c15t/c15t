@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'Atur preferensi privasi Anda di sini. Anda dapat memilih jenis cookie dan teknologi pelacakan yang diizinkan.',
 		title: 'Pengaturan Privasi',
+		vendors: {
+			disabledByCategory: 'Aktifkan kategori ini untuk memilih vendor.',
+			privacyPolicy: 'Kebijakan Privasi',
+			switchLabel: 'Izinkan {vendor}',
+			title: 'Vendor ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

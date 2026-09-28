@@ -1,0 +1,28 @@
+{
+	"name": "@c15t/consent-observers",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Consumer fixture: observes consent through the packed public exports of c15t, the way an external integration would.",
+	"type": "module",
+	"scripts": {
+		"fmt": "bun oxfmt --write .",
+		"install:packed": "bun scripts/install-packed.ts",
+		"lint": "bun oxlint .",
+		"test": "bun scripts/install-packed.ts && tsc --noEmit && vitest run"
+	},
+	"dependencies": {
+		"@c15t/schema": "workspace:*",
+		"c15t": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/next-compat-shared": "workspace:*",
+		"@types/node": "25.5.0",
+		"@types/react": "19.2.17",
+		"@types/react-dom": "19.2.3",
+		"jsdom": "^25.0.0",
+		"react": "19.2.7",
+		"react-dom": "19.2.7",
+		"typescript": "6.0.3",
+		"vitest": "4.1.10"
+	}
+}

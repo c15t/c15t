@@ -482,7 +482,7 @@ describe('ConsentManager real transport completion', () => {
 		element.click();
 	};
 	for (const action of ['accept', 'reject', 'save']) {
-		test(`${action} retains the visible draft until a real successful response`, async () => {
+		test(`${action} closes on the local record and stays closed when the response fails`, async () => {
 			const transport = deferredTransport();
 			const { context, wrapper } = await renderManager({
 				customFetch: transport.customFetch,
@@ -491,31 +491,23 @@ describe('ConsentManager real transport completion', () => {
 				expect(context.snapshot.value.resolution.status).toBe('matched');
 				const completed = vi.fn();
 				context.kernel.events.on('command:save:completed', completed);
-				const switches = () =>
-					[...document.querySelectorAll('[role="switch"]')].map((node) =>
-						node.getAttribute('aria-checked')
-					);
-				const draft = switches();
 				click(action);
+				// Closed in the click task, before the request starts.
+				expect(context.activeUI.value).toBeNull();
+				expect(transport.customFetch).not.toHaveBeenCalled();
+				expect(context.snapshot.value.explicitChoice).not.toBeNull();
+				await flushPromises();
+				expect(document.querySelector('[role="dialog"]')).toBeNull();
 				await vi.waitFor(() =>
 					expect(transport.customFetch).toHaveBeenCalledOnce()
 				);
-				expect(context.snapshot.value.explicitChoice).not.toBeNull();
-				expect(context.activeUI.value).toBe('manager');
-				expect(document.querySelector('[role="dialog"]')).not.toBeNull();
-				expect(switches()).toEqual(draft);
 				transport.finish(0, false);
 				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
 				expect(completed.mock.calls[0]?.[0].result.ok).toBe(false);
-				expect(context.activeUI.value).toBe('manager');
-				expect(switches()).toEqual(draft);
-				click(action);
-				await vi.waitFor(() =>
-					expect(transport.customFetch).toHaveBeenCalledTimes(2)
-				);
-				expect(context.activeUI.value).toBe('manager');
-				transport.finish(1, true);
-				await vi.waitFor(() => expect(context.activeUI.value).toBeNull());
+				await flushPromises();
+				expect(context.activeUI.value).toBeNull();
+				expect(document.querySelector('[role="dialog"]')).toBeNull();
+				expect(context.snapshot.value.explicitChoice).not.toBeNull();
 			} finally {
 				await cleanup(wrapper, context);
 			}
@@ -529,18 +521,18 @@ describe('ConsentManager real transport completion', () => {
 				const completed = vi.fn();
 				context.kernel.events.on('command:save:completed', completed);
 				click(action);
+				expect(context.activeUI.value).toBeNull();
 				await vi.waitFor(() =>
 					expect(transport.customFetch).toHaveBeenCalledOnce()
 				);
-				context.activeUI.value = null;
-				await flushPromises();
-				expect(document.querySelector('[role="dialog"]')).toBeNull();
 				context.activeUI.value = 'manager';
 				await flushPromises();
 				click('save');
 				await vi.waitFor(() =>
 					expect(transport.customFetch).toHaveBeenCalledTimes(2)
 				);
+				context.activeUI.value = 'manager';
+				await flushPromises();
 				transport.finish(0, true);
 				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
 				expect(context.activeUI.value).toBe('manager');
@@ -551,7 +543,7 @@ describe('ConsentManager real transport completion', () => {
 				await cleanup(wrapper, context);
 			}
 		});
-		test(`${action} response cannot finish a newer pending action`, async () => {
+		test(`${action} response cannot reset edits in a reopened dialog`, async () => {
 			const transport = deferredTransport();
 			const { context, wrapper } = await renderManager({
 				customFetch: transport.customFetch,
@@ -563,10 +555,8 @@ describe('ConsentManager real transport completion', () => {
 				await vi.waitFor(() =>
 					expect(transport.customFetch).toHaveBeenCalledOnce()
 				);
-				click('save');
-				await vi.waitFor(() =>
-					expect(transport.customFetch).toHaveBeenCalledTimes(2)
-				);
+				context.activeUI.value = 'manager';
+				await flushPromises();
 				const choice = document.querySelector<HTMLButtonElement>(
 					'[role="switch"]:not([disabled])'
 				);
@@ -578,10 +568,7 @@ describe('ConsentManager real transport completion', () => {
 				const checked = choice.getAttribute('aria-checked');
 				transport.finish(0, true);
 				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
-				expect(context.activeUI.value).toBe('manager');
-				expect(choice.getAttribute('aria-checked')).toBe(checked);
-				transport.finish(1, false);
-				await vi.waitFor(() => expect(completed).toHaveBeenCalledTimes(2));
+				await flushPromises();
 				expect(context.activeUI.value).toBe('manager');
 				expect(choice.getAttribute('aria-checked')).toBe(checked);
 			} finally {

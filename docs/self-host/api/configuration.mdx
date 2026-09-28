@@ -42,13 +42,14 @@ fallback. Add reviewed rules for other locations in
 | `manifest` | Policy rules, translations, branding and IAB configuration published by `/manifest` and resolved by `/init`. |
 | `manifestCache` | Public manifest cache durations in seconds. Defaults to `sMaxAge: 300`, `staleWhileRevalidate: 86400`. |
 | `apiKeys` | Keys accepted as `Authorization: Bearer <key>` for administrative endpoints. No keys means no request authenticates. |
-| `policySnapshot` | Optional policy decision signing key, issuer, audience and lifetime. Default lifetime is 1,800 seconds when signing is enabled. |
+| `policySnapshot` | Optional policy decision signing key, issuer, audience and lifetime. Default lifetime is 1,800 seconds when signing is enabled. `replayWindowSeconds` (default 604,800, 7 days) is how long after a token expires a save made while it was valid is still accepted; `0` refuses every late save. See [late saves](/docs/self-host/api/endpoints#late-saves). |
 | `legalDocumentSnapshot` | Legal-document signing configuration type. It does not automatically issue or verify HTTP tokens. Use the [explicit signing helpers](/docs/self-host/guides/legal-document-snapshot-integration); their default lifetime is 86,400 seconds. |
 | `gvl` | Server-side Global Vendor List loading and cache configuration. Writing the block is the opt-in: `/init` carries the list for every matched IAB policy. `enabled: false` declines. |
 | `ipAddress` | IP recording options. Masking is on unless disabled; `tracking: false` records no IP. |
 | `openapi` | Enabled by default at `/spec.json`. Supports `enabled`, `specPath`, `title` and the documented server `basePath`. |
 | `version` | Version reported by the status endpoint and OpenAPI document. |
 | `observability` | Logging configuration passed directly to `c15tInstance`. Defaults to warning and error requests. |
+| `sessions` | `onReport` receives every session report: hosts' `POST /sessions` and the backend's own `/init`. The IP in its context follows `ipAddress`; a host report names the visitor only on `X-C15T-Client-IP`, and `/init` reads the connection. Reports land on the request's wide event. A failing sink never fails the request: on `POST /sessions` the failure is recorded on that event; on `/init` the sink runs after the response, registered with the runtime's `waitUntil` where one exists, and a failure is logged as its own event. Nothing is stored. Not accepted by `defineConfig`, like `observability`. |
 
 `defineConfig()` checks types and returns the supplied object. It does not load
 environment variables or run migrations. It deliberately rejects `observability`;
@@ -65,6 +66,7 @@ pass logging callbacks when constructing the instance instead.
 | `disableGeoLocation` | Disables location-based resolution. Review the resulting default and fallback behavior. |
 | `customTranslations`, `i18n` | Translation overrides and locale configuration. |
 | `iab` | `enabled`, `cmpId`, `customVendors` and the GVL `endpoint`. |
+| `vendors`, `vendorListVersion` | Vendors offered for vendor-level consent outside IAB, returned from `/init` and merged with vendors declared in the client. The version label is shown to the visitor and surfaced to dev tools, never used to force re-consent; a saved vendor decision carries the grant map and its time, not the label. |
 
 ## Browser script routes
 

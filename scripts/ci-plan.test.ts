@@ -28,6 +28,15 @@ describe('CI selection', () => {
 			});
 		}
 	});
+
+	it('treats release notes as docs but validates publish locks as executable configuration', () => {
+		expect(plan(['.tegami/fix.md'])).toMatchObject({
+			docs: true,
+			full: false,
+			tests: [],
+		});
+		expect(plan(['.tegami/publish-lock.yaml']).full).toBe(true);
+	});
 	it('runs no runtime work for the docs and generated files in PR 1105', () => {
 		const result = plan([
 			'docs/docs.config.ts',
@@ -60,6 +69,17 @@ describe('CI selection', () => {
 		expect(result.compat).toContain('16-static-export');
 		expect(result.bundle).toBe(true);
 	});
+	it('pairs an Astro-only change with every framework parity is measured against', () => {
+		// The parity suite needs at least two of React, Svelte and Vue; React
+		// and Astro alone fail it before comparing anything.
+		const result = plan(['packages/astro/src/client.ts']);
+		expect([...result.parity].sort()).toEqual([
+			'astro',
+			'react',
+			'svelte',
+			'vue',
+		]);
+	});
 	it('follows Next through the umbrella package used by examples', () => {
 		const result = plan(['packages/nextjs/src/index.ts']);
 		expect([...result.compat].sort()).toEqual([
@@ -90,7 +110,7 @@ describe('CI selection', () => {
 		const result = plan([file]);
 		expect(result.full).toBe(true);
 		expect(result.backend).toBe(true);
-		expect(result.examples).toHaveLength(9);
+		expect(result.examples).toHaveLength(10);
 	});
 	it('runs benchmark helper tests when benchmark infrastructure changes', () => {
 		expect(plan(['benchmarks/shared/src/budgets.ts']).tests).toContain(

@@ -6,6 +6,7 @@ import { resolvePolicyRules } from '@c15t/schema/types';
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { holdNetworkRequests } from '../../modules/network-blocker/hold';
 import { custom } from '../../transports/mode';
 import type { KernelTransport } from '../../types';
 import {
@@ -124,6 +125,72 @@ describe('createRuntimeKernel', () => {
 		).toThrowError(/`mode` is required/u);
 	});
 
+	test('merges prefetched backend vendors with code-declared ones and keeps the list version', () => {
+		const kernel = createRuntimeKernel({
+			mode: custom(createTransport()),
+			prefetch: {
+				...RESOLVED_PREFETCH,
+				initialVendors: {
+					declared: [
+						{
+							category: 'measurement',
+							id: 'google-analytics',
+							name: 'Google Analytics',
+							presentable: true,
+							privacyPolicyUrl: 'https://policies.google.com/privacy',
+							source: 'manifest',
+						},
+					],
+					listVersion: '2026-09',
+				},
+			},
+			scripts: [
+				{
+					category: 'marketing',
+					id: 'meta',
+					src: 'https://example.com/meta.js',
+					vendor: 'meta-pixel',
+				},
+			],
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'meta-pixel',
+					name: 'Meta Pixel',
+					privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+				},
+			],
+		});
+		const { vendors, consentCategories } = kernel.getServerSnapshot();
+		expect(vendors?.listVersion).toBe('2026-09');
+		expect(vendors?.declared.map((vendor) => vendor.id)).toEqual([
+			'google-analytics',
+			'meta-pixel',
+		]);
+		// The prefetched backend vendor's category is selectable at construction,
+		// so the server snapshot and the hydrated one agree on scope.
+		expect(consentCategories).toContain('measurement');
+	});
+
+	test('a disabled runtime ignores a prefetched vendor denial', () => {
+		const kernel = createRuntimeKernel({
+			enabled: false,
+			mode: custom(createTransport()),
+			prefetch: {
+				...RESOLVED_PREFETCH,
+				initialRecords: {
+					now: 1_800_000_000_000,
+					vendorChoice: {
+						confirmedAt: 1_799_999_999_000,
+						denied: ['meta-pixel'],
+						version: 1,
+					},
+				},
+			},
+		});
+		expect(kernel.getServerSnapshot().vendorChoice).toBeNull();
+	});
+
 	test('grants every category and suppresses UI when disabled', () => {
 		const kernel = createRuntimeKernel({
 			enabled: false,
@@ -161,6 +228,36 @@ describe('createRuntimeKernel', () => {
 });
 
 describe('createConsentRuntime', () => {
+	test('stageVendorConsent stages a slug for the next save and resetVendorDraft drops it', async () => {
+		const runtime = createConsentRuntime({
+			mode: custom(createTransport()),
+			persistence: false,
+			vendors: [
+				{
+					category: 'marketing',
+					id: 'meta-pixel',
+					name: 'Meta Pixel',
+					privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+				},
+			],
+		});
+		runtime.start();
+		await runtime.kernel.commands.save({ marketing: true });
+		// Staging alone changes no gate.
+		runtime.stageVendorConsent('meta-pixel', false);
+		expect(runtime.kernel.getSnapshot().vendorChoice).toBeNull();
+		runtime.resetVendorDraft();
+		await runtime.kernel.commands.save();
+		expect(runtime.kernel.getSnapshot().vendorChoice).toBeNull();
+		// Staged and then saved, the denial records.
+		runtime.stageVendorConsent('meta-pixel', false);
+		await runtime.kernel.commands.save();
+		expect(runtime.kernel.getSnapshot().vendorChoice?.denied).toEqual([
+			'meta-pixel',
+		]);
+		runtime.dispose();
+	});
+
 	test('defers storage hydration until start and preserves valid legacy records', () => {
 		document.cookie = `c15t=c.necessary:1,c.marketing:1,i.t:${Date.now()}; path=/`;
 
@@ -435,6 +532,72 @@ describe('createConsentRuntime', () => {
 		expect(runtime.started).toBe(false);
 	});
 
+	test('holds network-blocker requests from construction until `start()` decides them', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const nativeFetch = window.fetch;
+		const original = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = original as unknown as typeof window.fetch;
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			// A component that mounts before the host calls `start()`.
+			const early = window.fetch('https://tracker.example/collect');
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(original).not.toHaveBeenCalled();
+
+			runtime.start();
+
+			expect((await early).status).toBe(451);
+			expect(original).not.toHaveBeenCalled();
+			runtime.dispose();
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
+	test('a runtime disposed before `start()` fails its held requests closed', async () => {
+		const nativeFetch = window.fetch;
+		const original = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = original as unknown as typeof window.fetch;
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			let settled = false;
+			const early = window
+				.fetch('https://tracker.example/collect')
+				.finally(() => {
+					settled = true;
+				});
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(settled).toBe(false);
+
+			runtime.dispose();
+
+			// Nothing checked consent for the held request, so it is answered
+			// as blocked rather than sent, and it does not hang.
+			expect((await early).status).toBe(451);
+			expect(original).not.toHaveBeenCalled();
+			// The hold is gone: nothing waits from here on.
+			expect(window.fetch).toBe(original);
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
 	test('forwards `i18n` messages into the kernel translations', () => {
 		const runtime = createConsentRuntime({
 			i18n: {
@@ -513,5 +676,130 @@ describe('windowDebug', () => {
 
 		runtime.dispose();
 		expect((window as DebugWindow).c15t).toBe(owned);
+	});
+});
+
+describe('the runtime network hold', () => {
+	const settles = (request: Promise<Response>) => {
+		const state = { settled: false };
+		void request.finally(() => {
+			state.settled = true;
+		});
+		return state;
+	};
+	const tick = () =>
+		new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+
+	test("disposing before `start()` fails only this runtime's held requests closed", async () => {
+		const nativeFetch = window.fetch;
+		const network = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = network as unknown as typeof window.fetch;
+		// Another caller, such as a component, holds its own rules.
+		const other = holdNetworkRequests([
+			{ category: 'marketing', domain: 'ads.example' },
+		]);
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			const own = window.fetch('https://tracker.example/collect');
+			const ads = settles(window.fetch('https://ads.example/pixel'));
+			await tick();
+
+			runtime.dispose();
+
+			// Nothing checked consent for it: answered as blocked, not sent.
+			expect((await own).status).toBe(451);
+			expect(network).not.toHaveBeenCalled();
+			await tick();
+			expect(ads.settled).toBe(false);
+		} finally {
+			other.release()();
+			window.fetch = nativeFetch;
+		}
+	});
+
+	test('a disabled blocker leaves other callers holding', async () => {
+		const nativeFetch = window.fetch;
+		const network = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = network as unknown as typeof window.fetch;
+		const other = holdNetworkRequests([
+			{ category: 'marketing', domain: 'ads.example' },
+		]);
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					enabled: false,
+					rules: [{ category: 'marketing', domain: 'ads.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			const ads = settles(window.fetch('https://ads.example/pixel'));
+			await tick();
+
+			runtime.start();
+			await tick();
+
+			// The disabled blocker's pass-through would send it unchecked.
+			expect(ads.settled).toBe(false);
+			expect(network).not.toHaveBeenCalledWith(
+				'https://ads.example/pixel',
+				undefined
+			);
+			runtime.dispose();
+		} finally {
+			other.release()();
+			window.fetch = nativeFetch;
+		}
+	});
+});
+
+describe('revocation reload', () => {
+	const revoke = async function revoke(
+		options: { reloadOnConsentRevoked?: boolean } = {}
+	) {
+		vi.useFakeTimers();
+		const reload = vi.fn();
+		vi.spyOn(window, 'location', 'get').mockReturnValue({
+			reload,
+		} as unknown as Location);
+		const onBeforeConsentRevocationReload = vi.fn();
+		const runtime = createConsentRuntime({
+			callbacks: { onBeforeConsentRevocationReload },
+			mode: custom(createTransport()),
+			prefetch: RESOLVED_PREFETCH,
+			...options,
+		});
+		const settle = async (saving: Promise<unknown>) => {
+			await vi.advanceTimersByTimeAsync(10);
+			await saving;
+			await vi.advanceTimersByTimeAsync(10);
+		};
+		await settle(runtime.kernel.commands.save({ marketing: true }));
+		await settle(runtime.kernel.commands.save({ marketing: false }));
+		runtime.dispose();
+		vi.useRealTimers();
+		return { onBeforeConsentRevocationReload, reload };
+	};
+
+	test('reloads by default after an explicit revocation', async () => {
+		const { onBeforeConsentRevocationReload, reload } = await revoke();
+		expect(onBeforeConsentRevocationReload).toHaveBeenCalledOnce();
+		expect(reload).toHaveBeenCalledOnce();
+	});
+
+	test('honours `reloadOnConsentRevoked: false`', async () => {
+		const { onBeforeConsentRevocationReload, reload } = await revoke({
+			reloadOnConsentRevoked: false,
+		});
+		expect(onBeforeConsentRevocationReload).not.toHaveBeenCalled();
+		expect(reload).not.toHaveBeenCalled();
 	});
 });

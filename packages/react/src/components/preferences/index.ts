@@ -10,6 +10,9 @@
  *
  */
 
+// Widget rules live in the dialog stylesheet, not styles.css. See
+// components/panel/index.ts.
+import '@c15t/ui/styles/dialog';
 import type { FC } from 'react';
 
 import {
@@ -21,6 +24,7 @@ import {
 	AccordionTrigger,
 	AccordionTriggerInner,
 	Switch,
+	VendorList,
 } from './atoms/accordion';
 import {
 	AcceptAllButton,
@@ -53,6 +57,8 @@ export interface ConsentWidgetCompoundComponent extends FC<ConsentWidgetProps> {
 	Switch: typeof Switch;
 	AccordionItems: typeof AccordionItems;
 	AccordionItem: typeof AccordionItem;
+	/** Vendor rows for one category, nested by `AccordionItems`. */
+	VendorList: typeof VendorList;
 	// Root component
 	Root: typeof Root;
 	// Button components
@@ -140,6 +146,7 @@ const ConsentWidget = Object.assign(ConsentWidgetComponent, {
 	Root,
 	SaveButton,
 	Switch,
+	VendorList,
 }) as ConsentWidgetCompoundComponent;
 
 // Export the main component as both default and named export
@@ -162,7 +169,9 @@ export {
 	ConsentWidgetAccordionTrigger,
 	ConsentWidgetAccordionTriggerInner,
 	ConsentWidgetSwitch,
+	ConsentWidgetVendorList,
 	Switch,
+	VendorList,
 } from './atoms/accordion';
 export {
 	AcceptAllButton,

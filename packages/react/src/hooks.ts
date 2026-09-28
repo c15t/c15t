@@ -34,45 +34,19 @@ import type {
 	KernelUser,
 	LocationResponse,
 	PolicyScopeMode,
+	ResolvedVendor,
+	VendorChoice,
 } from '@c15t/core';
-import { useCallback, useContext, useSyncExternalStore } from 'react';
+import { evaluateConsent, isVendorDenied } from '@c15t/core';
+import { useCallback, useSyncExternalStore } from 'react';
 
-import { KernelContext } from './context';
+import {
+	useGateSelector,
+	useKernel,
+	useKernelSelector,
+} from './kernel-selector';
 import { useUIConfig } from './ui-config-context';
 import { invalidateConsentUIAction } from './ui-save';
-
-const useKernel = function useKernel(): ConsentKernel {
-	const kernel = useContext(KernelContext);
-	if (!kernel) {
-		throw new Error(
-			'c15t: no kernel in context. Wrap your app with <ConsentProvider options={...}> from @c15t/react.'
-		);
-	}
-	return kernel;
-};
-
-const subscribe = function subscribe(
-	kernel: ConsentKernel,
-	listener: () => void
-): () => void {
-	return kernel.subscribe(listener);
-};
-
-const useKernelSelector = function useKernelSelector<T>(
-	selector: (snap: ConsentSnapshot) => T
-): T {
-	const kernel = useKernel();
-	return useSyncExternalStore(
-		(listener) => subscribe(kernel, listener),
-		() => selector(kernel.getSnapshot()),
-		// Hydration must render what the SERVER rendered. Client boot
-		// mutations (sync persistence hydrate, eager init) can flip the live
-		// snapshot before hydration completes — rendering the mutated state
-		// here mismatches the server HTML and strands SSR'd consent UI as
-		// unowned DOM (a banner React never removes).
-		() => selector(kernel.getServerSnapshot())
-	);
-};
 
 /**
  * Full snapshot accessor. Escape hatch for consumers that genuinely need
@@ -81,7 +55,7 @@ const useKernelSelector = function useKernelSelector<T>(
 export const useSnapshot = function useSnapshot(): ConsentSnapshot {
 	const kernel = useKernel();
 	return useSyncExternalStore(
-		(listener) => subscribe(kernel, listener),
+		(listener) => kernel.subscribe(listener),
 		() => kernel.getSnapshot(),
 		() => kernel.getServerSnapshot()
 	);
@@ -236,6 +210,68 @@ export const useSpecialFeatureOptIn = function useSpecialFeatureOptIn(
 /** Latest TCF string. `null` until the IAB module encodes one. */
 export const useTCString = function useTCString(): string | null {
 	return useKernelSelector((snap) => snap.iab?.tcString ?? null);
+};
+
+const NO_VENDORS: readonly ResolvedVendor[] = [];
+
+/**
+ * Vendors declared for vendor-level consent outside IAB, merged from the
+ * provider's `vendors` option, the backend and script slugs. Empty under an
+ * `iab` policy, where the TC string decides and vendor rows are not shown.
+ */
+export const useDeclaredVendors =
+	function useDeclaredVendors(): readonly ResolvedVendor[] {
+		return useKernelSelector((snap) =>
+			snap.model === 'iab' ? NO_VENDORS : (snap.vendors?.declared ?? NO_VENDORS)
+		);
+	};
+
+/**
+ * The visitor's recorded vendor decision.
+ *
+ * @returns The decision, whose `denied` list may be empty after a bulk
+ * action lifted every denial, or `null` when no vendor decision was ever
+ * recorded.
+ */
+export const useVendorChoice =
+	function useVendorChoice(): Readonly<VendorChoice> | null {
+		return useKernelSelector((snap) => snap.vendorChoice);
+	};
+
+/**
+ * Whether one vendor is allowed: its category condition passes and the
+ * visitor has not turned it off.
+ *
+ * @param vendorId - Vendor slug as declared in `vendors` or on a script.
+ * @returns `false` while the vendor is denied outside `iab`, otherwise the
+ * result of its declared category condition. An undeclared id is `true`:
+ * nothing is known about its category, and a denial only exists for a vendor
+ * the visitor saw.
+ */
+export const useVendorAllowed = function useVendorAllowed(
+	vendorId: string
+): boolean {
+	return useGateSelector((snap, now) => {
+		const vendor = snap.vendors?.declared.find(
+			(entry) => entry.id === vendorId
+		);
+		// An explicit short-circuit, not load-bearing: the kernel's denial set
+		// already skips an undeclared id, so this only makes the answer for an
+		// unknown vendor plain to read.
+		if (!vendor) {
+			return true;
+		}
+		// The kernel's own gate semantics: inert under `iab`, and a stale denial
+		// for a vendor now declared `disabled` no longer counts.
+		if (snap.model !== 'iab' && isVendorDenied(snap, vendorId)) {
+			return false;
+		}
+		try {
+			return evaluateConsent({ category: vendor.category }, snap, now);
+		} catch {
+			return false;
+		}
+	});
 };
 
 /** Register categories used by scripts, frames, or other integrations. */

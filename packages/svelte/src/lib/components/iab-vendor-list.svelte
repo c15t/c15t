@@ -423,6 +423,7 @@
 
 						<PreferenceItem.Content
 							innerClassName={noStyle ? '' : styles.vendorListContent || ''}
+							{noStyle}
 						>
 							<!-- Links -->
 							<div class={noStyle ? '' : styles.vendorLinks || ''}>
@@ -764,6 +765,7 @@
 
 						<PreferenceItem.Content
 							innerClassName={noStyle ? '' : styles.vendorListContent || ''}
+							{noStyle}
 						>
 							<div class={noStyle ? '' : styles.vendorLinks || ''}>
 								<a

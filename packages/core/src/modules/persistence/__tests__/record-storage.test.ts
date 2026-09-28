@@ -442,9 +442,12 @@ describe('raw candidate reading', () => {
 		);
 		expect(resolveStorageKeys(config)).toEqual({
 			consent: 'custom-key',
+			cookieMiss: 'custom-key-cookie-miss',
+			epoch: 'custom-key-epoch',
 			legacyConsent: STORAGE_KEY,
 			notice: 'custom-key-notice',
 			privacy: 'custom-key-privacy',
+			vendors: 'custom-key-vendors',
 		});
 	});
 
@@ -573,11 +576,16 @@ describe('v3 writes', () => {
 				'"version":3'
 			);
 
-			// Read precedence is unchanged: the untouched old cookie still wins.
+			// The untouched old cookie still wins, but the newer denial that
+			// only reached localStorage is applied on top of it, so the old
+			// grant is not kept in force.
 			const { selected } = readStoredConsentRecord(undefined, NOW);
 			expect(selected?.source).toBe('cookie');
 			expect(selected?.format).toBe('legacy-v2');
-			expect(selected?.choice.categories.marketing?.value).toBe(true);
+			expect(selected?.choice.categories.marketing?.value).toBe(false);
+			expect(selected?.choice.categories.marketing?.confirmedAt).toBe(
+				NOW - DAY
+			);
 		} finally {
 			if (descriptor) {
 				Object.defineProperty(document, 'cookie', descriptor);
@@ -748,5 +756,63 @@ describe('notice dismissal and privacy opt-outs', () => {
 		expect(document.cookie).not.toContain('custom-key=v=3');
 		expect(readStoredConsentRecord(config, NOW).selected).toBeNull();
 		expect(readStoredNoticeDismissal(config, NOW)).toBeNull();
+	});
+});
+
+describe('cookie and local copies from different clear epochs', () => {
+	const decision = (value: boolean, confirmedAt: number) => ({
+		basis: currentBasis,
+		confirmedAt,
+		value,
+	});
+	const store = (
+		cookieEnvelope: StoredConsentEnvelope,
+		localEnvelope: StoredConsentEnvelope
+	) => {
+		document.cookie = `${STORAGE_KEY_V2}=${encodeStoredConsentEnvelopeCompact(cookieEnvelope)}`;
+		window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(localEnvelope));
+	};
+
+	it('never lets an older local grant replace a newer cookie denial', () => {
+		store(
+			{
+				categories: { marketing: decision(false, NOW - 700) },
+				epoch: NOW - 900,
+				version: 3,
+			},
+			{
+				categories: { marketing: decision(true, NOW - 750) },
+				epoch: NOW - 800,
+				version: 3,
+			}
+		);
+
+		const { selected } = readStoredConsentRecord(undefined, NOW);
+		expect(selected?.choice.categories.marketing?.value).toBe(false);
+	});
+
+	it('voids the side from before the later epoch and adds no local grant', () => {
+		store(
+			{
+				categories: { marketing: decision(true, NOW - 950) },
+				epoch: NOW - 1000,
+				version: 3,
+			},
+			{
+				categories: {
+					marketing: decision(true, NOW - 700),
+					measurement: decision(false, NOW - 700),
+				},
+				epoch: NOW - 800,
+				version: 3,
+			}
+		);
+
+		const { selected } = readStoredConsentRecord(undefined, NOW);
+		// The cookie grant predates the later clear; the local grant is not
+		// applied over the cookie, the local denial is.
+		expect(selected?.choice.categories.marketing).toBeUndefined();
+		expect(selected?.choice.categories.measurement?.value).toBe(false);
+		expect(selected?.epoch).toBe(NOW - 800);
 	});
 });
