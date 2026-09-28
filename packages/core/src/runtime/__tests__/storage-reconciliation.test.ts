@@ -1339,3 +1339,66 @@ test("write-back restores a decision made in the millisecond of this runtime's o
 	await nextTask();
 	expect(decision(start(threeCategories), 'marketing')).toBe(false);
 });
+
+test('a server-seeded runtime applies a newer denial that only reached localStorage', () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	const basis = {
+		fingerprint: resolution.fingerprints.choice,
+		kind: 'choice-v1' as const,
+	};
+	const grant = {
+		categories: { measurement: { basis, confirmedAt: T - 2000, value: true } },
+		version: 3 as const,
+	};
+	// The cookie (what the server rendered with) still holds the grant; the
+	// newer denial reached only localStorage.
+	document.cookie = `c15t=${encodeStoredConsentEnvelopeCompact(grant)}; path=/`;
+	localStorage.setItem(
+		'c15t',
+		JSON.stringify({
+			categories: {
+				measurement: { basis, confirmedAt: T - 1000, value: false },
+			},
+			version: 3,
+		})
+	);
+
+	const active = start({
+		prefetch: {
+			initialPolicyResolution: resolution,
+			initialRecords: { choice: grant, now: T },
+		},
+	});
+	expect(measurement(active)).toBe(false);
+});
+
+test('a clear after the clock went back more than an hour keeps a readable epoch', () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	const active = start(threeCategories);
+	active.clearRecords();
+
+	vi.setSystemTime(T - 2 * HOUR);
+	active.clearRecords();
+	expect(readStoredClearEpoch(undefined, Date.now())).toBeGreaterThan(0);
+
+	// A writer that missed both clears puts back a decision from before them.
+	writeStoredConsentEnvelope(
+		{
+			categories: {
+				measurement: {
+					basis: {
+						fingerprint: resolution.fingerprints.choice,
+						kind: 'choice-v1',
+					},
+					confirmedAt: Date.now() - 60_000,
+					value: true,
+				},
+			},
+			version: 3,
+		},
+		{ now: Date.now() }
+	);
+	expect(decision(start(threeCategories), 'measurement')).toBeUndefined();
+});

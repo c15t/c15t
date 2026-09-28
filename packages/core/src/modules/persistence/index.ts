@@ -49,7 +49,7 @@ import type {
  */
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import type { ConsentSnapshot, HydrationRecords } from '../../types';
-import { directiveIdentity } from './directives';
+import { directiveIdentity, mergeDirectives } from './directives';
 import {
 	choiceSinceEpoch,
 	directivesSinceEpoch,
@@ -68,6 +68,7 @@ import {
 	subjectToWrite,
 } from './reconcile';
 import type { StorageFingerprints, StoredRecordKind } from './reconcile';
+import { EPOCH_CLOCK_TOLERANCE_MS } from './record-codec';
 import type { StoredIabMetadata } from './record-codec';
 import {
 	clearStoredConsentRecords,
@@ -457,6 +458,50 @@ export const createPersistence = function createPersistence(
 		});
 	};
 
+	/**
+	 * A server prefetch seeds the kernel from the cookie alone, and the seed
+	 * stays authoritative (`skipHydration`): nothing stored replaces it. But a
+	 * browser can drop a cookie write while localStorage takes it, so a newer
+	 * denial or privacy directive may exist only there. Those only restrict,
+	 * so they are applied on top of the seed; a stored grant never is.
+	 */
+	const applyNewerStoredRestrictions =
+		function applyNewerStoredRestrictions(): void {
+			if (typeof document === 'undefined') {
+				return;
+			}
+			const at = now();
+			const { records } = readStoredRecordsForReconcile(storageConfig, at);
+			const snapshot = kernel.getSnapshot();
+			const patch: HydrationRecords = {};
+			const seeded = snapshot.explicitChoice?.categories ?? {};
+			const denials = Object.entries(records.choice?.categories ?? {}).filter(
+				([category, decision]) => {
+					const current = seeded[category as keyof typeof seeded];
+					return (
+						decision?.value === false &&
+						(!current || decision.confirmedAt > current.confirmedAt)
+					);
+				}
+			);
+			if (denials.length > 0) {
+				patch.choice = {
+					categories: { ...seeded, ...Object.fromEntries(denials) },
+					version: 3,
+				};
+			}
+			const directives = mergeDirectives(
+				snapshot.optOutDirectives,
+				records.optOutDirectives ?? []
+			);
+			if (directives.length > snapshot.optOutDirectives.length) {
+				patch.optOutDirectives = directives;
+			}
+			if (Object.keys(patch).length > 0) {
+				kernel.hydrate({ ...patch, now: at });
+			}
+		};
+
 	const hydrate = function hydrate(): boolean {
 		// An explicit choice may still be queued. Land it first so
 		// rehydration reads the new choice back instead of overwriting it
@@ -625,6 +670,7 @@ export const createPersistence = function createPersistence(
 
 	if (options.skipHydration) {
 		reconcileVendorChoice();
+		applyNewerStoredRestrictions();
 		observe();
 	} else {
 		hydrate();
@@ -654,7 +700,14 @@ export const createPersistence = function createPersistence(
 					memoryEpoch,
 					readStoredClearEpoch(storageConfig, at)
 				);
-				const epoch = Math.max(at, previous + 1);
+				// Never further ahead of the clock than readers accept, or
+				// every other runtime would read the epoch as corrupt (0). Any
+				// decision valid now is dated no later than `at`, so the capped
+				// epoch still voids all of them.
+				const epoch = Math.max(
+					at,
+					Math.min(previous + 1, at + EPOCH_CLOCK_TOLERANCE_MS)
+				);
 				writeStoredClearEpoch(epoch, storageConfig);
 			}
 			observe();
