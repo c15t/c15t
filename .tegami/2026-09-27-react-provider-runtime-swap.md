@@ -23,5 +23,7 @@ runtime, so a nested provider on another runtime keeps its own.
 taken right after the switch waits for the new runtime's handle, including
 when you switch back to a runtime the provider rendered before. An action
 still addressed to the previous runtime rejects with an `AbortError` and is
-not applied to either runtime. Moving between a borrowed runtime and one the
+not applied to either runtime. Actions still waiting when `IABProvider`
+unmounts, for example because its CMP failed to start, also reject with an
+`AbortError` instead of never settling. Moving between a borrowed runtime and one the
 provider creates still requires a remount.

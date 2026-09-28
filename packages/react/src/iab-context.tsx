@@ -122,10 +122,35 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	// handle. A server-rendered banner is clickable in that window. Each
 	// action remembers its selection, so it never runs against another one.
 	const queuedRef = useRef<QueuedIABAction[]>([]);
+	// Whether the provider is mounted, and whether it has stayed unmounted
+	// long enough to abort its queue. No handle will drain a closed queue.
+	const mountedRef = useRef(false);
+	const closedRef = useRef(false);
 
 	useEffect(() => {
 		optionsRef.current = options;
 	}, [options]);
+
+	useEffect(() => {
+		mountedRef.current = true;
+		closedRef.current = false;
+		return () => {
+			mountedRef.current = false;
+			// StrictMode, and a hidden Activity that is shown again, replay this
+			// cleanup and setup. Only a provider still unmounted once the
+			// current task's microtasks run aborts its queue, whichever
+			// selection each action belongs to.
+			queueMicrotask(() => {
+				if (mountedRef.current) {
+					return;
+				}
+				closedRef.current = true;
+				for (const action of queuedRef.current.splice(0)) {
+					action.cancel();
+				}
+			});
+		};
+	}, []);
 
 	useEffect(() => {
 		const retired = retiredRef.current;
@@ -162,11 +187,11 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 				const cancel = () =>
 					reject(
 						new DOMException(
-							'IAB provider switched to another consent kernel.',
+							'IAB provider unmounted or switched to another consent kernel.',
 							'AbortError'
 						)
 					);
-				if (retiredRef.current.has(selection)) {
+				if (closedRef.current || retiredRef.current.has(selection)) {
 					cancel();
 					return;
 				}
