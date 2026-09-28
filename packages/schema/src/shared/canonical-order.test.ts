@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'vitest';
 
 import { compareCanonical } from './canonical-order';
+import { normalizePolicyRule } from './policy-rule';
+import {
+	choicePromptFingerprintInput,
+	noticePromptFingerprintInput,
+	policyFingerprintInput,
+} from './policy-rule-fingerprint';
+import { policyRulePresets } from './policy-rule-presets';
 
 const PRINTABLE = Array.from({ length: 0x7f - 0x20 }, (_, index) =>
 	String.fromCharCode(0x20 + index)
@@ -95,4 +102,45 @@ describe('compareCanonical', () => {
 			[...values].sort((left, right) => left.localeCompare(right))
 		);
 	});
+});
+
+describe('fingerprint inputs under other locales', () => {
+	const collect = function collect(value: unknown, sets: string[][]): void {
+		if (Array.isArray(value)) {
+			if (value.every((item) => typeof item === 'string')) {
+				sets.push(value as string[]);
+			}
+			for (const item of value) {
+				collect(item, sets);
+			}
+			return;
+		}
+		if (value && typeof value === 'object') {
+			sets.push(Object.keys(value));
+			for (const item of Object.values(value)) {
+				collect(item, sets);
+			}
+		}
+	};
+
+	const sets: string[][] = [];
+	for (const preset of Object.values(policyRulePresets)) {
+		const rule = normalizePolicyRule(preset());
+		collect(policyFingerprintInput(rule), sets);
+		collect(choicePromptFingerprintInput(rule), sets);
+		collect(noticePromptFingerprintInput(rule), sets);
+		collect(preset().legacyMaterial ?? null, sets);
+	}
+
+	test.each(['en', 'tr', 'da', 'nb', 'sv', 'fi', 'cs', 'sk', 'de', 'es', 'pl'])(
+		'every preset key set and value set sorts the same as localeCompare under %s',
+		(locale) => {
+			expect(sets.length).toBeGreaterThan(50);
+			for (const set of sets) {
+				expect([...set].sort(compareCanonical)).toEqual(
+					[...set].sort((left, right) => left.localeCompare(right, locale))
+				);
+			}
+		}
+	);
 });

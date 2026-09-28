@@ -225,7 +225,7 @@ const onAction = function onAction(action: PresentationAction) {
 	>
 		<Transition
 			:css="!disableAnimation"
-			:enter-from-class="transitionStyles.overlayEntering"
+			:enter-from-class="''"
 			:enter-active-class="transitionStyles.overlayVisible"
 			:enter-to-class="transitionStyles.overlayVisible"
 			:leave-from-class="transitionStyles.overlayVisible"
@@ -240,12 +240,13 @@ const onAction = function onAction(action: PresentationAction) {
 				:class="[
 					bannerStyles.overlay,
 					disableAnimation ? undefined : bannerStyles.overlayVisible,
+					disableAnimation ? undefined : bannerStyles.overlayEntering,
 				]"
 			/>
 		</Transition>
 		<Transition
 			:css="!disableAnimation"
-			:enter-from-class="transitionStyles.bannerEntering"
+			:enter-from-class="''"
 			:enter-active-class="transitionStyles.bannerVisible"
 			:enter-to-class="transitionStyles.bannerVisible"
 			:leave-from-class="transitionStyles.bannerVisible"
@@ -262,7 +263,11 @@ const onAction = function onAction(action: PresentationAction) {
 				:data-prompt="promptKind"
 				:data-model="snapshot.policyRule.model"
 				:dir="textDirection"
-				:class="[bannerStyles.root, bannerStyles.bannerVisible]"
+				:class="[
+					bannerStyles.root,
+					bannerStyles.bannerVisible,
+					disableAnimation ? undefined : bannerStyles.bannerEntering,
+				]"
 			>
 				<div
 					v-bind="config.components?.banner?.cardShell"

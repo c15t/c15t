@@ -8,9 +8,9 @@
  * these sets hold is printable ASCII, and for printable ASCII the root
  * collation is a fixed table: punctuation, then digits, then letters
  * compared without case, with lowercase before uppercase on a tie. This
- * module applies that table directly and only falls back to the collator
- * for a string it cannot place, so the order is unchanged and the collator
- * stays unloaded on the common path.
+ * module applies that table directly and only falls back to the `en`
+ * collator for a string it cannot place, so the order is unchanged and the
+ * collator stays unloaded on the common path.
  *
  * @internal
  */
@@ -71,7 +71,9 @@ export const compareCanonical = function compareCanonical(
 	right: string
 ): number {
 	if (!(isPrintableAscii(left) && isPrintableAscii(right))) {
-		return left.localeCompare(right);
+		// The table above is the `en` order, so the fallback must be too;
+		// mixing it with the runtime locale would not give a total order.
+		return left.localeCompare(right, 'en');
 	}
 	const shared = Math.min(left.length, right.length);
 	for (let index = 0; index < shared; index += 1) {
