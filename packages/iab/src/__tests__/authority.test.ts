@@ -2245,6 +2245,62 @@ describe('category decisions for purposes with no consent basis', () => {
 		expect(
 			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
 		).toBe(false);
+		// The refused category blocks scripts that depend on it. The LI-only
+		// vendor is decided by its own legitimate interest signals instead.
+		expect(
+			evaluateConsent({ category: 'measurement' }, kernel.getSnapshot())
+		).toBe(false);
+		expect(evaluateConsent(liVendor, kernel.getSnapshot())).toBe(true);
+	});
+});
+
+describe('a category left with only legitimate interest', () => {
+	// Every vendor for purposes 7, 8 and 9 (all of measurement) ends up on
+	// legitimate interest or prohibited.
+	const allLIMeasurement = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [1] },
+		{ purposeId: 7, restrictionType: 2 as const, vendorIds: [2, 755] },
+		{ purposeId: 8, restrictionType: 0 as const, vendorIds: [755] },
+		{ purposeId: 8, restrictionType: 2 as const, vendorIds: [2] },
+		{ purposeId: 9, restrictionType: 0 as const, vendorIds: [1] },
+		{ purposeId: 9, restrictionType: 2 as const, vendorIds: [2, 755] },
+	];
+	const liVendor = {
+		category: 'measurement' as const,
+		iabLegIntPurposes: [7],
+		vendorId: 10,
+	};
+	const saveSettings = async (allowVendorLI: boolean) => {
+		const kernel = makeKernel();
+		const addon = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+			publisherRestrictions: allLIMeasurement,
+		});
+		disposers.push(addon.dispose);
+		await addon.whenReady();
+		// Save Settings: no consent switch exists for these purposes.
+		addon.setPurposeLegitimateInterest(7, true);
+		addon.setVendorLegitimateInterest(10, allowVendorLI);
+		await addon.save();
+		return kernel;
+	};
+
+	test('its legitimate-interest vendor runs after Save Settings', async () => {
+		const kernel = await saveSettings(true);
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(false);
+		expect(evaluateConsent(liVendor, kernel.getSnapshot())).toBe(true);
+		// Scripts that only name the category stay blocked.
+		expect(
+			evaluateConsent({ category: 'measurement' }, kernel.getSnapshot())
+		).toBe(false);
+	});
+
+	test('an objection blocks the vendor', async () => {
+		const kernel = await saveSettings(false);
 		expect(evaluateConsent(liVendor, kernel.getSnapshot())).toBe(false);
 	});
 });

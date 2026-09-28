@@ -127,6 +127,28 @@ const restrictLegalBases = function restrictLegalBases(
 };
 
 /**
+ * Whether a target processes on legitimate interest alone once publisher
+ * restrictions apply. TCF needs no consent for that processing; the
+ * visitor's control is the objection, which the vendor-level check reads.
+ * A refused category therefore does not block such a target. Other
+ * category restrictions (GPC, opt-out directives, strict scope) still do,
+ * and the category itself is never granted.
+ */
+const usesOnlyLegitimateInterest = function usesOnlyLegitimateInterest(
+	target: IABTarget,
+	restrictions: readonly PublisherRestriction[] | undefined,
+	declaration: IABVendorDeclaration | undefined
+): boolean {
+	const bases = restrictLegalBases(target, restrictions, declaration);
+	return (
+		bases !== null &&
+		bases.consent.length === 0 &&
+		bases.legitimateInterest.length > 0 &&
+		!target.iabSpecialFeatures?.length
+	);
+};
+
+/**
  * Whatever is being gated (script, network rule, iframe) may carry IAB
  * metadata. The evaluator treats any of these as "IAB path eligible"
  * when model === 'iab'.
@@ -341,7 +363,9 @@ const hasCurrentIABAuthority = function hasCurrentIABAuthority(
 
 /**
  * Evaluates a target using current effective permissions or confirmed TC authority.
- * IAB targets also apply every referenced category restriction, including in OR trees.
+ * IAB targets also apply every referenced category restriction, including in OR trees,
+ * except that a refused category does not block a target that uses legitimate
+ * interest only after publisher restrictions (see `usesOnlyLegitimateInterest`).
  * Outside IAB mode a target whose `vendor` the subject turned off is denied
  * after its category condition passes, so an unknown category still throws.
  * @param target - Category condition, optional IAB metadata and optional vendor.
@@ -372,21 +396,26 @@ export const evaluateConsent = function evaluateConsent<
 		if (!authority || !hasCurrentIABAuthority(snapshot, now)) {
 			return false;
 		}
+		const declaration = vendorDeclaration(snapshot, target.vendorId);
+		const ignoreRefusal = usesOnlyLegitimateInterest(
+			target,
+			authority.publisherRestrictions,
+			declaration
+		);
 		for (const category of extractConsentNamesFromCondition<AllConsentNames>(
 			target.category
 		)) {
+			const restrictions = effective.restrictions[category] ?? [];
 			if (
 				category !== 'necessary' &&
-				effective.restrictions[category]?.length
+				restrictions.some(
+					(reason) => !(ignoreRefusal && reason === 'explicit-denial')
+				)
 			) {
 				return false;
 			}
 		}
-		return hasIABConsent(
-			target,
-			authority,
-			vendorDeclaration(snapshot, target.vendorId)
-		);
+		return hasIABConsent(target, authority, declaration);
 	}
 
 	const allowed = has(target.category, effective.effectivePermissions);
