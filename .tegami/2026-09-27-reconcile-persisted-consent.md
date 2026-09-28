@@ -87,7 +87,9 @@ When two tabs write at the same moment and one write drops the other tab's
 category or directive, the tab that lost it writes it back on its next
 reconciliation. Under an IAB policy, a TC string that grants a category a
 reconciled denial covers is withdrawn before any `__tcfapi` listener is
-notified.
+notified, and one that predates another tab's newer choice is held back until
+this tab reads that tab's receipt, so a revoked vendor is never advertised
+again.
 
 New API:
 

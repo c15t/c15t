@@ -170,6 +170,8 @@ Stored records are merged into the ones in memory:
   string and its receipt (`euconsent-v2`, `c15t-iab-authority-v1`) belong to one
   origin, so after a save on a sibling subdomain that shares the consent cookie,
   this subdomain reports no consent through `__tcfapi` until it saves again.
+  Vendors never receive the stale TC string in between: it is withdrawn, or
+  held back, before `__tcfapi` publishes.
 - A record removed from readable storage since this tab last saw it present is
   cleared, and the active policy decides again. A record this tab never saw in
   storage, such as a receipt merged from the server after `identify()` or a
@@ -283,8 +285,8 @@ Two tabs that write at the same moment can both read storage before either
 writes, and the later write can then drop the other tab's category or privacy
 directive. The tab whose decision was dropped still holds it, and on its next
 reconciliation it writes it back, merged with what storage holds. It does so
-only for decisions it stored itself, never for one a clear voided or another
-tab replaced with a newer one.
+only for decisions it actually stored itself, never for one a clear voided or
+another tab replaced with a newer one.
 
 If another tab's change reaches this tab while one of its saves is pending, the
 save depends on how far it got. A save not yet sent is dropped. A request
