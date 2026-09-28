@@ -136,6 +136,10 @@ export const getFocusableElements = function getFocusableElements(
 
 	return Array.from(container.querySelectorAll<HTMLElement>(selector)).filter(
 		(el) => {
+			// A negative `tabindex` other than "-1" also leaves sequential focus.
+			if (el.tabIndex < 0) {
+				return false;
+			}
 			if (typeof el.checkVisibility === 'function') {
 				return el.checkVisibility({ checkVisibilityCSS: true });
 			}
@@ -244,9 +248,26 @@ const readActiveElement = (): Element | null => {
 };
 
 /**
- * Traps focus within a container.
- * @returns Cleanup function to remove listeners and restore focus
+ * The element sequential Tab would reach first inside `container`: the
+ * lowest positive `tabindex` wins, then document order. Controls a browser
+ * would refuse to focus, disabled through an ancestor `fieldset` or inside an
+ * `inert` subtree, are skipped.
+ *
+ * @param container - The element to search inside.
+ * @returns The first tabbable element, or `undefined` when there is none.
  */
+export const firstTabbable = function firstTabbable(
+	container: HTMLElement
+): HTMLElement | undefined {
+	const candidates = getFocusableElements(container).filter(
+		(element) => !(element.matches(':disabled') || element.closest('[inert]'))
+	);
+	const positive = candidates
+		.filter((element) => element.tabIndex > 0)
+		.sort((left, right) => left.tabIndex - right.tabIndex);
+	return positive[0] ?? candidates.find((element) => element.tabIndex === 0);
+};
+
 /** Where a focus trap puts focus when it starts. */
 export interface FocusTrapOptions {
 	/**
@@ -260,6 +281,14 @@ export interface FocusTrapOptions {
 	initialFocus?: 'container' | 'first-tabbable';
 }
 
+/**
+ * Traps focus within a container.
+ *
+ * @param container - The element focus must stay inside. It is made
+ * focusable when it is not already.
+ * @param options - Where focus starts; see {@link FocusTrapOptions}.
+ * @returns Cleanup function to remove listeners and restore focus
+ */
 export const setupFocusTrap = function setupFocusTrap(
 	container: HTMLElement,
 	options: FocusTrapOptions = {}
@@ -281,7 +310,7 @@ export const setupFocusTrap = function setupFocusTrap(
 	}
 	const initialTarget = () =>
 		(options.initialFocus === 'first-tabbable'
-			? getFocusableElements(container)[0]
+			? firstTabbable(container)
 			: undefined) ?? container;
 	const focusTimer = setTimeout(() => {
 		try {
@@ -293,7 +322,13 @@ export const setupFocusTrap = function setupFocusTrap(
 			) {
 				return;
 			}
-			initialTarget().focus({ preventScroll: true });
+			const target = initialTarget();
+			target.focus({ preventScroll: true });
+			// A control the browser would not focus after all leaves focus
+			// outside the modal; the container is always focusable.
+			if (target !== container && readActiveElement() !== target) {
+				container.focus({ preventScroll: true });
+			}
 		} catch {
 			// Silently handle focus errors
 		}

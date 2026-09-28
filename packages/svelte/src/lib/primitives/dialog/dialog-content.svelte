@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives';
-	import { getFocusableElements } from '@c15t/ui/utils';
+	import { firstTabbable } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 
@@ -56,7 +56,7 @@
 				const preferredFocusTarget = node.querySelector<HTMLElement>(
 					'[data-c15t-dialog-focus="true"]'
 				);
-				(preferredFocusTarget ?? getFocusableElements(node)[0] ?? node).focus();
+				(preferredFocusTarget ?? firstTabbable(node) ?? node).focus();
 			}
 		});
 	});

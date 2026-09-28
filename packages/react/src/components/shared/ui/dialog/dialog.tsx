@@ -2,7 +2,7 @@
 
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives/dialog';
-import { getFocusableElements } from '@c15t/ui/utils/dom';
+import { firstTabbable } from '@c15t/ui/utils/dom';
 import {
 	createContext,
 	forwardRef as createForwardRef,
@@ -198,7 +198,7 @@ const DialogContent = createForwardRef<HTMLDialogElement, DialogContentProps>(
 				const content = contentRef.current;
 				const target =
 					initialFocusRef?.current ??
-					(content ? getFocusableElements(content)[0] : undefined) ??
+					(content ? firstTabbable(content) : undefined) ??
 					content;
 				target?.focus();
 			}

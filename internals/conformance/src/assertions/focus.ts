@@ -19,8 +19,36 @@ export const assertInitialFocus = async function assertInitialFocus(
 	});
 };
 
-const TABBABLE =
-	'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+// Mirrors `firstTabbable` in `@c15t/ui`: the same selector, the same
+// visibility and disabled checks, positive `tabindex` first.
+const FOCUSABLE = [
+	'a[href]:not([disabled]):not([tabindex="-1"])',
+	'button:not([disabled]):not([tabindex="-1"])',
+	'textarea:not([disabled]):not([tabindex="-1"])',
+	'input:not([disabled]):not([tabindex="-1"])',
+	'select:not([disabled]):not([tabindex="-1"])',
+	'[contenteditable]:not([tabindex="-1"])',
+	'[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+const firstTabbable = function firstTabbable(
+	container: Element
+): HTMLElement | undefined {
+	const candidates = [
+		...container.querySelectorAll<HTMLElement>(FOCUSABLE),
+	].filter(
+		(element) =>
+			element.tabIndex >= 0 &&
+			!(element.matches(':disabled') || element.closest('[inert]')) &&
+			(typeof element.checkVisibility === 'function'
+				? element.checkVisibility({ checkVisibilityCSS: true })
+				: element.getClientRects().length > 0)
+	);
+	const positive = candidates
+		.filter((element) => element.tabIndex > 0)
+		.sort((left, right) => left.tabIndex - right.tabIndex);
+	return positive[0] ?? candidates.find((element) => element.tabIndex === 0);
+};
 
 /**
  * Wait until focus lands on the first tabbable control inside the element
@@ -40,9 +68,7 @@ export const assertInitialFocusOnFirstControl =
 				container,
 				`element [data-testid="${containerTestId}"] not found`
 			).not.toBeNull();
-			const first = [
-				...(container?.querySelectorAll<HTMLElement>(TABBABLE) ?? []),
-			].find((element) => !element.hasAttribute('disabled'));
+			const first = container ? firstTabbable(container) : undefined;
 			expect(first, 'dialog has a tabbable control').toBeDefined();
 			expect(document.activeElement).toBe(first);
 		});

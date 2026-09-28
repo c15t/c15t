@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import {
 	getFocusableElements,
 	getTextDirection,
+	firstTabbable,
 	setupFocusTrap,
 	setupScrollLock,
 	setupTextDirection,
@@ -520,5 +521,42 @@ describe('getFocusableElements fallback ancestor visibility', () => {
 		container.innerHTML =
 			'<div style="display: none"><button>Hidden child</button></div>';
 		expect(getFocusableElements(container)).toHaveLength(0);
+	});
+});
+
+describe('firstTabbable', () => {
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	const mount = function mount(html: string): HTMLElement {
+		const container = document.createElement('div');
+		container.innerHTML = html;
+		document.body.appendChild(container);
+		return container;
+	};
+
+	test('skips negative tabindex and controls a browser would not focus', () => {
+		const container = mount(`
+			<div tabindex="-2">Not tabbable</div>
+			<fieldset disabled><button id="fieldset-disabled">No</button></fieldset>
+			<div inert><button id="inert">No</button></div>
+			<button id="yes">Yes</button>
+		`);
+		expect(firstTabbable(container)?.id).toBe('yes');
+	});
+
+	test('prefers the lowest positive tabindex over document order', () => {
+		const container = mount(`
+			<button id="natural">Natural</button>
+			<button id="second" tabindex="2">Second</button>
+			<button id="first" tabindex="1">First</button>
+		`);
+		expect(firstTabbable(container)?.id).toBe('first');
+	});
+
+	test('returns undefined when nothing is tabbable', () => {
+		const container = mount('<p>Text only</p>');
+		expect(firstTabbable(container)).toBeUndefined();
 	});
 });
