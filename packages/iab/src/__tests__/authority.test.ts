@@ -2065,6 +2065,77 @@ describe('returning visitors and changed publisher restrictions', () => {
 		);
 	});
 
+	test('a restriction change clears the old TC string even with the dialog open', async () => {
+		await savedWith([]);
+		expect(localStorage.getItem('euconsent-v2')).toBeTruthy();
+		const { addon, kernel } = returning(prohibit7);
+		// The visitor opens preferences before the stored receipt is checked.
+		kernel.set.activeUI('dialog');
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('dialog');
+		expect(localStorage.getItem('euconsent-v2')).toBeNull();
+		expect(document.cookie).not.toContain('euconsent-v2=');
+	});
+
+	test('a receipt that changes only its custom choices during the check is checked again', async () => {
+		const RECEIPT = 'c15t-iab-authority-v1';
+		const oneCustomVendor = [
+			{
+				id: 'custom',
+				name: 'Custom vendor',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [1],
+			},
+		];
+		const original = makeKernel();
+		const saved = createIAB({
+			cmpId: 28,
+			customVendors: oneCustomVendor,
+			gvl: completeGVL,
+			kernel: original,
+		});
+		saved.acceptAll();
+		await saved.save();
+		saved.dispose();
+		const stored = JSON.parse(localStorage.getItem(RECEIPT) ?? '{}');
+		expect(stored.customConsents.custom).toBe(true);
+		// Same TC string and time, different custom choice.
+		const changed = JSON.stringify({
+			...stored,
+			customConsents: { ...stored.customConsents, custom: false },
+		});
+		const read = Storage.prototype.getItem;
+		let landed = false;
+		vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function getItem(
+			this: Storage,
+			key: string
+		) {
+			const value = read.call(this, key);
+			if (key === RECEIPT && !landed) {
+				landed = true;
+				queueMicrotask(() => localStorage.setItem(RECEIPT, changed));
+			}
+			return value;
+		});
+		const kernel = makeKernel();
+		const addon = createIAB({
+			cmpId: 28,
+			customVendors: oneCustomVendor,
+			gvl: completeGVL,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		await vi.waitFor(() =>
+			expect(kernel.getSnapshot().iab?.authority).not.toBeNull()
+		);
+		expect(landed).toBe(true);
+		expect(kernel.getSnapshot().iab?.authority?.vendorConsents.custom).toBe(
+			false
+		);
+	});
+
 	test('a restriction change asks again and gates wait for the new save', async () => {
 		await savedWith([]);
 		const { addon, kernel } = returning(prohibit7);

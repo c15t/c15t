@@ -345,13 +345,22 @@ const consentBasisPurposes = function consentBasisPurposes(
 	);
 };
 
-/** Identifies a stored receipt by its TC string and confirmation time. */
+/**
+ * Identifies a stored receipt by everything a restore reads from it: the TC
+ * string, the confirmation time and the custom vendor choices.
+ */
 const receiptIdentity = function receiptIdentity(value: unknown): string {
 	if (!value || typeof value !== 'object') {
 		return '';
 	}
-	const { tcString, confirmedAt } = value as Record<string, unknown>;
-	return `${String(tcString)}|${String(confirmedAt)}`;
+	const { tcString, confirmedAt, customConsents, customLegitimateInterests } =
+		value as Record<string, unknown>;
+	return JSON.stringify([
+		tcString,
+		confirmedAt,
+		customConsents,
+		customLegitimateInterests,
+	]);
 };
 
 const sameConfirmationContext = function sameConfirmationContext(
@@ -855,16 +864,20 @@ export const createIAB = function createIAB(
 		}
 		if (
 			restrictionsChanged &&
-			hydrationSnapshot.explicitChoice &&
-			unchangedSince(hydrationSnapshot, recordsGeneration, generation) &&
-			kernel.getSnapshot().activeUI === 'none'
+			unchangedSince(hydrationSnapshot, recordsGeneration, generation)
 		) {
-			// A material change to what the visitor agreed to: show the
-			// surface a changed policy shows. Gates wait for the new save,
-			// and vendors reading storage must not find the old string.
+			// A material change to what the visitor agreed to. Vendors reading
+			// storage must not find the old string, whatever is on screen.
 			clearStoredTCString(String((checked as { tcString: unknown }).tcString));
-			openedForRestrictions = true;
-			kernel.set.activeUI('banner');
+			// Ask again with the surface a changed policy shows, unless the
+			// visitor already has one open. Gates wait for the new save.
+			if (
+				hydrationSnapshot.explicitChoice &&
+				kernel.getSnapshot().activeUI === 'none'
+			) {
+				openedForRestrictions = true;
+				kernel.set.activeUI('banner');
+			}
 		}
 		if (
 			authority &&
