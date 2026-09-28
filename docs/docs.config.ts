@@ -78,6 +78,7 @@ export default defineDocsConfig({
 				'deployment-modes',
 				'data-fetching',
 				'consent-state',
+				'shared-consent-controls',
 				'verify-consent',
 				'troubleshooting',
 			],

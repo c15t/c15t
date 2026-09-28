@@ -62,11 +62,13 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	const initFetchTarget = getNuxtInitFetchTarget(config.value);
 	const manifestMode = resolveManifestMode(config.value);
 	const initialRecords = useNuxtState('c15t:records', () =>
-		readStoredRecordsFromCookieHeader(
-			cookieHeader,
-			config.value.storageConfig,
-			Date.now()
-		)
+		config.value.consentSource
+			? undefined
+			: readStoredRecordsFromCookieHeader(
+					cookieHeader,
+					config.value.storageConfig,
+					Date.now()
+				)
 	);
 
 	const producerContract = useNuxtState<number | null | undefined>(
@@ -74,7 +76,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		() => undefined
 	);
 	let prefetch: InitOutput | undefined;
-	if (initFetchTarget) {
+	if (initFetchTarget && !config.value.consentSource) {
 		// The render waits at most `timeoutMs` for policy. The same-origin init
 		// route runs in-process, where an abort signal does not reach it, so it
 		// is told the budget in a header; an absolute backend `/init` is a real

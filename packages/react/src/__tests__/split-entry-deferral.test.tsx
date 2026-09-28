@@ -67,7 +67,9 @@ test('the split dialog and widget entries load nothing until they are needed', a
 		expect(dialog()).toBeNull();
 
 		customize.click();
-		await vi.waitFor(() => expect(dialog()).not.toBeNull());
+		// A cold module request can exceed Vitest's one-second default when
+		// the full browser suite is compiling modules with coverage.
+		await vi.waitFor(() => expect(dialog()).not.toBeNull(), { timeout: 5000 });
 		expect(modules.loaded(DIALOG_MODULE)).toBe(true);
 	} finally {
 		modules.stop();

@@ -282,6 +282,9 @@ export const createRuntime = function createRuntime(
 	};
 
 	const reconcilePrivacy = function reconcilePrivacy(at: number): void {
+		if (snapshot.externalPermissions) {
+			return;
+		}
 		if (!started) {
 			return;
 		}

@@ -158,6 +158,9 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 		const retired = retiredRef.current;
 		// StrictMode replays cleanup then setup for the same selection.
 		retired.delete(selection);
+		if (selection.kernel.getSnapshot().externalPermissions) {
+			return;
+		}
 		const next = createIAB({ ...optionsRef.current, kernel: selection.kernel });
 		handleRef.current = { handle: next, selection };
 		setMountedHandle({ handle: next, selection });
@@ -191,6 +194,14 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 				return Promise.resolve(action(current.handle));
 			}
 			const pending = new Promise<void>((resolve, reject) => {
+				if (selection.kernel.getSnapshot().externalPermissions) {
+					reject(
+						new Error(
+							'Consent is managed by an external CMP. Open its preferences instead.'
+						)
+					);
+					return;
+				}
 				const cancel = () =>
 					reject(
 						new DOMException(

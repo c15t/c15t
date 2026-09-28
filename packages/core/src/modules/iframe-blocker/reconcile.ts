@@ -72,24 +72,22 @@ export const determineVendor = function determineVendor(
 
 /**
  * Read the `data-category` attribute and validate it as a known consent
- * category name. Returns `undefined` when the attribute is absent.
+ * category name. Returns `undefined` when the attribute is absent and
+ * `null` when it names no known category.
  *
- * Throws on invalid values — that's a config bug, not user data, and
- * silent failure would be harder to debug than a throw.
+ * An invalid value is a config bug, but throwing here stopped every other
+ * iframe in the pass from being gated. `reconcileIframe` keeps an iframe
+ * with an invalid category blocked and warns about it instead.
  */
 export const determineCategory = function determineCategory(
 	iframe: HTMLIFrameElement
-): AllConsentNames | undefined {
+): AllConsentNames | null | undefined {
 	const raw = iframe.getAttribute('data-category');
 	if (!raw) {
 		return undefined;
 	}
 	if (!allConsentNames.includes(raw as AllConsentNames)) {
-		throw new Error(
-			`c15t iframe-blocker: invalid data-category "${raw}". Must be one of: ${allConsentNames.join(
-				', '
-			)}`
-		);
+		return null;
 	}
 	return raw as AllConsentNames;
 };
@@ -129,7 +127,8 @@ const restoreSource = function restoreSource(iframe: HTMLIFrameElement): void {
  * `data-vendor` is gated on the vendor alone, against every stored denial:
  * with no category to follow, an undeclared slug the visitor turned off
  * stays off rather than loading in the window before the backend declares
- * it.
+ * it. An iframe whose `data-category` names no known category stays
+ * blocked, as the on-demand hook in `@c15t/react` holds it.
  */
 export const reconcileIframe = function reconcileIframe(
 	iframe: HTMLIFrameElement,
@@ -140,19 +139,31 @@ export const reconcileIframe = function reconcileIframe(
 	// No gate left. An iframe the blocker paused earlier is restored: its
 	// last attribute was removed, so nothing gates it any more. One that was
 	// never gated has no `data-src` of ours and is left alone.
-	if (!category && !vendor) {
+	if (category === undefined && vendor === undefined) {
 		if (iframe.getAttribute(PAUSED_ATTRIBUTE) !== null) {
 			restoreSource(iframe);
 		}
 		return;
 	}
 
-	const categoryAllowed = category ? has(category, pass.consents) : true;
+	let categoryAllowed = true;
+	if (category === null) {
+		// oxlint-disable-next-line no-console -- config bug the site owner must fix
+		console.warn(
+			`[c15t] iframe-blocker: invalid data-category "${iframe.getAttribute(
+				'data-category'
+			)}". Must be one of: ${allConsentNames.join(', ')}. The iframe stays blocked.`
+		);
+		categoryAllowed = false;
+	} else if (category) {
+		categoryAllowed = has(category, pass.consents);
+	}
 	// A vendor-only frame holds against every stored denial only while its
 	// slug is undeclared. Once declared, the gate's own filtered set decides,
 	// so a `disabled` declaration lifts a stale denial here as everywhere.
 	const denied =
-		category || (vendor !== undefined && pass.declared.has(vendor))
+		category !== undefined ||
+		(vendor !== undefined && pass.declared.has(vendor))
 			? pass.vendorDenied
 			: pass.storedDenied;
 	const vendorAllowed =

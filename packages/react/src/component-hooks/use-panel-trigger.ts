@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 
 import {
 	useActiveUI,
-	useHasConsentUI,
+	useHasConsentPreferences,
 	usePromptRequirement,
 	useSetActiveUI,
 } from '../hooks';
@@ -39,7 +39,7 @@ export const useConsentDialogTrigger = function useConsentDialogTrigger(
 	const setActiveUI = useSetActiveUI();
 	const activeUI = useActiveUI();
 	const promptRequirement = usePromptRequirement();
-	const hasConsentUI = useHasConsentUI();
+	const hasConsentUI = useHasConsentPreferences();
 	const openDialog = useCallback(() => {
 		onClick?.();
 		setActiveUI('dialog');
