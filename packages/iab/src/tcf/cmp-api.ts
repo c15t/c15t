@@ -41,24 +41,6 @@ const setCookie = function setCookie(
 };
 
 /**
- * Removes the standard TC string from the `euconsent-v2` cookie and its
- * localStorage copy, so vendors reading storage directly, and
- * `loadFromStorage()`, no longer find a superseded string.
- *
- * @internal
- */
-export const clearStoredTCString = function clearStoredTCString(): void {
-	if (typeof document !== 'undefined') {
-		document.cookie = `${IAB_STORAGE_KEYS.TC_STRING_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
-	}
-	try {
-		localStorage.removeItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL);
-	} catch {
-		// Storage can be unavailable.
-	}
-};
-
-/**
  * Gets a cookie value.
  */
 const getCookie = function getCookie(name: string): string | null {
@@ -71,6 +53,34 @@ const getCookie = function getCookie(name: string): string | null {
 		return decodeURIComponent(match[2]);
 	}
 	return null;
+};
+
+/**
+ * Removes a superseded TC string from the `euconsent-v2` cookie and its
+ * localStorage copy, so vendors reading storage directly, and
+ * `loadFromStorage()`, no longer find it. Each entry is removed only while
+ * it still holds `tcString`: another tab may have saved a newer one.
+ *
+ * @param tcString - The superseded TC string.
+ *
+ * @internal
+ */
+export const clearStoredTCString = function clearStoredTCString(
+	tcString: string
+): void {
+	if (
+		typeof document !== 'undefined' &&
+		getCookie(IAB_STORAGE_KEYS.TC_STRING_COOKIE) === tcString
+	) {
+		document.cookie = `${IAB_STORAGE_KEYS.TC_STRING_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
+	}
+	try {
+		if (localStorage.getItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL) === tcString) {
+			localStorage.removeItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL);
+		}
+	} catch {
+		// Storage can be unavailable.
+	}
 };
 
 /**

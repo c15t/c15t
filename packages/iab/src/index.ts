@@ -345,6 +345,15 @@ const consentBasisPurposes = function consentBasisPurposes(
 	);
 };
 
+/** Identifies a stored receipt by its TC string and confirmation time. */
+const receiptIdentity = function receiptIdentity(value: unknown): string {
+	if (!value || typeof value !== 'object') {
+		return '';
+	}
+	const { tcString, confirmedAt } = value as Record<string, unknown>;
+	return `${String(tcString)}|${String(confirmedAt)}`;
+};
+
 const sameConfirmationContext = function sameConfirmationContext(
 	left: ConsentSnapshot,
 	right: ConsentSnapshot
@@ -830,12 +839,20 @@ export const createIAB = function createIAB(
 		}
 		restoredFingerprint = fingerprint;
 		const generation = confirmationGeneration;
+		const checked = readAuthorityReceipt();
 		const { authority, restrictionsChanged } = await checkAuthority(
-			readAuthorityReceipt(),
+			checked,
 			hydrationSnapshot,
 			Date.now(),
 			publisherRestrictions
 		);
+		// Another tab can save while the receipt is checked. Its new receipt
+		// is not the one this result describes: check that one instead.
+		if (receiptIdentity(readAuthorityReceipt()) !== receiptIdentity(checked)) {
+			restoredFingerprint = null;
+			void restoreAuthority();
+			return;
+		}
 		if (
 			restrictionsChanged &&
 			hydrationSnapshot.explicitChoice &&
@@ -845,7 +862,7 @@ export const createIAB = function createIAB(
 			// A material change to what the visitor agreed to: show the
 			// surface a changed policy shows. Gates wait for the new save,
 			// and vendors reading storage must not find the old string.
-			clearStoredTCString();
+			clearStoredTCString(String((checked as { tcString: unknown }).tcString));
 			openedForRestrictions = true;
 			kernel.set.activeUI('banner');
 		}
@@ -1402,7 +1419,7 @@ export const createIAB = function createIAB(
 			// goes with the receipt, or vendors reading storage would reuse it.
 			clearAuthorityReceipt();
 			if (options.persistence !== false) {
-				clearStoredTCString();
+				clearStoredTCString(previousAuthority.tcString);
 			}
 		}
 		previousAuthority = snapshot.iab?.authority;

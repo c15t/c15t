@@ -1648,6 +1648,18 @@ test('expired authority also removes the standard TC string', async () => {
 	expect(document.cookie).not.toContain('euconsent-v2=');
 });
 
+test('expiring authority keeps a newer TC string another tab stored', async () => {
+	const kernel = makeKernel();
+	const addon = createAddon(kernel);
+	addon.acceptAll();
+	await addon.save();
+	// Another tab saved since; this tab has not reconciled yet.
+	localStorage.setItem('euconsent-v2', 'newer-from-another-tab');
+	await vi.advanceTimersByTimeAsync(DAY);
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+	expect(localStorage.getItem('euconsent-v2')).toBe('newer-from-another-tab');
+});
+
 test('encoding refuses restrictions the CMP rejected, whatever list the kernel holds', async () => {
 	const kernel = makeKernel();
 	const { 755: vendor755 } = completeGVL.vendors;
@@ -2003,6 +2015,55 @@ describe('returning visitors and changed publisher restrictions', () => {
 	const prohibit7 = [
 		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
 	];
+
+	test('a save in another tab during the check keeps its TC string and asks nothing', async () => {
+		const RECEIPT = 'c15t-iab-authority-v1';
+		const STORED = 'euconsent-v2';
+		const setStored = (receipt: string, tcString: string) => {
+			localStorage.setItem(RECEIPT, receipt);
+			localStorage.setItem(STORED, tcString);
+			document.cookie = `${STORED}=${encodeURIComponent(tcString)}; path=/`;
+		};
+		// The other tab saves under the new restrictions. Capture what it
+		// writes, then put the old save back.
+		await savedWith(prohibit7);
+		const newer = {
+			receipt: localStorage.getItem(RECEIPT) ?? '',
+			tcString: localStorage.getItem(STORED) ?? '',
+		};
+		await savedWith([]);
+		const older = localStorage.getItem(STORED);
+		expect(newer.tcString).toBeTruthy();
+		expect(older).not.toBe(newer.tcString);
+
+		// The other tab's save lands while this tab checks the old receipt.
+		const read = Storage.prototype.getItem;
+		let landed = false;
+		vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function getItem(
+			this: Storage,
+			key: string
+		) {
+			const value = read.call(this, key);
+			if (key === RECEIPT && !landed && value !== newer.receipt) {
+				landed = true;
+				queueMicrotask(() => setStored(newer.receipt, newer.tcString));
+			}
+			return value;
+		});
+		const { addon, kernel } = returning(prohibit7);
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(landed).toBe(true);
+		expect(localStorage.getItem(STORED)).toBe(newer.tcString);
+		expect(document.cookie).toContain(
+			`${STORED}=${encodeURIComponent(newer.tcString)}`
+		);
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		// Checking again finds the other tab's receipt, which matches.
+		await vi.waitFor(() =>
+			expect(kernel.getSnapshot().iab?.authority?.tcString).toBe(newer.tcString)
+		);
+	});
 
 	test('a restriction change asks again and gates wait for the new save', async () => {
 		await savedWith([]);
