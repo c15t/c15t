@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/core': patch
-  '@c15t/react': patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
 ---
 
 ### Keep blocking iframes when one node on the page is bad

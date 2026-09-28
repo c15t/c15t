@@ -1,8 +1,14 @@
 ---
 packages:
-  "@c15t/react": major
-  "@c15t/vue": major
-  "@c15t/svelte": major
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
 ---
 
 ### Mount collapsed preference content on first open

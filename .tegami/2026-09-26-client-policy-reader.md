@@ -1,8 +1,14 @@
 ---
 packages:
-  "@c15t/schema": patch
-  "@c15t/core": patch
-  "@c15t/react": patch
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
 ---
 
 ### Keep policy pack resolution out of client bundles

@@ -1,7 +1,11 @@
 ---
 packages:
-  c15t: major
-  "@c15t/react": major
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
 ---
 
 ### Defer the dialog and widget on their split entries

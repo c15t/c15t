@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/astro': minor
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### Astro server renders no longer wait on a slow or unreachable consent backend

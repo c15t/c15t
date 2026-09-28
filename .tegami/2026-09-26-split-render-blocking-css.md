@@ -1,13 +1,29 @@
 ---
 packages:
-  c15t: major
-  '@c15t/ui': major
-  '@c15t/react': major
-  '@c15t/nextjs': major
-  '@c15t/tanstack-start': major
-  '@c15t/svelte': patch
-  '@c15t/astro': patch
-  '@c15t/browser': patch
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Keep dialog CSS out of the render-blocking stylesheet

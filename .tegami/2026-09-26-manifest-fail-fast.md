@@ -1,10 +1,20 @@
 ---
 packages:
-  c15t: minor
-  '@c15t/core': minor
-  '@c15t/nextjs': minor
-  '@c15t/tanstack-start': minor
-  '@c15t/vue': minor
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Server rendering no longer waits on a slow or failing consent backend

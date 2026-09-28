@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/svelte': patch
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
 ---
 
 ### Stop a slow or unreachable backend from holding SvelteKit pages
