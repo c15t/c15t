@@ -118,7 +118,7 @@ const isClearlyAllowed = function isClearlyAllowed(
 ): boolean {
 	const snapshot = kernel.getSnapshot();
 	const category = iframe.getAttribute('data-category');
-	if (category) {
+	if (category !== null) {
 		if (!allConsentNames.includes(category as AllConsentNames)) {
 			return false;
 		}
@@ -158,6 +158,17 @@ const holdIframe = function holdIframe(
 	iframe.setAttribute(PAUSED_ATTRIBUTE, '');
 };
 
+/** Whether an iframe is gated. False for one page script can't read. */
+const isGatedIframe = function isGatedIframe(
+	iframe: HTMLIFrameElement
+): boolean {
+	try {
+		return iframe.matches(GATED_IFRAME);
+	} catch {
+		return false;
+	}
+};
+
 const collectIframes = function collectIframes(
 	mutations: MutationRecord[]
 ): HTMLIFrameElement[] {
@@ -184,7 +195,7 @@ const collectIframes = function collectIframes(
 			}
 		}
 	}
-	return [...found].filter((iframe) => iframe.matches(GATED_IFRAME));
+	return [...found].filter(isGatedIframe);
 };
 
 /**
@@ -221,7 +232,11 @@ export const watchGatedIframes = function watchGatedIframes(
 			return;
 		}
 		for (const iframe of iframes) {
-			holdIframe(iframe, kernel);
+			try {
+				holdIframe(iframe, kernel);
+			} catch {
+				// Unreadable iframe: skip it so the rest of the batch is still held.
+			}
 		}
 		onFound();
 	});
