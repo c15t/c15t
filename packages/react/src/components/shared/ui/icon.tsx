@@ -4,7 +4,7 @@ import type { ElementType, JSX, Ref, SVGProps } from 'react';
 const Icon = (
 	props: SVGProps<SVGSVGElement>,
 	ref: Ref<SVGSVGElement>,
-	title: string,
+	title: string | undefined,
 	iconPath: JSX.Element
 ) => (
 	<svg
@@ -18,13 +18,14 @@ const Icon = (
 		ref={ref}
 		{...props}
 	>
-		<title>{title}</title>
+		{title ? <title>{title}</title> : null}
 		{iconPath}
 	</svg>
 );
 
 type LucideIconProps = SVGProps<SVGSVGElement> & {
-	title: string;
+	/** Omit for a decorative icon that must add nothing to an accessible name. */
+	title?: string;
 	iconPath: JSX.Element;
 };
 
@@ -32,6 +33,6 @@ export const LucideIcon = ({ title, iconPath }: LucideIconProps) => {
 	const IconComponent = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
 		(svgProps, ref) => Icon(svgProps, ref, title, iconPath)
 	);
-	IconComponent.displayName = `${title}Icon`;
+	IconComponent.displayName = `${title ?? 'Decorative'}Icon`;
 	return IconComponent as ElementType;
 };

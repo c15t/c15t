@@ -187,7 +187,6 @@
 									stroke-linejoin="round"
 									aria-hidden="true"
 								>
-									<title>{isOpen ? 'Close' : 'Open'}</title>
 									{#if isOpen}
 										<path d="M5 12h14" />
 									{:else}

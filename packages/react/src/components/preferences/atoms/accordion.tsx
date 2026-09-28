@@ -175,14 +175,10 @@ const ConsentWidgetAccordion = ({
 
 // Created once: a component type made during render would remount the icon
 // on every render.
-const OpenIcon = LucideIcon({
-	iconPath: <path d="M5 12h14M12 5v14" />,
-	title: 'Open',
-});
-const CloseIcon = LucideIcon({
-	iconPath: <path d="M5 12h14" />,
-	title: 'Close',
-});
+// No title: the icon is decorative, and a title would join the trigger's
+// text content in tooling that reads it.
+const OpenIcon = LucideIcon({ iconPath: <path d="M5 12h14M12 5v14" /> });
+const CloseIcon = LucideIcon({ iconPath: <path d="M5 12h14" /> });
 
 const formatConsentName = function formatConsentName(name: AllConsentNames) {
 	return name
