@@ -27,7 +27,8 @@ import type { StorageConfig } from './types';
 /** Envelope a snapshot's explicit choice serializes to, or `null`. */
 export const buildStoredEnvelope = function buildStoredEnvelope(
 	snapshot: ConsentSnapshot,
-	iab: StoredIabMetadata | null
+	iab: StoredIabMetadata | null,
+	epoch = 0
 ): StoredConsentEnvelope | null {
 	if (!snapshot.explicitChoice) {
 		return null;
@@ -38,6 +39,9 @@ export const buildStoredEnvelope = function buildStoredEnvelope(
 	};
 	if (snapshot.subject && Object.keys(snapshot.subject).length > 0) {
 		envelope.subject = { ...snapshot.subject };
+	}
+	if (epoch > 0) {
+		envelope.epoch = epoch;
 	}
 	if (iab) {
 		envelope.iab = iab;
@@ -53,12 +57,13 @@ export const writeChoiceToStorage = function writeChoiceToStorage(
 	snapshot: ConsentSnapshot,
 	iab: StoredIabMetadata | null,
 	storageConfig: StorageConfig | undefined,
-	now: number
+	now: number,
+	epoch = 0
 ): void {
 	if (typeof document === 'undefined') {
 		return;
 	}
-	const envelope = buildStoredEnvelope(snapshot, iab);
+	const envelope = buildStoredEnvelope(snapshot, iab, epoch);
 	if (!envelope) {
 		return;
 	}

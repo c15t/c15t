@@ -39,6 +39,8 @@ beforeEach(() => {
 	vi.setSystemTime(NOW);
 	localStorage.clear();
 	clearStoredConsentRecords();
+	// A clear keeps its epoch; start every test without one.
+	document.cookie = `${STORAGE_KEY_V2}-epoch=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 });
 
 afterEach(() => {
@@ -278,8 +280,9 @@ describe('persistence: clear', () => {
 		// The standing directive is gone and nothing recreates it from a queued
 		// flush; the live signal alone keeps masking the permission.
 		expect(snap.optOutDirectives).toEqual([]);
-		expect(localStorage.length).toBe(0);
-		expect(document.cookie).toBe('');
+		// Only the clear epoch stays behind, so no record comes back.
+		expect(Object.keys(localStorage)).toEqual([`${STORAGE_KEY_V2}-epoch`]);
+		expect(document.cookie).toBe(`${STORAGE_KEY_V2}-epoch=${NOW}`);
 		expect(snap.effectivePermissions.marketing).toBe(false);
 		expect(snap.restrictions.marketing).toEqual(['gpc']);
 	});
@@ -297,8 +300,8 @@ describe('persistence: clear', () => {
 
 		handle.clear();
 		flushWrites();
-		expect(localStorage.length).toBe(0);
-		expect(document.cookie).toBe('');
+		expect(Object.keys(localStorage)).toEqual([`${STORAGE_KEY_V2}-epoch`]);
+		expect(document.cookie).toBe(`${STORAGE_KEY_V2}-epoch=${NOW}`);
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	});
 });

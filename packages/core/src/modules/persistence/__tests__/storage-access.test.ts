@@ -26,6 +26,9 @@ beforeEach(() => {
 	vi.setSystemTime(NOW);
 	localStorage.clear();
 	clearStoredConsentRecords();
+	// A clear keeps its epoch; start every test without one.
+	document.cookie =
+		'c15t-epoch=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
 	vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
@@ -196,7 +199,8 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		expect(document.cookie).toBe(cookie);
 
 		reader.clear();
-		expect(document.cookie).toBe('');
+		// The clear epoch is the only thing left.
+		expect(document.cookie).toMatch(/^c15t-epoch=\d+$/u);
 		expect(restored.getSnapshot().explicitChoice).toBeNull();
 		expect(restored.getSnapshot().noticeDismissal).toBeNull();
 		expect(restored.getSnapshot().optOutDirectives).toEqual([]);

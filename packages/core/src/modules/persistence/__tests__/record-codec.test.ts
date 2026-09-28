@@ -7,6 +7,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { ChoiceBasis, PrivacyOptOut } from '../../../consent-record/types';
 import {
+	EPOCH_CLOCK_TOLERANCE_MS,
+	decodeClearEpoch,
 	decodeNoticeDismissal,
 	decodePrivacyOptOuts,
 	decodeStoredConsentEnvelopeCompact,
@@ -358,5 +360,67 @@ describe('notice dismissal and privacy opt-out codecs', () => {
 				decodePrivacyOptOuts({ directives: [directive], version: 1 }, NOW).ok
 			).toBe(false);
 		}
+	});
+});
+
+describe('clear epoch', () => {
+	const envelope: StoredConsentEnvelope = {
+		categories: {
+			marketing: { basis: choice(), confirmedAt: NOW - 1000, value: false },
+		},
+		epoch: NOW - 2000,
+		version: 3,
+	};
+
+	it('round-trips through both encodings', () => {
+		const compact = encodeStoredConsentEnvelopeCompact(envelope);
+		expect(compact).toContain(`&e=${NOW - 2000}&`);
+		expect(decodeStoredConsentEnvelopeCompact(compact, NOW)).toEqual({
+			ok: true,
+			record: envelope,
+		});
+		expect(
+			validateStoredConsentEnvelope(
+				JSON.parse(encodeStoredConsentEnvelopeJson(envelope)),
+				NOW
+			)
+		).toEqual({ ok: true, record: envelope });
+	});
+
+	it('omits epoch 0, so records from before any clear keep their bytes', () => {
+		const { epoch: _epoch, ...plain } = envelope;
+		expect(encodeStoredConsentEnvelopeCompact(plain)).not.toContain('&e=');
+		expect(encodeStoredConsentEnvelopeJson(plain)).not.toContain('epoch');
+	});
+
+	it('drops an unreadable epoch but keeps the record that carries it', () => {
+		const { epoch: _epoch, ...plain } = envelope;
+		const tooFar = NOW + EPOCH_CLOCK_TOLERANCE_MS + 1;
+		for (const bad of [String(tooFar), 'abc', '-1']) {
+			const compact = `${encodeStoredConsentEnvelopeCompact(plain)}&e=${bad}`;
+			expect(decodeStoredConsentEnvelopeCompact(compact, NOW)).toEqual({
+				ok: true,
+				record: plain,
+			});
+		}
+		expect(
+			validateStoredConsentEnvelope({ ...plain, epoch: 'abc' }, NOW)
+		).toEqual({ ok: true, record: plain });
+	});
+
+	it('keeps an epoch up to the clock tolerance ahead, for a clock set back', () => {
+		const ahead = NOW + EPOCH_CLOCK_TOLERANCE_MS;
+		expect(
+			decodeStoredConsentEnvelopeCompact(
+				encodeStoredConsentEnvelopeCompact({ ...envelope, epoch: ahead }),
+				NOW
+			)
+		).toEqual({ ok: true, record: { ...envelope, epoch: ahead } });
+		expect(decodeClearEpoch(String(ahead), NOW)).toEqual({
+			ok: true,
+			record: ahead,
+		});
+		expect(decodeClearEpoch(String(ahead + 1), NOW).ok).toBe(false);
+		expect(decodeClearEpoch('1e12', NOW).ok).toBe(false);
 	});
 });

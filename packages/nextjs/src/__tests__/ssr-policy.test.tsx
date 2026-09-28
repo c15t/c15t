@@ -58,6 +58,7 @@ afterEach(() => {
 		storageKey,
 		`${storageKey}-notice`,
 		`${storageKey}-privacy`,
+		`${storageKey}-epoch`,
 	]) {
 		document.cookie = `${key}=; Max-Age=0; Path=/`;
 		localStorage.removeItem(key);

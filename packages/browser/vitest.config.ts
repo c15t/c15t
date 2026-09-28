@@ -36,6 +36,23 @@ export default mergeConfig(
 				},
 				name: 'gated-script-csp-fixture',
 			},
+			{
+				configureServer(server) {
+					server.middlewares.use((request, response, next) => {
+						if (request.url !== '/__c15t-test__/storage-sync') {
+							next();
+							return;
+						}
+						response.setHeader('Content-Type', 'text/html');
+						response.end(
+							readFileSync(
+								resolve(__dirname, 'src/__tests__/fixtures/storage-sync.html')
+							)
+						);
+					});
+				},
+				name: 'storage-sync-fixture',
+			},
 		],
 		resolve: {
 			alias: [{ find: '~', replacement: resolve(__dirname, './src') }],

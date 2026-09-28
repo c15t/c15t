@@ -3,7 +3,8 @@ import type { ConsentSnapshot, KernelIABAuthority } from '@c15t/core';
 import { decodeTCString } from './tcf/tc-string';
 import type { DecodedTCString } from './tcf/tc-string';
 
-const AUTHORITY_KEY = 'c15t-iab-authority-v1';
+/** localStorage key of the authority receipt. */
+export const AUTHORITY_KEY = 'c15t-iab-authority-v1';
 const RETENTION_MS = 395 * 86_400_000;
 const DISCLOSURE_REQUIRED_AT = Date.UTC(2026, 1, 28);
 
@@ -27,10 +28,23 @@ const ownBooleanMap = function ownBooleanMap(
 	);
 };
 
-/** Reads the addon receipt without writing or extending its lifetime. */
-export const readAuthorityReceipt = function readAuthorityReceipt(): unknown {
+/** The stored receipt text, or `null` when there is none or no storage. */
+export const readAuthorityReceiptText = function readAuthorityReceiptText():
+	| string
+	| null {
 	try {
-		return JSON.parse(localStorage.getItem(AUTHORITY_KEY) ?? 'null');
+		return localStorage.getItem(AUTHORITY_KEY);
+	} catch {
+		return null;
+	}
+};
+
+/** Reads the addon receipt without writing or extending its lifetime. */
+export const readAuthorityReceipt = function readAuthorityReceipt(
+	text = readAuthorityReceiptText()
+): unknown {
+	try {
+		return JSON.parse(text ?? 'null');
 	} catch {
 		return null;
 	}
@@ -202,10 +216,28 @@ export const validateAuthority = async function validateAuthority(
 	}
 };
 
-/** Removes the addon receipt when authority is cleared by a lifecycle change. */
-export const clearAuthorityReceipt = function clearAuthorityReceipt(): void {
+/**
+ * Removes the addon receipt when authority is cleared by a lifecycle change.
+ * With `expected`, only while storage still holds that text, so a receipt
+ * another tab stored since is kept.
+ *
+ * The comparison is best effort. localStorage has no conditional removal,
+ * and a tab reads its own copy of the shared area, which another tab's
+ * write reaches asynchronously. A receipt stored in another tab just before
+ * this call can therefore still be removed. That fails toward less
+ * permission: the removal withdraws the held TC string in every other tab
+ * (see the receipt listener in `index.ts`) until the next save.
+ */
+export const clearAuthorityReceipt = function clearAuthorityReceipt(
+	expected?: string
+): void {
 	try {
-		localStorage.removeItem(AUTHORITY_KEY);
+		if (
+			expected === undefined ||
+			localStorage.getItem(AUTHORITY_KEY) === expected
+		) {
+			localStorage.removeItem(AUTHORITY_KEY);
+		}
 	} catch {
 		/* Storage may be unavailable. */
 	}
