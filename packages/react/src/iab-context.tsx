@@ -45,12 +45,39 @@ export interface ReactIABState extends KernelIABState {
 	save: () => Promise<void>;
 }
 
-/** An IAB action waiting for the handle of the kernel it was taken on. */
-interface QueuedIABAction {
+/**
+ * One period during which the provider renders a kernel. Switching away and
+ * back to the same kernel starts a new selection, so an action taken for the
+ * current selection is never confused with one left over from an earlier
+ * selection of that kernel.
+ */
+interface KernelSelection {
 	kernel: ConsentKernel;
+}
+
+/** An IAB action waiting for the handle of the selection it was taken in. */
+interface QueuedIABAction {
+	selection: KernelSelection;
 	run: (handle: IABHandle) => void;
 	cancel: () => void;
 }
+
+/** The current selection, replaced whenever the kernel in context changes. */
+const useKernelSelection = function useKernelSelection(
+	kernel: ConsentKernel
+): KernelSelection {
+	const [selection, setSelection] = useState<KernelSelection>(() => ({
+		kernel,
+	}));
+	if (selection.kernel === kernel) {
+		return selection;
+	}
+	// Adjusting state during render: React re-renders before committing, so
+	// every commit sees the selection that matches its kernel.
+	const next = { kernel };
+	setSelection(next);
+	return next;
+};
 
 export interface IABProviderProps extends Omit<
 	CreateIABOptions,
@@ -69,28 +96,31 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	}
 
 	const [tab, setTab] = useState<'purposes' | 'vendors'>('purposes');
-	// The handle is bound to the kernel it was created for. After the
+	const selection = useKernelSelection(kernel);
+	// The handle is bound to the selection it was created for. After the
 	// provider switches kernels, the previous handle is disposed and must not
 	// be exposed for the render before the effect below creates the next one.
 	const [mountedHandle, setMountedHandle] = useState<{
 		handle: IABHandle;
-		kernel: ConsentKernel;
+		selection: KernelSelection;
 	} | null>(null);
-	const handle = mountedHandle?.kernel === kernel ? mountedHandle.handle : null;
+	const handle =
+		mountedHandle?.selection === selection ? mountedHandle.handle : null;
 	const optionsRef = useRef(options);
-	// The imperative handle, tagged with its kernel. During a switch it still
-	// holds the previous kernel's handle until the passive effect cleanup
-	// runs, and a child layout effect or a click can call `run` in between.
+	// The imperative handle, tagged with its selection. During a switch it
+	// still holds the previous handle until the passive effect cleanup runs,
+	// and a child layout effect or a click can call `run` in between.
 	const handleRef = useRef<{
 		handle: IABHandle;
-		kernel: ConsentKernel;
+		selection: KernelSelection;
 	} | null>(null);
-	// Kernels whose handle this provider has torn down. An action still
-	// addressed to one of them is aborted, never applied to a newer kernel.
-	const retiredRef = useRef(new WeakSet<ConsentKernel>());
+	// Selections whose handle this provider has torn down. An action still
+	// addressed to one of them is aborted, never applied to a newer handle.
+	// Returning to the same kernel starts a new selection, which is not.
+	const retiredRef = useRef(new WeakSet<KernelSelection>());
 	// Actions taken between hydration and the effect below creating the
 	// handle. A server-rendered banner is clickable in that window. Each
-	// action remembers its kernel, so it never runs against another one.
+	// action remembers its selection, so it never runs against another one.
 	const queuedRef = useRef<QueuedIABAction[]>([]);
 
 	useEffect(() => {
@@ -99,32 +129,33 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 
 	useEffect(() => {
 		const retired = retiredRef.current;
-		retired.delete(kernel);
-		const next = createIAB({ ...optionsRef.current, kernel });
-		handleRef.current = { handle: next, kernel };
-		setMountedHandle({ handle: next, kernel });
+		// StrictMode replays cleanup then setup for the same selection.
+		retired.delete(selection);
+		const next = createIAB({ ...optionsRef.current, kernel: selection.kernel });
+		handleRef.current = { handle: next, selection };
+		setMountedHandle({ handle: next, selection });
 		const queued = queuedRef.current;
 		queuedRef.current = [];
 		for (const action of queued) {
-			if (action.kernel === kernel) {
+			if (action.selection === selection) {
 				action.run(next);
 			} else {
 				action.cancel();
 			}
 		}
 		return () => {
-			// Cleanup always runs before the next kernel's setup, so the ref
+			// Cleanup always runs before the next selection's setup, so the ref
 			// still holds this effect's handle here.
 			handleRef.current = null;
-			retired.add(kernel);
+			retired.add(selection);
 			next.dispose();
 		};
-	}, [kernel]);
+	}, [selection]);
 
 	const run = useCallback<NonNullable<IABContextValue['run']>>(
 		(action) => {
 			const { current } = handleRef;
-			if (current?.kernel === kernel) {
+			if (current?.selection === selection) {
 				return Promise.resolve(action(current.handle));
 			}
 			const pending = new Promise<void>((resolve, reject) => {
@@ -135,15 +166,15 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 							'AbortError'
 						)
 					);
-				if (retiredRef.current.has(kernel)) {
+				if (retiredRef.current.has(selection)) {
 					cancel();
 					return;
 				}
-				// No handle exists yet, or the one that does belongs to the kernel
-				// this provider is switching away from: wait for this kernel's.
+				// No handle exists yet, or the one that does belongs to the
+				// selection this provider is switching away from: wait for this
+				// selection's handle.
 				queuedRef.current.push({
 					cancel,
-					kernel,
 					run: async (mounted) => {
 						try {
 							await action(mounted);
@@ -152,6 +183,7 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 							reject(error);
 						}
 					},
+					selection,
 				});
 			});
 			// Void IAB actions have no promise consumer. Handle their
@@ -163,7 +195,7 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 			});
 			return pending;
 		},
-		[kernel]
+		[selection]
 	);
 
 	const value = useMemo<IABContextValue>(

@@ -20,7 +20,8 @@ save only records into the new runtime. A draft inherited from an outer
 runtime, so a nested provider on another runtime keeps its own.
 
 `IABProvider` stops exposing the previous runtime's handle. An IAB action
-taken right after the switch waits for the new runtime's handle. An action
+taken right after the switch waits for the new runtime's handle, including
+when you switch back to a runtime the provider rendered before. An action
 still addressed to the previous runtime rejects with an `AbortError` and is
 not applied to either runtime. Moving between a borrowed runtime and one the
 provider creates still requires a remount.

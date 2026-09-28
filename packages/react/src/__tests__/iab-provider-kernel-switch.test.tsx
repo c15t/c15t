@@ -89,15 +89,15 @@ const ContextProbe = ({
 const SwitchActor = ({
 	onSwitch,
 }: {
-	onSwitch: (state: ReactIABState) => void;
+	onSwitch: (state: ReactIABState, kernel: ConsentKernel) => void;
 }) => {
 	const kernel = useContext(KernelContext);
 	const state = useIAB();
 	const previous = useRef(kernel);
 	useLayoutEffect(() => {
-		if (previous.current !== kernel && state) {
+		if (previous.current !== kernel && state && kernel) {
 			previous.current = kernel;
-			onSwitch(state);
+			onSwitch(state, kernel);
 		}
 	}, [kernel, state, onSwitch]);
 	return null;
@@ -131,6 +131,48 @@ describe('IABProvider when the context kernel changes', () => {
 			expect(handleOf(first).save).not.toHaveBeenCalled();
 			expect(handleOf(second).acceptAll).toHaveBeenCalledOnce();
 			expect(handleOf(second).save).toHaveBeenCalledOnce();
+		} finally {
+			screen.unmount();
+		}
+	});
+
+	test('actions taken right after switching back to an earlier kernel reach its new handle', async () => {
+		const first = createKernel();
+		const second = createKernel();
+		let saved: Promise<void> | undefined;
+		// Act only on the return to the first kernel, which the provider
+		// already tore a handle down for once.
+		const onSwitch = (state: ReactIABState, kernel: ConsentKernel) => {
+			if (kernel === first) {
+				state.acceptAll();
+				saved = state.save();
+			}
+		};
+		const tree = (kernel: ConsentKernel) => (
+			<KernelContext.Provider value={kernel}>
+				<IABProvider cmpId={42}>
+					<SwitchActor onSwitch={onSwitch} />
+				</IABProvider>
+			</KernelContext.Provider>
+		);
+		const screen = await render(tree(first));
+		try {
+			await vi.waitFor(() => expect(iab.handles.has(first)).toBe(true));
+			const original = handleOf(first);
+			await screen.rerender(tree(second));
+			await vi.waitFor(() => expect(iab.handles.has(second)).toBe(true));
+
+			await screen.rerender(tree(first));
+			await vi.waitFor(() => expect(handleOf(first)).not.toBe(original));
+			await expect(saved).resolves.toBeUndefined();
+
+			const reselected = handleOf(first);
+			expect(reselected.acceptAll).toHaveBeenCalledOnce();
+			expect(reselected.save).toHaveBeenCalledOnce();
+			expect(original.acceptAll).not.toHaveBeenCalled();
+			expect(original.save).not.toHaveBeenCalled();
+			expect(handleOf(second).acceptAll).not.toHaveBeenCalled();
+			expect(handleOf(second).save).not.toHaveBeenCalled();
 		} finally {
 			screen.unmount();
 		}
