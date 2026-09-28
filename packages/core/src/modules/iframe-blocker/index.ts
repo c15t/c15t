@@ -39,6 +39,48 @@ import type { IframeBlockerHandle, IframeBlockerOptions } from './types';
 
 export type { IframeBlockerHandle, IframeBlockerOptions } from './types';
 
+/**
+ * Whether a node is an iframe. False for a node page script can't read:
+ * Firefox throws "Permission denied to access property" for some nodes,
+ * such as ones an extension inserted.
+ */
+const isIframe = function isIframe(node: Node): node is HTMLIFrameElement {
+	try {
+		return (
+			node.nodeType === 1 &&
+			(node as Element).tagName?.toUpperCase() === 'IFRAME'
+		);
+	} catch {
+		return false;
+	}
+};
+
+/**
+ * Add the iframes in a node to `into`: the node itself when it is an
+ * iframe, plus any inside it. A node page script can't read is skipped, so
+ * the rest of the mutation batch is still gated.
+ */
+const addIframes = function addIframes(
+	node: Node,
+	into: Set<HTMLIFrameElement>
+): void {
+	if (isIframe(node)) {
+		into.add(node);
+	}
+	try {
+		if (node.nodeType !== 1) {
+			return;
+		}
+		for (const iframe of Array.from(
+			(node as Element).querySelectorAll?.('iframe') ?? []
+		)) {
+			into.add(iframe);
+		}
+	} catch {
+		// Unreadable node: page script can't gate what is inside it either.
+	}
+};
+
 export const createIframeBlocker = function createIframeBlocker(
 	options: IframeBlockerOptions
 ): IframeBlockerHandle {
@@ -135,40 +177,17 @@ export const createIframeBlocker = function createIframeBlocker(
 	const observer = new MutationObserver((mutations) => {
 		const iframes = new Set<HTMLIFrameElement>();
 		for (const mutation of mutations) {
-			if (
-				mutation.type === 'attributes' &&
-				(mutation.target as Element).tagName?.toUpperCase() === 'IFRAME'
-			) {
-				iframes.add(mutation.target as HTMLIFrameElement);
+			if (mutation.type === 'attributes' && isIframe(mutation.target)) {
+				iframes.add(mutation.target);
 			}
 			for (const node of Array.from(mutation.addedNodes)) {
-				if (node.nodeType !== 1) {
-					continue;
-				}
-				const element = node as Element;
-				if (element.tagName?.toUpperCase() === 'IFRAME') {
-					iframes.add(element as HTMLIFrameElement);
-				}
-				for (const iframe of Array.from(element.querySelectorAll('iframe'))) {
-					iframes.add(iframe);
-				}
+				addIframes(node, iframes);
 			}
 			// A frame that left the page takes its declaration with it. Only
 			// frames the blocker knows are re-registered, so a removed subtree
 			// costs nothing when it held no gated frame.
 			for (const node of Array.from(mutation.removedNodes ?? [])) {
-				if (node.nodeType !== 1) {
-					continue;
-				}
-				const element = node as Element;
-				if (element.tagName?.toUpperCase() === 'IFRAME') {
-					iframes.add(element as HTMLIFrameElement);
-				}
-				for (const iframe of Array.from(
-					element.querySelectorAll?.('iframe') ?? []
-				)) {
-					iframes.add(iframe);
-				}
+				addIframes(node, iframes);
 			}
 		}
 		registerIframes(iframes);
