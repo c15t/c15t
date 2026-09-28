@@ -1,13 +1,8 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
 import type { C15tPluginProps } from '@c15t/react-native/expo-plugin';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
-import {
-	withDangerousMod,
-	withPodfile,
-	withSettingsGradle,
-} from 'expo/config-plugins';
+import { withPodfile, withSettingsGradle } from 'expo/config-plugins';
 import type { ConfigPlugin } from 'expo/config-plugins';
 
 /**
@@ -63,6 +58,15 @@ const withC15tLocalCorePod: ConfigPlugin = (config) =>
  * plugin rather than a checked-in file. An app that installs the package from npm
  * gets the published artifacts and must not carry this. `C15T_LOCAL_PODS=false`
  * turns it off along with the Podfile path above.
+ *
+ * The substitution resolves, but the assemble does not finish yet: an included
+ * build shares the host's Android Gradle Plugin and Kotlin, and this app's React
+ * Native (0.86, Expo 57) hosts AGP 8.12 on Gradle 9.3.1 with Kotlin 2.1, while
+ * `native/core-android` builds with AGP 9.2 on Gradle 9.4.1 with Kotlin 2.2 and
+ * uses AGP 9's built-in Kotlin. Raising the wrapper here breaks React Native's
+ * own Gradle plugin, which is compiled against Kotlin 2.1. Until the core is
+ * published to Maven or builds under AGP 8, the Android assemble of this app runs
+ * only from a checkout on React Native 0.87, and CI stops at the prebuild.
  */
 const withC15tLocalCoreGradle: ConfigPlugin = (config) =>
 	withSettingsGradle(config, (cfg) => {
@@ -87,38 +91,6 @@ includeBuild('${coreDir}') {
 
 		return cfg;
 	});
-
-/**
- * Run the generated Android build on the Gradle the included core needs.
- *
- * An included build runs under the host's Gradle, and the core's Android Gradle
- * Plugin asks for a newer Gradle than the Expo template's wrapper pins. The bare
- * example already runs on this version; keep the two examples on one wrapper. Only
- * meaningful alongside the substitution above, so it shares the switch.
- */
-const GRADLE_DISTRIBUTION = 'gradle-9.4.1-bin.zip';
-
-const withC15tGradleWrapper: ConfigPlugin = (config) =>
-	withDangerousMod(config, [
-		'android',
-		(cfg) => {
-			const wrapper = path.join(
-				cfg.modRequest.platformProjectRoot,
-				'gradle',
-				'wrapper',
-				'gradle-wrapper.properties'
-			);
-			const contents = fs.readFileSync(wrapper, 'utf8');
-			fs.writeFileSync(
-				wrapper,
-				contents.replace(
-					/^(?<prefix>distributionUrl=.*\/)gradle-[^/]+$/mu,
-					`$<prefix>${GRADLE_DISTRIBUTION}`
-				)
-			);
-			return cfg;
-		},
-	]);
 
 /**
  * Backend and key for the embedded consent core.
@@ -214,7 +186,7 @@ const plugins: PluginEntry[] = [
 	// Only while this example lives next to the core it builds against.
 	...(process.env.C15T_LOCAL_PODS === 'false'
 		? []
-		: [withC15tLocalCorePod, withC15tLocalCoreGradle, withC15tGradleWrapper]),
+		: [withC15tLocalCorePod, withC15tLocalCoreGradle]),
 	// `expo export` and `expo run:*` both count as a native-build invocation, so
 	// the plugin's Expo Go guard passes on its own. There is no `skipNativeBuildCheck`
 	// here on purpose: this project has no Expo Go path, and a bare `expo config` in
