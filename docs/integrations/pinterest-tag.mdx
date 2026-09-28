@@ -1,0 +1,69 @@
+---
+title: Pinterest Tag
+description: Configure the Pinterest Tag with c15t v3, track typed events and verify marketing permission, revocation and reload.
+group: integrations
+---
+
+## Configure Pinterest Tag
+
+Use the numeric tag ID from Pinterest Ads Manager. The helper recreates
+Pinterest's base code: it defines the `pintrk` queue, queues `load`,
+`setconsent(true)` and a page visit, then loads `core.js`.
+
+<CommandTabs command="@c15t/scripts" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { pinterestTag } from '@c15t/scripts/pinterest-tag';
+
+export const scripts = [pinterestTag({ tagId: 'YOUR_TAG_ID' })];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+Pinterest's `<noscript>` image fallback is not emitted. It fires without
+JavaScript, so c15t cannot gate it.
+
+## Options
+
+| Option | Behavior |
+| --- | --- |
+| `tagId` | Required Pinterest Tag ID. |
+| `loadOptions` | Third argument to `pintrk('load')`, such as `em` for enhanced match. Pass user data only with the permission it needs. |
+| `trackPageVisit` | Queues `pintrk('page')` during setup. Defaults to `true`. |
+| `scriptUrl` | Defaults to `https://s.pinimg.com/ct/core.js`. |
+
+## Track events
+
+`pinterestTagEvent()` sends a typed `pintrk('track')` call. It covers Pinterest's
+20 event types and accepts user-defined names, which Pinterest uses for audience
+targeting only. Put product details in `line_items`.
+
+```ts
+import { pinterestTagEvent } from '@c15t/scripts/pinterest-tag';
+
+pinterestTagEvent('checkout', {
+	currency: 'USD',
+	event_id: 'order-123',
+	line_items: [{ product_id: '1414', product_price: 99.99, product_quantity: 1 }],
+	order_id: 'order-123',
+	value: 99.99,
+});
+```
+
+Set `event_id` to deduplicate against the Conversions API. An optional third
+argument receives Pinterest's `(didInit, error)` result. The helper does nothing
+until the tag has loaded, and it checks API availability, not consent.
+
+## Consent behavior
+
+The first load waits for marketing permission. On revocation the helper keeps
+the tag and calls `pintrk('setconsent', false)`, which Pinterest documents as
+stopping events and clearing its first-party cookies. c15t then reloads the page.
+A later grant calls `setconsent(true)`.
+
+## Verify the integration
+
+Use a fresh session with an opt-in policy and confirm `core.js` is absent. Grant
+`marketing` and check the page visit in Pinterest's Tag Helper. Revoke it and
+confirm the page reloads and no further events are sent. Follow the
+[consent verification guide](/docs/guides/verify-consent).

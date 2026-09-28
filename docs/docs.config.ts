@@ -319,6 +319,7 @@ export default defineDocsConfig({
 					pages: [
 						'meta-pixel',
 						'openai-pixel',
+						'pinterest-tag',
 						'reddit-pixel',
 						'tiktok-pixel',
 						'linkedin-insights',
