@@ -1188,13 +1188,22 @@ const storedCustomConsent = (id: string): unknown =>
 	JSON.parse(localStorage.getItem('c15t-iab-authority-v1') ?? '{}')
 		.customConsents?.[id];
 
-const tiedCustomSaves = async (thisRevokes: boolean) => {
+const revoke = (id: number) => (addon: IABHandle) => {
+	addon.setVendorConsent(id, false);
+};
+const keep = (_addon: IABHandle) => undefined;
+
+const tiedCustomSaves = async (
+	ours: (addon: IABHandle) => void,
+	theirs: (addon: IABHandle) => void,
+	vendors = customVendors
+) => {
 	const kernel = makeKernel();
 	const storage = createPersistence({ kernel, sync: false });
 	disposers.push(storage.dispose);
 	const addon = createIAB({
 		cmpId: 28,
-		customVendors,
+		customVendors: vendors,
 		gvl: completeGVL,
 		kernel,
 	});
@@ -1208,7 +1217,7 @@ const tiedCustomSaves = async (thisRevokes: boolean) => {
 	disposers.push(otherStorage.dispose);
 	const otherAddon = createIAB({
 		cmpId: 28,
-		customVendors,
+		customVendors: vendors,
 		gvl: completeGVL,
 		kernel: other,
 	});
@@ -1222,16 +1231,12 @@ const tiedCustomSaves = async (thisRevokes: boolean) => {
 	const tie = NOW + 60_000;
 	vi.setSystemTime(tie);
 	addon.acceptAll();
-	if (thisRevokes) {
-		addon.setVendorConsent(9001, false);
-	}
+	ours(addon);
 	await addon.save();
 	storage.reconcile();
 	vi.setSystemTime(tie);
 	otherAddon.acceptAll();
-	if (!thisRevokes) {
-		otherAddon.setVendorConsent(9001, false);
-	}
+	theirs(otherAddon);
 	await otherAddon.save();
 	otherStorage.reconcile();
 	expect(kernel.getSnapshot().iab?.authority?.confirmedAt).toBe(
@@ -1245,7 +1250,7 @@ const tiedCustomSaves = async (thisRevokes: boolean) => {
 };
 
 test('a stale grant stored last in the same millisecond does not un-revoke a vendor', async () => {
-	const kernel = await tiedCustomSaves(true);
+	const kernel = await tiedCustomSaves(revoke(9001), keep);
 	expect(kernel.getSnapshot().iab?.authority?.vendorConsents['9001']).toBe(
 		false
 	);
@@ -1254,10 +1259,158 @@ test('a stale grant stored last in the same millisecond does not un-revoke a ven
 });
 
 test('a revocation stored last in the same millisecond is adopted', async () => {
-	const kernel = await tiedCustomSaves(false);
+	const kernel = await tiedCustomSaves(keep, revoke(9001));
 	await vi.waitFor(() =>
 		expect(kernel.getSnapshot().iab?.authority?.vendorConsents['9001']).toBe(
 			false
 		)
 	);
+});
+
+const twoCustomVendors = [
+	...customVendors,
+	{
+		id: 9002,
+		name: 'Second custom',
+		privacyPolicyUrl: 'https://example.test/privacy',
+		purposes: [1],
+	},
+];
+
+test('same-millisecond saves that each grant what the other denies stay unpublished after a reload', async () => {
+	const kernel = await tiedCustomSaves(
+		revoke(9001),
+		revoke(9002),
+		twoCustomVendors
+	);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority ?? null).toBeNull()
+	);
+
+	// A page opened now publishes neither receipt either.
+	const fresh = makeKernel();
+	const freshStorage = createPersistence({ kernel: fresh, sync: false });
+	disposers.push(freshStorage.dispose);
+	const freshAddon = createIAB({
+		cmpId: 28,
+		customVendors: twoCustomVendors,
+		gvl: completeGVL,
+		kernel: fresh,
+	});
+	disposers.push(freshAddon.dispose);
+	await vi.advanceTimersByTimeAsync(10);
+	expect(fresh.getSnapshot().iab?.authority ?? null).toBeNull();
+});
+
+test('a receipt another tab stores holds back the published TC string at once', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	await addon.whenReady?.();
+	addon.acceptAll();
+	await addon.save();
+	storage.reconcile();
+	const granted = kernel.getSnapshot().iab?.authority?.tcString;
+	expect(granted).toBeTruthy();
+
+	const { cmpApi } = addon;
+	if (!cmpApi) {
+		throw new Error('Expected a CMP API');
+	}
+	const published = vi.spyOn(cmpApi, 'updateConsent');
+	receiptEvent();
+	// The receipt is still being validated: nothing it may revoke is
+	// advertised meanwhile.
+	expect(published.mock.calls.at(-1)?.[0]).toBe('');
+
+	// It is this tab's own receipt, so the TC string is published again.
+	await vi.advanceTimersByTimeAsync(10);
+	expect(published.mock.calls.at(-1)?.[0]).toBe(granted);
+});
+
+test.each([
+	['localStorage', false],
+	['localStorage and cookies', true],
+] as const)(
+	'another tab clearing %s withdraws the TC string without publishing it again',
+	async (_scope, clearCookies) => {
+		const kernel = makeKernel();
+		const storage = createPersistence({ kernel });
+		disposers.push(storage.dispose);
+		const addon = createAddon(kernel);
+		await addon.whenReady?.();
+		addon.acceptAll();
+		await addon.save();
+		storage.reconcile();
+		const granted = kernel.getSnapshot().iab?.authority?.tcString;
+		expect(granted).toBeTruthy();
+
+		const { cmpApi } = addon;
+		if (!cmpApi) {
+			throw new Error('Expected a CMP API');
+		}
+		const published = vi.spyOn(cmpApi, 'updateConsent');
+		localStorage.clear();
+		if (clearCookies) {
+			for (const pair of document.cookie.split(';')) {
+				const name = pair.split('=')[0]?.trim();
+				if (name) {
+					document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+				}
+			}
+		}
+		window.dispatchEvent(new StorageEvent('storage', { key: null }));
+		await vi.advanceTimersByTimeAsync(10);
+
+		expect(kernel.getSnapshot().iab?.authority ?? null).toBeNull();
+		expect(published.mock.calls.map(([tcString]) => tcString)).not.toContain(
+			granted
+		);
+		expect(published.mock.calls.at(-1)?.[0]).toBe('');
+	}
+);
+
+test('a save refusing consent but keeping legitimate interest keeps its TC string', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	await addon.whenReady?.();
+	addon.rejectAll();
+	// Measurement's purposes, with no objection to legitimate interest.
+	for (const purpose of [7, 8, 9]) {
+		addon.setPurposeLegitimateInterest(purpose, true);
+	}
+	await addon.save();
+	storage.reconcile();
+	expect(
+		kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+	).toBe(false);
+	const authority = kernel.getSnapshot().iab?.authority;
+	expect(authority?.purposeLegitimateInterests[7]).toBe(true);
+
+	// Refusing a category withholds consent; the objection is the control
+	// for legitimate interest, so a page opened now restores the TC string.
+	const fresh = makeKernel();
+	const freshStorage = createPersistence({ kernel: fresh, sync: false });
+	disposers.push(freshStorage.dispose);
+	createAddon(fresh);
+	await vi.waitFor(() =>
+		expect(fresh.getSnapshot().iab?.authority?.tcString).toBe(
+			authority?.tcString
+		)
+	);
+
+	// A denial recorded later, without a TC string, still withdraws it: the
+	// TC string no longer describes the choice.
+	vi.setSystemTime(NOW + 1000);
+	const other = makeKernel();
+	const otherStorage = createPersistence({ kernel: other, sync: false });
+	disposers.push(otherStorage.dispose);
+	await other.commands.save('none');
+	otherStorage.reconcile();
+	expect(storage.reconcile()).toBe(true);
+	await vi.advanceTimersByTimeAsync(10);
+	expect(kernel.getSnapshot().iab?.authority ?? null).toBeNull();
 });

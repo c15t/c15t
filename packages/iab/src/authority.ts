@@ -28,10 +28,23 @@ const ownBooleanMap = function ownBooleanMap(
 	);
 };
 
-/** Reads the addon receipt without writing or extending its lifetime. */
-export const readAuthorityReceipt = function readAuthorityReceipt(): unknown {
+/** The stored receipt text, or `null` when there is none or no storage. */
+export const readAuthorityReceiptText = function readAuthorityReceiptText():
+	| string
+	| null {
 	try {
-		return JSON.parse(localStorage.getItem(AUTHORITY_KEY) ?? 'null');
+		return localStorage.getItem(AUTHORITY_KEY);
+	} catch {
+		return null;
+	}
+};
+
+/** Reads the addon receipt without writing or extending its lifetime. */
+export const readAuthorityReceipt = function readAuthorityReceipt(
+	text = readAuthorityReceiptText()
+): unknown {
+	try {
+		return JSON.parse(text ?? 'null');
 	} catch {
 		return null;
 	}
@@ -203,10 +216,21 @@ export const validateAuthority = async function validateAuthority(
 	}
 };
 
-/** Removes the addon receipt when authority is cleared by a lifecycle change. */
-export const clearAuthorityReceipt = function clearAuthorityReceipt(): void {
+/**
+ * Removes the addon receipt when authority is cleared by a lifecycle change.
+ * With `expected`, only while storage still holds that text, so a receipt
+ * another tab stored since is kept.
+ */
+export const clearAuthorityReceipt = function clearAuthorityReceipt(
+	expected?: string
+): void {
 	try {
-		localStorage.removeItem(AUTHORITY_KEY);
+		if (
+			expected === undefined ||
+			localStorage.getItem(AUTHORITY_KEY) === expected
+		) {
+			localStorage.removeItem(AUTHORITY_KEY);
+		}
 	} catch {
 		/* Storage may be unavailable. */
 	}

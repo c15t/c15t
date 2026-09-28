@@ -37,6 +37,7 @@ import {
 	clearAuthorityReceipt,
 	createAuthorityReceipt,
 	readAuthorityReceipt,
+	readAuthorityReceiptText,
 	storeAuthority,
 	validateAuthority,
 } from './authority';
@@ -312,6 +313,15 @@ const changedIABDraft = function changedIABDraft(
  * selection, since a category counts as granted only when all its purposes
  * are; there only a TC string granting every purpose of the category
  * conflicts, so the visitor's own partial selection stands.
+ *
+ * Only purpose consent counts. A category refusal withholds consent; the
+ * TCF control for legitimate interest is the objection, which the
+ * legitimate interest bits record, so a refused category does not revoke
+ * them. Counting them would also make the usual save that refuses consent
+ * without objecting conflict with itself. A later denial still withdraws
+ * an authority granting only legitimate interest once its receipt is
+ * reloaded, since the authority then predates the choice (see
+ * {@link predatesChoice}).
  */
 const grantsDeniedCategory = function grantsDeniedCategory(
 	authority: KernelIABAuthority,
@@ -747,14 +757,14 @@ export const createIAB = function createIAB(
 	 * denied category are switched off too.
 	 */
 	const withdrawAuthority = function withdrawAuthority(
-		choice: ExplicitChoice
+		choice: ExplicitChoice | null
 	): void {
 		const keepSelections = selectionRevision !== revisionAtAuthority;
 		const update: Partial<KernelIABState> = {
 			authority: null,
 			tcString: null,
 		};
-		if (!keepSelections) {
+		if (!keepSelections && choice) {
 			update.purposeConsents = withoutDeniedPurposes(
 				readIAB(kernel).purposeConsents,
 				choice
@@ -776,11 +786,13 @@ export const createIAB = function createIAB(
 	 * `receipt` when it is compatible and at least as new, or when the held
 	 * one conflicts; otherwise withdraw a conflicting held authority without
 	 * deleting the shared receipt. Selections follow unless the visitor
-	 * changed them here without saving.
+	 * changed them here without saving. A tie neither side may win also
+	 * removes the stored receipt (`receiptText`), so no page restores it.
 	 */
 	const applyReconciledAuthority = function applyReconciledAuthority(
 		receipt: KernelIABAuthority | null,
-		choice: ExplicitChoice
+		choice: ExplicitChoice,
+		receiptText: string | null
 	): void {
 		const held = readIAB(kernel).authority;
 		// A held authority that grants what the choice denies, or that
@@ -799,6 +811,9 @@ export const createIAB = function createIAB(
 		}
 		if (tie === 'withdraw') {
 			withdrawAuthority(choice);
+			if (receiptText !== null) {
+				clearAuthorityReceipt(receiptText);
+			}
 			return;
 		}
 		if (
@@ -844,8 +859,9 @@ export const createIAB = function createIAB(
 		}
 		const recordsGeneration = kernel.getRecordsGeneration();
 		const generation = confirmationGeneration;
+		const receiptText = readAuthorityReceiptText();
 		const receipt = await validateAuthority(
-			readAuthorityReceipt(),
+			readAuthorityReceipt(receiptText),
 			snapshot,
 			Date.now()
 		);
@@ -860,7 +876,7 @@ export const createIAB = function createIAB(
 		) {
 			return;
 		}
-		applyReconciledAuthority(receipt, current.explicitChoice);
+		applyReconciledAuthority(receipt, current.explicitChoice, receiptText);
 		// The reload kept the held authority: it still describes the choice,
 		// so a TC string held back for this reload is published again.
 		const kept = readIAB(kernel).authority;
@@ -916,17 +932,28 @@ export const createIAB = function createIAB(
 	/**
 	 * Another tab stored a receipt. The category record can be unchanged
 	 * (a save in the same millisecond, or one that only changed vendors), so
-	 * the receipt is the only sign; reload it before anything is published.
+	 * the receipt is the only sign: stop publishing the held TC string at
+	 * once, and reload the receipt. A removed receipt (another tab cleared
+	 * storage or withdrew its TC string) withdraws the held one, since a
+	 * page opened now would publish nothing either.
 	 */
 	const onReceiptStored = function onReceiptStored(event: StorageEvent): void {
 		const held = readIAB(kernel).authority;
 		if (
-			options.persistence !== false &&
-			held &&
-			(event.key === AUTHORITY_KEY || event.key === null)
+			options.persistence === false ||
+			!held ||
+			(event.key !== AUTHORITY_KEY && event.key !== null)
 		) {
-			holdBackUntilReload(held);
+			return;
 		}
+		const snapshot = kernel.getSnapshot();
+		if (readAuthorityReceiptText() === null) {
+			withdrawAuthority(snapshot.explicitChoice);
+			return;
+		}
+		holdBackUntilReload(held);
+		// No kernel notification follows, so publish the hold here.
+		cmpApi?.updateConsent('', undefined, snapshot.policyRule.model === 'iab');
 	};
 	if (typeof window !== 'undefined') {
 		window.addEventListener('storage', onReceiptStored);
@@ -1162,7 +1189,7 @@ export const createIAB = function createIAB(
 			grantsDeniedCategory(held, snapshot.explicitChoice)
 		) {
 			previousSnapshot = snapshot;
-			withdrawAuthority(snapshot.explicitChoice as ExplicitChoice);
+			withdrawAuthority(snapshot.explicitChoice);
 			return;
 		}
 		const previous = previousSnapshot;
