@@ -1329,6 +1329,45 @@ test('a receipt another tab stores holds back the published TC string at once', 
 	expect(published.mock.calls.at(-1)?.[0]).toBe(granted);
 });
 
+test('a receipt removed while another one is being validated is not installed', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	await addon.whenReady?.();
+	addon.acceptAll();
+	await addon.save();
+	storage.reconcile();
+	expect(kernel.getSnapshot().iab?.authority).not.toBeNull();
+
+	// Another tab saves the same selections later and stores its receipt.
+	vi.setSystemTime(NOW + 60_000);
+	const other = makeKernel();
+	const otherStorage = createPersistence({ kernel: other, sync: false });
+	disposers.push(otherStorage.dispose);
+	const otherAddon = createAddon(other);
+	await vi.waitFor(() =>
+		expect(other.getSnapshot().iab?.authority).not.toBeNull()
+	);
+	otherAddon.acceptAll();
+	await otherAddon.save();
+	otherStorage.reconcile();
+	const replacement = other.getSnapshot().iab?.authority?.confirmedAt;
+	expect(replacement).toBeGreaterThan(
+		kernel.getSnapshot().iab?.authority?.confirmedAt ?? Infinity
+	);
+
+	// This tab starts validating that receipt; before decoding finishes, a
+	// third tab removes it.
+	receiptEvent();
+	await Promise.resolve();
+	localStorage.removeItem('c15t-iab-authority-v1');
+	receiptEvent();
+	await vi.advanceTimersByTimeAsync(10);
+
+	expect(kernel.getSnapshot().iab?.authority ?? null).toBeNull();
+});
+
 test.each([
 	['localStorage', false],
 	['localStorage and cookies', true],

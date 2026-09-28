@@ -220,6 +220,13 @@ export const validateAuthority = async function validateAuthority(
  * Removes the addon receipt when authority is cleared by a lifecycle change.
  * With `expected`, only while storage still holds that text, so a receipt
  * another tab stored since is kept.
+ *
+ * The comparison is best effort. localStorage has no conditional removal,
+ * and a tab reads its own copy of the shared area, which another tab's
+ * write reaches asynchronously. A receipt stored in another tab just before
+ * this call can therefore still be removed. That fails toward less
+ * permission: the removal withdraws the held TC string in every other tab
+ * (see the receipt listener in `index.ts`) until the next save.
  */
 export const clearAuthorityReceipt = function clearAuthorityReceipt(
 	expected?: string

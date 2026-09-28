@@ -866,13 +866,17 @@ export const createIAB = function createIAB(
 			Date.now()
 		);
 		const current = kernel.getSnapshot();
+		// A receipt replaced or removed while it was decoded is stale: the
+		// storage event for that change starts its own reload, and a removal
+		// has already withdrawn the held authority.
 		if (
 			disposed ||
 			generation !== confirmationGeneration ||
 			kernel.getRecordsGeneration() !== recordsGeneration ||
 			current.evaluationPolicy.choice.fingerprint !==
 				snapshot.evaluationPolicy.choice.fingerprint ||
-			!current.explicitChoice
+			!current.explicitChoice ||
+			readAuthorityReceiptText() !== receiptText
 		) {
 			return;
 		}
