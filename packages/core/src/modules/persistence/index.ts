@@ -701,9 +701,12 @@ export const createPersistence = function createPersistence(
 					readStoredClearEpoch(storageConfig, at)
 				);
 				// Never further ahead of the clock than readers accept, or
-				// every other runtime would read the epoch as corrupt (0). Any
-				// decision valid now is dated no later than `at`, so the capped
-				// epoch still voids all of them.
+				// every runtime whose clock is behind would read the epoch as
+				// corrupt (0) and void nothing. Known limit: after the clock went
+				// back more than the tolerance, the capped epoch is below times
+				// cleared records carried, so a decision with such a time that a
+				// runtime which missed the clear writes back counts again once
+				// clocks recover. Times alone cannot order that case.
 				const epoch = Math.max(
 					at,
 					Math.min(previous + 1, at + EPOCH_CLOCK_TOLERANCE_MS)

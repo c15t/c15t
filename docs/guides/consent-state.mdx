@@ -174,7 +174,10 @@ Stored records are merged into the ones in memory:
   held back, before `__tcfapi` publishes. A tab also reloads the TC string
   when another tab on the same origin stores a new one, which covers a save in
   the same millisecond or one that changed only vendors. When two tabs save in
-  the same millisecond, both end up with the TC string stored last.
+  the same millisecond with different selections, the more restrictive TC
+  string wins in both, so a revoked vendor is never advertised again. If each
+  grants something the other denies, neither is published until the next
+  save.
 - A record removed from readable storage since this tab last saw it present is
   cleared, and the active policy decides again. A record this tab never saw in
   storage, such as a receipt merged from the server after `identify()` or a
@@ -223,7 +226,15 @@ of the clock is kept, as it is when the clock was set back after a clear. Until
 the clock catches up, decisions saved in that window are void too. An epoch more
 than an hour ahead is treated as corrupt and reads as 0, so a clear never writes
 one: after the clock went back more than an hour, the new epoch is capped at an
-hour ahead of the clock. It still voids every decision the clock allows.
+hour ahead of the clock.
+
+That cap is a known limit. A cleared record carries times from before the clock
+went back, and a runtime that missed the clear can write those times back. The
+capped epoch is lower than them, so once the clock has recovered, such a
+decision counts again. Leaving the epoch uncapped does not help: every tab
+whose clock is still behind reads it as corrupt, which voids nothing. Times
+alone cannot order a clear against decisions stamped by a clock that went back
+more than an hour.
 
 This changes the stored format. After a clear, the consent cookie carries
 `&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes),
@@ -236,6 +247,12 @@ configured prompt may appear again. Deploy the new build to every page of the
 site before visitors can clear their records.
 
 ### When the cookie and localStorage disagree
+
+When both copies hold a decision for a category from the same millisecond and
+the two conflict, the denial wins. When they hold exactly the same decisions
+but a different subject, the localStorage copy's subject wins: a subject is
+rewritten on its own when a save response resolves it, so the difference is a
+cookie write the browser dropped.
 
 When a server render seeded the page from the consent cookie
 (`skipHydration`), that seed stays authoritative. A newer denial or privacy

@@ -90,11 +90,18 @@ reconciled denial covers is withdrawn before any `__tcfapi` listener is
 notified, and one that predates another tab's newer choice is held back until
 this tab reads that tab's receipt, so a revoked vendor is never advertised
 again. A tab reloads the TC string when another tab stores a new receipt, which
-covers a save in the same millisecond or one that changed only vendors.
+covers a save in the same millisecond or one that changed only vendors. Two
+receipts from the same millisecond settle on the more restrictive one, so a
+revoked vendor is never advertised again.
 
 A page seeded from a server's cookie read applies newer denials and privacy
 directives that reached only localStorage, and a clear after the clock went
-back more than an hour writes an epoch other tabs can still read.
+back more than an hour writes an epoch other tabs can still read. That capped
+epoch cannot void decisions dated after it that a runtime which missed the
+clear writes back; times alone cannot order a clear against a clock that went
+back more than an hour. When the cookie and its localStorage copy hold
+conflicting decisions from the same millisecond, the denial wins, and when
+they differ only in subject, the localStorage copy's subject wins.
 
 New API:
 
