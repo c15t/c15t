@@ -179,7 +179,12 @@ Stored records are merged into the ones in memory:
   grants something the other denies, neither is published until the next save:
   the stored receipt is removed, so a page opened later does not restore it.
   When another tab removes the receipt, or clears localStorage, the TC string
-  is withdrawn here too, since a page opened now would find none.
+  is withdrawn here too, since a page opened now would find none, and a
+  receipt this tab was still decoding is not installed. The removal after a
+  tie checks that the stored receipt is the one it read, but localStorage has
+  no conditional removal, so a receipt another tab stored a moment earlier can
+  still be removed. Every tab then withdraws its TC string until the next save,
+  so the race only ever withholds consent.
 - A record removed from readable storage since this tab last saw it present is
   cleared, and the active policy decides again. A record this tab never saw in
   storage, such as a receipt merged from the server after `identify()` or a
@@ -251,12 +256,19 @@ site before visitors can clear their records.
 ### When the cookie and localStorage disagree
 
 When both copies hold a decision for a category from the same millisecond and
-the two conflict, the denial wins. When they hold exactly the same decisions
-but a different subject, the localStorage copy's subject wins: a subject is
-rewritten on its own when a save response resolves it, so the difference is a
-cookie write the browser dropped. When localStorage rejects a write that the
+the two conflict, the denial wins.
+
+The subject and IAB metadata come from the cookie. A server response, such as
+server-side consent restoration, and a sibling subdomain sharing the cookie
+with `crossSubdomain` can both rewrite it without touching this origin's
+localStorage, so the local copy can be the older one. The local copy's subject
+is used only when this browser's last consent write reached localStorage but
+not the cookie, for example because the cookie grew past the size limit, and
+the cookie has not changed since. Such a write stores the cookie as it stood
+under `<storageKey>-cookie-miss` in localStorage; the next write that reaches
+the cookie, or a clear, removes it. When localStorage rejects a write that the
 cookie takes, for example because storage is full, the older localStorage copy
-is removed, so it never wins with a stale subject.
+is removed.
 
 When a server render seeded the page from the consent cookie
 (`skipHydration`), that seed stays authoritative. A denial or privacy directive

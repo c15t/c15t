@@ -97,7 +97,10 @@ same millisecond settle on the more restrictive one, so a revoked vendor is
 never advertised again; when each grants something the other denies, the
 stored receipt is removed and neither is published until the next save. When
 another tab removes the receipt or clears localStorage, the held TC string is
-withdrawn.
+withdrawn, and a receipt still being decoded is not installed. localStorage
+has no conditional removal, so the removal after a tie can still delete a
+receipt another tab stored a moment earlier; every tab then withholds its TC
+string until the next save.
 
 A page seeded from a server's cookie read applies newer denials and privacy
 directives that reached only localStorage, and a local denial from the same
@@ -106,10 +109,12 @@ back more than an hour writes an epoch other tabs can still read. That capped
 epoch cannot void decisions dated after it that a runtime which missed the
 clear writes back; times alone cannot order a clear against a clock that went
 back more than an hour. When the cookie and its localStorage copy hold
-conflicting decisions from the same millisecond, the denial wins, and when
-they differ only in subject, the localStorage copy's subject wins. A
-localStorage write that fails while the cookie write lands removes the older
-local copy, so its subject never replaces the newer one.
+conflicting decisions from the same millisecond, the denial wins. The
+subject comes from the cookie, which a server-side restoration or a sibling
+subdomain can rewrite on its own, unless this browser's last write reached
+only localStorage and the cookie has not changed since; such a write leaves a
+`<storageKey>-cookie-miss` marker in localStorage. A localStorage write that
+fails while the cookie write lands removes the older local copy.
 
 New API:
 
