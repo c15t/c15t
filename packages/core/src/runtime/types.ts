@@ -91,7 +91,13 @@ export interface ConsentRuntimeIABFactoryOptions {
 	customVendors?: IABConfig['customVendors'];
 	/** Publisher country code used in the TC string. */
 	publisherCountryCode?: string;
-	/** Whether the CMP is service-specific rather than global. */
+	/**
+	 * Ignored: c15t always encodes IsServiceSpecific=1.
+	 *
+	 * @deprecated TCF requires IsServiceSpecific=1. Group-specific scope is
+	 * also encoded as 1. Passing `false` logs a warning once and has no
+	 * other effect.
+	 */
 	isServiceSpecific?: boolean;
 	/** Publisher restrictions to encode and enforce. */
 	publisherRestrictions?: IABConfig['publisherRestrictions'];
@@ -128,7 +134,7 @@ export interface ConsentRuntimeIABHandle {
 	acceptAll: () => void;
 	/** Flip every vendor + purpose consent to false. */
 	rejectAll: () => void;
-	/** Encode the current state as a TCF 2.3 string and commit it. */
+	/** Encode the current state as a TCF 2.4 string and commit it. */
 	generateTCString: () => Promise<string>;
 	/** Generate the TC string, commit it, and run the kernel save flow. */
 	save: () => Promise<void>;

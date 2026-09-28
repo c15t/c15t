@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Atur preferensi privasi Anda di sini. Anda dapat memilih jenis cookie dan teknologi pelacakan yang diizinkan.',
+			features: {
+				description:
+					'Sarana pemrosesan ini hanya dapat digunakan untuk mencapai satu atau beberapa tujuan yang dapat Anda pilih dalam pemberitahuan ini.',
+				title: 'Fitur',
+			},
 			footer: {
 				consentStorage:
 					'Preferensi persetujuan disimpan dalam cookie bernama "euconsent-v2" selama 13 bulan. Masa penyimpanan tersebut dapat dimulai ulang saat Anda memperbarui preferensi Anda.',

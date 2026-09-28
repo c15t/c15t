@@ -3,8 +3,9 @@ import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 
 import '@c15t/ui/styles/components/iab-consent-dialog.css';
 /**
- * One row in the IAB preference centre: a purpose, a special purpose, a
- * feature or a special feature.
+ * One row in the IAB preference centre: a purpose, a special purpose or a
+ * special feature. Features have their own informational row,
+ * `iab-feature-item.vue`, because they must not sit next to a control.
  *
  * Built on the shared `PreferenceItem` primitive rather than a hand-rolled
  * trigger and a `v-if` body, because the React and Svelte rows are, and a

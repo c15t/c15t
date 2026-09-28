@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Addaswch eich gosodiadau preifatrwydd yma. Gallwch ddewis pa fathau o gwcis a thechnolegau tracio rydych yn eu caniatáu.',
+			features: {
+				description:
+					'Dim ond at ddiben neu fwy y rhoddir dewis i chi yn yr hysbysiad hwn y gellir defnyddio yr dulliau prosesu hyn.',
+				title: 'Nodweddion',
+			},
 			footer: {
 				consentStorage:
 					'Mae dewisiadau cydsyniad yn cael eu storio mewn cwci o’r enw "euconsent-v2" am 13 mis. Gall y cyfnod storio gael ei adnewyddu pan fyddwch yn diweddaru eich dewisiadau.',

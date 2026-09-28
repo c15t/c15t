@@ -3,7 +3,7 @@
 import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
- * Provides the IAB TCF 2.3 compliant consent dialog component.
+ * Provides the IAB TCF 2.4 compliant consent dialog component.
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
 import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
@@ -38,6 +38,7 @@ import { useTextDirection } from '~/hooks/use-text-direction';
 import { useUIConfig } from '~/ui-config-context';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
+import { FeatureItem } from './atoms/feature-item';
 import { IABConsentDialogOverlay } from './atoms/overlay';
 import { PurposeItem } from './atoms/purpose-item';
 import { StackItem } from './atoms/stack-item';
@@ -123,10 +124,10 @@ export interface IABConsentDialogProps {
 }
 
 /**
- * IAB TCF 2.3 compliant consent dialog dialog.
+ * IAB TCF 2.4 compliant consent dialog dialog.
  *
  * @remarks
- * This component implements the required IAB TCF 2.3 UI elements:
+ * This component implements the required IAB TCF 2.4 UI elements:
  * - Tabbed interface for Purposes and Vendors
  * - Purpose grouping with stacks
  * - Individual purpose and vendor consent toggles
@@ -194,6 +195,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		consentRows,
 		essentialRows,
 		essentialPartnerCount,
+		featureRows,
+		featuresStandardText,
 		purposeTabCount,
 		vendorTabCount,
 		data: { purposes },
@@ -746,7 +749,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 												)
 											)}
 
-											{/* Essential Functions: Special Purposes + Features (locked) */}
+											{/* Essential Functions: Special Purposes (locked) */}
 											{essentialRows.length > 0 && (
 												<div {...specialPurposesProps}>
 													<div className={styles.specialPurposesHeader}>
@@ -862,6 +865,59 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 														</div>
 													)}
 												</div>
+											)}
+
+											{/* Features: informational, no controls (TCF Policies v5.0.b) */}
+											{featureRows.length > 0 && (
+												<section
+													aria-label={
+														iabTranslations.preferenceCenter.features.title
+													}
+													className={
+														config.noStyle ? undefined : styles.featuresSection
+													}
+													data-testid="iab-consent-dialog-features"
+												>
+													<div
+														className={
+															config.noStyle ? undefined : styles.featuresHeader
+														}
+													>
+														<h3
+															className={
+																config.noStyle
+																	? undefined
+																	: styles.featuresTitle
+															}
+														>
+															{iabTranslations.preferenceCenter.features.title}
+														</h3>
+														<p
+															className={
+																config.noStyle
+																	? undefined
+																	: styles.featuresDescription
+															}
+														>
+															{featuresStandardText ??
+																iabTranslations.preferenceCenter.features
+																	.description}
+														</p>
+													</div>
+													<div
+														className={
+															config.noStyle ? undefined : styles.featuresList
+														}
+													>
+														{featureRows.map((row) => (
+															<FeatureItem
+																key={row.testId}
+																feature={row}
+																testId={row.testId}
+															/>
+														))}
+													</div>
+												</section>
 											)}
 
 											{/* Consent storage notice */}

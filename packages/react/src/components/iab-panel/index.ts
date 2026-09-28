@@ -16,6 +16,7 @@ import type { FC } from 'react';
 
 import { IABConsentDialogCard } from './atoms/card';
 import { IABConsentDialogContent } from './atoms/content';
+import { FeatureItem } from './atoms/feature-item';
 import { IABConsentDialogFooter } from './atoms/footer';
 import { IABConsentDialogHeader } from './atoms/header';
 import { IABConsentDialogOverlay } from './atoms/overlay';
@@ -40,20 +41,21 @@ export interface IABConsentDialogCompoundComponent extends FC<IABConsentDialogPr
 	Content: typeof IABConsentDialogContent;
 	Footer: typeof IABConsentDialogFooter;
 	Overlay: typeof IABConsentDialogOverlay;
+	FeatureItem: typeof FeatureItem;
 	PurposeItem: typeof PurposeItem;
 	StackItem: typeof StackItem;
 	VendorList: typeof VendorList;
 }
 
 /**
- * IAB TCF 2.3 compliant consent dialog dialog component.
+ * IAB TCF 2.4 compliant consent dialog dialog component.
  *
  * @remarks
  * This component serves as the main entry point for rendering an IAB-compliant consent dialog.
  * It provides a structured layout with required IAB TCF elements.
  *
  * Key features:
- * - IAB TCF 2.3 compliant
+ * - IAB TCF 2.4 compliant
  * - Fully accessible by default
  * - Customizable appearance
  * - Compound component pattern support
@@ -87,6 +89,7 @@ export interface IABConsentDialogCompoundComponent extends FC<IABConsentDialogPr
 const IABConsentDialog = Object.assign(IABConsentDialogComponent, {
 	Card: IABConsentDialogCard,
 	Content: IABConsentDialogContent,
+	FeatureItem,
 	Footer: IABConsentDialogFooter,
 	Header: IABConsentDialogHeader,
 	Overlay: IABConsentDialogOverlay,
@@ -104,6 +107,7 @@ export default IABConsentDialog;
 // Export individual components for direct usage
 export { IABConsentDialogCard } from './atoms/card';
 export { IABConsentDialogContent } from './atoms/content';
+export { FeatureItem, type FeatureItemProps } from './atoms/feature-item';
 export { IABConsentDialogFooter } from './atoms/footer';
 export { IABConsentDialogHeader } from './atoms/header';
 export { IABConsentDialogOverlay } from './atoms/overlay';

@@ -3,7 +3,7 @@
  */
 
 import { TCString } from '@iabtechlabtcf/core';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { clearStoredTCString, createCMPApi } from '../tcf/cmp-api';
 import type { TCData } from '../tcf/iab-tcf-types';
@@ -240,7 +240,10 @@ describe('publisher restrictions: encoding', () => {
 
 describe('publisher restrictions: unsupported input fails explicitly', () => {
 	const gvl = createRestrictionGVL();
-	const encode = (publisherRestrictions: unknown, isServiceSpecific = true) =>
+	const encode = (
+		publisherRestrictions: unknown,
+		isServiceSpecific?: boolean
+	) =>
 		generateTCString(
 			createMockTCFConsent({
 				publisherRestrictions: publisherRestrictions as never,
@@ -339,10 +342,24 @@ describe('publisher restrictions: unsupported input fails explicitly', () => {
 		).rejects.toThrow(/allows only with consent/u);
 	});
 
-	test('rejects restrictions in a string that is not service-specific', async () => {
-		await expect(
-			encode([{ purposeId: 2, restrictionType: 0, vendorIds: [1] }], false)
-		).rejects.toThrow(/only allowed in service-specific/u);
+	test('encodes restrictions as service-specific when isServiceSpecific is false', async () => {
+		// TCF requires IsServiceSpecific=1, so the deprecated option cannot
+		// produce a global string that would make restrictions invalid.
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const decoded = await decodeTCString(
+				await encode(
+					[{ purposeId: 2, restrictionType: 0, vendorIds: [1] }],
+					false
+				)
+			);
+			expect(decoded.isServiceSpecific).toBe(true);
+			expect(decoded.publisherRestrictions).toEqual([
+				{ purposeId: 2, restrictionType: 0, vendorIds: [1] },
+			]);
+		} finally {
+			warn.mockRestore();
+		}
 	});
 
 	test('merges duplicate entries of the same type', () => {

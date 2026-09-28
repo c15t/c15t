@@ -89,6 +89,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'અહીં તમારી ગોપનીયતા સેટિંગ્સ કસ્ટમાઇઝ કરો. તમે પસંદ કરી શકો છો કે કયા પ્રકારની કૂકીઝ અને ટ્રેકિંગ ટેકનોલોજીની તમે મંજૂરી આપો છો.',
+			features: {
+				description:
+					'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+				title: 'સુવિધાઓ',
+			},
 			footer: {
 				consentStorage:
 					'સંમતિ પસંદગીઓ "euconsent-v2" નામની કૂકીમાં 13 મહિના માટે સંગ્રહિત કરવામાં આવે છે. જ્યારે તમે તમારી પસંદગીઓ અપડેટ કરો છો ત્યારે સંગ્રહ અવધિ તાજી કરવામાં આવી શકે છે.',

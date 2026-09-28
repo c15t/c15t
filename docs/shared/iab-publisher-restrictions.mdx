@@ -7,8 +7,9 @@ Each restriction type has a requirement that depends on the vendor list:
 | `2` | Legitimate interest required | declares the purpose for consent and lists it in `flexiblePurposes` |
 
 Type `2` is never allowed for purposes 1, 3, 4, 5 and 6, which TCF allows
-only with consent. Restrictions also require a service-specific CMP, the
-default. Setting `isServiceSpecific: false` with restrictions is an error.
+only with consent. TCF allows restrictions only in service-specific TC strings.
+c15t always writes those, so the deprecated `isServiceSpecific` option has no
+effect on restrictions.
 c15t copies the restrictions when the CMP starts, so changing your array
 afterwards has no effect.
 

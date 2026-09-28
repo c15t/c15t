@@ -125,7 +125,7 @@ const buildProviderOptions = function buildProviderOptions(
 				? {
 						cmpId: IAB_FIXTURE_CMP_ID,
 						enabled: true,
-						gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+						gvl: (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList,
 					}
 				: undefined,
 		initialPolicyPending: !authoritative,
@@ -149,7 +149,7 @@ const buildProviderOptions = function buildProviderOptions(
 			cmpId: IAB_FIXTURE_CMP_ID,
 			cmpVersion: IAB_FIXTURE_CMP_VERSION,
 			enabled: true,
-			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+			gvl: (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList,
 		};
 	}
 

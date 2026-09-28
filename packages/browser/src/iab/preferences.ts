@@ -19,7 +19,10 @@ export interface IABPreferences {
 	sync: (snapshot: ConsentSnapshot) => void;
 }
 
-/** Render purpose, special-feature, and vendor choices from the shared model. */
+/**
+ * Render purpose, special-feature, and vendor choices from the shared model,
+ * plus the locked special purposes and the informational Features section.
+ */
 export const createIABPreferences = (
 	ctx: SurfaceContext,
 	vendorsFirst: boolean,
@@ -162,7 +165,7 @@ export const createIABPreferences = (
 		}
 		if (row.locked) {
 			body.append(h('p', {}, t.preferenceCenter.vendorList.requiredNotice));
-		} else {
+		} else if (row.toggle !== 'none') {
 			// With no vendor on consent, a consent switch would look like an
 			// opt-out while every vendor kept processing; the objection below is
 			// the one that counts.
@@ -283,6 +286,41 @@ export const createIABPreferences = (
 				{},
 				h('h3', {}, t.preferenceCenter.specialPurposes.title),
 				...model.essentialRows.map(renderPurpose)
+			)
+		);
+	}
+	// Features are informational: TCF Policies v5.0.b forbid showing them
+	// next to a control that cannot be disabled, so they get their own
+	// section under the IAB standard text, and their rows carry no toggle.
+	if (model.featureRows.length) {
+		const featuresTitle =
+			t.preferenceCenter.features?.title ??
+			t.preferenceCenter.vendorList.features;
+		purposes.append(
+			h(
+				'section',
+				{
+					'aria-label': featuresTitle,
+					class: css(styles.featuresSection),
+					'data-testid': 'iab-consent-dialog-features',
+				},
+				h(
+					'div',
+					{ class: css(styles.featuresHeader) },
+					h('h3', { class: css(styles.featuresTitle) }, featuresTitle),
+					h(
+						'p',
+						{ class: css(styles.featuresDescription) },
+						model.featuresStandardText ??
+							t.preferenceCenter.features?.description ??
+							''
+					)
+				),
+				h(
+					'div',
+					{ class: css(styles.featuresList) },
+					...model.featureRows.map(renderPurpose)
+				)
 			)
 		);
 	}

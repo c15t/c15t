@@ -205,7 +205,7 @@ const authoredScenarios: Omit<
 	},
 	{
 		country: 'FR',
-		description: 'Shipped preset for IAB TCF 2.3 across Europe.',
+		description: 'Shipped preset for IAB TCF 2.4 across Europe.',
 		group: 'preset',
 		id: 'preset-europe-iab',
 		label: 'Europe IAB',

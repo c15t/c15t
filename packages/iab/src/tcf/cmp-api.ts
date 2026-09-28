@@ -22,7 +22,7 @@ import type {
 } from './iab-tcf-types';
 import { toTCDataRestrictions } from './publisher-restrictions';
 import { clearStubQueue, getStubQueue } from './stub';
-import { decodeTCString } from './tc-string';
+import { decodeTCString, getDisclosedVendorIds } from './tc-string';
 
 /**
  * Sets a cookie value.
@@ -182,6 +182,9 @@ export const createCMPApi = function createCMPApi(
 		);
 		let specialFeatureOptins: Record<number, boolean> =
 			consentData?.specialFeatureOptIns ?? {};
+		let disclosedVendorIds = getDisclosedVendorIds(
+			consentData?.vendorsDisclosed ?? {}
+		);
 		// Restrictions always come from the string vendors receive.
 		let restrictions: Record<number, Record<number, number>> = {};
 
@@ -198,6 +201,7 @@ export const createCMPApi = function createCMPApi(
 					vendorConsents = decoded.vendorConsents;
 					vendorLegitInterests = decoded.vendorLegitimateInterests;
 					specialFeatureOptins = decoded.specialFeatureOptIns;
+					disclosedVendorIds = getDisclosedVendorIds(decoded.vendorsDisclosed);
 				}
 			} catch {
 				// Invalid TC string, use empty values
@@ -237,6 +241,9 @@ export const createCMPApi = function createCMPApi(
 			useNonStandardTexts: false,
 			vendor: {
 				consents: vendorConsents,
+				disclosedVendors: Object.fromEntries(
+					disclosedVendorIds.map((vendorId) => [vendorId, true])
+				),
 				legitimateInterests: vendorLegitInterests,
 			},
 		};

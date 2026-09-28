@@ -321,7 +321,13 @@ export interface C15tIABOptions {
 	vendors?: number[];
 	/** Publisher country code used in the TC string. */
 	publisherCountryCode?: string;
-	/** Whether the CMP is service-specific rather than global. */
+	/**
+	 * Ignored: c15t always encodes IsServiceSpecific=1.
+	 *
+	 * @deprecated TCF requires IsServiceSpecific=1. Group-specific scope is
+	 * also encoded as 1. Passing `false` logs a warning once and has no
+	 * other effect.
+	 */
 	isServiceSpecific?: boolean;
 	/**
 	 * Publisher restrictions to encode into the TC string and apply to IAB

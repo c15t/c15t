@@ -101,6 +101,12 @@ export interface MountOptions {
 	/** Policy fixture shaping. See {@link MountPolicyOptions}. */
 	policy?: MountPolicyOptions;
 	/**
+	 * Global Vendor List for IAB mounts. Defaults to `MINIMAL_GVL` from
+	 * `fixtures/gvl.ts`. Typed loosely like `providerOptions`; drivers cast
+	 * it to their `GlobalVendorList` type.
+	 */
+	gvl?: unknown;
+	/**
 	 * Options passed to the framework provider. The shape mirrors each
 	 * framework's provider options (built on `KernelConfig` from
 	 * `@c15t/core`) — we reference it loosely (`unknown`) so this package

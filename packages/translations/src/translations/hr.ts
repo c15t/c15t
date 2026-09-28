@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Ovdje možete prilagoditi svoje postavke privatnosti. Možete odabrati koje vrste kolačića i tehnologija praćenja dopuštate.',
+			features: {
+				description:
+					'Ova sredstva obrade mogu se koristiti isključivo za ostvarivanje jedne ili više svrha za koje vam je u ovoj obavijesti dan izbor.',
+				title: 'Značajke',
+			},
 			footer: {
 				consentStorage:
 					'Postavke privole pohranjuju se u kolačiću pod nazivom "euconsent-v2" tijekom 13 mjeseci. Trajanje pohrane može se obnoviti kada ažurirate svoje postavke.',

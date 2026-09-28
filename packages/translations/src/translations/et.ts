@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Kohandage siin oma privaatsusseadeid. Saate valida, milliseid küpsiseid ja jälgimistehnoloogiaid lubate.',
+			features: {
+				description:
+					'Sellist töötlemist saab kasutada ainult ühe või mitme sellise eesmärgi saavutamiseks, millega nõustumiseks teile selles teatises valik antakse.',
+				title: 'Omadused',
+			},
 			footer: {
 				consentStorage:
 					'Nõusoleku eelistused salvestatakse küpsisesse nimega "euconsent-v2" 13 kuuks. Salvestusaeg võib teie eelistuste uuendamisel uuesti alata.',

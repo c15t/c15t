@@ -94,6 +94,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Personalizează setările de confidențialitate aici. Poți alege ce tipuri de cookie-uri și tehnologii de urmărire permiți.',
+			features: {
+				description:
+					'Aceste mijloace de prelucrare pot fi utilizate exclusiv pentru unul sau mai multe scopuri cu privire la care vi se oferă posibilitatea de a alege în această notificare.',
+				title: 'Funcționalități',
+			},
 			footer: {
 				consentStorage:
 					'Preferințele de consimțământ sunt stocate într-un cookie numit „euconsent-v2” timp de 13 luni. Durata de stocare poate fi reînnoită atunci când îți actualizezi preferințele.',

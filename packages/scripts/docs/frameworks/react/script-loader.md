@@ -61,3 +61,9 @@ already wrote. Add `clearOnRevocation` to `ConsentProvider.options` to remove
 declared data when its category is denied. See
 [clear on revocation](../../integrations/clear-on-revocation.md) for configuration
 and browser limits.
+
+## Shared lifecycle controls
+
+See [shared consent controls](../../guides/shared-consent-controls.md) for external CMPs,
+preference delegation, withdrawal reloads, and application events. These controls
+use the same core runtime across frameworks.

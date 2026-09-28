@@ -197,7 +197,7 @@ clientEntrypoint: fileURLToPath(new URL('./src/c15t.client.ts', import.meta.url)
 Export the scripts from that module:
 
 ```ts title="src/c15t.client.ts"
-import type { C15tClientOptionsExtension } from '@c15t/astro';
+import type { C15tClientOptionsExtension } from 'c15t/astro';
 import { scripts } from './consent-scripts';
 
 export default { scripts } satisfies C15tClientOptionsExtension;

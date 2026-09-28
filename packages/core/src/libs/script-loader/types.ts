@@ -300,7 +300,7 @@ export interface Script {
 	 *
 	 * Special features require explicit opt-in:
 	 * - 1: Use precise geolocation data
-	 * - 2: Actively scan device characteristics for identification
+	 * - 2: Identify devices based on information actively requested
 	 *
 	 * @example
 	 * ```ts

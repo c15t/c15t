@@ -91,6 +91,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.',
+			features: {
+				description:
+					'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+				title: 'Features',
+			},
 			footer: {
 				consentStorage:
 					'Consent preferences are stored in a cookie named "euconsent-v2" for 13 months. The storage duration may be refreshed when you update your preferences.',

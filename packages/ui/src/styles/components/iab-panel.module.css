@@ -789,6 +789,49 @@
 		color: var(--iab-cd-text-color-dark);
 	}
 
+	/* Features section: informational, no controls (TCF Policies v5.0.b) */
+	.featuresSection {
+		border-radius: var(--c15t-radius-md);
+		border: 1px solid var(--iab-cd-border-color);
+		background-color: var(--iab-cd-background-color);
+		margin-bottom: 0.5rem;
+	}
+
+	:global(.c15t-dark) .featuresSection {
+		border-color: var(--iab-cd-border-color-dark);
+		background-color: var(--iab-cd-background-color-dark);
+	}
+
+	.featuresHeader {
+		padding: 0.75rem;
+	}
+
+	.featuresTitle {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--iab-cd-text-color);
+		margin: 0;
+	}
+
+	:global(.c15t-dark) .featuresTitle {
+		color: var(--iab-cd-text-color-dark);
+	}
+
+	.featuresDescription {
+		font-size: 0.75rem;
+		line-height: 1.5;
+		color: var(--iab-cd-text-muted-color);
+		margin: 0.25rem 0 0;
+	}
+
+	:global(.c15t-dark) .featuresDescription {
+		color: var(--iab-cd-text-muted-color-dark);
+	}
+
+	.featuresList {
+		padding: 0 0.75rem 0.75rem;
+	}
+
 	.infoIcon {
 		width: 0.875rem;
 		height: 0.875rem;

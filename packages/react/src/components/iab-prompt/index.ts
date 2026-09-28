@@ -42,14 +42,14 @@ export interface IABConsentBannerCompoundComponent extends FC<IABConsentBannerPr
 }
 
 /**
- * IAB TCF 2.3 compliant cookie consent banner component.
+ * IAB TCF 2.4 compliant cookie consent banner component.
  *
  * @remarks
  * This component serves as the main entry point for rendering an IAB-compliant consent banner.
  * It provides a structured layout with required IAB TCF elements.
  *
  * Key features:
- * - IAB TCF 2.3 compliant
+ * - IAB TCF 2.4 compliant
  * - Fully accessible by default
  * - Customizable appearance
  * - Compound component pattern support

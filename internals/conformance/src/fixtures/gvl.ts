@@ -19,7 +19,9 @@ export const MINIMAL_GVL = {
 		1: {
 			description: '',
 			id: 1,
-			illustrations: [],
+			illustrations: [
+				'A retailer combines the data it collected with data from a partner to reach you with an offer.',
+			],
 			name: 'Match and combine data',
 		},
 	},
@@ -58,6 +60,10 @@ export const MINIMAL_GVL = {
 			purposes: [2],
 			specialFeatures: [],
 		},
+	},
+	standardTexts: {
+		features:
+			'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
 	},
 	tcfPolicyVersion: 5,
 	vendorListVersion: 142,

@@ -14,6 +14,7 @@
 
 import { TEST_IDS } from '../contract/test-ids';
 import type { TestDriver } from '../driver';
+import { MINIMAL_GVL } from '../fixtures/gvl';
 import { POLICY_SCENARIOS } from '../fixtures/policy-scenarios';
 import {
 	conformanceTest,
@@ -59,6 +60,47 @@ const testIdsWithin = function testIdsWithin(
 					id
 				)
 		);
+};
+
+/** English `iab.preferenceCenter.features.description`. */
+const FEATURES_FALLBACK_TEXT =
+	'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.';
+
+/** Anything a visitor could toggle. */
+const CONTROL_SELECTOR = '[role="switch"], [role="checkbox"], input, select';
+
+const featuresSection = (): HTMLElement | undefined =>
+	queryAllIncludingShadowRoots(
+		document.body,
+		`[data-testid="${TEST_IDS.iabConsentDialog.features}"]`
+	)[0];
+
+/**
+ * Open every collapsed disclosure inside `root`, repeating so nested ones
+ * (a feature, then its examples) open too. Frameworks mount collapsed
+ * content on first open, so text inside is only reachable afterwards.
+ */
+const expandAll = async function expandAll(
+	root: HTMLElement,
+	rounds = 3
+): Promise<void> {
+	if (rounds === 0) {
+		return;
+	}
+	const closed = [
+		...root.querySelectorAll<HTMLElement>('button[aria-expanded="false"]'),
+		...[...root.querySelectorAll<HTMLDetailsElement>('details')]
+			.filter((details) => !details.open)
+			.map((details) => details.querySelector<HTMLElement>('summary'))
+			.filter((summary): summary is HTMLElement => summary !== null),
+	];
+	for (const trigger of closed) {
+		trigger.click();
+	}
+	await new Promise((resolve) => {
+		setTimeout(resolve, 20);
+	});
+	await expandAll(root, rounds - 1);
 };
 
 const accessibleName = function accessibleName(el: HTMLElement): string {
@@ -243,6 +285,71 @@ export const runIabUiConformance = function runIabUiConformance(
 						...testIdsWithin(document.body, 'stack-item-'),
 					];
 					api.expect(new Set(rows).size).toBe(rows.length);
+				} finally {
+					await mounted.unmount();
+				}
+			}
+		);
+
+		conformanceTest(
+			api,
+			'IAB dialog shows features in their own section with the standard text and no controls',
+			async () => {
+				const mounted = await driver.mount({
+					component: 'iab-consent-dialog',
+				});
+				try {
+					await waitForCondition(() => featuresSection() !== undefined);
+					const section = featuresSection();
+					api.expect(section).toBeDefined();
+					if (!section) {
+						return;
+					}
+					// TCF Policies v5.0.b: the standard text sits with the
+					// Features, which are informational and never next to a
+					// control that cannot be disabled.
+					api.expect(section.getAttribute('aria-label')).toBe('Features');
+					api
+						.expect(section.textContent)
+						.toContain(MINIMAL_GVL.standardTexts.features);
+					api
+						.expect(testIdsWithin(section, 'feature-item-'))
+						.toEqual(['feature-item-1']);
+					await expandAll(section);
+					await waitForCondition(() =>
+						Boolean(
+							section.textContent?.includes(
+								MINIMAL_GVL.features[1].illustrations[0]
+							)
+						)
+					);
+					api
+						.expect(section.textContent)
+						.toContain(MINIMAL_GVL.features[1].illustrations[0]);
+					api
+						.expect(section.textContent)
+						.toContain(MINIMAL_GVL.vendors[755].name);
+					api.expect(section.querySelectorAll(CONTROL_SELECTOR).length).toBe(0);
+				} finally {
+					await mounted.unmount();
+				}
+			}
+		);
+
+		conformanceTest(
+			api,
+			'IAB dialog falls back to the translated features text without a standard text',
+			async () => {
+				const { standardTexts: _omitted, ...gvl } = MINIMAL_GVL;
+				const mounted = await driver.mount({
+					component: 'iab-consent-dialog',
+					gvl,
+				});
+				try {
+					await waitForCondition(() => featuresSection() !== undefined);
+					api
+						.expect(featuresSection()?.textContent)
+						.toContain(FEATURES_FALLBACK_TEXT);
 				} finally {
 					await mounted.unmount();
 				}

@@ -175,7 +175,7 @@ Add this component to pages using your consent-enabled base layout:
 <c15t-consent-embed style="display: block"></c15t-consent-embed>
 
 <script>
-  import { getConsentClient } from '@c15t/astro/client';
+  import { getConsentClient } from 'c15t/astro/client';
   import { mountConsentEmbed } from '../consent-embed';
 
   class ConsentEmbed extends HTMLElement {

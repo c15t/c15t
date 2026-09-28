@@ -91,6 +91,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Mukauta yksityisyysasetuksiasi täällä. Voit valita, minkä tyyppiset evästeet ja seurantatekniikat sallit.',
+			features: {
+				description:
+					'Näitä käsittelytapoja voidaan käyttää ainoastaan yhteen tai useampaan tarkoitukseen, joihin sinulle on tässä ilmoituksessa annettu mahdollisuus.',
+				title: 'Ominaisuudet',
+			},
 			footer: {
 				consentStorage:
 					'Suostumusasetukset tallennetaan evästeeseen nimeltä "euconsent-v2" 13 kuukaudeksi. Säilytysaika voi alkaa alusta, kun päivität asetuksiasi.',

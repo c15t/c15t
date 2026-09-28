@@ -96,7 +96,7 @@ const MODEL_OPTIONS: { value: PolicyRuleModel; label: string; hint: string }[] =
 			value: 'opt-out',
 		},
 		{
-			hint: 'IAB TCF 2.3. The playground mounts the IAB addon and fetches the Global Vendor List for this model.',
+			hint: 'IAB TCF 2.4. The playground mounts the IAB addon and fetches the Global Vendor List for this model.',
 			label: 'iab',
 			value: 'iab',
 		},

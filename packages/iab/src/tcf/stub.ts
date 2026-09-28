@@ -33,7 +33,7 @@ const createStubPingData = function createStubPingData(): PingData {
 		displayStatus: 'hidden',
 		gdprApplies: undefined,
 		gvlVersion: 0,
-		// TCF 2.3
+		// TCF 2.4 still uses policy version 5
 		tcfPolicyVersion: 5,
 	};
 };

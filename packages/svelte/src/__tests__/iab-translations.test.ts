@@ -107,6 +107,9 @@ describe('getIABTranslations', () => {
 			expect(preferenceCenter.specialPurposes.title).toBeTypeOf('string');
 			expect(preferenceCenter.specialPurposes.tooltip).toBeTypeOf('string');
 
+			expect(preferenceCenter.features.title).toBeTypeOf('string');
+			expect(preferenceCenter.features.description).toBeTypeOf('string');
+
 			expect(preferenceCenter.vendorList.search).toBeTypeOf('string');
 			expect(preferenceCenter.vendorList.showingCount).toBeTypeOf('string');
 			expect(preferenceCenter.vendorList.privacyPolicy).toBeTypeOf('string');

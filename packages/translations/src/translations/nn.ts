@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Tilpass personverninnstillingane dine her. Du kan velje kva typar informasjonskapslar og sporingsteknologiar du tillèt.',
+			features: {
+				description:
+					'Disse behandlingsmåtene kan kun brukes for ett eller flere formål som du kan velge mellom i denne erklæringen.',
+				title: 'Funksjonar',
+			},
 			footer: {
 				consentStorage:
 					'Samtykkepreferansar blir lagra i ein informasjonskapsel kalla "euconsent-v2" i 13 månader. Lagringstida kan fornyast når du oppdaterer preferansane dine.',

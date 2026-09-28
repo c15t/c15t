@@ -17,6 +17,53 @@ import {
 } from './publisher-restrictions';
 
 /**
+ * The vendor IDs a disclosed-vendors record encodes.
+ *
+ * Shared by the encoder and the CMP API, so `vendor.disclosedVendors` in
+ * TC data lists exactly the vendors in the TC string's disclosed vendors
+ * segment.
+ *
+ * @param vendorsDisclosed - Disclosed state keyed by vendor ID.
+ * @returns Positive integer vendor IDs marked `true`.
+ * @internal
+ */
+export const getDisclosedVendorIds = function getDisclosedVendorIds(
+	vendorsDisclosed: Record<string | number, boolean>
+): number[] {
+	return Object.entries(vendorsDisclosed)
+		.filter(
+			([vendorId, value]) =>
+				value && /^\d+$/u.test(vendorId) && Number(vendorId) > 0
+		)
+		.map(([vendorId]) => Number(vendorId));
+};
+
+let warnedServiceSpecific = false;
+
+/**
+ * Resolve the deprecated `isServiceSpecific` option.
+ *
+ * TCF requires IsServiceSpecific=1: a string with 0 is invalid, and
+ * group-specific scope is also encoded as 1. c15t therefore always encodes
+ * `true` and warns once when a caller still passes `false`.
+ *
+ * @param value - The configured option.
+ * @returns Always `true`.
+ * @internal
+ */
+export const resolveIsServiceSpecific = function resolveIsServiceSpecific(
+	value: boolean | undefined
+): true {
+	if (value === false && !warnedServiceSpecific) {
+		warnedServiceSpecific = true;
+		console.warn(
+			'[c15t] `isServiceSpecific: false` is deprecated and ignored. TCF requires IsServiceSpecific=1, so c15t always encodes TC strings as service-specific.'
+		);
+	}
+	return true;
+};
+
+/**
  * Configuration for TC String generation.
  *
  * @public
@@ -39,7 +86,12 @@ export interface TCStringConfig {
 	/** Publisher country code (2-letter code) */
 	publisherCountryCode?: string;
 
-	/** Whether consent is service-specific (not global) */
+	/**
+	 * Ignored: c15t always encodes IsServiceSpecific=1.
+	 *
+	 * @deprecated TCF requires IsServiceSpecific=1, and group-specific scope
+	 * is also encoded as 1. Passing `false` logs a warning once.
+	 */
 	isServiceSpecific?: boolean;
 }
 
@@ -90,10 +142,10 @@ export const generateTCString = async function generateTCString(
 			'TC confirmation time must be a valid past or current timestamp.'
 		);
 	}
-	const isServiceSpecific = config.isServiceSpecific ?? true;
+	const isServiceSpecific = resolveIsServiceSpecific(config.isServiceSpecific);
 	const publisherRestrictions = validatePublisherRestrictions(
 		consentData.publisherRestrictions,
-		{ gvl: gvlData, isServiceSpecific }
+		{ gvl: gvlData }
 	);
 	const { TCModel, TCString, GVL, PurposeRestriction } = await getTCFCore();
 
@@ -165,14 +217,10 @@ export const generateTCString = async function generateTCString(
 		}
 	}
 
-	// Set vendors disclosed (TCF 2.3 requirement)
+	// Set vendors disclosed (required since TCF 2.3)
 	// This indicates which vendors were shown to the user in the CMP UI
-	for (const [vendorId, value] of Object.entries(
-		consentData.vendorsDisclosed
-	)) {
-		if (value && /^\d+$/u.test(vendorId) && Number(vendorId) > 0) {
-			tcModel.vendorsDisclosed.set(Number(vendorId));
-		}
+	for (const vendorId of getDisclosedVendorIds(consentData.vendorsDisclosed)) {
+		tcModel.vendorsDisclosed.set(vendorId);
 	}
 
 	// The encoder drops restrictions its vendor list does not allow. Those
@@ -210,14 +258,23 @@ const readPublisherRestrictions = function readPublisherRestrictions(
 	isServiceSpecific: boolean,
 	policyVersion: number
 ): PublisherRestriction[] {
+	const restrictions = vector.getRestrictions();
+	// The spec allows publisher restrictions only in service-specific
+	// strings. c15t never writes another scope, but a stored string may
+	// come from elsewhere.
+	if (restrictions.length > 0 && !isServiceSpecific) {
+		throw new PublisherRestrictionError(
+			'Publisher restrictions are only allowed in service-specific TC strings.'
+		);
+	}
 	return validatePublisherRestrictions(
-		vector.getRestrictions().map((restriction) => ({
+		restrictions.map((restriction) => ({
 			purposeId: restriction.purposeId,
 			restrictionType: restriction.restrictionType,
 			vendorIds: vector.getVendors(restriction),
 		})),
 		// Judge the string by the policy it was written under.
-		{ isServiceSpecific, policyVersion }
+		{ policyVersion }
 	);
 };
 
@@ -254,7 +311,7 @@ export interface DecodedTCString {
 	/** Special feature opt-ins */
 	specialFeatureOptIns: Record<number, boolean>;
 
-	/** Vendors that were disclosed to the user in the CMP UI (TCF 2.3) */
+	/** Vendors that were disclosed to the user in the CMP UI (TCF 2.3+) */
 	vendorsDisclosed: Record<number, boolean>;
 
 	/** Created date */
