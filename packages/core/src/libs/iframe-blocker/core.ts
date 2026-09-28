@@ -96,6 +96,62 @@ function processIframeElement(
 }
 
 /**
+ * Process a single iframe without letting it stop the caller's loop.
+ *
+ * An iframe with an invalid category is left unchanged and reported with a
+ * warning, so the remaining iframes are still blocked or loaded.
+ *
+ * @param iframe - The iframe element to process
+ * @param consents - Current consent state
+ */
+function processIframeSafely(
+	iframe: HTMLIFrameElement,
+	consents: ConsentState
+): void {
+	try {
+		processIframeElement(iframe, consents);
+	} catch (error) {
+		console.warn('[c15t] Skipped iframe:', error);
+	}
+}
+
+/**
+ * Collect the iframes in a node added to the DOM: the node itself if it is
+ * an iframe, plus any iframes inside it.
+ *
+ * Some browsers throw when page script reads a node it has no access to,
+ * such as one inserted by an extension (Firefox raises "Permission denied to
+ * access property"). Such a node is skipped rather than aborting the whole
+ * mutation batch.
+ *
+ * @param node - A node from `MutationRecord.addedNodes`
+ * @returns The iframes found, or the ones found before the node became unreadable
+ */
+function getAddedIframes(node: Node): HTMLIFrameElement[] {
+	const iframes: HTMLIFrameElement[] = [];
+
+	try {
+		if (node.nodeType !== Node.ELEMENT_NODE) {
+			return iframes;
+		}
+
+		const element = node as Element;
+
+		if (element.tagName && element.tagName.toUpperCase() === 'IFRAME') {
+			iframes.push(element as HTMLIFrameElement);
+		}
+
+		element.querySelectorAll?.('iframe').forEach((iframe) => {
+			iframes.push(iframe);
+		});
+	} catch {
+		// The node can't be read by page script, so it can't be managed either.
+	}
+
+	return iframes;
+}
+
+/**
  * Creates an iframe blocker instance that handles blocking of iframes based on consent
  *
  * @param config - Configuration options for the iframe blocker
@@ -133,7 +189,7 @@ export function createIframeBlocker(
 		const iframes = document.querySelectorAll('iframe');
 
 		iframes.forEach((iframe) => {
-			processIframeElement(iframe, consents);
+			processIframeSafely(iframe, consents);
 		});
 	}
 
@@ -144,21 +200,8 @@ export function createIframeBlocker(
 		const observer = new MutationObserver((mutations) => {
 			mutations.forEach((mutation) => {
 				mutation.addedNodes.forEach((node) => {
-					if (node.nodeType === Node.ELEMENT_NODE) {
-						const element = node as Element;
-
-						// Check if the added node is an iframe
-						if (element.tagName && element.tagName.toUpperCase() === 'IFRAME') {
-							processIframeElement(element as HTMLIFrameElement, consents);
-						}
-
-						// Check if the added node contains iframes
-						const iframes = element.querySelectorAll?.('iframe');
-						if (iframes) {
-							iframes.forEach((iframe) => {
-								processIframeElement(iframe, consents);
-							});
-						}
+					for (const iframe of getAddedIframes(node)) {
+						processIframeSafely(iframe, consents);
 					}
 				});
 			});
@@ -275,7 +318,7 @@ export function processAllIframes(consents: ConsentState): void {
 	}
 
 	iframes.forEach((iframe) => {
-		processIframeElement(iframe, consents);
+		processIframeSafely(iframe, consents);
 	});
 }
 
@@ -309,28 +352,11 @@ export function setupIframeObserver(
 
 		mutations.forEach((mutation) => {
 			mutation.addedNodes.forEach((node) => {
-				if (node.nodeType === Node.ELEMENT_NODE) {
-					const element = node as Element;
-
-					// Check if the added node is an iframe
-					if (element.tagName && element.tagName.toUpperCase() === 'IFRAME') {
-						processIframeElement(element as HTMLIFrameElement, currentConsents);
-						// Check if iframe has a data-category attribute
-						if (element.hasAttribute('data-category')) {
-							hasNewCategories = true;
-						}
-					}
-
-					// Check if the added node contains iframes
-					const iframes = element.querySelectorAll?.('iframe');
-					if (iframes && iframes.length > 0) {
-						iframes.forEach((iframe) => {
-							processIframeElement(iframe, currentConsents);
-							// Check if iframe has a data-category attribute
-							if (iframe.hasAttribute('data-category')) {
-								hasNewCategories = true;
-							}
-						});
+				for (const iframe of getAddedIframes(node)) {
+					processIframeSafely(iframe, currentConsents);
+					// Check if iframe has a data-category attribute
+					if (iframe.hasAttribute('data-category')) {
+						hasNewCategories = true;
 					}
 				}
 			});

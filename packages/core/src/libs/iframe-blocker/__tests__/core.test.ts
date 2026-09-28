@@ -120,7 +120,10 @@ describe('createIframeBlocker', () => {
 			);
 		});
 
-		it('should throw error for invalid category attribute', () => {
+		it('should warn instead of throwing for invalid category attribute', () => {
+			const warnSpy = vi
+				.spyOn(console, 'warn')
+				.mockImplementation(() => undefined);
 			const blocker = createIframeBlocker();
 
 			// Create iframe with invalid category
@@ -130,7 +133,16 @@ describe('createIframeBlocker', () => {
 
 			expect(() => {
 				blocker.processIframes();
-			}).toThrow('Invalid category attribute "invalid-category"');
+			}).not.toThrow();
+			expect(warnSpy).toHaveBeenCalledWith(
+				'[c15t] Skipped iframe:',
+				expect.objectContaining({
+					message: expect.stringContaining(
+						'Invalid category attribute "invalid-category"'
+					),
+				})
+			);
+			warnSpy.mockRestore();
 		});
 	});
 
