@@ -12,6 +12,7 @@ import {
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { evaluateConsentRecord } from '../../consent-record/evaluate';
 import type { ConsentSnapshot } from '../../types';
+import { createDispatcher } from '../dispatch';
 import { buildNextSnapshot, snapshotChanged } from '../patch';
 import type { SnapshotPatch } from '../patch';
 import { createRuntime } from '../runtime';
@@ -23,6 +24,7 @@ const checkCommit = (initial: ConsentSnapshot, patch: SnapshotPatch) => {
 	const emit = vi.fn();
 	const listener = vi.fn();
 	const runtime = createRuntime({
+		dispatcher: createDispatcher(),
 		emit,
 		initialDraft: null,
 		initialSnapshot: initial,
@@ -188,6 +190,7 @@ test('notice expiry and clearing records keep their full derivation', () => {
 test('reusing a mutable patch still observes changed privacy and record inputs', () => {
 	const initial = buildInitialSnapshot({ now: NOW });
 	const runtime = createRuntime({
+		dispatcher: createDispatcher(),
 		emit: vi.fn(),
 		initialDraft: null,
 		initialSnapshot: initial,

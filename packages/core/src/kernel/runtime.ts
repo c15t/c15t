@@ -4,7 +4,8 @@
  *
  * - `commit()` merges a patch, re-derives dependent fields and adopts the
  *   result only when something changed, emitting `permissions:changed`
- *   when the effective permissions differ.
+ *   when the effective permissions differ. Subscribers receive the snapshot
+ *   that commit produced, through the dispatcher shared with the event bus.
  * - `hydrate()` is the validated read-only boundary for stored records.
  * - `refresh()` re-evaluates at a supplied time so an elapsed expiry cannot
  *   hide behind a delayed or background timer.
@@ -21,6 +22,8 @@ import type {
 	KernelTransport,
 	Listener,
 } from '../types';
+import { createListenerSet } from './dispatch';
+import type { Dispatcher, ListenerSet } from './dispatch';
 import { buildNextSnapshot, isUnchangedPatch, snapshotChanged } from './patch';
 import type { SnapshotPatch } from './patch';
 import { mergeNewestChoice, validateHydrationRecords } from './records';
@@ -50,6 +53,12 @@ export interface KernelRuntime {
 	emit: (event: KernelEvent) => void;
 	/** Merge a patch and adopt the result when it changes anything. */
 	commit: (patch: SnapshotPatch) => boolean;
+	/**
+	 * Deliver the notifications and events queued by `run` only after it
+	 * returns, so a command's follow-up events precede any transition a
+	 * listener starts and `getSnapshot()` inside `run` is its own commit.
+	 */
+	batch: Dispatcher['batch'];
 	getDraft: () => PresentedSelection | null;
 	setDraft: (draft: PresentedSelection | null) => void;
 	/** Staged per-vendor grants, dropped when the choice contract changes. */
@@ -81,6 +90,8 @@ export interface RuntimeOptions {
 	initialSnapshot: ConsentSnapshot;
 	initialDraft: PresentedSelection | null;
 	emit: (event: KernelEvent) => void;
+	/** Shared with the event bus so snapshots and events keep one order. */
+	dispatcher: Dispatcher;
 	transport: KernelTransport | undefined;
 }
 
@@ -114,7 +125,7 @@ interface BoundDraft<Values> {
 export const createRuntime = function createRuntime(
 	options: RuntimeOptions
 ): KernelRuntime {
-	const { emit, transport } = options;
+	const { dispatcher, emit, transport } = options;
 	let snapshot = options.initialSnapshot;
 	let draft: BoundDraft<PresentedSelection> | null = options.initialDraft
 		? {
@@ -130,19 +141,10 @@ export const createRuntime = function createRuntime(
 	let pendingDirectives: Map<string, object> | undefined;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let visibilityInstalled = false;
-	let listeners: Set<Listener<ConsentSnapshot>> | undefined;
+	let listeners: ListenerSet<ConsentSnapshot> | undefined;
 
 	const getSnapshot = () => snapshot;
 	const now = () => Date.now();
-
-	const notify = function notify(): void {
-		if (!listeners) {
-			return;
-		}
-		for (const listener of listeners) {
-			listener(snapshot);
-		}
-	};
 
 	const commit = function commit(patch: SnapshotPatch): boolean {
 		const current = snapshot;
@@ -153,15 +155,23 @@ export const createRuntime = function createRuntime(
 		if (!snapshotChanged(current, next)) {
 			return false;
 		}
-		snapshot = freezeSnapshot(next);
-		notify();
-		if (snapshot.effectivePermissions !== current.effectivePermissions) {
-			emit({
-				previous: current.effectivePermissions,
-				snapshot,
-				type: 'permissions:changed',
-			});
-		}
+		const committed = freezeSnapshot(next);
+		snapshot = committed;
+		// Deliver the snapshot this commit produced, never the live cell: a
+		// listener may commit again, and later listeners must still observe
+		// this transition first.
+		dispatcher.batch(() => {
+			if (listeners) {
+				dispatcher.deliver(listeners, committed);
+			}
+			if (committed.effectivePermissions !== current.effectivePermissions) {
+				emit({
+					previous: current.effectivePermissions,
+					snapshot: committed,
+					type: 'permissions:changed',
+				});
+			}
+		});
 		return true;
 	};
 
@@ -304,11 +314,13 @@ export const createRuntime = function createRuntime(
 			recordedAt: at,
 			source: 'gpc',
 		};
-		commit({
-			now: at,
-			optOutDirectives: [...current.optOutDirectives, directive],
+		dispatcher.batch(() => {
+			commit({
+				now: at,
+				optOutDirectives: [...current.optOutDirectives, directive],
+			});
+			emit({ directive, snapshot, type: 'privacy:opt-out' });
 		});
-		emit({ directive, snapshot, type: 'privacy:opt-out' });
 		flushPrivacy();
 	};
 
@@ -391,6 +403,7 @@ export const createRuntime = function createRuntime(
 
 	return {
 		armDeadlineTimer,
+		batch: dispatcher.batch,
 		commit,
 		emit,
 		flushPrivacy,
@@ -439,11 +452,8 @@ export const createRuntime = function createRuntime(
 		start,
 		stopTimers,
 		subscribe(listener) {
-			listeners ??= new Set();
-			listeners.add(listener);
-			return () => {
-				listeners?.delete(listener);
-			};
+			listeners ??= createListenerSet();
+			return listeners.add(listener);
 		},
 	};
 };
