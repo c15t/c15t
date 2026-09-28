@@ -73,12 +73,20 @@ Pod::Spec.new do |s|
   # The bridging headers (`react/bridging/*.h`) that the generated JSI glue includes moved
   # in React Native 0.87: they were the `ReactCommon/turbomodule/bridging` subspec through
   # 0.86 and are the standalone `React-bridging` pod from 0.87. This package supports
-  # 0.81 and up, so name whichever one the installed React Native ships, read from its
-  # package.json the same way `install_modules_dependencies` in
-  # `react-native/scripts/cocoapods/new_architecture.rb` decides.
-  react_native_manifest = `node --print "require.resolve('react-native/package.json')"`.strip
+  # 0.81 and up, so name whichever one the host app's React Native ships.
+  #
+  # The host's copy, not this package's: CocoaPods evaluates a podspec from the podspec's
+  # own directory, where `require.resolve` finds the development dependency (0.87) rather
+  # than the app's (an Expo 57 app is on 0.86). `use_react_native!` exports the app's
+  # path as `REACT_NATIVE_PATH`, relative to the Podfile, which is what Expo's own
+  # podspecs read first, with the same `node` fallback for a Podfile that does not set it.
+  react_native_dir = if ENV["REACT_NATIVE_PATH"].nil?
+    File.dirname(`node --print "require.resolve('react-native/package.json')"`.strip)
+  else
+    File.expand_path(ENV["REACT_NATIVE_PATH"], Pod::Config.instance.project_root)
+  end
   react_native_version = begin
-    JSON.parse(File.read(react_native_manifest))["version"]
+    JSON.parse(File.read(File.join(react_native_dir, "package.json")))["version"]
   rescue StandardError
     nil
   end
