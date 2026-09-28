@@ -11,6 +11,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { createAuthorityReceipt, validateAuthority } from '../authority';
 import { createIAB } from '../index';
+import type { IABHandle } from '../index';
 import { decodeTCString, generateTCString } from '../tcf/tc-string';
 import { completeGVL } from './fixtures/gvl-sample';
 
@@ -896,3 +897,76 @@ test('a newer choice from a sibling subdomain withdraws the TC string it cannot 
 	await vi.advanceTimersByTimeAsync(1);
 	expect(fresh.getSnapshot().iab?.authority ?? null).toBeNull();
 });
+
+const customVendors = [
+	{
+		id: 9001,
+		name: 'Numeric custom',
+		privacyPolicyUrl: 'https://example.test/privacy',
+		purposes: [1],
+	},
+];
+
+test.each([
+	['reconfirms the same selections', (_addon: IABHandle) => undefined],
+	[
+		'changes only a custom vendor',
+		(addon: IABHandle) => {
+			addon.setVendorConsent(9001, false);
+		},
+	],
+])(
+	'adopts a newer receipt with the same TC string when another runtime %s',
+	async (_case, change) => {
+		const kernel = makeKernel();
+		const storage = createPersistence({ kernel, sync: false });
+		disposers.push(storage.dispose);
+		const addon = createIAB({
+			cmpId: 28,
+			customVendors,
+			gvl: completeGVL,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		addon.acceptAll();
+		await addon.save();
+		storage.reconcile();
+		const held = kernel.getSnapshot().iab?.authority;
+		expect(held).toBeTruthy();
+
+		// Later the same UTC day, another runtime saves again.
+		vi.setSystemTime(NOW + 60_000);
+		const other = makeKernel();
+		const otherStorage = createPersistence({ kernel: other, sync: false });
+		disposers.push(otherStorage.dispose);
+		const otherAddon = createIAB({
+			cmpId: 28,
+			customVendors,
+			gvl: completeGVL,
+			kernel: other,
+		});
+		disposers.push(otherAddon.dispose);
+		await vi.waitFor(() =>
+			expect(other.getSnapshot().iab?.authority).not.toBeNull()
+		);
+		otherAddon.acceptAll();
+		change(otherAddon);
+		await otherAddon.save();
+		otherStorage.reconcile();
+		const newer = other.getSnapshot().iab?.authority;
+		expect(newer?.tcString).toBe(held?.tcString);
+		expect(newer?.confirmedAt).toBeGreaterThan(held?.confirmedAt ?? 0);
+
+		storage.reconcile();
+		await vi.advanceTimersByTimeAsync(1);
+		await vi.waitFor(() =>
+			expect(kernel.getSnapshot().iab?.authority?.confirmedAt).toBe(
+				newer?.confirmedAt
+			)
+		);
+		const adopted = kernel.getSnapshot().iab?.authority;
+		expect(adopted?.tcString).toBe(held?.tcString);
+		expect(adopted?.expiresAt).toBe(newer?.expiresAt);
+		expect(adopted?.vendorConsents['9001']).toBe(newer?.vendorConsents['9001']);
+	}
+);

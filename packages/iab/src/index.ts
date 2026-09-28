@@ -393,8 +393,12 @@ const fitsChoice = function fitsChoice(
 
 /**
  * Whether a stored receipt should replace the held authority: it fits the
- * choice (see {@link fitsChoice}), differs, and is at least as new or
- * replaces a held authority that no longer fits.
+ * choice (see {@link fitsChoice}) and is newer, or replaces a held
+ * authority that no longer fits. The TC string alone is no identity: its
+ * timestamps round to the UTC day and custom-vendor selections live only
+ * in the receipt, so a later save can produce the same string. A newer
+ * receipt with the same string is still installed, carrying its own
+ * confirmation and expiry times and custom-vendor selections.
  */
 const shouldInstallReceipt = function shouldInstallReceipt(
 	receipt: KernelIABAuthority | null,
@@ -402,14 +406,16 @@ const shouldInstallReceipt = function shouldInstallReceipt(
 	heldUnfit: boolean,
 	choice: ExplicitChoice
 ): receipt is KernelIABAuthority {
-	if (
-		!receipt ||
-		!fitsChoice(receipt, choice) ||
-		receipt.tcString === held?.tcString
-	) {
+	if (!receipt || !fitsChoice(receipt, choice)) {
 		return false;
 	}
-	return held === null || heldUnfit || held.confirmedAt <= receipt.confirmedAt;
+	if (held === null) {
+		return true;
+	}
+	if (receipt.tcString === held.tcString) {
+		return receipt.confirmedAt > held.confirmedAt;
+	}
+	return heldUnfit || held.confirmedAt <= receipt.confirmedAt;
 };
 
 const changedSelections = (
