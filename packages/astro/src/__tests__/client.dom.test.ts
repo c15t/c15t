@@ -639,6 +639,30 @@ it('forwards cleanup targets to its shared runtime', async () => {
 	expect(localStorage.getItem('analytics:visitor')).toBeNull();
 });
 
+it('opens the external CMP and never records its decisions as c15t choices', async () => {
+	const openPreferences = vi.fn();
+	const onPermissionsChanged = vi.fn();
+	const trigger = document.createElement('button');
+	trigger.dataset.c15tSurface = 'trigger';
+	document.body.append(trigger);
+	client = boot(resolveOptions(OPTIONS), {
+		callbacks: { onPermissionsChanged },
+		consentSource: {
+			getPermissions: () => ({ measurement: true }),
+			openPreferences,
+			subscribe: () => () => {},
+		},
+	});
+	expect(trigger.hidden).toBe(false);
+	await client.openDialog();
+	expect(openPreferences).toHaveBeenCalledOnce();
+	expect(client.getConsent().explicitChoice).toBeNull();
+	expect(client.getConsent().activeUI).toBe('none');
+	expect(client.getConsent().effectivePermissions.measurement).toBe(true);
+	expect(onPermissionsChanged).toHaveBeenCalled();
+	await expect(client.acceptAll()).rejects.toThrow('external CMP');
+});
+
 describe('networkBlocker', () => {
 	afterEach(() => {
 		vi.restoreAllMocks();

@@ -1,11 +1,13 @@
 import type {
 	ConsentPresentation,
 	ClearOnRevocationConfig,
-	ConsentState,
-	KernelEvent,
 	HydrationRecords,
 	Vendor,
 } from '@c15t/core';
+import type {
+	ConsentControlOptions,
+	ConsentRuntimeOptions,
+} from '@c15t/core/runtime';
 import type { ConsentConfig as BaseConsentConfig } from '@c15t/schema/config';
 import type { InitOutput } from '@c15t/schema/types';
 import type { HTMLAttributes } from 'vue';
@@ -72,7 +74,10 @@ export interface ConsentManifestNuxtConfig {
 }
 
 export interface ConsentConfig
-	extends BaseConsentConfig<HTMLAttributes>, ConsentManifestNuxtConfig {
+	extends
+		BaseConsentConfig<HTMLAttributes>,
+		ConsentManifestNuxtConfig,
+		ConsentControlOptions {
 	/**
 	 * Vendors the preference center lists under their category, each with
 	 * its own switch, so a visitor can grant a category and still turn one
@@ -84,9 +89,10 @@ export interface ConsentConfig
 	clearOnRevocation?: ClearOnRevocationConfig;
 	/**
 	 * Reload the page after an accept, reject or save turns off a category or
-	 * vendor that was granted. Removing a script cannot stop code that already
-	 * ran, so the reload starts a document with only permitted code. Waits for
-	 * the save request. Set `false` to handle revocation yourself.
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
 	 * @default true
 	 */
 	reloadOnConsentRevoked?: boolean;
@@ -96,17 +102,8 @@ export interface ConsentConfig
 	initialRecords?: HydrationRecords;
 	/** Application-owned prompt and preference presentation. */
 	presentation?: ConsentPresentation;
+	/** Scripts whose loading follows the shared consent permissions. */
+	scripts?: ConsentRuntimeOptions['scripts'];
 	/** Receives kernel events only when the corresponding change occurs. */
-	callbacks?: {
-		onChoiceRecorded?: (
-			event: Omit<Extract<KernelEvent, { type: 'choice:recorded' }>, 'type'>
-		) => void;
-		onPermissionsChanged?: (
-			event: Omit<Extract<KernelEvent, { type: 'permissions:changed' }>, 'type'>
-		) => void;
-		/** Runs synchronously before a revocation reload. */
-		onBeforeConsentRevocationReload?: (event: {
-			preferences: ConsentState;
-		}) => void;
-	};
+	callbacks?: ConsentRuntimeOptions['callbacks'];
 }

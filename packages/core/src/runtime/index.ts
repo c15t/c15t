@@ -60,6 +60,7 @@ import type {
 	TranslationsResponse,
 } from '../types';
 import { wireRuntimeCallbacks } from './callbacks';
+import { connectConsentSource } from './controls';
 import { isIABConfigured } from './iab-options';
 import type {
 	ConsentRuntime,
@@ -70,7 +71,11 @@ import type {
 	RuntimePersistenceOptions,
 } from './types';
 
+export { connectConsentSource } from './controls';
+export type { ConsentControlOptions } from './controls';
+
 export type {
+	ExternalConsentSource,
 	ConsentRuntime,
 	ConsentRuntimeIABFactory,
 	ConsentRuntimeIABFactoryOptions,
@@ -290,6 +295,8 @@ export const createRuntimeKernel = function createRuntimeKernel(
 				extractConsentNamesFromCondition(vendor.category)
 			),
 		],
+		initialExternalPermissions:
+			enabled && options.consentSource ? {} : undefined,
 		initialIab:
 			prefetch.initialIab?.gvlReference &&
 			options.iab &&
@@ -306,15 +313,17 @@ export const createRuntimeKernel = function createRuntimeKernel(
 			...(prefetch.initialOverrides ?? {}),
 			...(options.overrides ?? {}),
 		},
-		initialPolicyPending:
-			prefetch.initialPolicyPending ??
-			(enabled && !prefetch.initialPolicyResolution),
+		initialPolicyPending: options.consentSource
+			? false
+			: (prefetch.initialPolicyPending ??
+				(enabled && !prefetch.initialPolicyResolution)),
 		initialPolicyResolution: enabled
 			? prefetch.initialPolicyResolution
 			: disabledPolicyResolution(),
 		// A disabled runtime grants everything, so stored records, including a
 		// vendor denial list, must not narrow what loads.
-		initialRecords: enabled ? prefetch.initialRecords : undefined,
+		initialRecords:
+			enabled && !options.consentSource ? prefetch.initialRecords : undefined,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
 		initialUser: normalizeKernelUser(options.user) ?? prefetch.initialUser,
 		initialVendors:
@@ -387,7 +396,9 @@ export const createConsentRuntime = function createConsentRuntime(
 	options: ConsentRuntimeOptions
 ): ConsentRuntime {
 	const enabled = options.enabled ?? true;
-	const persistenceOptions = normalizePersistenceOptions(options);
+	const persistenceOptions = options.consentSource
+		? false
+		: normalizePersistenceOptions(options);
 	const kernel = createRuntimeKernel(options);
 	// `start()` installs the blocker, often after the host rendered its
 	// children. Hold matching requests until then; the blocker takes over this
@@ -449,7 +460,7 @@ export const createConsentRuntime = function createConsentRuntime(
 	let persistenceHandle: PersistenceHandle | null = null;
 
 	const runInit = async function runInit(): Promise<void> {
-		if (disposed) {
+		if (disposed || options.consentSource) {
 			return;
 		}
 		await kernel.commands.init();
@@ -490,7 +501,7 @@ export const createConsentRuntime = function createConsentRuntime(
 
 	const startIAB = function startIAB() {
 		const { createIAB } = options;
-		if (!(enabled && createIAB && options.iab)) {
+		if (!(enabled && createIAB && options.iab) || options.consentSource) {
 			return;
 		}
 		let mounted = false;
@@ -598,6 +609,7 @@ export const createConsentRuntime = function createConsentRuntime(
 		stageVendorConsent(vendorId, granted) {
 			kernel.set.vendorDraft({ [vendorId]: granted });
 		},
+		// oxlint-disable-next-line complexity -- Starts the runtime modules in dependency order.
 		start() {
 			if (started || disposed || typeof document === 'undefined') {
 				return;
@@ -613,12 +625,23 @@ export const createConsentRuntime = function createConsentRuntime(
 			}
 
 			startPersistence();
+			if (enabled && options.consentSource) {
+				disposers.push(connectConsentSource(kernel, options.consentSource));
+				kernel.events.emit({
+					snapshot: kernel.getSnapshot(),
+					type: 'init:applied',
+				});
+			}
 
 			// A server-resolved prefetch already holds the init answer; asking
 			// for it again is one request per page load on every SSR route.
-			if (enabled && !hasResolvedPrefetch(options.prefetch)) {
+			if (
+				enabled &&
+				!options.consentSource &&
+				!hasResolvedPrefetch(options.prefetch)
+			) {
 				void runInit();
-			} else if (enabled) {
+			} else if (enabled && !options.consentSource) {
 				kernel.hydrate({ now: kernel.getServerSnapshot().evaluatedAt });
 				const { gpc } = kernel.getSnapshot().privacySignals;
 				if (gpc.detected && gpc.active) {

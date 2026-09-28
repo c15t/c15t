@@ -27,6 +27,7 @@ import type { User } from '../options/user';
 import type { ProviderTransportFactory } from '../transports/mode';
 import type {
 	ConsentKernel,
+	ConsentState,
 	GlobalVendorList,
 	KernelConfig,
 	KernelOverrides,
@@ -153,13 +154,23 @@ export type ConsentRuntimeIABFactory = (
 	options: ConsentRuntimeIABFactoryOptions
 ) => ConsentRuntimeIABHandle;
 
+/** External CMP decision source. The provider owns UI, persistence, expiry and GPC. */
+export interface ExternalConsentSource {
+	/** Read the current decision. Null means not ready, so optional categories are denied. */
+	getPermissions: () => Partial<ConsentState> | null;
+	/** Notify on initialization, changes, revocation and expiry. Returns cleanup. */
+	subscribe: (listener: () => void) => Unsubscribe;
+	/** Open the external provider's preference UI. */
+	openPreferences: () => void | Promise<void>;
+}
+
 /**
- * Everything the framework-agnostic consent runtime needs.
- *
- * Framework packages extend this with their UI-only options (theme, color
- * scheme, animation, legal links) and forward the rest untouched.
+ * Framework-independent lifecycle options. Adapters add presentation options.
+ * External sources are initial-only; recreate the runtime to change authority.
  */
 export interface ConsentRuntimeOptions {
+	/** External authority. Disables c15t persistence, initialization, IAB and choice UI. */
+	consentSource?: ExternalConsentSource;
 	/**
 	 * Set `false` to grant every category, suppress all UI and skip
 	 * initialization. Consent-gated scripts load immediately, as they would
@@ -186,9 +197,10 @@ export interface ConsentRuntimeOptions {
 	clearOnRevocation?: ClearOnRevocationConfig;
 	/**
 	 * Reload the page after an accept, reject or save turns off a category or
-	 * vendor that was granted. Removing a script cannot stop code that already
-	 * ran, so the reload starts a document with only permitted code. Waits for
-	 * the save request. Set `false` to handle revocation yourself.
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
 	 * @default true
 	 */
 	reloadOnConsentRevoked?: boolean;

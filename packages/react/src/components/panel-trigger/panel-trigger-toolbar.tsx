@@ -9,7 +9,7 @@
 
 import type { ReactNode } from 'react';
 
-import { useHasConsentUI, usePromptRequirement } from '~/hooks';
+import { useHasConsentPreferences, usePromptRequirement } from '~/hooks';
 
 import { TriggerRoot } from './atoms/root';
 import { TriggerToolbar } from './atoms/toolbar';
@@ -65,7 +65,7 @@ export const ConsentDialogTriggerToolbar = ({
 	onPositionChange,
 }: ConsentDialogTriggerToolbarProps): ReactNode => {
 	const promptRequirement = usePromptRequirement();
-	const hasConsentUI = useHasConsentUI();
+	const hasConsentUI = useHasConsentPreferences();
 	const promptSettled =
 		showWhen !== 'after-prompt' || promptRequirement.kind === 'none';
 	// Without a resolved policy, or under a `none` rule that keeps no right

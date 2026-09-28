@@ -59,6 +59,8 @@ export const Default: Story = {
 						)
 					),
 				presentation: devToolsPresentation,
+				// The shared play verifies script cleanup after rejecting consent.
+				reloadOnConsentRevoked: false,
 			};
 			const context = createVueConsentKernelContext({
 				config,
