@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { choiceRecords } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
@@ -41,9 +41,9 @@ describe('determineCategory', () => {
 		expect(determineCategory(iframe)).toBe('marketing');
 	});
 
-	test('throws on invalid category', () => {
+	test('returns null for an unknown category', () => {
 		const iframe = makeIframe({ 'data-category': 'totally-fake' });
-		expect(() => determineCategory(iframe)).toThrow(/invalid data-category/u);
+		expect(determineCategory(iframe)).toBeNull();
 	});
 });
 
@@ -122,6 +122,30 @@ describe('reconcileIframe', () => {
 		});
 		reconcileIframe(iframe, buildReconcilePass(snap));
 		expect(iframe.getAttribute('src')).toBeNull();
+	});
+
+	test('keeps an iframe with an unknown category blocked, even with every category granted', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			/* asserted below */
+		});
+		const snap = createConsentKernel({
+			initialRecords: choiceRecords({
+				experience: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+			}),
+		}).getSnapshot();
+		const iframe = makeIframe({
+			'data-category': 'totally-fake',
+			src: 'https://example.com/embed',
+		});
+		reconcileIframe(iframe, buildReconcilePass(snap));
+		expect(iframe.getAttribute('src')).toBeNull();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('invalid data-category "totally-fake"')
+		);
+		warn.mockRestore();
 	});
 
 	test('is a no-op when iframe has no data-category', () => {
