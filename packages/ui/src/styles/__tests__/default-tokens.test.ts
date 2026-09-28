@@ -1,6 +1,8 @@
 /**
  * Guards the default theme tokens that `generate-css-entrypoints.ts` bakes
- * into every published stylesheet.
+ * into the render-blocking stylesheets (`styles.css`, `styles.tw3.css`). The
+ * IAB, dialog and primitive sheets load next to one of those and carry no
+ * second copy.
  *
  * Without them every component rule resolves `var(--c15t-surface)`,
  * `var(--c15t-radius-lg)` and friends against nothing, and an app that imports
@@ -18,11 +20,14 @@ import { defaultTheme, generateThemeCSS, themeToVars } from '../../theme/utils';
 
 const DIST_DIR = join(__dirname, '..', '..', '..', 'dist');
 
-const ENTRYPOINTS = [
-	'styles.css',
-	'styles.tw3.css',
+const ENTRYPOINTS = ['styles.css', 'styles.tw3.css'];
+
+/** Sheets that load next to `styles.css` and must not repeat its tokens. */
+const COMPANION_SHEETS = [
 	join('iab', 'styles.css'),
 	join('iab', 'styles.tw3.css'),
+	join('styles', 'dialog.css'),
+	join('styles', 'primitives.css'),
 ];
 
 const readEntrypoint = function readEntrypoint(relativePath: string): string {
@@ -150,6 +155,22 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		const tokensEnd = css.indexOf('}', tokensStart);
 
 		expect(tokensEnd).toBeLessThan(layerStart === -1 ? Infinity : layerStart);
+	});
+});
+
+describe.each(COMPANION_SHEETS)('%s', (entrypoint) => {
+	const css = readEntrypoint(entrypoint);
+
+	test('does not repeat the default tokens', () => {
+		expect(findBlockStart(css, LIGHT_SELECTOR)).toBe(-1);
+		expect(findBlockStart(css, DARK_SELECTOR)).toBe(-1);
+		expect(css).not.toContain('--c15t-surface:');
+	});
+
+	test('scopes every :root block to :host too, for shadow-root hosts', () => {
+		const bare =
+			css.match(/(?:^|[\s,}{;]):root(?:\.[A-Za-z0-9_-]+)?\s*\{/gu) ?? [];
+		expect(bare).toEqual([]);
 	});
 });
 

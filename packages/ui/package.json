@@ -39,7 +39,8 @@
 	],
 	"type": "module",
 	"sideEffects": [
-		"**/*.css"
+		"**/*.css",
+		"./dist/styles/dialog.js"
 	],
 	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
@@ -48,6 +49,14 @@
 		"./styles.tw3.css": "./dist/styles.tw3.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
 		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
+		"./styles/dialog.css": "./dist/styles/dialog.css",
+		"./styles/dialog": {
+			"types": "./dist/styles/dialog.d.ts",
+			"node": "./dist/styles/dialog.node.js",
+			"import": "./dist/styles/dialog.js",
+			"default": "./dist/styles/dialog.js"
+		},
+		"./styles/primitives.css": "./dist/styles/primitives.css",
 		"./postcss-tailwind3": {
 			"types": "./dist-types/postcss-tailwind3.d.ts",
 			"import": "./dist/postcss-tailwind3.js",
