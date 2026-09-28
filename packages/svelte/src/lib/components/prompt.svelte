@@ -226,7 +226,7 @@
 	const finalClassName = $derived(
 		noStyle
 			? rootStyle.className || ''
-			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
+			: `${rootStyle.className || ''} ${visibility.isVisible ? `${styles.bannerVisible}${disableAnimation ? '' : ` ${styles.bannerEntering}`}` : styles.bannerHidden}`
 	);
 
 	const localPrimaryActions = $derived.by(() => {
@@ -357,6 +357,7 @@
 		{#if shouldScrollLock}
 			<Overlay
 				{styles}
+				entering={!disableAnimation}
 				visible={visibility.isVisible}
 			/>
 		{/if}

@@ -11,14 +11,21 @@
 	interface OverlayStyles {
 		overlay?: string;
 		overlayVisible?: string;
+		overlayEntering?: string;
 		overlayHidden?: string;
 	}
 
 	let {
+		entering = true,
 		styles,
 		variant = 'banner',
 		visible = true,
 	}: {
+		/**
+		 * Add the `@starting-style` entering class on a visible overlay so it
+		 * fades in from the first frame. Off when animation is disabled.
+		 */
+		entering?: boolean;
 		styles: OverlayStyles;
 		variant?: 'banner' | 'dialog' | 'iab-banner' | 'iab-dialog';
 		visible?: boolean;
@@ -62,7 +69,7 @@
 	const className = $derived(
 		theme.noStyle
 			? themeStyle.className || ''
-			: `${themeStyle.className || ''} ${visible ? styles.overlayVisible : styles.overlayHidden}`
+			: `${themeStyle.className || ''} ${visible ? `${styles.overlayVisible}${entering && styles.overlayEntering ? ` ${styles.overlayEntering}` : ''}` : styles.overlayHidden}`
 	);
 </script>
 

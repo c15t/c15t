@@ -4,7 +4,7 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-banner';
-import { forwardRef as createForwardRef, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes } from 'react';
 
 import { useActiveUI } from '~/hooks';
@@ -63,33 +63,6 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		const { components } = useUIConfig();
 
 		const showBanner = activeUI === 'banner';
-		const [isVisible, setIsVisible] = useState(false);
-
-		// Handle animation visibility state
-		useEffect(() => {
-			if (showBanner) {
-				const frame = requestAnimationFrame(() => setIsVisible(true));
-				return () => cancelAnimationFrame(frame);
-			}
-
-			if (disableAnimation) {
-				const frame = requestAnimationFrame(() => setIsVisible(false));
-				return () => cancelAnimationFrame(frame);
-			}
-
-			const animationDurationMs = Number.parseInt(
-				getComputedStyle(document.documentElement).getPropertyValue(
-					'--consent-banner-animation-duration'
-				) || '200',
-				10
-			);
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-				// Match CSS animation duration
-			}, animationDurationMs);
-			return () => clearTimeout(timer);
-		}, [showBanner, disableAnimation]);
-
 		const theme = mergeSlotProps(components?.banner?.overlay, {
 			baseClassName: styles.overlay,
 			// Always pass custom className
@@ -103,12 +76,11 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		const shouldApplyAnimation =
 			!(contextNoStyle || noStyle) && !disableAnimation;
 
-		let animationClass: string | undefined;
-		if (shouldApplyAnimation) {
-			animationClass = isVisible ? styles.overlayVisible : styles.overlayHidden;
-		} else {
-			animationClass = undefined;
-		}
+		// `overlayEntering` is the `@starting-style` state the stylesheet
+		// transitions from on the first frame; no hidden render is needed.
+		const animationClass = shouldApplyAnimation
+			? `${styles.overlayVisible} ${styles.overlayEntering}`
+			: undefined;
 
 		// Combine theme className with animation class if needed
 		const finalClassName = cn(theme.className, animationClass);

@@ -45,6 +45,7 @@ const pick = function pick(
 export const promptClassNames: PromptClassNames = {
 	actions: pick(actionStyles, ['actionGroup', 'actionRoot']),
 	banner: pick(bannerStyles, [
+		'bannerEntering',
 		'bannerVisible',
 		'card',
 		'cardShell',
@@ -52,6 +53,7 @@ export const promptClassNames: PromptClassNames = {
 		'footer',
 		'header',
 		'overlay',
+		'overlayEntering',
 		'overlayVisible',
 		'rightLink',
 		'rights',

@@ -225,7 +225,7 @@ const onAction = function onAction(action: PresentationAction) {
 	>
 		<Transition
 			:css="!disableAnimation"
-			:enter-from-class="transitionStyles.overlayHidden"
+			:enter-from-class="transitionStyles.overlayEntering"
 			:enter-active-class="transitionStyles.overlayVisible"
 			:enter-to-class="transitionStyles.overlayVisible"
 			:leave-from-class="transitionStyles.overlayVisible"
@@ -245,7 +245,7 @@ const onAction = function onAction(action: PresentationAction) {
 		</Transition>
 		<Transition
 			:css="!disableAnimation"
-			:enter-from-class="transitionStyles.bannerHidden"
+			:enter-from-class="transitionStyles.bannerEntering"
 			:enter-active-class="transitionStyles.bannerVisible"
 			:enter-to-class="transitionStyles.bannerVisible"
 			:leave-from-class="transitionStyles.bannerVisible"
