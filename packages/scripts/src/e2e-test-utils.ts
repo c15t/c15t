@@ -146,6 +146,10 @@ export type TestWindow = Window &
 			o?: Record<string, unknown>;
 			q?: unknown[][];
 		};
+		pintrk?: ((...args: unknown[]) => void) & {
+			queue?: unknown[][];
+			version?: string;
+		};
 		posthog?: {
 			get_explicit_consent_status: () => string;
 			init: (...args: unknown[]) => void;
@@ -265,6 +269,7 @@ function resetVendorGlobals() {
 		'pirschClearSession',
 		'pirschInit',
 		'pirschNotFound',
+		'pintrk',
 		'plausible',
 		'posthog',
 		'rdt',

@@ -302,6 +302,7 @@ const generateDocsConfig = () => {
 							'microsoft-uet',
 							'snapchat-pixel',
 							'x-pixel',
+							'pinterest-tag',
 						],
 					},
 				],
