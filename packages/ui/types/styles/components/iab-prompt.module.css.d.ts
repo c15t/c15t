@@ -1,4 +1,5 @@
 declare const styles: {
+  readonly "bannerEntering": string;
   readonly "bannerHidden": string;
   readonly "bannerVisible": string;
   readonly "card": string;
@@ -8,6 +9,7 @@ declare const styles: {
   readonly "header": string;
   readonly "legitimateInterestNotice": string;
   readonly "overlay": string;
+  readonly "overlayEntering": string;
   readonly "overlayHidden": string;
   readonly "overlayVisible": string;
   readonly "partnersLink": string;

@@ -169,7 +169,7 @@
 	const finalClassName = $derived(
 		noStyle
 			? rootStyle.className || ''
-			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
+			: `${rootStyle.className || ''} ${visibility.isVisible ? `${styles.bannerVisible}${disableAnimation ? '' : ` ${styles.bannerEntering}`}` : styles.bannerHidden}`
 	);
 
 	// Resolved texts
@@ -190,6 +190,7 @@
 		{#if shouldScrollLock}
 			<Overlay
 				{styles}
+				entering={!disableAnimation}
 				variant="iab-banner"
 				visible={visibility.isVisible}
 			/>
