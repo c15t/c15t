@@ -407,6 +407,29 @@ const useKernel = function useKernel() {
 	}
 	return kernel;
 };
+/**
+ * A draft store bound to the kernel in context. A provider handed a new
+ * runtime changes that kernel without remounting its children, so the store
+ * is rebuilt for the new kernel and the previous draft is dropped rather than
+ * carried over, where its save would record into the old runtime.
+ */
+const useKernelDraftStore = function useKernelDraftStore(
+	kernel: ConsentKernel,
+	defaults: Partial<ConsentState> | undefined
+): DraftStore {
+	const [entry, setEntry] = useState(() => ({
+		kernel,
+		store: createDraftStore(kernel, defaults),
+	}));
+	if (entry.kernel === kernel) {
+		return entry.store;
+	}
+	// Adjusting state during render: React re-renders this component before
+	// committing, so no child ever sees the store of the previous kernel.
+	const next = { kernel, store: createDraftStore(kernel, defaults) };
+	setEntry(next);
+	return next.store;
+};
 export interface ConsentDraftProviderProps {
 	children: ReactNode;
 	/** Defaults apply only to categories without an explicit receipt. */
@@ -419,10 +442,10 @@ export const ConsentDraftProvider = ({
 	const kernel = useKernel();
 	const parent = useContext(DraftContext);
 	const { presentation } = useUIConfig();
-	const [local, setLocal] = useState(() =>
-		createDraftStore(kernel, initial ?? presentation?.preferences?.defaults)
+	const local = useKernelDraftStore(
+		kernel,
+		initial ?? presentation?.preferences?.defaults
 	);
-	void setLocal;
 	const store = parent && !initial ? parent : local;
 	useEffect(() => store.connect(), [store]);
 	return (
@@ -433,10 +456,10 @@ const useDraftStore = function useDraftStore() {
 	const kernel = useKernel();
 	const shared = useContext(DraftContext);
 	const { presentation } = useUIConfig();
-	const [local, setLocal] = useState(() =>
-		createDraftStore(kernel, presentation?.preferences?.defaults)
+	const local = useKernelDraftStore(
+		kernel,
+		presentation?.preferences?.defaults
 	);
-	void setLocal;
 	const store = shared ?? local;
 	useEffect(() => (shared ? undefined : store.connect()), [shared, store]);
 	return store;

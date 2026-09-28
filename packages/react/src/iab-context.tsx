@@ -1,6 +1,7 @@
 'use client';
 
 import type {
+	ConsentKernel,
 	GlobalVendorList,
 	KernelIABState,
 	NonIABVendor,
@@ -44,6 +45,13 @@ export interface ReactIABState extends KernelIABState {
 	save: () => Promise<void>;
 }
 
+/** An IAB action waiting for the handle of the kernel it was taken on. */
+interface QueuedIABAction {
+	kernel: ConsentKernel;
+	run: (handle: IABHandle) => void;
+	cancel: () => void;
+}
+
 export interface IABProviderProps extends Omit<
 	CreateIABOptions,
 	'kernel' | 'gvl'
@@ -61,12 +69,20 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	}
 
 	const [tab, setTab] = useState<'purposes' | 'vendors'>('purposes');
-	const [handle, setHandle] = useState<IABHandle | null>(null);
+	// The handle is bound to the kernel it was created for. After the
+	// provider switches kernels, the previous handle is disposed and must not
+	// be exposed for the render before the effect below creates the next one.
+	const [mountedHandle, setMountedHandle] = useState<{
+		handle: IABHandle;
+		kernel: ConsentKernel;
+	} | null>(null);
+	const handle = mountedHandle?.kernel === kernel ? mountedHandle.handle : null;
 	const optionsRef = useRef(options);
 	const handleRef = useRef<IABHandle | null>(null);
 	// Actions taken between hydration and the effect below creating the
-	// handle. A server-rendered banner is clickable in that window.
-	const queuedRef = useRef<((handle: IABHandle) => void)[]>([]);
+	// handle. A server-rendered banner is clickable in that window. Each
+	// action remembers its kernel, so it never runs against another one.
+	const queuedRef = useRef<QueuedIABAction[]>([]);
 
 	useEffect(() => {
 		optionsRef.current = options;
@@ -75,11 +91,15 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	useEffect(() => {
 		const next = createIAB({ ...optionsRef.current, kernel });
 		handleRef.current = next;
-		setHandle(next);
+		setMountedHandle({ handle: next, kernel });
 		const queued = queuedRef.current;
 		queuedRef.current = [];
 		for (const action of queued) {
-			action(next);
+			if (action.kernel === kernel) {
+				action.run(next);
+			} else {
+				action.cancel();
+			}
 		}
 		return () => {
 			handleRef.current = null;
@@ -87,22 +107,43 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 		};
 	}, [kernel]);
 
-	const run = useCallback<NonNullable<IABContextValue['run']>>((action) => {
-		const { current } = handleRef;
-		if (current) {
-			return Promise.resolve(action(current));
-		}
-		return new Promise<void>((resolve, reject) => {
-			queuedRef.current.push(async (mounted) => {
-				try {
-					await action(mounted);
-					resolve();
-				} catch (error) {
-					reject(error);
-				}
+	const run = useCallback<NonNullable<IABContextValue['run']>>(
+		(action) => {
+			const { current } = handleRef;
+			if (current) {
+				return Promise.resolve(action(current));
+			}
+			const pending = new Promise<void>((resolve, reject) => {
+				queuedRef.current.push({
+					cancel: () =>
+						reject(
+							new DOMException(
+								'IAB provider switched to another consent kernel.',
+								'AbortError'
+							)
+						),
+					kernel,
+					run: async (mounted) => {
+						try {
+							await action(mounted);
+							resolve();
+						} catch (error) {
+							reject(error);
+						}
+					},
+				});
 			});
-		});
-	}, []);
+			// Void IAB actions have no promise consumer. Handle their
+			// cancellation, while returning the original promise so awaiting
+			// save still rejects.
+			// oxlint-disable-next-line promise/prefer-await-to-then
+			pending.catch(() => {
+				// Observed by the caller when it awaits.
+			});
+			return pending;
+		},
+		[kernel]
+	);
 
 	const value = useMemo<IABContextValue>(
 		() => ({
