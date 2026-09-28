@@ -1,6 +1,6 @@
 'use client';
 
-import { offline } from '@c15t/react';
+import { ConsentTheme, offline } from '@c15t/react';
 import { ConsentBanner } from '@c15t/react/consent-banner';
 import { ConsentDialog } from '@c15t/react/consent-dialog';
 import { ConsentWidget } from '@c15t/react/consent-widget';
@@ -143,6 +143,7 @@ export const CssLayerScenarioRenderer = ({
 			theme: THEME,
 		}}
 	>
+		<ConsentTheme theme={THEME} />
 		<ConsentDraftProvider>
 			<ForceSurface surface={surface} />
 			<main

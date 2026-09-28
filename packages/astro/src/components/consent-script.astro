@@ -14,6 +14,7 @@
  */
 import {
 	buildColorSchemeScript,
+	buildThemeCSS,
 	buildConfigScript,
 	markConfigEmitted,
 } from '@c15t/astro/server';
@@ -23,9 +24,12 @@ const shouldEmit = c15t !== undefined && markConfigEmitted(Astro.locals);
 const colorSchemeScript = shouldEmit
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
+const themeCSS = shouldEmit ? buildThemeCSS(c15t.options.theme) : '';
 ---
 
 {colorSchemeScript && <script is:inline set:html={colorSchemeScript} />}
+
+{themeCSS && <style is:inline id="c15t-theme" set:html={themeCSS} />}
 
 {
 	shouldEmit && (

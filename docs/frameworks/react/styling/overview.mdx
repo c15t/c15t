@@ -24,16 +24,12 @@ import 'c15t/react/styles.css';
 
 ## Tokens
 
-The provider snippets below are partial configuration examples. Apply them to
-your existing `ConsentProvider` from `c15t/react`, keeping its `mode`, children
-and other options.
-
 <import src="../../../shared/react/styling/overview.mdx#tokens-intro" />
 
-```tsx
-import { ConsentProvider, defineTheme } from 'c15t/react';
+```ts title="src/consent-theme.ts"
+import { defineTheme } from 'c15t/react';
 
-const theme = defineTheme({
+export const theme = defineTheme({
 	colors: { primary: '#2f6f4e' },
 	radius: { lg: '4px' },
 	consentActions: {
@@ -41,9 +37,28 @@ const theme = defineTheme({
 		dismiss: { variant: 'neutral', mode: 'stroke' },
 	},
 });
-
-<ConsentProvider options={{ mode, theme }} />;
 ```
+
+With server rendering, render `ConsentTheme` in the server-only part of your
+document, next to the provider. In a single-page app with no server render,
+either render it next to the provider, which ships the generator, or write the
+variables into your stylesheet. This partial example keeps the provider's
+`mode`, children and other options:
+
+```tsx
+import { ConsentProvider, ConsentTheme } from 'c15t/react';
+
+import { theme } from './consent-theme';
+
+<>
+	<ConsentTheme theme={theme} />
+	<ConsentProvider options={{ mode, theme }}>{children}</ConsentProvider>
+</>;
+```
+
+The provider's `theme` option only supplies `consentActions` and slot styles.
+
+<import src="../../../shared/react/styling/overview.mdx#theme-migration" />
 
 <import src="../../../shared/react/styling/overview.mdx#token-roles" />
 

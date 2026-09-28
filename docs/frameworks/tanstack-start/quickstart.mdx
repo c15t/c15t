@@ -128,29 +128,53 @@ export const theme = defineTheme({
 });
 ```
 
-In `src/routes/__root.tsx`, import the theme and add it to the existing boundary's
-`options`. This partial example keeps the loader, transport and children from
-the root-route setup:
+The browser does not turn tokens into CSS, so generate it in a server
+function and render it in the document head. In `src/routes/__root.tsx`, add
+the server function next to `getConsentState`, return its result from the
+loader and render it. This partial example keeps the rest of the root-route
+setup:
 
 ```tsx title="src/routes/__root.tsx"
+import { generateThemeCSS } from '@c15t/ui/theme';
 import { theme } from '../consent-theme';
 
-<ConsentBoundary
-  config={config}
-  backendURL={backendURL}
-  initRoute={false}
-  scripts={scripts}
-  options={{ theme }}
->
-  <Outlet />
-  <ConsentBanner />
-  <ConsentDialog />
-  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-</ConsentBoundary>;
+const getThemeCSS = createServerFn({ method: 'GET' }).handler(() =>
+  generateThemeCSS(theme),
+);
+
+export const Route = createRootRoute({
+  ...consentLoaderOptions,
+  loader: async () => {
+    const [state, themeCSS] = await Promise.all([getConsentState(), getThemeCSS()]);
+    return { state, themeCSS };
+  },
+  head: () => ({ links: [{ rel: 'stylesheet', href: consentCss }] }),
+  component: Root,
+});
+
+function Root() {
+  const { state, themeCSS } = Route.useLoaderData();
+  return (
+    <html lang="en">
+      <head>
+        <HeadContent />
+        <style id="c15t-theme" dangerouslySetInnerHTML={{ __html: themeCSS }} />
+      </head>
+      <body>
+        {/* ConsentRoot and its children as above */}
+      </body>
+    </html>
+  );
+}
 ```
 
-The consent UI uses a green primary color and a 4px large-radius token. Merge
-`theme` with any other boundary options you already use.
+Install `@c15t/ui` for `generateThemeCSS`; it escapes `<`, so its output is
+safe inside `<style>`. The consent UI uses a green primary color and a 4px
+large-radius token from the first server render. Rendering
+`<ConsentTheme theme={theme} />` from `c15t/tanstack-start` in `Root` also
+works, but the root component runs in the browser too, so it ships the theme
+generator. Pass `theme` to `ConsentRoot` through `options` only when it holds
+`consentActions` or slot styles.
 
 ## Granular consent
 

@@ -7,7 +7,7 @@ import { afterEach, assert, beforeEach, expect, test, vi } from 'vitest';
 import { cdp } from 'vitest/browser';
 
 import { ConsentBanner } from '../components/prompt';
-import { ConsentProvider, offline } from '../index';
+import { ConsentProvider, ConsentTheme, offline } from '../index';
 import { policyFixture } from './policy-fixture';
 
 beforeEach(() => {
@@ -16,6 +16,23 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.unstubAllGlobals();
+});
+
+test('the provider renders no theme stylesheet of its own', () => {
+	const html = renderToString(
+		<ConsentProvider
+			options={{
+				mode: offline(),
+				persistence: false,
+				theme: { colors: { primary: '#008080' } },
+			}}
+		>
+			<div />
+		</ConsentProvider>
+	);
+	const host = document.createElement('div');
+	host.innerHTML = html;
+	expect(host.querySelector('style')).toBeNull();
 });
 
 test('renders custom theme CSS before the banner and preserves it through hydration', async () => {
@@ -31,9 +48,15 @@ test('renders custom theme CSS before the banner and preserves it through hydrat
 		},
 	};
 	const app = (
-		<ConsentProvider options={options}>
-			<ConsentBanner />
-		</ConsentProvider>
+		<>
+			<ConsentTheme
+				theme={options.theme}
+				nonce={options.nonce}
+			/>
+			<ConsentProvider options={options}>
+				<ConsentBanner />
+			</ConsentProvider>
+		</>
 	);
 	const host = document.createElement('div');
 	host.innerHTML = renderToString(app);
@@ -70,11 +93,17 @@ test('renders custom theme CSS before the banner and preserves it through hydrat
 
 		await act(() => {
 			root?.render(
-				<ConsentProvider
-					options={{ ...options, theme: { colors: { primary: '#800080' } } }}
-				>
-					<ConsentBanner />
-				</ConsentProvider>
+				<>
+					<ConsentTheme
+						theme={{ colors: { primary: '#800080' } }}
+						nonce={options.nonce}
+					/>
+					<ConsentProvider
+						options={{ ...options, theme: { colors: { primary: '#800080' } } }}
+					>
+						<ConsentBanner />
+					</ConsentProvider>
+				</>
 			);
 		});
 		expect(host.querySelector('#c15t-theme')).toBe(style);
@@ -85,12 +114,8 @@ test('renders custom theme CSS before the banner and preserves it through hydrat
 	}
 });
 
-test('renders default theme tokens on the server without a nonce', () => {
-	const html = renderToString(
-		<ConsentProvider options={{ mode: offline(), persistence: false }}>
-			<div />
-		</ConsentProvider>
-	);
+test('ConsentTheme renders the default theme tokens without a nonce', () => {
+	const html = renderToString(<ConsentTheme />);
 	const host = document.createElement('div');
 	host.innerHTML = html;
 	const style = host.querySelector('#c15t-theme');
@@ -123,9 +148,15 @@ test.each([
 			},
 		};
 		const app = (
-			<ConsentProvider options={options}>
-				<ConsentBanner />
-			</ConsentProvider>
+			<>
+				<ConsentTheme
+					theme={options.theme}
+					colorScheme={colorScheme}
+				/>
+				<ConsentProvider options={options}>
+					<ConsentBanner />
+				</ConsentProvider>
+			</>
 		);
 		const host = document.createElement('div');
 		host.innerHTML = renderToString(app);
@@ -174,9 +205,15 @@ test.each([
 
 			await act(() => {
 				root?.render(
-					<ConsentProvider options={{ ...options, colorScheme: 'light' }}>
-						<ConsentBanner />
-					</ConsentProvider>
+					<>
+						<ConsentTheme
+							theme={options.theme}
+							colorScheme="light"
+						/>
+						<ConsentProvider options={{ ...options, colorScheme: 'light' }}>
+							<ConsentBanner />
+						</ConsentProvider>
+					</>
 				);
 			});
 			expect(primary()).toBe('#008080');
@@ -195,16 +232,18 @@ test.each(['</style>', '</StYlE>', '</style >'])(
 	async (closingTag) => {
 		const fontFamily = `"${closingTag}<script data-theme-injection>window.themeInjected = true</script>"`;
 		const app = (
-			<ConsentProvider
-				options={{
-					mode: offline(),
-					persistence: false,
-					prefetch: policyFixture(),
-					theme: { typography: { fontFamily } },
-				}}
-			>
-				<div data-testid="themed-child" />
-			</ConsentProvider>
+			<>
+				<ConsentTheme theme={{ typography: { fontFamily } }} />
+				<ConsentProvider
+					options={{
+						mode: offline(),
+						persistence: false,
+						prefetch: policyFixture(),
+					}}
+				>
+					<div data-testid="themed-child" />
+				</ConsentProvider>
+			</>
 		);
 		const host = document.createElement('div');
 		host.innerHTML = renderToString(app);

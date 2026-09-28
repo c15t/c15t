@@ -160,6 +160,8 @@ export type {
 	OwnedRuntimeProviderProps,
 } from './provider';
 export { ConsentProvider } from './provider';
+export { ConsentTheme } from './consent-theme';
+export type { ConsentThemeProps } from './consent-theme';
 export type { ReactUIOptions } from './types/manager';
 export { defineTheme, type Theme } from './types/theme';
 
