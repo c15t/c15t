@@ -76,6 +76,10 @@ import {
 	mixpanelAnalytics,
 	mixpanelAnalyticsManifest,
 } from './vendors/analytics/mixpanel-analytics';
+import {
+	oneDollarStats,
+	oneDollarStatsManifest,
+} from './vendors/analytics/one-dollar-stats';
 import { pirsch, pirschManifest } from './vendors/analytics/pirsch';
 import {
 	plausibleAnalytics,
@@ -318,6 +322,14 @@ const helperParityCases = {
 			token: '1234567890abcdef1234567890abcdef',
 		}),
 	},
+	oneDollarStats: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://assets.onedollarstats.com/stonks.js',
+		},
+		script: oneDollarStats(),
+	},
 	openaiPixel: {
 		expected: {
 			alwaysLoad: undefined,
@@ -459,6 +471,7 @@ const vendorManifests = [
 	fathomAnalyticsManifest,
 	heapManifest,
 	mixpanelAnalyticsManifest,
+	oneDollarStatsManifest,
 	hotjarManifest,
 	hightouchManifest,
 	logRocketManifest,

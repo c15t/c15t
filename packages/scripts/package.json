@@ -133,6 +133,11 @@
 			"import": "./dist/vendors/analytics/mixpanel-analytics.js",
 			"default": "./dist/vendors/analytics/mixpanel-analytics.js"
 		},
+		"./one-dollar-stats": {
+			"types": "./dist-types/vendors/analytics/one-dollar-stats.d.ts",
+			"import": "./dist/vendors/analytics/one-dollar-stats.js",
+			"default": "./dist/vendors/analytics/one-dollar-stats.js"
+		},
 		"./pirsch": {
 			"types": "./dist-types/vendors/analytics/pirsch.d.ts",
 			"import": "./dist/vendors/analytics/pirsch.js",
