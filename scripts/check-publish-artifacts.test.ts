@@ -449,45 +449,51 @@ describe('vendored native sources', () => {
 		expect(scanPackedVendoredSources(packageDir, packed)).toStrictEqual([]);
 	});
 
-	it('publishes the copy, because a pod cannot depend on a path', () => {
-		// The reason the copy exists. An npm-installed app has no `C15tCore` pod to resolve, so
-		// the kernel reaches it only inside this package, and the podspec must compile from there
-		// rather than name a dependency nobody publishes.
-		const reactNativeDir = join(ROOT, 'packages', 'react-native');
-		// The listing is the question, not the build: the package's `prepack` hook
-		// refuses to pack an unbuilt checkout, and the repository job runs before
-		// any build. The vendored sources are checked in, so npm lists them either way.
-		const packed = runPack(reactNativeDir, { ignoreScripts: true });
-		const packedPaths = packed.files.map((file) => file.path);
-		const packedVendored = packedPaths.filter((path) =>
-			path.startsWith('vendor/C15tCore/')
-		);
+	// npm walks the package's whole tree to answer, and on a CI runner that
+	// takes longer than the default five seconds.
+	it(
+		'publishes the copy, because a pod cannot depend on a path',
+		{ timeout: 60_000 },
+		() => {
+			// The reason the copy exists. An npm-installed app has no `C15tCore` pod to resolve, so
+			// the kernel reaches it only inside this package, and the podspec must compile from there
+			// rather than name a dependency nobody publishes.
+			const reactNativeDir = join(ROOT, 'packages', 'react-native');
+			// The listing is the question, not the build: the package's `prepack` hook
+			// refuses to pack an unbuilt checkout, and the repository job runs before
+			// any build. The vendored sources are checked in, so npm lists them either way.
+			const packed = runPack(reactNativeDir, { ignoreScripts: true });
+			const packedPaths = packed.files.map((file) => file.path);
+			const packedVendored = packedPaths.filter((path) =>
+				path.startsWith('vendor/C15tCore/')
+			);
 
-		expect(packedVendored).toEqual(
-			vendoredCorePlan()
-				.map((file) => `vendor/C15tCore/${file.relativePath}`)
-				.sort()
-		);
+			expect(packedVendored).toEqual(
+				vendoredCorePlan()
+					.map((file) => `vendor/C15tCore/${file.relativePath}`)
+					.sort()
+			);
 
-		const podspecSource = readFileSync(
-			join(reactNativeDir, 'C15tReactNative.podspec'),
-			'utf8'
-		);
+			const podspecSource = readFileSync(
+				join(reactNativeDir, 'C15tReactNative.podspec'),
+				'utf8'
+			);
 
-		// Only the live spec: the header comment records why the dependency was dropped, and a
-		// comment naming a thing is not the same as declaring it.
-		const spec = podspecSource
-			.split('\n')
-			.filter((line) => !line.trimStart().startsWith('#'))
-			.join('\n');
+			// Only the live spec: the header comment records why the dependency was dropped, and a
+			// comment naming a thing is not the same as declaring it.
+			const spec = podspecSource
+				.split('\n')
+				.filter((line) => !line.trimStart().startsWith('#'))
+				.join('\n');
 
-		expect(spec).not.toMatch(/s\.dependency\s+"C15tCore"/u);
-		expect(spec).not.toMatch(/C15T_CORE_POD_VERSION/u);
-		expect(spec).toMatch(/vendor\/C15tCore\/\*\*\/\*\.swift/u);
-		expect(
-			scanPackedVendoredSources(reactNativeDir, new Set(packedPaths))
-		).toStrictEqual([]);
-	});
+			expect(spec).not.toMatch(/s\.dependency\s+"C15tCore"/u);
+			expect(spec).not.toMatch(/C15T_CORE_POD_VERSION/u);
+			expect(spec).toMatch(/vendor\/C15tCore\/\*\*\/\*\.swift/u);
+			expect(
+				scanPackedVendoredSources(reactNativeDir, new Set(packedPaths))
+			).toStrictEqual([]);
+		}
+	);
 });
 
 describe('packages that must stay clear of the consent kernel', () => {
