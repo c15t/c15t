@@ -237,7 +237,17 @@ export const applyBenchThrottleProfile =
 
 /**
  * Builds the self-contained page-context init script that records CLS,
- * long tasks, and the banner's first paint (Element Timing).
+ * long tasks, page FCP/LCP, and four separate banner milestones:
+ *
+ * - `bannerDomMs`: the banner root first exists in the DOM (server HTML
+ *   parsed or client insertion), whether or not it is styled or visible.
+ * - `bannerFirstFrameMs`: the first animation frame after that insertion.
+ *   Rendering is blocked until render-blocking CSS arrives, so this is the
+ *   earliest frame that could paint the banner. It is not a paint timestamp.
+ * - `bannerPaintMs`: Element Timing for banner text or images, when
+ *   Chromium emits it. This is the measured paint.
+ * - Hydrated readiness (`bannerReadyMs`) is recorded by each app's probe,
+ *   not here: it needs the consent runtime to report an active banner.
  *
  * Kept as a *string* for the same reason as
  * `benchNavigationTimingExpression`: function-form init scripts are
@@ -273,6 +283,10 @@ export const benchPerformanceObserverScript =
 		longTaskCount: 0,
 		longTaskTotalMs: 0,
 		bannerPaintMs: null,
+		bannerDomMs: null,
+		bannerFirstFrameMs: null,
+		fcpMs: null,
+		lcpMs: null,
 	};
 	Object.defineProperty(window, '__c15tBenchPerfMetrics', {
 		value: metrics,
@@ -292,6 +306,14 @@ export const benchPerformanceObserverScript =
 		const root = document.querySelector('[data-testid="' + testId + '"]');
 		if (!(root instanceof HTMLElement)) {
 			return;
+		}
+		if (metrics.bannerDomMs === null) {
+			metrics.bannerDomMs = performance.now();
+			requestAnimationFrame(() => {
+				if (metrics.bannerFirstFrameMs === null) {
+					metrics.bannerFirstFrameMs = performance.now();
+				}
+			});
 		}
 		if (!root.hasAttribute('elementtiming')) {
 			root.setAttribute('elementtiming', timingName);
@@ -328,6 +350,25 @@ export const benchPerformanceObserverScript =
 	try {
 		new PerformanceObserver((list) => {
 			for (const entry of list.getEntries()) {
+				if (entry.name === 'first-contentful-paint') {
+					metrics.fcpMs = entry.startTime;
+				}
+			}
+		}).observe({ type: 'paint', buffered: true });
+	} catch {}
+
+	try {
+		new PerformanceObserver((list) => {
+			for (const entry of list.getEntries()) {
+				// The latest candidate is the LCP until input stops reporting.
+				metrics.lcpMs = entry.renderTime || entry.loadTime || entry.startTime;
+			}
+		}).observe({ type: 'largest-contentful-paint', buffered: true });
+	} catch {}
+
+	try {
+		new PerformanceObserver((list) => {
+			for (const entry of list.getEntries()) {
 				if (entry.identifier === timingName) {
 					// Every marked element reports; the banner's paint time is
 					// the earliest entry (first pixel of any banner content).
@@ -356,6 +397,72 @@ export const benchPerformanceObserverScript =
 	} catch {}
 })();`;
 	};
+
+/** Values the observer script collects, read back after the page settles. */
+export interface BenchPerfMetrics {
+	cls: number;
+	longTaskCount: number;
+	longTaskTotalMs: number;
+	bannerPaintMs: number | null;
+	bannerDomMs: number | null;
+	bannerFirstFrameMs: number | null;
+	fcpMs: number | null;
+	lcpMs: number | null;
+	domNodeCount: number;
+}
+
+/**
+ * Self-contained page-context expression that reads the observer metrics.
+ * String for the same reason as `benchNavigationTimingExpression`.
+ */
+export const benchPerfMetricsExpression = `(() => {
+	const metrics = window.__c15tBenchPerfMetrics;
+	const finite = (value) =>
+		typeof value === 'number' && Number.isFinite(value)
+			? Number(value.toFixed(3))
+			: null;
+	return {
+		cls: metrics ? metrics.cls : 0,
+		longTaskCount: metrics ? metrics.longTaskCount : 0,
+		longTaskTotalMs: metrics ? metrics.longTaskTotalMs : 0,
+		bannerPaintMs: metrics ? finite(metrics.bannerPaintMs) : null,
+		bannerDomMs: metrics ? finite(metrics.bannerDomMs) : null,
+		bannerFirstFrameMs: metrics ? finite(metrics.bannerFirstFrameMs) : null,
+		fcpMs: metrics ? finite(metrics.fcpMs) : null,
+		lcpMs: metrics ? finite(metrics.lcpMs) : null,
+		domNodeCount: document.querySelectorAll('*').length,
+	};
+})()`;
+
+/** One stylesheet the page loaded, from Resource Timing. */
+export interface BenchStylesheetResource {
+	url: string;
+	transferSize: number;
+	encodedBodySize: number;
+	decodedBodySize: number;
+}
+
+/**
+ * Self-contained page-context expression listing every CSS resource the
+ * page fetched, so duplicate or overlapping stylesheets show up by URL.
+ */
+export const benchStylesheetResourcesExpression = `(() =>
+	performance
+		.getEntriesByType('resource')
+		.filter((entry) => {
+			try {
+				return /\\.css$/u.test(new URL(entry.name).pathname);
+			} catch {
+				return false;
+			}
+		})
+		.map((entry) => ({
+			url: entry.name,
+			transferSize: entry.transferSize,
+			encodedBodySize: entry.encodedBodySize,
+			decodedBodySize: entry.decodedBodySize,
+		}))
+)()`;
 
 export const installBenchPerformanceObservers =
 	async function installBenchPerformanceObservers(

@@ -560,6 +560,26 @@ const partitionConsentIds = function partitionConsentIds(
 	return { allowedConsentIds, deniedConsentIds };
 };
 
+/** Every category denied. What a vendor the subject turned off receives. */
+const ALL_DENIED: ConsentState = {
+	experience: false,
+	functionality: false,
+	marketing: false,
+	measurement: false,
+	necessary: true,
+};
+
+/**
+ * The consent state a vendor's consent-mode signal should carry. A vendor
+ * the subject turned off gets every optional category denied, whatever the
+ * category state, so its own consent API cannot re-enable tracking.
+ */
+const signalConsents = function signalConsents(
+	info: ScriptCallbackInfo
+): ConsentState {
+	return info.vendor?.granted === false ? ALL_DENIED : info.consents;
+};
+
 const getConsentSignalSteps = function getConsentSignalSteps(
 	resolvedManifest: ResolvedManifest,
 	mode: 'default' | 'update',
@@ -642,6 +662,9 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 		id: resolvedManifest.vendor,
 		persistAfterConsentRevoked: resolvedManifest.persistAfterConsentRevoked,
 		src: resolvedManifest.loadScript?.src,
+		// The manifest's vendor slug doubles as the vendor-level consent id, so
+		// a subject can turn this vendor off inside a granted category.
+		vendor: resolvedManifest.vendor,
 	};
 
 	if (
@@ -664,7 +687,11 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 				phase: 'bootstrap',
 			});
 			executePhaseSteps(
-				getConsentSignalSteps(resolvedManifest, 'default', info.consents),
+				getConsentSignalSteps(
+					resolvedManifest,
+					'default',
+					signalConsents(info)
+				),
 				{
 					...baseContext,
 					phase: 'consent-default',
@@ -748,7 +775,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 				scriptId: resolvedManifest.vendor,
 			};
 			executePhaseSteps(
-				getConsentSignalSteps(resolvedManifest, 'update', info.consents),
+				getConsentSignalSteps(resolvedManifest, 'update', signalConsents(info)),
 				{
 					...baseContext,
 					phase: 'consent-update',

@@ -15,6 +15,7 @@ import { createCodemodSession } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
 import { runTrackingBlockerToNetworkBlockerCodemod } from './tracking-blocker-to-network-blocker';
 import { runTranslationsToI18nCodemod } from './translations-to-i18n';
+import { runUseConsentManagerToHooksCodemod } from './use-consent-manager-to-hooks';
 import {
 	detectInstalledC15tVersion,
 	isCodemodApplicableForVersion,
@@ -35,7 +36,14 @@ export interface CodemodDefinition {
 	run: (options: CodemodRunOptions) => Promise<CodemodRunResult>;
 	/** Version metadata used to determine codemod applicability. */
 	versioning?: CodemodVersionMetadata;
+	/**
+	 * Release the transform migrates to. Only `2.0.0` transforms join `--all`
+	 * and the interactive menu; later ones run when named.
+	 */
+	targetVersion?: string;
 }
+
+const LEGACY_TARGET_VERSION = '2.0.0';
 
 interface CodemodExecutionResult {
 	totalFiles: number;
@@ -179,6 +187,17 @@ const codemods: CodemodDefinition[] = [
 			toRange: '>=2.0.0-0',
 		},
 	},
+	{
+		hint: 'Rewrites useConsentManager() destructuring to the v3 hooks and marks fields that need manual work.',
+		id: 'use-consent-manager-to-hooks',
+		label: 'useConsentManager() -> v3 hooks',
+		run: runUseConsentManagerToHooksCodemod,
+		targetVersion: '3.0.0',
+		versioning: {
+			fromRange: '<3.0.0-alpha.3',
+			toRange: '>=3.0.0-alpha.3',
+		},
+	},
 ];
 
 const validateVersionFlags = (flags: CliContext['flags']): void => {
@@ -211,15 +230,21 @@ export const runCodemods = async (context: CliContext) => {
 	const sourceVersion =
 		typeof flags.from === 'string' ? flags.from : declaredVersion;
 	validateVersionFlags(flags);
-	const available = codemods.filter((item) =>
-		isCodemodApplicableForVersion(sourceVersion, item.versioning ?? {})
+	const available = codemods.filter(
+		(item) =>
+			(item.targetVersion ?? LEGACY_TARGET_VERSION) === LEGACY_TARGET_VERSION &&
+			isCodemodApplicableForVersion(sourceVersion, item.versioning ?? {})
 	);
 	if (flags.list === true) {
-		const entries = codemods.map(({ id, hint, versioning }) => ({
+		const entries = codemods.map(({ id, hint, targetVersion, versioning }) => ({
 			description: hint,
 			id,
 			...versioning,
-			applicable: available.some((item) => item.id === id),
+			applicable: isCodemodApplicableForVersion(
+				sourceVersion,
+				versioning ?? {}
+			),
+			...(targetVersion && { targetVersion }),
 		}));
 		for (const entry of entries) {
 			logger.info(`${entry.id}: ${entry.description}`);

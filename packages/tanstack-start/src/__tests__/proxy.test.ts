@@ -49,6 +49,9 @@ const createRoute = function createRoute(
 		cache: createManifestCache(),
 		fetch,
 		proxy,
+		// These tests count upstream calls; the init route's session report
+		// is covered in api.test.ts.
+		reportSessions: false,
 	});
 };
 

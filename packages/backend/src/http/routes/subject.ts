@@ -50,6 +50,7 @@ const toConsentItem = (consent: ConsentRow): ConsentItem => ({
 	policyVersion: consent.policyVersion,
 	preferences: consent.preferences,
 	type: consent.type,
+	vendorChoice: consent.vendorChoice,
 });
 
 const toDirectiveWire = (directive: PrivacyDirective) => ({
@@ -197,6 +198,7 @@ export const register = function register({
 						// it is derived from cookie-banner rows only and a client
 						// asking about legal documents still needs its category state.
 						subjectChoice: subject.choice,
+						subjectVendorChoice: subject.vendorChoice,
 						privacyDirectives: directives.map(toDirectiveWire),
 					};
 				})
@@ -279,6 +281,7 @@ export const register = function register({
 						uiSource: input.uiSource ?? null,
 						userAgent: prepared.userAgent,
 						validUntil: prepared.validUntil ?? null,
+						vendorChoice: prepared.vendorChoice ?? null,
 					});
 
 					// `created` is the fact worth querying on: a replay is a normal,
@@ -288,9 +291,15 @@ export const register = function register({
 						consent: {
 							created: submission.created,
 							decisionId: submission.decisionId ?? null,
+							// `snapshot_token_replayed` marks a save that arrived after
+							// its token expired; see `policy-snapshot.ts`.
+							decisionSource: prepared.decision?.source ?? null,
 							id: submission.consentId,
 							receipts: prepared.choice
 								? Object.keys(prepared.choice.categories)
+								: null,
+							vendors: prepared.vendorChoice
+								? Object.keys(prepared.vendorChoice.grants).length
 								: null,
 						},
 					});

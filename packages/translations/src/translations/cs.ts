@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Zde si můžete přizpůsobit nastavení soukromí. Můžete zvolit, které typy souborů cookie a sledovacích technologií povolíte.',
 		title: 'Nastavení soukromí',
+		vendors: {
+			disabledByCategory:
+				'Zapněte tuto kategorii, abyste mohli vybrat partnery.',
+			privacyPolicy: 'Zásady ochrany osobních údajů',
+			switchLabel: 'Povolit {vendor}',
+			title: 'Partneři ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

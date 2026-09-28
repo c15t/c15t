@@ -35,8 +35,8 @@ jobs:
     # npm trusted publishing requires a GitHub-hosted runner.
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Needed by changesets/action to create releases/tags and commit version bumps
-      pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
+      contents: write # Tegami creates releases, tags, and version commits
+      pull-requests: write # Tegami opens version pull requests
       id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
 
     if: github.repository == 'c15t/c15t'
@@ -44,10 +44,8 @@ jobs:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          # Fetch entire history is required for changesets to correctly determine version bumps
+          # Tegami uses release tags and changelog history.
           fetch-depth: 0
-          # Optionally persist credentials for commit/push by the action
-          # persist-credentials: false # Uncomment if you have issues with GITHUB_TOKEN permissions
 
       # Setup Bun using the version from the shared checks workflow.
       - name: Setup Bun
@@ -58,87 +56,29 @@ jobs:
       - name: Setup Node.js environment
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 22
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
 
-      # Upgrade npm for trusted publishing (OIDC provenance requires npm 11+).
-      # Node.js 22.22.2's bundled npm has a missing promise-retry module that
-      # breaks `npm install -g`, so we install it first as a workaround.
+      # Keep npm's OIDC support explicit even if the Node runner image changes.
       - name: Upgrade npm for trusted publishing
-        run: |
-          npm install -g promise-retry@2.0.1 2>/dev/null || true
-          npm install -g npm@11.5.1
+        run: npm install -g npm@11.5.1
 
       - name: Install dependencies
         run: bun install --frozen-lockfile # Use frozen lockfile for reliability in CI
 
-      # Canary release: Create and publish snapshot release
-      - name: Create and publish canary snapshot release
+      - name: Version or publish packages
+        if: github.ref != 'refs/heads/canary'
+        run: bun run tegami ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
+
+      # Each canary commit gets its own snapshot; never reuse a lock synced from main.
+      - name: Version and publish canary snapshot
         if: github.ref == 'refs/heads/canary'
-        id: changesets-canary
-        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
-        with:
-          version: bun run version:canary
-          publish: bun run release:canary
-          commit: 'chore: publish canary snapshot'
-          title: 'chore: publish canary snapshot'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: 'true'
-
-      # RC release: Publish pre-release versions from 2.0.0 branch
-      - name: Publish RC pre-release
-        if: github.ref == 'refs/heads/2.0.0'
-        id: changesets-rc
-        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
-        with:
-          version: bun run version
-          publish: bun run release:rc
-          commit: 'chore: version rc packages'
-          title: 'chore: version rc packages'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: 'true'
-
-      # Alpha releases stay in prerelease mode on v3.
-      - name: Publish alpha pre-release
-        if: github.ref == 'refs/heads/v3'
-        id: changesets-alpha
-        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
-        with:
-          version: bun run version:alpha
-          publish: bun run release:alpha
-          commit: 'chore: version alpha packages'
-          title: 'chore: version alpha packages'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: 'true'
-
-      # Regular release: Create Release Pull Request or Publish to npm
-      - name: Create Release Pull Request or Publish to npm
-        if: github.ref == 'refs/heads/main'
-        id: changesets-production
-        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
-        with:
-          # The command to run for publishing. It matches your root package.json script.
-          publish: bun run release
-          # Optional: If you want the action to commit the version changes
-          # commit: "chore: update versions"
-          # Optional: If you want the action to create tags
-          # version: bun run version # Add a 'version' script to package.json if needed for this
-        env:
-          # GITHUB_TOKEN is used by the action to create PRs, releases, comments
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # npm publishes through GitHub OIDC trusted publishing. Do not inject
-          # long-lived npm publish tokens into the release runner.
-          NPM_CONFIG_PROVENANCE: 'true'
-
-      # Optional: Output the results for debugging or confirmation (only for regular releases)
-      - name: Print changeset outputs
-        if: |
-          github.ref != 'refs/heads/canary' &&
-          steps.changesets-production.outputs.published == 'true'
         run: |
-          echo "Published: ${{ steps.changesets-production.outputs.published }}"
-          echo "Published packages: ${{ steps.changesets-production.outputs.publishedPackages }}"
-          echo "New versions: ${{ steps.changesets-production.outputs.newVersions }}"
+          bun run tegami version --no-checks
+          bun run tegami publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'

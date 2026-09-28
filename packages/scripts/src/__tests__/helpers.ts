@@ -37,7 +37,7 @@ export interface ExpectedScriptSnapshot {
 	/** Expected consent-revocation persistence flag from the generated script. */
 	persistAfterConsentRevoked: boolean | undefined;
 	/** Expected remote script URL from the generated helper script. */
-	src: string;
+	src: string | undefined;
 }
 
 /**
@@ -158,6 +158,7 @@ const cleanupMockBrowser = function cleanupMockBrowser() {
 	delete globalRef.ttq;
 	delete globalRef.snaptr;
 	delete globalRef._snaptr;
+	delete globalRef.pintrk;
 	delete globalRef.rdt;
 	delete globalRef.oaiq;
 	delete globalRef.twq;

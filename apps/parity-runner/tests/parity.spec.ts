@@ -66,9 +66,11 @@ const REQUIRED_CORE_STORIES = [
 	'Core/Consent Dialog Trigger/Dialog Focus Management',
 	'Core/Consent Widget/Default',
 	'Core/Consent Widget/Expanded Categories',
+	'Core/Consent Widget/With Vendors',
+	'Core/Consent Widget/With Vendors Expanded',
 	'Core/Consent Dialog Link/Default',
-	'Core/Frame/Placeholder',
-	'Core/Frame/Granted Content',
+	'Core/Consent Gate/Placeholder',
+	'Core/Consent Gate/Granted Content',
 ] as const;
 
 /**

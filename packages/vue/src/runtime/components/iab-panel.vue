@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
 import {
+	applyPublisherRestrictionsToGVL,
 	resolveIABBannerSummary,
 	resolveIABDialogDisplayModel,
 } from '@c15t/iab/headless';
@@ -10,6 +11,8 @@ import type {
 } from '@c15t/iab/headless';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+
+import '@c15t/ui/styles/components/iab-consent-dialog.css';
 import { getTextDirection } from '@c15t/ui/utils';
 import {
 	computed,
@@ -32,11 +35,16 @@ import {
 } from '#c15t/composables';
 import type { ConsentIabSelection } from '#c15t/composables';
 
-import { useConsentSnapshot, useHasConsentUi } from '../composables/kernel';
+import {
+	useConsentKernel,
+	useConsentSnapshot,
+	useHasConsentUi,
+} from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '../primitives';
 import { useFocusTrap } from '../primitives/use-focus-trap';
+import { saveIABChoice } from '../utils/save-iab-choice';
 import ConsentActions from './actions.vue';
 import type { IabVendorId } from './iab-purpose-item.vue';
 import IabPurposeItem from './iab-purpose-item.vue';
@@ -64,7 +72,11 @@ const config = useConsentConfig();
 const init = useConsentInit();
 const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
-const save = useConsentIabSave();
+const kernel = useConsentKernel();
+const saveIab = useConsentIabSave();
+// The dialog closes in the click task; see `saveIABChoice`.
+const save = (...args: Parameters<typeof saveIab>) =>
+	saveIABChoice(kernel, () => saveIab(...args));
 
 const initValue = computed(() => toValue(init));
 const textDirection = computed(() =>
@@ -134,10 +146,26 @@ const labels = computed(() => ({
 // Which rows this surface renders, and in what order, comes from the
 // shared display model in `@c15t/iab/headless` — the same one React,
 // Svelte and the Astro server render read.
+const publisherRestrictions = computed(
+	() => snapshot.value.iab?.publisherRestrictions
+);
 const display = computed(() =>
 	resolveIABDialogDisplayModel(
-		gvl.value ? { customVendors: customVendors.value, gvl: gvl.value } : null
+		gvl.value
+			? {
+					customVendors: customVendors.value,
+					gvl: gvl.value,
+					publisherRestrictions: publisherRestrictions.value,
+				}
+			: null
 	)
+);
+// The vendor tab reads declarations directly, so give it the ones
+// publisher restrictions leave.
+const vendorData = computed(() =>
+	gvl.value
+		? applyPublisherRestrictionsToGVL(gvl.value, publisherRestrictions.value)
+		: null
 );
 
 const isStackRow = function isStackRow(
@@ -710,7 +738,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 										value="vendors"
 									>
 										<IabVendorList
-											:vendor-data="gvl"
+											:vendor-data="vendorData"
 											:purposes="display.data.purposes"
 											:vendor-consents="draftIab.vendorConsents"
 											:selected-vendor-id="selectedVendorId"
@@ -720,6 +748,10 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											"
 											@vendor-toggle="
 												(vendorId, value) => setVendorConsent(vendorId, value)
+											"
+											@vendor-legitimate-interest-toggle="
+												(vendorId, value) =>
+													setVendorLegitimateInterest(vendorId, value)
 											"
 											@clear-selection="selectedVendorId = null"
 										/>

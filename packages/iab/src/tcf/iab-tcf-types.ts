@@ -59,12 +59,27 @@ export interface TCFConsentData {
 }
 
 /**
- * Publisher restriction for a specific purpose.
+ * Publisher restriction for one purpose and a set of vendors.
+ *
+ * Encoded in the `PubRestrictions` section of the TC string core segment
+ * and reported by `__tcfapi` as `publisher.restrictions`. Restrictions are
+ * only allowed in service-specific TC strings.
+ *
+ * - `0` prohibits the purpose for the vendors on every legal basis. Each
+ *   vendor must declare the purpose.
+ * - `1` requires consent. Each vendor must declare the purpose for
+ *   legitimate interest and list it in `flexiblePurposes`.
+ * - `2` requires legitimate interest. Each vendor must declare the purpose
+ *   for consent and list it in `flexiblePurposes`. Not allowed for purposes
+ *   1, 3, 4, 5 and 6, which TCF allows only with consent.
+ *
+ * Type `3` is reserved by the spec. Unsupported restrictions throw
+ * `PublisherRestrictionError` from `@c15t/iab` instead of being dropped.
  *
  * @public
  */
 export interface PublisherRestriction {
-	/** Purpose ID this restriction applies to */
+	/** Purpose ID this restriction applies to (not a special purpose). */
 	purposeId: number;
 
 	/**

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+
+import '@c15t/ui/styles/components/iab-consent-dialog.css';
 /**
  * A TCF stack: one toggle standing for the purposes it absorbed.
  *
@@ -8,6 +10,8 @@ import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
  * lets the four adapters be compared row for row.
  */
 import switchStyles from '@c15t/ui/styles/components/switch';
+
+import '@c15t/ui/styles/components/switch.css';
 import { computed, ref, toValue } from 'vue';
 
 import {
@@ -61,13 +65,19 @@ const init = useConsentInit();
 
 const iabT = useIabTranslations();
 
+// The stack switch covers the purposes some vendor processes on consent.
+// The others offer only their own objection control.
+const consentPurposes = computed(() =>
+	props.stack.purposes.filter((purpose) => purpose.hasConsentBasis !== false)
+);
+
 const allEnabled = computed(() =>
-	props.stack.purposes.every((purpose) => props.consents[purpose.id] ?? false)
+	consentPurposes.value.every((purpose) => props.consents[purpose.id] ?? false)
 );
 
 const someEnabled = computed(
 	() =>
-		props.stack.purposes.some(
+		consentPurposes.value.some(
 			(purpose) => props.consents[purpose.id] ?? false
 		) && !allEnabled.value
 );
@@ -90,7 +100,7 @@ const partnerLabel = computed(() =>
 const stackChecked = computed({
 	get: () => allEnabled.value,
 	set: (value: boolean) => {
-		for (const purpose of props.stack.purposes) {
+		for (const purpose of consentPurposes.value) {
 			emit('toggle', purpose.id, value);
 			for (const vendor of purpose.vendors) {
 				if (!vendor.usesLegitimateInterest) {
@@ -139,6 +149,7 @@ const stackChecked = computed({
 					<div :class="dialogStyles.partialIndicator" />
 				</template>
 				<SwitchRoot
+					v-if="consentPurposes.length > 0"
 					v-model="stackChecked"
 					v-bind="config.components?.switch?.root"
 					:aria-label="stack.name"
@@ -159,7 +170,7 @@ const stackChecked = computed({
 			</PreferenceItemControl>
 		</div>
 
-		<PreferenceItemContent>
+		<PreferenceItemContent :no-style="false">
 			<div :class="dialogStyles.stackDescription">
 				<p>{{ stack.description }}</p>
 			</div>

@@ -11,12 +11,23 @@
  *   dist/styles/components/<name>.css
  *   dist/styles/components/<name>.d.ts
  *
- * `<name>.js` starts with a side-effect `import "./<name>.css"` so bundlers
- * pull the component CSS in with the class map. `<name>.node.js` is the same
- * class map without that import: it is served through the `node` export
- * condition to runtimes that load the package with plain Node (for example
- * the Next.js Pages Router externalising node_modules), which cannot import
- * CSS and already load the aggregated stylesheet for SSR.
+ * Class maps carry no CSS side-effect import. Component rules reach the page
+ * through the aggregated stylesheet (`styles.css`, `styles.tw3.css`, and the
+ * IAB variants), which `generate-css-entrypoints.ts` builds from these same
+ * `<name>.css` files together with the default theme tokens and primitive
+ * rules. React, Next.js, TanStack Start, Svelte and Astro document one
+ * app-level import of it. A class map that also imported its own CSS made
+ * bundlers emit a second copy of the same rules in a separate asset.
+ *
+ * `<name>.css` stays published. Vue components import it next to each class
+ * map, because Vue apps load no aggregate (Vue supplies the default tokens at
+ * runtime). Hosts that assemble their own stylesheet can import it too; it
+ * holds only that component's rules, without the default tokens or primitive
+ * rules.
+ *
+ * `<name>.node.js` is byte-identical to `<name>.js`. It stays published
+ * because the `node` export condition and the explicit `*.node.js` subpaths
+ * point at it.
  *
  * Relative `@import`s (the shared `animations/*.css` files) are inlined into
  * each component's CSS so every artifact is self-contained.
@@ -88,23 +99,34 @@ const normalizeStyleModule = function normalizeStyleModule(
 
 /**
  * Drop the `import "./<name>.css"` side effect from a normalized class map.
- * Throws when the import is missing so a change to the rslib output shape
- * cannot silently produce a `.node.js` that still differs from `.js`.
+ *
+ * Fresh rslib output (`<name>.module.js`) always carries that import, so its
+ * absence there throws: a change to the rslib output shape must not slip
+ * through as a class map that still imports some other stylesheet. A class
+ * map this script already normalized (a re-run without a rebuild) has no
+ * import left and passes through unchanged.
  */
 const stripCssImport = function stripCssImport(
 	source: string,
-	name: string
+	name: string,
+	fromRslibOutput: boolean
 ): string {
 	const cssImport = new RegExp(
 		`import\\s*["']\\./${name}\\.css["']\\s*;?`,
 		'u'
 	);
-	if (!cssImport.test(source)) {
+	if (fromRslibOutput && !cssImport.test(source)) {
 		throw new Error(
-			`generate-style-artifacts: ${name}.js does not import ./${name}.css; cannot derive ${name}.node.js`
+			`generate-style-artifacts: ${name}.module.js does not import its stylesheet; the rslib output shape changed`
 		);
 	}
-	return source.replace(cssImport, '');
+	const stripped = source.replace(cssImport, '');
+	if (/\.css["']/u.test(stripped)) {
+		throw new Error(
+			`generate-style-artifacts: ${name}.js still references a stylesheet after stripping ./${name}.css`
+		);
+	}
+	return stripped;
 };
 
 const normalizeDeclaration = function normalizeDeclaration(
@@ -137,12 +159,13 @@ for (const name of moduleNames) {
 		join(DIST_COMPONENTS_DIR, `${name}.module.js`),
 		join(DIST_COMPONENTS_DIR, `${name}.js`),
 	]);
-	const classMap = normalizeStyleModule(js.content, name);
-	writeFileSync(join(DIST_COMPONENTS_DIR, `${name}.js`), classMap);
-	writeFileSync(
-		join(DIST_COMPONENTS_DIR, `${name}.node.js`),
-		stripCssImport(classMap, name)
+	const classMap = stripCssImport(
+		normalizeStyleModule(js.content, name),
+		name,
+		js.path.endsWith('.module.js')
 	);
+	writeFileSync(join(DIST_COMPONENTS_DIR, `${name}.js`), classMap);
+	writeFileSync(join(DIST_COMPONENTS_DIR, `${name}.node.js`), classMap);
 
 	const declaration = readExisting([
 		join(TYPES_COMPONENTS_DIR, `${name}.module.css.d.ts`),

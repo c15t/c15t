@@ -95,11 +95,14 @@ export type {
 	ConsentWidgetCompoundComponent,
 	ConsentWidgetProps,
 } from './components/preferences';
-export type { FrameProps } from './components/frame';
-export { Frame } from './components/frame';
-export type { ConsentDraftHandle, ConsentDraftProviderProps } from './draft';
-export { ConsentDraftProvider, useConsentDraft } from './draft';
-export { useConsentManager } from './component-hooks/use-manager';
+export type { ConsentGateProps, FrameProps } from './components/consent-gate';
+export { ConsentGate, Frame } from './components/consent-gate';
+export type {
+	ConsentDraftHandle,
+	ConsentDraftProviderProps,
+	VendorDraftHandle,
+} from './draft';
+export { ConsentDraftProvider, useConsentDraft, useVendorDraft } from './draft';
 export { useTranslations } from './component-hooks/use-translations';
 export {
 	useActiveUI,
@@ -120,14 +123,19 @@ export {
 	usePreferencesPresentation,
 	usePolicyScopeMode,
 	usePurposeConsent,
+	useRegisterConsentCategories,
 	useSaveConsents,
 	useSetActiveUI,
 	useSetLanguage,
 	useSetOverrides,
 	useSnapshot,
 	useSpecialFeatureOptIn,
+	useSubscribeToConsentChanges,
 	useTCString,
 	useUser,
+	useDeclaredVendors,
+	useVendorAllowed,
+	useVendorChoice,
 	useVendorConsent,
 } from './hooks';
 export type {
@@ -152,6 +160,8 @@ export type {
 	OwnedRuntimeProviderProps,
 } from './provider';
 export { ConsentProvider } from './provider';
+export { ConsentTheme } from './consent-theme';
+export type { ConsentThemeProps } from './consent-theme';
 export type { ReactUIOptions } from './types/manager';
 export { defineTheme, type Theme } from './types/theme';
 

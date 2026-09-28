@@ -39,8 +39,11 @@ integration is disabled and labelled "Not configured".
   local init route or backend rewrite.
 - `app/api/c15t/manifest/route.ts` serves the cached public manifest for both
   routers. The handler uses the backend environment variable configured above.
-- `app/app-router/layout.tsx` awaits server prefetch before rendering
-  the boundary, so consent UI is included in the initial HTML.
+- `app/app-router/layout.tsx` starts server prefetch and passes the pending
+  result to the boundary without awaiting it, so the page renders without
+  waiting for the manifest and the banner mounts after hydration. To render
+  the banner in the initial HTML instead, await `resolveConsent` in an async
+  component inside `<Suspense>`, which holds the page back with it.
 - `pages/pages-router.tsx` awaits the Pages Router helper in `getServerSideProps`.
   `pages/_app.tsx` passes `initialConsent` to the same client wrapper.
 - `app/client-init/page.tsx` skips prefetch. The browser resolves the manifest,
@@ -74,9 +77,9 @@ permission. X Pixel waits for marketing. The indicators show effective
 permission, not successful delivery into either vendor's dashboard. DevTools is
 included deliberately in this demo, including production builds.
 
-The video is `https://www.youtube-nocookie.com/embed/czTksCF6X8Y`. The `Frame`
-component keeps its iframe unmounted until measurement is allowed. A nocookie
-URL is still a third-party request once loaded.
+The video is `https://www.youtube-nocookie.com/embed/czTksCF6X8Y`. The
+`ConsentGate` component keeps its iframe unmounted until measurement is
+allowed. A nocookie URL is still a third-party request once loaded.
 
 Browser acceptance tests should intercept vendor and YouTube requests with
 fixtures for deterministic results. Check actual playback separately with the

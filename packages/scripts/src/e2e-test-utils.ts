@@ -144,6 +144,10 @@ export type TestWindow = Window &
 		pirschClearSession?: () => void;
 		pirschInit?: () => void;
 		pirschNotFound?: () => void;
+		pintrk?: ((...args: unknown[]) => void) & {
+			queue?: unknown[][];
+			version?: string;
+		};
 		plausible?: ((...args: unknown[]) => void) & {
 			o?: Record<string, unknown>;
 			q?: unknown[][];
@@ -194,7 +198,8 @@ const muteSubscription = function muteSubscription(
 
 const reconcileScripts = function reconcileScripts(
 	scripts: Script[],
-	consents: ConsentState
+	consents: ConsentState,
+	options: { nonce?: string } = {}
 ): ScriptUpdateResult {
 	const before = loader ? loader.getLoadedScriptIds() : [];
 	void kernel.commands.save(consents);
@@ -204,6 +209,7 @@ const reconcileScripts = function reconcileScripts(
 	} else {
 		loader = createScriptLoader({
 			kernel: muteSubscription(kernel),
+			nonce: options.nonce,
 			scripts,
 		});
 	}
@@ -221,9 +227,10 @@ const reconcileScripts = function reconcileScripts(
  */
 export const loadScripts = function loadScripts(
 	scripts: Script[],
-	consents: ConsentState
+	consents: ConsentState,
+	options: { nonce?: string } = {}
 ): string[] {
-	return reconcileScripts(scripts, consents).loaded;
+	return reconcileScripts(scripts, consents, options).loaded;
 };
 
 /**
@@ -345,6 +352,7 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'pirschClearSession',
 		'pirschInit',
 		'pirschNotFound',
+		'pintrk',
 		'plausible',
 		'posthog',
 		'rdt',

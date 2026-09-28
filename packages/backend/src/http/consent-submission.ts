@@ -20,6 +20,13 @@
  *   uses; a disagreement is a 422, not a record written against the wrong
  *   policy. Recording without either only happens when there is no policy to
  *   attest to.
+ * - Late saves: a replayed save whose token expired before it arrived is
+ *   verified at its `givenAt` instead (see `policy-snapshot.ts`) and filed
+ *   with `runtimePolicySource: 'snapshot_token_replayed'`. A token whose
+ *   policy is no longer in the manifest under the same fingerprint is a
+ *   `STALE_POLICY` 422 with reason `policy-changed`, live or late: the
+ *   visitor saw that policy, and recording against its replacement would
+ *   claim consent to text they never saw.
  * - Scope: a receipt granting a category the resolved policy does not offer
  *   is refused. A denial outside scope is kept, because a persistent refusal
  *   must remain possible there.
@@ -30,7 +37,11 @@
  * still what fills `purposeIds` (2.x parity: granted codes only). `choice`
  * carries only the categories this act confirmed, each with its own
  * confirmation time and policy basis, and is stored as sent. The two must
- * agree where they overlap.
+ * agree where they overlap. `vendorChoice`, when present, is the complete
+ * per-vendor grant map with one confirmation time, stored as sent: the
+ * client merges backend and code-declared vendors, so the manifest is not
+ * an allowlist for it, and not a floor either: a vendor the map omits is one
+ * the visitor's manifest did not carry yet.
  */
 
 import {
@@ -50,6 +61,7 @@ import type {
 	PostSubjectInput,
 	ResolvedPolicyRule,
 	SubjectChoiceWire,
+	VendorChoiceWire,
 } from '@c15t/schema';
 import { getIpAddress } from '@c15t/schema/geo';
 import type { IpAddressConfig } from '@c15t/schema/geo';
@@ -104,7 +116,14 @@ export interface SubmissionContext {
 /** The resolved decision behind a submission, when there is one. */
 export interface ResolvedDecision {
 	readonly input: DecisionInput;
-	readonly source: 'snapshot_token' | 'write_time_fallback';
+	/**
+	 * `snapshot_token_replayed`: the token had expired when the save arrived
+	 * and was verified at the save's `givenAt`.
+	 */
+	readonly source:
+		| 'snapshot_token'
+		| 'snapshot_token_replayed'
+		| 'write_time_fallback';
 	/** Canonical rule authenticated by the snapshot or asserted resolution. */
 	readonly rule: ResolvedPolicyRule;
 	readonly jurisdiction: string;
@@ -116,6 +135,8 @@ export interface PreparedSubmission {
 	readonly input: PostSubjectInput;
 	readonly givenAt: Date;
 	readonly choice: SubjectChoiceWire | undefined;
+	/** Per-vendor grants this act carried, stored as sent. */
+	readonly vendorChoice: VendorChoiceWire | undefined;
 	/** Granted codes after scope filtering, for `purposeIds`. */
 	readonly grantedCodes: readonly string[];
 	/** The preference map after scope filtering, echoed to the client. */
@@ -205,28 +226,35 @@ const asString = (value: unknown): string | undefined =>
 const asNullableString = (value: unknown): string | null =>
 	typeof value === 'string' ? value : null;
 
-/** A decision rebuilt from verified token claims. */
+/**
+ * A decision rebuilt from verified token claims, `malformed` when the claims
+ * are incomplete, or `policy-changed` when the manifest no longer has the
+ * policy they name under the same fingerprint and model.
+ */
 const decisionFromClaims = (
 	claims: Record<string, unknown>,
 	manifest: ConsentManifest,
-	context: SubmissionContext
-): ResolvedDecision | undefined => {
+	context: SubmissionContext,
+	late: boolean
+): ResolvedDecision | 'malformed' | 'policy-changed' => {
 	const policyId = asString(claims.policyId);
 	const fingerprint = asString(claims.fingerprint);
 	const matchedBy = asString(claims.matchedBy);
 	const jurisdiction = asString(claims.jurisdiction);
 	const model = asString(claims.model);
 	if (!policyId || !fingerprint || !matchedBy || !jurisdiction || !model) {
-		return undefined;
+		return 'malformed';
+	}
+	if (manifest.policyFailure) {
+		return 'malformed';
 	}
 	const pack = packById(manifest, policyId);
 	if (
 		!pack ||
 		pack.fingerprints.policy !== fingerprint ||
-		pack.rule.model !== model ||
-		manifest.policyFailure
+		pack.rule.model !== model
 	) {
-		return undefined;
+		return 'policy-changed';
 	}
 	const { rule } = pack;
 	const countryCode = asNullableString(claims.country);
@@ -259,7 +287,7 @@ const decisionFromClaims = (
 		jurisdiction,
 		language,
 		rule,
-		source: 'snapshot_token',
+		source: late ? 'snapshot_token_replayed' : 'snapshot_token',
 	};
 };
 
@@ -364,21 +392,36 @@ const resolveDecision = Effect.fn('submission.resolveDecision')(
 				verifyPolicySnapshotToken(
 					input.policySnapshotToken,
 					context.policySnapshot,
-					context.tenantId
+					context.tenantId,
+					{ decidedAt: input.givenAt, receivedAt: context.now }
 				)
 			);
 			if (!verification.valid) {
-				return yield* new PolicySnapshotError({
-					code: 'POLICY_SNAPSHOT_INVALID',
-					message: 'Policy snapshot token is invalid',
-				});
+				return yield* verification.reason === 'expired'
+					? new PolicySnapshotError({
+							code: 'POLICY_SNAPSHOT_EXPIRED',
+							message:
+								'Policy snapshot token had expired when this choice was made, or the save arrived after the replay window',
+						})
+					: new PolicySnapshotError({
+							code: 'POLICY_SNAPSHOT_INVALID',
+							message: 'Policy snapshot token is invalid',
+						});
 			}
 			const decision = decisionFromClaims(
 				verification.payload,
 				manifest,
-				context
+				context,
+				verification.late
 			);
-			if (!decision) {
+			if (decision === 'policy-changed') {
+				return yield* new StalePolicyError({
+					message:
+						'The policy this token names is no longer in the manifest under the same fingerprint',
+					reason: 'policy-changed',
+				});
+			}
+			if (decision === 'malformed') {
 				return yield* new PolicySnapshotError({
 					code: 'POLICY_SNAPSHOT_INVALID',
 					message: 'Policy snapshot token is missing decision claims',
@@ -463,6 +506,28 @@ const checkChoice = (
 	}
 	return undefined;
 };
+
+/**
+ * Refuses a vendor map that is later than the server clock. Nothing is
+ * checked against the manifest, in either direction:
+ *
+ * - An id the manifest does not list is expected. The client merges the
+ *   backend's vendors with vendors it declares in code.
+ * - A manifest vendor the map omits is one the visitor never saw. The
+ *   client resolves a cached, bundled or prefetched manifest, so a vendor
+ *   added on the backend afterwards is missing from every save until the
+ *   client refreshes, and a queued save replays the same map unchanged.
+ *   Refusing would lose the whole act, category receipts included. An
+ *   omitted vendor reads back as never decided and follows its category,
+ *   which is what a vendor added after the act does everywhere else.
+ *
+ * The map is stored as sent and read back the same way.
+ */
+const checkVendorChoice = (
+	vendorChoice: VendorChoiceWire,
+	now: number
+): BadRequestError | undefined =>
+	checkTimestamp(vendorChoice.confirmedAt, 'vendorChoice.confirmedAt', now);
 
 const deriveConsentAction = (
 	raw: string | undefined,
@@ -711,6 +776,14 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 		}
 		const { appliedPreferences, grantedCodes, choice } = categories;
 
+		const vendorChoice = cookieBanner?.vendorChoice;
+		if (vendorChoice) {
+			const issue = checkVendorChoice(vendorChoice, context.now);
+			if (issue) {
+				return yield* issue;
+			}
+		}
+
 		const model = effectiveModel(decision, input.jurisdictionModel);
 		const validityMs = choiceValidityMs(decision);
 		const proof = proofFields(decision, context, input.metadata);
@@ -732,6 +805,7 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 				validityMs === undefined
 					? undefined
 					: new Date(givenAt.getTime() + validityMs),
+			vendorChoice,
 		};
 	}
 );

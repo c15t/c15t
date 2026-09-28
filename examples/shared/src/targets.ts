@@ -4,6 +4,8 @@ export interface ExampleTarget {
 	routes: string[];
 	start: (port: number) => string[];
 	failureRoute?: string;
+	/** Build and start environment on top of {@link exampleEnvironment}. */
+	env?: Record<string, string>;
 }
 
 const preview = (port: number) => ['run', 'start', '--port', String(port)];
@@ -51,6 +53,17 @@ export const targets: ExampleTarget[] = [
 		id: 'astro',
 		routes: ['/consent-example'],
 		start: () => ['dist/server/entry.mjs'],
+	},
+	{
+		// The same demo built as a static site with no adapter: every page
+		// is prerendered, and the browser resolves the visitor's policy and
+		// applies their stored choice.
+		directory: 'astro-demo',
+		env: { C15T_ASTRO_OUTPUT: 'static' },
+		failureRoute: '/consent-example',
+		id: 'astro-static',
+		routes: ['/consent-example'],
+		start: vitePreview,
 	},
 	{
 		directory: 'sveltekit-demo',

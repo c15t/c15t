@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Frame, ConsentDialogLink } from '@c15t/svelte';
+	import { ConsentGate, ConsentDialogLink } from '@c15t/svelte';
 	import { getConsentManager } from '@c15t/svelte/headless';
 
 	const consent = getConsentManager();
@@ -33,7 +33,7 @@
 	</section>
 	<section class="card">
 		<h2>YouTube embed</h2>
-		<Frame category="measurement">
+		<ConsentGate category="measurement">
 			{#snippet placeholder()}<div class="placeholder">
 					<p>Allow measurement to load this YouTube video.</p>
 					<ConsentDialogLink>Choose video permissions</ConsentDialogLink>
@@ -44,7 +44,7 @@
 				allow="encrypted-media; picture-in-picture"
 				allowfullscreen
 			></iframe>
-		</Frame>
+		</ConsentGate>
 	</section>
 	<footer><ConsentDialogLink>Privacy settings</ConsentDialogLink></footer>
 </main>

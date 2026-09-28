@@ -11,8 +11,8 @@ import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useConsentManager } from '~/component-hooks/use-manager';
 import { useConsentDialogTrigger } from '~/component-hooks/use-panel-trigger';
+import { useBranding } from '~/hooks';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 
 import type { CornerPosition, TriggerVisibility } from '../types';
@@ -123,7 +123,7 @@ export const TriggerRoot = ({
 	onPositionChange,
 	onClick,
 }: TriggerRootProps): ReactNode => {
-	const { branding } = useConsentManager();
+	const branding = useBranding() ?? 'c15t';
 	const { isVisible: computedVisible, openDialog } = useConsentDialogTrigger({
 		onClick,
 		showWhen,

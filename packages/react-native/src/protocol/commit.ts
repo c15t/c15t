@@ -166,6 +166,17 @@ export interface SavePayload {
 	tcString?: string | null;
 	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */
 	givenAt?: number;
+	/**
+	 * Granted flag for every declared vendor after this action. Present only
+	 * when vendors are declared; a narrowed replay drops it. The native cores
+	 * declare no vendors yet, so they never write it; it is carried so the body
+	 * stays the one the kernel describes.
+	 */
+	vendorChoice?: {
+		version: 1;
+		confirmedAt: number;
+		grants: Readonly<Record<string, boolean>>;
+	};
 }
 
 export type NativeSavePayload = SavePayload;

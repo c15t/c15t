@@ -24,7 +24,12 @@
 		noStyle = false,
 		iabT,
 	}: {
-		stack: ProcessedStack;
+		/** A stack, or a display-model row whose purposes carry `hasConsentBasis`. */
+		stack: Omit<ProcessedStack, 'purposes'> & {
+			purposes: (ProcessedStack['purposes'][number] & {
+				hasConsentBasis?: boolean;
+			})[];
+		};
 		consents: Record<number, boolean>;
 		onToggle: (purposeId: number, value: boolean) => void;
 		vendorConsents: Record<string, boolean>;
@@ -47,11 +52,19 @@
 	let isExpanded = $state(false);
 	let stackChecked = $state(false);
 
+	// The stack switch covers the purposes some vendor processes on consent.
+	// The others offer only their own objection control; without one, the
+	// rows keep their consent switch and the stack covers them too.
+	const consentPurposes = $derived(
+		stack.purposes.filter(
+			(p) => p.hasConsentBasis !== false || !onPurposeLegitimateInterestToggle
+		)
+	);
 	const allEnabled = $derived(
-		stack.purposes.every((p) => consents[p.id] ?? false)
+		consentPurposes.every((p) => consents[p.id] ?? false)
 	);
 	const someEnabled = $derived(
-		stack.purposes.some((p) => consents[p.id] ?? false) && !allEnabled
+		consentPurposes.some((p) => consents[p.id] ?? false) && !allEnabled
 	);
 
 	$effect(() => {
@@ -59,7 +72,7 @@
 	});
 
 	const handleStackToggle = function handleStackToggle(value: boolean) {
-		for (const purpose of stack.purposes) {
+		for (const purpose of consentPurposes) {
 			onToggle(purpose.id, value);
 			for (const vendor of purpose.vendors) {
 				if (!vendor.usesLegitimateInterest) {
@@ -106,21 +119,23 @@
 				>
 				<div class={noStyle ? '' : styles.partialIndicator || ''}></div>
 			{/if}
-			<Switch.Root
-				aria-label={stack.name}
-				bind:checked={stackChecked}
-				onclick={() => handleStackToggle(stackChecked)}
-				class={noStyle ? '' : sw.root}
-				data-size="medium"
-			>
-				<Switch.Control class={noStyle ? '' : sw.track}>
-					<Switch.Thumb class={noStyle ? '' : sw.thumb} />
-				</Switch.Control>
-			</Switch.Root>
+			{#if consentPurposes.length > 0}
+				<Switch.Root
+					aria-label={stack.name}
+					bind:checked={stackChecked}
+					onclick={() => handleStackToggle(stackChecked)}
+					class={noStyle ? '' : sw.root}
+					data-size="medium"
+				>
+					<Switch.Control class={noStyle ? '' : sw.track}>
+						<Switch.Thumb class={noStyle ? '' : sw.thumb} />
+					</Switch.Control>
+				</Switch.Root>
+			{/if}
 		</PreferenceItem.Control>
 	</div>
 
-	<PreferenceItem.Content>
+	<PreferenceItem.Content {noStyle}>
 		<div class={noStyle ? '' : styles.stackDescription || ''}>
 			<p>{stack.description}</p>
 		</div>

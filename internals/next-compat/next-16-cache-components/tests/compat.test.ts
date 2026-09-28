@@ -45,6 +45,27 @@ defineCompatSuite({
 			path: '/ssr-stream',
 			rendering: { kind: 'partial' },
 		},
+		{
+			gatedEmbed: true,
+			initPath: 'client',
+			name: 'gate',
+			path: '/gate',
+			rendering: { kind: 'static' },
+		},
+		{
+			gatedEmbed: true,
+			initPath: 'ssr',
+			name: 'gate-ssr',
+			path: '/gate-ssr',
+			rendering: { kind: 'partial' },
+		},
+		{
+			gatedEmbed: true,
+			initPath: 'ssr-stream',
+			name: 'gate-stream',
+			path: '/gate-stream',
+			rendering: { kind: 'partial' },
+		},
 	],
 	title: 'Next 16 / App Router / cacheComponents',
 });

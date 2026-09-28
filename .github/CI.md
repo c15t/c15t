@@ -6,7 +6,7 @@ benchmark should reuse an existing group unless it proves a different contract.
 | Group | Owns | Does not need another copy in |
 | --- | --- | --- |
 | Repository and docs | Lint, format, selectors, tooling contracts, generated docs | Package runtime builds |
-| Package behavior and types | Kernel/storage/policy logic, adapter components, public types, test fixture types, benchmark helper units | Every example journey |
+| Package behavior and types | Kernel/storage/policy logic, adapter components, public types, test fixture types, external observers of packed exports, benchmark helper units | Every example journey |
 | Database behavior | SQLite, PGlite, real Postgres/MySQL, migrations and audit contracts | Browser acceptance |
 | Example acceptance | Production setup, vendor and iframe gating, revocation, navigation and outage recovery | Each benchmark timing loop |
 | Next compatibility | Packed exports, Next 15/16, App/Pages, Cache Components, static export, first HTML and request/cache contracts | A second version matrix |
@@ -27,6 +27,7 @@ bun scripts/ci-run.ts build
 bun scripts/ci-run.ts types
 bun scripts/ci-run.ts testTypes
 bun scripts/ci-run.ts tests
+bun turbo run test --filter=@c15t/consent-observers
 CI_INTEGRATION=examples CI_TARGETS=react,vue bun scripts/ci-browser.ts
 CI_INTEGRATION=compat CI_TARGETS=16-app,16-static-export bun scripts/ci-browser.ts
 CI_INTEGRATION=parity CI_TARGETS=react,svelte,vue,astro bun scripts/ci-browser.ts
@@ -41,6 +42,15 @@ bun scripts/ci-mobile-bench-report.ts --kind ios-toolchain --report-dir .ci-repo
 JAVA_HOME=$(/usr/libexec/java_home -v 17) ANDROID_HOME=$HOME/Library/Android/sdk \
   sh native/core-android/gradlew -p native/core-android :c15t-android:connectedDebugAndroidTest --no-build-cache
 ```
+
+`internals/consent-observers` is an ordinary package test with a different
+install. Its `test` script packs the `c15t` closure with the next-compat pack
+step, type-checks against the extracted `dist-types`, then runs Vitest against
+the extracted `dist`. It owns the external-observer contract: reading and
+subscribing through `c15t/runtime` and `c15t/react/context`, provider
+replacement and isolation, StrictMode, borrowed-runtime ownership, and Next.js
+and TanStack Start request isolation. Any change to a package in that closure
+selects it.
 
 The selector compares committed changes with the merge base. Without
 `CI_DIFF_BASE`, it selects a full run. Its regression tests use the real
@@ -75,10 +85,12 @@ green when a pod fetch fails; read it as a build report. It is the most
 expensive thing here: roughly 25 macOS minutes and 12 Ubuntu minutes per
 selected run, and the same again on a dependency bump, because a full run
 selects it. The mobile SDK group is required when selected and costs roughly 10
-macOS plus 8 Ubuntu minutes. Both groups pin Xcode 27, the version
-`native/CONTRACT.md` standardises on, export `DEVELOPER_DIR` instead of
-switching `xcode-select`, cache SwiftPM, Gradle and CocoaPods, and use
-GitHub-hosted runners only. Files under `native/` own no workspace, so they
+macOS plus 8 Ubuntu minutes. Both groups take Xcode 27, the version
+`native/CONTRACT.md` standardises on, and fall back to Xcode 26, which is all
+`macos-latest` ships; the Swift sources build on either because the expanded
+tracking request is found by selector at runtime rather than by declaration.
+They export `DEVELOPER_DIR` instead of switching `xcode-select`, cache SwiftPM,
+Gradle and CocoaPods, and use GitHub-hosted runners only. Files under `native/` own no workspace, so they
 still widen to a full run.
 
 The Android kernel's instrumented suite in `src/androidTest` runs on a booted

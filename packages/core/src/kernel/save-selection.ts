@@ -2,7 +2,12 @@ import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type { OptionalConsentCategory } from '../consent-record/types';
 import type { SavePayload } from '../types';
 
-/** Keep surviving confirmations without renewing their receipts or action time. */
+/**
+ * Keep surviving confirmations without renewing their receipts or action
+ * time. The vendor grant map rides along untouched: it is a whole decision
+ * of its own, and only a newer action that carried its own map supersedes
+ * it, which the callers check.
+ */
 export const selectSavePayload = function selectSavePayload(
 	payload: SavePayload,
 	keep: (category: OptionalConsentCategory) => boolean

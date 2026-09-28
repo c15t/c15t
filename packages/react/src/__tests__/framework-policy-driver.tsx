@@ -30,7 +30,7 @@ import {
 	ConsentDialog,
 	ConsentDialogLink,
 	ConsentDialogTrigger,
-	Frame,
+	ConsentGate,
 } from '@c15t/react';
 import { KernelContext } from '@c15t/react/context';
 import type { GlobalVendorList, PolicyResolution } from '@c15t/schema/types';
@@ -297,6 +297,8 @@ export const createFrameworkPolicyDriver = ({
 			legacyKey,
 			`${keys.consent}-notice`,
 			`${keys.consent}-privacy`,
+			// A clear's epoch outlives it and would void the next seed's records.
+			keys.epoch,
 		]) {
 			localStorage.removeItem(key);
 			document.cookie = `${key}=; Max-Age=0; Path=/`;
@@ -488,6 +490,8 @@ export const createFrameworkPolicyDriver = ({
 						}),
 
 						presentation,
+						// A real reload restarts the browser test page.
+						reloadOnConsentRevoked: false,
 					}}
 				>
 					<Mount />
@@ -496,7 +500,7 @@ export const createFrameworkPolicyDriver = ({
 					<ConsentDialogTrigger />
 					<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 					{setup.probeGates ? (
-						<Frame
+						<ConsentGate
 							category="marketing"
 							placeholder={
 								<div data-testid="policy-iframe-placeholder">Blocked frame</div>
@@ -508,7 +512,7 @@ export const createFrameworkPolicyDriver = ({
 								src="about:blank#c15t-policy-probe"
 								data-testid="policy-iframe"
 							/>
-						</Frame>
+						</ConsentGate>
 					) : null}
 				</ConsentRoot>
 			);

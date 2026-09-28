@@ -42,6 +42,7 @@ describe('readStoredRecords', () => {
 			now: NOW,
 			optOutDirectives: [],
 			subject: null,
+			vendorChoice: null,
 		});
 	});
 
@@ -123,6 +124,7 @@ describe('readStoredRecordsFromCookieHeader', () => {
 				{ categories: ['marketing'], recordedAt: NOW - 2000, source: 'gpc' },
 			],
 			subject: null,
+			vendorChoice: null,
 		});
 	});
 

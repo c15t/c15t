@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'Dostosuj tutaj swoje ustawienia prywatności. Możesz wybrać, które rodzaje plików cookie i technologii śledzenia chcesz zaakceptować.',
 		title: 'Ustawienia prywatności',
+		vendors: {
+			disabledByCategory: 'Włącz tę kategorię, aby wybrać dostawców.',
+			privacyPolicy: 'Polityka prywatności',
+			switchLabel: 'Zezwól na {vendor}',
+			title: 'Dostawcy ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

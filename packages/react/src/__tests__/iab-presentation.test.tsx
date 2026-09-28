@@ -5,8 +5,9 @@ import {
 	createConsentKernel,
 	resolveIABBannerSummary,
 } from '@c15t/core';
+import type { ConsentKernel } from '@c15t/core';
 import type { GlobalVendorList } from '@c15t/schema/types';
-import { useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -327,5 +328,73 @@ it.each(['banner', 'dialog'] as const)(
 		reply.resolve({ ok: true });
 		await pending;
 		expect(controls.activeUI).toBe('dialog');
+	}
+);
+
+it.each(
+	(['banner', 'dialog'] as const).flatMap((surface) =>
+		(['accept', 'reject'] as const).flatMap((action) =>
+			(['pending', 'rejected'] as const).map((outcome) => ({
+				action,
+				outcome,
+				surface,
+			}))
+		)
+	)
+)(
+	'the IAB $surface closes on $action before a $outcome save settles',
+	async ({ action, outcome, surface }) => {
+		const save = vi.fn(() =>
+			outcome === 'pending'
+				? Promise.withResolvers<{ ok: boolean }>().promise
+				: Promise.reject(new Error('offline'))
+		);
+		let kernel: ConsentKernel | null = null;
+		const Probe = () => {
+			const current = useContext(KernelContext);
+			useEffect(() => {
+				kernel = current;
+			}, [current]);
+			return null;
+		};
+		const mounted: { screen?: Awaited<ReturnType<typeof render>> } = {};
+		onTestFinished(async () => {
+			await mounted.screen?.unmount();
+		});
+		mounted.screen = await render(
+			<ComponentFixtureProvider
+				options={{
+					...options(false),
+					initialUI: surface,
+					mode: custom({ save }),
+				}}
+			>
+				<Probe />
+				{surface === 'banner' ? <IABConsentBanner /> : <IABConsentDialog />}
+			</ComponentFixtureProvider>
+		);
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				surface === 'banner'
+					? `[data-testid="iab-consent-banner-${action}-button"]`
+					: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
+			);
+		await vi.waitFor(() => {
+			expect(button()).not.toBeNull();
+			expect(button()?.disabled).toBe(false);
+		});
+		const snapshot = () => (kernel as ConsentKernel | null)?.getSnapshot();
+		button()?.click();
+		// Closed in the click task, before the TC string or the request.
+		expect(snapshot()?.activeUI).toBe('none');
+		await vi.waitFor(() => expect(card(surface)).toBeNull());
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		expect(snapshot()?.iab?.authority).toBeTruthy();
+		expect(snapshot()?.promptRequirement.kind).toBe('none');
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20);
+		});
+		expect(snapshot()?.activeUI).toBe('none');
+		expect(card(surface)).toBeNull();
 	}
 );

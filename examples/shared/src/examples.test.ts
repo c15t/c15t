@@ -112,7 +112,7 @@ for (const target of selectedTargets()) {
 				expect(browserInitRequests).toBe(0);
 			});
 
-			test('Frame is visible without completing an entrance animation', async () => {
+			test('ConsentGate is visible without completing an entrance animation', async () => {
 				({ context, page, requests } = await openBrowserContext(
 					browser,
 					server.baseURL,
@@ -138,11 +138,18 @@ for (const target of selectedTargets()) {
 
 		for (const route of target.routes) {
 			if (target.id === 'nextjs') {
-				test(`${route}: initial HTML contains consent UI before hydration`, async () => {
+				// The App Router layout passes the pending consent state without
+				// awaiting it, so the page renders first and the banner mounts
+				// after hydration. The Pages Router awaits it in
+				// getServerSideProps and renders the banner on the server.
+				const bannerInHTML = route !== '/app-router';
+				test(`${route}: initial HTML renders the page with embeds blocked`, async () => {
 					const response = await fetch(`${server.baseURL}${route}`);
 					expect(response.ok).toBe(true);
 					const html = await response.text();
-					expect(html).toContain('data-testid="consent-banner-root"');
+					expect(html.includes('data-testid="consent-banner-root"')).toBe(
+						bannerInHTML
+					);
 					expect(html).toContain('data-testid="frame-placeholder"');
 					expect(html).not.toContain('<iframe');
 				});
@@ -283,6 +290,49 @@ for (const target of selectedTargets()) {
 				await expect.poll(() => video(page).count()).toBe(1);
 				await openPreferences(page);
 				expect(requests.unexpected).toEqual([]);
+			});
+		}
+
+		if (target.id === 'astro' || target.id === 'astro-static') {
+			test('ClientRouter navigation keeps one runtime and the banner state', async () => {
+				await visit('/consent-example');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				await page.evaluate(() => {
+					(window as unknown as { __runtimeMarker: unknown }).__runtimeMarker =
+						(window as unknown as { __c15tAstro: unknown }).__c15tAstro;
+				});
+				const sameRuntime = () =>
+					page.evaluate(
+						() =>
+							(window as unknown as { __runtimeMarker: unknown })
+								.__runtimeMarker ===
+							(window as unknown as { __c15tAstro: unknown }).__c15tAstro
+					);
+
+				// A swapped-in page still owes the banner until someone chooses.
+				await page
+					.getByRole('link', { exact: true, name: 'Second page' })
+					.click();
+				await page.waitForURL('**/second');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				expect(await sameRuntime()).toBe(true);
+
+				await rejectButton(page).click();
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(false);
+				await page
+					.getByRole('link', { exact: true, name: 'Consent example' })
+					.click();
+				await page.waitForURL('**/consent-example');
+				await expect
+					.poll(() =>
+						page
+							.getByRole('heading', { exact: true, name: 'Consent example' })
+							.isVisible()
+					)
+					.toBe(true);
+				expect(await rejectButton(page).isVisible()).toBe(false);
+				expect(await sameRuntime()).toBe(true);
+				await expectNoTracking(page, requests);
 			});
 		}
 

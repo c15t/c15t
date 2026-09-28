@@ -29,17 +29,14 @@ layout or `_app.tsx`. Tailwind CSS 3 uses the separate build shown below.
 
 ## Tokens
 
-The provider snippets below are partial configuration examples. Apply them in
-your existing Client Component wrapper, keeping its transport, prefetch,
-children and other options. `ConsentRoot` also accepts `theme` and
-`components` through `options`.
-
 <import src="../../../shared/react/styling/overview.mdx#tokens-intro" />
 
-```tsx
-import { ConsentProvider, defineTheme } from 'c15t/next';
+Define the theme in a module without `'use client'`:
 
-const theme = defineTheme({
+```ts title="consent-theme.ts"
+import { defineTheme } from 'c15t/next';
+
+export const theme = defineTheme({
 	colors: { primary: '#2f6f4e' },
 	radius: { lg: '4px' },
 	consentActions: {
@@ -47,9 +44,46 @@ const theme = defineTheme({
 		dismiss: { variant: 'neutral', mode: 'stroke' },
 	},
 });
-
-<ConsentProvider options={{ mode, theme }} />;
 ```
+
+Render `ConsentTheme` in the root layout, a Server Component. This partial
+example keeps the `resolveConsent()` state and the Client Component wrapper
+from your setup:
+
+```tsx title="app/layout.tsx"
+import { ConsentTheme } from 'c15t/next';
+import { resolveConsent } from 'c15t/next/server';
+
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
+import { theme } from '../consent-theme';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+	const state = resolveConsent({ config: consentConfig });
+	return (
+		<html lang="en">
+			<body>
+				<ConsentTheme theme={theme} />
+				<Consent state={state}>{children}</Consent>
+			</body>
+		</html>
+	);
+}
+```
+
+`consentActions` is read by the components in the browser, so pass the same
+theme to `ConsentRoot` through `options` in the Client Component wrapper:
+
+```tsx title="components/consent.tsx (partial)"
+<ConsentRoot state={state} config={consentConfig} options={{ theme }}>
+```
+
+A theme with tokens only needs no `options.theme`. View the page source: the
+`<style id="c15t-theme">` element is in the server HTML, before the banner.
+In the Pages Router, render `ConsentTheme` in `pages/_document.tsx`, which
+only runs on the server.
+
+<import src="../../../shared/react/styling/overview.mdx#theme-migration" />
 
 <import src="../../../shared/react/styling/overview.mdx#token-roles" />
 

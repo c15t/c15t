@@ -5,7 +5,7 @@ import type { TanstackBenchScenario } from './state';
 
 /**
  * Same DOM as the Next arm's shell: one heading, the soft-navigation link,
- * and the preferences button the repeat-visitor arm clicks.
+ * and the preferences button the saved-consent visits click.
  */
 export const BenchmarkPageShell = ({
 	scenario,

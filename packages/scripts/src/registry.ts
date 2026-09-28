@@ -98,6 +98,16 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 export const builtInScriptIntegrations = [
 	{
 		consentCategory: 'necessary',
+		docsSlug: 'cloudflare-zaraz',
+		hint: 'Consent bridge for tools managed by Zaraz',
+		integrationCategory: 'tag-manager',
+		key: 'cloudflareZaraz',
+		label: 'Cloudflare Zaraz',
+		packageSubpath: 'cloudflare-zaraz',
+		vendor: 'cloudflare-zaraz',
+	},
+	{
+		consentCategory: 'necessary',
 		docsSlug: 'google-tag-manager',
 		hint: 'GTM container script',
 		integrationCategory: 'tag-manager',
@@ -215,6 +225,16 @@ export const builtInScriptIntegrations = [
 		label: 'Mixpanel Analytics',
 		packageSubpath: 'mixpanel-analytics',
 		vendor: 'mixpanel-analytics',
+	},
+	{
+		consentCategory: 'measurement',
+		docsSlug: 'one-dollar-stats',
+		hint: 'Website analytics with no API key',
+		integrationCategory: 'analytics',
+		key: 'oneDollarStats',
+		label: 'OneDollarStats',
+		packageSubpath: 'one-dollar-stats',
+		vendor: 'one-dollar-stats',
 	},
 	{
 		consentCategory: 'measurement',
@@ -358,6 +378,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'functionality',
+		docsSlug: 'front-chat',
+		hint: 'Live chat widget',
+		integrationCategory: 'functional',
+		key: 'frontChat',
+		label: 'Front Chat',
+		packageSubpath: 'front-chat',
+		vendor: 'front-chat',
+	},
+	{
+		consentCategory: 'functionality',
 		docsSlug: 'intercom',
 		hint: 'Messenger and live chat widget',
 		integrationCategory: 'functional',
@@ -385,6 +415,16 @@ export const builtInScriptIntegrations = [
 		label: 'OpenAI Pixel (ChatGPT Ads)',
 		packageSubpath: 'openai-pixel',
 		vendor: 'openai-pixel',
+	},
+	{
+		consentCategory: 'marketing',
+		docsSlug: 'pinterest-tag',
+		hint: 'Pinterest ads tracking',
+		integrationCategory: 'ads-and-pixels',
+		key: 'pinterestTag',
+		label: 'Pinterest Tag',
+		packageSubpath: 'pinterest-tag',
+		vendor: 'pinterest-tag',
 	},
 	{
 		consentCategory: 'marketing',

@@ -47,6 +47,13 @@ export interface CompatScenario {
 	 * `null` for paths that resolve without any geo input.
 	 */
 	country?: string | null;
+	/**
+	 * The page renders `GatedEmbed` (a marketing `ConsentGate` around the
+	 * stub's counted embed) in its prerendered shell. Adds a test that the
+	 * placeholder is in the first HTML and that the embed document is
+	 * requested only after consent, exactly once per page load.
+	 */
+	gatedEmbed?: boolean;
 }
 
 export interface CompatSuiteOptions {
@@ -56,6 +63,8 @@ export interface CompatSuiteOptions {
 
 const TEST_COUNTRY = 'FR';
 const BANNER_MARKER = 'consent-banner-root';
+const GATE_PLACEHOLDER_MARKER = 'data-testid="frame-placeholder"';
+const GATED_EMBED_PATH = '/api/c15t/__compat/embed';
 
 const fetchHTML = async function fetchHTML(
 	baseURL: string,
@@ -120,6 +129,27 @@ const fetchManifestRequests = async function fetchManifestRequests(
 		manifestRequests: RecordedInitRequest[];
 	};
 	return body.manifestRequests;
+};
+
+/**
+ * Counts the browser's requests for the gated embed document in a context,
+ * including a load the browser starts and then cancels.
+ */
+const watchEmbedRequests = function watchEmbedRequests(
+	target: BrowserContext
+): { count: () => number; reset: () => void } {
+	let requests = 0;
+	target.on('request', (request) => {
+		if (new URL(request.url()).pathname === GATED_EMBED_PATH) {
+			requests += 1;
+		}
+	});
+	return {
+		count: () => requests,
+		reset: () => {
+			requests = 0;
+		},
+	};
 };
 
 const clearInitRequests = async function clearInitRequests(baseURL: string) {
@@ -315,6 +345,75 @@ export const defineCompatSuite = function defineCompatSuite({
 					expect(pageErrors).toEqual([]);
 					expect(consoleErrors).toEqual([]);
 				});
+
+				if (scenario.gatedEmbed) {
+					it('prerenders the gate placeholder and loads the embed once, only after consent', async () => {
+						const initialHTML = await fetchHTML(baseURL, scenario.path);
+						expect(initialHTML).toContain(GATE_PLACEHOLDER_MARKER);
+						expect(initialHTML).not.toContain(`src="${GATED_EMBED_PATH}"`);
+
+						// New visitor: nothing reaches the embed before a choice.
+						const embed = watchEmbedRequests(context);
+						await page.goto(`${baseURL}${scenario.path}`, {
+							waitUntil: 'load',
+						});
+						await waitForInit(page);
+						await page.waitForTimeout(500);
+						expect(embed.count()).toBe(0);
+
+						// Accept: the embed loads once.
+						await page.click('[data-testid="consent-banner-accept-button"]');
+						await page
+							.locator('[data-testid="compat-gated-embed"]')
+							.waitFor({ state: 'attached', timeout: 30_000 });
+						await expect.poll(embed.count, { timeout: 10_000 }).toBe(1);
+						await page.waitForFunction(
+							() => document.cookie.includes('c15t='),
+							undefined,
+							{ timeout: 10_000 }
+						);
+						await page.waitForTimeout(500);
+						expect(embed.count()).toBe(1);
+
+						// Returning visitor with the grant: once per page load.
+						embed.reset();
+						await page.reload({ waitUntil: 'load' });
+						await waitForInit(page);
+						await page
+							.locator('[data-testid="compat-gated-embed"]')
+							.waitFor({ state: 'attached', timeout: 30_000 });
+						await page.waitForTimeout(500);
+						expect(embed.count()).toBe(1);
+
+						// Returning visitor who declined: never.
+						const declined = await browser.newContext({
+							extraHTTPHeaders: { 'x-vercel-ip-country': TEST_COUNTRY },
+						});
+						const declinedEmbed = watchEmbedRequests(declined);
+						try {
+							const other = await declined.newPage();
+							await other.goto(`${baseURL}${scenario.path}`, {
+								waitUntil: 'load',
+							});
+							await waitForInit(other);
+							await other.click('[data-testid="consent-banner-reject-button"]');
+							await other.waitForFunction(
+								() => document.cookie.includes('c15t='),
+								undefined,
+								{ timeout: 10_000 }
+							);
+							await other.reload({ waitUntil: 'load' });
+							await waitForInit(other);
+							await other.waitForTimeout(500);
+						} finally {
+							await declined.close();
+						}
+						expect(declinedEmbed.count()).toBe(0);
+
+						expect(pageErrors).toEqual([]);
+						expect(consoleErrors).toEqual([]);
+					});
+				}
 
 				it('persists consent across a reload', async () => {
 					await page.goto(`${baseURL}${scenario.path}`, {

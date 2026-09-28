@@ -25,6 +25,38 @@ describe('bundled frame translations', () => {
 	);
 });
 
+describe('bundled vendor list translations', () => {
+	const expectNonEmpty = (value: string | undefined) => {
+		expect(value).toEqual(expect.any(String));
+		expect(value?.trim()).not.toBe('');
+	};
+
+	it.each(Object.entries(bundledTranslations))(
+		'%s defines the vendor list copy with its placeholders',
+		(_language, translations) => {
+			const { vendors } = translations.consentManagerDialog;
+			expectNonEmpty(vendors?.disabledByCategory);
+			expectNonEmpty(vendors?.privacyPolicy);
+			expect(vendors?.switchLabel).toContain('{vendor}');
+			expect(vendors?.title).toContain('{count}');
+		}
+	);
+
+	it.each(
+		Object.entries(bundledTranslations).filter(
+			([language]) => language !== 'en'
+		)
+	)('%s does not reuse the English vendor copy', (_language, translations) => {
+		// The React and Vue rows fall back to English on a missing key, so a
+		// locale that omits the block would show English inside localized
+		// copy without anything failing.
+		const english = bundledTranslations.en.consentManagerDialog.vendors;
+		const { vendors } = translations.consentManagerDialog;
+		expect(vendors?.disabledByCategory).not.toBe(english?.disabledByCategory);
+		expect(vendors?.switchLabel).not.toBe(english?.switchLabel);
+	});
+});
+
 describe('bundled notice and rights translations', () => {
 	const expectNonEmpty = (value: string) => {
 		expect(value).toEqual(expect.any(String));

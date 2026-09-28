@@ -7,6 +7,8 @@ import type {
 import type { PolicyRight } from '@c15t/schema/types';
 import type { CompleteTranslations } from '@c15t/translations';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+
+import '@c15t/ui/styles/components/consent-banner.css';
 import { getTextDirection } from '@c15t/ui/utils';
 import { computed, mergeProps, ref, Teleport, Transition } from 'vue';
 
@@ -24,7 +26,7 @@ import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useMounted } from '../composables/use-mounted';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './actions.vue';
-import ConsentDescription from './description.vue';
+import DescriptionContent from './description-content.vue';
 import ConsentTag from './tag.vue';
 
 /**
@@ -292,7 +294,10 @@ const onAction = function onAction(action: PresentationAction) {
 							>
 								{{ bannerTitle }}
 							</h2>
-							<ConsentDescription context="banner" />
+							<DescriptionContent
+								context="banner"
+								:description-class="bannerStyles.description"
+							/>
 						</div>
 						<ConsentActions
 							data-testid="consent-banner-footer"

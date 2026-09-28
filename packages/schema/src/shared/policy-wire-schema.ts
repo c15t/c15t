@@ -2,13 +2,14 @@
  * Valibot mirrors of the v3 policy wire contract.
  *
  * Backends validate and document `/init` with these. Clients use the plain
- * reader in `policy-resolution.ts` so `@c15t/schema/types` stays free of the
+ * reader in `policy-resolution-wire.ts` so `@c15t/schema/types` stays free of the
  * valibot runtime. A test keeps the two in agreement.
  */
 
 import * as v from 'valibot';
 
-import { POLICY_CONTRACT_VERSION } from './policy-resolution';
+import { POLICY_CONTRACT_VERSION } from './policy-resolution-wire';
+import type { ResolvedPolicyRule } from './policy-rule';
 import {
 	collectResolvedPolicyRuleIssues,
 	isPlainPolicyObject,
@@ -17,8 +18,7 @@ import {
 	POLICY_PROMPTS,
 	POLICY_RIGHTS,
 	POLICY_RULE_MODELS,
-} from './policy-rule';
-import type { ResolvedPolicyRule } from './policy-rule';
+} from './policy-rule-invariants';
 
 export const policyRuleModelSchema = v.picklist(POLICY_RULE_MODELS);
 export const policyPromptSchema = v.picklist(POLICY_PROMPTS);

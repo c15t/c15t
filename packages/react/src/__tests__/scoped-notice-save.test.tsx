@@ -92,8 +92,14 @@ for (const scenario of ['notice', 'scoped', 'necessary-only'] as const) {
 				);
 				expect(button).not.toBeNull();
 				button?.click();
+				// The dialog leaves in the click task, for the banner only while
+				// a notice is still owed, before the request is sent.
+				const prompt = scenario === 'notice' ? 'notice' : 'none';
+				expect(kernel.getSnapshot().activeUI).toBe(
+					prompt === 'none' ? 'none' : 'banner'
+				);
+				expect(save).not.toHaveBeenCalled();
 				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
-				expect(kernel.getSnapshot().activeUI).toBe('dialog');
 				expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
 				/* oxlint-disable vitest/no-conditional-expect -- These assertions apply to the explicitly declared scoped-policy scenario. */
 				if (scenario !== 'notice') {
@@ -106,10 +112,6 @@ for (const scenario of ['notice', 'scoped', 'necessary-only'] as const) {
 				}
 				/* oxlint-enable vitest/no-conditional-expect */
 				pending.resolve({ ok: true });
-				let prompt = 'none';
-				if (scenario === 'notice') {
-					prompt = 'notice';
-				}
 				await vi.waitFor(() =>
 					expect(kernel.getSnapshot().activeUI).toBe(
 						prompt === 'none' ? 'none' : 'banner'

@@ -6,6 +6,7 @@ import type * as C15tCoreTypes from '@c15t/core';
  * Provides the IAB TCF 2.3 compliant consent dialog component.
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
+import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
@@ -197,6 +198,16 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		vendorTabCount,
 		data: { purposes },
 	} = useIABDisplayModel();
+	// The vendor tab reads declarations directly, so give it the ones
+	// publisher restrictions leave: a restricted vendor then shows the
+	// consent or objection control for the basis it actually uses.
+	const gvl = iabState?.gvl ?? null;
+	const publisherRestrictions = iabState?.publisherRestrictions;
+	const vendorData = useMemo(
+		() =>
+			gvl ? applyPublisherRestrictionsToGVL(gvl, publisherRestrictions) : null,
+		[gvl, publisherRestrictions]
+	);
 
 	// Handlers
 	const handlePurposeToggle = useCallback(
@@ -870,7 +881,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 											value="vendors"
 										>
 											<VendorList
-												vendorData={iabState.gvl}
+												vendorData={vendorData}
 												purposes={purposes}
 												vendorConsents={iabState.vendorConsents}
 												onVendorToggle={handleVendorToggle}

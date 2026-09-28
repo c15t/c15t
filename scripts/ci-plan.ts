@@ -54,7 +54,6 @@ export const readWorkspaces = function readWorkspaces(
 export const isDocumentation = function isDocumentation(path: string): boolean {
 	return (
 		path.startsWith('docs/') ||
-		path.startsWith('.changeset/') ||
 		/\.(?:md|mdx)$/u.test(path) ||
 		/^packages\/[^/]+\/readme\.json$/u.test(path) ||
 		/^packages\/[^/]+\/docs\//u.test(path)
@@ -160,6 +159,7 @@ export const createCiPlan = function createCiPlan(
 		['nuxt', 'nuxt'],
 		['tanstack-start', 'tanstack-start'],
 		['astro', 'astro-demo'],
+		['astro-static', 'astro-demo'],
 		['sveltekit', 'sveltekit-demo'],
 	]
 		.filter(([, directory]) =>
@@ -180,6 +180,7 @@ export const createCiPlan = function createCiPlan(
 			'nuxt',
 			'tanstack-start',
 			'astro',
+			'astro-static',
 			'sveltekit'
 		);
 	}
@@ -188,7 +189,10 @@ export const createCiPlan = function createCiPlan(
 			/^apps\/storybook-(?:react|vue|svelte|astro)$/u.test(workspace.directory)
 		)
 		.map((workspace) => workspace.directory.replace('apps/storybook-', ''));
-	if (parity.includes('react')) {
+	// React is the reference every framework compares against, and the Astro
+	// Storybook is only checked alongside the React, Svelte and Vue ones: the
+	// suite needs at least two of those to pair stories and DevTools panels.
+	if (parity.includes('react') || parity.includes('astro')) {
 		parity.splice(0, parity.length, 'react', 'svelte', 'vue', 'astro');
 	}
 	if (parity.length && !parity.includes('react')) {
@@ -242,7 +246,7 @@ export const createCiPlan = function createCiPlan(
 			examples.some(
 				(target) =>
 					workspace.directory ===
-					`examples/${({ astro: 'astro-demo', sveltekit: 'sveltekit-demo' } as Record<string, string>)[target] ?? target}`
+					`examples/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', sveltekit: 'sveltekit-demo' } as Record<string, string>)[target] ?? target}`
 			)
 		) {
 			required.add(workspace.name);

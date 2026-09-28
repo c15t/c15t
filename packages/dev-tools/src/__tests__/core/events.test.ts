@@ -76,6 +76,8 @@ describe('kernel event mapping', () => {
 			{ snapshot, type: 'user:identified' },
 			{ snapshot, type: 'subject:resolved' },
 			{ snapshot, type: 'iab:set' },
+			{ snapshot, type: 'vendors:set' },
+			{ actionAt: 1, snapshot, type: 'vendors:recorded' },
 			{ snapshot, type: 'init:applied' },
 			{
 				attempt: 1,

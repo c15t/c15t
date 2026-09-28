@@ -29,6 +29,18 @@ in your application while consent writes still go to Inth. Regular backend
 browser setup. See [data fetching and transports](/docs/guides/data-fetching) for
 the comparison, including custom transports and offline mode.
 
+Manifest resolution removes the per-visitor `/init` request, and with it the
+backend's only count of visitors. The server adapters replace it with a session
+report: after each resolution, on a server-rendered page or the same-origin
+init route, the host posts a small report to the backend's `POST /sessions`,
+server-to-server and detached from the response. The browser makes no request
+and the report stores no identity; the visitor's IP and user agent travel as
+forwarded headers under the backend's usual IP handling. Each report is one
+resolution; a page view can produce a `render` and a `route` report, and the
+consuming side groups them into sessions by address and user agent within a
+window. Static output resolves in the browser and sends none. Set `reportSessions: false` on an adapter to turn
+it off.
+
 ## Match initialization to your application output
 
 | Application output | Initial state | Required setup |

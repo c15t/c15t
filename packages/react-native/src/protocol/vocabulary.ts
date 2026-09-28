@@ -241,6 +241,32 @@ export interface KernelTranslationPairPartial {
 }
 
 /**
+ * Copy for the vendor rows nested under a category in the preference centre.
+ * Every field is optional on the wire so a backend that predates vendor rows
+ * still validates; the surfaces fill the gaps from bundled defaults.
+ */
+export interface KernelVendorListCopy {
+	/** Hint shown while the parent category is off, so vendor switches are disabled. */
+	disabledByCategory?: string;
+	/** Link text to a vendor's privacy policy. */
+	privacyPolicy?: string;
+	/** Accessible label for a vendor switch, with a `{vendor}` placeholder. */
+	switchLabel?: string;
+	/** Accessible name of the vendor list inside one category, with a `{count}` placeholder. */
+	title?: string;
+}
+
+/** Preference centre copy, with the vendor rows' copy alongside. */
+export interface KernelDialogCopy extends KernelTranslationPair {
+	vendors?: KernelVendorListCopy;
+}
+
+/** The same dialog copy from a backend that serves partial copy. */
+export interface KernelDialogCopyPartial extends KernelTranslationPairPartial {
+	vendors?: KernelVendorListCopy;
+}
+
+/**
  * Cookie banner copy.
  *
  * The notice pair is used when the resolved policy requires a `notice` prompt.
@@ -284,7 +310,7 @@ export interface KernelCommonCopyPartial {
  */
 export interface KernelTranslationGroups {
 	common: KernelCommonCopy;
-	consentManagerDialog: KernelTranslationPair;
+	consentManagerDialog: KernelDialogCopy;
 	consentTypes: Record<AllConsentNames, KernelTranslationPair>;
 	cookieBanner: KernelCookieBannerCopy;
 	frame: {
@@ -311,7 +337,7 @@ export interface KernelTranslationGroups {
  */
 export interface KernelTranslationGroupsPartial {
 	common: KernelCommonCopyPartial;
-	consentManagerDialog: KernelTranslationPairPartial;
+	consentManagerDialog: KernelDialogCopyPartial;
 	consentTypes: Partial<Record<AllConsentNames, KernelTranslationPairPartial>>;
 	cookieBanner: KernelCookieBannerCopyPartial;
 	frame?: {

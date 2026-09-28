@@ -1,3 +1,4 @@
+// oxlint-disable anti-slop/no-shape-in-symbol-names -- `shape` is the wire key of the sha-pinned vendor-list-scope fixtures, read by name in both native cores; renaming it re-pins every fixture and touches one reader per core, tracked in docs/internal/tcf-mobile-lanes.md.
 /**
  * The `vendor-list-scope` fixture kind: a served vendor list plus a publisher's declared
  * vendor scope, and the narrowed document the web filter produced from the two.
@@ -85,7 +86,7 @@ const MAX_SERVED_VENDOR_ID = Math.max(...SERVED_VENDOR_IDS);
  * filter that read bodies disclose the next vendor in the drawer rather than something
  * obviously nonsense.
  */
-const PLANTED_BODY_IDS: Record<number, number> = { 7: 11, 11: 7 };
+const PLANTED_BODY_IDS: Record<number, number> = { 11: 7, 7: 11 };
 
 /** A short purpose record. The long copy is what a drawer renders, not what a filter reads. */
 const definition = function definition(
@@ -402,7 +403,7 @@ const buildCase = function buildCase(
 	protocolVersion: number
 ): VendorListScopeFixture {
 	const document = spec.document ?? servedDocument();
-	const scope = spec.scope;
+	const { scope } = spec;
 	// The oracle, called. Everything under `expected` is its return value; the derivation
 	// below reads that value back and never recomputes it.
 	//
@@ -452,6 +453,30 @@ const buildCase = function buildCase(
  * are claims about the set, and a set that quietly loses one is the exact failure mode this
  * kind exists to prevent.
  */
+/** Every declared shape appears exactly once, under a file name a runner can find by kind. */
+const assertCaseSetCoversEveryShape = function assertCaseSetCoversEveryShape() {
+	const shapes = new Set<string>();
+	for (const spec of CASE_SPECS) {
+		if (shapes.has(spec.shape)) {
+			throw new Error(`Duplicate vendor-list-scope shape: ${spec.shape}`);
+		}
+		shapes.add(spec.shape);
+		const id = idFor(spec.shape);
+		if (!id.startsWith('vendor-list-scope-')) {
+			throw new Error(
+				`${id} does not start with "vendor-list-scope-". A runner reaches for a vector by kind, and the file name has to agree with the index entry.`
+			);
+		}
+	}
+	for (const shape of VENDOR_LIST_SCOPE_SHAPES) {
+		if (!shapes.has(shape)) {
+			throw new Error(
+				`The vendor-list-scope case set dropped ${shape}. Every shape listed here is a claim a native core is graded on, so deleting one is claims going ungraded rather than a test getting easier.`
+			);
+		}
+	}
+};
+
 export const buildVendorListScopeFixtures =
 	function buildVendorListScopeFixtures(
 		protocolVersion: number
@@ -462,26 +487,7 @@ export const buildVendorListScopeFixtures =
 			);
 		}
 
-		const shapes = new Set<string>();
-		for (const spec of CASE_SPECS) {
-			if (shapes.has(spec.shape)) {
-				throw new Error(`Duplicate vendor-list-scope shape: ${spec.shape}`);
-			}
-			shapes.add(spec.shape);
-			const id = idFor(spec.shape);
-			if (!id.startsWith('vendor-list-scope-')) {
-				throw new Error(
-					`${id} does not start with "vendor-list-scope-". A runner reaches for a vector by kind, and the file name has to agree with the index entry.`
-				);
-			}
-		}
-		for (const shape of VENDOR_LIST_SCOPE_SHAPES) {
-			if (!shapes.has(shape)) {
-				throw new Error(
-					`The vendor-list-scope case set dropped ${shape}. Every shape listed here is a claim a native core is graded on, so deleting one is claims going ungraded rather than a test getting easier.`
-				);
-			}
-		}
+		assertCaseSetCoversEveryShape();
 
 		const byShape = new Map(CASE_SPECS.map((spec) => [spec.shape, spec]));
 		const pastCap = byShape.get('scope-above-query-cap');

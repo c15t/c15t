@@ -148,47 +148,69 @@ export const coreRuntimeBudgets: MetricBudget[] = [
 	},
 ];
 
+/**
+ * Vendor-level consent (#1034) added the vendor gate, the denial-list codec
+ * with its subject copy, the paused-iframe marker, the vendor save path and
+ * the per-module owner registry with live iframe ownership to the kernel
+ * entry, with the declaration copy, retained-denial clear, frame
+ * ownership sweep, joint settlement of narrowed bulk actions, slug
+ * validation of stored denials and the vendor record reconcile after a
+ * prefetch that review added: about 3.5 kB gzip on the headless consumer
+ * scenario, measured on the PR that introduced it.
+ * The delta budgets below carry that once; they return to their previous
+ * values in the follow-up that lands after the feature is on the base
+ * branch.
+ */
+const VENDOR_CONSENT_GZIP_BYTES = 3584;
+/**
+ * The same allowance for the core package tarball, which also carries the
+ * bundled docs for the feature and its hooks and modules uncompressed.
+ */
+const VENDOR_CONSENT_TARBALL_BYTES = 8192;
+
 export const bundleBudgets: MetricBudget[] = [
 	{
 		comparator: 'delta-bytes-lte',
 		description:
-			'The core-only route should not gain more than 1.5kB over the base branch.',
+			'The core-only route should not gain more than 1.5kB over the base branch, plus the vendor consent allowance.',
 		metric: 'core-only',
-		threshold: 1536,
+		threshold: 1536 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
-		description: 'Headless React bundle delta budget.',
+		description:
+			'Headless React bundle delta budget, plus the vendor consent allowance.',
 		metric: 'react-headless',
-		threshold: 2048,
+		threshold: 2048 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'React banner bundle delta budget.',
 		metric: 'react-banner-only',
-		threshold: 3072,
+		threshold: 3072 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'React full bundle delta budget.',
 		metric: 'react-full',
-		threshold: 4096,
+		threshold: 4096 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'Next.js package bundle delta budget.',
 		metric: 'nextjs-basic',
-		threshold: 3072,
+		threshold: 3072 + VENDOR_CONSENT_GZIP_BYTES,
 	},
 ];
 
 export const artifactBudgets: MetricBudget[] = [
 	{
 		comparator: 'absolute-and-percent-lte',
-		description: 'Core package tarball growth must stay below 15kB and 10%.',
+		description:
+			'Core package tarball growth must stay below 15kB and 10%, plus the vendor consent allowance.',
 		metric: 'c15t',
 		secondaryThreshold: 10,
-		threshold: 15360,
+		threshold: 15360 + VENDOR_CONSENT_TARBALL_BYTES,
 	},
 	{
 		comparator: 'absolute-and-percent-lte',
@@ -676,6 +698,74 @@ export const sharedBrowserBudgets: MetricBudget[] = browserBudgets.filter(
 
 const SSR_SCENARIOS = new Set(['ssr', 'manifest-ssr', 'ssr-repeat']);
 
+const SAVED_CONSENT_SCENARIOS = new Set([
+	'saved-consent-accept',
+	'saved-consent-reject',
+]);
+
+/**
+ * Budgets for a saved-consent visit: a new browser context that carries the
+ * cookies and localStorage of an accepted or rejected fresh visit. The
+ * banner-readiness budget does not apply because no banner may render.
+ *
+ * @param options.serverRendered - The route renders consent on the server,
+ *   so the server HTML must omit the banner too.
+ */
+export const savedConsentBrowserBudgets =
+	function savedConsentBrowserBudgets(options: {
+		serverRendered: boolean;
+	}): MetricBudget[] {
+		const budgets: MetricBudget[] = [
+			...sharedBrowserBudgets.filter(
+				(budget) => budget.metric !== 'bannerReadyMs'
+			),
+			{
+				comparator: 'count-eq',
+				description:
+					'A saved-consent visit restores the stored choice from the carried-over storage.',
+				metric: 'hydratedChoicePresent',
+				threshold: 1,
+			},
+			{
+				comparator: 'count-eq',
+				description: 'A saved-consent visit shows no first-layer banner.',
+				metric: 'promptShownCount',
+				threshold: 0,
+			},
+		];
+		if (options.serverRendered) {
+			budgets.push({
+				comparator: 'count-eq',
+				description:
+					'A saved-consent visit over SSR gets no banner markup in the server HTML.',
+				metric: 'bannerInServerHtml',
+				threshold: 0,
+			});
+		}
+		return budgets;
+	};
+
+/**
+ * The Astro, SvelteKit, and Nuxt `repeat-visitor` arms seed a stored
+ * choice, so they render no banner and report no banner-readiness time.
+ */
+const withoutBannerReadinessForStoredConsent =
+	function withoutBannerReadinessForStoredConsent(
+		budgets: MetricBudget[],
+		scenario: string
+	): MetricBudget[] {
+		return scenario === 'repeat-visitor'
+			? budgets.filter((budget) => budget.metric !== 'bannerReadyMs')
+			: budgets;
+	};
+
+/** Whether a scenario name is a saved-consent visit. */
+export const isSavedConsentScenario = function isSavedConsentScenario(
+	scenario: string
+): boolean {
+	return SAVED_CONSENT_SCENARIOS.has(scenario);
+};
+
 const nextjsInitRequestBudget = function nextjsInitRequestBudget(
 	scenario: string
 ): MetricBudget | undefined {
@@ -688,10 +778,19 @@ const nextjsInitRequestBudget = function nextjsInitRequestBudget(
 			threshold: 0,
 		};
 	}
-	if (scenario === 'repeat-visitor' || scenario === 'baseline') {
-		// The fresh-context repeat arm has no fixed count; the baseline arm
-		// renders no consent provider, so it never issues an init request.
+	if (scenario === 'baseline') {
+		// The baseline arm renders no consent provider, so it never issues an
+		// init request.
 		return undefined;
+	}
+	if (SAVED_CONSENT_SCENARIOS.has(scenario)) {
+		return {
+			comparator: 'count-eq',
+			description:
+				'Saved-consent visits over manifest SSR make no browser init request.',
+			metric: 'initRequestsAfterLoad',
+			threshold: 0,
+		};
 	}
 	if (scenario === 'manifest-client') {
 		return {
@@ -717,7 +816,9 @@ const nextjsInitRequestBudget = function nextjsInitRequestBudget(
 export const nextjsBrowserBudgetsForScenario =
 	function nextjsBrowserBudgetsForScenario(scenario: string): MetricBudget[] {
 		const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
-		const budgets = [...sharedBrowserBudgets];
+		const budgets = SAVED_CONSENT_SCENARIOS.has(baseScenario)
+			? savedConsentBrowserBudgets({ serverRendered: true })
+			: [...sharedBrowserBudgets];
 		const initRequest = nextjsInitRequestBudget(baseScenario);
 		if (initRequest) {
 			budgets.push(initRequest);
@@ -729,7 +830,10 @@ export const nextjsBrowserBudgetsForScenario =
 				)
 			);
 		}
-		if (SSR_SCENARIOS.has(baseScenario)) {
+		if (
+			SSR_SCENARIOS.has(baseScenario) ||
+			SAVED_CONSENT_SCENARIOS.has(baseScenario)
+		) {
 			// Only server-rendered arms can flash: the client-init arms go from
 			// no prompt to the banner once init resolves, which is one legitimate
 			// transition rather than a server/client disagreement.
@@ -751,8 +855,8 @@ export const nextjsBrowserBudgetsForScenario =
 				{
 					comparator: 'count-eq',
 					description:
-						'A persisted repeat visitor over SSR gets no banner in the first HTML.',
-					metric: 'bannerInFirstHtml',
+						'A persisted repeat visitor over SSR gets no banner in the server HTML.',
+					metric: 'bannerInServerHtml',
 					threshold: 0,
 				},
 				{
@@ -795,7 +899,10 @@ export const nuxtBrowserBudgetsForScenario =
 			baseScenario === 'repeat-visitor'
 		) {
 			return [
-				...sharedBrowserBudgets,
+				...withoutBannerReadinessForStoredConsent(
+					sharedBrowserBudgets,
+					baseScenario
+				),
 				{
 					comparator: 'count-eq',
 					description:
@@ -849,6 +956,9 @@ export const reactBrowserBudgetsForScenario =
 				return policyBrowserBudgets;
 			case 'policy-repeat':
 				return hydrationBudgets;
+			case 'saved-consent-accept':
+			case 'saved-consent-reject':
+				return savedConsentBrowserBudgets({ serverRendered: false });
 			default:
 				return sharedBrowserBudgets;
 		}
@@ -889,7 +999,7 @@ export const astroBrowserBudgetsForScenario =
 		// Every Astro arm is server-rendered and boots from the inlined config,
 		// so none of them should ever put an init request on the browser.
 		return [
-			...shared,
+			...withoutBannerReadinessForStoredConsent(shared, scenario),
 			{
 				comparator: 'count-eq',
 				description:
@@ -933,7 +1043,7 @@ export const sveltekitBrowserBudgetsForScenario =
 			scenario === 'repeat-visitor'
 		) {
 			return [
-				...shared,
+				...withoutBannerReadinessForStoredConsent(shared, scenario),
 				{
 					comparator: 'count-eq',
 					description:
@@ -1011,8 +1121,17 @@ export const tanstackBrowserBudgetsForScenario =
 			];
 		}
 
-		if (baseScenario === 'repeat-visitor') {
-			return shared;
+		if (SAVED_CONSENT_SCENARIOS.has(baseScenario)) {
+			return [
+				...savedConsentBrowserBudgets({ serverRendered: true }),
+				{
+					comparator: 'count-eq',
+					description:
+						'Saved-consent visits over manifest SSR make no browser init request.',
+					metric: 'initRequestsAfterLoad',
+					threshold: 0,
+				},
+			];
 		}
 
 		if (baseScenario === 'manifest-client') {
@@ -1046,9 +1165,9 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip.',
+				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance.',
 			metric: 'initialGzip',
-			threshold: 2048,
+			threshold: 2048 + VENDOR_CONSENT_GZIP_BYTES,
 		},
 		{
 			comparator: 'delta-bytes-lte',

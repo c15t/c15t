@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
+	import type { Model } from '@c15t/core';
 	import {
 		defaultTranslationConfig,
 		resolveConsentPresentation,
@@ -12,18 +12,9 @@
 	import { resolveComponentStyles } from '../utils';
 	import Branding from './branding.svelte';
 	import InlineLegalLinks from './inline-legal-links.svelte';
+	import type { ConsentDialogProps } from './panel-props';
 	import ConsentDialogTrigger from './panel-trigger.svelte';
 	import ConsentWidget from './preferences.svelte';
-
-	interface ConsentDialogTriggerProps {
-		defaultPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
-		persistPosition?: boolean;
-		showWhen?: 'always' | 'never';
-		size?: 'sm' | 'md' | 'lg';
-		ariaLabel?: string;
-		noStyle?: boolean;
-		class?: string;
-	}
 
 	const {
 		open: openProp,
@@ -34,15 +25,7 @@
 		// A `none` rule that grants the preferences right still opens here.
 		models = ['opt-in', 'opt-out', 'iab', 'none'] as Model[],
 		class: className,
-	}: {
-		open?: boolean;
-		noStyle?: boolean;
-		hideBranding?: boolean;
-		legalLinks?: (keyof LegalLinksType)[] | null;
-		showTrigger?: boolean | ConsentDialogTriggerProps;
-		models?: Model[];
-		class?: string;
-	} = $props();
+	}: ConsentDialogProps = $props();
 
 	const consent = getConsentContext();
 	const theme = getThemeContext();

@@ -4,6 +4,8 @@ import {
 	createConsentKernel,
 	createHostedTransport,
 	initOutputToKernelConfig,
+	resolveVendors,
+	watchRevocationReload,
 } from '@c15t/core';
 import type {
 	ConsentKernel,
@@ -22,6 +24,8 @@ import type {
 	BlockedRequestInfo,
 	NetworkBlockerRule,
 } from '@c15t/core/modules/network-blocker';
+import { holdNetworkRequests, NOT_HELD } from '@c15t/core/modules/network-hold';
+import type { NetworkHold } from '@c15t/core/modules/network-hold';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import type { StorageConfig } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
@@ -41,12 +45,14 @@ import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { computed, shallowRef } from 'vue';
 import type { Ref } from 'vue';
 
+import type * as ClientManifestModule from './client-manifest';
 import type { ConsentConfig } from './config';
 import {
 	isClientManifestModeEnabled,
 	isServerManifestModeEnabled,
 	resolveClientManifestURL,
 } from './manifest';
+import { invalidateIABChoice } from './utils/save-iab-choice';
 
 export const INIT_HEADER_NAMES = [...CONSENT_REQUEST_HEADER_NAMES] as const;
 
@@ -151,6 +157,35 @@ const toVueActiveUI = function toVueActiveUI(
 	return ui;
 };
 
+const DISPLAY_DATA_KEYS = [
+	'branding',
+	'cmpId',
+	'customVendors',
+	'gvl',
+	'gvlReference',
+	'location',
+	'translations',
+] as const;
+
+/**
+ * Keep the previous display data when every field is the same reference, so
+ * components reading `useConsentInit()` don't re-render on kernel changes
+ * that leave it alone (opening the dialog, a save, a privacy signal).
+ */
+const reuseDisplayData = function reuseDisplayData(
+	next: VueConsentDisplayData | undefined,
+	previous: VueConsentDisplayData | undefined
+): VueConsentDisplayData | undefined {
+	if (
+		next &&
+		previous &&
+		DISPLAY_DATA_KEYS.every((key) => next[key] === previous[key])
+	) {
+		return previous;
+	}
+	return next;
+};
+
 const snapshotToDisplayData = function snapshotToDisplayData(
 	snapshot: ConsentSnapshot
 ): VueConsentDisplayData | undefined {
@@ -239,13 +274,50 @@ const getManifestInputs = function getManifestInputs(
 	};
 };
 
-const inferConfiguredCategories = (config: RuntimeConsentConfig) =>
-	[
-		...(config.scripts ?? []),
-		...(config.networkBlocker ? (config.networkBlocker.rules ?? []) : []),
-	].flatMap((integration) =>
-		extractConsentNamesFromCondition(integration.category)
+/** The scripts and rules that name vendor slugs and categories. */
+const configuredIntegrations = (config: RuntimeConsentConfig) => [
+	...(config.scripts ?? []),
+	...(config.networkBlocker ? (config.networkBlocker.rules ?? []) : []),
+];
+
+const inferConfiguredCategories = (
+	config: RuntimeConsentConfig,
+	vendors: KernelConfig['initialVendors']
+) =>
+	[...configuredIntegrations(config), ...(vendors?.declared ?? [])].flatMap(
+		(integration) => extractConsentNamesFromCondition(integration.category)
 	);
+
+const warnVendorDeclaration = function warnVendorDeclaration(
+	message: string
+): void {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (nodeEnv !== 'production') {
+		console.warn(message);
+	}
+};
+
+/**
+ * Declared vendors for the kernel: code declarations and script slugs merged
+ * over whatever a server prefetch already resolved. Same shape as the React
+ * provider's, so a Nuxt app and a React app declare vendors the same way.
+ */
+const resolveConfiguredVendors = function resolveConfiguredVendors(
+	config: RuntimeConsentConfig,
+	prefetch: KernelConfig
+): KernelConfig['initialVendors'] {
+	const declared = resolveVendors({
+		config: config.vendors,
+		existing: prefetch.initialVendors?.declared,
+		onWarn: warnVendorDeclaration,
+		owners: configuredIntegrations(config),
+	});
+	const listVersion = prefetch.initialVendors?.listVersion ?? null;
+	return declared.length > 0 || listVersion !== null
+		? { declared, listVersion }
+		: undefined;
+};
 
 /**
  * Hosted transport for Nuxt. `initURL` selects server manifest mode: init
@@ -323,6 +395,28 @@ const settle = async function settle<Value>(
 	}
 };
 
+type ClientManifestResources = typeof ClientManifestModule;
+
+let bundledClientManifest: ClientManifestResources | undefined;
+
+/**
+ * Hand the kernel client manifest resources that are already part of the
+ * app's entry, so it uses them instead of importing its own chunk. Nuxt's
+ * client manifest mode registers them from a plugin that imports them
+ * statically: that mode resolves the manifest at startup, and a static
+ * import lets the page preload the resolver instead of fetching it after
+ * the entry runs.
+ *
+ * @param resources - The `./client-manifest` module, or `undefined` to
+ * go back to importing it on demand.
+ * @internal
+ */
+export const registerClientManifest = function registerClientManifest(
+	resources: ClientManifestResources | undefined
+): void {
+	bundledClientManifest = resources;
+};
+
 const createVueManifestTransport = function createVueManifestTransport(
 	config: RuntimeConsentConfig,
 	headers: Record<string, string>,
@@ -371,8 +465,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 	const loadClientResources = function loadClientResources() {
 		return settle(
 			Promise.all([
-				import('@c15t/core/transports/manifest'),
-				import('@c15t/translations/all'),
+				bundledClientManifest ?? import('./client-manifest'),
 				fetchManifest(),
 			])
 		);
@@ -397,7 +490,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 				clientResources = undefined;
 				throw loaded.error;
 			}
-			const [{ createManifestTransport }, { baseTranslations }, manifest] =
+			const [{ baseTranslations, createManifestTransport }, manifest] =
 				loaded.value;
 			manifestTransport ??= createManifestTransport({
 				backendURL,
@@ -469,6 +562,67 @@ const resolveInitialPolicyPending = (
 		initialConfig.initialPolicyResolution
 	);
 
+/**
+ * Each context's hold until a network blocker takes it over. A context
+ * disposed while its hold is still here ends the hold itself.
+ */
+const unclaimedHolds = new WeakMap<VueConsentKernelContext, NetworkHold>();
+
+/**
+ * The network blocker installs once the root mounts, after every child ran
+ * its setup and mount hooks. Hold matching requests until then; the blocker
+ * takes over this context's hold and replays them.
+ *
+ * @returns This context's hold, or `null` when it holds nothing.
+ */
+const holdBlockedRequests = function holdBlockedRequests(
+	config: RuntimeConsentConfig,
+	ownsKernel: boolean
+): NetworkHold | null {
+	if (
+		ownsKernel &&
+		config.networkBlocker &&
+		config.networkBlocker.enabled !== false
+	) {
+		return holdNetworkRequests(config.networkBlocker.rules);
+	}
+	return null;
+};
+
+const trackUnclaimedHold = function trackUnclaimedHold(
+	context: VueConsentKernelContext,
+	hold: NetworkHold | null
+): void {
+	if (hold) {
+		unclaimedHolds.set(context, hold);
+	}
+};
+
+/** Reload after an explicit revocation. A borrowed runtime does this itself. */
+const watchOwnedRevocationReload = function watchOwnedRevocationReload(
+	ownsKernel: boolean,
+	kernel: ConsentKernel,
+	config: RuntimeConsentConfig
+): () => void {
+	if (!ownsKernel) {
+		return () => undefined;
+	}
+	return watchRevocationReload({
+		getOnBeforeReload: () => config.callbacks?.onBeforeConsentRevocationReload,
+		isEnabled: () => config.reloadOnConsentRevoked !== false,
+		kernel,
+	});
+};
+
+/** Take a context's hold, so only one owner ends it. */
+const claimHold = function claimHold(
+	context: VueConsentKernelContext
+): NetworkHold {
+	const hold = unclaimedHolds.get(context) ?? NOT_HELD;
+	unclaimedHolds.delete(context);
+	return hold;
+};
+
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
@@ -508,17 +662,25 @@ export const createVueConsentKernelContext =
 			options.initialRecords ?? options.config.initialRecords,
 			options.kernelConfig?.initialRecords
 		);
+		const initialVendors = resolveConfiguredVendors(
+			options.config,
+			initialConfig
+		);
 		const kernel =
 			options.runtime?.kernel ??
 			createConsentKernel({
 				...initialConfig,
 				consentCategories: options.config.consentCategories,
-				inferredConsentCategories: inferConfiguredCategories(options.config),
+				inferredConsentCategories: inferConfiguredCategories(
+					options.config,
+					initialVendors
+				),
 				initialPolicyPending: resolveInitialPolicyPending(
 					initialConfig,
 					options.kernelConfig
 				),
 				initialRecords: records.initialRecords,
+				initialVendors,
 				now:
 					options.now ??
 					options.initialRecords?.now ??
@@ -526,16 +688,22 @@ export const createVueConsentKernelContext =
 				transport,
 				...options.kernelConfig,
 			});
+		const hold = holdBlockedRequests(options.config, ownsKernel);
 
 		const snapshot = shallowRef(kernel.getSnapshot());
 		const unsubscribe = kernel.subscribe((next) => {
 			snapshot.value = next;
 		});
 
-		const init = computed(() => snapshotToDisplayData(snapshot.value));
+		const init = computed<VueConsentDisplayData | undefined>((previous) =>
+			reuseDisplayData(snapshotToDisplayData(snapshot.value), previous)
+		);
 		const activeUI = computed<ConsentActiveUI>({
 			get: () => toVueActiveUI(snapshot.value.activeUI),
-			set: (value) => kernel.set.activeUI(toKernelActiveUI(value)),
+			set: (value) => {
+				invalidateIABChoice(kernel);
+				kernel.set.activeUI(toKernelActiveUI(value));
+			},
 		});
 		const storedConsent = computed(() => snapshot.value.explicitChoice);
 		const unsubscribeChoice = kernel.events.on(
@@ -550,6 +718,20 @@ export const createVueConsentKernelContext =
 				);
 			}
 		);
+		// Vendors the backend declares arrive with init. Their categories
+		// become selectable the same way a code-declared vendor's do.
+		const unsubscribeVendorCategories = ownsKernel
+			? kernel.events.on('init:applied', ({ snapshot: eventSnapshot }) => {
+					const declared = eventSnapshot.vendors?.declared ?? [];
+					if (declared.length > 0) {
+						kernel.set.registerConsentCategories(
+							declared.flatMap((vendor) =>
+								extractConsentNamesFromCondition(vendor.category)
+							)
+						);
+					}
+				})
+			: () => undefined;
 		const unsubscribePermissions = kernel.events.on(
 			'permissions:changed',
 			({ snapshot: eventSnapshot, previous }) => {
@@ -561,6 +743,12 @@ export const createVueConsentKernelContext =
 					snapshot: eventSnapshot,
 				});
 			}
+		);
+
+		const unsubscribeRevocationReload = watchOwnedRevocationReload(
+			ownsKernel,
+			kernel,
+			options.config
 		);
 
 		// Assigned after context creation because the subscription updates that context.
@@ -585,10 +773,17 @@ export const createVueConsentKernelContext =
 				unsubscribeIab?.();
 				unsubscribe();
 				unsubscribeChoice();
+				unsubscribeVendorCategories();
 				unsubscribePermissions();
+				unsubscribeRevocationReload();
 				if (ownsKernel) {
 					kernel.dispose();
 				}
+				// Disposed before a blocker took the hold over (a failed mount,
+				// or no browser start): nothing else ends it, and nothing
+				// checked consent for what it held, so those requests fail as
+				// blocked rather than wait for the rest of the page.
+				claimHold(context).block();
 			},
 			iab: options.runtime?.iab ?? undefined,
 			init,
@@ -601,6 +796,7 @@ export const createVueConsentKernelContext =
 		unsubscribeIab = options.runtime?.onIABChange((handle) => {
 			context.iab = handle ?? undefined;
 		});
+		trackUnclaimedHold(context, hold);
 		return context;
 	};
 
@@ -755,6 +951,9 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	if (typeof document !== 'undefined' && config.networkBlocker) {
 		const networkBlocker = createNetworkBlocker({
 			enabled: config.networkBlocker.enabled,
+			// This context's hold only, so the blocker leaves other callers'
+			// holds in place, disabled or not.
+			hold: claimHold(context),
 			kernel: context.kernel,
 			logBlockedRequests: config.networkBlocker.logBlockedRequests,
 			onRequestBlocked: config.networkBlocker.onRequestBlocked,

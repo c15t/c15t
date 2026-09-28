@@ -15,6 +15,7 @@ import type {
 	PolicyResolutionWire,
 } from '@c15t/schema/types';
 
+import { resolveVendors, withoutManifestVendors } from '../libs/vendors';
 import type {
 	InitResponse,
 	KernelBranding,
@@ -166,6 +167,12 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	if (payload.cmpId !== undefined) {
 		mapped.cmpId = payload.cmpId;
 	}
+	if (payload.vendors !== undefined) {
+		mapped.vendors = payload.vendors;
+	}
+	if (payload.vendorListVersion !== undefined) {
+		mapped.vendorListVersion = payload.vendorListVersion;
+	}
 	if (payload.subjectId !== undefined && payload.subjectId !== null) {
 		mapped.subjectId = payload.subjectId;
 	}
@@ -271,11 +278,41 @@ export const mergeInitResponseIntoKernelConfig =
 		}
 
 		if (
+			response.vendors !== undefined ||
+			response.vendorListVersion !== undefined
+		) {
+			const existing = merged.initialVendors?.declared ?? [];
+			const declared = resolveVendors({
+				existing:
+					response.vendors === undefined
+						? existing
+						: withoutManifestVendors(existing),
+				manifest: response.vendors ?? [],
+			});
+			// Same rule as `applyInitResponse`: a replacement list drops the
+			// previous label unless the response names a new one.
+			const listVersion =
+				response.vendorListVersion ??
+				(response.vendors === undefined
+					? (merged.initialVendors?.listVersion ?? null)
+					: null);
+			// An empty backend list with no version clears the slice; otherwise
+			// the old entries would survive the copy.
+			if (declared.length > 0 || listVersion !== null) {
+				merged.initialVendors = { declared, listVersion };
+			} else {
+				delete merged.initialVendors;
+			}
+		}
+
+		if (
 			merged.initialPolicyResolution &&
 			merged.initialPolicyResolution.status !== 'matched'
 		) {
 			// Clear after folding the response: a failed producer may include
 			// stale legacy metadata alongside its non-matching resolution.
+			// Vendor declarations stay: they are presentation data, not policy
+			// proof, and the client's own declarations would survive anyway.
 
 			delete merged.initialPolicySnapshotToken;
 			delete merged.initialIab;
@@ -361,6 +398,24 @@ export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 		}
 		if (iab.cmpId !== undefined && iab.cmpId !== null) {
 			response.cmpId = iab.cmpId;
+		}
+	}
+
+	const vendors = config.initialVendors;
+	if (vendors !== undefined) {
+		// Only manifest-sourced entries round-trip: code-declared vendors are
+		// re-resolved by the runtime from its own options.
+		const manifest = vendors.declared.filter(
+			(vendor) => vendor.source === 'manifest' && vendor.presentable
+		);
+		if (manifest.length > 0) {
+			response.vendors = manifest.map(
+				({ presentable: _presentable, source: _source, ...vendor }) =>
+					vendor as NonNullable<InitResponse['vendors']>[number]
+			);
+		}
+		if (vendors.listVersion !== null) {
+			response.vendorListVersion = vendors.listVersion;
 		}
 	}
 

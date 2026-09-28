@@ -50,6 +50,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Clear on revocation](./integrations/clear-on-revocation.md): Remove configured first-party cookies and Web Storage keys when their consent category is denied.
 - [Clearbit](./integrations/clearbit.md): Configure Clearbit with c15t v3, understand marketing permission and verify loading and revocation.
 - [Cloudflare Web Analytics](./integrations/cloudflare-web-analytics.md): Configure Cloudflare Web Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Cloudflare Zaraz](./integrations/cloudflare-zaraz.md): Synchronize c15t permissions with Zaraz purposes while Cloudflare manages your tools.
 - [Crisp](./integrations/crisp.md): Configure Crisp with c15t v3, understand functionality permission and verify loading and revocation.
 - [Databuddy](./integrations/databuddy.md): Configure Databuddy's initial and updated consent state with c15t v3.
 - [Fathom Analytics](./integrations/fathom-analytics.md): Configure Fathom Analytics with c15t v3, understand measurement permission and verify loading and revocation.
@@ -80,6 +81,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Snapchat Pixel](./integrations/snapchat-pixel.md): Configure Snapchat Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [TikTok Pixel](./integrations/tiktok-pixel.md): Configure TikTok Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [Umami Analytics](./integrations/umami-analytics.md): Configure Umami Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Vendor-level consent](./integrations/vendor-consent.md): Let visitors grant a category and still turn one vendor off, without adopting IAB TCF.
 - [Vercel Analytics](./integrations/vercel-analytics.md): Configure Vercel Analytics with c15t v3, understand measurement permission and verify loading and revocation.
 - [X Pixel](./integrations/x-pixel.md): Configure X Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [YouTube](./integrations/youtube.md): Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.

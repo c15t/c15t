@@ -50,7 +50,7 @@ import {
 } from '../../../core/src/modules/persistence/record-codec';
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
-import { Frame } from '../components/frame';
+import { ConsentGate } from '../components/consent-gate';
 import { ConsentDialog } from '../components/panel';
 import { ConsentDialogLink } from '../components/panel-link';
 import { ConsentDialogTrigger } from '../components/panel-trigger';
@@ -266,6 +266,8 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		legacyKey,
 		`${keys.consent}-notice`,
 		`${keys.consent}-privacy`,
+		// A clear's epoch outlives it and would void the next seed's records.
+		keys.epoch,
 	]) {
 		localStorage.removeItem(key);
 		document.cookie = `${key}=; Max-Age=0; Path=/`;
@@ -469,7 +471,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				<ConsentDialogTrigger />
 				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 				{setup.probeGates ? (
-					<Frame
+					<ConsentGate
 						category="marketing"
 						placeholder={
 							<div data-testid="policy-iframe-placeholder">Blocked frame</div>
@@ -481,7 +483,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 							src="about:blank#c15t-policy-probe"
 							data-testid="policy-iframe"
 						/>
-					</Frame>
+					</ConsentGate>
 				) : null}
 			</ConsentProvider>
 		);

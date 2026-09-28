@@ -30,6 +30,9 @@ import type {
 	KernelConfig,
 	KernelIABAuthority,
 	KernelIABState,
+	KernelVendorsState,
+	VendorChoice,
+	ResolvedVendor,
 } from '../types';
 import { validateHydrationRecords } from './records';
 
@@ -61,6 +64,12 @@ export const DEFAULT_IAB: KernelIABState = {
 	tcString: null,
 	vendorConsents: {},
 	vendorLegitimateInterests: {},
+};
+
+/** Default vendor slice: nothing declared, no list version. */
+export const DEFAULT_VENDORS: KernelVendorsState = {
+	declared: [],
+	listVersion: null,
 };
 
 const UNCONFIGURED: PolicyResolution = Object.freeze({
@@ -128,6 +137,14 @@ export const copyIABAuthority = function copyIABAuthority(
 	}
 	return {
 		...authority,
+		...(authority.publisherRestrictions && {
+			publisherRestrictions: authority.publisherRestrictions.map(
+				(restriction) => ({
+					...restriction,
+					vendorIds: [...restriction.vendorIds],
+				})
+			),
+		}),
 		purposeConsents: { ...authority.purposeConsents },
 		purposeLegitimateInterests: { ...authority.purposeLegitimateInterests },
 		specialFeatureOptIns: { ...authority.specialFeatureOptIns },
@@ -147,6 +164,36 @@ export const buildInitialIab = function buildInitialIab(
 		...initial,
 		authority: copyIABAuthority(initial.authority ?? null),
 	};
+};
+
+/** Copy a caller-supplied vendor slice so later mutation cannot leak in. */
+export const buildInitialVendors = function buildInitialVendors(
+	initial: KernelVendorsState | undefined
+): KernelVendorsState | null {
+	if (
+		!initial ||
+		(initial.declared.length === 0 && initial.listVersion === null)
+	) {
+		return null;
+	}
+	return {
+		// Plain JSON copies: freezing the snapshot must not freeze a nested
+		// category condition the caller's config or script still references.
+		declared: initial.declared.map(
+			(vendor) => JSON.parse(JSON.stringify(vendor)) as ResolvedVendor
+		),
+		listVersion: initial.listVersion ?? null,
+	};
+};
+
+const freezeVendorChoice = function freezeVendorChoice(
+	choice: VendorChoice | null
+): void {
+	if (!choice || Object.isFrozen(choice)) {
+		return;
+	}
+	Object.freeze(choice.denied);
+	Object.freeze(choice);
 };
 
 const freezeChoice = function freezeChoice(
@@ -219,6 +266,8 @@ export const freezeSnapshot = function freezeSnapshot(
 		deepFreeze(snapshot.evaluationPolicy);
 	}
 	freezeChoice(snapshot.explicitChoice as ExplicitChoice | null);
+	freezeVendorChoice(snapshot.vendorChoice as VendorChoice | null);
+	deepFreeze(snapshot.vendors);
 	for (const nested of [
 		snapshot.consentCategories,
 		snapshot.noticeDismissal,
@@ -272,8 +321,10 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const noticeDismissal = records?.noticeDismissal ?? null;
 	const optOutDirectives = records?.optOutDirectives ?? EMPTY_DIRECTIVES;
 	const subject = records?.subject ?? null;
+	const vendorChoice = records?.vendorChoice ?? null;
 
 	const iab = buildInitialIab(config.initialIab);
+	const vendors = buildInitialVendors(config.initialVendors);
 	const override = config.initialOverrides?.gpc;
 	const detected = config.initialPrivacySignals?.gpc === true;
 	const privacySignals =
@@ -330,5 +381,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 			? { ...config.initialTranslations }
 			: null,
 		user: config.initialUser ? { ...config.initialUser } : null,
+		vendorChoice,
+		vendors,
 	});
 };

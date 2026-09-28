@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Προσαρμόστε τις ρυθμίσεις απορρήτου σας εδώ. Μπορείτε να επιλέξετε ποιους τύπους cookies και τεχνολογιών παρακολούθησης επιτρέπετε.',
 		title: 'Ρυθμίσεις απορρήτου',
+		vendors: {
+			disabledByCategory:
+				'Ενεργοποιήστε αυτή την κατηγορία για να επιλέξετε συνεργάτες.',
+			privacyPolicy: 'Πολιτική απορρήτου',
+			switchLabel: 'Να επιτρέπεται {vendor}',
+			title: 'Συνεργάτες ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

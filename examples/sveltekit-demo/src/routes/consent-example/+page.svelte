@@ -7,7 +7,7 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogLink,
-		Frame,
+		ConsentGate,
 		hosted,
 	} from '@c15t/svelte';
 	import { onDestroy } from 'svelte';
@@ -50,12 +50,12 @@
 		>
 		<h2>Watch the video</h2>
 		<p>Allow measurement in privacy settings to load the video.</p>
-		<Frame category="measurement"
+		<ConsentGate category="measurement"
 			><iframe
 				src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y"
 				title="YouTube video"
 				allowfullscreen
-			></iframe></Frame
+			></iframe></ConsentGate
 		>
 		<footer><ConsentDialogLink>Privacy settings</ConsentDialogLink></footer>
 	</main>

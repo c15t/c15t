@@ -163,7 +163,7 @@ export const generateConsentComponent = function generateConsentComponent({
 	state,
 }: {
 	children: ReactNode;
-	state: ConsentState;
+	state: ConsentState | Promise<ConsentState>;
 }`;
 	} else if (initialDataProp) {
 		propsDestructure = `{

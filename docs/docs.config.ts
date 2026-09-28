@@ -97,6 +97,7 @@ export default defineDocsConfig({
 							pages: [
 								'optimization',
 								'script-loader',
+								'network-blocker',
 								'geography-headers',
 								'content-security-policy',
 								'troubleshooting',
@@ -111,7 +112,7 @@ export default defineDocsConfig({
 								'components/consent-widget',
 								'components/consent-dialog-link',
 								'components/consent-dialog-trigger',
-								'components/frame',
+								'components/consent-gate',
 								'components/dev-tools',
 							],
 							title: 'Components',
@@ -121,7 +122,7 @@ export default defineDocsConfig({
 							title: 'Styling',
 						},
 						{
-							pages: ['hooks/use-consent-manager/overview'],
+							pages: ['hooks/overview'],
 							title: 'Hooks',
 						},
 						{
@@ -163,7 +164,7 @@ export default defineDocsConfig({
 							title: 'Policies',
 						},
 						{
-							pages: ['script-loader', 'troubleshooting'],
+							pages: ['script-loader', 'network-blocker', 'troubleshooting'],
 							title: 'Integration',
 						},
 						{
@@ -174,7 +175,7 @@ export default defineDocsConfig({
 								'components/consent-widget',
 								'components/consent-dialog-link',
 								'components/consent-dialog-trigger',
-								'components/frame',
+								'components/consent-gate',
 								'components/dev-tools',
 							],
 							title: 'Components',
@@ -184,7 +185,7 @@ export default defineDocsConfig({
 							title: 'Styling',
 						},
 						{
-							pages: ['hooks/use-consent-manager/overview'],
+							pages: ['hooks/overview'],
 							title: 'Hooks',
 						},
 						{
@@ -294,7 +295,7 @@ export default defineDocsConfig({
 					title: 'Embeds',
 				},
 				{
-					pages: ['google-tag-manager'],
+					pages: ['google-tag-manager', 'cloudflare-zaraz'],
 					slug: 'tag-managers',
 					title: 'Tag managers',
 				},
@@ -312,6 +313,7 @@ export default defineDocsConfig({
 						'heap',
 						'matomo-analytics',
 						'mixpanel-analytics',
+						'one-dollar-stats',
 						'hotjar',
 						'hightouch',
 						'logrocket',
@@ -329,7 +331,7 @@ export default defineDocsConfig({
 					title: 'Analytics',
 				},
 				{
-					pages: ['crisp', 'intercom'],
+					pages: ['crisp', 'front-chat', 'intercom'],
 					slug: 'functionality',
 					title: 'Functionality',
 				},
@@ -337,6 +339,7 @@ export default defineDocsConfig({
 					pages: [
 						'meta-pixel',
 						'openai-pixel',
+						'pinterest-tag',
 						'reddit-pixel',
 						'tiktok-pixel',
 						'linkedin-insights',
@@ -348,7 +351,12 @@ export default defineDocsConfig({
 					title: 'Ads and pixels',
 				},
 			],
-			pages: ['overview', 'building-integrations', 'clear-on-revocation'],
+			pages: [
+				'overview',
+				'building-integrations',
+				'granular-consent',
+				'clear-on-revocation',
+			],
 			slug: 'integrations',
 			title: 'Integrations',
 		},

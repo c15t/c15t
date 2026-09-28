@@ -18,7 +18,8 @@ const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
 const EMPTY_PURPOSE_INTERESTS: Record<number, boolean> = {};
 
 interface PurposeItemProps {
-	purpose: ProcessedPurpose;
+	/** A purpose, or a display-model row carrying `hasConsentBasis`. */
+	purpose: ProcessedPurpose & { hasConsentBasis?: boolean };
 	/**
 	 * The row's `data-testid`. Comes from the shared display model, which
 	 * namespaces it by row kind — a purpose, a special purpose and a
@@ -196,6 +197,12 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	const iabLegIntVendors = legIntVendors.filter((v) => !v.isCustom);
 	const customLegIntVendors = legIntVendors.filter((v) => v.isCustom);
 
+	// With no vendor on consent, a consent switch would look like an opt-out
+	// while every vendor kept processing; the objection control is the one
+	// that counts.
+	const showConsentSwitch =
+		purpose.hasConsentBasis !== false || !onPurposeLegitimateInterestToggle;
+
 	// Handle purpose toggle - also toggles all consent-based vendors
 	const handlePurposeToggle = (value: boolean) => {
 		onToggle(value);
@@ -318,14 +325,16 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 						)}
 					</PreferenceItem.Header>
 				</PreferenceItem.Trigger>
-				<PreferenceItem.Control noStyle>
-					<Switch.Root
-						aria-label={purpose.name}
-						checked={isEnabled}
-						onCheckedChange={handlePurposeToggle}
-						disabled={isLocked}
-					/>
-				</PreferenceItem.Control>
+				{showConsentSwitch && (
+					<PreferenceItem.Control noStyle>
+						<Switch.Root
+							aria-label={purpose.name}
+							checked={isEnabled}
+							onCheckedChange={handlePurposeToggle}
+							disabled={isLocked}
+						/>
+					</PreferenceItem.Control>
+				)}
 			</div>
 
 			<PreferenceItem.Content

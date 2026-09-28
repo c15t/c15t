@@ -15,6 +15,12 @@ export const translations: CompleteTranslations = {
 		description:
 			'અહીં તમારી ગોપનીયતા સેટિંગ્સ કસ્ટમાઇઝ કરો. તમે પસંદ કરી શકો છો કે કયા પ્રકારની કૂકીઝ અને ટ્રેકિંગ ટેકનોલોજીની તમે મંજૂરી આપો છો.',
 		title: 'ગોપનીયતા સેટિંગ્સ',
+		vendors: {
+			disabledByCategory: 'વિક્રેતાઓ પસંદ કરવા માટે આ શ્રેણી ચાલુ કરો.',
+			privacyPolicy: 'ગોપનીયતા નીતિ',
+			switchLabel: '{vendor}ને મંજૂરી આપો',
+			title: 'વિક્રેતાઓ ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

@@ -1,0 +1,53 @@
+---
+title: Block network requests
+description: Block fetch and XHR calls to third-party domains in a React app until the visitor grants their consent category.
+group: frameworks
+---
+
+## Add rules to the provider
+
+The network blocker stops `fetch` and `XMLHttpRequest` calls to domains you
+list until the visitor grants their category. Use it for beacons and API
+calls that bypass script loading, such as a pixel fired by an SDK that is
+already on the page.
+
+Add `networkBlocker` to the `ConsentProvider` options from your
+[quickstart](/docs/frameworks/react/quickstart). Set the URL to the endpoint
+supplied by your Inth project.
+
+```tsx title="components/consent.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/react';
+
+const mode = hosted({ url: 'https://your-project.inth.app' });
+const networkBlocker = {
+  rules: [
+    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
+    { id: 'meta-pixel', domain: 'facebook.com', pathIncludes: '/tr', category: 'marketing' },
+  ],
+};
+
+export function Consent({ children }: { children: ReactNode }) {
+  return (
+    <ConsentProvider options={{ mode, networkBlocker }}>
+      {children}
+      <ConsentBanner />
+      <ConsentDialog />
+    </ConsentProvider>
+  );
+}
+```
+
+Render your app inside `ConsentProvider`. Blocking starts when it renders, so
+components outside it that send requests while rendering, or modules evaluated
+before it, are not covered. See the limits below.
+
+<import src="../../shared/react/network-blocker.mdx#rules" />
+
+<import src="../../shared/react/network-blocker.mdx#behavior" />
+
+<import src="../../shared/react/network-blocker.mdx#limits" />
+
+<import src="../../shared/react/network-blocker.mdx#verify" />

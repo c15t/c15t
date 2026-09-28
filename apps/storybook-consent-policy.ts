@@ -1,4 +1,5 @@
 import type { ConsentPresentation } from '../packages/core/src/libs/policy-actions';
+import type { HydrationRecords } from '../packages/core/src/types';
 import {
 	createPolicyRuleFingerprints,
 	normalizePolicyRule,
@@ -7,6 +8,7 @@ import {
 import type {
 	PolicyRule,
 	PolicyResolution,
+	Vendor,
 } from '../packages/schema/src/types';
 
 export const storybookPolicy: PolicyRule = {
@@ -58,25 +60,71 @@ export const storybookPresentation: ConsentPresentation = {
 	},
 };
 
+/**
+ * Vendors the `With Vendors` stories declare in every adapter, so the three
+ * surfaces render identical rows and the parity gate compares markup, not
+ * fixtures.
+ */
+export const storybookVendors: Vendor[] = [
+	{
+		category: 'marketing',
+		description: 'Ad conversion measurement and audiences.',
+		id: 'meta-pixel',
+		name: 'Meta Pixel',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	},
+	{
+		category: 'marketing',
+		id: 'google-ads',
+		name: 'Google Ads',
+		privacyPolicyUrl: 'https://policies.google.com/privacy',
+	},
+	{
+		category: 'measurement',
+		id: 'google-analytics',
+		name: 'Google Analytics',
+		privacyPolicyUrl: 'https://policies.google.com/privacy',
+	},
+];
+
+/** Marketing and measurement on, so every vendor switch is live. */
+export const storybookVendorStoredConsent: Record<string, boolean> = {
+	experience: false,
+	functionality: false,
+	marketing: true,
+	measurement: true,
+	necessary: true,
+};
+
+/** The explicit choice record a fixture stores, with its confirmation metadata. */
+export const storybookChoiceRecord = (
+	consents: Record<string, boolean>,
+	policy: PolicyRule = storybookPolicy
+): NonNullable<HydrationRecords['choice']> => {
+	const confirmedAt = Date.now();
+	const basis = {
+		fingerprint: createPolicyRuleFingerprints(normalizePolicyRule(policy))
+			.choice,
+		kind: 'choice-v1' as const,
+	};
+	return {
+		categories: Object.fromEntries(
+			Object.entries(consents)
+				.filter(([category]) => category !== 'necessary')
+				.map(([category, value]) => [category, { basis, confirmedAt, value }])
+		),
+		version: 3,
+	};
+};
+
 /** Seed explicit fixture choices with their original confirmation metadata. */
 export const seedStorybookChoice = (
 	consents: Record<string, boolean>,
 	policy: PolicyRule = storybookPolicy
 ): void => {
-	const confirmedAt = Date.now();
-	const basis = {
-		fingerprint: createPolicyRuleFingerprints(normalizePolicyRule(policy))
-			.choice,
-		kind: 'choice-v1',
-	};
-	const categories = Object.fromEntries(
-		Object.entries(consents)
-			.filter(([category]) => category !== 'necessary')
-			.map(([category, value]) => [category, { basis, confirmedAt, value }])
-	);
 	window.localStorage.setItem(
 		'c15t',
-		JSON.stringify({ categories, version: 3 })
+		JSON.stringify(storybookChoiceRecord(consents, policy))
 	);
 };
 

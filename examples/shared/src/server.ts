@@ -41,7 +41,10 @@ const waitUntilReady = (
 export const startExample = async function startExample(target: ExampleTarget) {
 	const fixture = await startExampleFixture();
 	const port = await availablePort();
-	const env = exampleEnvironment(fixture.backendURL, port);
+	const env = {
+		...exampleEnvironment(fixture.backendURL, port),
+		...target.env,
+	};
 	const cwd = join(examplesDirectory, target.directory);
 	let running: ReturnType<typeof launch> | undefined;
 	try {

@@ -1,3 +1,4 @@
+// oxlint-disable anti-slop/no-shape-in-symbol-names -- `shape` is the wire key of the sha-pinned vendor-list-scope fixtures, read by name in both native cores; renaming it re-pins every fixture and touches one reader per core, tracked in docs/internal/tcf-mobile-lanes.md.
 /**
  * Proves the committed `vendor-list-scope` fixtures say what they claim.
  *
@@ -110,11 +111,12 @@ const entries = (
 	}
 ).fixtures.filter((entry) => entry.kind === KIND);
 
-const fixtures = entries.map((entry) => {
-	return JSON.parse(
-		readFileSync(resolve(FIXTURE_DIR, entry.file), 'utf8')
-	) as PublishedFixture;
-});
+const fixtures = entries.map(
+	(entry) =>
+		JSON.parse(
+			readFileSync(resolve(FIXTURE_DIR, entry.file), 'utf8')
+		) as PublishedFixture
+);
 
 const vectorFor = function vectorFor(
 	shape: PublishedFixture['shape']
@@ -342,11 +344,9 @@ describe(`${KIND} fixtures`, () => {
 			// A prune removes records and nothing else, so a key outside the survivor set has
 			// to be absent rather than present under repaired bytes.
 			const survivors = new Set(fixture.expected.vendorKeys);
-			for (const key of Object.keys(served)) {
-				if (!survivors.has(key)) {
-					expect(expected[key], key).toBeUndefined();
-				}
-			}
+			const pruned = Object.keys(served).filter((key) => !survivors.has(key));
+			const leaked = pruned.filter((key) => expected[key] !== undefined);
+			expect(leaked, 'pruned vendor keys present under expected').toEqual([]);
 		}
 	});
 

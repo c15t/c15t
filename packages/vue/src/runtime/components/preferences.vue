@@ -11,15 +11,20 @@
  * runner sees identical DOM.
  */
 import type { PresentationAction } from '@c15t/core';
+import { vendorsListedUnder } from '@c15t/core';
 import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
+
+import '@c15t/ui/styles/components/accordion.css';
 import buttonStyles from '@c15t/ui/styles/components/button';
+
+import '@c15t/ui/styles/components/button.css';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
+
+import '@c15t/ui/styles/components/consent-actions.css';
 import managerStyles from '@c15t/ui/styles/components/consent-manager';
-import {
-	preferenceItemVariants,
-	switchVariants,
-} from '@c15t/ui/styles/primitives';
+
+import '@c15t/ui/styles/components/consent-manager.css';
 import { getTextDirection } from '@c15t/ui/utils/dom';
 import { computed, inject, mergeProps, ref, useId } from 'vue';
 
@@ -30,9 +35,12 @@ import {
 	useHasConsentUi,
 } from '../composables';
 import { useConsentDraft } from '../composables/draft';
+import { useConsentSnapshot } from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
+import { switchVariants } from '../primitives/switch-variants';
 import { consentWidgetManagerKey } from './preferences-manager-context';
 import ConsentTag from './tag.vue';
+import ConsentWidgetVendorList from './vendor-list.vue';
 
 const props = withDefaults(
 	defineProps<{
@@ -58,8 +66,7 @@ const hasConsentUi = useHasConsentUi();
 const manager = inject(consentWidgetManagerKey, null);
 const save = useConsentSave();
 
-const pi = preferenceItemVariants();
-const sw = switchVariants({ size: 'small' });
+const sw = switchVariants();
 
 /**
  * One stable id per mounted widget; per-category ids append the category
@@ -114,16 +121,39 @@ const {
 	values: draft,
 	displayedCategories: draftCategories,
 	isStale,
+	reseedOnNextRecord,
 	reset: resetDraft,
 	save: saveDraft,
+	setVendor,
+	vendors: draftVendors,
 } = manager?.draft ?? useConsentDraft();
 const categories = draftCategories;
+
+/** Vendors to list under each category; none under an `iab` policy. */
+const snapshot = useConsentSnapshot();
+const declaredVendors = computed(() =>
+	snapshot.value.model === 'iab' ? [] : (snapshot.value.vendors?.declared ?? [])
+);
+const displayedVendors = function displayedVendors(category: CONSENT_CATEGORY) {
+	return vendorsListedUnder(declaredVendors.value, category);
+};
 
 /** Single-open accordion state (opening one category closes the rest). */
 const openItems = ref<Record<string, boolean>>({});
 
 const isOpen = function isOpen(category: CONSENT_CATEGORY): boolean {
 	return openItems.value[category] ?? false;
+};
+
+/**
+ * Categories opened at least once. A collapsed body, with its vendor list,
+ * mounts on first open and then stays, so the close transition keeps its
+ * content. The React and Svelte primitives do the same.
+ */
+const openedItems = ref<ReadonlySet<string>>(new Set());
+
+const hasOpened = function hasOpened(category: CONSENT_CATEGORY): boolean {
+	return openedItems.value.has(category);
 };
 
 const toggleOpenItem = function toggleOpenItem(category: CONSENT_CATEGORY) {
@@ -134,6 +164,9 @@ const toggleOpenItem = function toggleOpenItem(category: CONSENT_CATEGORY) {
 			nextOpen && current === category,
 		])
 	);
+	if (nextOpen && !hasOpened(category)) {
+		openedItems.value = new Set([...openedItems.value, category]);
+	}
 };
 
 const toggleConsent = function toggleConsent(category: CONSENT_CATEGORY) {
@@ -200,8 +233,10 @@ const onAction = async function onAction(action: PresentationAction) {
 		return;
 	}
 	if (action === 'accept') {
+		reseedOnNextRecord();
 		save('all');
 	} else if (action === 'reject') {
+		reseedOnNextRecord();
 		save('none');
 	} else if (action === 'save') {
 		await saveDraft();
@@ -306,6 +341,7 @@ const onAction = async function onAction(action: PresentationAction) {
 							v-bind="config.components?.switch?.root"
 							:class="noStyle ? undefined : sw.root()"
 							:data-disabled="category === 'necessary' ? '' : undefined"
+							:data-size="noStyle ? undefined : 'small'"
 							data-slot="switch"
 							:data-state="draft[category] ? 'checked' : 'unchecked'"
 							:data-testid="`consent-widget-switch-${category}`"
@@ -313,20 +349,12 @@ const onAction = async function onAction(action: PresentationAction) {
 							@click="toggleConsent(category)"
 						>
 							<span
-								:class="
-									noStyle
-										? undefined
-										: sw.track({ disabled: category === 'necessary' })
-								"
+								:class="noStyle ? undefined : sw.track()"
 								v-bind="config.components?.switch?.track"
 								data-slot="switch-track"
 							>
 								<span
-									:class="
-										noStyle
-											? undefined
-											: sw.thumb({ disabled: category === 'necessary' })
-									"
+									:class="noStyle ? undefined : sw.thumb()"
 									v-bind="config.components?.switch?.thumb"
 									data-slot="switch-thumb"
 								/>
@@ -339,33 +367,34 @@ const onAction = async function onAction(action: PresentationAction) {
 					:id="contentId(index)"
 					:aria-hidden="isOpen(category) ? 'false' : 'true'"
 					:aria-labelledby="triggerId(index)"
-					:class="
-						pi.content({ class: noStyle ? undefined : accordionStyles.content })
-					"
+					:class="noStyle ? undefined : accordionStyles.content"
 					data-slot="preference-item-content"
 					:data-state="isOpen(category) ? 'open' : 'closed'"
 					:data-testid="`consent-widget-accordion-content-${category}`"
 					:inert="!isOpen(category)"
 				>
 					<div
-						:class="
-							pi.contentViewport({
-								class: noStyle ? undefined : accordionStyles.contentViewport,
-							})
-						"
+						:class="noStyle ? undefined : accordionStyles.contentViewport"
 						v-bind="config.components?.accordion?.contentViewport"
 						data-slot="preference-item-content-viewport"
 					>
 						<div
-							:class="
-								pi.contentInner({
-									class: noStyle ? undefined : accordionStyles.contentInner,
-								})
-							"
+							:class="noStyle ? undefined : accordionStyles.contentInner"
 							v-bind="config.components?.accordion?.contentInner"
 							data-slot="preference-item-content-inner"
 						>
-							{{ consentDescription(category) }}
+							<template v-if="hasOpened(category)">
+								{{ consentDescription(category) }}
+								<ConsentWidgetVendorList
+									v-if="displayedVendors(category).length > 0"
+									:category="category"
+									:category-on="draft[category] === true"
+									:granted="draftVendors"
+									:no-style="noStyle"
+									:vendors="displayedVendors(category)"
+									@toggle="setVendor"
+								/>
+							</template>
 						</div>
 					</div>
 				</div>

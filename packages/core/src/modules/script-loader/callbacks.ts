@@ -11,7 +11,7 @@
  * its own.
  */
 import type { ConsentSnapshot } from '../../types';
-import { getEffectiveGateState } from '../has';
+import { getEffectiveGateState, isVendorDenied } from '../has';
 import type {
 	Script,
 	ScriptCallbackInfo,
@@ -32,7 +32,7 @@ export const buildCallbackInfo = function buildCallbackInfo(
 	element?: HTMLScriptElement,
 	error?: Error
 ): ScriptCallbackInfo {
-	return {
+	const info: ScriptCallbackInfo = {
 		consents: getEffectiveGateState(snapshot).effectivePermissions,
 		element,
 		elementId,
@@ -40,6 +40,13 @@ export const buildCallbackInfo = function buildCallbackInfo(
 		hasConsent,
 		id: script.id,
 	};
+	if (script.vendor && snapshot.model !== 'iab') {
+		info.vendor = {
+			granted: !isVendorDenied(snapshot, script.vendor),
+			id: script.vendor,
+		};
+	}
+	return info;
 };
 
 /**
@@ -62,9 +69,9 @@ export const hasAnyCallback = function hasAnyCallback(script: Script): boolean {
  * not a function. User errors are swallowed so a buggy callback
  * cannot break the reconcile loop.
  */
-export const invokeCallback = function invokeCallback<K extends keyof Script>(
+export const invokeCallback = function invokeCallback(
 	script: Script,
-	key: K,
+	key: NonNullable<ScriptLoaderDebugEvent['callback']>,
 	info: ScriptCallbackInfo,
 	emit: (event: ScriptLoaderDebugEvent) => void
 ): void {
@@ -73,10 +80,10 @@ export const invokeCallback = function invokeCallback<K extends keyof Script>(
 		return;
 	}
 	try {
-		(fn as (info: ScriptCallbackInfo) => void)(info);
+		fn(info);
 		emit({
 			action: 'callback_invoked',
-			callback: key as ScriptLoaderDebugEvent['callback'],
+			callback: key,
 			elementId: info.elementId,
 			hasConsent: info.hasConsent,
 			message: `Invoked ${String(key)}`,
@@ -88,7 +95,7 @@ export const invokeCallback = function invokeCallback<K extends keyof Script>(
 	} catch (err) {
 		emit({
 			action: 'callback_error',
-			callback: key as ScriptLoaderDebugEvent['callback'],
+			callback: key,
 			data: { error: err instanceof Error ? err.message : String(err) },
 			elementId: info.elementId,
 			message: `Callback ${String(key)} threw`,

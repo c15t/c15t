@@ -32,7 +32,8 @@
 		noStyle = false,
 		iabT,
 	}: {
-		purpose: ProcessedPurpose;
+		/** A purpose, or a display-model row carrying `hasConsentBasis`. */
+		purpose: ProcessedPurpose & { hasConsentBasis?: boolean };
 		/**
 		 * The row's `data-testid`, from the shared display model. A purpose,
 		 * a special purpose and a special feature can all be numbered `1`,
@@ -111,6 +112,13 @@
 		purposeChecked = isEnabled;
 	});
 
+	// With no vendor on consent, a consent switch would look like an opt-out
+	// while every vendor kept processing; the objection control is the one
+	// that counts.
+	const showConsentSwitch = $derived(
+		purpose.hasConsentBasis !== false || !onPurposeLegitimateInterestToggle
+	);
+
 	// Handle purpose toggle - also toggles all consent-based vendors
 	const handlePurposeToggle = function handlePurposeToggle(value: boolean) {
 		onToggle(value);
@@ -162,20 +170,22 @@
 				{/if}
 			</PreferenceItem.Header>
 		</PreferenceItem.Trigger>
-		<PreferenceItem.Control>
-			<Switch.Root
-				aria-label={purpose.name}
-				bind:checked={purposeChecked}
-				onclick={() => handlePurposeToggle(purposeChecked)}
-				disabled={isLocked}
-				class={noStyle ? '' : sw.root}
-				data-size="medium"
-			>
-				<Switch.Control class={noStyle ? '' : sw.track}>
-					<Switch.Thumb class={noStyle ? '' : sw.thumb} />
-				</Switch.Control>
-			</Switch.Root>
-		</PreferenceItem.Control>
+		{#if showConsentSwitch}
+			<PreferenceItem.Control>
+				<Switch.Root
+					aria-label={purpose.name}
+					bind:checked={purposeChecked}
+					onclick={() => handlePurposeToggle(purposeChecked)}
+					disabled={isLocked}
+					class={noStyle ? '' : sw.root}
+					data-size="medium"
+				>
+					<Switch.Control class={noStyle ? '' : sw.track}>
+						<Switch.Thumb class={noStyle ? '' : sw.thumb} />
+					</Switch.Control>
+				</Switch.Root>
+			</PreferenceItem.Control>
+		{/if}
 	</div>
 
 	<!-- The surface's padding goes on the inner element: the outer one is
@@ -183,6 +193,7 @@
 	     its own padding's worth. -->
 	<PreferenceItem.Content
 		innerClassName={noStyle ? '' : styles.purposeContent || ''}
+		{noStyle}
 	>
 		<p class={noStyle ? '' : styles.purposeDescription || ''}>
 			{purpose.description}
@@ -252,7 +263,7 @@
 						{iabT.preferenceCenter.purposeItem.examples}
 						({purpose.illustrations.length})
 					</PreferenceItem.Trigger>
-					<PreferenceItem.Content>
+					<PreferenceItem.Content {noStyle}>
 						<ul class={noStyle ? '' : styles.examplesList || ''}>
 							{#each purpose.illustrations as illustration (illustration)}
 								<li>{illustration}</li>
@@ -281,6 +292,7 @@
 				</PreferenceItem.Trigger>
 				<PreferenceItem.Content
 					innerClassName={noStyle ? '' : styles.vendorSection || ''}
+					{noStyle}
 				>
 					<!-- IAB Consent Vendors -->
 					{#if iabConsentVendors.length > 0}

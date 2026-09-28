@@ -7,22 +7,20 @@ const projectDir = dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = resolve(projectDir, '../..');
 
 /**
- * CSS experiment toggle (see app/banner-css):
- * - default build: `bench-css-entry` -> the @c15t/ui monolith stylesheet
- * - C15T_CSS=styles build: `bench-css-entry` -> empty; the consent-banner
- *   style-map is aliased to the @c15t/ui/styles/components CSS Modules shim.
- * Aliases are defined for webpack AND turbopack so the experiment is
- * bundler-agnostic. JS is byte-identical between builds apart from these
- * two module resolutions.
+ * CSS delivery toggle for the `banner-css` page:
+ * - default build: `bench-css-entry` imports the aggregate `styles.css`.
+ * - `C15T_CSS=styles` build: `bench-css-entry` imports only the component
+ *   stylesheets the banner renders. It builds into `.next-css-styles`, so
+ *   the two builds can sit side by side.
+ * Both builds load the same JavaScript. Each imports its CSS explicitly
+ * rather than relying on `@c15t/ui` class maps to import it.
  */
 const useStylesCss = process.env.C15T_CSS === 'styles';
 
 const cssEntryRel = useStylesCss
 	? './app/_bench/css-entry/styles.ts'
 	: './app/_bench/css-entry/control.ts';
-const bannerShimRel = './app/_bench/css-shim/consent-banner-shim.ts';
 const cssEntryAbs = resolve(projectDir, cssEntryRel);
-const bannerShimAbs = resolve(projectDir, bannerShimRel);
 
 const transpilePackages = [
 	'@c15t/benchmarking',
@@ -33,31 +31,19 @@ const transpilePackages = [
 	'@c15t/core',
 ];
 
-const turbopackResolveAlias: Record<string, string> = {
-	'bench-css-entry': cssEntryRel,
-};
-if (useStylesCss) {
-	turbopackResolveAlias['@c15t/ui/styles/components/consent-banner'] =
-		bannerShimRel;
-}
-
 const config: NextConfig = {
+	distDir: useStylesCss ? '.next-css-styles' : '.next',
 	transpilePackages,
 	turbopack: {
-		resolveAlias: turbopackResolveAlias,
+		resolveAlias: { 'bench-css-entry': cssEntryRel },
 		root: monorepoRoot,
 	},
 	webpack: (webpackConfig) => {
 		webpackConfig.resolve ??= {};
-		const resolveAlias = {
+		webpackConfig.resolve.alias = {
 			...webpackConfig.resolve.alias,
 			'bench-css-entry$': cssEntryAbs,
 		};
-		if (useStylesCss) {
-			resolveAlias['@c15t/ui/styles/components/consent-banner$'] =
-				bannerShimAbs;
-		}
-		webpackConfig.resolve.alias = resolveAlias;
 		return webpackConfig;
 	},
 };

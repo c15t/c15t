@@ -1,6 +1,12 @@
 import type { ConsentRuntime } from '@c15t/core/runtime';
 import { createConsentRuntime } from '@c15t/core/runtime';
-import { Activity, StrictMode, useLayoutEffect } from 'react';
+import {
+	Activity,
+	StrictMode,
+	useContext,
+	useLayoutEffect,
+	useRef,
+} from 'react';
 import { expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -233,5 +239,68 @@ test('accepts new actions after a hidden provider resumes', async () => {
 	} finally {
 		screen.unmount();
 		runtime.dispose();
+	}
+});
+
+/** Reports each `useIAB()` result and calls `onSwitch` when the runtime changes. */
+const SwitchProbe = ({
+	onState,
+	onSwitch,
+}: {
+	onState: (iab: ReactIABState | null) => void;
+	onSwitch: () => void;
+}) => {
+	const iab = useIAB();
+	const kernel = useContext(KernelContext);
+	const previous = useRef(kernel);
+	onState(iab);
+	useLayoutEffect(() => {
+		if (previous.current !== kernel) {
+			previous.current = kernel;
+			onSwitch();
+		}
+	});
+	return null;
+};
+
+test('a useIAB result kept across a borrowed-runtime switch cannot act on either runtime', async () => {
+	const first = fixture();
+	const second = fixture();
+	first.runtime.start();
+	second.runtime.start();
+	let latest: ReactIABState | null = null;
+	let retained: ReactIABState | null = null;
+	let duringCommit: Promise<void> | undefined;
+	const tree = (runtime: ConsentRuntime) => (
+		<ConsentProvider runtime={runtime}>
+			<SwitchProbe
+				onState={(iab) => {
+					latest = iab;
+				}}
+				onSwitch={() => {
+					// A descendant layout effect in the switch commit, before the
+					// external bridge's passive cleanup closes the first queue.
+					retained?.acceptAll();
+					duringCommit = retained?.save();
+				}}
+			/>
+		</ConsentProvider>
+	);
+	const screen = await render(tree(first.runtime));
+	try {
+		await vi.waitFor(() => expect(latest).not.toBeNull());
+		retained = latest;
+
+		await screen.rerender(tree(second.runtime));
+
+		await expect(duringCommit).rejects.toMatchObject({ name: 'AbortError' });
+		for (const { handle } of [first, second]) {
+			expect(handle.acceptAll).not.toHaveBeenCalled();
+			expect(handle.save).not.toHaveBeenCalled();
+		}
+	} finally {
+		screen.unmount();
+		first.runtime.dispose();
+		second.runtime.dispose();
 	}
 });

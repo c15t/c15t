@@ -15,6 +15,13 @@ export const translations: CompleteTranslations = {
 		description:
 			'Personalizează setările de confidențialitate aici. Poți alege ce tipuri de cookie-uri și tehnologii de urmărire permiți.',
 		title: 'Setări de confidențialitate',
+		vendors: {
+			disabledByCategory:
+				'Activați această categorie pentru a alege furnizori.',
+			privacyPolicy: 'Politică de confidențialitate',
+			switchLabel: 'Permite {vendor}',
+			title: 'Furnizori ({count})',
+		},
 	},
 	consentTypes: {
 		experience: {

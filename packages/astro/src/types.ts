@@ -15,9 +15,11 @@ import type {
 	ConsentPresentation,
 	KernelConfig,
 	LegalLinks,
+	PublisherRestriction,
 	Script,
 	StorageConfig,
 } from '@c15t/core';
+import type { RuntimeNetworkBlockerOptions } from '@c15t/core/runtime';
 import type {
 	PolicyRule,
 	PolicyResolution,
@@ -64,6 +66,15 @@ export interface C15tManifestDescriptor {
 	backendURL?: string;
 	/** Inline manifest. Takes precedence over `manifestURL`. */
 	manifest?: ConsentManifest;
+	/**
+	 * Report each init the server resolves, in the middleware and the init
+	 * route, to the backend's `POST /sessions`, server-to-server and
+	 * detached from the response, so the backend still counts visitors it
+	 * never served `/init` to. Set `false` to send none.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
 }
 
 /**
@@ -125,6 +136,22 @@ export interface C15tMiddlewareOptions {
 	 * @example ['/api/webhooks', '/healthz']
 	 */
 	skip?: string[];
+	/**
+	 * Longest a server render waits for the visitor's policy, in
+	 * milliseconds.
+	 *
+	 * The middleware resolves consent before the page renders, so a slow or
+	 * unreachable backend holds the whole response. When the budget runs out
+	 * the page renders without the server decision: no banner in the HTML,
+	 * optional categories denied, gated scripts and iframes blocked. The
+	 * browser then resolves the policy and shows the banner. A manifest
+	 * request keeps running and fills the cache for the next render.
+	 *
+	 * `false` waits for the backend however long it takes.
+	 *
+	 * @default 500
+	 */
+	timeoutMs?: number | false;
 }
 
 /** Options accepted by the `c15t()` Astro integration. */
@@ -147,6 +174,25 @@ export interface C15tAstroOptions {
 	clearOnRevocation?: ClearOnRevocationConfig;
 
 	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted. Removing a script cannot stop code that already
+	 * ran, so the reload starts a document with only permitted code. Waits for
+	 * the save request. Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
+
+	/**
+	 * Block `fetch` and XHR requests that match these rules until the
+	 * visitor's consent allows them. Omitted or `false` disables it.
+	 * `onRequestBlocked` is a callback, so it belongs in
+	 * {@link C15tClientOptionsExtension.networkBlocker}.
+	 */
+	networkBlocker?:
+		| Omit<RuntimeNetworkBlockerOptions, 'onRequestBlocked'>
+		| false;
+
+	/**
 	 * IAB TCF configuration. `false` disables it.
 	 *
 	 * Only the serializable fields are accepted here; a live GVL fetcher
@@ -160,7 +206,10 @@ export interface C15tAstroOptions {
 	/** Locale and message overrides. */
 	i18n?: C15tI18nOptions;
 
-	/** Theme tokens applied to the banner and dialog surfaces. */
+	/**
+	 * Theme tokens applied to the banner and dialog surfaces. The server
+	 * renders them as a `<style id="c15t-theme">` next to the config script.
+	 */
 	theme?: Theme;
 
 	/**
@@ -190,6 +239,18 @@ export interface C15tAstroOptions {
 	 * @default 'svelte'
 	 */
 	ui?: C15tUIAdapterName;
+
+	/**
+	 * Add `@c15t/astro/styles.css` to every page, and
+	 * `@c15t/astro/iab/styles.css` when {@link C15tAstroOptions.iab} is set.
+	 *
+	 * Set to `false` to import them yourself, for example from a global
+	 * stylesheet with your own cascade layers, or to style the surfaces from
+	 * scratch.
+	 *
+	 * @default true
+	 */
+	styles?: boolean;
 
 	/** Injected API routes. */
 	endpoints?: C15tEndpointOptions | boolean;
@@ -259,6 +320,12 @@ export interface C15tIABOptions {
 	/** Whether the CMP is service-specific rather than global. */
 	isServiceSpecific?: boolean;
 	/**
+	 * Publisher restrictions to encode into the TC string and apply to IAB
+	 * gates. Plain data, so it travels to the browser with the rest of these
+	 * options. `@c15t/iab` rejects restrictions the vendor list does not allow.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
+	/**
 	 * Fetch the vendor list from this URL on the server.
 	 *
 	 * Goes through the shared in-process cache in `@c15t/core/server`, so
@@ -291,8 +358,17 @@ export interface C15tClientOptionsExtension {
 	scripts?: Script[];
 	/** Overrides cleanup targets from the integration options. */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Replaces {@link C15tAstroOptions.networkBlocker}. Use it to pass
+	 * `onRequestBlocked`.
+	 */
+	networkBlocker?: RuntimeNetworkBlockerOptions | false;
 	callbacks?: Record<string, unknown>;
-	/** Merged over the serialized theme. */
+	/**
+	 * Merged over the serialized theme for slot styles and consent-action
+	 * variants. Design tokens here are not applied: the browser no longer
+	 * generates theme CSS, so put tokens in the integration's `theme`.
+	 */
 	theme?: Theme;
 }
 
@@ -311,7 +387,8 @@ export interface C15tResolvedOptions extends Omit<
 	endpoints: Required<Omit<C15tEndpointOptions, 'enabled'>> & {
 		enabled: boolean;
 	};
-	middleware: Required<C15tMiddlewareOptions>;
+	middleware: Required<Omit<C15tMiddlewareOptions, 'timeoutMs'>> &
+		Pick<C15tMiddlewareOptions, 'timeoutMs'>;
 }
 
 /** Consent context the middleware attaches to every request. */
@@ -332,6 +409,13 @@ export interface C15tLocals {
 
 	/** Whether the server decided this request should see the banner. */
 	shouldShowBanner: boolean;
+
+	/**
+	 * Whether this render is shared by every visitor, as on a prerendered
+	 * route. Consent surfaces then render hidden, and the browser shows
+	 * them once it has read the visitor's own cookie.
+	 */
+	prerendered: boolean;
 
 	/**
 	 * Whether a policy rule is resolved for this request. Every c15t consent

@@ -1,0 +1,38 @@
+{
+	"browser": "149.0.7827.55",
+	"checks": [
+		"Fresh visit denies the measurement purpose and executes no probe",
+		"Pageview queued while measurement is denied",
+		"Grant replays the queued pageview and executes the actual Zaraz tool once",
+		"Marketing-only consent revokes measurement; subsequent pageview does not execute its tool",
+		"Stale granted Zaraz cookie is denied on reload before any probe executes",
+		"Already-ready Zaraz API synchronizes when c15t loads later",
+		"Accepted measurement persists after refresh without reopening the banner",
+		"Real c15t banner acceptance releases the queued tool; rejection blocks subsequent execution",
+		"Rejected measurement persists after refresh and keeps the tool blocked",
+		"Visible guided demo completes all three live consent checks",
+		"Cookie preferences opens the real c15t preference dialog",
+		"Disposal cancels the guided demo and prevents polling, clicks, or consent changes from updating the page"
+	],
+	"date": "2026-09-17T20:08:10.955Z",
+	"errors": [],
+	"limitation": "One Custom HTML measurement probe on the live Zaraz service. Marketing category isolation is tested against that probe; two-tool mapping is covered by local integration tests. No third-party analytics destination or vendor speedup is measured.",
+	"resources": [
+		{
+			"decodedBodySize": 0,
+			"path": "/bridge.js",
+			"transferSize": 300
+		},
+		{
+			"decodedBodySize": 2067,
+			"path": "/cdn-cgi/zaraz/i.js",
+			"transferSize": 1490
+		},
+		{
+			"decodedBodySize": 14919,
+			"path": "/cdn-cgi/zaraz/s.js",
+			"transferSize": 5567
+		}
+	],
+	"url": "https://zaraz-lab.c15t.cloud"
+}

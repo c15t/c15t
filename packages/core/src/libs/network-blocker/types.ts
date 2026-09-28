@@ -8,6 +8,13 @@ import type { HasCondition } from '../has';
  * @public
  */
 export interface NetworkBlockerRule {
+	/**
+	 * Vendor slug for vendor-level consent outside IAB. Requests match the
+	 * rule as usual, then are blocked while the subject has this vendor
+	 * turned off. Inert in IAB mode.
+	 */
+	vendor?: string;
+	/** IAB TCF vendor id. Only evaluated in IAB mode. */
 	vendorId?: number | string;
 	iabPurposes?: number[];
 	iabLegIntPurposes?: number[];

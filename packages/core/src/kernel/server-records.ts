@@ -1,5 +1,6 @@
 import type { ConsentSnapshot } from '../types';
 import type { SnapshotPatch } from './patch';
+import { mergeNewestVendorChoice } from './records';
 import type { ValidatedRecords } from './records';
 
 /**
@@ -40,6 +41,12 @@ export const mergeServerPatch = function mergeServerPatch(
 		patch.subject = records.subject
 			? { ...current.subject, ...records.subject }
 			: current.subject;
+	}
+	if (records.vendorChoice !== undefined) {
+		patch.vendorChoice = mergeNewestVendorChoice(
+			current.vendorChoice,
+			records.vendorChoice
+		);
 	}
 	return patch;
 };
