@@ -8,10 +8,14 @@
  * before any consent check.
  *
  * Adapters call {@link holdNetworkRequests} synchronously while they
- * construct: a React provider render, a Svelte component script, a Vue
- * plugin install. `createNetworkBlocker()` ends the hold and replays each
- * held request through its own patches, which send it, block it, or keep
- * it waiting until consent is known.
+ * construct: a React provider or `useNetworkBlocker` render, a Svelte
+ * component script, a Vue plugin install. `createNetworkBlocker()` ends the
+ * hold and replays each held request through its own patches, which send
+ * it, block it, or keep it waiting until consent is known.
+ *
+ * Several callers can hold at once. Each call returns a {@link NetworkHold}
+ * for its own rules, so one caller letting go (or its blocker taking over)
+ * does not release requests another caller's rules still hold.
  *
  * Only requests matching a rule wait. Everything else goes straight
  * through. A held `fetch` returns a pending promise; a held XHR has not
@@ -89,6 +93,36 @@ export const failBlockedXhr = function failBlockedXhr(
 	xhr.dispatchEvent(event);
 };
 
+/**
+ * One caller's share of the hold.
+ * @internal
+ */
+export interface NetworkHold {
+	/**
+	 * Stop holding for this caller's rules when no blocker will take over,
+	 * for example a runtime disposed before it started. Nothing checked
+	 * consent for the requests they held, so none is sent: each one no other
+	 * caller's rules match is answered the way the blocker answers a blocked
+	 * request (a 451 `Response`, or a failed XHR). The rest stay held. A
+	 * no-op once released or blocked.
+	 */
+	block: () => void;
+	/** Whether this caller's rules still hold requests. */
+	readonly held: boolean;
+	/**
+	 * Stop holding for this caller's rules. Returns a function that sends
+	 * each request held so far again, through whatever `fetch` and
+	 * `XMLHttpRequest.prototype.send` are installed when it runs. A request
+	 * another caller's rules still match is held again. A no-op once
+	 * released or after {@link releaseNetworkRequests}.
+	 */
+	release: () => () => void;
+}
+
+interface Owner {
+	rules: readonly NetworkBlockerRule[];
+}
+
 /** A held request: sent again through the page, or answered as blocked. */
 interface Held {
 	block: () => void;
@@ -98,12 +132,52 @@ interface Held {
 }
 
 interface Hold {
+	owners: Set<Owner>;
 	queue: Held[];
 	restore: () => void;
-	rules: Set<NetworkBlockerRule>;
 }
 
 let active: Hold | null = null;
+
+const sendNothing = (): void => undefined;
+
+/**
+ * A hold for a caller whose rules hold nothing, for example a blocker
+ * created with `enabled: false`. Pass it to `createNetworkBlocker({ hold })`
+ * so that blocker takes over nothing, rather than omitting `hold`, which
+ * ends every caller's hold.
+ * @internal
+ */
+export const NOT_HELD: NetworkHold = {
+	block: () => undefined,
+	held: false,
+	release: () => sendNothing,
+};
+
+const replayAll = (queue: Held[]) => () => {
+	for (const held of queue) {
+		held.replay();
+	}
+};
+
+/**
+ * End the hold for every caller and restore the patched functions. Returns
+ * a function that sends every held request again through whatever `fetch`
+ * and `XMLHttpRequest.prototype.send` are installed when it runs; call it
+ * after the blocker has installed its own patches.
+ *
+ * Called by `createNetworkBlocker()` when it is not given a `hold`.
+ *
+ * @returns Replays the held requests. A no-op when nothing was held.
+ * @internal
+ */
+export const releaseNetworkRequests =
+	function releaseNetworkRequests(): () => void {
+		const hold = active;
+		active = null;
+		hold?.restore();
+		return replayAll(hold?.queue.splice(0) ?? []);
+	};
 
 const matches = function matches(
 	hold: Hold,
@@ -121,47 +195,97 @@ const matches = function matches(
 	}
 	const host = url.hostname.toLowerCase();
 	const verb = method.toUpperCase();
-	for (const rule of hold.rules) {
-		const domain = rule.domain.trim().toLowerCase();
-		if (
-			domain &&
-			(host === domain || host.endsWith(`.${domain}`)) &&
-			(typeof rule.pathIncludes !== 'string' ||
-				url.pathname.includes(rule.pathIncludes)) &&
-			(!rule.methods?.length ||
-				rule.methods.some((allowed) => allowed.toUpperCase() === verb))
-		) {
-			return true;
+	for (const owner of hold.owners) {
+		for (const rule of owner.rules) {
+			const domain = rule.domain.trim().toLowerCase();
+			if (
+				domain &&
+				(host === domain || host.endsWith(`.${domain}`)) &&
+				(typeof rule.pathIncludes !== 'string' ||
+					url.pathname.includes(rule.pathIncludes)) &&
+				(!rule.methods?.length ||
+					rule.methods.some((allowed) => allowed.toUpperCase() === verb))
+			) {
+				return true;
+			}
 		}
 	}
 	return false;
 };
 
 /**
+ * After owners left without a blocker to take over: end the hold if none
+ * remain, and answer as blocked every held request no remaining owner's
+ * rules match.
+ */
+const blockUnmatched = function blockUnmatched(hold: Hold): void {
+	if (hold.owners.size === 0 && active === hold) {
+		active = null;
+		hold.restore();
+	}
+	for (const held of hold.queue.splice(0)) {
+		if (active === hold && matches(hold, held.input, held.method)) {
+			hold.queue.push(held);
+		} else {
+			held.block();
+		}
+	}
+};
+
+const joinHold = function joinHold(
+	hold: Hold,
+	rules: readonly NetworkBlockerRule[]
+): NetworkHold {
+	const owner: Owner = { rules };
+	hold.owners.add(owner);
+	return {
+		block() {
+			if (active === hold && hold.owners.delete(owner)) {
+				blockUnmatched(hold);
+			}
+		},
+		get held() {
+			return active === hold && hold.owners.has(owner);
+		},
+		release() {
+			if (active !== hold || !hold.owners.delete(owner)) {
+				return sendNothing;
+			}
+			if (hold.owners.size === 0) {
+				return releaseNetworkRequests();
+			}
+			// Other callers still hold: resend what only this caller held.
+			return replayAll(hold.queue.splice(0));
+		},
+	};
+};
+
+/**
  * Start holding `fetch` and XHR requests that match `rules`. Safe to call
  * more than once (for example from a React render that runs twice); later
- * calls add their rules to the running hold. A no-op outside the browser.
+ * calls join the running hold with their own rules. A no-op outside the
+ * browser.
  *
  * Adapter plumbing: apps configure `networkBlocker` instead.
  *
  * @param rules - Network-blocker rules whose requests should wait.
+ * @returns This caller's share of the hold. Pass it to
+ *   `createNetworkBlocker({ hold })` to hand its requests to the blocker, or
+ *   release it when no blocker will take over.
  * @internal
  */
 export const holdNetworkRequests = function holdNetworkRequests(
 	rules: readonly NetworkBlockerRule[]
-): void {
+): NetworkHold {
 	if (
 		typeof window === 'undefined' ||
 		typeof window.fetch !== 'function' ||
 		typeof XMLHttpRequest === 'undefined'
 	) {
-		return;
+		return NOT_HELD;
 	}
 	if (active) {
-		for (const rule of rules) {
-			active.rules.add(rule);
-		}
-		return;
+		return joinHold(active, rules);
 	}
 	const originalFetch = window.fetch;
 	const proto = XMLHttpRequest.prototype;
@@ -223,7 +347,8 @@ export const holdNetworkRequests = function holdNetworkRequests(
 	proto.open = heldOpen;
 	proto.send = heldSend;
 
-	active = {
+	const hold: Hold = {
+		owners: new Set(),
 		queue: [],
 		// A wrapper installed on top keeps ours in its chain; the hold is
 		// then a pass-through because `active` is cleared first.
@@ -238,45 +363,18 @@ export const holdNetworkRequests = function holdNetworkRequests(
 				proto.send = originalSend;
 			}
 		},
-		rules: new Set(rules),
 	};
+	active = hold;
+	return joinHold(hold, rules);
 };
 
 /**
- * End the hold and restore the patched functions. Returns a function that
- * sends every held request again through whatever `fetch` and
- * `XMLHttpRequest.prototype.send` are installed when it runs; call it
- * after the blocker has installed its own patches.
+ * Stop holding for `rules` when no blocker will take over, as
+ * {@link NetworkHold.block} does, for a caller that kept its rules rather
+ * than its hold. Every caller that held with only these rules (matched by
+ * reference) lets go; requests other callers' rules still match stay held.
  *
- * Called by `createNetworkBlocker()`.
- *
- * @returns Replays the held requests. A no-op when nothing was held.
- * @internal
- */
-export const releaseNetworkRequests =
-	function releaseNetworkRequests(): () => void {
-		const hold = active;
-		active = null;
-		hold?.restore();
-		return () => {
-			for (const held of hold?.queue.splice(0) ?? []) {
-				held.replay();
-			}
-		};
-	};
-
-/**
- * Stop holding for `rules` when no blocker will take over, for example a
- * runtime disposed before it started. Nothing checked consent for the
- * requests they held, so none is sent: each one no remaining rule matches
- * is answered the way the blocker answers a blocked request (a 451
- * `Response`, or a failed XHR). Requests other callers' rules still match
- * stay held. The hold ends once no rules remain.
- *
- * Rules are matched by reference, as {@link holdNetworkRequests} added
- * them.
- *
- * @param rules - The rules this caller held with.
+ * @param rules - The rules the caller held with.
  * @internal
  */
 export const blockHeldRequests = function blockHeldRequests(
@@ -286,18 +384,11 @@ export const blockHeldRequests = function blockHeldRequests(
 	if (!hold) {
 		return;
 	}
-	for (const rule of rules) {
-		hold.rules.delete(rule);
-	}
-	if (hold.rules.size === 0) {
-		active = null;
-		hold.restore();
-	}
-	for (const held of hold.queue.splice(0)) {
-		if (active === hold && matches(hold, held.input, held.method)) {
-			hold.queue.push(held);
-		} else {
-			held.block();
+	const dropped = new Set(rules);
+	for (const owner of [...hold.owners]) {
+		if (owner.rules.every((rule) => dropped.has(rule))) {
+			hold.owners.delete(owner);
 		}
 	}
+	blockUnmatched(hold);
 };
