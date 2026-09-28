@@ -122,3 +122,55 @@ export const applyPublisherRestrictionsToGVL =
 		}
 		return vendors ? { ...gvl, vendors } : gvl;
 	};
+
+/** Legitimate interest signals publisher restrictions introduce. */
+export interface IntroducedLegitimateInterest {
+	/** Purposes a restriction moved some vendor onto legitimate interest for. */
+	purposes: number[];
+	/** Vendors a restriction moved onto legitimate interest for some purpose. */
+	vendors: number[];
+}
+
+/**
+ * The legitimate interest signals type 2 restrictions introduce: purposes
+ * and vendors that use legitimate interest only because a restriction
+ * moved a flexible consent purpose there.
+ *
+ * Under the TCF, legitimate interest applies until the visitor objects, so
+ * preference controls show these as allowed while the draft has no value,
+ * and saving encodes them as allowed. An objection in the draft wins.
+ *
+ * @param gvl - The Global Vendor List.
+ * @param restrictions - Publisher restrictions, if any.
+ * @returns Purpose and vendor IDs, each sorted and listed once.
+ *
+ * @public
+ */
+export const introducedLegitimateInterest =
+	function introducedLegitimateInterest(
+		gvl: GlobalVendorList,
+		restrictions: readonly PublisherRestriction[] | undefined
+	): IntroducedLegitimateInterest {
+		const effective = applyPublisherRestrictionsToGVL(
+			gvl,
+			restrictions
+		).vendors;
+		const purposes = new Set<number>();
+		const vendors = new Set<number>();
+		for (const { purposeId, restrictionType, vendorIds } of restrictions ??
+			[]) {
+			if (restrictionType !== 2) {
+				continue;
+			}
+			for (const vendorId of vendorIds) {
+				const before = gvl.vendors[vendorId]?.legIntPurposes ?? [];
+				const after = effective[vendorId]?.legIntPurposes ?? [];
+				if (after.includes(purposeId) && !before.includes(purposeId)) {
+					purposes.add(purposeId);
+					vendors.add(vendorId);
+				}
+			}
+		}
+		const sorted = (ids: Set<number>) => [...ids].sort((a, b) => a - b);
+		return { purposes: sorted(purposes), vendors: sorted(vendors) };
+	};

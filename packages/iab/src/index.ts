@@ -42,7 +42,10 @@ import {
 	storeAuthority,
 	validateAuthority,
 } from './authority';
-import { applyPublisherRestrictionsToGVL } from './headless/effective-vendor-list';
+import {
+	applyPublisherRestrictionsToGVL,
+	introducedLegitimateInterest,
+} from './headless/effective-vendor-list';
 import { clearStoredTCString, createCMPApi } from './tcf/cmp-api';
 import { clearGVLCache, fetchGVL, narrowGVLToVendors } from './tcf/fetch-gvl';
 import type { PublisherRestriction } from './tcf/iab-tcf-types';
@@ -1506,11 +1509,19 @@ export const createIAB = function createIAB(
 						Object.hasOwn(iab.gvl?.vendors ?? {}, id) && !customIds.has(id)
 				)
 			);
+		// Legitimate interest a restriction introduces applies until the
+		// visitor objects, as the preference controls show. Draft values win.
+		const introduced = iab.gvl
+			? introducedLegitimateInterest(iab.gvl, publisherRestrictions)
+			: { purposes: [], vendors: [] };
+		const allowed = (ids: number[]) =>
+			Object.fromEntries(ids.map((id) => [id, true]));
 		// Custom choices stay in kernel state, never in registered TCF vectors.
 		const vendorConsents = registeredChoices(iab.vendorConsents);
-		const vendorLegitimateInterests = registeredChoices(
-			iab.vendorLegitimateInterests
-		);
+		const vendorLegitimateInterests = registeredChoices({
+			...allowed(introduced.vendors),
+			...iab.vendorLegitimateInterests,
+		});
 		// `vendorsDisclosed` should reflect every vendor the CMP made
 		// available to the user, per TCF 2.3. For MVP we mirror the set
 		// of vendors whose consent has been considered.
@@ -1527,7 +1538,10 @@ export const createIAB = function createIAB(
 				| PublisherRestriction[]
 				| undefined,
 			purposeConsents: { ...iab.purposeConsents },
-			purposeLegitimateInterests: { ...iab.purposeLegitimateInterests },
+			purposeLegitimateInterests: {
+				...allowed(introduced.purposes),
+				...iab.purposeLegitimateInterests,
+			},
 			specialFeatureOptIns: { ...iab.specialFeatureOptIns },
 			vendorConsents: { ...vendorConsents },
 			vendorLegitimateInterests: { ...vendorLegitimateInterests },

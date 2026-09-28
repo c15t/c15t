@@ -1,6 +1,7 @@
 import type { ConsentSnapshot } from '@c15t/core';
 import {
 	applyPublisherRestrictionsToGVL,
+	introducedLegitimateInterest,
 	resolveIABDialogDisplayModel,
 } from '@c15t/iab/headless';
 import type { HeadlessIABDisplayRow } from '@c15t/iab/headless';
@@ -29,6 +30,14 @@ export const createIABPreferences = (
 	const copy = resolveCopy(snapshot);
 	const t = copy.t.iab;
 	const model = resolveIABDialogDisplayModel(snapshot.iab);
+	// Legitimate interest a restriction introduces applies until the visitor
+	// objects, and saving encodes it that way, so show it as allowed.
+	const introduced = snapshot.iab?.gvl
+		? introducedLegitimateInterest(
+				snapshot.iab.gvl,
+				snapshot.iab.publisherRestrictions
+			)
+		: { purposes: [], vendors: [] };
 	const styles = classes.dialog;
 	const css = (value: string): string => (noStyle ? '' : value);
 	const updates: ((value: ConsentSnapshot) => void)[] = [];
@@ -177,7 +186,9 @@ export const createIABPreferences = (
 					toggle(
 						t.preferenceCenter.purposeItem.legitimateInterest,
 						`${row.testId}-li`,
-						(value) => Boolean(value.iab?.purposeLegitimateInterests[row.id]),
+						(value) =>
+							value.iab?.purposeLegitimateInterests[row.id] ??
+							introduced.purposes.includes(row.id),
 						(value) => {
 							const handle = client.runtime.iab;
 							handle?.setPurposeLegitimateInterest(row.id, value);
@@ -373,7 +384,9 @@ export const createIABPreferences = (
 					toggle(
 						t.preferenceCenter.purposeItem.legitimateInterest,
 						`iab-vendor-${id}-li`,
-						(value) => Boolean(value.iab?.vendorLegitimateInterests[id]),
+						(value) =>
+							value.iab?.vendorLegitimateInterests[id] ??
+							introduced.vendors.includes(Number(id)),
 						(value) =>
 							client.runtime.iab?.setVendorLegitimateInterest(id, value),
 						vendor.name

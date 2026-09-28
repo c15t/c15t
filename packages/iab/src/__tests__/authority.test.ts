@@ -2398,3 +2398,59 @@ describe('a category left with only legitimate interest', () => {
 		expect(evaluateConsent(liVendor, kernel.getSnapshot())).toBe(false);
 	});
 });
+
+test('an untouched Save Settings keeps legitimate interest a restriction introduces', async () => {
+	// Vendor 755 declares purpose 7 for consent only; the restriction moves it
+	// to legitimate interest, which the preference controls show as allowed
+	// until the visitor objects.
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel,
+		publisherRestrictions: [
+			{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	expect(
+		kernel.getSnapshot().iab?.purposeLegitimateInterests[7]
+	).toBeUndefined();
+	expect(
+		kernel.getSnapshot().iab?.vendorLegitimateInterests['755']
+	).toBeUndefined();
+	await addon.save();
+	const tcString = kernel.getSnapshot().iab?.authority?.tcString ?? '';
+	const decoded = await decodeTCString(tcString);
+	expect(decoded.purposeLegitimateInterests[7]).toBe(true);
+	expect(decoded.vendorLegitimateInterests[755]).toBe(true);
+	expect(
+		evaluateConsent(
+			{ category: 'necessary', iabPurposes: [7], vendorId: 755 },
+			kernel.getSnapshot()
+		)
+	).toBe(true);
+});
+
+test('an objection overrides the legitimate interest a restriction introduces', async () => {
+	const kernel = makeKernel();
+	const addon = createIAB({
+		cmpId: 28,
+		gvl: completeGVL,
+		kernel,
+		publisherRestrictions: [
+			{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+		],
+	});
+	disposers.push(addon.dispose);
+	await addon.whenReady();
+	addon.setVendorLegitimateInterest(755, false);
+	await addon.save();
+	expect(
+		evaluateConsent(
+			{ category: 'necessary', iabPurposes: [7], vendorId: 755 },
+			kernel.getSnapshot()
+		)
+	).toBe(false);
+});

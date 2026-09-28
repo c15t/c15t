@@ -225,3 +225,31 @@ describe('IAB controls with publisher restrictions', () => {
 		expect(evaluateConsent(target, client.getSnapshot())).toBe(false);
 	});
 });
+
+describe('legitimate interest a restriction introduces', () => {
+	it('shows it as allowed and saves it as shown', async () => {
+		// Vendor 755 declares purpose 7 for consent only.
+		const client = await start({
+			publisherRestrictions: [
+				{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+			],
+		});
+		expect(
+			control(client, 'purpose-item-7-li').getAttribute('aria-checked')
+		).toBe('true');
+		client.ui?.root
+			.querySelector<HTMLButtonElement>('#c15t-iab-vendors-tab')
+			?.click();
+		expect(
+			control(client, 'iab-vendor-755-li').getAttribute('aria-checked')
+		).toBe('true');
+		// Save Settings without touching anything.
+		expect((await client.saveIAB()).ok).toBe(true);
+		expect(
+			evaluateConsent(
+				{ category: 'necessary', iabPurposes: [7], vendorId: 755 },
+				client.getSnapshot()
+			)
+		).toBe(true);
+	});
+});
