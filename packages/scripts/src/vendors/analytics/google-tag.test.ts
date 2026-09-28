@@ -29,6 +29,24 @@ describe('gtag', () => {
 		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
+	it('passes explicit analytics config after denied defaults', () => {
+		const globalRef = getTestGlobal();
+		const script = gtag({
+			category: 'measurement',
+			config: { send_page_view: false },
+			id: 'G-CONFIG',
+		});
+		globalRef.dataLayer = [];
+		runOnBeforeLoad(script, { consents: deniedConsentState });
+		const queue = globalRef.dataLayer as unknown[];
+		expectGoogleConsentDefault(queue[0]);
+		expect(toArgumentsArray(queue[2])).toEqual([
+			'config',
+			'G-CONFIG',
+			{ send_page_view: false },
+		]);
+	});
+
 	it('preserves deprecated script overrides', () => {
 		const script = gtag({
 			category: 'measurement',

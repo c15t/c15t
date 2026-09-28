@@ -5,6 +5,7 @@ import type { DevToolsEvent } from './state-manager';
 
 const EVENT_TYPES = [
 	'records:cleared',
+	'preferences:requested',
 	'choice:recorded',
 	'permissions:changed',
 	'notice:dismissed',
@@ -98,7 +99,7 @@ const replayMessage = (ok: boolean, rejected: string | undefined): string =>
  * @param timestamp - Capture time in milliseconds.
  * @returns A serializable DevTools event.
  */
-// oxlint-disable-next-line func-style -- Preserve the public conversion function declaration.
+// oxlint-disable-next-line func-style, complexity -- Exhaustive public conversion of the kernel event union.
 export function kernelEventToDevToolsEvent(
 	event: KernelEvent,
 	id: string,
@@ -106,6 +107,13 @@ export function kernelEventToDevToolsEvent(
 ): DevToolsEvent {
 	// oxlint-disable-next-line default-case -- KernelEvent is a discriminated union handled exhaustively.
 	switch (event.type) {
+		case 'preferences:requested':
+			return {
+				id,
+				message: 'External preferences requested',
+				timestamp,
+				type: event.type,
+			};
 		case 'records:cleared':
 			return {
 				id,

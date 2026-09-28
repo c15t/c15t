@@ -8,7 +8,8 @@
  * so the next document starts with only the permitted code.
  *
  * Expiry, policy changes and privacy signals do not reload: they change
- * permissions without a visitor action.
+ * permissions without a visitor action. An external consent source owns its
+ * own decisions, so any withdrawal it reports reloads the same way.
  */
 import type {
 	ConsentKernel,
@@ -42,6 +43,22 @@ const reloadWindow = function reloadWindow(): void {
 	window.location.reload();
 };
 
+const hasRevokedCategory = function hasRevokedCategory(
+	before: Readonly<ConsentState>,
+	after: Readonly<ConsentState>
+): boolean {
+	for (const [category, granted] of Object.entries(before)) {
+		if (
+			category !== 'necessary' &&
+			granted &&
+			after[category as keyof ConsentState] === false
+		) {
+			return true;
+		}
+	}
+	return false;
+};
+
 /**
  * Whether a permission that was effectively granted before an action is
  * denied after it. Covers categories and, outside IAB, vendor switches.
@@ -53,16 +70,10 @@ export const hasRevokedPermission = function hasRevokedPermission(
 	before: ConsentSnapshot,
 	after: ConsentSnapshot
 ): boolean {
-	for (const [category, granted] of Object.entries(
-		before.effectivePermissions
-	)) {
-		if (
-			category !== 'necessary' &&
-			granted &&
-			after.effectivePermissions[category as keyof ConsentState] === false
-		) {
-			return true;
-		}
+	if (
+		hasRevokedCategory(before.effectivePermissions, after.effectivePermissions)
+	) {
+		return true;
 	}
 	if (after.model === 'iab' || after.vendorChoice === before.vendorChoice) {
 		return false;
@@ -85,11 +96,12 @@ export const hasRevokedPermission = function hasRevokedPermission(
 };
 
 /**
- * Reloads the page after an explicit action revokes a granted permission.
+ * Reloads the page after an explicit action or an external consent source
+ * revokes a granted permission.
  *
  * The reload waits for every in-flight save to complete so the backend
  * request is not cancelled, and runs in a later macrotask so stored records
- * written after the action land first.
+ * and synchronous consent callbacks finish first.
  * Framework adapters call this; applications set `reloadOnConsentRevoked`.
  * @param options - Kernel, enablement and callback accessors.
  * @returns A disposer that stops watching and cancels a pending reload.
@@ -117,6 +129,23 @@ export const watchRevocationReload = function watchRevocationReload({
 		}
 	};
 
+	const scheduleReload = () => {
+		if (savesInFlight > 0 || !revoked || timer !== null) {
+			return;
+		}
+		if (typeof window === 'undefined' || !isEnabled()) {
+			revoked = false;
+			return;
+		}
+		timer = setTimeout(() => {
+			timer = null;
+			const preferences = kernel.getSnapshot().effectivePermissions;
+			revoked = false;
+			getOnBeforeReload?.()?.({ preferences: { ...preferences } });
+			reload();
+		}, 0);
+	};
+
 	const subscriptions = [
 		kernel.events.on('command:save:started', () => {
 			savesInFlight += 1;
@@ -126,20 +155,18 @@ export const watchRevocationReload = function watchRevocationReload({
 		kernel.events.on('vendors:recorded', onRecorded),
 		kernel.events.on('command:save:completed', () => {
 			savesInFlight = Math.max(0, savesInFlight - 1);
-			if (savesInFlight > 0 || !revoked || timer !== null) {
-				return;
+			scheduleReload();
+		}),
+		// An external source has no save commands; its reported decision is
+		// the visitor action.
+		kernel.events.on('permissions:changed', ({ previous, snapshot }) => {
+			if (
+				snapshot.externalPermissions &&
+				hasRevokedCategory(previous, snapshot.effectivePermissions)
+			) {
+				revoked = true;
+				scheduleReload();
 			}
-			if (typeof window === 'undefined' || !isEnabled()) {
-				revoked = false;
-				return;
-			}
-			timer = setTimeout(() => {
-				timer = null;
-				const preferences = kernel.getSnapshot().effectivePermissions;
-				revoked = false;
-				getOnBeforeReload?.()?.({ preferences: { ...preferences } });
-				reload();
-			}, 0);
 		}),
 	];
 

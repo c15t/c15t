@@ -70,13 +70,21 @@ export const useHasConsentPolicy = () => {
  * permissions it grants apply. `false` until a rule is resolved.
  */
 export const useHasConsentUi = () => {
+	const external = useSnapshotField('externalPermissions');
 	const resolution = usePolicyResolution();
 	const rule = usePolicyRule();
 	return computed(
 		() =>
+			!external.value &&
 			resolution.value.status === 'matched' &&
 			(rule.value.prompt !== 'none' || rule.value.rights.length > 0)
 	);
+};
+/** Whether c15t or an external CMP offers a preferences control. */
+export const useHasConsentPreferences = () => {
+	const external = useSnapshotField('externalPermissions');
+	const hasUi = useHasConsentUi();
+	return computed(() => Boolean(external.value) || hasUi.value);
 };
 /** Read the reasons that currently restrict permissions. */
 export const useConsentRestrictions = () => useSnapshotField('restrictions');

@@ -9,13 +9,14 @@ export interface Requests {
 	unexpected: string[];
 }
 
+// Retain the SDK call record across the reload triggered by consent revocation.
 const posthogStub = `
 window.posthog = {
   __loaded: true,
   init() {}, capture() {}, identify() {}, reset() {},
-  opt_in_capturing() { window.__examplePosthogConsent = 'granted'; },
-  opt_out_capturing() { window.__examplePosthogConsent = 'denied'; },
-  get_explicit_consent_status() { return window.__examplePosthogConsent; }
+  opt_in_capturing() { sessionStorage.setItem('__examplePosthogConsent', 'granted'); },
+  opt_out_capturing() { sessionStorage.setItem('__examplePosthogConsent', 'denied'); },
+  get_explicit_consent_status() { return sessionStorage.getItem('__examplePosthogConsent'); }
 };`;
 
 export const openBrowserContext = async function openBrowserContext(

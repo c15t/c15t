@@ -156,6 +156,11 @@ export const segmentManifest = {
 	category: 'measurement',
 	install: [
 		{
+			path: ['analytics', '_loadOptions'],
+			type: 'setGlobalPath',
+			value: '{{loadOptions}}',
+		},
+		{
 			global: 'analytics',
 			method: 'page',
 
@@ -172,6 +177,8 @@ export const segmentManifest = {
 } as const satisfies VendorManifest;
 
 export interface SegmentOptions {
+	/** Options consumed by Analytics.js on initialization. */
+	loadOptions?: Record<string, unknown>;
 	/** Your Segment write key. */
 	writeKey: string;
 	/** Queue the initial `analytics.page()` call during setup. */
@@ -188,6 +195,7 @@ export interface SegmentOptions {
  */
 export const segment = function segment({
 	writeKey,
+	loadOptions = {},
 	trackPageView = true,
 	scriptUrl,
 }: SegmentOptions): Script {
@@ -218,6 +226,7 @@ export const segment = function segment({
 	}
 
 	return resolveManifest(manifest, {
+		loadOptions,
 		scriptUrl: resolveScriptUrl(scriptUrl, defaultScriptUrl),
 	});
 };

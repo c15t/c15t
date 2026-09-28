@@ -69,10 +69,20 @@ const GATED_IFRAME = 'iframe[data-category], iframe[data-vendor]';
 /** Same marker the blocker sets, so it restores what this pauses. */
 const PAUSED_ATTRIBUTE = 'data-c15t-paused';
 
+/**
+ * Whether a node is an iframe. False for a node page script can't read:
+ * Firefox throws "Permission denied to access property" for some nodes,
+ * such as ones an extension inserted.
+ */
 const isIframe = function isIframe(node: Node): node is HTMLIFrameElement {
-	return (
-		node.nodeType === 1 && (node as Element).tagName.toUpperCase() === 'IFRAME'
-	);
+	try {
+		return (
+			node.nodeType === 1 &&
+			(node as Element).tagName.toUpperCase() === 'IFRAME'
+		);
+	} catch {
+		return false;
+	}
 };
 
 /**
@@ -159,12 +169,18 @@ const collectIframes = function collectIframes(
 		for (const node of Array.from(mutation.addedNodes)) {
 			if (isIframe(node)) {
 				found.add(node);
-			} else if (node.nodeType === 1) {
-				for (const iframe of Array.from(
-					(node as Element).querySelectorAll('iframe')
-				)) {
-					found.add(iframe);
+				continue;
+			}
+			try {
+				if (node.nodeType === 1) {
+					for (const iframe of Array.from(
+						(node as Element).querySelectorAll('iframe')
+					)) {
+						found.add(iframe);
+					}
 				}
+			} catch {
+				// Unreadable node: skip it so the rest of the batch is still held.
 			}
 		}
 	}

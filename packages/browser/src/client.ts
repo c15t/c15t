@@ -218,6 +218,7 @@ export const createConsentClient = function createConsentClient(
 		callbacks: options.callbacks,
 		clearOnRevocation: options.clearOnRevocation,
 		consentCategories: options.consentCategories,
+		consentSource: options.consentSource,
 		createIAB: context.createIAB,
 		enabled: options.enabled,
 		i18n: options.i18n,
