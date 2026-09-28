@@ -403,6 +403,26 @@ describe('publisher restrictions: CMP API', () => {
 		}
 	});
 
+	test('a caller changing a TC data result cannot change later results', async () => {
+		const api = createCMPApi({ cmpId: 28, gvl: createMockGVL() });
+		try {
+			api.updateConsent(PURPOSE_PROHIBITED_TC_STRING);
+			const first = await readTCData();
+			const { 2: restricted } = first.publisher.restrictions;
+			if (restricted) {
+				restricted[1] = 2;
+			}
+			first.purpose.consents[2] = false;
+			const second = await readTCData();
+			expect(second.publisher.restrictions).toEqual({
+				2: { 1: 0, 10: 0, 11: 0, 12: 0 },
+			});
+			expect(second.purpose.consents[2]).toBe(true);
+		} finally {
+			api.destroy();
+		}
+	});
+
 	test('an update during decoding never pairs a string with older data', async () => {
 		const api = createCMPApi({ cmpId: 28, gvl: createMockGVL() });
 		try {

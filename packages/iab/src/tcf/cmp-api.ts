@@ -235,9 +235,11 @@ export const createCMPApi = function createCMPApi(
 		eventStatus?: EventStatus,
 		listenerId?: number
 	): Promise<TCData> {
-		// Use cached data if available and tc string hasn't changed
+		// Use cached data if available and tc string hasn't changed. Callers
+		// get their own copy, down to the nested maps, so changing a result
+		// never changes the next one.
 		if (cachedTCData && cachedTCData.tcString === tcString && !eventStatus) {
-			return { ...cachedTCData, listenerId };
+			return { ...structuredClone(cachedTCData), listenerId };
 		}
 		const string = tcString;
 		const consentData = currentConsentData;
@@ -253,9 +255,9 @@ export const createCMPApi = function createCMPApi(
 			return buildTCData(eventStatus, listenerId);
 		}
 
-		// Cache the data
+		// Cache a private copy of the data
 		if (!eventStatus) {
-			cachedTCData = tcData;
+			cachedTCData = structuredClone(tcData);
 		}
 
 		return tcData;
