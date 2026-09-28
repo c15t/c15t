@@ -86,6 +86,115 @@ be true before a visitor acts. A notice dismissal updates `noticeDismissal` and
 does not record consent. Global Privacy Control updates privacy signals and
 configured opt-out directives without turning a browser signal into a choice.
 
+## Replace `useConsentManager()`
+
+`useConsentManager()` is gone from `c15t/react`, `c15t/next`,
+`c15t/tanstack-start` and their `/headless` entries. It subscribed to the whole
+consent snapshot, so every component that called it re-rendered on every
+change, including changes to categories it never read. Call one hook per field
+instead; each re-renders only when its own value changes.
+
+Before, in v2 and earlier v3 alphas:
+
+```tsx title="components/marketing-banner.tsx"
+import { useConsentManager } from 'c15t/react';
+
+export function MarketingBanner() {
+  const { activeUI, has, saveConsents } = useConsentManager();
+  if (activeUI !== 'banner' || has('marketing')) {
+    return null;
+  }
+  return <button type="button" onClick={() => void saveConsents('all')}>Accept</button>;
+}
+```
+
+After:
+
+```tsx title="components/marketing-banner.tsx"
+import { useActiveUI, useConsent } from 'c15t/react';
+import { useHeadlessConsentUI } from 'c15t/react/headless';
+
+export function MarketingBanner() {
+  const activeUI = useActiveUI();
+  const marketing = useConsent('marketing');
+  const { performAction } = useHeadlessConsentUI();
+  if (activeUI !== 'banner' || marketing) {
+    return null;
+  }
+  return <button type="button" onClick={() => void performAction('accept')}>Accept</button>;
+}
+```
+
+Import hooks from the same entry you used for `useConsentManager()`:
+`c15t/next` and `c15t/next/headless` in Next.js, `c15t/tanstack-start` and
+`c15t/tanstack-start/headless` in TanStack Start.
+
+| `useConsentManager()` field | v3 replacement |
+| --- | --- |
+| `activeUI` | `useActiveUI()`. It returns `null` before the kernel picks a surface; the old field reported `'none'`. |
+| `setActiveUI(ui)` | `useSetActiveUI()` |
+| `has(category)` | `useConsent(category)`, one call per category at the top of the component |
+| `consents` | `useConsents()` |
+| `effectivePermissions` | `useEffectivePermissions()` |
+| `explicitChoice` | `useExplicitChoice()` |
+| `promptRequirement` | `usePromptRequirement()` |
+| `noticeDismissal` | `useNoticeDismissal()` |
+| `privacySignals` | `usePrivacySignals()` |
+| `optOutDirectives` | `useOptOutDirectives()` |
+| `restrictions` | `useRestrictions()` |
+| `resolution` | `usePolicyResolution()` |
+| `policyRule` | `usePolicyRule()` |
+| `policyCategories` | `usePolicyCategories()`. The old list started with `'necessary'`; this one does not. |
+| `policyScopeMode` | `usePolicyScopeMode()` |
+| `policyBanner` | `usePromptPresentation()` |
+| `policyDialog` | `usePreferencesPresentation()` |
+| `model` | `useModel()`. It returns `null` while no policy matches; the old field reported `'opt-in'`. |
+| `branding` | `useBranding()`. It returns `null` when unset; the old field reported `'c15t'`. |
+| `iab` | `useIABSnapshot()` |
+| `vendors` | `useDeclaredVendors()` |
+| `vendorChoice` | `useVendorChoice()` |
+| `getDisplayedVendors(category)` | `useDeclaredVendors()`, filtered to vendors whose category condition names the category |
+| `subscribeToConsentChanges(listener)` | `useSubscribeToConsentChanges()`, or the provider's `onPermissionsChanged` callback |
+| `updateConsentCategories(categories)` | `useRegisterConsentCategories()` |
+| `translationConfig` | `useTranslations()` for the active strings |
+| `selectedConsents`, `selectedConsentTypes` | `useConsentDraft().values` |
+| `setSelectedConsent(name, value)` | `useConsentDraft().set(name, value)` |
+| `selectedVendors` | `useConsentDraft().vendors`, or `useVendorDraft().vendors` |
+| `setSelectedVendor(id, granted)` | `useConsentDraft().setVendor(id, granted)` |
+| `resetDraft()` | `useConsentDraft().reset()` |
+| `draftIsStale` | `useConsentDraft().isStale` |
+| `consentCategories`, `consentTypes`, `getDisplayedConsents()` | `useConsentDraft().displayedCategories`, with labels from `useTranslations().consentTypes` |
+| `saveConsents('all')` | `useHeadlessConsentUI().performAction('accept')` |
+| `saveConsents('necessary')` | `useHeadlessConsentUI().performAction('reject')` |
+| `saveConsents('custom')` | `useHeadlessConsentUI().performAction('save')` |
+| `manager` | Nothing. It was always `null` in v3. |
+
+The old hook kept one private draft per component, shared by its selection and
+its save. `useConsentDraft()` and `useHeadlessConsentUI()` read the nearest
+`ConsentDraftProvider` instead. When one component stages choices and another
+saves them, or one component calls both hooks, render them inside the same
+`ConsentDraftProvider`; without one, each hook keeps its own draft and a custom
+save commits nothing you staged. `ConsentWidget` already provides one.
+
+`useHeadlessConsentUI()` saves the way the stock buttons do: it closes the
+surface after a successful save and refuses a draft that the policy made stale.
+`useSaveConsents()` calls the kernel directly and does neither.
+
+The CLI rewrites the common destructuring forms for you:
+
+```bash
+c15t codemods use-consent-manager-to-hooks --dry-run --json
+```
+
+It replaces each field that has a one-hook equivalent, turns `has('marketing')`
+calls with a literal category into `useConsent('marketing')`, and maps
+`saveConsents('all' | 'necessary' | 'custom')` calls to
+`useHeadlessConsentUI().saveCustomPreferences()`. Fields it cannot rewrite stay
+on a `useConsentManager()` call under a `TODO(c15t v3)` comment that names the
+replacement, so the build fails at each place that needs manual work. It also
+marks components that now need a shared `ConsentDraftProvider`. Review the
+result, then run it without `--dry-run`.
+
 ## Replace choice callbacks
 
 ```tsx

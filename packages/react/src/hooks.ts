@@ -38,87 +38,15 @@ import type {
 	VendorChoice,
 } from '@c15t/core';
 import { evaluateConsent, isVendorDenied } from '@c15t/core';
-import { useCallback, useContext, useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
-import { KernelContext } from './context';
+import {
+	useGateSelector,
+	useKernel,
+	useKernelSelector,
+} from './kernel-selector';
 import { useUIConfig } from './ui-config-context';
 import { invalidateConsentUIAction } from './ui-save';
-
-const useKernel = function useKernel(): ConsentKernel {
-	const kernel = useContext(KernelContext);
-	if (!kernel) {
-		throw new Error(
-			'c15t: no kernel in context. Wrap your app with <ConsentProvider options={...}> from @c15t/react.'
-		);
-	}
-	return kernel;
-};
-
-const subscribe = function subscribe(
-	kernel: ConsentKernel,
-	listener: () => void
-): () => void {
-	return kernel.subscribe(listener);
-};
-
-const useKernelSelector = function useKernelSelector<T>(
-	selector: (snap: ConsentSnapshot) => T
-): T {
-	const kernel = useKernel();
-	return useSyncExternalStore(
-		(listener) => subscribe(kernel, listener),
-		() => selector(kernel.getSnapshot()),
-		// Hydration must render what the SERVER rendered. Client boot
-		// mutations (sync persistence hydrate, eager init) can flip the live
-		// snapshot before hydration completes — rendering the mutated state
-		// here mismatches the server HTML and strands SSR'd consent UI as
-		// unowned DOM (a banner React never removes).
-		() => selector(kernel.getServerSnapshot())
-	);
-};
-
-/**
- * Like `useKernelSelector`, for selectors that evaluate a gate at a point in
- * time. The server render and hydration evaluate at the snapshot's own
- * `evaluatedAt`, so they never read the clock: a Next.js `cacheComponents`
- * prerender rejects `Date.now()` in a Client Component. In the browser the
- * gate is evaluated at `Date.now()`, so an expiry the kernel's deadline
- * timer has not processed yet still denies.
- *
- * @param selector - Picks the slice from a snapshot at the given time.
- * @returns The selected slice.
- * @internal
- */
-const useGateSelector = function useGateSelector<SliceType>(
-	selector: (snap: ConsentSnapshot, now: number) => SliceType
-): SliceType {
-	const kernel = useKernel();
-	return useSyncExternalStore(
-		(listener) => subscribe(kernel, listener),
-		() => selector(kernel.getSnapshot(), Date.now()),
-		() => {
-			const snap = kernel.getServerSnapshot();
-			return selector(snap, snap.evaluatedAt);
-		}
-	);
-};
-
-/**
- * Whether content gated on one category may render, with the kernel's gate
- * semantics. Server rendering and hydration read no clock; see
- * `useGateSelector`.
- *
- * @param category - Category the content needs.
- * @returns `true` while the category is permitted.
- * @internal
- */
-export const useCategoryAllowed = function useCategoryAllowed(
-	category: AllConsentNames
-): boolean {
-	return useGateSelector((snap, now) =>
-		evaluateConsent({ category }, snap, now)
-	);
-};
 
 /**
  * Full snapshot accessor. Escape hatch for consumers that genuinely need
@@ -127,7 +55,7 @@ export const useCategoryAllowed = function useCategoryAllowed(
 export const useSnapshot = function useSnapshot(): ConsentSnapshot {
 	const kernel = useKernel();
 	return useSyncExternalStore(
-		(listener) => subscribe(kernel, listener),
+		(listener) => kernel.subscribe(listener),
 		() => kernel.getSnapshot(),
 		() => kernel.getServerSnapshot()
 	);

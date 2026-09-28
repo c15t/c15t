@@ -489,10 +489,34 @@ export const useConsentSaveAction = function useConsentSaveAction() {
 	return useSaveAction(useDraftStore());
 };
 
-/** Keep the compatibility manager selection and its save on the same draft. */
-export const useConsentManagerDraft = function useConsentManagerDraft() {
-	const store = useDraftStore();
-	return { draft: useDraftHandle(store), save: useSaveAction(store) };
+/**
+ * The nearest consent draft store, for the stock preference rows. Pair with
+ * {@link useConsentDraftSlice} so a row re-renders only when its own slice
+ * changes, not on every staged edit elsewhere in the draft.
+ *
+ * @returns The shared draft store, or a local one outside a provider.
+ * @internal
+ */
+export const useConsentDraftStore =
+	function useConsentDraftStore(): DraftStore {
+		return useDraftStore();
+	};
+
+/**
+ * Subscribes to one slice of a consent draft store.
+ *
+ * @param store - Store from {@link useConsentDraftStore}.
+ * @param selector - Picks the slice. Return a primitive or a reference the
+ * draft already holds.
+ * @returns The selected slice.
+ * @internal
+ */
+export const useConsentDraftSlice = function useConsentDraftSlice<SliceType>(
+	store: DraftStore,
+	selector: (draft: DraftSnapshot) => SliceType
+): SliceType {
+	const read = () => selector(store.getSnapshot());
+	return useSyncExternalStore(store.subscribe, read, read);
 };
 
 /** Read and edit displayed choices without replacing masked effective permissions. */
