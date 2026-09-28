@@ -19,6 +19,35 @@ export const assertInitialFocus = async function assertInitialFocus(
 	});
 };
 
+const TABBABLE =
+	'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Wait until focus lands on the first tabbable control inside the element
+ * matching `containerTestId`. Dialogs open this way, the way Base UI's do,
+ * so a keyboard user sees the ring on a control rather than on the panel.
+ */
+export const assertInitialFocusOnFirstControl =
+	async function assertInitialFocusOnFirstControl(
+		root: ParentNode,
+		containerTestId: string
+	): Promise<void> {
+		await waitFor(() => {
+			const container = root.querySelector(
+				`[data-testid="${containerTestId}"]`
+			);
+			expect(
+				container,
+				`element [data-testid="${containerTestId}"] not found`
+			).not.toBeNull();
+			const first = [
+				...(container?.querySelectorAll<HTMLElement>(TABBABLE) ?? []),
+			].find((element) => !element.hasAttribute('disabled'));
+			expect(first, 'dialog has a tabbable control').toBeDefined();
+			expect(document.activeElement).toBe(first);
+		});
+	};
+
 /**
  * Assert that after `closeAction` runs, focus returns to the element with
  * `triggerTestId`. Use for testing dialog-close / banner-dismiss flows.
