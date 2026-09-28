@@ -99,7 +99,7 @@ describe('compareCanonical', () => {
 	test('falls back to localeCompare outside printable ASCII', () => {
 		const values = ['é', 'e', 'f', 'z', 'Ω', '\t', 'a b', 'ab'];
 		expect([...values].sort(compareCanonical)).toEqual(
-			[...values].sort((left, right) => left.localeCompare(right))
+			[...values].sort((left, right) => left.localeCompare(right, 'en'))
 		);
 	});
 });
