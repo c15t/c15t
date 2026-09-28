@@ -9,8 +9,10 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { completeGVL } from '../../../../../iab/src/__tests__/fixtures/gvl-sample';
 import { c15tHandle } from '../handle';
 import { loadConsent } from '../load-consent';
+import { createSvelteKitConsentRouteHandlers } from '../routes';
 import type { C15tLocals } from '../types';
 import { CONSENTED_COOKIE, createEvent } from './event';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const INIT_PAYLOAD = {
 	branding: 'c15t',
@@ -152,6 +154,7 @@ describe('loadConsent', () => {
 
 		expect(fetchImpl).toHaveBeenCalledWith('/api/c15t', {
 			headers: { ...c15tProtocolHeaders, 'x-c15t-country': 'DE' },
+			signal: expect.any(AbortSignal),
 		});
 		expect(config.initialPolicyResolution?.policy.id).toBe('eu-opt-in');
 		expect(config.initialPolicyResolution?.policyId).toBe('eu-opt-in');
@@ -287,6 +290,130 @@ describe('loadConsent', () => {
 	});
 });
 
+describe('loadConsent time budget', () => {
+	/** A fetch that answers only when its request is aborted. */
+	const hangingFetch = function hangingFetch() {
+		const signals: (AbortSignal | undefined)[] = [];
+		const fetchImpl = vi.fn(
+			(_input: RequestInfo | URL, init?: RequestInit) =>
+				new Promise<Response>((_resolve, reject) => {
+					signals.push(init?.signal ?? undefined);
+					init?.signal?.addEventListener('abort', () =>
+						reject(new DOMException('aborted', 'AbortError'))
+					);
+				})
+		);
+		return { fetchImpl, signals };
+	};
+
+	beforeEach(() => {
+		clearManifestCache();
+		vi.useFakeTimers();
+		return () => {
+			vi.useRealTimers();
+		};
+	});
+
+	test('stops waiting for a hanging init route after 500 ms', async () => {
+		const { fetchImpl } = hangingFetch();
+		const event = createEvent({
+			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+			headers: { cookie: CONSENTED_COOKIE, 'x-c15t-country': 'DE' },
+		});
+		let settled: Awaited<ReturnType<typeof loadConsent>> | undefined;
+		void loadConsent(event, { initRoute: '/api/c15t' }).then((config) => {
+			settled = config;
+		});
+
+		await vi.advanceTimersByTimeAsync(499);
+		expect(settled).toBeUndefined();
+		await vi.advanceTimersByTimeAsync(1);
+
+		expect(settled?.initialRecords?.choice).not.toBeNull();
+		expect(settled?.initialOverrides?.country).toBe('DE');
+		expect(settled?.initialPolicyResolution).toBeUndefined();
+	});
+
+	test('aborts a hosted /init that outlives timeoutMs', async () => {
+		const { fetchImpl, signals } = hangingFetch();
+		const event = createEvent({
+			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+			headers: { cookie: CONSENTED_COOKIE },
+		});
+		const pending = loadConsent(event, {
+			backendURL: 'https://api.example.com',
+			timeoutMs: 200,
+		});
+
+		await vi.advanceTimersByTimeAsync(200);
+		const config = await pending;
+
+		expect(fetchImpl.mock.calls[0]?.[0]).toBe('https://api.example.com/init');
+		expect(signals[0]?.aborted).toBe(true);
+		expect(config.initialRecords?.choice).not.toBeNull();
+		expect(config.initialPolicyResolution).toBeUndefined();
+	});
+
+	test.each([Number.NaN, -1, Number.POSITIVE_INFINITY])(
+		'uses the 500 ms default for timeoutMs %s',
+		async (timeoutMs) => {
+			const { fetchImpl } = hangingFetch();
+			const event = createEvent({
+				fetch: fetchImpl as unknown as typeof globalThis.fetch,
+				headers: { 'x-c15t-country': 'DE' },
+			});
+			let settled = false;
+			void loadConsent(event, { initRoute: '/api/c15t', timeoutMs }).then(
+				() => {
+					settled = true;
+				}
+			);
+
+			await vi.advanceTimersByTimeAsync(499);
+			expect(settled).toBe(false);
+			await vi.advanceTimersByTimeAsync(1);
+			expect(settled).toBe(true);
+		}
+	);
+
+	test('keeps a response that arrives within the budget', async () => {
+		const event = createEvent({
+			fetch: (() =>
+				new Promise((resolve) => {
+					setTimeout(() => resolve(jsonResponse(INIT_PAYLOAD)), 400);
+				})) as unknown as typeof globalThis.fetch,
+			headers: { 'x-c15t-country': 'DE' },
+		});
+		const pending = loadConsent(event, { initRoute: '/api/c15t' });
+
+		await vi.advanceTimersByTimeAsync(400);
+
+		expect((await pending).initialPolicyResolution?.policy.id).toBe(
+			'eu-opt-in'
+		);
+	});
+
+	test('timeoutMs: false waits for a slow upstream', async () => {
+		const event = createEvent({
+			fetch: (() =>
+				new Promise((resolve) => {
+					setTimeout(() => resolve(jsonResponse(INIT_PAYLOAD)), 5000);
+				})) as unknown as typeof globalThis.fetch,
+			headers: { 'x-c15t-country': 'DE' },
+		});
+		const pending = loadConsent(event, {
+			initRoute: '/api/c15t',
+			timeoutMs: false,
+		});
+
+		await vi.advanceTimersByTimeAsync(5000);
+
+		expect((await pending).initialPolicyResolution?.policy.id).toBe(
+			'eu-opt-in'
+		);
+	});
+});
+
 test.each(['public', 'custom', 'cookie', 'authorization'] as const)(
 	'preserves the %s hosted SvelteKit GVL loading contract',
 	async (mode) => {
@@ -312,3 +439,101 @@ test.each(['public', 'custom', 'cookie', 'authorization'] as const)(
 		expect(Boolean(config.initialIab?.gvlReference)).toBe(mode === 'public');
 	}
 );
+
+describe('loadConsent with a slow init route', () => {
+	beforeEach(() => {
+		clearManifestCache();
+	});
+
+	/**
+	 * `event.fetch` for a same-origin route, as SvelteKit runs it: the route
+	 * handler gets a nested event whose request carries the caller's signal,
+	 * and the caller stops waiting when that signal aborts.
+	 */
+	const inProcessFetch = function inProcessFetch(
+		handler: (event: ReturnType<typeof createEvent>) => Promise<Response>,
+		platform: unknown
+	): typeof globalThis.fetch {
+		return ((input: RequestInfo | URL, init?: RequestInit) => {
+			const request = new Request(
+				new URL(String(input), 'http://localhost:5173/'),
+				init
+			);
+			const nested = createEvent({ url: request.url });
+			(nested as { request: Request }).request = request;
+			(nested as { platform?: unknown }).platform = platform;
+			const aborted = new Promise<never>((_resolve, reject) => {
+				request.signal.addEventListener(
+					'abort',
+					() => reject(new DOMException('aborted', 'AbortError')),
+					{ once: true }
+				);
+			});
+			return Promise.race([handler(nested), aborted]);
+		}) as typeof globalThis.fetch;
+	};
+
+	test('keeps the abandoned route alive and leaves the session report to the browser', async () => {
+		const manifestGate = Promise.withResolvers<undefined>();
+		const reports: string[] = [];
+		const upstream = vi.fn(
+			async (input: RequestInfo | URL, init?: RequestInit) => {
+				if (String(input).endsWith('/sessions')) {
+					reports.push(String(init?.body));
+					return new Response(null, { status: 204 });
+				}
+				await manifestGate.promise;
+				return new Response(JSON.stringify(MANIFEST_FIXTURE), {
+					headers: { 'cache-control': 'public, s-maxage=300' },
+				});
+			}
+		);
+		const { init } = createSvelteKitConsentRouteHandlers({
+			backendURL: 'https://api.example.com',
+			fetch: upstream as unknown as typeof globalThis.fetch,
+		});
+		const registered: Promise<unknown>[] = [];
+		const platform = {
+			context: {
+				waitUntil: (task: Promise<unknown>) => {
+					registered.push(task);
+				},
+			},
+		};
+		const page = () => {
+			const event = createEvent({ headers: { 'x-c15t-country': 'DE' } });
+			(event as { fetch: typeof globalThis.fetch }).fetch = inProcessFetch(
+				init,
+				platform
+			);
+			(event as { platform?: unknown }).platform = platform;
+			return event;
+		};
+
+		const first = await loadConsent(page(), {
+			initRoute: '/api/c15t/init',
+			timeoutMs: 20,
+		});
+		expect(first.initialPolicyResolution).toBeUndefined();
+		// The route registers its remaining work with the platform, next to
+		// the request loadConsent stopped waiting for.
+		expect(registered).toHaveLength(2);
+
+		manifestGate.resolve(undefined);
+		await Promise.all(registered);
+		// The browser inits again after hydration and reports this view.
+		expect(reports).toHaveLength(0);
+
+		// The fill finished and serves the next render inside the budget.
+		const second = await loadConsent(page(), {
+			initRoute: '/api/c15t/init',
+			timeoutMs: 20,
+		});
+		expect(second.initialPolicyResolution?.policy.id).toBe('eu-opt-in');
+		expect(
+			upstream.mock.calls.filter(([url]) => String(url).endsWith('/manifest'))
+		).toHaveLength(1);
+		await Promise.all(registered);
+		expect(reports).toHaveLength(1);
+	});
+});

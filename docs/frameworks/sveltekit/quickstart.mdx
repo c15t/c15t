@@ -80,6 +80,15 @@ that data through intact; reconstructing permissions as saved booleans loses
 receipt and policy information. The provider's `mode` and `prefetch` are
 top-level props.
 
+The awaited `load` holds the page until `loadConsent` returns, so it waits at
+most `timeoutMs` (500 ms by default) for the backend. When the backend is
+slower, fails or never answers, `loadConsent` returns the stored choice and
+request context without a policy. The page renders without the banner in the
+server HTML, optional categories stay denied, and the browser resolves the
+policy and shows the banner after hydration. Raise `timeoutMs` for a backend
+you expect to be slow, or pass `timeoutMs: false` to wait for it however long
+it takes.
+
 For manifest-backed resolution, the package also exports
 `createSvelteKitConsentRouteHandlers` from `@c15t/svelte/kit`. Once those routes
 are mounted, `loadConsent(event, { initRoute: '/api/c15t' })` uses the app's own
