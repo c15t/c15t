@@ -19,15 +19,20 @@ save only records into the new runtime. A draft inherited from an outer
 `ConsentDraftProvider` is only shared while both providers use the same
 runtime, so a nested provider on another runtime keeps its own. A draft
 handle kept from before the switch, for example by an async submit, no longer
-saves: `save()` resolves `{ ok: false }` and records into neither runtime. A
-handle kept after the preference UI unmounts, with no switch, still saves.
+saves: `save()` resolves `{ ok: false }`, its setters do nothing, and it
+records into neither runtime. This applies from the moment the switch
+commits, including in a layout effect of that commit, and to a handle taken
+from an outer draft. A handle kept after the preference UI unmounts, with no
+switch, still saves.
 
 `IABProvider` stops exposing the previous runtime's handle. An IAB action
 taken right after the switch waits for the new runtime's handle, including
 when you switch back to a runtime the provider rendered before. An action
 still addressed to the previous runtime rejects with an `AbortError` and is
 not applied to either runtime. That includes actions on a `useIAB()` result
-kept from before the switch: its `save()` rejects and its setters do nothing.
+kept from before the switch, under `IABProvider` or a borrowed runtime's
+`ConsentProvider`, from the moment the switch commits: its `save()` rejects
+and its setters do nothing.
 Actions still waiting when `IABProvider` unmounts, for example because its
 CMP failed to start, also reject with an `AbortError` instead of never
 settling. Moving between a borrowed runtime and one the provider creates

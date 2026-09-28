@@ -275,10 +275,19 @@ describe('IABProvider when the context kernel changes', () => {
 		) => {
 			latest = { kernel, state };
 		};
+		let retained: ReactIABState | null = null;
+		let duringCommit: Promise<void> | undefined;
+		// A descendant layout effect in the switch commit, before any passive
+		// effect of that commit has run, calls the kept result.
+		const onSwitch = () => {
+			retained?.acceptAll();
+			duringCommit = retained?.save();
+		};
 		const tree = (kernel: ConsentKernel) => (
 			<KernelContext.Provider value={kernel}>
 				<IABProvider cmpId={42}>
 					<StateProbe onState={onState} />
+					<SwitchActor onSwitch={onSwitch} />
 				</IABProvider>
 			</KernelContext.Provider>
 		);
@@ -288,7 +297,7 @@ describe('IABProvider when the context kernel changes', () => {
 			// so the kept result would act on that handle directly.
 			await vi.waitFor(() => expect(iab.handles.has(first)).toBe(true));
 			await screen.rerender(tree(first));
-			const retained = latest.state;
+			retained = latest.state;
 			expect(latest.kernel).toBe(first);
 			retained?.acceptAll();
 			expect(handleOf(first).acceptAll).toHaveBeenCalledOnce();
@@ -297,6 +306,7 @@ describe('IABProvider when the context kernel changes', () => {
 			await screen.rerender(tree(second));
 			await vi.waitFor(() => expect(iab.handles.has(second)).toBe(true));
 
+			await expect(duringCommit).rejects.toMatchObject({ name: 'AbortError' });
 			retained?.acceptAll();
 			retained?.setPurposeConsent(1, true);
 			await expect(retained?.save()).rejects.toMatchObject({

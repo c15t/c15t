@@ -22,6 +22,7 @@ import type { ReactNode } from 'react';
 import { KernelContext } from './context';
 import { IABContext } from './context/iab-context-value';
 import type { IABContextValue } from './context/iab-context-value';
+import { useCommittedRef } from './hooks/use-committed-ref';
 
 export interface ReactIABState extends KernelIABState {
 	config: {
@@ -97,6 +98,7 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 
 	const [tab, setTab] = useState<'purposes' | 'vendors'>('purposes');
 	const selection = useKernelSelection(kernel);
+	const committedSelectionRef = useCommittedRef(selection);
 	// The handle is bound to the selection it was created for. After the
 	// provider switches kernels, the previous handle is disposed and must not
 	// be exposed for the render before the effect below creates the next one.
@@ -179,8 +181,13 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 
 	const run = useCallback<NonNullable<IABContextValue['run']>>(
 		(action) => {
+			// An action from a result kept across a switch still carries the
+			// previous selection. Compare it with the selection last committed,
+			// which changes before any layout effect of the switch commit runs;
+			// `handleRef` only moves on in the passive effect.
+			const stale = committedSelectionRef.current !== selection;
 			const { current } = handleRef;
-			if (current?.selection === selection) {
+			if (!stale && current?.selection === selection) {
 				return Promise.resolve(action(current.handle));
 			}
 			const pending = new Promise<void>((resolve, reject) => {
@@ -191,7 +198,7 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 							'AbortError'
 						)
 					);
-				if (closedRef.current || retiredRef.current.has(selection)) {
+				if (stale || closedRef.current || retiredRef.current.has(selection)) {
 					cancel();
 					return;
 				}
@@ -220,7 +227,7 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 			});
 			return pending;
 		},
-		[selection]
+		[committedSelectionRef, selection]
 	);
 
 	const value = useMemo<IABContextValue>(
