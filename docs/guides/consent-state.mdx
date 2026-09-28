@@ -163,7 +163,10 @@ Stored records are merged into the ones in memory:
   conflicts if the TC string grants any of its purposes. A partial selection
   saved through IAB, which records its category as denied because not every
   purpose is granted, keeps its TC string. A TC string confirmed before the
-  choice's newest decision no longer describes it and is withdrawn too. The TC
+  choice's newest decision no longer describes it and is withdrawn too, unless
+  a newer receipt replaces it. That receipt is adopted even when its TC string
+  is identical, since TC strings round their time to the day and custom-vendor
+  selections live only in the receipt; its expiry then applies. The TC
   string and its receipt (`euconsent-v2`, `c15t-iab-authority-v1`) belong to one
   origin, so after a save on a sibling subdomain that shares the consent cookie,
   this subdomain reports no consent through `__tcfapi` until it saves again.
@@ -227,7 +230,8 @@ prompt again rather than applying the record.
 The notice dismissal, privacy directives and vendor denials are stored twice
 as well. Privacy directives from both copies all apply. A vendor list in
 localStorage at least as new as the cookie's adds its denials but never lifts
-one the cookie holds. The newer notice dismissal applies; it still only hides a
+one the cookie holds; a copy confirmed before the last clear is ignored, so its
+denials never come back. The newer notice dismissal applies; it still only hides a
 notice with the fingerprint it names. The consent record follows the rules
 below.
 

@@ -49,7 +49,8 @@ is withdrawn and not restored on the next page load; a partial purpose
 selection saved through IAB keeps its TC string. A TC string confirmed before
 the reconciled choice's newest decision, such as after a save on a sibling
 subdomain that shares the consent cookie, is withdrawn as well, since the TC
-string and its receipt belong to one origin.
+string and its receipt belong to one origin. A newer receipt replaces the held
+one even when the TC string is identical.
 
 Clearing records now stores the clear epoch, the time of the clear, under
 `c15t-epoch` in localStorage and a cookie of the same name, and clearing never
@@ -70,7 +71,8 @@ dropped cookie write no longer keeps an older grant in force. Copies written
 under different clear epochs are cut to the later epoch first, and the
 subject comes from the later copy. Privacy directives from both copies of the
 privacy record apply, a newer local vendor list adds denials without lifting
-any, and the newer notice dismissal applies. A newer local
+any (a vendor copy from before the last clear is ignored), and the newer notice
+dismissal applies. A newer local
 grant is still not applied.
 
 This changes the stored format: after a clear, the consent cookie gains
