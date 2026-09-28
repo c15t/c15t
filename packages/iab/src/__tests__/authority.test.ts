@@ -2197,6 +2197,39 @@ describe('returning visitors and changed publisher restrictions', () => {
 		);
 	});
 
+	test('a new handle with changed restrictions on a live kernel asks again', async () => {
+		const kernel = makeKernel();
+		const storage = createPersistence({ kernel, sync: false });
+		disposers.push(storage.dispose);
+		const first = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+		await first.whenReady();
+		first.acceptAll();
+		await first.save();
+		first.dispose();
+		expect(kernel.getSnapshot().iab?.authority).not.toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+
+		// The page mounts the CMP again with new restrictions.
+		const second = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+			publisherRestrictions: prohibit7,
+		});
+		disposers.push(second.dispose);
+		await second.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(false);
+
+		second.acceptAll();
+		await second.save();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(true);
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+	});
+
 	test('a restriction change asks again and gates wait for the new save', async () => {
 		await savedWith([]);
 		const { addon, kernel } = returning(prohibit7);

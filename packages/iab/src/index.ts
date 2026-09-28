@@ -826,6 +826,22 @@ export const createIAB = function createIAB(
 				before.evaluationPolicy.choice.fingerprint
 		);
 	};
+	/**
+	 * Ask again with the surface a changed policy shows, unless the visitor
+	 * has no choice yet (the kernel prompts) or already has a surface open.
+	 * Gates wait for the new save; the banner closes once it lands.
+	 */
+	const promptForChangedRestrictions = (...conditions: boolean[]): void => {
+		const current = kernel.getSnapshot();
+		if (
+			conditions.every(Boolean) &&
+			current.explicitChoice &&
+			current.activeUI === 'none'
+		) {
+			openedForRestrictions = true;
+			kernel.set.activeUI('banner');
+		}
+	};
 	const restoreAuthority = async function restoreAuthority(): Promise<void> {
 		if (options.persistence === false) {
 			return;
@@ -869,15 +885,7 @@ export const createIAB = function createIAB(
 			// A material change to what the visitor agreed to. Vendors reading
 			// storage must not find the old string, whatever is on screen.
 			clearStoredTCString(String((checked as { tcString: unknown }).tcString));
-			// Ask again with the surface a changed policy shows, unless the
-			// visitor already has one open. Gates wait for the new save.
-			if (
-				hydrationSnapshot.explicitChoice &&
-				kernel.getSnapshot().activeUI === 'none'
-			) {
-				openedForRestrictions = true;
-				kernel.set.activeUI('banner');
-			}
+			promptForChangedRestrictions();
 		}
 		if (
 			authority &&
@@ -1147,25 +1155,45 @@ export const createIAB = function createIAB(
 	const retainedAuthorityMatchesList = async (
 		snapshot: ConsentSnapshot,
 		gvl: GlobalVendorList
-	): Promise<boolean> => {
+	): Promise<{ valid: boolean; restrictionsChanged: boolean }> => {
 		const { iab } = snapshot;
 		const retained = iab?.authority;
 		if (!retained || !iab) {
-			return true;
+			return { restrictionsChanged: false, valid: true };
 		}
-		return Boolean(
-			await validateAuthority(
-				{
-					...retained,
-					customConsents: retained.vendorConsents,
-					customLegitimateInterests: retained.vendorLegitimateInterests,
-				},
-				{ ...snapshot, iab: { ...iab, gvl } },
-				Date.now(),
-				publisherRestrictions
-			)
+		const { authority, restrictionsChanged } = await checkAuthority(
+			{
+				...retained,
+				customConsents: retained.vendorConsents,
+				customLegitimateInterests: retained.vendorLegitimateInterests,
+			},
+			{ ...snapshot, iab: { ...iab, gvl } },
+			Date.now(),
+			publisherRestrictions
 		);
+		return { restrictionsChanged, valid: Boolean(authority) };
 	};
+	/** The kernel update that publishes a list, withdrawing authority if needed. */
+	const publishListPatch = (
+		gvl: GlobalVendorList,
+		withdrawn: boolean
+	): Partial<KernelIABState> => {
+		const update: Partial<KernelIABState> = {
+			enabled: true,
+			gvl,
+			gvlReference: undefined,
+		};
+		if (withdrawn) {
+			update.authority = null;
+			update.tcString = '';
+		}
+		return update;
+	};
+	/** Whether the retained authority is withdrawn for the new list. */
+	const retainedWithdrawn = (
+		retained: KernelIABAuthority | null | undefined,
+		valid: boolean
+	): boolean => !valid && readIAB(kernel).authority === retained;
 	const restrictionsForList = (gvl: GlobalVendorList) => {
 		try {
 			return validatePublisherRestrictions(configuredRestrictions, {
@@ -1213,7 +1241,7 @@ export const createIAB = function createIAB(
 			publisherRestrictions = restrictionsForList(gvl);
 			const beforePublish = kernel.getSnapshot();
 			const retained = beforePublish.iab?.authority;
-			const validAuthority = await retainedAuthorityMatchesList(
+			const retainedCheck = await retainedAuthorityMatchesList(
 				beforePublish,
 				gvl
 			);
@@ -1222,21 +1250,21 @@ export const createIAB = function createIAB(
 			}
 			const mayHydrate =
 				kernel.getSnapshot().iab === initializationSnapshot.iab;
-			const update: Parameters<typeof kernel.set.iab>[0] = {
-				enabled: true,
-				gvl,
-				gvlReference: undefined,
-			};
-			if (!validAuthority && readIAB(kernel).authority === retained) {
-				update.authority = null;
-				update.tcString = '';
-			}
+			const withdrawn = retainedWithdrawn(retained, retainedCheck.valid);
+			const update = publishListPatch(gvl, withdrawn);
 			const existingApi = cmpApi;
 			existingApi?.updateVendorList(gvl);
 			publishedList = gvl;
 			const beforeUpdate = kernel.getSnapshot();
 			kernel.set.iab(update);
 			markListPublished(generation);
+			// Authority held under other restrictions, for example by a CMP
+			// mounted earlier with another configuration: ask again, as for a
+			// returning visitor. Withdrawing it removed its TC string.
+			promptForChangedRestrictions(
+				withdrawn,
+				retainedCheck.restrictionsChanged
+			);
 			try {
 				cmpApi ??= createCMPApi({
 					cmpId,
