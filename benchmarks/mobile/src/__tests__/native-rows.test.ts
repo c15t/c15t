@@ -73,15 +73,17 @@ const rowFor = function rowFor(
 };
 
 describe('the Kotlin cold bootstrap row', () => {
-	it('reports the measured span in milliseconds against the contract ceiling', () => {
+	it('reports the measured span in milliseconds against the runner allowance', () => {
 		const row = rowFor(COLD_OUTPUT);
 
 		expect(row.status).toBe('measured');
 		// The bench's microseconds, converted and rounded the way every ms row rounds.
 		expect(row.value).toBe(4.964);
 		expect(row.unit).toBe('ms');
-		expect(row.budget).toBe(15);
-		expect(row.budgetSource).toBe('contract');
+		// A fresh JVM on a shared runner, not the device profile the contract's
+		// 15 ms describes; the Swift row keeps the contract number.
+		expect(row.budget).toBe(40);
+		expect(row.budgetSource).toBe('allowance');
 		expect(row.samples).toBe(15);
 		expect(row.detail).toContain('9053');
 	});
