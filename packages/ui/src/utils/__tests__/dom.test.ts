@@ -4,6 +4,7 @@ import {
 	getFocusableElements,
 	getTextDirection,
 	firstTabbable,
+	tabbableElements,
 	setupFocusTrap,
 	setupScrollLock,
 	setupTextDirection,
@@ -553,6 +554,21 @@ describe('firstTabbable', () => {
 			<button id="first" tabindex="1">First</button>
 		`);
 		expect(firstTabbable(container)?.id).toBe('first');
+	});
+
+	test('orders the whole list the way sequential Tab does', () => {
+		const container = mount(`
+			<button id="natural">Natural</button>
+			<button id="second" tabindex="2">Second</button>
+			<button id="first" tabindex="1">First</button>
+			<button id="last">Last</button>
+		`);
+		expect(tabbableElements(container).map((element) => element.id)).toEqual([
+			'first',
+			'second',
+			'natural',
+			'last',
+		]);
 	});
 
 	test('returns undefined when nothing is tabbable', () => {

@@ -238,7 +238,6 @@ const findFocusRestoreEquivalent = function findFocusRestoreEquivalent(
 	return null;
 };
 
-/** Read focus inside nested shadow roots as well as the document. */
 /** Whether `node` is `target` or inside it, crossing shadow roots. */
 const containsComposed = function containsComposed(
 	target: Element,
@@ -255,6 +254,7 @@ const containsComposed = function containsComposed(
 	return false;
 };
 
+/** Read focus inside nested shadow roots as well as the document. */
 const readActiveElement = (): Element | null => {
 	let active = document.activeElement;
 	while (active?.shadowRoot?.activeElement) {
@@ -264,10 +264,31 @@ const readActiveElement = (): Element | null => {
 };
 
 /**
- * The element sequential Tab would reach first inside `container`: the
- * lowest positive `tabindex` wins, then document order. Controls a browser
- * would refuse to focus, disabled through an ancestor `fieldset` or inside an
- * `inert` subtree, are skipped.
+ * The elements sequential Tab reaches inside `container`, in the order it
+ * reaches them: the lowest positive `tabindex` first, then document order.
+ * Controls a browser would refuse to focus, disabled through an ancestor
+ * `fieldset` or inside an `inert` subtree, are left out.
+ *
+ * @param container - The element to search inside.
+ * @returns The tabbable elements in sequential focus order.
+ */
+export const tabbableElements = function tabbableElements(
+	container: HTMLElement
+): HTMLElement[] {
+	const candidates = getFocusableElements(container).filter(
+		(element) => !(element.matches(':disabled') || element.closest('[inert]'))
+	);
+	const positive = candidates
+		.filter((element) => element.tabIndex > 0)
+		.sort((left, right) => left.tabIndex - right.tabIndex);
+	return [
+		...positive,
+		...candidates.filter((element) => element.tabIndex === 0),
+	];
+};
+
+/**
+ * The element sequential Tab would reach first inside `container`.
  *
  * @param container - The element to search inside.
  * @returns The first tabbable element, or `undefined` when there is none.
@@ -275,13 +296,7 @@ const readActiveElement = (): Element | null => {
 export const firstTabbable = function firstTabbable(
 	container: HTMLElement
 ): HTMLElement | undefined {
-	const candidates = getFocusableElements(container).filter(
-		(element) => !(element.matches(':disabled') || element.closest('[inert]'))
-	);
-	const positive = candidates
-		.filter((element) => element.tabIndex > 0)
-		.sort((left, right) => left.tabIndex - right.tabIndex);
-	return positive[0] ?? candidates.find((element) => element.tabIndex === 0);
+	return tabbableElements(container)[0];
 };
 
 /** Where a focus trap puts focus when it starts. */
@@ -361,7 +376,9 @@ export const setupFocusTrap = function setupFocusTrap(
 			return;
 		}
 
-		const elements = getFocusableElements(container);
+		// The same list and order as the initial focus, so the wrap points
+		// are the real first and last sequential stops.
+		const elements = tabbableElements(container);
 		if (elements.length === 0) {
 			return;
 		}
