@@ -74,12 +74,19 @@ export const devToolsPresentation = {
 	prompt: { uiProfile: 'balanced' },
 } satisfies ConsentPresentation;
 
-/** No external requests or persisted consent in comparison stories. */
+/**
+ * No external requests or persisted consent in comparison stories.
+ *
+ * The flow revokes a category and then reads the panel in the same document,
+ * so the reload the runtime performs on revocation is turned off here: a
+ * story that navigates mid-play has no page left to assert against.
+ */
 export const devToolsProviderOptions = {
 	consentCategories: [...devToolsCategories],
 	mode: custom(transport),
 	persistence: false,
 	prefetch: devToolsPrefetch,
 	presentation: devToolsPresentation,
+	reloadOnConsentRevoked: false,
 	scripts: devToolsScripts,
 };
