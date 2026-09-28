@@ -28,6 +28,9 @@ const FOCUSABLE = [
 	'input:not([disabled]):not([tabindex="-1"])',
 	'select:not([disabled]):not([tabindex="-1"])',
 	'[contenteditable]:not([tabindex="-1"])',
+	'summary:not([tabindex="-1"])',
+	'audio[controls]:not([tabindex="-1"])',
+	'video[controls]:not([tabindex="-1"])',
 	'[tabindex]:not([tabindex="-1"])',
 ].join(',');
 

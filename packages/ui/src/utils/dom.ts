@@ -131,9 +131,11 @@ export const getFocusableElements = function getFocusableElements(
 		'input:not([disabled]):not([tabindex="-1"])',
 		'select:not([disabled]):not([tabindex="-1"])',
 		'[contenteditable]:not([tabindex="-1"])',
-		// Native sequential stops that are not form controls or links.
+		// Native sequential stops that are not form controls or links. An
+		// iframe is left out on purpose: focus inside a frame's document
+		// never reaches this document's key listener, so the trap could not
+		// hold it.
 		'summary:not([tabindex="-1"])',
-		'iframe:not([tabindex="-1"])',
 		'audio[controls]:not([tabindex="-1"])',
 		'video[controls]:not([tabindex="-1"])',
 		'[tabindex]:not([tabindex="-1"])',
