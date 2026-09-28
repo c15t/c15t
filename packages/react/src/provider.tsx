@@ -1139,29 +1139,6 @@ const WindowDebugMount = ({
 	return null;
 };
 
-const WindowKernelMount = ({ kernel }: { kernel: ConsentKernel }) => {
-	useEffect(() => {
-		const browserWindow = window as Window & {
-			c15tKernel?: ConsentKernel;
-		};
-		const previousKernel = browserWindow.c15tKernel;
-		browserWindow.c15tKernel = kernel;
-
-		return () => {
-			if (browserWindow.c15tKernel !== kernel) {
-				return;
-			}
-			if (previousKernel) {
-				browserWindow.c15tKernel = previousKernel;
-				return;
-			}
-			delete browserWindow.c15tKernel;
-		};
-	}, [kernel]);
-
-	return null;
-};
-
 const normalizePersistenceOptions = function normalizePersistenceOptions(
 	options: ConsentProviderOptions
 ): UsePersistenceOptions | false {
@@ -1359,8 +1336,8 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 
 	useColorScheme(options.colorScheme);
 
-	// Everything below `WindowKernelMount` is a side-effecting module the
-	// runtime already mounts. A borrowed runtime renders none of it.
+	// Everything under `ownsRuntime` is a side-effecting module the runtime
+	// already mounts. A borrowed runtime renders none of it.
 	const providerChildren = (
 		<>
 			{ownsRuntime ? (
@@ -1373,7 +1350,6 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 						pkg={windowDebugPkg}
 						mode={windowDebugMode}
 					/>
-					<WindowKernelMount kernel={kernel} />
 					{enabled && persistenceOptions ? (
 						<PersistenceMount
 							options={persistenceOptions}
