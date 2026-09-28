@@ -7,6 +7,11 @@ packages:
   "@c15t/svelte": patch
   "@c15t/browser": patch
   "@c15t/astro": minor
+  "@c15t/nextjs": patch
+  "@c15t/tanstack-start": patch
+  "@c15t/backend": patch
+  "@c15t/scripts": patch
+  "@c15t/cli": patch
   c15t: minor
 ---
 
