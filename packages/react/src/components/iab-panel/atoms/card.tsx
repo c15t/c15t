@@ -75,8 +75,10 @@ const IABConsentDialogCard = createForwardRef<
 		// which the card sets for itself.
 		<div
 			ref={setCardRef}
-			{...themedStyle}
+			// The default header renders this id; a caller's own
+			// `aria-describedby` in the slot props wins over it.
 			aria-describedby="iab-consent-dialog-description"
+			{...themedStyle}
 			aria-label={iabTranslations.preferenceCenter.title}
 			aria-modal={trapFocus ? 'true' : undefined}
 			// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- A native `dialog` brings the user agent's 1em padding, which the card sets for itself.

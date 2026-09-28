@@ -131,6 +131,11 @@ export const getFocusableElements = function getFocusableElements(
 		'input:not([disabled]):not([tabindex="-1"])',
 		'select:not([disabled]):not([tabindex="-1"])',
 		'[contenteditable]:not([tabindex="-1"])',
+		// Native sequential stops that are not form controls or links.
+		'summary:not([tabindex="-1"])',
+		'iframe:not([tabindex="-1"])',
+		'audio[controls]:not([tabindex="-1"])',
+		'video[controls]:not([tabindex="-1"])',
 		'[tabindex]:not([tabindex="-1"])',
 	].join(',');
 
@@ -390,6 +395,18 @@ export const setupFocusTrap = function setupFocusTrap(
 		const inside = active
 			? active === container || container.contains(active)
 			: false;
+
+		// A positive `tabindex` puts the browser's next stop anywhere in the
+		// page, so with one present the trap steps through its own list
+		// instead of letting the browser choose.
+		const index = active ? elements.indexOf(active) : -1;
+		if (index !== -1 && elements.some((element) => element.tabIndex > 0)) {
+			e.preventDefault();
+			const step = e.shiftKey ? -1 : 1;
+			const next = elements[(index + step + elements.length) % elements.length];
+			next?.focus({ preventScroll: true });
+			return;
+		}
 
 		// Shift+Tab wraps to the last focusable when focus would otherwise
 		// escape: from the first focusable, from the focused container itself

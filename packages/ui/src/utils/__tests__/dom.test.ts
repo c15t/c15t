@@ -571,8 +571,61 @@ describe('firstTabbable', () => {
 		]);
 	});
 
+	test('counts native stops that are not form controls', () => {
+		const container = mount(`
+			<details><summary id="summary">More</summary><p>Body</p></details>
+			<button id="button">Button</button>
+		`);
+		expect(tabbableElements(container).map((element) => element.id)).toEqual([
+			'summary',
+			'button',
+		]);
+	});
+
 	test('returns undefined when nothing is tabbable', () => {
 		const container = mount('<p>Text only</p>');
 		expect(firstTabbable(container)).toBeUndefined();
+	});
+});
+
+describe('setupFocusTrap with positive tabindex', () => {
+	let cleanup: (() => void) | undefined;
+
+	afterEach(() => {
+		cleanup?.();
+		cleanup = undefined;
+		document.body.innerHTML = '';
+	});
+
+	const pressTab = function pressTab(shiftKey = false) {
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				bubbles: true,
+				cancelable: true,
+				key: 'Tab',
+				shiftKey,
+			})
+		);
+	};
+
+	test('steps through the dialog in sequential order instead of leaving it', async () => {
+		document.body.innerHTML = `
+			<button id="outside">Outside</button>
+			<div id="dialog">
+				<button id="natural">Natural</button>
+				<button id="jump" tabindex="1">Jump</button>
+			</div>
+		`;
+		const dialog = document.getElementById('dialog') as HTMLElement;
+		cleanup = setupFocusTrap(dialog, { initialFocus: 'first-tabbable' });
+		await flushFocusTimers();
+		expect(document.activeElement?.id).toBe('jump');
+
+		pressTab();
+		expect(document.activeElement?.id).toBe('natural');
+		pressTab();
+		expect(document.activeElement?.id).toBe('jump');
+		pressTab(true);
+		expect(document.activeElement?.id).toBe('natural');
 	});
 });
