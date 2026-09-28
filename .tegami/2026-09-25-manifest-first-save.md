@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/nextjs': patch
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
 ---
 
 ### Send the first manifest-mode save without loading the resolver

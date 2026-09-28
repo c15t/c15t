@@ -1,10 +1,20 @@
 ---
 packages:
-  c15t: patch
-  "@c15t/backend": patch
-  "@c15t/core": patch
-  "@c15t/schema": patch
-  "@c15t/dev-tools": patch
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/dev-tools":
+    replay:
+      - exit-prerelease(npm:@c15t/dev-tools)
 ---
 
 ### Record consent saves replayed after the policy token expired

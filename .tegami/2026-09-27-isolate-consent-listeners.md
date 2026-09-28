@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/core': patch
-  c15t: patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Keep consent changes flowing when a listener throws or updates consent

@@ -1,6 +1,8 @@
 ---
 packages:
-  "@c15t/react": patch
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
 ---
 
 ### Keep the dialog-trigger icons out of the banner's first load

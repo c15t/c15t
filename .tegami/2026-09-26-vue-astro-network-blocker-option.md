@@ -1,8 +1,14 @@
 ---
 packages:
-  c15t: patch
-  "@c15t/vue": patch
-  "@c15t/astro": patch
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### Accept `networkBlocker` in the Vue plugin, Nuxt module and Astro integration

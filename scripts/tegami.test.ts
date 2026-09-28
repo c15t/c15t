@@ -578,18 +578,33 @@ const realWorkspace = function realWorkspace() {
 	return root;
 };
 
+/** Notes that still ask for a bump. Replay-only notes belong to an earlier release. */
+const pendingNotes = function pendingNotes(draft: {
+	getChangelogs: () => {
+		filename: string;
+		packages: Map<string, { type?: unknown }>;
+	}[];
+}) {
+	return draft
+		.getChangelogs()
+		.filter((note) => [...note.packages.values()].some((pkg) => pkg.type));
+};
+
 it('renders a version PR body for the real workspace that GitHub accepts', async () => {
 	const root = realWorkspace();
+	// Right after a version PR merges, every note in the checkout is replay-only
+	// and there is no body to render. Seed one change so the render is checked on
+	// every commit, and against the real notes whenever any are pending.
+	if (pendingNotes(await release(root).draft()).length === 0) {
+		change(root, { '@c15t/core': 'patch' }, 'pending-after-version-pr');
+	}
 	const tegami = release(root);
 	const { graph } = await tegami._internal.context();
 	const previous = new Map(
 		graph.getPackages().map((pkg) => [pkg.id, pkg.version])
 	);
 	const draft = await tegami.draft();
-	// Replay-only notes carry no bump type and belong to an earlier release.
-	const notes = draft
-		.getChangelogs()
-		.filter((note) => [...note.packages.values()].some((pkg) => pkg.type));
+	const notes = pendingNotes(draft);
 	expect(notes.length).toBeGreaterThan(0);
 	await draft.apply();
 

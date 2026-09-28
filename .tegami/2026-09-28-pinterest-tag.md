@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/scripts': minor
-  '@c15t/cli': patch
+  "@c15t/scripts":
+    replay:
+      - exit-prerelease(npm:@c15t/scripts)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Add a Pinterest Tag integration
