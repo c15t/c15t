@@ -85,23 +85,31 @@ page of the site before visitors can clear their records.
 
 When two tabs write at the same moment and one write drops the other tab's
 category or directive, the tab that lost it writes it back on its next
-reconciliation. Under an IAB policy, a TC string that grants a category a
+reconciliation, including directives it kept from storage in its own write.
+Under an IAB policy, a TC string that grants a category a
 reconciled denial covers is withdrawn before any `__tcfapi` listener is
 notified, and one that predates another tab's newer choice is held back until
 this tab reads that tab's receipt, so a revoked vendor is never advertised
 again. A tab reloads the TC string when another tab stores a new receipt, which
-covers a save in the same millisecond or one that changed only vendors. Two
-receipts from the same millisecond settle on the more restrictive one, so a
-revoked vendor is never advertised again.
+covers a save in the same millisecond or one that changed only vendors, and
+stops publishing the held one until the reload decides. Two receipts from the
+same millisecond settle on the more restrictive one, so a revoked vendor is
+never advertised again; when each grants something the other denies, the
+stored receipt is removed and neither is published until the next save. When
+another tab removes the receipt or clears localStorage, the held TC string is
+withdrawn.
 
 A page seeded from a server's cookie read applies newer denials and privacy
-directives that reached only localStorage, and a clear after the clock went
+directives that reached only localStorage, and a local denial from the same
+millisecond as a seeded grant, and a clear after the clock went
 back more than an hour writes an epoch other tabs can still read. That capped
 epoch cannot void decisions dated after it that a runtime which missed the
 clear writes back; times alone cannot order a clear against a clock that went
 back more than an hour. When the cookie and its localStorage copy hold
 conflicting decisions from the same millisecond, the denial wins, and when
-they differ only in subject, the localStorage copy's subject wins.
+they differ only in subject, the localStorage copy's subject wins. A
+localStorage write that fails while the cookie write lands removes the older
+local copy, so its subject never replaces the newer one.
 
 New API:
 

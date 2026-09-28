@@ -176,8 +176,10 @@ Stored records are merged into the ones in memory:
   the same millisecond or one that changed only vendors. When two tabs save in
   the same millisecond with different selections, the more restrictive TC
   string wins in both, so a revoked vendor is never advertised again. If each
-  grants something the other denies, neither is published until the next
-  save.
+  grants something the other denies, neither is published until the next save:
+  the stored receipt is removed, so a page opened later does not restore it.
+  When another tab removes the receipt, or clears localStorage, the TC string
+  is withdrawn here too, since a page opened now would find none.
 - A record removed from readable storage since this tab last saw it present is
   cleared, and the active policy decides again. A record this tab never saw in
   storage, such as a receipt merged from the server after `identify()` or a
@@ -252,12 +254,15 @@ When both copies hold a decision for a category from the same millisecond and
 the two conflict, the denial wins. When they hold exactly the same decisions
 but a different subject, the localStorage copy's subject wins: a subject is
 rewritten on its own when a save response resolves it, so the difference is a
-cookie write the browser dropped.
+cookie write the browser dropped. When localStorage rejects a write that the
+cookie takes, for example because storage is full, the older localStorage copy
+is removed, so it never wins with a stale subject.
 
 When a server render seeded the page from the consent cookie
-(`skipHydration`), that seed stays authoritative. A newer denial or privacy
-directive that reached only localStorage is still applied on top of it when
-the page mounts, since it can only restrict; a stored grant is not.
+(`skipHydration`), that seed stays authoritative. A denial or privacy directive
+that reached only localStorage is still applied on top of it when the page
+mounts, since it can only restrict, if it is newer than the seeded decision or
+from the same millisecond as a seeded grant. A stored grant is not.
 
 The notice dismissal, privacy directives and vendor denials are stored twice
 as well. Privacy directives from both copies all apply. A vendor list in
@@ -313,7 +318,9 @@ writes, and the later write can then drop the other tab's category or privacy
 directive. The tab whose decision was dropped still holds it, and on its next
 reconciliation it writes it back, merged with what storage holds. It does so
 only for decisions it actually stored itself, never for one a clear voided or
-another tab replaced with a newer one.
+another tab replaced with a newer one. A directive write stores the directives
+it kept from storage too, so if another write drops one of those, this tab
+restores it and applies it as well.
 
 If another tab's change reaches this tab while one of its saves is pending, the
 save depends on how far it got. A save not yet sent is dropped. A request
