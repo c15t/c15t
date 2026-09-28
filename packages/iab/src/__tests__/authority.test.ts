@@ -1604,6 +1604,7 @@ test('a replacement list that invalidates a restriction clears retained authorit
 	await addon.save();
 	const gate = { category: 'marketing' as const, vendorId: 755 };
 	expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(true);
+	expect(localStorage.getItem('euconsent-v2')).toBeTruthy();
 
 	// Vendor 755 stops declaring purpose 7, so prohibiting it is unsupported.
 	const { 755: vendor755 } = completeGVL.vendors;
@@ -1629,6 +1630,22 @@ test('a replacement list that invalidates a restriction clears retained authorit
 	expect(kernel.getSnapshot().iab?.authority).toBeNull();
 	expect(kernel.getSnapshot().iab?.tcString).toBe('');
 	expect(evaluateConsent(gate, kernel.getSnapshot())).toBe(false);
+	// Vendors reading standard storage must not find the withdrawn string.
+	expect(localStorage.getItem('euconsent-v2')).toBeNull();
+	expect(document.cookie).not.toContain('euconsent-v2=');
+	expect(addon.cmpApi?.loadFromStorage()).toBeNull();
+});
+
+test('expired authority also removes the standard TC string', async () => {
+	const kernel = makeKernel();
+	const addon = createAddon(kernel);
+	addon.acceptAll();
+	await addon.save();
+	expect(localStorage.getItem('euconsent-v2')).toBeTruthy();
+	await vi.advanceTimersByTimeAsync(DAY);
+	expect(kernel.getSnapshot().iab?.authority).toBeNull();
+	expect(localStorage.getItem('euconsent-v2')).toBeNull();
+	expect(document.cookie).not.toContain('euconsent-v2=');
 });
 
 test('encoding refuses restrictions the CMP rejected, whatever list the kernel holds', async () => {

@@ -1398,7 +1398,12 @@ export const createIAB = function createIAB(
 			});
 		}
 		if (previousAuthority && !snapshot.iab?.authority && !keepReceipt) {
+			// This tab withdrew its authority: the standard TC string it wrote
+			// goes with the receipt, or vendors reading storage would reuse it.
 			clearAuthorityReceipt();
+			if (options.persistence !== false) {
+				clearStoredTCString();
+			}
 		}
 		previousAuthority = snapshot.iab?.authority;
 		if (openedForRestrictions && snapshot.iab?.authority) {
