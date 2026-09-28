@@ -21,6 +21,7 @@ import {
 import type { ReactNode } from 'react';
 
 import { KernelContext, ProviderServicesContext } from './context';
+import { useCommittedRef } from './hooks/use-committed-ref';
 import { useUIConfig } from './ui-config-context';
 import { saveConsentUI } from './ui-save';
 
@@ -318,6 +319,8 @@ const createDraftStore = function createDraftStore(
 			return kernel.subscribe(sync);
 		},
 		getSnapshot: () => current,
+		/** The kernel this draft reads from and saves into. */
+		kernel,
 		rejectAll() {
 			update(
 				Object.fromEntries(
@@ -407,6 +410,29 @@ const useKernel = function useKernel() {
 	}
 	return kernel;
 };
+/**
+ * A draft store bound to the kernel in context. A provider handed a new
+ * runtime changes that kernel without remounting its children, so the store
+ * is rebuilt for the new kernel and the previous draft is dropped rather than
+ * carried over, where its save would record into the old runtime.
+ */
+const useKernelDraftStore = function useKernelDraftStore(
+	kernel: ConsentKernel,
+	defaults: Partial<ConsentState> | undefined
+): DraftStore {
+	const [entry, setEntry] = useState(() => ({
+		kernel,
+		store: createDraftStore(kernel, defaults),
+	}));
+	if (entry.kernel === kernel) {
+		return entry.store;
+	}
+	// Adjusting state during render: React re-renders this component before
+	// committing, so no child ever sees the store of the previous kernel.
+	const next = { kernel, store: createDraftStore(kernel, defaults) };
+	setEntry(next);
+	return next.store;
+};
 export interface ConsentDraftProviderProps {
 	children: ReactNode;
 	/** Defaults apply only to categories without an explicit receipt. */
@@ -419,11 +445,13 @@ export const ConsentDraftProvider = ({
 	const kernel = useKernel();
 	const parent = useContext(DraftContext);
 	const { presentation } = useUIConfig();
-	const [local, setLocal] = useState(() =>
-		createDraftStore(kernel, initial ?? presentation?.preferences?.defaults)
+	const local = useKernelDraftStore(
+		kernel,
+		initial ?? presentation?.preferences?.defaults
 	);
-	void setLocal;
-	const store = parent && !initial ? parent : local;
+	// Inherit an outer draft only while it belongs to this kernel. A nested
+	// provider on another runtime must not save into the outer one.
+	const store = parent && !initial && parent.kernel === kernel ? parent : local;
 	useEffect(() => store.connect(), [store]);
 	return (
 		<DraftContext.Provider value={store}>{children}</DraftContext.Provider>
@@ -433,20 +461,51 @@ const useDraftStore = function useDraftStore() {
 	const kernel = useKernel();
 	const shared = useContext(DraftContext);
 	const { presentation } = useUIConfig();
-	const [local, setLocal] = useState(() =>
-		createDraftStore(kernel, presentation?.preferences?.defaults)
+	const local = useKernelDraftStore(
+		kernel,
+		presentation?.preferences?.defaults
 	);
-	void setLocal;
-	const store = shared ?? local;
-	useEffect(() => (shared ? undefined : store.connect()), [shared, store]);
+	// A shared draft bound to another kernel belongs to an outer provider.
+	const store = shared?.kernel === kernel ? shared : local;
+	useEffect(
+		() => (store === shared ? undefined : store.connect()),
+		[shared, store]
+	);
 	return store;
 };
+
+/**
+ * Whether `store` still belongs to the kernel this component last committed.
+ *
+ * A handle or save action kept across a runtime switch, by an async submit or
+ * a descendant's layout effect in the switch commit, calls through this. Its
+ * store stays bound to the previous kernel, either because a new store
+ * replaced it or because it is an outer draft the outer provider still uses,
+ * so the check fails and the call records nothing. The committed kernel is
+ * read at call time (see `useCommittedRef`), so the check holds from the
+ * moment the switch commits. A component that only unmounts keeps its last
+ * kernel, so a submit that outlives its dialog still saves on that runtime.
+ */
+const useDraftGuard = function useDraftGuard(store: DraftStore): () => boolean {
+	const committedKernelRef = useCommittedRef(useKernel());
+	return useCallback(
+		() => committedKernelRef.current === store.kernel,
+		[committedKernelRef, store]
+	);
+};
+
+const REFUSED: SaveResult = { ok: false };
 
 const useSaveAction = function useSaveAction(store: DraftStore) {
 	const kernel = useKernel();
 	const services = useContext(ProviderServicesContext);
+	const isCurrent = useDraftGuard(store);
 	return useCallback(
 		(input?: SaveInput) => {
+			// Refuse before touching the previous runtime's UI state.
+			if (!isCurrent()) {
+				return Promise.resolve(REFUSED);
+			}
 			let current = false;
 			return saveConsentUI(
 				kernel,
@@ -457,7 +516,7 @@ const useSaveAction = function useSaveAction(store: DraftStore) {
 				() => current
 			);
 		},
-		[kernel, store, services]
+		[isCurrent, kernel, store, services]
 	);
 };
 
@@ -469,19 +528,30 @@ const useDraftHandle = function useDraftHandle(
 		store.getSnapshot,
 		store.getSnapshot
 	);
-	return useMemo(
-		() => ({
+	const isCurrent = useDraftGuard(store);
+	return useMemo(() => {
+		// A handle bound to another kernel is inert: staging would edit a
+		// draft this component no longer shows, and saving would record into
+		// the previous runtime.
+		const guarded =
+			<Args extends unknown[]>(method: (...args: Args) => void) =>
+			(...args: Args) => {
+				if (isCurrent()) {
+					method(...args);
+				}
+			};
+		return {
 			...snapshot,
-			acceptAll: store.acceptAll,
-			rejectAll: store.rejectAll,
-			reset: store.reset,
-			save: store.save,
-			set: store.set,
-			setVendor: store.setVendor,
-			update: store.update,
-		}),
-		[snapshot, store]
-	);
+			acceptAll: guarded(store.acceptAll),
+			rejectAll: guarded(store.rejectAll),
+			reset: guarded(store.reset),
+			save: (...args: Parameters<DraftStore['save']>) =>
+				isCurrent() ? store.save(...args) : Promise.resolve(REFUSED),
+			set: guarded(store.set),
+			setVendor: guarded(store.setVendor),
+			update: guarded(store.update),
+		};
+	}, [isCurrent, snapshot, store]);
 };
 
 /** Internal UI save path shared by stock controls and headless actions. */
