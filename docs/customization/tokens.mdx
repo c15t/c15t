@@ -136,3 +136,40 @@ one prompt do not automatically reach a portaled dialog.
 
 Test long translations and small screens after changing width or typography.
 A compact banner must still fit the required actions.
+
+## Restyle the "Secured by" tag
+
+The tag sits on the edge of the banner and dialog cards and uses the primary
+color by default. Set these variables on `:root`, or on an element that
+contains the tag. The dialog renders in a portal, so a variable set on the
+banner does not reach the dialog's tag.
+
+| Variable | Default | Target |
+| --- | --- | --- |
+| `--consent-branding-tag-background-color` | `var(--c15t-primary)` | Tag background |
+| `--consent-branding-tag-border-color` | `--c15t-primary` mixed 14% toward black | Tag border |
+| `--consent-branding-tag-text-color` | `var(--c15t-text-on-primary, #fff)` | "Secured by" and the wordmark |
+| `--consent-branding-tag-mark-color` | The text color | c15t mark or inth logo |
+| `--consent-branding-tag-shadow` | Inset highlight and a 1px drop shadow | Tag shadow |
+| `--consent-branding-tag-attached-edge-width` | `0px` | Border on the edge that meets the card |
+
+The stylesheet does not declare these variables. Each default resolves on the
+tag, so a `--c15t-primary` you scope to a banner still colors the tag.
+
+This makes the tag look like a tab of the card:
+
+```css
+:root {
+  --consent-branding-tag-background-color: var(--c15t-surface);
+  --consent-branding-tag-border-color: var(--c15t-border);
+  --consent-branding-tag-text-color: var(--c15t-text-muted);
+  --consent-branding-tag-mark-color: var(--c15t-primary);
+  --consent-branding-tag-shadow: none;
+}
+```
+
+The edge that meets the card has no border by default. Above the banner the
+tag overlaps the card's top border by 1px and covers it. Below the dialog the
+tag starts under the card's bottom border. Set
+`--consent-branding-tag-attached-edge-width: 1px` to draw that edge. It is
+drawn over the card's border, so the two borders do not stack.
