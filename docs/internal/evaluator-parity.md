@@ -105,7 +105,7 @@ scenario pairs a refusal with an expired receipt.
 
 Fixing these changes what the reference bridge and both kernels put in a saved
 `consents` and `restrictions`. That is user-visible behaviour and needs a
-changeset, not just a green suite.
+release note under `.tegami/`, not just a green suite.
 
 ## What closing this looks like
 
@@ -120,7 +120,7 @@ changeset, not just a green suite.
    and let the Swift and Kotlin claim tests fail. Fix the kernels until they
    pass. Do not edit an expectation to make a core pass.
 3. Record here what the fix cost in stored-envelope shape or wire reasons, and
-   add the changeset.
+   add the release note.
 
 ## What it cost
 
