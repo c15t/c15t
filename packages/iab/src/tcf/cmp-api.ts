@@ -68,11 +68,17 @@ const getCookie = function getCookie(name: string): string | null {
 export const clearStoredTCString = function clearStoredTCString(
 	tcString: string
 ): void {
-	if (
-		typeof document !== 'undefined' &&
-		getCookie(IAB_STORAGE_KEYS.TC_STRING_COOKIE) === tcString
-	) {
-		document.cookie = `${IAB_STORAGE_KEYS.TC_STRING_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
+	// Each store is cleared on its own: a malformed cookie must not keep the
+	// localStorage copy alive.
+	try {
+		if (
+			typeof document !== 'undefined' &&
+			getCookie(IAB_STORAGE_KEYS.TC_STRING_COOKIE) === tcString
+		) {
+			document.cookie = `${IAB_STORAGE_KEYS.TC_STRING_COOKIE}=; max-age=0; path=/; SameSite=Lax`;
+		}
+	} catch {
+		// The cookie value can be malformed.
 	}
 	try {
 		if (localStorage.getItem(IAB_STORAGE_KEYS.TC_STRING_LOCAL) === tcString) {

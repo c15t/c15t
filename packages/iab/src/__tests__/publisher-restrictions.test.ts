@@ -5,7 +5,7 @@
 import { TCString } from '@iabtechlabtcf/core';
 import { afterEach, describe, expect, test } from 'vitest';
 
-import { createCMPApi } from '../tcf/cmp-api';
+import { clearStoredTCString, createCMPApi } from '../tcf/cmp-api';
 import type { TCData } from '../tcf/iab-tcf-types';
 import {
 	PublisherRestrictionError,
@@ -400,6 +400,18 @@ describe('publisher restrictions: CMP API', () => {
 			});
 		} finally {
 			api.destroy();
+		}
+	});
+
+	test('a malformed euconsent-v2 cookie does not stop the localStorage cleanup', () => {
+		document.cookie = 'euconsent-v2=%E0%A4%A; path=/';
+		localStorage.setItem('euconsent-v2', 'superseded');
+		try {
+			expect(() => clearStoredTCString('superseded')).not.toThrow();
+			expect(localStorage.getItem('euconsent-v2')).toBeNull();
+		} finally {
+			document.cookie = 'euconsent-v2=; max-age=0; path=/';
+			localStorage.removeItem('euconsent-v2');
 		}
 	});
 
