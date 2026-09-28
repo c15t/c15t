@@ -238,6 +238,26 @@ describe('hasIABConsent — publisher restrictions', () => {
 		).toBe(true);
 	});
 
+	test.each(['0755', '755.0', ' 755', '+755', '7.55e2'])(
+		'custom vendor id %j is not registered vendor 755',
+		(vendorId) => {
+			const iab = {
+				...granted([{ purposeId: 2, restrictionType: 0, vendorIds: [755] }]),
+				vendorConsents: { [vendorId]: true },
+			};
+			expect(hasIABConsent({ iabPurposes: [2], vendorId }, iab)).toBe(true);
+		}
+	);
+
+	test('the canonical string id still matches the registered vendor', () => {
+		const iab = granted([
+			{ purposeId: 2, restrictionType: 0, vendorIds: [755] },
+		]);
+		expect(
+			hasIABConsent({ iabPurposes: [2], vendorId: '755' }, iab, flexible)
+		).toBe(false);
+	});
+
 	test('restrictions need a vendorId to apply', () => {
 		const iab = granted([
 			{ purposeId: 2, restrictionType: 0, vendorIds: [755] },

@@ -38,6 +38,21 @@ export interface IABVendorDeclaration {
 	flexiblePurposes?: readonly number[];
 }
 
+/**
+ * The vendor list ID a target names, or `null`. Only the canonical form
+ * counts: a positive integer, or its decimal string with no sign, spaces,
+ * leading zeros or exponent. A custom vendor such as `"0755"` is not
+ * registered vendor 755, so its restrictions do not apply.
+ */
+const registeredVendorId = function registeredVendorId(
+	vendorId: IABTarget['vendorId']
+): number | null {
+	const id = Number(vendorId);
+	return Number.isSafeInteger(id) && id > 0 && String(id) === String(vendorId)
+		? id
+		: null;
+};
+
 /** Purposes TCF allows only with consent (policy version 4 and later). */
 const CONSENT_ONLY_PURPOSES = new Set([1, 3, 4, 5, 6]);
 
@@ -57,12 +72,8 @@ const restrictLegalBases = function restrictLegalBases(
 ): LegalBases | null {
 	const consent = [...(target.iabPurposes ?? [])];
 	const legitimateInterest = [...(target.iabLegIntPurposes ?? [])];
-	const vendorId = Number(target.vendorId);
-	if (
-		target.vendorId === undefined ||
-		!Number.isInteger(vendorId) ||
-		!restrictions?.length
-	) {
+	const vendorId = registeredVendorId(target.vendorId);
+	if (vendorId === null || !restrictions?.length) {
 		return { consent, legitimateInterest };
 	}
 	const typeFor = (purposeId: number): number | undefined => {
