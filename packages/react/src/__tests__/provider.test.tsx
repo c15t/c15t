@@ -67,6 +67,22 @@ test('offline mode without rules resolves the recommended pack: strict opt-in fo
 	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 });
 
+test('exposes only the window.c15t debug object, not the kernel', async () => {
+	const screen = await render(
+		<ConsentProvider options={{ mode: offline(), persistence: false }}>
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByTestId('consent-banner-accept-button'))
+		.toBeVisible();
+	expect((window as Window & { c15t?: unknown }).c15t).toMatchObject({
+		mode: 'offline',
+		pkg: '@c15t/react',
+	});
+	expect('c15tKernel' in window).toBe(false);
+});
+
 test('failed initialization keeps the first layer hidden and reports the error', async () => {
 	const onError = vi.fn();
 	await render(
