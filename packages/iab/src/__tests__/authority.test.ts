@@ -1050,3 +1050,136 @@ test('vendors never see a stale vendor grant after another runtime revokes the v
 	expect(strings).toContain(revoked);
 	expect(strings).not.toContain(granted);
 });
+
+const receiptEvent = () =>
+	window.dispatchEvent(
+		new StorageEvent('storage', { key: 'c15t-iab-authority-v1' })
+	);
+
+test('a vendor revocation saved in the same millisecond reaches vendors through the receipt', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	await addon.whenReady?.();
+	addon.acceptAll();
+	await addon.save();
+	storage.reconcile();
+	const held = kernel.getSnapshot().iab?.authority;
+	const granted = held?.tcString;
+	expect(granted).toBeTruthy();
+
+	// Another runtime revokes one vendor in the same millisecond, so the
+	// stored category record does not change at all.
+	const other = makeKernel();
+	const otherStorage = createPersistence({ kernel: other, sync: false });
+	disposers.push(otherStorage.dispose);
+	const otherAddon = createAddon(other);
+	await vi.waitFor(() =>
+		expect(other.getSnapshot().iab?.authority).not.toBeNull()
+	);
+	vi.setSystemTime(held?.confirmedAt ?? NOW);
+	otherAddon.acceptAll();
+	otherAddon.setVendorConsent(755, false);
+	await otherAddon.save();
+	otherStorage.reconcile();
+	const revoked = other.getSnapshot().iab?.authority?.tcString;
+	expect(revoked).not.toBe(granted);
+
+	const { cmpApi } = addon;
+	if (!cmpApi) {
+		throw new Error('Expected a CMP API');
+	}
+	const published = vi.spyOn(cmpApi, 'updateConsent');
+	storage.reconcile();
+	receiptEvent();
+	await vi.advanceTimersByTimeAsync(10);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority?.tcString).toBe(revoked)
+	);
+	expect(published.mock.calls.map(([tcString]) => tcString)).not.toContain(
+		granted
+	);
+});
+
+test('a held TC string suppressed for a stored vendor change is published again once confirmed', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	await addon.whenReady?.();
+	addon.acceptAll();
+	await addon.save();
+	storage.reconcile();
+	const granted = kernel.getSnapshot().iab?.authority?.tcString;
+
+	const { cmpApi } = addon;
+	if (!cmpApi) {
+		throw new Error('Expected a CMP API');
+	}
+	const published = vi.spyOn(cmpApi, 'updateConsent');
+	vi.setSystemTime(NOW + 1000);
+	localStorage.setItem(
+		'c15t-vendors',
+		JSON.stringify({
+			confirmedAt: NOW + 1000,
+			denied: ['custom-vendor'],
+			version: 1,
+		})
+	);
+	storage.reconcile();
+	await vi.advanceTimersByTimeAsync(10);
+	expect(kernel.getSnapshot().iab?.authority?.tcString).toBe(granted);
+	expect(published.mock.calls.at(-1)?.[0]).toBe(granted);
+});
+
+test('an equal-time receipt with different custom-vendor selections replaces the held one', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createIAB({
+		cmpId: 28,
+		customVendors,
+		gvl: completeGVL,
+		kernel,
+	});
+	disposers.push(addon.dispose);
+	addon.acceptAll();
+	await addon.save();
+	storage.reconcile();
+	const held = kernel.getSnapshot().iab?.authority;
+	expect(held?.vendorConsents['9001']).toBe(true);
+
+	// Same millisecond, same TC string: only a custom vendor changes.
+	const other = makeKernel();
+	const otherStorage = createPersistence({ kernel: other, sync: false });
+	disposers.push(otherStorage.dispose);
+	const otherAddon = createIAB({
+		cmpId: 28,
+		customVendors,
+		gvl: completeGVL,
+		kernel: other,
+	});
+	disposers.push(otherAddon.dispose);
+	await vi.waitFor(() =>
+		expect(other.getSnapshot().iab?.authority).not.toBeNull()
+	);
+	vi.setSystemTime(held?.confirmedAt ?? NOW);
+	otherAddon.acceptAll();
+	otherAddon.setVendorConsent(9001, false);
+	await otherAddon.save();
+	otherStorage.reconcile();
+	const changed = other.getSnapshot().iab?.authority;
+	expect(changed?.tcString).toBe(held?.tcString);
+	expect(changed?.confirmedAt).toBe(held?.confirmedAt);
+	expect(changed?.vendorConsents['9001']).toBe(false);
+
+	storage.reconcile();
+	receiptEvent();
+	await vi.advanceTimersByTimeAsync(10);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority?.vendorConsents['9001']).toBe(
+			false
+		)
+	);
+});

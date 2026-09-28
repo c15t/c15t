@@ -33,6 +33,7 @@ import type {
 } from '@c15t/core';
 
 import {
+	AUTHORITY_KEY,
 	clearAuthorityReceipt,
 	createAuthorityReceipt,
 	readAuthorityReceipt,
@@ -391,6 +392,33 @@ const fitsChoice = function fitsChoice(
 	);
 };
 
+/** Canonical text of a vendor selection map, independent of key order. */
+const selectionText = function selectionText(
+	map: Record<string, boolean>
+): string {
+	return JSON.stringify(
+		Object.keys(map)
+			.sort()
+			.map((id) => [id, map[id]])
+	);
+};
+
+/**
+ * Whether two authorities record the same vendor selections. The TC string
+ * holds the registered vendors; custom vendors live only in these maps.
+ */
+const sameVendorSelections = function sameVendorSelections(
+	left: KernelIABAuthority,
+	right: KernelIABAuthority
+): boolean {
+	return (
+		selectionText(left.vendorConsents) ===
+			selectionText(right.vendorConsents) &&
+		selectionText(left.vendorLegitimateInterests) ===
+			selectionText(right.vendorLegitimateInterests)
+	);
+};
+
 /**
  * Whether a stored receipt should replace the held authority: it fits the
  * choice (see {@link fitsChoice}) and is newer, or replaces a held
@@ -413,7 +441,14 @@ const shouldInstallReceipt = function shouldInstallReceipt(
 		return true;
 	}
 	if (receipt.tcString === held.tcString) {
-		return receipt.confirmedAt > held.confirmedAt;
+		// An equal time with different custom-vendor selections is another
+		// save in the same millisecond; the stored receipt is the one that
+		// landed last, so every tab converges on it.
+		return (
+			receipt.confirmedAt > held.confirmedAt ||
+			(receipt.confirmedAt === held.confirmedAt &&
+				!sameVendorSelections(receipt, held))
+		);
 	}
 	return heldUnfit || held.confirmedAt <= receipt.confirmedAt;
 };
@@ -763,6 +798,13 @@ export const createIAB = function createIAB(
 			return;
 		}
 		applyReconciledAuthority(receipt, current.explicitChoice);
+		// The reload kept the held authority: it still describes the choice,
+		// so a TC string held back for this reload is published again.
+		const kept = readIAB(kernel).authority;
+		if (kept && kept === suppressedAuthority) {
+			suppressedAuthority = null;
+			cmpApi?.updateConsent(kept.tcString, undefined, true);
+		}
 	};
 	const unsubscribeSaveStart = kernel.events.on('command:save:started', () => {
 		ownSaveCommitting = true;
@@ -771,26 +813,61 @@ export const createIAB = function createIAB(
 		});
 	});
 	/**
-	 * A choice that changed without a save of this kernel came from storage,
-	 * such as another tab's IAB save that revoked a vendor. When the held
-	 * authority predates it, its TC string may grant what that save revoked,
-	 * so it is not published until the receipt reload installs a newer
-	 * receipt or withdraws it. This tab's own saves never suppress it.
+	 * Hold back the held TC string until a receipt reload decides whether
+	 * another tab's newer receipt replaces it, it is withdrawn, or it stands
+	 * and is published again.
+	 */
+	const holdBackUntilReload = function holdBackUntilReload(
+		held: KernelIABAuthority
+	): void {
+		suppressedAuthority = held;
+		queueMicrotask(() => {
+			void reloadAuthority();
+		});
+	};
+	/**
+	 * A category or vendor record that changed without a save of this kernel
+	 * came from storage, such as another tab's save. When the held authority
+	 * was confirmed before that change, its TC string may grant what the
+	 * other save revoked, so it is held back. This tab's own saves never
+	 * hold it back.
 	 */
 	const noteChoiceChange = function noteChoiceChange(
 		previous: ConsentSnapshot,
 		snapshot: ConsentSnapshot
 	): void {
 		const held = snapshot.iab?.authority;
-		if (
-			held &&
-			!ownSaveCommitting &&
+		if (!held || ownSaveCommitting) {
+			return;
+		}
+		const choiceChanged =
 			snapshot.explicitChoice !== previous.explicitChoice &&
-			predatesChoice(held, snapshot.explicitChoice)
-		) {
-			suppressedAuthority = held;
+			predatesChoice(held, snapshot.explicitChoice);
+		const vendorsChanged =
+			snapshot.vendorChoice !== previous.vendorChoice &&
+			(snapshot.vendorChoice?.confirmedAt ?? 0) > held.confirmedAt;
+		if (choiceChanged || vendorsChanged) {
+			holdBackUntilReload(held);
 		}
 	};
+	/**
+	 * Another tab stored a receipt. The category record can be unchanged
+	 * (a save in the same millisecond, or one that only changed vendors), so
+	 * the receipt is the only sign; reload it before anything is published.
+	 */
+	const onReceiptStored = function onReceiptStored(event: StorageEvent): void {
+		const held = readIAB(kernel).authority;
+		if (
+			options.persistence !== false &&
+			held &&
+			(event.key === AUTHORITY_KEY || event.key === null)
+		) {
+			holdBackUntilReload(held);
+		}
+	};
+	if (typeof window !== 'undefined') {
+		window.addEventListener('storage', onReceiptStored);
+	}
 	/** The TC string to publish: the held one unless suppressed. */
 	const publishedTcString = function publishedTcString(): string {
 		const authority = kernel.getSnapshot().iab?.authority;
@@ -1168,6 +1245,9 @@ export const createIAB = function createIAB(
 			unsubscribe();
 			unsubscribeClear();
 			unsubscribeSaveStart();
+			if (typeof window !== 'undefined') {
+				window.removeEventListener('storage', onReceiptStored);
+			}
 			if (cmpApi) {
 				try {
 					cmpApi.destroy();

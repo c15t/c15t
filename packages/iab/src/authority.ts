@@ -3,7 +3,8 @@ import type { ConsentSnapshot, KernelIABAuthority } from '@c15t/core';
 import { decodeTCString } from './tcf/tc-string';
 import type { DecodedTCString } from './tcf/tc-string';
 
-const AUTHORITY_KEY = 'c15t-iab-authority-v1';
+/** localStorage key of the authority receipt. */
+export const AUTHORITY_KEY = 'c15t-iab-authority-v1';
 const RETENTION_MS = 395 * 86_400_000;
 const DISCLOSURE_REQUIRED_AT = Date.UTC(2026, 1, 28);
 
