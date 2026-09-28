@@ -32,14 +32,52 @@ const DraftProbe = ({
 	return <output data-testid="draft">{JSON.stringify(draft.values)}</output>;
 };
 
-const layouts = {
+type Layout = (input: {
+	/** The runtime the switching provider renders. */
+	runtime: ConsentRuntime;
+	/** The runtime the test starts on, which an outer provider keeps. */
+	first: ConsentRuntime;
+	probe: ReactNode;
+}) => ReactNode;
+
+const layouts: Record<string, Layout> = {
 	// A preference UI with its own shared draft.
-	ConsentDraftProvider: (children: ReactNode) => (
-		<ConsentDraftProvider>{children}</ConsentDraftProvider>
+	ConsentDraftProvider: ({ runtime, probe }) => (
+		<ConsentProvider runtime={runtime}>
+			<ConsentDraftProvider>{probe}</ConsentDraftProvider>
+		</ConsentProvider>
+	),
+	// An outer draft stays bound to the outer provider's runtime, so a
+	// nested provider that switches must not inherit it.
+	'a nested ConsentDraftProvider under an outer draft': ({
+		first,
+		runtime,
+		probe,
+	}) => (
+		<ConsentProvider runtime={first}>
+			<ConsentDraftProvider>
+				<ConsentProvider runtime={runtime}>
+					<ConsentDraftProvider>{probe}</ConsentDraftProvider>
+				</ConsentProvider>
+			</ConsentDraftProvider>
+		</ConsentProvider>
 	),
 	// A hook used without a draft provider keeps a local store.
-	'the useConsentDraft fallback': (children: ReactNode) => children,
-} as const;
+	'the useConsentDraft fallback': ({ runtime, probe }) => (
+		<ConsentProvider runtime={runtime}>{probe}</ConsentProvider>
+	),
+	'the useConsentDraft fallback under an outer draft': ({
+		first,
+		runtime,
+		probe,
+	}) => (
+		<ConsentProvider runtime={first}>
+			<ConsentDraftProvider>
+				<ConsentProvider runtime={runtime}>{probe}</ConsentProvider>
+			</ConsentDraftProvider>
+		</ConsentProvider>
+	),
+};
 
 describe('drafts under a provider whose runtime is replaced', () => {
 	test.each(Object.keys(layouts) as (keyof typeof layouts)[])(
@@ -53,11 +91,12 @@ describe('drafts under a provider whose runtime is replaced', () => {
 			const onDraft = (value: ConsentDraftHandle) => {
 				draft = value;
 			};
-			const tree = (runtime: ConsentRuntime) => (
-				<ConsentProvider runtime={runtime}>
-					{layouts[layout](<DraftProbe onDraft={onDraft} />)}
-				</ConsentProvider>
-			);
+			const tree = (runtime: ConsentRuntime) =>
+				layouts[layout]?.({
+					first,
+					probe: <DraftProbe onDraft={onDraft} />,
+					runtime,
+				});
 			const screen = await render(tree(first));
 			try {
 				// Staged on the first runtime and never saved there.

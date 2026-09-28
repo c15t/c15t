@@ -318,6 +318,8 @@ const createDraftStore = function createDraftStore(
 			return kernel.subscribe(sync);
 		},
 		getSnapshot: () => current,
+		/** The kernel this draft reads from and saves into. */
+		kernel,
 		rejectAll() {
 			update(
 				Object.fromEntries(
@@ -446,7 +448,9 @@ export const ConsentDraftProvider = ({
 		kernel,
 		initial ?? presentation?.preferences?.defaults
 	);
-	const store = parent && !initial ? parent : local;
+	// Inherit an outer draft only while it belongs to this kernel. A nested
+	// provider on another runtime must not save into the outer one.
+	const store = parent && !initial && parent.kernel === kernel ? parent : local;
 	useEffect(() => store.connect(), [store]);
 	return (
 		<DraftContext.Provider value={store}>{children}</DraftContext.Provider>
@@ -460,8 +464,12 @@ const useDraftStore = function useDraftStore() {
 		kernel,
 		presentation?.preferences?.defaults
 	);
-	const store = shared ?? local;
-	useEffect(() => (shared ? undefined : store.connect()), [shared, store]);
+	// A shared draft bound to another kernel belongs to an outer provider.
+	const store = shared?.kernel === kernel ? shared : local;
+	useEffect(
+		() => (store === shared ? undefined : store.connect()),
+		[shared, store]
+	);
 	return store;
 };
 
