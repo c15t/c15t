@@ -141,6 +141,35 @@ export const Animated = {
 	}),
 };
 
+/** `AppState`, always active: nothing here backgrounds the process. */
+export const AppState = {
+	addEventListener: (
+		_eventName: string,
+		_handler: (state: string) => void
+	) => ({
+		remove: () => undefined,
+	}),
+	currentState: 'active' as const,
+};
+
+/** `I18nManager`, pinned left-to-right like the rest of this stub's device. */
+export const I18nManager = {
+	isRTL: false,
+};
+
+/** `Image`, a host node: the branding mark's bytes never load here. */
+export const Image = hostComponent('rnbench-image');
+
+/** `Linking`, recording the URL rather than leaving the process. */
+export const Linking = {
+	openURL: (_url: string): Promise<void> => Promise.resolve(),
+};
+
+/** `PixelRatio`, agreeing with the scale `useWindowDimensions` reports. */
+export const PixelRatio = {
+	get: (): number => 3,
+};
+
 /** `BackHandler`, recording handlers rather than wiring a real back button. */
 export const BackHandler = {
 	addEventListener: (_eventName: string, _handler: () => boolean) => ({

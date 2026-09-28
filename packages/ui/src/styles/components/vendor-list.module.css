@@ -154,7 +154,7 @@
 		margin: 0;
 		min-width: 0;
 		font: inherit;
-		font-weight: var(--c15t-font-weight-regular);
+		font-weight: var(--c15t-font-weight-normal);
 		color: inherit;
 	}
 

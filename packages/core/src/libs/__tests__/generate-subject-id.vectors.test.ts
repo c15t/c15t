@@ -87,7 +87,7 @@ const CASES = [
 
 const pin = (bytes: number[], nowMillis: number): void => {
 	vi.spyOn(globalThis.crypto, 'getRandomValues').mockImplementation(
-		<BufferSource>(buffer: BufferSource): BufferSource => {
+		<Source extends ArrayBufferView | ArrayBuffer>(buffer: Source): Source => {
 			// A view, never `new Uint8Array(buffer)`: called with a typed array that
 			// constructor copies, and the copy would leave the caller's buffer zeros.
 			const target =

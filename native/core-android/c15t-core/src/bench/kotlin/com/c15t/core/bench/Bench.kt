@@ -118,6 +118,11 @@ object Bench {
 		)
 
 		val kernel = fixture.kernel()
+		// The contract asks for no allocation per call, not for a wall-clock number:
+		// a shared CI runner reads this row at one to two microseconds, and a
+		// budget there fails on scheduler noise rather than on the core. Snapshot
+		// identity is the claim, so that is what fails the run.
+		val identityStable = kernel.snapshot() === kernel.snapshot()
 		failed += report(
 			"snapshot() + 3 x isAllowed()",
 			measure(warmup, iterations) {
@@ -126,10 +131,13 @@ object Bench {
 				val marketing = kernel.isAllowed(ConsentCategory.MARKETING)
 				(snapshot.effectivePermissions.necessary.hashCode() + measurement.hashCode() + marketing.hashCode())
 			},
-			budgetMicros = 1,
-			note = "contract: no allocation of a new snapshot per call (identity stable: " +
-				(kernel.snapshot() === kernel.snapshot()) + ")",
+			budgetMicros = null,
+			note = "contract: no allocation of a new snapshot per call (identity stable: $identityStable)",
 		)
+		if (!identityStable) {
+			println("    FAIL: snapshot() allocated a new snapshot per call")
+			failed += 1
+		}
 
 		val save = measure(warmup, iterations / 4) {
 			if (kernel.save(CommitIntent.All).ok) 1 else 0
