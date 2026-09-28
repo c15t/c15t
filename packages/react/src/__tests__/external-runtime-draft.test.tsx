@@ -1,9 +1,11 @@
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntime } from '@c15t/core/runtime';
+import { useContext, useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { KernelContext } from '../context';
 import type { ConsentDraftHandle } from '../index';
 import {
 	ConsentDraftProvider,
@@ -30,6 +32,19 @@ const DraftProbe = ({
 	const draft = useConsentDraft();
 	onDraft(draft);
 	return <output data-testid="draft">{JSON.stringify(draft.values)}</output>;
+};
+
+/** Calls `onSwitch` from a layout effect whenever the kernel in context changes. */
+const SwitchCaller = ({ onSwitch }: { onSwitch: () => void }) => {
+	const kernel = useContext(KernelContext);
+	const previous = useRef(kernel);
+	useLayoutEffect(() => {
+		if (previous.current !== kernel) {
+			previous.current = kernel;
+			onSwitch();
+		}
+	});
+	return null;
 };
 
 type Layout = (input: {
@@ -126,10 +141,10 @@ describe('drafts under a provider whose runtime is replaced', () => {
 		}
 	);
 
-	// In these layouts the draft store belongs to the switching provider, so
-	// the switch replaces it. (Under an outer draft, the pre-switch store is
-	// the outer one, which still belongs to the outer provider's runtime.)
-	test.each(['ConsentDraftProvider', 'the useConsentDraft fallback'])(
+	// Covers every layout. Under an outer draft the pre-switch handle is the
+	// outer store, which stays live for the outer provider, so the handle
+	// itself must notice that the nested provider moved to another runtime.
+	test.each(Object.keys(layouts))(
 		'a handle kept from before the switch refuses to save (%s)',
 		async (layout) => {
 			const first = createRuntime();
@@ -137,13 +152,26 @@ describe('drafts under a provider whose runtime is replaced', () => {
 			const firstSave = vi.spyOn(first.kernel.commands, 'save');
 			const secondSave = vi.spyOn(second.kernel.commands, 'save');
 			let draft: ConsentDraftHandle | undefined;
+			let retained: ConsentDraftHandle | undefined;
+			let duringCommit: Promise<unknown> | undefined;
 			const onDraft = (value: ConsentDraftHandle) => {
 				draft = value;
 			};
 			const tree = (runtime: ConsentRuntime) =>
 				layouts[layout]?.({
 					first,
-					probe: <DraftProbe onDraft={onDraft} />,
+					probe: (
+						<>
+							<DraftProbe onDraft={onDraft} />
+							<SwitchCaller
+								onSwitch={() => {
+									// A descendant layout effect in the switch commit,
+									// before any passive effect of that commit runs.
+									duringCommit = retained?.save();
+								}}
+							/>
+						</>
+					),
 					runtime,
 				});
 			const screen = await render(tree(first));
@@ -151,12 +179,13 @@ describe('drafts under a provider whose runtime is replaced', () => {
 				draft?.set('measurement', true);
 				await vi.waitFor(() => expect(draft?.values.measurement).toBe(true));
 				// An async submit that started on the first runtime keeps this.
-				const retained = draft;
+				retained = draft;
 
 				await screen.rerender(tree(second));
 				await vi.waitFor(() => expect(draft).not.toBe(retained));
 
 				await expect(retained?.save()).resolves.toEqual({ ok: false });
+				await expect(duringCommit).resolves.toEqual({ ok: false });
 				expect(firstSave).not.toHaveBeenCalled();
 				expect(secondSave).not.toHaveBeenCalled();
 			} finally {

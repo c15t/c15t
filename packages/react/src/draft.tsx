@@ -15,13 +15,13 @@ import {
 	useContext,
 	useEffect,
 	useMemo,
-	useRef,
 	useState,
 	useSyncExternalStore,
 } from 'react';
 import type { ReactNode } from 'react';
 
 import { KernelContext, ProviderServicesContext } from './context';
+import { useCommittedRef } from './hooks/use-committed-ref';
 import { useUIConfig } from './ui-config-context';
 import { saveConsentUI } from './ui-save';
 
@@ -165,7 +165,6 @@ const createDraftStore = function createDraftStore(
 ) {
 	let revision = 0;
 	let saveSequence = 0;
-	let retired = false;
 	let source = kernel.getSnapshot();
 	let base = seed(source, defaults);
 	let baseVendors = seedVendors(source);
@@ -320,8 +319,6 @@ const createDraftStore = function createDraftStore(
 			return kernel.subscribe(sync);
 		},
 		getSnapshot: () => current,
-		/** Whether a replacement for another kernel has superseded this draft. */
-		isRetired: () => retired,
 		/** The kernel this draft reads from and saves into. */
 		kernel,
 		rejectAll() {
@@ -335,20 +332,11 @@ const createDraftStore = function createDraftStore(
 			updateVendors(allVendorsOn());
 		},
 		reset,
-		/** Refuse every later save: a store for a new kernel replaced this one. */
-		retire() {
-			retired = true;
-		},
 		async save(
 			input?: SaveInput,
 			categories?: readonly AllConsentNames[],
 			onSuccess?: () => void
 		): Promise<SaveResult> {
-			// A handle kept from before its provider switched runtimes must not
-			// record into the runtime it was created for.
-			if (retired) {
-				return { ok: false };
-			}
 			// Guard against changes between the render and the click as well.
 			if (
 				fingerprint !==
@@ -436,18 +424,6 @@ const useKernelDraftStore = function useKernelDraftStore(
 		kernel,
 		store: createDraftStore(kernel, defaults),
 	}));
-	// Retire the store a replacement superseded, once that replacement has
-	// committed. A handle kept from before the switch, such as an async submit
-	// still in progress, then cannot save into the previous runtime. A store
-	// that only unmounts stays usable: its runtime is still the right one.
-	const previousRef = useRef<DraftStore | null>(null);
-	useEffect(() => {
-		const previous = previousRef.current;
-		previousRef.current = entry.store;
-		if (previous && previous !== entry.store) {
-			previous.retire();
-		}
-	}, [entry.store]);
 	if (entry.kernel === kernel) {
 		return entry.store;
 	}
@@ -498,14 +474,37 @@ const useDraftStore = function useDraftStore() {
 	return store;
 };
 
+/**
+ * Whether `store` still belongs to the kernel this component last committed.
+ *
+ * A handle or save action kept across a runtime switch, by an async submit or
+ * a descendant's layout effect in the switch commit, calls through this. Its
+ * store stays bound to the previous kernel, either because a new store
+ * replaced it or because it is an outer draft the outer provider still uses,
+ * so the check fails and the call records nothing. The committed kernel is
+ * read at call time (see `useCommittedRef`), so the check holds from the
+ * moment the switch commits. A component that only unmounts keeps its last
+ * kernel, so a submit that outlives its dialog still saves on that runtime.
+ */
+const useDraftGuard = function useDraftGuard(store: DraftStore): () => boolean {
+	const committedKernelRef = useCommittedRef(useKernel());
+	return useCallback(
+		() => committedKernelRef.current === store.kernel,
+		[committedKernelRef, store]
+	);
+};
+
+const REFUSED: SaveResult = { ok: false };
+
 const useSaveAction = function useSaveAction(store: DraftStore) {
 	const kernel = useKernel();
 	const services = useContext(ProviderServicesContext);
+	const isCurrent = useDraftGuard(store);
 	return useCallback(
 		(input?: SaveInput) => {
 			// Refuse before touching the previous runtime's UI state.
-			if (store.isRetired()) {
-				return Promise.resolve<SaveResult>({ ok: false });
+			if (!isCurrent()) {
+				return Promise.resolve(REFUSED);
 			}
 			let current = false;
 			return saveConsentUI(
@@ -517,7 +516,7 @@ const useSaveAction = function useSaveAction(store: DraftStore) {
 				() => current
 			);
 		},
-		[kernel, store, services]
+		[isCurrent, kernel, store, services]
 	);
 };
 
@@ -529,19 +528,30 @@ const useDraftHandle = function useDraftHandle(
 		store.getSnapshot,
 		store.getSnapshot
 	);
-	return useMemo(
-		() => ({
+	const isCurrent = useDraftGuard(store);
+	return useMemo(() => {
+		// A handle bound to another kernel is inert: staging would edit a
+		// draft this component no longer shows, and saving would record into
+		// the previous runtime.
+		const guarded =
+			<Args extends unknown[]>(method: (...args: Args) => void) =>
+			(...args: Args) => {
+				if (isCurrent()) {
+					method(...args);
+				}
+			};
+		return {
 			...snapshot,
-			acceptAll: store.acceptAll,
-			rejectAll: store.rejectAll,
-			reset: store.reset,
-			save: store.save,
-			set: store.set,
-			setVendor: store.setVendor,
-			update: store.update,
-		}),
-		[snapshot, store]
-	);
+			acceptAll: guarded(store.acceptAll),
+			rejectAll: guarded(store.rejectAll),
+			reset: guarded(store.reset),
+			save: (...args: Parameters<DraftStore['save']>) =>
+				isCurrent() ? store.save(...args) : Promise.resolve(REFUSED),
+			set: guarded(store.set),
+			setVendor: guarded(store.setVendor),
+			update: guarded(store.update),
+		};
+	}, [isCurrent, snapshot, store]);
 };
 
 /** Internal UI save path shared by stock controls and headless actions. */
