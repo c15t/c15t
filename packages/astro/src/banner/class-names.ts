@@ -83,6 +83,7 @@ export const iabPromptClassNames: IABPromptClassNames = {
 	branding: promptClassNames.branding,
 	button: promptClassNames.button,
 	iabBanner: pick(iabBannerStyles, [
+		'bannerEntering',
 		'bannerVisible',
 		'card',
 		'cardShell',
@@ -91,6 +92,7 @@ export const iabPromptClassNames: IABPromptClassNames = {
 		'header',
 		'legitimateInterestNotice',
 		'overlay',
+		'overlayEntering',
 		'overlayVisible',
 		'partnersLink',
 		'purposeList',

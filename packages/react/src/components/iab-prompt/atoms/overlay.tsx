@@ -1,7 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner';
-import { forwardRef as createForwardRef, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes } from 'react';
 
 import { useActiveUI } from '~/hooks';
@@ -25,33 +25,8 @@ const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		} = useTheme();
 		const { components } = useUIConfig();
 
-		const [isVisible, setIsVisible] = useState(false);
-
 		// Show when banner is active (model filtering is handled by the root component)
 		const shouldShow = activeUI === 'banner';
-
-		useEffect(() => {
-			if (shouldShow) {
-				const frame = requestAnimationFrame(() => setIsVisible(true));
-				return () => cancelAnimationFrame(frame);
-			}
-
-			if (disableAnimation) {
-				const frame = requestAnimationFrame(() => setIsVisible(false));
-				return () => cancelAnimationFrame(frame);
-			}
-
-			const animationDurationMs = Number.parseInt(
-				getComputedStyle(document.documentElement).getPropertyValue(
-					'--iab-consent-banner-animation-duration'
-				) || '200',
-				10
-			);
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-			}, animationDurationMs);
-			return () => clearTimeout(timer);
-		}, [shouldShow, disableAnimation]);
 
 		const theme = mergeSlotProps(components?.['iab-banner']?.overlay, {
 			baseClassName: styles.overlay,
@@ -64,10 +39,11 @@ const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		const shouldApplyAnimation =
 			!(contextNoStyle || noStyle) && !disableAnimation;
 
-		let animationClass: string | undefined;
-		if (shouldApplyAnimation) {
-			animationClass = isVisible ? styles.overlayVisible : styles.overlayHidden;
-		}
+		// `overlayEntering` is the `@starting-style` state the stylesheet
+		// transitions from on the first frame; no hidden render is needed.
+		const animationClass = shouldApplyAnimation
+			? `${styles.overlayVisible} ${styles.overlayEntering}`
+			: undefined;
 
 		const finalClassName = cn(theme.className, animationClass);
 
