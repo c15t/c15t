@@ -6,10 +6,15 @@
  * Android, hydration may already be done, and the subject id already exists.
  * The provider reads the handshake once, publishes the client, and gets out of
  * the way.
+ *
+ * The one thing it holds is a foreground listener, which re-reads the platform
+ * tracking answer because the Settings app changes it without telling a running
+ * process. That work belongs here rather than in a hook so it happens once per app.
  */
 
 import type { ReactNode } from 'react';
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
+import { AppState } from 'react-native';
 
 import { getConsentClient } from '../native/client';
 import { ConsentClientContext } from './consent-context';
@@ -109,6 +114,29 @@ export const C15tProvider = ({
 				: { bottom, left, right, top },
 		[bottom, left, right, top]
 	);
+
+	// Re-read the platform tracking answer on the way back to the foreground.
+	//
+	// The subject who turns tracking off in `Settings > Privacy & Security > Tracking` and
+	// returns to your app has changed the one thing `getTrackingAuthorization` caches, and
+	// Apple tells a running process nothing about it. Without this the app keeps an
+	// `authorized` the device withdrew, which is the failure direction that matters: tracking
+	// behaviour that should have stopped carries on until the next launch.
+	//
+	// It runs here rather than in a hook so it happens once per app and not once per
+	// component that happens to read tracking, and it is a no-op on Android, where the
+	// answer is `unsupported` before and after and nothing is notified.
+	useEffect(() => {
+		const subscription = AppState.addEventListener('change', (state): void => {
+			if (state === 'active') {
+				client.refreshTrackingAuthorization();
+			}
+		});
+
+		return () => {
+			subscription.remove();
+		};
+	}, [client]);
 
 	return (
 		<ConsentClientContext.Provider value={client}>

@@ -4,7 +4,8 @@
  * Read it as the headless surface laid out in one column. The snapshot card is
  * what `useConsent` returns, the permissions card is what `useIsAllowed` returns
  * per category, and the actions card calls one method of `useConsentActions` per
- * button, including the ones a consent UI normally hides behind a prompt.
+ * button, including the ones a consent UI normally hides behind a prompt. The
+ * tracking card is one whole `useTrackingRequest` journey, and nothing else.
  */
 
 import {
@@ -12,6 +13,7 @@ import {
 	useConsentActions,
 	useC15tBootstrap,
 } from '@c15t/react-native';
+import type { TrackingRequest } from '@c15t/react-native';
 import { useState } from 'react';
 
 import { config } from '../c15t/config';
@@ -23,6 +25,7 @@ import {
 	LifecycleCard,
 	PermissionList,
 } from '../components/gating';
+import { TrackingCard } from '../components/tracking';
 import {
 	Button,
 	ButtonGrid,
@@ -316,9 +319,11 @@ const FakeCoreCard = () => {
 export const HomeScreen = ({
 	onOpenDialog,
 	onOpenPreferences,
+	tracking,
 }: {
 	readonly onOpenDialog: () => void;
 	readonly onOpenPreferences: () => void;
+	readonly tracking: TrackingRequest;
 }) => {
 	const snapshot = useConsent();
 	const bootstrap = useC15tBootstrap();
@@ -435,6 +440,8 @@ export const HomeScreen = ({
 				<GatedVendor category="measurement" />
 				<GatedVendor category="marketing" />
 			</Card>
+
+			<TrackingCard tracking={tracking} />
 
 			<LifecycleCard />
 

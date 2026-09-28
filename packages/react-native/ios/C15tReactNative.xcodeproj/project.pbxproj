@@ -7,137 +7,140 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		08E419C6B43F6CDD711ABB90 /* C15tChangePump.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B8A1398CE3DF8DBC0138359 /* C15tChangePump.swift */; };
-		115C75201ABFC3848FE6A3B2 /* C15tModuleHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8A182C48F323015A1BE4FB0 /* C15tModuleHandler.swift */; };
-		155348E2B14CBA00B37EC9B3 /* C15tTracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67E8AE1459D6E17F65BC352C /* C15tTracking.swift */; };
-		231934805CC9AA060EA88E07 /* C15tPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = D41151B13914A91ABB0AAF18 /* C15tPayload.swift */; };
-		25CD298D2FE265C6D14EE4F3 /* C15tReachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C7D8A8AFADF28A2C3B3767 /* C15tReachability.swift */; };
-		2FD8E692F396D83ED63B7D99 /* C15tReactNative.h in Headers */ = {isa = PBXBuildFile; fileRef = FB7FCAAE36E1635CB745B6FB /* C15tReactNative.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		32EDEE263A8E2439E3FC4E16 /* C15tBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36171A148B1BF0D6DFB6ADF2 /* C15tBootstrap.swift */; };
-		74F8B208F6CF3E7CFF265EFE /* C15tTrackingGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F821BD13B4D2640E6D6D968 /* C15tTrackingGate.swift */; };
-		BD38F0B902B4228931D2DD69 /* C15tReachabilityGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DD71553AEA4FF8E8F206A31 /* C15tReachabilityGate.swift */; };
-		CF5B9503EEB13BBFC857CFA6 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AE8E60BAAF408BD2729C764B /* Foundation.framework */; };
-		D8EBA141479E7EA981C24BBC /* C15tForegroundObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84385D9D7DF8A36A2BC843D7 /* C15tForegroundObserver.swift */; };
-		F892304FAD30FFF6BCD097DB /* Privacy.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3B41B4E7C84E03CD334E0C30 /* Privacy.xcprivacy */; };
+		0B8E75C55777139A1E7F9180 /* C15tReactNative.h in Headers */ = {isa = PBXBuildFile; fileRef = 02657EDE7566EC0C9C28820D /* C15tReactNative.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		19CD654373BA0D71F6809620 /* C15tTrackingGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AD6639F33B56E4576000103 /* C15tTrackingGate.swift */; };
+		1A8368B2EEF6EA6590F2478F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7DE04AE370EA0EBC1C3C380B /* Foundation.framework */; };
+		1BB46FB9FCD909A39BBDA14B /* C15tBootstrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56B42FB6BF9791EA4303AB09 /* C15tBootstrap.swift */; };
+		35750351FE89BAF3F1EB5C27 /* C15tModuleHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0BDE2D0586BDC9577A54A36 /* C15tModuleHandler.swift */; };
+		5BB15341AD503F9B6A506D74 /* C15tReachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A938BF0945641031AB1418 /* C15tReachability.swift */; };
+		63D2DB992ED3DCE8F5CD6C61 /* C15tForegroundObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5E0C4AFC6659E99F8B74971 /* C15tForegroundObserver.swift */; };
+		64D412E185D080A4F054BA83 /* C15tTrackingWaiters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2D72B550AF98CA914C880D /* C15tTrackingWaiters.swift */; };
+		7981FD20D8A9EF12352DE9E2 /* C15tReachabilityGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 465A14C2FF01F28B7668BC18 /* C15tReachabilityGate.swift */; };
+		8A24547931CB7026C9B9AAF3 /* C15tPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66424A16F6E0E887FBD64064 /* C15tPayload.swift */; };
+		DF2F01BF0A21D89840BFFC9A /* C15tTracking.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4AACD5A07E3BA56AB4A4AA7 /* C15tTracking.swift */; };
+		E3538833DD7FDC45EF89EEDE /* Privacy.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 08621522B93E3C069865D1A6 /* Privacy.xcprivacy */; };
+		F2818F96AA986AA1E1F48638 /* C15tChangePump.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD852D8DE2D6C302D75FE2D2 /* C15tChangePump.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		12C7D8A8AFADF28A2C3B3767 /* C15tReachability.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tReachability.swift; path = C15tReactNative/Bridge/C15tReachability.swift; sourceTree = "<group>"; };
-		1F821BD13B4D2640E6D6D968 /* C15tTrackingGate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tTrackingGate.swift; path = C15tReactNative/Bridge/C15tTrackingGate.swift; sourceTree = "<group>"; };
-		359C788C5DC00950421B4C49 /* C15tReactNative.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = C15tReactNative.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		36171A148B1BF0D6DFB6ADF2 /* C15tBootstrap.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tBootstrap.swift; path = C15tReactNative/Bridge/C15tBootstrap.swift; sourceTree = "<group>"; };
-		3B41B4E7C84E03CD334E0C30 /* Privacy.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = Privacy.xcprivacy; path = C15tReactNative/Resources/Privacy.xcprivacy; sourceTree = "<group>"; };
-		5DD71553AEA4FF8E8F206A31 /* C15tReachabilityGate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tReachabilityGate.swift; path = C15tReactNative/Bridge/C15tReachabilityGate.swift; sourceTree = "<group>"; };
-		67E8AE1459D6E17F65BC352C /* C15tTracking.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tTracking.swift; path = C15tReactNative/Bridge/C15tTracking.swift; sourceTree = "<group>"; };
-		84385D9D7DF8A36A2BC843D7 /* C15tForegroundObserver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tForegroundObserver.swift; path = C15tReactNative/Bridge/C15tForegroundObserver.swift; sourceTree = "<group>"; };
-		8B8A1398CE3DF8DBC0138359 /* C15tChangePump.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tChangePump.swift; path = C15tReactNative/Bridge/C15tChangePump.swift; sourceTree = "<group>"; };
-		A8A182C48F323015A1BE4FB0 /* C15tModuleHandler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tModuleHandler.swift; path = C15tReactNative/Bridge/C15tModuleHandler.swift; sourceTree = "<group>"; };
-		AE8E60BAAF408BD2729C764B /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		D41151B13914A91ABB0AAF18 /* C15tPayload.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tPayload.swift; path = C15tReactNative/Bridge/C15tPayload.swift; sourceTree = "<group>"; };
-		FB7FCAAE36E1635CB745B6FB /* C15tReactNative.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = C15tReactNative.h; path = C15tReactNative/C15tReactNative.h; sourceTree = "<group>"; };
+		02657EDE7566EC0C9C28820D /* C15tReactNative.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; name = C15tReactNative.h; path = C15tReactNative/C15tReactNative.h; sourceTree = "<group>"; };
+		08621522B93E3C069865D1A6 /* Privacy.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = Privacy.xcprivacy; path = C15tReactNative/Resources/Privacy.xcprivacy; sourceTree = "<group>"; };
+		0AD6639F33B56E4576000103 /* C15tTrackingGate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tTrackingGate.swift; path = C15tReactNative/Bridge/C15tTrackingGate.swift; sourceTree = "<group>"; };
+		34013A5A51F3B2F8A0DB8C9A /* C15tReactNative.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = C15tReactNative.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		465A14C2FF01F28B7668BC18 /* C15tReachabilityGate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tReachabilityGate.swift; path = C15tReactNative/Bridge/C15tReachabilityGate.swift; sourceTree = "<group>"; };
+		56B42FB6BF9791EA4303AB09 /* C15tBootstrap.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tBootstrap.swift; path = C15tReactNative/Bridge/C15tBootstrap.swift; sourceTree = "<group>"; };
+		5E2D72B550AF98CA914C880D /* C15tTrackingWaiters.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tTrackingWaiters.swift; path = C15tReactNative/Bridge/C15tTrackingWaiters.swift; sourceTree = "<group>"; };
+		66424A16F6E0E887FBD64064 /* C15tPayload.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tPayload.swift; path = C15tReactNative/Bridge/C15tPayload.swift; sourceTree = "<group>"; };
+		7DE04AE370EA0EBC1C3C380B /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		B0BDE2D0586BDC9577A54A36 /* C15tModuleHandler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tModuleHandler.swift; path = C15tReactNative/Bridge/C15tModuleHandler.swift; sourceTree = "<group>"; };
+		E4AACD5A07E3BA56AB4A4AA7 /* C15tTracking.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tTracking.swift; path = C15tReactNative/Bridge/C15tTracking.swift; sourceTree = "<group>"; };
+		F0A938BF0945641031AB1418 /* C15tReachability.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tReachability.swift; path = C15tReactNative/Bridge/C15tReachability.swift; sourceTree = "<group>"; };
+		F5E0C4AFC6659E99F8B74971 /* C15tForegroundObserver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tForegroundObserver.swift; path = C15tReactNative/Bridge/C15tForegroundObserver.swift; sourceTree = "<group>"; };
+		FD852D8DE2D6C302D75FE2D2 /* C15tChangePump.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = C15tChangePump.swift; path = C15tReactNative/Bridge/C15tChangePump.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		0DF485F8C0A24703D114F80A /* Frameworks */ = {
+		0847BD9EE28F7149782C3D12 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CF5B9503EEB13BBFC857CFA6 /* Foundation.framework in Frameworks */,
+				1A8368B2EEF6EA6590F2478F /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		12DE6529080BE55108D6F9E7 /* Resources */ = {
+		01E9D87D3AE81871AA7CC39A /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				3B41B4E7C84E03CD334E0C30 /* Privacy.xcprivacy */,
+				08621522B93E3C069865D1A6 /* Privacy.xcprivacy */,
 			);
 			name = Resources;
 			sourceTree = "<group>";
 		};
-		13E35562DE9DD1F54E77E309 /* Products */ = {
+		06B42CE5181AAA7FAA5C2163 = {
 			isa = PBXGroup;
 			children = (
-				359C788C5DC00950421B4C49 /* C15tReactNative.framework */,
+				AC5B59478422C060A46A83AA /* Products */,
+				86A158E2E7C417DA7AE2D2E6 /* Frameworks */,
+				4C388E7B0A0BD8C824C2B98E /* Bridge */,
+				01E9D87D3AE81871AA7CC39A /* Resources */,
+				5F9724FD5F7FDC600E326DB1 /* SupportingFiles */,
 			);
-			name = Products;
 			sourceTree = "<group>";
 		};
-		46CE0BDB6FC9F13EC24E09FA /* Frameworks */ = {
+		4817FA119C76DB0A9F90593E /* iOS */ = {
 			isa = PBXGroup;
 			children = (
-				4846014ACFDB3EDA1CF3CA81 /* iOS */,
-			);
-			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		4846014ACFDB3EDA1CF3CA81 /* iOS */ = {
-			isa = PBXGroup;
-			children = (
-				AE8E60BAAF408BD2729C764B /* Foundation.framework */,
+				7DE04AE370EA0EBC1C3C380B /* Foundation.framework */,
 			);
 			name = iOS;
 			sourceTree = "<group>";
 		};
-		48B9270B11D368E2C78A8F22 /* Bridge */ = {
+		4C388E7B0A0BD8C824C2B98E /* Bridge */ = {
 			isa = PBXGroup;
 			children = (
-				36171A148B1BF0D6DFB6ADF2 /* C15tBootstrap.swift */,
-				8B8A1398CE3DF8DBC0138359 /* C15tChangePump.swift */,
-				84385D9D7DF8A36A2BC843D7 /* C15tForegroundObserver.swift */,
-				A8A182C48F323015A1BE4FB0 /* C15tModuleHandler.swift */,
-				D41151B13914A91ABB0AAF18 /* C15tPayload.swift */,
-				12C7D8A8AFADF28A2C3B3767 /* C15tReachability.swift */,
-				5DD71553AEA4FF8E8F206A31 /* C15tReachabilityGate.swift */,
-				67E8AE1459D6E17F65BC352C /* C15tTracking.swift */,
-				1F821BD13B4D2640E6D6D968 /* C15tTrackingGate.swift */,
+				56B42FB6BF9791EA4303AB09 /* C15tBootstrap.swift */,
+				FD852D8DE2D6C302D75FE2D2 /* C15tChangePump.swift */,
+				F5E0C4AFC6659E99F8B74971 /* C15tForegroundObserver.swift */,
+				B0BDE2D0586BDC9577A54A36 /* C15tModuleHandler.swift */,
+				66424A16F6E0E887FBD64064 /* C15tPayload.swift */,
+				F0A938BF0945641031AB1418 /* C15tReachability.swift */,
+				465A14C2FF01F28B7668BC18 /* C15tReachabilityGate.swift */,
+				E4AACD5A07E3BA56AB4A4AA7 /* C15tTracking.swift */,
+				0AD6639F33B56E4576000103 /* C15tTrackingGate.swift */,
+				5E2D72B550AF98CA914C880D /* C15tTrackingWaiters.swift */,
 			);
 			name = Bridge;
 			sourceTree = "<group>";
 		};
-		AD28DB9B88805EDAC6D15485 /* SupportingFiles */ = {
+		5F9724FD5F7FDC600E326DB1 /* SupportingFiles */ = {
 			isa = PBXGroup;
 			children = (
-				FB7FCAAE36E1635CB745B6FB /* C15tReactNative.h */,
+				02657EDE7566EC0C9C28820D /* C15tReactNative.h */,
 			);
 			name = SupportingFiles;
 			sourceTree = "<group>";
 		};
-		F777FAB118AD81973EAF1EDF = {
+		86A158E2E7C417DA7AE2D2E6 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				13E35562DE9DD1F54E77E309 /* Products */,
-				46CE0BDB6FC9F13EC24E09FA /* Frameworks */,
-				48B9270B11D368E2C78A8F22 /* Bridge */,
-				12DE6529080BE55108D6F9E7 /* Resources */,
-				AD28DB9B88805EDAC6D15485 /* SupportingFiles */,
+				4817FA119C76DB0A9F90593E /* iOS */,
 			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		AC5B59478422C060A46A83AA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				34013A5A51F3B2F8A0DB8C9A /* C15tReactNative.framework */,
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
-		B5BFCC6C1D5AED25B1924874 /* Headers */ = {
+		585E10FAA5D6F72EA2249A51 /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2FD8E692F396D83ED63B7D99 /* C15tReactNative.h in Headers */,
+				0B8E75C55777139A1E7F9180 /* C15tReactNative.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		FFA4A7714B5BB8CA3499A13A /* C15tReactNative */ = {
+		FEA83A106A839DC838CF8F87 /* C15tReactNative */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BF7EEC693167E2F6D9FA7EF8 /* Build configuration list for PBXNativeTarget "C15tReactNative" */;
+			buildConfigurationList = 8FA2A2E7CA5A9E26813075F8 /* Build configuration list for PBXNativeTarget "C15tReactNative" */;
 			buildPhases = (
-				B5BFCC6C1D5AED25B1924874 /* Headers */,
-				FA54A9DC9D504482B771A015 /* Sources */,
-				0DF485F8C0A24703D114F80A /* Frameworks */,
-				3A4F4892555D9550E4601C06 /* Resources */,
+				585E10FAA5D6F72EA2249A51 /* Headers */,
+				05AE2196BBCF9286C1643983 /* Sources */,
+				0847BD9EE28F7149782C3D12 /* Frameworks */,
+				54EB3250E4388DB92D885D2F /* Resources */,
 			);
 			buildRules = (
 			);
@@ -145,22 +148,22 @@
 			);
 			name = C15tReactNative;
 			packageProductDependencies = (
-				F77F3A2051311CCE9A9E0160 /* C15tCore */,
+				746A185CEF3F9CA4204EC581 /* C15tCore */,
 			);
 			productName = C15tReactNative;
-			productReference = 359C788C5DC00950421B4C49 /* C15tReactNative.framework */;
+			productReference = 34013A5A51F3B2F8A0DB8C9A /* C15tReactNative.framework */;
 			productType = "com.apple.product-type.framework";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		3B37401AFF42BEA0AEDAE24D /* Project object */ = {
+		C7A95B90D76D5919880FCCFF /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 1600;
 				LastUpgradeCheck = 1600;
 			};
-			buildConfigurationList = 1326838385758487651D9A6B /* Build configuration list for PBXProject "C15tReactNative" */;
+			buildConfigurationList = 44707F3BAA4C137D4CEBDE6C /* Build configuration list for PBXProject "C15tReactNative" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -168,53 +171,54 @@
 				en,
 				Base,
 			);
-			mainGroup = F777FAB118AD81973EAF1EDF;
+			mainGroup = 06B42CE5181AAA7FAA5C2163;
 			minimizedProjectReferenceProxies = 0;
 			packageReferences = (
-				4826170A377C763B18CAE24B /* XCLocalSwiftPackageReference "core-swift" */,
+				F8DF1D036C1E64196F553FA9 /* XCLocalSwiftPackageReference "core-swift" */,
 			);
 			preferredProjectObjectVersion = 100;
-			productRefGroup = 13E35562DE9DD1F54E77E309 /* Products */;
+			productRefGroup = AC5B59478422C060A46A83AA /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				FFA4A7714B5BB8CA3499A13A /* C15tReactNative */,
+				FEA83A106A839DC838CF8F87 /* C15tReactNative */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		3A4F4892555D9550E4601C06 /* Resources */ = {
+		54EB3250E4388DB92D885D2F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F892304FAD30FFF6BCD097DB /* Privacy.xcprivacy in Resources */,
+				E3538833DD7FDC45EF89EEDE /* Privacy.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		FA54A9DC9D504482B771A015 /* Sources */ = {
+		05AE2196BBCF9286C1643983 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				32EDEE263A8E2439E3FC4E16 /* C15tBootstrap.swift in Sources */,
-				08E419C6B43F6CDD711ABB90 /* C15tChangePump.swift in Sources */,
-				D8EBA141479E7EA981C24BBC /* C15tForegroundObserver.swift in Sources */,
-				115C75201ABFC3848FE6A3B2 /* C15tModuleHandler.swift in Sources */,
-				231934805CC9AA060EA88E07 /* C15tPayload.swift in Sources */,
-				25CD298D2FE265C6D14EE4F3 /* C15tReachability.swift in Sources */,
-				BD38F0B902B4228931D2DD69 /* C15tReachabilityGate.swift in Sources */,
-				155348E2B14CBA00B37EC9B3 /* C15tTracking.swift in Sources */,
-				74F8B208F6CF3E7CFF265EFE /* C15tTrackingGate.swift in Sources */,
+				1BB46FB9FCD909A39BBDA14B /* C15tBootstrap.swift in Sources */,
+				F2818F96AA986AA1E1F48638 /* C15tChangePump.swift in Sources */,
+				63D2DB992ED3DCE8F5CD6C61 /* C15tForegroundObserver.swift in Sources */,
+				35750351FE89BAF3F1EB5C27 /* C15tModuleHandler.swift in Sources */,
+				8A24547931CB7026C9B9AAF3 /* C15tPayload.swift in Sources */,
+				5BB15341AD503F9B6A506D74 /* C15tReachability.swift in Sources */,
+				7981FD20D8A9EF12352DE9E2 /* C15tReachabilityGate.swift in Sources */,
+				DF2F01BF0A21D89840BFFC9A /* C15tTracking.swift in Sources */,
+				19CD654373BA0D71F6809620 /* C15tTrackingGate.swift in Sources */,
+				64D412E185D080A4F054BA83 /* C15tTrackingWaiters.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		27F15936ED3E0C14C0A9BB3A /* Debug */ = {
+		47D64B2F1030EB7259952A62 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
@@ -241,7 +245,69 @@
 			};
 			name = Debug;
 		};
-		3BCCA4380C930435678BAEF9 /* Debug */ = {
+		80661970F020BE92A46616BC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEFINES_MODULE = YES;
+				ENABLE_BITCODE = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				OTHER_SWIFT_FLAGS = "$(inherited) -warnings-as-errors";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		A0310E2EE93649A7D1B8F239 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -310,69 +376,7 @@
 			};
 			name = Debug;
 		};
-		95CDE5F00450D8DCF9A0297D /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEFINES_MODULE = YES;
-				ENABLE_BITCODE = NO;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				OTHER_SWIFT_FLAGS = "$(inherited) -warnings-as-errors";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 5.9;
-			};
-			name = Release;
-		};
-		E3A76C6C49BFC63DCEC07684 /* Release */ = {
+		F5F241ACB5B9BB2B6D175E57 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
@@ -403,20 +407,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1326838385758487651D9A6B /* Build configuration list for PBXProject "C15tReactNative" */ = {
+		44707F3BAA4C137D4CEBDE6C /* Build configuration list for PBXProject "C15tReactNative" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				3BCCA4380C930435678BAEF9 /* Debug */,
-				95CDE5F00450D8DCF9A0297D /* Release */,
+				A0310E2EE93649A7D1B8F239 /* Debug */,
+				80661970F020BE92A46616BC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BF7EEC693167E2F6D9FA7EF8 /* Build configuration list for PBXNativeTarget "C15tReactNative" */ = {
+		8FA2A2E7CA5A9E26813075F8 /* Build configuration list for PBXNativeTarget "C15tReactNative" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				E3A76C6C49BFC63DCEC07684 /* Release */,
-				27F15936ED3E0C14C0A9BB3A /* Debug */,
+				F5F241ACB5B9BB2B6D175E57 /* Release */,
+				47D64B2F1030EB7259952A62 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -424,19 +428,19 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		4826170A377C763B18CAE24B /* XCLocalSwiftPackageReference "core-swift" */ = {
+		F8DF1D036C1E64196F553FA9 /* XCLocalSwiftPackageReference "core-swift" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../../native/core-swift";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		F77F3A2051311CCE9A9E0160 /* C15tCore */ = {
+		746A185CEF3F9CA4204EC581 /* C15tCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4826170A377C763B18CAE24B /* XCLocalSwiftPackageReference "core-swift" */;
+			package = F8DF1D036C1E64196F553FA9 /* XCLocalSwiftPackageReference "core-swift" */;
 			productName = C15tCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 3B37401AFF42BEA0AEDAE24D /* Project object */;
+	rootObject = C7A95B90D76D5919880FCCFF /* Project object */;
 }

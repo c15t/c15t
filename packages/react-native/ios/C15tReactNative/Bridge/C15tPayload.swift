@@ -217,6 +217,33 @@ public enum C15tPayload {
         encode(["status": .string(status.rawValue)])
     }
 
+    /// The `TrackingRequestPayload` a tracking request resolves with.
+    ///
+    /// `status` always travels, and it is Apple's arm unchanged. The two extra fields tell a
+    /// caller how to read it, and both stay absent rather than wearing a placeholder:
+    ///
+    /// - `stage` is `additional-information` when the subject tapped Apple's button, which
+    ///   is the one case where `notDetermined` does not mean "nothing happened yet" but
+    ///   "the subject is partway through deciding".
+    /// - `presentation` names the call this SDK made. It is missing when no call was made,
+    ///   and it is never a claim about which sheet Apple rendered, because Apple decides
+    ///   that by region and this process cannot see the region.
+    ///
+    /// Both fields are additions to a payload older Swift builds already send, so a reader
+    /// that predates them still finds the one field it knows.
+    public static func trackingRequestResult(
+        _ result: C15tTrackingRequestResult
+    ) -> String {
+        var fields: [String: JSONValue] = [
+            "stage": .string(result.stage.rawValue),
+            "status": .string(result.status.rawValue),
+        ]
+        if let presentation = result.presentation {
+            fields["presentation"] = .string(presentation.rawValue)
+        }
+        return encode(fields)
+    }
+
     /// A `snapshot` event: the new revision and the dirty flag, nothing else.
     public static func snapshotEvent(revision: Int) -> String {
         encode([

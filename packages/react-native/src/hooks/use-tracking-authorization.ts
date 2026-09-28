@@ -18,9 +18,14 @@ import { useConsentClient } from '../provider/consent-context';
  * the c15t decision.
  *
  * The value moves when {@link ConsentActions.requestTrackingAuthorization}
- * resolves and otherwise only at the next launch, because Apple resolves the
- * answer at launch and does not tell a running process that the Settings app
- * changed it.
+ * resolves, and when the app comes back to the foreground. The second is there
+ * because Apple does not tell a running process that the Settings app changed
+ * the answer: a subject who turns tracking off and comes straight back would
+ * otherwise leave the app reading `authorized` until the next launch, which is
+ * the direction of error worth closing. {@link C15tProvider} does the re-read.
+ *
+ * {@link useTrackingRequest} drives the request itself and opens the preference
+ * centre when Apple asks for more detail, which is what most hosts want.
  *
  * @example
  * ```tsx

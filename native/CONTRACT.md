@@ -365,6 +365,40 @@ to the framework, and the `AD_ID` grant that the manifest does carry is set by a
 dialog this app does not own, so reporting it as `denied` would make a consent claim the
 subject never made.
 
+A request answers with the arm plus two additive fields. `stage` is `final` or
+`additional-information`, and the second one exists because Apple's expanded
+European Union sheet has an Additional Information button that closes the sheet
+without recording an answer and still completes with `not-determined`: a core that
+reports that as `final` tells the host the subject refused something they only paused
+to read about. `presentation` is `expanded` or `standard`, and names the call the core
+actually made, not the sheet Apple rendered. Apple keeps the expanded presentation to
+its own regional rules and shows the plain alert to a core that asked for the expanded
+call, and in France, Germany, Italy, Poland and Romania shows only the expanded interface
+whatever a core asked for, so a core may not report a presentation it did not request, and
+a host may not read either value as evidence about where the device is. A request that never reached
+Apple reports no presentation at all, which is what a restricted device does.
+
+Both fields are additive, and an older core omits them. JavaScript reads a missing
+`stage` as `final` rather than as a pause, because failing the other way opens a
+preference centre that nothing on the device asked for.
+
+A status that already has an answer is not a reason for a core to skip the request.
+Apple permits re-presentation a year after an answer in the regions it enables it for,
+and eligibility is Apple's to decide, so a core that answered `authorized` or `denied`
+from its own read would enforce a lifetime Apple does not hold, invisibly, and leave a
+host no way to ask for the annual re-prompt. `restricted` is the one arm a core answers
+without asking, because a device policy has already replied and a call would return the
+same arm. Nothing in a core may start a request on its own.
+
+The loop between a pause and the next request belongs to whoever asked, not to the core.
+Three pieces stay separable on purpose so that a host showing its own UI rather than the
+JavaScript one can drive that loop with no new method on the wire: the decision, which
+takes the platform arm, whether a prompt string is present, and whether the runtime has
+the expanded call, and answers which request to make; the request itself; and the
+single-flight that gives each caller of one in-flight Apple call its own answer.
+JavaScript runs that UI today. A native one may run it later, and a core that wired the
+JavaScript centre into the request path is the thing that would stop it.
+
 Vendor list scope
 -----------------
 
@@ -1208,6 +1242,15 @@ Rules the plugin enforces at build time
   `trackingUsageDescription` because Apple rejects a string the plugin invented.
   A prompt string the host already wrote survives. Consent to marketing cookies
   is not Apple tracking authorization, so no consent setting turns these on.
+  `trackingMarkdownUsageDescription` is optional beside it and never replaces it:
+  Apple falls back to the plain string outside the regions it gates the expanded
+  prompt to and on every system that predates it, so the plain key is written
+  whenever the opt-in is on. Per-locale copies go to each
+  `<locale>.lproj/InfoPlist.strings`, because `Info.plist` holds one value per
+  key, and that file is merged rather than rewritten because the host's own
+  localized strings live in it. Markdown copy named while the opt-in is off
+  fails the prebuild: it would compile a prompt into the binary that no sheet can
+  draw.
 - The privacy manifest is declared as `ios.privacyManifests`
   (`NSPrivacyTracking`, `NSPrivacyTrackingDomains`) instead of as a
   `PrivacyInfo.xcprivacy` the plugin writes itself, because prebuild's default

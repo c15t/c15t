@@ -960,3 +960,85 @@ describe('tracking authorization', () => {
 		expect(client.isTrackingAllowed('marketing')).toBe(false);
 	});
 });
+
+describe('requestTracking', () => {
+	test('hands back the stage and the call that ran', async () => {
+		const { client, fake } = makeClient();
+		fake.setTrackingRequestReply({
+			presentation: 'expanded',
+			stage: 'additional-information',
+			status: 'not-determined',
+		});
+
+		await expect(client.requestTracking()).resolves.toEqual({
+			presentation: 'expanded',
+			stage: 'additional-information',
+			status: 'not-determined',
+		});
+	});
+
+	test('reports the same arm as requestTrackingAuthorization', async () => {
+		// Two readers of one call, so the richer surface cannot quietly disagree with the
+		// older one a host may still be using.
+		const { client, fake } = makeClient();
+		fake.setTrackingRequestReply({
+			presentation: 'standard',
+			stage: 'final',
+			status: 'authorized',
+		});
+
+		const outcome = await client.requestTracking();
+		const arm = await client.requestTrackingAuthorization();
+
+		expect(outcome.status).toBe(arm);
+		expect(arm).toBe('authorized');
+	});
+});
+
+describe('refreshTrackingAuthorization', () => {
+	test('reads the bridge again after a cached arm', () => {
+		const { client, fake } = makeClient();
+		fake.setTrackingAuthorization('authorized');
+
+		expect(client.getTrackingAuthorization()).toBe('authorized');
+
+		const reads = fake.trackingReadCalls;
+
+		// The Settings-app case: Apple tells a running process nothing, so the cached arm
+		// is only as good as the last time anything looked.
+		fake.setTrackingAuthorization('denied');
+
+		expect(client.getTrackingAuthorization()).toBe('authorized');
+		expect(client.refreshTrackingAuthorization()).toBe('denied');
+		expect(fake.trackingReadCalls).toBeGreaterThan(reads);
+	});
+
+	test('notifies tracking subscribers only when the arm moved', () => {
+		const { client, fake } = makeClient();
+		const onTracking = vi.fn();
+
+		client.subscribeTracking(onTracking);
+
+		client.refreshTrackingAuthorization();
+		expect(onTracking).not.toHaveBeenCalled();
+
+		fake.setTrackingAuthorization('authorized');
+		client.refreshTrackingAuthorization();
+		expect(onTracking).toHaveBeenCalledTimes(1);
+
+		client.refreshTrackingAuthorization();
+		expect(onTracking).toHaveBeenCalledTimes(1);
+	});
+
+	test('does not reach a snapshot subscriber', () => {
+		// A platform answer is not consent. A tree that subscribed to categories must not
+		// rerender because somebody left the Settings app.
+		const { client, fake } = makeClient();
+		const seen = watch(client, (snapshot) => snapshot.revision);
+
+		fake.setTrackingAuthorization('authorized');
+		client.refreshTrackingAuthorization();
+
+		expect(seen.calls()).toBe(0);
+	});
+});

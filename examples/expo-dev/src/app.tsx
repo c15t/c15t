@@ -10,6 +10,7 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentPreferences,
+	useTrackingRequest,
 } from '@c15t/react-native';
 import { Component, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -22,6 +23,15 @@ import { PreferencesScreen } from './screens/preferences';
 
 const TABS = ['home', 'preferences'] as const;
 type Tab = (typeof TABS)[number];
+
+/**
+ * The categories this app's tracking request stands for.
+ *
+ * The journey returns to Apple after the preference centre closes only while one of
+ * these is granted, so a subject who refuses both is finished without a second sheet.
+ * A module constant rather than a literal, because the hook keys its callbacks to it.
+ */
+const TRACKING_CATEGORIES = ['measurement', 'marketing'] as const;
 
 const shellStyles = {
 	banner: {
@@ -108,6 +118,22 @@ export const App = () => {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [preferencesOpen, setPreferencesOpen] = useState(false);
 
+	// One hook, one call, and the Apple flow is driven from there: the sheet, the
+	// centre when the subject taps Additional Information, and the sheet again only
+	// while a category the request stands for is still granted. It is called here
+	// because the centre it opens has to outlive whichever tab its button is on, for
+	// the same reason the banner does. The app's own centre is handed in as the hook's
+	// `preferences`, so the card the subject opens is the one Apple's button raises.
+	const tracking = useTrackingRequest({
+		categories: TRACKING_CATEGORIES,
+		preferences: {
+			onRequestClose: () => {
+				setPreferencesOpen(false);
+			},
+			open: preferencesOpen,
+		},
+	});
+
 	return (
 		<View style={shellStyles.root}>
 			{kind === 'fake' ? (
@@ -140,6 +166,7 @@ export const App = () => {
 						onOpenPreferences={() => {
 							setPreferencesOpen(true);
 						}}
+						tracking={tracking}
 					/>
 				) : (
 					<PreferencesScreen
@@ -165,12 +192,11 @@ export const App = () => {
 				}}
 				open={dialogOpen}
 			/>
-			<ConsentPreferences
-				onRequestClose={() => {
-					setPreferencesOpen(false);
-				}}
-				open={preferencesOpen}
-			/>
+			{/*
+			 * One centre doing both jobs: the subject opens it from either tab, and it is
+			 * the same card the tracking journey raises mid-request.
+			 */}
+			<ConsentPreferences {...tracking.preferences} />
 		</View>
 	);
 };

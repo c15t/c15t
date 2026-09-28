@@ -279,6 +279,37 @@ die_if_dead 05-reset
 expect 05-reset "reset: first-run prompt owed again" "${banner_texts[@]}"
 parity 05-reset banner
 
+log "step 6: accept, so the ads category is granted"
+link "accept" 10
+capture 06-accepted
+texts 06-accepted >/dev/null
+die_if_dead 06-accepted
+forbid 06-accepted "accepted: prompt dismissed" "We value your privacy"
+expect 06-accepted "accepted: the ads card is standing" "PERSONALISED ADS"
+
+# Android answers the Apple question with a refusal that says why, and the two things worth
+# grading are that nothing was asked and that consent was left where it was. The core answers
+# `unsupported` on this platform for the same reason an iOS binary without the usage
+# description does, so the screen has to name the platform it is standing on: an Android
+# reader told that iOS wants a plist key goes to fix a thing that is not broken.
+log "step 7: the ads card explains the absent platform gate in Android's words"
+link "tracking" 10
+capture 07-tracking-card
+texts 07-tracking-card >/dev/null
+die_if_dead 07-tracking-card
+expect 07-tracking-card "card says no Apple prompt exists here" \
+	"No Apple prompt exists on this platform"
+forbid 07-tracking-card "card does not blame the iOS plist key" \
+	"NSUserTrackingUsageDescription"
+
+log "step 8: the request refuses, asks nothing, and leaves consent alone"
+link "tracking?report=1" 10
+capture 08-tracking-refused
+texts 08-tracking-refused >/dev/null
+die_if_dead 08-tracking-refused
+expect 08-tracking-refused "receipt names the absent prompt and the untouched consent" \
+	"Android has no platform tracking prompt" "Nothing about consent changed"
+
 printf '\n'
 if [[ "${FAILED}" == "0" ]]; then
 	log "all steps passed on ${SERIAL}. Frames and hierarchies in ${OUT_DIR}"

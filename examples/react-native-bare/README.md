@@ -17,6 +17,11 @@ surfaces are visibly one design, but nothing here is a starter kit.
 - The headless surface: `useConsent`, `useConsentActions`, `useC15tBootstrap`,
   `useIsAllowed`, `ConsentGate`, `ConsentReady`, `ConsentPrompt`.
 - The built-in `ConsentBanner`, `ConsentDialog`, and `ConsentPreferences`.
+- `useTrackingRequest`, the Apple tracking journey on the Privacy screen: the sheet, the
+  centre that opens when the subject taps Additional Information, and the second sheet
+  that follows while Marketing is still granted. The committed iOS project carries no
+  `NSUserTrackingUsageDescription`, so the arm reads `unsupported` and the request
+  rejects until you add one. See [Setup](#setup).
 - Consent-gated loading, shown as a vendor component that mounts and unmounts and
   counts its own mounts, so a gate that opens early is visible rather than inferred.
 - Persistence and the offline write queue, through the checklist below.
@@ -60,6 +65,18 @@ empty string. `examples/expo-dev` gets the same keys written by the config plugi
 
 There is no key to add. A c15t project is identified by its backend URL, and neither
 `/init` nor `/subjects` carries a credential, so nothing here takes one.
+
+To make the ads card ask Apple for anything, add `NSUserTrackingUsageDescription` to
+`ios/C15tBare/Info.plist` with a prompt App Review will accept. Add
+`NSUserTrackingMarkdownUsageDescription` too if you want the expanded European Union
+sheet, which iOS 27.2 draws in place of the plain one for a device inside the countries
+Apple enabled. The plain key is not optional either way: Apple falls back to it on older
+systems and outside those countries. Per-locale Markdown goes in
+`<locale>.lproj/InfoPlist.strings`, not in the plist, which is what
+[examples/expo-dev](../expo-dev) has the config plugin write. Then set
+`NSPrivacyTracking` to `true` in `ios/C15tBare/PrivacyInfo.xcprivacy`. An app that asks
+for the identifier is usually linking data across apps, and that key currently says it
+does not. Leave it `false` only if you ask and then never track.
 
 For a local backend, `examples/demo` serves one at `/api/self-host`. It needs a Postgres
 `DATABASE_URL` and starts fine without one, which is the trap: the backend answers `404`,

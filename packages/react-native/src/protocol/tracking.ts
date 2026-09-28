@@ -41,8 +41,7 @@ export type TrackingAuthorization =
 	(typeof TRACKING_AUTHORIZATION_STATUSES)[number];
 
 /**
- * The payload both `getTrackingAuthorization()` and
- * `requestTrackingAuthorization()` resolve with.
+ * The payload `getTrackingAuthorization()` resolves with.
  *
  * One field, encoded as JSON, exactly as every other structured payload on this
  * boundary: Codegen cannot pass a union, and one encoding keeps the Swift,
@@ -52,6 +51,107 @@ export interface TrackingAuthorizationPayload {
 	/** The platform answer, after the build-time check. */
 	readonly status: TrackingAuthorization;
 }
+
+/**
+ * Whether a tracking request settled or only paused.
+ *
+ * `additional-information` is Apple's European Union sheet closing because the subject
+ * tapped Additional Information. Apple records no answer for that tap and still reports
+ * `not-determined`, so the arm alone cannot tell a caller whether the subject is partway
+ * through deciding or has simply never been asked. The stage is what makes that legible.
+ *
+ * A binary that predates the expanded request never sends this field, and readers treat a
+ * missing stage as `final`, which is what the older payload meant.
+ */
+export const TRACKING_REQUEST_STAGES = [
+	'final',
+	'additional-information',
+] as const;
+
+/** One arm of {@link TRACKING_REQUEST_STAGES}. */
+export type TrackingRequestStage = (typeof TRACKING_REQUEST_STAGES)[number];
+
+/**
+ * Which of Apple's two tracking calls this SDK made.
+ *
+ * This names the call, not the sheet. Apple keeps its expanded presentation to devices in a
+ * specific European Union country signed in with an Apple Account from a specific EU country
+ * or region, and outside those rules it shows the plain alert even when this SDK asked for
+ * the expanded call. So `expanded` means "the expanded request was made on a runtime that
+ * had it", and it is not evidence that the subject was in the EU or that any regional rule
+ * applied to them.
+ *
+ * Absent when no call was made at all, which is what a restricted device looks like.
+ */
+export const TRACKING_PRESENTATIONS = ['expanded', 'standard'] as const;
+
+/** One arm of {@link TRACKING_PRESENTATIONS}. */
+export type TrackingPresentation = (typeof TRACKING_PRESENTATIONS)[number];
+
+/**
+ * The payload `requestTrackingAuthorization()` resolves with.
+ *
+ * `status` carries the same meaning, and the same arm names, as
+ * {@link TrackingAuthorizationPayload}. The other two fields say how to read it and are
+ * absent on a binary that predates them.
+ */
+export interface TrackingRequestPayload {
+	/** The platform answer, preserved exactly as Apple reported it. */
+	readonly status: TrackingAuthorization;
+	/** Whether the answer settles the request. */
+	readonly stage: TrackingRequestStage;
+	/** The call that ran, or `undefined` when nothing was asked. */
+	readonly presentation?: TrackingPresentation;
+}
+
+/**
+ * Read a tracking request payload.
+ *
+ * Loose on purpose, in one direction only. `status` is held to the same rule as
+ * {@link parseTrackingAuthorization}: an arm this build cannot name becomes `denied`,
+ * because an unreadable payload is not evidence that the platform asks nothing. `stage` and
+ * `presentation` are the reverse. Both are additions to a payload that older binaries
+ * already send without them, so an absent or unrecognised one falls back to the answer that
+ * payload would have meant before this feature existed: a settled request whose call is
+ * unknown. Making a missing stage fail closed into a pause would open a preference centre
+ * that nothing asked for.
+ *
+ * @param raw - JSON text from the bridge.
+ * @returns The request outcome the payload describes.
+ */
+export const parseTrackingRequest = function parseTrackingRequest(
+	raw: string
+): TrackingRequestPayload {
+	let parsed: unknown = null;
+
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return { stage: 'final', status: 'denied' };
+	}
+
+	if (typeof parsed !== 'object' || parsed === null) {
+		return { stage: 'final', status: 'denied' };
+	}
+
+	const { presentation, stage, status } = parsed as Record<string, unknown>;
+
+	return {
+		presentation: (TRACKING_PRESENTATIONS as readonly unknown[]).includes(
+			presentation
+		)
+			? (presentation as TrackingPresentation)
+			: undefined,
+		stage: (TRACKING_REQUEST_STAGES as readonly unknown[]).includes(stage)
+			? (stage as TrackingRequestStage)
+			: 'final',
+		status: (TRACKING_AUTHORIZATION_STATUSES as readonly unknown[]).includes(
+			status
+		)
+			? (status as TrackingAuthorization)
+			: 'denied',
+	};
+};
 
 /**
  * Read the arm out of a native tracking payload.

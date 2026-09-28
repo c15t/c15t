@@ -1,6 +1,6 @@
 ---
 title: Native behaviour
-description: The native consent core boots before JavaScript, hydrates stored consent first, and fails closed on an unreadable store.
+description: The native consent core boots before JavaScript, hydrates stored consent first, fails closed on an unreadable store, and keeps Apple's tracking arm apart from consent.
 group: frameworks
 ---
 
@@ -216,15 +216,17 @@ Three consequences worth stating plainly:
 The bridge answers two questions about tracking and keeps both away from consent.
 `getTrackingAuthorization()` reports the arm the platform holds right now. It is
 synchronous, reads no disk and no network, and requests nothing.
-`requestTrackingAuthorization()` asks, and only when a host calls it. The combined answer
-a caller should gate on is `isTrackingAllowed(category)`, which is consent and platform
-together.
+`requestTrackingAuthorization()` asks, and only when a host calls it.
+`requestTracking()` is the same call with the two fields that say how the request ended,
+and `useTrackingRequest` is the hook that drives the whole journey from one button. The
+combined answer a caller should gate on is `isTrackingAllowed(category)`, which is consent
+and platform together.
 
 On iOS the read is Apple's `trackingAuthorizationStatus` and the request is Apple's
 dialog. Both start by checking `NSUserTrackingUsageDescription`, the same key Apple
-checks. A binary without it cannot show a dialog, and asking anyway costs the one prompt
-an install ever gets and returns `denied` with no explanation, so the bridge refuses with
-`C15T_TRACKING_NOT_CONFIGURED` instead. For the same reason a read reports `unsupported`
+checks. A binary without it cannot show a dialog, and asking anyway returns `denied` with
+no explanation, so the bridge refuses with `C15T_TRACKING_NOT_CONFIGURED` instead of
+putting a refusal nobody made on the record. For the same reason a read reports `unsupported`
 rather than Apple's silent `denied`: holding every optional category off on a device
 whose host never asked for Apple tracking would be an analytics bug, not a privacy win.
 
@@ -236,11 +238,27 @@ platform no, and neither is true. A caller has to be able to tell "there is no s
 question here" from "the subject has not been asked yet", which is what the separate
 `not-determined` arm is for: it means a prompt still belongs somewhere, and `unsupported`
 means the platform adds no bar and the subject's choice decides alone.
+`useTrackingRequest` runs into the same rejection and hands it to its caller instead of
+opening anything, which is why one consumer integration covers both platforms.
 
-Two arms clear the platform half, `authorized` and `unsupported`. Apple resolves the
-prompt at most once per install, so a later request resolves with the answer on the
-device, and Apple does not tell a running process that the subject changed the answer in
-Settings, so a read moves after a request or on the next launch and nowhere in between.
+Two arms clear the platform half, `authorized` and `unsupported`.
+
+How often a dialog can appear is Apple's decision, not this package's. A request always
+goes to Apple rather than being answered from the arm the device already holds. In the
+regions where Apple has enabled its expanded prompt, an answered request can be presented
+again about a year after the answer, whichever way it went. Answering from the cache would
+have this package enforce a one-prompt lifetime Apple no longer holds, and it would do it
+silently, so no host could ever get the later prompt. Asking costs nothing when the install
+is not eligible: Apple draws nothing and calls back with the arm on file. `restricted` is
+the one arm kept out of Apple's way, because a device policy has already answered and a
+call would only report the same arm back.
+
+Apple is equally quiet about an answer the subject changes in the Settings app, so
+`C15tProvider` re-reads the platform arm when the app returns to the foreground. That is
+the moment the gap matters: someone turns tracking off under `Privacy & Security`, comes
+straight back, and a cached `authorized` would otherwise keep tracking behaviour running
+until the next launch. Outside that, a read still only moves after a request or on the next
+launch.
 
 None of it moves a consent decision. `decision`, `isAllowed`, and the snapshot are a
 function of the resolved policy and the subject's c15t choice, with no tracking arm among
@@ -250,6 +268,69 @@ JavaScript and `C15tTrackingGate.mayTrack(decision:authorization:)` for a Swift 
 that gates outside React, and both are asserted against every arm rather than left to the
 caller to remember. A Kotlin caller has nothing to combine: `C15t.isAllowed(category)` is
 already the whole answer on a platform that asks nothing.
+
+### Two Apple calls, and how the SDK picks one
+
+Apple ships the expanded tracking request with iOS and iPadOS 27.2, a release Apple
+currently documents as beta. That is newer than the SDK this package compiles against, so
+there is no declaration to write an availability check against. Instead the bridge asks the
+running process whether `ATTrackingManager` answers the expanded selector, which is the same
+question the Objective-C runtime asks itself before it dispatches: true on a system that
+has the call, false on every older one. The package floor stays where
+[platform support](/docs/frameworks/react-native/platform-support) lists it, and a system
+without the call gets the standard prompt rather than a failed request. If the runtime
+declines the expanded call after answering true for the probe, the request falls back to
+the standard one in the same flight, and `presentation` reports the call that actually ran.
+
+A request that pauses is the reason `requestTracking()` exists. Apple's Additional
+Information button closes the expanded sheet without recording an answer, runs the app's
+own closure, and completes with `not-determined`. `stage: 'additional-information'` names
+that tap, so a caller never reports a refusal the subject did not make. `stage: 'final'`
+means the request settled. Both fields are additions to a payload older binaries already
+send without them, and a payload that carries no `stage` is read as a settled request,
+never as a pause: an over-the-air bundle can run against a binary that predates the
+feature, and guessing a pause there would open a preference center nothing asked for.
+
+## What c15t does not control
+
+### The system sheet is Apple's
+
+The words inside Apple's dialog come from `NSUserTrackingUsageDescription` and, on the
+expanded sheet, `NSUserTrackingMarkdownUsageDescription`. Both are compiled into the app
+binary. c15t cannot change that copy at runtime, cannot translate it beyond the localized
+string tables the Expo plugin writes, and cannot decide when the sheet appears or what
+buttons it carries. What c15t does control is the in-app preference center: its copy, its
+styling, and its components, all plain text and styles you write.
+
+### Apple decides who sees the expanded prompt
+
+Apple gates the expanded presentation on rules this process cannot read, including the
+device's country and the country of the signed-in Apple Account. Outside those rules Apple
+shows the plain alert even when the SDK made the expanded call. The reverse happens too:
+Apple documents that in France, Germany, Italy, Poland and Romania only the expanded
+interface is available whatever the app asks for, so a standard call can raise the
+expanded sheet there. Either way `presentation` records which call this SDK made on a
+runtime that had it. It is not proof of EU eligibility, and it is not evidence that the
+subject saw the expanded sheet. c15t's
+geolocation and the `country` and `region` overrides are never evidence of eligibility
+either: they choose which consent policy matches, which is a separate question with a
+separate answer.
+
+### Allow is not consent
+
+Pressing Allow in Apple's sheet writes no consent record and does not imply `acceptAll()`.
+The two answers meet only in `isTrackingPermitted`, and neither one supplies the other's
+half. App Tracking Transparency is not a lawful basis: an app that owes GDPR or TCF
+obligations still owes them with ATT authorized, and the records that discharge them come
+from the c15t surfaces.
+
+### None of this is a privacy declaration
+
+Nothing here implies tracking domains or any other privacy declaration. This feature does
+not touch `NSPrivacyTracking` or `NSPrivacyTrackingDomains`, and no parameter added for it
+writes either. Whether your app links data across apps or contexts is a fact about your
+app, and [configuration](/docs/frameworks/react-native/configuration) leaves that decision
+where it was.
 
 ## Offline writes
 

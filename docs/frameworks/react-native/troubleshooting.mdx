@@ -156,6 +156,13 @@ error names the parameter to change:
 
 - `enableAppTrackingTransparency` without `trackingUsageDescription`. App Review rejects a
   generic string, so the plugin will not write a placeholder.
+- `trackingMarkdownUsageDescription` or `trackingMarkdownUsageDescriptionLocalizations`
+  while `enableAppTrackingTransparency` is off. Only Apple's expanded prompt reads
+  `NSUserTrackingMarkdownUsageDescription`, so the copy would compile into a binary that can
+  never draw it. Turn the opt-in on, or drop the Markdown description.
+- A `trackingMarkdownUsageDescriptionLocalizations` key that is not a locale tag Xcode
+  writes a bundle for, or one that names a locale with no copy. Both leave a localization
+  that ships nothing, so the prebuild stops instead.
 - `privacyTrackingDomains` without ATT enabled, or a list that omits the backend host when
   ATT is on.
 - Registering the module by hand while also autolinking, detected in `MainApplication`,
@@ -170,7 +177,7 @@ A build that passes those checks can still decline to prompt at runtime.
 that carries no `NSUserTrackingUsageDescription`, the same missing key the plugin refuses
 above, reached by a host that wrote its `Info.plist` by hand. The bridge refuses instead of
 asking, because Apple shows no dialog without that string and records the answer as denied,
-which spends the one prompt an install ever gets. `useTrackingAuthorization()` answers
+which puts a refusal nobody made on the record. `useTrackingAuthorization()` answers
 `unsupported` for that same build, and Android answers it for every build.
 
 An unquoted `android:value="true"` is typed as a boolean by the manifest parser, and a
@@ -178,6 +185,33 @@ quoted `"true"` stays text. Both are read, along with `TRUE` and `1`, so a flag 
 the config plugin and one typed by hand mean the same thing. A value that means neither
 reads as absent rather than as `false`, and for GPC those differ: absent is derived, a
 declaration is honoured. `useC15tBootstrap()` is how you confirm what the core saw.
+
+## The tracking prompt does not appear, or does not come back
+
+Nothing in this package decides how often Apple shows its dialog. A request goes to Apple
+every time rather than being answered from the arm the device holds, so what follows is
+Apple's behaviour and not a stuck cache. Work through them in order.
+
+1. It rejects. `C15T_TRACKING_NOT_CONFIGURED` is the missing prompt string above, and
+   `C15T_TRACKING_UNSUPPORTED` is Android, where the platform has no such question. Both
+   rejections reach your handler, and neither opens a surface.
+2. It resolves with no dialog. Apple answered from the device because this install is not
+   eligible to be shown the prompt again right now. Where Apple has enabled the expanded
+   prompt, an answered request becomes eligible again about a year after the answer,
+   whichever way it went, and there is no switch on this side that shortens that.
+3. `useTrackingAuthorization()` reads `restricted`. A device policy answered first, and the
+   bridge keeps that arm away from Apple rather than asking again for the same answer.
+4. The plain alert appeared where you expected the expanded sheet. Apple picks the
+   presentation from the device's country and the signed-in Apple Account's country, and
+   `presentation: 'expanded'` only records that the SDK made the expanded call. Your
+   `country` and `region` overrides choose a consent policy, not an Apple prompt.
+5. The preference center opened and nothing came after it. That is the Additional
+   Information pause working as designed: the hook goes back to Apple only while a category
+   the request stood for is granted, so refusing every one of them ends the journey without
+   a second prompt.
+6. A field your code reads is missing. `stage` and `presentation` do not exist on an older
+   binary, and an over-the-air bundle can run against one. A missing `stage` reads as a
+   settled request, never as a pause, so rebuild before chasing anything else.
 
 ## Reading state from a debug screen
 

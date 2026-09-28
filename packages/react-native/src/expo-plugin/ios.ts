@@ -1,6 +1,12 @@
-import type { InfoPlist } from '@expo/config-plugins';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+import { IOSConfig } from '@expo/config-plugins';
+import type { InfoPlist, XcodeProject } from '@expo/config-plugins';
 
 import { IOS_PLIST_KEY } from './constants';
+import { C15tPluginError } from './errors';
 import { IOS_TRANSPORT_MODE } from './params';
 import type { ResolvedC15tParams } from './params';
 
@@ -18,6 +24,33 @@ export interface C15tPrivacyManifestDeclarations {
 	/** Hosts the binary may send tracking data to. */
 	NSPrivacyTrackingDomains: string[];
 }
+
+/**
+ * `NSUserTrackingMarkdownUsageDescription`, Apple's Markdown prompt key.
+ *
+ * Apple's name, read by Apple, so it stays out of {@link IOS_PLIST_KEY}: that
+ * table is the contract with the embedded cores, and the reader check in
+ * `__tests__/native-key-readers.test.ts` holds it to keys the bridge reads.
+ */
+const MARKDOWN_USAGE_DESCRIPTION_KEY = 'NSUserTrackingMarkdownUsageDescription';
+
+/**
+ * The table iOS reads a localized plist string from.
+ *
+ * `Info.plist` itself holds one value per key, so a localized prompt is a string
+ * in `<locale>.lproj/InfoPlist.strings` and nothing else.
+ */
+const INFO_PLIST_STRINGS_FILE = 'InfoPlist.strings';
+
+/**
+ * The list of localizations the app declares it speaks.
+ *
+ * iOS picks which `<locale>.lproj` table answers a localized plist key from
+ * what the bundle names here, so a table written into a bundle whose locale is
+ * not listed is never opened. That is why every locale this plugin writes a
+ * table for is declared here too.
+ */
+const CF_BUNDLE_LOCALIZATIONS_KEY = 'CFBundleLocalizations';
 
 /**
  * Build the flat `Info.plist` entries that configure the core.
@@ -102,6 +135,33 @@ const mergeSkAdNetworkItems = function mergeSkAdNetworkItems(
 };
 
 /**
+ * Union the plugin's locales with whatever the host already declared.
+ *
+ * `CFBundleLocalizations` is one array for the whole app, and an ad partner's
+ * plugin or the host itself writes to the same key, so neither side may
+ * overwrite the other. The host's entries keep their order and the plugin's
+ * locales land after them, which is the rule {@link mergeSkAdNetworkItems}
+ * already follows for the key the ad networks share.
+ */
+const mergeBundleLocalizations = function mergeBundleLocalizations(
+	existing: unknown,
+	locales: readonly string[]
+): string[] {
+	const current = Array.isArray(existing)
+		? existing.filter((value): value is string => typeof value === 'string')
+		: [];
+	const merged = [...current];
+
+	for (const locale of locales) {
+		if (!merged.includes(locale)) {
+			merged.push(locale);
+		}
+	}
+
+	return merged;
+};
+
+/**
  * Write c15t's bootstrap config and tracking keys into `Info.plist`.
  *
  * The App Tracking Transparency keys appear only when the host opted in. Apple
@@ -109,6 +169,17 @@ const mergeSkAdNetworkItems = function mergeSkAdNetworkItems(
  * binary that carries it without ever asking looks like a harvest to a reviewer.
  * Consent to marketing cookies is not Apple tracking authorization, so nothing
  * about a consent configuration turns these on.
+ *
+ * The plain prompt is written whenever the opt-in is on, even with a Markdown one
+ * beside it. Apple falls back to it outside the countries it gates the expanded
+ * prompt to and on every system that predates it, so the Markdown key is an
+ * addition and never a replacement. Per-locale copies are not here at all: they
+ * belong in each bundle's `InfoPlist.strings`, which
+ * {@link applyLocalizedMarkdownDescriptions} writes.
+ *
+ * A localized prompt is only reached when the bundle also names that locale in
+ * `CFBundleLocalizations`, so every locale the string writer registers is
+ * declared here as well; without it the tables sit in bundles iOS never opens.
  *
  * @param params - Resolved plugin parameters.
  * @param infoPlist - The `Info.plist` as it stands.
@@ -130,6 +201,16 @@ export const applyInfoPlist = function applyInfoPlist(
 		next.NSUserTrackingUsageDescription = att.usageDescription ?? '';
 	}
 
+	// A host that already wrote its own Markdown prompt keeps that too, and the
+	// plain string above is written either way: it is the answer Apple uses
+	// outside the expanded prompt's regions and on older systems.
+	if (
+		att.markdownUsageDescription !== null &&
+		typeof next[MARKDOWN_USAGE_DESCRIPTION_KEY] !== 'string'
+	) {
+		next[MARKDOWN_USAGE_DESCRIPTION_KEY] = att.markdownUsageDescription;
+	}
+
 	if (att.skAdNetworkIdentifiers.length > 0) {
 		next.SKAdNetworkItems = mergeSkAdNetworkItems(
 			infoPlist.SKAdNetworkItems,
@@ -137,8 +218,221 @@ export const applyInfoPlist = function applyInfoPlist(
 		);
 	}
 
+	// Only when a locale was named: an app that localized nothing answers the
+	// prompt from its own localization, and writing this key would speak for
+	// every localization the host ships.
+	const localizedLocales = att.markdownUsageDescriptionLocalizations.map(
+		({ locale }) => locale
+	);
+	if (localizedLocales.length > 0) {
+		next[CF_BUNDLE_LOCALIZATIONS_KEY] = mergeBundleLocalizations(
+			infoPlist[CF_BUNDLE_LOCALIZATIONS_KEY],
+			localizedLocales
+		);
+	}
+
 	return next;
 };
+
+/** A localized string table as it sits on disk. */
+interface InfoPlistStringsFile {
+	/** Decoded text, host entries and all. */
+	readonly contents: string;
+	/** Byte order mark to write back, so an existing table keeps its shape. */
+	readonly byteOrderMark: string;
+	readonly encoding: 'utf16le' | 'utf8';
+}
+
+/**
+ * Read a localized string table, or `null` when this bundle has none yet.
+ *
+ * Xcode has written these as UTF-16 for years and writes them as UTF-8 now, so
+ * both byte order marks are honoured rather than assumed away: a table decoded
+ * wrongly and rewritten would lose whatever else the host had in it. A table in
+ * neither encoding is refused rather than rewritten, because the alternative is
+ * to destroy a file the plugin was only meant to add one line to.
+ */
+const readInfoPlistStrings = async function readInfoPlistStrings(
+	path: string
+): Promise<InfoPlistStringsFile | null> {
+	if (!existsSync(path)) {
+		return null;
+	}
+	const bytes = await readFile(path);
+
+	if (bytes[0] === 0xff && bytes[1] === 0xfe) {
+		return {
+			byteOrderMark: '\uFEFF',
+			contents: bytes.subarray(2).toString('utf16le'),
+			encoding: 'utf16le',
+		};
+	}
+	if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+		return {
+			byteOrderMark: '\uFEFF',
+			contents: bytes.subarray(3).toString('utf8'),
+			encoding: 'utf8',
+		};
+	}
+
+	const contents = bytes.toString('utf8');
+	if (contents.includes('\uFFFD')) {
+		throw new C15tPluginError(
+			`${path} is not a UTF-8 or UTF-16 string table, so this plugin ` +
+				`cannot add ${MARKDOWN_USAGE_DESCRIPTION_KEY} to it without a ` +
+				`chance of losing what is already in there. Add the entry by hand.`
+		);
+	}
+	return { byteOrderMark: '', contents, encoding: 'utf8' };
+};
+
+/**
+ * Escape prompt copy for the string-table grammar.
+ *
+ * Markdown is allowed to carry paragraph breaks, and a raw newline inside a
+ * quoted value makes the whole table unparseable, which Apple resolves by
+ * ignoring the file. So newlines arrive as `\n`, and a quote or backslash that
+ * ended the value early would do the same damage.
+ */
+const escapeStringsValue = function escapeStringsValue(value: string): string {
+	return value
+		.replace(/\\/gu, '\\\\')
+		.replace(/"/gu, '\\"')
+		.replace(/\r?\n/gu, '\\n')
+		.replace(/\r/gu, '\\r');
+};
+
+/** Whether a string table already declares this key, quoted or bare. */
+const declaresKey = function declaresKey(
+	contents: string,
+	key: string
+): boolean {
+	return new RegExp(`^[ \\t]*(?:"|')?${key}(?:"|')?[ \\t]*=`, 'mu').test(
+		contents
+	);
+};
+
+/**
+ * Add the Markdown prompt to one bundle's string table, keeping what is there.
+ *
+ * This is a merge rather than a write: the same file carries the host's own
+ * localized strings and any other plugin's, and a bundle that already answers
+ * this key keeps the host's copy, which is the same rule the plist writer follows.
+ * A file created here is written from nothing, so it carries one line naming where
+ * it came from.
+ */
+const addMarkdownEntryToStrings = async function addMarkdownEntryToStrings(
+	path: string,
+	value: string
+): Promise<void> {
+	const existing = await readInfoPlistStrings(path);
+	if (
+		existing !== null &&
+		declaresKey(existing.contents, MARKDOWN_USAGE_DESCRIPTION_KEY)
+	) {
+		return;
+	}
+
+	const entry = `"${MARKDOWN_USAGE_DESCRIPTION_KEY}" = "${escapeStringsValue(value)}";`;
+	const contents =
+		existing === null
+			? `/* Added by @c15t/react-native at prebuild. */\n${entry}\n`
+			: `${existing.contents.replace(/\s*$/u, '')}\n\n${entry}\n`;
+	const payload = `${existing?.byteOrderMark ?? ''}${contents}`;
+
+	// A table read as UTF-16 goes back out as UTF-16, and one read as UTF-8 goes
+	// back out as UTF-8, which is what keeps a host's own entries readable.
+	const utf16 = existing?.encoding === 'utf16le';
+	await writeFile(path, Buffer.from(payload, utf16 ? 'utf16le' : 'utf8'));
+};
+
+/**
+ * Write the per-locale Markdown prompt into each `<locale>.lproj` bundle.
+ *
+ * The strings are only worth a file if the build compiles it into the app, so the
+ * table goes through the same two steps Expo's own `ios.locales` support uses:
+ * `ensureGroupRecursively` to place the bundle in the project, then
+ * `addResourceFileToGroup` to put it in the Resources phase. A file written to
+ * disk and left out of the project is a localization that ships nothing, which is
+ * the failure this plugin's own reader check exists to catch.
+ *
+ * @param params - Resolved plugin parameters.
+ * @param options - The parsed project, its folder name, and the app project root.
+ * @returns The same project, with a group, a resource, and a known region per
+ * locale.
+ */
+export const applyLocalizedMarkdownDescriptions =
+	async function applyLocalizedMarkdownDescriptions(
+		params: ResolvedC15tParams,
+		options: {
+			readonly projectName: string;
+			readonly project: XcodeProject;
+			readonly projectRoot: string;
+		}
+	): Promise<XcodeProject> {
+		const { markdownUsageDescriptionLocalizations: localizations } =
+			params.appTrackingTransparency;
+		if (localizations.length === 0) {
+			return options.project;
+		}
+
+		const { projectName, projectRoot } = options;
+		// The folder Expo's own locale support uses, so one bundle per locale holds
+		// every localized plist string rather than two half-populated ones.
+		const supportingDirectory = join(
+			projectRoot,
+			'ios',
+			projectName,
+			'Supporting'
+		);
+
+		// One bundle per locale is its own file, so the tables go in together. The
+		// project edits below stay in a loop: each one reads the project the previous
+		// one returned.
+		await Promise.all(
+			localizations.map(async ({ locale, value }) => {
+				const directory = join(supportingDirectory, `${locale}.lproj`);
+				await mkdir(directory, { recursive: true });
+				return addMarkdownEntryToStrings(
+					join(directory, INFO_PLIST_STRINGS_FILE),
+					value
+				);
+			})
+		);
+
+		let nextProject = options.project;
+
+		// A bundle the project has never heard of is not a localization to the
+		// build: `knownRegions` is what makes a `.lproj` one. `addKnownRegion`
+		// appends after the regions already listed and skips one it knows, so
+		// `Base`, `en`, and any region the host added keep their place.
+		for (const { locale } of localizations) {
+			nextProject.addKnownRegion(locale);
+		}
+
+		for (const { locale } of localizations) {
+			const groupName = `${projectName}/Supporting/${locale}.lproj`;
+			const group = IOSConfig.XcodeUtils.ensureGroupRecursively(
+				nextProject,
+				groupName
+			);
+			if (
+				!group?.children.some(
+					(child: { comment?: string }) =>
+						child.comment === INFO_PLIST_STRINGS_FILE
+				)
+			) {
+				nextProject = IOSConfig.XcodeUtils.addResourceFileToGroup({
+					filepath: `${locale}.lproj/${INFO_PLIST_STRINGS_FILE}`,
+					groupName,
+					isBuildFile: true,
+					project: nextProject,
+				});
+			}
+		}
+
+		return nextProject;
+	};
 
 /**
  * Build the `ios.privacyManifests` entries c15t is responsible for.

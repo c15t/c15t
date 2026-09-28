@@ -136,3 +136,13 @@ export type C15tConsentCategoryId = (typeof CONSENT_CATEGORY_IDS)[number];
  */
 export const SK_AD_NETWORK_IDENTIFIER_PATTERN =
 	/^[a-z0-9]{10,11}\.skadnetwork$/iu;
+
+/**
+ * Shape of a locale tag the plugin will write a localized string for.
+ *
+ * The tag is not only a label: it names the `<locale>.lproj` bundle the string
+ * lands in, so a separator in one would put a file somewhere the build never
+ * reads. This accepts what Xcode writes a bundle for (`de`, `en-GB`, `zh-Hans`,
+ * `pt_BR`, `Base`) and refuses everything that is not a single flat token.
+ */
+export const LOCALE_TAG_PATTERN = /^[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*$/u;

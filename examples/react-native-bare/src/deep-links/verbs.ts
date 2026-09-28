@@ -15,6 +15,7 @@ import type {
 	ConsentActions,
 	OptionalConsentCategory,
 	ConsentIabTab,
+	TrackingRequestPayload,
 } from '@c15t/react-native';
 
 import type { Appearance } from '../theme';
@@ -41,6 +42,14 @@ export interface DemoVerbContext {
 	readonly openPreferences: () => void;
 	/** Whether a prompt is still owed, so a verb can name what it left standing. */
 	readonly promptOwed: boolean;
+	/**
+	 * Run the Apple tracking journey, exactly as the Privacy screen's button does.
+	 *
+	 * The verb calls the hook's own `request` rather than the native module, so the
+	 * coordination under test is the one a consumer reaches: the gate on the categories
+	 * the request stands for, the pause for the preference centre, and the second ask.
+	 */
+	readonly requestTracking: () => Promise<TrackingRequestPayload>;
 	/** Force a colour scheme, or hand the choice back to the platform. */
 	readonly setAppearance: (appearance: Appearance) => void;
 	/** Show the Diagnostics tab, where the receipt for a link is printed. */
@@ -74,6 +83,17 @@ const describeCommit = (label: string, result: CommitResult): string => {
 
 	return `${label}: rev ${String(result.revision)} ${delivered}${confirmed}`;
 };
+
+/**
+ * Format the Apple answer the way the card prints it.
+ *
+ * Three fields, because that is what a frame cannot tell on its own. The stage says
+ * whether Apple was called at all and whether the journey stopped on the way back, and
+ * the presentation says which sheet a binary that supports both asked for. A screenshot
+ * proves a sheet appeared; this line proves which call produced it.
+ */
+const describeTracking = (payload: TrackingRequestPayload): string =>
+	`requestTracking: ${payload.status} / ${payload.stage} / ${payload.presentation ?? 'no call'}`;
 
 /** The external id `identify` uses when the link does not name one. */
 const DEFAULT_EXTERNAL_ID = 'runner-42';
@@ -248,6 +268,20 @@ export const DEMO_VERBS: readonly DemoVerb[] = [
 		summary: 'Pin a country, or clear the override and let the backend detect.',
 		usage: 'overrides?country=DE | overrides?country=',
 		verb: 'overrides',
+	},
+	// Named by the link rather than run on launch: on iOS the sheet Apple raises has no
+	// answer without a finger, so the one way to see it on an unattended machine is a
+	// cold start that asks. A binary with no platform gate rejects, and the receipt says
+	// so instead of the link looking like it did nothing.
+	{
+		run: async (context) => {
+			context.closeSheets();
+
+			return describeTracking(await context.requestTracking());
+		},
+		summary: 'Ask Apple for the ads identifier, the way the Privacy card does.',
+		usage: 'tracking',
+		verb: 'tracking',
 	},
 	{
 		run: async (context) => {

@@ -12,6 +12,7 @@ import { describe, expect, test } from 'vitest';
 
 import {
 	parseTrackingAuthorization,
+	parseTrackingRequest,
 	TRACKING_AUTHORIZATION_STATUSES,
 } from '../tracking';
 
@@ -53,5 +54,62 @@ describe('parseTrackingAuthorization', () => {
 				JSON.stringify({ promptShown: true, status: 'authorized' })
 			)
 		).toBe('authorized');
+	});
+});
+
+describe('parseTrackingRequest', () => {
+	test('reads the arm, the stage, and the call that ran', () => {
+		expect(
+			parseTrackingRequest(
+				JSON.stringify({
+					presentation: 'expanded',
+					stage: 'additional-information',
+					status: 'not-determined',
+				})
+			)
+		).toEqual({
+			presentation: 'expanded',
+			stage: 'additional-information',
+			status: 'not-determined',
+		});
+	});
+
+	test('reads a payload from a binary that predates the new fields', () => {
+		// An older core sends one field. A reader that treated a missing stage as a pause
+		// would open a preference centre on a device that has never heard of the expanded
+		// sheet, so a missing field has to mean the answer the older payload meant.
+		expect(parseTrackingRequest('{"status":"authorized"}')).toEqual({
+			presentation: undefined,
+			stage: 'final',
+			status: 'authorized',
+		});
+	});
+
+	test('falls back to a settled request for a stage this build cannot name', () => {
+		expect(
+			parseTrackingRequest('{"stage":"pending-review","status":"authorized"}')
+		).toMatchObject({ presentation: undefined, stage: 'final' });
+	});
+
+	test('drops a presentation this build cannot name and keeps the rest', () => {
+		expect(
+			parseTrackingRequest('{"presentation":"fullscreen","status":"denied"}')
+		).toEqual({ presentation: undefined, stage: 'final', status: 'denied' });
+	});
+
+	test.each([
+		['text that is not JSON', 'not json at all'],
+		['an empty payload', ''],
+		['a JSON array', '[]'],
+		['a bare string', '"authorized"'],
+	])('fails closed for %s rather than inventing a pause', (_case, raw) => {
+		const parsed = parseTrackingRequest(raw);
+
+		// Same direction as the single-field reader: an unreadable answer is not
+		// evidence that the platform asks nothing, and a stage this build cannot see
+		// is not a reason to open a surface.
+		expect(parsed.status).toBe('denied');
+		expect(parsed.status).not.toBe('unsupported');
+		expect(parsed.stage).toBe('final');
 	});
 });

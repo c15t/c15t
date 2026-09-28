@@ -14,6 +14,12 @@ export { useConsentSelector } from './use-consent-selector';
 export { useConsentStatus } from './use-consent-status';
 export { useIsTrackingAllowed } from './use-is-tracking-allowed';
 export { useTrackingAuthorization } from './use-tracking-authorization';
+export { useTrackingRequest } from './use-tracking-request';
+export type {
+	TrackingRequest,
+	TrackingRequestPreferences,
+	UseTrackingRequestOptions,
+} from './use-tracking-request';
 export { useConsentSafeArea } from './use-consent-safe-area';
 export type { ConsentSafeArea } from './use-consent-safe-area';
 export { useIsAllowed } from './use-is-allowed';

@@ -1,6 +1,6 @@
 ---
 title: Usage
-description: Read native consent with the hooks, render the built-in banner, dialog and preference center, or build your own surfaces headless.
+description: Read native consent with the hooks, render the built-in banner, dialog and preference center, drive Apple's tracking request, or build your own surfaces headless.
 group: frameworks
 ---
 
@@ -45,7 +45,8 @@ Every hook reads the native snapshot or forwards an action. None of them hold st
 | `useC15tBootstrap()` | `BootstrapPayload` | never, it is read once at mount |
 | `useConsent()` | the whole `ConsentSnapshot` | every native change |
 | `useIsTrackingAllowed(category)` | `boolean` | consent for that category or the platform tracking answer moves |
-| `useTrackingAuthorization()` | `'authorized' \| 'denied' \| 'not-determined' \| 'restricted' \| 'unsupported'` | a tracking request resolves |
+| `useTrackingAuthorization()` | `'authorized' \| 'denied' \| 'not-determined' \| 'restricted' \| 'unsupported'` | a tracking request resolves, or the app returns to the foreground |
+| `useTrackingRequest(options?)` | `{ authorization, pending, preferences, request }` | the platform arm moves, or a tracking journey opens or closes the preference center |
 
 Every type those hooks trade in is exported from `@c15t/react-native`: `ConsentSnapshot`,
 `ConsentActions`, `ConsentGateProps`, `ConsentPromptState`, and the vocabulary behind them
@@ -237,7 +238,112 @@ instructions to do opposite things, so keep them apart:
 `authorized` and `unsupported` satisfy the platform half. `denied`, `restricted`, and
 `not-determined` hold it off.
 
-### Asking the platform
+### Driving the whole Apple request
+
+`useTrackingRequest({ categories })` runs an Apple tracking request all the way through.
+That means the system prompt, and the preference center for the one case where Apple
+hands the decision back to you.
+
+```tsx title="src/PersonalizeButton.tsx"
+import { useCallback } from 'react';
+import { Pressable, Text } from 'react-native';
+import { ConsentPreferences, useTrackingRequest } from '@c15t/react-native';
+
+const TRACKED_CATEGORIES = ['marketing'] as const;
+
+export function PersonalizeButton() {
+	const tracking = useTrackingRequest({ categories: TRACKED_CATEGORIES });
+
+	const onPress = useCallback(async () => {
+		try {
+			await tracking.request();
+		} catch {
+			// Android has no Apple question to ask, and an iOS binary with no prompt
+			// string refuses. Neither path opens anything.
+		}
+	}, [tracking.request]);
+
+	return (
+		<>
+			<Pressable disabled={tracking.pending} onPress={onPress}>
+				<Text>Use personalised ads</Text>
+			</Pressable>
+			<ConsentPreferences {...tracking.preferences} />
+		</>
+	);
+}
+```
+
+Mount that `ConsentPreferences` once, near the root. It draws nothing until Apple asks
+for it.
+
+If you already render a preference center from your own state, hand that state to the
+hook rather than mounting a second card:
+
+```tsx
+const tracking = useTrackingRequest({
+	preferences: {
+		onRequestClose: () => setPreferencesOpen(false),
+		open: preferencesOpen,
+	},
+});
+```
+
+`open` then comes back true while either side wants the center, and `onRequestClose`
+runs yours as well as the journey's. Spreading onto a center you never handed over would
+replace its `open` and leave a card only the journey can close.
+
+| Return | What it is | Use it for |
+| --- | --- | --- |
+| `authorization` | the arms in the table above, kept live | deciding whether to offer the button at all. `C15tProvider` re-reads it when the app returns to the foreground |
+| `pending` | `boolean` | disabling the button while a request is in flight. Pressing again joins the request already running rather than stacking a second prompt |
+| `preferences` | `{ open, onRequestClose }` | props that spread straight onto `<ConsentPreferences />`, merged with whatever you passed as `options.preferences` |
+| `request()` | `() => Promise<TrackingRequestPayload>` | the press handler. It resolves with the outcome that ended the journey |
+
+Gate behaviour on `useIsTrackingAllowed` rather than on `authorization`. The arm says what
+Apple permits; the subject's own choice still lives in c15t, and one button press writes
+no consent.
+
+The part that needs thinking about is Apple's Additional Information button. On the
+expanded sheet, tapping it closes the dialog with no answer recorded, runs the app's own
+closure, and Apple still completes the request as `not-determined`. The hook treats that
+tap as a pause and nothing more. It opens the preference center, waits for the subject to
+close it, and then asks Apple again only while a category the request stood for is
+granted. Refusing every one of them ends the journey on the spot, because sending someone
+back to a tracking prompt whose answer they have already overridden in your own UI is
+worse than not asking. The arm Apple reported travels unchanged either way, so a subject
+who paused is never reported as having refused.
+
+`categories` picks which grants count for that second look. It defaults to
+`['measurement', 'marketing']`. Pass the narrower list when your policy gates tracking on
+one category, so refusing that one is enough to finish. That is an overridable default
+for this one decision, not a mapping from c15t categories onto legal bases, and the
+package claims no such mapping. Pass a readonly list, or `as const`, so the array keeps
+its identity across renders.
+
+One integration covers every device. On Android `request()` rejects with
+`C15T_TRACKING_UNSUPPORTED` and opens nothing, which is what the `catch` above is for. On
+a system without Apple's expanded request, and on a binary that predates it, the plain
+alert runs exactly as it did before.
+
+### Asking the platform yourself
+
+Hosts that drive the journey themselves reach for `client.requestTracking()`. It is the
+same Apple call plus the two fields that make a pause legible, and
+`actions.requestTrackingAuthorization()` is that call narrowed to the arm alone.
+
+| Field | Values | Means |
+| --- | --- | --- |
+| `status` | the arms in the table above | Apple's answer, kept exactly as Apple gave it |
+| `stage` | `'final'`, `'additional-information'` | whether the request settled or only paused for the preference center |
+| `presentation` | `'expanded'`, `'standard'`, absent | which Apple call ran, and absent when nothing was asked, which is what a restricted device looks like |
+
+Read `stage` before you read `status`. `not-determined` with `stage: 'final'` says nobody
+has been asked yet, and `not-determined` with `stage: 'additional-information'` says the
+subject stopped to read more. Those are opposite instructions, and the arm alone cannot
+tell them apart. `presentation` names the call the SDK made and not the sheet Apple drew:
+see [native behaviour](/docs/frameworks/react-native/native-behaviour) for what it does
+and does not prove.
 
 Nothing calls the system prompt for you, and that is deliberate. Apple's dialog is the
 first thing a subject reads about tracking if you show it at launch, before anyone has
@@ -254,21 +360,25 @@ const onFinish = useCallback(async () => {
 		await actions.requestTrackingAuthorization();
 	} catch {
 		// Either this build cannot ask or this platform has nothing to ask.
-		// Both mean the platform answer is already final.
 	}
 }, [actions]);
 ```
 
-Apple shows the dialog at most once per install, and a later call resolves with the
-answer already on the device. The call rejects with:
+The call rejects with:
 
 - `C15T_TRACKING_NOT_CONFIGURED` on an iOS build whose `Info.plist` carries no
   `NSUserTrackingUsageDescription`. Apple suppresses the dialog there and reports the
-  answer back as denied without saying why, so the bridge refuses instead of spending
-  the one prompt an install gets for nothing. The Expo plugin writes that key under
+  answer back as denied without saying why, so the bridge refuses rather than recording
+  a refusal nobody made. The Expo plugin writes that key under
   `enableAppTrackingTransparency`, described in
   [configuration](/docs/frameworks/react-native/configuration).
 - `C15T_TRACKING_UNSUPPORTED` on Android, where there is no platform question to ask.
+
+Whether any one call can produce a dialog is Apple's decision and not this package's. The
+SDK asks Apple on every request instead of answering from the arm it already holds,
+because only Apple knows whether this install is eligible to be asked again. That costs
+nothing when it is not eligible: Apple shows nothing and answers with the arm on file.
+Nothing prompts on its own, so a host that never calls this never sees a second prompt.
 
 ### What no platform answer changes
 
@@ -278,6 +388,13 @@ read the snapshot alone, so `marketing` refused on a device with ATT authorized 
 The two answers meet in one exported function,
 `isTrackingPermitted(decision, authorization)`, and both native cores are held to the
 same rule by [native behaviour](/docs/frameworks/react-native/native-behaviour).
+
+The boundary runs the other way as well. Nothing in this package edits the words inside
+Apple's sheet, and nothing decides when that sheet appears. What c15t does control is the
+preference center: its copy, its styling, and its components.
+[What c15t does not control](/docs/frameworks/react-native/native-behaviour#what-c15t-does-not-control)
+draws the whole line, including what `presentation` does not prove about a device's
+region.
 
 ## Built-in surfaces
 

@@ -21,6 +21,7 @@ import {
 	useConsentActions,
 	useConsentStyles,
 	useConsentStatus,
+	useTrackingRequest,
 } from '@c15t/react-native';
 import type { ConsentIabSelection, ConsentIabTab } from '@c15t/react-native';
 import { Component, useState } from 'react';
@@ -53,6 +54,16 @@ const TAB_LABELS: Record<Tab, string> = {
 	diagnostics: 'Diagnostics',
 	privacy: 'Privacy',
 };
+
+/**
+ * The categories the tracking request on the Privacy screen stands for.
+ *
+ * Personalised ads are the only thing in this app that wants an identifier, so the
+ * journey names one category: a subject who leaves Marketing off is finished with the
+ * Apple sheet rather than sent back to it. Held as a module constant because the hook
+ * keys its callbacks to it.
+ */
+const TRACKING_CATEGORIES = ['marketing'] as const;
 
 /** The scheme control, built from the three choices the package resolves. */
 const APPEARANCE_OPTIONS = APPEARANCES.map((appearance) => ({
@@ -236,6 +247,22 @@ export const App = () => {
 		ConsentIabSelection | undefined
 	>();
 
+	// One hook drives Apple's whole flow: the sheet, the centre when the subject taps
+	// Additional Information, and the sheet again only while Marketing is still
+	// granted. It is called here because the centre it opens has to outlive a tab
+	// switch, for the same reason the banner does. The app's own centre is handed in,
+	// so the card the subject opens is also the one Apple's button raises, and nothing
+	// has to decide which of two cards to show.
+	const tracking = useTrackingRequest({
+		categories: TRACKING_CATEGORIES,
+		preferences: {
+			onRequestClose: () => {
+				setPreferencesOpen(false);
+			},
+			open: preferencesOpen,
+		},
+	});
+
 	const openDialog = (): void => {
 		setPreferencesOpen(false);
 		setDialogOpen(true);
@@ -268,6 +295,7 @@ export const App = () => {
 		openIabDrawer,
 		openPreferences,
 		promptOwed,
+		requestTracking: tracking.request,
 		setAppearance,
 		showDiagnostics: () => {
 			setTab('diagnostics');
@@ -299,6 +327,7 @@ export const App = () => {
 							<PrivacyScreen
 								onOpenIabDrawer={openIabDrawer}
 								onOpenPreferences={openPreferences}
+								tracking={tracking}
 							/>
 						) : (
 							<DiagnosticsScreen
@@ -324,11 +353,13 @@ export const App = () => {
 					open={dialogOpen}
 					theme={theme}
 				/>
+				{/*
+				 * One centre doing both jobs: the subject opens it from either tab, and it
+				 * is the same card the tracking journey raises mid-request. `open` is the
+				 * union of the two, and closing it settles both.
+				 */}
 				<ConsentPreferences
-					onRequestClose={() => {
-						setPreferencesOpen(false);
-					}}
-					open={preferencesOpen}
+					{...tracking.preferences}
 					theme={theme}
 				/>
 

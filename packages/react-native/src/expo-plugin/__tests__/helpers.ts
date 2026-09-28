@@ -64,7 +64,12 @@ export const runMod = async function runMod<T>(
 	config: ExportedConfig,
 	platform: 'android' | 'ios',
 	modName: string,
-	modResults: T
+	modResults: T,
+	options: {
+		introspect?: boolean;
+		projectName?: string;
+		projectRoot?: string;
+	} = {}
 ): Promise<ExportedConfig> {
 	const mods = config.mods?.[platform] as
 		| Record<string, Mod<T> | undefined>
@@ -74,14 +79,18 @@ export const runMod = async function runMod<T>(
 		throw new Error(`no ${platform}.${modName} mod was registered`);
 	}
 
+	// A mod that writes files needs a project to write into, so a test that
+	// exercises one points at a scratch tree instead of the read-only fixtures.
+	const projectRoot = options.projectRoot ?? FIXTURE_DIR;
 	const applied = await mod({
 		...config,
 		modRequest: {
-			introspect: false,
+			introspect: options.introspect ?? false,
 			modName,
 			platform,
-			platformProjectRoot: join(FIXTURE_DIR, platform),
-			projectRoot: FIXTURE_DIR,
+			platformProjectRoot: join(projectRoot, platform),
+			projectName: options.projectName,
+			projectRoot,
 		},
 		modResults,
 	});

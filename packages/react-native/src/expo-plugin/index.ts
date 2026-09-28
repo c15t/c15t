@@ -42,6 +42,7 @@ export { C15tPluginError } from './errors';
 export type {
 	C15tPluginProps,
 	C15tProviderTransportKind,
+	C15tTrackingMarkdownLocalization,
 	C15tTransportMode,
 	ResolvedC15tParams,
 } from './params';

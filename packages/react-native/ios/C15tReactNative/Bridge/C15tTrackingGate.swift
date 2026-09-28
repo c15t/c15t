@@ -51,12 +51,71 @@ public enum C15tTrackingRefusal: Equatable, Sendable {
     case unavailable
 }
 
+/// Which of Apple's two request calls to make.
+///
+/// This names the call this SDK makes, not the sheet Apple renders. Apple keeps the
+/// European Union presentation to itself: the expanded sheet needs the device to sit in
+/// a specific EU country and the signed-in Apple Account to carry a specific EU region,
+/// and outside those rules Apple ignores the preference and shows the plain alert from
+/// `NSUserTrackingUsageDescription` even though this SDK asked for the expanded call. So
+/// `expanded` on the wire means "the expanded request was made", and nothing more. A host
+/// that reads it as proof of an EU presentation is reading a fact this line never
+/// supplied, and `docs/frameworks/react-native/native-behaviour.mdx` says so in those
+/// words.
+public enum C15tTrackingPresentation: String, CaseIterable, Sendable {
+    /// The expanded EU request, available from iOS and iPadOS 27.2.
+    case expanded
+    /// `requestTrackingAuthorization(completionHandler:)`, which every supported system has.
+    case standard
+}
+
+/// Whether an answer settles the request or only pauses it.
+///
+/// The pause exists because of how Apple's Additional Information button works: the sheet
+/// closes without recording an answer, this SDK's own closure runs, and Apple still calls
+/// its completion handler with `notDetermined`. A caller that read that as a final answer
+/// would report a refusal nobody made, so the pause is named instead.
+public enum C15tTrackingStage: String, CaseIterable, Sendable {
+    /// The subject answered, or Apple declined to ask. Nothing further is owed.
+    case final
+    /// Additional Information was tapped. The subject is mid-decision and has to be asked
+    /// again once the app has shown whatever it shows there.
+    case additionalInformation = "additional-information"
+}
+
+/// What a request hands back: the platform arm, and what to do with it.
+public struct C15tTrackingRequestResult: Equatable, Sendable {
+    /// Apple's arm, preserved as Apple gave it. Never widened, never invented.
+    public let status: C15tTrackingAuthorization
+    /// Whether this settles the request.
+    public let stage: C15tTrackingStage
+    /// Which call was made to get here, or `nil` when none was.
+    ///
+    /// Optional because a result can arrive without Apple being asked at all, which is what
+    /// a restricted device does. Saying `standard` there would report a call this request
+    /// never made, and the one thing worth keeping clean on this boundary is the difference
+    /// between what Apple was told and what this SDK concluded.
+    public let presentation: C15tTrackingPresentation?
+
+    public init(
+        status: C15tTrackingAuthorization,
+        stage: C15tTrackingStage,
+        presentation: C15tTrackingPresentation?
+    ) {
+        self.status = status
+        self.stage = stage
+        self.presentation = presentation
+    }
+}
+
 /// What a request should do, decided before anyone calls Apple.
 public enum C15tTrackingDecision: Equatable, Sendable {
-    /// Show the dialog: the build can, and the subject has not answered yet.
-    case prompt
-    /// Resolve with this arm. Apple shows its dialog once per install, and a second call
-    /// answers with the state on the device rather than showing anything.
+    /// Ask Apple, by way of this call.
+    case prompt(presentation: C15tTrackingPresentation)
+    /// Resolve with this arm without asking. Only a state Apple can never answer from
+    /// lands here, which is `restricted`; everything else goes to Apple and lets Apple
+    /// decide, because the European Union lets an answered request be asked again after a
+    /// year and this SDK is not the thing that gets to say otherwise.
     case answered(C15tTrackingAuthorization)
     /// Reject, and say why. Nothing was asked.
     case refused(C15tTrackingRefusal)
@@ -136,21 +195,78 @@ public enum C15tTrackingGate {
     ///
     /// The refusal is the point of this function. Apple's dialog is suppressed silently
     /// without a prompt string, and the call comes back as `denied` with no explanation,
-    /// which spends the one prompt an install ever gets and leaves the host reading a
-    /// refusal nobody made. So the build is checked before the question is asked, and
-    /// the answer is a rejection that names the missing key.
+    /// which leaves the host reading a refusal nobody made. So the build is checked before
+    /// the question is asked, and the answer is a rejection that names the missing key.
     ///
     /// Availability is checked first because it is the more basic fact: a build with no
     /// ATT has no prompt string to look for either.
+    ///
+    /// An already-answered subject is asked anyway. This function used to answer
+    /// `authorized` or `denied` from the device without calling Apple, on the reasoning that
+    /// Apple shows its dialog once per install. That is no longer the whole rule: in the
+    /// European Union an answered request may be presented again a year after the answer,
+    /// whichever way it went. Short-circuiting here would be this SDK enforcing a
+    /// one-prompt lifetime Apple no longer holds, and it would do it invisibly, so a host
+    /// that wanted the annual re-prompt could not get one. Asking Apple is the only way to
+    /// learn whether this install is eligible, and asking costs nothing when it is not:
+    /// outside the eligibility window Apple shows nothing and calls the handler straight
+    /// back with the stored arm. Nothing here prompts on its own, because nothing in this
+    /// package calls it, so a host that never asks never re-prompts.
+    ///
+    /// `restricted` is the one arm kept out of Apple's way. Apple reports it whether or not
+    /// the subject was ever shown the prompt, so the device policy has already answered and
+    /// a call would only return the same arm.
+    ///
+    /// - Parameters:
+    ///   - platform: Apple's answer, or `nil` where there is no ATT to read.
+    ///   - promptStringPresent: Whether this binary carries `NSUserTrackingUsageDescription`.
+    ///   - expandedInterfaceAvailable: Whether this runtime has the expanded EU request.
+    ///     ``C15tTracking/expandedInterfaceAvailable()`` answers it by looking for the
+    ///     method, which is the only check that works: it arrives with iOS and iPadOS 27.2,
+    ///     newer than the SDK this package builds against, so an `#available` check would be
+    ///     a guess about a symbol the build never saw.
+    /// - Returns: Whether to ask, which call to use, or why the request is refused.
     public static func request(
         platform: C15tTrackingPlatformStatus?,
-        promptStringPresent: Bool
+        promptStringPresent: Bool,
+        expandedInterfaceAvailable: Bool
     ) -> C15tTrackingDecision {
         guard let platform else { return .refused(.unavailable) }
         guard promptStringPresent else { return .refused(.noPromptString) }
-        guard platform == .notDetermined else {
-            return .answered(authorization(platform: platform, promptStringPresent: true))
-        }
-        return .prompt
+        guard platform != .restricted else { return .answered(.restricted) }
+        return .prompt(presentation: expandedInterfaceAvailable ? .expanded : .standard)
+    }
+
+    /// What a caller reads once Apple's handler has run.
+    ///
+    /// Two mistakes live here, and both are the kind a host cannot debug from outside. The
+    /// first is Apple's Additional Information tap: it closes the sheet without recording an
+    /// answer and still reports `notDetermined`, so a caller that treats that as settled
+    /// reports a refusal the subject never made. The second is any path that turns a
+    /// `notDetermined` into a `denied`, which puts a choice in the audit history that the
+    /// device never recorded. So the arm Apple reported travels unchanged and the only thing
+    /// added here is the stage.
+    ///
+    /// - Parameters:
+    ///   - platform: The arm Apple's handler reported, or `nil` where ATT went away mid-call.
+    ///   - presentation: Which call ``request(platform:promptStringPresent:expandedInterfaceAvailable:)``
+    ///     chose.
+    ///   - additionalInformationSelected: Whether Apple ran the Additional Information
+    ///     closure for this request.
+    /// - Returns: The result to encode, or `nil` when there is no arm to report. `nil` is
+    ///   deliberate: `unsupported` reads as "the platform asks nothing of us", the one arm
+    ///   that lets tracking through without a yes, so a vanished ATT has to be a failure
+    ///   rather than an answer.
+    public static func requestResult(
+        platform: C15tTrackingPlatformStatus?,
+        presentation: C15tTrackingPresentation?,
+        additionalInformationSelected: Bool
+    ) -> C15tTrackingRequestResult? {
+        guard let platform else { return nil }
+        return C15tTrackingRequestResult(
+            status: authorization(platform: platform, promptStringPresent: true),
+            stage: additionalInformationSelected ? .additionalInformation : .final,
+            presentation: presentation
+        )
     }
 }

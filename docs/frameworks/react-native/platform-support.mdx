@@ -1,6 +1,6 @@
 ---
 title: Platform support
-description: Minimum React Native, Expo, iOS and Android versions for @c15t/react-native, and the versions the package is verified against.
+description: Minimum React Native, Expo, iOS and Android versions for @c15t/react-native, the versions the package is verified against, and where Apple's expanded tracking prompt applies.
 group: frameworks
 ---
 
@@ -58,6 +58,25 @@ Node needs to be 20.19 or newer, 22.12 or newer, or 24 or newer. Expo resolves a
 plugin with `require()`, and that set is the floor `@expo/require-utils` names for its
 own resolution. The plugin entry ships a bundled CommonJS file under the `require`
 condition so it loads there, while Metro and every bundler take the ES module condition.
+
+## Apple's expanded tracking prompt
+
+The expanded App Tracking Transparency prompt raises no floor on this page. iOS stays at
+16.4. Apple ships the expanded request with iOS and iPadOS 27.2, a release Apple currently
+documents as beta, and the bridge reaches it by asking the running system whether it answers
+the call rather than by checking a version number. A system that has the call takes the
+expanded request, and a system without it gets the standard prompt. The same binary runs
+either way, no new minimum OS is involved, and installing this package does not oblige you
+to raise a deployment target.
+
+Which presentation a device actually gets is Apple's, from the device's country and the
+country of the signed-in Apple Account. See
+[native behaviour](/docs/frameworks/react-native/native-behaviour#apple-decides-who-sees-the-expanded-prompt).
+
+Android is unchanged by all of it. There is no Apple prompt to show, every read answers
+`unsupported`, and every request rejects with `C15T_TRACKING_UNSUPPORTED`. One consumer
+integration still covers both platforms, because `useTrackingRequest` hands that rejection
+to your handler instead of opening anything.
 
 ## Release channel
 
