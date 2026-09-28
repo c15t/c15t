@@ -158,6 +158,7 @@ const cleanupMockBrowser = function cleanupMockBrowser() {
 	delete globalRef.ttq;
 	delete globalRef.snaptr;
 	delete globalRef._snaptr;
+	delete globalRef.pintrk;
 	delete globalRef.rdt;
 	delete globalRef.oaiq;
 	delete globalRef.twq;

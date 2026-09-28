@@ -28,6 +28,10 @@ import {
 	openaiPixelManifest,
 } from './vendors/ads-and-pixels/openai-pixel';
 import {
+	pinterestTag,
+	pinterestTagManifest,
+} from './vendors/ads-and-pixels/pinterest-tag';
+import {
 	redditPixel,
 	redditPixelManifest,
 } from './vendors/ads-and-pixels/reddit-pixel';
@@ -338,6 +342,14 @@ const helperParityCases = {
 		},
 		script: openaiPixel({ pixelId: 'OPENAI-CONTRACT' }),
 	},
+	pinterestTag: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://s.pinimg.com/ct/core.js',
+		},
+		script: pinterestTag({ tagId: '2613654212508' }),
+	},
 	pirsch: {
 		expected: {
 			alwaysLoad: undefined,
@@ -490,6 +502,7 @@ const vendorManifests = [
 	intercomManifest,
 	metaPixelManifest,
 	openaiPixelManifest,
+	pinterestTagManifest,
 	redditPixelManifest,
 	tiktokPixelManifest,
 	linkedinInsightsManifest,

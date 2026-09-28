@@ -418,6 +418,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'marketing',
+		docsSlug: 'pinterest-tag',
+		hint: 'Pinterest ads tracking',
+		integrationCategory: 'ads-and-pixels',
+		key: 'pinterestTag',
+		label: 'Pinterest Tag',
+		packageSubpath: 'pinterest-tag',
+		vendor: 'pinterest-tag',
+	},
+	{
+		consentCategory: 'marketing',
 		docsSlug: 'reddit-pixel',
 		hint: 'Reddit ads tracking',
 		integrationCategory: 'ads-and-pixels',

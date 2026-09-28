@@ -134,6 +134,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })",
 		importName: 'openaiPixel',
 	},
+	'pinterest-tag': {
+		example: "pinterestTag({ tagId: 'XXXXXXXX' })",
+		importName: 'pinterestTag',
+	},
 	pirsch: {
 		example: "pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' })",
 		importName: 'pirsch',

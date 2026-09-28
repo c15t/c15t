@@ -26,6 +26,7 @@
 		"logrocket",
 		"meta-pixel",
 		"microsoft-uet",
+		"pinterest-tag",
 		"pirsch",
 		"posthog",
 		"privacy",
@@ -217,6 +218,11 @@
 			"types": "./dist-types/vendors/ads-and-pixels/openai-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/openai-pixel.js",
 			"default": "./dist/vendors/ads-and-pixels/openai-pixel.js"
+		},
+		"./pinterest-tag": {
+			"types": "./dist-types/vendors/ads-and-pixels/pinterest-tag.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/pinterest-tag.js",
+			"default": "./dist/vendors/ads-and-pixels/pinterest-tag.js"
 		},
 		"./reddit-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/reddit-pixel.d.ts",

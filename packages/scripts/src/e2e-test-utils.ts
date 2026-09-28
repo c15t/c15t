@@ -144,6 +144,10 @@ export type TestWindow = Window &
 		pirschClearSession?: () => void;
 		pirschInit?: () => void;
 		pirschNotFound?: () => void;
+		pintrk?: ((...args: unknown[]) => void) & {
+			queue?: unknown[][];
+			version?: string;
+		};
 		plausible?: ((...args: unknown[]) => void) & {
 			o?: Record<string, unknown>;
 			q?: unknown[][];
@@ -348,6 +352,7 @@ const resetVendorGlobals = function resetVendorGlobals() {
 		'pirschClearSession',
 		'pirschInit',
 		'pirschNotFound',
+		'pintrk',
 		'plausible',
 		'posthog',
 		'rdt',
