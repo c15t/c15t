@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ChoiceBasis, PrivacyOptOut } from '../../../consent-record/types';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
 import { readStoredRecords } from '../hydrate';
+import { directivesToWrite } from '../reconcile';
 import {
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
@@ -230,5 +231,36 @@ describe('vendor copies across a clear', () => {
 		expect(
 			readStoredRecords(undefined, T).records.vendorChoice?.denied
 		).toEqual([]);
+	});
+});
+
+describe('directive merge order', () => {
+	it('reads and writes the same directive list in the same order', () => {
+		// Times of different digit lengths sort differently as text.
+		const cookie = [
+			{
+				categories: ['marketing'] as const,
+				recordedAt: 999,
+				source: 'gpc' as const,
+			},
+		];
+		const local = [
+			{
+				categories: ['measurement'] as const,
+				recordedAt: 1000,
+				source: 'gpc' as const,
+			},
+		];
+		both(
+			`${STORAGE_KEY_V2}-privacy`,
+			encodePrivacyOptOutsCompact({ directives: cookie, version: 1 }),
+			encodePrivacyOptOuts({ directives: local, version: 1 })
+		);
+
+		const read = readStoredPrivacyOptOuts(undefined, T);
+		const readOrder = read?.ok ? read.record.directives : [];
+		expect(readOrder.map((entry) => entry.recordedAt)).toEqual([999, 1000]);
+		expect(directivesToWrite(local, cookie)).toEqual(readOrder);
+		expect(directivesToWrite(cookie, local)).toEqual(readOrder);
 	});
 });

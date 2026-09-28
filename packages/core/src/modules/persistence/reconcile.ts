@@ -47,6 +47,7 @@ import type {
 	HydrationRecords,
 	VendorChoice,
 } from '../../types';
+import { mergeDirectives } from './directives';
 import {
 	choiceSinceEpoch,
 	directivesSinceEpoch,
@@ -94,34 +95,6 @@ const latestDecisionAt = function latestDecisionAt(
 		}
 	}
 	return latest;
-};
-
-const directiveKey = function directiveKey(directive: PrivacyOptOut): string {
-	return JSON.stringify([
-		directive.recordedAt,
-		directive.source,
-		[...directive.categories].sort(),
-	]);
-};
-
-/**
- * Union of two directive lists, without duplicates, oldest first. Both
- * runtimes derive the same list from the same inputs, so they converge.
- */
-const mergeDirectives = function mergeDirectives(
-	left: readonly PrivacyOptOut[],
-	right: readonly PrivacyOptOut[]
-): PrivacyOptOut[] {
-	const byKey = new Map<string, PrivacyOptOut>();
-	for (const directive of [...left, ...right]) {
-		const key = directiveKey(directive);
-		if (!byKey.has(key)) {
-			byKey.set(key, directive);
-		}
-	}
-	return [...byKey.entries()]
-		.sort(([leftKey], [rightKey]) => (leftKey < rightKey ? -1 : 1))
-		.map(([, directive]) => directive);
 };
 
 // ---------------------------------------------------------------------------

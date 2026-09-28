@@ -56,6 +56,7 @@ import {
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
 } from '../../libs/storage-keys';
+import { mergeDirectives } from './directives';
 import { choiceSinceEpoch } from './epoch';
 import {
 	decodeClearEpoch,
@@ -986,27 +987,6 @@ export const clearStoredNoticeDismissal = function clearStoredNoticeDismissal(
 	deleteCookie(keys.notice, cookie, config);
 };
 
-/** Both directive lists without duplicates, oldest first. */
-const unionDirectives = function unionDirectives(
-	left: readonly PrivacyOptOut[],
-	right: readonly PrivacyOptOut[]
-): PrivacyOptOut[] {
-	const byKey = new Map<string, PrivacyOptOut>();
-	for (const directive of [...left, ...right]) {
-		const key = JSON.stringify([
-			directive.recordedAt,
-			directive.source,
-			[...directive.categories].sort(),
-		]);
-		if (!byKey.has(key)) {
-			byKey.set(key, directive);
-		}
-	}
-	return [...byKey.values()].sort(
-		(first, second) => first.recordedAt - second.recordedAt
-	);
-};
-
 /**
  * Reads standing privacy directives from the cookie projection and the
  * localStorage copy. When both are valid their directives are unioned,
@@ -1035,7 +1015,7 @@ export const readStoredPrivacyOptOuts = function readStoredPrivacyOptOuts(
 			ok: true,
 			record: {
 				...fromCookie.record,
-				directives: unionDirectives(
+				directives: mergeDirectives(
 					fromCookie.record.directives,
 					fromLocal.record.directives
 				),
