@@ -227,6 +227,24 @@ of constructing records from permission booleans. To render only the banner per
 request on an otherwise cached page, use `ConsentBannerDeferred`, which needs an
 adapter for its server island.
 
+The middleware runs before the page renders, so the response waits for the
+backend. It waits at most 500 ms. If the backend has not answered by then, for
+example on a cold manifest cache or during an outage, the page renders without
+the server decision: no banner in the HTML, optional categories denied, and
+consent-gated scripts and iframes blocked. The browser then asks for the policy
+itself and shows the banner when it arrives. A manifest request keeps running
+and fills the cache for the next render. Change the budget with
+`middleware: { timeoutMs }`, or set `timeoutMs: false` to wait for the backend
+however long it takes. In hosted mode every server render calls the backend's
+`/init`, so keep the budget above its usual response time.
+
+```js title="astro.config.mjs"
+c15t({
+  mode: hosted({ url: backendURL }),
+  middleware: { timeoutMs: 800 },
+});
+```
+
 The middleware handles both cases. If you call `resolveConsentContext` from
 `@c15t/astro/server` yourself, pass `prerendered: true` only for a render that
 every visitor shares. It ignores the request's headers and cookies, leaves

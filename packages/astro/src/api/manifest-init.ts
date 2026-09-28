@@ -228,6 +228,12 @@ export interface SessionReportTarget {
 	method?: string;
 	/** Keeps the detached report alive on runtimes that need it. */
 	waitUntil?: (task: Promise<void>) => void;
+	/**
+	 * Whether the caller stopped waiting for this resolution, checked just
+	 * before the report goes out. A render that gave up leaves the browser
+	 * to resolve the view through the init route, which reports it instead.
+	 */
+	abandoned?: () => boolean;
 }
 
 /**
@@ -304,7 +310,7 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 		}
 	}
 
-	if (input.report?.backendURL) {
+	if (input.report?.backendURL && !input.report.abandoned?.()) {
 		reportConsentSession({
 			adapter: '@c15t/astro',
 			backendURL: input.report.backendURL,
