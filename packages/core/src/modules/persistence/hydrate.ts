@@ -217,9 +217,15 @@ const readRecords = function readRecords(
 	const privacy = readStoredPrivacyOptOuts(storageConfig, now, () => {
 		unreadable.privacy = true;
 	});
-	const vendors = readStoredVendorChoice(storageConfig, now, () => {
-		unreadable.vendors = true;
-	});
+	const clearEpoch = readStoredClearEpoch(storageConfig, now);
+	const vendors = readStoredVendorChoice(
+		storageConfig,
+		now,
+		() => {
+			unreadable.vendors = true;
+		},
+		Math.max(clearEpoch, selection.selected?.epoch ?? 0)
+	);
 	if (preserveUndecodable) {
 		markUndecodable(unreadable, selection, { notice, privacy, vendors });
 	}
@@ -234,7 +240,7 @@ const readRecords = function readRecords(
 		notice,
 		privacy,
 		vendors,
-		readStoredClearEpoch(storageConfig, now),
+		clearEpoch,
 		now
 	);
 	// An absent value only clears memory when every candidate was readable.

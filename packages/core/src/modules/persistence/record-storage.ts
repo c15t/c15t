@@ -892,10 +892,11 @@ export interface AuxiliaryWriteReport {
 }
 
 /**
- * Reads the local notice dismissal: the cookie projection first, then
- * localStorage. `null` when nothing is stored; an invalid record is
- * reported, not silently treated as absent, so callers can log it while
- * still deriving `missing`.
+ * Reads the local notice dismissal from its cookie projection and its
+ * localStorage copy. When both are valid the newer dismissal wins, the
+ * cookie on a tie; otherwise the valid one is used. `null` when nothing is
+ * stored; an invalid record is reported, not silently treated as absent,
+ * so callers can log it while still deriving `missing`.
  */
 export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 	config: StorageConfig | undefined,
@@ -1007,8 +1008,10 @@ const unionDirectives = function unionDirectives(
 };
 
 /**
- * Reads standing privacy directives: the cookie projection first, then
- * localStorage. `null` when nothing is stored.
+ * Reads standing privacy directives from the cookie projection and the
+ * localStorage copy. When both are valid their directives are unioned,
+ * oldest first, since a directive only restricts; otherwise the valid one
+ * is used. `null` when nothing is stored.
  */
 export const readStoredPrivacyOptOuts = function readStoredPrivacyOptOuts(
 	config: StorageConfig | undefined,
@@ -1105,6 +1108,62 @@ export const clearStoredPrivacyOptOuts = function clearStoredPrivacyOptOuts(
 	deleteCookie(keys.privacy, cookie, config);
 };
 
+// ---------------------------------------------------------------------------
+// Clear epoch: the time of the last clear, kept by the clear itself
+// ---------------------------------------------------------------------------
+
+const newerEpoch = function newerEpoch(
+	result: DecodeResult<number> | null,
+	current: number
+): number {
+	return result?.ok && result.record > current ? result.record : current;
+};
+
+const readRawEpoch = function readRawEpoch(
+	text: string | null | undefined,
+	now: number
+): DecodeResult<number> | null {
+	const trimmed = text?.trim();
+	return trimmed ? decodeClearEpoch(trimmed, now) : null;
+};
+
+/**
+ * Reads the clear epoch: the newer of the cookie and localStorage copies,
+ * or `0` when neither holds a valid one. An unreadable or invalid copy
+ * counts as `0`, which voids nothing, so a failed read never turns a
+ * stored denial into a grant.
+ */
+export const readStoredClearEpoch = function readStoredClearEpoch(
+	config: StorageConfig | undefined,
+	now: number,
+	onUnavailable?: () => void
+): number {
+	const keys = resolveStorageKeys(config);
+	const fromCookie = readRawEpoch(
+		getRawCookieValue(keys.epoch, onUnavailable),
+		now
+	);
+	const fromLocal = readRawEpoch(
+		readLocalStorageText(keys.epoch, onUnavailable),
+		now
+	);
+	return newerEpoch(fromLocal, newerEpoch(fromCookie, 0));
+};
+
+/** Server read of the clear epoch cookie from a request `Cookie` header. */
+export const readStoredClearEpochFromCookieHeader =
+	function readStoredClearEpochFromCookieHeader(
+		cookieHeader: string | undefined,
+		config: StorageConfig | undefined,
+		now: number
+	): number {
+		const keys = resolveStorageKeys(config);
+		return newerEpoch(
+			readRawEpoch(readCookieValueFromHeader(cookieHeader, keys.epoch), now),
+			0
+		);
+	};
+
 /**
  * Reads the vendor denial list from both projections. The two can
  * disagree: a compact cookie that grew past the browser's limit fails to
@@ -1114,22 +1173,35 @@ export const clearStoredPrivacyOptOuts = function clearStoredPrivacyOptOuts(
  * cookie missed the subject rewrite after `subject:resolved`. A denial the
  * cookie holds is never lifted by the local copy, so a dropped cookie write
  * only ever leaves fewer vendors allowed. An older local copy is ignored.
- * `null` when nothing is stored.
+ *
+ * Each copy is first cut to the clear epoch: one confirmed before it was
+ * cleared and reads as absent, so its denials never merge into a list
+ * recorded after the clear. `epoch` defaults to the stored clear epoch; a
+ * caller that also knows the consent envelope's epoch passes the later of
+ * the two. `null` when nothing is stored.
  */
 export const readStoredVendorChoice = function readStoredVendorChoice(
 	config: StorageConfig | undefined,
 	now: number,
-	onUnavailable?: () => void
+	onUnavailable?: () => void,
+	epoch: number = readStoredClearEpoch(config, now)
 ): DecodeResult<StoredVendorChoice> | null {
 	const keys = resolveStorageKeys(config);
-	const fromCookie = readCompactCookie(
-		getRawCookieValue(keys.vendors, onUnavailable),
-		(text) => decodeVendorChoiceCompact(text, now)
+	const sinceEpoch = (
+		read: DecodeResult<StoredVendorChoice> | null
+	): DecodeResult<StoredVendorChoice> | null =>
+		read?.ok && read.record.confirmedAt < epoch ? null : read;
+	const fromCookie = sinceEpoch(
+		readCompactCookie(getRawCookieValue(keys.vendors, onUnavailable), (text) =>
+			decodeVendorChoiceCompact(text, now)
+		)
 	);
-	const fromLocal = readLocalJson(
-		keys.vendors,
-		(value) => decodeVendorChoice(value, now),
-		onUnavailable
+	const fromLocal = sinceEpoch(
+		readLocalJson(
+			keys.vendors,
+			(value) => decodeVendorChoice(value, now),
+			onUnavailable
+		)
 	);
 	if (fromCookie?.ok && fromLocal?.ok) {
 		if (fromLocal.record.confirmedAt < fromCookie.record.confirmedAt) {
@@ -1204,62 +1276,6 @@ export const clearStoredVendorChoice = function clearStoredVendorChoice(
 	removeLocalStorageKey(keys.vendors);
 	deleteCookie(keys.vendors, cookie, config);
 };
-
-// ---------------------------------------------------------------------------
-// Clear epoch: the time of the last clear, kept by the clear itself
-// ---------------------------------------------------------------------------
-
-const newerEpoch = function newerEpoch(
-	result: DecodeResult<number> | null,
-	current: number
-): number {
-	return result?.ok && result.record > current ? result.record : current;
-};
-
-const readRawEpoch = function readRawEpoch(
-	text: string | null | undefined,
-	now: number
-): DecodeResult<number> | null {
-	const trimmed = text?.trim();
-	return trimmed ? decodeClearEpoch(trimmed, now) : null;
-};
-
-/**
- * Reads the clear epoch: the newer of the cookie and localStorage copies,
- * or `0` when neither holds a valid one. An unreadable or invalid copy
- * counts as `0`, which voids nothing, so a failed read never turns a
- * stored denial into a grant.
- */
-export const readStoredClearEpoch = function readStoredClearEpoch(
-	config: StorageConfig | undefined,
-	now: number,
-	onUnavailable?: () => void
-): number {
-	const keys = resolveStorageKeys(config);
-	const fromCookie = readRawEpoch(
-		getRawCookieValue(keys.epoch, onUnavailable),
-		now
-	);
-	const fromLocal = readRawEpoch(
-		readLocalStorageText(keys.epoch, onUnavailable),
-		now
-	);
-	return newerEpoch(fromLocal, newerEpoch(fromCookie, 0));
-};
-
-/** Server read of the clear epoch cookie from a request `Cookie` header. */
-export const readStoredClearEpochFromCookieHeader =
-	function readStoredClearEpochFromCookieHeader(
-		cookieHeader: string | undefined,
-		config: StorageConfig | undefined,
-		now: number
-	): number {
-		const keys = resolveStorageKeys(config);
-		return newerEpoch(
-			readRawEpoch(readCookieValueFromHeader(cookieHeader, keys.epoch), now),
-			0
-		);
-	};
 
 /**
  * Writes the clear epoch to localStorage and its cookie. Written by

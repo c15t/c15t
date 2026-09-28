@@ -184,3 +184,51 @@ describe('auxiliary projections', () => {
 		expect(read?.ok ? read.record.fingerprint : null).toBe('new');
 	});
 });
+
+describe('vendor copies across a clear', () => {
+	it('does not merge pre-clear cookie denials into a post-clear local list', () => {
+		both(
+			`${STORAGE_KEY_V2}-vendors`,
+			encodeVendorChoiceCompact({
+				confirmedAt: T - 2000,
+				denied: ['vendor-a'],
+				version: 1,
+			}),
+			// After the clear the visitor allowed everything.
+			encodeVendorChoice({ confirmedAt: T - 500, denied: [], version: 1 })
+		);
+		writeStoredClearEpoch(T - 1000, undefined);
+
+		const read = readStoredVendorChoice(undefined, T);
+		expect(read?.ok ? read.record.denied : null).toEqual([]);
+		expect(
+			readStoredRecords(undefined, T).records.vendorChoice?.denied
+		).toEqual([]);
+	});
+
+	it('uses the envelope epoch when the clear key is missing', () => {
+		both(
+			`${STORAGE_KEY_V2}-vendors`,
+			encodeVendorChoiceCompact({
+				confirmedAt: T - 2000,
+				denied: ['vendor-a'],
+				version: 1,
+			}),
+			encodeVendorChoice({ confirmedAt: T - 500, denied: [], version: 1 })
+		);
+		window.localStorage.setItem(
+			STORAGE_KEY_V2,
+			encodeStoredConsentEnvelopeJson({
+				categories: {
+					marketing: { basis, confirmedAt: T - 500, value: true },
+				},
+				epoch: T - 1000,
+				version: 3,
+			})
+		);
+
+		expect(
+			readStoredRecords(undefined, T).records.vendorChoice?.denied
+		).toEqual([]);
+	});
+});
