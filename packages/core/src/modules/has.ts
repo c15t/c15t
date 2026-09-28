@@ -405,10 +405,9 @@ export const evaluateConsent = function evaluateConsent<
 		for (const category of extractConsentNamesFromCondition<AllConsentNames>(
 			target.category
 		)) {
-			const restrictions = effective.restrictions[category] ?? [];
 			if (
 				category !== 'necessary' &&
-				restrictions.some(
+				effective.restrictions[category]?.some(
 					(reason) => !(ignoreRefusal && reason === 'explicit-denial')
 				)
 			) {
