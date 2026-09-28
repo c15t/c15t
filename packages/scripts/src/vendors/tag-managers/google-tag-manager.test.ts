@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 
 import {
 	deniedConsentState,
@@ -31,6 +31,10 @@ describe('googleTagManager', () => {
 		'sends denied defaults to %s before loading the container',
 		(dataLayer) => {
 			const globalRef = getTestGlobal();
+			onTestFinished(() => {
+				delete globalRef[dataLayer];
+				delete globalRef[`${dataLayer}Gtag`];
+			});
 			const script = googleTagManager({
 				dataLayer,
 				id: 'GTM-CUSTOM',
