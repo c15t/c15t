@@ -125,4 +125,79 @@ describe('drafts under a provider whose runtime is replaced', () => {
 			}
 		}
 	);
+
+	// In these layouts the draft store belongs to the switching provider, so
+	// the switch replaces it. (Under an outer draft, the pre-switch store is
+	// the outer one, which still belongs to the outer provider's runtime.)
+	test.each(['ConsentDraftProvider', 'the useConsentDraft fallback'])(
+		'a handle kept from before the switch refuses to save (%s)',
+		async (layout) => {
+			const first = createRuntime();
+			const second = createRuntime();
+			const firstSave = vi.spyOn(first.kernel.commands, 'save');
+			const secondSave = vi.spyOn(second.kernel.commands, 'save');
+			let draft: ConsentDraftHandle | undefined;
+			const onDraft = (value: ConsentDraftHandle) => {
+				draft = value;
+			};
+			const tree = (runtime: ConsentRuntime) =>
+				layouts[layout]?.({
+					first,
+					probe: <DraftProbe onDraft={onDraft} />,
+					runtime,
+				});
+			const screen = await render(tree(first));
+			try {
+				draft?.set('measurement', true);
+				await vi.waitFor(() => expect(draft?.values.measurement).toBe(true));
+				// An async submit that started on the first runtime keeps this.
+				const retained = draft;
+
+				await screen.rerender(tree(second));
+				await vi.waitFor(() => expect(draft).not.toBe(retained));
+
+				await expect(retained?.save()).resolves.toEqual({ ok: false });
+				expect(firstSave).not.toHaveBeenCalled();
+				expect(secondSave).not.toHaveBeenCalled();
+			} finally {
+				screen.unmount();
+				first.dispose();
+				second.dispose();
+			}
+		}
+	);
+
+	test('a handle kept after the preference UI unmounts still saves to its runtime', async () => {
+		const runtime = createRuntime();
+		let draft: ConsentDraftHandle | undefined;
+		const screen = await render(
+			layouts.ConsentDraftProvider?.({
+				first: runtime,
+				probe: (
+					<DraftProbe
+						onDraft={(value) => {
+							draft = value;
+						}}
+					/>
+				),
+				runtime,
+			})
+		);
+		try {
+			draft?.set('measurement', true);
+			await vi.waitFor(() => expect(draft?.values.measurement).toBe(true));
+			const retained = draft;
+			screen.unmount();
+
+			// Same runtime: closing the dialog before an async submit finishes
+			// must not lose the visitor's choice.
+			await expect(retained?.save()).resolves.toMatchObject({ ok: true });
+			expect(
+				runtime.kernel.getSnapshot().explicitChoice?.categories.measurement
+					?.value
+			).toBe(true);
+		} finally {
+			runtime.dispose();
+		}
+	});
 });

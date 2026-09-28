@@ -15,6 +15,7 @@ import {
 	useContext,
 	useEffect,
 	useMemo,
+	useRef,
 	useState,
 	useSyncExternalStore,
 } from 'react';
@@ -164,6 +165,7 @@ const createDraftStore = function createDraftStore(
 ) {
 	let revision = 0;
 	let saveSequence = 0;
+	let retired = false;
 	let source = kernel.getSnapshot();
 	let base = seed(source, defaults);
 	let baseVendors = seedVendors(source);
@@ -318,6 +320,8 @@ const createDraftStore = function createDraftStore(
 			return kernel.subscribe(sync);
 		},
 		getSnapshot: () => current,
+		/** Whether a replacement for another kernel has superseded this draft. */
+		isRetired: () => retired,
 		/** The kernel this draft reads from and saves into. */
 		kernel,
 		rejectAll() {
@@ -331,11 +335,20 @@ const createDraftStore = function createDraftStore(
 			updateVendors(allVendorsOn());
 		},
 		reset,
+		/** Refuse every later save: a store for a new kernel replaced this one. */
+		retire() {
+			retired = true;
+		},
 		async save(
 			input?: SaveInput,
 			categories?: readonly AllConsentNames[],
 			onSuccess?: () => void
 		): Promise<SaveResult> {
+			// A handle kept from before its provider switched runtimes must not
+			// record into the runtime it was created for.
+			if (retired) {
+				return { ok: false };
+			}
 			// Guard against changes between the render and the click as well.
 			if (
 				fingerprint !==
@@ -423,6 +436,18 @@ const useKernelDraftStore = function useKernelDraftStore(
 		kernel,
 		store: createDraftStore(kernel, defaults),
 	}));
+	// Retire the store a replacement superseded, once that replacement has
+	// committed. A handle kept from before the switch, such as an async submit
+	// still in progress, then cannot save into the previous runtime. A store
+	// that only unmounts stays usable: its runtime is still the right one.
+	const previousRef = useRef<DraftStore | null>(null);
+	useEffect(() => {
+		const previous = previousRef.current;
+		previousRef.current = entry.store;
+		if (previous && previous !== entry.store) {
+			previous.retire();
+		}
+	}, [entry.store]);
 	if (entry.kernel === kernel) {
 		return entry.store;
 	}
@@ -478,6 +503,10 @@ const useSaveAction = function useSaveAction(store: DraftStore) {
 	const services = useContext(ProviderServicesContext);
 	return useCallback(
 		(input?: SaveInput) => {
+			// Refuse before touching the previous runtime's UI state.
+			if (store.isRetired()) {
+				return Promise.resolve<SaveResult>({ ok: false });
+			}
 			let current = false;
 			return saveConsentUI(
 				kernel,
