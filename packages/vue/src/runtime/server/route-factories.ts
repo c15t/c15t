@@ -11,6 +11,7 @@ import {
 	MANIFEST_PASSTHROUGH_HEADERS,
 	reportConsentSession,
 	resolveSessionReportBackendURL,
+	withResolutionBudget,
 } from '@c15t/core/transports/manifest-cache';
 import {
 	parsePolicyContractHeader,
@@ -34,7 +35,12 @@ import type { EventHandlerRequest, H3Event } from 'h3';
 import { joinURL } from 'ufo';
 
 import type { ConsentConfig } from '../config';
-import { fetchCachedManifest, resolveManifestInit } from './manifest-mode';
+import {
+	C15T_TIMEOUT_HEADER,
+	fetchCachedManifest,
+	ManifestUnavailableError,
+	resolveManifestInit,
+} from './manifest-mode';
 import type { ManifestFetch } from './manifest-mode';
 
 interface C15TNitroRuntimeConfig {
@@ -139,6 +145,78 @@ export const createManifestRoute = function createManifestRoute(
 	});
 };
 
+/** Longest request-supplied budget honoured, in milliseconds. */
+const MAX_REQUEST_TIMEOUT_MS = 10_000;
+
+/**
+ * The budget the server render asked for with {@link C15T_TIMEOUT_HEADER},
+ * or `undefined` when the request carries none (a browser's own init).
+ */
+const readRequestTimeoutMs = function readRequestTimeoutMs(
+	value: string | undefined
+): number | undefined {
+	if (value === undefined || !/^\d+$/u.test(value.trim())) {
+		return undefined;
+	}
+	return Math.min(Number.parseInt(value.trim(), 10), MAX_REQUEST_TIMEOUT_MS);
+};
+
+/**
+ * Whether a failed manifest read may fall back to backend `/init`. It may for
+ * a backend that has no `/manifest` (404) and for the request that saw the
+ * failure itself. It may not when the render budget ran out, or while the
+ * key is backing off after a failure: sending every one of those requests to
+ * `/init` would put the load the backoff removes back on the same backend.
+ */
+const canFallBackToInit = function canFallBackToInit(cause: unknown): boolean {
+	if (!(cause instanceof ManifestUnavailableError)) {
+		return true;
+	}
+	if (cause.reason === 'timeout') {
+		return false;
+	}
+	return (cause.cause as { status?: unknown } | undefined)?.status === 404;
+};
+
+/**
+ * Tracks what is left of the render budget from when the init route started.
+ * Every upstream wait after the manifest read (the vendor list, the `/init`
+ * fallback) must fit in the same budget, not restart it.
+ */
+const createRouteBudget = function createRouteBudget(
+	budgetMs: number | undefined
+) {
+	const startedAt = Date.now();
+	const remaining = (): number | undefined =>
+		budgetMs === undefined ? undefined : budgetMs - (Date.now() - startedAt);
+	return {
+		/** Settles with `task`, or rejects once the budget runs out. */
+		bound: <Value>(task: Promise<Value>): Promise<Value> =>
+			withResolutionBudget(task, remaining()),
+		/** Whether the render budget has already run out. */
+		expired: (): boolean => {
+			const left = remaining();
+			return left !== undefined && left <= 0;
+		},
+		remaining,
+	};
+};
+
+/** Swallows a promise's outcome, for work handed to the platform. */
+const settle = async function settle(task: Promise<unknown>): Promise<void> {
+	try {
+		await task;
+	} catch {
+		// The next request retries; the platform only keeps this one alive.
+	}
+};
+
+const isBudgetTimeout = function isBudgetTimeout(error: unknown): boolean {
+	return (
+		error instanceof ManifestUnavailableError && error.reason === 'timeout'
+	);
+};
+
 const negotiateInit = function negotiateInit(
 	output: InitOutput,
 	clientContract: string | undefined
@@ -179,21 +257,41 @@ export const createInitRoute = function createInitRoute(
 			String(POLICY_CONTRACT_VERSION)
 		);
 		const headers = getRequestHeaders(event);
+		const timeoutMs = readRequestTimeoutMs(headers[C15T_TIMEOUT_HEADER]);
+		const budget = createRouteBudget(timeoutMs);
+		const background = bindBackgroundRevalidate(dependencies, event);
 
 		try {
 			const manifest = await fetchCachedManifest({
 				config,
 				fetch: dependencies.fetch,
-				onBackgroundRevalidate: bindBackgroundRevalidate(dependencies, event),
+				onBackgroundRevalidate: background,
+				timeoutMs,
 			});
-			const load = (language: string) =>
-				manifest.manifest.iab?.gvl
-					? fetchCachedGvl({
-							fetch: dependencies.fetch as typeof globalThis.fetch,
-							language,
-							url: manifest.manifest.iab.gvl.url,
-						})
-					: Promise.resolve(null);
+			const gvlSource = manifest.manifest.iab?.gvl;
+			const load = async (language: string) => {
+				if (!gvlSource) {
+					return null;
+				}
+				const fill = fetchCachedGvl({
+					fetch: dependencies.fetch as typeof globalThis.fetch,
+					language,
+					url: gvlSource.url,
+				});
+				try {
+					return await budget.bound(fill);
+				} catch (error) {
+					if (isBudgetTimeout(error)) {
+						// Let the list finish filling the cache for the next render.
+						try {
+							background(settle(fill));
+						} catch {
+							// Registration is best effort; the fetch runs either way.
+						}
+					}
+					throw error;
+				}
+			};
 			const listResponse = await serveGvlReference(
 				new Request(getRequestURL(event)),
 				load
@@ -235,8 +333,16 @@ export const createInitRoute = function createInitRoute(
 		} catch (cause) {
 			// Older backends may not expose /manifest; fall back to GET /init
 			// through the same fetch adapter so relative backend URLs work.
-			if (!config.backendURL) {
+			if (!config.backendURL || !canFallBackToInit(cause)) {
 				throw cause;
+			}
+			if (budget.expired()) {
+				// The manifest read used the whole render budget.
+				throw new ManifestUnavailableError(
+					'timeout',
+					`c15t: consent resolution did not finish within ${timeoutMs} ms.`,
+					{ cause }
+				);
 			}
 			const forward: Record<string, string> = { ...c15tProtocolHeaders };
 			for (const key of [
@@ -255,16 +361,25 @@ export const createInitRoute = function createInitRoute(
 					forward[key] = value;
 				}
 			}
-			const response = await dependencies.fetch(
-				joinURL(config.backendURL, '/init'),
-				{
-					headers: forward,
-				}
-			);
-			if (!response.ok) {
-				throw cause;
+			const initURL = joinURL(config.backendURL, '/init');
+			const initRequest: RequestInit = { headers: forward };
+			const left = budget.remaining();
+			if (left !== undefined) {
+				// Cancels a real request; the race below covers Nitro's local fetch.
+				initRequest.signal = AbortSignal.timeout(left);
 			}
-			const payload = (await response.json()) as InitOutput;
+			const { payload, response } = await budget.bound(
+				(async () => {
+					const upstream = await dependencies.fetch(initURL, initRequest);
+					if (!upstream.ok) {
+						throw cause;
+					}
+					return {
+						payload: (await upstream.json()) as InitOutput,
+						response: upstream,
+					};
+				})()
+			);
 			const declaration = response.headers.get(POLICY_CONTRACT_HEADER);
 			const producerContract =
 				declaration === null

@@ -8,6 +8,7 @@
  */
 
 import type { KernelConfig } from '@c15t/core';
+import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { resolveConsent as baseResolveConsent } from '../server';
@@ -49,6 +50,8 @@ const resolveConsent = (
 beforeEach(() => {
 	cookieStore.clear();
 	headerStore.clear();
+	// resolveConsent reads manifests through the shared in-process cache.
+	clearManifestCache();
 });
 
 afterEach(() => {
