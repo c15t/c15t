@@ -243,7 +243,14 @@ const ConsentWidgetAccordionRow = ({
 						noStyle
 						slotKey="accordion.arrow"
 					>
-						{open ? <CloseIcon /> : <OpenIcon />}
+						{/* Decorative: the trigger's name is the category title and
+						    `aria-expanded` carries the state, so the icon stays out
+						    of the accessible name in every framework. */}
+						{open ? (
+							<CloseIcon aria-hidden="true" />
+						) : (
+							<OpenIcon aria-hidden="true" />
+						)}
 					</ConsentWidgetAccordionArrow>
 					<PreferenceItem.Header
 						noStyle

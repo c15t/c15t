@@ -310,6 +310,7 @@ const onAction = async function onAction(action: PresentationAction) {
 								stroke-linejoin="round"
 								stroke-width="2"
 								viewBox="0 0 24 24"
+								aria-hidden="true"
 							>
 								<title>{{ isOpen(category) ? 'Close' : 'Open' }}</title>
 								<path :d="isOpen(category) ? 'M5 12h14' : 'M5 12h14M12 5v14'" />
