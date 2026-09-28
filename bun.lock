@@ -930,7 +930,7 @@
     },
     "packages/astro": {
       "name": "@c15t/astro",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/iab": "workspace:*",
@@ -972,7 +972,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/browser": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -1013,7 +1013,7 @@
     },
     "packages/browser": {
       "name": "@c15t/browser",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
@@ -1034,7 +1034,7 @@
     },
     "packages/c15t": {
       "name": "c15t",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/astro": "workspace:*",
         "@c15t/core": "workspace:*",
@@ -1050,7 +1050,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "bin": {
         "c15t": "dist/bin.mjs",
         "cli": "dist/bin.mjs",
@@ -1089,7 +1089,7 @@
     },
     "packages/core": {
       "name": "@c15t/core",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -1105,7 +1105,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/core": "workspace:*",
       },
@@ -1120,7 +1120,7 @@
     },
     "packages/iab": {
       "name": "@c15t/iab",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -1150,7 +1150,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/react": "workspace:*",
@@ -1177,7 +1177,7 @@
     },
     "packages/node-sdk": {
       "name": "@c15t/node-sdk",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -1199,7 +1199,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
@@ -1230,7 +1230,7 @@
     },
     "packages/schema": {
       "name": "@c15t/schema",
-      "version": "3.0.0-alpha.1",
+      "version": "3.0.0-alpha.2",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "base-x": "5.0.1",
@@ -1244,7 +1244,7 @@
     },
     "packages/scripts": {
       "name": "@c15t/scripts",
-      "version": "3.0.0-alpha.1",
+      "version": "3.0.0-alpha.2",
       "dependencies": {
         "@c15t/core": "workspace:*",
       },
@@ -1271,7 +1271,7 @@
     },
     "packages/svelte": {
       "name": "@c15t/svelte",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
@@ -1308,7 +1308,7 @@
     },
     "packages/tanstack-start": {
       "name": "@c15t/tanstack-start",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/react": "workspace:*",
@@ -1349,7 +1349,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -1366,7 +1366,7 @@
     },
     "packages/vue": {
       "name": "@c15t/vue",
-      "version": "3.0.0-alpha.2",
+      "version": "3.0.0-alpha.3",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/dev-tools": "workspace:*",

@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/react': patch
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
 ---
 
 ### Follow a replacement runtime in `ConsentProvider`

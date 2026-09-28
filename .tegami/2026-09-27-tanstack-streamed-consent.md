@@ -1,6 +1,8 @@
 ---
 packages:
-  "@c15t/tanstack-start": minor
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
 ---
 
 ### Stream the page while consent resolves in TanStack Start

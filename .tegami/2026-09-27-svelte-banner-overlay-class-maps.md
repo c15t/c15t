@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/svelte': patch
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
 ---
 
 ### Keep the dialog and IAB styles out of the Svelte banner's first load

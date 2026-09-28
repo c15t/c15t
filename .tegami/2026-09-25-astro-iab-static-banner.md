@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/astro': patch
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### Show the Astro IAB banner on prerendered hosted and manifest pages

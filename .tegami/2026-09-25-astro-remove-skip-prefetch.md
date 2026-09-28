@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/astro': patch
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### Remove `skipPrefetch` from `resolveConsentContext`

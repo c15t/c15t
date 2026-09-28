@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/astro': patch
-  '@c15t/cli': patch
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Ship Astro consent styles automatically

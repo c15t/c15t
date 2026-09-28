@@ -1,12 +1,26 @@
 ---
 packages:
-  c15t: major
-  "@c15t/react": major
-  "@c15t/nextjs": major
-  "@c15t/tanstack-start": major
-  "@c15t/svelte": major
-  "@c15t/astro": minor
-  "@c15t/ui": minor
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
 ---
 
 ### Render theme CSS on the server
