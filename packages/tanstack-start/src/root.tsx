@@ -1,6 +1,6 @@
 'use client';
 
-import type { KernelOverrides, Vendor } from '@c15t/core';
+import type { KernelOverrides, KernelTransport, Vendor } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
 /**
  * Client root for the TanStack Start adapter.
@@ -14,7 +14,7 @@ import type { Script } from '@c15t/core/modules/script-loader';
  * create their own kernel from the same serialized value, which is what
  * keeps the first paint and the hydrated tree identical.
  */
-import { hosted, offline } from '@c15t/react';
+import { hosted } from '@c15t/react';
 import type { ProviderTransportFactory } from '@c15t/react';
 import type {
 	UseNetworkBlockerOptions,
@@ -128,6 +128,39 @@ export interface ConsentRootProps {
 	children: ReactNode;
 }
 
+/**
+ * Offline mode that loads `offline()` on first init. `offline()` carries
+ * the recommended policy-rule pack, so a static import would ship that pack
+ * to every app that renders the root with a backend URL, where it never runs.
+ */
+const lazyOffline = function lazyOffline(): ProviderTransportFactory {
+	return Object.assign(
+		(context: Parameters<ProviderTransportFactory>[0]): KernelTransport => {
+			let transportPromise: Promise<KernelTransport> | undefined;
+			const load = function load(): Promise<KernelTransport> {
+				transportPromise ??= (async () => {
+					try {
+						const { offline } = await import('./offline-mode');
+						return offline()(context);
+					} catch (error) {
+						// Let the kernel's retry make a fresh import attempt.
+						transportPromise = undefined;
+						throw error;
+					}
+				})();
+				return transportPromise;
+			};
+			return {
+				async init(ctx) {
+					const transport = await load();
+					return (await transport.init?.(ctx)) ?? {};
+				},
+			};
+		},
+		{ kind: 'offline' as const }
+	);
+};
+
 const resolveMode = function resolveMode(
 	backendURL: string | undefined,
 	initRoute: string | false | undefined,
@@ -136,7 +169,7 @@ const resolveMode = function resolveMode(
 	overrides: KernelOverrides | undefined
 ): ProviderTransportFactory {
 	if (!backendURL) {
-		return offline();
+		return lazyOffline();
 	}
 	if (initRoute === false) {
 		return hosted({ initialData, url: backendURL });
