@@ -608,28 +608,12 @@ const categoriesSinceEpoch = function categoriesSinceEpoch(
 };
 
 /**
- * The cookie record with every newer localStorage denial applied, or the
- * cookie record itself when there is none.
- *
- * The cookie stays authoritative: a well-formed cookie wins even when it is
- * expired, so a stale local copy can never resurrect authority the cookie
- * no longer carries. But a browser can drop a cookie write (over the size
- * limit, say) while localStorage takes it, and then the cookie holds an
- * older choice. A local denial newer than the cookie's decision for that
- * category is therefore applied on top of it; a newer local grant never
- * is, so the result only ever moves toward less permission.
- *
- * When the two were written under different clear epochs, both are first
- * cut to the later one: each side's decisions from before it are void. The
- * same rule then applies, so a later epoch never lets a local grant replace
- * a cookie denial.
- */
-/**
  * The cookie record, carrying the local copy's subject when the two hold
  * exactly the same decisions but different subjects. A subject-only
  * rewrite (the id a save response resolved) changes nothing else, so this
- * is the cookie write the browser dropped, most often for size; a failed
- * localStorage write is reported and a blocked one leaves no copy at all.
+ * is the cookie write the browser dropped, most often for size. The local
+ * copy is never the stale one: a localStorage write that fails while the
+ * cookie write lands removes it, and a blocked one leaves no copy at all.
  */
 const withLocalSubject = function withLocalSubject(
 	cookie: DecodedStoredConsent,
@@ -646,6 +630,23 @@ const withLocalSubject = function withLocalSubject(
 	return { ...cookie, subject: local.subject };
 };
 
+/**
+ * The cookie record with every newer localStorage denial applied, or the
+ * cookie record itself when there is none.
+ *
+ * The cookie stays authoritative: a well-formed cookie wins even when it is
+ * expired, so a stale local copy can never resurrect authority the cookie
+ * no longer carries. But a browser can drop a cookie write (over the size
+ * limit, say) while localStorage takes it, and then the cookie holds an
+ * older choice. A local denial newer than the cookie's decision for that
+ * category is therefore applied on top of it; a newer local grant never
+ * is, so the result only ever moves toward less permission.
+ *
+ * When the two were written under different clear epochs, both are first
+ * cut to the later one: each side's decisions from before it are void. The
+ * same rule then applies, so a later epoch never lets a local grant replace
+ * a cookie denial.
+ */
 const withNewerLocalDenials = function withNewerLocalDenials(
 	cookie: DecodedStoredConsent,
 	local: DecodedStoredConsent
@@ -822,11 +823,12 @@ const removeLocalStorageKey = function removeLocalStorageKey(
  * under the configured key. The envelope is validated first and nothing
  * is written when it is malformed. Category times are written exactly as
  * given; this function never stamps the clock. The legacy localStorage
- * key is left untouched. `written.cookie` is true only when the cookie
- * assignment ran and the value read back equals what was written;
- * `written.cookieDetail` separates a thrown assignment (`attempted:
- * false`, with the error) from a silent browser drop (`attempted: true,
- * verified: false`).
+ * key is left untouched. When localStorage rejects the write but the cookie
+ * takes it, the older localStorage copy is removed. `written.cookie` is
+ * true only when the cookie assignment ran and the value read back equals
+ * what was written; `written.cookieDetail` separates a thrown assignment
+ * (`attempted: false`, with the error) from a silent browser drop
+ * (`attempted: true, verified: false`).
  */
 export const writeStoredConsentEnvelope = function writeStoredConsentEnvelope(
 	envelope: StoredConsentEnvelope,
@@ -850,12 +852,18 @@ export const writeStoredConsentEnvelope = function writeStoredConsentEnvelope(
 	if (!cookieDetail.attempted && cookieDetail.error !== undefined) {
 		console.warn('Failed to save consent to cookie:', cookieDetail.error);
 	}
+	const cookieWritten = cookieDetail.attempted && cookieDetail.verified;
+	// The local copy is now older than the cookie. Reads trust its subject
+	// when the decisions match (see `withLocalSubject`), so remove it.
+	if (!localStorageWritten && cookieWritten) {
+		removeLocalStorageKey(keys.consent);
+	}
 
 	return {
 		envelope: validated.record,
 		ok: true,
 		written: {
-			cookie: cookieDetail.attempted && cookieDetail.verified,
+			cookie: cookieWritten,
 			cookieDetail,
 			localStorage: localStorageWritten,
 		},

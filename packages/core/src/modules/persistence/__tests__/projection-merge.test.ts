@@ -6,7 +6,7 @@
  * must never keep an older, more permissive copy in force, and must never
  * carry identity from before a clear into records written after it.
  */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ChoiceBasis, PrivacyOptOut } from '../../../consent-record/types';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
@@ -28,6 +28,7 @@ import {
 	readStoredPrivacyOptOuts,
 	readStoredVendorChoice,
 	writeStoredClearEpoch,
+	writeStoredConsentEnvelope,
 } from '../record-storage';
 
 const T = 1_800_000_000_000;
@@ -44,7 +45,10 @@ const clearAll = () => {
 };
 
 beforeEach(clearAll);
-afterEach(clearAll);
+afterEach(() => {
+	vi.restoreAllMocks();
+	clearAll();
+});
 
 const both = (key: string, cookie: string, local: string) => {
 	document.cookie = `${key}=${cookie}; path=/`;
@@ -307,5 +311,32 @@ describe('consent envelope ties between the copies', () => {
 
 		const { records } = readStoredRecords(undefined, T);
 		expect(records.subject?.subjectId).toBe('sub_server');
+	});
+
+	it('keeps the cookie subject when the localStorage write failed', () => {
+		const categories = { marketing: at(false, T - 1000) };
+		const envelope = (subjectId: string): StoredConsentEnvelope => ({
+			categories,
+			subject: { subjectId },
+			version: 3,
+		});
+		writeStoredConsentEnvelope(envelope('sub_old'), { now: T });
+
+		// localStorage is full: the next write reaches only the cookie.
+		const setItem = vi
+			.spyOn(window.localStorage, 'setItem')
+			.mockImplementation(() => {
+				throw new DOMException('Quota exceeded', 'QuotaExceededError');
+			});
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const result = writeStoredConsentEnvelope(envelope('sub_new'), { now: T });
+		setItem.mockRestore();
+		expect(result.ok && result.written).toMatchObject({
+			cookie: true,
+			localStorage: false,
+		});
+
+		const { records } = readStoredRecords(undefined, T);
+		expect(records.subject?.subjectId).toBe('sub_new');
 	});
 });

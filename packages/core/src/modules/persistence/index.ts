@@ -73,7 +73,6 @@ import type { StoredIabMetadata } from './record-codec';
 import {
 	clearStoredConsentRecords,
 	readStoredClearEpoch,
-	readStoredVendorChoice,
 	resolveStorageKeys,
 	writeStoredClearEpoch,
 } from './record-storage';
@@ -341,7 +340,9 @@ export const createPersistence = function createPersistence(
 			return;
 		}
 		writePrivacyToStorage({ ...snapshot, optOutDirectives }, storageConfig, at);
-		for (const directive of snapshot.optOutDirectives) {
+		// The merge kept other runtimes' directives; this write stored them
+		// too, so it restores them if a concurrent write drops them.
+		for (const directive of optOutDirectives) {
 			ownDirectives.set(directiveIdentity(directive), directive);
 		}
 		observe('privacy');
@@ -424,83 +425,60 @@ export const createPersistence = function createPersistence(
 	};
 
 	/**
-	 * A server prefetch seeds the kernel from the cookie alone. The vendor
-	 * record keeps a localStorage copy that outlives a cookie the browser
-	 * dropped, most often because many denied ids pushed it past the
-	 * per-cookie limit, so the seeded list can be older than what this
-	 * browser last saved. Read both projections and apply the newer one
-	 * before any gate consults the denials; the category records stay as
-	 * seeded.
+	 * A server prefetch seeds the kernel from the cookie alone, and the seed
+	 * stays authoritative (`skipHydration`). But a browser can drop a cookie
+	 * write while localStorage takes it, so a newer record may exist only
+	 * there. A newer denial or privacy directive only restricts, so it is
+	 * applied on top of the seed; a stored grant never is. A denial from the
+	 * same millisecond as a seeded grant counts as newer. The vendor record
+	 * outlives a dropped cookie most often, since many denied ids push it
+	 * past the per-cookie limit, so a newer stored one replaces the seeded
+	 * list before any gate consults the denials.
 	 */
-	const reconcileVendorChoice = function reconcileVendorChoice(): void {
+	const applyNewerStoredRecords = function applyNewerStoredRecords(): void {
 		if (typeof document === 'undefined') {
 			return;
 		}
 		const at = now();
-		const stored = readStoredVendorChoice(storageConfig, at);
-		if (!stored?.ok) {
-			return;
+		const { records } = readStoredRecordsForReconcile(storageConfig, at);
+		const snapshot = kernel.getSnapshot();
+		const patch: HydrationRecords = {};
+		const seeded = snapshot.explicitChoice?.categories ?? {};
+		const denials = Object.entries(records.choice?.categories ?? {}).filter(
+			([category, decision]) => {
+				const current = seeded[category as keyof typeof seeded];
+				return (
+					decision?.value === false &&
+					(!current ||
+						decision.confirmedAt > current.confirmedAt ||
+						(decision.confirmedAt === current.confirmedAt && current.value))
+				);
+			}
+		);
+		if (denials.length > 0) {
+			patch.choice = {
+				categories: { ...seeded, ...Object.fromEntries(denials) },
+				version: 3,
+			};
 		}
-		const current = kernel.getSnapshot().vendorChoice;
+		const directives = mergeDirectives(
+			snapshot.optOutDirectives,
+			records.optOutDirectives ?? []
+		);
+		if (directives.length > snapshot.optOutDirectives.length) {
+			patch.optOutDirectives = directives;
+		}
+		const { vendorChoice } = records;
 		if (
-			(current && current.confirmedAt >= stored.record.confirmedAt) ||
-			stored.record.confirmedAt < readStoredClearEpoch(storageConfig, at)
+			vendorChoice &&
+			vendorChoice.confirmedAt > (snapshot.vendorChoice?.confirmedAt ?? -1)
 		) {
-			return;
+			patch.vendorChoice = vendorChoice;
 		}
-		kernel.hydrate({
-			now: at,
-			vendorChoice: {
-				confirmedAt: stored.record.confirmedAt,
-				denied: stored.record.denied,
-				version: stored.record.version,
-			},
-		});
+		if (Object.keys(patch).length > 0) {
+			kernel.hydrate({ ...patch, now: at });
+		}
 	};
-
-	/**
-	 * A server prefetch seeds the kernel from the cookie alone, and the seed
-	 * stays authoritative (`skipHydration`): nothing stored replaces it. But a
-	 * browser can drop a cookie write while localStorage takes it, so a newer
-	 * denial or privacy directive may exist only there. Those only restrict,
-	 * so they are applied on top of the seed; a stored grant never is.
-	 */
-	const applyNewerStoredRestrictions =
-		function applyNewerStoredRestrictions(): void {
-			if (typeof document === 'undefined') {
-				return;
-			}
-			const at = now();
-			const { records } = readStoredRecordsForReconcile(storageConfig, at);
-			const snapshot = kernel.getSnapshot();
-			const patch: HydrationRecords = {};
-			const seeded = snapshot.explicitChoice?.categories ?? {};
-			const denials = Object.entries(records.choice?.categories ?? {}).filter(
-				([category, decision]) => {
-					const current = seeded[category as keyof typeof seeded];
-					return (
-						decision?.value === false &&
-						(!current || decision.confirmedAt > current.confirmedAt)
-					);
-				}
-			);
-			if (denials.length > 0) {
-				patch.choice = {
-					categories: { ...seeded, ...Object.fromEntries(denials) },
-					version: 3,
-				};
-			}
-			const directives = mergeDirectives(
-				snapshot.optOutDirectives,
-				records.optOutDirectives ?? []
-			);
-			if (directives.length > snapshot.optOutDirectives.length) {
-				patch.optOutDirectives = directives;
-			}
-			if (Object.keys(patch).length > 0) {
-				kernel.hydrate({ ...patch, now: at });
-			}
-		};
 
 	const hydrate = function hydrate(): boolean {
 		// An explicit choice may still be queued. Land it first so
@@ -528,16 +506,38 @@ export const createPersistence = function createPersistence(
 	});
 
 	/**
+	 * Directives this runtime stored that a concurrent write dropped and the
+	 * clear epoch has not voided. An emptied list is a clear, not a lost
+	 * write, so it returns none.
+	 */
+	const lostDirectives = function lostDirectives(
+		read: StoredRead
+	): PrivacyOptOut[] {
+		const stored = read.records.optOutDirectives;
+		if (!stored?.length) {
+			return [];
+		}
+		const present = new Set(stored.map(directiveIdentity));
+		return directivesSinceEpoch([...ownDirectives.values()], read.epoch).filter(
+			(directive) => !present.has(directiveIdentity(directive))
+		);
+	};
+
+	/**
 	 * Schedule the writes that restore what this runtime stored and another
 	 * runtime then wrote over. localStorage has no compare-and-swap, so two
 	 * tabs can both read before either writes and the second write drops the
 	 * first tab's category or directive. A decision is written back only when
 	 * this runtime stored it, still holds it, and storage holds nothing as
-	 * new for that category; a directive, when storage lacks it. Nothing the
-	 * clear epoch voids or another runtime replaced comes back, and once
-	 * storage holds the union no tab writes again.
+	 * new for that category; a directive, when storage lost it
+	 * (`lostDirectiveList`, which reconciliation has already put back in
+	 * memory). Nothing the clear epoch voids or another runtime replaced
+	 * comes back, and once storage holds the union no tab writes again.
 	 */
-	const restoreLostWrites = function restoreLostWrites(read: StoredRead): void {
+	const restoreLostWrites = function restoreLostWrites(
+		read: StoredRead,
+		lostDirectiveList: readonly PrivacyOptOut[]
+	): void {
 		const snapshot = kernel.getSnapshot();
 		const storedChoice = read.records.choice;
 		if (storedChoice !== undefined) {
@@ -567,16 +567,8 @@ export const createPersistence = function createPersistence(
 				choiceWrites.schedule();
 			}
 		}
-		const storedDirectives = read.records.optOutDirectives;
-		if (storedDirectives !== undefined) {
-			const present = new Set(storedDirectives.map(directiveIdentity));
-			const held = new Set(snapshot.optOutDirectives.map(directiveIdentity));
-			const lost = [...ownDirectives.keys()].some(
-				(key) => held.has(key) && !present.has(key)
-			);
-			if (lost) {
-				privacyWrites.schedule();
-			}
+		if (lostDirectiveList.length > 0) {
+			privacyWrites.schedule();
 		}
 	};
 
@@ -605,11 +597,25 @@ export const createPersistence = function createPersistence(
 		unadopted.clear();
 		rememberSubject(stored.records);
 		memoryEpoch = stored.epoch;
-		if (!next.records) {
-			restoreLostWrites(stored);
+		let { records } = next;
+		if (records?.optOutDirectives?.length === 0) {
+			// The list was cleared: nothing stored before it is lost.
+			ownDirectives.clear();
+		}
+		// Directives a concurrent write dropped are this runtime's to restore.
+		// Memory may never have held one the merge kept from storage.
+		const lost = lostDirectives(stored);
+		const held =
+			records?.optOutDirectives ?? kernel.getSnapshot().optOutDirectives;
+		const directives = mergeDirectives(held, lost);
+		if (directives.length > held.length) {
+			records = { ...records, now: at, optOutDirectives: directives };
+		}
+		if (!records) {
+			restoreLostWrites(stored, lost);
 			return false;
 		}
-		const result = kernel.hydrate(next.records);
+		const result = kernel.hydrate(records);
 		if (result.ok === false) {
 			console.warn(
 				'[c15t] Stored consent records were rejected.',
@@ -617,10 +623,10 @@ export const createPersistence = function createPersistence(
 			);
 			return false;
 		}
-		if (next.records.choice !== undefined) {
-			storedIab = next.records.choice ? stored.iab : null;
+		if (records.choice !== undefined) {
+			storedIab = records.choice ? stored.iab : null;
 		}
-		restoreLostWrites(stored);
+		restoreLostWrites(stored, lost);
 		return result.changed;
 	};
 
@@ -669,8 +675,7 @@ export const createPersistence = function createPersistence(
 	};
 
 	if (options.skipHydration) {
-		reconcileVendorChoice();
-		applyNewerStoredRestrictions();
+		applyNewerStoredRecords();
 		observe();
 	} else {
 		hydrate();

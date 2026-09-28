@@ -1373,6 +1373,83 @@ test('a server-seeded runtime applies a newer denial that only reached localStor
 	expect(measurement(active)).toBe(false);
 });
 
+test('a server-seeded runtime applies a same-millisecond denial that only reached localStorage', () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	const basis = {
+		fingerprint: resolution.fingerprints.choice,
+		kind: 'choice-v1' as const,
+	};
+	const grant = {
+		categories: { measurement: { basis, confirmedAt: T - 1000, value: true } },
+		version: 3 as const,
+	};
+	// Two tabs decided in the same millisecond. The denial's cookie write was
+	// dropped, so the server rendered with the grant.
+	document.cookie = `c15t=${encodeStoredConsentEnvelopeCompact(grant)}; path=/`;
+	localStorage.setItem(
+		'c15t',
+		JSON.stringify({
+			categories: {
+				measurement: { basis, confirmedAt: T - 1000, value: false },
+			},
+			version: 3,
+		})
+	);
+	expect(
+		readStoredConsentRecord(undefined, T).selected?.choice.categories
+			.measurement?.value
+	).toBe(false);
+
+	const active = start({
+		prefetch: {
+			initialPolicyResolution: resolution,
+			initialRecords: { choice: grant, now: T },
+		},
+	});
+	expect(measurement(active)).toBe(false);
+});
+
+test('a directive this runtime merged from storage is written back after a concurrent write drops it', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	resolution = matchedResolution(
+		optOutRule({ privacySignals: { gpc: { denyCategories: ['measurement'] } } })
+	);
+	const active = start();
+	// Another tab stored a directive this runtime has not read yet. This
+	// runtime's own write keeps it.
+	writeStoredPrivacyOptOuts(
+		[{ categories: ['marketing'], recordedAt: T - 500, source: 'gpc' }],
+		undefined,
+		T
+	);
+	active.kernel.set.privacySignals({ gpc: true });
+	await nextTask();
+	const [own] = active.kernel.getSnapshot().optOutDirectives;
+	const stored = () => {
+		const read = readStoredPrivacyOptOuts(undefined, Date.now());
+		return read?.ok
+			? read.record.directives.map((entry) => entry.recordedAt).sort()
+			: [];
+	};
+	expect(stored()).toEqual([T - 500, own?.recordedAt].sort());
+
+	// That tab has closed. A writer that read storage before either directive
+	// landed stores only its own.
+	vi.setSystemTime(T + 1000);
+	writeStoredPrivacyOptOuts(
+		[{ categories: ['measurement'], recordedAt: T + 500, source: 'gpc' }],
+		undefined,
+		T + 1000
+	);
+
+	active.reconcileStorage();
+	await nextTask();
+	expect(stored()).toEqual([T - 500, own?.recordedAt, T + 500].sort());
+	expect(directiveCategories(active)).toContain('marketing');
+});
+
 test('a clear after the clock went back more than an hour keeps a readable epoch', () => {
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.setSystemTime(T);
