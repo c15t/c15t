@@ -26,6 +26,7 @@
  * subscription. Per-iframe state is derived from the DOM at check time,
  * so multiple instances produce the same result.
  */
+import type { AllConsentNames } from '../../consent/consent-types';
 import { declareOwnedVendors, forgetOwnedVendors } from '../../libs/vendors';
 import type { VendorOwner } from '../../libs/vendors';
 import {
@@ -33,7 +34,7 @@ import {
 	determineCategory,
 	determineVendor,
 	reconcileAllIframes,
-	reconcileIframe,
+	reconcileIframeSafely,
 } from './reconcile';
 import type { IframeBlockerHandle, IframeBlockerOptions } from './types';
 
@@ -81,6 +82,30 @@ const addIframes = function addIframes(
 	}
 };
 
+interface IframeGate {
+	category: AllConsentNames | null | undefined;
+	isConnected: boolean;
+	vendor: string | undefined;
+}
+
+/**
+ * Read what an iframe is gated on. `null` for an iframe page script can't
+ * read (see `isIframe`), so it is skipped instead of stopping the pass.
+ */
+const readGate = function readGate(
+	iframe: HTMLIFrameElement
+): IframeGate | null {
+	try {
+		return {
+			category: determineCategory(iframe),
+			isConnected: iframe.isConnected !== false,
+			vendor: determineVendor(iframe),
+		};
+	} catch {
+		return null;
+	}
+};
+
 export const createIframeBlocker = function createIframeBlocker(
 	options: IframeBlockerOptions
 ): IframeBlockerHandle {
@@ -122,12 +147,12 @@ export const createIframeBlocker = function createIframeBlocker(
 		return [...seen.values()];
 	};
 	const registerIframes = (iframes: Iterable<HTMLIFrameElement>) => {
-		const list = Array.from(iframes);
+		const list = Array.from(iframes).flatMap((iframe) => {
+			const gate = readGate(iframe);
+			return gate ? [{ ...gate, iframe }] : [];
+		});
 		kernel.set.registerConsentCategories(
-			list.flatMap((iframe) => {
-				const category = determineCategory(iframe);
-				return category ? [category] : [];
-			})
+			list.flatMap(({ category }) => (category ? [category] : []))
 		);
 		// Declare the slugs the frames name, the way scripts and rules do, so
 		// a stored denial keeps gating them before a backend declaration of
@@ -135,10 +160,8 @@ export const createIframeBlocker = function createIframeBlocker(
 		// category to declare under; `reconcileIframe` holds it against the
 		// stored denial directly instead.
 		const before = new Set(currentOwners().map(ownerKey));
-		for (const iframe of list) {
-			const vendor = determineVendor(iframe);
-			const category = determineCategory(iframe);
-			if (vendor && category && iframe.isConnected !== false) {
+		for (const { category, iframe, isConnected, vendor } of list) {
+			if (vendor && category && isConnected) {
 				framed.set(iframe, { category, vendor });
 			} else {
 				framed.delete(iframe);
@@ -148,12 +171,11 @@ export const createIframeBlocker = function createIframeBlocker(
 		// here: one that left the page, or stayed but dropped its gate
 		// attributes, takes its declaration with it. Without an observer,
 		// under `disableAutomaticBlocking`, this is the only place that can.
+		// A frame page script can no longer read keeps its declaration:
+		// nothing shows it left or changed, and `dispose` still drops it.
 		for (const iframe of [...framed.keys()]) {
-			if (
-				iframe.isConnected === false ||
-				!determineVendor(iframe) ||
-				!determineCategory(iframe)
-			) {
+			const gate = readGate(iframe);
+			if (gate && !(gate.isConnected && gate.vendor && gate.category)) {
 				framed.delete(iframe);
 			}
 		}
@@ -193,7 +215,7 @@ export const createIframeBlocker = function createIframeBlocker(
 		registerIframes(iframes);
 		const pass = buildReconcilePass(kernel.getSnapshot());
 		for (const iframe of iframes) {
-			reconcileIframe(iframe, pass);
+			reconcileIframeSafely(iframe, pass);
 		}
 	});
 

@@ -283,6 +283,43 @@ describe('frames the watcher holds before the blocker loads', () => {
 		expect(iframe.getAttribute('data-src')).toBe(FRAME_URL);
 	});
 
+	test('holds a frame added in the same batch as an iframe page script cannot read', async () => {
+		const watch = watchAndRecord(kernelWithVendorChoice(['youtube']));
+		const unreadable = document.createElement('iframe');
+		unreadable.setAttribute('data-category', 'marketing');
+		Object.defineProperty(unreadable, 'getAttribute', {
+			value() {
+				throw new Error('Permission denied to access property "getAttribute"');
+			},
+		});
+		const iframe = document.createElement('iframe');
+		iframe.setAttribute('data-category', 'marketing');
+		iframe.setAttribute('data-vendor', 'youtube');
+		iframe.setAttribute('sandbox', '');
+		iframe.setAttribute('src', FRAME_URL);
+		document.body.append(unreadable, iframe);
+		await sleep(20);
+		watch.stop();
+		unreadable.remove();
+
+		expect(iframe.getAttribute('src')).toBeNull();
+		expect(iframe.getAttribute('data-src')).toBe(FRAME_URL);
+	});
+
+	test('holds a frame with an empty data-category', async () => {
+		const watch = watchAndRecord(kernelWithVendorChoice([]));
+		const iframe = insertFrame({
+			'data-category': '',
+			sandbox: '',
+			src: FRAME_URL,
+		});
+		await sleep(20);
+		watch.stop();
+
+		expect(iframe.getAttribute('src')).toBeNull();
+		expect(iframe.getAttribute('data-src')).toBe(FRAME_URL);
+	});
+
 	test('holds a vendor-only frame the visitor turned off', async () => {
 		const watch = watchAndRecord(kernelWithVendorChoice(['youtube']));
 		const iframe = insertFrame({

@@ -80,7 +80,7 @@ loads  =  category condition satisfied  AND  vendor not denied
 
 The category is evaluated first, so an unknown category still throws as a
 configuration error. The iframe blocker is the exception: an `<iframe>` with an
-unknown `data-category` stays blocked and logs a console warning, so one typo
+unknown or empty `data-category` stays blocked and logs a console warning, so one typo
 can't stop the other iframes on the page from being gated. A vendor toggle never grants a category on its own: with
 marketing denied, `meta-pixel` stays blocked whatever its own switch says.
 A script with `alwaysLoad` still mounts, as it does for a denied category;
