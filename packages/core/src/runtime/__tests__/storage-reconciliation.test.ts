@@ -1195,3 +1195,70 @@ test('a subject created with the first choice after a missed clear is kept', asy
 	expect(active.kernel.getSnapshot().subject?.subjectId).toBe(created);
 	expect(decision(active, 'marketing')).toBe(false);
 });
+
+test('a decision lost to a concurrent write is written back on the next reconcile', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	const active = start(threeCategories);
+	await active.kernel.commands.save({ marketing: false });
+	await nextTask();
+	const stored = readStoredConsentRecord(undefined, T).selected;
+	expect(stored?.choice.categories.marketing?.value).toBe(false);
+
+	// Another tab read storage before this write landed and then wrote its
+	// own category over it, dropping the denial.
+	vi.setSystemTime(T + 1000);
+	writeStoredConsentEnvelope(
+		{
+			categories: {
+				measurement: {
+					basis: {
+						fingerprint: resolution.fingerprints.choice,
+						kind: 'choice-v1',
+					},
+					confirmedAt: T + 1000,
+					value: true,
+				},
+			},
+			subject: stored?.subject ?? undefined,
+			version: 3,
+		},
+		{ now: T + 1000 }
+	);
+	expect(decision(start(threeCategories), 'marketing')).toBeUndefined();
+
+	active.reconcileStorage();
+	await nextTask();
+	expect(decision(active, 'measurement')).toBe(true);
+	const fresh = start(threeCategories);
+	expect(decision(fresh, 'marketing')).toBe(false);
+	expect(decision(fresh, 'measurement')).toBe(true);
+});
+
+test('a directive lost to a concurrent write is written back on the next reconcile', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	resolution = matchedResolution(
+		optOutRule({ privacySignals: { gpc: { denyCategories: ['measurement'] } } })
+	);
+	const active = start();
+	active.kernel.set.privacySignals({ gpc: true });
+	await nextTask();
+	const [own] = active.kernel.getSnapshot().optOutDirectives;
+	expect(own).toBeTruthy();
+
+	// Another tab wrote only its own directive over this one.
+	writeStoredPrivacyOptOuts(
+		[{ categories: ['marketing'], recordedAt: T + 500, source: 'gpc' }],
+		undefined,
+		T + 1000
+	);
+	vi.setSystemTime(T + 1000);
+
+	active.reconcileStorage();
+	await nextTask();
+	const read = readStoredPrivacyOptOuts(undefined, T + 1000);
+	expect(
+		read?.ok ? read.record.directives.map((entry) => entry.recordedAt) : []
+	).toEqual([own?.recordedAt, T + 500]);
+});

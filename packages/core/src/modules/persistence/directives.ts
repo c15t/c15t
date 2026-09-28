@@ -8,7 +8,9 @@
 import type { PrivacyOptOut } from '../../consent-record/types';
 
 /** Identity of a directive: time, source and categories. */
-const directiveKey = function directiveKey(directive: PrivacyOptOut): string {
+export const directiveIdentity = function directiveIdentity(
+	directive: PrivacyOptOut
+): string {
 	return JSON.stringify([
 		directive.recordedAt,
 		directive.source,
@@ -29,7 +31,7 @@ export const mergeDirectives = function mergeDirectives(
 ): PrivacyOptOut[] {
 	const byKey = new Map<string, PrivacyOptOut>();
 	for (const directive of lists.flat()) {
-		const key = directiveKey(directive);
+		const key = directiveIdentity(directive);
 		if (!byKey.has(key)) {
 			byKey.set(key, directive);
 		}
