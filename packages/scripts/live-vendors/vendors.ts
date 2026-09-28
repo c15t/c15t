@@ -1279,6 +1279,9 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		tier: 'full',
 		createScript: () => pinterestTag({ tagId: '123456789012345' }),
 		loaderUrlSubstring: 's.pinimg.com/ct/core.js',
+		// core.js loads the versioned runtime from this path. Collection uses
+		// ct.pinterest.com and must remain blocked by the probe.
+		allowUrlSubstrings: ['https://s.pinimg.com/ct/lib/'],
 		bootstrapCheck: () => {
 			const stub = window.pintrk;
 
