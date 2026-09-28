@@ -36,6 +36,10 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/modules/network-blocker/index.ts'
 				),
+				'@c15t/core/modules/network-hold': resolve(
+					__dirname,
+					'../core/src/modules/network-blocker/hold.ts'
+				),
 				'@c15t/core/modules/iframe-blocker': resolve(
 					__dirname,
 					'../core/src/modules/iframe-blocker/index.ts'

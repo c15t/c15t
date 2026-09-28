@@ -531,6 +531,72 @@ describe('createConsentRuntime', () => {
 		expect(runtime.started).toBe(false);
 	});
 
+	test('holds network-blocker requests from construction until `start()` decides them', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const nativeFetch = window.fetch;
+		const original = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = original as unknown as typeof window.fetch;
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			// A component that mounts before the host calls `start()`.
+			const early = window.fetch('https://tracker.example/collect');
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(original).not.toHaveBeenCalled();
+
+			runtime.start();
+
+			expect((await early).status).toBe(451);
+			expect(original).not.toHaveBeenCalled();
+			runtime.dispose();
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
+	test('a runtime disposed before `start()` fails its held requests closed', async () => {
+		const nativeFetch = window.fetch;
+		const original = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = original as unknown as typeof window.fetch;
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			let settled = false;
+			const early = window
+				.fetch('https://tracker.example/collect')
+				.finally(() => {
+					settled = true;
+				});
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(settled).toBe(false);
+
+			runtime.dispose();
+
+			// Nothing checked consent for the held request, so it is answered
+			// as blocked rather than sent, and it does not hang.
+			expect((await early).status).toBe(451);
+			expect(original).not.toHaveBeenCalled();
+			// The hold is gone: nothing waits from here on.
+			expect(window.fetch).toBe(original);
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
 	test('forwards `i18n` messages into the kernel translations', () => {
 		const runtime = createConsentRuntime({
 			i18n: {

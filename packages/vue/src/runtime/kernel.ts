@@ -23,6 +23,10 @@ import type {
 	BlockedRequestInfo,
 	NetworkBlockerRule,
 } from '@c15t/core/modules/network-blocker';
+import {
+	blockHeldRequests,
+	holdNetworkRequests,
+} from '@c15t/core/modules/network-hold';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import type { StorageConfig } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
@@ -507,6 +511,43 @@ const resolveInitialPolicyPending = (
 		initialConfig.initialPolicyResolution
 	);
 
+/**
+ * Contexts whose hold no network blocker has taken over yet. A context
+ * disposed while it is still here ends the hold itself.
+ */
+const unclaimedHolds = new WeakSet<VueConsentKernelContext>();
+
+const trackUnclaimedHold = function trackUnclaimedHold(
+	context: VueConsentKernelContext,
+	holding: boolean
+): void {
+	if (holding) {
+		unclaimedHolds.add(context);
+	}
+};
+
+/**
+ * The network blocker installs once the root mounts, after every child ran
+ * its setup and mount hooks. Hold matching requests until then; the blocker
+ * replays them.
+ *
+ * @returns Whether a hold was started.
+ */
+const holdBlockedRequests = function holdBlockedRequests(
+	config: RuntimeConsentConfig,
+	ownsKernel: boolean
+): boolean {
+	if (
+		ownsKernel &&
+		config.networkBlocker &&
+		config.networkBlocker.enabled !== false
+	) {
+		holdNetworkRequests(config.networkBlocker.rules);
+		return true;
+	}
+	return false;
+};
+
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
@@ -572,6 +613,7 @@ export const createVueConsentKernelContext =
 				transport,
 				...options.kernelConfig,
 			});
+		const holding = holdBlockedRequests(options.config, ownsKernel);
 
 		const snapshot = shallowRef(kernel.getSnapshot());
 		const unsubscribe = kernel.subscribe((next) => {
@@ -650,6 +692,13 @@ export const createVueConsentKernelContext =
 				if (ownsKernel) {
 					kernel.dispose();
 				}
+				// Disposed before a blocker took over (a failed mount, or no
+				// browser start): nothing else ends the hold, and nothing
+				// checked consent for what it held, so those requests fail as
+				// blocked rather than wait for the rest of the page.
+				if (unclaimedHolds.delete(context) && options.config.networkBlocker) {
+					blockHeldRequests(options.config.networkBlocker.rules);
+				}
 			},
 			iab: options.runtime?.iab ?? undefined,
 			init,
@@ -662,6 +711,7 @@ export const createVueConsentKernelContext =
 		unsubscribeIab = options.runtime?.onIABChange((handle) => {
 			context.iab = handle ?? undefined;
 		});
+		trackUnclaimedHold(context, holding);
 		return context;
 	};
 
@@ -814,6 +864,8 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	disposers.push(mountClearOnRevocation(context, config));
 
 	if (typeof document !== 'undefined' && config.networkBlocker) {
+		// The blocker takes over the context's hold and replays what it held.
+		unclaimedHolds.delete(context);
 		const networkBlocker = createNetworkBlocker({
 			enabled: config.networkBlocker.enabled,
 			kernel: context.kernel,

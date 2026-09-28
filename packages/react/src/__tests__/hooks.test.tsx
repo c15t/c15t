@@ -427,6 +427,12 @@ describe('v3 react: network blocker lifecycle', () => {
 				expect(window.fetch).not.toBe(fetch.fetchStub);
 			});
 			view.unmount();
+			// Whether or not the blocker had loaded, what it patched is gone
+			// once the unmount settles, and requests reach the page's fetch.
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(window.fetch).toBe(fetch.fetchStub);
 			expect((await window.fetch('https://example.com/x')).status).toBe(200);
 			expect(fetch.fetchStub).toHaveBeenCalledOnce();
 		} finally {
