@@ -578,47 +578,60 @@ const realWorkspace = function realWorkspace() {
 	return root;
 };
 
-/** Notes that still ask for a bump. Replay-only notes belong to an earlier release. */
-const pendingNotes = function pendingNotes(draft: {
-	getChangelogs: () => {
-		filename: string;
-		packages: Map<string, { type?: unknown }>;
-	}[];
-}) {
-	return draft
-		.getChangelogs()
-		.filter((note) => [...note.packages.values()].some((pkg) => pkg.type));
-};
-
-it('renders a version PR body for the real workspace that GitHub accepts', async () => {
-	const root = realWorkspace();
-	// Right after a version PR merges, every note in the checkout is replay-only
-	// and there is no body to render. Seed one change so the render is checked on
-	// every commit, and against the real notes whenever any are pending.
-	if (pendingNotes(await release(root).draft()).length === 0) {
-		change(root, { '@c15t/core': 'patch' }, 'pending-after-version-pr');
-	}
+const versionPrBody = async function versionPrBody(root: string) {
 	const tegami = release(root);
 	const { graph } = await tegami._internal.context();
 	const previous = new Map(
 		graph.getPackages().map((pkg) => [pkg.id, pkg.version])
 	);
 	const draft = await tegami.draft();
-	const notes = pendingNotes(draft);
-	expect(notes.length).toBeGreaterThan(0);
 	await draft.apply();
-
-	const body = renderVersionPrBody(graph, {
+	return renderVersionPrBody(graph, {
 		draft,
 		getPreviousVersion: (id) => previous.get(id),
 		plan: undefined,
 	});
+};
 
-	expect(body.length).toBeLessThanOrEqual(versionPrBodyLimit);
-	expect(body).toContain('| `@c15t/core` | `3.0.0-alpha.');
-	for (const note of notes) {
-		expect(body).toContain(`\`${note.filename}\``);
-	}
+describe('version PR body', () => {
+	it('lists each bumped version and release note', async () => {
+		const root = fixture([
+			{ name: '@c15t/core', version: '3.0.0-alpha.2' },
+			{ name: '@c15t/react', version: '3.0.0-alpha.2' },
+		]);
+		change(root, { '@c15t/core': { type: 'minor' } }, 'core-change');
+		change(root, { '@c15t/react': { type: 'patch' } }, 'react-change');
+
+		const body = await versionPrBody(root);
+
+		expect(body).toContain(
+			'| `@c15t/core` | `3.0.0-alpha.2` | `3.0.0-alpha.3` |'
+		);
+		expect(body).toContain('- **core-change** (`core-change.md`): @c15t/core');
+		expect(body).toContain(
+			'- **react-change** (`react-change.md`): @c15t/react'
+		);
+	});
+
+	it('drops note lines past GitHub’s size limit and says how many', async () => {
+		const root = fixture([{ name: '@c15t/core', version: '3.0.0-alpha.2' }]);
+		// 300 notes with 200-character titles render well past 65,536 characters.
+		for (let index = 0; index < 300; index += 1) {
+			change(
+				root,
+				{ '@c15t/core': { type: 'patch' } },
+				`note-${String(index).padStart(3, '0')}-${'x'.repeat(200)}`
+			);
+		}
+
+		const body = await versionPrBody(root);
+
+		expect(body.length).toBeLessThanOrEqual(versionPrBodyLimit);
+		expect(body).toMatch(/- …and \d+ more release notes\./u);
+		expect(body).toContain(
+			'| `@c15t/core` | `3.0.0-alpha.2` | `3.0.0-alpha.3` |'
+		);
+	});
 });
 
 it('drafts the real workspace without bumping private packages or leaving alpha', async () => {
