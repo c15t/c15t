@@ -216,17 +216,15 @@ export const checkAuthority = async function checkAuthority(
 	const { tcString, confirmedAt, expiresAt, choiceFingerprint } = receipt;
 	try {
 		const decoded = await decodeTCString(tcString);
-		if (!compatibleTC(decoded, receipt, snapshot)) {
-			return rejected;
-		}
-		if (
-			!sameListedRestrictions(
-				decoded.publisherRestrictions,
-				publisherRestrictions,
-				snapshot.iab.gvl?.vendors
-			)
-		) {
-			return { authority: null, restrictionsChanged: true };
+		// Compared on its own: a deployment can change the restrictions and
+		// another compatibility field, such as the policy version, together.
+		const restrictionsChanged = !sameListedRestrictions(
+			decoded.publisherRestrictions,
+			publisherRestrictions,
+			snapshot.iab.gvl?.vendors
+		);
+		if (restrictionsChanged || !compatibleTC(decoded, receipt, snapshot)) {
+			return { authority: null, restrictionsChanged };
 		}
 		const vendorConsents = { ...decoded.vendorConsents };
 		const vendorLegitimateInterests = { ...decoded.vendorLegitimateInterests };

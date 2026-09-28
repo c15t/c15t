@@ -1997,14 +1997,15 @@ describe('returning visitors and changed publisher restrictions', () => {
 			purposeId: number;
 			restrictionType: 0 | 1 | 2;
 			vendorIds: number[];
-		}[]
+		}[],
+		gvl: typeof completeGVL = completeGVL
 	) => {
 		const kernel = makeKernel();
 		const storage = createPersistence({ kernel, sync: false });
 		disposers.push(storage.dispose);
 		const addon = createIAB({
 			cmpId: 28,
-			gvl: completeGVL,
+			gvl,
 			kernel,
 			publisherRestrictions,
 		});
@@ -2015,6 +2016,66 @@ describe('returning visitors and changed publisher restrictions', () => {
 	const prohibit7 = [
 		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [755] },
 	];
+
+	test('a restriction change is caught when the policy version changed too', async () => {
+		await savedWith([]);
+		expect(localStorage.getItem('euconsent-v2')).toBeTruthy();
+		const { addon, kernel } = returning(prohibit7, {
+			...completeGVL,
+			tcfPolicyVersion: completeGVL.tcfPolicyVersion + 1,
+		});
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(localStorage.getItem('euconsent-v2')).toBeNull();
+	});
+
+	test('a policy version change alone still asks nothing', async () => {
+		await savedWith([]);
+		const stored = localStorage.getItem('euconsent-v2');
+		const { addon, kernel } = returning([], {
+			...completeGVL,
+			tcfPolicyVersion: completeGVL.tcfPolicyVersion + 1,
+		});
+		await addon.whenReady();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		expect(localStorage.getItem('euconsent-v2')).toBe(stored);
+	});
+
+	test('a newer list that rejects the restrictions clears the stored TC string at startup', async () => {
+		await savedWith(prohibit7);
+		const stored = localStorage.getItem('euconsent-v2');
+		expect(stored).toBeTruthy();
+		const receipt = localStorage.getItem('c15t-iab-authority-v1');
+		const { 755: vendor755 } = completeGVL.vendors;
+		if (!vendor755) {
+			throw new Error('Missing vendor 755 fixture');
+		}
+		// Vendor 755 stops declaring purpose 7, so prohibiting it is unsupported.
+		const { addon, kernel } = returning(prohibit7, {
+			...completeGVL,
+			vendorListVersion: completeGVL.vendorListVersion + 1,
+			vendors: {
+				...completeGVL.vendors,
+				755: {
+					...vendor755,
+					flexiblePurposes: [2],
+					purposes: vendor755.purposes.filter((id) => id !== 7),
+				},
+			},
+		});
+		await expect(addon.whenReady()).rejects.toBeInstanceOf(
+			PublisherRestrictionError
+		);
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(localStorage.getItem('euconsent-v2')).toBeNull();
+		expect(document.cookie).not.toContain('euconsent-v2=');
+		// The private receipt stays; it cannot grant under this list.
+		expect(localStorage.getItem('c15t-iab-authority-v1')).toBe(receipt);
+	});
 
 	test('a save in another tab during the check keeps its TC string and asks nothing', async () => {
 		const RECEIPT = 'c15t-iab-authority-v1';
