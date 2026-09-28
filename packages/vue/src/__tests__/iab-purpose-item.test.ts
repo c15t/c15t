@@ -28,23 +28,30 @@ describe('IAB purpose row consent switch', () => {
 	test.each([
 		[true, 1],
 		[false, 0],
-	])('hasConsentBasis %s renders %i switches', (hasConsentBasis, count) => {
-		const wrapper = mount(IabPurposeItem, {
-			global,
-			props: {
-				isEnabled: true,
-				purpose: purpose(hasConsentBasis),
-				vendorConsents: {},
-			},
-		});
-		expect(
-			wrapper.findAll(
-				'[role="switch"][aria-label="Measure advertising performance"]'
-			)
-		).toHaveLength(count);
-		// The objection control is there either way.
-		expect(wrapper.text()).toContain('Object');
-	});
+	])(
+		'hasConsentBasis %s renders %i switches',
+		async (hasConsentBasis, count) => {
+			const wrapper = mount(IabPurposeItem, {
+				global,
+				props: {
+					isEnabled: true,
+					purpose: purpose(hasConsentBasis),
+					vendorConsents: {},
+				},
+			});
+			expect(
+				wrapper.findAll(
+					'[role="switch"][aria-label="Measure advertising performance"]'
+				)
+			).toHaveLength(count);
+			// The objection control is there either way, in the row's content,
+			// which mounts when the row first opens.
+			await wrapper
+				.get('[id^="c15t-preference-item-trigger-"]')
+				.trigger('click');
+			expect(wrapper.find('button[aria-pressed]').exists()).toBe(true);
+		}
+	);
 
 	test('a stack of legitimate-interest-only purposes has no consent switch', () => {
 		const wrapper = mount(IabStackItem, {

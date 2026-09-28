@@ -298,7 +298,31 @@ describe('IAB vendors tab with publisher restrictions', () => {
 			);
 			// Vendor 755 declares only consent purposes. Requiring legitimate
 			// interest for purpose 7 gives the visitor a right to object.
+			const vendorsTab = await vi.waitFor(
+				() =>
+					getDefined(
+						Array.from(
+							document.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+						).find((tab) => tab.textContent?.toLowerCase().includes('vendor'))
+					),
+				{ timeout: 5000 }
+			);
+			await userEvent.click(vendorsTab);
 			const row = await findVendorRow('Google Advertising Products');
+			// The objection sits in the row's content, mounted on first open.
+			await userEvent.click(
+				getDefined(
+					row.querySelector<HTMLElement>(
+						'[data-slot="preference-item-trigger"]'
+					)
+				)
+			);
+			await vi.waitFor(() =>
+				expect(
+					row.querySelector('[data-slot="preference-item-content"]')
+						?.childElementCount
+				).toBeGreaterThan(0)
+			);
 			expect(row.querySelector('button[aria-pressed]') !== null).toBe(
 				objectable
 			);
@@ -340,6 +364,20 @@ describe('IAB purposes tab with publisher restrictions', () => {
 				<IABConsentDialog open />
 			</ConsentProvider>
 		);
+		// Purpose 7 sits in stack 1 with purpose 2. Stack content mounts when
+		// the stack first opens.
+		const trigger = (testId: string) =>
+			vi.waitFor(
+				() =>
+					getDefined(
+						document.querySelector<HTMLElement>(
+							`[data-testid="${testId}"] [data-slot="preference-item-trigger"]`
+						),
+						`Missing ${testId} trigger`
+					),
+				{ timeout: 5000 }
+			);
+		await userEvent.click(await trigger('stack-item-1'));
 		const purposeRow = await vi.waitFor(
 			() => {
 				const row = document.querySelector<HTMLElement>(
@@ -377,21 +415,14 @@ describe('IAB purposes tab with publisher restrictions', () => {
 		await userEvent.click(button('Accept All'));
 		await vi.waitFor(() => expect(gate()).toBe(true), { timeout: 5000 });
 
-		// Purpose 7 sits in stack 1 with purpose 2; open both to reach it.
-		const trigger = (testId: string) =>
+		await userEvent.click(await trigger('purpose-item-7'));
+		const objection = await vi.waitFor(() =>
 			getDefined(
-				document.querySelector<HTMLElement>(
-					`[data-testid="${testId}"] [data-slot="preference-item-trigger"]`
+				document.querySelector<HTMLButtonElement>(
+					'[data-testid="purpose-item-7"] button[aria-pressed]'
 				),
-				`Missing ${testId} trigger`
-			);
-		await userEvent.click(trigger('stack-item-1'));
-		await userEvent.click(trigger('purpose-item-7'));
-		const objection = getDefined(
-			document.querySelector<HTMLButtonElement>(
-				'[data-testid="purpose-item-7"] button[aria-pressed]'
-			),
-			'Missing objection control'
+				'Missing objection control'
+			)
 		);
 		await userEvent.click(objection);
 		await userEvent.click(button('Save Settings'));

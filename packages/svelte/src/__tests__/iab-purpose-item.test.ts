@@ -4,6 +4,7 @@
  * every vendor keeps processing, so the row offers only the objection.
  */
 import { render } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import { describe, expect, test, vi } from 'vitest';
 
 import IABPurposeItem from '../lib/components/iab-purpose-item.svelte';
@@ -46,22 +47,30 @@ describe('IAB purpose row consent switch', () => {
 	test.each([
 		[true, 1],
 		[false, 0],
-	])('hasConsentBasis %s renders %i switches', (hasConsentBasis, count) => {
-		const { container } = render(IABPurposeItem, {
-			...handlers,
-			iabT: getIABTranslations(),
-			isEnabled: true,
-			purpose: purpose(hasConsentBasis),
-			vendorConsents: {},
-		});
-		expect(
-			container.querySelectorAll(
-				'[role="switch"][aria-label="Measure advertising performance"]'
-			)
-		).toHaveLength(count);
-		// The objection control is there either way.
-		expect(container.querySelector('button[aria-pressed]')).not.toBeNull();
-	});
+	])(
+		'hasConsentBasis %s renders %i switches',
+		async (hasConsentBasis, count) => {
+			const { container } = render(IABPurposeItem, {
+				...handlers,
+				iabT: getIABTranslations(),
+				isEnabled: true,
+				purpose: purpose(hasConsentBasis),
+				vendorConsents: {},
+			});
+			expect(
+				container.querySelectorAll(
+					'[role="switch"][aria-label="Measure advertising performance"]'
+				)
+			).toHaveLength(count);
+			// The objection control is there either way, in the row's content,
+			// which mounts when the row first opens.
+			container
+				.querySelector<HTMLElement>('[id^="c15t-preference-item-trigger-"]')
+				?.click();
+			await tick();
+			expect(container.querySelector('button[aria-pressed]')).not.toBeNull();
+		}
+	);
 
 	test('a stack of legitimate-interest-only purposes has no consent switch', () => {
 		const { container } = render(IABStackItem, {

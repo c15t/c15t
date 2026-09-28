@@ -120,6 +120,8 @@ describe('Vue controls under a legitimate-interest restriction', () => {
 				vendorLegitimateInterests: { 755: false },
 			},
 		});
+		// The objection sits in the row's content, mounted on first open.
+		await wrapper.get('[id^="c15t-preference-item-trigger-"]').trigger('click');
 		await wrapper.get('button[aria-pressed]').trigger('click');
 		applyEmitted(wrapper, handle);
 		await handle.save();
