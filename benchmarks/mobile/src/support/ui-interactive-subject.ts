@@ -54,6 +54,9 @@ const MAX_SETTLE_TICKS = 8;
  * carries the same `onPress` as the control it renders, so counting every match
  * would report each button three times.
  *
+ * Links are left out: the branding tag opens a URL outside the app, so it is
+ * not one of the consent actions this measurement waits for.
+ *
  * @param node - One rendered element.
  * @returns `true` when it is a rendered control with a press handler that is not
  * disabled.
@@ -62,7 +65,8 @@ const isLiveControl = function isLiveControl(node: ReactTestInstance): boolean {
 	return (
 		typeof node.type === 'string' &&
 		typeof node.props.onPress === 'function' &&
-		node.props.disabled !== true
+		node.props.disabled !== true &&
+		node.props.accessibilityRole !== 'link'
 	);
 };
 
