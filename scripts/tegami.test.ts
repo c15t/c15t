@@ -22,8 +22,10 @@ import {
 	checkReleaseVersion,
 	createRelease,
 	releaseLine,
+	renderVersionPrBody,
 	runReleaseCli,
 	syncBunLockVersions,
+	versionPrBodyLimit,
 } from './tegami';
 
 const roots: string[] = [];
@@ -558,7 +560,7 @@ await runReleaseCli(createRelease({ branch: 'v3', cwd: process.cwd(), github: fa
 	});
 });
 
-it('drafts the real workspace without bumping private packages or leaving alpha', async () => {
+const realWorkspace = function realWorkspace() {
 	const root = fixture([]);
 	cpSync(join(repository, '.tegami'), join(root, '.tegami'), {
 		recursive: true,
@@ -573,6 +575,39 @@ it('drafts the real workspace without bumping private packages or leaving alpha'
 			);
 		}
 	}
+	return root;
+};
+
+it('renders a version PR body for the real workspace that GitHub accepts', async () => {
+	const root = realWorkspace();
+	const tegami = release(root);
+	const { graph } = await tegami._internal.context();
+	const previous = new Map(
+		graph.getPackages().map((pkg) => [pkg.id, pkg.version])
+	);
+	const draft = await tegami.draft();
+	// Replay-only notes carry no bump type and belong to an earlier release.
+	const notes = draft
+		.getChangelogs()
+		.filter((note) => [...note.packages.values()].some((pkg) => pkg.type));
+	expect(notes.length).toBeGreaterThan(0);
+	await draft.apply();
+
+	const body = renderVersionPrBody(graph, {
+		draft,
+		getPreviousVersion: (id) => previous.get(id),
+		plan: undefined,
+	});
+
+	expect(body.length).toBeLessThanOrEqual(versionPrBodyLimit);
+	expect(body).toContain('| `@c15t/core` | `3.0.0-alpha.');
+	for (const note of notes) {
+		expect(body).toContain(`\`${note.filename}\``);
+	}
+});
+
+it('drafts the real workspace without bumping private packages or leaving alpha', async () => {
+	const root = realWorkspace();
 	const draft = await release(root).draft();
 	const notes = readdirSync(join(root, '.tegami')).filter(
 		(file) => file.endsWith('.md') && file !== 'README.md'
@@ -580,11 +615,19 @@ it('drafts the real workspace without bumping private packages or leaving alpha'
 	// Tegami silently ignores malformed note files. Check that none were lost.
 	expect(draft.getChangelogs()).toHaveLength(notes.length);
 	await draft.apply();
-	const manifests = readdirSync(join(root, 'packages')).map((directory) =>
+	const directories = readdirSync(join(root, 'packages'));
+	const manifests = directories.map((directory) =>
 		readManifest(root, directory)
 	);
-	for (const manifest of manifests.filter((pkg) => pkg.private)) {
-		expect(manifest.version).toBeUndefined();
+	// Private packages may carry a placeholder version so published packages
+	// can pack their workspace devDependencies. Tegami must leave it alone.
+	const privateDirectories = directories.filter(
+		(_, index) => manifests[index]?.private
+	);
+	for (const directory of privateDirectories) {
+		expect(readManifest(root, directory).version).toBe(
+			readManifest(repository, directory).version
+		);
 	}
 	for (const manifest of manifests.filter((pkg) => !pkg.private)) {
 		expect(manifest.version).toMatch(/^3\.0\.0-alpha\.\d+$/u);
