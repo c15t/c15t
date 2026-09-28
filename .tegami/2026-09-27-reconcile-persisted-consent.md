@@ -89,7 +89,12 @@ reconciliation. Under an IAB policy, a TC string that grants a category a
 reconciled denial covers is withdrawn before any `__tcfapi` listener is
 notified, and one that predates another tab's newer choice is held back until
 this tab reads that tab's receipt, so a revoked vendor is never advertised
-again.
+again. A tab reloads the TC string when another tab stores a new receipt, which
+covers a save in the same millisecond or one that changed only vendors.
+
+A page seeded from a server's cookie read applies newer denials and privacy
+directives that reached only localStorage, and a clear after the clock went
+back more than an hour writes an epoch other tabs can still read.
 
 New API:
 

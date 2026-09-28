@@ -171,7 +171,10 @@ Stored records are merged into the ones in memory:
   origin, so after a save on a sibling subdomain that shares the consent cookie,
   this subdomain reports no consent through `__tcfapi` until it saves again.
   Vendors never receive the stale TC string in between: it is withdrawn, or
-  held back, before `__tcfapi` publishes.
+  held back, before `__tcfapi` publishes. A tab also reloads the TC string
+  when another tab on the same origin stores a new one, which covers a save in
+  the same millisecond or one that changed only vendors. When two tabs save in
+  the same millisecond, both end up with the TC string stored last.
 - A record removed from readable storage since this tab last saw it present is
   cleared, and the active policy decides again. A record this tab never saw in
   storage, such as a receipt merged from the server after `identify()` or a
@@ -218,7 +221,9 @@ millisecond therefore leave the epoch a millisecond ahead, and a decision saved
 in that millisecond is void. An epoch up to one hour ahead
 of the clock is kept, as it is when the clock was set back after a clear. Until
 the clock catches up, decisions saved in that window are void too. An epoch more
-than an hour ahead is treated as corrupt and reads as 0.
+than an hour ahead is treated as corrupt and reads as 0, so a clear never writes
+one: after the clock went back more than an hour, the new epoch is capped at an
+hour ahead of the clock. It still voids every decision the clock allows.
 
 This changes the stored format. After a clear, the consent cookie carries
 `&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes),
@@ -231,6 +236,11 @@ configured prompt may appear again. Deploy the new build to every page of the
 site before visitors can clear their records.
 
 ### When the cookie and localStorage disagree
+
+When a server render seeded the page from the consent cookie
+(`skipHydration`), that seed stays authoritative. A newer denial or privacy
+directive that reached only localStorage is still applied on top of it when
+the page mounts, since it can only restrict; a stored grant is not.
 
 The notice dismissal, privacy directives and vendor denials are stored twice
 as well. Privacy directives from both copies all apply. A vendor list in
