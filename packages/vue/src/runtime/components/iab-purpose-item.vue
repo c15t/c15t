@@ -152,7 +152,7 @@ const handlePurposeLiObjection = function handlePurposeLiObjection() {
 	const nextValue = !isPurposeLiAllowed.value;
 	emit('purposeLegitimateInterestToggle', nextValue);
 	for (const vendor of legIntVendors.value) {
-		emit('vendorToggle', vendor.id, nextValue);
+		emit('vendorLegitimateInterestToggle', vendor.id, nextValue);
 	}
 };
 

@@ -749,6 +749,10 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											@vendor-toggle="
 												(vendorId, value) => setVendorConsent(vendorId, value)
 											"
+											@vendor-legitimate-interest-toggle="
+												(vendorId, value) =>
+													setVendorLegitimateInterest(vendorId, value)
+											"
 											@clear-selection="selectedVendorId = null"
 										/>
 									</TabsContent>
