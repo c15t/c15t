@@ -77,5 +77,9 @@ the confirmed restrictions for that vendor:
 
 Types `1` and `2` block the target when the vendor list does not mark the
 purpose as flexible for that vendor. Targets without a `vendorId` ignore
-restrictions. Accept all grants the vendor signal a restriction moves a purpose
+restrictions. A target that uses only legitimate interest once restrictions
+apply is not blocked by a refused category, since it needs no consent; its
+legitimate interest signals and the visitor's objection decide. GPC, opt-out
+directives and strict scope still block it, and the category stays refused for
+scripts that depend on it. Accept all grants the vendor signal a restriction moves a purpose
 to, including legitimate interest for a vendor that declares none.

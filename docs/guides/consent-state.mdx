@@ -19,6 +19,23 @@ grant.
 | Explain regional behavior | `policyRule` |
 | Diagnose initialization | `resolution` |
 
+## Gate IAB vendors on the TC string
+
+Under an IAB policy, a script, network rule or iframe that names a `vendorId`
+or IAB purposes is an IAB target. It runs only while a confirmed TC string
+grants what it declares: purpose and vendor consent for `iabPurposes`, purpose
+and vendor legitimate interest for `iabLegIntPurposes`, and opt-ins for
+`iabSpecialFeatures`. Every category it names must also be free of
+restrictions, so GPC, an opt-out directive or strict scope blocks it.
+
+A refused category is the one exception. It does not block an IAB target that
+processes only on legitimate interest, after publisher restrictions, because
+the TCF lets that processing run without consent. The visitor's control for it
+is the objection, which the legitimate interest signals record. The category
+itself stays refused: its `effectivePermissions` entry is `false`, and targets
+that name only the category, or that also declare a consent purpose or special
+feature, stay blocked.
+
 ## Record only explicit visitor actions
 
 ```ts
