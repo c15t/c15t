@@ -9,6 +9,7 @@ import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import type { ConsentManifest } from '@c15t/schema/types';
 import type { ConsentSnapshot } from 'c15t';
 import { createOfflineTransport, custom } from 'c15t';
+import { clearManifestCache } from 'c15t/libs/manifest-cache';
 import { ConsentRoot as NextConsentRoot } from 'c15t/next';
 import type { ConsentState as NextConsentState } from 'c15t/next';
 import { resolveConsent as resolveNextConsent } from 'c15t/next/server';
@@ -19,7 +20,14 @@ import type { ConsentState as TanStackConsentState } from 'c15t/tanstack-start/s
 import { act } from 'react';
 import type { ReactNode } from 'react';
 import { renderToString } from 'react-dom/server';
-import { afterEach, beforeAll, describe, expect, test } from 'vitest';
+import {
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from 'vitest';
 
 import { OBSERVED_RULE, observedPolicy } from '../src/policy';
 import { ConsentProbe } from '../src/react';
@@ -109,20 +117,24 @@ const reversedManifestFetch = function reversedManifestFetch(expected: number) {
 			});
 		});
 	};
-	const release = async function release(): Promise<void> {
+	/** Waits until `count` fetches are held, or fails with the observed count. */
+	const inFlight = async function inFlight(count: number): Promise<void> {
 		const deadline = Date.now() + RELEASE_TIMEOUT_MS;
-		try {
-			while (pending.length < expected) {
-				if (Date.now() > deadline) {
-					throw new Error(
-						`expected ${expected} manifest fetches in flight, saw ${pending.length}`
-					);
-				}
-				// oxlint-disable-next-line no-await-in-loop -- Poll until the fetches are in flight.
-				await new Promise<void>((resolve) => {
-					setTimeout(resolve, 1);
-				});
+		while (pending.length < count) {
+			if (Date.now() > deadline) {
+				throw new Error(
+					`expected ${count} manifest fetches in flight, saw ${pending.length}`
+				);
 			}
+			// oxlint-disable-next-line no-await-in-loop -- Poll until the fetches are in flight.
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 1);
+			});
+		}
+	};
+	const release = async function release(): Promise<void> {
+		try {
+			await inFlight(expected);
 		} finally {
 			// Answer every held fetch even when the wait failed, so no
 			// resolution is left pending after the test ends.
@@ -134,6 +146,7 @@ const reversedManifestFetch = function reversedManifestFetch(expected: number) {
 	};
 	return {
 		fetch: fetch as typeof globalThis.fetch,
+		inFlight,
 		release,
 		requested,
 	};
@@ -209,6 +222,11 @@ beforeAll(async () => {
 	deniedCookie = await visitorCookie('none');
 });
 
+// Each test starts from a cold manifest cache, as v3's own adapter tests do.
+beforeEach(() => {
+	clearManifestCache();
+});
+
 afterEach(async () => {
 	await unmountAll();
 	clearBrowserStorage();
@@ -227,43 +245,57 @@ describe('Next.js request isolation', () => {
 			),
 	});
 
-	test('concurrent visitors with opposite consent keep their own permissions', async () => {
-		expect(grantedCookie).not.toBe(deniedCookie);
-		// Each Next.js resolution fetches the manifest itself.
-		const upstream = reversedManifestFetch(2);
-		const resolve = (cookie: string) =>
-			resolveNextConsent({
-				backendURL: BACKEND_URL,
-				fetch: upstream.fetch,
-				manifestURL: `${BACKEND_URL}/manifest`,
-				reportSessions: false,
-				request: nextRequest(cookie),
+	// `resolveConsent` reads the manifest through the in-process cache, so
+	// concurrent renders share one upstream fetch. The manifest is the same
+	// for every visitor; only the cookie differs. The second case clears the
+	// cache between the two requests so each waits on its own fetch, and the
+	// fetches are answered newest first.
+	test.each([
+		{ fetches: 1, name: 'sharing one manifest fetch' },
+		{ fetches: 2, name: 'on separate manifest fetches answered out of order' },
+	])(
+		'concurrent visitors with opposite consent keep their own permissions, $name',
+		async ({ fetches }) => {
+			expect(grantedCookie).not.toBe(deniedCookie);
+			const upstream = reversedManifestFetch(fetches);
+			const resolve = (cookie: string) =>
+				resolveNextConsent({
+					backendURL: BACKEND_URL,
+					fetch: upstream.fetch,
+					manifestURL: `${BACKEND_URL}/manifest`,
+					reportSessions: false,
+					request: nextRequest(cookie),
+					// Isolation, not the render budget, is under test here.
+					timeoutMs: false,
+				});
+
+			const grantedResolving = resolve(grantedCookie);
+			if (fetches === 2) {
+				await upstream.inFlight(1);
+				clearManifestCache();
+			}
+			const resolving = Promise.all([grantedResolving, resolve(deniedCookie)]);
+			await upstream.release();
+			const [granted, denied] = await resolving;
+
+			expect(upstream.requested).toHaveLength(fetches);
+			expect(granted.initialPolicyResolution?.status).toBe('matched');
+			expect(denied.initialPolicyResolution?.status).toBe('matched');
+
+			const grantedResult = await renderPermissions({
+				adapter: 'next',
+				state: granted,
+			});
+			const deniedResult = await renderPermissions({
+				adapter: 'next',
+				state: denied,
 			});
 
-		const resolving = Promise.all([
-			resolve(grantedCookie),
-			resolve(deniedCookie),
-		]);
-		await upstream.release();
-		const [granted, denied] = await resolving;
-
-		expect(upstream.requested).toHaveLength(2);
-		expect(granted.initialPolicyResolution?.status).toBe('matched');
-		expect(denied.initialPolicyResolution?.status).toBe('matched');
-
-		const grantedResult = await renderPermissions({
-			adapter: 'next',
-			state: granted,
-		});
-		const deniedResult = await renderPermissions({
-			adapter: 'next',
-			state: denied,
-		});
-
-		expect(grantedResult.serverRevision).toBe(deniedResult.serverRevision);
-		expect(grantedResult).toMatchObject({ client: 'true', server: 'true' });
-		expect(deniedResult).toMatchObject({ client: 'false', server: 'false' });
-	});
+			expect(grantedResult.serverRevision).toBe(deniedResult.serverRevision);
+			expect(grantedResult).toMatchObject({ client: 'true', server: 'true' });
+			expect(deniedResult).toMatchObject({ client: 'false', server: 'false' });
+		}
+	);
 });
 
 describe('TanStack Start request isolation', () => {
@@ -282,6 +314,8 @@ describe('TanStack Start request isolation', () => {
 				fetch: upstream.fetch,
 				reportSessions: false,
 				request: tanStackRequest(cookie),
+				// Isolation, not the render budget, is under test here.
+				timeoutMs: false,
 			});
 
 		const resolving = Promise.all([
