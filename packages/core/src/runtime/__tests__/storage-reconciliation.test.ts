@@ -1450,6 +1450,27 @@ test('a directive this runtime merged from storage is written back after a concu
 	expect(directiveCategories(active)).toContain('marketing');
 });
 
+test('reconciling adopts a subject a server response set in the cookie alone', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	const active = start();
+	await active.kernel.commands.save('all');
+	await nextTask();
+	const stored = readStoredConsentRecord(undefined, T).selected;
+	expect(stored?.subject?.subjectId).toBeTruthy();
+
+	// Server-side consent restoration answers with a Set-Cookie carrying the
+	// same decisions and the subject the backend holds them under.
+	document.cookie = `c15t=${encodeStoredConsentEnvelopeCompact({
+		categories: stored?.choice.categories ?? {},
+		subject: { subjectId: 'sub_restored' },
+		version: 3,
+	})}; path=/`;
+
+	active.reconcileStorage();
+	expect(active.kernel.getSnapshot().subject?.subjectId).toBe('sub_restored');
+});
+
 test('a clear after the clock went back more than an hour keeps a readable epoch', () => {
 	vi.useFakeTimers({ toFake: ['Date'] });
 	vi.setSystemTime(T);

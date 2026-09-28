@@ -58,7 +58,6 @@ import {
 } from '../../libs/storage-keys';
 import { mergeDirectives } from './directives';
 import { choiceSinceEpoch } from './epoch';
-import { sameRecord } from './reconcile';
 import {
 	decodeClearEpoch,
 	decodeNoticeDismissal,
@@ -116,6 +115,12 @@ export interface ResolvedStorageKeys {
 	vendors: string;
 	/** Time of the last clear. Survives the clear it records. */
 	epoch: string;
+	/**
+	 * localStorage only: the consent cookie as it stood when a consent write
+	 * reached localStorage but not the cookie. See
+	 * {@link readStoredConsentRecord}.
+	 */
+	cookieMiss: string;
 }
 
 export const resolveStorageKeys = function resolveStorageKeys(
@@ -124,6 +129,7 @@ export const resolveStorageKeys = function resolveStorageKeys(
 	const consent = config?.storageKey || STORAGE_KEY_V2;
 	return {
 		consent,
+		cookieMiss: `${consent}-cookie-miss`,
 		epoch: `${consent}-epoch`,
 		legacyConsent: consent === STORAGE_KEY ? null : STORAGE_KEY,
 		notice: `${consent}-notice`,
@@ -608,29 +614,6 @@ const categoriesSinceEpoch = function categoriesSinceEpoch(
 };
 
 /**
- * The cookie record, carrying the local copy's subject when the two hold
- * exactly the same decisions but different subjects. A subject-only
- * rewrite (the id a save response resolved) changes nothing else, so this
- * is the cookie write the browser dropped, most often for size. The local
- * copy is never the stale one: a localStorage write that fails while the
- * cookie write lands removes it, and a blocked one leaves no copy at all.
- */
-const withLocalSubject = function withLocalSubject(
-	cookie: DecodedStoredConsent,
-	local: DecodedStoredConsent
-): DecodedStoredConsent {
-	if (
-		local.epoch !== cookie.epoch ||
-		!local.subject ||
-		sameRecord(local.subject, cookie.subject) ||
-		!sameRecord(local.choice.categories, cookie.choice.categories)
-	) {
-		return cookie;
-	}
-	return { ...cookie, subject: local.subject };
-};
-
-/**
  * The cookie record with every newer localStorage denial applied, or the
  * cookie record itself when there is none.
  *
@@ -646,10 +629,18 @@ const withLocalSubject = function withLocalSubject(
  * cut to the later one: each side's decisions from before it are void. The
  * same rule then applies, so a later epoch never lets a local grant replace
  * a cookie denial.
+ *
+ * The subject and IAB metadata come from the copy written under the later
+ * epoch. Under the same epoch they come from the cookie, which a server
+ * response or a sibling subdomain can rewrite without this origin's
+ * localStorage, unless `localIsNewer` shows that the last write here
+ * reached localStorage but not the cookie, and the cookie has not changed
+ * since.
  */
 const withNewerLocalDenials = function withNewerLocalDenials(
 	cookie: DecodedStoredConsent,
-	local: DecodedStoredConsent
+	local: DecodedStoredConsent,
+	localIsNewer: boolean
 ): DecodedStoredConsent {
 	const epoch = Math.max(cookie.epoch, local.epoch);
 	const categories = categoriesSinceEpoch(cookie, epoch);
@@ -675,16 +666,18 @@ const withNewerLocalDenials = function withNewerLocalDenials(
 			changed = true;
 		}
 	}
-	if (!changed) {
-		return withLocalSubject(cookie, local);
+	// A copy from before the later epoch never saw that clear, so its
+	// identity is void with its decisions.
+	const identity =
+		local.epoch > cookie.epoch || (local.epoch === epoch && localIsNewer)
+			? local
+			: cookie;
+	if (!changed && identity === cookie) {
+		return cookie;
 	}
-	// The subject and IAB metadata belong to the clear history they were
-	// written in. A copy from before the later epoch never saw that clear,
-	// so its identity is void with its decisions; take the later copy's.
-	const identity = cookie.epoch === epoch ? cookie : local;
 	return {
 		...cookie,
-		choice: { categories, version: 3 },
+		choice: changed ? { categories, version: 3 } : cookie.choice,
 		epoch,
 		iab: identity.iab,
 		subject: identity.subject,
@@ -697,11 +690,14 @@ const withNewerLocalDenials = function withNewerLocalDenials(
  * {@link withNewerLocalDenials}); the configured localStorage record is
  * used alone only when the cookie holds no valid one, and the legacy key
  * only when neither does. Semantic freshness is not consulted here; that
- * belongs to the evaluator with the same `now`.
+ * belongs to the evaluator with the same `now`. `localIsNewer` is the
+ * evidence that the local copy's identity is the newer one (see
+ * {@link readStoredConsentRecord}).
  */
 export const selectStoredConsent = function selectStoredConsent(
 	rawCandidates: readonly RawStoredCandidate[],
-	now: number
+	now: number,
+	localIsNewer = false
 ): StoredConsentSelection {
 	const candidates: StoredConsentCandidate[] = [];
 	const valid = new Map<StoredRecordSource, DecodedStoredConsent>();
@@ -716,7 +712,7 @@ export const selectStoredConsent = function selectStoredConsent(
 	const local = valid.get('local-storage');
 	let selected: DecodedStoredConsent | null = null;
 	if (cookie && local) {
-		selected = withNewerLocalDenials(cookie, local);
+		selected = withNewerLocalDenials(cookie, local, localIsNewer);
 	} else {
 		selected = cookie ?? local ?? valid.get('legacy-local-storage') ?? null;
 	}
@@ -731,15 +727,24 @@ export const selectStoredConsent = function selectStoredConsent(
  * render reads the cookie alone, so the two agree except when the browser
  * dropped a cookie write that carried a denial, where the browser is the
  * stricter of the two. Never writes.
+ *
+ * The local copy's subject counts as newer only while the marker a
+ * dropped cookie write leaves (`<key>-cookie-miss`, see
+ * {@link writeStoredConsentEnvelope}) still matches the cookie. Any other
+ * cookie change, such as a server-side restoration or a sibling
+ * subdomain's save, came after that write.
  */
 export const readStoredConsentRecord = function readStoredConsentRecord(
 	config: StorageConfig | undefined,
 	now: number,
 	onUnavailable?: () => void
 ): StoredConsentSelection {
+	const keys = resolveStorageKeys(config);
+	const miss = readLocalStorageText(keys.cookieMiss);
 	return selectStoredConsent(
 		readRawStoredConsentCandidates(config, onUnavailable),
-		now
+		now,
+		miss !== null && miss === (getRawCookieValue(keys.consent) ?? '')
 	);
 };
 
@@ -824,7 +829,10 @@ const removeLocalStorageKey = function removeLocalStorageKey(
  * is written when it is malformed. Category times are written exactly as
  * given; this function never stamps the clock. The legacy localStorage
  * key is left untouched. When localStorage rejects the write but the cookie
- * takes it, the older localStorage copy is removed. `written.cookie` is
+ * takes it, the older localStorage copy is removed. When only localStorage
+ * takes it, the cookie as it stands is stored under `<key>-cookie-miss`,
+ * so a read can tell that the local copy is newer until the cookie changes;
+ * a write that reaches the cookie removes that marker. `written.cookie` is
  * true only when the cookie assignment ran and the value read back equals
  * what was written; `written.cookieDetail` separates a thrown assignment
  * (`attempted: false`, with the error) from a silent browser drop
@@ -853,10 +861,17 @@ export const writeStoredConsentEnvelope = function writeStoredConsentEnvelope(
 		console.warn('Failed to save consent to cookie:', cookieDetail.error);
 	}
 	const cookieWritten = cookieDetail.attempted && cookieDetail.verified;
-	// The local copy is now older than the cookie. Reads trust its subject
-	// when the decisions match (see `withLocalSubject`), so remove it.
-	if (!localStorageWritten && cookieWritten) {
-		removeLocalStorageKey(keys.consent);
+	if (cookieWritten) {
+		removeLocalStorageKey(keys.cookieMiss);
+		// The local copy is now older than the cookie.
+		if (!localStorageWritten) {
+			removeLocalStorageKey(keys.consent);
+		}
+	} else if (localStorageWritten) {
+		writeLocalStorageText(
+			keys.cookieMiss,
+			getRawCookieValue(keys.consent) ?? ''
+		);
 	}
 
 	return {
@@ -1331,6 +1346,7 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 	config?: StorageConfig
 ): void {
 	deleteConsentFromStorage(cookie, config);
+	removeLocalStorageKey(resolveStorageKeys(config).cookieMiss);
 	clearStoredNoticeDismissal(config, cookie);
 	clearStoredPrivacyOptOuts(config, cookie);
 	clearStoredVendorChoice(config, cookie);

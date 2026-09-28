@@ -293,33 +293,117 @@ describe('consent envelope ties between the copies', () => {
 		expect(records.choice?.categories.marketing?.value).toBe(false);
 	});
 
-	it('keeps the subject a local-only acknowledgement stored', () => {
-		const categories = { marketing: at(false, T - 1000) };
-		both(
-			STORAGE_KEY_V2,
-			encodeStoredConsentEnvelopeCompact({
-				categories,
-				subject: { subjectId: 'sub_generated' },
-				version: 3,
-			}),
-			encodeStoredConsentEnvelopeJson({
-				categories,
-				subject: { subjectId: 'sub_server' },
-				version: 3,
-			})
-		);
+	const envelope = (
+		subjectId: string,
+		categories: StoredConsentEnvelope['categories'] = {
+			marketing: at(false, T - 1000),
+		}
+	): StoredConsentEnvelope => ({
+		categories,
+		subject: { subjectId },
+		version: 3,
+	});
+
+	/** Run `write` while the browser silently drops every cookie assignment. */
+	const withDroppedCookieWrites = (write: () => void) => {
+		const frozen = document.cookie;
+		Object.defineProperty(document, 'cookie', {
+			configurable: true,
+			get: () => frozen,
+			set: () => {
+				// Accepted and dropped.
+			},
+		});
+		try {
+			write();
+		} finally {
+			// Uncovers the accessor on Document.prototype again.
+			delete (document as { cookie?: string }).cookie;
+		}
+	};
+
+	/** A cookie set by something other than this page: a server or a sibling. */
+	const setCookieElsewhere = (value: StoredConsentEnvelope) => {
+		document.cookie = `${STORAGE_KEY_V2}=${encodeStoredConsentEnvelopeCompact(value)}; path=/`;
+	};
+
+	it('keeps the subject a subject-only rewrite stored when its cookie write was dropped', () => {
+		writeStoredConsentEnvelope(envelope('sub_generated'), { now: T });
+		withDroppedCookieWrites(() => {
+			const result = writeStoredConsentEnvelope(envelope('sub_server'), {
+				now: T,
+			});
+			expect(result.ok && result.written.cookie).toBe(false);
+		});
 
 		const { records } = readStoredRecords(undefined, T);
 		expect(records.subject?.subjectId).toBe('sub_server');
 	});
 
-	it('keeps the cookie subject when the localStorage write failed', () => {
-		const categories = { marketing: at(false, T - 1000) };
-		const envelope = (subjectId: string): StoredConsentEnvelope => ({
-			categories,
-			subject: { subjectId },
-			version: 3,
+	it('keeps a subject a server response set in the cookie alone', () => {
+		writeStoredConsentEnvelope(envelope('sub_local'), { now: T });
+		// Server-side consent restoration rewrites only the cookie.
+		setCookieElsewhere(envelope('sub_restored'));
+
+		const { records } = readStoredRecords(undefined, T);
+		expect(records.subject?.subjectId).toBe('sub_restored');
+	});
+
+	it('keeps a subject another subdomain wrote to the shared cookie after a dropped write here', () => {
+		writeStoredConsentEnvelope(envelope('sub_generated'), { now: T });
+		withDroppedCookieWrites(() => {
+			writeStoredConsentEnvelope(envelope('sub_here'), { now: T });
 		});
+		// A sibling subdomain writes the shared cookie; this origin's
+		// localStorage never sees it.
+		setCookieElsewhere(envelope('sub_sibling'));
+
+		const { records } = readStoredRecords(undefined, T);
+		expect(records.subject?.subjectId).toBe('sub_sibling');
+	});
+
+	it('takes the subject with a newer local denial from a dropped cookie write', () => {
+		writeStoredConsentEnvelope(
+			envelope('sub_old', { marketing: at(true, T - 2000) }),
+			{ now: T }
+		);
+		withDroppedCookieWrites(() => {
+			writeStoredConsentEnvelope(
+				envelope('sub_new', { marketing: at(false, T - 1000) }),
+				{ now: T }
+			);
+		});
+
+		const { records } = readStoredRecords(undefined, T);
+		expect(records.choice?.categories.marketing?.value).toBe(false);
+		expect(records.subject?.subjectId).toBe('sub_new');
+	});
+
+	it('keeps the cookie subject with a newer local denial the cookie has since moved past', () => {
+		writeStoredConsentEnvelope(
+			envelope('sub_old', { marketing: at(true, T - 3000) }),
+			{ now: T }
+		);
+		withDroppedCookieWrites(() => {
+			writeStoredConsentEnvelope(
+				envelope('sub_here', {
+					marketing: at(true, T - 3000),
+					measurement: at(false, T - 1000),
+				}),
+				{ now: T }
+			);
+		});
+		setCookieElsewhere(
+			envelope('sub_sibling', { marketing: at(true, T - 3000) })
+		);
+
+		const { records } = readStoredRecords(undefined, T);
+		// The denial only restricts, so it still applies.
+		expect(records.choice?.categories.measurement?.value).toBe(false);
+		expect(records.subject?.subjectId).toBe('sub_sibling');
+	});
+
+	it('keeps the cookie subject when the localStorage write failed', () => {
 		writeStoredConsentEnvelope(envelope('sub_old'), { now: T });
 
 		// localStorage is full: the next write reaches only the cookie.
