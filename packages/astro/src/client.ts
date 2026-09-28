@@ -426,7 +426,6 @@ const createClient = function createClient(
 			options.mode.type === 'offline' ? options.mode.policyRules : undefined,
 		prefetch: config,
 		reloadOnConsentRevoked: options.reloadOnConsentRevoked,
-		reloadOnRevocation: options.reloadOnRevocation,
 		scripts,
 		storageConfig: options.storageConfig,
 	});

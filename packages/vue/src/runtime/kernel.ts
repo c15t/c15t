@@ -34,7 +34,6 @@ import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import {
 	wireRuntimeCallbacks,
 	connectConsentSource,
-	reloadOnConsentRevocation,
 	createLazyIABFactory,
 } from '@c15t/core/runtime';
 import type {
@@ -927,14 +926,6 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 
 	if (typeof document !== 'undefined' && config.consentSource) {
 		disposers.push(connectConsentSource(context.kernel, config.consentSource));
-	}
-	if (
-		typeof document !== 'undefined' &&
-		config.consentSource &&
-		config.reloadOnRevocation &&
-		config.scripts?.length
-	) {
-		disposers.push(reloadOnConsentRevocation(context.kernel));
 	}
 	const detectedGpc = context.snapshot.value.privacySignals.gpc;
 	if (!config.consentSource && detectedGpc.detected && detectedGpc.active) {

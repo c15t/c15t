@@ -5,7 +5,7 @@ import type { ConsentRuntimeOptions, ExternalConsentSource } from './types';
 /** Options shared by every framework provider. Configure these before mounting. */
 export type ConsentControlOptions = Pick<
 	ConsentRuntimeOptions,
-	'consentSource' | 'reloadOnRevocation'
+	'consentSource'
 >;
 
 /**
@@ -69,40 +69,5 @@ export const connectConsentSource = (
 		disposed = true;
 		unsubscribe();
 		unsubscribePreferences();
-	};
-};
-
-/**
- * Reload once after synchronous withdrawal callbacks, unless unmounted first.
- * @param kernel - The mounted browser kernel whose permissions control scripts.
- * @returns Cleanup that also cancels a pending reload.
- */
-export const reloadOnConsentRevocation = (
-	kernel: ConsentKernel
-): Unsubscribe => {
-	let previous = kernel.getSnapshot().effectivePermissions;
-	let scheduled = false;
-	let disposed = false;
-	const unsubscribe = kernel.subscribe((snapshot) => {
-		const next = snapshot.effectivePermissions;
-		const revoked = Object.keys(previous).some(
-			(category) =>
-				category !== 'necessary' &&
-				previous[category as keyof ConsentState] &&
-				!next[category as keyof ConsentState]
-		);
-		previous = next;
-		if (revoked && !scheduled) {
-			scheduled = true;
-			queueMicrotask(() => {
-				if (!disposed && typeof window !== 'undefined') {
-					window.location.reload();
-				}
-			});
-		}
-	});
-	return () => {
-		disposed = true;
-		unsubscribe();
 	};
 };

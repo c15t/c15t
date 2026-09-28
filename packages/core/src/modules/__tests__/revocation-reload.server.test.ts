@@ -2,18 +2,22 @@
 import { expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../../kernel';
-import { reloadOnConsentRevocation } from '../controls';
+import { watchRevocationReload } from '../revocation-reload';
 
 test('external revocation is safe without a browser window', async () => {
 	vi.stubGlobal('window', undefined);
 	const kernel = createConsentKernel({
 		initialExternalPermissions: { measurement: true },
 	});
-	const stop = reloadOnConsentRevocation(kernel);
+	const reload = vi.fn();
+	const stop = watchRevocationReload({ kernel, reload });
 	try {
 		kernel.set.externalPermissions({});
-		await Promise.resolve();
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
 		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(false);
+		expect(reload).not.toHaveBeenCalled();
 	} finally {
 		stop();
 		kernel.dispose();

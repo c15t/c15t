@@ -296,7 +296,7 @@ export default {
 
 `provider` is your application adapter, not a c15t export. While using an external source, omit c15t's banner and dialog components. The runtime disables c15t persistence, initialization, and IAB setup, keeps optional permissions denied until the source reports them, and does not create c15t choice receipts. Save choices through the external provider; c15t's save commands reject while an external authority is configured. `openDialog()` opens the provider's preferences.
 
-For SDKs that cannot stop after they have executed, set `reloadOnRevocation: true` on the Astro integration. c15t reloads after an optional permission is revoked, after synchronous consent callbacks and persistence. This option defaults to `false`.
+When the source withdraws a category that was granted, c15t reloads the page so SDKs that already ran stop. Store the decision in the CMP before notifying c15t. Set `reloadOnConsentRevoked: false` on the Astro integration to handle withdrawal yourself.
 
 ## Dispatch application events
 

@@ -75,9 +75,11 @@ Removing a script cannot stop code that already ran. A vendor's listeners,
 timers and widgets keep working until the page unloads. When an accept, reject
 or save turns off a category or vendor that was granted, `ConsentRoot` reloads
 the page once the save request settles, so the next page runs only permitted
-code. `onBeforeConsentRevocationReload` runs just before the reload.
+code. `onBeforeConsentRevocationReload` runs just before the reload. With a
+[`consentSource`](/docs/guides/shared-consent-controls), any withdrawal the
+external CMP reports reloads the same way, including expiry.
 
-Expiry, policy changes and privacy signals do not reload the page. Set
+Otherwise, expiry, policy changes and privacy signals do not reload the page. Set
 `options.reloadOnConsentRevoked` to `false` only when every gated vendor stops
 itself on revocation, for example through its own opt-out API.
 

@@ -159,8 +159,6 @@ export interface C15tMiddlewareOptions {
 
 /** Options accepted by the `c15t()` Astro integration. */
 export interface C15tAstroOptions {
-	/** Reload on consent withdrawal to stop already-executed SDKs. Defaults to false. */
-	reloadOnRevocation?: boolean;
 	/** Host layout and styling constrained by the active policy. */
 	presentation?: ConsentPresentation;
 	/**
@@ -180,9 +178,10 @@ export interface C15tAstroOptions {
 
 	/**
 	 * Reload the page after an accept, reject or save turns off a category or
-	 * vendor that was granted. Removing a script cannot stop code that already
-	 * ran, so the reload starts a document with only permitted code. Waits for
-	 * the save request. Set `false` to handle revocation yourself.
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
 	 * @default true
 	 */
 	reloadOnConsentRevoked?: boolean;

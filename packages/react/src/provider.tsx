@@ -41,10 +41,7 @@ import {
 } from '@c15t/core/modules/window-debug';
 import type { WindowDebugMode } from '@c15t/core/modules/window-debug';
 import type { ConsentControlOptions, ConsentRuntime } from '@c15t/core/runtime';
-import {
-	connectConsentSource,
-	reloadOnConsentRevocation,
-} from '@c15t/core/runtime/controls';
+import { connectConsentSource } from '@c15t/core/runtime/controls';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
 import type { ReactNode } from 'react';
@@ -179,9 +176,10 @@ export interface ConsentProviderOptions
 	clearOnRevocation?: ClearOnRevocationConfig;
 	/**
 	 * Reload the page after an accept, reject or save turns off a category or
-	 * vendor that was granted. Removing a script cannot stop code that already
-	 * ran, so the reload starts a document with only permitted code. Waits for
-	 * the save request. Set `false` to handle revocation yourself.
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
 	 * @default true
 	 */
 	reloadOnConsentRevoked?: boolean;
@@ -1267,7 +1265,6 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		kernel:
 			props.runtime?.kernel ??
 			createProviderKernel({ ...options, enabled: true }),
-		reloadOnRevocation: options.reloadOnRevocation,
 	}));
 	void setOwned;
 	const { clearOnRevocation: initialClearOnRevocation } = owned;
@@ -1325,18 +1322,6 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		}
 		return connectConsentSource(kernel, owned.consentSource);
 	}, [enabled, kernel, owned, ownsRuntime]);
-	const hasScripts = Boolean(scripts?.length);
-	useEffect(() => {
-		if (
-			!ownsRuntime ||
-			!owned.consentSource ||
-			!owned.reloadOnRevocation ||
-			!hasScripts
-		) {
-			return;
-		}
-		return reloadOnConsentRevocation(kernel);
-	}, [kernel, owned, ownsRuntime, hasScripts]);
 	const windowDebugPkg = options.__debugPkg ?? '@c15t/react';
 	// `mode` is optional when a runtime is handed in — its owner picked the
 	// transport, and this provider mounts no `window.c15t` either way.

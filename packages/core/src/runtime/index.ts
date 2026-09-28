@@ -60,7 +60,7 @@ import type {
 	TranslationsResponse,
 } from '../types';
 import { wireRuntimeCallbacks } from './callbacks';
-import { connectConsentSource, reloadOnConsentRevocation } from './controls';
+import { connectConsentSource } from './controls';
 import { isIABConfigured } from './iab-options';
 import type {
 	ConsentRuntime,
@@ -71,7 +71,7 @@ import type {
 	RuntimePersistenceOptions,
 } from './types';
 
-export { connectConsentSource, reloadOnConsentRevocation } from './controls';
+export { connectConsentSource } from './controls';
 export type { ConsentControlOptions } from './controls';
 
 export type {
@@ -695,13 +695,6 @@ export const createConsentRuntime = function createConsentRuntime(
 
 			startIAB();
 			startCleanup();
-			if (
-				options.consentSource &&
-				options.reloadOnRevocation &&
-				options.scripts?.length
-			) {
-				disposers.push(reloadOnConsentRevocation(kernel));
-			}
 		},
 		get started() {
 			return started;

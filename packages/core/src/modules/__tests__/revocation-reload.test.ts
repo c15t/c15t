@@ -194,3 +194,61 @@ describe('watchRevocationReload', () => {
 		expect(reload).not.toHaveBeenCalled();
 	});
 });
+
+describe('watchRevocationReload with an external consent source', () => {
+	const createExternalKernel = () =>
+		createKernel({ initialExternalPermissions: {} });
+
+	it('reloads once after the source withdraws a granted category', async () => {
+		const kernel = createExternalKernel();
+		const { onBeforeReload, reload } = watch(kernel);
+		kernel.set.externalPermissions({ marketing: true, measurement: true });
+
+		kernel.set.externalPermissions({ measurement: true });
+		kernel.set.externalPermissions({});
+		expect(reload).not.toHaveBeenCalled();
+		await vi.runAllTimersAsync();
+
+		expect(onBeforeReload).toHaveBeenCalledOnce();
+		expect(onBeforeReload.mock.calls[0]?.[0].preferences).toMatchObject({
+			marketing: false,
+			measurement: false,
+		});
+		expect(reload).toHaveBeenCalledOnce();
+	});
+
+	it('does not reload when the source only grants', async () => {
+		const kernel = createExternalKernel();
+		const { reload } = watch(kernel);
+
+		kernel.set.externalPermissions({ marketing: true });
+		kernel.set.externalPermissions({ marketing: true, measurement: true });
+		await vi.runAllTimersAsync();
+
+		expect(reload).not.toHaveBeenCalled();
+	});
+
+	it('does not reload when disabled', async () => {
+		const kernel = createExternalKernel();
+		const { onBeforeReload, reload } = watch(kernel, { enabled: false });
+		kernel.set.externalPermissions({ marketing: true });
+
+		kernel.set.externalPermissions({});
+		await vi.runAllTimersAsync();
+
+		expect(onBeforeReload).not.toHaveBeenCalled();
+		expect(reload).not.toHaveBeenCalled();
+	});
+
+	it('cancels a pending reload on dispose', async () => {
+		const kernel = createExternalKernel();
+		const { dispose, reload } = watch(kernel);
+		kernel.set.externalPermissions({ marketing: true });
+
+		kernel.set.externalPermissions({});
+		dispose();
+		await vi.runAllTimersAsync();
+
+		expect(reload).not.toHaveBeenCalled();
+	});
+});

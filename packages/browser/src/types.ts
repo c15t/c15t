@@ -146,7 +146,7 @@ export interface ConsentUIOptions {
  */
 export interface ConsentClientOptions extends Pick<
 	ConsentRuntimeOptions,
-	'consentSource' | 'reloadOnRevocation'
+	'consentSource'
 > {
 	/** IAB configuration. Requires the `@c15t/browser/iab` entry. */
 	iab?: ConsentRuntimeOptions['iab'];
@@ -180,9 +180,10 @@ export interface ConsentClientOptions extends Pick<
 	clearOnRevocation?: ClearOnRevocationConfig;
 	/**
 	 * Reload the page after an accept, reject or save turns off a category or
-	 * vendor that was granted. Removing a script cannot stop code that already
-	 * ran, so the reload starts a document with only permitted code. Waits for
-	 * the save request. Set `false` to handle revocation yourself.
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
 	 * @default true
 	 */
 	reloadOnConsentRevoked?: boolean;

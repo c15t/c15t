@@ -118,58 +118,80 @@ test('a failed external subscription reports the error without aborting startup 
 	}
 });
 
-test('reloads once after withdrawal, and cancels a pending reload when disposed', async () => {
+const withdrawExternally = async function withdrawExternally(
+	options: {
+		disposeBeforeReload?: boolean;
+		reloadOnConsentRevoked?: boolean;
+	} = {}
+) {
+	vi.useFakeTimers();
 	const reload = vi.fn();
-	const originalWindow = window;
-	vi.stubGlobal(
-		'window',
-		new Proxy(originalWindow, {
-			get(target, key) {
-				// oxlint-disable-next-line anti-slop/no-reflect-get -- Forward the native Window receiver while replacing only its unforgeable location for this test.
-				return key === 'location' ? { reload } : Reflect.get(target, key);
+	vi.spyOn(window, 'location', 'get').mockReturnValue({
+		reload,
+	} as unknown as Location);
+	const onBeforeConsentRevocationReload = vi.fn();
+	const onLoad = vi.fn();
+	let permissions: Partial<ConsentState> = {
+		marketing: true,
+		measurement: true,
+	};
+	let notify = () => {};
+	const runtime = createConsentRuntime({
+		callbacks: { onBeforeConsentRevocationReload },
+		consentSource: {
+			getPermissions: () => permissions,
+			openPreferences: () => {},
+			subscribe: (listener) => {
+				notify = listener;
+				return () => {};
 			},
-		})
-	);
+		},
+		iframeBlocker: false,
+		mode: custom(createOfflineTransport()),
+		reloadOnConsentRevoked: options.reloadOnConsentRevoked,
+		scripts: [
+			{ callbackOnly: true, category: 'measurement', id: 'tracker', onLoad },
+		],
+	});
 	try {
-		for (const disposeBeforeReload of [false, true]) {
-			let permissions: Partial<ConsentState> = {
-				marketing: true,
-				measurement: true,
-			};
-			let notify = () => {};
-			const runtime = createConsentRuntime({
-				consentSource: {
-					getPermissions: () => permissions,
-					openPreferences: () => {},
-					subscribe: (listener) => {
-						notify = listener;
-						return () => {};
-					},
-				},
-				iframeBlocker: false,
-				mode: custom(createOfflineTransport()),
-				reloadOnRevocation: true,
-				scripts: [
-					{ callbackOnly: true, category: 'measurement', id: 'tracker' },
-				],
-			});
-			runtime.start();
-			permissions = { marketing: true, measurement: false };
-			notify();
-			permissions = { marketing: false, measurement: false };
-			notify();
-			expect(reload).toHaveBeenCalledTimes(disposeBeforeReload ? 1 : 0);
-			if (disposeBeforeReload) {
-				runtime.dispose();
-			}
-			// oxlint-disable-next-line no-await-in-loop -- Each case must observe its queued reload before the next runtime starts.
-			await Promise.resolve();
-			expect(reload).toHaveBeenCalledTimes(1);
+		runtime.start();
+		await vi.advanceTimersByTimeAsync(0);
+		expect(onLoad).toHaveBeenCalledOnce();
+		permissions = { marketing: true, measurement: false };
+		notify();
+		permissions = { marketing: false, measurement: false };
+		notify();
+		expect(reload).not.toHaveBeenCalled();
+		if (options.disposeBeforeReload) {
 			runtime.dispose();
 		}
+		await vi.advanceTimersByTimeAsync(10);
 	} finally {
-		vi.unstubAllGlobals();
+		runtime.dispose();
+		vi.restoreAllMocks();
+		vi.useRealTimers();
 	}
+	return { onBeforeConsentRevocationReload, reload };
+};
+
+test('reloads once by default after the source withdraws a loaded script', async () => {
+	const { onBeforeConsentRevocationReload, reload } =
+		await withdrawExternally();
+	expect(onBeforeConsentRevocationReload).toHaveBeenCalledOnce();
+	expect(reload).toHaveBeenCalledOnce();
+});
+
+test('external withdrawal honours `reloadOnConsentRevoked: false`', async () => {
+	const { onBeforeConsentRevocationReload, reload } = await withdrawExternally({
+		reloadOnConsentRevoked: false,
+	});
+	expect(onBeforeConsentRevocationReload).not.toHaveBeenCalled();
+	expect(reload).not.toHaveBeenCalled();
+});
+
+test('disposing the runtime cancels a pending external reload', async () => {
+	const { reload } = await withdrawExternally({ disposeBeforeReload: true });
+	expect(reload).not.toHaveBeenCalled();
 });
 
 test('all framework preference setters delegate without opening c15t UI, and errors reach callbacks', async () => {

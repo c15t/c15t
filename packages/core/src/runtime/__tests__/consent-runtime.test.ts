@@ -762,47 +762,6 @@ describe('the runtime network hold', () => {
 });
 
 describe('revocation reload', () => {
-	test('the external reload option cannot bypass a pending c15t save', async () => {
-		vi.useFakeTimers();
-		const reload = vi.fn();
-		vi.spyOn(window, 'location', 'get').mockReturnValue({
-			reload,
-		} as unknown as Location);
-		let finishSave = () => {};
-		const save = vi.fn().mockResolvedValue({ ok: true });
-		const runtime = createConsentRuntime({
-			iframeBlocker: false,
-			mode: custom(createTransport({ save })),
-			prefetch: RESOLVED_PREFETCH,
-			reloadOnRevocation: true,
-			scripts: [{ callbackOnly: true, category: 'marketing', id: 'tracker' }],
-		});
-		try {
-			runtime.start();
-			const grant = runtime.kernel.commands.save({ marketing: true });
-			await vi.advanceTimersByTimeAsync(10);
-			await grant;
-			save.mockImplementationOnce(
-				() =>
-					new Promise((resolve) => {
-						finishSave = () => resolve({ ok: true });
-					})
-			);
-			const revoke = runtime.kernel.commands.save({ marketing: false });
-			await vi.advanceTimersByTimeAsync(10);
-			expect(save).toHaveBeenCalledTimes(2);
-			expect(reload).not.toHaveBeenCalled();
-			finishSave();
-			await revoke;
-			await vi.advanceTimersByTimeAsync(10);
-			expect(reload).toHaveBeenCalledOnce();
-		} finally {
-			finishSave();
-			runtime.dispose();
-			vi.useRealTimers();
-		}
-	});
-
 	const revoke = async function revoke(
 		options: { reloadOnConsentRevoked?: boolean } = {}
 	) {

@@ -169,10 +169,6 @@ export interface ExternalConsentSource {
  * External sources are initial-only; recreate the runtime to change authority.
  */
 export interface ConsentRuntimeOptions {
-	/** Reload after an optional permission is revoked, stopping SDKs that cannot unload themselves.
-	 * Off by default. Runs after synchronous persistence and consent callbacks complete.
-	 */
-	reloadOnRevocation?: boolean;
 	/** External authority. Disables c15t persistence, initialization, IAB and choice UI. */
 	consentSource?: ExternalConsentSource;
 	/**
@@ -201,9 +197,10 @@ export interface ConsentRuntimeOptions {
 	clearOnRevocation?: ClearOnRevocationConfig;
 	/**
 	 * Reload the page after an accept, reject or save turns off a category or
-	 * vendor that was granted. Removing a script cannot stop code that already
-	 * ran, so the reload starts a document with only permitted code. Waits for
-	 * the save request. Set `false` to handle revocation yourself.
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
 	 * @default true
 	 */
 	reloadOnConsentRevoked?: boolean;

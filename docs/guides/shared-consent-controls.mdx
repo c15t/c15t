@@ -49,20 +49,19 @@ after the CMP is available to connect again.
 
 ## Pass the controls to your framework
 
-The same `consentSource` and `reloadOnRevocation` options are available at these
-registration points. Register your SDK configurations through the same owner's
+The `consentSource` option is available at these registration points. Register your SDK configurations through the same owner's
 `scripts` option. Do not create an additional runtime beside an existing provider.
 
 | Framework | Registration point |
 | --- | --- |
-| React | `ConsentProvider options={{ mode, consentSource, scripts, reloadOnRevocation }}` |
-| Next.js / TanStack Start | `ConsentRoot options={{ consentSource, reloadOnRevocation }}` with `scripts` as a top-level prop; `ConsentProvider` also accepts the React options |
-| Vue | `app.use(c15tVue, { consentSource, scripts, reloadOnRevocation })` |
-| Nuxt | `app.config.ts` → `c15t: { consentSource, scripts, reloadOnRevocation }` |
+| React | `ConsentProvider options={{ mode, consentSource, scripts }}` |
+| Next.js / TanStack Start | `ConsentRoot options={{ consentSource }}` with `scripts` as a top-level prop; `ConsentProvider` also accepts the React options |
+| Vue | `app.use(c15tVue, { consentSource, scripts })` |
+| Nuxt | `app.config.ts` → `c15t: { consentSource, scripts }` |
 | Svelte / SvelteKit | `ConsentManagerProvider` options or corresponding top-level props |
-| Astro | `clientOptions.consentSource`; `reloadOnRevocation` on the integration |
-| Browser client | `createConsentClient({ consentSource, scripts, reloadOnRevocation })` |
-| Headless JavaScript / Solid | `createConsentRuntime({ mode, consentSource, scripts, reloadOnRevocation })` |
+| Astro | `clientOptions.consentSource` |
+| Browser client | `createConsentClient({ consentSource, scripts })` |
+| Headless JavaScript / Solid | `createConsentRuntime({ mode, consentSource, scripts })` |
 
 For example, a React client boundary can use the source directly:
 
@@ -84,7 +83,7 @@ function Preferences() {
 
 export function Consent({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider options={{ mode, consentSource, scripts, reloadOnRevocation: true }}>
+    <ConsentProvider options={{ mode, consentSource, scripts }}>
       {children}
       <Preferences />
     </ConsentProvider>
@@ -114,18 +113,18 @@ also owns starting and disposing it.
 
 ## Handle withdrawal and application events
 
-`reloadOnRevocation` defaults to `false` and only applies with a `consentSource`.
-With configured scripts and the option
-enabled, losing any optional permission schedules one browser reload after
-synchronous consent callbacks and cleanup. Disposing the owner cancels a pending
-reload. Use it for external SDKs that cannot fully stop after execution. When disabled,
-c15t still updates gates and invokes script consent callbacks; removing a script
-element cannot undo JavaScript that already ran.
+When the source withdraws an optional category that was granted, c15t reloads
+the page, as it does when a visitor revokes consent in c15t's own UI. Removing a
+script element cannot stop JavaScript that already ran, so the reload starts a
+page with only permitted code. The reload runs in the next task, after
+synchronous consent callbacks and `onBeforeConsentRevocationReload`. Disposing
+the owner cancels a pending reload.
 
-`reloadOnConsentRevoked` separately handles c15t-owned save actions and defaults
-to `true`. It waits for saves and persistence to finish. External CMPs own their
-own persistence, so coordinate withdrawal with the provider before notifying
-c15t when using `reloadOnRevocation`.
+c15t cannot tell a visitor's withdrawal from expiry or a reset in the CMP, so
+any notification that turns off a granted category reloads. The CMP owns
+persistence: store the new decision before notifying c15t, or the reloaded page
+reads the old one. Set `reloadOnConsentRevoked: false` to handle withdrawal
+yourself. c15t still updates gates and calls script consent callbacks.
 
 `createEventDispatcher` from `@c15t/scripts/events` also has no framework dependency:
 
