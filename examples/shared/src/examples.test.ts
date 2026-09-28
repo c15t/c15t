@@ -257,15 +257,25 @@ for (const target of selectedTargets()) {
 				await setCategory(page, 'Marketing', false);
 				await saveButton(page).click();
 				await expect.poll(() => video(page).count()).toBe(0);
+				// Revoking a granted category reloads the page in every runtime that
+				// wires the reload; the plain JavaScript example builds its kernel by
+				// hand and does not. Either way PostHog ends up opted out: the stub
+				// recorded the opt-out before the old document unloaded, or the new
+				// document never loaded it because measurement is denied. The poll
+				// also rides through the evaluate call the reload interrupts.
 				await expect
 					.poll(() =>
-						page.evaluate(
-							() =>
-								(window as Window & { __examplePosthogConsent?: string })
-									.__examplePosthogConsent
-						)
+						page.evaluate(() => {
+							const host = window as Window & {
+								__examplePosthogConsent?: string;
+								posthog?: unknown;
+							};
+							return host.posthog === undefined
+								? 'not-loaded'
+								: host.__examplePosthogConsent;
+						})
 					)
-					.toBe('denied');
+					.toMatch(/^(?:denied|not-loaded)$/u);
 				expect(requests.unexpected).toEqual([]);
 			});
 
