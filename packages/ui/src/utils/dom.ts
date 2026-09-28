@@ -185,8 +185,9 @@ const supportsScrollbarGutter = (): boolean =>
  * `<body>` when it is its own scroll container. When the page was showing a
  * classic scrollbar, `scrollbar-gutter: stable` on `<html>` keeps the
  * viewport width constant so neither in-flow content nor fixed-position
- * elements move. Browsers without `scrollbar-gutter` get `padding-right` on
- * `<body>` instead, which keeps in-flow content still.
+ * elements move. Where no gutter holds (browsers without `scrollbar-gutter`,
+ * and scrollbars styled with `::-webkit-scrollbar`), `<body>` gets
+ * `padding-right` instead, which keeps in-flow content still.
  *
  * @returns Cleanup function to restore scroll
  */
@@ -201,6 +202,7 @@ export const setupScrollLock = function setupScrollLock() {
 		// Only a classic scrollbar takes space. Measure it before hiding
 		// overflow: reserving a gutter on a page without one would narrow it.
 		const scrollbarWidth = window.innerWidth - root.clientWidth;
+		const rootWidth = root.getBoundingClientRect().width;
 		const restores: (() => void)[] = [];
 		// Saves the inline values of `property` and any `related` longhands.
 		// A page that set only `overflow-x` reads back an empty `overflow`,
@@ -247,12 +249,22 @@ export const setupScrollLock = function setupScrollLock() {
 		}
 
 		if (scrollbarWidth > 0) {
-			if (!supportsScrollbarGutter()) {
+			if (supportsScrollbarGutter()) {
+				if (
+					!rootStyle.getPropertyValue('scrollbar-gutter').includes('stable')
+				) {
+					setStyle(root, 'scrollbar-gutter', 'stable');
+				}
+				// The gutter only holds for native scrollbars: Chromium reserves
+				// none for one styled with `::-webkit-scrollbar`. When the page
+				// still widened, pad <body> by the difference instead, which keeps
+				// in-flow content still (fixed elements still move).
+				const growth = root.getBoundingClientRect().width - rootWidth;
+				if (growth > 0.5) {
+					setStyle(body, 'padding-right', `${growth}px`);
+				}
+			} else {
 				setStyle(body, 'padding-right', `${scrollbarWidth}px`);
-			} else if (
-				!rootStyle.getPropertyValue('scrollbar-gutter').includes('stable')
-			) {
-				setStyle(root, 'scrollbar-gutter', 'stable');
 			}
 		}
 

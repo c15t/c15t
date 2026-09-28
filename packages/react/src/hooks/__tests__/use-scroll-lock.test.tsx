@@ -166,11 +166,24 @@ describe('useScrollLock', () => {
 	});
 
 	describe('Layout', () => {
-		const Page = ({ locked }: { locked: boolean }) => {
+		const Page = ({
+			locked,
+			styledScrollbar = false,
+		}: {
+			locked: boolean;
+			styledScrollbar?: boolean;
+		}) => {
 			useScrollLock(locked);
 
 			return (
 				<>
+					{styledScrollbar && (
+						<style>
+							{
+								'::-webkit-scrollbar { width: 15px; } ::-webkit-scrollbar-thumb { background: #999; }'
+							}
+						</style>
+					)}
 					<div
 						data-testid="flow"
 						style={{ height: '200vh' }}
@@ -198,20 +211,54 @@ describe('useScrollLock', () => {
 			).getBoundingClientRect().right,
 		});
 
-		test('keeps fixed and in-flow content still when the page shows a scrollbar', async () => {
+		const scrollbarWidth = () =>
+			window.innerWidth - document.documentElement.clientWidth;
+
+		test('keeps fixed and in-flow content still with a native scrollbar', async (context) => {
 			const screen = await render(<Page locked={false} />);
 
-			// The browser project launches Chromium with visible classic
-			// scrollbars; without one this test cannot catch a layout shift.
-			expect(
-				window.innerWidth - document.documentElement.clientWidth
-			).toBeGreaterThan(0);
+			// The browser project launches Chromium with visible scrollbars, which
+			// are classic on Linux. macOS may use overlay scrollbars, which take
+			// no width and cannot shift anything, depending on the pointing
+			// device connected.
+			if (scrollbarWidth() === 0) {
+				context.skip();
+			}
 			const before = measure();
 
 			await screen.rerender(<Page locked />);
 			expect(measure()).toEqual(before);
 
 			await screen.rerender(<Page locked={false} />);
+			expect(measure()).toEqual(before);
+		});
+
+		test('keeps in-flow content still with a styled scrollbar', async () => {
+			// A `::-webkit-scrollbar` scrollbar always takes width in Chromium,
+			// and reserves no `scrollbar-gutter`, so the lock pads <body> instead.
+			const screen = await render(
+				<Page
+					locked={false}
+					styledScrollbar
+				/>
+			);
+			expect(scrollbarWidth()).toBeGreaterThan(0);
+			const before = measure();
+
+			await screen.rerender(
+				<Page
+					locked
+					styledScrollbar
+				/>
+			);
+			expect(measure().flowRight).toBe(before.flowRight);
+
+			await screen.rerender(
+				<Page
+					locked={false}
+					styledScrollbar
+				/>
+			);
 			expect(measure()).toEqual(before);
 		});
 	});
