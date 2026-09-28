@@ -5,14 +5,11 @@ import {
 } from '@c15t/schema/types';
 import { expect, test, vi } from 'vitest';
 
-import {
-	readInitialConsentConfig,
-	prefetchInitialConsent,
-} from '../lib/server';
+import { resolveConsent } from '../lib/server';
 
 const now = 1780000000000;
 test('Svelte raw Sec-GPC stays separate from developer override', async () => {
-	const config = await readInitialConsentConfig({
+	const config = await resolveConsent({
 		headers: new Headers({ 'sec-gpc': '1' }),
 		now,
 	});
@@ -32,7 +29,7 @@ test.each([undefined, 'fr-CA'])(
 				{ headers: { 'x-c15t-policy-contract': '1' } }
 			)
 		);
-		await prefetchInitialConsent({
+		await resolveConsent({
 			backendURL: 'https://backend.test',
 			fetch,
 			forwardHeaders: ['x-review'],
@@ -74,7 +71,7 @@ test('Svelte prefetch preserves a backend literal subject without manufacturing 
 			{ headers: { 'x-c15t-policy-contract': '1' } }
 		)
 	);
-	const config = await prefetchInitialConsent({
+	const config = await resolveConsent({
 		backendURL: 'https://backend.test',
 		fetch,
 		headers: new Headers(),
@@ -128,7 +125,7 @@ test.each(['public', 'cookie', 'header', 'custom-fetch'] as const)(
 		);
 		vi.stubGlobal('fetch', fetch);
 		try {
-			const config = await prefetchInitialConsent({
+			const config = await resolveConsent({
 				backendURL: 'https://private.test',
 				fetch: access === 'custom-fetch' ? fetch : undefined,
 				forwardHeaders: access === 'header' ? ['authorization'] : undefined,

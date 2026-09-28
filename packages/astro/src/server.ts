@@ -196,7 +196,8 @@ export const resolveTranslations = function resolveTranslations(
 };
 
 /**
- * Read cookies and geo headers into a baseline `KernelConfig`.
+ * The request-only part of {@link resolveConsentContext}: cookies and geo
+ * headers read into a baseline `KernelConfig`.
  *
  * Does no network work and sets no cookies, so it is safe on every runtime
  * including static prerenders.
@@ -205,7 +206,7 @@ export const resolveTranslations = function resolveTranslations(
  * @param options - The integration options.
  * @returns A config seeded with stored consent and request overrides.
  */
-export const readInitialConsentConfig = function readInitialConsentConfig(
+const readConsentRequest = function readConsentRequest(
 	headers: Headers,
 	options: C15tResolvedOptions
 ): { config: KernelConfig; inputs: ConsentRequestHeaderInputs } {
@@ -658,7 +659,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 	const { options } = input;
 	const prerendered = input.prerendered === true;
 	const headers = prerendered ? new Headers() : input.headers;
-	const { config: base, inputs } = readInitialConsentConfig(headers, options);
+	const { config: base, inputs } = readConsentRequest(headers, options);
 	const translations = resolveTranslations(options, inputs);
 	// Hosted and manifest mode resolve against the visitor's geo, which a
 	// build has none of. Offline mode resolves without it in the browser as

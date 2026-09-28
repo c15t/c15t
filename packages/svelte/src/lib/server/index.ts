@@ -3,7 +3,6 @@ import {
 	createHostedTransport,
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core';
-import type { KernelConfig } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import {
 	consentInputsToOverrides,
@@ -13,13 +12,18 @@ import {
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 import type {
-	PrefetchInitialConsentOptions,
-	ReadInitialConsentConfigOptions,
+	ConsentRequestOptions,
+	ConsentState,
+	ResolveConsentOptions,
 } from './types';
 
-export const readInitialConsentConfig = function readInitialConsentConfig(
-	options: ReadInitialConsentConfigOptions
-): Promise<KernelConfig> {
+/**
+ * The request-only part of {@link resolveConsent}: the visitor's state from
+ * the consent cookie and request headers, before any backend call.
+ */
+const readConsentRequest = function readConsentRequest(
+	options: ResolveConsentOptions
+): ConsentState {
 	const now = options.now ?? Date.now();
 	const cookieHeader =
 		options.cookieHeader ?? options.headers.get('cookie') ?? undefined;
@@ -39,20 +43,20 @@ export const readInitialConsentConfig = function readInitialConsentConfig(
 		region: inputs.region,
 	});
 
-	const config: KernelConfig = {
+	const state: ConsentState = {
 		initialPrivacySignals: { gpc: options.headers.get('sec-gpc') === '1' },
 		initialRecords,
 		now,
 	};
 	if (Object.keys(overrides).length > 0) {
-		config.initialOverrides = overrides;
+		state.initialOverrides = overrides;
 	}
-	return Promise.resolve(config);
+	return state;
 };
 
 const createForwardHeaders = (
-	options: PrefetchInitialConsentOptions,
-	overrides: KernelConfig['initialOverrides']
+	options: ResolveConsentOptions,
+	overrides: ConsentState['initialOverrides']
 ): Record<string, string> => {
 	const forward: Record<string, string> = {
 		...extractRelevantHeaders(options.headers),
@@ -81,10 +85,39 @@ const createForwardHeaders = (
 	return forward;
 };
 
-export const prefetchInitialConsent = async function prefetchInitialConsent(
-	options: PrefetchInitialConsentOptions
-): Promise<KernelConfig> {
-	const base = await readInitialConsentConfig(options);
+/**
+ * Resolves the visitor's consent state from a SvelteKit request.
+ *
+ * 1. Reads the consent cookie, the CDN geo headers, `accept-language`, and
+ *    `sec-gpc`. Without a `backendURL` this is the whole result, and no
+ *    network call is made.
+ * 2. With a `backendURL`, calls `${backendURL}/init` with the request
+ *    context and folds the response into the state, so first paint is
+ *    correct without waiting for a client roundtrip.
+ *
+ * Never throws: if the backend URL cannot be resolved or the call fails,
+ * the request-only state is returned and the client runs init on mount.
+ *
+ * @param options - Request headers, cookie name, geo/language overrides,
+ * and the backend location.
+ * @returns A serializable state for the provider's `prefetch` prop.
+ * @example
+ * ```ts
+ * import { resolveConsent } from '@c15t/svelte/server';
+ *
+ * const state = await resolveConsent({
+ *   backendURL: 'https://consent.example.com',
+ *   headers: request.headers,
+ * });
+ * ```
+ */
+export const resolveConsent = async function resolveConsent(
+	options: ResolveConsentOptions
+): Promise<ConsentState> {
+	const base = readConsentRequest(options);
+	if (!options.backendURL) {
+		return base;
+	}
 	const absoluteBackend = normalizeBackendURL(
 		options.backendURL,
 		options.headers
@@ -154,6 +187,6 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 };
 
 export type { KernelConfig } from '@c15t/core';
-export type { PrefetchInitialConsentOptions, ReadInitialConsentConfigOptions };
+export type { ConsentRequestOptions, ConsentState, ResolveConsentOptions };
 export { custom, hosted } from '@c15t/core';
 export { offline } from '../transports/offline';
