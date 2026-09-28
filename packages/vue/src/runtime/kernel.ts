@@ -44,6 +44,7 @@ import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { computed, shallowRef } from 'vue';
 import type { Ref } from 'vue';
 
+import type * as ClientManifestModule from './client-manifest';
 import type { ConsentConfig } from './config';
 import {
 	isClientManifestModeEnabled,
@@ -364,6 +365,28 @@ const settle = async function settle<Value>(
 	}
 };
 
+type ClientManifestResources = typeof ClientManifestModule;
+
+let bundledClientManifest: ClientManifestResources | undefined;
+
+/**
+ * Hand the kernel client manifest resources that are already part of the
+ * app's entry, so it uses them instead of importing its own chunk. Nuxt's
+ * client manifest mode registers them from a plugin that imports them
+ * statically: that mode resolves the manifest at startup, and a static
+ * import lets the page preload the resolver instead of fetching it after
+ * the entry runs.
+ *
+ * @param resources - The `./client-manifest` module, or `undefined` to
+ * go back to importing it on demand.
+ * @internal
+ */
+export const registerClientManifest = function registerClientManifest(
+	resources: ClientManifestResources | undefined
+): void {
+	bundledClientManifest = resources;
+};
+
 const createVueManifestTransport = function createVueManifestTransport(
 	config: RuntimeConsentConfig,
 	headers: Record<string, string>,
@@ -412,8 +435,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 	const loadClientResources = function loadClientResources() {
 		return settle(
 			Promise.all([
-				import('@c15t/core/transports/manifest'),
-				import('@c15t/translations/all'),
+				bundledClientManifest ?? import('./client-manifest'),
 				fetchManifest(),
 			])
 		);
@@ -438,7 +460,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 				clientResources = undefined;
 				throw loaded.error;
 			}
-			const [{ createManifestTransport }, { baseTranslations }, manifest] =
+			const [{ baseTranslations, createManifestTransport }, manifest] =
 				loaded.value;
 			manifestTransport ??= createManifestTransport({
 				backendURL,
