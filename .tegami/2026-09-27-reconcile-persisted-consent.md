@@ -78,7 +78,16 @@ grant is still not applied.
 This changes the stored format: after a clear, the consent cookie gains
 `&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes).
 Visitors who never cleared store what they did before. Older c15t builds reject
-a consent cookie that carries the epoch and treat the visitor as undecided.
+both the cookie and the localStorage record once they carry the epoch and treat
+the visitor as undecided, so under an opt-out policy they grant optional
+categories by default until a new choice is saved. Deploy the new build to every
+page of the site before visitors can clear their records.
+
+When two tabs write at the same moment and one write drops the other tab's
+category or directive, the tab that lost it writes it back on its next
+reconciliation. Under an IAB policy, a TC string that grants a category a
+reconciled denial covers is withdrawn before any `__tcfapi` listener is
+notified.
 
 New API:
 

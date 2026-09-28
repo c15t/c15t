@@ -221,9 +221,12 @@ than an hour ahead is treated as corrupt and reads as 0.
 This changes the stored format. After a clear, the consent cookie carries
 `&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes),
 and the epoch cookie itself holds a 13-digit time. Visitors who never cleared
-their records store exactly what they did before. An older c15t build rejects a
-consent cookie that carries the epoch, so a page still running one shows the
-prompt again rather than applying the record.
+their records store exactly what they did before. An older c15t build rejects
+both the cookie and the localStorage record once they carry the epoch, so a page
+still running one treats the visitor as undecided. Under an opt-out policy that
+page grants optional categories by default until a new choice is saved, and the
+configured prompt may appear again. Deploy the new build to every page of the
+site before visitors can clear their records.
 
 ### When the cookie and localStorage disagree
 
@@ -275,6 +278,13 @@ keeps the stored subject unless this tab identified a different user.
 When a slow save response returns a server subject id, the tab adds it only to
 the record it wrote; it does not recreate records another tab cleared or
 overwrite another tab's newer choice.
+
+Two tabs that write at the same moment can both read storage before either
+writes, and the later write can then drop the other tab's category or privacy
+directive. The tab whose decision was dropped still holds it, and on its next
+reconciliation it writes it back, merged with what storage holds. It does so
+only for decisions it stored itself, never for one a clear voided or another
+tab replaced with a newer one.
 
 If another tab's change reaches this tab while one of its saves is pending, the
 save depends on how far it got. A save not yet sent is dropped. A request
