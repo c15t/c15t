@@ -454,7 +454,10 @@ describe('vendored native sources', () => {
 		// the kernel reaches it only inside this package, and the podspec must compile from there
 		// rather than name a dependency nobody publishes.
 		const reactNativeDir = join(ROOT, 'packages', 'react-native');
-		const packed = runPack(reactNativeDir);
+		// The listing is the question, not the build: the package's `prepack` hook
+		// refuses to pack an unbuilt checkout, and the repository job runs before
+		// any build. The vendored sources are checked in, so npm lists them either way.
+		const packed = runPack(reactNativeDir, { ignoreScripts: true });
 		const packedPaths = packed.files.map((file) => file.path);
 		const packedVendored = packedPaths.filter((path) =>
 			path.startsWith('vendor/C15tCore/')

@@ -490,13 +490,23 @@ const scanPackedManifestTargets = function scanPackedManifestTargets(
  * Ask npm what a package would publish, without writing a tarball.
  *
  * @param packageDir - The package to pack.
+ * @param options - `ignoreScripts` skips the package's `prepack` hook. The
+ *   hook verifies a build exists, so a caller that only wants the file list
+ *   from an unbuilt checkout passes it.
  * @returns npm's own answer: the name, version, and every path in the tarball.
  */
-export const runPack = function runPack(packageDir: string): PackResult {
+export const runPack = function runPack(
+	packageDir: string,
+	options: { ignoreScripts?: boolean } = {}
+): PackResult {
 	let raw: string;
 
 	try {
-		raw = execFileSync('npm', ['pack', '--json', '--dry-run'], {
+		const args = ['pack', '--json', '--dry-run'];
+		if (options.ignoreScripts) {
+			args.push('--ignore-scripts');
+		}
+		raw = execFileSync('npm', args, {
 			cwd: packageDir,
 			encoding: 'utf8',
 			// A package with a few hundred declarations is well past the 1 MiB default.
