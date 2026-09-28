@@ -114,7 +114,8 @@ also owns starting and disposing it.
 
 ## Handle withdrawal and application events
 
-`reloadOnRevocation` defaults to `false`. With configured scripts and the option
+`reloadOnRevocation` defaults to `false` and only applies with a `consentSource`.
+With configured scripts and the option
 enabled, losing any optional permission schedules one browser reload after
 synchronous consent callbacks and cleanup. Disposing the owner cancels a pending
 reload. Use it for external SDKs that cannot fully stop after execution. When disabled,

@@ -695,7 +695,11 @@ export const createConsentRuntime = function createConsentRuntime(
 
 			startIAB();
 			startCleanup();
-			if (options.reloadOnRevocation && options.scripts?.length) {
+			if (
+				options.consentSource &&
+				options.reloadOnRevocation &&
+				options.scripts?.length
+			) {
 				disposers.push(reloadOnConsentRevocation(kernel));
 			}
 		},

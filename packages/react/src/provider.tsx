@@ -1327,7 +1327,12 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	}, [enabled, kernel, owned, ownsRuntime]);
 	const hasScripts = Boolean(scripts?.length);
 	useEffect(() => {
-		if (!ownsRuntime || !owned.reloadOnRevocation || !hasScripts) {
+		if (
+			!ownsRuntime ||
+			!owned.consentSource ||
+			!owned.reloadOnRevocation ||
+			!hasScripts
+		) {
 			return;
 		}
 		return reloadOnConsentRevocation(kernel);

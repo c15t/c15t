@@ -930,6 +930,7 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	}
 	if (
 		typeof document !== 'undefined' &&
+		config.consentSource &&
 		config.reloadOnRevocation &&
 		config.scripts?.length
 	) {

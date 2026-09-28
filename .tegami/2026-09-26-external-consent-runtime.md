@@ -20,3 +20,5 @@ Add consent-aware custom event and SPA pageview dispatch to the script SDK, pres
 Keep disabled runtimes permissive when an external source is configured. Complete browser readiness after connecting the source, keep Astro preference triggers available, and reject IAB saves owned by an external CMP. External permissions disable c15t IAB authority. Deliver events for built-in Umami, Rybbit and Matomo integrations, and preserve custom GTM queue names during initialization and dispatch.
 
 Report external CMP subscription failures without aborting provider startup. Keep optional permissions denied and ignore notifications from the failed connection.
+
+Apply `reloadOnRevocation` only to external consent sources, so c15t-owned revocations still wait for saves and persistence before reloading.
