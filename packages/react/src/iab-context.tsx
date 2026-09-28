@@ -78,7 +78,16 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	} | null>(null);
 	const handle = mountedHandle?.kernel === kernel ? mountedHandle.handle : null;
 	const optionsRef = useRef(options);
-	const handleRef = useRef<IABHandle | null>(null);
+	// The imperative handle, tagged with its kernel. During a switch it still
+	// holds the previous kernel's handle until the passive effect cleanup
+	// runs, and a child layout effect or a click can call `run` in between.
+	const handleRef = useRef<{
+		handle: IABHandle;
+		kernel: ConsentKernel;
+	} | null>(null);
+	// Kernels whose handle this provider has torn down. An action still
+	// addressed to one of them is aborted, never applied to a newer kernel.
+	const retiredRef = useRef(new WeakSet<ConsentKernel>());
 	// Actions taken between hydration and the effect below creating the
 	// handle. A server-rendered banner is clickable in that window. Each
 	// action remembers its kernel, so it never runs against another one.
@@ -89,8 +98,10 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	}, [options]);
 
 	useEffect(() => {
+		const retired = retiredRef.current;
+		retired.delete(kernel);
 		const next = createIAB({ ...optionsRef.current, kernel });
-		handleRef.current = next;
+		handleRef.current = { handle: next, kernel };
 		setMountedHandle({ handle: next, kernel });
 		const queued = queuedRef.current;
 		queuedRef.current = [];
@@ -102,7 +113,10 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 			}
 		}
 		return () => {
+			// Cleanup always runs before the next kernel's setup, so the ref
+			// still holds this effect's handle here.
 			handleRef.current = null;
+			retired.add(kernel);
 			next.dispose();
 		};
 	}, [kernel]);
@@ -110,18 +124,25 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	const run = useCallback<NonNullable<IABContextValue['run']>>(
 		(action) => {
 			const { current } = handleRef;
-			if (current) {
-				return Promise.resolve(action(current));
+			if (current?.kernel === kernel) {
+				return Promise.resolve(action(current.handle));
 			}
 			const pending = new Promise<void>((resolve, reject) => {
+				const cancel = () =>
+					reject(
+						new DOMException(
+							'IAB provider switched to another consent kernel.',
+							'AbortError'
+						)
+					);
+				if (retiredRef.current.has(kernel)) {
+					cancel();
+					return;
+				}
+				// No handle exists yet, or the one that does belongs to the kernel
+				// this provider is switching away from: wait for this kernel's.
 				queuedRef.current.push({
-					cancel: () =>
-						reject(
-							new DOMException(
-								'IAB provider switched to another consent kernel.',
-								'AbortError'
-							)
-						),
+					cancel,
 					kernel,
 					run: async (mounted) => {
 						try {
