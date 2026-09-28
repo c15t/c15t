@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import type { C15tPluginProps } from '@c15t/react-native/expo-plugin';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
-import { withPodfile } from 'expo/config-plugins';
+import { withPodfile, withSettingsGradle } from 'expo/config-plugins';
 import type { ConfigPlugin } from 'expo/config-plugins';
 
 /**
@@ -42,6 +42,43 @@ const withC15tLocalCorePod: ConfigPlugin = (config) =>
 			targetBlock,
 			(match) => `${match}\n  pod 'C15tCore', :path => '${corePath}'`
 		);
+
+		return cfg;
+	});
+
+/**
+ * Point the generated Android build at the Kotlin consent core checked out here.
+ *
+ * `@c15t/react-native`'s Android library depends on `com.c15t:c15t-core` and
+ * `com.c15t:c15t-android`, and a host app's settings script is where those
+ * coordinates resolve. Nothing is published to Maven, so inside the repository the
+ * engine is the Gradle project next door, included with a dependency substitution,
+ * exactly as `examples/react-native-bare/android/settings.gradle` does by hand.
+ * Prebuild regenerates `android/`, so the substitution has to come from a config
+ * plugin rather than a checked-in file. An app that installs the package from npm
+ * gets the published artifacts and must not carry this. `C15T_LOCAL_PODS=false`
+ * turns it off along with the Podfile path above.
+ */
+const withC15tLocalCoreGradle: ConfigPlugin = (config) =>
+	withSettingsGradle(config, (cfg) => {
+		const coreDir = path
+			.resolve(__dirname, '..', '..', 'native', 'core-android')
+			.split(path.sep)
+			.join('/');
+
+		if (cfg.modResults.contents.includes('c15t-core')) {
+			return cfg;
+		}
+
+		cfg.modResults.contents += `
+// Added by app.config.ts: resolve the c15t Kotlin core from this checkout.
+includeBuild('${coreDir}') {
+  dependencySubstitution {
+    substitute module('com.c15t:c15t-core') using project(':c15t-core')
+    substitute module('com.c15t:c15t-android') using project(':c15t-android')
+  }
+}
+`;
 
 		return cfg;
 	});
@@ -138,7 +175,9 @@ type PluginEntry = ConfigPlugin | NonNullable<ExpoConfig['plugins']>[number];
 
 const plugins: PluginEntry[] = [
 	// Only while this example lives next to the core it builds against.
-	...(process.env.C15T_LOCAL_PODS === 'false' ? [] : [withC15tLocalCorePod]),
+	...(process.env.C15T_LOCAL_PODS === 'false'
+		? []
+		: [withC15tLocalCorePod, withC15tLocalCoreGradle]),
 	// `expo export` and `expo run:*` both count as a native-build invocation, so
 	// the plugin's Expo Go guard passes on its own. There is no `skipNativeBuildCheck`
 	// here on purpose: this project has no Expo Go path, and a bare `expo config` in

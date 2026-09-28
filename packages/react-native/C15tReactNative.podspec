@@ -69,7 +69,25 @@ Pod::Spec.new do |s|
   s.dependency "ReactCommon/turbomodule/core"
   s.dependency "RCTRequired"
   s.dependency "RCTTypeSafety"
-  s.dependency "React-bridging"
+
+  # The bridging headers (`react/bridging/*.h`) that the generated JSI glue includes moved
+  # in React Native 0.87: they were the `ReactCommon/turbomodule/bridging` subspec through
+  # 0.86 and are the standalone `React-bridging` pod from 0.87. This package supports
+  # 0.81 and up, so name whichever one the installed React Native ships, read from its
+  # package.json the same way `install_modules_dependencies` in
+  # `react-native/scripts/cocoapods/new_architecture.rb` decides.
+  react_native_manifest = `node --print "require.resolve('react-native/package.json')"`.strip
+  react_native_version = begin
+    JSON.parse(File.read(react_native_manifest))["version"]
+  rescue StandardError
+    nil
+  end
+  react_native_minor = react_native_version ? react_native_version.split(".")[1].to_i : 0
+  if react_native_version.nil? || react_native_minor >= 87
+    s.dependency "React-bridging"
+  else
+    s.dependency "ReactCommon/turbomodule/bridging"
+  end
 
   # No `HEADER_SEARCH_PATHS` here on purpose. CocoaPods puts the headers of every declared
   # dependency under `${PODS_ROOT}/Headers/Public`, which is already on the include path
