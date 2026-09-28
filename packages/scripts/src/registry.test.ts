@@ -104,6 +104,7 @@ import {
 	vercelAnalyticsManifest,
 } from './vendors/analytics/vercel-analytics';
 import { crisp, crispManifest } from './vendors/functional/crisp';
+import { frontChat, frontChatManifest } from './vendors/functional/front-chat';
 import { intercom, intercomManifest } from './vendors/functional/intercom';
 import { cloudflareZaraz } from './vendors/tag-managers/cloudflare-zaraz';
 import {
@@ -199,6 +200,14 @@ const helperParityCases = {
 			src: 'https://cdn.usefathom.com/script.js',
 		},
 		script: fathomAnalytics({ site: 'SITE123' }),
+	},
+	frontChat: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://chat-assets.frontapp.com/v1/chat.bundle.js',
+		},
+		script: frontChat({ chatId: 'front-chat-123' }),
 	},
 	googleTagManager: {
 		expected: {
@@ -464,6 +473,7 @@ const vendorManifests = [
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
 	crispManifest,
+	frontChatManifest,
 	intercomManifest,
 	metaPixelManifest,
 	openaiPixelManifest,

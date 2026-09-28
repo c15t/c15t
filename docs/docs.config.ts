@@ -310,7 +310,7 @@ export default defineDocsConfig({
 					title: 'Analytics',
 				},
 				{
-					pages: ['crisp', 'intercom'],
+					pages: ['crisp', 'front-chat', 'intercom'],
 					slug: 'functionality',
 					title: 'Functionality',
 				},

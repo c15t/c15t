@@ -368,6 +368,16 @@ export const builtInScriptIntegrations = [
 	},
 	{
 		consentCategory: 'functionality',
+		docsSlug: 'front-chat',
+		hint: 'Live chat widget',
+		integrationCategory: 'functional',
+		key: 'frontChat',
+		label: 'Front Chat',
+		packageSubpath: 'front-chat',
+		vendor: 'front-chat',
+	},
+	{
+		consentCategory: 'functionality',
 		docsSlug: 'intercom',
 		hint: 'Messenger and live chat widget',
 		integrationCategory: 'functional',
