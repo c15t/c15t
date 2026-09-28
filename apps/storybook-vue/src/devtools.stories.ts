@@ -59,6 +59,9 @@ export const Default: Story = {
 						)
 					),
 				presentation: devToolsPresentation,
+				// The flow revokes a category and reads the panel in the same
+				// document, so the reload on revocation stays off.
+				reloadOnConsentRevoked: false,
 			};
 			const context = createVueConsentKernelContext({
 				config,
