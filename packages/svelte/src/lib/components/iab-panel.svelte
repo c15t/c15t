@@ -238,6 +238,7 @@
 	<div use:portal>
 		{#if preferences.blocking}
 			<Overlay
+				{styles}
 				variant="iab-dialog"
 				visible={isOpen}
 			/>

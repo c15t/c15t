@@ -355,7 +355,10 @@
 {#if visibility.isMounted && visibility.shouldRender}
 	<div use:portal>
 		{#if shouldScrollLock}
-			<Overlay visible={visibility.isVisible} />
+			<Overlay
+				{styles}
+				visible={visibility.isVisible}
+			/>
 		{/if}
 		<div
 			bind:this={visibility.bannerEl}

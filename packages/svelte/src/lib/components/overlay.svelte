@@ -1,31 +1,30 @@
 <script lang="ts">
-	import bannerStyles from '@c15t/ui/styles/components/consent-banner';
-	import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
-	import iabBannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
-	import iabDialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
-
 	import { getThemeContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
 
+	/**
+	 * The overlay class names from the caller's own style map. The overlay
+	 * imports none itself, so a page with only the banner does not ship the
+	 * dialog or IAB class maps (and, where a class map imports its CSS, their
+	 * stylesheets).
+	 */
+	interface OverlayStyles {
+		overlay?: string;
+		overlayVisible?: string;
+		overlayHidden?: string;
+	}
+
 	let {
+		styles,
 		variant = 'banner',
 		visible = true,
 	}: {
+		styles: OverlayStyles;
 		variant?: 'banner' | 'dialog' | 'iab-banner' | 'iab-dialog';
 		visible?: boolean;
 	} = $props();
 
 	const theme = getThemeContext();
-
-	const styles = $derived.by(() => {
-		if (variant === 'dialog') {
-			return dialogStyles;
-		}
-		if (variant === 'iab-dialog') {
-			return iabDialogStyles;
-		}
-		return variant === 'iab-banner' ? iabBannerStyles : bannerStyles;
-	});
 
 	const themeKey = $derived.by(() => {
 		if (variant === 'dialog') {
