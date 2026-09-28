@@ -165,6 +165,57 @@ describe('useScrollLock', () => {
 		});
 	});
 
+	describe('Layout', () => {
+		const Page = ({ locked }: { locked: boolean }) => {
+			useScrollLock(locked);
+
+			return (
+				<>
+					<div
+						data-testid="flow"
+						style={{ height: '200vh' }}
+					/>
+					<div
+						data-testid="fixed"
+						style={{
+							height: 10,
+							position: 'fixed',
+							right: 0,
+							top: 0,
+							width: 10,
+						}}
+					/>
+				</>
+			);
+		};
+
+		const measure = () => ({
+			fixedRight: getDefined(
+				document.querySelector('[data-testid="fixed"]')
+			).getBoundingClientRect().right,
+			flowRight: getDefined(
+				document.querySelector('[data-testid="flow"]')
+			).getBoundingClientRect().right,
+		});
+
+		test('keeps fixed and in-flow content still when the page shows a scrollbar', async () => {
+			const screen = await render(<Page locked={false} />);
+
+			// The browser project launches Chromium with visible classic
+			// scrollbars; without one this test cannot catch a layout shift.
+			expect(
+				window.innerWidth - document.documentElement.clientWidth
+			).toBeGreaterThan(0);
+			const before = measure();
+
+			await screen.rerender(<Page locked />);
+			expect(measure()).toEqual(before);
+
+			await screen.rerender(<Page locked={false} />);
+			expect(measure()).toEqual(before);
+		});
+	});
+
 	describe('Multiple Instances', () => {
 		test('should handle multiple instances gracefully', async () => {
 			const MultiInstance = () => {

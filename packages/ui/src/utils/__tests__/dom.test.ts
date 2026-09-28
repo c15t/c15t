@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	getFocusableElements,
@@ -132,50 +132,132 @@ describe('setupTextDirection', () => {
 });
 
 describe('setupScrollLock', () => {
-	const originalOverflow = document.body.style.overflow;
-	const originalPaddingRight = document.body.style.paddingRight;
+	const root = document.documentElement;
+	const { body } = document;
+	let pageStyle: HTMLStyleElement | null = null;
+
+	/** jsdom has no layout; give the root a classic scrollbar of `width`. */
+	const showRootScrollbar = (width: number) => {
+		Object.defineProperty(root, 'clientWidth', {
+			configurable: true,
+			get: () => window.innerWidth - width,
+		});
+	};
+	const supportScrollbarGutter = () => {
+		vi.stubGlobal('CSS', {
+			supports: (property: string) => property === 'scrollbar-gutter',
+		});
+	};
+	const addPageStyle = (css: string) => {
+		pageStyle = document.createElement('style');
+		pageStyle.textContent = css;
+		document.head.append(pageStyle);
+	};
 
 	afterEach(() => {
-		document.body.style.overflow = originalOverflow;
-		document.body.style.paddingRight = originalPaddingRight;
+		root.removeAttribute('style');
+		body.removeAttribute('style');
+		pageStyle?.remove();
+		pageStyle = null;
+		Reflect.deleteProperty(root, 'clientWidth');
+		vi.unstubAllGlobals();
 	});
 
-	test('sets overflow to hidden', () => {
+	test('hides body overflow when it controls the viewport, and restores it', () => {
+		body.style.overflow = 'auto';
 		const cleanup = setupScrollLock();
-		expect(document.body.style.overflow).toBe('hidden');
-		// The lock is reference counted across the module; release it so the
-		// next test starts unlocked.
+		expect(body.style.overflow).toBe('hidden');
+		expect(root.style.overflow).toBe('');
 		cleanup();
+		expect(body.style.overflow).toBe('auto');
 	});
 
-	test('cleanup restores original overflow', () => {
-		document.body.style.overflow = 'auto';
+	test('hides root overflow when the root sets its own, and restores it', () => {
+		addPageStyle('html { overflow-y: scroll; }');
+		root.style.overflowX = 'hidden';
 		const cleanup = setupScrollLock();
-		expect(document.body.style.overflow).toBe('hidden');
+		expect(root.style.overflow).toBe('hidden');
+		expect(body.style.overflow).toBe('');
 		cleanup();
-		expect(document.body.style.overflow).toBe('auto');
+		expect(root.style.overflowX).toBe('hidden');
+		expect(root.style.overflowY).toBe('');
+	});
+
+	test('also hides body overflow when body is the scroll container', () => {
+		addPageStyle('html { overflow: hidden; } body { overflow-y: auto; }');
+		root.style.setProperty('overflow-y', 'hidden', 'important');
+		const cleanup = setupScrollLock();
+		expect(root.style.overflow).toBe('hidden');
+		expect(body.style.overflow).toBe('hidden');
+		cleanup();
+		expect(root.style.getPropertyValue('overflow-y')).toBe('hidden');
+		expect(root.style.getPropertyPriority('overflow-y')).toBe('important');
+		expect(body.style.overflow).toBe('');
 	});
 
 	test('nested locks restore the page only when the last one releases', () => {
-		document.body.style.overflow = 'auto';
+		body.style.overflow = 'auto';
 		const first = setupScrollLock();
 		const second = setupScrollLock();
-		expect(document.body.style.overflow).toBe('hidden');
+		expect(body.style.overflow).toBe('hidden');
 
 		first();
-		expect(document.body.style.overflow).toBe('hidden');
+		expect(body.style.overflow).toBe('hidden');
 		first();
-		expect(document.body.style.overflow).toBe('hidden');
+		expect(body.style.overflow).toBe('hidden');
 
 		second();
-		expect(document.body.style.overflow).toBe('auto');
+		expect(body.style.overflow).toBe('auto');
 	});
 
-	test('cleanup restores original paddingRight', () => {
-		document.body.style.paddingRight = '10px';
+	test('reserves the root scrollbar gutter instead of padding body', () => {
+		supportScrollbarGutter();
+		showRootScrollbar(15);
+		body.style.paddingRight = '10px';
 		const cleanup = setupScrollLock();
+		expect(root.style.scrollbarGutter).toBe('stable');
+		expect(body.style.paddingRight).toBe('10px');
 		cleanup();
-		expect(document.body.style.paddingRight).toBe('10px');
+		expect(root.style.scrollbarGutter).toBe('');
+	});
+
+	test('restores an inline scrollbar gutter the page already had', () => {
+		supportScrollbarGutter();
+		showRootScrollbar(15);
+		root.style.scrollbarGutter = 'auto';
+		const cleanup = setupScrollLock();
+		expect(root.style.scrollbarGutter).toBe('stable');
+		cleanup();
+		expect(root.style.scrollbarGutter).toBe('auto');
+	});
+
+	test('adds no gutter when the page shows no scrollbar', () => {
+		supportScrollbarGutter();
+		showRootScrollbar(0);
+		const cleanup = setupScrollLock();
+		expect(body.style.overflow).toBe('hidden');
+		expect(root.style.scrollbarGutter).toBe('');
+		expect(body.style.paddingRight).toBe('');
+		cleanup();
+	});
+
+	test('keeps a stable gutter the page already reserves', () => {
+		supportScrollbarGutter();
+		showRootScrollbar(15);
+		addPageStyle('html { scrollbar-gutter: stable both-edges; }');
+		const cleanup = setupScrollLock();
+		expect(root.style.scrollbarGutter).toBe('');
+		cleanup();
+	});
+
+	test('pads body by the scrollbar width without scrollbar-gutter support', () => {
+		showRootScrollbar(15);
+		body.style.paddingRight = '10px';
+		const cleanup = setupScrollLock();
+		expect(body.style.paddingRight).toBe('15px');
+		expect(root.style.scrollbarGutter).toBe('');
+		cleanup();
+		expect(body.style.paddingRight).toBe('10px');
 	});
 });
 
