@@ -1,4 +1,5 @@
 import type { InitOutput } from '@c15t/schema/types';
+import { compareCanonical } from '@c15t/schema/types';
 
 import type { SSRInitialData } from '../../options/ssr';
 import { c15tProtocolHeaders } from '../../transports/version-header';
@@ -46,7 +47,7 @@ const buildPrefetchCacheKey = function buildPrefetchCacheKey(options: {
 	gpc: boolean;
 }): string {
 	const sortedHeaders = Object.entries(options.headers)
-		.sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+		.sort(([leftKey], [rightKey]) => compareCanonical(leftKey, rightKey))
 		.map(([key, value]) => `${key}:${value}`)
 		.join('|');
 

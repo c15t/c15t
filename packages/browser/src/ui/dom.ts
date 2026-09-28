@@ -150,3 +150,16 @@ export const prefersReducedMotion = function prefersReducedMotion(): boolean {
 		window.matchMedia('(prefers-reduced-motion: reduce)').matches
 	);
 };
+
+/**
+ * Whether the browser applies `@starting-style`.
+ *
+ * With it, a surface inserted in its visible state transitions in from the
+ * stylesheet's entering state on the first frame. Without it, the mount
+ * has to insert the hidden state, force a layout and flip the classes.
+ *
+ * @returns `true` when `@starting-style` rules take effect.
+ */
+export const supportsStartingStyle = function supportsStartingStyle(): boolean {
+	return 'CSSStartingStyleRule' in globalThis;
+};

@@ -1,3 +1,4 @@
+import { compareCanonical } from './canonical-order';
 /**
  * Invariants of a resolved v3 policy rule, without the authoring validator.
  *
@@ -118,7 +119,7 @@ export const isValidPolicyPromptForModel = function isValidPolicyPromptForModel(
 export const canonicalizePolicySet = function canonicalizePolicySet<
 	ValueType extends string,
 >(values: readonly ValueType[]): ValueType[] {
-	return [...new Set(values)].sort((left, right) => left.localeCompare(right));
+	return [...new Set(values)].sort(compareCanonical);
 };
 
 /**

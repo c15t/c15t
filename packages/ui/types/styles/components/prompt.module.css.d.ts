@@ -2,6 +2,7 @@ declare const styles: {
   readonly "bannerEnterActive": string;
   readonly "bannerEnterFrom": string;
   readonly "bannerEnterTo": string;
+  readonly "bannerEntering": string;
   readonly "bannerHidden": string;
   readonly "bannerLeaveActive": string;
   readonly "bannerLeaveFrom": string;
@@ -16,6 +17,7 @@ declare const styles: {
   readonly "overlayEnterActive": string;
   readonly "overlayEnterFrom": string;
   readonly "overlayEnterTo": string;
+  readonly "overlayEntering": string;
   readonly "overlayHidden": string;
   readonly "overlayLeaveActive": string;
   readonly "overlayLeaveFrom": string;

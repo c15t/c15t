@@ -1,3 +1,4 @@
+import { compareCanonical } from './canonical-order';
 import type { LegacyMaterialPolicyInput } from './legacy-material-policy';
 
 export const stableStringify = function stableStringify(
@@ -13,7 +14,7 @@ export const stableStringify = function stableStringify(
 
 	const entries = Object.entries(value as Record<string, unknown>)
 		.filter(([, entryValue]) => entryValue !== undefined)
-		.sort(([a], [b]) => a.localeCompare(b));
+		.sort(([a], [b]) => compareCanonical(a, b));
 
 	return `{${entries
 		.map(

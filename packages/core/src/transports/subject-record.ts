@@ -26,6 +26,7 @@ import type {
 	SubjectChoiceWire,
 	VendorChoiceWire,
 } from '@c15t/schema/types';
+import { compareCanonical } from '@c15t/schema/types';
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
@@ -200,7 +201,7 @@ const mapDirective = (
 		return undefined;
 	}
 	return {
-		categories: categories.sort((left, right) => left.localeCompare(right)),
+		categories: categories.sort(compareCanonical),
 		recordedAt: directive.recordedAt,
 		source: 'gpc',
 	};

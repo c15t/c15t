@@ -138,6 +138,7 @@ export {
 	POLICY_RULE_MODELS,
 	requiredPolicyRights,
 } from './policy-rule-invariants';
+export { compareCanonical } from './canonical-order';
 export {
 	DEFAULT_CHOICE_VALIDITY_DAYS,
 	DEFAULT_NOTICE_VALIDITY_DAYS,
