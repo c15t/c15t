@@ -44,6 +44,10 @@ import {
 	PROMPT_SLOT_ATTRIBUTE,
 	readIABSpotModels,
 } from './banner/slot';
+import {
+	keepDialogStylesOnSwap,
+	loadDialogStyles,
+} from './browser/dialog-styles';
 import { lazyCreateIAB, whenIABReady } from './browser/iab';
 import { activateGatedScripts } from './browser/inline-scripts';
 import type * as PromptRenderer from './browser/render-prompt';
@@ -227,9 +231,20 @@ let warming: Promise<void> | null = null;
 const loadDialogChunks = async function loadDialogChunks(
 	client: AstroConsentClient
 ): Promise<void> {
-	const adapter = await loadDialogAdapter(client.options.ui);
-	await adapter.preload?.();
+	await Promise.all([
+		(async () => {
+			const adapter = await loadDialogAdapter(client.options.ui);
+			await adapter.preload?.();
+		})(),
+		loadDialogStyles(),
+	]);
 };
+
+/**
+ * Remounts a dialog that a ClientRouter navigation took off the page.
+ * Keyed by client so it stays off the public {@link AstroConsentClient}.
+ */
+const dialogRecovery = new WeakMap<AstroConsentClient, () => Promise<void>>();
 
 /**
  * Show or hide the server-rendered banner to match the kernel.
@@ -433,12 +448,28 @@ const createClient = function createClient(
 	let dialog: ConsentDialogHandle | null = null;
 	let dialogKind: ConsentDialogKind | null = null;
 	let dialogTab: 'purposes' | 'vendors' | undefined;
+	let dialogTarget: HTMLElement | null = null;
 	let opening: Promise<void> | null = null;
 	// `openDialog()` awaits an adapter import, IAB readiness and the mount
 	// itself. `dispose()` can land in any of those gaps, and only destroys
 	// the handle it can already see — so the open path checks this after
 	// every await and cleans up anything it mounted too late.
 	let disposed = false;
+
+	// The ClientRouter replaces `<body>`, and the dialog host with it. A
+	// surface mounted into the old one is off the page, so reusing its
+	// handle would open a dialog nobody can see.
+	const releaseDetachedDialog = function releaseDetachedDialog(): boolean {
+		if (!dialog || dialogTarget?.isConnected) {
+			return false;
+		}
+		// Not awaited: an outro running on a detached node may never end.
+		void dialog.destroy();
+		dialog = null;
+		dialogKind = null;
+		dialogTarget = null;
+		return true;
+	};
 
 	const client: AstroConsentClient = {
 		async acceptAll() {
@@ -501,6 +532,7 @@ const createClient = function createClient(
 			if (disposed) {
 				return;
 			}
+			releaseDetachedDialog();
 			// The tab lives in the island's own component state, so asking
 			// for a different one on an already-mounted surface means
 			// remounting it. Checked after any pending mount has settled, so
@@ -515,7 +547,12 @@ const createClient = function createClient(
 			}
 			if (!dialog) {
 				opening = (async () => {
-					const adapter = await loadDialogAdapter(options.ui);
+					// The stylesheets load beside the island, and the mount waits
+					// for both so the dialog never paints without its rules.
+					const [adapter] = await Promise.all([
+						loadDialogAdapter(options.ui),
+						loadDialogStyles(),
+					]);
 					if (disposed) {
 						return;
 					}
@@ -527,12 +564,13 @@ const createClient = function createClient(
 							return;
 						}
 					}
+					const target = ensureDialogHost();
 					const handle = await adapter.mount({
 						kind,
 						options,
 						runtime,
 						tab,
-						target: ensureDialogHost(),
+						target,
 					});
 					if (disposed) {
 						// Disposal happened during the mount, so nothing will
@@ -543,6 +581,7 @@ const createClient = function createClient(
 					dialog = handle;
 					dialogKind = kind;
 					dialogTab = tab;
+					dialogTarget = target;
 				})();
 				try {
 					await opening;
@@ -567,6 +606,19 @@ const createClient = function createClient(
 			return runtime.kernel.subscribe(listener);
 		},
 	};
+
+	// A dialog that was open when the page swapped stays open on the new
+	// page, as it does under the React, Svelte and Vue providers.
+	dialogRecovery.set(client, async () => {
+		await opening?.catch(() => undefined);
+		const kind = dialogKind ?? 'preferences';
+		const tab = dialogTab;
+		const wasOpen = runtime.kernel.getSnapshot().activeUI === 'dialog';
+		if (disposed || !releaseDetachedDialog() || !wasOpen) {
+			return;
+		}
+		await client.openDialog(kind, tab);
+	});
 
 	return client;
 };
@@ -922,15 +974,26 @@ export const boot = function boot(
 	const onAfterSwap = function onAfterSwap(): void {
 		applyColorScheme(options.colorScheme);
 		attach(client);
+		void dialogRecovery.get(client)?.();
 	};
 	const onPageLoad = function onPageLoad(): void {
 		attach(client);
 	};
+	// The swap also drops every `<head>` element the next page lacks,
+	// including the dialog stylesheets the client linked.
+	const onBeforeSwap = function onBeforeSwap(event: Event): void {
+		const incoming = (event as Event & { newDocument?: Document }).newDocument;
+		if (incoming) {
+			keepDialogStylesOnSwap(incoming);
+		}
+	};
+	document.addEventListener('astro:before-swap', onBeforeSwap);
 	document.addEventListener('astro:after-swap', onAfterSwap);
 	document.addEventListener('astro:page-load', onPageLoad);
 	// Without this, a dispose-then-boot leaves the old handlers on the
 	// document, and the next swap reattaches a client that is already gone.
 	detachPageSwapListeners = (): void => {
+		document.removeEventListener('astro:before-swap', onBeforeSwap);
 		document.removeEventListener('astro:after-swap', onAfterSwap);
 		document.removeEventListener('astro:page-load', onPageLoad);
 		detachPageSwapListeners = NO_PAGE_SWAP_LISTENERS;
@@ -999,6 +1062,7 @@ export { activateGatedScripts } from './browser/inline-scripts';
 export type { ConsentRuntime } from '@c15t/core/runtime';
 export type { ConsentDialogKind } from './ui/adapter';
 export { registerDialogAdapter, registerDialogSurface } from './ui/adapter';
+export { registerDialogStyles } from './browser/dialog-styles';
 export type {
 	ConsentDialogAdapter,
 	ConsentDialogContext,

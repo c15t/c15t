@@ -167,20 +167,26 @@ not create separate runtimes for each consent island.
 
 The integration adds `c15t/astro/styles.css` to every page, and
 `c15t/astro/iab/styles.css` when `iab` is set. The stylesheet covers the tokens
-and the banner: about 66 KB, or 9 KB gzipped. The React and Svelte dialog
-islands import the dialog's rules themselves, and Astro links that stylesheet
-on each page next to this one. With `ui: 'vue'`, the integration adds the
-dialog's rules to the page. Do not import `c15t/astro/styles.css` again.
+and the banner: about 66 KB, or 9 KB gzipped. Do not import
+`c15t/astro/styles.css` again.
 
-To load it yourself, for example from a global stylesheet that orders its own
-cascade layers, set `styles: false` and import the same files. Sites that set
-`iab` need the second import too; without it the IAB banner and dialog are
-unstyled.
+The preference dialog's rules are not on the page. The browser runtime links
+`@c15t/ui/styles/dialog.css` when a visitor hovers, focuses or clicks a control
+that opens the dialog. With `ui: 'svelte'` it also links
+`@c15t/ui/styles/primitives.css`. The dialog mounts once they have loaded, and
+the links stay in `<head>` across ClientRouter navigations.
+
+To load the styles yourself, for example from a global stylesheet that orders
+its own cascade layers, set `styles: false` and import the files below. With
+`styles: false` the runtime links no dialog stylesheet, so import the dialog's
+rules as well. Sites that set `iab` need the IAB
+import too; without it the IAB banner and dialog are unstyled.
 
 ```css title="src/styles/global.css"
 @import 'c15t/astro/styles.css';
-/* Only with `ui: 'vue'`. */
 @import '@c15t/ui/styles/dialog.css';
+/* Only with `ui: 'svelte'`. */
+@import '@c15t/ui/styles/primitives.css';
 /* Only when the integration sets `iab`. */
 @import 'c15t/astro/iab/styles.css';
 ```

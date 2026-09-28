@@ -206,21 +206,47 @@ describe('astro:config:setup', () => {
 		);
 	});
 
-	it('adds the dialog stylesheet to every page only for the Vue islands', async () => {
-		// React and Svelte islands import it on their own chunk; Astro's
-		// build drops the stylesheets the Vue island's components import.
-		const pageStyles = async (ui: 'react' | 'svelte' | 'vue') => {
+	it.each(['react', 'svelte', 'vue'] as const)(
+		'keeps the dialog stylesheet off every %s page',
+		async (ui) => {
+			// Render-blocking CSS for a surface most visitors never open. The
+			// client links it on the first open instead.
 			const { calls } = await runSetup({ mode: offlineMode(), ui });
 			const found = calls.injectScript.mock.calls.find(
 				([stage]) => stage === 'page-ssr'
 			) as [string, string];
-			return found[1];
-		};
-		const dialog = `import ${specifier('@c15t/ui/styles/dialog.css')};`;
+			expect(found[1]).not.toContain('dialog.css');
+		}
+	);
 
-		expect(await pageStyles('vue')).toContain(dialog);
-		expect(await pageStyles('react')).not.toContain(dialog);
-		expect(await pageStyles('svelte')).not.toContain(dialog);
+	it.each([
+		[
+			'svelte',
+			['@c15t/ui/styles/dialog.css', '@c15t/ui/styles/primitives.css'],
+		],
+		['react', ['@c15t/ui/styles/dialog.css']],
+		['vue', ['@c15t/ui/styles/dialog.css']],
+	] as const)(
+		'registers the %s dialog stylesheets for the client to link',
+		async (ui, stylesheets) => {
+			const { calls } = await runSetup({ mode: offlineMode(), ui });
+			const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+
+			stylesheets.forEach((stylesheet, index) => {
+				expect(code).toContain(
+					`import dialogStyle${index} from ${JSON.stringify(`${resolveOwnEntry(stylesheet)}?url`)};`
+				);
+			});
+			const names = stylesheets.map((_, index) => `dialogStyle${index}`);
+			expect(code).toContain(`registerDialogStyles([${names.join(', ')}]);`);
+		}
+	);
+
+	it('registers no dialog stylesheets with `styles: false`', async () => {
+		const { calls } = await runSetup({ mode: offlineMode(), styles: false });
+		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+		expect(code).not.toContain('?url');
+		expect(code).not.toContain('registerDialogStyles(');
 	});
 
 	it('leaves styles to the site with `styles: false`', async () => {

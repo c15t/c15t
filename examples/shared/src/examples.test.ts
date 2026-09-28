@@ -349,6 +349,34 @@ for (const target of selectedTargets()) {
 				expect(await sameRuntime()).toBe(true);
 				await expectNoTracking(page, requests);
 			});
+
+			test('the preference dialog stays styled and reopens after ClientRouter navigation', async () => {
+				await visit('/consent-example');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				await rejectButton(page).click();
+
+				const card = page.getByTestId('consent-dialog-card');
+				// The dialog's rules are not in the page stylesheet. Without them
+				// the card has no background.
+				const cardBackground = () =>
+					card.evaluate((element) => getComputedStyle(element).backgroundColor);
+
+				await openPreferences(page);
+				expect(await cardBackground()).not.toBe('rgba(0, 0, 0, 0)');
+				await saveButton(page).click();
+				await expect.poll(() => card.isVisible()).toBe(false);
+
+				await page
+					.getByRole('link', { exact: true, name: 'Second page' })
+					.click();
+				await page.waitForURL('**/second');
+				await page
+					.getByRole('button', { exact: true, name: 'Cookie preferences' })
+					.click();
+				await expect.poll(() => card.isVisible()).toBe(true);
+				expect(await cardBackground()).not.toBe('rgba(0, 0, 0, 0)');
+				await expect.poll(() => saveButton(page).isVisible()).toBe(true);
+			});
 		}
 
 		if (target.id === 'javascript') {

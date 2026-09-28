@@ -5,7 +5,10 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
 import { buildVitePlugins, resolveOptions } from '../integration';
-import { createClassMapPlugin } from '../libs/class-map-plugin';
+import {
+	createClassMapPlugin,
+	EMPTY_STYLESHEET_ID,
+} from '../libs/class-map-plugin';
 import { offlineMode } from '../mode';
 
 const directory = mkdtempSync(join(tmpdir(), 'c15t-class-maps-'));
@@ -78,10 +81,49 @@ describe('class maps without CSS', () => {
 		expect(result).toBe(join(directory, 'panel.node.js'));
 	});
 
-	it('leaves stylesheet imports alone', async () => {
+	it.each([
+		'@c15t/ui/styles/dialog.css',
+		'@c15t/ui/styles/primitives.css',
+		'@c15t/ui/styles/components/panel.css',
+	])('empties the island import of %s, which the client links', async (id) => {
+		const { resolve, result } = await resolveWith(id, withCSS);
+		expect(result).toBe(EMPTY_STYLESHEET_ID);
+		expect(resolve).not.toHaveBeenCalled();
+		expect(
+			createClassMapPlugin({ iabStylesInjected: false }).load(
+				EMPTY_STYLESHEET_ID
+			)
+		).toBe('export {};');
+	});
+
+	it('points the dialog stylesheet module at the variant with no CSS', async () => {
+		const { result } = await resolveWith('@c15t/ui/styles/dialog', withCSS);
+		expect(result).toBe(join(directory, 'panel.node.js'));
+	});
+
+	it('leaves the client its own `?url` import of the dialog stylesheet', async () => {
 		const { result } = await resolveWith(
-			'@c15t/ui/styles/components/consent-dialog.css',
+			'@c15t/ui/styles/dialog.css?url',
 			withCSS
+		);
+		expect(result).toBeNull();
+	});
+
+	it('keeps IAB component CSS when only the base stylesheet is injected', async () => {
+		const { result } = await resolveWith(
+			'@c15t/ui/styles/components/iab-panel.css',
+			withCSS
+		);
+		expect(result).toBeNull();
+	});
+
+	it('keeps stylesheet imports in the server build', async () => {
+		const { result } = await resolveWith(
+			'@c15t/ui/styles/dialog.css',
+			withCSS,
+			{
+				ssr: true,
+			}
 		);
 		expect(result).toBeNull();
 	});
