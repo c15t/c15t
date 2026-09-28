@@ -574,9 +574,12 @@ export const getBlockedReason = function getBlockedReason(
 			return 'declaration source map in runtime dist';
 		}
 		if (path.endsWith('.d.ts')) {
+			// The generated style entrypoints ship their declarations next to
+			// the JavaScript they describe.
 			if (
 				packageName === '@c15t/ui' &&
-				/^dist\/styles\/components\/[^/]+\.d\.ts$/u.test(path)
+				(/^dist\/styles\/components\/[^/]+\.d\.ts$/u.test(path) ||
+					path === 'dist/styles/dialog.d.ts')
 			) {
 				return null;
 			}
@@ -660,106 +663,109 @@ const scanStyleEntrypointsContent = function scanStyleEntrypointsContent(
 	return issues;
 };
 
-const scanUiComponentStyleArtifacts = function scanUiComponentStyleArtifacts(
-	packageDir: string,
-	packageName: string,
-	packedFilePaths: Set<string>
-): { path: string; size: number; reason: string }[] {
-	if (packageName !== '@c15t/ui') {
-		return [];
-	}
+export const scanUiComponentStyleArtifacts =
+	function scanUiComponentStyleArtifacts(
+		packageDir: string,
+		packageName: string,
+		packedFilePaths: Set<string>
+	): { path: string; size: number; reason: string }[] {
+		if (packageName !== '@c15t/ui') {
+			return [];
+		}
 
-	const sourceDir = join(packageDir, 'src/styles/components');
-	const styleNames = readdirSync(sourceDir)
-		.filter((file) => file.endsWith('.module.css'))
-		.map((file) => file.replace('.module.css', ''))
-		.sort();
-	const issues: { path: string; size: number; reason: string }[] = [];
+		const sourceDir = join(packageDir, 'src/styles/components');
+		const styleNames = readdirSync(sourceDir)
+			.filter((file) => file.endsWith('.module.css'))
+			.map((file) => file.replace('.module.css', ''))
+			.sort();
+		const issues: { path: string; size: number; reason: string }[] = [];
 
-	for (const name of styleNames) {
-		for (const extension of ['css', 'js', 'd.ts']) {
-			const path = `dist/styles/components/${name}.${extension}`;
-			if (!packedFilePaths.has(path)) {
-				issues.push({
-					path,
-					reason: 'required component style artifact missing',
-					size: 0,
-				});
+		for (const name of styleNames) {
+			for (const extension of ['css', 'js', 'd.ts']) {
+				const path = `dist/styles/components/${name}.${extension}`;
+				if (!packedFilePaths.has(path)) {
+					issues.push({
+						path,
+						reason: 'required component style artifact missing',
+						size: 0,
+					});
+				}
+			}
+
+			for (const stalePath of [
+				`dist/styles/components/${name}_module.css`,
+				`dist/styles/components/${name}.module.css`,
+				`dist/styles/components/${name}.module.js`,
+				`dist/styles/components/${name}.module.cjs`,
+				`dist/styles/components/${name}.cjs`,
+			]) {
+				if (packedFilePaths.has(stalePath)) {
+					issues.push({
+						path: stalePath,
+						reason: 'stale rslib CSS Module artifact must not be published',
+						size: 0,
+					});
+				}
+			}
+
+			const cssPath = `dist/styles/components/${name}.css`;
+			if (packedFilePaths.has(cssPath)) {
+				const filePath = join(packageDir, cssPath);
+				const content = existsSync(filePath)
+					? readFileSync(filePath, 'utf8')
+					: '';
+				if (/^\s*@import\s+["']\.\/animations\//mu.test(content)) {
+					issues.push({
+						path: cssPath,
+						reason: 'component CSS must inline local animation imports',
+						size: content.length,
+					});
+				}
+				if (!content.includes('c15t-ui-')) {
+					issues.push({
+						path: cssPath,
+						reason: 'component CSS must contain generated c15t UI class names',
+						size: content.length,
+					});
+				}
+			}
+
+			const jsPath = `dist/styles/components/${name}.js`;
+			if (packedFilePaths.has(jsPath)) {
+				const filePath = join(packageDir, jsPath);
+				const content = existsSync(filePath)
+					? readFileSync(filePath, 'utf8')
+					: '';
+				// styles.css and styles/dialog.css already carry every component
+				// rule. A CSS import here makes bundlers emit the rules twice.
+				if (/import\s*["'][^"']+\.css["']/u.test(content)) {
+					issues.push({
+						path: jsPath,
+						reason: 'component ESM class map must not import CSS',
+						size: content.length,
+					});
+				}
+			}
+
+			const declarationPath = `dist/styles/components/${name}.d.ts`;
+			if (packedFilePaths.has(declarationPath)) {
+				const filePath = join(packageDir, declarationPath);
+				const content = existsSync(filePath)
+					? readFileSync(filePath, 'utf8')
+					: '';
+				if (!content.includes('export default styles')) {
+					issues.push({
+						path: declarationPath,
+						reason:
+							'component style declaration must describe the default class map export',
+						size: content.length,
+					});
+				}
 			}
 		}
 
-		for (const stalePath of [
-			`dist/styles/components/${name}_module.css`,
-			`dist/styles/components/${name}.module.css`,
-			`dist/styles/components/${name}.module.js`,
-			`dist/styles/components/${name}.module.cjs`,
-			`dist/styles/components/${name}.cjs`,
-		]) {
-			if (packedFilePaths.has(stalePath)) {
-				issues.push({
-					path: stalePath,
-					reason: 'stale rslib CSS Module artifact must not be published',
-					size: 0,
-				});
-			}
-		}
-
-		const cssPath = `dist/styles/components/${name}.css`;
-		if (packedFilePaths.has(cssPath)) {
-			const filePath = join(packageDir, cssPath);
-			const content = existsSync(filePath)
-				? readFileSync(filePath, 'utf8')
-				: '';
-			if (/^\s*@import\s+["']\.\/animations\//mu.test(content)) {
-				issues.push({
-					path: cssPath,
-					reason: 'component CSS must inline local animation imports',
-					size: content.length,
-				});
-			}
-			if (!content.includes('c15t-ui-')) {
-				issues.push({
-					path: cssPath,
-					reason: 'component CSS must contain generated c15t UI class names',
-					size: content.length,
-				});
-			}
-		}
-
-		const jsPath = `dist/styles/components/${name}.js`;
-		if (packedFilePaths.has(jsPath)) {
-			const filePath = join(packageDir, jsPath);
-			const content = existsSync(filePath)
-				? readFileSync(filePath, 'utf8')
-				: '';
-			if (!content.includes(`./${name}.css`)) {
-				issues.push({
-					path: jsPath,
-					reason: 'component ESM class map must import its CSS side effect',
-					size: content.length,
-				});
-			}
-		}
-
-		const declarationPath = `dist/styles/components/${name}.d.ts`;
-		if (packedFilePaths.has(declarationPath)) {
-			const filePath = join(packageDir, declarationPath);
-			const content = existsSync(filePath)
-				? readFileSync(filePath, 'utf8')
-				: '';
-			if (!content.includes('export default styles')) {
-				issues.push({
-					path: declarationPath,
-					reason:
-						'component style declaration must describe the default class map export',
-					size: content.length,
-				});
-			}
-		}
-	}
-
-	return issues;
-};
+		return issues;
+	};
 
 const main = function main(): void {
 	const packageDirs = readdirSync(PACKAGES_DIR, { withFileTypes: true })
