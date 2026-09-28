@@ -562,6 +562,9 @@
 		get noStyle() {
 			return options.noStyle;
 		},
+		get preloadDialog() {
+			return options.preloadDialog;
+		},
 		get scrollLock() {
 			return options.scrollLock;
 		},

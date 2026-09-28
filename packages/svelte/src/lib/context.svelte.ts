@@ -25,6 +25,7 @@ import type {
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 import { getContext, setContext } from 'svelte';
 
+import type { DialogPreload } from './dialog-warming';
 import type { ConsentManagerOptions } from './types';
 
 const CONSENT_CONTEXT_KEY = Symbol('c15t-v3-consent');
@@ -183,6 +184,7 @@ export interface ThemeContextValue {
 	readonly trapFocus?: boolean;
 	readonly colorScheme?: UIOptions['colorScheme'];
 	readonly legalLinks?: ConsentManagerOptions['legalLinks'];
+	readonly preloadDialog?: DialogPreload;
 }
 
 export interface ConsentControllerOptions {
