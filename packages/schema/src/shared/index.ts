@@ -16,6 +16,7 @@ export {
 	type GVLSpecialFeature,
 	type GVLSpecialPurpose,
 	type GVLStack,
+	type GVLStandardTexts,
 	type GVLVendor,
 	type GVLVendorUrl,
 	globalVendorListSchema,
@@ -25,6 +26,7 @@ export {
 	gvlSpecialFeatureSchema,
 	gvlSpecialPurposeSchema,
 	gvlStackSchema,
+	gvlStandardTextsSchema,
 	gvlVendorSchema,
 	gvlVendorUrlSchema,
 } from './gvl';

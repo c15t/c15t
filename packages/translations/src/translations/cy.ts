@@ -98,6 +98,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Mae’r rhain yn angenrheidiol ar gyfer swyddogaethau a diogelwch y wefan. Yn unol ag IAB TCF, ni allwch wrthwynebu’r dibenion arbennig hyn.',
 			},
+			features: {
+				title: 'Nodweddion',
+				description:
+					'Dim ond at ddiben neu fwy y rhoddir dewis i chi yn yr hysbysiad hwn y gellir defnyddio yr dulliau prosesu hyn.',
+			},
 			vendorList: {
 				search: 'Chwilio gwerthwyr...',
 				showingCount: '{filtered} o {total} gwerthwr',

@@ -121,7 +121,7 @@ export interface PolicyPackPresets {
 	 */
 	europeOptIn: () => PolicyConfig;
 	/**
-	 * Europe IAB TCF 2.3 preset.
+	 * Europe IAB TCF 2.4 preset.
 	 */
 	europeIab: () => PolicyConfig;
 	/**

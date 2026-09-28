@@ -97,6 +97,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Te so potrebne for funkcionalnost in varnost spletnega mesta. V skladu z IAB TCF ne morete ugovarjati tem posebnim namenom.',
 			},
+			features: {
+				title: 'Funkcije',
+				description:
+					'Ta sredstva obdelave se lahko uporabljajo izključno za doseganje enega ali več namenov, za katere vam je v tem obvestilu dana izbira.',
+			},
 			vendorList: {
 				search: 'Išči ponudnike...',
 				showingCount: 'Prikazano {filtered} od {total} ponudnikov',

@@ -1,5 +1,5 @@
 /**
- * Publisher Restrictions Tests for IAB TCF 2.3
+ * Publisher Restrictions Tests for IAB TCF 2.4
  *
  * Tests for publisher restriction handling per IAB spec.
  *
@@ -17,7 +17,7 @@ import {
 	RestrictionType,
 } from './test-setup';
 
-describe('Publisher Restrictions - IAB TCF 2.3', () => {
+describe('Publisher Restrictions - IAB TCF 2.4', () => {
 	let mockGVL: GlobalVendorList;
 
 	beforeEach(() => {

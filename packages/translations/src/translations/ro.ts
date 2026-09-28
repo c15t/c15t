@@ -99,6 +99,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Acestea sunt necesare pentru funcționalitatea și securitatea site-ului. Conform IAB TCF, nu te poți opune acestor scopuri speciale.',
 			},
+			features: {
+				title: 'Funcționalități',
+				description:
+					'Aceste mijloace de prelucrare pot fi utilizate exclusiv pentru unul sau mai multe scopuri cu privire la care vi se oferă posibilitatea de a alege în această notificare.',
+			},
 			vendorList: {
 				search: 'Caută furnizori...',
 				showingCount: 'Se afișează {filtered} din {total} furnizori',

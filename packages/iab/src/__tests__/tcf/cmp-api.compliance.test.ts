@@ -1,5 +1,5 @@
 /**
- * CMP API Compliance Tests for IAB TCF 2.3
+ * CMP API Compliance Tests for IAB TCF 2.4
  *
  * Tests for IAB CMP API v2.x compliance per spec.
  * Covers all required commands and TCData object validation.
@@ -16,10 +16,17 @@ import type {
 	TCData,
 } from '../../tcf/iab-tcf-types';
 import { destroyIABStub, initializeIABStub } from '../../tcf/stub';
+import { generateTCString } from '../../tcf/tc-string';
 import type { CMPApi } from '../../tcf/types';
-import { cleanupTCFApi, createMockGVL, setupStorageMock } from './test-setup';
+import {
+	cleanupTCFApi,
+	createMockGVL,
+	createMockTCFConsentAllGranted,
+	createMockVendors,
+	setupStorageMock,
+} from './test-setup';
 
-describe('CMP API Compliance - IAB TCF 2.3', () => {
+describe('CMP API Compliance - IAB TCF 2.4', () => {
 	let cmpApi: CMPApi;
 	let mockGVL: GlobalVendorList;
 	let storageMock: ReturnType<typeof setupStorageMock>;
@@ -548,6 +555,51 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 					expect(tcData?.publisherCC).toBeDefined();
 					expect(typeof tcData?.publisherCC).toBe('string');
 					expect(tcData?.publisherCC?.length).toBe(2);
+					resolve();
+				});
+			});
+		});
+	});
+
+	describe('vendor.disclosedVendors (CMP API v2.2)', () => {
+		it('should be an empty object when there is no TC string', async () => {
+			await new Promise<void>((resolve) => {
+				window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
+					expect(tcData?.vendor.disclosedVendors).toEqual({});
+					resolve();
+				});
+			});
+		});
+
+		it('should mirror the disclosed vendors segment of the TC string', async () => {
+			cmpApi.destroy();
+			const gvl = createMockGVL({
+				vendors: createMockVendors([1, 2, 10, 755, 1200]),
+			});
+			cmpApi = createCMPApi({
+				cmpId: 160,
+				cmpVersion: 1,
+				gvl,
+				gdprApplies: true,
+			});
+
+			const tcString = await generateTCString(
+				{
+					...createMockTCFConsentAllGranted(),
+					vendorsDisclosed: { 1: true, 755: true, 1200: true, 2: false },
+				},
+				gvl,
+				{ cmpId: 160, cmpVersion: 1 }
+			);
+			cmpApi.updateConsent(tcString);
+
+			await new Promise<void>((resolve) => {
+				window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
+					expect(tcData?.vendor.disclosedVendors).toEqual({
+						1: true,
+						755: true,
+						1200: true,
+					});
 					resolve();
 				});
 			});

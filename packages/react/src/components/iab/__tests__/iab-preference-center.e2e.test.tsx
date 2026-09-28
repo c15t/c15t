@@ -1,7 +1,7 @@
 /**
  * IAB Preference Center E2E Tests
  *
- * Browser-based tests for IAB TCF 2.3 preference center.
+ * Browser-based tests for IAB TCF 2.4 preference center.
  */
 
 import { userEvent } from '@vitest/browser/context';

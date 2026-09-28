@@ -100,6 +100,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Tyto funkce jsou nezbytné pro funkčnost a zabezpečení webu. Podle IAB TCF nemůžete proti těmto zvláštním účelům vznést námitku.',
 			},
+			features: {
+				title: 'Funkce',
+				description:
+					'Tyto prostředky zpracování mohou být použity pouze za účelem dosažení jednoho či více účelů, pro které máte v tomto oznámení možnost volby.',
+			},
 			vendorList: {
 				search: 'Hledat partnery...',
 				showingCount:

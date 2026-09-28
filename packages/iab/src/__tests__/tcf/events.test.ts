@@ -1,5 +1,5 @@
 /**
- * Event System Tests for IAB TCF 2.3
+ * Event System Tests for IAB TCF 2.4
  *
  * Tests for IAB TCF event handling and listener behavior.
  *
@@ -18,7 +18,7 @@ import {
 	setupStorageMock,
 } from './test-setup';
 
-describe('Event System - IAB TCF 2.3', () => {
+describe('Event System - IAB TCF 2.4', () => {
 	let cmpApi: CMPApi;
 	let mockGVL: GlobalVendorList;
 	let storageMock: ReturnType<typeof setupStorageMock>;

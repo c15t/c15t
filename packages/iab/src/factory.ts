@@ -10,6 +10,7 @@
 import type { IABConfig, IABModule } from 'c15t';
 import { initializeIABMode } from './init/iab-initializer';
 import { fetchGVL } from './tcf/fetch-gvl';
+import { warnIfServiceSpecificDisabled } from './tcf/service-specific';
 import { createIABManager } from './tcf/store';
 
 /**
@@ -25,7 +26,7 @@ const iabModule: IABModule = {
 };
 
 /**
- * Creates an IAB TCF 2.3 configuration for the consent manager.
+ * Creates an IAB TCF 2.4 configuration for the consent manager.
  *
  * @param config - IAB configuration (CMP ID, vendor list, etc.)
  * @returns IABConfig with the runtime module injected
@@ -41,6 +42,8 @@ const iabModule: IABModule = {
  * ```
  */
 export function iab(config: IABUserConfig): IABConfig {
+	warnIfServiceSpecificDisabled(config.isServiceSpecific);
+
 	return {
 		...config,
 		enabled: true,

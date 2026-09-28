@@ -19,6 +19,12 @@ export interface GVLData {
 	specialPurposes: ProcessedPurpose[];
 	specialFeatures: ProcessedSpecialFeature[];
 	features: ProcessedFeature[];
+	/**
+	 * Standard text for the Features section, from the GVL's
+	 * `standardTexts.features`. `null` when the GVL does not include it; fall
+	 * back to the `features.description` translation in that case.
+	 */
+	featuresStandardText: string | null;
 	stacks: ProcessedStack[];
 	standalonePurposes: ProcessedPurpose[];
 	totalVendors: number;
@@ -45,6 +51,7 @@ export function useGVLData(): GVLData {
 		specialPurposes,
 		specialFeatures,
 		features,
+		featuresStandardText,
 		stacks,
 		standalonePurposes,
 	} = useMemo(() => {
@@ -54,6 +61,7 @@ export function useGVLData(): GVLData {
 				specialPurposes: [],
 				specialFeatures: [],
 				features: [],
+				featuresStandardText: null,
 				stacks: [] as ProcessedStack[],
 				standalonePurposes: [],
 			};
@@ -292,6 +300,7 @@ export function useGVLData(): GVLData {
 			specialPurposes: processedSpecialPurposes,
 			specialFeatures: processedSpecialFeatures,
 			features: processedFeatures,
+			featuresStandardText: gvl.standardTexts?.features ?? null,
 			stacks: processedStacks,
 			standalonePurposes: finalStandalonePurposes,
 		};
@@ -314,6 +323,7 @@ export function useGVLData(): GVLData {
 		specialPurposes,
 		specialFeatures,
 		features,
+		featuresStandardText,
 		stacks,
 		standalonePurposes,
 		totalVendors,

@@ -1,14 +1,16 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { type FC, useState } from 'react';
+import { type CSSProperties, type FC, useState } from 'react';
 import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as Switch from '~/components/shared/ui/switch';
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
 
-interface PurposeItemProps {
+interface InteractivePurposeItemProps {
 	purpose: ProcessedPurpose;
+	/** Omit or set to `false` to render a row with a consent switch. */
+	informational?: false;
 	isEnabled: boolean;
 	onToggle: (value: boolean) => void;
 	vendorConsents: Record<string, boolean>;
@@ -31,7 +33,113 @@ interface PurposeItemProps {
 	) => void;
 }
 
-export const PurposeItem: FC<PurposeItemProps> = ({
+interface InformationalPurposeItemProps {
+	purpose: ProcessedPurpose;
+	/**
+	 * Renders the row without any control: name, description, examples, and
+	 * a read-only list of vendor names. Used for TCF Features, which users
+	 * cannot turn on or off.
+	 */
+	informational: true;
+}
+
+type PurposeItemProps =
+	| InteractivePurposeItemProps
+	| InformationalPurposeItemProps;
+
+/**
+ * A purpose row in the IAB consent dialog.
+ *
+ * @remarks
+ * By default the row has a consent switch and per-vendor controls. Pass
+ * `informational` to render a read-only row without any control.
+ */
+export const PurposeItem: FC<PurposeItemProps> = (props) => {
+	if (props.informational) {
+		return <InformationalPurposeItem purpose={props.purpose} />;
+	}
+
+	return <InteractivePurposeItem {...props} />;
+};
+
+const InformationalPurposeItem: FC<{ purpose: ProcessedPurpose }> = ({
+	purpose,
+}) => {
+	const [isExpanded, setIsExpanded] = useState(false);
+	const [showVendors, setShowVendors] = useState(false);
+	const iab = useIABTranslations();
+	const partnerCount = iab.preferenceCenter.purposeItem.partners.replace(
+		'{count}',
+		String(purpose.vendors.length)
+	);
+
+	return (
+		<PreferenceItem.Root
+			className={styles.purposeItem}
+			data-testid={`purpose-item-${purpose.id}`}
+			noStyle
+			onOpenChange={setIsExpanded}
+			open={isExpanded}
+		>
+			<div className={styles.purposeHeader}>
+				<PreferenceItem.Trigger className={styles.purposeTrigger} noStyle>
+					<PreferenceItem.Leading noStyle>
+						<ExpandArrow
+							className={styles.purposeArrow}
+							isExpanded={isExpanded}
+						/>
+					</PreferenceItem.Leading>
+					<PreferenceItem.Header className={styles.purposeInfo} noStyle>
+						<PreferenceItem.Title className={styles.purposeName} noStyle>
+							{purpose.name}
+						</PreferenceItem.Title>
+						<PreferenceItem.Meta className={styles.purposeMeta} noStyle>
+							{partnerCount}
+						</PreferenceItem.Meta>
+					</PreferenceItem.Header>
+				</PreferenceItem.Trigger>
+			</div>
+
+			<PreferenceItem.Content innerClassName={styles.purposeContent} noStyle>
+				<p className={styles.purposeDescription}>{purpose.description}</p>
+
+				<PurposeExamples illustrations={purpose.illustrations} />
+
+				{purpose.vendors.length > 0 && (
+					<div>
+						<PreferenceItem.Root
+							noStyle
+							onOpenChange={setShowVendors}
+							open={showVendors}
+						>
+							<PreferenceItem.Trigger className={styles.vendorsToggle} noStyle>
+								<ExpandArrow
+									isExpanded={showVendors}
+									style={{ width: '0.75rem', height: '0.75rem' }}
+								/>
+								{partnerCount}
+							</PreferenceItem.Trigger>
+							<PreferenceItem.Content
+								innerClassName={styles.vendorSection}
+								noStyle
+							>
+								<ul className={styles.vendorPurposesItems}>
+									{purpose.vendors.map((vendor) => (
+										<li key={vendor.id} className={styles.vendorPurposeItem}>
+											{vendor.name}
+										</li>
+									))}
+								</ul>
+							</PreferenceItem.Content>
+						</PreferenceItem.Root>
+					</div>
+				)}
+			</PreferenceItem.Content>
+		</PreferenceItem.Root>
+	);
+};
+
+const InteractivePurposeItem: FC<InteractivePurposeItemProps> = ({
 	purpose,
 	isEnabled,
 	onToggle,
@@ -45,7 +153,6 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	onPurposeLegitimateInterestToggle,
 }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
-	const [showExamples, setShowExamples] = useState(false);
 	const [showVendors, setShowVendors] = useState(false);
 	const iab = useIABTranslations();
 
@@ -229,40 +336,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 					</div>
 				)}
 
-				{purpose.illustrations && purpose.illustrations.length > 0 && (
-					<div>
-						<PreferenceItem.Root
-							noStyle
-							onOpenChange={setShowExamples}
-							open={showExamples}
-						>
-							<PreferenceItem.Trigger className={styles.examplesToggle} noStyle>
-								<svg
-									style={{ width: '0.75rem', height: '0.75rem' }}
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-								>
-									{showExamples ? (
-										<path d="M19 9l-7 7-7-7" />
-									) : (
-										<path d="M9 5l7 7-7 7" />
-									)}
-								</svg>
-								{iab.preferenceCenter.purposeItem.examples} (
-								{purpose.illustrations.length})
-							</PreferenceItem.Trigger>
-							<PreferenceItem.Content noStyle>
-								<ul className={styles.examplesList}>
-									{purpose.illustrations.map((illustration, index) => (
-										<li key={index}>{illustration}</li>
-									))}
-								</ul>
-							</PreferenceItem.Content>
-						</PreferenceItem.Root>
-					</div>
-				)}
+				<PurposeExamples illustrations={purpose.illustrations} />
 
 				<div>
 					<PreferenceItem.Root
@@ -405,6 +479,64 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 				</div>
 			</PreferenceItem.Content>
 		</PreferenceItem.Root>
+	);
+};
+
+const ExpandArrow: FC<{
+	isExpanded: boolean;
+	className?: string;
+	style?: CSSProperties;
+}> = ({ isExpanded, className, style }) => (
+	<svg
+		className={className}
+		style={style}
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="2"
+		aria-hidden="true"
+	>
+		{isExpanded ? <path d="M19 9l-7 7-7-7" /> : <path d="M9 5l7 7-7 7" />}
+	</svg>
+);
+
+/**
+ * Collapsible list of IAB illustrations ("Examples") for a purpose or
+ * feature.
+ */
+const PurposeExamples: FC<{ illustrations?: string[] }> = ({
+	illustrations,
+}) => {
+	const [showExamples, setShowExamples] = useState(false);
+	const iab = useIABTranslations();
+
+	if (!illustrations || illustrations.length === 0) {
+		return null;
+	}
+
+	return (
+		<div>
+			<PreferenceItem.Root
+				noStyle
+				onOpenChange={setShowExamples}
+				open={showExamples}
+			>
+				<PreferenceItem.Trigger className={styles.examplesToggle} noStyle>
+					<ExpandArrow
+						isExpanded={showExamples}
+						style={{ width: '0.75rem', height: '0.75rem' }}
+					/>
+					{iab.preferenceCenter.purposeItem.examples} ({illustrations.length})
+				</PreferenceItem.Trigger>
+				<PreferenceItem.Content noStyle>
+					<ul className={styles.examplesList}>
+						{illustrations.map((illustration, index) => (
+							<li key={index}>{illustration}</li>
+						))}
+					</ul>
+				</PreferenceItem.Content>
+			</PreferenceItem.Root>
+		</div>
 	);
 };
 

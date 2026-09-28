@@ -98,6 +98,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Desse er nødvendige for funksjonaliteten og tryggleiken til nettstaden. I følgje IAB TCF kan du ikkje protestere mot desse spesielle føremåla.',
 			},
+			features: {
+				title: 'Funksjonar',
+				description:
+					'Disse behandlingsmåtene kan kun brukes for ett eller flere formål som du kan velge mellom i denne erklæringen.',
+			},
 			vendorList: {
 				search: 'Søk etter leverandørar...',
 				showingCount: '{filtered} av {total} leverandørar',

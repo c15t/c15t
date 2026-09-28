@@ -97,6 +97,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Nämä ovat välttämättömiä sivuston toimivuuden ja turvallisuuden kannalta. IAB TCF:n mukaan et voi vastustaa näitä erityisiä käyttötarkoituksia.',
 			},
+			features: {
+				title: 'Ominaisuudet',
+				description:
+					'Näitä käsittelytapoja voidaan käyttää ainoastaan yhteen tai useampaan tarkoitukseen, joihin sinulle on tässä ilmoituksessa annettu mahdollisuus.',
+			},
 			vendorList: {
 				search: 'Hae kumppaneita...',
 				showingCount: '{filtered}/{total} kumppania',
