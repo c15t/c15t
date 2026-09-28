@@ -182,6 +182,14 @@ export interface ConsentRuntimeOptions {
 	 * Cleanup waits for policy resolution. Initial-only; omitted disables it.
 	 */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted. Removing a script cannot stop code that already
+	 * ran, so the reload starts a document with only permitted code. Waits for
+	 * the save request. Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	/** Subject identity forwarded to the backend on `identify`. */
 	user?: User | KernelUser;
 	/** Decision inputs (country, region, language, GPC) forced by the host. */
@@ -193,7 +201,10 @@ export interface ConsentRuntimeOptions {
 	/** Lifecycle callbacks invoked as consent is fetched, set and changed. */
 	callbacks?: Pick<
 		Callbacks,
-		'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+		| 'onChoiceRecorded'
+		| 'onPermissionsChanged'
+		| 'onError'
+		| 'onBeforeConsentRevocationReload'
 	>;
 	/** Consent-gated scripts the loader mounts as categories are granted. */
 	scripts?: Script[];

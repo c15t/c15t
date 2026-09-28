@@ -760,3 +760,46 @@ describe('the runtime network hold', () => {
 		}
 	});
 });
+
+describe('revocation reload', () => {
+	const revoke = async function revoke(
+		options: { reloadOnConsentRevoked?: boolean } = {}
+	) {
+		vi.useFakeTimers();
+		const reload = vi.fn();
+		vi.spyOn(window, 'location', 'get').mockReturnValue({
+			reload,
+		} as unknown as Location);
+		const onBeforeConsentRevocationReload = vi.fn();
+		const runtime = createConsentRuntime({
+			callbacks: { onBeforeConsentRevocationReload },
+			mode: custom(createTransport()),
+			prefetch: RESOLVED_PREFETCH,
+			...options,
+		});
+		const settle = async (saving: Promise<unknown>) => {
+			await vi.advanceTimersByTimeAsync(10);
+			await saving;
+			await vi.advanceTimersByTimeAsync(10);
+		};
+		await settle(runtime.kernel.commands.save({ marketing: true }));
+		await settle(runtime.kernel.commands.save({ marketing: false }));
+		runtime.dispose();
+		vi.useRealTimers();
+		return { onBeforeConsentRevocationReload, reload };
+	};
+
+	test('reloads by default after an explicit revocation', async () => {
+		const { onBeforeConsentRevocationReload, reload } = await revoke();
+		expect(onBeforeConsentRevocationReload).toHaveBeenCalledOnce();
+		expect(reload).toHaveBeenCalledOnce();
+	});
+
+	test('honours `reloadOnConsentRevoked: false`', async () => {
+		const { onBeforeConsentRevocationReload, reload } = await revoke({
+			reloadOnConsentRevoked: false,
+		});
+		expect(onBeforeConsentRevocationReload).not.toHaveBeenCalled();
+		expect(reload).not.toHaveBeenCalled();
+	});
+});

@@ -241,6 +241,8 @@ export const runFrameworkConformance = ({
 		const authoritative =
 			(opts.initMode ?? 'authoritative') === 'authoritative';
 		return {
+			// A real reload restarts the browser test page.
+			reloadOnConsentRevoked: false,
 			...provided,
 			disableAnimation: true,
 			mode: offline(),

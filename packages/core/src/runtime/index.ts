@@ -40,6 +40,7 @@ import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
 import type { NetworkHold } from '../modules/network-blocker/hold';
 import { createPersistence } from '../modules/persistence';
 import type { PersistenceHandle } from '../modules/persistence';
+import { watchRevocationReload } from '../modules/revocation-reload';
 import { createScriptLoader } from '../modules/script-loader';
 import {
 	createWindowDebug,
@@ -418,6 +419,12 @@ export const createConsentRuntime = function createConsentRuntime(
 	disposers.push(
 		wireRuntimeCallbacks({
 			callbacks: options.callbacks,
+			kernel,
+		}),
+		watchRevocationReload({
+			getOnBeforeReload: () =>
+				options.callbacks?.onBeforeConsentRevocationReload,
+			isEnabled: () => options.reloadOnConsentRevoked !== false,
 			kernel,
 		})
 	);

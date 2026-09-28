@@ -488,6 +488,8 @@ export const createFrameworkPolicyDriver = ({
 						}),
 
 						presentation,
+						// A real reload restarts the browser test page.
+						reloadOnConsentRevoked: false,
 					}}
 				>
 					<Mount />

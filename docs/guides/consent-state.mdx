@@ -52,6 +52,12 @@ and `save()`, close without waiting for the backend. In order:
 4. When the request settles, the kernel emits `command:save:completed`. The
    promise returned by `kernel.commands.save()`, React's `performAction()` and
    Svelte's `saveConsents()` resolves or rejects only then.
+5. If the save turned off a category or vendor that was granted, the page
+   reloads in the next task, after `onBeforeConsentRevocationReload` runs.
+   Removing a script cannot stop code that already ran, so the reload starts a
+   page with only permitted code. With several saves in flight, it waits for
+   the last one. Set `reloadOnConsentRevoked: false` to handle revocation
+   yourself.
 
 A failed request does not reopen the surface or roll the choice back. The
 kernel emits `command:error`, which reaches the `onError` callback in adapters
