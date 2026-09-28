@@ -325,6 +325,26 @@ const restrictionsForDisplay = function restrictionsForDisplay(
 	}
 };
 
+/**
+ * Purposes some vendor processes on consent once restrictions apply. A
+ * purpose outside this set has no consent switch, so it must not decide a
+ * category.
+ */
+const consentBasisPurposes = function consentBasisPurposes(
+	gvl: GlobalVendorList,
+	restrictions: readonly PublisherRestriction[],
+	customVendors: readonly NonIABVendor[]
+): Set<number> {
+	return new Set(
+		[
+			...Object.values(
+				applyPublisherRestrictionsToGVL(gvl, restrictions).vendors ?? {}
+			),
+			...customVendors,
+		].flatMap((vendor) => vendor.purposes ?? [])
+	);
+};
+
 const sameConfirmationContext = function sameConfirmationContext(
 	left: ConsentSnapshot,
 	right: ConsentSnapshot
@@ -1590,7 +1610,14 @@ export const createIAB = function createIAB(
 			) {
 				return;
 			}
-			const consents = iabPurposesToC15tConsents(consentData.purposeConsents);
+			const consents = iabPurposesToC15tConsents(
+				consentData.purposeConsents,
+				consentBasisPurposes(
+					snapshot.iab.gvl,
+					publisherRestrictions,
+					snapshot.iab.customVendors
+				)
+			);
 			const scope = new Set<string>(snapshot.policyRule.scope);
 			// Refusals must replace old grants even after a category leaves scope.
 			const consentPatch = Object.fromEntries(

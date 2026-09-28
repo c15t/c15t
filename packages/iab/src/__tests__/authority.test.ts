@@ -2050,3 +2050,52 @@ describe('returning visitors and changed publisher restrictions', () => {
 		}
 	);
 });
+
+describe('category decisions for purposes with no consent basis', () => {
+	// Every vendor for purpose 7 ends up on legitimate interest: vendor 1 may
+	// not use it, vendors 2 and 755 must use LI, and vendor 10 declares LI.
+	const liOnly7 = [
+		{ purposeId: 7, restrictionType: 0 as const, vendorIds: [1] },
+		{ purposeId: 7, restrictionType: 2 as const, vendorIds: [2, 755] },
+	];
+	const liVendor = {
+		category: 'measurement' as const,
+		iabLegIntPurposes: [7],
+		vendorId: 10,
+	};
+	const saveGranular = async (consentPurposes: number[]) => {
+		const kernel = makeKernel();
+		const addon = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+			publisherRestrictions: liOnly7,
+		});
+		disposers.push(addon.dispose);
+		await addon.whenReady();
+		// What the preference centre allows: no consent switch for purpose 7.
+		for (const purposeId of consentPurposes) {
+			addon.setPurposeConsent(purposeId, true);
+		}
+		addon.setPurposeLegitimateInterest(7, true);
+		addon.setVendorLegitimateInterest(10, true);
+		await addon.save();
+		return kernel;
+	};
+
+	test('the remaining purposes decide the category, so the LI vendor runs', async () => {
+		const kernel = await saveGranular([8, 9]);
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(true);
+		expect(evaluateConsent(liVendor, kernel.getSnapshot())).toBe(true);
+	});
+
+	test('legitimate interest never grants the category on its own', async () => {
+		const kernel = await saveGranular([8]);
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+		).toBe(false);
+		expect(evaluateConsent(liVendor, kernel.getSnapshot())).toBe(false);
+	});
+});
