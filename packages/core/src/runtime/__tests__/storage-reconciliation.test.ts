@@ -1262,3 +1262,80 @@ test('a directive lost to a concurrent write is written back on the next reconci
 		read?.ok ? read.record.directives.map((entry) => entry.recordedAt) : []
 	).toEqual([own?.recordedAt, T + 500]);
 });
+
+const envelopeWith = (
+	categories: Partial<Record<'marketing' | 'measurement', [boolean, number]>>,
+	epoch?: number
+) => ({
+	categories: Object.fromEntries(
+		Object.entries(categories).map(([category, [value, confirmedAt]]) => [
+			category,
+			{
+				basis: {
+					fingerprint: resolution.fingerprints.choice,
+					kind: 'choice-v1' as const,
+				},
+				confirmedAt,
+				value,
+			},
+		])
+	),
+	epoch,
+	version: 3 as const,
+});
+
+test('write-back never restores an older grant it did not write over a newer denial', async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	await start(threeCategories).kernel.commands.save({ marketing: true });
+	await nextTask();
+	const active = start(threeCategories);
+	expect(decision(active, 'marketing')).toBe(true);
+
+	// Another runtime denies marketing; this one has not reconciled.
+	vi.setSystemTime(T + 1000);
+	const denier = start(threeCategories);
+	await denier.kernel.commands.save({ marketing: false });
+	await nextTask();
+
+	// This runtime decides measurement; its write merges the newer denial.
+	vi.setSystemTime(T + 2000);
+	await active.kernel.commands.save({ measurement: true });
+	await nextTask();
+
+	// A stale third writer drops marketing.
+	vi.setSystemTime(T + 3000);
+	writeStoredConsentEnvelope(envelopeWith({ measurement: [true, T + 2000] }), {
+		now: T + 3000,
+	});
+
+	active.reconcileStorage();
+	await nextTask();
+	expect(decision(start(threeCategories), 'marketing')).not.toBe(true);
+
+	// The runtime that stored the denial restores it.
+	denier.reconcileStorage();
+	await nextTask();
+	expect(decision(start(threeCategories), 'marketing')).toBe(false);
+});
+
+test("write-back restores a decision made in the millisecond of this runtime's own clear", async () => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(T);
+	const active = start(threeCategories);
+	active.clearRecords();
+	await active.kernel.commands.save({ marketing: false });
+	await nextTask();
+	expect(decision(start(threeCategories), 'marketing')).toBe(false);
+
+	// A writer that knew the clear drops marketing.
+	vi.setSystemTime(T + 1000);
+	writeStoredConsentEnvelope(
+		envelopeWith({ measurement: [true, T + 1000] }, T),
+		{ now: T + 1000 }
+	);
+
+	active.reconcileStorage();
+	await nextTask();
+	expect(decision(start(threeCategories), 'marketing')).toBe(false);
+});

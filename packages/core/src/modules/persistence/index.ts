@@ -123,7 +123,10 @@ export const createPersistence = function createPersistence(
 	// Category decisions and directives this runtime has stored. Another
 	// tab can read storage before one of these writes lands and then write
 	// over it; reconciliation writes back any it finds missing.
-	const ownDecisions = new Map<string, CategoryDecision>();
+	const ownDecisions = new Map<
+		string,
+		{ decision: CategoryDecision; epoch: number }
+	>();
 	const ownDirectives = new Map<string, PrivacyOptOut>();
 	// Whether a decision was recorded since the last write. Without one, a
 	// scheduled write only acknowledges the server's subject id.
@@ -292,11 +295,14 @@ export const createPersistence = function createPersistence(
 			at,
 			read.epoch
 		);
+		// Only what was written counts as this runtime's: the merge keeps a
+		// newer stored decision over the one in memory, and that older
+		// in-memory value must never be written back later.
 		for (const [category, decision] of Object.entries(
-			snapshot.explicitChoice?.categories ?? {}
+			explicitChoice.categories
 		)) {
 			if (decision) {
-				ownDecisions.set(category, decision);
+				ownDecisions.set(category, { decision, epoch: read.epoch });
 			}
 		}
 		markWritten(
@@ -490,7 +496,8 @@ export const createPersistence = function createPersistence(
 		const snapshot = kernel.getSnapshot();
 		const storedChoice = read.records.choice;
 		if (storedChoice !== undefined) {
-			const lost = [...ownDecisions].some(([category, own]) => {
+			const lost = [...ownDecisions].some(([category, written]) => {
+				const { decision: own } = written;
 				const held =
 					snapshot.explicitChoice?.categories[
 						category as keyof ExplicitChoice['categories']
@@ -503,7 +510,10 @@ export const createPersistence = function createPersistence(
 					held !== undefined &&
 					held.confirmedAt === own.confirmedAt &&
 					held.value === own.value &&
-					own.confirmedAt > read.epoch &&
+					// A decision in the clearing millisecond counts when it was
+					// written under that epoch, as in `choiceSinceEpoch`.
+					(own.confirmedAt > read.epoch ||
+						(own.confirmedAt === read.epoch && written.epoch === read.epoch)) &&
 					(!stored || stored.confirmedAt < own.confirmedAt)
 				);
 			});
