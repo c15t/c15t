@@ -1,8 +1,13 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 import type { C15tPluginProps } from '@c15t/react-native/expo-plugin';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
-import { withPodfile, withSettingsGradle } from 'expo/config-plugins';
+import {
+	withDangerousMod,
+	withPodfile,
+	withSettingsGradle,
+} from 'expo/config-plugins';
 import type { ConfigPlugin } from 'expo/config-plugins';
 
 /**
@@ -82,6 +87,38 @@ includeBuild('${coreDir}') {
 
 		return cfg;
 	});
+
+/**
+ * Run the generated Android build on the Gradle the included core needs.
+ *
+ * An included build runs under the host's Gradle, and the core's Android Gradle
+ * Plugin asks for a newer Gradle than the Expo template's wrapper pins. The bare
+ * example already runs on this version; keep the two examples on one wrapper. Only
+ * meaningful alongside the substitution above, so it shares the switch.
+ */
+const GRADLE_DISTRIBUTION = 'gradle-9.4.1-bin.zip';
+
+const withC15tGradleWrapper: ConfigPlugin = (config) =>
+	withDangerousMod(config, [
+		'android',
+		(cfg) => {
+			const wrapper = path.join(
+				cfg.modRequest.platformProjectRoot,
+				'gradle',
+				'wrapper',
+				'gradle-wrapper.properties'
+			);
+			const contents = fs.readFileSync(wrapper, 'utf8');
+			fs.writeFileSync(
+				wrapper,
+				contents.replace(
+					/^(?<prefix>distributionUrl=.*\/)gradle-[^/]+$/mu,
+					`$<prefix>${GRADLE_DISTRIBUTION}`
+				)
+			);
+			return cfg;
+		},
+	]);
 
 /**
  * Backend and key for the embedded consent core.
@@ -177,7 +214,7 @@ const plugins: PluginEntry[] = [
 	// Only while this example lives next to the core it builds against.
 	...(process.env.C15T_LOCAL_PODS === 'false'
 		? []
-		: [withC15tLocalCorePod, withC15tLocalCoreGradle]),
+		: [withC15tLocalCorePod, withC15tLocalCoreGradle, withC15tGradleWrapper]),
 	// `expo export` and `expo run:*` both count as a native-build invocation, so
 	// the plugin's Expo Go guard passes on its own. There is no `skipNativeBuildCheck`
 	// here on purpose: this project has no Expo Go path, and a bare `expo config` in
