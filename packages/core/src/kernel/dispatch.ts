@@ -28,6 +28,13 @@ import type { Listener, Unsubscribe } from '../types';
  */
 export const MAX_DELIVERY_DEPTH = 100;
 
+/**
+ * Listener calls the final pass after a cutoff may make. A listener that
+ * re-subscribes, or subscribes a new function, on every notification can
+ * keep queueing deliveries; this bounds the pass whatever listeners do.
+ */
+export const MAX_FINAL_PASS_CALLS = 1000;
+
 /** One `add()` call. A function removed and added again is a new one. */
 interface Registration<Value> {
 	listener: Listener<Value>;
@@ -133,8 +140,10 @@ export const createDispatcher = function createDispatcher(): Dispatcher {
 	let queued = 0;
 	// Set once the depth limit is hit, until the queue is empty again.
 	// Listeners that queued a delivery during the final pass (the ones
-	// feeding the loop) are not called again.
-	let cutOff: Set<Registration<unknown>> | null = null;
+	// feeding the loop) are not called again. Keyed by function, so a
+	// listener that re-subscribes itself stays cut off.
+	let cutOff: Set<Listener<unknown>> | null = null;
+	let finalPassCalls = 0;
 
 	// A later queued delivery to the same registration carries a newer
 	// value, so the final pass skips this one.
@@ -158,9 +167,14 @@ export const createDispatcher = function createDispatcher(): Dispatcher {
 	): void {
 		if (cutOff) {
 			if (
-				cutOff.has(target) ||
+				cutOff.has(target.listener) ||
 				supersededLater(0, delivery.listeners, target)
 			) {
+				return;
+			}
+			finalPassCalls += 1;
+			if (finalPassCalls > MAX_FINAL_PASS_CALLS) {
+				pending.length = 0;
 				return;
 			}
 		}
@@ -171,7 +185,7 @@ export const createDispatcher = function createDispatcher(): Dispatcher {
 			reportListenerError(error);
 		}
 		if (cutOff && queued !== before) {
-			cutOff.add(target);
+			cutOff.add(target.listener);
 		}
 	};
 
@@ -209,6 +223,7 @@ export const createDispatcher = function createDispatcher(): Dispatcher {
 			depth -= 1;
 			if (depth === 0) {
 				cutOff = null;
+				finalPassCalls = 0;
 			}
 		}
 	};

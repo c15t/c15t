@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { NOW } from '../../__tests__/fixtures/kernel-fixtures';
 import type { ConsentKernel, KernelEvent } from '../../types';
-import { MAX_DELIVERY_DEPTH } from '../dispatch';
+import { MAX_DELIVERY_DEPTH, MAX_FINAL_PASS_CALLS } from '../dispatch';
 import { createConsentKernel } from '../index';
 
 let reported: ReturnType<typeof vi.spyOn>;
@@ -302,6 +302,47 @@ describe('a subscriber that updates consent while notified', () => {
 			expect(last).toBe(kernel.getSnapshot());
 		}
 	);
+
+	test('a feedback subscriber that re-subscribes itself is still cut off', async () => {
+		const kernel = await grantedKernel();
+		let calls = 0;
+		let unsubscribe = (): void => undefined;
+		const feedback = (snapshot: ReturnType<ConsentKernel['getSnapshot']>) => {
+			calls += 1;
+			unsubscribe();
+			unsubscribe = kernel.subscribe(feedback);
+			void kernel.commands.save({
+				measurement: !snapshot.effectivePermissions.measurement,
+			});
+		};
+		unsubscribe = kernel.subscribe(feedback);
+
+		await kernel.commands.save({ measurement: false });
+
+		expect(calls).toBeLessThanOrEqual(MAX_DELIVERY_DEPTH + 1);
+	});
+
+	test('a feedback loop that subscribes a new function each time ends', async () => {
+		const kernel = await grantedKernel();
+		let calls = 0;
+		const spawn = () => {
+			const listener = (snapshot: ReturnType<ConsentKernel['getSnapshot']>) => {
+				calls += 1;
+				kernel.subscribe(spawn());
+				void kernel.commands.save({
+					measurement: !snapshot.effectivePermissions.measurement,
+				});
+			};
+			return listener;
+		};
+		kernel.subscribe(spawn());
+
+		await kernel.commands.save({ measurement: false });
+
+		expect(calls).toBeLessThanOrEqual(
+			MAX_DELIVERY_DEPTH * 2 + MAX_FINAL_PASS_CALLS
+		);
+	});
 
 	test('a subscriber added during delivery waits for the next transition', async () => {
 		const kernel = await grantedKernel();
