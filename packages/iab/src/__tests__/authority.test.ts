@@ -1004,3 +1004,49 @@ test('vendors never see the stale grant after another runtime stores a denial', 
 	expect(published.length).toBeGreaterThan(0);
 	expect(published).not.toContain(granted);
 });
+
+test('vendors never see a stale vendor grant after another runtime revokes the vendor', async () => {
+	const kernel = makeKernel();
+	const storage = createPersistence({ kernel, sync: false });
+	disposers.push(storage.dispose);
+	const addon = createAddon(kernel);
+	await addon.whenReady?.();
+	addon.acceptAll();
+	await addon.save();
+	storage.reconcile();
+	const granted = kernel.getSnapshot().iab?.authority?.tcString;
+	expect(granted).toBeTruthy();
+
+	// Another runtime revokes one vendor; the categories stay granted.
+	vi.setSystemTime(NOW + 86_400_000 / 2);
+	const other = makeKernel();
+	const otherStorage = createPersistence({ kernel: other, sync: false });
+	disposers.push(otherStorage.dispose);
+	const otherAddon = createAddon(other);
+	await vi.waitFor(() =>
+		expect(other.getSnapshot().iab?.authority).not.toBeNull()
+	);
+	otherAddon.acceptAll();
+	otherAddon.setVendorConsent(755, false);
+	await otherAddon.save();
+	otherStorage.reconcile();
+	expect(other.getSnapshot().explicitChoice?.categories.marketing?.value).toBe(
+		true
+	);
+	const revoked = other.getSnapshot().iab?.authority?.tcString;
+	expect(revoked).not.toBe(granted);
+
+	const { cmpApi } = addon;
+	if (!cmpApi) {
+		throw new Error('Expected a CMP API');
+	}
+	const published = vi.spyOn(cmpApi, 'updateConsent');
+	expect(storage.reconcile()).toBe(true);
+	await vi.advanceTimersByTimeAsync(10);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority?.tcString).toBe(revoked)
+	);
+	const strings = published.mock.calls.map(([tcString]) => tcString);
+	expect(strings).toContain(revoked);
+	expect(strings).not.toContain(granted);
+});

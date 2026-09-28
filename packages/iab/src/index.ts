@@ -545,6 +545,12 @@ export const createIAB = function createIAB(
 	// Set while this module withdraws an authority another runtime's
 	// receipt still backs, so the shared receipt is not deleted.
 	let keepReceipt = false;
+	// Set while a save of this kernel commits, which happens synchronously
+	// after `command:save:started`.
+	let ownSaveCommitting = false;
+	// A held authority not published because the choice changed after it
+	// was confirmed. The receipt reload decides whether it goes or stays.
+	let suppressedAuthority: KernelIABAuthority | null = null;
 	const armAuthorityTimer = function armAuthorityTimer(): void {
 		clearTimeout(authorityTimer);
 		const authority = kernel.getSnapshot().iab?.authority;
@@ -757,6 +763,40 @@ export const createIAB = function createIAB(
 			return;
 		}
 		applyReconciledAuthority(receipt, current.explicitChoice);
+	};
+	const unsubscribeSaveStart = kernel.events.on('command:save:started', () => {
+		ownSaveCommitting = true;
+		queueMicrotask(() => {
+			ownSaveCommitting = false;
+		});
+	});
+	/**
+	 * A choice that changed without a save of this kernel came from storage,
+	 * such as another tab's IAB save that revoked a vendor. When the held
+	 * authority predates it, its TC string may grant what that save revoked,
+	 * so it is not published until the receipt reload installs a newer
+	 * receipt or withdraws it. This tab's own saves never suppress it.
+	 */
+	const noteChoiceChange = function noteChoiceChange(
+		previous: ConsentSnapshot,
+		snapshot: ConsentSnapshot
+	): void {
+		const held = snapshot.iab?.authority;
+		if (
+			held &&
+			!ownSaveCommitting &&
+			snapshot.explicitChoice !== previous.explicitChoice &&
+			predatesChoice(held, snapshot.explicitChoice)
+		) {
+			suppressedAuthority = held;
+		}
+	};
+	/** The TC string to publish: the held one unless suppressed. */
+	const publishedTcString = function publishedTcString(): string {
+		const authority = kernel.getSnapshot().iab?.authority;
+		return authority && authority !== suppressedAuthority
+			? authority.tcString
+			: '';
 	};
 	const unsubscribeClear = kernel.events.on('records:cleared', () => {
 		hydrationCancelled = true;
@@ -987,6 +1027,7 @@ export const createIAB = function createIAB(
 		}
 		const previous = previousSnapshot;
 		previousSnapshot = snapshot;
+		noteChoiceChange(previous, snapshot);
 		// Hydration advances the records generation after it notifies, so
 		// compare once the commit has finished.
 		queueMicrotask(() => {
@@ -1020,9 +1061,8 @@ export const createIAB = function createIAB(
 		}
 		// Expiry can synchronously publish a newer snapshot while arming the
 		// timer. Never restore the expired receipt from this notification.
-		const tcString = kernel.getSnapshot().iab?.authority?.tcString ?? null;
 		cmpApi.updateConsent(
-			tcString ?? '',
+			publishedTcString(),
 			undefined,
 			snapshot.policyRule.model === 'iab'
 		);
@@ -1127,6 +1167,7 @@ export const createIAB = function createIAB(
 			unregisterControls?.();
 			unsubscribe();
 			unsubscribeClear();
+			unsubscribeSaveStart();
 			if (cmpApi) {
 				try {
 					cmpApi.destroy();
