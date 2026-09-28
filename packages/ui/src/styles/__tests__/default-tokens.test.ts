@@ -176,6 +176,43 @@ describe.each(COMPANION_SHEETS)('%s', (entrypoint) => {
 	});
 });
 
+describe('surface font variables', () => {
+	/**
+	 * `typography.fontFamily` reaches the page as `--c15t-font-family`. A
+	 * surface whose own font variable hardcodes a stack instead ignores the
+	 * theme: the preference list did, so its category rows kept the system
+	 * font under a themed dialog title.
+	 */
+	const fontVariables = [
+		readEntrypoint('styles.css'),
+		readEntrypoint(join('iab', 'styles.css')),
+	].flatMap((css) =>
+		[
+			...css.matchAll(
+				/(?<name>--(?:iab-)?(?:consent|cd)-[a-z-]*font-family)\s*:\s*(?<value>[^;}]+)/gu
+			),
+		].map((match) => [match.groups?.name, match.groups?.value?.trim()])
+	);
+
+	test('the sheets declare them', () => {
+		expect(fontVariables.map(([name]) => name)).toEqual(
+			expect.arrayContaining([
+				'--consent-banner-font-family',
+				'--consent-dialog-font-family',
+				'--consent-manager-font-family',
+				'--iab-consent-banner-font-family',
+				'--iab-cd-font-family',
+			])
+		);
+	});
+
+	test('every one resolves through --c15t-font-family', () => {
+		expect(
+			fontVariables.filter(([, value]) => value !== 'var(--c15t-font-family)')
+		).toEqual([]);
+	});
+});
+
 describe('an app that imports the stylesheet without a theme', () => {
 	beforeEach(() => {
 		document.head.innerHTML = '';

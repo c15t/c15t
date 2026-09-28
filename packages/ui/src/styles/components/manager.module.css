@@ -35,9 +35,7 @@
 	--consent-manager-entry-animation: var(--c15t-enter-animation);
 	--consent-manager-exit-animation: var(--c15t-exit-animation);
 
-	--consent-manager-font-family:
-		system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-		'Apple Color Emoji', 'Segoe UI Emoji';
+	--consent-manager-font-family: var(--c15t-font-family);
 	--consent-manager-line-height: 1.15;
 }
 
