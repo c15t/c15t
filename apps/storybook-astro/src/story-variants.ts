@@ -8,6 +8,8 @@
  * stay free of any `.astro`, Node or DOM import.
  */
 
+import { bottomBarOptions } from './docs-recipes/bottom-bar';
+
 /** The `.astro` components the Storybook renders. */
 export type AstroComponentName =
 	| 'consent-banner'
@@ -45,6 +47,8 @@ export interface AstroStoryVariant {
 		 * runtime whose model is `iab`.
 		 */
 		iab?: boolean;
+		/** Banner presentation, merged over the shared story presentation. */
+		presentation?: { prompt?: Record<string, unknown> };
 	};
 	/**
 	 * Which dialog adapter the story boots. Defaults to `svelte`, the
@@ -83,6 +87,16 @@ export const astroStoryVariants: readonly AstroStoryVariant[] = [
 		component: 'consent-banner',
 		id: 'consent-banner--default',
 		options: { colorScheme: 'light', consentCategories: CATEGORIES },
+		props: { force: true },
+	},
+	{
+		component: 'consent-banner',
+		id: 'consent-banner--docs-bottom-bar',
+		options: {
+			colorScheme: 'light',
+			consentCategories: CATEGORIES,
+			...bottomBarOptions,
+		},
 		props: { force: true },
 	},
 	{
