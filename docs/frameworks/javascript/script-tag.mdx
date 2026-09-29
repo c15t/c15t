@@ -37,7 +37,7 @@ Every attribute is optional.
 | `data-backend-url` | Backend origin. Selects hosted mode. |
 | `data-mode` | `hosted`, `offline`, or `manifest`. Inferred when omitted. |
 | `data-manifest-url` | URL to fetch a consent manifest. Include `data-backend-url` when this is not the backend's `/manifest` endpoint. |
-| `data-categories` | Comma-separated categories to offer: `functionality`, `experience`, `measurement`, `marketing`. Omit it to display the entire policy scope. This filters the UI, not the policy; undisplayed categories may leave a choice prompt incomplete. |
+| `data-categories` | Comma-separated categories to offer: `functionality`, `experience`, `measurement`, `marketing`. Omit it to display the categories of gated scripts; with none, a permissive policy displays only Necessary and a strict one its entire scope. This filters the UI, not the policy; undisplayed categories may leave a choice prompt incomplete. |
 | `data-policy-rules` | Comma-separated policy presets for offline mode: `europeOptIn`, `usPrivacyStatesOptOut`, `quebecOptIn`, `worldNone`. Resolved by the visitor's country. |
 | `data-language` | Force a language instead of reading the browser's. |
 | `data-country`, `data-region` | Known location, when your host injects it. |

@@ -20,8 +20,22 @@ Compound script and network conditions contribute every category they reference.
 Discovered categories are added to `consentCategories`, when supplied. The dialog
 always includes Necessary and offers the optional categories in that combined
 set that are also in the resolved policy scope. Choice completion uses the same
-set. If neither configuration nor integrations supply categories, the dialog
-uses the full policy scope.
+set.
+
+If neither configuration nor integrations supply categories, the result depends
+on the policy's `scopeMode`:
+
+- Under a permissive policy, the dialog lists only Necessary. The banner still
+  appears when the policy prompts for a choice. Accept All, Reject All and Save
+  each record that the visitor saw it, send a consent receipt for Necessary
+  alone in hosted and manifest modes, and keep the banner dismissed after
+  reload. The acknowledgement expires with the policy's choice validity and
+  after a policy change, like a choice would. A stored choice that is still
+  valid under the current policy also counts as an acknowledgement.
+- Under a strict policy, the dialog uses the full policy scope.
+
+A category declared after that acknowledgement, such as a newly registered
+script or a discovered iframe, needs a choice, so the banner asks again.
 
 Categories discovered later are added immediately and retained until the provider
 or runtime is recreated. Adding a category can require a new choice; removing a
