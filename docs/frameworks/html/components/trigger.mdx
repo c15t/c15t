@@ -1,0 +1,89 @@
+---
+title: Floating trigger
+description: Add the c15t floating button that reopens the preference dialog on a plain HTML site, and set its corner, size, visibility and accessible name.
+group: frameworks
+---
+
+## Add the trigger
+
+The trigger is a small round button in a corner of the page. Clicking it opens
+the [preference dialog](/docs/frameworks/html/components/dialog). It gives
+visitors a way back to their choices on every page, without a link in your
+footer.
+
+Add `data-trigger` to the script tag:
+
+{/* example: fragment */}
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
+  data-backend-url="https://your-project.inth.app"
+  data-trigger
+  defer
+></script>
+```
+
+`data-trigger="false"` leaves it off. The trigger is off by default. A footer
+[preferences link](/docs/frameworks/html/components/preferences-link) does the
+same job and fits better on sites with a legal links section.
+
+## Set its corner, size and visibility
+
+Pass options under `ui.trigger` in a queued `config` call:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    ui: {
+      trigger: {
+        position: 'bottom-left',
+        size: 'sm',
+        showWhen: 'after-consent',
+        ariaLabel: 'Cookie settings',
+      },
+    },
+  }]);
+</script>
+```
+
+<import src="../../../shared/browser/client-options.mdx#trigger" />
+
+## When it shows
+
+The trigger hides while the banner or the dialog is open, and shows when
+neither is. With `showWhen: 'after-consent'`, it also waits until the visitor
+has answered the prompt, so a visitor who has not chosen yet sees only the
+banner.
+
+## Drag it to another corner
+
+Visitors can drag the trigger. It snaps to the nearest corner in the direction
+they moved it, and c15t remembers that corner in the `c15t-trigger-position`
+localStorage key. A remembered corner wins over `position` on later visits.
+Set `persistPosition: false` to always start at `position`.
+
+A drag does not open the dialog. A click, Enter or Space does.
+
+## Keyboard and screen readers
+
+The trigger is a native `button` with only an icon, so `ariaLabel` is its only
+name. Write it in the page's language; the default is English. The trigger is
+in the page's tab order after your content, because c15t appends it to the end
+of `<body>`.
+
+## Style it
+
+The trigger reads the same theme tokens as the banner. In `ui.css`, select it
+with `[data-testid="consent-dialog-trigger"]`. It carries `data-position` with
+its current corner and `data-size` with its size.
+
+## Check it works
+
+1. Accept or reject in the banner. The trigger appears in its corner.
+2. Click it. The preference dialog opens and the trigger hides.
+3. Drag it to the opposite corner and reload. It starts in the new corner.
+4. Press Tab until the trigger has focus and press Enter. The dialog opens.

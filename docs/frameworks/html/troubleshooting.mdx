@@ -7,26 +7,10 @@ group: frameworks
 ## Inspect consent with DevTools
 
 Add the DevTools tag next to the c15t tag while you debug. The panel shows
-consent state, gated scripts, the resolved policy and every event. Its Location
-tab changes the country, region, language and GPC signal and runs the policy
-again, so you can see what a visitor elsewhere gets.
-
-{/* example: fragment */}
-
-```html
-<script
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.devtools.js"
-  data-open
-  data-tab="location"
-  defer
-></script>
-```
-
-Tag order does not matter. `data-tab` picks the first tab: `consents`,
-`scripts`, `location`, `policy`, `iab`, `events` or `actions`.
-`data-position` picks a corner. The panel is also available as
-`c15t.devtools` in the console. Remove the tag before you publish, because the
-panel shows internal state to every visitor.
+consent state, gated scripts, the resolved policy and every event, and its
+Location tab tries the policy for another country. See
+[DevTools](/docs/frameworks/html/dev-tools) for the tag and its attributes.
+Remove the tag before you publish.
 
 ## Why is there no banner?
 
@@ -41,7 +25,8 @@ Check the Network tab for the request to your backend's `/init` endpoint.
 - **There is no request.** The tag did not run. Check that the `src` loads,
   that no other script on the page threw first, and that the tag has no
   `data-manual`. A Content Security Policy must allow the CDN in `script-src`
-  and your backend in `connect-src`.
+  and your backend in `connect-src`; see
+  [Content Security Policy](/docs/frameworks/html/content-security-policy).
 - **You already chose.** A stored choice hides the banner. Open a private
   window, or clear the `c15t` cookie and localStorage key.
 
@@ -56,6 +41,26 @@ Check the category as well. Under an opt-out policy, optional categories are
 allowed until the visitor refuses, so vendors load on the first visit by
 design.
 
+A caching or optimization plugin can also rewrite a gated tag's `type` or
+move it. View the published page's source and check that each gated tag still
+has `type="text/plain"`. See
+[caching and optimization plugins](/docs/frameworks/html/platforms#caching-and-optimization-plugins).
+
+## Why is the banner unstyled or missing its colors?
+
+A Content Security Policy without `'unsafe-inline'` in `style-src` blocks the
+stock UI's `<style>` element. The console shows a CSP violation. Allow it, or
+serve the stylesheet as a file as
+[Content Security Policy](/docs/frameworks/html/content-security-policy#allow-the-stock-uis-styles)
+describes.
+
+## Why does the preferences link do nothing?
+
+Check that its `href` ends in `#c15t-preferences` and that the page loads the
+c15t tag. With `c15t.headless.js` or `ui: { dialog: false }`, the link asks for
+the dialog but nothing renders it; your page must render its own, as
+[headless](/docs/frameworks/html/headless) shows.
+
 ## Why does the console say "call c15t.init() first"?
 
 Something called a `window.c15t` method directly before the client existed,
@@ -63,7 +68,7 @@ for example from an inline script that ran before the tag, or on a page whose
 tag has `data-manual` before anything called `c15t.init()`. Queue the call with
 `c15t.push()`, move it into an `on('ready', ...)` listener, or wait for
 `c15t.ready()`. See
-[which calls you can queue](/docs/frameworks/html/attributes-and-api#which-calls-you-can-queue).
+[which calls you can queue](/docs/frameworks/html/api#which-calls-you-can-queue).
 
 ## Why does the console say a queued call "was skipped"?
 

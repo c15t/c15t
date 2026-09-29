@@ -1,15 +1,28 @@
 ---
-title: Scripts and embeds
-description: Hold vendor scripts, iframes and network requests on a plain HTML page until the visitor allows their category, with the c15t script tag and no build step.
+title: Scripts
+description: Hold vendor scripts on a plain HTML page until the visitor allows their category, load scripts with callbacks, handle withdrawal and clear vendor cookies with the c15t script tag and no build step.
 group: frameworks
 ---
 
-## Make a vendor script wait for consent
+## Choose how to gate a script
 
-Change the vendor's `<script>` to `type="text/plain"` and add
-`data-c15t-category` with the category it needs. The browser does not run a
-`text/plain` script. Once the category is allowed, c15t replaces the tag with a
-normal script, which runs it.
+The c15t script tag has two ways to hold a vendor script until its category is
+allowed:
+
+| Form | Use it when |
+| --- | --- |
+| A `<script type="text/plain" data-c15t-category>` tag in your HTML | You paste a vendor snippet into a theme, a CMS field or a page builder. No JavaScript of your own. |
+| A `scripts` entry in a queued `config` call | You need a callback after the vendor loads, on an error, or when consent changes. |
+
+Both wait for the same permission and both add their category to the
+preference dialog. Iframes use `data-src` instead; see
+[embeds](/docs/frameworks/html/embeds). Requests your own code sends with
+`fetch` use the [network blocker](/docs/frameworks/html/network-blocker).
+
+## Gate a pasted snippet
+
+Change the vendor's tag to `type="text/plain"` and add
+`data-c15t-category`:
 
 {/* example: fragment */}
 
@@ -21,40 +34,25 @@ normal script, which runs it.
 ```
 
 The [quickstart](/docs/frameworks/html/quickstart#gate-your-vendor-scripts)
-shows this with PostHog and X Pixel. Things to know:
-
-- The value must be one category name: `necessary`, `functionality`,
-  `experience`, `measurement` or `marketing`. An unknown name logs a warning and
-  the script never runs.
-- c15t runs allowed scripts in page order. An external script without `async`
-  finishes loading before the next one runs, so an inline snippet that uses a
-  library still finds it. Scripts with `async` load on their own.
-- c15t copies `src`, `async`, `defer`, `crossorigin`, `integrity`,
-  `referrerpolicy`, `id`, `nonce` and every `data-*` attribute to the new tag.
-  A nonce-based Content Security Policy keeps working.
-- Tags added to the page later, for example by a page builder widget, are
-  gated too.
-- Each script runs at most once per page load.
-
-c15t adds the categories used on these tags to the preference dialog, so a
-visitor can allow them.
+shows this with PostHog and X Pixel. [Gated scripts](/docs/frameworks/html/components/gated-script)
+covers load order, copied attributes and tags added after load.
 
 ## What happens when a visitor withdraws permission
 
 A script that has run cannot be stopped. When a visitor turns off a category
 they had allowed, c15t saves the choice and reloads the page. The new page
-starts with the vendor tag inert again.
+starts with the vendor tag inert again. Allowing a category never reloads.
 
 To handle withdrawal yourself, for example by calling a vendor's opt-out
 function, set `reloadOnConsentRevoked: false` in `config`. Then c15t does not
 reload and the vendor code that already ran keeps running until the next page
-load. `callbacks.onBeforeConsentRevocationReload` runs right before the reload,
-if you need to flush something first.
+load. `callbacks.onBeforeConsentRevocationReload` runs right before the
+reload, if you need to flush something first. See
+[events and callbacks](/docs/frameworks/html/callbacks).
 
 ## Load a script with callbacks
 
-When you need to run code after a vendor loads, or react to consent changes
-without a reload, list the script under `scripts` in a queued `config` call:
+List the script under `scripts` in a queued `config` call before the tag:
 
 {/* example: fragment */}
 
@@ -68,69 +66,43 @@ without a reload, list the script under `scripts` in a queued `config` call:
         src: 'https://analytics.example/sdk.js',
         category: 'measurement',
         onLoad: () => window.analytics.track('page_view'),
+        onConsentChange: ({ hasConsent }) => {
+          if (!hasConsent) window.analytics.optOut();
+        },
       },
     ],
   }]);
 </script>
 ```
 
-Each entry needs a unique `id`, a `category`, and `src` or `textContent`.
-`onLoad`, `onError`, `onConsentChange` and `onDispose` receive details about
-the script. Use this form only when you need those callbacks. For a plain
-vendor snippet, the `text/plain` tag is simpler and works in any CMS field
-that accepts HTML.
+`analytics.track` and `analytics.optOut` stand for your vendor's own API.
+c15t adds the script to `<head>` once measurement is allowed, and removes the
+element again when the visitor withdraws it.
 
-The vendor helpers in `@c15t/scripts`, such as the PostHog and Google tag
-helpers, are ES modules that need a bundler. On a plain HTML page, paste the
-vendor's own snippet into a `text/plain` tag instead.
+| Field | What it does |
+| --- | --- |
+| `id` | A unique, stable name for the script. Required. |
+| `category` | The category it needs, such as `'measurement'`. Required. It also accepts a condition such as `{ and: ['measurement', 'marketing'] }`. |
+| `src` or `textContent` | The URL to load, or inline code to run. One is required unless `callbackOnly` is set. |
+| `callbackOnly` | Add no element. Only run the callbacks, for a vendor that is already on the page. |
+| `alwaysLoad` | Load whatever the consent state. Use it only for tags that manage consent themselves. |
+| `persistAfterConsentRevoked` | Keep the element on the page after withdrawal. |
+| `target` | `'head'` (default) or `'body'`. |
+| `async`, `defer`, `nonce`, `fetchPriority`, `attributes` | Attributes for the created `<script>` element. |
+| `anonymizeId` | Give the element a random `id` so blockers cannot match it by name. On by default. |
+| `vendor` | A vendor ID for vendor-level consent. |
+| `onBeforeLoad`, `onLoad`, `onError` | Run before a load attempt, after the script loads, or when it fails. |
+| `onConsentChange` | Run each time the script's consent changes. The argument has `hasConsent` and `consents`. |
+| `onDispose` | Run when the script is removed from the configuration or c15t is disposed. |
 
-## Gate iframes
+Every callback receives the script's `id`, the created element's
+`elementId`, `hasConsent`, the current `consents`, and the `element` when
+there is one.
 
-Move the iframe's URL into `data-src` and add `data-category`. c15t gives the
-iframe its `src` once the category is allowed, and removes it again if the
-visitor withdraws permission.
-
-{/* example: fragment */}
-
-```html
-<iframe
-  data-src="https://www.youtube-nocookie.com/embed/VIDEO_ID"
-  data-category="measurement"
-  title="Product video"
-></iframe>
-```
-
-Only `http:` and `https:` URLs load. Relative URLs resolve against the page.
-Iframes without `data-category` are left alone. Iframe gating is on by
-default; set `iframeBlocker: false` in `config` to turn it off. [Embed content](/docs/integrations/youtube)
-shows vendor-specific embeds.
-
-## Block requests by URL
-
-Some code sends data with `fetch` or `XMLHttpRequest` that you cannot move
-behind a `text/plain` tag. A network blocker rule holds those requests until
-the category is allowed:
-
-{/* example: fragment */}
-
-```html
-<script>
-  window.c15t = window.c15t || [];
-  c15t.push(['config', {
-    networkBlocker: {
-      rules: [
-        { domain: 'collect.example.com', category: 'measurement' },
-        { domain: 'example.com', pathIncludes: '/api/track', methods: ['POST'], category: 'measurement' },
-      ],
-    },
-  }]);
-</script>
-```
-
-A blocked `fetch` resolves with status 451, and a blocked XHR fires an `error`
-event. Requests sent before the policy resolves wait for it. The blocker does
-not cover `navigator.sendBeacon`, WebSockets, `EventSource`, or requests made
-by `<img>` and `<script>` tags. Pass `onRequestBlocked` to see what it stopped.
+For a plain vendor snippet, the `text/plain` tag is simpler and works in any
+CMS field that accepts HTML. The vendor helpers in `@c15t/scripts`, such as
+the PostHog and Google tag helpers, are ES modules that need a bundler. On a
+plain HTML page, paste the vendor's own snippet into a `text/plain` tag.
 
 ## Clear cookies when permission is withdrawn
 
@@ -151,8 +123,10 @@ is denied:
 </script>
 ```
 
-The configuration is read once, at startup. [Clear on revocation](/docs/integrations/clear-on-revocation)
-covers patterns, cookie domains and browser limits.
+c15t reads this once, at start. It clears the listed data when a visitor
+withdraws the category, and once at start for categories that are already
+denied. [Clear on revocation](/docs/integrations/clear-on-revocation) covers
+patterns, cookie domains and browser limits.
 
 ## Google Consent Mode and tag managers
 
@@ -160,19 +134,8 @@ The script tag does not send Google Consent Mode signals. The Google tag and
 Google Tag Manager helpers in `@c15t/scripts` do, but they need a bundler. On
 a plain HTML page, gate Google's snippet like any other vendor. Google then
 loads only after consent, so it sends nothing before a choice.
-
-Google's GA4 snippet is two tags. Gate both, and remove `async` from the first
-so the library finishes loading before the inline code runs:
-
-```html
-<script type="text/plain" data-c15t-category="measurement" src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX"></script>
-<script type="text/plain" data-c15t-category="measurement">
-  window.dataLayer = window.dataLayer || [];
-  function gtag() { dataLayer.push(arguments); }
-  gtag('js', new Date());
-  gtag('config', 'G-XXXXXXX');
-</script>
-```
+[Gated scripts](/docs/frameworks/html/components/gated-script#load-order)
+shows the GA4 snippet with its two tags in the right order.
 
 If you need Consent Mode instead, load Google's snippet ungated and send the
 signals yourself. Put this before Google's tags:
@@ -206,3 +169,12 @@ Decide which behavior your policy needs before you pick one.
 
 The vendor guides under [integrations](/docs/integrations/overview) have an
 HTML tab with the no-build setup.
+
+## Check it works
+
+Open the page in a private window with the Network tab open.
+
+1. Filter for each vendor's domain. Nothing loads before a choice.
+2. Allow one category. Only that category's vendors load, and each `onLoad`
+   runs.
+3. Turn the category off again. The page reloads and the vendor stays absent.

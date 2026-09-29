@@ -1,0 +1,176 @@
+---
+title: window.c15t API
+description: Reference for window.c15t on a plain HTML page, covering the call queue, manual start, reading permissions and recorded choices, saving choices, opening the banner and dialog, and properties.
+group: frameworks
+---
+
+## Call c15t before and after the tag loads
+
+`window.c15t` is the only global the script tag uses. Before the tag runs, it
+is an array of calls. Push `[method, ...args]` entries onto it:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', { legalLinks: { privacyPolicy: { href: '/privacy' } } }]);
+  c15t.push(['on', 'ui', (surface) => console.log('surface:', surface)]);
+</script>
+```
+
+When the tag runs, it replaces the array with the API object and replays the
+calls in order. Always push onto the existing array.
+`window.c15t = [[...]]` throws away calls that other scripts queued earlier,
+including the DevTools tag's.
+
+`c15t.push([...])` keeps working after the tag has loaded, and runs each call
+by the same rules as a queued one. So a snippet written as
+`window.c15t = window.c15t || []; c15t.push([...])` works whether it runs
+before or after the tag. `push` returns the number of calls it received.
+
+### Which calls you can queue
+
+| Queued method | When it runs |
+| --- | --- |
+| `config`, `init`, `on`, `onInit` | In place, in queue order, as the bundle loads. |
+| `subscribe` | Once the client exists. |
+| `acceptAll`, `rejectAll`, `save`, `dismissNotice`, `saveIAB`, `showBanner`, `openDialog`, `closeDialog`, `setLanguage`, `identify`, `mountUI` | In queue order, once the policy has resolved. A queued `openDialog` therefore stays open instead of being replaced by the banner. |
+| Any other method, such as `getSnapshot`, `has`, `hasConsented`, `ready` or `dispose`, and names c15t does not know | Skipped, with a console warning. Call them from `onInit` or after `ready()`. |
+
+A queued call that throws is reported with `console.error`, and the calls
+after it still run. A queue cannot hand back a return value, which is why
+reads are skipped.
+
+### How options merge
+
+Options merge in this order, with later ones winning:
+
+1. The tag's `data-*` attributes.
+2. Each queued `config` call, in order.
+3. Options passed to `c15t.init()`, when the tag has `data-manual`.
+
+`ui`, `ui.banner` and `ui.dialog` merge key by key, so a `config` call that
+sets `ui.theme` keeps the legal links the tag's attributes set. Every other
+option replaces the earlier value.
+
+`config` after the client has started logs a warning and does nothing.
+
+## Start c15t yourself
+
+With `data-manual` on the tag, the bundle installs `window.c15t` and waits.
+Call `c15t.init()` when your page is ready, for example once it knows the
+visitor's country:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  document.addEventListener('DOMContentLoaded', () => {
+    c15t.push(['init', { overrides: { country: document.body.dataset.country } }]);
+  });
+</script>
+```
+
+`init()` reads the original tag's attributes even if the tag has since been
+removed, layers queued `config` calls and its own options on top, starts the
+client and returns it. A second call returns the same client. Until `init()`,
+queued actions and `subscribe` wait, and direct calls to methods that read or
+change consent throw `call c15t.init() first`.
+
+After `c15t.dispose()`, a new `c15t.init()` starts a fresh client with the
+same attributes and queued `config` calls.
+
+## Read state
+
+| Method | Returns | Use it for |
+| --- | --- | --- |
+| `ready()` | a promise of the snapshot | Wait until the policy has resolved. Safe to call before `init()`. |
+| `has(category)` | `boolean` | Whether a category is allowed right now. Accepts a condition such as `{ and: ['measurement', 'marketing'] }`. |
+| `hasConsented()` | `boolean` | Whether the visitor has answered the choice prompt, by a recorded choice or an acknowledgement of a prompt with nothing to decide. |
+| `getSnapshot()` | the snapshot | The full consent state: permissions, recorded choice, policy, prompt and surface. |
+| `subscribe(listener)` | an unsubscribe function | Call `listener` with the snapshot after every change. |
+| `on(event, listener)` | an unsubscribe function | Listen for `ready`, `consent`, `ui` or `error`. Safe to call before `init()`. See [events and callbacks](/docs/frameworks/html/callbacks). |
+
+### A permission is not a recorded choice
+
+`has('measurement')` answers "may measurement code run now?" Under an opt-out
+policy it is `true` before the visitor has done anything. Use it, or
+`snapshot.effectivePermissions`, to gate code.
+
+`hasConsented()` and `snapshot.explicitChoice` answer "what did the visitor
+decide?" They change only when the visitor accepts, rejects or saves. Use
+them to report or display the visitor's decision, never to gate a vendor.
+[How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+lists which to read for each task.
+
+Answers can change once the policy resolves, so wait for `c15t.ready()` or a
+`ready` listener before you read them at page load.
+
+## Record a choice
+
+Call these only in response to a visitor's click or key press, never at load.
+
+| Method | What it records |
+| --- | --- |
+| `acceptAll()` | Allows every category the dialog offers. Under an IAB policy it confirms through the CMP. |
+| `rejectAll()` | Denies every optional category the dialog offers. |
+| `save(choices)` | The categories you name, such as `{ measurement: true, marketing: false }`. Categories the dialog does not offer are ignored. Fails under an IAB policy; use `saveIAB()`. |
+| `saveIAB()` | Confirms the IAB purpose and vendor choices set on the CMP. `c15t.iab.js` only. See [IAB TCF](/docs/frameworks/html/iab). |
+| `dismissNotice()` | Acknowledges a notice. Grants nothing. Resolves with `{ ok: false, reason: 'not-required' }` when no notice is showing. |
+| `identify(user)` | Links the consent record to a signed-in user, such as `{ externalId: 'user_123', identityProvider: 'auth0' }`. |
+
+`acceptAll()`, `rejectAll()`, `save()` and `saveIAB()` resolve to a result
+with an `ok` flag. The choice applies in the browser and the banner closes
+before the backend request finishes. When the request fails, `ok` is `false`,
+the choice stays in effect, and c15t retries the request later.
+
+## Show and hide the UI
+
+| Method | What it does |
+| --- | --- |
+| `showBanner()` | Shows the banner. Records nothing. |
+| `openDialog()` | Opens the preference dialog. Records nothing. |
+| `closeDialog()` | Closes the banner or dialog. Records nothing. |
+| `setLanguage(code)` | Switches language, asks the backend for that copy and re-renders. See [translations](/docs/frameworks/html/translations). |
+| `mountUI(options?)` | Removes the stock UI and mounts it again, with new UI options or the configured ones. Throws in `c15t.headless.js`. |
+
+In `c15t.headless.js`, `showBanner`, `openDialog` and `closeDialog` still
+change the surface c15t reports through the `ui` event, so your own banner
+can follow them.
+
+## Lifecycle
+
+| Method | What it does |
+| --- | --- |
+| `config(options)` | Adds options before the client starts. See [configuration](/docs/frameworks/html/configuration). |
+| `init(options?)` | Starts the client. Only needed with `data-manual`. |
+| `onInit(listener)` | Calls `listener` with the client once it exists, at once if it already does. Returns a function that cancels the call. |
+| `push(...calls)` | Runs `[method, ...args]` calls by the queue rules above. |
+| `dispose()` | Removes the UI, the DevTools panel, page listeners, blockers and the scripts c15t added. Code that already ran keeps running. |
+
+## Properties
+
+| Property | What it holds |
+| --- | --- |
+| `version` | The `@c15t/browser` version. |
+| `pkg` | `@c15t/browser`, `@c15t/browser/headless` or `@c15t/browser/iab`, by bundle. |
+| `mode` | `hosted`, `offline`, `manifest` or `custom` once started, else `null`. A transport factory passed as `mode` reports `custom`, except `hosted()` and `offline()`. |
+| `client` | The started client, or `null`. It has the same methods plus `kernel`, `runtime`, `options`, `consentCategories`, `ui` and `setOverrides()`. |
+| `devtools` | The DevTools panel once `c15t.devtools.js` mounted it, else `null`. |
+| `hosted`, `offline`, `manifest`, `custom` | Transport factories, for `c15t.init({ mode: c15t.manifest({ … }) })` with `data-manual`. |
+
+`c15t.client.setOverrides({ country, region, language, gpc })` changes the
+location, language or GPC signal policy matching uses. The DevTools Location
+tab uses the same inputs.
+
+## Check it works
+
+1. Open the browser console on a page with the tag and run
+   `await c15t.ready()`. It resolves with a snapshot whose `resolution.status`
+   is `matched`.
+2. Run `c15t.has('measurement')` and `c15t.hasConsented()` before and after
+   you click **Reject All**. Under an opt-in policy both start `false`;
+   afterwards `hasConsented()` is `true` and `has` stays `false`.
+3. Run `c15t.push(['openDialog'])`. The dialog opens.

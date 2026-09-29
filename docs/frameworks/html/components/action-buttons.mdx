@@ -1,0 +1,69 @@
+---
+title: Action buttons
+description: Make your own HTML buttons accept, reject, open preferences, dismiss a notice or reopen the banner with the data-c15t-action attribute and the c15t script tag, with no JavaScript.
+group: frameworks
+---
+
+## Wire a button without code
+
+Add `data-c15t-action` to any element and c15t runs that action when a
+visitor clicks it. The page needs no script of its own:
+
+{/* example: fragment */}
+
+```html
+<button type="button" data-c15t-action="customize">Cookie settings</button>
+```
+
+This works with `c15t.js`, `c15t.headless.js` and `c15t.iab.js`, and with
+`init()` from `@c15t/browser` in a bundled app.
+
+## Actions
+
+<import src="../../../shared/browser/client-options.mdx#page-actions" />
+
+An unknown value does nothing. Accept and reject close the banner or dialog in
+the same click, then send the choice to the backend in the background.
+
+## How clicks are matched
+
+c15t listens for clicks on the whole document, so:
+
+- Buttons added after the page loaded, for example by a page builder widget
+  or a CMS block, work too.
+- A click on a child element counts. An icon inside
+  `<button data-c15t-action="accept">` triggers the action.
+- c15t calls `preventDefault()` on the click. A `data-c15t-action` link does
+  not navigate, and a `data-c15t-action` button inside a form does not submit
+  it.
+
+## Only record choices from visitor clicks
+
+`accept` and `reject` record a consent choice. Keep them on controls a visitor
+clicks on purpose, with labels that say what they do. Do not trigger them
+from script with `element.click()`, and do not hide an accept button inside a
+larger clickable area.
+
+Use `customize` for a "Cookie settings" or "Privacy choices" control. It only
+opens the dialog, so it is safe anywhere.
+
+## Build a banner from action buttons
+
+The [headless build](/docs/frameworks/html/headless) renders no banner, so your
+page writes one from these buttons. The headless page shows a complete bottom
+bar that uses `accept`, `reject`, `customize` and `dismiss`, and switches
+between them by policy.
+
+## Accessibility
+
+c15t adds no role, label or keyboard handling. Use a native `button` for
+actions and an `a` for navigation, so the control is focusable and responds to
+Enter and Space. A `div` with `data-c15t-action` responds to clicks only.
+
+## Check it works
+
+1. Add a `data-c15t-action="reject"` button to a page and open it in a private
+   window.
+2. Click the button. The banner closes, and in DevTools the Network tab shows
+   the save request to your backend's `/subjects`.
+3. Reload. The banner stays closed.

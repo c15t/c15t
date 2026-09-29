@@ -34,18 +34,12 @@ version number listed on [npm](https://www.npmjs.com/package/@c15t/browser?activ
 
 ### Where to paste it
 
-The tag belongs in the shared `<head>` that every page renders. Where that
-lives depends on the platform:
-
-| Platform | Where the tag goes |
-| --- | --- |
-| WordPress | Your child theme's `header.php`, before `</head>`. Edits to a parent theme are lost when it updates. |
-| Webflow | Site settings, Custom code, Head code. Publish the site afterwards. |
-| Shopify theme | Online Store, Themes, Edit code, `layout/theme.liquid`, before `</head>`. |
-| Hugo | The template that renders `<head>`, usually `layouts/_default/baseof.html` or a head partial. Copy a theme's file into your own `layouts/` directory before editing it. |
-| Eleventy | The base layout in your `_includes` directory that every page extends. |
-| Jekyll | `_includes/head.html` or `_layouts/default.html`. Copy a theme's file into your site before editing it. |
-| Plain HTML | Each page's `<head>`, or the shared header include your server uses. |
+The tag belongs in the shared `<head>` that every page renders, such as a WordPress
+child theme's `header.php`, Webflow's head code setting, Shopify's
+`layout/theme.liquid`, or your static site generator's base layout.
+[Install on your platform](/docs/frameworks/html/platforms) gives the exact
+place for each platform, and what to check in caching plugins and tag
+managers.
 
 A page without the tag has no consent state, and its vendor scripts follow
 their own rules. Check a few pages from different templates after you publish.
@@ -66,8 +60,9 @@ with your pixel ID, and use the snippet from your PostHog project settings.
 Remove the original, active copy of each vendor tag, including copies a theme
 setting or another plugin adds. Use `measurement` for analytics and
 `marketing` for ads and pixels. [Consent categories](/docs/concepts/consent-categories)
-lists all five. [Scripts and embeds](/docs/frameworks/html/scripts) covers
-load order, callbacks and what happens when a visitor withdraws permission.
+lists all five. [Gated scripts](/docs/frameworks/html/components/gated-script)
+covers load order, and [scripts](/docs/frameworks/html/scripts) covers
+callbacks and what happens when a visitor withdraws permission.
 
 ## Gate embeds
 
@@ -79,7 +74,8 @@ withdraws permission.
 
 Without a `src`, the iframe loads nothing. Show a placeholder next to it with
 CSS, such as `iframe:not([src]) { display: none; }` and a message that links to
-privacy settings.
+privacy settings. [Embeds](/docs/frameworks/html/embeds) has the full
+placeholder markup.
 
 ## Add a privacy settings link
 
@@ -91,7 +87,9 @@ page:
 
 Put it in the footer of every page. A button with
 `data-c15t-action="customize"` does the same, and `data-trigger` on the script
-tag adds a floating button instead.
+tag adds a [floating button](/docs/frameworks/html/components/trigger)
+instead. [Components](/docs/frameworks/html/components) lists every surface
+and page hook.
 
 ## Other ways to run the tag
 
@@ -110,8 +108,10 @@ tag adds a floating button instead.
   the banner can render without a per-visit request. See
   [modes](/docs/frameworks/html/attributes-and-api#choose-a-mode).
 
-Next, [customize the banner](/docs/frameworks/html/customize) or read the full
-list of [attributes and methods](/docs/frameworks/html/attributes-and-api).
+Next, [customize the banner](/docs/frameworks/html/customize), read the
+[attributes](/docs/frameworks/html/attributes-and-api) and
+[window.c15t API](/docs/frameworks/html/api) references, or add
+[translations](/docs/frameworks/html/translations).
 
 ## Check it works
 
@@ -120,7 +120,7 @@ the Network tab.
 
 1. Before you choose, filter for `posthog` and `ads-twitter`. There are no
    requests, and the YouTube iframe has no `src`.
-2. Click **Reject all** and reload. The banner stays closed and the vendor
+2. Click **Reject All** and reload. The banner stays closed and the vendor
    requests stay absent.
 3. Open **Privacy settings**, allow Measurement only and save. PostHog's
    `array.js` and the YouTube player load. X Pixel's `uwt.js` does not.
