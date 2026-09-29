@@ -131,11 +131,22 @@ export const getFocusableElements = function getFocusableElements(
 		'input:not([disabled]):not([tabindex="-1"])',
 		'select:not([disabled]):not([tabindex="-1"])',
 		'[contenteditable]:not([tabindex="-1"])',
+		// Native sequential stops that are not form controls or links. An
+		// iframe is left out on purpose: focus inside a frame's document
+		// never reaches this document's key listener, so the trap could not
+		// hold it.
+		'summary:not([tabindex="-1"])',
+		'audio[controls]:not([tabindex="-1"])',
+		'video[controls]:not([tabindex="-1"])',
 		'[tabindex]:not([tabindex="-1"])',
 	].join(',');
 
 	return Array.from(container.querySelectorAll<HTMLElement>(selector)).filter(
 		(el) => {
+			// A negative `tabindex` other than "-1" also leaves sequential focus.
+			if (el.tabIndex < 0) {
+				return false;
+			}
 			if (typeof el.checkVisibility === 'function') {
 				return el.checkVisibility({ checkVisibilityCSS: true });
 			}
@@ -234,6 +245,22 @@ const findFocusRestoreEquivalent = function findFocusRestoreEquivalent(
 	return null;
 };
 
+/** Whether `node` is `target` or inside it, crossing shadow roots. */
+const containsComposed = function containsComposed(
+	target: Element,
+	node: Element | null
+): boolean {
+	let current: Node | null = node;
+	while (current) {
+		if (current === target || target.contains(current)) {
+			return true;
+		}
+		const root = current.getRootNode();
+		current = root instanceof ShadowRoot ? root.host : null;
+	}
+	return false;
+};
+
 /** Read focus inside nested shadow roots as well as the document. */
 const readActiveElement = (): Element | null => {
 	let active = document.activeElement;
@@ -244,10 +271,66 @@ const readActiveElement = (): Element | null => {
 };
 
 /**
+ * The elements sequential Tab reaches inside `container`, in the order it
+ * reaches them: the lowest positive `tabindex` first, then document order.
+ * Controls a browser would refuse to focus, disabled through an ancestor
+ * `fieldset` or inside an `inert` subtree, are left out.
+ *
+ * @param container - The element to search inside.
+ * @returns The tabbable elements in sequential focus order.
+ */
+export const tabbableElements = function tabbableElements(
+	container: HTMLElement
+): HTMLElement[] {
+	const candidates = getFocusableElements(container).filter(
+		(element) => !(element.matches(':disabled') || element.closest('[inert]'))
+	);
+	const positive = candidates
+		.filter((element) => element.tabIndex > 0)
+		.sort((left, right) => left.tabIndex - right.tabIndex);
+	return [
+		...positive,
+		...candidates.filter((element) => element.tabIndex === 0),
+	];
+};
+
+/**
+ * The element sequential Tab would reach first inside `container`.
+ *
+ * @param container - The element to search inside.
+ * @returns The first tabbable element, or `undefined` when there is none.
+ */
+export const firstTabbable = function firstTabbable(
+	container: HTMLElement
+): HTMLElement | undefined {
+	return tabbableElements(container)[0];
+};
+
+/** Where a focus trap puts focus when it starts. */
+export interface FocusTrapOptions {
+	/**
+	 * `'first-tabbable'` focuses the first tabbable element inside the
+	 * container, the way dialog libraries such as Base UI do, so a keyboard
+	 * user sees the ring on a control. `'container'`, the default, focuses the
+	 * container itself; a blocking banner uses it so no action button is
+	 * favored. Both fall back to the container when nothing inside is
+	 * tabbable.
+	 */
+	initialFocus?: 'container' | 'first-tabbable';
+}
+
+/**
  * Traps focus within a container.
+ *
+ * @param container - The element focus must stay inside. It is made
+ * focusable when it is not already.
+ * @param options - Where focus starts; see {@link FocusTrapOptions}.
  * @returns Cleanup function to remove listeners and restore focus
  */
-export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
+export const setupFocusTrap = function setupFocusTrap(
+	container: HTMLElement,
+	options: FocusTrapOptions = {}
+) {
 	const activeElement = readActiveElement() as HTMLElement | null;
 	const previousFocus =
 		activeElement &&
@@ -256,12 +339,17 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 			? activeElement
 			: lastFocusedElement;
 
-	// Focus the container itself so the user can read the content first,
-	// then Tab into interactive elements (links, then buttons).
-	// This avoids biasing initial focus toward a specific action button.
+	// The container stays focusable so the trap can land on it when nothing
+	// inside is tabbable, and so a blocking banner can start there without
+	// favoring an action button. `aria-labelledby` and `aria-describedby`
+	// carry the title and description to a screen reader either way.
 	if (container.tabIndex < 0) {
 		container.tabIndex = -1;
 	}
+	const initialTarget = () =>
+		(options.initialFocus === 'first-tabbable'
+			? firstTabbable(container)
+			: undefined) ?? container;
 	const focusTimer = setTimeout(() => {
 		try {
 			const activeElementLocal = readActiveElement();
@@ -272,7 +360,18 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 			) {
 				return;
 			}
-			container.focus({ preventScroll: true });
+			const target = initialTarget();
+			target.focus({ preventScroll: true });
+			// A control the browser would not focus after all leaves focus
+			// outside the modal; the container is always focusable. A shadow
+			// host that delegates focus reports the inner element as active,
+			// so containment is checked across shadow boundaries.
+			if (
+				target !== container &&
+				!containsComposed(target, readActiveElement())
+			) {
+				container.focus({ preventScroll: true });
+			}
 		} catch {
 			// Silently handle focus errors
 		}
@@ -284,7 +383,9 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 			return;
 		}
 
-		const elements = getFocusableElements(container);
+		// The same list and order as the initial focus, so the wrap points
+		// are the real first and last sequential stops.
+		const elements = tabbableElements(container);
 		if (elements.length === 0) {
 			return;
 		}
@@ -296,6 +397,18 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 		const inside = active
 			? active === container || container.contains(active)
 			: false;
+
+		// A positive `tabindex` puts the browser's next stop anywhere in the
+		// page, so with one present the trap steps through its own list
+		// instead of letting the browser choose.
+		const index = active ? elements.indexOf(active) : -1;
+		if (index !== -1 && elements.some((element) => element.tabIndex > 0)) {
+			e.preventDefault();
+			const step = e.shiftKey ? -1 : 1;
+			const next = elements[(index + step + elements.length) % elements.length];
+			next?.focus({ preventScroll: true });
+			return;
+		}
 
 		// Shift+Tab wraps to the last focusable when focus would otherwise
 		// escape: from the first focusable, from the focused container itself

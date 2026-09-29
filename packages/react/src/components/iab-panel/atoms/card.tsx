@@ -53,7 +53,7 @@ const IABConsentDialogCard = createForwardRef<
 	const iabTranslations = useIABTranslations();
 	const [isVisible, setIsVisible] = useState(false);
 
-	useFocusTrap(Boolean(trapFocus), cardRef);
+	useFocusTrap(Boolean(trapFocus), cardRef, { initialFocus: 'first-tabbable' });
 
 	useEffect(() => {
 		const frame = requestAnimationFrame(() => setIsVisible(true));
@@ -75,6 +75,9 @@ const IABConsentDialogCard = createForwardRef<
 		// which the card sets for itself.
 		<div
 			ref={setCardRef}
+			// The default header renders this id; a caller's own
+			// `aria-describedby` in the slot props wins over it.
+			aria-describedby="iab-consent-dialog-description"
 			{...themedStyle}
 			aria-label={iabTranslations.preferenceCenter.title}
 			aria-modal={trapFocus ? 'true' : undefined}

@@ -75,7 +75,10 @@ const IABConsentDialogHeader = createForwardRef<
 							<h2 className={styles.title}>
 								{headerTitle ?? iabTranslations.preferenceCenter.title}
 							</h2>
-							<p className={styles.description}>
+							<p
+								className={styles.description}
+								id="iab-consent-dialog-description"
+							>
 								{description ?? iabTranslations.preferenceCenter.description}
 							</p>
 						</div>

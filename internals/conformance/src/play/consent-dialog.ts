@@ -5,7 +5,10 @@ import {
 	assertDomContract,
 	assertStableElements,
 } from '../assertions/dom-contract';
-import { assertFocusReturnsTo, assertInitialFocus } from '../assertions/focus';
+import {
+	assertFocusReturnsTo,
+	assertInitialFocusOnFirstControl,
+} from '../assertions/focus';
 import { assertEscapeDismisses } from '../assertions/keyboard';
 
 /**
@@ -115,7 +118,7 @@ export const dialogFocusManagement: PlayFunction = async () => {
 	(trigger as HTMLElement).focus();
 	await userEvent.click(trigger);
 	await body.findByTestId('consent-dialog-root');
-	await assertInitialFocus(document.body, 'consent-dialog-root');
+	await assertInitialFocusOnFirstControl(document.body, 'consent-dialog-root');
 	await assertFocusReturnsTo(
 		document.body,
 		'consent-dialog-trigger',

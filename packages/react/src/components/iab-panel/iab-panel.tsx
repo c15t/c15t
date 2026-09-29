@@ -282,7 +282,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	// Focus trap
 	useFocusTrap(
 		Boolean(isMounted && isOpen && config.trapFocus),
-		cardRef as RefObject<HTMLElement>
+		cardRef as RefObject<HTMLElement>,
+		{ initialFocus: 'first-tabbable' }
 	);
 
 	// Scroll lock
@@ -574,6 +575,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					{/* A `div`, not a `dialog`: the user agent's dialog padding
 					    is 1em, which the card sets for itself. */}
 					<div
+						aria-describedby="iab-consent-dialog-description"
 						{...cardProps}
 						ref={cardRef}
 						aria-label={iabTranslations.preferenceCenter.title}
@@ -589,7 +591,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 								<h2 {...titleProps}>
 									{iabTranslations.preferenceCenter.title}
 								</h2>
-								<p {...descriptionProps}>
+								<p
+									{...descriptionProps}
+									id="iab-consent-dialog-description"
+								>
 									{iabTranslations.preferenceCenter.description}
 								</p>
 							</div>

@@ -213,7 +213,10 @@ export const createDialog = function createDialog(
 			surface: 'preferences',
 		});
 		if (blocking) {
-			cleanups.push(setupScrollLock(), setupFocusTrap(content));
+			cleanups.push(
+				setupScrollLock(),
+				setupFocusTrap(content, { initialFocus: 'first-tabbable' })
+			);
 		} else {
 			overlay.hidden = true;
 		}

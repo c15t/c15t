@@ -1,6 +1,7 @@
 'use client';
 
 import { setupFocusTrap } from '@c15t/ui/utils/dom';
+import type { FocusTrapOptions } from '@c15t/ui/utils/dom';
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
 
@@ -13,18 +14,21 @@ import type { RefObject } from 'react';
  *
  * @param shouldTrap - Boolean indicating whether focus should be trapped
  * @param containerRef - Reference to the container element
+ * @param options - Where the trap puts focus when it starts
  *
  * @public
  */
 export const useFocusTrap = function useFocusTrap(
 	shouldTrap: boolean,
-	containerRef: RefObject<HTMLElement | null> | null
+	containerRef: RefObject<HTMLElement | null> | null,
+	options?: FocusTrapOptions
 ): void {
+	const initialFocus = options?.initialFocus;
 	useEffect(() => {
 		if (!shouldTrap || !containerRef || !containerRef.current) {
 			return;
 		}
 
-		return setupFocusTrap(containerRef.current);
-	}, [shouldTrap, containerRef]);
+		return setupFocusTrap(containerRef.current, { initialFocus });
+	}, [shouldTrap, containerRef, initialFocus]);
 };
