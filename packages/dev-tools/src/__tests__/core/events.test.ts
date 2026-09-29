@@ -58,6 +58,7 @@ describe('kernel event mapping', () => {
 				snapshot,
 				type: 'choice:recorded',
 			},
+			{ shownAt: 1, snapshot, surface: 'banner', type: 'surface:shown' },
 			{
 				previous: snapshot.effectivePermissions,
 				snapshot,

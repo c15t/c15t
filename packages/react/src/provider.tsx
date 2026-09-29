@@ -80,6 +80,7 @@ export type ConsentProviderCallbacks = Pick<
 	Callbacks,
 	| 'onChoiceRecorded'
 	| 'onPermissionsChanged'
+	| 'onSurfaceShown'
 	| 'onError'
 	| 'onBeforeConsentRevocationReload'
 >;
@@ -693,18 +694,14 @@ const useProviderCallbacks = function useProviderCallbacks(
 					);
 				}
 			}),
-			kernel.events.on(
-				'choice:recorded',
-				({ snapshot, confirmed, actionAt }) => {
-					callbacksRef.current?.onChoiceRecorded?.({
-						actionAt,
-						confirmed,
-						snapshot,
-					});
-				}
-			),
+			kernel.events.on('choice:recorded', ({ type: _type, ...event }) => {
+				callbacksRef.current?.onChoiceRecorded?.(event);
+			}),
 			kernel.events.on('permissions:changed', ({ snapshot, previous }) => {
 				callbacksRef.current?.onPermissionsChanged?.({ previous, snapshot });
+			}),
+			kernel.events.on('surface:shown', ({ type: _type, ...event }) => {
+				callbacksRef.current?.onSurfaceShown?.(event);
 			}),
 
 			kernel.events.on(
@@ -948,6 +945,9 @@ const InitMount = ({
 					: kernel.getServerSnapshot().evaluatedAt,
 			});
 			hydrated.current = true;
+			// No init call marks this kernel live, so do it here: the banner
+			// the server rendered is the visitor's first impression.
+			kernel.markLive();
 			const { gpc } = kernel.getSnapshot().privacySignals;
 			if (gpc.detected && gpc.active) {
 				// Hydration stays read-only; activate the detected signal through

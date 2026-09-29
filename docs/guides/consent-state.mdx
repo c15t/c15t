@@ -92,10 +92,23 @@ after its TC string is encoded, which can wait for the TCF library to load.
 If that local step records nothing, for example because the vendor list
 failed to load, the surface comes back so the visitor can try again.
 
+## Count impressions separately from choices
+
+An impression is the banner or the dialog becoming visible; a choice is the
+visitor acting on it. The kernel emits `surface:shown` (`onSurfaceShown` in the
+provider callbacks) once per opening and stores the first impression time of
+each surface in `snapshot.surfaceShownAt`, so a script that subscribes after
+first paint can still read it. A recorded choice carries `timeToDecisionMs`,
+the milliseconds from that first impression to the action, whenever the
+surface it is attributed to was shown. Divide choices by impressions to
+measure a banner; do not infer an impression from a permission value.
+
 ## Treat notices and privacy signals separately
 
 `commands.dismissNotice()` acknowledges the current notice. It does not grant
-categories or overwrite existing denials. Global Privacy Control, or GPC, is a
+categories or overwrite existing denials. A choice saved while a notice is
+owed acknowledges it as well, so a visitor who opts out from the preference
+center is not shown the notice again. Global Privacy Control, or GPC, is a
 browser privacy signal. Its configured restrictions can change permissions
 without creating an explicit choice. c15t reads the signal live and keeps no
 standing opt-out for it. When the browser stops sending it, the GPC restriction

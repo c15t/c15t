@@ -257,6 +257,7 @@ export const createConsentClient = function createConsentClient(
 		consent: new Set(),
 		error: new Set(),
 		ready: new Set(),
+		surfaceShown: new Set(),
 		ui: new Set(),
 	};
 	const dispatch = function dispatch<
@@ -316,6 +317,9 @@ export const createConsentClient = function createConsentClient(
 		}),
 		kernel.events.on('command:error', ({ error }) => {
 			emit('error', error);
+		}),
+		kernel.events.on('surface:shown', ({ type: _type, ...impression }) => {
+			emit('surfaceShown', impression);
 		}),
 		// Saves and hydration can change permissions or explicit receipts;
 		// one subscription observes both paths.

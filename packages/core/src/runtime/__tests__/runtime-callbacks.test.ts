@@ -52,6 +52,22 @@ describe('runtime callbacks', () => {
 		dispose();
 		kernel.dispose();
 	});
+	test('reports the first impression of a surface', async () => {
+		const kernel = createKernel();
+		const onSurfaceShown = vi.fn();
+		const dispose = wireRuntimeCallbacks({
+			callbacks: { onSurfaceShown },
+			kernel,
+		});
+		await kernel.commands.init();
+		expect(onSurfaceShown).toHaveBeenCalledOnce();
+		expect(onSurfaceShown.mock.calls[0]?.[0]).toMatchObject({
+			surface: 'banner',
+		});
+		expect(onSurfaceShown.mock.calls[0]?.[0]).not.toHaveProperty('type');
+		dispose();
+		kernel.dispose();
+	});
 	test('hydration never reports a visitor action', async () => {
 		const source = createKernel();
 		await source.commands.save({ marketing: true });

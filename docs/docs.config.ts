@@ -165,7 +165,12 @@ export default defineDocsConfig({
 							title: 'Policies',
 						},
 						{
-							pages: ['script-loader', 'network-blocker', 'troubleshooting'],
+							pages: [
+								'script-loader',
+								'network-blocker',
+								'callbacks',
+								'troubleshooting',
+							],
 							title: 'Integration',
 						},
 						{

@@ -1,10 +1,10 @@
 export type {
 	Callback,
 	Callbacks,
-	OnBannerFetchedPayload,
 	OnChoiceRecordedPayload,
 	OnPermissionsChangedPayload,
 	OnErrorPayload,
+	OnSurfaceShownPayload,
 } from './callbacks';
 export type { CMPApi, CMPApiConfig, FetchGVLResult, IABConfig } from './iab';
 export type {

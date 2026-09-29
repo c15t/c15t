@@ -41,13 +41,14 @@ import type {
 	SavePayload,
 	SaveResult,
 	VendorChoice,
+	SaveUISource,
 } from '../types';
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
 import { createPendingSaveQueue } from './pending-saves';
 import type { KernelRuntime } from './runtime';
 import { selectSavePayload } from './save-selection';
-import { copyIABAuthority } from './snapshot';
+import { copyIABAuthority, isPromptSurface } from './snapshot';
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 const DEFAULT_BASE_DELAY_MS = 1000;
@@ -168,14 +169,14 @@ export const resolveSaveSelection = function resolveSaveSelection(
 					displayed.map((category) => [category, values[category]])
 				);
 	if (input === 'all' || input === 'none') {
+		// A bulk action stays `all` / `necessary` even when the host displays
+		// a subset of the scope: the action names what the visitor clicked,
+		// `confirmed` names what it covered.
 		const bulkAction = input === 'all' ? 'all' : 'necessary';
 		// With nothing to decide, the bulk action still covers everything the
 		// visitor was shown: strictly necessary alone.
 		return {
-			consentAction:
-				displayed.length === rule.scope.length || choiceScope.length === 0
-					? bulkAction
-					: 'custom',
+			consentAction: bulkAction,
 			values: narrow(scopeSelection(rule, input === 'all')),
 		};
 	}
@@ -641,6 +642,27 @@ const choiceAcknowledgement = function choiceAcknowledgement(
 	};
 };
 
+/**
+ * A visitor who records a choice while a notice is owed has read the
+ * notice: the choice acknowledges it, so the banner does not return after
+ * an opt-out made from the preference center. The dismissal rides on
+ * `choice:recorded`; no separate notice event, so an outcome is counted once.
+ */
+const applyNoticeAcknowledgement = function applyNoticeAcknowledgement(
+	patch: SnapshotPatch,
+	before: ConsentSnapshot,
+	actionAt: number
+): void {
+	if (before.promptRequirement.kind !== 'notice') {
+		return;
+	}
+	patch.noticeDismissal = {
+		dismissedAt: actionAt,
+		fingerprint: before.evaluationPolicy.notice.fingerprint,
+		version: 1,
+	};
+};
+
 /** Subject written by a save: the stored identifiers plus the current user's. */
 const saveSubject = function saveSubject(
 	snapshot: ConsentSnapshot,
@@ -889,6 +911,28 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			}
 		};
 
+	/**
+	 * Which surface a save is attributed to and, when that surface has a
+	 * recorded impression, the milliseconds from it to the action. Unknown
+	 * for a non-prompt surface, a surface never shown, or a clock that moved
+	 * backwards; then `timeToDecisionMs` is omitted rather than negative.
+	 */
+	const saveAttribution = function saveAttribution(
+		current: ConsentSnapshot,
+		requested: SaveUISource | undefined,
+		actionAt: number
+	): { uiSource: SaveUISource; timeToDecisionMs?: number } {
+		const uiSource = requested ?? current.activeUI;
+		if (!isPromptSurface(uiSource)) {
+			return { uiSource };
+		}
+		const shownAt = current.surfaceShownAt[uiSource];
+		if (shownAt === null || actionAt < shownAt) {
+			return { uiSource };
+		}
+		return { timeToDecisionMs: actionAt - shownAt, uiSource };
+	};
+
 	/** Finalize local init while preserving its precomputed resolution. */
 	const finalizeWithoutTransport = function finalizeWithoutTransport(
 		now: number
@@ -906,10 +950,13 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	): Promise<InitResult> {
 		emit({ type: 'command:init:started' });
 		runtime.start();
+		// One clock read: the impression stamped here and a local finalize
+		// evaluate at the same instant.
+		const startedAt = runtime.now();
+		runtime.markLive(startedAt);
 
 		if (!transport?.init) {
-			const now = runtime.now();
-			finalizeWithoutTransport(now);
+			finalizeWithoutTransport(startedAt);
 			runtime.armDeadlineTimer();
 			const result: InitResult = { ok: true };
 			emit({ result, type: 'command:init:completed' });
@@ -1306,6 +1353,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				iabAuthority?: KernelIABAuthority;
 				categories?: readonly AllConsentNames[];
 				vendors?: Record<string, boolean>;
+				uiSource?: SaveUISource;
 			}
 		): Promise<SaveResult> {
 			if (getSnapshot().externalPermissions) {
@@ -1368,7 +1416,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				return owedNothing;
 			}
 			// Captured once, before validation, yield, network or persistence.
-			const uiSource = before.activeUI;
+			const { uiSource, ...decisionTiming } = saveAttribution(
+				before,
+				context?.uiSource,
+				actionAt
+			);
 			let consentAction: SavePayload['consentAction'] = 'custom';
 			let recorded: ReturnType<typeof recordCategoryPatch>;
 			if (owedNothing) {
@@ -1441,6 +1493,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			if (acknowledged) {
 				patch.noticeDismissal = acknowledgement;
 			}
+			applyNoticeAcknowledgement(patch, before, actionAt);
 			applySaveAuthority(patch, before, context?.iabAuthority);
 			// Listeners run when the batch closes, after this action's events
 			// are queued: `after` and the events carry this action's snapshot
@@ -1461,6 +1514,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 						confirmed: Object.freeze([...recorded.confirmed]),
 						snapshot: committed,
 						type: 'choice:recorded',
+						...decisionTiming,
 					});
 				}
 				if (vendorsChanged) {
@@ -1505,6 +1559,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				tcString: after.iab?.tcString ?? null,
 				uiSource,
 				user: after.user,
+				...decisionTiming,
 			};
 			const vendorChoice = vendorChoicePayload(after, before.vendorChoice);
 			if (vendorChoice) {
