@@ -120,6 +120,19 @@
 				var(--consent-banner-animation-timing);
 	}
 
+	/*
+	 * Entry for a banner inserted with `.bannerVisible` already set. Browsers
+	 * with `@starting-style` transition from this state on the first frame,
+	 * so the mount needs no forced layout between the hidden and visible
+	 * classes. The script-tag banner uses it; other hosts keep their toggles.
+	 */
+	@starting-style {
+		.bannerEntering:not(:global(.headless)) {
+			opacity: 0;
+			transform: translateY(50px);
+		}
+	}
+
 	@media (min-width: 640px) {
 		.root:not(:global(.headless)) {
 			padding: 1.5rem;
@@ -794,6 +807,12 @@
 		opacity: 0;
 		transition: opacity var(--consent-banner-animation-duration)
 			var(--consent-banner-animation-timing);
+	}
+
+	@starting-style {
+		.overlayEntering:not(:global(.headless)) {
+			opacity: 0;
+		}
 	}
 
 	:global(.c15t-dark) .overlay:not(:global(.headless)) {

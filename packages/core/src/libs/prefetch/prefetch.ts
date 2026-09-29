@@ -39,14 +39,26 @@ interface PrefetchConfig {
 	cacheKey: string;
 }
 
+const compareHeaderKeys = function compareHeaderKeys(
+	left: string,
+	right: string
+): number {
+	if (left < right) {
+		return -1;
+	}
+	return left > right ? 1 : 0;
+};
+
 const buildPrefetchCacheKey = function buildPrefetchCacheKey(options: {
 	url: string;
 	credentials: RequestCredentials;
 	headers: Record<string, string>;
 	gpc: boolean;
 }): string {
+	// Code-point order: header names are ASCII, and the inline script below
+	// must build the same key without a collator or an import.
 	const sortedHeaders = Object.entries(options.headers)
-		.sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+		.sort(([leftKey], [rightKey]) => compareHeaderKeys(leftKey, rightKey))
 		.map(([key, value]) => `${key}:${value}`)
 		.join('|');
 
@@ -286,7 +298,7 @@ export const buildPrefetchScript = function buildPrefetchScript(
   };
   const buildCacheKey = (url, credentials, headers, gpc) => {
     const sortedHeaders = Object.entries(headers)
-      .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+      .sort(([leftKey], [rightKey]) => (leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0))
       .map(([key, value]) => key + ':' + value)
       .join('|');
     return url + '|' + credentials + '|gpc:' + String(gpc) + '|' + sortedHeaders;

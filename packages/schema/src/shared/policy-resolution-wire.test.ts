@@ -82,6 +82,7 @@ describe('client policy reader', () => {
 	test('reaches only the resolved-rule invariants', () => {
 		expect(staticGraph(join(SHARED_DIR, 'policy-resolution-wire.ts'))).toEqual(
 			new Set([
+				'shared/canonical-order.ts',
 				'shared/policy-resolution-wire.ts',
 				'shared/policy-rule-invariants.ts',
 			])

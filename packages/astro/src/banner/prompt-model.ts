@@ -246,10 +246,13 @@ const resolveClasses = function resolveClasses(
 		description: cls(banner.description),
 		footer: cls(actions.actionRoot, banner.footer),
 		header: cls(banner.header),
-		overlay: cls(banner.overlay, banner.overlayVisible),
+		overlay: cls(banner.overlay, banner.overlayVisible, banner.overlayEntering),
 		rightLink: cls(banner.rightLink),
 		rights: cls(banner.rights),
-		root: joinClasses(cls(banner.root, banner.bannerVisible), props.class),
+		root: joinClasses(
+			cls(banner.root, banner.bannerVisible, banner.bannerEntering),
+			props.class
+		),
 		title: cls(banner.title),
 	};
 };

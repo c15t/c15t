@@ -193,7 +193,7 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 	<Teleport to="body">
 		<Transition
 			:css="!disableAnimation"
-			:enter-from-class="bannerStyles.overlayHidden"
+			:enter-from-class="''"
 			:enter-active-class="bannerStyles.overlayVisible"
 			:enter-to-class="bannerStyles.overlayVisible"
 			:leave-from-class="bannerStyles.overlayVisible"
@@ -205,12 +205,16 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 				v-bind="config.components?.['iab-banner']?.overlay"
 				aria-hidden="true"
 				data-testid="iab-consent-banner-overlay"
-				:class="[bannerStyles.overlay, bannerStyles.overlayVisible]"
+				:class="[
+					bannerStyles.overlay,
+					bannerStyles.overlayVisible,
+					disableAnimation ? undefined : bannerStyles.overlayEntering,
+				]"
 			/>
 		</Transition>
 		<Transition
 			:css="!disableAnimation"
-			:enter-from-class="bannerStyles.bannerHidden"
+			:enter-from-class="''"
 			:enter-active-class="bannerStyles.bannerVisible"
 			:enter-to-class="bannerStyles.bannerVisible"
 			:leave-from-class="bannerStyles.bannerVisible"
@@ -226,7 +230,11 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 				"
 				:dir="textDirection"
 				tabindex="-1"
-				:class="[bannerStyles.root, bannerStyles.bannerVisible]"
+				:class="[
+					bannerStyles.root,
+					bannerStyles.bannerVisible,
+					disableAnimation ? undefined : bannerStyles.bannerEntering,
+				]"
 			>
 				<div
 					v-bind="config.components?.['iab-banner']?.cardShell"

@@ -240,6 +240,7 @@ export {
 	POLICY_RULE_MODELS,
 	requiredPolicyRights,
 } from './shared/policy-rule-invariants';
+export { compareCanonical } from './shared/canonical-order';
 export type {
 	ChoicePromptFingerprintInput,
 	JsonValue,

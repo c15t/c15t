@@ -45,6 +45,7 @@ const pick = function pick(
 export const promptClassNames: PromptClassNames = {
 	actions: pick(actionStyles, ['actionGroup', 'actionRoot']),
 	banner: pick(bannerStyles, [
+		'bannerEntering',
 		'bannerVisible',
 		'card',
 		'cardShell',
@@ -52,6 +53,7 @@ export const promptClassNames: PromptClassNames = {
 		'footer',
 		'header',
 		'overlay',
+		'overlayEntering',
 		'overlayVisible',
 		'rightLink',
 		'rights',
@@ -81,6 +83,7 @@ export const iabPromptClassNames: IABPromptClassNames = {
 	branding: promptClassNames.branding,
 	button: promptClassNames.button,
 	iabBanner: pick(iabBannerStyles, [
+		'bannerEntering',
 		'bannerVisible',
 		'card',
 		'cardShell',
@@ -89,6 +92,7 @@ export const iabPromptClassNames: IABPromptClassNames = {
 		'header',
 		'legitimateInterestNotice',
 		'overlay',
+		'overlayEntering',
 		'overlayVisible',
 		'partnersLink',
 		'purposeList',

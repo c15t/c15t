@@ -198,12 +198,16 @@ const resolveIABClasses = function resolveIABClasses(
 		footer: cls(actions.actionRoot, iabBanner.footer),
 		header: cls(iabBanner.header),
 		notice: cls(iabBanner.legitimateInterestNotice),
-		overlay: cls(iabBanner.overlay, iabBanner.overlayVisible),
+		overlay: cls(
+			iabBanner.overlay,
+			iabBanner.overlayVisible,
+			iabBanner.overlayEntering
+		),
 		partnersLink: cls(iabBanner.partnersLink),
 		purposeList: cls(iabBanner.purposeList),
 		purposeMore: cls(iabBanner.purposeMore),
 		root: joinClasses(
-			cls(iabBanner.root, iabBanner.bannerVisible),
+			cls(iabBanner.root, iabBanner.bannerVisible, iabBanner.bannerEntering),
 			props.class
 		),
 		title: cls(iabBanner.title),

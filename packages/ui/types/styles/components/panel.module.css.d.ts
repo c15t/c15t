@@ -9,9 +9,11 @@ declare const styles: {
   readonly "consentDialogSlideOutRight": string;
   readonly "container": string;
   readonly "content": string;
+  readonly "contentEntering": string;
   readonly "contentHidden": string;
   readonly "contentVisible": string;
   readonly "description": string;
+  readonly "dialogEntering": string;
   readonly "dialogHidden": string;
   readonly "dialogVisible": string;
   readonly "enter": string;
@@ -20,6 +22,7 @@ declare const styles: {
   readonly "header": string;
   readonly "headerWrapper": string;
   readonly "overlay": string;
+  readonly "overlayEntering": string;
   readonly "overlayHidden": string;
   readonly "overlayVisible": string;
   readonly "root": string;

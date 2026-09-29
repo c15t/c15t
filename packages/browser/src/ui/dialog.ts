@@ -6,7 +6,7 @@ import { classes } from '../generated/styles';
 import type { ConsentDialogOptions } from '../types';
 import { renderBranding } from './branding';
 import { resolveCopy } from './copy';
-import { h, readDurationMs } from './dom';
+import { h, readDurationMs, supportsStartingStyle } from './dom';
 import { renderLegalLinks } from './surface';
 import type { Surface, SurfaceContext } from './surface';
 import { createWidget } from './widget';
@@ -194,6 +194,18 @@ export const createDialog = function createDialog(
 		if (!(overlay && positioner && content)) {
 			return;
 		}
+		// The state classes go on before insertion so the first style the
+		// browser computes already includes them; the scroll lock reads
+		// layout, which would otherwise fix the bare state as the start.
+		const flip = !(noStyle || ctx.disableAnimation || supportsStartingStyle());
+		setVisible(!flip);
+		if (!(noStyle || flip || ctx.disableAnimation)) {
+			// `@starting-style` transitions from the entering state on the
+			// first frame; nothing here has to wait for layout.
+			overlay.classList.add(styles.overlayEntering);
+			positioner.classList.add(styles.dialogEntering);
+			content.classList.add(styles.contentEntering);
+		}
 		ctx.root.append(overlay, positioner);
 		const { blocking } = resolveConsentPresentation({
 			policy: snapshot.policyRule,
@@ -205,16 +217,13 @@ export const createDialog = function createDialog(
 		} else {
 			overlay.hidden = true;
 		}
-		if (noStyle) {
-			return;
-		}
-		if (ctx.disableAnimation) {
+		if (flip) {
+			// Without `@starting-style`, force layout so the browser observes
+			// the hidden state before the flip; otherwise a fresh open can
+			// skip the entry transition.
+			void positioner.offsetHeight;
 			setVisible(true);
-			return;
 		}
-		setVisible(false);
-		void positioner.offsetHeight;
-		setVisible(true);
 	};
 
 	const close = function close(): void {
