@@ -47,6 +47,8 @@ export type QueuedCall = [method: string, ...args: unknown[]];
  * ```
  *
  * The tag replaces it with this object and replays the queue in order.
+ * Actions such as `openDialog` or `acceptAll` wait for the client and its
+ * policy; unsupported methods are skipped with a warning.
  * Before `init()` the read methods throw and `on()`/`ready()` wait; after
  * it everything proxies to the page's client. `version`, `pkg` and `mode`
  * keep the shape `@c15t/core` installs for devtools.
@@ -121,9 +123,128 @@ type GlobalWindow = Window & {
 	[GLOBAL_NAME]?: C15tGlobal | QueuedCall[] | unknown;
 };
 
+/** Queued methods that configure or observe the client, run in place. */
+const QUEUE_SETUP_METHODS: ReadonlySet<string> = new Set([
+	'config',
+	'init',
+	'on',
+	'onInit',
+]);
+
+/** Queued methods that need a client; attached as soon as it exists. */
+const QUEUE_INIT_METHODS: ReadonlySet<string> = new Set(['subscribe']);
+
+/**
+ * Queued methods that act on consent or the UI. They wait for the policy
+ * to resolve, so a queued `openDialog` is not replaced by the banner the
+ * resolution derives, and `acceptAll` knows which model to save.
+ */
+const QUEUE_ACTION_METHODS: ReadonlySet<string> = new Set([
+	'acceptAll',
+	'closeDialog',
+	'dismissNotice',
+	'identify',
+	'mountUI',
+	'openDialog',
+	'rejectAll',
+	'save',
+	'saveIAB',
+	'setLanguage',
+	'showBanner',
+]);
+
+const queuedName = function queuedName(call: unknown): string {
+	return Array.isArray(call) && typeof call[0] === 'string'
+		? call[0]
+		: String(call);
+};
+
+const reportQueuedFailure = function reportQueuedFailure(
+	call: unknown,
+	error: unknown
+): void {
+	// oxlint-disable-next-line no-console -- Authoring-time diagnostic.
+	console.error(
+		`@c15t/browser: queued c15t.${queuedName(call)}() failed; continuing with the rest of the queue.`,
+		error
+	);
+};
+
+/**
+ * Run one queued call against the API, reporting a throw or a rejected
+ * promise instead of letting it stop the calls behind it.
+ */
+const runQueued = async function runQueued(
+	api: C15tGlobal,
+	call: QueuedCall
+): Promise<void> {
+	const [method, ...args] = call;
+	const fn = (api as unknown as Record<string, unknown>)[method];
+	try {
+		await (fn as (...params: unknown[]) => unknown).apply(api, args);
+	} catch (error) {
+		reportQueuedFailure(call, error);
+	}
+};
+
+/**
+ * Replay the calls a page pushed onto `window.c15t` before the script
+ * loaded. `config`, `init`, `on` and `onInit` run in place, `subscribe`
+ * attaches once the client exists, and consent and UI actions run in
+ * queue order once the policy has resolved. Anything else is skipped
+ * with a warning. A call that throws is reported and the rest still run.
+ */
+const replayQueue = function replayQueue(
+	api: C15tGlobal,
+	queue: readonly unknown[]
+): void {
+	const actions: QueuedCall[] = [];
+	for (const call of queue) {
+		const method = Array.isArray(call) ? call[0] : undefined;
+		if (typeof method !== 'string') {
+			// oxlint-disable-next-line no-console -- Authoring-time diagnostic.
+			console.warn(
+				'@c15t/browser: skipped a queued c15t entry that is not [method, ...args].',
+				call
+			);
+			continue;
+		}
+		const queued = call as QueuedCall;
+		if (QUEUE_SETUP_METHODS.has(method)) {
+			void runQueued(api, queued);
+		} else if (QUEUE_INIT_METHODS.has(method)) {
+			api.onInit(() => {
+				void runQueued(api, queued);
+			});
+		} else if (QUEUE_ACTION_METHODS.has(method)) {
+			actions.push(queued);
+		} else {
+			// oxlint-disable-next-line no-console -- Authoring-time diagnostic.
+			console.warn(
+				`@c15t/browser: c15t.push(['${method}', ...]) is not supported before the tag loads and was skipped. Call it from c15t.onInit() instead.`
+			);
+		}
+	}
+	if (actions.length === 0) {
+		return;
+	}
+	api.onInit(async (client) => {
+		try {
+			await client.ready();
+		} catch {
+			// The actions still run; the client reports its own errors.
+		}
+		for (const call of actions) {
+			// oxlint-disable-next-line no-await-in-loop -- Queue order is the contract.
+			await runQueued(api, call);
+		}
+	});
+};
+
 /**
  * Put the API on `window.c15t`, replaying in order any calls a page queued
- * on the array that was there before the script loaded.
+ * on the array that was there before the script loaded. See `replayQueue`
+ * for when each kind of call runs.
  *
  * @param api - The API object.
  */
@@ -148,15 +269,8 @@ export const installGlobal = function installGlobal(
 		return existing as C15tGlobal;
 	}
 	target[GLOBAL_NAME] = api;
-	if (!Array.isArray(existing)) {
-		return api;
-	}
-	for (const call of existing as QueuedCall[]) {
-		const [method, ...args] = call;
-		const fn = (api as unknown as Record<string, unknown>)[method];
-		if (typeof fn === 'function') {
-			(fn as (...params: unknown[]) => unknown)(...args);
-		}
+	if (Array.isArray(existing)) {
+		replayQueue(api, existing);
 	}
 	return api;
 };
