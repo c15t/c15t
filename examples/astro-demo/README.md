@@ -1,6 +1,6 @@
-# @c15t/astro demo
+# Astro demo
 
-A server-rendered Astro site wired to `@c15t/astro`. It exercises the parts
+An Astro site wired to `c15t/astro`. It exercises the parts
 that are hard to see in isolation: a banner rendered without any framework
 JavaScript, a preference centre that only downloads when someone opens it,
 consent-gated scripts, geo overrides, and a runtime that survives
@@ -10,7 +10,7 @@ ClientRouter navigation.
 
 ```bash
 bun install
-bun turbo run build --filter=@c15t/astro
+bun turbo run build --filter=c15t
 bun run --cwd examples/astro-demo dev
 ```
 
@@ -51,10 +51,24 @@ dialog chunk graph can be walked from `dist/client/.vite/manifest.json`.
 
 ## Configuration
 
-`astro.config.mjs` uses `offline()`, so the demo needs no backend. Swap in
-`hosted({ url })` to talk to a c15t backend, or `manifest({ backendURL })`
-to serve `/init` from a cached manifest through the routes the integration
-injects.
+`astro.config.mjs` picks one of three configurations:
+
+- `astro.server.config.mjs`: server output with the Node adapter and
+  `manifest()`. Used when `C15T_BACKEND_URL` is set.
+- `astro.static.config.mjs`: static output with no adapter and `hosted()`.
+  Used when `C15T_BACKEND_URL` is set and `C15T_ASTRO_OUTPUT=static`.
+- `astro.showcase.config.mjs`: `offline()`, the IAB surfaces and the dialog
+  framework comparison. Used when no backend URL is set, or when `C15T_IAB`
+  or `C15T_UI` is set.
+
+The first two are the setups the docs publish, and `examples/shared` runs the
+consent journeys against both. The server build also serves
+`/consent-example-prerendered`, a prerendered page, and
+`/consent-example-cached`, which renders the banner in a server island.
+
+Files and regions marked `#region docs:` are published in the docs. Keep demo
+scaffolding out of them: `layouts/demo.astro` adds the navigation, and
+`components/theme-switcher.astro` holds the branded theme buttons.
 
 ## IAB TCF
 
@@ -115,20 +129,8 @@ absent before measurement permission. The example emits no custom conversion
 events. Script removal cannot undo SDK code that already ran; application event
 calls must also stop after withdrawal.
 
-The integration takes static config, so the banner-shape experiment is
-switched on at build time like `C15T_IAB`. The banner is server-rendered,
-so `@c15t/astro` has no built-in assignment: the host resolves the arm, the
-way a flag provider would. Run
-`C15T_EXPERIMENT=1 bun run --cwd examples/astro-demo dev` and open
-`/consent-example`: the page runs the `control` fallback arm (the default
-banner) and shows `banner-shape · control · host` with a `c15t_surface_shown`
-and `c15t_choice_recorded` line for each impression and choice under the arm.
-Set `C15T_EXPERIMENT_ARM=wall` for the `wall` arm. To pick an arm per request,
-set `middleware: false` and export `consentMiddleware({ experimentArm })` from
-`src/middleware.ts`. See https://c15t.com/docs/guides/banner-experiments.
-
-Without a backend URL, the existing offline showcase remains active. Offline
-mode is not recommended for production environments. `C15T_IAB=1` continues
+Without a backend URL, the offline showcase runs instead. Offline mode is not
+recommended for production environments. `C15T_IAB=1` continues
 to select the existing IAB showcase. Astro has no dedicated DevTools component
 export; use the existing consent state showcase and browser Network panel.
 

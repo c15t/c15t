@@ -1,0 +1,142 @@
+---
+title: Components
+description: Props and rendered output of every c15t Astro component, from ConsentScript and ConsentBanner to the preference dialog, its trigger, the server island banner and the IAB TCF surfaces.
+group: frameworks
+---
+
+## Where the components go
+
+Every component reads `Astro.locals.c15t`, which the integration's middleware
+sets on each request. Put them in the layout that wraps every page:
+
+<include src="../../shared/examples/astro-demo/layout.mdx" />
+
+Import each component from its own path under `c15t/astro/components/`:
+
+| Component | Import path | Renders |
+| --- | --- | --- |
+| `ConsentScript` | `c15t/astro/components/consent-script.astro` | Inline scripts for the boot payload and color scheme, and the theme `<style>` |
+| `ConsentBanner` | `c15t/astro/components/consent-banner.astro` | The banner, as server HTML |
+| `ConsentBannerDeferred` | `c15t/astro/components/consent-banner-deferred.astro` | The banner, in a server island |
+| `ConsentDialog` | `c15t/astro/components/consent-dialog.astro` | An empty host for the preference dialog island |
+| `ConsentDialogTrigger` | `c15t/astro/components/consent-dialog-trigger.astro` | A button or link that opens a dialog |
+| `IABConsentBanner` | `c15t/astro/components/iab-consent-banner.astro` | The IAB TCF banner, as server HTML |
+| `IABConsentDialog` | `c15t/astro/components/iab-consent-dialog.astro` | An empty host for the IAB TCF dialog island |
+
+The banners and the trigger ship no framework JavaScript. One small shared
+script turns their buttons into consent actions. The dialogs are islands in the
+framework the integration's `ui` option names, and they load only when needed.
+
+## `ConsentScript`
+
+Put `ConsentScript` in `<head>`. It takes no props and renders three inline
+elements:
+
+- The consent decision the server resolved, so the browser starts with it
+  instead of requesting it again.
+- A color-scheme script that sets the `c15t-dark` class on `<html>` before
+  first paint, unless `colorScheme` is `'light'` or `'none'`.
+- A `<style id="c15t-theme">` element with the integration's `theme` tokens,
+  when you set `theme`.
+
+`ConsentBanner` renders the same elements when `ConsentScript` is missing, and
+each request emits them once. Keep `ConsentScript` in `<head>` anyway, so the
+color scheme is set before anything paints.
+
+## `ConsentBanner`
+
+`ConsentBanner` renders the banner the policy asks for, with the actions and
+rights links the policy requires. It renders nothing when the visitor has
+already chosen or the policy owes no banner. On a page built once for everyone,
+it leaves a hidden placeholder and the browser renders the banner into it. See
+[Rendering and deployment](/docs/frameworks/astro/rendering).
+
+| Prop | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `title` | `string` | Translation | Banner heading |
+| `description` | `string` | Translation | Banner body text |
+| `acceptButtonText` | `string` | Translation | Accept button label |
+| `rejectButtonText` | `string` | Translation | Reject button label |
+| `customizeButtonText` | `string` | Translation | Customize button label |
+| `dismissButtonText` | `string` | Translation | Label of the button that dismisses a notice |
+| `legalLinks` | `('privacyPolicy' \| 'cookiePolicy' \| 'termsOfService')[] \| null` | Every link in the integration's `legalLinks` | Which legal links to show. `null` shows none |
+| `hideBranding` | `boolean` | `false` | Removes the "Secured by c15t" tag |
+| `noStyle` | `boolean` | `false` | Renders the markup without c15t's class names, for your own CSS |
+| `class` | `string` | None | Extra class on the banner root |
+| `force` | `boolean` | `false` | Renders the banner even when the server decided to hide it, for visual tests |
+
+`force` does not create a policy. With no resolved policy, the banner still
+renders nothing.
+
+For copy that applies to every page, set translations in the integration's
+`i18n` option instead of props. See
+[Customize](/docs/frameworks/astro/customize).
+
+## `ConsentBannerDeferred`
+
+`ConsentBannerDeferred` renders `ConsentBanner` as an Astro server island
+(`server:defer`), so a cached or prerendered page gets a banner resolved for
+each visitor. It passes its props to `ConsentBanner`. Its prop types list every
+`ConsentBanner` prop except `dismissButtonText` and `hideBranding`. Pass a
+`fallback` slot to show something while the island loads.
+
+Server islands need a server adapter. See
+[cache a page and render the banner per request](/docs/frameworks/astro/rendering#cache-a-page-and-render-the-banner-per-request).
+
+## `ConsentDialog`
+
+`ConsentDialog` renders an empty element. The preference dialog mounts into
+the page the first time something opens it, from the banner's **Customize**
+button, a `ConsentDialogTrigger` or `openDialog()`.
+
+A visitor who only accepts or rejects never downloads the dialog. The download
+starts before the click, when the pointer moves over a control that opens the
+dialog or keyboard focus reaches one. On a touch screen the tap itself
+starts it, so the first open can wait for the download.
+
+| Prop | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `preload` | `boolean` | `false` | Downloads the dialog once the browser is idle, on every page that renders it |
+
+Use `preload` when the first open must feel instant for every visitor. It costs
+a background download on each page, including for visitors who never open the
+dialog.
+
+## `ConsentDialogTrigger`
+
+`ConsentDialogTrigger` opens a consent dialog. Put one in your footer so
+visitors can change their choice at any time. Its children are the label.
+
+| Prop | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `kind` | `'preferences' \| 'iab'` | `'preferences'` | Which dialog to open |
+| `as` | `'button' \| 'a'` | `'button'` | Renders a `<button>`, or an `<a href="#c15t-preferences">` |
+| `class` | `string` | None | Extra class names |
+
+The trigger stays hidden while no policy is resolved, and under a policy that
+requires no consent interface. Use `as="a"` when your footer styles links and
+not buttons.
+
+## `IABConsentBanner`
+
+`IABConsentBanner` renders the IAB TCF banner, with the purposes, the partner
+count and the actions TCF requires. It needs a vendor list, so it renders
+nothing until one is available. See [IAB TCF](/docs/frameworks/astro/iab).
+
+| Prop | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `primaryButton` | `'accept' \| 'reject' \| 'customize'` | `'customize'` | Which action gets the filled button |
+| `models` | `string[]` | `['iab']` | Consent models this banner responds to |
+| `scrollLock` | `boolean` | Policy and `presentation` | Makes the banner blocking, with a backdrop and scroll lock |
+| `hideBranding` | `boolean` | `false` | Removes the "Secured by c15t" tag |
+| `noStyle` | `boolean` | `false` | Renders the markup without c15t's class names |
+| `class` | `string` | None | Extra class on the banner root |
+| `force` | `boolean` | `false` | Renders the banner even when the server decided to hide it |
+
+## `IABConsentDialog`
+
+`IABConsentDialog` renders an empty host for the IAB TCF preference center.
+The dialog and the TCF code load the first time something opens it, such as
+the IAB banner's **Customize** button or a
+`<ConsentDialogTrigger kind="iab">`. It accepts `preload`, like
+`ConsentDialog`.

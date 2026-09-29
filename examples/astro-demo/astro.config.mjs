@@ -1,133 +1,42 @@
-import { fileURLToPath } from 'node:url';
+/**
+ * Picks the configuration for this build.
+ *
+ * `astro.server.config.mjs` and `astro.static.config.mjs` are the setups the
+ * docs publish, and the example suite builds each of them against a backend:
+ *
+ *   C15T_BACKEND_URL=… bun run --cwd examples/astro-demo build
+ *   C15T_BACKEND_URL=… C15T_ASTRO_OUTPUT=static bun run --cwd examples/astro-demo build
+ *
+ * Without a backend URL, or with `C15T_IAB` or `C15T_UI` set, the showcase
+ * build runs instead. See `astro.showcase.config.mjs`.
+ */
+const showcase =
+	!process.env.C15T_BACKEND_URL ||
+	process.env.C15T_IAB === '1' ||
+	Boolean(process.env.C15T_UI);
 
-import node from '@astrojs/node';
-import react from '@astrojs/react';
-import svelte from '@astrojs/svelte';
-import vue from '@astrojs/vue';
-import c15t, { offline, hosted } from '@c15t/astro';
-import { defineConfig } from 'astro/config';
-
-import { demoGvl, demoIabPolicy } from './demo-gvl.mjs';
-
-// Which framework renders the on-demand dialog islands. Real sites hardcode
-// one; the demo takes it from the environment so the three builds can be
-// compared side by side:
-//
-//   C15T_UI=react bun run --cwd examples/astro-demo build
-const ui = process.env.C15T_UI ?? 'svelte';
-
-// IAB TCF mode. The policy decides which surfaces a page gets, and one
-// request resolves one policy, so the whole demo switches together:
-//
-//   C15T_IAB=1 bun run --cwd examples/astro-demo dev
-//
-// Then open /iab. A real site has one mode; the flag is here so the TCF
-// surfaces can be exercised without a second demo app.
-const iab = process.env.C15T_IAB === '1';
-
-// Banner-shape experiment. The integration takes static config, so the
-// switch is an environment variable at build time, like `C15T_IAB`:
-//
-//   C15T_EXPERIMENT=1 bun run --cwd examples/astro-demo dev
-//   C15T_EXPERIMENT=1 C15T_EXPERIMENT_ARM=wall bun run --cwd examples/astro-demo dev
-//
-// The banner is server-rendered, so `@c15t/astro` has no built-in
-// assignment: the arm must be resolved on the host, the way a flag provider
-// would. The arm env stands in for that provider and `control` (the default
-// banner) is the fallback arm, the same as a flag that never resolves. To
-// pick an arm per request instead, set `middleware: false` and export
-// `consentMiddleware({ experimentArm })` from src/middleware.ts.
-const experiment =
-	process.env.C15T_EXPERIMENT === '1'
-		? {
-				arm: process.env.C15T_EXPERIMENT_ARM === 'wall' ? 'wall' : 'control',
-				arms: { wall: { prompt: { variant: 'wall' } } },
-				id: 'banner-shape',
-			}
-		: undefined;
-
-// Built up rather than spread conditionally: the IAB options and the mode
-// travel together — a TCF policy pack with no vendor list resolves a
-// banner the server cannot render.
-const iabOptions = iab
-	? {
-			iab: { cmpId: 160, gvl: demoGvl },
-			mode: offline({ policyRules: [demoIabPolicy] }),
-		}
-	: {
-			mode: offline({
-				policyRules: [
-					{
-						id: 'default',
-						match: { fallback: true, isDefault: true },
-						model: 'opt-in',
-						prompt: 'choice',
-					},
-				],
-			}),
-		};
-
-// Only the selected framework's Astro integration is listed. Loading all
-// three would let a stray chunk from the others reach the page and make the
-// bundle comparison meaningless.
-const uiIntegrations = {
-	react: react(),
-	svelte: svelte(),
-	vue: vue(),
+const load = async function load() {
+	if (showcase) {
+		return (await import('./astro.showcase.config.mjs')).default;
+	}
+	if (process.env.C15T_ASTRO_OUTPUT === 'static') {
+		return (await import('./astro.static.config.mjs')).default;
+	}
+	const config = (await import('./astro.server.config.mjs')).default;
+	// Server islands need an adapter, so only the server build gets the
+	// cached-page route.
+	config.integrations.push({
+		hooks: {
+			'astro:config:setup': ({ injectRoute }) => {
+				injectRoute({
+					entrypoint: './src/server-routes/consent-example-cached.astro',
+					pattern: '/consent-example-cached',
+				});
+			},
+		},
+		name: 'astro-demo:cached-route',
+	});
+	return config;
 };
 
-// Static output, for the prerendered-site journey: every page is built
-// once with no adapter, and the browser applies each visitor's policy and
-// stored choice. Real static sites look like this; the example suite runs
-// the same journeys against both builds.
-//
-//   C15T_ASTRO_OUTPUT=static bun run --cwd examples/astro-demo build
-const isStatic = process.env.C15T_ASTRO_OUTPUT === 'static';
-
-// Server output otherwise, so the middleware sees a real request per
-// visitor: geo headers, the GPC signal and the consent cookie all have to
-// be read per request for the banner decision to be correct.
-export default defineConfig({
-	adapter: isStatic ? undefined : node({ mode: 'standalone' }),
-	integrations: [
-		uiIntegrations[ui],
-		c15t({
-			clientEntrypoint: fileURLToPath(
-				new URL('./src/consent-client.ts', import.meta.url)
-			),
-			consentCategories: [
-				'necessary',
-				'functionality',
-				'measurement',
-				'marketing',
-			],
-			legalLinks: {
-				cookiePolicy: { href: '/cookies', label: 'Cookie Policy' },
-				privacyPolicy: { href: '/privacy', label: 'Privacy Policy' },
-			},
-			// `offline()` resolves policies locally, so the demo runs with no
-			// backend. Swap in `hosted({ url })` or `manifest({ backendURL })`
-			// to talk to a real one. With `C15T_IAB=1` it also carries the
-			// vendor list the server needs to render the IAB banner at all;
-			// hosted and manifest mode get theirs from `/init`.
-			...iabOptions,
-			experiment,
-			mode:
-				process.env.C15T_BACKEND_URL && !iab
-					? hosted({ url: process.env.C15T_BACKEND_URL })
-					: iabOptions.mode,
-			scripts: [
-				{
-					category: 'measurement',
-					id: 'demo-analytics',
-					textContent:
-						"window.__demoAnalyticsLoaded = true; document.querySelector('[data-testid=\"script-status\"]')?.setAttribute('data-loaded', 'true');",
-				},
-			],
-			ui,
-		}),
-	],
-	output: isStatic ? 'static' : 'server',
-	// The bundle comparison reads this to walk the dialog chunk graph.
-	vite: { build: { manifest: true } },
-});
+export default await load();

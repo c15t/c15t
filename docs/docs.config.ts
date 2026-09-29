@@ -201,7 +201,16 @@ export default defineDocsConfig({
 				},
 				{
 					base: 'astro',
-					pages: ['quickstart'],
+					pages: [
+						'quickstart',
+						'rendering',
+						'components',
+						'client-api',
+						'customize',
+						'scripts',
+						'iab',
+						'troubleshooting',
+					],
 					slug: 'astro',
 					title: 'Astro',
 				},
