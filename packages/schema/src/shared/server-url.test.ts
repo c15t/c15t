@@ -18,35 +18,66 @@ describe('resolveBackendURL', () => {
 		expect(resolveBackendURL('https://', {})).toBeNull();
 	});
 
-	it('resolves relative URLs from proxy headers', () => {
+	it('ignores forged forwarding headers and referer by default', () => {
 		expect(
 			resolveBackendURL('/api/c15t/', {
-				'x-forwarded-host': 'app.example.com',
+				host: 'app.example.com',
+				referer: 'https://attacker.example/',
+				'x-forwarded-host': 'attacker.example',
 				'x-forwarded-proto': 'http',
 			})
-		).toBe('http://app.example.com/api/c15t');
-	});
-
-	it('uses x-forwarded-ssl when proto is absent', () => {
+		).toBe('https://app.example.com/api/c15t');
 		expect(
 			resolveBackendURL('/api/c15t', {
-				host: 'secure.example.com',
-				'x-forwarded-ssl': 'on',
+				referer: 'https://attacker.example/',
+				'x-forwarded-host': 'attacker.example',
 			})
-		).toBe('https://secure.example.com/api/c15t');
+		).toBeNull();
 	});
 
-	it('defaults proto to https and falls back to host', () => {
+	it('picks the scheme from the host', () => {
+		expect(resolveBackendURL('/api/c15t', { host: 'localhost:3000' })).toBe(
+			'http://localhost:3000/api/c15t'
+		);
 		expect(resolveBackendURL('/api/c15t', { host: 'app.example.com' })).toBe(
 			'https://app.example.com/api/c15t'
 		);
 	});
 
-	it('falls back to the referer host', () => {
+	it('rejects a host that is not a bare authority', () => {
 		expect(
-			resolveBackendURL('/api/c15t', {
-				referer: 'https://app.example.com/some/page',
-			})
+			resolveBackendURL('/api/c15t', { host: 'user@attacker.example' })
+		).toBeNull();
+		expect(
+			resolveBackendURL('//attacker.example/x', { host: 'app.example.com' })
+		).toBeNull();
+	});
+
+	it('resolves from proxy headers when trusted', () => {
+		const trusted = { trustForwardedHeaders: true };
+		expect(
+			resolveBackendURL(
+				'/api/c15t/',
+				{
+					'x-forwarded-host': 'app.example.com',
+					'x-forwarded-proto': 'http',
+				},
+				trusted
+			)
+		).toBe('http://app.example.com/api/c15t');
+		expect(
+			resolveBackendURL(
+				'/api/c15t',
+				{ host: 'secure.example.com', 'x-forwarded-ssl': 'on' },
+				trusted
+			)
+		).toBe('https://secure.example.com/api/c15t');
+		expect(
+			resolveBackendURL(
+				'/api/c15t',
+				{ referer: 'https://app.example.com/some/page' },
+				trusted
+			)
 		).toBe('https://app.example.com/api/c15t');
 	});
 
