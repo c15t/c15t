@@ -80,7 +80,7 @@ describe('experimentConfigError', () => {
 		expect(
 			experimentConfigError({
 				...experiment,
-				arms: { ...experiment.arms },
+				arms: { ...experiment.arms, control: {} },
 			})
 		).toMatch(/`control` is your `presentation`/u);
 	});
