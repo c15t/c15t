@@ -102,13 +102,13 @@ Preserve the setup and explanation in Markdown. A screenshot or iframe alone
 cannot teach an agent which token or slot produced the result. Avoid loading
 many live frames at once; show a static preview until the reader opens a demo.
 
-The initial gallery now lives in `apps/storybook-react/src/docs-recipes.stories.tsx`.
-It imports `docs/examples/brand-theme.ts`, also included in the public recipe.
-The iframe paths on a matching Storybook deployment are:
-
-- `/iframe.html?id=docs-customization--brand-card&viewMode=story`
-- `/iframe.html?id=docs-customization--brand-bar&viewMode=story`
-- `/iframe.html?id=docs-customization--choice-wall&viewMode=story`
+The design gallery (`docs/customization/recipes.mdx`) publishes recipe files
+from `apps/storybook-{react,vue,svelte,astro}/src/docs-recipes/`. Each app's
+`docs-recipes.stories.*` renders them under `Docs/Banner designs`, and its
+screenshots in `docs/assets/v3/` come from the React stories. The iframe paths
+on a matching Storybook deployment follow
+`/iframe.html?id=docs-banner-designs--<design>-design&viewMode=story`, for
+example `docs-banner-designs--headless-bar-design`.
 
 Reserve at least 500 pixels of height for the card and bar; allow more height
 for the open preferences dialog and narrow screens. Give each iframe a title,

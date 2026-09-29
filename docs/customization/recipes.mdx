@@ -1,69 +1,249 @@
 ---
-title: Banner styling recipes
-description: See real v3 components and reuse the exact theme configuration behind the examples.
+title: Banner designs
+description: Five consent banner designs built with c15t, from one prop to your own markup, with tested code for React, Vue, Svelte, Astro and plain HTML.
 group: customization
 ---
 
-## A branded floating card
+## Pick a design
 
-This theme uses a green primary action and a four-pixel large radius. Accept and
-Reject keep matching treatment. The component's required action behavior stays
-intact.
+Each design below is a real c15t banner. The screenshots and the code come from
+the same Storybook stories, which CI runs to check that each design renders and
+that Accept and Reject record a choice.
 
-![A v3 floating consent card with green Customize action, matching Accept and Reject buttons, and compact corners](../assets/v3/brand-card.png)
+| Design | Customization level | Frameworks |
+| --- | --- | --- |
+| [Bottom bar](#bottom-bar) | Props | React, Vue, Astro, Svelte |
+| [Branded card](#branded-card) | Theme tokens | React |
+| [Choice wall](#choice-wall) | Props | React |
+| [Slim bar](#slim-bar) | Compound parts or slots | React, Vue, Svelte |
+| [Headless bar](#headless-bar) | Headless | React, Vue, Svelte, HTML |
 
-<include src="../examples/brand-theme.ts" />
+Next.js and TanStack Start apps use the React code, with the same components
+imported from `c15t/next` or `c15t/tanstack-start`. Nuxt uses the Vue code and
+SvelteKit uses the Svelte code. [Customize your consent interface](/docs/customization/overview)
+explains when to use each level.
 
-Install `@c15t/ui` to use `defineTheme` directly. Render
-`<ConsentTheme theme={brandTheme} />` on the server for the tokens, and pass
-`brandTheme` as `theme` in your existing React or Next.js provider options for
-the action styles. Keep your Inth mode and script
-configuration. The theme source above is also imported by the runnable example,
-so the rendered result and the documentation use the same values.
+Every design keeps the policy in charge. The policy decides which buttons a
+visitor gets, and none of these designs records consent until the visitor
+clicks a button.
 
-## Change the shape without rebuilding the banner
+## Bottom bar
+
+![A white bar across the bottom of a coffee shop page, with the heading "We value your privacy", one line of copy, and Reject All, Accept All and Customize buttons on the right](../assets/v3/bottom-bar.png)
+
+The stock banner becomes a full-width bar along the bottom edge with one prop,
+`variant="bar"`. The title and copy sit on the left and the buttons on the
+right.
+
+<Tabs items={['React', 'Vue', 'Astro', 'Svelte']}>
+  <Tab value="React">
+    Render `CookieBanner` in place of `ConsentBanner`, inside your
+    `ConsentProvider` and next to `ConsentDialog`.
+
+    <include src="../shared/examples/storybook-react/bottom-bar.mdx" />
+  </Tab>
+
+  <Tab value="Vue">
+    Render `CookieBanner` and `ConsentManager` from
+    `c15t/vue/runtime/components/consent-manager.vue` in place of
+    `ConsentRoot`. To keep `ConsentRoot`, set `presentation.prompt` in the
+    `c15tVue` options instead, as in [customize](/docs/frameworks/vue/customize).
+
+    <include src="../shared/examples/storybook-vue/bottom-bar.mdx" />
+  </Tab>
+
+  <Tab value="Astro">
+    Add `presentation` to the `c15t()` options in `astro.config.mjs`. The
+    server renders the banner as a bar.
+
+    <include src="../shared/examples/storybook-astro/bottom-bar.mdx" />
+  </Tab>
+
+  <Tab value="Svelte">
+    Render `CookieBanner` in place of `ConsentBanner`, inside
+    `ConsentManagerProvider` and next to `ConsentDialog`.
+
+    <include src="../shared/examples/storybook-svelte/bottom-bar.mdx" />
+  </Tab>
+</Tabs>
+
+The HTML script tag takes the same shape through `presentation.prompt`. See
+[customize the script tag](/docs/frameworks/html/customize#change-the-banners-shape-and-position).
+
+## Branded card
+
+![A floating card in the bottom-left corner with a warm off-white surface, serif type, small corners, and green Reject All and Accept All buttons next to an outlined Customize button](../assets/v3/brand-card.png)
+
+Theme tokens change the colors, type and radius of the stock card without
+touching its markup. This theme sets a green primary color, an off-white
+surface, a serif font and four-pixel corners, and fills the actions the policy
+marks as primary. Here the policy marks both Reject All and Accept All as
+primary, so neither choice stands out.
+
+<include src="../shared/examples/storybook-react/brand-theme.mdx" />
+
+<include src="../shared/examples/storybook-react/brand-card.mdx" />
+
+`ConsentTheme` renders the tokens as a `<style>` element. In a server-rendered
+app, render it from a Server Component or the root layout so the tokens arrive
+with the HTML. The provider's `theme` option reads only `consentActions` and
+slot styles, so pass the same object there for the filled buttons:
+
+{/* example: fragment */}
 
 ```tsx
-<ConsentBanner variant="bar" />
+<ConsentProvider options={{ mode, theme: brandTheme }}>
 ```
 
-![The same green theme on a full-width v3 consent bar with the actions arranged across its footer](../assets/v3/brand-bar.png)
+The preferences dialog reads the same tokens:
 
-A bar changes the prompt's footprint. It does not change policy, grant categories
-or require a headless implementation.
+![The Privacy Settings dialog over the dimmed coffee shop page, with the same off-white surface, serif type and green Reject All and Accept All buttons](../assets/v3/brand-preferences.png)
 
-```tsx
-<ConsentBanner variant="wall" />
-```
+Vue, Svelte, Astro and the script tag set the same tokens their own way. See
+customize for [Vue](/docs/frameworks/vue/customize),
+[Svelte](/docs/frameworks/svelte/customize),
+[Astro](/docs/frameworks/astro/customize) or
+[HTML](/docs/frameworks/html/customize), and
+[tokens and CSS](/docs/customization/tokens) for every token.
 
-![A centered v3 choice wall with a backdrop, using the same green action theme](../assets/v3/choice-wall.png)
+## Choice wall
 
-A choice wall blocks interaction with the page. A notice never blocks; requesting
-a wall for a notice falls back to a non-blocking presentation.
+![A centered consent card over a dimmed coffee shop page, with Reject All, Accept All and Customize buttons](../assets/v3/choice-wall.png)
 
-## Carry the theme into preferences
+`variant="wall"` centers the stock banner over a backdrop, locks scrolling and
+traps focus until the visitor chooses. Use it only where a policy requires a
+choice before the page is usable.
 
-![The v3 preferences dialog with optional category toggles and a green Save Settings action](../assets/v3/preferences.png)
+<include src="../shared/examples/storybook-react/choice-wall.mdx" />
 
-Keep a preferences link after the banner closes. Test a reject action, reopen
-the dialog, change one category and save. A branded prompt is only part of the
-consent flow.
+A choice wall always blocks. A notice never blocks, so a wall requested for a
+notice falls back to the floating card.
 
-## Check narrow screens
+## Slim bar
 
-![The branded v3 floating card at a 375-pixel viewport, with Accept and Reject sharing a row and Customize below](../assets/v3/mobile-card.png)
+![A thin white bar along the bottom of the page with the heading and one line of copy on the left, and Reject All, Accept All and Customize buttons on the same row](../assets/v3/slim-bar.png)
 
-This example fits a 375-pixel viewport without horizontal overflow. Test your
-own longest translations and font settings before adopting the same sizing.
+The slim bar puts the title, the copy and the buttons on one row, so it is
+shorter than the stock bar. React builds it from the
+`ConsentBanner` compound parts. Vue and Svelte have no compound banner parts,
+so they add classes to the stock bar's card and header through slots. All
+three use the same stylesheet, and all three keep the buttons the policy
+requires.
 
-## Run the examples
+<Tabs items={['React', 'Vue', 'Svelte']}>
+  <Tab value="React">
+    `ConsentBanner.PolicyActions` renders the policy's buttons, so a required
+    Reject button stays. Render `CookieBanner` inside your `ConsentProvider`,
+    next to `ConsentDialog`.
 
-The source repository contains resettable Storybook examples under
-`Docs / Customization`: Brand Card, Brand Bar and Choice Wall. Each demo uses
-in-memory consent and no analytics; Reset example returns it to a fresh choice.
-The screenshots above come from these v3 examples.
+    <include src="../shared/examples/storybook-react/slim-bar.mdx" />
+  </Tab>
 
-The stories are suitable for isolated iframe previews on a version-matched
-Storybook deployment. Keep source code and the explanation on this page when
-embedding them, so the recipe remains usable in Markdown and offline package
-docs. A live preview must use the same v3 revision as the documentation.
+  <Tab value="Vue">
+    Spread `slimBar` into the options you pass to `app.use(c15tVue, ...)`.
+    `ConsentRoot` then renders the slim bar.
+
+    <include src="../shared/examples/storybook-vue/slim-bar.mdx" />
+  </Tab>
+
+  <Tab value="Svelte">
+    Spread `slimBar` into the options you pass to `ConsentManagerProvider`.
+    Svelte scopes component styles, so the classes live in a global
+    stylesheet.
+
+    <include src="../shared/examples/storybook-svelte/slim-bar.mdx" />
+  </Tab>
+</Tabs>
+
+<include src="../shared/examples/storybook-vue/slim-bar-css.mdx" />
+
+## Headless bar
+
+![A dark navy bar across the bottom of the page with one line of white copy, an underlined Preferences link, and white pill-shaped Reject all and Accept all buttons](../assets/v3/headless-bar.png)
+
+The headless bar is your own markup and CSS, driven by c15t's headless API. It
+shows the same design in every framework. The policy still decides which
+buttons appear and in what order, the Preferences button is always there, and
+a choice is recorded only when the visitor clicks.
+
+<Tabs items={['React', 'Vue', 'Svelte', 'HTML']}>
+  <Tab value="React">
+    `useHeadlessConsentUI()` from `c15t/react/headless` returns the banner
+    state and `performAction`. Render `CookieBar` in place of
+    `ConsentBanner`, and keep `ConsentDialog`, which Preferences opens.
+
+    <include src="../shared/examples/storybook-react/headless-bar.mdx" />
+  </Tab>
+
+  <Tab value="Vue">
+    The composables from `c15t/vue/vue-plugin` give the policy's actions and
+    the active surface. Render `CookieBar` and `ConsentManager` in place of
+    `ConsentRoot`. Preferences sets `activeUI` to `'manager'`, which opens
+    `ConsentManager`.
+
+    <include src="../shared/examples/storybook-vue/headless-bar.mdx" />
+  </Tab>
+
+  <Tab value="Svelte">
+    `getHeadlessConsent()` returns the banner state and `performAction`.
+    Render `CookieBar` in place of `ConsentBanner`, inside
+    `ConsentManagerProvider`, and keep `ConsentDialog`, which Preferences
+    opens.
+
+    <include src="../shared/examples/storybook-svelte/headless-bar.mdx" />
+  </Tab>
+
+  <Tab value="HTML">
+    The headless build, `c15t.headless.js`, keeps script gating and
+    `window.c15t` and ships no banner, dialog or CSS. Buttons with
+    `data-c15t-action` need no code. Because there is no stock dialog,
+    Preferences opens category switches inside the bar and a Save button
+    records them. Replace `https://your-project.inth.app` with the backend URL
+    from your Inth project, and put the block before `</body>`.
+
+    <include src="../shared/examples/script-tag/headless-bar.mdx" />
+  </Tab>
+</Tabs>
+
+React, Vue and Svelte import the same stylesheet, `cookie-bar.css`. The HTML
+block contains it inline.
+
+<include src="../shared/examples/storybook-react/headless-bar-css.mdx" />
+
+On a 375-pixel screen the copy takes the full width, Preferences sits on its
+own line, and Reject all and Accept all share a row at equal width:
+
+![The dark headless bar on a narrow phone screen, with the copy on two lines, a centered Preferences link, and Reject all and Accept all buttons side by side](../assets/v3/headless-bar-mobile.png)
+
+In the HTML version, Preferences opens the switches inside the bar:
+
+![The dark bar grown taller, with checkboxes for Functionality, Measurement, Experience and Marketing above Preferences, Reject all, Accept all and Save buttons](../assets/v3/headless-bar-html.png)
+
+A headless UI owns its focus handling and labels. Test it with a keyboard and
+a screen reader. The headless pages for [React](/docs/frameworks/react/headless),
+[Vue](/docs/frameworks/vue/headless) and [Svelte](/docs/frameworks/svelte/headless)
+cover notices and custom preference forms.
+
+## Check a design
+
+Run these checks after you adopt a design:
+
+1. Clear site data and reload. The banner appears and no optional vendor
+   request appears in DevTools Network.
+2. Click Reject all, reload, and confirm the banner stays closed and the
+   vendors stay blocked.
+3. Open preferences from your footer link, allow one category, save, and
+   confirm only that category's vendors load.
+4. Test a 375-pixel viewport with your longest translation, and tab through
+   every button.
+
+[Verify consent](/docs/guides/verify-consent) has the full list.
+
+## Run the designs
+
+The source repository renders each design in its Storybook under
+`Docs / Banner designs`: `apps/storybook-react`, `apps/storybook-vue`,
+`apps/storybook-svelte` and `apps/storybook-astro`. Each story uses an
+in-memory policy and loads no analytics. The HTML headless bar runs at
+`/consent-example/headless` in `examples/script-tag`, which the example
+acceptance tests cover.
