@@ -19,6 +19,12 @@
  * until consent is granted, then replaced by a live `<script>` in the same
  * position. Revoking consent does not un-run a script that already
  * executed, so the element is marked and skipped instead.
+ *
+ * Under a nonce-based Content Security Policy, put the page's nonce on the
+ * tag (`nonce={Astro.locals.c15t.nonce}`). Activation creates a new
+ * script, which a policy with `'strict-dynamic'` runs without checking a
+ * nonce, so a tag injected into the page would otherwise run once its
+ * category is granted. With a page nonce, tags without it are skipped.
  */
 
 import { allConsentNames, has } from '@c15t/core';
@@ -27,8 +33,40 @@ import type { AllConsentNames, ConsentSnapshot } from '@c15t/core';
 /** Attribute that marks a script for consent gating. */
 export const CATEGORY_ATTRIBUTE = 'data-c15t-category';
 
-/** Attribute stamped on a gated script once it has been activated. */
+/**
+ * Set once a gated script has been activated (`true`), rejected for an
+ * unknown category (`invalid`), or refused for lacking the page nonce
+ * (`untrusted`).
+ */
 export const ACTIVATED_ATTRIBUTE = 'data-c15t-activated';
+
+/**
+ * Whether an inert tag is the page's own under its nonce.
+ *
+ * Without a page nonce every tag qualifies, as before. With one, only tags
+ * carrying it do. The property is compared because browsers hide a
+ * connected element's nonce attribute. A refused tag is marked, so it is
+ * reported once and never retried.
+ *
+ * @param element - The inert tag.
+ * @param nonce - The page's CSP nonce.
+ * @returns Whether the tag may be activated.
+ */
+const isTrusted = function isTrusted(
+	element: HTMLScriptElement,
+	nonce: string | undefined
+): boolean {
+	if (!nonce || element.nonce === nonce) {
+		return true;
+	}
+	// biome-ignore lint/suspicious/noConsole: security diagnostic for the page author.
+	console.warn(
+		`@c15t/astro: skipped a ${CATEGORY_ATTRIBUTE} script without the page's CSP nonce. Add nonce={Astro.locals.c15t.nonce} to your own gated tags.`,
+		element
+	);
+	element.setAttribute(ACTIVATED_ATTRIBUTE, 'untrusted');
+	return false;
+};
 
 const COPIED_ATTRIBUTES = [
 	'src',
@@ -53,7 +91,8 @@ const activate = function activate(
 	}
 	// Through the property: browsers hide a checked nonce attribute's value,
 	// so copying the attribute would hand the replacement an empty nonce.
-	const nonce = element.nonce || element.getAttribute('nonce') || pageNonce;
+	// Under a page nonce the tag already carries that same nonce.
+	const nonce = pageNonce ?? (element.nonce || element.getAttribute('nonce'));
 	if (nonce) {
 		replacement.nonce = nonce;
 	}
@@ -82,8 +121,8 @@ const activate = function activate(
  *
  * @param snapshot - The current kernel snapshot.
  * @param root - Where to scan. Defaults to the whole document.
- * @param nonce - The page's CSP nonce, for a gated script that carries
- * none of its own.
+ * @param nonce - The page's CSP nonce. When set, only tags carrying it are
+ * activated; the others are marked `untrusted` and skipped.
  * @returns The number of scripts activated by this pass.
  */
 export const activateGatedScripts = function activateGatedScripts(
@@ -97,6 +136,9 @@ export const activateGatedScripts = function activateGatedScripts(
 	);
 	let activated = 0;
 	for (const element of elements) {
+		if (!isTrusted(element, nonce)) {
+			continue;
+		}
 		const category = element.getAttribute(CATEGORY_ATTRIBUTE);
 		if (!category) {
 			continue;
