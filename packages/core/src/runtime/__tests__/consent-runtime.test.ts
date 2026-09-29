@@ -550,6 +550,32 @@ describe('createConsentRuntime', () => {
 		expect(runtime.started).toBe(false);
 	});
 
+	test('`processIframes()` scans frames when automatic blocking is off', () => {
+		const iframe = document.createElement('iframe');
+		iframe.setAttribute('data-category', 'marketing');
+		iframe.setAttribute('src', 'https://example.com/embed');
+		document.body.append(iframe);
+		const runtime = createConsentRuntime({
+			iframeBlocker: { disableAutomaticBlocking: true },
+			mode: custom(createTransport()),
+		});
+
+		runtime.processIframes();
+		expect(iframe.getAttribute('src')).toBe('https://example.com/embed');
+
+		runtime.start();
+		expect(iframe.getAttribute('src')).toBe('https://example.com/embed');
+		runtime.processIframes();
+		expect(iframe.getAttribute('src')).toBeNull();
+		expect(iframe.getAttribute('data-src')).toBe('https://example.com/embed');
+
+		runtime.dispose();
+		iframe.setAttribute('src', 'https://example.com/embed');
+		runtime.processIframes();
+		expect(iframe.getAttribute('src')).toBe('https://example.com/embed');
+		iframe.remove();
+	});
+
 	test('holds network-blocker requests from construction until `start()` decides them', async () => {
 		vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const nativeFetch = window.fetch;

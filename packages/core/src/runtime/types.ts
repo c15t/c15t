@@ -389,6 +389,29 @@ export interface ConsentRuntime {
 	 * ```
 	 */
 	reconcileStorage: () => boolean;
+	/**
+	 * Scan every iframe in the document and apply the current consent to
+	 * it: pause gated frames that are not allowed, restore the ones that
+	 * are. The blocker does this on its own unless
+	 * `iframeBlocker.disableAutomaticBlocking` is set; with it set, call this
+	 * after adding frames and after consent changes.
+	 *
+	 * A no-op before {@link ConsentRuntime.start}, after
+	 * {@link ConsentRuntime.dispose}, and when `iframeBlocker` is `false` or
+	 * the runtime is disabled.
+	 *
+	 * @example
+	 * ```ts
+	 * const runtime = createConsentRuntime({
+	 *   iframeBlocker: { disableAutomaticBlocking: true },
+	 *   mode: offline(),
+	 * });
+	 * runtime.start();
+	 * container.append(embed);
+	 * runtime.processIframes();
+	 * ```
+	 */
+	processIframes: () => void;
 	/** Replace configured categories; retain categories discovered from integrations. */
 	setConsentCategories: (categories: AllConsentNames[]) => void;
 	/**

@@ -40,6 +40,7 @@ import { extractConsentNamesFromCondition } from '../libs/has';
 import { resolveVendors } from '../libs/vendors';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
+import type { IframeBlockerHandle } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
 import type { NetworkHold } from '../modules/network-blocker/hold';
@@ -451,6 +452,7 @@ export const createConsentRuntime = function createConsentRuntime(
 			: null;
 
 	let iabHandle: ConsentRuntimeIABHandle | null = null;
+	let iframeBlocker: IframeBlockerHandle | null = null;
 	let started = false;
 	let disposed = false;
 
@@ -625,6 +627,9 @@ export const createConsentRuntime = function createConsentRuntime(
 				iabListeners.delete(listener);
 			};
 		},
+		processIframes() {
+			iframeBlocker?.processAllIframes();
+		},
 		reconcileStorage() {
 			return persistenceHandle?.reconcile() ?? false;
 		},
@@ -744,7 +749,11 @@ export const createConsentRuntime = function createConsentRuntime(
 					kernel,
 					...(options.iframeBlocker ?? {}),
 				});
-				disposers.push(() => blocker.dispose());
+				iframeBlocker = blocker;
+				disposers.push(() => {
+					iframeBlocker = null;
+					blocker.dispose();
+				});
 			}
 
 			startIAB();
