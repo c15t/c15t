@@ -83,8 +83,10 @@ optional permissions by itself.
 
 An effective permission is not evidence of a grant. Under an opt-out rule it can
 be true before a visitor acts. A notice dismissal updates `noticeDismissal` and
-does not record consent. Global Privacy Control updates privacy signals and
-configured opt-out directives without turning a browser signal into a choice.
+does not record consent. Global Privacy Control updates `privacySignals` and
+applies its configured restrictions without turning a browser signal into a
+choice. As in v2, c15t reads GPC live and keeps no standing opt-out: when the
+browser stops sending the signal, the restriction stops too.
 
 ## Replace `useConsentManager()`
 
@@ -140,7 +142,7 @@ Import hooks from the same entry you used for `useConsentManager()`:
 | `promptRequirement` | `usePromptRequirement()` |
 | `noticeDismissal` | `useNoticeDismissal()` |
 | `privacySignals` | `usePrivacySignals()` |
-| `optOutDirectives` | `useOptOutDirectives()` |
+| `optOutDirectives` | None. c15t keeps no standing GPC opt-out; read the live signal with `usePrivacySignals()`. |
 | `restrictions` | `useRestrictions()` |
 | `resolution` | `usePolicyResolution()` |
 | `policyRule` | `usePolicyRule()` |
@@ -232,8 +234,8 @@ validated records without recording an action.
 The reader accepts valid v2 storage and translates it into per-category receipts.
 It does not rewrite storage on startup. Existing denials continue to restrict
 permissions; expired or incompatible positive receipts cannot restore grants.
-The next explicit action writes the v3 record. Notice dismissal and privacy
-opt-out directives have separate records.
+The next explicit action writes the v3 record. Notice dismissal has a separate
+record.
 
 Pass server-prepared `initialRecords`, `initialPolicyResolution`, and `now`
 through the adapter's prefetch configuration. Do not rebuild consent from a
@@ -331,7 +333,7 @@ omits both the default backdrop and a supplied `overlay`. To retain a custom
 backdrop when migrating from `trapFocus: false`, set
 `presentation.preferences.blocking: true` and keep your `overlay` prop.
 
-## Next.js and TanStack Start renames
+## Next.js, TanStack Start, Svelte and Astro renames
 
 These names changed without deprecated aliases. `defineConsentConfig`,
 `ConsentConfig` (the URL config) and `ConsentProvider` from `@c15t/react` are
@@ -366,6 +368,22 @@ TanStack Start (`c15t/tanstack-start`, `c15t/tanstack-start/server`):
 
 `consentLoaderOptions`, `backendURL`, `initRoute` and `DEFAULT_INIT_ROUTE` are
 unchanged.
+
+Svelte (`@c15t/svelte/server`, `@c15t/svelte/kit`):
+
+| v2 | v3 |
+| --- | --- |
+| `prefetchInitialConsent(options)` | `resolveConsent(options)` with `backendURL` |
+| `readInitialConsentConfig(options)` | `resolveConsent(options)` without `backendURL` |
+| `KernelConfig` where it named the returned value | `ConsentState` |
+| `PrefetchInitialConsentOptions`, `ReadInitialConsentConfigOptions` | `ResolveConsentOptions` |
+
+`loadConsent`, `c15tHandle` and `event.locals.c15t.config` now use
+`ConsentState`. `ConsentRequestOptions` is also exported from
+`@c15t/svelte/server`.
+
+Astro (`@c15t/astro/server`): `readInitialConsentConfig` is no longer
+exported. Use `resolveConsentContext`, which the middleware already calls.
 
 ## `Frame` is now `ConsentGate`
 

@@ -4,7 +4,7 @@
  * Every HTTP test in this package stands up the same thing: a runtime on an
  * engine, every migration, an app with some options, and a few helpers
  * to issue requests and count rows. Doing it once here keeps the receipt and
- * privacy suites about behaviour rather than about setup.
+ * vendor suites about behaviour rather than about setup.
  */
 
 import { Effect, ManagedRuntime } from 'effect';
@@ -14,6 +14,7 @@ import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
+import { up as dropIdentityAuthority } from '../db/migrations/5-drop-subject-identity-authority';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from '../http/app';
 import type { AppOptions } from '../http/context';
@@ -57,6 +58,7 @@ export const createHttpHarness = async function createHttpHarness(
 			yield* indexes;
 			yield* receipts;
 			yield* vendorChoice;
+			yield* dropIdentityAuthority;
 		})
 	);
 	const app = createApp(runtime, options);

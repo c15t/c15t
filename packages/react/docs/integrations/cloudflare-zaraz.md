@@ -325,6 +325,27 @@ Call `loader.dispose()` when that application instance is destroyed.
 already has a loader; do not attach a second one. See
 [JavaScript script loading](https://c15t.com/docs/frameworks/javascript/script-loader).
 
+**React Native**
+
+There is no script loader to register. `@c15t/scripts` loads browser
+documents, and a React Native app has none: the consent kernel runs natively
+and the vendor ships as a native or JavaScript module you start yourself.
+
+Gate the vendor where you start it, so the module never initialises without
+permission:
+
+```tsx
+import { ConsentGate } from '@c15t/react-native';
+
+export function VendorInit() {
+  return <ConsentGate category="measurement">{() => <VendorSDK />}</ConsentGate>;
+}
+```
+
+An SDK you start outside React reads the same snapshot natively and has to
+check it there too. See
+[React Native setup](https://c15t.com/docs/frameworks/react-native/quickstart).
+
 ## Loading and updates
 
 The helper returns an `alwaysLoad`, `callbackOnly` configuration with category

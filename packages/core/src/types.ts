@@ -29,7 +29,6 @@ import type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 	PromptReason,
 	PromptRequirement,
 	RestrictionReason,
@@ -58,7 +57,6 @@ export type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 	PromptReason,
 	PromptRequirement,
 	RecordIssue,
@@ -288,7 +286,6 @@ export interface HydrationRecords {
 	choice?: ExplicitChoice | null;
 	subject?: ConsentSubject | null;
 	noticeDismissal?: NoticeDismissal | null;
-	optOutDirectives?: readonly PrivacyOptOut[];
 	/** Vendors the subject turned off. `null` clears the denial list. */
 	vendorChoice?: VendorChoice | null;
 	/** Evaluation time in epoch milliseconds. Defaults to `Date.now()`. */
@@ -322,13 +319,11 @@ export interface ConsentSnapshot {
 	readonly noticeDismissal: Readonly<NoticeDismissal> | null;
 	/** Detected and overridden privacy signals. */
 	readonly privacySignals: KernelPrivacySignals;
-	/** Standing privacy directives; they outlive the live signal. */
-	readonly optOutDirectives: readonly PrivacyOptOut[];
 	/** Policy resolution outcome. `policy` is `null` for every non-matched status. */
 	readonly resolution: Readonly<PolicyResolution>;
 	/** Rule the evaluator uses: the matched rule or the safe opt-in fallback. */
 	readonly policyRule: Readonly<ResolvedPolicyRule>;
-	/** Categories restricted by a denial, strict scope or a privacy opt-out. */
+	/** Categories restricted by a denial, strict scope or a live GPC signal. */
 	readonly restrictions: Readonly<
 		Partial<Record<OptionalConsentCategory, readonly RestrictionReason[]>>
 	>;
@@ -580,15 +575,6 @@ export interface KernelTransport {
 	 * the hydration boundary, never as a choice.
 	 */
 	loadSubjectRecord?: (subjectId: string) => Promise<HydrationRecords | null>;
-	/**
-	 * Persist a standing privacy directive for an identified subject. Called
-	 * when a directive is recorded while `user` is set. Failures emit
-	 * `command:error` and never change local state.
-	 */
-	recordPrivacyOptOut?: (
-		directive: PrivacyOptOut,
-		subjectId: string | null
-	) => Promise<void>;
 }
 
 /**
@@ -619,12 +605,6 @@ export type KernelEvent =
 			type: 'notice:dismissed';
 			snapshot: ConsentSnapshot;
 			dismissal: NoticeDismissal;
-	  }
-	| {
-			/** A standing privacy directive was recorded from a user-agent signal. */
-			type: 'privacy:opt-out';
-			snapshot: ConsentSnapshot;
-			directive: PrivacyOptOut;
 	  }
 	| { type: 'overrides:set'; snapshot: ConsentSnapshot }
 	| { type: 'user:identified'; snapshot: ConsentSnapshot }
@@ -762,8 +742,8 @@ export interface ConsentKernel {
 	 * Apply validated stored records without creating a choice. Emits
 	 * `permissions:changed` when permissions changed and nothing else. Marks
 	 * the lifecycle as started and installs the deadline timer. Hydration does
-	 * not write storage or record privacy directives; the mounted adapter
-	 * forwards browser detection through set.privacySignals afterward.
+	 * not write storage; the mounted adapter forwards browser detection
+	 * through set.privacySignals afterward.
 	 */
 	hydrate: (records: HydrationRecords) => HydrationResult;
 

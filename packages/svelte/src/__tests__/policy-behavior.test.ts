@@ -252,9 +252,12 @@ describe('policy records and Svelte controls', () => {
 					},
 				});
 				await waitFor(() =>
-					expect(context.current.snapshot.optOutDirectives).toHaveLength(1)
+					expect(context.current.snapshot.privacySignals.gpc.active).toBe(true)
 				);
 				expect(context.current.snapshot.privacySignals.gpc.detected).toBe(true);
+				expect(context.current.snapshot.effectivePermissions.marketing).toBe(
+					false
+				);
 				expect(context.current.snapshot.explicitChoice).toBeNull();
 				expect(init).not.toHaveBeenCalled();
 				expect(choice).not.toHaveBeenCalled();

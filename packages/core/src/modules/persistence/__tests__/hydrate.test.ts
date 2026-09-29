@@ -17,7 +17,6 @@ import {
 } from '../hydrate';
 import {
 	encodeNoticeDismissalCompact,
-	encodePrivacyOptOutsCompact,
 	encodeStoredConsentEnvelopeCompact,
 } from '../record-codec';
 import { writeStoredConsentEnvelope } from '../record-storage';
@@ -40,7 +39,32 @@ describe('readStoredRecords', () => {
 			choice: null,
 			noticeDismissal: null,
 			now: NOW,
-			optOutDirectives: [],
+			subject: null,
+			vendorChoice: null,
+		});
+	});
+
+	test('ignores a privacy record an earlier v3 alpha stored', () => {
+		const legacy = {
+			directives: [
+				{ categories: ['marketing'], recordedAt: NOW - 2000, source: 'gpc' },
+			],
+			version: 1,
+		};
+		localStorage.setItem(`${STORAGE_KEY_V2}-privacy`, JSON.stringify(legacy));
+		document.cookie = `${STORAGE_KEY_V2}-privacy=v=1&d=gpc.${NOW - 2000}.mk; path=/`;
+		writeStoredConsentEnvelope(
+			{
+				categories: explicitChoice({ marketing: true }).categories,
+				version: 3,
+			},
+			{ now: NOW }
+		);
+		const stored = readStoredRecords(undefined, NOW);
+		expect(stored.records).toEqual({
+			choice: explicitChoice({ marketing: true }),
+			noticeDismissal: null,
+			now: NOW,
 			subject: null,
 			vendorChoice: null,
 		});
@@ -94,7 +118,7 @@ describe('readStoredRecords', () => {
 });
 
 describe('readStoredRecordsFromCookieHeader', () => {
-	test('reads choice, notice and privacy projections with one clock', () => {
+	test('reads choice and notice projections with one clock and ignores an alpha privacy cookie', () => {
 		const choice = encodeStoredConsentEnvelopeCompact({
 			categories: explicitChoice({ marketing: false }).categories,
 			version: 3,
@@ -104,12 +128,8 @@ describe('readStoredRecordsFromCookieHeader', () => {
 			fingerprint: 'notice-fp',
 			version: 1,
 		});
-		const privacy = encodePrivacyOptOutsCompact({
-			directives: [
-				{ categories: ['marketing'], recordedAt: NOW - 2000, source: 'gpc' },
-			],
-			version: 1,
-		});
+		// The compact form an earlier v3 alpha wrote for a standing directive.
+		const privacy = `v=1&d=gpc.${NOW - 2000}.mk`;
 		const header = `${STORAGE_KEY_V2}=${choice}; ${STORAGE_KEY_V2}-notice=${notice}; ${STORAGE_KEY_V2}-privacy=${privacy}`;
 		const records = readStoredRecordsFromCookieHeader(header, undefined, NOW);
 		expect(records).toEqual({
@@ -120,9 +140,6 @@ describe('readStoredRecordsFromCookieHeader', () => {
 				version: 1,
 			},
 			now: NOW,
-			optOutDirectives: [
-				{ categories: ['marketing'], recordedAt: NOW - 2000, source: 'gpc' },
-			],
 			subject: null,
 			vendorChoice: null,
 		});
@@ -137,7 +154,6 @@ describe('readStoredRecordsFromCookieHeader', () => {
 		const records = readStoredRecordsFromCookieHeader(header, undefined, NOW);
 		expect(records.choice).toEqual(explicitChoice({ marketing: false }));
 		expect(records.noticeDismissal).toBeNull();
-		expect(records.optOutDirectives).toEqual([]);
 	});
 });
 

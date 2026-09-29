@@ -8,6 +8,7 @@
  * `policy-resolution.ts`, which a client bundle then never needs.
  */
 
+import { compareCanonical } from './canonical-order';
 import type {
 	PolicyOptionalCategory,
 	PolicyPromptAction,
@@ -290,7 +291,7 @@ const readStringSet = function readStringSet<ValueType extends string>(
 		}
 		result.push(item);
 	}
-	return result.sort((left, right) => left.localeCompare(right));
+	return result.sort(compareCanonical);
 };
 
 const isPromptAction = function isPromptAction(

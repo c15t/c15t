@@ -248,7 +248,6 @@ export const buildSetters = function buildSetters(
 				commit({ now: at, overrides: { ...snapshot.overrides, ...input } });
 				emit({ snapshot: getSnapshot(), type: 'overrides:set' });
 			});
-			runtime.reconcilePrivacy(at);
 			runtime.armDeadlineTimer();
 		},
 		privacySignals(input: { gpc?: boolean }): void {
@@ -257,7 +256,6 @@ export const buildSetters = function buildSetters(
 			}
 			const at = runtime.now();
 			commit({ now: at, privacyDetected: input.gpc === true });
-			runtime.reconcilePrivacy(at);
 			runtime.armDeadlineTimer();
 		},
 		registerConsentCategories(categories: readonly AllConsentNames[]): void {

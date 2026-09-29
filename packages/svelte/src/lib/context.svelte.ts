@@ -92,7 +92,6 @@ export interface ConsentManagerState extends Pick<
 	| 'promptRequirement'
 	| 'noticeDismissal'
 	| 'privacySignals'
-	| 'optOutDirectives'
 	| 'resolution'
 	| 'policyRule'
 	| 'restrictions'
@@ -346,9 +345,6 @@ const createConsentState = function createConsentState(
 		get privacySignals() {
 			return getSnapshotLocal().privacySignals;
 		},
-		get optOutDirectives() {
-			return getSnapshotLocal().optOutDirectives;
-		},
 		get resolution() {
 			return getSnapshotLocal().resolution;
 		},
@@ -518,7 +514,6 @@ export const setConsentContext = function setConsentContext(
 				kernel.hydrate({
 					choice: null,
 					noticeDismissal: null,
-					optOutDirectives: [],
 					subject: null,
 				});
 				kernel.events.emit({ type: 'records:cleared' });

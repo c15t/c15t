@@ -6,7 +6,7 @@ import type { ConsentBannerOptions } from '../types';
 import { renderActionFooter, resolveActions } from './actions';
 import { renderBranding } from './branding';
 import { resolveCopy } from './copy';
-import { h, readDurationMs } from './dom';
+import { h, readDurationMs, supportsStartingStyle } from './dom';
 import { renderLegalLinks } from './surface';
 import type { Surface, SurfaceContext } from './surface';
 
@@ -220,6 +220,27 @@ export const createBanner = function createBanner(
 				'data-testid': 'consent-banner-overlay',
 				role: 'presentation',
 			});
+		}
+		// The state classes go on before insertion so the first style the
+		// browser computes already includes them; the scroll lock reads
+		// layout, which would otherwise fix the bare state as the start.
+		const flip = !(noStyle || ctx.disableAnimation || supportsStartingStyle());
+		if (!noStyle) {
+			if (flip) {
+				element.classList.add(styles.bannerHidden);
+				overlay?.classList.add(styles.overlayHidden);
+			} else {
+				element.classList.add(styles.bannerVisible);
+				overlay?.classList.add(styles.overlayVisible);
+			}
+			if (!(flip || ctx.disableAnimation)) {
+				// `@starting-style` transitions from the entering state on the
+				// first frame; nothing here has to wait for layout.
+				element.classList.add(styles.bannerEntering);
+				overlay?.classList.add(styles.overlayEntering);
+			}
+		}
+		if (overlay) {
 			ctx.root.append(overlay);
 		}
 		ctx.root.append(element);
@@ -230,21 +251,14 @@ export const createBanner = function createBanner(
 		if (scrollLock) {
 			cleanups.push(setupScrollLock());
 		}
-		if (noStyle) {
-			return;
+		if (flip) {
+			// Without `@starting-style`, force layout so the browser observes
+			// the hidden state before the flip; otherwise a fresh mount can
+			// skip the entry transition.
+			void element.offsetHeight;
+			element.classList.replace(styles.bannerHidden, styles.bannerVisible);
+			overlay?.classList.replace(styles.overlayHidden, styles.overlayVisible);
 		}
-		if (ctx.disableAnimation) {
-			element.classList.add(styles.bannerVisible);
-			overlay?.classList.add(styles.overlayVisible);
-			return;
-		}
-		element.classList.add(styles.bannerHidden);
-		overlay?.classList.add(styles.overlayHidden);
-		// Force layout so the browser observes the hidden state before the
-		// flip; otherwise a fresh mount can skip the entry transition.
-		void element.offsetHeight;
-		element.classList.replace(styles.bannerHidden, styles.bannerVisible);
-		overlay?.classList.replace(styles.overlayHidden, styles.overlayVisible);
 	};
 
 	const hide = function hide(): void {

@@ -73,7 +73,7 @@ export const determineVendor = function determineVendor(
 /**
  * Read the `data-category` attribute and validate it as a known consent
  * category name. Returns `undefined` when the attribute is absent and
- * `null` when it names no known category.
+ * `null` when it names no known category, including an empty value.
  *
  * An invalid value is a config bug, but throwing here stopped every other
  * iframe in the pass from being gated. `reconcileIframe` keeps an iframe
@@ -83,7 +83,7 @@ export const determineCategory = function determineCategory(
 	iframe: HTMLIFrameElement
 ): AllConsentNames | null | undefined {
 	const raw = iframe.getAttribute('data-category');
-	if (!raw) {
+	if (raw === null) {
 		return undefined;
 	}
 	if (!allConsentNames.includes(raw as AllConsentNames)) {
@@ -197,6 +197,23 @@ export const reconcileIframe = function reconcileIframe(
 };
 
 /**
+ * `reconcileIframe` for one iframe of many. An iframe page script can't
+ * read is skipped: Firefox throws "Permission denied to access property"
+ * for some nodes, such as ones an extension inserted, and one such iframe
+ * must not stop the rest of the pass from being gated.
+ */
+export const reconcileIframeSafely = function reconcileIframeSafely(
+	iframe: HTMLIFrameElement,
+	pass: ReconcilePass
+): void {
+	try {
+		reconcileIframe(iframe, pass);
+	} catch {
+		// Unreadable iframe: page script can't gate it either.
+	}
+};
+
+/**
  * Walk every iframe in the document and apply the consent gate. Builds
  * the `ReconcilePass` once and reuses it across iframes — O(n) work.
  */
@@ -206,6 +223,6 @@ export const reconcileAllIframes = function reconcileAllIframes(
 	const iframes = document.querySelectorAll('iframe');
 	const pass = buildReconcilePass(snapshot);
 	for (const iframe of Array.from(iframes) as HTMLIFrameElement[]) {
-		reconcileIframe(iframe, pass);
+		reconcileIframeSafely(iframe, pass);
 	}
 };

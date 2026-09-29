@@ -34,7 +34,6 @@ import type { LegacyRecordEncoding } from '../../consent-record/normalize';
 import type {
 	ConsentSubject,
 	ExplicitChoice,
-	PrivacyOptOut,
 } from '../../consent-record/types';
 import { isPlainRecord, ownValue } from '../../consent-record/validation';
 import {
@@ -56,22 +55,17 @@ import {
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
 } from '../../libs/storage-keys';
-import { mergeDirectives } from './directives';
 import { choiceSinceEpoch } from './epoch';
 import {
 	decodeClearEpoch,
 	decodeNoticeDismissal,
 	decodeNoticeDismissalCompact,
-	decodePrivacyOptOuts,
-	decodePrivacyOptOutsCompact,
 	decodeStoredConsentEnvelopeCompact,
 	decodeVendorChoice,
 	decodeVendorChoiceCompact,
 	encodeClearEpoch,
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
-	encodePrivacyOptOuts,
-	encodePrivacyOptOutsCompact,
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
 	encodeVendorChoice,
@@ -85,7 +79,6 @@ import type {
 	StoredConsentEnvelope,
 	StoredIabMetadata,
 	StoredNoticeDismissal,
-	StoredPrivacyOptOuts,
 	StoredVendorChoice,
 } from './record-codec';
 
@@ -102,16 +95,14 @@ export type StoredRecordFormat = 'legacy-v2' | 'v3';
 
 /**
  * The storage keys one configuration resolves to. Notice dismissals,
- * privacy directives, vendor denials and the clear epoch get their own
- * keys derived from the consent key so a custom `storageKey` moves them
- * all together.
+ * vendor denials and the clear epoch get their own keys derived from the
+ * consent key so a custom `storageKey` moves them all together.
  */
 export interface ResolvedStorageKeys {
 	consent: string;
 	/** `null` when the configured key already is the legacy key. */
 	legacyConsent: string | null;
 	notice: string;
-	privacy: string;
 	vendors: string;
 	/** Time of the last clear. Survives the clear it records. */
 	epoch: string;
@@ -133,7 +124,6 @@ export const resolveStorageKeys = function resolveStorageKeys(
 		epoch: `${consent}-epoch`,
 		legacyConsent: consent === STORAGE_KEY ? null : STORAGE_KEY,
 		notice: `${consent}-notice`,
-		privacy: `${consent}-privacy`,
 		vendors: `${consent}-vendors`,
 	};
 };
@@ -886,7 +876,7 @@ export const writeStoredConsentEnvelope = function writeStoredConsentEnvelope(
 };
 
 // ---------------------------------------------------------------------------
-// Auxiliary records: notice dismissal and privacy opt-outs
+// Auxiliary records: notice dismissal
 //
 // Each lives under its own localStorage key and has a compact cookie
 // projection under the same name so a server render can read it from the
@@ -1039,104 +1029,18 @@ export const clearStoredNoticeDismissal = function clearStoredNoticeDismissal(
 };
 
 /**
- * Reads standing privacy directives from the cookie projection and the
- * localStorage copy. When both are valid their directives are unioned,
- * oldest first, since a directive only restricts; otherwise the valid one
- * is used. `null` when nothing is stored.
+ * Removes the `<key>-privacy` cookie and localStorage entry. v3 alphas
+ * stored standing GPC directives there; GPC is now a live signal that is
+ * never persisted, so the key is no longer read or written. It is kept only
+ * so clearing c15t data still deletes values an alpha left behind.
  */
-export const readStoredPrivacyOptOuts = function readStoredPrivacyOptOuts(
-	config: StorageConfig | undefined,
-	now: number,
-	onUnavailable?: () => void
-): DecodeResult<StoredPrivacyOptOuts> | null {
-	const keys = resolveStorageKeys(config);
-	const fromCookie = readCompactCookie(
-		getRawCookieValue(keys.privacy, onUnavailable),
-		(text) => decodePrivacyOptOutsCompact(text, now)
-	);
-	const fromLocal = readLocalJson(
-		keys.privacy,
-		(value) => decodePrivacyOptOuts(value, now),
-		onUnavailable
-	);
-	// Directives only restrict, so both copies count: a dropped cookie write
-	// cannot lose a directive the localStorage copy holds.
-	if (fromCookie?.ok && fromLocal?.ok) {
-		return {
-			ok: true,
-			record: {
-				...fromCookie.record,
-				directives: mergeDirectives(
-					fromCookie.record.directives,
-					fromLocal.record.directives
-				),
-			},
-		};
-	}
-	if (fromCookie?.ok) {
-		return fromCookie;
-	}
-	return fromLocal ?? fromCookie;
-};
-
-/** Server read of the privacy cookie projection from a `Cookie` header. */
-export const readStoredPrivacyOptOutsFromCookieHeader =
-	function readStoredPrivacyOptOutsFromCookieHeader(
-		cookieHeader: string | undefined,
-		config: StorageConfig | undefined,
-		now: number
-	): DecodeResult<StoredPrivacyOptOuts> | null {
-		const keys = resolveStorageKeys(config);
-		return readCompactCookie(
-			readCookieValueFromHeader(cookieHeader, keys.privacy),
-			(text) => decodePrivacyOptOutsCompact(text, now)
-		);
-	};
-
-/**
- * Writes standing privacy directives to localStorage and the compact
- * cookie projection. The list is replaced wholesale; merging with an
- * identified-subject directive on the server is a transport concern.
- */
-export const writeStoredPrivacyOptOuts = function writeStoredPrivacyOptOuts(
-	directives: readonly PrivacyOptOut[],
-	config: StorageConfig | undefined,
-	now: number,
-	cookie?: CookieOptions
-): DecodeResult<StoredPrivacyOptOuts> & { written?: AuxiliaryWriteReport } {
-	const validated = decodePrivacyOptOuts({ directives, version: 1 }, now);
-	if (validated.ok === false) {
-		return validated;
-	}
-	const keys = resolveStorageKeys(config);
-	const localStorageWritten = writeLocalStorageText(
-		keys.privacy,
-		encodePrivacyOptOuts(validated.record)
-	);
-	const cookieDetail = writeCookie(
-		keys.privacy,
-		encodePrivacyOptOutsCompact(validated.record),
-		cookie,
-		config
-	);
-	return {
-		ok: true,
-		record: validated.record,
-		written: {
-			cookie: cookieDetail.attempted && cookieDetail.verified,
-			cookieDetail,
-			localStorage: localStorageWritten,
-		},
-	};
-};
-
-export const clearStoredPrivacyOptOuts = function clearStoredPrivacyOptOuts(
+const clearLegacyPrivacyRecord = function clearLegacyPrivacyRecord(
 	config?: StorageConfig,
 	cookie?: CookieOptions
 ): void {
-	const keys = resolveStorageKeys(config);
-	removeLocalStorageKey(keys.privacy);
-	deleteCookie(keys.privacy, cookie, config);
+	const key = `${resolveStorageKeys(config).consent}-privacy`;
+	removeLocalStorageKey(key);
+	deleteCookie(key, cookie, config);
 };
 
 // ---------------------------------------------------------------------------
@@ -1335,11 +1239,11 @@ export const writeStoredClearEpoch = function writeStoredClearEpoch(
 
 /**
  * Removes explicit choices (configured and legacy keys, cookie and
- * localStorage), the notice dismissal, the privacy directives and the
- * vendor denials with their cookie projections, and the queued backend
- * replays. Cookie
- * deletion uses the same domain handling as writes so a cross-subdomain
- * cookie is actually removed.
+ * localStorage), the notice dismissal and the vendor denials with their
+ * cookie projections, the legacy `<key>-privacy` record an alpha may have
+ * left, and the queued backend replays. Cookie deletion uses the same
+ * domain handling as writes so a cross-subdomain cookie is actually
+ * removed.
  */
 export const clearStoredConsentRecords = function clearStoredConsentRecords(
 	cookie?: CookieOptions,
@@ -1348,7 +1252,7 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 	deleteConsentFromStorage(cookie, config);
 	removeLocalStorageKey(resolveStorageKeys(config).cookieMiss);
 	clearStoredNoticeDismissal(config, cookie);
-	clearStoredPrivacyOptOuts(config, cookie);
+	clearLegacyPrivacyRecord(config, cookie);
 	clearStoredVendorChoice(config, cookie);
 	removeLocalStorageKey(PENDING_SAVES_STORAGE_KEY);
 	// Addon bytes must be removed even when the addon is not mounted.

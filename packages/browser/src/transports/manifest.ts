@@ -230,7 +230,6 @@ export const manifest = function manifest(
 			return mapInitOutputToInitResponse(output, {});
 		},
 		loadSubjectRecord: hosted.loadSubjectRecord,
-		recordPrivacyOptOut: hosted.recordPrivacyOptOut,
 		save: hosted.save,
 	};
 

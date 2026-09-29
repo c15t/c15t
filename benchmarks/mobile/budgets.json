@@ -1,0 +1,261 @@
+{
+	"_comment": [
+		"Single source of truth for every mobile budget `bun run bench:mobile` gates on.",
+		"Edit the numbers here; nothing in src/ carries a threshold of its own.",
+		"source: 'contract' means native/CONTRACT.md states the number.",
+		"source: 'allowance' means this harness declares the ceiling because the contract",
+		"names the behaviour without a number. An allowance is a promise, so keep the",
+		"reason in `note` and raise it only with a measured justification.",
+		"'omit' on a row means measure and report but never gate."
+	],
+	"contract": "native/CONTRACT.md",
+	"sampling": {
+		"warmupIterations": 50,
+		"measuredIterations": 300,
+		"idleWindowMs": 30000,
+		"quickIdleWindowMs": 2000,
+		"quickWarmupIterations": 5,
+		"quickMeasuredIterations": 30,
+		"subsequentRunDiffTolerancePercent": 25,
+		"coldStartProcesses": 15,
+		"quickColdStartProcesses": 3,
+		"uiMountIterations": 40,
+		"quickUiMountIterations": 5
+	},
+	"budgets": {
+		"bootstrap_to_snapshot_warm_ms": {
+			"max": 5,
+			"unit": "ms",
+			"source": "contract",
+			"note": "bootstrap() to first synchronous snapshot(), warm: under 5 ms."
+		},
+		"bootstrap_to_snapshot_cold_ms": {
+			"max": 15,
+			"unit": "ms",
+			"source": "contract",
+			"note": "bootstrap() to first synchronous snapshot(), cold: under 15 ms."
+		},
+		"cold_start_overhead_ms": {
+			"max": 10,
+			"unit": "ms",
+			"source": "contract",
+			"note": "Cold-start overhead attributable to c15t: under 10 ms. This row times the read path only: handshake to the first synchronous snapshot() in the first client the process builds. The module evaluation an app also pays before that read is a separate row, cold_start_js_to_first_consent_ms, because it is a different span measured a different way (one fresh process per sample rather than a warm loop)."
+		},
+		"commit_ack_no_network_ms": {
+			"max": 50,
+			"unit": "ms",
+			"source": "contract",
+			"note": "Consent action to native commit acknowledged, no network: under 50 ms."
+		},
+		"rerenders_per_consent_change": {
+			"max": 1,
+			"unit": "count",
+			"source": "contract",
+			"note": "React rerenders per consent change: at most one per subscribed component."
+		},
+		"rerenders_per_unchanged_event": {
+			"max": 0,
+			"unit": "count",
+			"source": "contract",
+			"note": "Derived from the contract: the module never sends a snapshot JavaScript already holds, and selector subscriptions rerender only when the selected value changes, so an unchanged snapshot event must cost zero rerenders."
+		},
+		"snapshot_object_identities": {
+			"max": 1,
+			"unit": "count",
+			"source": "contract",
+			"note": "snapshot() and isAllowed() must not allocate a new snapshot per call. Counted as the number of distinct snapshot objects observed across repeated reads: one object means none was built per call."
+		},
+		"native_bootstrap_to_snapshot_warm_ms": {
+			"max": 5,
+			"unit": "ms",
+			"source": "contract",
+			"note": "bootstrap() to first synchronous snapshot(), warm, on the native core: under 5 ms."
+		},
+		"native_bootstrap_to_snapshot_cold_ms": {
+			"max": 15,
+			"unit": "ms",
+			"source": "contract",
+			"note": "bootstrap() to first synchronous snapshot(), cold, on the native core: under 15 ms."
+		},
+		"native_hydrate_envelope_ms": {
+			"max": 3,
+			"unit": "ms",
+			"source": "contract",
+			"note": "Native hydrate from a stored envelope: under 3 ms for a realistic payload."
+		},
+		"native_commit_ack_no_network_ms": {
+			"max": 50,
+			"unit": "ms",
+			"source": "contract",
+			"note": "Native consent action to commit acknowledged, no network: under 50 ms."
+		},
+		"native_snapshot_object_identities": {
+			"max": 1,
+			"unit": "count",
+			"source": "contract",
+			"note": "The native read must not build a snapshot per call, counted as distinct snapshot objects across repeated reads."
+		},
+		"native_snapshot_read_us": {
+			"max": 2,
+			"unit": "us",
+			"source": "allowance",
+			"note": "No contract number for the read itself. 2 us is the guard against a synchronous read that starts doing work."
+		},
+		"policy_evaluation_us": {
+			"max": 50,
+			"unit": "us",
+			"source": "allowance",
+			"note": "The contract sets no ceiling for evaluation alone; the native benches already assert this one. 50 us guards against a blow-up in the selector path without pretending to be a contract number."
+		},
+		"snapshot_read_us": {
+			"max": 2,
+			"unit": "us",
+			"source": "allowance",
+			"note": "No contract number; the contract forbids per-call allocation and I/O instead. 2 us is a guard for a synchronous read that starts touching something it should not."
+		},
+		"idle_cpu_percent": {
+			"max": 2,
+			"unit": "percent",
+			"source": "allowance",
+			"note": "Quiet window with one active subscription: no timer, no poll, no network. 2 % of one core allows the periodic reachability hook and rules out a busy loop."
+		},
+		"idle_rss_growth_bytes": {
+			"max": 262144,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Resident-set growth across the quiet window: 256 KiB allows the allocator's own slack and rejects a per-tick leak."
+		},
+		"js_shipped_bytes": {
+			"max": 262144,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Unpacked JavaScript in the @c15t/react-native tarball. Measured 200,638 B once the public entry carried the banner, dialog, preference centre, IAB drawer, and the tracking journey; 256 KiB leaves a quarter of that again for the surfaces to grow. This row counts 24 KiB of Expo config plugin that runs in Node at build time and never reaches a device, so js_closure_bytes is the row that says what an app carries."
+		},
+		"js_shipped_gzip_bytes": {
+			"max": 49152,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Gzipped JavaScript the tarball ships. Measured 40,254 B with the surfaces in the public entry; 48 KiB is the ceiling."
+		},
+		"ios_binary_bytes": {
+			"max": 1048576,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Bytes C15tCore adds to an iOS binary, measured as the linked __TEXT plus __DATA of the arm64 slice. 1 MiB is the ceiling for the Swift core with no IAB."
+		},
+		"ios_binding_bytes": {
+			"max": 262144,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "TurboModule binding bytes on iOS. 256 KiB is the ceiling for a Codegen spec, a JSON marshalling layer, and an event emitter, with no consent logic in it."
+		},
+		"android_binary_bytes": {
+			"max": 1572864,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Bytes the Kotlin core plus the bridge add to an Android app, measured as the uncompressed class bytes of the release artifacts. Measured 1,281,139 B with the TCF disclosure, the served vendor list slot, and the IABTCF bus in the core; 1.5 MiB is the ceiling."
+		},
+		"js_hydrate_envelope_ms": {
+			"max": 3,
+			"unit": "ms",
+			"source": "contract",
+			"note": "The contract's 3 ms hydrate budget, applied to the JavaScript decode of the stored envelope."
+		},
+		"jsx_global_reference_files": {
+			"max": 0,
+			"unit": "count",
+			"source": "allowance",
+			"note": "Built files that call `React.createElement` without importing React. Zero, because nothing defines a React global in a React Native app and the first render throws."
+		},
+		"package_manifest_parse_errors": {
+			"max": 0,
+			"unit": "count",
+			"source": "allowance",
+			"note": "Whether `packages/react-native/package.json` parses. Zero, because a manifest that is not valid JSON cannot be resolved by any Node consumer."
+		},
+		"native_is_allowed_us": {
+			"max": 2,
+			"unit": "us",
+			"source": "allowance",
+			"note": "No contract number for the read itself. Same 2 us guard as the snapshot read: the contract's requirement here is that neither read touches I/O."
+		},
+		"policy_apply_per_rule_set_us": {
+			"max": 100,
+			"unit": "us",
+			"source": "allowance",
+			"note": "Applying one rule set through the reference evaluator: build the kernel, feed it the fixture's /init body, read the snapshot back. The contract sets no number for this span and it is a wider one than the native `policy_evaluation_us` rows, which evaluate in isolation. 100 us is the regression guard the first measured run supported: 17-24 us across eight rule sets, so this trips on a 4x blow-up rather than on sampling noise."
+		},
+		"cold_start_js_to_first_consent_ms": {
+			"max": 120,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "Built entry to a readable snapshot, in a process that has never seen c15t: module evaluation plus the first handshake. Measured 10.9 ms on the development machine when the entry was a boundary layer; the entry now links the surfaces and the IAB drawer too, and reads 46 ms on a macOS runner and 75 ms on an Ubuntu runner. 120 ms is a blow-up guard, not a promise: it leaves a shared runner half again as slow, and Node's specifier resolution charges c15t for work a bundled app does not do. It is deliberately not the contract's 10 ms, which is a device-profile number."
+		},
+		"cached_consent_available_ms": {
+			"max": 3,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "Stored envelope on disk to an answer JavaScript can read: the store read, the envelope decode, and the first snapshot() of a fresh client. Measured 0.027 ms against a 3.1 KiB envelope that grants marketing. 3 ms is the contract's hydrate ceiling applied to the whole path rather than to the decode alone, so the row cannot pass by being fast and wrong."
+		},
+		"consent_ui_mount_to_interactive_ms": {
+			"max": 50,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "Provider mount to a live press handler on the first banner this process renders, so the attach and the first render pass are inside the span. Measured 5-6.5 ms on the development machine and up to 16.6 ms on a shared runner under react-test-renderer, which runs no layout, no platform Modal, and no font loading. 50 ms is the ceiling for a prompt that appears at launch without a device frame budget."
+		},
+		"consent_ui_remount_to_interactive_ms": {
+			"max": 5,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "The same mount with the module loaded and one client already attached, which is what a screen that shows a banner later in the session pays. Measured 0.46 ms over 40 mounts; 5 ms allows a ten-fold regression on a span that is a render, not an initialisation."
+		},
+		"consent_ui_open_to_interactive_ms": {
+			"max": 30,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "The core saying a prompt is owed to a live press handler, which is the common case: the app is already open and the policy resolved after first paint. Measured 1.1 ms on the development machine with no settle frames needed, 5 ms on an Ubuntu runner and 12.5 ms on a macOS runner from one sample each. 30 ms is the ceiling for one sheet's worth of React work on a shared runner; a subscription or selector problem shows up as an order of magnitude, not as runner variance."
+		},
+		"consent_ui_action_to_commit_ms": {
+			"max": 25,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "Tap on the primary action to the module holding the intent, measured through the rendered control rather than a client call, so the React layer is inside the span. Measured 0.72 ms on the development machine and 2.8 ms on a shared runner against a fake that answers offline. The 50 ms contract ceiling gates the client span below; 25 ms here says the render path must not add an order of magnitude to it."
+		},
+		"js_closure_bytes": {
+			"max": 196608,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "Unpacked JavaScript an app carries because c15t is installed: every module reachable from the built entry. Measured 74,507 B over 48 modules as a boundary layer, and 165,270 B once the surfaces and the IAB drawer joined the entry. 192 KiB is the ceiling. It still fails the moment a runtime import to the @c15t/core barrel comes back: that edge measured 389,639 B over 131 modules, because behind two string arrays sits the kernel, the schema, and the translations."
+		},
+		"js_closure_gzip_bytes": {
+			"max": 40960,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "The same closure gzipped, which is the shape it travels in. Measured 14,956 B as a boundary layer and 31,623 B with the surfaces in the entry. 40 KiB is the ceiling, below the 48 KiB shipped-gzip row so the closure cannot quietly become the whole tarball, and well under the 90,701 B the @c15t/core barrel edge measured, which is the regression this row exists to catch. Third-party packages the closure reaches (valibot, base-x) are named in the detail and not counted."
+		},
+		"idle_heap_growth_bytes": {
+			"max": 262144,
+			"unit": "bytes",
+			"source": "allowance",
+			"note": "V8 heap growth across the quiet window with one live subscription. Measured about 6 KiB, which is the allocation the window itself makes. 256 KiB matches the resident-set ceiling: the same promise from inside the isolate, where a per-tick allocation shows up long before it shows up in RSS."
+		},
+		"js_closure_modules": {
+			"max": 80,
+			"unit": "count",
+			"source": "allowance",
+			"note": "Modules reachable from the built entry, which is the version of this budget that cannot be hidden by minifying. Measured 48: 46 from this package plus the consent-category module and the one-line alias that exports it. 80 is the ceiling, set with room for the components still to come, because the barrel edge announced itself as 131 modules well before anybody read the byte row."
+		},
+		"kotlin_bootstrap_to_snapshot_cold_ms": {
+			"max": 40,
+			"unit": "ms",
+			"source": "allowance",
+			"note": "bootstrap() to first synchronous snapshot(), cold, on the Kotlin core. The contract's 15 ms is a device-profile number and the Swift row keeps it; this row runs in a fresh JVM on a shared Ubuntu runner, where it measured 14.2 to 14.9 ms, most of it class loading. 40 ms is a blow-up guard rather than a promise, so a slow runner does not fail a row the device never sees."
+		},
+		"kotlin_snapshot_plus_is_allowed_us": {
+			"max": 10,
+			"unit": "us",
+			"source": "allowance",
+			"note": "snapshot() plus three isAllowed() reads on the Kotlin core. The contract's requirement is that neither read touches I/O; the Swift row keeps the 2 us guard. On a shared runner's JVM this measured 1.5 to 1.8 us, so 2 us fails on scheduler noise. 10 us still catches an I/O read, which costs tens of microseconds at the least."
+		}
+	}
+}

@@ -196,7 +196,8 @@ export const resolveTranslations = function resolveTranslations(
 };
 
 /**
- * Read cookies and geo headers into a baseline `KernelConfig`.
+ * The request-only part of {@link resolveConsentContext}: cookies and geo
+ * headers read into a baseline `KernelConfig`.
  *
  * Does no network work and sets no cookies, so it is safe on every runtime
  * including static prerenders.
@@ -205,7 +206,7 @@ export const resolveTranslations = function resolveTranslations(
  * @param options - The integration options.
  * @returns A config seeded with stored consent and request overrides.
  */
-export const readInitialConsentConfig = function readInitialConsentConfig(
+const readConsentRequest = function readConsentRequest(
 	headers: Headers,
 	options: C15tResolvedOptions
 ): { config: KernelConfig; inputs: ConsentRequestHeaderInputs } {
@@ -658,7 +659,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 	const { options } = input;
 	const prerendered = input.prerendered === true;
 	const headers = prerendered ? new Headers() : input.headers;
-	const { config: base, inputs } = readInitialConsentConfig(headers, options);
+	const { config: base, inputs } = readConsentRequest(headers, options);
 	const translations = resolveTranslations(options, inputs);
 	// Hosted and manifest mode resolve against the visitor's geo, which a
 	// build has none of. Offline mode resolves without it in the browser as
@@ -855,14 +856,9 @@ export const buildBannerRevealScript = function buildBannerRevealScript(
 	testId: 'consent-banner' | 'iab-consent-banner'
 ): string {
 	const keys = resolveStorageKeys(storageConfig);
-	// A stored GPC or opt-out directive (`-privacy`) can also mean the banner
-	// is not owed, so it counts as something stored.
-	const names = [
-		keys.consent,
-		keys.notice,
-		keys.privacy,
-		keys.legacyConsent,
-	].filter((name): name is string => Boolean(name));
+	const names = [keys.consent, keys.notice, keys.legacyConsent].filter(
+		(name): name is string => Boolean(name)
+	);
 	// `<` is escaped so a storage key can never close the script tag.
 	const json = JSON.stringify(names).replace(/</gu, '\\u003c');
 	// An IIFE keeps its variables out of the page's global scope. Blocked

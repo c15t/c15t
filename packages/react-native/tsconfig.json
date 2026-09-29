@@ -1,0 +1,20 @@
+{
+	"extends": "@c15t/typescript-config/base.json",
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"rootDir": "src",
+		"types": ["node"],
+		"paths": {
+			"~/*": ["./src/*"]
+		}
+	},
+	"include": ["src"],
+	"exclude": [
+		"node_modules",
+		"src/**/__tests__/**",
+		"src/**/*.test.ts",
+		"src/**/*.test.tsx",
+		"src/**/*.spec.ts",
+		"src/**/*.spec.tsx"
+	]
+}

@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/core",
-	"version": "3.0.0-alpha.2",
+	"version": "3.0.0-alpha.3",
 	"description": "Headless JavaScript consent management platform for cookie banners, privacy preferences, consent storage, and script gating.",
 	"keywords": [
 		"ccpa",
@@ -62,6 +62,11 @@
 			"types": "./dist-types/consent-record/index.d.ts",
 			"import": "./dist/consent-record.js",
 			"default": "./dist/consent-record.js"
+		},
+		"./consent-categories": {
+			"types": "./dist-types/consent-record/types.d.ts",
+			"import": "./dist/consent-categories.js",
+			"default": "./dist/consent-categories.js"
 		},
 		"./transports": {
 			"types": "./dist-types/transports/index.d.ts",

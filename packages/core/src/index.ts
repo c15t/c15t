@@ -22,7 +22,6 @@ export type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 	PromptReason,
 	PromptRequirement,
 	RecordIssue,

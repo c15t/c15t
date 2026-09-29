@@ -7,7 +7,8 @@
  * - src cleared on consent revoked
  * - newly-added iframes processed via MutationObserver
  * - an invalid data-category stays blocked and warns instead of throwing
- * - a node page script cannot read does not stop the rest of a batch
+ * - a node or iframe page script cannot read does not stop the rest of a
+ *   pass
  * - dispose disconnects observer + kernel subscription
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -230,6 +231,19 @@ const createUnreadableNode = function createUnreadableNode(): unknown {
 	};
 };
 
+/**
+ * An iframe whose attributes page script can't read, as can happen when an
+ * unreadable node carries or contains it.
+ */
+const createUnreadableIframe = function createUnreadableIframe(): StubIframe {
+	return {
+		...createStubIframe('marketing', 'https://unreadable.example/'),
+		getAttribute() {
+			throw new Error('Permission denied to access property "getAttribute"');
+		},
+	};
+};
+
 describe('iframe-blocker: an invalid data-category', () => {
 	test('stays blocked and warns without stopping the other iframes', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
@@ -245,6 +259,31 @@ describe('iframe-blocker: an invalid data-category', () => {
 		expect(iframe.getAttribute('src')).toBeNull();
 		expect(warn).toHaveBeenCalledWith(
 			expect.stringContaining('invalid data-category "bogus"')
+		);
+	});
+
+	test('keeps an empty data-category blocked, even with every consent granted', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			/* asserted below */
+		});
+		const iframe = createStubIframe(undefined, 'https://example.com/');
+		iframe.setAttribute('data-category', '');
+		body.children.push(iframe);
+
+		createIframeBlocker({
+			kernel: createConsentKernel({
+				initialRecords: choiceRecords({
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+				}),
+			}),
+		});
+
+		expect(iframe.getAttribute('src')).toBeNull();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('invalid data-category ""')
 		);
 	});
 
@@ -288,6 +327,19 @@ describe('iframe-blocker: a mutation batch with a bad node', () => {
 		expect(after.getAttribute('src')).toBeNull();
 	});
 
+	test('gates the iframes next to an unreadable iframe nested in an added node', () => {
+		createIframeBlocker({ kernel: createConsentKernel() });
+		const container = {
+			...createStubIframe(),
+			querySelectorAll: () => [createUnreadableIframe()],
+			tagName: 'DIV',
+		};
+		const iframe = createStubIframe('marketing', 'https://example.com/');
+
+		expect(() => dispatchBatch([container, iframe])).not.toThrow();
+		expect(iframe.getAttribute('src')).toBeNull();
+	});
+
 	test('gates the iframes next to one with an invalid data-category', () => {
 		vi.spyOn(console, 'warn').mockImplementation(() => {
 			/* covered above */
@@ -300,6 +352,18 @@ describe('iframe-blocker: a mutation batch with a bad node', () => {
 				createStubIframe('bogus', 'https://bogus.example.com/'),
 				iframe,
 			])
+		).not.toThrow();
+		expect(iframe.getAttribute('src')).toBeNull();
+	});
+});
+
+describe('iframe-blocker: an unreadable iframe on the page', () => {
+	test('does not stop the initial scan from gating the other iframes', () => {
+		const iframe = createStubIframe('marketing', 'https://example.com/');
+		body.children.push(createUnreadableIframe(), iframe);
+
+		expect(() =>
+			createIframeBlocker({ kernel: createConsentKernel() })
 		).not.toThrow();
 		expect(iframe.getAttribute('src')).toBeNull();
 	});

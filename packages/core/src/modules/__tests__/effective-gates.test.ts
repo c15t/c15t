@@ -204,31 +204,6 @@ describe('independent IAB authority', () => {
 		).toBe(false);
 	});
 
-	test('privacy restriction persists after signal removal and grant saves', async () => {
-		const kernel = createConsentKernel({
-			initialIab: { enabled: true },
-			initialPolicyResolution: matchedResolution(
-				iabRule({ privacySignals: { gpc: { denyCategories: ['marketing'] } } })
-			),
-			now: NOW,
-		});
-		disposers.push(() => kernel.dispose());
-		installAuthority(kernel);
-		await kernel.commands.init();
-		kernel.set.privacySignals({ gpc: true });
-		kernel.set.privacySignals({ gpc: false });
-		await kernel.commands.save({ marketing: true });
-		expect(
-			evaluateConsent(
-				{ category: 'marketing', vendorId: 755 },
-				kernel.getSnapshot()
-			)
-		).toBe(false);
-		expect(kernel.getSnapshot().restrictions.marketing).toContain(
-			'opt-out-directive'
-		);
-	});
-
 	test('draft maps and category saves never create TC authority', async () => {
 		const kernel = createConsentKernel({
 			initialIab: { enabled: true },
@@ -394,7 +369,7 @@ describe('legitimate-interest-only IAB targets', () => {
 		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(false);
 	});
 
-	test.each(['gpc', 'opt-out-directive', 'strict-scope'] as const)(
+	test.each(['gpc', 'strict-scope'] as const)(
 		'a %s restriction still blocks the target',
 		(restriction) => {
 			const kernel = refusedMeasurement();

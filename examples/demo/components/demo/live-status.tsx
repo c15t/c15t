@@ -70,7 +70,6 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 				iabEnabled: snapshot.iab?.enabled ?? false,
 				mode,
 				noticeDismissal: snapshot.noticeDismissal,
-				optOutDirectives: snapshot.optOutDirectives,
 				overrides: snapshot.overrides,
 				policyPending: snapshot.policyPending,
 				policyRule: policy,

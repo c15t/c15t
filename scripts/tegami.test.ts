@@ -22,8 +22,10 @@ import {
 	checkReleaseVersion,
 	createRelease,
 	releaseLine,
+	renderVersionPrBody,
 	runReleaseCli,
 	syncBunLockVersions,
+	versionPrBodyLimit,
 } from './tegami';
 
 const roots: string[] = [];
@@ -558,7 +560,7 @@ await runReleaseCli(createRelease({ branch: 'v3', cwd: process.cwd(), github: fa
 	});
 });
 
-it('drafts the real workspace without bumping private packages or leaving alpha', async () => {
+const realWorkspace = function realWorkspace() {
 	const root = fixture([]);
 	cpSync(join(repository, '.tegami'), join(root, '.tegami'), {
 		recursive: true,
@@ -573,6 +575,67 @@ it('drafts the real workspace without bumping private packages or leaving alpha'
 			);
 		}
 	}
+	return root;
+};
+
+const versionPrBody = async function versionPrBody(root: string) {
+	const tegami = release(root);
+	const { graph } = await tegami._internal.context();
+	const previous = new Map(
+		graph.getPackages().map((pkg) => [pkg.id, pkg.version])
+	);
+	const draft = await tegami.draft();
+	await draft.apply();
+	return renderVersionPrBody(graph, {
+		draft,
+		getPreviousVersion: (id) => previous.get(id),
+		plan: undefined,
+	});
+};
+
+describe('version PR body', () => {
+	it('lists each bumped version and release note', async () => {
+		const root = fixture([
+			{ name: '@c15t/core', version: '3.0.0-alpha.2' },
+			{ name: '@c15t/react', version: '3.0.0-alpha.2' },
+		]);
+		change(root, { '@c15t/core': { type: 'minor' } }, 'core-change');
+		change(root, { '@c15t/react': { type: 'patch' } }, 'react-change');
+
+		const body = await versionPrBody(root);
+
+		expect(body).toContain(
+			'| `@c15t/core` | `3.0.0-alpha.2` | `3.0.0-alpha.3` |'
+		);
+		expect(body).toContain('- **core-change** (`core-change.md`): @c15t/core');
+		expect(body).toContain(
+			'- **react-change** (`react-change.md`): @c15t/react'
+		);
+	});
+
+	it('drops note lines past GitHub’s size limit and says how many', async () => {
+		const root = fixture([{ name: '@c15t/core', version: '3.0.0-alpha.2' }]);
+		// 300 notes with 200-character titles render well past 65,536 characters.
+		for (let index = 0; index < 300; index += 1) {
+			change(
+				root,
+				{ '@c15t/core': { type: 'patch' } },
+				`note-${String(index).padStart(3, '0')}-${'x'.repeat(200)}`
+			);
+		}
+
+		const body = await versionPrBody(root);
+
+		expect(body.length).toBeLessThanOrEqual(versionPrBodyLimit);
+		expect(body).toMatch(/- …and \d+ more release notes\./u);
+		expect(body).toContain(
+			'| `@c15t/core` | `3.0.0-alpha.2` | `3.0.0-alpha.3` |'
+		);
+	});
+});
+
+it('drafts the real workspace without bumping private packages or leaving alpha', async () => {
+	const root = realWorkspace();
 	const draft = await release(root).draft();
 	const notes = readdirSync(join(root, '.tegami')).filter(
 		(file) => file.endsWith('.md') && file !== 'README.md'
@@ -580,11 +643,19 @@ it('drafts the real workspace without bumping private packages or leaving alpha'
 	// Tegami silently ignores malformed note files. Check that none were lost.
 	expect(draft.getChangelogs()).toHaveLength(notes.length);
 	await draft.apply();
-	const manifests = readdirSync(join(root, 'packages')).map((directory) =>
+	const directories = readdirSync(join(root, 'packages'));
+	const manifests = directories.map((directory) =>
 		readManifest(root, directory)
 	);
-	for (const manifest of manifests.filter((pkg) => pkg.private)) {
-		expect(manifest.version).toBeUndefined();
+	// Private packages may carry a placeholder version so published packages
+	// can pack their workspace devDependencies. Tegami must leave it alone.
+	const privateDirectories = directories.filter(
+		(_, index) => manifests[index]?.private
+	);
+	for (const directory of privateDirectories) {
+		expect(readManifest(root, directory).version).toBe(
+			readManifest(repository, directory).version
+		);
 	}
 	for (const manifest of manifests.filter((pkg) => !pkg.private)) {
 		expect(manifest.version).toMatch(/^3\.0\.0-alpha\.\d+$/u);

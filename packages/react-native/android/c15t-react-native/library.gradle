@@ -1,0 +1,345 @@
+// The React Native bridge library, applied from this module's build.gradle.kts.
+//
+// It is Groovy on purpose. A script applied with apply(from:) is compiled against a classpath
+// that does not contain AGP, so a Kotlin script here could not name LibraryExtension at all,
+// and a host app could not be asked to add it. Groovy resolves the Android DSL at runtime, so
+// the same file configures the library in every build that reaches it, against whichever AGP
+// that build uses.
+//
+// The namespace is the one piece of the library that is deliberately not here. React Native
+// reads a library's Java package by matching its build file, so that value belongs in
+// build.gradle.kts, where AGP and an app's autolinking read the same line. Everything below
+// is invisible to that lookup.
+//
+// The manifest, sources, and consumer rules take absolute paths. A missing manifest is the
+// failure worth designing against: the androidx.startup entry that bootstraps the core before
+// the first JavaScript frame would quietly never be merged.
+
+import java.io.File
+
+def prop = { String name ->
+	def value = project.findProperty(name)
+	if (value == null) {
+		return null
+	}
+	String text = value.toString().trim()
+	return text.isEmpty() ? null : text
+}
+
+String groupName = prop('c15t.core.group') ?: 'com.c15t'
+// Only read when c15t.core.fromSource=false. No com.c15t artifact is on Maven yet and
+// native/core-android publishes nothing, so this names a release that does not exist. It
+// has to be cut from this tree first and this number raised to match: the bridge imports
+// engine classes (SnapshotWire, the decision gate) that no older engine build contains.
+String coreVersion = prop('c15t.core.version') ?: '3.0.0-alpha.1'
+
+// Unset in a host app, where the version is not ours to choose: React Native's root plugin
+// forces com.facebook.react:react-android onto every project's every configuration
+// (DependencyUtils.configureDependencies), so the versionless coordinate resolves. Setting a
+// version here would fight the app.
+String reactNativeVersion = prop('c15t.reactNativeVersion')
+String reactNativeCoordinate =
+	reactNativeVersion == null ? 'com.facebook.react:react-android' : "com.facebook.react:react-android:$reactNativeVersion"
+
+// A host app sets these as root ext properties, as numbers, hence reading them as text.
+int compileSdkValue = prop('compileSdkVersion')?.toInteger() ?: 36
+int minSdkValue = prop('minSdkVersion')?.toInteger() ?: 24
+
+// The `@c15t/react-native` package root, which owns package.json and src/specs.
+File packageRoot = projectDir.parentFile.parentFile
+File specRoot = new File(packageRoot, 'src/specs')
+File stubSpec = new File(packageRoot, 'android/c15t-spec/src/main/java/com/c15t/reactnative/NativeC15tSpec.java')
+
+String requestedSpecSource = prop('c15t.spec.source') ?: 'auto'
+
+// The generator. One file, driven identically by `:c15t-spec`, by this module in a host
+// app, and by the drift check in src/specs/__tests__, so no mode is verified against a
+// second implementation of generation. It calls `@react-native/codegen` with library
+// semantics: the library name, `jsSrcsDir`, and `javaPackageName` all come from this
+// package's `codegenConfig`.
+File specGenerator = new File(packageRoot, 'android/codegen/generate-spec.mjs')
+
+// React Native, wherever that build's install lives. The generator resolves
+// `@react-native/codegen` from `codegenProjectRoot`, which is this package inside a
+// workspace and the app outside one, so a reachable install is what makes generation
+// possible at all; the property exists because Bun's isolated layout does not always put
+// it where a walk from here lands.
+List<File> candidateInstalls = [
+	new File(packageRoot, 'node_modules/react-native'),
+	packageRoot.parentFile ? new File(packageRoot.parentFile, 'node_modules/react-native') : null,
+	packageRoot.parentFile?.parentFile ? new File(packageRoot.parentFile.parentFile, 'node_modules/react-native') : null,
+	new File(rootProject.projectDir, 'node_modules/react-native'),
+	prop('c15t.reactNativeDir') ? file(prop('c15t.reactNativeDir')) : null,
+].findAll { it != null }
+
+File reactNativeInstall = candidateInstalls.find { new File(it, 'package.json').isFile() }
+
+// Whether Codegen runs at all. The stand-in project only exists in this repository's own
+// build; a host app autolinks the bridge module and nothing else, so `auto` follows
+// whichever of the two is actually reachable.
+boolean specProjectAvailable = project.findProject(':c15t-spec') != null
+boolean canGenerate = specGenerator.isFile() && reactNativeInstall != null
+boolean useCodegen
+switch (requestedSpecSource) {
+	case 'codegen':
+		if (!canGenerate && !specProjectAvailable) {
+			throw new GradleException(
+				"c15t.spec.source=codegen, but Codegen cannot run here: no React Native install " +
+					"was found and " + specGenerator + ' is not readable. Point ' +
+					'c15t.reactNativeDir at the react-native package, or use ' +
+					'-Pc15t.spec.source=stub for the compileOnly stand-in.',
+			)
+		}
+		useCodegen = true
+		break
+	case 'stub':
+		useCodegen = false
+		break
+	case 'auto':
+		useCodegen = specProjectAvailable ? false : canGenerate
+		if (!useCodegen && !specProjectAvailable) {
+			throw new GradleException(
+				'Neither a React Native install nor the :c15t-spec stand-in is reachable, so ' +
+					'NativeC15tSpec cannot be resolved. Install dependencies, or point ' +
+					'c15t.reactNativeDir at the react-native package.',
+			)
+		}
+		break
+	default:
+		throw new GradleException("c15t.spec.source must be auto, codegen, or stub (got $requestedSpecSource)")
+}
+
+// Who puts `NativeC15tSpec` on this module's compile classpath.
+//
+// `:c15t-spec`, when the build has it: it compiles the hand-written stand-in for `auto` and
+// `stub`, and generates from src/specs for `codegen`. Either way the bridge depends on it
+// `compileOnly`, so the class is in no AAR -- two copies of it in one APK is a
+// duplicate-class failure, and that holds for generated output exactly as it holds for the
+// stand-in.
+//
+// This module, and only in a host app: there is no stand-in project to lean on, and a build
+// that links a library does not generate that library's spec, so the copy has to be made
+// and compiled here.
+boolean specFromProject = !useCodegen || specProjectAvailable
+boolean generatesIntoThisModule = useCodegen && !specProjectAvailable
+
+if (!useCodegen) {
+	logger.lifecycle(
+		'c15t-react-native: NativeC15tSpec compiles against the compileOnly stand-in in ' +
+			':c15t-spec, which is absent from the published AAR. -Pc15t.spec.source=codegen ' +
+			'compiles against Codegen output instead.',
+	)
+} else if (specProjectAvailable) {
+	logger.lifecycle(
+		'c15t-react-native: :c15t-spec generates NativeC15tSpec from src/specs with ' +
+			'@react-native/codegen and still reaches this module as compileOnly, so nothing ' +
+			'is added to the AAR.',
+	)
+} else {
+	logger.lifecycle(
+		"c15t-react-native: generating NativeC15tSpec into this module from " +
+			'src/specs, because no :c15t-spec project exists in this build.',
+	)
+}
+
+// The directory React Native itself writes Codegen output to, and the one an app's build
+// reads it from. Android-autolinking.cmake, generated by RN's plugin into the app, does
+// add_subdirectory("<this module>/build/generated/source/codegen/jni/") and appends the
+// target it declares to AUTOLINKED_LIBRARIES, while autolinking.cpp #includes <C15tSpec.h>
+// from that same folder. A private directory name would be ours alone: the cmake guards the
+// add_subdirectory with if(EXISTS), so a miss prints a warning there and then fails on the
+// include two lines into the app's first C++ translation unit.
+def codegenOutputDir = layout.buildDirectory.dir('generated/source/codegen')
+
+// Kotlin, in whichever way this build compiles it.
+//
+// AGP 9 compiles Kotlin itself, and this repository's own build relies on that. A generated
+// React Native app turns it off (`android.builtInKotlin=false` in its gradle.properties) and
+// applies the Kotlin Android plugin to its app module only, so an autolinked library is left
+// with no Kotlin compiler: nothing builds src/main/kotlin, yet the app's generated
+// PackageList still names com.c15t.reactnative.C15tReactNativePackage, and the app dies in
+// javac with "cannot find symbol" on a class no task ever compiled. Applying the plugin here
+// is what makes the bridge build in an app as shipped by the template.
+//
+// Version-free, because the app owns that choice: the template puts
+// org.jetbrains.kotlin:kotlin-gradle-plugin on its root buildscript classpath, and a version
+// on this line would fight it. Built-in Kotlin defaults to on under AGP 9, so anything other
+// than an explicit opt-out means the compiler is already there.
+String builtInKotlin = (prop('android.builtInKotlin') ?: 'true').toString()
+if (builtInKotlin.equalsIgnoreCase('false') && !project.plugins.hasPlugin('org.jetbrains.kotlin.android')) {
+	try {
+		project.apply plugin: 'org.jetbrains.kotlin.android'
+	} catch (Exception failure) {
+		throw new GradleException(
+			'@c15t/react-native builds its Android bridge in Kotlin, and this build opted out of ' +
+				"AGP's built-in Kotlin (android.builtInKotlin=false) without putting the Kotlin " +
+				'Android plugin on the classpath. The React Native template does: add ' +
+				'org.jetbrains.kotlin:kotlin-gradle-plugin to the root buildscript classpath, or ' +
+				'drop android.builtInKotlin=false. Caused by: ' + failure.message,
+		)
+	}
+
+	// The android block below compiles Java to 17, and AGP fails the build when the Kotlin
+	// target disagrees, so both are pinned to the same level rather than left to defaults.
+	project.tasks.matching { it.name.endsWith('KotlinCompile') }.configureEach { task ->
+		task.kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
+	}
+}
+
+android {
+	compileSdk = compileSdkValue
+
+	defaultConfig {
+		minSdk = minSdkValue
+		consumerProguardFiles new File(projectDir, 'consumer-rules.pro').absolutePath
+	}
+
+	compileOptions {
+		sourceCompatibility = JavaVersion.VERSION_17
+		targetCompatibility = JavaVersion.VERSION_17
+	}
+
+	buildFeatures {
+		buildConfig = false
+	}
+
+	sourceSets {
+		main {
+			manifest.srcFile new File(projectDir, 'src/main/AndroidManifest.xml').absolutePath
+			java.srcDirs = [new File(projectDir, 'src/main/kotlin').absolutePath, new File(projectDir, 'src/main/java').absolutePath]
+			kotlin.srcDirs = java.srcDirs
+		}
+		test {
+			java.srcDirs = [new File(projectDir, 'src/test/kotlin').absolutePath, new File(projectDir, 'src/test/java').absolutePath]
+			kotlin.srcDirs = java.srcDirs
+		}
+	}
+
+	lint {
+		warningsAsErrors = true
+		// Coordinates are pinned on purpose, so "a newer version exists" is noise, and the
+		// catalog suggestion asks for accessors that do not exist inside a host app.
+		disable.addAll(['GradleDependency', 'AndroidGradlePluginVersion', 'UseTomlInstead'])
+	}
+
+	testOptions {
+		unitTests {
+			// React Native classes are on the test classpath only so the module class can be
+			// loaded and inspected; no device and no React instance are involved.
+			returnDefaultValues = true
+		}
+	}
+}
+
+dependencies {
+	// The consent engine: an included build of native/core-android when c15t.core.fromSource is
+	// true (see settings.gradle.kts), or the published artifacts, which is what an app
+	// installing @c15t/react-native from npm gets.
+	implementation "$groupName:c15t-core:$coreVersion"
+	implementation "$groupName:c15t-android:$coreVersion"
+
+	implementation 'androidx.startup:startup-runtime:1.1.1'
+	compileOnly 'androidx.annotation:annotation:1.10.0'
+
+	// React Native comes from the host app, so it stays out of the published AAR's dependency
+	// list rather than pinning an app to one React Native version.
+	compileOnly reactNativeCoordinate
+
+	testImplementation reactNativeCoordinate
+	testImplementation 'junit:junit:4.13.2'
+
+	// Compile-only, so the spec never reaches a finished APK whether it came from the
+	// stand-in or from Codegen: two copies of NativeC15tSpec in one app is a
+	// duplicate-class failure.
+	if (specFromProject) {
+		if (!specProjectAvailable) {
+			throw new GradleException(
+				'NativeC15tSpec should come from the :c15t-spec stand-in, but that project is not ' +
+					'part of this build. React Native autolinking links only the module under ' +
+					'android.sourceDir, so a host app must build against Codegen instead: check ' +
+					'that node_modules/react-native is installed.',
+			)
+		}
+		compileOnly project(':c15t-spec')
+		testImplementation project(':c15t-spec')
+	}
+}
+
+// The tests read the real Codegen input, so the bridge cannot quietly disagree with what an
+// app's generated spec will look like.
+tasks.withType(Test).configureEach {
+	systemProperty 'c15t.spec.file', new File(specRoot, 'NativeC15t.ts').absolutePath
+	systemProperty 'c15t.stub.spec.file', stubSpec.absolutePath
+}
+
+if (generatesIntoThisModule) {
+	// The project Codegen reads package.json and node_modules from. For a host app that is the
+	// app; for this repository it is the package, whose hoisted node_modules resolve.
+	File codegenProjectRoot = prop('c15t.codegenProjectRoot') ? file(prop('c15t.codegenProjectRoot')) : packageRoot
+	String nodeExecutable = (prop('c15t.nodeExecutable') ?: 'node') as String
+	File generatedJavaDir = new File(codegenOutputDir.get().asFile, 'java')
+
+	def generate = tasks.register('generateC15tCodegen', Exec) {
+		group = 'build'
+		description = 'Generate NativeC15tSpec from src/specs/NativeC15t.ts with React Native Codegen.'
+		inputs.dir specRoot
+		inputs.file new File(codegenProjectRoot, 'package.json')
+		inputs.file specGenerator
+		outputs.dir codegenOutputDir
+		doFirst {
+			codegenOutputDir.get().asFile.mkdirs()
+		}
+		doLast {
+			// A generator that quietly wrote nothing is the failure worth catching here. The
+			// spec reaches the bridge only through this directory, so an empty result leaves
+			// the module's Kotlin referencing a class that does not exist, and the app reports
+			// it as "cannot find symbol" against a file its own autolinking generated.
+			if (!new File(generatedJavaDir, 'com/c15t/reactnative/NativeC15tSpec.java').isFile()) {
+				throw new GradleException(
+					"generateC15tCodegen produced no ${new File(generatedJavaDir, 'com/c15t/reactnative/NativeC15tSpec.java')}. " +
+						'The bridge compiles its module against this spec and has no substitute for ' +
+						"it in a host app. Check that node ${nodeExecutable} can run " +
+						"${specGenerator} with --project-root ${codegenProjectRoot}; it must resolve " +
+						'@react-native/codegen from there.',
+				)
+			}
+		}
+		// Library semantics, deliberately not generate-codegen-artifacts.js. That entry point
+		// treats the folder as an app: it scans for codegen-enabled libraries and writes the
+		// spec under its own default package, com.facebook.fbreact.specs, which is neither the
+		// package codegenConfig declares nor the one this module's Kotlin is compiled in.
+		commandLine(
+			nodeExecutable,
+			specGenerator.absolutePath,
+			'--platform', 'android',
+			'--output', codegenOutputDir.get().asFile.absolutePath,
+			'--project-root', codegenProjectRoot.absolutePath,
+		)
+	}
+
+	// preBuild is the task AGP hangs the rest of the build behind, which is what React
+	// Native's own plugin uses for the same reason. The annotation-extraction and lint tasks
+	// read the same source directories, so they are named too rather than left to ordering
+	// luck.
+	tasks.named('preBuild').configure { dependsOn generate }
+	tasks.matching { it.name.startsWith('compile') }.configureEach { dependsOn generate }
+
+	// The app has to wait for this too. The C++ half is not compiled here -- React Native
+	// compiles it as part of the app's own CMake build, from the directory above -- and AGP
+	// puts no edge between an app's native build and the tasks of an autolinked library, so
+	// parallel execution can have CMake read the folder before it has contents. Gating the
+	// app's preBuild is what RN does for its own generated C++ for exactly this reason.
+	// `matching` rather than `named`: this module is configured before or after the app
+	// depending on include order, and only the app has the task we mean.
+	rootProject.subprojects { other ->
+		other.plugins.withId('com.android.application') {
+			other.tasks.matching { it.name == 'preBuild' }.configureEach { it.dependsOn generate }
+		}
+	}
+
+	// A plain path, not a Provider: AGP 9 rejects provider-backed source directories unless
+	// android.sourceset.disallowProvider is turned off, which is not ours to set in an app.
+	// `java` and not the output root: the generator writes java/ (the spec) and jni/ (the
+	// C++ glue), and only the first is Java source.
+	android.sourceSets.main.java.srcDir generatedJavaDir.absolutePath
+}

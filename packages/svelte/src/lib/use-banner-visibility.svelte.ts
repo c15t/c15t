@@ -1,4 +1,4 @@
-import { onMount, tick, untrack } from 'svelte';
+import { onMount, untrack } from 'svelte';
 
 const DEFAULT_DURATION_MS = 200;
 
@@ -24,21 +24,20 @@ const readDurationMs = function readDurationMs(target: Element | null): number {
 /**
  * Visibility / mount lifecycle for the consent banner.
  *
- * - On show: mounts the element with `.bannerHidden`, awaits Svelte commit,
- *   forces a reflow so the browser observes that initial style, then flips
- *   to `.bannerVisible`. The CSS transition fires automatically — no JS
- *   timing coordination.
+ * - On show: mounts the element in its visible state with the
+ *   `bannerEntering` class. That class is the `@starting-style` state the
+ *   stylesheet transitions from on the first frame, so no reflow or class
+ *   flip is needed. Browsers without `@starting-style` show it in place.
  * - On hide: flips to `.bannerHidden`, then unmounts after the duration
  *   declared by the `--consent-banner-animation-duration` CSS variable.
  * - When animation is disabled (provider option or `prefers-reduced-motion`):
- *   toggles synchronously, skipping the show reflow and the hide timer.
+ *   toggles synchronously, skipping the hide timer.
  * - Server render: when the very first evaluation already says "show" — which
  *   only happens once a `prefetch` has seeded a resolved policy, since
  *   without one the kernel's model is `null` and `activeUI` is `'none'` — the
- *   banner starts mounted and *visible*. That puts the shell in the first
- *   HTML and skips the entry animation on hydration, which would otherwise
- *   replay an animation the user has already seen painted. Client-triggered
- *   shows still take the animated path.
+ *   banner starts mounted and visible in the first HTML. The entry runs
+ *   once, at first paint; hydration does not replay it because the element
+ *   has already been styled.
  */
 export const useBannerVisibility = function useBannerVisibility(
 	getShouldShow: () => boolean,
@@ -62,25 +61,8 @@ export const useBannerVisibility = function useBannerVisibility(
 
 		if (shouldShow) {
 			shouldRender = true;
-			if (disableAnim) {
-				isVisible = true;
-				return;
-			}
-			let cancelled = false;
-			void (async () => {
-				await tick();
-				if (cancelled) {
-					return;
-				}
-				// Force layout so the browser observes `bannerHidden` before we
-				// flip to `bannerVisible`. Without this, a fresh mount can
-				// compute the final style first and skip the entry transition.
-				void bannerEl?.offsetHeight;
-				isVisible = true;
-			})();
-			return () => {
-				cancelled = true;
-			};
+			isVisible = true;
+			return;
 		}
 
 		if (!isVisible) {

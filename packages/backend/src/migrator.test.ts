@@ -141,6 +141,7 @@ for (const [name, makeConfig] of CONFIGS) {
 					'2-hot-path-indexes',
 					'3-consent-receipts-and-privacy-directives',
 					'4-vendor-choice',
+					'5-drop-subject-identity-authority',
 				]);
 
 				const applied = await migrator.apply();

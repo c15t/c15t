@@ -45,7 +45,6 @@ const renderWithoutPolicy = () => {
 			disableAnimation: true,
 			mode: custom({
 				init: () => Promise.resolve(response),
-				recordPrivacyOptOut: () => Promise.resolve(),
 				save: () => Promise.resolve({ ok: true, subjectId: 'svelte-test' }),
 			}),
 			persistence: false,

@@ -45,6 +45,11 @@ describe('determineCategory', () => {
 		const iframe = makeIframe({ 'data-category': 'totally-fake' });
 		expect(determineCategory(iframe)).toBeNull();
 	});
+
+	test('returns null for an empty category', () => {
+		const iframe = makeIframe({ 'data-category': '' });
+		expect(determineCategory(iframe)).toBeNull();
+	});
 });
 
 describe('reconcileIframe', () => {

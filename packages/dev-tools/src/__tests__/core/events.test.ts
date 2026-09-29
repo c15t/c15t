@@ -68,11 +68,6 @@ describe('kernel event mapping', () => {
 				snapshot,
 				type: 'notice:dismissed',
 			},
-			{
-				directive: { categories: ['marketing'], recordedAt: 1, source: 'gpc' },
-				snapshot,
-				type: 'privacy:opt-out',
-			},
 			{ snapshot, type: 'overrides:set' },
 			{ snapshot, type: 'user:identified' },
 			{ snapshot, type: 'subject:resolved' },

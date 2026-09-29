@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/astro': patch
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### Keep visitors' choices on prerendered Astro pages

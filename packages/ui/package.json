@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/ui",
-	"version": "3.0.0-alpha.2",
+	"version": "3.0.0-alpha.3",
 	"description": "Framework-agnostic primitives, CSS, and theme system powering c15t consent UIs (React, Solid, Svelte, Vue).",
 	"keywords": [
 		"c15t",
@@ -35,6 +35,10 @@
 		"src/styles",
 		"!src/styles/**/__tests__/**",
 		"!src/styles/**/*.test.ts",
+		"!src/primitives/**/__tests__/**",
+		"!src/primitives/**/*.test.ts",
+		"!dist-types/**/__tests__/**",
+		"!types/**/__tests__/**",
 		"types"
 	],
 	"type": "module",

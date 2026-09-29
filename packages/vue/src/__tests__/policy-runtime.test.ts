@@ -296,7 +296,7 @@ test.each([true, false, 'true', 1, undefined])(
 );
 
 test.each(['header', 'browser', 'header-with-browser-false'] as const)(
-	'prepared mount persists %s GPC without recording consent',
+	'prepared mount applies %s GPC live without recording consent or storage',
 	async (source) => {
 		const now = Date.now();
 		vi.spyOn(Date, 'now').mockReturnValue(now);
@@ -327,7 +327,6 @@ test.each(['header', 'browser', 'header-with-browser-false'] as const)(
 				choice: null,
 				noticeDismissal: null,
 				now: now - 1000,
-				optOutDirectives: [],
 				subject: null,
 			},
 			kernelConfig: {
@@ -340,21 +339,24 @@ test.each(['header', 'browser', 'header-with-browser-false'] as const)(
 				transport: { save: consentSave },
 			},
 		});
-		const privacy = vi.fn();
-		context.kernel.events.on('privacy:opt-out', privacy);
-		expect(context.snapshot.value.optOutDirectives).toEqual([]);
+		// A browser that reports `false` on mount ends the header's signal, and
+		// nothing stored keeps its restriction alive.
+		const active = source !== 'header-with-browser-false';
 		const dispose = startVueConsentRuntime(context, config, { runInit: false });
 		try {
 			await vi.waitFor(() =>
-				expect(
-					readStoredRecords(storageConfig, now).records.optOutDirectives
-				).toHaveLength(1)
+				expect(context.snapshot.value.privacySignals.gpc.active).toBe(active)
+			);
+			expect(context.snapshot.value.effectivePermissions.marketing).toBe(
+				!active
 			);
 			expect(context.snapshot.value.explicitChoice).toBeNull();
-			expect(privacy).toHaveBeenCalledOnce();
 			expect(choice).not.toHaveBeenCalled();
 			expect(consentSave).not.toHaveBeenCalled();
 			expect(readStoredRecords(storageConfig, now).records.choice).toBeNull();
+			expect(
+				localStorage.getItem(`${storageConfig.storageKey}-privacy`)
+			).toBeNull();
 		} finally {
 			dispose();
 			if (previous) {

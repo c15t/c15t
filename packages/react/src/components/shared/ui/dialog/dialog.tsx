@@ -2,6 +2,7 @@
 
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives/dialog';
+import { firstTabbable } from '@c15t/ui/utils/dom';
 import {
 	createContext,
 	forwardRef as createForwardRef,
@@ -189,15 +190,17 @@ const DialogContent = createForwardRef<HTMLDialogElement, DialogContentProps>(
 			useDialogContext();
 		const contentRef = useRef<HTMLDialogElement | null>(null);
 
-		useFocusTrap(open, contentRef);
+		useFocusTrap(open, contentRef, { initialFocus: 'first-tabbable' });
 		useScrollLock(open);
 
 		useEffect(() => {
 			if (open) {
-				initialFocusRef?.current?.focus();
-				if (!initialFocusRef?.current) {
-					contentRef.current?.focus();
-				}
+				const content = contentRef.current;
+				const target =
+					initialFocusRef?.current ??
+					(content ? firstTabbable(content) : undefined) ??
+					content;
+				target?.focus();
 			}
 		}, [initialFocusRef, open]);
 

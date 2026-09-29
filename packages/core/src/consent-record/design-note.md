@@ -1,12 +1,12 @@
 # Internal consent records
 
-These helpers implement the record model used by the kernel, persistence, transports and framework adapters. The record API is exported from `@c15t/core/consent-record`. The kernel exposes explicit choices, effective permissions, prompt requirements, notice dismissals and privacy directives as separate facts.
+These helpers implement the record model used by the kernel, persistence, transports and framework adapters. The record API is exported from `@c15t/core/consent-record`. The kernel exposes explicit choices, effective permissions, prompt requirements and notice dismissals as separate facts. GPC is a live signal read on each evaluation and is never stored.
 
 ## Files
 
 | File | Role |
 | --- | --- |
-| `types.ts` | One latest `CategoryDecision` per optional category, plus separate notice dismissal, privacy directive, policy and evaluation types. |
+| `types.ts` | One latest `CategoryDecision` per optional category, plus separate notice dismissal, policy and evaluation types. |
 | `validation.ts` | Checks own fields on objects with a plain or null prototype. Includes non-enumerable category keys and copies validated basis fields explicitly. Timestamps must be safe non-negative integer milliseconds no later than the supplied `now`. |
 | `normalize.ts` | Reads raw v2 `{ consents, consentInfo }` with its encoding. Compact cookies restore omitted `false`; JSON keeps absent keys absent. Retains original times and legacy fingerprints. |
 | `record.ts` | Replaces each supplied own optional key at the captured action time with the current choice basis. Omitted decisions retain their time and basis. |
@@ -15,7 +15,7 @@ These helpers implement the record model used by the kernel, persistence, transp
 
 ## Semantics
 
-Opt-in and IAB default to denied within scope; opt-out defaults to allowed. Outside scope, strict mode denies and permissive mode allows. A compatible, unexpired positive decision grants within scope. Explicit false, strict scope exclusion, applicable GPC and standing opt-out directives override grants and defaults. Denials do not expire. An expired opt-out grant can still be allowed by default, with its source reported as `default`.
+Opt-in and IAB default to denied within scope; opt-out defaults to allowed. Outside scope, strict mode denies and permissive mode allows. A compatible, unexpired positive decision grants within scope. Explicit false, strict scope exclusion and an applicable live GPC signal override grants and defaults. Denials do not expire. An expired opt-out grant can still be allowed by default, with its source reported as `default`.
 
 A `choice-v1` basis must match the policy's choice fingerprint. A `legacy-v2` basis compares only with the policy's legacy material fingerprint. If either legacy fingerprint is absent, the decision is grandfathered.
 
@@ -31,4 +31,4 @@ A notice prompt depends only on its dismissal. Missing dismissal yields `missing
 
 The kernel records choices through accept, reject and save, then evaluates these records against the current resolved policy. Persistence reads raw v2 and v3 records without creating a choice or writing during hydration. Producers compute policy and prompt fingerprints before the kernel applies a resolution.
 
-Notice dismissal and GPC directives have separate commands, records and events. Clearing c15t data invalidates pending record work. Transport acknowledgements may associate a successful current save with its canonical subject; failures preserve the local choice and existing subject.
+Notice dismissal has its own command, record and event. GPC has no record: when the browser stops sending the signal, its restriction stops applying. Clearing c15t data invalidates pending record work. Transport acknowledgements may associate a successful current save with its canonical subject; failures preserve the local choice and existing subject.

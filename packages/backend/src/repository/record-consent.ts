@@ -33,7 +33,7 @@ import { record } from './consent';
 import type { ConsentPurposeConflictError, ConsentSubmission } from './consent';
 import { recordDecision } from './runtime-policy-decision';
 import type { DecisionInput } from './runtime-policy-decision';
-import type { IdentityAuthority, SubjectTenantConflictError } from './subject';
+import type { SubjectTenantConflictError } from './subject';
 import { findOrCreate } from './subject';
 
 export interface ConsentSubmissionRequest {
@@ -41,8 +41,6 @@ export interface ConsentSubmissionRequest {
 	readonly domainId: string;
 	readonly externalId?: string | null;
 	readonly identityProvider?: string | null;
-	/** Who asserted `externalId` on a fresh subject. Defaults to `browser`. */
-	readonly identityAuthority?: IdentityAuthority;
 	readonly policyId?: string | null;
 	readonly purposeIds: readonly string[];
 	/** v3 receipts this act confirmed, only those categories. */
@@ -99,7 +97,6 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 
 	const subject = yield* findOrCreate({
 		externalId: request.externalId,
-		identityAuthority: request.identityAuthority,
 		identityProvider: request.identityProvider,
 		subjectId: request.subjectId,
 		tenantId,

@@ -189,7 +189,6 @@ for (const engine of ENGINES) {
 					yield* seedBothTenants;
 
 					const result = yield* linkExternalId({
-						authority: 'browser',
 						externalId: 'hijacked',
 						identityProvider: 'external',
 						ipAddress: null,

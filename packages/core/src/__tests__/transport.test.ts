@@ -2000,10 +2000,6 @@ describe('createHostedTransport: request shape', () => {
 		// After the kernel cleared its data it passes no subject. The transport
 		// must not reach the subject that earlier save established.
 		await transport.identify({ externalId: 'user-42' }, null);
-		await transport.recordPrivacyOptOut(
-			{ categories: ['marketing'], recordedAt: 1, source: 'gpc' },
-			null
-		);
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 
 		// With the kernel's real subject it links exactly that subject.

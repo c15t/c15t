@@ -1,3 +1,4 @@
+import { compareCanonical } from './canonical-order';
 import type { LegacyMaterialCompatibility } from './legacy-material-policy';
 /**
  * Versioned fingerprint domains for v3 policy rules.
@@ -122,7 +123,7 @@ const sortedGroups = function sortedGroups(
 ): PolicyPromptAction[][] {
 	return groups
 		.map((group) => sorted(group))
-		.sort((left, right) => left.join(',').localeCompare(right.join(',')));
+		.sort((left, right) => compareCanonical(left.join(','), right.join(',')));
 };
 
 /**

@@ -9,7 +9,7 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-it('measures all three real cookie projections and hydrates without writes', async () => {
+it('measures the real cookie projections and hydrates without writes', async () => {
 	vi.useFakeTimers();
 	const resolution = resolvePolicyRules({
 		countryCode: 'US',
@@ -28,7 +28,6 @@ it('measures all three real cookie projections and hydrates without writes', asy
 	expect(cookies.map((cookie) => cookie.split('=')[0]).sort()).toEqual([
 		'c15t',
 		'c15t-notice',
-		'c15t-privacy',
 	]);
 	const bytes = Object.fromEntries(
 		cookies.map((cookie) => {
@@ -53,7 +52,9 @@ it('measures all three real cookie projections and hydrates without writes', asy
 	vi.advanceTimersByTime(0);
 	expect(writes).not.toHaveBeenCalled();
 	expect(repeated.getSnapshot().promptRequirement.kind).toBe('none');
-	expect(repeated.getSnapshot().effectivePermissions.marketing).toBe(false);
+	// GPC is live-only: the fresh runtime has no signal, so nothing restricts
+	// marketing under the opt-out policy.
+	expect(repeated.getSnapshot().effectivePermissions.marketing).toBe(true);
 	expect(document.cookie.split('; ').sort()).toEqual(cookies);
 	writes.mockRestore();
 	repeatedPersistence.dispose();

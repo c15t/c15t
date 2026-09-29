@@ -14,7 +14,9 @@ const dialog = inject(dialogContextKey);
 const root = ref<HTMLElement | null>(null);
 
 const isModal = () => dialog?.modal() ?? false;
-useFocusTrap(root, () => isModal() && (dialog?.open() ?? false));
+useFocusTrap(root, () => isModal() && (dialog?.open() ?? false), {
+	initialFocus: 'first-tabbable',
+});
 
 const onKeydown = function onKeydown(event: KeyboardEvent) {
 	if (isDialogDismissKey(event.key)) {

@@ -339,7 +339,9 @@ const shouldTrapFocus = computed(() =>
 	Boolean(isOpen.value && presentation.value.blocking)
 );
 const card = ref<HTMLElement | null>(null);
-useFocusTrap(card, () => shouldTrapFocus.value);
+useFocusTrap(card, () => shouldTrapFocus.value, {
+	initialFocus: 'first-tabbable',
+});
 </script>
 
 <template>
@@ -396,6 +398,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 						role="dialog"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.preferenceCenter?.title"
+						aria-describedby="iab-consent-dialog-description"
 						tabindex="-1"
 						@keydown="onDialogKeydown"
 					>
@@ -416,6 +419,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 								<p
 									v-bind="config.components?.['iab-dialog']?.description"
 									:class="dialogStyles.description"
+									id="iab-consent-dialog-description"
 								>
 									{{ iabT?.preferenceCenter?.description }}
 								</p>

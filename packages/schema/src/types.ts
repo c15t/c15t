@@ -39,21 +39,16 @@ export type {
 	GetSubjectOutput,
 	GetSubjectParams,
 	GetSubjectQuery,
-	IdentityPrivacyDirectiveInput,
-	ListPrivacyDirectivesOutput,
 	ListSubjectsOutput,
 	ListSubjectsQuery,
 	PatchSubjectFullInput,
 	PatchSubjectOutput,
 	PostSubjectInput,
 	PostSubjectOutput,
-	PrivacyDirectiveWire,
-	RecordPrivacyDirectiveOutput,
 	SubjectCategoryReceiptWire,
 	SubjectChoiceBasisWire,
 	SubjectChoiceWire,
 	SubjectItem,
-	SubjectPrivacyDirectiveInput,
 	VendorChoiceWire,
 } from './api/subject';
 // Domain types
@@ -241,6 +236,7 @@ export {
 	POLICY_RULE_MODELS,
 	requiredPolicyRights,
 } from './shared/policy-rule-invariants';
+export { compareCanonical } from './shared/canonical-order';
 export type {
 	ChoicePromptFingerprintInput,
 	JsonValue,

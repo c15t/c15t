@@ -298,6 +298,22 @@
 				var(--consent-dialog-animation-timing);
 	}
 
+	/*
+	 * Entry for a dialog inserted in its visible state. Browsers with
+	 * `@starting-style` transition from here on the first frame, so the
+	 * open needs no forced layout between the hidden and visible classes.
+	 */
+	@starting-style {
+		.dialogEntering:not(:global(.headless)) {
+			opacity: 0;
+		}
+
+		.contentEntering:not(:global(.headless)) {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+	}
+
 	@media (min-width: 640px) {
 		.root:not(:global(.headless)) {
 			padding: var(--consent-dialog-card-padding);
@@ -365,6 +381,12 @@
 		opacity: 0;
 		transition: opacity var(--consent-dialog-animation-duration)
 			var(--consent-dialog-animation-timing);
+	}
+
+	@starting-style {
+		.overlayEntering:not(:global(.headless)) {
+			opacity: 0;
+		}
 	}
 
 	:global(.c15t-dark) .overlay:not(:global(.headless)) {

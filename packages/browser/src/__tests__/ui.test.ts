@@ -2,6 +2,7 @@ import { policyRulePresets } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createConsentClient } from '../client';
+import { classes } from '../generated/styles';
 import type {
 	ConsentClient,
 	ConsentUIHandle,
@@ -166,6 +167,90 @@ describe('mountConsentUI', () => {
 		expect(
 			root.querySelector('[data-testid="consent-dialog-root"]')
 		).toBeNull();
+	});
+
+	describe('entry transition', () => {
+		const spyOnLayout = function spyOnLayout() {
+			return vi
+				.spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+				.mockReturnValue(0);
+		};
+
+		/** Only the presence of the interface is checked. */
+		const declareStartingStyle = function declareStartingStyle() {
+			Object.assign(globalThis, { CSSStartingStyleRule: {} });
+		};
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+			Reflect.deleteProperty(globalThis, 'CSSStartingStyleRule');
+		});
+
+		it('inserts the banner and dialog visible without reading layout when @starting-style is supported', async () => {
+			declareStartingStyle();
+			const layout = spyOnLayout();
+			const { root } = await mount({ disableAnimation: false });
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.classList.contains(classes.banner.bannerVisible)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerHidden)).toBe(
+				false
+			);
+
+			query(root, 'consent-banner-customize-button').click();
+			const dialog = query(root, 'consent-dialog-root');
+			expect(dialog.classList.contains(classes.dialog.contentVisible)).toBe(
+				true
+			);
+			expect(dialog.classList.contains(classes.dialog.contentEntering)).toBe(
+				true
+			);
+			expect(layout).not.toHaveBeenCalled();
+		});
+
+		it('falls back to the hidden-then-visible flip with a layout read', async () => {
+			const layout = spyOnLayout();
+			const { root } = await mount({ disableAnimation: false });
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.classList.contains(classes.banner.bannerVisible)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				false
+			);
+			expect(layout).toHaveBeenCalledTimes(1);
+
+			query(root, 'consent-banner-customize-button').click();
+			const dialog = query(root, 'consent-dialog-root');
+			expect(dialog.classList.contains(classes.dialog.contentVisible)).toBe(
+				true
+			);
+			expect(dialog.classList.contains(classes.dialog.contentEntering)).toBe(
+				false
+			);
+			expect(layout).toHaveBeenCalledTimes(2);
+		});
+
+		it('skips the entering state when animation is disabled', async () => {
+			declareStartingStyle();
+			const layout = spyOnLayout();
+			const { root } = await mount();
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.classList.contains(classes.banner.bannerVisible)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				false
+			);
+			expect(layout).not.toHaveBeenCalled();
+		});
 	});
 
 	it('accepts from the banner and removes it', async () => {

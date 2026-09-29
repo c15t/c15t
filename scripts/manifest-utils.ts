@@ -4,6 +4,10 @@ import { join, posix as pathPosix } from 'node:path';
 export interface PackageManifest {
 	name?: string;
 	private?: boolean;
+	/** The dependency sections an installer obeys. `devDependencies` is absent on purpose. */
+	dependencies?: Record<string, string>;
+	peerDependencies?: Record<string, string>;
+	optionalDependencies?: Record<string, string>;
 	main?: string;
 	module?: string;
 	types?: string;

@@ -1,0 +1,6 @@
+.gradle/
+build/
+local.properties
+.kotlin/
+node_modules/
+*.hprof

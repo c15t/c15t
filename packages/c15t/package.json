@@ -1,6 +1,6 @@
 {
 	"name": "c15t",
-	"version": "3.0.0-alpha.2",
+	"version": "3.0.0-alpha.3",
 	"description": "The c15t consent management platform — one install for every framework: headless consent engine, React components, Next.js integration, and Vue/Nuxt module.",
 	"keywords": [
 		"astro",
@@ -74,6 +74,11 @@
 			"types": "./shims/consent-record.d.ts",
 			"import": "./shims/consent-record.js",
 			"default": "./shims/consent-record.js"
+		},
+		"./consent-categories": {
+			"types": "./shims/consent-categories.d.ts",
+			"import": "./shims/consent-categories.js",
+			"default": "./shims/consent-categories.js"
 		},
 		"./transports": {
 			"types": "./shims/transports.d.ts",

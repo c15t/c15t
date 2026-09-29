@@ -38,7 +38,6 @@ const renderUnderNone = (rule: PolicyRule) => {
 			disableAnimation: true,
 			mode: custom({
 				init: () => Promise.resolve({}),
-				recordPrivacyOptOut: () => Promise.resolve(),
 				save: () => Promise.resolve({ ok: true, subjectId: 'svelte-test' }),
 			}),
 			persistence: false,

@@ -58,7 +58,6 @@ export interface PersistenceHandle {
 	 *
 	 * - category decisions merge per category; each keeps the decision with
 	 *   the newer confirmation time;
-	 * - privacy directives merge as a union;
 	 * - the notice dismissal and the vendor record are replaced by a stored
 	 *   one at least as new, and kept when the stored one is older;
 	 * - a record removed from readable storage since this runtime last read
@@ -75,19 +74,19 @@ export interface PersistenceHandle {
 	 * hydration.
 	 *
 	 * Queued writes follow the same rules: a choice write stores the
-	 * per-category merge with what storage holds, a directive write stores
-	 * the union, a notice or vendor write never replaces a newer stored
-	 * record, and the rewrite that adds a server-resolved subject id never
-	 * recreates a cleared record.
+	 * per-category merge with what storage holds, a notice or vendor write
+	 * never replaces a newer stored record, and the rewrite that adds a
+	 * server-resolved subject id never recreates a cleared record.
 	 *
 	 * @returns Whether any in-memory record changed. Always `false` outside
 	 * the browser and after `dispose()`.
 	 */
 	reconcile: () => boolean;
 	/**
-	 * Cancel queued writes, clear every c15t record (choice, notice, privacy,
-	 * vendors, their cookie projections and the queued backend replays) and
-	 * reset the kernel's in-memory records.
+	 * Cancel queued writes, clear every c15t record (choice, notice, vendors,
+	 * their cookie projections, the legacy `<key>-privacy` record an earlier
+	 * v3 alpha may have stored, and the queued backend replays) and reset
+	 * the kernel's in-memory records.
 	 */
 	clear: () => void;
 }

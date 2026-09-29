@@ -56,21 +56,6 @@ export {
 } from './vendor-choice-wire';
 
 export {
-	type IdentityPrivacyDirectiveInput,
-	identityPrivacyDirectiveInputSchema,
-	type ListPrivacyDirectivesOutput,
-	listPrivacyDirectivesOutputSchema,
-	type PrivacyDirectiveWire,
-	privacyDirectiveAuthoritySchema,
-	privacyDirectiveSourceSchema,
-	privacyDirectiveWireSchema,
-	type RecordPrivacyDirectiveOutput,
-	recordPrivacyDirectiveOutputSchema,
-	type SubjectPrivacyDirectiveInput,
-	subjectPrivacyDirectiveInputSchema,
-} from './privacy-directive';
-
-export {
 	type PostSubjectInput,
 	type PostSubjectOutput,
 	postSubjectErrorSchemas,

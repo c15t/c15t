@@ -15,26 +15,22 @@
  * whose response lacks the field is a failed payload, never a permissive
  * fallback.
  *
- * Beyond `init`, `save` and `identify`, two optional methods carry the v3
- * record boundary: `loadSubjectRecord` reads the backend's merged receipts
- * and standing privacy directives for a subject as hydration records, and
- * `recordPrivacyOptOut` records a directive against the subject's own
- * server record through the privacy route, never the consent-saving one.
+ * Beyond `init`, `save` and `identify`, `loadSubjectRecord` carries the v3
+ * record boundary: it reads the backend's merged receipts for a subject as
+ * hydration records. GPC is a live signal and is never sent as a record.
  *
  * Identity before a server subject exists is kernel-local. `identify`
  * without a subject resolves at once and sends nothing: the transport keeps
  * no pending promise for a subject that may never be created, and never
  * manufactures a consent to create one. The next legitimate save carries
- * the identity in its body, the backend links it when it creates the
- * subject, and the kernel then forwards its standing directives to that
- * subject's privacy route with their original times. Local identification
- * is not server persistence and not trusted cross-profile authority; only
- * an authenticated link is.
+ * the identity in its body and the backend links it when it creates the
+ * subject. Local identification is not server persistence and not trusted
+ * cross-profile authority; only an authenticated link is.
  *
  * The subject id the kernel passes is the only subject this transport acts
  * on. It remembers no subject of its own: after the kernel clears its data a
- * later identify or directive with no subject must not reach the subject an
- * earlier save established.
+ * later identify with no subject must not reach the subject an earlier
+ * save established.
  *
  * Out of scope for this MVP (deferred to follow-ups):
  * - Response caching / revalidation

@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import {
 	getFocusableElements,
 	getTextDirection,
+	firstTabbable,
+	tabbableElements,
 	setupFocusTrap,
 	setupScrollLock,
 	setupTextDirection,
@@ -319,6 +321,31 @@ describe('setupFocusTrap focus restore', () => {
 		expect(document.activeElement).toBe(trigger);
 	});
 
+	test('focuses the first tabbable element when asked to', async () => {
+		const link = document.createElement('a');
+		link.href = '#';
+		const button = document.createElement('button');
+		dialog.append(link, button);
+
+		const release = setupFocusTrap(dialog, { initialFocus: 'first-tabbable' });
+		await flushFocusTimers();
+
+		expect(document.activeElement).toBe(link);
+		release();
+	});
+
+	test('falls back to the container when nothing inside is tabbable', async () => {
+		const label = document.createElement('p');
+		label.textContent = 'Nothing to press';
+		dialog.append(label);
+
+		const release = setupFocusTrap(dialog, { initialFocus: 'first-tabbable' });
+		await flushFocusTimers();
+
+		expect(document.activeElement).toBe(dialog);
+		release();
+	});
+
 	test('does not steal focus already moved inside the trap before initial focus runs', async () => {
 		const button = document.createElement('button');
 		dialog.appendChild(button);
@@ -495,5 +522,110 @@ describe('getFocusableElements fallback ancestor visibility', () => {
 		container.innerHTML =
 			'<div style="display: none"><button>Hidden child</button></div>';
 		expect(getFocusableElements(container)).toHaveLength(0);
+	});
+});
+
+describe('firstTabbable', () => {
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	const mount = function mount(html: string): HTMLElement {
+		const container = document.createElement('div');
+		container.innerHTML = html;
+		document.body.appendChild(container);
+		return container;
+	};
+
+	test('skips negative tabindex and controls a browser would not focus', () => {
+		const container = mount(`
+			<div tabindex="-2">Not tabbable</div>
+			<fieldset disabled><button id="fieldset-disabled">No</button></fieldset>
+			<div inert><button id="inert">No</button></div>
+			<button id="yes">Yes</button>
+		`);
+		expect(firstTabbable(container)?.id).toBe('yes');
+	});
+
+	test('prefers the lowest positive tabindex over document order', () => {
+		const container = mount(`
+			<button id="natural">Natural</button>
+			<button id="second" tabindex="2">Second</button>
+			<button id="first" tabindex="1">First</button>
+		`);
+		expect(firstTabbable(container)?.id).toBe('first');
+	});
+
+	test('orders the whole list the way sequential Tab does', () => {
+		const container = mount(`
+			<button id="natural">Natural</button>
+			<button id="second" tabindex="2">Second</button>
+			<button id="first" tabindex="1">First</button>
+			<button id="last">Last</button>
+		`);
+		expect(tabbableElements(container).map((element) => element.id)).toEqual([
+			'first',
+			'second',
+			'natural',
+			'last',
+		]);
+	});
+
+	test('counts native stops that are not form controls', () => {
+		const container = mount(`
+			<details><summary id="summary">More</summary><p>Body</p></details>
+			<button id="button">Button</button>
+		`);
+		expect(tabbableElements(container).map((element) => element.id)).toEqual([
+			'summary',
+			'button',
+		]);
+	});
+
+	test('returns undefined when nothing is tabbable', () => {
+		const container = mount('<p>Text only</p>');
+		expect(firstTabbable(container)).toBeUndefined();
+	});
+});
+
+describe('setupFocusTrap with positive tabindex', () => {
+	let cleanup: (() => void) | undefined;
+
+	afterEach(() => {
+		cleanup?.();
+		cleanup = undefined;
+		document.body.innerHTML = '';
+	});
+
+	const pressTab = function pressTab(shiftKey = false) {
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				bubbles: true,
+				cancelable: true,
+				key: 'Tab',
+				shiftKey,
+			})
+		);
+	};
+
+	test('steps through the dialog in sequential order instead of leaving it', async () => {
+		document.body.innerHTML = `
+			<button id="outside">Outside</button>
+			<div id="dialog">
+				<button id="natural">Natural</button>
+				<button id="jump" tabindex="1">Jump</button>
+			</div>
+		`;
+		const dialog = document.getElementById('dialog') as HTMLElement;
+		cleanup = setupFocusTrap(dialog, { initialFocus: 'first-tabbable' });
+		await flushFocusTimers();
+		expect(document.activeElement?.id).toBe('jump');
+
+		pressTab();
+		expect(document.activeElement?.id).toBe('natural');
+		pressTab();
+		expect(document.activeElement?.id).toBe('jump');
+		pressTab(true);
+		expect(document.activeElement?.id).toBe('natural');
 	});
 });

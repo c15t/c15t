@@ -610,7 +610,6 @@ function renderPolicy(
 		['Restrictions', snapshot.restrictions],
 		['Local notice dismissal', snapshot.noticeDismissal],
 		['Privacy signals', snapshot.privacySignals],
-		['Standing privacy directives', snapshot.optOutDirectives],
 		['Policy resolution', snapshot.resolution],
 		['Active policy rule', snapshot.policyRule],
 		[

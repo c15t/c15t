@@ -12,8 +12,11 @@ import { inc, prerelease, rcompare, valid } from 'semver';
 import { tegami } from 'tegami';
 import type {
 	BumpType,
+	ChangelogEntry,
+	Draft,
 	PublishPlan,
 	Tegami,
+	TegamiContext,
 	TegamiPlugin,
 	WorkspacePackage,
 } from 'tegami';
@@ -265,6 +268,107 @@ interface ReleaseOptions {
 	github?: boolean;
 }
 
+/** GitHub rejects pull request bodies longer than this many characters. */
+export const versionPrBodyLimit = 65_536;
+
+interface VersionPrBodyOptions {
+	draft: Draft;
+	plan: PublishPlan | undefined;
+	getPreviousVersion: (packageId: string) => string | undefined;
+}
+
+const versionPrPublishRows = function versionPrPublishRows(
+	graph: Pick<TegamiContext['graph'], 'get'>,
+	plan: PublishPlan | undefined
+) {
+	const rows: string[] = [];
+	for (const [id, { preflight, npm }] of plan?.packages ?? []) {
+		const pkg = graph.get(id);
+		if (pkg && preflight?.shouldPublish) {
+			const tag = npm?.distTag ? ` (dist-tag: ${npm.distTag})` : '';
+			rows.push(`| \`${pkg.name}\` | \`${pkg.version}\`${tag} |`);
+		}
+	}
+	return rows;
+};
+
+/**
+ * Render the version PR body with one line per release note. Tegami's default
+ * body repeats every note in full, which outgrows GitHub's limit on a large
+ * release. The full text is still in the PR's generated changelogs.
+ */
+export const renderVersionPrBody = function renderVersionPrBody(
+	graph: Pick<TegamiContext['graph'], 'get'>,
+	{ draft, plan, getPreviousVersion }: VersionPrBodyOptions
+) {
+	const versionRows: string[] = [];
+	const notes = new Map<ChangelogEntry, string[]>();
+	for (const [id, packageDraft] of draft.getPackageDrafts()) {
+		const pkg = graph.get(id);
+		if (!pkg) {
+			continue;
+		}
+		for (const entry of packageDraft.changelogs ?? []) {
+			notes.set(entry, [...(notes.get(entry) ?? []), pkg.name]);
+		}
+		const from = getPreviousVersion(id);
+		if (from && pkg.version && from !== pkg.version) {
+			versionRows.push(
+				`| \`${pkg.name}\` | \`${from}\` | \`${pkg.version}\` |`
+			);
+		}
+	}
+
+	const publishRows = versionPrPublishRows(graph, plan);
+	const head = ['## Versions', ''];
+	if (versionRows.length > 0) {
+		head.push(
+			'| Package | From | To |',
+			'| --- | --- | --- |',
+			...versionRows.sort()
+		);
+	}
+	head.push(
+		'',
+		'## Release notes',
+		'',
+		'Full text is in each package `CHANGELOG.md` in this PR.',
+		''
+	);
+	const tail = publishRows.length
+		? [
+				'',
+				'## Publish',
+				'',
+				'Merging publishes:',
+				'',
+				'| Package | Version |',
+				'| --- | --- |',
+				...publishRows,
+			]
+		: [];
+
+	const noteRows = [...notes].map(([entry, names]) => {
+		const title = entry.subject ?? entry.sections[0]?.title ?? entry.filename;
+		return `- **${title}** (\`${entry.filename}\`): ${names.sort().join(', ')}`;
+	});
+	const render = (rows: string[]) =>
+		`${[...head, ...rows, ...tail].join('\n')}\n`;
+	let body = render(noteRows);
+	// Drop note lines from the end until the body fits, and say how many.
+	for (
+		let kept = noteRows.length - 1;
+		body.length > versionPrBodyLimit && kept >= 0;
+		kept -= 1
+	) {
+		body = render([
+			...noteRows.slice(0, kept),
+			`- …and ${noteRows.length - kept} more release notes.`,
+		]);
+	}
+	return body;
+};
+
 /** Bun 1.3.11 does not refresh workspace versions for version-only manifest edits. */
 export const syncBunLockVersions = function syncBunLockVersions(
 	cwd: string,
@@ -358,7 +462,13 @@ export const createRelease = function createRelease({
 						versionPr:
 							branch === 'canary'
 								? false
-								: { base: branch, branch: `tegami/version-packages-${branch}` },
+								: {
+										base: branch,
+										branch: `tegami/version-packages-${branch}`,
+										create(options) {
+											return { body: renderVersionPrBody(this.graph, options) };
+										},
+									},
 					})
 				: []),
 		],

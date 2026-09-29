@@ -12,6 +12,7 @@
  */
 
 import type { Vendor } from '@c15t/schema/types';
+import { compareCanonical } from '@c15t/schema/types';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import type { ConsentKernel, ResolvedVendor, VendorSource } from '../types';
@@ -326,7 +327,7 @@ export const mergeDeclaredVendors = function mergeDeclaredVendors(
 		return current;
 	}
 	return [...byId.values()].sort((left, right) =>
-		left.id.localeCompare(right.id)
+		compareCanonical(left.id, right.id)
 	);
 };
 
@@ -402,7 +403,7 @@ export const resolveVendors = function resolveVendors(
 	}
 
 	return [...byId.values()].sort((left, right) =>
-		left.id.localeCompare(right.id)
+		compareCanonical(left.id, right.id)
 	);
 };
 

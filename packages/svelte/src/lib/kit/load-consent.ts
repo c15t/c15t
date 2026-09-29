@@ -3,11 +3,10 @@ import {
 	c15tProtocolHeaders,
 	mergeInitOutputIntoKernelConfig,
 } from '@c15t/core';
-import type { KernelConfig } from '@c15t/core';
 /**
  * `loadConsent` — the `+layout.server.ts` half of the SvelteKit layer.
  *
- * Returns a plain, serializable `KernelConfig` to hand the provider as
+ * Returns a plain, serializable `ConsentState` to hand the provider as
  * `prefetch`. With a prefetch in hand the kernel resolves the policy on the
  * server, so the banner is in the first HTML instead of appearing a frame
  * after hydration.
@@ -23,9 +22,9 @@ import type {
 } from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
-import { prefetchInitialConsent, readInitialConsentConfig } from '../server';
+import { resolveConsent } from '../server';
 import { waitUntilFromEvent } from './routes';
-import type { C15tLocals, ConsentRequestOptions } from './types';
+import type { C15tLocals, ConsentRequestOptions, ConsentState } from './types';
 
 /** Options for {@link loadConsent}. */
 export interface LoadConsentOptions extends ConsentRequestOptions {
@@ -164,7 +163,7 @@ const resolveBase = async function resolveBase(
 	event: RequestEvent,
 	options: LoadConsentOptions
 ): Promise<{
-	config: KernelConfig;
+	config: ConsentState;
 	inputs: ConsentRequestHeaderInputs;
 	cookieName: string | undefined;
 }> {
@@ -186,7 +185,7 @@ const resolveBase = async function resolveBase(
 		language: options.language,
 		region: options.region,
 	});
-	const config = await readInitialConsentConfig({
+	const config = await resolveConsent({
 		cookieName,
 		country: inputs.country,
 		headers: event.request.headers,
@@ -255,12 +254,12 @@ const initRequestHeaders = function initRequestHeaders(
  * @param event - The SvelteKit request event from `load`.
  * @param options - Mode selection, cookie name, geo/language overrides, and
  * the time budget.
- * @returns A serializable `KernelConfig` for the provider's `prefetch` prop.
+ * @returns A serializable `ConsentState` for the provider's `prefetch` prop.
  */
 export const loadConsent = async function loadConsent(
 	event: RequestEvent,
 	options: LoadConsentOptions = {}
-): Promise<KernelConfig> {
+): Promise<ConsentState> {
 	const { config, inputs, cookieName } = await resolveBase(event, options);
 	const timeoutMs = resolveTimeoutMs(options.timeoutMs);
 
@@ -269,7 +268,7 @@ export const loadConsent = async function loadConsent(
 		const forwarded = initRequestHeaders(inputs);
 		const controller = new AbortController();
 		let routeRequest: Promise<Response> | undefined;
-		const resolveFromRoute = async (): Promise<KernelConfig> => {
+		const resolveFromRoute = async (): Promise<ConsentState> => {
 			routeRequest = event.fetch(initRoute, {
 				headers: forwarded,
 				signal: controller.signal,
@@ -308,7 +307,7 @@ export const loadConsent = async function loadConsent(
 		const controller = new AbortController();
 		return withinBudget(
 			() =>
-				prefetchInitialConsent({
+				resolveConsent({
 					backendURL,
 					cookieName,
 					country: inputs.country,

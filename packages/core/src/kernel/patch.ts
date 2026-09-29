@@ -18,7 +18,6 @@ import type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 	PromptRequirement,
 	RestrictionReason,
 } from '../consent-record/types';
@@ -56,7 +55,6 @@ export interface SnapshotPatch {
 	consentCategories?: readonly AllConsentNames[] | null;
 	explicitChoice?: ExplicitChoice | null;
 	noticeDismissal?: NoticeDismissal | null;
-	optOutDirectives?: readonly PrivacyOptOut[];
 	resolution?: PolicyResolution;
 	subject?: ConsentSubject | null;
 	/** Detected user-agent GPC signal. */
@@ -114,8 +112,6 @@ export const isUnchangedPatch = function isUnchangedPatch(
 			current.explicitChoice &&
 		pick(patch.noticeDismissal, current.noticeDismissal) ===
 			current.noticeDismissal &&
-		pick(patch.optOutDirectives, current.optOutDirectives) ===
-			current.optOutDirectives &&
 		pick(patch.consentCategories, current.consentCategories) ===
 			current.consentCategories &&
 		pick(patch.resolution, current.resolution) === current.resolution &&
@@ -188,31 +184,6 @@ const sameRestrictions = function sameRestrictions(
 		}
 	}
 	return true;
-};
-
-const preservePrivacyDirectives = function preservePrivacyDirectives(
-	current: readonly PrivacyOptOut[],
-	patched: readonly PrivacyOptOut[] | undefined
-): readonly PrivacyOptOut[] {
-	if (patched === undefined || patched === current) {
-		return current;
-	}
-	const unchanged =
-		patched.length === current.length &&
-		patched.every((directive, index) => {
-			const previous = current[index];
-			return (
-				previous !== undefined &&
-				directive.source === previous.source &&
-				directive.recordedAt === previous.recordedAt &&
-				directive.categories.length === previous.categories.length &&
-				directive.categories.every(
-					(category, categoryIndex) =>
-						category === previous.categories[categoryIndex]
-				)
-			);
-		});
-	return unchanged ? current : patched;
 };
 
 const samePrivacySignals = function samePrivacySignals(
@@ -297,10 +268,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 
 	const explicitChoice = pick(patch.explicitChoice, current.explicitChoice);
 	const noticeDismissal = pick(patch.noticeDismissal, current.noticeDismissal);
-	const optOutDirectives = preservePrivacyDirectives(
-		current.optOutDirectives,
-		patch.optOutDirectives
-	);
 	const overrides = pick(patch.overrides, current.overrides);
 	const detected = pick(
 		patch.privacyDetected,
@@ -332,7 +299,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		evaluationPolicy === current.evaluationPolicy &&
 		explicitChoice === current.explicitChoice &&
 		noticeDismissal === current.noticeDismissal &&
-		optOutDirectives === current.optOutDirectives &&
 		privacySignals.gpc.active === current.privacySignals.gpc.active &&
 		now >= current.evaluatedAt &&
 		(current.nextDeadline === null || now < current.nextDeadline);
@@ -352,7 +318,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 				gpc: privacySignals.gpc.active,
 				noticeDismissal,
 				now,
-				optOuts: optOutDirectives,
 				policy: evaluationPolicy,
 			});
 	if (externalPermissions) {
@@ -413,7 +378,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		model: deriveModel(policyRule, iab?.enabled ?? false),
 		nextDeadline: evaluation.nextDeadline,
 		noticeDismissal,
-		optOutDirectives,
 		overrides,
 		policyPending,
 		policyRule,
