@@ -71,14 +71,17 @@ describe('the colorScheme option', () => {
 		).toBe('system');
 	});
 
-	it.each(['light', 'dark', 'system'] as const)('keeps %s', (colorScheme) => {
-		expect(
-			resolveOptions({
-				colorScheme,
-				mode: offlineMode({ policyRules: [testRule] }),
-			}).colorScheme
-		).toBe(colorScheme);
-	});
+	it.each(['light', 'dark', 'system', 'none'] as const)(
+		'keeps %s',
+		(colorScheme) => {
+			expect(
+				resolveOptions({
+					colorScheme,
+					mode: offlineMode({ policyRules: [testRule] }),
+				}).colorScheme
+			).toBe(colorScheme);
+		}
+	);
 
 	it('reaches the browser through the virtual options module', async () => {
 		expect(
@@ -102,6 +105,10 @@ describe('the colorScheme option', () => {
 describe('buildColorSchemeScript', () => {
 	it('emits nothing for light, because light is the absence of the class', () => {
 		expect(buildColorSchemeScript('light')).toBe('');
+	});
+
+	it('emits nothing for none, because the site owns the class', () => {
+		expect(buildColorSchemeScript('none')).toBe('');
 	});
 
 	it('sets the class unconditionally for dark', () => {
@@ -163,6 +170,17 @@ describe('<ConsentScript />', () => {
 		const html = await render(
 			await buildLocals({
 				colorScheme: 'light',
+				mode: offlineMode({ policyRules: [testRule] }),
+			})
+		);
+		expect(html).not.toContain('c15t-dark');
+		expect(html).toContain('__c15tAstroConfig');
+	});
+
+	it('emits no colour-scheme script for none', async () => {
+		const html = await render(
+			await buildLocals({
+				colorScheme: 'none',
 				mode: offlineMode({ policyRules: [testRule] }),
 			})
 		);

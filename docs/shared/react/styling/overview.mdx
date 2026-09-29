@@ -39,7 +39,8 @@ group: reference
   provider keeps the `c15t-dark` class on `<html>` in sync after hydration.
   If your app manages dark mode through a root class, such as next-themes'
   `dark` class, omit `colorScheme` and include that class in the server
-  HTML.
+  HTML. If your app sets `c15t-dark` itself, pass `colorScheme: null` to the
+  provider and it leaves the class alone.
 
   To switch between light and dark at runtime, render `ConsentTheme` without
   `colorScheme` and toggle the `dark` class on `<html>`: its output already
