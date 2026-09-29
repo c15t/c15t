@@ -31,7 +31,8 @@ JavaScript, so changing the URL needs a new build.
 
 ## Share the backend URL
 
-Create `c15t.config.ts` at the project root with only `backendURL`. Without a
+Create `c15t.config.ts` at the project root, or in `src/`, with only
+`backendURL`. Without a
 server there is no manifest route, so the browser calls `${backendURL}/init`.
 
 ```ts title="c15t.config.ts"

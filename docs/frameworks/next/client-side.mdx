@@ -32,7 +32,8 @@ with its own URL.
 
 Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the backend URL from your Inth project, such
 as `https://your-project.inth.app`, and
-create `c15t.config.ts` at the project root:
+create `c15t.config.ts` at the project root, or in `src/` if your app uses
+one:
 
 ```ts title="c15t.config.ts"
 import { defineConsentConfig } from 'c15t/next';

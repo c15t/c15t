@@ -18,6 +18,10 @@ import {
 	handWrittenBaselinePath,
 	lowerBaseline,
 } from './hand-written-examples';
+import {
+	renderThemeTokens,
+	themeTokenDestination,
+} from './theme-token-reference';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const check = process.argv.includes('--check');
@@ -50,6 +54,25 @@ for (const region of regions) {
 		}
 		if (current !== content) {
 			problems.push(`${region.destination} is stale.`);
+		}
+	} else {
+		mkdirSync(dirname(destination), { recursive: true });
+		writeFileSync(destination, content);
+	}
+}
+
+{
+	const destination = resolve(root, themeTokenDestination);
+	const content = renderThemeTokens(root);
+	if (check) {
+		let current = '';
+		try {
+			current = readFileSync(destination, 'utf8');
+		} catch {
+			// Reported below as stale.
+		}
+		if (current !== content) {
+			problems.push(`${themeTokenDestination} is stale.`);
 		}
 	} else {
 		mkdirSync(dirname(destination), { recursive: true });
