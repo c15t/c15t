@@ -804,6 +804,8 @@ export interface CommandDeps {
 	runtime: KernelRuntime;
 	transport: KernelTransport | undefined;
 	initRetry: KernelConfig['initRetry'];
+	/** App message overrides applied over every init response's copy. */
+	translationOverrides?: KernelConfig['translationOverrides'];
 }
 
 /**
@@ -811,7 +813,7 @@ export interface CommandDeps {
  */
 // oxlint-disable-next-line max-lines-per-function -- Commands share retry, timer and replay state through closures.
 export const buildCommands = function buildCommands(deps: CommandDeps) {
-	const { runtime, transport, initRetry } = deps;
+	const { runtime, transport, initRetry, translationOverrides } = deps;
 	const { batch, getSnapshot, commit, emit } = runtime;
 	const retryPolicy = resolveInitRetryPolicy(initRetry);
 	const pendingSaves = transport?.save
@@ -954,7 +956,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 						records: undefined,
 						subjectId: undefined,
 					};
-			const applied = applyInitResponse(current, acceptedResponse, now);
+			const applied = applyInitResponse(
+				current,
+				acceptedResponse,
+				now,
+				translationOverrides
+			);
 			if (applied.recordIssues && !isProduction()) {
 				console.warn(
 					'[c15t] Ignored invalid server records on init.',

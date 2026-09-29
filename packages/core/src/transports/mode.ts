@@ -22,6 +22,12 @@ export interface ProviderTransportContext {
 	prefetch: KernelConfig;
 	/** Translations resolved from the provider's i18n configuration. */
 	translations: KernelTranslations;
+	/**
+	 * Copy for another language from the bundled translations and the
+	 * provider's `i18n.messages`, or `undefined` when neither has it. Lets a
+	 * transport with no backend follow a language change.
+	 */
+	translationsFor?: (language: string) => KernelTranslations | undefined;
 }
 
 /** Transport kind exposed through `window.c15t.mode`. */

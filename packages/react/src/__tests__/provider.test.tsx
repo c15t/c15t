@@ -443,6 +443,43 @@ test('merges selected i18n messages with English defaults', async () => {
 	).toBeTruthy();
 });
 
+test('an app i18n override survives hosted init translations for the same language', async () => {
+	const backendCopy = {
+		cookieBanner: {
+			description: 'Backend description',
+			title: 'Backend title',
+		},
+	};
+	const init = vi.fn(() =>
+		Promise.resolve({
+			policyResolution: writePolicyResolutionWire(
+				policyFixture().initialPolicyResolution
+			),
+			translations: { language: 'en', translations: backendCopy as never },
+		})
+	);
+	await render(
+		<ConsentProvider
+			options={{
+				i18n: { messages: { en: { cookieBanner: { title: 'App title' } } } },
+				mode: custom({ init }),
+				persistence: false,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(init).toHaveBeenCalled());
+	await vi.waitFor(() =>
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.description
+		).toBe('Backend description')
+	);
+	expect(
+		kernel.getSnapshot().translations?.translations.cookieBanner.title
+	).toBe('App title');
+});
+
 test('StrictMode remount keeps persistence subscriptions active', async () => {
 	const key = 'react-strict-persistence';
 	const screen = await render(

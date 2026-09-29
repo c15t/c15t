@@ -211,6 +211,50 @@ describe('consent middleware', () => {
 		expect(c15t.config.initialLocation?.countryCode).toBe('DE');
 	});
 
+	it('keeps an app i18n override over hosted /init translations for the same language', async () => {
+		const fetchImpl = vi.fn(() =>
+			Response.json({
+				location: { countryCode: 'DE', regionCode: null },
+				policyResolution: testWire({ id: 'gdpr' }),
+				translations: {
+					language: 'en',
+					translations: {
+						cookieBanner: {
+							description: 'Backend description',
+							title: 'Backend title',
+						},
+					},
+				},
+			})
+		);
+		const c15t = await run({
+			fetch: fetchImpl as never,
+			options: {
+				i18n: { messages: { en: { cookieBanner: { title: 'App title' } } } },
+				mode: hostedMode({ url: 'https://consent.example.com' }),
+			},
+		});
+		const copy = c15t.snapshot.translations?.translations;
+		expect(copy?.cookieBanner.title).toBe('App title');
+		expect(copy?.cookieBanner.description).toBe('Backend description');
+		// The page's inlined config carries the same copy the server rendered.
+		expect(
+			c15t.config.initialTranslations?.translations.cookieBanner.title
+		).toBe('App title');
+	});
+
+	it('deep-merges a partial i18n section over the bundled copy', async () => {
+		const c15t = await run({
+			options: {
+				i18n: { messages: { en: { cookieBanner: { title: 'App title' } } } },
+				mode: offlineMode({ policyRules: [testRule] }),
+			},
+		});
+		const copy = c15t.snapshot.translations?.translations;
+		expect(copy?.cookieBanner.title).toBe('App title');
+		expect(copy?.cookieBanner.description).toBeTruthy();
+	});
+
 	it.each(['999', 'invalid'])(
 		'denies an unsupported producer contract %s',
 		async (contract) => {

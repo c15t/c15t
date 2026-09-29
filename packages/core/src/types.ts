@@ -9,6 +9,7 @@ import type {
 	TranslationsResponse,
 	Vendor,
 } from '@c15t/schema/types';
+import type { Translations } from '@c15t/translations';
 /**
  * Kernel public types.
  *
@@ -414,6 +415,15 @@ export interface KernelConfig {
 	initialUser?: KernelUser;
 	/** Initial translation bundle (e.g. from prefetch). */
 	initialTranslations?: KernelTranslations;
+	/**
+	 * Message overrides declared in code, keyed by language, usually the
+	 * app's `i18n.messages`. The kernel applies the overrides for the active
+	 * language over `initialTranslations` and over every init response, so a
+	 * backend or manifest supplies the base copy and these keys win.
+	 */
+	translationOverrides?: Readonly<
+		Record<string, Partial<Translations> | undefined>
+	>;
 	/** Initial location (e.g. from prefetch). */
 	initialLocation?: LocationResponse;
 	/** Initial branding. */

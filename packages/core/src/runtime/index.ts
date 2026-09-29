@@ -49,7 +49,10 @@ import {
 } from '../modules/window-debug';
 import type { User } from '../options/user';
 import { disabledPolicyResolution } from '../policy';
-import { defaultTranslationConfig } from '../translations';
+import {
+	defaultTranslationConfig,
+	resolveLocalTranslations,
+} from '../translations';
 import type { ProviderTransportContext } from '../transports/mode';
 import type {
 	ConsentKernel,
@@ -292,6 +295,8 @@ export const createRuntimeKernel = function createRuntimeKernel(
 		policyRules: options.policyRules,
 		prefetch,
 		translations: i18nTranslations,
+		translationsFor: (language) =>
+			resolveLocalTranslations(language, options.i18n?.messages),
 	};
 	const transport = requireTransportFactory(options)(transportContext);
 
@@ -355,6 +360,9 @@ export const createRuntimeKernel = function createRuntimeKernel(
 			prefetch.now ??
 			prefetch.initialRecords?.now ??
 			(prefetch.initialRecords ? undefined : 0),
+		// A backend, manifest or prefetch supplies the base copy; the app's
+		// own messages for the active language win key by key.
+		translationOverrides: options.i18n?.messages,
 		transport,
 	});
 };

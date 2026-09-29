@@ -66,6 +66,7 @@ export const createConsentKernel = function createConsentKernel(
 	const commandHandle = buildCommands({
 		initRetry: config.initRetry,
 		runtime,
+		translationOverrides: config.translationOverrides,
 		transport,
 	});
 
