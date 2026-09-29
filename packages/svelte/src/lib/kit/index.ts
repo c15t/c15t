@@ -22,7 +22,13 @@ export type { C15tHandleOptions } from './handle';
 export { c15tHandle } from './handle';
 export type { LoadConsentOptions } from './load-consent';
 export { loadConsent } from './load-consent';
-export type { SvelteKitConsentRouteOptions } from './routes';
+export type {
+	ConsentProxyOptions,
+	SvelteKitConsentProxyRouteHandlers,
+	SvelteKitConsentRouteHandlers,
+	SvelteKitConsentRouteHandlersFor,
+	SvelteKitConsentRouteOptions,
+} from './routes';
 export { createSvelteKitConsentRouteHandlers } from './routes';
 export type {
 	C15tLocals,
