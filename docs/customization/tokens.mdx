@@ -113,6 +113,23 @@ and put the result in a `<style>` element or your stylesheet. See
 `consentActions` selects styling by action role. A per-action entry overrides
 `primary`, which overrides `default`.
 
+## Every token
+
+Every framework uses the same tokens. React, Next.js, TanStack Start and
+Astro take the theme key, such as `radius.lg`, in a `theme` object. Vue and
+Nuxt take the CSS variable name without the leading `--`, such as
+`c15t-radius-lg`, in `tokens`. Svelte and the HTML script tag set the CSS
+variable in a stylesheet. Your framework's customize page shows where each one
+goes.
+
+<include src="../shared/reference/theme-tokens.mdx" />
+
+The radius tokens round different parts. `radius.lg` rounds the banner card,
+the preference dialog, `ConsentGate` placeholders and the floating trigger.
+`radius.md` rounds buttons, accordions, tabs and the vendor list.
+`radius.sm` rounds small parts inside the banner and dialog. To give the banner
+and its buttons the same 4px corners, set both `lg` and `md`.
+
 ## Target a prompt with CSS
 
 ```css
