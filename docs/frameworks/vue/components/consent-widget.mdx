@@ -1,0 +1,33 @@
+---
+title: ConsentWidget
+description: Put the c15t category switches and save actions inline on a Vue privacy settings page with ConsentWidget from c15t/vue/consent-widget.
+group: frameworks
+---
+
+## Usage
+
+Import `ConsentWidget` from `c15t/vue/consent-widget` and render it on your
+privacy or account settings page:
+
+<include src="../../../shared/examples/vue/privacy-settings.mdx" />
+
+Render the page inside the app that installed
+[the c15tVue plugin](/docs/frameworks/vue/plugin). Keep `ConsentRoot` mounted
+too, so visitors on other pages still get the banner.
+
+<import src="../../../shared/vue/components/consent-widget.mdx#behavior" />
+
+<import src="../../../shared/vue/components/consent-widget.mdx#props" />
+
+<import src="../../../shared/vue/components/consent-widget.mdx#accessibility" />
+
+<import src="../../../shared/vue/components/consent-widget.mdx#styling" />
+
+<import src="../../../shared/vue/components/consent-widget.mdx#verify" />
+
+## Related
+
+- [ConsentManager](/docs/frameworks/vue/components/consent-manager) shows
+  these controls in a dialog.
+- [Composables](/docs/frameworks/vue/composables#build-a-preference-form)
+  build a preference form from your own markup.

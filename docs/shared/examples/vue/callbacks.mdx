@@ -1,0 +1,20 @@
+{/* Generated from examples/vue/src/consent-callbacks.ts (docs:callbacks) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-callbacks.ts"
+import type { C15tVuePluginOptions } from 'c15t/vue/vue-plugin';
+
+export const callbacks = {
+	// The visitor clicked Accept all, Reject all or Save.
+	onChoiceRecorded: ({ snapshot }) => {
+		console.info('Choice recorded', snapshot.explicitChoice);
+	},
+	onError: ({ error }) => {
+		console.error('c15t', error);
+	},
+	// Permissions changed for any reason: a choice, an expired choice, a new
+	// policy or a privacy signal.
+	onPermissionsChanged: ({ previous, snapshot }) => {
+		console.info('Permissions', previous, snapshot.effectivePermissions);
+	},
+} satisfies NonNullable<C15tVuePluginOptions['callbacks']>;
+```

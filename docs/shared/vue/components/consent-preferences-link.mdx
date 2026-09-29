@@ -1,0 +1,46 @@
+---
+title: "ConsentPreferencesLink"
+description: "Shared ConsentPreferencesLink reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt ConsentPreferencesLink pages. */}
+
+<section id="behavior">
+  ## What ConsentPreferencesLink renders
+
+  `ConsentPreferencesLink` renders one `button` that sets `activeUI` to
+  `'manager'`, which opens the preference dialog. The React adapter calls this
+  component `ConsentDialogLink`. It has no props. Its default slot replaces
+  the label, which is "Privacy settings" in English.
+
+  The button renders only while the visitor has somewhere to go:
+
+  - It is absent until the visitor's policy has resolved.
+  - It is absent when the policy owes no consent UI, such as a policy with no
+    prompt and no rights.
+  - It renders when an existing consent tool owns the decision through
+    `consentSource`, and then asks that tool to open its own preferences.
+
+  The link opens the dialog only if something renders `ConsentManager`.
+  `ConsentRoot` does. The label is not translated. Pass slot content in the
+  visitor's language when your site has more than one.
+</section>
+
+<section id="accessibility">
+  ## Accessibility and styling
+
+  The component is a native `button` with `type="button"`, so it works with
+  Enter and Space and has no link semantics. Style it with your own classes on
+  the element: attributes you pass, such as `class`, go to the button. It
+  carries `data-testid="consent-dialog-link"` and `data-c15t-rights`, the
+  policy's rights separated by spaces.
+</section>
+
+<section id="verify">
+  ## Verify
+
+  Load the page under a policy that asks for consent and click Privacy
+  settings. The preference dialog opens. Under a policy with no prompt and no
+  rights, the button is absent from the DOM.
+</section>

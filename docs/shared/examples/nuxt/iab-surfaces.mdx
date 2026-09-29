@@ -1,0 +1,15 @@
+{/* Generated from examples/nuxt/app/components/IabSurfaces.vue (docs:iab-surfaces) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```vue title="app/components/IabSurfaces.vue"
+<script setup lang="ts">
+import IABConsentBanner from 'c15t/vue/runtime/components/iab-consent-banner.vue';
+import IABConsentDialog from 'c15t/vue/runtime/components/iab-consent-dialog.vue';
+</script>
+
+<template>
+	<!-- Only for sites where every policy uses IAB TCF. ConsentRoot
+	     switches between the IAB and standard surfaces for you. -->
+	<IABConsentBanner />
+	<IABConsentDialog initial-tab="purposes" />
+</template>
+```

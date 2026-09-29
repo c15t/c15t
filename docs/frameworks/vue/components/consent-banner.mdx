@@ -1,0 +1,43 @@
+---
+title: ConsentBanner
+description: Render the c15t consent banner in a Vue app, choose its variant and position, and understand what it shows for each policy.
+group: frameworks
+---
+
+## Usage
+
+`ConsentRoot` already renders `ConsentBanner`. Import the banner yourself
+only when you compose the surfaces, for example to set its variant in the
+template or to render it without `ConsentRoot`. Import it from
+`c15t/vue/runtime/components/consent-banner.vue`:
+
+<include src="../../../shared/examples/vue/consent-surfaces.mdx" />
+
+Render this component in your root component in place of `ConsentRoot`.
+Render `ConsentManager` with it, or Customize opens nothing. A statically
+imported `ConsentManager` is part of your main bundle, while `ConsentRoot`
+loads the dialog as a separate chunk. Unlike `ConsentRoot`, these components
+do not switch to the IAB surfaces under an IAB policy and do not write the
+`tokens` option to the page.
+
+<import src="../../../shared/vue/components/consent-banner.mdx#behavior" />
+
+<import src="../../../shared/vue/components/consent-banner.mdx#props" />
+
+To set the variant for every banner without importing the component, use
+`presentation.prompt` in the plugin options. See
+[customize](/docs/frameworks/vue/customize#change-the-banner-layout).
+
+<import src="../../../shared/vue/components/consent-banner.mdx#accessibility" />
+
+<import src="../../../shared/vue/components/consent-banner.mdx#styling" />
+
+<import src="../../../shared/vue/components/consent-banner.mdx#verify" />
+
+## Related
+
+- [ConsentManager](/docs/frameworks/vue/components/consent-manager) is the
+  dialog Customize opens.
+- [Headless](/docs/frameworks/vue/headless) builds a banner from your own
+  markup.
+- [Banner designs](/docs/customization/recipes) shows tested designs.

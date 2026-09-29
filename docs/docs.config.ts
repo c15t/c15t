@@ -240,17 +240,53 @@ export default defineDocsConfig({
 				},
 				{
 					base: 'vue',
-					pages: [
-						'quickstart',
-						'rendering',
-						'components',
-						'composables',
-						'customize',
-						'scripts',
-						'headless',
-						'iab',
-						'troubleshooting',
+					children: [
+						{
+							pages: [
+								'plugin',
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'callbacks',
+								'content-security-policy',
+								'troubleshooting',
+							],
+							title: 'Integration',
+						},
+						{
+							pages: [
+								'components',
+								'components/consent-root',
+								'components/consent-banner',
+								'components/consent-manager',
+								'components/consent-widget',
+								'components/consent-preferences-link',
+								'components/consent-dialog-trigger',
+								'components/consent-gate',
+								'components/iab-consent-banner',
+								'components/iab-consent-dialog',
+								'components/dev-tools',
+							],
+							title: 'Components',
+						},
+						{
+							pages: ['customize', 'translations'],
+							title: 'Customize',
+						},
+						{
+							pages: ['composables'],
+							title: 'Composables',
+						},
+						{
+							pages: ['headless'],
+							title: 'Headless',
+						},
+						{
+							pages: ['iab'],
+							title: 'IAB TCF',
+						},
 					],
+					pages: ['quickstart', 'rendering'],
 					slug: 'vue',
 					title: 'Vue',
 				},

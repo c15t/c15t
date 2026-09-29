@@ -44,6 +44,10 @@ app.use(c15tVue, {
 });
 ```
 
+Always set `manifest: 'client'` with `manifestURL`. A `manifestURL` on its
+own selects the Nuxt module's server mode, and the browser then calls an
+`/api/c15t/init` route that a plain Vue app does not have.
+
 The manifest is the same for every visitor, so a CDN can cache it. The
 browser has no request location, so without `geoURL` every visitor gets the
 policy your manifest assigns when the location is unknown. Set `geoURL` to

@@ -1,0 +1,68 @@
+---
+title: Content Security Policy
+description: Allow c15t in a Vue app under a Content Security Policy, with a script nonce, the backend in connect-src, and the styles the components inject.
+group: frameworks
+---
+
+## What c15t adds to the page
+
+A Vue app with c15t adds these to the page, and your policy must allow them:
+
+| What | Directive |
+| --- | --- |
+| Requests to your backend's `/init` and `/subjects`, or to `manifestURL` | `connect-src` |
+| `<script>` elements the script loader creates for `scripts` | `script-src` |
+| Scripts, frames, images and requests your vendors load | `script-src`, `frame-src`, `img-src`, `connect-src` for each vendor |
+| The components' CSS, which Vite bundles with your app | `style-src` |
+| Theme tokens and style bindings, set through the CSSOM | None |
+
+## Allow the backend
+
+Add your backend's origin to `connect-src`. With `manifest: 'client'`, add
+the origin of `manifestURL` too. Under an IAB TCF policy, the IAB module
+fetches the Global Vendor List from the URL the policy gives, usually your
+backend.
+
+```txt title="Content-Security-Policy (partial)"
+connect-src 'self' https://<your-backend-host>;
+```
+
+Use the host from your Inth project or your self-hosted backend.
+
+## Allow scripts
+
+The simplest policy lists each vendor's script host in `script-src`. The
+[integration guide](/docs/integrations/overview) for each vendor names its
+hosts.
+
+A static Vue app is the same file for every visitor, so it cannot carry a
+nonce that changes per response. If your server does generate a nonce per
+response, pass it as the plugin's `nonce` option. The script loader adds it
+to every `<script>` it creates, and a `nonce` on a single script takes
+precedence. Scripts that a vendor script loads itself do not get the nonce.
+Add `'strict-dynamic'` to `script-src` to allow them, or list their hosts.
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+app.use(c15tVue, { backendURL, nonce, scripts });
+```
+
+## Allow styles
+
+The components import their CSS, which Vite adds to your app's stylesheet in
+a production build. `style-src 'self'` covers it. In development, Vite injects
+`<style>` elements, which need `'unsafe-inline'` in `style-src`.
+
+`ConsentRoot` sets theme tokens with `style.setProperty` on `<html>`, and Vue
+applies the components' `style` bindings, such as the floating trigger's
+position, through the same CSSOM API. A policy does not govern CSSOM changes,
+so neither needs a directive.
+
+## Verify
+
+Enforce the policy, not report-only, and load the app. The console shows no
+`Refused to connect`, `Refused to load the script` or `Refused to apply
+inline style` error that mentions your backend, a c15t element or a vendor
+you allowed. Accept all, and the vendor scripts load. The save to
+`/subjects` succeeds.

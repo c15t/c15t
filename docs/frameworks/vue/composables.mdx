@@ -1,37 +1,49 @@
 ---
 title: Composables
-description: Read consent, open preferences and record choices in a Vue app with the composables exported from c15t/vue/vue-plugin.
+description: Every c15t composable for a Vue app, grouped by task, with the difference between a permission and a recorded choice.
 group: frameworks
 ---
 
-<include src="../../shared/vue/composables.mdx" />
+## Import composables
 
-## Render content by permission
+Import every composable from `c15t/vue/vue-plugin`, the same entry point as
+the plugin. This component reads the visitor's permission and recorded
+choice, and opens preferences:
 
-This component shows a block only while marketing is allowed:
+<include src="../../shared/examples/vue/consent-status.mdx" />
 
-{/* example: fragment */}
+Use `v-if`, not `v-show`, when optional content loads anything from a third
+party. For iframes use [`ConsentGate`](/docs/frameworks/vue/components/consent-gate),
+and for vendor scripts use the plugin's `scripts` option. See
+[scripts](/docs/frameworks/vue/scripts).
 
-```vue title="src/MarketingOffer.vue"
-<script setup lang="ts">
-import { useConsent } from 'c15t/vue/vue-plugin';
+<import src="../../shared/vue/composables.mdx#rules" />
 
-const consent = useConsent();
-</script>
+<import src="../../shared/vue/composables.mdx#permission" />
 
-<template>
-  <aside v-if="consent.marketing">Personalized offers</aside>
-</template>
-```
-
-Use `v-if`, not `v-show`, when the content loads anything from a third party.
-For iframes use `ConsentGate`, and for vendor scripts use the plugin's
-`scripts` option. See [scripts and embeds](/docs/frameworks/vue/scripts).
+<import src="../../shared/vue/composables.mdx#read-state" />
 
 ## Before the policy resolves
 
 The plugin starts with every optional category denied and no recorded choice
-read yet. The composables update when the browser has read the stored choice
-and the policy arrives. Until then the snapshot's `policyPending` is `true` and
-`usePolicyResolution()` reports a status other than `'matched'`, so you can
-hold back UI that depends on the answer.
+read. The composables update once the browser has read the stored choice and
+the policy arrives. Until then `useConsentSnapshot().value.policyPending` is
+`true` and `usePolicyResolution()` reports a status other than `'matched'`,
+so you can hold back UI that depends on the answer.
+
+<import src="../../shared/vue/composables.mdx#act" />
+
+The `language` prop on [`ConsentRoot`](/docs/frameworks/vue/components/consent-root#props)
+sets the language and resolves again in one step. See
+[translations](/docs/frameworks/vue/translations).
+
+<import src="../../shared/vue/composables.mdx#headless" />
+
+[Headless](/docs/frameworks/vue/headless) builds a complete banner and
+preference form from these composables.
+
+<import src="../../shared/vue/composables.mdx#iab" />
+
+<import src="../../shared/vue/composables.mdx#advanced" />
+
+See [callbacks](/docs/frameworks/vue/callbacks) for the `callbacks` option.

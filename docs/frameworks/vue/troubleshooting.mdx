@@ -28,7 +28,7 @@ Check, in order:
 
 1. The visitor's policy asks for one. A policy with prompt `none` shows no
    banner, which is common in opt-out regions.
-   [DevTools](/docs/frameworks/vue/components#debug-with-devtools) shows the
+   [DevTools](/docs/frameworks/vue/components/dev-tools) shows the
    matched policy. See [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
 2. `ConsentRoot` is in the root component, not inside a route that unmounts.
 3. The backend answered. In the Network tab, `/init` returns 200. A CORS
@@ -39,6 +39,14 @@ Check, in order:
    build time, so restart the dev server or rebuild after changing it.
 5. A stored choice exists. Clear the `c15t` cookie and localStorage entry, or
    use a private window.
+
+## The browser requests /api/c15t/init
+
+`manifestURL` is set without `manifest: 'client'`. A `manifestURL` on its own
+selects server manifest mode, which calls the `/api/c15t/init` route that only
+the Nuxt module provides. Add `manifest: 'client'` next to `manifestURL`. The
+same route appears when `backendURL` is unset, because the plugin then
+defaults to `/api/c15t`.
 
 ## Tokens in my CSS do not apply
 

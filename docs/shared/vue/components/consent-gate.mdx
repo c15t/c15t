@@ -1,0 +1,48 @@
+---
+title: "ConsentGate"
+description: "Shared ConsentGate reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt ConsentGate pages. */}
+
+<section id="behavior">
+  ## What ConsentGate renders
+
+  `ConsentGate` renders its default slot while the visitor's effective
+  permission for `category` is granted, and its `placeholder` slot otherwise.
+  It adds no wrapper element. While permission is denied, the default slot
+  does not exist in the DOM, so an iframe or widget inside it sends no
+  requests. When the visitor withdraws permission, Vue removes the slot
+  content.
+
+  Permission is the same value `useConsent()` returns for the category. It can
+  be granted under an opt-out policy before the visitor has recorded a choice,
+  and a privacy signal such as Global Privacy Control can deny a category the
+  visitor granted.
+
+  Without a `placeholder` slot, the gate renders the text "Content requires
+  permission." in English. Pass your own placeholder with a way to open
+  preferences, as in the example above.
+
+  `ConsentFrame` is a deprecated name for the same component.
+</section>
+
+<section id="props">
+  ## Props and slots
+
+  | Name | Kind | Type | Behavior |
+  | --- | --- | --- | --- |
+  | `category` | Prop, required | `'necessary' \| 'functionality' \| 'measurement' \| 'experience' \| 'marketing'` | The category whose permission gates the default slot. |
+  | `default` | Slot | | The gated content, such as an iframe. |
+  | `placeholder` | Slot | | Shown while the category is denied. |
+</section>
+
+<section id="accessibility">
+  ## Accessibility
+
+  Give the iframe a descriptive `title`. Keep a way to reach the content
+  without the embed, such as a link or a transcript, for visitors who decline
+  the category. A policy can fix a category as denied, so opening preferences
+  does not guarantee the visitor can allow it.
+</section>

@@ -1,0 +1,44 @@
+---
+title: "IABConsentDialog"
+description: "Shared IABConsentDialog reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt IABConsentDialog pages. */}
+
+<section id="behavior">
+  ## What IABConsentDialog renders
+
+  `IABConsentDialog` is the IAB TCF preference centre. It opens while
+  `activeUI` is `'manager'` under a policy that uses the `iab` model.
+  `ConsentRoot` loads it in place of `ConsentManager` under such a policy.
+
+  It has two tabs. Purposes lists each purpose, stack and special feature with
+  consent and legitimate-interest switches. Vendors lists every vendor,
+  including your custom vendors, with a search field and per-vendor switches.
+  The footer saves the selection, or accepts or rejects everything, and writes
+  the TC String.
+
+  To build your own preference centre instead, read and change the selection
+  with `useConsentIabSelection()` and save it with `useConsentIabSave()`.
+</section>
+
+<section id="props">
+  ## Props
+
+  | Prop | Type | Default | Behavior |
+  | --- | --- | --- | --- |
+  | `initialTab` | `'purposes' \| 'vendors'` | The tab the banner asked for, else `'purposes'` | Which tab the dialog opens on. |
+</section>
+
+<section id="accessibility">
+  ## Accessibility and styling
+
+  The dialog renders in `document.body` with `role="dialog"`. While blocking
+  it sets `aria-modal="true"`, locks scrolling and traps focus. It has a close
+  button. The `components['iab-dialog']` option adds attributes to parts such
+  as `root`, `card`, `header`, `tabsList`, `tabPanel` and `footer`, and
+  `components['iab-purpose-item']`, `components['iab-stack-item']` and
+  `components['iab-vendor-list']` reach the rows. `iabDialogHideBranding`
+  hides the "Secured by" tag.
+</section>
