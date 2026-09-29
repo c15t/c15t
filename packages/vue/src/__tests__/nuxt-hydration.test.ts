@@ -28,6 +28,10 @@ import { resolveManifestInit } from '../runtime/server/manifest-mode';
 const nuxt = vi.hoisted(() => ({
 	cached: undefined as InitOutput | undefined,
 	consentSource: undefined as ExternalConsentSource | undefined,
+	experiment: undefined as
+		| { arm?: string; arms: Record<string, object>; id: string }
+		| undefined,
+	fetchHeaders: [] as Record<string, string>[],
 	headers: {} as Record<string, string | undefined>,
 	manifest: false,
 	requests: 0,
@@ -44,6 +48,7 @@ vi.mock('#imports', async () => {
 				backendURL: '/api/c15t',
 				consentSource: nuxt.consentSource,
 				disableAnimation: true,
+				experiment: nuxt.experiment,
 				hideBranding: true,
 				iframeBlocker: false,
 				manifest: nuxt.manifest,
@@ -56,6 +61,7 @@ vi.mock('#imports', async () => {
 				onResponse: (context: { response: { headers: Headers } }) => void;
 			}
 		) => {
+			nuxt.fetchHeaders.push(options.headers);
 			if (!nuxt.cached) {
 				expect(options.headers[C15T_POLICY_CONTRACT_HEADER]).toBe('1');
 				options.onResponse({
@@ -85,6 +91,8 @@ afterEach(() => {
 	nuxt.state.clear();
 	nuxt.cached = undefined;
 	nuxt.consentSource = undefined;
+	nuxt.experiment = undefined;
+	nuxt.fetchHeaders = [];
 	document.body.replaceChildren();
 });
 
@@ -321,4 +329,48 @@ test('Nuxt external authority skips server fetch and records, then connects only
 		app.unmount();
 	}
 	expect(detach).toHaveBeenCalledTimes(1);
+});
+
+test('the server init fetch carries a fixed experiment arm until the visitor chooses', async () => {
+	const { default: plugin } = await vi.importActual<{
+		default: (app: {
+			vueApp: App;
+			hook: (name: string, callback: () => void) => void;
+		}) => Promise<void>;
+	}>('../runtime/plugin.nuxt');
+	const policy = normalizePolicyRule({
+		categories: ['marketing'],
+		id: 'nuxt-experiment',
+		match: { fallback: true },
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	});
+	nuxt.manifest = false;
+	nuxt.response = {
+		branding: 'none',
+		jurisdiction: 'GDPR',
+		location: { countryCode: 'DE', regionCode: null },
+		policyResolution: writePolicyResolutionWire({
+			fingerprints: createPolicyRuleFingerprints(policy),
+			matchedBy: 'fallback',
+			policy,
+			policyId: policy.id,
+			status: 'matched',
+		}),
+		translations: { language: 'en', translations },
+	};
+	nuxt.experiment = {
+		arm: 'wall',
+		arms: { wall: { prompt: { variant: 'wall' } } },
+		id: 'banner-shape',
+	};
+	nuxt.headers = { cookie: '' };
+	vi.stubGlobal('window', undefined);
+	vi.stubGlobal('document', undefined);
+	await plugin({
+		hook: () => undefined,
+		vueApp: createSSRApp(defineComponent({ render: () => null })),
+	});
+	expect(nuxt.fetchHeaders[0]?.['x-c15t-experiment']).toBe('banner-shape=wall');
 });
