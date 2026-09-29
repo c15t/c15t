@@ -133,6 +133,11 @@
 			"import": "./dist/server.js",
 			"default": "./dist/server.js"
 		},
+		"./static": {
+			"types": "./dist-types/static.d.ts",
+			"import": "./dist/static.js",
+			"default": "./dist/static.js"
+		},
 		"./modules/window-debug": {
 			"types": "./dist-types/modules/window-debug/index.d.ts",
 			"import": "./dist/window-debug.js",
