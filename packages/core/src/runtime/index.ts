@@ -57,6 +57,7 @@ import type {
 	KernelOverrides,
 	KernelTranslations,
 	KernelUser,
+	ResolvedVendor,
 	TranslationsResponse,
 } from '../types';
 import { wireRuntimeCallbacks } from './callbacks';
@@ -240,6 +241,32 @@ const requireTransportFactory = function requireTransportFactory(
 };
 
 /**
+ * Categories a site declares through what it runs: its gated scripts, its
+ * network blocker rules and its declared vendors.
+ *
+ * The runtime registers these with its kernel. A server that builds its own
+ * kernel for the same page passes the same result as
+ * `inferredConsentCategories`, so it asks about the same categories as the
+ * browser and judges a returning visitor's stored choice the same way.
+ *
+ * @param options - The scripts and network blocker the page declares.
+ * @param vendors - Vendors the page declares, from code or a prefetch.
+ * @returns Every category those declarations name, possibly repeated.
+ */
+export const inferConsentCategories = function inferConsentCategories(
+	options: Pick<ConsentRuntimeOptions, 'networkBlocker' | 'scripts'>,
+	vendors: readonly Pick<ResolvedVendor, 'category'>[] = []
+): AllConsentNames[] {
+	return [
+		...(options.scripts ?? []),
+		...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+		...vendors,
+	].flatMap((declaration) =>
+		extractConsentNamesFromCondition(declaration.category)
+	);
+};
+
+/**
  * Builds the runtime's kernel without touching the DOM.
  *
  * Exported so servers can construct the same kernel a browser runtime
@@ -284,17 +311,10 @@ export const createRuntimeKernel = function createRuntimeKernel(
 	return createConsentKernel({
 		...prefetch,
 		consentCategories: options.consentCategories,
-		inferredConsentCategories: [
-			...integrations.flatMap((integration) =>
-				extractConsentNamesFromCondition(integration.category)
-			),
-			// Every declared vendor, from code or a resolved prefetch, makes its
-			// category selectable at construction, so the server snapshot and the
-			// hydrated one evaluate the same scope.
-			...declaredVendors.flatMap((vendor) =>
-				extractConsentNamesFromCondition(vendor.category)
-			),
-		],
+		// Every declared vendor, from code or a resolved prefetch, makes its
+		// category selectable at construction, so the server snapshot and the
+		// hydrated one evaluate the same scope.
+		inferredConsentCategories: inferConsentCategories(options, declaredVendors),
 		initialExternalPermissions:
 			enabled && options.consentSource ? {} : undefined,
 		initialIab:

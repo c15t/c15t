@@ -42,6 +42,8 @@ const clearCookies = function clearCookies(): void {
 /** Write a stored choice the way an earlier page view would have. */
 const saveChoice = async function saveChoice(value: 'all' | 'none') {
 	const kernel = createConsentKernel({
+		// The earlier page offered the policy's categories.
+		consentCategories: ['marketing', 'measurement'],
 		initialPolicyResolution: testResolution(),
 		now: Date.now(),
 	});
@@ -100,6 +102,31 @@ describe('a prerendered page', () => {
 		});
 		expect(booted.getConsent().explicitChoice).toBeNull();
 	});
+
+	it.each(['acceptAll', 'rejectAll'] as const)(
+		'offers only Strictly necessary when nothing is declared, and %s answers it for good',
+		async (action) => {
+			const booted = await bootPrerendered();
+			await vi.waitFor(() => {
+				expect(booted.getConsent().activeUI).toBe('banner');
+			});
+			expect(booted.runtime.consentCategories).toEqual(['necessary']);
+
+			await booted[action]();
+			expect(booted.getConsent().activeUI).toBe('none');
+			await vi.waitFor(() => expect(document.cookie).not.toBe(''));
+			booted.dispose();
+
+			const returning = await bootPrerendered();
+			await vi.waitFor(() => {
+				expect(returning.getConsent().policyPending).toBe(false);
+			});
+			expect(returning.getConsent().promptRequirement).toEqual({
+				kind: 'none',
+			});
+			expect(returning.getConsent().activeUI).toBe('none');
+		}
+	);
 
 	it('reveals the hidden banner for a first-time visitor', async () => {
 		document.body.innerHTML =
