@@ -134,6 +134,11 @@ one prompt do not automatically reach a portaled dialog.
 | `--consent-banner-widget-max-width` | `20rem` | Widget |
 | `--consent-banner-wall-max-width` | `30rem` | Choice wall |
 
+The banner footer lays out its actions by the card's width, not the
+viewport's. With the default `compact` profile, a card narrower than 22rem
+puts Reject and Accept on one row and Customize on a full-width row below
+them, on any screen size.
+
 Test long translations and small screens after changing width or typography.
 A compact banner must still fit the required actions.
 

@@ -90,6 +90,10 @@ group: reference
   | `--consent-banner-widget-max-width` | `20rem` | `widget` chips |
   | `--consent-banner-wall-max-width` | `30rem` | `wall` cards |
 
+  The footer lays out its actions by the card's width, not the viewport's.
+  With the default `compact` profile, a card narrower than 22rem puts Reject
+  and Accept on one row and Customize on a full-width row below them.
+
   ## Colors by consent model
 
   The primary action can change while the brand color stays the same. Set
