@@ -43,51 +43,41 @@ provider.
   </Tab>
 
   <Tab value="TanStack Start">
-    In your existing root route component, import the scripts alongside
-    `ConsentRoot`. Keep the server loader from the [TanStack Start quickstart](/docs/frameworks/tanstack-start/quickstart).
+    Import the configuration into your root route and pass it to the existing
+    `ConsentRoot` as a top-level prop. Keep the loader, `backendURL` and
+    `initRoute` from the [TanStack Start quickstart](/docs/frameworks/tanstack-start/quickstart):
 
-    ```tsx
-    import { Outlet } from '@tanstack/react-router';
-    import { ConsentRoot } from 'c15t/tanstack-start';
+    ```tsx title="src/routes/__root.tsx"
     import { scripts } from '../consent-scripts';
 
-    function Root() {
-      const state = Route.useLoaderData();
-      return (
-        <ConsentRoot state={state} backendURL={backendURL} initRoute={false} scripts={scripts}>
-          <Outlet />
-          {/* Keep your consent banner, dialog and preferences link here. */}
-        </ConsentRoot>
-      );
-    }
+    <ConsentRoot
+      state={consent}
+      backendURL={backendURL}
+      initRoute={false}
+      scripts={scripts}
+    >
     ```
 
-    This edits the existing route. `Route` and `backendURL` come from its setup;
-    keep the document shell and head components if they are part of your root.
-    `initRoute={false}` keeps the quickstart's direct-backend initialization.
-    If your app mounts a consent server route, retain its existing `initRoute`
-    instead. Do not return script callbacks from a server function or route loader.
+    Import vendor helpers in the root route module, not in a server function.
+    A server function's return value must be serializable, and script
+    configurations carry callbacks. See
+    [TanStack Start scripts](/docs/frameworks/tanstack-start/scripts).
   </Tab>
 
   <Tab value="React">
-    Import the scripts into your existing provider component:
+    Add the configuration to the existing `ConsentProvider` options, next to
+    `mode`:
 
-    ```ts
-    import { ConsentProvider } from 'c15t/react';
+    ```tsx title="src/consent.tsx"
     import { scripts } from './consent-scripts';
+
+    <ConsentProvider options={{ mode, scripts }}>
     ```
 
-    Keep the existing options and add `scripts`:
-
-    ```tsx
-    <ConsentProvider options={{ ...consentOptions, scripts }}>
-      {children}
-    </ConsentProvider>
-    ```
-
-    Here `consentOptions` is your existing configuration, including
-    `mode: hosted({ url: backendURL })`. Keep the banner, dialog and preferences
-    link inside the provider. See [React script loading](/docs/frameworks/react/script-loader).
+    `mode` is the `hosted({ url: backendURL })` value from the
+    [React quickstart](/docs/frameworks/react/quickstart). Keep the banner,
+    dialog and preferences link inside the provider. See
+    [React scripts and embeds](/docs/frameworks/react/scripts).
   </Tab>
 
   <Tab value="Nuxt">

@@ -14,16 +14,27 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { serve } from 'srvx';
 import { staticMiddleware } from 'srvx/static';
 
+import { withRegionPreview } from './region-preview.mjs';
+
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const { default: server } = await import(
-	pathToFileURL(resolve(appDir, 'dist/server/server.js')).href
-);
+
+// `--static` serves only the prerendered files, the way a static host
+// would. `bun run start:static` uses it for the `static` rendering variant.
+const staticOnly = process.argv.includes('--static');
+
+const notFound = () => new Response('Not found', { status: 404 });
+const loadServerFetch = async () => {
+	const { default: server } = await import(
+		pathToFileURL(resolve(appDir, 'dist/server/server.js')).href
+	);
+	return (request) => server.fetch(withRegionPreview(request));
+};
 
 const hostname = process.env.HOST ?? '127.0.0.1';
 const port = Number(process.env.PORT ?? '3010');
 
 const instance = serve({
-	fetch: server.fetch,
+	fetch: staticOnly ? notFound : await loadServerFetch(),
 	// The bench runner sends SIGTERM and expects the process gone within
 	// half a second; srvx's graceful drain would hold idle keep-alive
 	// connections open for up to five seconds first.

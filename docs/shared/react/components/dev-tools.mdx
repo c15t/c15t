@@ -1,6 +1,6 @@
 ---
 title: "Dev Tools"
-description: "Reference page for dev tools."
+description: "Shared DevTools reference for the React and Next.js adapters."
 group: reference
 ---
 
@@ -15,10 +15,9 @@ group: reference
 
   ## Installation
 
-  No extra package is required for a framework adapter. The adapter and its
-  engine are included with the `c15t` package and the dedicated
-  `@c15t/svelte` adapter. Install `@c15t/dev-tools` directly only
-  when you need the imperative `createDevTools({ kernel })` API.
+  No extra package is required. The React adapter and its engine are included
+  with the `c15t` package. Install `@c15t/dev-tools` directly only when you
+  need the imperative `createDevTools({ kernel })` API.
 </section>
 
 <section id="customization">
@@ -42,9 +41,8 @@ group: reference
   ## Panels
 
   Accept and reject apply only to categories displayed by the provider, leaving
-  hidden consent values unchanged. `necessary` always remains enabled. Svelte
-  and Vue adapters use their provider's displayed categories; the kernel and
-  React adapter use the current policy categories by default.
+  hidden consent values unchanged. `necessary` always remains enabled. The
+  React adapter uses the current policy categories by default.
 
   For an imperative integration with a narrower UI, pass
   `getConsentCategories: () => ['necessary', 'measurement']` to
@@ -136,79 +134,6 @@ group: reference
   The getter returns undefined before module initialization and after disposal.
   A snapshot without an attached IAB module is read-only in DevTools.
 
-  ## Vue and Svelte
-
-  Vue imports `ConsentDevTools` from `c15t/vue/devtools`.
-  Render it in the app where the c15t plugin provides
-  the kernel. In Nuxt, the configured c15t module provides that context.
-
-  ```vue
-  <script setup lang="ts">
-  import { defineAsyncComponent } from 'vue';
-
-  const DevTools = import.meta.env.DEV
-    ? defineAsyncComponent(() => import('c15t/vue/devtools'))
-    : null;
-  </script>
-
-  <template>
-    <DevTools v-if="DevTools" position="bottom-right" />
-  </template>
-  ```
-
-  In Nuxt, use `import.meta.dev` instead of `import.meta.env.DEV`.
-  Svelte imports the adapter from `@c15t/svelte/devtools` and renders it
-  inside `ConsentManagerProvider`.
-
-  ```svelte
-  <script lang="ts">
-    import { ConsentManagerProvider, offline } from '@c15t/svelte';
-
-    const devTools = import.meta.env.DEV
-      ? import('@c15t/svelte/devtools')
-      : null;
-  </script>
-
-  <ConsentManagerProvider options={{ mode: offline() }}>
-    {#if devTools}
-      {#await devTools then { ConsentDevTools }}
-        <ConsentDevTools position="bottom-right" />
-      {/await}
-    {/if}
-  </ConsentManagerProvider>
-  ```
-
-  Both adapters accept `position`, `defaultOpen`, `defaultTab`, `maxEvents`,
-  `shadow` (`false` renders into the page instead of a shadow root),
-  and `getConsentCategories`. Changing these presentation options recreates
-  the panel and clears its event history. They do not accept React's `disabled`
-  prop; conditionally render them instead. Unmounting removes the panel and
-  subscriptions without changing consent.
-
-  ### Embed the Vue panel
-
-  `ConsentDevToolsPanel` from `c15t/vue/devtools` fills its parent element
-  instead of floating over the page. It has no launcher or close button and
-  starts open. Use it for your own debug page or another devtools host. Give
-  the parent a height:
-
-  ```vue
-  <script setup lang="ts">
-  import { ConsentDevToolsPanel } from 'c15t/vue/devtools';
-  </script>
-
-  <template>
-    <div style="height: 32rem">
-      <ConsentDevToolsPanel default-tab="events" />
-    </div>
-  </template>
-  ```
-
-  It accepts `defaultTab`, `maxEvents`, `getConsentCategories`,
-  `getPresentation` and `clearRecords`, and must render inside the provider
-  that supplies the kernel. Nuxt apps also get a c15t tab in Nuxt DevTools
-  without rendering either component.
-
   ## TanStack Devtools
 
   Each embedded panel owns its event history and subscriptions. Unmounting it
@@ -248,19 +173,6 @@ group: reference
   ```
 
   In a Next.js app, import `c15tDevtools` from `c15t/next/devtools` instead. Scoped installs use `@c15t/react/devtools` and `@c15t/nextjs/devtools`.
-
-  The c15t panel follows the TanStack Devtools light or dark theme, not your app's consent theme. If you write the plugin entry yourself, use a render function and pass the theme to `C15tTanStackDevtoolsPanel`:
-
-  ```tsx
-  import { C15tTanStackDevtoolsPanel } from 'c15t/react/devtools';
-
-  const c15tPlugin = {
-    name: 'Consent',
-    render: (_element: HTMLElement, { theme }: { theme: 'light' | 'dark' }) => (
-      <C15tTanStackDevtoolsPanel theme={theme} />
-    ),
-  };
-  ```
 </section>
 
 <section id="props">

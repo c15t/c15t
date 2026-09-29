@@ -12,33 +12,14 @@ group: frameworks
 `ConsentDialogLink` in your footer, a `ConsentDialogTrigger`, or your own
 code.
 
-```tsx title="src/consent.tsx"
-import type { ReactNode } from 'react';
-import {
-  ConsentBanner,
-  ConsentDialog,
-  ConsentDialogLink,
-  ConsentProvider,
-  hosted,
-} from 'c15t/react';
-import 'c15t/react/styles.css';
+<include src="../../../shared/examples/react/consent.mdx" />
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
-const mode = hosted({ url: backendURL });
+To hide the "Secured by" tag in the dialog card, pass `hideBranding`:
 
-export function Consent({ children }: { children: ReactNode }) {
-  return (
-    <ConsentProvider options={{ mode }}>
-      {children}
-      <ConsentBanner />
-      <ConsentDialog hideBranding />
-      <footer>
-        <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-      </footer>
-    </ConsentProvider>
-  );
-}
+{/* example: fragment */}
+
+```tsx
+<ConsentDialog hideBranding />
 ```
 
 To open it from your own component, set the active surface:
@@ -72,6 +53,6 @@ instead; this dialog stays closed for the `iab` model.
 
 The compound parts import from `c15t/react` as properties of `ConsentDialog`,
 and `ConsentWidget` from the same module. See
-[Styling](../styling/overview) for slots and tokens.
+[customize](/docs/frameworks/react/customize) for slots and tokens.
 
 <import src="../../../shared/react/components/consent-dialog.mdx#verify" />

@@ -1,0 +1,76 @@
+// oxlint-disable no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
+// #region docs:same-origin-root title="src/routes/__root.tsx"
+import {
+	createRootRoute,
+	HeadContent,
+	Outlet,
+	Scripts,
+} from '@tanstack/react-router';
+import { createServerFn } from '@tanstack/react-start';
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogLink,
+	ConsentRoot,
+} from 'c15t/tanstack-start';
+import {
+	consentLoaderOptions,
+	createConsentStateHandler,
+} from 'c15t/tanstack-start/server';
+
+import { scripts } from '../scripts';
+
+import consentCss from 'c15t/tanstack-start/styles.css?url';
+
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) {
+	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth backend URL');
+}
+// The consent server route in src/routes/api/c15t/$.ts.
+const consentRoute = '/api/c15t';
+
+// Declare the server function in your own module. Start's compiler splits
+// the server code out of the browser bundle at this call site.
+const getConsentState = createServerFn({ method: 'GET' }).handler(
+	createConsentStateHandler({ backendURL, routePrefix: consentRoute })
+);
+
+const RootComponent = () => {
+	const { consent } = Route.useLoaderData();
+	return (
+		<html lang="en">
+			<head>
+				<HeadContent />
+			</head>
+			<body>
+				<ConsentRoot
+					state={consent}
+					backendURL={consentRoute}
+					scripts={scripts}
+				>
+					<Outlet />
+					<ConsentBanner />
+					<ConsentDialog />
+					<footer>
+						<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+					</footer>
+				</ConsentRoot>
+				<Scripts />
+			</body>
+		</html>
+	);
+};
+
+export const Route = createRootRoute({
+	...consentLoaderOptions,
+	component: RootComponent,
+	head: () => ({
+		links: [{ href: consentCss, rel: 'stylesheet' }],
+		meta: [
+			{ charSet: 'utf-8' },
+			{ content: 'width=device-width, initial-scale=1', name: 'viewport' },
+		],
+	}),
+	loader: async () => ({ consent: await getConsentState() }),
+});
+// #endregion docs:same-origin-root

@@ -16,8 +16,11 @@ to the alternatives it rules out.
 | Next.js with static, ISR or `'use cache'` pages | Browser resolves consent on those pages | [Static, ISR and cached pages](/docs/frameworks/next/rendering#render-static-isr-and-cached-pages) |
 | Next.js Pages Router | Resolve consent in `getServerSideProps` | [Pages Router](/docs/frameworks/next/rendering#pick-your-rendering-path) |
 | Next.js with `output: 'export'` | Browser resolves consent | [Static export](/docs/frameworks/next/static-export) |
-| TanStack Start | Root loader resolves consent on the server | [TanStack Start](/docs/frameworks/tanstack-start/quickstart) |
+| TanStack Start with a server | Root loader resolves consent on the server | [TanStack Start](/docs/frameworks/tanstack-start/quickstart) |
+| TanStack Start on a serverless host, banner may follow the page | Root loader streams consent | [TanStack Start rendering](/docs/frameworks/tanstack-start/rendering#stream-the-page-while-consent-resolves) |
+| TanStack Start in SPA mode or prerendered | Browser resolves consent | [TanStack Start rendering](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts) |
 | React with Vite, or another single-page app | Browser resolves consent | [React](/docs/frameworks/react/quickstart) |
+| React Router framework mode, Remix, or another server-rendered React app | Browser resolves consent after hydration | [React rendering](/docs/frameworks/react/rendering#react-router-remix-and-other-server-rendered-apps) |
 | Nuxt | Nuxt module resolves consent on the server | [Nuxt](/docs/frameworks/nuxt/quickstart) |
 | Vue with Vite | Vue plugin, browser resolves consent | [Vue](/docs/frameworks/vue/quickstart) |
 | Astro with static output | Browser resolves consent through the hosted backend | [Astro static output](/docs/frameworks/astro/rendering#static-output-with-hosted) |

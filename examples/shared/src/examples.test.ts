@@ -1,4 +1,4 @@
-// oxlint-disable vitest/no-conditional-expect -- Only the Next adapter promises cookie-backed server HTML; all selected Next routes run these assertions.
+// oxlint-disable vitest/no-conditional-expect -- Only adapters that await consent on the server promise cookie-backed server HTML; the selected routes of those targets run these assertions.
 // oxlint-disable no-loop-func -- Each sequential suite owns its browser context and mutable request counters.
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -218,7 +218,14 @@ for (const target of selectedTargets()) {
 				await expect
 					.poll(() => page.evaluate(() => localStorage.getItem('c15t')))
 					.not.toBeNull();
-				if (target.id === 'nextjs') {
+				// These routes await consent on the server, so the reloaded HTML
+				// reflects the stored rejection.
+				const cookieBackedHTML = [
+					'nextjs',
+					'tanstack-start',
+					'tanstack-start-same-origin',
+				].includes(target.id);
+				if (cookieBackedHTML) {
 					// Receipt writes are deferred. Wait for the saved choice before
 					// testing how the server renders that choice on the next request.
 					await expect
@@ -230,7 +237,7 @@ for (const target of selectedTargets()) {
 						.toBe(true);
 				}
 				const reloaded = await page.reload();
-				if (target.id === 'nextjs') {
+				if (cookieBackedHTML) {
 					expect(reloaded).not.toBeNull();
 					expect(await reloaded?.text()).not.toContain(
 						'data-testid="consent-banner-root"'
@@ -340,6 +347,50 @@ for (const target of selectedTargets()) {
 				await expect.poll(() => video(page).count()).toBe(1);
 				await openPreferences(page);
 				expect(requests.unexpected).toEqual([]);
+			});
+		}
+
+		if (target.id.startsWith('tanstack-start')) {
+			// Awaited server rendering puts the banner in the HTML. A streamed
+			// loader and prerendered pages mount it after hydration.
+			const bannerInHTML = [
+				'tanstack-start',
+				'tanstack-start-same-origin',
+			].includes(target.id);
+			// Only the same-origin variant sends consent traffic to the app.
+			const sameOrigin = target.id === 'tanstack-start-same-origin';
+
+			test('initial HTML matches the rendering variant', async () => {
+				const response = await fetch(`${server.baseURL}/consent-example`, {
+					headers: { 'x-vercel-ip-country': 'DE' },
+				});
+				expect(response.ok).toBe(true);
+				const html = await response.text();
+				expect(html.includes('data-testid="consent-banner-root"')).toBe(
+					bannerInHTML
+				);
+				expect(html).not.toContain('<iframe');
+			});
+
+			test('consent saves reach the configured origin', async () => {
+				await visit('/consent-example');
+				const saves: string[] = [];
+				page.on('request', (request) => {
+					const url = new URL(request.url());
+					if (
+						request.method() === 'POST' &&
+						url.pathname.endsWith('/subjects')
+					) {
+						saves.push(url.origin);
+					}
+				});
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				await rejectButton(page).click();
+				await expect.poll(() => saves.length).toBeGreaterThan(0);
+				const expected = new URL(
+					sameOrigin ? server.baseURL : server.backendURL
+				).origin;
+				expect(saves.every((origin) => origin === expected)).toBe(true);
 			});
 		}
 
@@ -528,7 +579,10 @@ for (const target of selectedTargets()) {
 				server.setFailure(true);
 				// Restart before an SSR outage so prior requests cannot satisfy
 				// prefetch from an in-process manifest cache.
-				if (['nuxt', 'tanstack-start', 'astro'].includes(target.id)) {
+				if (
+					['nuxt', 'astro'].includes(target.id) ||
+					target.id.startsWith('tanstack-start')
+				) {
 					await server.restart();
 				}
 				await visit(target.failureRoute ?? '/', true);

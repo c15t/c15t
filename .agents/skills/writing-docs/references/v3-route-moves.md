@@ -22,3 +22,6 @@ the old page's task.
 | `/docs/frameworks/next/script-loader` | `/docs/frameworks/next/scripts` | Merged with the network blocker into one scripts and embeds page |
 | `/docs/frameworks/next/network-blocker` | `/docs/frameworks/next/scripts#block-network-requests` | Merged into the scripts and embeds page |
 | `/docs/frameworks/next/styling/overview` | `/docs/frameworks/next/customize` | Renamed to match the v3 framework page set |
+| `/docs/frameworks/react/script-loader` | `/docs/frameworks/react/scripts` | Merged into the React scripts and embeds page |
+| `/docs/frameworks/react/network-blocker` | `/docs/frameworks/react/scripts#block-requests-an-sdk-sends-itself` | Merged into the React scripts and embeds page |
+| `/docs/frameworks/react/styling/overview` | `/docs/frameworks/react/customize` | Renamed to the framework `customize` page |

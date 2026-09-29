@@ -1,15 +1,39 @@
 ---
-title: Troubleshoot React consent
-description: Diagnose policy resolution, early scripts, storage and rendering problems.
+title: Troubleshooting
+description: Fix a missing banner, early vendor requests, unstyled components and theme warnings in a React app that uses c15t/react.
 group: frameworks
 ---
 
-<include src="../../guides/troubleshooting.mdx" />
+## The app throws "Set VITE\_C15T\_BACKEND\_URL"
+
+**Check.** `import.meta.env.VITE_C15T_BACKEND_URL` is empty in the built bundle.
+
+**Fix.** Put the Inth backend URL in `.env.local`, restart `vite`, and rebuild.
+Vite reads `VITE_` values at build time, so a value set only on the production
+server does not reach the browser. In another bundler, use its mechanism for
+public values.
+
+## There is no banner
+
+**Check.** In DevTools Network, find the `GET` request to `/init` on your
+backend URL.
+
+| What you see | Cause | Fix |
+| --- | --- | --- |
+| No `/init` request | `ConsentProvider` is not mounted, or `src/consent.tsx` threw before it rendered | Check the console for errors and render one provider at the app root, as in the [quickstart](/docs/frameworks/react/quickstart) |
+| `/init` fails with a CORS error | Your site's origin is not trusted | Add the exact origin, including port in development, to the trusted origins in your Inth project |
+| `/init` returns 200 | The policy for this visitor asks for no banner, or a stored choice is still valid | Inspect the active policy with the component below, or clear site data |
+
+A policy with `prompt: 'none'` shows no banner by design, and so does a
+returning visitor with a valid stored choice. [Policies](/docs/concepts/policies)
+explains why a region may not show one.
 
 ## Inspect the active policy
 
-Place this diagnostic component inside your existing consent
-provider. It reads state without recording a choice.
+Render this component inside `ConsentProvider`. It reads state and records no
+choice:
+
+{/* example: fragment */}
 
 ```tsx title="src/consent-policy-debug.tsx"
 import { useSnapshot } from 'c15t/react';
@@ -37,6 +61,45 @@ export function ConsentPolicyDebug() {
 }
 ```
 
-The diagnostic subscribes to consent changes. Remove it after verification.
-For a production feature gate, use `useConsent('marketing')` or the category
-your feature needs instead of subscribing to the whole snapshot.
+The component re-renders on every consent change. Remove it after you finish.
+For a feature gate, use `useConsent('marketing')` or the category you need.
+
+## A vendor loads before the visitor chooses
+
+**Check.** Search `index.html`, your entry module and any tag manager for the
+vendor's script or SDK initializer.
+
+**Fix.** Remove every loader except the one in `options.scripts`. c15t only
+gates scripts registered with it, and the network blocker cannot stop code that
+runs before the provider renders. [Scripts and embeds](/docs/frameworks/react/scripts)
+covers the options.
+
+## The banner has no styles
+
+**Check.** In DevTools Elements, the banner has classes but no rules apply.
+
+**Fix.** Import `c15t/react/styles.css` once in the module that renders the
+provider. With Tailwind v3, import `c15t/react/styles.tw3.css` between the
+`components` and `utilities` directives instead. See
+[customize](/docs/frameworks/react/customize#import-the-stylesheet).
+
+## The console warns that theme tokens are no longer turned into CSS
+
+**Cause.** `options.theme` holds colors, radius or other tokens, and the page
+has no `c15t-theme` style element. The provider only reads `consentActions`
+and slot styles from `theme`.
+
+**Fix.** Move the tokens to your CSS or render `ConsentTheme`, as shown in
+[customize](/docs/frameworks/react/customize#change-colors-fonts-and-radius).
+
+## The banner is missing from server-rendered HTML
+
+In React Router framework mode, Remix and other server-rendered apps without a
+c15t adapter, this is expected. The browser resolves consent after hydration.
+[Rendering](/docs/frameworks/react/rendering#react-router-remix-and-other-server-rendered-apps)
+explains the options.
+
+## Other problems
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers choices that do not
+persist, content blockers and static hosting.

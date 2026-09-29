@@ -1,27 +1,16 @@
 ---
 title: ConsentBanner
-description: Pre-built consent banner shown when consent is required.
+description: Render the c15t consent banner in a React app, choose its variant and position, and compose its parts.
 group: frameworks
 ---
 
 ## Usage
 
-```tsx
-import { ConsentBanner, ConsentDialog, ConsentProvider, offline } from 'c15t/react';
-import { policyRulePresets } from '@c15t/schema';
+Render `ConsentBanner` once inside `ConsentProvider`, next to `ConsentDialog`.
+The [quickstart](/docs/frameworks/react/quickstart) mounts both in
+`src/consent.tsx`:
 
-const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
-
-export function Consent({ children }: { children: React.ReactNode }) {
-	return (
-		<ConsentProvider options={{ mode }}>
-			{children}
-			<ConsentBanner />
-			<ConsentDialog />
-		</ConsentProvider>
-	);
-}
-```
+<include src="../../../shared/examples/react/consent.mdx" />
 
 The banner renders whatever the active policy rule requires. It reads the rule
 through the provider, so the same component serves every region:
@@ -111,8 +100,8 @@ const theme = {
 
 Pass `theme` in `ConsentProvider` options. Per-action theme overrides such
 as `consentActions.dismiss` take precedence over this primary style.
-See [Styling](../styling/overview) for tokens and slots, and
-[Policy presets](../concepts/policy-presets) for the rule IDs and coverage.
+See [customize](/docs/frameworks/react/customize) for tokens and slots, and
+[policies](/docs/concepts/policies) for the rule IDs and coverage.
 
 ## Variants
 

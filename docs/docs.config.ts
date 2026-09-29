@@ -142,7 +142,42 @@ export default defineDocsConfig({
 				},
 				{
 					base: 'tanstack-start',
-					pages: ['quickstart'],
+					children: [
+						{
+							pages: ['scripts', 'troubleshooting'],
+							title: 'Integration',
+						},
+						{
+							pages: [
+								'components',
+								'components/consent-banner',
+								'components/consent-dialog',
+								'components/consent-widget',
+								'components/consent-dialog-link',
+								'components/consent-dialog-trigger',
+								'components/consent-gate',
+								'components/dev-tools',
+							],
+							title: 'Components',
+						},
+						{
+							pages: ['customize'],
+							title: 'Customize',
+						},
+						{
+							pages: ['hooks'],
+							title: 'Hooks',
+						},
+						{
+							pages: ['headless'],
+							title: 'Headless',
+						},
+						{
+							pages: ['iab'],
+							title: 'IAB TCF',
+						},
+					],
+					pages: ['quickstart', 'rendering'],
 					slug: 'tanstack-start',
 					title: 'TanStack Start',
 				},
@@ -150,7 +185,7 @@ export default defineDocsConfig({
 					base: 'react',
 					children: [
 						{
-							pages: ['script-loader', 'network-blocker', 'troubleshooting'],
+							pages: ['scripts', 'troubleshooting'],
 							title: 'Integration',
 						},
 						{
@@ -167,8 +202,8 @@ export default defineDocsConfig({
 							title: 'Components',
 						},
 						{
-							pages: ['styling/overview'],
-							title: 'Styling',
+							pages: ['customize'],
+							title: 'Customize',
 						},
 						{
 							pages: ['hooks/overview'],
@@ -183,7 +218,7 @@ export default defineDocsConfig({
 							title: 'IAB TCF',
 						},
 					],
-					pages: ['quickstart'],
+					pages: ['quickstart', 'rendering'],
 					slug: 'react',
 					title: 'React',
 				},

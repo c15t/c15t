@@ -1,29 +1,40 @@
 ---
 title: Quickstart
-description: Connect a React application to Inth and add consent UI, persistence and a preferences link.
+description: Add a consent banner, preferences dialog and consent-gated scripts to a React single-page app built with Vite, using Inth as the consent backend.
 group: frameworks
 ---
 
-## Connect Inth
+## Before you start
 
-[Create an Inth project](https://inth.com), configure policy rules and the app's
-allowed origin, and copy its backend endpoint. This guide uses a client-rendered
-React app with Vite. Applications with a framework server should use that
-framework's adapter for request prefetch.
+This guide sets up a client-rendered React app built with Vite. The browser
+loads the page, asks the consent backend for the visitor's policy, then shows
+the banner or runs the scripts the visitor allowed.
+
+- **Next.js or TanStack Start?** Use that framework's guide from the
+  [framework list](/docs/frameworks). Their adapters resolve consent on the
+  server.
+- **React Router framework mode, Remix or another server-rendered React app?**
+  This guide still works. The server renders the page without consent state and
+  the browser resolves it after hydration. Read
+  [rendering](/docs/frameworks/react/rendering#react-router-remix-and-other-server-rendered-apps)
+  for what that means for the first paint.
+
+You need an [Inth](https://inth.com) project. In the project, set the policy
+rules for your regions, add your site's origin to the trusted origins, and copy
+the backend URL. The URL is public configuration, not a secret.
+[Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
+covers self-hosting and offline mode.
+
+## Install c15t
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-Set `VITE_C15T_BACKEND_URL` to the endpoint from Inth. Vite embeds public values
-at build time, so rebuild when changing it. Keep management credentials out of
-public variables.
+`c15t` contains the React adapter at `c15t/react`. `@c15t/scripts` holds the
+vendor loaders used below.
 
-## Register consent-gated scripts
+## Set the backend URL
 
-Include measurement and marketing categories in your policy for these vendors.
-Remove any existing loaders for them so each script loads once.
-
-This setup uses Vite's public environment variables. Set the Inth endpoint and
-add your PostHog project key, PostHog API host and X Pixel ID in `.env.local`:
+Add the Inth backend URL and your vendor IDs to `.env.local`:
 
 ```dotenv title=".env.local"
 VITE_C15T_BACKEND_URL=
@@ -32,86 +43,92 @@ VITE_POSTHOG_HOST=
 VITE_X_PIXEL_ID=
 ```
 
-Copy the exact backend endpoint from Inth. The vendor IDs are optional: leaving
-an ID empty disables that integration. When enabling PostHog, fill in both its project key and the API host
-shown in your PostHog project. Restart Vite after editing these values and
-rebuild for deployment. Other bundlers need their own configuration mechanism.
+Paste the backend URL exactly as Inth shows it. Vite writes `VITE_` values into
+the bundle at build time, so restart the dev server after editing them and
+rebuild before you deploy. Set `VITE_POSTHOG_HOST` to the API host your
+PostHog project shows, such as `https://eu.i.posthog.com`. Leave a vendor ID
+empty to skip that vendor.
 
-Create `src/scripts.ts`. PostHog waits for measurement permission with
-`loadMode: 'after-consent'` and disables cookieless capture with
-`cookieless_mode: 'never'`. X Pixel waits for marketing permission.
+## Register your vendor scripts
+
+Create `src/scripts.ts`. PostHog waits for measurement permission and X Pixel
+waits for marketing permission, so your policy must include both categories.
+Remove any other PostHog or X Pixel loader from your app so each vendor loads
+once.
 
 <include src="../../shared/examples/react/scripts.mdx" />
 
-## Mount the provider and UI
+`loadMode: 'after-consent'` keeps the PostHog SDK off the page until the
+visitor allows measurement. `cookieless_mode: 'never'` turns off PostHog's
+cookieless capture. See [integrations](/docs/integrations/overview) for other
+vendors.
 
-```tsx title="src/consent.tsx"
-import type { ReactNode } from 'react';
-import {
-  ConsentBanner,
-  ConsentDialog,
-  ConsentDialogLink,
-  ConsentProvider,
-  hosted,
-} from 'c15t/react';
-import 'c15t/react/styles.css';
-import { scripts } from './scripts';
+## Mount the provider
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
-const mode = hosted({ url: backendURL });
+Create `src/consent.tsx`. `ConsentProvider` creates the consent runtime and
+loads the scripts. `ConsentBanner` and `ConsentDialog` render when the policy
+asks for them, and `ConsentDialogLink` keeps preferences reachable after the
+banner closes.
 
-export function Consent({ children }: { children: ReactNode }) {
-  return (
-    <ConsentProvider options={{ mode, scripts }}>
-      {children}
-      <ConsentBanner />
-      <ConsentDialog />
-      <footer><ConsentDialogLink>Privacy settings</ConsentDialogLink></footer>
-    </ConsentProvider>
-  );
-}
-```
+<include src="../../shared/examples/react/consent.mdx" />
 
-```tsx title="src/main.tsx"
-import { createRoot } from 'react-dom/client';
-import App from './App';
-import { Consent } from './consent';
+Wrap your app with it in `src/main.tsx`:
 
-const root = document.getElementById('root');
-if (!root) throw new Error('Missing #root element');
-createRoot(root).render(<Consent><App /></Consent>);
-```
+<include src="../../shared/examples/react/main.mdx" />
 
-Keep `Consent` mounted across navigation. The banner appears when the resolved
-policy requires a prompt; not every region or returning visitor needs one.
-The dialog link keeps preferences reachable after the prompt closes.
+Keep `Consent` mounted for the life of the app. If you use a client-side
+router, render the router inside `Consent` so navigation does not remount the
+provider. The stylesheet import in `src/consent.tsx` styles the banner and
+dialog; import it once.
 
-## Gate optional functionality
+## Gate your own features
 
-```tsx
+Read a category's permission with `useConsent` inside the provider:
+
+{/* example: fragment */}
+
+```tsx title="src/marketing-banner.tsx"
 import { useConsent } from 'c15t/react';
 
-export function MarketingContent() {
-  return useConsent('marketing') ? <div>Optional marketing content</div> : null;
+export function MarketingBanner() {
+  return useConsent('marketing') ? <aside>Spring sale</aside> : null;
 }
 ```
 
-This controls the rendered component. Move vendor SDKs into the
-[script loader](/docs/frameworks/react/script-loader) too. An independently
-loaded analytics script does not wait merely because a consent provider exists.
+`useConsent` returns the permission right now. Under an opt-out policy it can be
+`true` before the visitor has chosen anything. Read
+[how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+before you record or report choices. For iframes, use
+[`ConsentGate`](/docs/frameworks/react/components/consent-gate).
 
-`useConsent` returns effective permission, not proof of an explicit grant.
-Read [how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice) when recording choice events.
+## Check that it works
 
-## Verify and customize
+Build and preview the production bundle with `vite build` and `vite preview`,
+then open the site in a private window with DevTools open on the Network tab.
+Test under a policy that asks for a choice, such as an EU opt-in policy.
 
-Reject under an opt-in policy, reload and confirm optional requests stay blocked.
-Reopen preferences, save a different choice and test navigation. Follow
-[verification](/docs/guides/verify-consent), then
-[customization](/docs/customization/overview) to apply your design.
+1. **Before a choice.** The banner shows. There are no requests to
+   `posthog.com` or `static.ads-twitter.com`.
+2. **Reject all.** The banner closes and the vendor requests stay absent.
+3. **Reload.** The banner stays closed and the vendor requests stay absent.
+4. **Privacy settings.** The footer link opens the dialog with Measurement and
+   Marketing off. Turn Measurement on and save. PostHog's `array.js` loads and
+   X Pixel stays absent.
+5. **Turn Measurement off again.** The page reloads and PostHog does not load.
 
-## Run the complete example
+If the banner never appears, check the Network tab for the request to
+`/init` on your backend URL. [Troubleshooting](/docs/frameworks/react/troubleshooting)
+covers the common causes. [Verify consent](/docs/guides/verify-consent) has the
+full release checklist.
 
-Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
-YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.
+## Next steps
+
+- [Rendering](/docs/frameworks/react/rendering) for server-rendered React apps and
+  what the first paint contains.
+- [Scripts and embeds](/docs/frameworks/react/scripts) for more vendors, network
+  blocking and data cleanup.
+- [Customize](/docs/frameworks/react/customize) for colors, fonts, layout and copy.
+- [Components](/docs/frameworks/react/components/consent-manager-provider) for
+  every provider option and component prop.
+- The runnable app in `examples/react` of the
+  [c15t repository](https://github.com/c15t/c15t) contains this setup.

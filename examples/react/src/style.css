@@ -11,7 +11,7 @@ body {
 	margin: 0;
 }
 main,
-body > footer {
+#root > footer {
 	max-width: 900px;
 	margin: auto;
 	padding: 40px 24px;
@@ -95,7 +95,8 @@ footer {
 	padding: 24px 0;
 	border-top: 1px solid #dedbe1;
 }
-[data-design='branded'] {
+/* The Branded design overrides c15t theme tokens; see src/app.tsx. */
+:root[data-design='branded'] {
 	--c15t-primary: #6943a3;
 	--c15t-primary-hover: #533285;
 	--c15t-text-on-primary: #fff;

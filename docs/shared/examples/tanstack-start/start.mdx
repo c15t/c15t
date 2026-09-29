@@ -1,0 +1,10 @@
+{/* Generated from examples/tanstack-start/src/start.ts (docs:start) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/start.ts"
+import { createStart } from '@tanstack/react-start';
+import { consentRequestMiddleware } from 'c15t/tanstack-start/middleware';
+
+export const startInstance = createStart(() => ({
+	requestMiddleware: [consentRequestMiddleware()],
+}));
+```
