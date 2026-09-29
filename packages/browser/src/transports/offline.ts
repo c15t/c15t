@@ -19,6 +19,11 @@ export interface OfflineModeOptions {
 
 /**
  * Resolve local rules outside render and hydration.
+ *
+ * A language set through `data-language`, `overrides` or `setLanguage()`
+ * switches the copy when the bundle or `i18n.messages` has that language;
+ * otherwise the default copy is used.
+ *
  * @param options - Explicit policy rules; absence resolves the recommended pack.
  * @returns A provider transport with no network requests.
  */
@@ -39,7 +44,10 @@ export const offline = function offline(
 								recommendedPolicyRules({ iab: context.iabEnabled }),
 						})
 					),
-					translations: context.translations,
+					translations:
+						(overrides.language
+							? context.translationsFor?.(overrides.language)
+							: undefined) ?? context.translations,
 				}),
 		}),
 		{ kind: 'offline' as const }
