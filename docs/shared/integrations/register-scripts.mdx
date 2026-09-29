@@ -10,8 +10,10 @@ Complete your [framework quickstart](/docs/frameworks) first. Keep its Inth
 endpoint, policy, styles and consent UI. Remove the vendor's original script,
 SDK initializer or tag-manager entry, so the vendor loads only through c15t.
 
-The `scripts` export in `src/consent-scripts.ts` is a configuration, not an
-initializer. Add it to the c15t provider you already have, at the registration
+The vendor pages put the helper in `src/consent-scripts.ts`. If your framework
+quickstart already created a scripts file, such as `lib/scripts.ts` in the
+Next.js guide, add the helper to that array instead of creating a second file.
+The `scripts` export is a configuration, not an initializer. Add it to the c15t provider you already have, at the registration
 point for your framework below. These are edits to that provider, not a second
 provider.
 
