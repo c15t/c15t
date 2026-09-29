@@ -1,5 +1,5 @@
 /**
- * Storage Tests for IAB TCF 2.3
+ * Storage Tests for IAB TCF 2.4
  *
  * Tests for TC String storage compliance including cookies and localStorage.
  *
@@ -33,7 +33,7 @@ function clearAllCookies() {
 	}
 }
 
-describe('Storage Compliance - IAB TCF 2.3', () => {
+describe('Storage Compliance - IAB TCF 2.4', () => {
 	let cmpApi: CMPApi;
 	let mockGVL: GlobalVendorList;
 	let storageMock: ReturnType<typeof setupStorageMock>;

@@ -418,7 +418,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "2.2.0-canary-20260804162155",
+      "version": "2.2.0-canary-20260814121231",
       "dependencies": {
         "@c15t/logger": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -454,7 +454,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "2.2.0-canary-20260804162155",
+      "version": "2.2.0-canary-20260814121231",
       "bin": {
         "cli": "dist/index.mjs",
       },
@@ -487,7 +487,7 @@
     },
     "packages/core": {
       "name": "c15t",
-      "version": "2.2.0-canary-20260731105620",
+      "version": "2.2.0-canary-20260814121231",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -502,7 +502,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "2.2.0-canary-20260731105620",
+      "version": "2.2.0-canary-20260814121231",
       "dependencies": {
         "@radix-ui/react-accordion": "1.2.15",
         "@radix-ui/react-scroll-area": "^1.2.13",
@@ -533,10 +533,10 @@
     },
     "packages/iab": {
       "name": "@c15t/iab",
-      "version": "2.2.0-canary-20260731105620",
+      "version": "2.2.0-canary-20260814121231",
       "dependencies": {
         "@c15t/schema": "workspace:*",
-        "@iabtechlabtcf/core": "^1.5.21",
+        "@iabtechlabtcf/core": "^1.5.22",
         "c15t": "workspace:*",
       },
       "devDependencies": {
@@ -560,7 +560,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "2.2.0-canary-20260731105620",
+      "version": "2.2.0-canary-20260814121231",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -580,7 +580,7 @@
     },
     "packages/node-sdk": {
       "name": "@c15t/node-sdk",
-      "version": "2.2.0-canary-20260804162155",
+      "version": "2.2.0-canary-20260814121231",
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -602,7 +602,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "2.2.0-canary-20260731105620",
+      "version": "2.2.0-canary-20260814121231",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "@types/google.maps": "3.65.3",
@@ -613,7 +613,7 @@
         "@c15t/iab": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
-        "@iabtechlabtcf/core": "^1.5.20",
+        "@iabtechlabtcf/core": "^1.5.22",
         "genversion": "3.2.0",
         "msw": "^2.14.6",
       },
@@ -678,7 +678,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "2.2.0-canary-20260731105620",
+      "version": "2.2.0-canary-20260814121231",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",
@@ -1106,7 +1106,7 @@
 
     "@hono/valibot-validator": ["@hono/valibot-validator@0.6.1", "", { "peerDependencies": { "hono": ">=3.9.0", "valibot": "^1.0.0 || ^1.0.0-beta.4 || ^1.0.0-rc" } }, "sha512-rqKhQJI8IVR8gRRNHHf2wGtIT7sKEqV1KoGL5f2SocNytl+tBNn4EtRu4zfk/D6axgWSswnaxeiuJhM5yNFrCg=="],
 
-    "@iabtechlabtcf/core": ["@iabtechlabtcf/core@1.5.21", "", {}, "sha512-DgesUdC/s4qiL41X8TfgF+EPINMGUMyd9AL2up5jC2l+uTbgJycf1mIEniPFJwuxGgSvDx9X4H44JIN+2rw66Q=="],
+    "@iabtechlabtcf/core": ["@iabtechlabtcf/core@1.5.22", "", {}, "sha512-Iaz42mXXflxLL19nU7S7RBV1hjELln32mettVVTxdzFFqxVPze6dOzgaNMHP/L9a2Anr017D7yFAcPzMgnfchw=="],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 

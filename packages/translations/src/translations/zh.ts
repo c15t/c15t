@@ -89,6 +89,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'这些是网站功能和安全所必需的。根据 IAB TCF，您不能反对这些特殊目的。',
 			},
+			features: {
+				title: '功能',
+				description:
+					'这些处理方式仅可用于本通知中向您提供选择的一种或多种目的。',
+			},
 			vendorList: {
 				search: '搜索供应商...',
 				showingCount: '显示 {total} 个供应商中的 {filtered} 个',

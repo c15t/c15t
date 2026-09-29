@@ -2,7 +2,7 @@
 
 /**
  * @packageDocumentation
- * Provides the IAB TCF 2.3 compliant consent dialog component.
+ * Provides the IAB TCF 2.4 compliant consent dialog component.
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
 
@@ -12,6 +12,7 @@ import {
 	type RefObject,
 	useCallback,
 	useEffect,
+	useId,
 	useLayoutEffect,
 	useMemo,
 	useRef,
@@ -113,14 +114,15 @@ export interface IABConsentDialogProps {
 }
 
 /**
- * IAB TCF 2.3 compliant consent dialog dialog.
+ * IAB TCF 2.4 compliant consent dialog dialog.
  *
  * @remarks
- * This component implements the required IAB TCF 2.3 UI elements:
+ * This component implements the required IAB TCF 2.4 UI elements:
  * - Tabbed interface for Purposes and Vendors
  * - Purpose grouping with stacks
  * - Individual purpose and vendor consent toggles
- * - Special purposes and features
+ * - Special purposes (locked) and special features (opt-in)
+ * - An informational Features section with the IAB standard text
  * - Legitimate interest handling
  *
  * @public
@@ -161,6 +163,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		null
 	);
 	const [specialPurposesExpanded, setSpecialPurposesExpanded] = useState(false);
+	const featuresHeadingId = useId();
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 
@@ -180,6 +183,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		specialPurposes,
 		specialFeatures,
 		features,
+		featuresStandardText,
 		stacks,
 		standalonePurposes,
 	} = useMemo(() => {
@@ -189,6 +193,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 				specialPurposes: [],
 				specialFeatures: [],
 				features: [],
+				featuresStandardText: null,
 				stacks: [] as ProcessedStack[],
 				standalonePurposes: [],
 			};
@@ -434,6 +439,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			specialPurposes: processedSpecialPurposes,
 			specialFeatures: processedSpecialFeatures,
 			features: processedFeatures,
+			featuresStandardText: gvl.standardTexts?.features ?? null,
 			stacks: processedStacks,
 			standalonePurposes: finalStandalonePurposes,
 		};
@@ -820,8 +826,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 											/>
 										))}
 
-										{/* Essential Functions: Special Purposes + Features (locked) */}
-										{(specialPurposes.length > 0 || features.length > 0) && (
+										{/* Essential Functions: Special Purposes (locked) */}
+										{specialPurposes.length > 0 && (
 											<div className={styles.specialPurposesSection}>
 												<div className={styles.specialPurposesHeader}>
 													<button
@@ -872,14 +878,11 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 															</h3>
 															<p className={styles.purposeMeta}>
 																{
-																	new Set([
-																		...specialPurposes.flatMap((sp) =>
+																	new Set(
+																		specialPurposes.flatMap((sp) =>
 																			sp.vendors.map((v) => v.id)
-																		),
-																		...features.flatMap((f) =>
-																			f.vendors.map((v) => v.id)
-																		),
-																	]).size
+																		)
+																	).size
 																}{' '}
 																partners
 															</p>
@@ -906,7 +909,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 												{specialPurposesExpanded && (
 													<div style={{ padding: '0.75rem' }}>
-														{/* Special Purposes */}
 														{specialPurposes.map((purpose) => (
 															<PurposeItem
 																key={`special-${purpose.id}`}
@@ -919,29 +921,47 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																isLocked={true}
 															/>
 														))}
-
-														{/* Features */}
-														{features.map((feature) => (
-															<PurposeItem
-																key={`feature-${feature.id}`}
-																purpose={{
-																	id: feature.id,
-																	name: feature.name,
-																	description: feature.description,
-																	illustrations: feature.illustrations,
-																	vendors: feature.vendors,
-																}}
-																isEnabled={true}
-																onToggle={() => {}}
-																vendorConsents={iabState.vendorConsents}
-																onVendorToggle={handleVendorToggle}
-																onVendorClick={handleVendorClick}
-																isLocked={true}
-															/>
-														))}
 													</div>
 												)}
 											</div>
+										)}
+
+										{/* Features: informational, no controls (TCF Policies v5.0.b) */}
+										{features.length > 0 && (
+											<section
+												className={styles.featuresSection}
+												aria-labelledby={featuresHeadingId}
+												data-testid="iab-features-section"
+											>
+												<div className={styles.featuresHeader}>
+													<h3
+														id={featuresHeadingId}
+														className={styles.featuresTitle}
+													>
+														{iabTranslations.preferenceCenter.features.title}
+													</h3>
+													<p className={styles.featuresDescription}>
+														{featuresStandardText ??
+															iabTranslations.preferenceCenter.features
+																.description}
+													</p>
+												</div>
+												<div className={styles.featuresList}>
+													{features.map((feature) => (
+														<PurposeItem
+															key={`feature-${feature.id}`}
+															informational
+															purpose={{
+																id: feature.id,
+																name: feature.name,
+																description: feature.description,
+																illustrations: feature.illustrations,
+																vendors: feature.vendors,
+															}}
+														/>
+													))}
+												</div>
+											</section>
 										)}
 
 										{/* Consent storage notice */}

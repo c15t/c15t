@@ -100,7 +100,7 @@ export interface NonIABVendor {
 	 * Special features requiring explicit opt-in (IAB special feature IDs 1-2).
 	 *
 	 * - 1: Use precise geolocation data
-	 * - 2: Actively scan device characteristics for identification
+	 * - 2: Identify devices based on information actively requested
 	 */
 	specialFeatures?: number[];
 

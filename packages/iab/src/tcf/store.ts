@@ -245,7 +245,6 @@ export function createIABActions(
 					cmpId: iabConfig.cmpId ?? CMP_ID,
 					cmpVersion: iabConfig.cmpVersion ?? CMP_VERSION,
 					publisherCountryCode: iabConfig.publisherCountryCode ?? 'GB',
-					isServiceSpecific: iabConfig.isServiceSpecific ?? true,
 				}
 			);
 

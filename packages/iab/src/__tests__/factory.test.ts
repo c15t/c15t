@@ -2,7 +2,7 @@
  * Tests for the iab() factory.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { iab } from '../factory';
 
 describe('iab() factory', () => {
@@ -23,5 +23,23 @@ describe('iab() factory', () => {
 		const config = iab({ cmpId: 28 });
 
 		expect(config._module?.fetchGVL).toBeTypeOf('function');
+	});
+
+	it('warns once when isServiceSpecific is false', async () => {
+		vi.resetModules();
+		const { iab: freshIab } = await import('../factory');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		try {
+			freshIab({ cmpId: 28 });
+			freshIab({ cmpId: 28, isServiceSpecific: true });
+			expect(warn).not.toHaveBeenCalled();
+
+			freshIab({ cmpId: 28, isServiceSpecific: false });
+			freshIab({ cmpId: 28, isServiceSpecific: false });
+			expect(warn).toHaveBeenCalledTimes(1);
+		} finally {
+			warn.mockRestore();
+		}
 	});
 });

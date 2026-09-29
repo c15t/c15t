@@ -9,7 +9,7 @@ group: reference
 <section id="intro">
   ## What is IAB TCF?
 
-  The [IAB Transparency & Consent Framework (TCF)](https://iabeurope.eu/tcf-2-0/) is a standardized protocol for communicating user consent choices to ad tech vendors in the programmatic advertising ecosystem. TCF 2.3 is the current version and is widely adopted across the EU/EEA.
+  The [IAB Transparency & Consent Framework (TCF)](https://iabeurope.eu/tcf-2-0/) is a standardized protocol for communicating user consent choices to ad tech vendors in the programmatic advertising ecosystem. TCF 2.4 is the current version and is widely adopted across the EU/EEA.
 
   When your site participates in the IAB ecosystem (ad exchanges, SSPs, DSPs, DMPs), you need to:
 
@@ -30,7 +30,7 @@ group: reference
 
   ## How c15t Implements TCF
 
-  c15t provides a complete IAB TCF 2.3 CMP (Consent Management Platform) implementation:
+  c15t provides a complete IAB TCF 2.4 CMP (Consent Management Platform) implementation:
 
   1. **Global Vendor List (GVL)** — Automatically fetched from the c15t backend. Contains the official IAB vendor registry with purposes, features, and stacks.
   2. **IABConsentBanner** — A pre-built banner showing partner count, purpose summaries, and legitimate interest notices.
@@ -64,7 +64,11 @@ group: reference
 
   ### Special Features
 
-  Features like precise geolocation or device scanning that require explicit opt-in beyond standard consent.
+  Features like precise geolocation, or identifying devices based on information actively requested, that require explicit opt-in beyond standard consent.
+
+  ### Features
+
+  Features, such as linking different devices, are means of processing that vendors use only for the purposes the user chooses. They have no consent toggle. The preference center lists them in an informational section with the IAB standard text.
 
   ### Legitimate Interest
 
@@ -74,11 +78,19 @@ group: reference
 
   Each vendor in the GVL declares which purposes it uses, whether via consent or legitimate interest. The preference center lets users toggle consent per-vendor.
 
+  ## Consent Scope
+
+  c15t stores TCF choices per site and browser, so every TC string it creates is service-specific. c15t does not sync TCF choices across devices.
+
+  Do not use `/consent/check` or your own account data to skip the TCF UI on another device. Reusing choices across devices is a multi-device scope, and the TCF requires you to disclose that scope in the first layer of the UI, which the prebuilt IAB components do not do.
+
+  The `isServiceSpecific` option is deprecated. TCF requires IsServiceSpecific=1 in every TC string, so c15t always encodes `true` and logs a warning if you pass `false`.
+
   ## Standard vs IAB Components
 
   | Feature | ConsentBanner / ConsentDialog | IABConsentBanner / IABConsentDialog |
   |---------|-------------------------------|-------------------------------------|
-  | Consent model | opt-in / opt-out | IAB TCF 2.3 |
+  | Consent model | opt-in / opt-out | IAB TCF 2.4 |
   | Granularity | Category-level (measurement, marketing, etc.) | Purpose-level + vendor-level |
   | Vendor management | No | Yes (full GVL integration) |
   | TC String | No | Yes |

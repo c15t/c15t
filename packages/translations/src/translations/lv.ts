@@ -97,6 +97,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Tās ir nepieciešamas vietnes funkcionalitātei un drošībai. Saskaņā ar IAB TCF jūs nevarat iebilst pret šiem īpašajiem mērķiem.',
 			},
+			features: {
+				title: 'Funkcijas',
+				description:
+					'Šos apstrādes līdzekļus var izmantot tikai viena vai vairāku mērķu sasniegšanai, attiecībā uz kuriem jums ir dota izvēle šajā paziņojumā.',
+			},
 			vendorList: {
 				search: 'Meklēt piegādātājus...',
 				showingCount: 'Rāda {filtered} no {total} piegādātājiem',

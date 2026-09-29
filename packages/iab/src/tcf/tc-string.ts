@@ -9,6 +9,7 @@
 import type { GlobalVendorList } from 'c15t';
 import type { TCFConsentData } from './iab-tcf-types';
 import { getTCFCore } from './lazy-load';
+import { warnIfServiceSpecificDisabled } from './service-specific';
 
 /**
  * Configuration for TC String generation.
@@ -31,7 +32,13 @@ export interface TCStringConfig {
 	/** Publisher country code (2-letter code) */
 	publisherCountryCode?: string;
 
-	/** Whether consent is service-specific (not global) */
+	/**
+	 * Whether the TC string is service-specific.
+	 *
+	 * @deprecated TCF requires IsServiceSpecific=1 in every TC string, and
+	 * group-specific scope is also encoded as 1. The TC string always has
+	 * IsServiceSpecific=1; passing `false` logs a warning.
+	 */
 	isServiceSpecific?: boolean;
 }
 
@@ -83,7 +90,9 @@ export async function generateTCString(
 	tcModel.consentScreen = config.consentScreen ?? 1;
 	tcModel.consentLanguage = config.consentLanguage ?? 'EN';
 	tcModel.publisherCountryCode = config.publisherCountryCode ?? 'US';
-	tcModel.isServiceSpecific = config.isServiceSpecific ?? true;
+	// TCF requires IsServiceSpecific=1. The option is kept for compatibility.
+	warnIfServiceSpecificDisabled(config.isServiceSpecific);
+	tcModel.isServiceSpecific = true;
 
 	// Set purpose consents
 	for (const [purposeId, value] of Object.entries(
@@ -130,7 +139,7 @@ export async function generateTCString(
 		}
 	}
 
-	// Set vendors disclosed (TCF 2.3 requirement)
+	// Set vendors disclosed (required by TCF)
 	// This indicates which vendors were shown to the user in the CMP UI
 	for (const [vendorId, value] of Object.entries(
 		consentData.vendorsDisclosed
@@ -177,7 +186,7 @@ export interface DecodedTCString {
 	/** Special feature opt-ins */
 	specialFeatureOptIns: Record<number, boolean>;
 
-	/** Vendors that were disclosed to the user in the CMP UI (TCF 2.3) */
+	/** Vendors that were disclosed to the user in the CMP UI */
 	vendorsDisclosed: Record<number, boolean>;
 
 	/** Created date */
@@ -215,10 +224,11 @@ export async function decodeTCString(
 
 	const tcModel = TCString.decode(tcString);
 
-	// Convert Vector to Record
+	// Convert Vector to Record. Vendor vectors use their own maxId because
+	// GVL vendor IDs go well past 1000.
 	const vectorToRecord = (
-		vector: { has: (id: number) => boolean },
-		maxId: number
+		vector: { has: (id: number) => boolean; maxId: number },
+		maxId: number = vector.maxId
 	): Record<number, boolean> => {
 		const record: Record<number, boolean> = {};
 		for (let i = 1; i <= maxId; i++) {
@@ -239,13 +249,12 @@ export async function decodeTCString(
 			tcModel.purposeLegitimateInterests,
 			11
 		),
-		vendorConsents: vectorToRecord(tcModel.vendorConsents, 1000),
+		vendorConsents: vectorToRecord(tcModel.vendorConsents),
 		vendorLegitimateInterests: vectorToRecord(
-			tcModel.vendorLegitimateInterests,
-			1000
+			tcModel.vendorLegitimateInterests
 		),
 		specialFeatureOptIns: vectorToRecord(tcModel.specialFeatureOptins, 2),
-		vendorsDisclosed: vectorToRecord(tcModel.vendorsDisclosed, 1000),
+		vendorsDisclosed: vectorToRecord(tcModel.vendorsDisclosed),
 		created: tcModel.created,
 		lastUpdated: tcModel.lastUpdated,
 		vendorListVersion: tcModel.vendorListVersion as number,

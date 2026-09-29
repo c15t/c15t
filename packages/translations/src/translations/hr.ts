@@ -97,6 +97,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Ove su funkcije potrebne za funkcionalnost i sigurnost stranice. Prema IAB TCF-u, ne možete uložiti prigovor na ove posebne svrhe.',
 			},
+			features: {
+				title: 'Značajke',
+				description:
+					'Ova sredstva obrade mogu se koristiti isključivo za ostvarivanje jedne ili više svrha za koje vam je u ovoj obavijesti dan izbor.',
+			},
 			vendorList: {
 				search: 'Pretraži prodavače...',
 				showingCount: '{filtered} od {total} prodavača',

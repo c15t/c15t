@@ -99,6 +99,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Ezek a webhely működéséhez és biztonságához szükségesek. Az IAB TCF szerint Ön nem tiltakozhat ezen különleges célok ellen.',
 			},
+			features: {
+				title: 'Funkciók',
+				description:
+					'Ezek az adatkezelési módok kizárólag egy vagy több olyan cél érdekében használhatók fel, amelyekre vonatkozóan Önnek választási lehetősége van a jelen közleményben.',
+			},
 			vendorList: {
 				search: 'Szolgáltatók keresése...',
 				showingCount: '{total} szolgáltatóból {filtered} megjelenítése',

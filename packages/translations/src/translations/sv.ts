@@ -97,6 +97,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Dessa krävs för webbplatsens funktionalitet och säkerhet. Enligt IAB TCF kan du inte invända mot dessa speciella ändamål.',
 			},
+			features: {
+				title: 'Funktioner',
+				description:
+					'Dessa behandlingsmetoder får endast användas i syfte att uppnå ett eller flera av de ändamål som du ges möjlighet att välja i detta meddelande.',
+			},
 			vendorList: {
 				search: 'Sök leverantörer...',
 				showingCount: '{filtered} av {total} leverantörer',

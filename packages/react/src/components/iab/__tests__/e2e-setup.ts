@@ -1,5 +1,5 @@
 /**
- * E2E Test Setup for IAB TCF 2.3 Components
+ * E2E Test Setup for IAB TCF 2.4 Components
  *
  * Provides utilities for browser-based E2E testing of IAB components.
  * Uses MSW (Mock Service Worker) for network-level mocking.
@@ -156,6 +156,7 @@ export async function getCMPTCData(): Promise<{
 	vendor: {
 		consents: Record<number, boolean>;
 		legitimateInterests: Record<number, boolean>;
+		disclosedVendors: Record<number, boolean>;
 	};
 	specialFeatureOptins: Record<number, boolean>;
 	publisher: {

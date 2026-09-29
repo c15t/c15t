@@ -98,6 +98,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Ini diperlukan untuk fungsionalitas dan keamanan situs. Per IAB TCF, Anda tidak dapat menolak tujuan khusus ini.',
 			},
+			features: {
+				title: 'Fitur',
+				description:
+					'Sarana pemrosesan ini hanya dapat digunakan untuk mencapai satu atau beberapa tujuan yang dapat Anda pilih dalam pemberitahuan ini.',
+			},
 			vendorList: {
 				search: 'Cari vendor...',
 				showingCount: '{filtered} dari {total} vendor',
