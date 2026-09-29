@@ -190,20 +190,23 @@ export const resolveOptions = function resolveOptions(
 		);
 	}
 	// The injected routes cover `init` and `manifest`; consent is saved with
-	// `POST /subjects` at the backend itself. A `manifestURL` says where the
-	// manifest lives but not where consent goes, so without a `backendURL`
-	// the browser would post it at the init route's own prefix, where
-	// nothing answers. An inline `manifest` is the deliberately network-free
-	// path and is left alone: an app on it supplies its own save route.
-	if (
-		options.mode.type === 'manifest' &&
-		options.mode.manifestURL &&
-		!options.mode.backendURL &&
-		!backendURLFromEnv()
-	) {
-		throw new Error(
-			'@c15t/astro: manifest mode with a `manifestURL` also needs a `backendURL` (or C15T_BACKEND_URL) — that is where consent is saved, and the injected routes only serve init and manifest.'
-		);
+	// `POST /subjects` at the backend itself, and the browser only learns
+	// where that is from these options. Without a `backendURL` it would post
+	// to the init route's own prefix, where nothing answers, so a bare
+	// `manifest()` or one with only a `manifestURL` fails here instead. A
+	// backend URL from the environment is written into the options so the
+	// browser gets it too. An inline `manifest` is the deliberately
+	// network-free path and is left alone: an app on it serves its own save
+	// route.
+	let { mode } = options;
+	if (mode.type === 'manifest' && !mode.manifest && !mode.backendURL) {
+		const backendURL = backendURLFromEnv();
+		if (!backendURL) {
+			throw new Error(
+				'@c15t/astro: manifest mode needs a `backendURL`, for example manifest({ backendURL: "https://your-project.inth.app" }), or the C15T_BACKEND_URL environment variable set when astro.config is loaded. The browser saves consent there with POST /subjects; the injected routes only serve init and manifest.'
+			);
+		}
+		mode = { ...mode, backendURL };
 	}
 	// A JavaScript `astro.config.mjs` has no type checking, so `ui: 'solid'`
 	// reaches `buildBootScript()` and throws a bare `TypeError` on an
@@ -240,6 +243,7 @@ export const resolveOptions = function resolveOptions(
 		colorScheme: options.colorScheme ?? 'system',
 		endpoints: resolveEndpoints(options),
 		middleware: resolveMiddleware(options),
+		mode,
 		ui: options.ui ?? 'svelte',
 	};
 };

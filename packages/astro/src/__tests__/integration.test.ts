@@ -2,6 +2,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 
 import { parse } from '@babel/parser';
+import {
+	buildConsentManifestFromConfig,
+	policyRulePresets,
+} from '@c15t/schema/types';
 import { describe, expect, it, vi } from 'vitest';
 
 import { c15t, createOwnEntryResolver, resolveOptions } from '../integration';
@@ -16,6 +20,11 @@ interface SetupCalls {
 }
 
 const resolveOwnEntry = await createOwnEntryResolver();
+
+const INLINE_MANIFEST = await buildConsentManifestFromConfig({
+	branding: 'c15t',
+	policyRules: [policyRulePresets.europeOptIn()],
+});
 
 /** How an injected module reads in the page script. */
 const specifier = (entry: string): string =>
@@ -87,9 +96,10 @@ describe('resolveOptions', () => {
 				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
 			}).endpoints.enabled
 		).toBe(true);
-		expect(resolveOptions({ mode: manifestMode() }).endpoints.enabled).toBe(
-			true
-		);
+		expect(
+			resolveOptions({ mode: manifestMode({ manifest: INLINE_MANIFEST }) })
+				.endpoints.enabled
+		).toBe(true);
 	});
 
 	it.each(['solid', 'constructor', '__proto__'])(
@@ -106,12 +116,38 @@ describe('resolveOptions', () => {
 		}
 	);
 
+	it('rejects a bare manifest() with nowhere to save consent', () => {
+		// The browser would post saves to the init route's own prefix,
+		// `/api/c15t/subjects`, where nothing answers.
+		expect(() => resolveOptions({ mode: manifestMode() })).toThrowError(
+			/needs a .backendURL./u
+		);
+	});
+
+	it('hands a backend URL from the environment to the browser', () => {
+		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
+		try {
+			expect(resolveOptions({ mode: manifestMode() }).mode).toMatchObject({
+				backendURL: 'https://consent.example.com',
+			});
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
+	it('leaves an inline manifest without a backendURL alone', () => {
+		// The network-free path: the app serves its own save route.
+		expect(
+			resolveOptions({ mode: manifestMode({ manifest: INLINE_MANIFEST }) }).mode
+		).not.toHaveProperty('backendURL');
+	});
+
 	it('rejects a manifestURL with nowhere to save consent', () => {
 		// The injected routes serve init and manifest; `POST /subjects` is
 		// the backend's, so a `manifestURL` without one would 404 on save.
 		expect(() =>
 			resolveOptions({ mode: manifestMode({ manifestURL: '/m.json' }) })
-		).toThrowError(/also needs a .backendURL./u);
+		).toThrowError(/needs a .backendURL./u);
 		expect(
 			resolveOptions({
 				mode: manifestMode({
