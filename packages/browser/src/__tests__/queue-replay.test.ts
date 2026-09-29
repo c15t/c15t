@@ -135,3 +135,29 @@ describe('queued calls before the tag loads', () => {
 		});
 	});
 });
+
+describe('c15t.push after the tag loads', () => {
+	it('runs calls the same way as calls queued before the tag', async () => {
+		const api = loadTag([['config', options]]);
+		const onConsent = vi.fn();
+
+		expect(api.push(['on', 'consent', onConsent], ['acceptAll'])).toBe(2);
+
+		await vi.waitFor(() => {
+			expect(api.has('measurement')).toBe(true);
+		});
+		expect(onConsent).toHaveBeenCalled();
+	});
+
+	it('warns about an unsupported method and keeps going', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const api = loadTag([['config', options]]);
+
+		expect(() =>
+			api.push(['getSnapshot'], ['on', 'consent', vi.fn()])
+		).not.toThrow();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining("c15t.push(['getSnapshot', ...])")
+		);
+	});
+});

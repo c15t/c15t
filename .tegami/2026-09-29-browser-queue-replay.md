@@ -8,3 +8,5 @@ packages:
 Calls pushed onto `window.c15t` before the script loads now all run. Before, queueing any method other than `config`, `on` or `onInit` threw during replay and dropped every call queued after it.
 
 `config`, `init`, `on` and `onInit` still run in place. `subscribe` attaches once the client exists. Actions such as `openDialog`, `showBanner`, `acceptAll`, `rejectAll`, `save`, `setLanguage` and `identify` run in queue order once the policy has resolved, so a queued `openDialog` is not replaced by the banner. Methods that only return a value, such as `getSnapshot` or `has`, and unknown names are skipped with a console warning. A queued call that throws is reported with `console.error` and the calls after it still run.
+
+`window.c15t.push([...])` also works after the script has loaded: it runs each call the same way as a call queued before load. A snippet written as `window.c15t = window.c15t || []; c15t.push([...])` no longer throws when it runs after the tag.
