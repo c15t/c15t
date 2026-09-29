@@ -1200,6 +1200,46 @@ for (const engine of ENGINES) {
 			assert.strictEqual(Number(columns[0]?.timeToDecisionMs), 3700);
 		});
 
+		it('summarises a posted choice under the action names the summary reports', async () => {
+			await seed();
+			const experiment = {
+				acknowledgedDiagnostics: false,
+				assignedBy: 'host',
+				id: 'banner-shape',
+				variant: 'bar',
+			};
+			const saves = await Promise.all(
+				[
+					['sub_accepts', 'all'],
+					['sub_rejects', 'necessary'],
+				].map(([subjectId, consentAction]) =>
+					post({
+						...submission,
+						consentAction,
+						metadata: { experiment },
+						subjectId,
+					})
+				)
+			);
+			for (const save of saves) {
+				assert.strictEqual(save.status, 200);
+			}
+
+			const response = await app.request(
+				'/experiments/banner-shape/summary',
+				authed
+			);
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			assert.deepStrictEqual(body.variants[0]?.byAction, {
+				accept_all: 1,
+				custom: 0,
+				opt_out: 0,
+				reject_all: 1,
+				unknown: 0,
+			});
+		});
+
 		const attributionColumns = (consentId: string) =>
 			runtime.runPromise(
 				Effect.gen(function* columns() {

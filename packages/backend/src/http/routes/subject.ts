@@ -244,11 +244,10 @@ export const register = function register({
 
 					const submission = yield* submit({
 						choice: prepared.choice ?? null,
+						...prepared.attribution,
 						consentAction: prepared.consentAction ?? null,
 						decision: prepared.decision?.input,
 						domainId: domain.id,
-						experimentId: prepared.attribution.experimentId ?? null,
-						experimentVariant: prepared.attribution.experimentVariant ?? null,
 						externalId: input.externalSubjectId ?? null,
 						givenAt: prepared.givenAt,
 						identityProvider: input.identityProvider ?? null,
@@ -261,7 +260,6 @@ export const register = function register({
 						runtimePolicySource: prepared.decision?.source,
 						subjectId: input.subjectId,
 						tcString: input.tcString ?? null,
-						timeToDecisionMs: prepared.attribution.timeToDecisionMs ?? null,
 						uiSource: input.uiSource ?? null,
 						userAgent: prepared.userAgent,
 						validUntil: prepared.validUntil ?? null,

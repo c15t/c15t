@@ -515,20 +515,39 @@ curl 'http://localhost:3000/api/c15t/experiments/banner-shape/summary?from=2026-
 		{
 			"variant": "bar",
 			"choices": 120,
-			"byAction": { "all": 80, "necessary": 30, "custom": 10 },
+			"byAction": {
+				"accept_all": 80,
+				"custom": 10,
+				"opt_out": 0,
+				"reject_all": 30,
+				"unknown": 0
+			},
 			"bySurface": { "banner": 100, "dialog": 20 },
 			"medianTimeToDecisionMs": 4200
 		},
 		{
 			"variant": "floating",
 			"choices": 95,
-			"byAction": { "all": 50, "necessary": 40, "custom": 5 },
+			"byAction": {
+				"accept_all": 50,
+				"custom": 5,
+				"opt_out": 0,
+				"reject_all": 40,
+				"unknown": 0
+			},
 			"bySurface": { "banner": 90, "dialog": 5 },
 			"medianTimeToDecisionMs": 5100
 		}
 	]
 }
 ```
+
+`byAction` always has all five keys. They are the action the backend
+stored, not the client's `consent_action`: `accept_all` for accept,
+`reject_all` for reject, `opt_out` for a reject under an opt-out policy,
+`custom` for a saved selection, and `unknown` for a record without one.
+`choices` counts consent records, so a visitor who changes their mind under
+the same arm counts twice.
 
 `from` and `to` accept an ISO 8601 date or timestamp and filter on the
 consent's `givenAt`, both ends inclusive. A date without a time is the whole

@@ -672,9 +672,9 @@ const proofFields = (
 };
 
 export interface AttributionFields {
-	readonly experimentId: string | undefined;
-	readonly experimentVariant: string | undefined;
-	readonly timeToDecisionMs: number | undefined;
+	readonly experimentId: string | null;
+	readonly experimentVariant: string | null;
+	readonly timeToDecisionMs: number | null;
 }
 
 /**
@@ -731,15 +731,15 @@ const attributionFields = (
 		experimentId !== undefined && experimentVariant !== undefined;
 	const ms = metadata?.timeToDecisionMs;
 	return {
-		experimentId: complete ? experimentId : undefined,
-		experimentVariant: complete ? experimentVariant : undefined,
+		experimentId: complete ? experimentId : null,
+		experimentVariant: complete ? experimentVariant : null,
 		timeToDecisionMs:
 			typeof ms === 'number' &&
 			Number.isInteger(ms) &&
 			ms >= 0 &&
 			ms <= TIME_TO_DECISION_MAX_MS
 				? ms
-				: undefined,
+				: null,
 	};
 };
 

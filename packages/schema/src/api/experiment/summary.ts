@@ -58,11 +58,40 @@ export const experimentSummaryQuerySchema = v.object({
 });
 
 /**
+ * The `consentAction` values the backend stores, plus `unknown` for a
+ * consent recorded without one. `accept_all` and `reject_all` are the
+ * banner's accept and reject, `opt_out` a reject under an opt-out policy,
+ * `custom` a saved selection.
+ */
+export const EXPERIMENT_SUMMARY_ACTIONS = [
+	'accept_all',
+	'custom',
+	'opt_out',
+	'reject_all',
+	'unknown',
+] as const;
+
+/** One key of {@link EXPERIMENT_SUMMARY_ACTIONS}. */
+export type ExperimentSummaryAction =
+	(typeof EXPERIMENT_SUMMARY_ACTIONS)[number];
+
+const actionCount = v.pipe(v.number(), v.integer(), v.minValue(0));
+
+/**
  * One arm of an experiment, as the summary reports it.
  */
 export const experimentVariantSummarySchema = v.object({
-	/** Consents per `consentAction` (`all`, `necessary`, `custom`, …). */
-	byAction: v.record(v.string(), v.number()),
+	/**
+	 * Consents per stored `consentAction`. Every key is present, `0` when
+	 * the arm has none.
+	 */
+	byAction: v.object({
+		accept_all: actionCount,
+		custom: actionCount,
+		opt_out: actionCount,
+		reject_all: actionCount,
+		unknown: actionCount,
+	}),
 	/** Consents per `uiSource` (`banner`, `dialog`, `widget`, …). */
 	bySurface: v.record(v.string(), v.number()),
 	/** Consents recorded under this arm, `byAction` and `bySurface` summed. */

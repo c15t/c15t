@@ -44,10 +44,22 @@ interface SeedConsent {
  * has an even count so the median is an interpolation.
  */
 const CONSENTS: readonly SeedConsent[] = [
-	{ action: 'all', id: 'cns_1', ms: 4000, surface: 'banner', variant: 'bar' },
-	{ action: 'all', id: 'cns_2', ms: 4200, surface: 'banner', variant: 'bar' },
 	{
-		action: 'necessary',
+		action: 'accept_all',
+		id: 'cns_1',
+		ms: 4000,
+		surface: 'banner',
+		variant: 'bar',
+	},
+	{
+		action: 'accept_all',
+		id: 'cns_2',
+		ms: 4200,
+		surface: 'banner',
+		variant: 'bar',
+	},
+	{
+		action: 'reject_all',
 		id: 'cns_3',
 		ms: 9000,
 		surface: 'banner',
@@ -61,7 +73,7 @@ const CONSENTS: readonly SeedConsent[] = [
 		variant: 'bar',
 	},
 	{
-		action: 'all',
+		action: 'accept_all',
 		givenAt: T0 + 3 * HOUR,
 		id: 'cns_5',
 		ms: 1000,
@@ -69,24 +81,30 @@ const CONSENTS: readonly SeedConsent[] = [
 		variant: 'bar',
 	},
 	{
-		action: 'all',
+		action: 'accept_all',
 		id: 'cns_6',
 		ms: 2000,
 		surface: 'banner',
 		variant: 'floating',
 	},
 	{
-		action: 'necessary',
+		action: 'reject_all',
 		id: 'cns_7',
 		ms: 6000,
 		surface: 'dialog',
 		variant: 'floating',
 	},
 	// No arm at all: recorded outside the experiment, never counted.
-	{ action: 'all', id: 'cns_8', ms: 500, surface: 'banner', variant: null },
+	{
+		action: 'accept_all',
+		id: 'cns_8',
+		ms: 500,
+		surface: 'banner',
+		variant: null,
+	},
 	// A different experiment, same tenant.
 	{
-		action: 'all',
+		action: 'accept_all',
 		experimentId: 'other',
 		id: 'cns_9',
 		ms: 100,
@@ -95,7 +113,7 @@ const CONSENTS: readonly SeedConsent[] = [
 	},
 	// Another domain.
 	{
-		action: 'all',
+		action: 'accept_all',
 		domainId: 'dom_2',
 		id: 'cns_10',
 		ms: 100,
@@ -104,7 +122,7 @@ const CONSENTS: readonly SeedConsent[] = [
 	},
 	// Another tenant, same experiment and arm.
 	{
-		action: 'all',
+		action: 'accept_all',
 		id: 'cns_11',
 		ms: 100,
 		surface: 'banner',
@@ -208,7 +226,13 @@ for (const engine of ENGINES) {
 				to: null,
 				variants: [
 					{
-						byAction: { all: 4, custom: 1, necessary: 1 },
+						byAction: {
+							accept_all: 4,
+							custom: 1,
+							opt_out: 0,
+							reject_all: 1,
+							unknown: 0,
+						},
 						bySurface: { banner: 4, dialog: 1, widget: 1 },
 						choices: 6,
 						// 100, 1000, 4000, 4200, 9000 — the null is not a sample.
@@ -216,7 +240,13 @@ for (const engine of ENGINES) {
 						variant: 'bar',
 					},
 					{
-						byAction: { all: 1, necessary: 1 },
+						byAction: {
+							accept_all: 1,
+							custom: 0,
+							opt_out: 0,
+							reject_all: 1,
+							unknown: 0,
+						},
 						bySurface: { banner: 1, dialog: 1 },
 						choices: 2,
 						medianTimeToDecisionMs: 4000,
@@ -255,7 +285,7 @@ for (const engine of ENGINES) {
 						for (const [index, ms] of samples.entries()) {
 							yield* sql`insert into ${sql('consent')} ${sql.insert(
 								encodeRow(encode, {
-									consentAction: 'all',
+									consentAction: 'accept_all',
 									domainId: 'dom_1',
 									experimentId: 'banner-shape',
 									experimentVariant: variant,
@@ -298,7 +328,13 @@ for (const engine of ENGINES) {
 			assert.strictEqual(body.from, from);
 			assert.deepStrictEqual(body.variants, [
 				{
-					byAction: { all: 1 },
+					byAction: {
+						accept_all: 1,
+						custom: 0,
+						opt_out: 0,
+						reject_all: 0,
+						unknown: 0,
+					},
 					bySurface: { banner: 1 },
 					choices: 1,
 					medianTimeToDecisionMs: 1000,
@@ -362,7 +398,13 @@ for (const engine of ENGINES) {
 
 			assert.deepStrictEqual(body.variants, [
 				{
-					byAction: { all: 1 },
+					byAction: {
+						accept_all: 1,
+						custom: 0,
+						opt_out: 0,
+						reject_all: 0,
+						unknown: 0,
+					},
 					bySurface: { widget: 1 },
 					choices: 1,
 					medianTimeToDecisionMs: 100,
@@ -423,7 +465,13 @@ for (const engine of ENGINES) {
 			const body = await response.json();
 			assert.deepStrictEqual(body.variants, [
 				{
-					byAction: { all: 1 },
+					byAction: {
+						accept_all: 1,
+						custom: 0,
+						opt_out: 0,
+						reject_all: 0,
+						unknown: 0,
+					},
 					bySurface: { banner: 1 },
 					choices: 1,
 					medianTimeToDecisionMs: 100,

@@ -23,11 +23,13 @@
  * produces the counts also counts the rows with a `timeToDecisionMs`, and a
  * second query reads the one or two middle rows of that arm's ordered
  * values with `limit … offset …`. The index on
- * `(experimentId, experimentVariant)` finds the arm; the engine sorts the
+ * `(tenantId, experimentId, experimentVariant)` finds the arm; the engine sorts the
  * arm's values and returns only the middle. The result is exact for any arm
  * size.
  */
 
+import { EXPERIMENT_SUMMARY_ACTIONS } from '@c15t/schema';
+import type { ExperimentSummaryAction } from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import type { SqlError, Statement } from 'effect/unstable/sql';
@@ -38,6 +40,21 @@ import { encoder } from '../db/values';
 
 /** Key used for rows whose `consentAction` or `uiSource` is null. */
 const UNKNOWN = 'unknown';
+
+/** A zero count for every stored `consentAction`, so every key is present. */
+const emptyActions = (): Record<ExperimentSummaryAction, number> => ({
+	accept_all: 0,
+	custom: 0,
+	opt_out: 0,
+	reject_all: 0,
+	unknown: 0,
+});
+
+const isSummaryAction = (
+	action: string | null
+): action is ExperimentSummaryAction =>
+	action !== null &&
+	(EXPERIMENT_SUMMARY_ACTIONS as readonly string[]).includes(action);
 
 export interface ExperimentFilters {
 	/** Inclusive lower bound on `givenAt`. */
@@ -51,7 +68,7 @@ export interface ExperimentFilters {
 export interface VariantSummary {
 	readonly variant: string;
 	readonly choices: number;
-	readonly byAction: Record<string, number>;
+	readonly byAction: Record<ExperimentSummaryAction, number>;
 	readonly bySurface: Record<string, number>;
 	readonly medianTimeToDecisionMs: number | null;
 }
@@ -69,7 +86,7 @@ interface GroupRow {
 
 /** Per-arm counts accumulated from the grouped rows. */
 interface ArmCounts {
-	readonly byAction: Record<string, number>;
+	readonly byAction: Record<ExperimentSummaryAction, number>;
 	readonly bySurface: Record<string, number>;
 	choices: number;
 	/** Rows with a `timeToDecisionMs`: the sample size behind the median. */
@@ -139,15 +156,15 @@ const countArms = Effect.fn('experiment.countArms')(function* countArms(
 	const arms = new Map<string, ArmCounts>();
 	for (const row of rows) {
 		const arm = arms.get(row.variant) ?? {
-			byAction: {},
+			byAction: emptyActions(),
 			bySurface: {},
 			choices: 0,
 			timed: 0,
 		};
 		const total = Number(row.total);
-		const action = row.action ?? UNKNOWN;
+		const action = isSummaryAction(row.action) ? row.action : UNKNOWN;
 		const surface = row.surface ?? UNKNOWN;
-		arm.byAction[action] = (arm.byAction[action] ?? 0) + total;
+		arm.byAction[action] += total;
 		arm.bySurface[surface] = (arm.bySurface[surface] ?? 0) + total;
 		arm.choices += total;
 		arm.timed += Number(row.timed);

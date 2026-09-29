@@ -20,9 +20,10 @@
  * - `timeToDecisionMs`: the first `integer` column in the schema. A text
  *   column would sort `"1000"` before `"200"`, and the median is computed
  *   from an ordered scan.
- * - a composite index on `(experimentId, experimentVariant)`, which is the
- *   shape of the summary query's `where … group by`. `tenantId` is already
- *   indexed by `2-hot-path-indexes`.
+ * - a composite index on `(tenantId, experimentId, experimentVariant)`, the
+ *   shape of the summary query's `where … group by`. A hosted database holds
+ *   many tenants, and two of them can run an experiment with the same id,
+ *   so the tenant leads.
  *
  * Rows written before this migration keep their attribution inside
  * `metadata` only; nothing is backfilled. The summary counts what has a
@@ -57,13 +58,14 @@ interface IndexSpec {
 }
 
 /**
- * Composite index on `(experimentId, experimentVariant)`: the shape of the
- * summary query's `where … group by`. `tenantId` is already indexed by
- * `2-hot-path-indexes`, so it is not repeated here.
+ * Composite index on `(tenantId, experimentId, experimentVariant)`: the
+ * shape of the summary query's `where … group by`. The tenant leads because
+ * a hosted database holds many tenants, and experiment ids such as
+ * `banner-shape` repeat across them.
  */
 export const EXPERIMENT_ATTRIBUTION_INDEX: IndexSpec = {
-	columns: ['experimentId', 'experimentVariant'],
-	name: 'c15t_consent_experimentId_experimentVariant_idx',
+	columns: ['tenantId', 'experimentId', 'experimentVariant'],
+	name: 'c15t_consent_tenantId_experimentId_experimentVariant_idx',
 	table: 'consent',
 };
 

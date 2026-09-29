@@ -68,6 +68,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Quickstart](./docs/frameworks/react-native/quickstart.md): Install @c15t/react-native in a bare React Native or Expo app, build a custom native client, and render the first consent banner.
 - [Troubleshoot React Native consent](./docs/frameworks/react-native/troubleshooting.md): Diagnose not-bootstrapped reads, protocol mismatches, retired configuration keys, and banner or gating symptoms in a React Native app.
 - [Usage](./docs/frameworks/react-native/usage.md): Read native consent with the hooks, render the built-in banner, dialog and preference center, drive Apple's tracking request, or build your own surfaces headless.
+- [Callbacks](./docs/frameworks/react/callbacks.md): React ConsentProvider callbacks for banner impressions, recorded choices, permission changes and transport errors, with time to decision for analytics.
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): Pre-built consent banner shown when consent is required.
 - [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
 - [ConsentDialogLink](./docs/frameworks/react/components/consent-dialog-link.md): Add a ConsentDialogLink to a React footer so visitors reopen the c15t preference center from your own text link, with asChild and rights data.
@@ -93,6 +94,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Guides
 
+- [Banner experiments](./docs/guides/banner-experiments.md): Run A/B tests on consent banner presentation with any feature-flag provider or built-in weighted assignment, and attribute every impression and choice to its arm.
 - [Understand consent state](./docs/guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
 - [Data fetching and transports](./docs/guides/data-fetching.md): Choose cached manifests, backend init or offline policy resolution, and understand where consent records are saved.
 - [Choose a deployment mode](./docs/guides/deployment-modes.md): Choose who runs your consent backend, then select manifest, init or offline resolution for your deployment.

@@ -16,7 +16,8 @@
  * `docs/guides/banner-experiments.mdx`, "Report impressions and choices".
  *
  * What it can answer without any analytics tooling: how choices split by
- * action (`all`, `necessary`, `custom`) and by surface (`banner`, `dialog`,
+ * stored action (`accept_all`, `reject_all`, `opt_out`, `custom`, `unknown`)
+ * and by surface (`banner`, `dialog`,
  * `widget`) under each arm, and the median time to decision, over a window
  * and optionally one domain.
  *

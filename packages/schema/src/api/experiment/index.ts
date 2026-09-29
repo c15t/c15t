@@ -5,6 +5,8 @@
  */
 
 export {
+	EXPERIMENT_SUMMARY_ACTIONS,
+	type ExperimentSummaryAction,
 	type ExperimentSummaryOutput,
 	type ExperimentSummaryQuery,
 	type ExperimentVariantSummary,
