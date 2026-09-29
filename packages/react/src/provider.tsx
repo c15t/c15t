@@ -1293,7 +1293,6 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					kernel.hydrate({
 						choice: null,
 						noticeDismissal: null,
-						optOutDirectives: [],
 						subject: null,
 						vendorChoice: null,
 					});

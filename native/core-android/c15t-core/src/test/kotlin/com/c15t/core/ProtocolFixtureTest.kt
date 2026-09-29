@@ -1262,24 +1262,18 @@ class ProtocolFixtureTest {
 	 * `msa`, and the overrides a decision was made against come from the `/init` response.
 	 * The snapshot's four kernel-owned objects are spelled the way the kernel spells
 	 * them by [SnapshotWire], so nothing left in [LEDGER] is a key name. What remains
-	 * is the standing-directive gap and the evaluator answers that disagree with the
+	 * is the revision numbering and the evaluator answers that disagree with the
 	 * kernel's.
 	 *
 	 * A wire key name is not negotiable: [no_accepted_differences_row_names_a_kernel_owned_key]
 	 * is what keeps that from decaying back into a fixture that passes while an app reads
 	 * `undefined`.
 	 */
-	const val ALIGNMENT_TASK = "the native protocol alignment task (standing GPC directives and evaluator answers)"
+	const val ALIGNMENT_TASK = "the native protocol alignment task (revision numbering and evaluator answers)"
 
 	// -- why each accepted difference exists ----------------------------------
 
 	const val REVISION = "hydration and bootstrap each count as a mutation here, so this build runs ahead of the kernel, which numbers committed state changes only. The contract has to pick one numbering."
-
-	const val DIRECTIVES = "the core never records a standing directive from a live GPC signal, so optOutDirectives stays empty where the kernel holds one."
-
-	const val DIRECTIVE_RESTRICTION = "the kernel also charges a category denied by a recorded directive with an opt-out-directive reason; because this build records no directive, its reason list is one short of the kernel's."
-
-	const val DIRECTED_REVISION = "recording a standing directive is a committed mutation for the kernel, so the snapshot it pins is one revision ahead of this build's; the gap closes with the directive recording this row belongs to."
 
 	const val DEADLINE_OVER = "the core reports a choice expiry the kernel does not: under this policy nothing changes when that deadline passes, so the kernel leaves nextDeadline unset."
 
@@ -1317,21 +1311,8 @@ class ProtocolFixtureTest {
 			"evaluation-eu-opt-in" to emptyList<Pair<String, String>>(),
 			"evaluation-us-ccpa-opt-out" to emptyList<Pair<String, String>>(),
 			"evaluation-no-rule-matched" to emptyList<Pair<String, String>>(),
-			"evaluation-gpc-signal-present" to listOf(
-				"optOutDirectives" to DIRECTIVES,
-				"restrictions.marketing" to DIRECTIVE_RESTRICTION,
-				"restrictions.measurement" to DIRECTIVE_RESTRICTION,
-				"revision" to REVISION,
-			),
-			// The standing-directive gap again, not an evaluator answer: the core never
-			// records a directive from a live GPC signal, and the kernel's recording of one
-			// is itself a committed mutation, which is why the revision the fixture pins is
-			// the one *ahead* of this build rather than behind it.
-			"evaluation-gpc-under-opt-in-no-receipt" to listOf(
-				"optOutDirectives" to DIRECTIVES,
-				"restrictions.marketing" to DIRECTIVE_RESTRICTION,
-				"revision" to DIRECTED_REVISION,
-			),
+			"evaluation-gpc-signal-present" to emptyList<Pair<String, String>>(),
+			"evaluation-gpc-under-opt-in-no-receipt" to emptyList<Pair<String, String>>(),
 			"evaluation-notice-pending" to emptyList<Pair<String, String>>(),
 			"evaluation-eu-explicit-grants" to emptyList<Pair<String, String>>(),
 			// Both rows the evaluator used to need here are gone: the core now reports
@@ -1393,20 +1374,7 @@ class ProtocolFixtureTest {
 			)
 		}
 
-		val gpcBefore = listOf(
-			"optOutDirectives" to DIRECTIVES,
-			"restrictions.marketing" to DIRECTIVE_RESTRICTION,
-			"restrictions.measurement" to DIRECTIVE_RESTRICTION,
-			"revision" to REVISION,
-		)
-		add("save-body-ccpa-gpc", "expected.snapshotBefore", *gpcBefore.toTypedArray())
-		add(
-			"save-body-ccpa-gpc",
-			"expected.snapshotAfter",
-			*(
-				listOf("nextDeadline" to DEADLINE_OVER) + gpcBefore
-			).toTypedArray(),
-		)
+		add("save-body-ccpa-gpc", "expected.snapshotAfter", "nextDeadline" to DEADLINE_OVER)
 		return rows
 	}
 }

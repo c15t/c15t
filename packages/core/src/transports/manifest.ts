@@ -21,7 +21,6 @@ import type {
 import { baseTranslations } from '@c15t/translations/all';
 import type { BaseTranslations } from '@c15t/translations/all';
 
-import type { PrivacyOptOut } from '../consent-record/types';
 import { reportConsentSession } from '../libs/session-report';
 import type { SessionReportHeaders } from '../libs/session-report';
 import type {
@@ -184,10 +183,6 @@ export interface ManifestKernelTransport extends KernelTransport {
 	loadSubjectRecord: (
 		subjectId: string
 	) => Promise<TransportHydrationRecords | null>;
-	recordPrivacyOptOut: (
-		directive: PrivacyOptOut,
-		subjectId: string | null
-	) => Promise<void>;
 }
 
 const trimSlash = function trimSlash(url: string): string {
@@ -501,30 +496,6 @@ export const createManifestTransport = function createManifestTransport(
 				);
 			}
 			return mapSubjectRecordToHydrationRecords(record, { now: now() });
-		},
-
-		async recordPrivacyOptOut(directive, subjectId): Promise<void> {
-			if (!subjectId) {
-				return;
-			}
-			const response = await fetchImpl(
-				`${subjectURL(subjectId)}/privacy-directives`,
-				{
-					body: JSON.stringify({
-						categories: [...directive.categories],
-						recordedAt: directive.recordedAt,
-						source: directive.source,
-					}),
-					credentials,
-					headers: jsonHeaders,
-					method: 'POST',
-				}
-			);
-			if (!response.ok) {
-				throw new Error(
-					`c15t manifest transport: /subjects/:id/privacy-directives responded ${response.status} ${response.statusText}`
-				);
-			}
 		},
 
 		async save(payload): Promise<SaveResult> {

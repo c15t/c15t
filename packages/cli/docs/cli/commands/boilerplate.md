@@ -66,6 +66,6 @@ Recovery requires `--apply` or `--yes` and cannot run with `--plan` or `--dry-ru
 
 Standalone boilerplate supports `--framework`, `--output`, `--package-source`, `--scripts`, and an explicit storage mode/backend URL. Existing setup flags for theme, expanded UI, environment files, devtools, proxy, and SSR do not apply to this path. Configure those in the generated source using the local adapter documentation.
 
-JavaScript output is headless. Solid output provides a basic custom interface, not the IAB or modal UI. Next.js boilerplate initializes in the browser without server prefetch. Astro's native components require the deployment and on-demand rendering configuration described in the generated instructions. Nuxt instructions use a client plugin and composables alias instead of combining two runtime owners.
+JavaScript output is headless. Solid output provides a basic custom interface, not the IAB or modal UI. Next.js boilerplate initializes in the browser without server prefetch. Astro's native components work on prerendered and on-demand pages; the generated instructions explain when to render on demand. Nuxt instructions use a client plugin and composables alias instead of combining two runtime owners.
 
 Run the application's typecheck and build after wiring the files. In a fresh browser, reject optional categories, reload, and verify that permissions persist and optional scripts remain blocked. Open privacy settings and save a different choice to verify the update path.

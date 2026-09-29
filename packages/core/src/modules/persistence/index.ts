@@ -2,7 +2,6 @@ import type {
 	CategoryDecision,
 	ConsentSubject,
 	ExplicitChoice,
-	PrivacyOptOut,
 } from '../../consent-record/types';
 /**
  * `@c15t/core/modules/persistence`
@@ -32,15 +31,14 @@ import type {
  *   subject for a visitor with no category choice yet.
  *   A canonical subject acknowledgement preserves every receipt timestamp.
  *   Separate writes follow
- *   `notice:dismissed` (the notice record and its cookie projection),
- *   `privacy:opt-out` (the privacy record and its cookie projection) and
+ *   `notice:dismissed` (the notice record and its cookie projection) and
  *   `vendors:recorded` (the vendor denial list and its cookie projection).
- *   Permission changes, policy changes and elapsed time never write.
+ *   Permission changes, policy changes, elapsed time and the live GPC
+ *   signal never write.
  * - `clear()` cancels queued writes before it removes storage, so a
  *   pending flush cannot recreate what was just cleared.
  * - Writes and `reconcile()` follow the ordering rules in `reconcile.ts`:
- *   choices merge per category and directives as a union, a notice or
- *   vendor write never replaces a newer stored record, a subject-only
+ *   choices merge per category, a notice or vendor write never replaces a newer stored record, a subject-only
  *   rewrite never recreates a cleared one, and reconciliation lands queued
  *   writes before it reads.
  * - With `sync` on (the default), `storage`, `visibilitychange` and `focus`
@@ -49,17 +47,14 @@ import type {
  */
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import type { ConsentSnapshot, HydrationRecords } from '../../types';
-import { directiveIdentity, mergeDirectives } from './directives';
 import {
 	choiceSinceEpoch,
-	directivesSinceEpoch,
 	noticeSinceEpoch,
 	vendorChoiceSinceEpoch,
 } from './epoch';
 import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
 import {
 	choiceToWrite,
-	directivesToWrite,
 	fingerprintStoredRecords,
 	mayWriteNotice,
 	mayWriteVendorChoice,
@@ -81,7 +76,6 @@ import type { PersistenceHandle, PersistenceOptions } from './types';
 import {
 	writeChoiceToStorage,
 	writeNoticeToStorage,
-	writePrivacyToStorage,
 	writeVendorChoiceToStorage,
 } from './write';
 
@@ -120,14 +114,13 @@ export const createPersistence = function createPersistence(
 	// Records this runtime wrote with parts taken from storage that memory
 	// does not hold yet. The next reconciliation treats them as changed.
 	const unadopted = new Set<StoredRecordKind>();
-	// Category decisions and directives this runtime has stored. Another
+	// Category decisions this runtime has stored. Another
 	// tab can read storage before one of these writes lands and then write
 	// over it; reconciliation writes back any it finds missing.
 	const ownDecisions = new Map<
 		string,
 		{ decision: CategoryDecision; epoch: number }
 	>();
-	const ownDirectives = new Map<string, PrivacyOptOut>();
 	// Whether a decision was recorded since the last write. Without one, a
 	// scheduled write only acknowledges the server's subject id.
 	let choiceRecorded = false;
@@ -328,25 +321,6 @@ export const createPersistence = function createPersistence(
 			observe('notice');
 		}
 	});
-	const privacyWrites = createWriteScheduler(() => {
-		const snapshot = kernel.getSnapshot();
-		const at = now();
-		const read = readStoredRecordsForReconcile(storageConfig, at);
-		const optOutDirectives = directivesToWrite(
-			directivesSinceEpoch(snapshot.optOutDirectives, read.epoch),
-			read.records.optOutDirectives ?? null
-		);
-		if (optOutDirectives.length === 0) {
-			return;
-		}
-		writePrivacyToStorage({ ...snapshot, optOutDirectives }, storageConfig, at);
-		// The merge kept other runtimes' directives; this write stored them
-		// too, so it restores them if a concurrent write drops them.
-		for (const directive of optOutDirectives) {
-			ownDirectives.set(directiveIdentity(directive), directive);
-		}
-		observe('privacy');
-	});
 	const vendorWrites = createWriteScheduler(() => {
 		const subjectOnly = !vendorsRecorded;
 		vendorsRecorded = false;
@@ -398,9 +372,6 @@ export const createPersistence = function createPersistence(
 		kernel.events.on('notice:dismissed', () => {
 			noticeWrites.schedule();
 		}),
-		kernel.events.on('privacy:opt-out', () => {
-			privacyWrites.schedule();
-		}),
 		kernel.events.on('vendors:recorded', ({ actionAt, snapshot }) => {
 			noteGeneratedSubject(snapshot, actionAt);
 			vendorsRecorded = true;
@@ -411,14 +382,12 @@ export const createPersistence = function createPersistence(
 	const flushAll = function flushAll(): void {
 		choiceWrites.flush();
 		noticeWrites.flush();
-		privacyWrites.flush();
 		vendorWrites.flush();
 	};
 
 	const cancelAll = function cancelAll(): void {
 		choiceWrites.cancel();
 		noticeWrites.cancel();
-		privacyWrites.cancel();
 		vendorWrites.cancel();
 		choiceRecorded = false;
 		vendorsRecorded = false;
@@ -428,7 +397,7 @@ export const createPersistence = function createPersistence(
 	 * A server prefetch seeds the kernel from the cookie alone, and the seed
 	 * stays authoritative (`skipHydration`). But a browser can drop a cookie
 	 * write while localStorage takes it, so a newer record may exist only
-	 * there. A newer denial or privacy directive only restricts, so it is
+	 * there. A newer denial only restricts, so it is
 	 * applied on top of the seed; a stored grant never is. A denial from the
 	 * same millisecond as a seeded grant counts as newer. The vendor record
 	 * outlives a dropped cookie most often, since many denied ids push it
@@ -460,13 +429,6 @@ export const createPersistence = function createPersistence(
 				categories: { ...seeded, ...Object.fromEntries(denials) },
 				version: 3,
 			};
-		}
-		const directives = mergeDirectives(
-			snapshot.optOutDirectives,
-			records.optOutDirectives ?? []
-		);
-		if (directives.length > snapshot.optOutDirectives.length) {
-			patch.optOutDirectives = directives;
 		}
 		const { vendorChoice } = records;
 		if (
@@ -506,38 +468,15 @@ export const createPersistence = function createPersistence(
 	});
 
 	/**
-	 * Directives this runtime stored that a concurrent write dropped and the
-	 * clear epoch has not voided. An emptied list is a clear, not a lost
-	 * write, so it returns none.
-	 */
-	const lostDirectives = function lostDirectives(
-		read: StoredRead
-	): PrivacyOptOut[] {
-		const stored = read.records.optOutDirectives;
-		if (!stored?.length) {
-			return [];
-		}
-		const present = new Set(stored.map(directiveIdentity));
-		return directivesSinceEpoch([...ownDirectives.values()], read.epoch).filter(
-			(directive) => !present.has(directiveIdentity(directive))
-		);
-	};
-
-	/**
 	 * Schedule the writes that restore what this runtime stored and another
 	 * runtime then wrote over. localStorage has no compare-and-swap, so two
 	 * tabs can both read before either writes and the second write drops the
-	 * first tab's category or directive. A decision is written back only when
-	 * this runtime stored it, still holds it, and storage holds nothing as
-	 * new for that category; a directive, when storage lost it
-	 * (`lostDirectiveList`, which reconciliation has already put back in
-	 * memory). Nothing the clear epoch voids or another runtime replaced
-	 * comes back, and once storage holds the union no tab writes again.
+	 * first tab's category. A decision is written back only when this runtime
+	 * stored it, still holds it, and storage holds nothing as new for that
+	 * category. Nothing the clear epoch voids or another runtime replaced
+	 * comes back, and once storage holds the merge no tab writes again.
 	 */
-	const restoreLostWrites = function restoreLostWrites(
-		read: StoredRead,
-		lostDirectiveList: readonly PrivacyOptOut[]
-	): void {
+	const restoreLostWrites = function restoreLostWrites(read: StoredRead): void {
 		const snapshot = kernel.getSnapshot();
 		const storedChoice = read.records.choice;
 		if (storedChoice !== undefined) {
@@ -567,9 +506,6 @@ export const createPersistence = function createPersistence(
 				choiceWrites.schedule();
 			}
 		}
-		if (lostDirectiveList.length > 0) {
-			privacyWrites.schedule();
-		}
 	};
 
 	const reconcile = function reconcile(): boolean {
@@ -597,22 +533,9 @@ export const createPersistence = function createPersistence(
 		unadopted.clear();
 		rememberSubject(stored.records);
 		memoryEpoch = stored.epoch;
-		let { records } = next;
-		if (records?.optOutDirectives?.length === 0) {
-			// The list was cleared: nothing stored before it is lost.
-			ownDirectives.clear();
-		}
-		// Directives a concurrent write dropped are this runtime's to restore.
-		// Memory may never have held one the merge kept from storage.
-		const lost = lostDirectives(stored);
-		const held =
-			records?.optOutDirectives ?? kernel.getSnapshot().optOutDirectives;
-		const directives = mergeDirectives(held, lost);
-		if (directives.length > held.length) {
-			records = { ...records, now: at, optOutDirectives: directives };
-		}
+		const { records } = next;
 		if (!records) {
-			restoreLostWrites(stored, lost);
+			restoreLostWrites(stored);
 			return false;
 		}
 		const result = kernel.hydrate(records);
@@ -626,7 +549,7 @@ export const createPersistence = function createPersistence(
 		if (records.choice !== undefined) {
 			storedIab = records.choice ? stored.iab : null;
 		}
-		restoreLostWrites(stored, lost);
+		restoreLostWrites(stored);
 		return result.changed;
 	};
 
@@ -645,7 +568,6 @@ export const createPersistence = function createPersistence(
 			keys.consent,
 			keys.legacyConsent,
 			keys.notice,
-			keys.privacy,
 			keys.vendors,
 			keys.epoch,
 			// Another page called `localStorage.clear()`.
@@ -688,7 +610,6 @@ export const createPersistence = function createPersistence(
 			cancelAll();
 			unadopted.clear();
 			ownDecisions.clear();
-			ownDirectives.clear();
 			storedIab = null;
 			// The cleared subject is gone: an id generated by a save already
 			// under way is a new local id, not one the server resolved.
@@ -723,7 +644,6 @@ export const createPersistence = function createPersistence(
 				choice: null,
 				noticeDismissal: null,
 				now: at,
-				optOutDirectives: [],
 				subject: null,
 				vendorChoice: null,
 			});

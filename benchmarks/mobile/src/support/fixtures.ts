@@ -89,7 +89,6 @@ export interface BenchSnapshot {
 	location: BenchLocation | null;
 	model: 'opt-in' | 'opt-out' | 'none';
 	nextDeadline: number | null;
-	optOutDirectives: never[];
 	overrides: BenchOverrides;
 	policyPending: boolean;
 	policySnapshotToken: string | null;
@@ -293,7 +292,6 @@ export const buildSnapshot = function buildSnapshot(
 		location: { countryCode: 'DE', regionCode: 'BE' },
 		model: 'opt-in',
 		nextDeadline: null,
-		optOutDirectives: [],
 		overrides: { country: 'DE', gpc: null, language: 'en', region: 'BE' },
 		policyPending: false,
 		policySnapshotToken: 'pst_01J9ZQ8H7G6F5E4D3C2B1A098765',

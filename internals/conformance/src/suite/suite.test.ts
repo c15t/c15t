@@ -37,7 +37,6 @@ const emptyStorage = (): PolicyStorageBytes => ({
 	choice: { cookie: null, localStorage: null },
 	legacyLocalStorage: null,
 	notice: { cookie: null, localStorage: null },
-	privacy: { cookie: null, localStorage: null },
 });
 
 const unsupported = function unsupported(
@@ -110,7 +109,6 @@ const evidence = function evidence(
 			explicitChoice: snapshot.explicitChoice,
 			iab: snapshot.iab,
 			noticeDismissal: snapshot.noticeDismissal,
-			optOutDirectives: snapshot.optOutDirectives,
 			policyRule: snapshot.policyRule,
 			policySnapshotToken: snapshot.policySnapshotToken,
 			privacySignals: snapshot.privacySignals,
@@ -593,7 +591,7 @@ test.each([
 	}
 });
 
-test('broad GPC keeps unmapped grants and original receipts without recording a choice', async () => {
+test('broad GPC keeps unmapped grants and original receipts, and ends with the signal', async () => {
 	setSystemTime(POLICY_NOW);
 	const resolved = resolution(true, true);
 	if (resolved.status !== 'matched') {
@@ -640,15 +638,22 @@ test('broad GPC keeps unmapped grants and original receipts without recording a 
 			evidence(kernel, { ...emptyLogs(), events }),
 			expected
 		);
-		kernel.set.privacySignals({ gpc: false });
-		expect(kernel.getSnapshot().explicitChoice).toBe(original);
-		await checkObservation(
-			evidence(kernel, { ...emptyLogs(), events }),
-			expected
-		);
 		const corrupt = evidence(kernel);
 		corrupt.snapshot.effectivePermissions.experience = false;
 		await expect(checkObservation(corrupt, expected)).rejects.toThrow();
+		// GPC is read live: once the browser stops sending it, the stored
+		// grants apply again and still no choice is recorded.
+		kernel.set.privacySignals({ gpc: false });
+		expect(kernel.getSnapshot().explicitChoice).toBe(original);
+		await checkObservation(evidence(kernel, { ...emptyLogs(), events }), {
+			...expected,
+			permissions: {
+				experience: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+			},
+		});
 	} finally {
 		kernel.dispose();
 		setSystemTime();

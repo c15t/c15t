@@ -1,6 +1,8 @@
 package com.c15t.core.store
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -24,12 +26,69 @@ import kotlinx.serialization.json.contentOrNull
  * until the next `/init` resolves a real policy. The subject id lives in its own
  * preference key, so this does not cost the device its identity.
  *
+ * Standing privacy directives are the one retired field that is dropped rather than
+ * refused; see [withoutDroppedFields].
+ *
  * The write queue is deliberately not screened. A queued payload's retired
  * `overrides.test` never reached the wire, and the queued `decisionInputs.gpc` is
  * spelled the same in both shapes, so dropping a stored consent action to police it
  * would be a worse outcome than replaying the same bytes.
  */
 object RetiredWireFields {
+	/** Snapshot key an alpha build wrote for standing privacy directives. */
+	const val OPT_OUT_DIRECTIVES = "optOutDirectives"
+
+	/** Restriction reason an alpha build wrote for a standing directive. */
+	const val OPT_OUT_DIRECTIVE_REASON = "opt-out-directive"
+
+	/**
+	 * [raw] with the standing-directive fields an alpha build stored taken out, or
+	 * [raw] unchanged when it holds none.
+	 *
+	 * These are dropped rather than refused. A directive only ever restricted
+	 * categories, and c15t no longer stores one: GPC is a live signal again, so its
+	 * restriction lifts when the signal goes away. Hydration re-runs the evaluator with
+	 * the signal as it is now, and a signal that is still live puts its `gpc`
+	 * restriction back on the spot. Refusing the envelope instead would reset every
+	 * alpha install to deny-all, because every alpha snapshot wrote the key, even as
+	 * an empty list.
+	 */
+	fun withoutDroppedFields(json: Json, raw: String): String {
+		val root = json.parseToJsonElement(raw) as? JsonObject ?: return raw
+		val snapshot = root["snapshot"] as? JsonObject ?: return raw
+		val restrictions = snapshot["restrictions"] as? JsonObject
+		val carriesReason = restrictions?.values?.any { reasons ->
+			(reasons as? JsonArray)?.any(::isDirectiveReason) == true
+		} == true
+		if (OPT_OUT_DIRECTIVES !in snapshot && !carriesReason) {
+			return raw
+		}
+		val cleaned = LinkedHashMap<String, JsonElement>(snapshot)
+		cleaned.remove(OPT_OUT_DIRECTIVES)
+		if (restrictions != null && carriesReason) {
+			val kept = LinkedHashMap<String, JsonElement>()
+			for ((category, reasons) in restrictions) {
+				if (reasons !is JsonArray) {
+					kept[category] = reasons
+					continue
+				}
+				val remaining = reasons.filterNot(::isDirectiveReason)
+				// The evaluator never writes an empty list, so a category restricted only
+				// by a directive has no entry now.
+				if (remaining.isNotEmpty()) {
+					kept[category] = JsonArray(remaining)
+				}
+			}
+			cleaned["restrictions"] = JsonObject(kept)
+		}
+		val envelope = LinkedHashMap<String, JsonElement>(root)
+		envelope["snapshot"] = JsonObject(cleaned)
+		return json.encodeToString(JsonElement.serializer(), JsonObject(envelope))
+	}
+
+	private fun isDirectiveReason(element: JsonElement): Boolean =
+		(element as? JsonPrimitive)?.takeIf { it.isString }?.content == OPT_OUT_DIRECTIVE_REASON
+
 	/** Throw when [raw] carries a field this build no longer models. */
 	fun assertReadable(json: Json, raw: String) {
 		val root = json.parseToJsonElement(raw) as? JsonObject ?: return

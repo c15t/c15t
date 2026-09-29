@@ -41,7 +41,6 @@ public enum RestrictionReason: String, Sendable, Codable, Hashable {
     case explicitDenial = "explicit-denial"
     case strictScope = "strict-scope"
     case gpc
-    case optOutDirective = "opt-out-directive"
 }
 
 /// The boolean map gates consume: one entry per category, `necessary` included.

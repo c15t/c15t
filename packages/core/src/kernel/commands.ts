@@ -849,16 +849,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			}
 		};
 
-	const finishLifecycle = function finishLifecycle(
-		now: number,
-		activatePrivacy = true
-	): void {
-		if (activatePrivacy) {
-			runtime.reconcilePrivacy(now);
-		}
-		runtime.armDeadlineTimer();
-	};
-
 	/** Finalize local init while preserving its precomputed resolution. */
 	const finalizeWithoutTransport = function finalizeWithoutTransport(
 		now: number
@@ -880,7 +870,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		if (!transport?.init) {
 			const now = runtime.now();
 			finalizeWithoutTransport(now);
-			finishLifecycle(now);
+			runtime.armDeadlineTimer();
 			const result: InitResult = { ok: true };
 			emit({ result, type: 'command:init:completed' });
 			void replayPendingSaves();
@@ -937,7 +927,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					emit({ snapshot: getSnapshot(), type: 'init:applied' });
 				}
 			});
-			finishLifecycle(now, recordsGeneration === runtime.getGeneration());
+			runtime.armDeadlineTimer();
 			clearRetryTimer();
 			pendingRetryAttempt = null;
 			removeVisibilityListener();
@@ -952,7 +942,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			emit({ command: 'init', error, type: 'command:error' });
 			const now = runtime.now();
 			commit(failedResolutionPatch(getSnapshot(), now));
-			finishLifecycle(now, recordsGeneration === runtime.getGeneration());
+			runtime.armDeadlineTimer();
 			const nextRetryMs =
 				retryPolicy && attempt < retryPolicy.maxAttempts && !disposed
 					? getRetryDelay(retryPolicy, attempt)
@@ -1185,9 +1175,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 						emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
 					});
 				}
-				// The accepted save established or confirmed the subject: standing
-				// directives recorded while anonymous can be forwarded now.
-				runtime.flushPrivacy();
 			}
 			return { ...result, confirmed };
 		} catch (error) {
@@ -1252,9 +1239,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			) {
 				return;
 			}
-			// An existing subject forwards standing directives right away;
-			// without one they stay pending until a save establishes it.
-			runtime.flushPrivacy();
 			await loadSubjectRecord(subjectId, attempt);
 		},
 

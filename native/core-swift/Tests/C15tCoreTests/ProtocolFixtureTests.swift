@@ -22,10 +22,10 @@ final class ProtocolFixtureTests: XCTestCase {
     /// overrides carry `gpc` and no `test`, privacy signals are a detected /
     /// override / active triple, and the overrides a decision was made against
     /// come from the location `/init` served. This build matches all three, so
-    /// what is left in ``ledger`` is the standing-directive gap and the revision
-    /// numbering the contract has not picked a side on yet.
+    /// what is left in ``ledger`` is the revision numbering the contract has not
+    /// picked a side on yet, and one deadline the evaluator reports early.
     private static let alignmentTask =
-        "native protocol alignment: recording standing GPC directives, and the revision numbering a fixture pins"
+        "native protocol alignment: the revision numbering a fixture pins"
 
     // MARK: - Locating the fixtures
 
@@ -1402,10 +1402,7 @@ final class ProtocolFixtureTests: XCTestCase {
     /// overrides the served location resolved, so every snapshot field under those
     /// two paths matches the kernel and has no business being listed here.
     private enum Field: String {
-        case restrictionMarketing = "restrictions.marketing"
-        case restrictionMeasurement = "restrictions.measurement"
         case revision = "revision"
-        case directives = "optOutDirectives"
         case deadline = "nextDeadline"
     }
 
@@ -1424,7 +1421,7 @@ final class ProtocolFixtureTests: XCTestCase {
         ("evaluation-eu-opt-in", "expected.snapshot", [.revision]),
         ("evaluation-us-ccpa-opt-out", "expected.snapshot", [.revision]),
         ("evaluation-no-rule-matched", "expected.snapshot", [.revision]),
-        ("evaluation-gpc-signal-present", "expected.snapshot", [.directives, .restrictionMarketing, .restrictionMeasurement]),
+        ("evaluation-gpc-signal-present", "expected.snapshot", [.revision]),
         ("evaluation-notice-pending", "expected.snapshot", [.revision]),
         ("evaluation-eu-explicit-grants", "expected.snapshot", [.revision]),
         ("evaluation-eu-partial-denials", "expected.snapshot", [.revision]),
@@ -1451,19 +1448,15 @@ final class ProtocolFixtureTests: XCTestCase {
         ("evaluation-opt-in-grant-expired", "expected.snapshot", [.revision]),
         ("evaluation-opt-out-denial-under-stale-policy", "expected.snapshot", [.revision]),
         ("evaluation-opt-out-grant-under-stale-policy", "expected.snapshot", [.revision]),
-        // The same standing-directive gap as `evaluation-gpc-signal-present`, and it
-        // needs no numbering row: this build lands on the revision the fixture pins,
-        // because the kernel reaches it by recording a directive and this build reaches
-        // the same count by hydrating.
-        ("evaluation-gpc-under-opt-in-no-receipt", "expected.snapshot", [.directives, .restrictionMarketing]),
+        ("evaluation-gpc-under-opt-in-no-receipt", "expected.snapshot", [.revision]),
         ("save-body-all", "expected.snapshotBefore", [.revision]),
         ("save-body-all", "expected.snapshotAfter", [.revision]),
         ("save-body-necessary", "expected.snapshotBefore", [.revision]),
         ("save-body-necessary", "expected.snapshotAfter", [.revision]),
         ("save-body-explicit-partial", "expected.snapshotBefore", [.revision]),
         ("save-body-explicit-partial", "expected.snapshotAfter", [.revision]),
-        ("save-body-ccpa-gpc", "expected.snapshotBefore", [.directives, .restrictionMarketing, .restrictionMeasurement]),
-        ("save-body-ccpa-gpc", "expected.snapshotAfter", [.directives, .restrictionMarketing, .restrictionMeasurement, .deadline]),
+        ("save-body-ccpa-gpc", "expected.snapshotBefore", [.revision]),
+        ("save-body-ccpa-gpc", "expected.snapshotAfter", [.revision, .deadline]),
         // The stored snapshot of a `native-envelope` write case is the same snapshot
         // an evaluation fixture asserts after the same action, so it runs one ahead
         // for the same reason. The read cases assert no snapshot: their bytes are
@@ -1485,26 +1478,12 @@ final class ProtocolFixtureTests: XCTestCase {
 
     private static func reason(for field: Field) -> String {
         switch field {
-        case .restrictionMarketing, .restrictionMeasurement:
-            return reasonDirectiveRestriction
         case .revision:
             return reasonRevision
-        case .directives:
-            return reasonDirectives
         case .deadline:
             return reasonDeadline
         }
     }
-
-    /// `JSONEncoder` cannot key a JSON object by an enum, so a
-    /// `[OptionalConsentCategory: [RestrictionReason]]` comes out as a flat
-    /// `[key, value, ...]` array. `getSnapshot()` hands that to JavaScript, where
-    /// nothing can read it. Snapshot coding, same task.
-    /// The category is denied by GPC in both cores, so the `gpc` reason agrees. The
-    /// kernel charges one more reason because it recorded a standing directive from
-    /// the live signal, and this build records none. Same defect as ``reasonDirectives``.
-    private static let reasonDirectiveRestriction =
-        "the kernel also charges a directive-denied category with an opt-out-directive reason; this build records no directive, so its reason list is one short."
 
     /// `hydrate()` runs the evaluator and takes a revision, so every native number is
     /// one ahead of the kernel's, which counts committed state changes only. The
@@ -1512,12 +1491,6 @@ final class ProtocolFixtureTests: XCTestCase {
     /// to cost one.
     private static let reasonRevision =
         "hydrate() counts as a mutation here, so the native revision runs one ahead of the kernel numbering."
-
-    /// A live GPC signal produces a standing directive in the kernel, and the
-    /// directive is what keeps denying after the signal goes away. This build only
-    /// replays directives the backend returns in `records`.
-    private static let reasonDirectives =
-        "the core never records a directive from a live GPC signal, so optOutDirectives stays empty where the kernel holds one."
 
     /// Under an opt-out rule the choice expiring changes neither permissions nor the
     /// prompt, so the kernel reports no deadline. This one reports the expiry anyway.

@@ -29,38 +29,6 @@ const setup = (config: KernelConfig = {}) => {
 	return kernel;
 };
 
-test.each([false, true])(
-	'identified init forwards stored directives with active GPC = %s',
-	async (active) => {
-		const recordPrivacyOptOut = vi.fn(async () => {});
-		const directive = {
-			categories: ['marketing' as const],
-			recordedAt: Date.now() - 1000,
-			source: 'gpc' as const,
-		};
-		const kernel = setup({
-			initialPrivacySignals: { gpc: active },
-			initialRecords: {
-				optOutDirectives: [directive],
-				subject: { subjectId: 'canonical' },
-			},
-			initialUser: { externalId: 'person' },
-			transport: { recordPrivacyOptOut },
-		});
-		const recorded = vi.fn();
-		kernel.events.on('privacy:opt-out', recorded);
-		expect(recordPrivacyOptOut).not.toHaveBeenCalled();
-		await kernel.commands.init();
-		await Promise.resolve();
-		expect(recordPrivacyOptOut).toHaveBeenCalledExactlyOnceWith(
-			directive,
-			'canonical'
-		);
-		expect(recorded).not.toHaveBeenCalled();
-		expect(kernel.getSnapshot().explicitChoice).toBeNull();
-	}
-);
-
 test('clear cancels late identify before a replacement subject is read', async () => {
 	const identified = Promise.withResolvers<undefined>();
 	const loadSubjectRecord = vi.fn(() => Promise.resolve(null));
@@ -93,37 +61,3 @@ test('failed save acknowledgement preserves subject and local denial', async () 
 		false
 	);
 });
-
-test.each([false, true])(
-	'hydrating unchanged privacy records does not notify subscribers, populated = %s',
-	(populated) => {
-		const optOutDirectives = populated
-			? [
-					{
-						categories: ['marketing' as const],
-						recordedAt: Date.now() - 1000,
-						source: 'gpc' as const,
-					},
-				]
-			: [];
-		const kernel = setup({ initialRecords: { optOutDirectives } });
-		const changed = vi.fn();
-		kernel.subscribe(changed);
-		const result = kernel.hydrate({
-			optOutDirectives: structuredClone(optOutDirectives),
-		});
-		expect(result).toEqual({ changed: false, ok: true });
-		expect(changed).not.toHaveBeenCalled();
-		const updated = {
-			categories: ['marketing' as const],
-			recordedAt: Date.now(),
-			source: 'gpc' as const,
-		};
-		expect(kernel.hydrate({ optOutDirectives: [updated] })).toEqual({
-			changed: true,
-			ok: true,
-		});
-		expect(changed).toHaveBeenCalledTimes(1);
-		expect(kernel.getSnapshot().optOutDirectives).toEqual([updated]);
-	}
-);

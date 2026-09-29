@@ -152,7 +152,6 @@ export const RESTRICTION_REASONS = [
 	'explicit-denial',
 	'strict-scope',
 	'gpc',
-	'opt-out-directive',
 ] as const;
 
 /** One of {@link RESTRICTION_REASONS}. */

@@ -22,7 +22,6 @@ import type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 	PromptReason,
 	PromptRequirement,
 	RestrictionReason,
@@ -34,8 +33,6 @@ export interface ConsentEvaluationInput {
 	choice: ExplicitChoice | null;
 	/** Validated notice dismissal, or `null`. */
 	noticeDismissal: NoticeDismissal | null;
-	/** Standing privacy directives that apply to this subject/browser. */
-	optOuts?: readonly PrivacyOptOut[];
 	/** Detected GPC signal. Only a strict `true` counts. */
 	gpc?: boolean;
 	/** Current time in epoch milliseconds. */
@@ -117,11 +114,6 @@ const collectRestrictions = function collectRestrictions(
 	}
 	if (input.gpc === true && input.policy.gpcDenyCategories.includes(category)) {
 		restrictions.push('gpc');
-	}
-	if (
-		input.optOuts?.some((directive) => directive.categories.includes(category))
-	) {
-		restrictions.push('opt-out-directive');
 	}
 	return restrictions;
 };

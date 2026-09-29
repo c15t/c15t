@@ -1,5 +1,4 @@
 import { C15T_POLICY_CONTRACT_HEADER } from '@c15t/core';
-import { readStoredRecords } from '@c15t/core/modules/persistence';
 import type { ExternalConsentSource } from '@c15t/core/runtime';
 import {
 	normalizePolicyRule,
@@ -248,11 +247,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		expect(document.cookie).toBe(beforeCookie);
 		mounted?.();
 		await nextTick();
-		await vi.waitFor(() =>
-			expect(
-				readStoredRecords(undefined, now + 10_000).records.optOutDirectives
-			).toHaveLength(1)
-		);
+		expect(localStorage.getItem('c15t-privacy')).toBeNull();
 		expect(context.snapshot.value.explicitChoice).toBeNull();
 		expect(nuxt.requests).toBe(1);
 		expect(context.snapshot.value.privacySignals.gpc).toMatchObject({

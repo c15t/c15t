@@ -47,8 +47,6 @@ export const usePromptRequirement = () => useSnapshotField('promptRequirement');
 export const useNoticeDismissal = () => useSnapshotField('noticeDismissal');
 /** Read detected and active user-agent privacy signals. */
 export const usePrivacySignals = () => useSnapshotField('privacySignals');
-/** Read standing privacy opt-outs that survive later visits. */
-export const useOptOutDirectives = () => useSnapshotField('optOutDirectives');
 /** Read the canonical policy rule used by the evaluator. */
 export const usePolicyRule = () => useSnapshotField('policyRule');
 /** Read the authoritative policy resolution and its status. */

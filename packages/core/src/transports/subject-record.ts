@@ -4,8 +4,9 @@
  * `GET /subjects/:id` from `@c15t/backend` carries three things the kernel
  * can hydrate from: `subjectChoice`, the latest receipt per category with
  * each receipt's original confirmation time and policy basis; the subject's
- * identifiers; and `privacyDirectives`, the standing opt-out directives that
- * apply to it. A 2.x backend carries none of those, only per-consent
+ * identifiers; and the subject's vendor choice. GPC is a live signal and is
+ * never read from a subject record: a `privacyDirectives` field sent by an
+ * earlier v3 alpha backend is ignored. A 2.x backend carries none of those, only per-consent
  * `preferences` (granted codes) and `givenAt`; those rows map to legacy-v2
  * grants timed at their `givenAt` for the codes they hold, and to nothing for
  * the rest, exactly as the v3 backend derives them for rows written before
@@ -22,11 +23,9 @@
 import type {
 	ConsentItem,
 	GetSubjectOutput,
-	PrivacyDirectiveWire,
 	SubjectChoiceWire,
 	VendorChoiceWire,
 } from '@c15t/schema/types';
-import { compareCanonical } from '@c15t/schema/types';
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
@@ -34,11 +33,9 @@ import type {
 	ConsentSubject,
 	ExplicitChoice,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 } from '../consent-record/types';
 import {
 	checkTimestamp,
-	isOptionalConsentCategory,
 	validateExplicitChoice,
 } from '../consent-record/validation';
 import { isValidVendorId } from '../libs/vendors';
@@ -179,34 +176,6 @@ const mapSubject = (
 	return mapped;
 };
 
-/** A directive is kept only when every part of it is well formed. */
-const mapDirective = (
-	directive: PrivacyDirectiveWire,
-	now: number
-): PrivacyOptOut | undefined => {
-	if (directive.source !== 'gpc') {
-		return undefined;
-	}
-	if (checkTimestamp(directive.recordedAt, now)) {
-		return undefined;
-	}
-	const categories: OptionalConsentCategory[] = [];
-	for (const category of directive.categories) {
-		if (!isOptionalConsentCategory(category) || categories.includes(category)) {
-			return undefined;
-		}
-		categories.push(category);
-	}
-	if (categories.length === 0) {
-		return undefined;
-	}
-	return {
-		categories: categories.sort(compareCanonical),
-		recordedAt: directive.recordedAt,
-		source: 'gpc',
-	};
-};
-
 /**
  * The vendor denial list a wire grant map describes. A malformed map is
  * ignored rather than invented. An all-granted map becomes an empty record
@@ -280,14 +249,6 @@ export const mapSubjectRecordToHydrationRecords =
 			? validateExplicitChoice(wire, options.now)
 			: undefined;
 
-		const directives: PrivacyOptOut[] = [];
-		for (const directive of record.privacyDirectives ?? []) {
-			const mapped = mapDirective(directive, options.now);
-			if (mapped) {
-				directives.push(mapped);
-			}
-		}
-
 		const vendorWire =
 			record.subjectVendorChoice === undefined
 				? mergeItemVendors(record.consents)
@@ -296,7 +257,6 @@ export const mapSubjectRecordToHydrationRecords =
 		return {
 			choice: validated?.ok ? validated.record : null,
 			now: options.now,
-			optOutDirectives: directives,
 			subject: mapSubject(record.subject),
 			vendorChoice: mapVendorChoice(vendorWire, options.now),
 		};

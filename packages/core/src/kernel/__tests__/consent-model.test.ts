@@ -524,7 +524,7 @@ describe('notice prompts', () => {
 });
 
 describe('privacy signals', () => {
-	test('a detected signal masks a stored grant and records a standing directive after lifecycle start', async () => {
+	test('a detected signal masks a stored grant only while the browser sends it', async () => {
 		const kernel = createConsentKernel({
 			initialPolicyResolution: fixtureResolution({
 				model: 'opt-out',
@@ -535,38 +535,24 @@ describe('privacy signals', () => {
 			initialRecords: recordsFor('legacy-identified-grant'),
 			now: POLICY_NOW,
 		});
-		const privacy = vi.fn();
 		const choice = vi.fn();
-		kernel.events.on('privacy:opt-out', privacy);
 		kernel.events.on('choice:recorded', choice);
 
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(kernel.getSnapshot().restrictions.marketing).toEqual(['gpc']);
-		expect(kernel.getSnapshot().optOutDirectives).toEqual([]);
 		expect(
 			kernel.getSnapshot().explicitChoice?.categories.marketing?.value
 		).toBe(true);
 
 		await kernel.commands.init();
-		expect(privacy).toHaveBeenCalledTimes(1);
-		expect(kernel.getSnapshot().optOutDirectives).toEqual([
-			{
-				categories: ['marketing'],
-				recordedAt: expect.any(Number),
-				source: 'gpc',
-			},
-		]);
+		expect(kernel.getSnapshot().restrictions.marketing).toEqual(['gpc']);
 		expect(choice).not.toHaveBeenCalled();
 
+		// GPC is a live signal: once the browser stops sending it, the stored
+		// grant applies again.
 		kernel.set.privacySignals({ gpc: false });
-		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
-		expect(kernel.getSnapshot().restrictions.marketing).toEqual([
-			'opt-out-directive',
-		]);
-
-		await kernel.commands.save({ marketing: true });
-		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
-		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+		expect(kernel.getSnapshot().restrictions.marketing).toBeUndefined();
 	});
 
 	test('a signal under a policy without a mapping changes nothing', async () => {
@@ -580,32 +566,7 @@ describe('privacy signals', () => {
 		});
 		await kernel.commands.init();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
-		expect(kernel.getSnapshot().optOutDirectives).toEqual([]);
-	});
-
-	test('an identified subject forwards the directive through the transport', async () => {
-		const recordPrivacyOptOut = vi.fn().mockResolvedValue(undefined);
-		const kernel = createConsentKernel({
-			initialPolicyResolution: fixtureResolution({
-				model: 'opt-out',
-				privacySignals: { gpc: { denyCategories: ['marketing'] } },
-				prompt: 'none',
-			}),
-			initialRecords: { subject: { subjectId: 'sub_1' } },
-			initialUser: { externalId: 'user-1' },
-			now: POLICY_NOW,
-			transport: { recordPrivacyOptOut },
-		});
-		await kernel.commands.init();
-		kernel.set.privacySignals({ gpc: true });
-		expect(recordPrivacyOptOut).toHaveBeenCalledWith(
-			{
-				categories: ['marketing'],
-				recordedAt: expect.any(Number),
-				source: 'gpc',
-			},
-			'sub_1'
-		);
+		expect(kernel.getSnapshot().restrictions.marketing).toBeUndefined();
 	});
 });
 

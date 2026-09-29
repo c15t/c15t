@@ -133,6 +133,29 @@ export const Labels = ({ category }: { category: 'marketing' }) => {
 		);
 	});
 
+	it('leaves removed privacy directives for a manual migration', async () => {
+		const { result, updated } = await transform(`
+import { useConsentManager } from '@c15t/nextjs';
+
+export const Gpc = () => {
+	const { optOutDirectives, privacySignals } = useConsentManager();
+	return <p>{optOutDirectives.length} {String(privacySignals.gpc.active)}</p>;
+};
+`);
+
+		expect(updated).toContain('const privacySignals = usePrivacySignals();');
+		expect(updated).not.toContain('useOptOutDirectives');
+		expect(updated).toContain(
+			'// - optOutDirectives: nothing; GPC is no longer stored'
+		);
+		expect(updated).toContain(
+			'const { optOutDirectives } = useConsentManager();'
+		);
+		expect(result.changedFiles[0]?.summaries).toEqual(
+			expect.arrayContaining(['TODO: optOutDirectives'])
+		);
+	});
+
 	it('marks a call it cannot destructure', async () => {
 		const { result, updated } = await transform(`
 import { useConsentManager } from 'c15t/react';

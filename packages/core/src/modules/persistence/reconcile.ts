@@ -11,8 +11,6 @@
  *   never reverts another runtime's newer measurement decision. This holds
  *   in both directions: a queued write stores the merge of what it carries
  *   and what storage holds, and reconciliation merges storage into memory.
- * - Privacy directives only restrict, so both directions keep the union of
- *   the two lists.
  * - The notice dismissal and the vendor record are single decisions: the
  *   one with the newer time (`dismissedAt`, `confirmedAt`) wins.
  * - On equal times, a record another runtime stored since this runtime
@@ -39,7 +37,6 @@ import type {
 	ConsentSubject,
 	ExplicitChoice,
 	NoticeDismissal,
-	PrivacyOptOut,
 } from '../../consent-record/types';
 import { mergeNewestChoice } from '../../kernel/records';
 import type {
@@ -47,10 +44,8 @@ import type {
 	HydrationRecords,
 	VendorChoice,
 } from '../../types';
-import { mergeDirectives } from './directives';
 import {
 	choiceSinceEpoch,
-	directivesSinceEpoch,
 	noticeSinceEpoch,
 	vendorChoiceSinceEpoch,
 } from './epoch';
@@ -256,23 +251,12 @@ export const mayWriteNotice = function mayWriteNotice(
 	);
 };
 
-/**
- * The privacy directives to write: this runtime's list plus every directive
- * another runtime already stored.
- */
-export const directivesToWrite = function directivesToWrite(
-	ours: readonly PrivacyOptOut[],
-	stored: readonly PrivacyOptOut[] | null
-): PrivacyOptOut[] {
-	return mergeDirectives(stored ?? [], ours);
-};
-
 // ---------------------------------------------------------------------------
 // Reconciliation
 // ---------------------------------------------------------------------------
 
 /** The stored records, each read and written on its own. */
-export type StoredRecordKind = 'choice' | 'notice' | 'privacy' | 'vendors';
+export type StoredRecordKind = 'choice' | 'notice' | 'vendors';
 
 /**
  * What storage held for each record the last time this runtime read or
@@ -289,7 +273,6 @@ const fingerprint = function fingerprint(value: unknown): string {
 const ABSENT: Record<StoredRecordKind, string> = {
 	choice: fingerprint(null),
 	notice: fingerprint(null),
-	privacy: fingerprint([]),
 	vendors: fingerprint([null, null]),
 };
 
@@ -315,9 +298,6 @@ export const fingerprintStoredRecords = function fingerprintStoredRecords(
 	}
 	if (stored.noticeDismissal !== undefined) {
 		prints.notice = fingerprint(stored.noticeDismissal);
-	}
-	if (stored.optOutDirectives !== undefined) {
-		prints.privacy = fingerprint(stored.optOutDirectives);
 	}
 	if (stored.vendorChoice !== undefined) {
 		prints.vendors = fingerprint([
@@ -496,23 +476,6 @@ const reconcileChoice = function reconcileChoice(
 	return records;
 };
 
-/** Directive list to apply: the union, or a clear. */
-const reconcileDirectives = function reconcileDirectives(
-	current: readonly PrivacyOptOut[],
-	stored: readonly PrivacyOptOut[] | undefined,
-	movement: Movement
-): readonly PrivacyOptOut[] | undefined {
-	if (!stored) {
-		return undefined;
-	}
-	if (stored.length === 0) {
-		// An emptied list is a clear, but only once storage lost it.
-		return movement.removed('privacy') && current.length > 0 ? [] : undefined;
-	}
-	const merged = mergeDirectives(current, stored);
-	return sameRecord(merged, mergeDirectives(current, [])) ? undefined : merged;
-};
-
 /** Result of {@link selectReconciledRecords}. */
 export interface ReconciledRecords {
 	/** Records to hydrate, or `null` when the kernel already matches. */
@@ -542,7 +505,6 @@ const sinceEpoch = function sinceEpoch(
 			!clearMissed
 		),
 		noticeDismissal: noticeSinceEpoch(snapshot.noticeDismissal, epoch),
-		optOutDirectives: directivesSinceEpoch(snapshot.optOutDirectives, epoch),
 		subject: clearMissed && !subjectSurvives ? null : snapshot.subject,
 		vendorChoice: vendorChoiceSinceEpoch(snapshot.vendorChoice, epoch),
 	};
@@ -551,7 +513,6 @@ const sinceEpoch = function sinceEpoch(
 const EPOCH_FIELDS = [
 	['choice', 'explicitChoice'],
 	['noticeDismissal', 'noticeDismissal'],
-	['optOutDirectives', 'optOutDirectives'],
 	['subject', 'subject'],
 	['vendorChoice', 'vendorChoice'],
 ] as const;
@@ -655,14 +616,6 @@ export const selectReconciledRecords = function selectReconciledRecords(
 		records.noticeDismissal = stored.noticeDismissal ?? null;
 	}
 
-	const directives = reconcileDirectives(
-		view.optOutDirectives,
-		stored.optOutDirectives,
-		movement
-	);
-	if (directives) {
-		records.optOutDirectives = directives;
-	}
 	applyVoided(records, view, snapshot);
 
 	return {

@@ -51,7 +51,7 @@ const loadManifestTransport: LoadManifestTransport =
 /**
  * A transport that loads its init path only when init runs.
  *
- * Saves, identity links, subject reads and privacy directives use the same
+ * Saves, identity links and subject reads use the same
  * backend routes and request bodies in the hosted and manifest transports.
  * Those transports differ only after their own init remembers decision
  * inputs. When the server already resolved the visitor's state there is no
@@ -103,11 +103,6 @@ export const createLazyInitTransport = function createLazyInitTransport(
 			return (
 				(await (await recordTransport()).loadSubjectRecord?.(subjectId)) ?? null
 			);
-		},
-		async recordPrivacyOptOut(directive, subjectId) {
-			await (
-				await recordTransport()
-			).recordPrivacyOptOut?.(directive, subjectId);
 		},
 		async save(payload) {
 			const transport = await recordTransport();

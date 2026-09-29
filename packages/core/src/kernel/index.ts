@@ -8,7 +8,7 @@
  * - `snapshot.ts`             — initial-state construction + freezing.
  * - `patch.ts`                — `SnapshotPatch` shape + pure derivation.
  * - `records.ts`              — validation for hydration records.
- * - `runtime.ts`              — commit, hydrate, refresh, timers, GPC directive.
+ * - `runtime.ts`              — commit, hydrate, refresh, timers, GPC detection.
  * - `apply-init-response.ts`  — pure transport-response folder.
  * - `setters.ts`              — `kernel.set.*` (sync mutators).
  * - `commands.ts`             — `kernel.commands.*` (async I/O).
@@ -61,7 +61,6 @@ export const createConsentKernel = function createConsentKernel(
 		emit: eventBus.emit,
 		initialDraft: buildDraft(config.initialDraft),
 		initialSnapshot,
-		transport,
 	});
 	const set = buildSetters(runtime, config);
 	const commandHandle = buildCommands({

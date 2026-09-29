@@ -23,7 +23,7 @@ upgrades.
 | Reusable configuration | `/manifest` publishes policy rules, translation configuration and IAB metadata for caching and local resolution. |
 | Request initialization | `/init` resolves the policy for a request's location, language and privacy signals. |
 | Consent persistence | Subject endpoints record confirmed category receipts and retrieve current choices. |
-| Identity and privacy directives | Subject links and separate directive records support device and authenticated identity workflows. |
+| Identity links | `PATCH /subjects/:id` links a device subject to an external identity, such as a signed-in account. |
 | Legal-document versions | An authenticated release endpoint stores the current document identity. Exported helpers sign and verify document snapshots. |
 
 For Next.js request rendering, prefer the cached manifest path described in

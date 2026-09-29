@@ -287,16 +287,10 @@ public struct ResolvedPrivacySignals: Sendable, Equatable {
 public struct HydrationRecords: Sendable, Equatable {
     public let choice: ExplicitChoice?
     public let noticeDismissal: NoticeDismissal?
-    public let optOutDirectives: [PrivacyOptOut]
 
-    public init(
-        choice: ExplicitChoice?,
-        noticeDismissal: NoticeDismissal?,
-        optOutDirectives: [PrivacyOptOut] = []
-    ) {
+    public init(choice: ExplicitChoice?, noticeDismissal: NoticeDismissal?) {
         self.choice = choice
         self.noticeDismissal = noticeDismissal
-        self.optOutDirectives = optOutDirectives
     }
 }
 
@@ -449,16 +443,8 @@ public struct InitResponse: Sendable, Equatable {
         if let raw = fields["noticeDismissal"], let data = C15tJSON.encode(raw) {
             dismissal = try? C15tJSON.decode(NoticeDismissal.self, from: data)
         }
-        var directives: [PrivacyOptOut] = []
-        if let raw = fields["optOutDirectives"], let data = C15tJSON.encode(raw) {
-            directives = (try? C15tJSON.decode([PrivacyOptOut].self, from: data)) ?? []
-        }
-        guard choice != nil || dismissal != nil || !directives.isEmpty else { return nil }
-        return HydrationRecords(
-            choice: choice,
-            noticeDismissal: dismissal,
-            optOutDirectives: directives
-        )
+        guard choice != nil || dismissal != nil else { return nil }
+        return HydrationRecords(choice: choice, noticeDismissal: dismissal)
     }
 }
 

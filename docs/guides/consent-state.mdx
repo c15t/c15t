@@ -26,7 +26,7 @@ or IAB purposes is an IAB target. It runs only while a confirmed TC string
 grants what it declares: purpose and vendor consent for `iabPurposes`, purpose
 and vendor legitimate interest for `iabLegIntPurposes`, and opt-ins for
 `iabSpecialFeatures`. Every category it names must also be free of
-restrictions, so GPC, an opt-out directive or strict scope blocks it.
+restrictions, so GPC or strict scope blocks it.
 
 A refused category is the one exception. It does not block an IAB target that
 processes only on legitimate interest, after publisher restrictions, because
@@ -97,7 +97,10 @@ failed to load, the surface comes back so the visitor can try again.
 `commands.dismissNotice()` acknowledges the current notice. It does not grant
 categories or overwrite existing denials. Global Privacy Control, or GPC, is a
 browser privacy signal. Its configured restrictions can change permissions
-without creating an explicit choice.
+without creating an explicit choice. c15t reads the signal live and keeps no
+standing opt-out for it. When the browser stops sending it, the GPC restriction
+stops too. The backend still sees the current value: `/init` reads the
+`Sec-GPC` header and saves send it as a policy input.
 
 A rule with `prompt: 'none'` can still require a persistent preferences entry
 point. Check the policy's rights instead of hiding preferences merely because
@@ -149,8 +152,8 @@ Several triggers in quick succession run one reconciliation in a later task.
 Reconnecting does not read storage, because going online changes nothing in
 browser storage. On reconnect the kernel retries saves the backend did not
 accept and a failed initialization. Save retries do not write the cookie or
-localStorage. A write that follows initialization, such as a Global Privacy
-Control directive, obeys the ordering described below.
+localStorage. A write that follows initialization obeys the ordering described
+below.
 
 Every adapter that mounts browser persistence does this: the React, Next.js and
 TanStack Start providers, Vue, Svelte, Astro, the script tag and
@@ -163,8 +166,6 @@ Stored records are merged into the ones in memory:
 - Category decisions merge per category. Each category keeps the decision with
   the newer confirmation time, so a tab that only changed marketing never
   reverts another tab's newer measurement decision.
-- Privacy directives, such as a Global Privacy Control opt-out, merge as a
-  union. A directive only restricts, so none is dropped.
 - The notice dismissal and the vendor record are single decisions. A stored one
   at least as new as the one in memory replaces it; an older one is ignored.
 - When two tabs record decisions in the same millisecond, the one stored first
@@ -294,15 +295,14 @@ cookie takes, for example because storage is full, the older localStorage copy
 is removed.
 
 When a server render seeded the page from the consent cookie
-(`skipHydration`), that seed stays authoritative. A denial or privacy directive
-that reached only localStorage is still applied on top of it when the page
-mounts, since it can only restrict, if it is newer than the seeded decision or
-from the same millisecond as a seeded grant. A stored grant is not.
+(`skipHydration`), that seed stays authoritative. A denial that reached only
+localStorage is still applied on top of it when the page mounts, since it can
+only restrict, if it is newer than the seeded decision or from the same
+millisecond as a seeded grant. A stored grant is not.
 
-The notice dismissal, privacy directives and vendor denials are stored twice
-as well. Privacy directives from both copies all apply. A vendor list in
-localStorage at least as new as the cookie's adds its denials but never lifts
-one the cookie holds; a copy confirmed before the last clear is ignored, so its
+The notice dismissal and vendor denials are stored twice as well. A vendor
+list in localStorage at least as new as the cookie's adds its denials but never
+lifts one the cookie holds; a copy confirmed before the last clear is ignored, so its
 denials never come back. The newer notice dismissal applies; it still only hides a
 notice with the fingerprint it names. The consent record follows the rules
 below.
@@ -342,20 +342,18 @@ A tab writes its own choices in a later task, not during the click. Before it
 reads storage, it lands its own queued writes, so a reconciliation never undoes
 the visitor's latest action in that tab. A queued write follows the same rules
 as a read: it stores the per-category merge of its choice and the stored one,
-the union of directives, and never replaces a newer notice or vendor record. It
-keeps the stored subject unless this tab identified a different user.
+and never replaces a newer notice or vendor record. It keeps the stored subject
+unless this tab identified a different user.
 When a slow save response returns a server subject id, the tab adds it only to
 the record it wrote; it does not recreate records another tab cleared or
 overwrite another tab's newer choice.
 
 Two tabs that write at the same moment can both read storage before either
-writes, and the later write can then drop the other tab's category or privacy
-directive. The tab whose decision was dropped still holds it, and on its next
+writes, and the later write can then drop the other tab's category decision.
+The tab whose decision was dropped still holds it, and on its next
 reconciliation it writes it back, merged with what storage holds. It does so
 only for decisions it actually stored itself, never for one a clear voided or
-another tab replaced with a newer one. A directive write stores the directives
-it kept from storage too, so if another write drops one of those, this tab
-restores it and applies it as well.
+another tab replaced with a newer one.
 
 If another tab's change reaches this tab while one of its saves is pending, the
 save depends on how far it got. A save not yet sent is dropped. A request

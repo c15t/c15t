@@ -21,22 +21,22 @@ Pending projects do not have a usable backend. Wait for provisioning before gene
 
 ## Options
 
-| Option                                     | Purpose                                                                               |
-| ------------------------------------------ | ------------------------------------------------------------------------------------- |
-| `--plan`, `--dry-run`                      | Return proposed file edits without writing them or installing dependencies.           |
-| `--apply`                                  | Apply the generated file edits and install required dependencies.                     |
-| `--skip-install`                           | Apply files without running a package manager.                                        |
-| `--backend-url <url>`                      | Use an explicit HTTP or HTTPS consent endpoint.                                       |
-| `--project <id or organization/name>`      | Resolve an authenticated hosted project's backend.                                    |
-| `--env`                                    | Put the backend URL in an environment file using supported bundler conventions.       |
-| `--proxy`                                  | Configure a Next.js rewrite for a hosted backend.                                     |
-| `--ssr`                                    | Enable server-rendered consent state for hosted Next.js App Router applications.      |
-| `--devtools`                               | Include development tools.                                                            |
-| `--ui-style prebuilt or expanded`          | Choose prebuilt or compound React components.                                         |
-| `--theme none, minimal, dark, or tailwind` | Select a UI theme.                                                                    |
-| `--scripts <comma-separated IDs>`          | Include consent-aware integration snippets. Unknown IDs report the available choices. |
-| `--resume`                                 | Recover an interrupted interactive setup.                                             |
-| `--debug`                                  | Show setup state transitions.                                                         |
+| Option                                     | Purpose                                                                                                                                                                                                                                  |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--plan`, `--dry-run`                      | Return proposed file edits without writing them or installing dependencies.                                                                                                                                                              |
+| `--apply`                                  | Apply the generated file edits and install required dependencies.                                                                                                                                                                        |
+| `--skip-install`                           | Apply files without running a package manager.                                                                                                                                                                                           |
+| `--backend-url <url>`                      | Use an explicit HTTP or HTTPS consent endpoint.                                                                                                                                                                                          |
+| `--project <id or organization/name>`      | Resolve an authenticated hosted project's backend.                                                                                                                                                                                       |
+| `--env`                                    | Put the backend URL in an environment file using supported bundler conventions.                                                                                                                                                          |
+| `--proxy`                                  | Configure a Next.js rewrite for a hosted backend.                                                                                                                                                                                        |
+| `--ssr`                                    | Start consent resolution on the server in hosted Next.js App Router applications. The generated wrapper passes the pending state to the provider, so pages render without waiting for the backend and the banner mounts after hydration. |
+| `--devtools`                               | Include development tools.                                                                                                                                                                                                               |
+| `--ui-style prebuilt or expanded`          | Choose prebuilt or compound React components.                                                                                                                                                                                            |
+| `--theme none, minimal, dark, or tailwind` | Select a UI theme.                                                                                                                                                                                                                       |
+| `--scripts <comma-separated IDs>`          | Include consent-aware integration snippets. Unknown IDs report the available choices.                                                                                                                                                    |
+| `--resume`                                 | Recover an interrupted interactive setup.                                                                                                                                                                                                |
+| `--debug`                                  | Show setup state transitions.                                                                                                                                                                                                            |
 
 Explicit-input setup uses prebuilt UI, no theme preset, no scripts, and no optional environment/proxy/SSR/devtools configuration unless requested. Review script option placeholders before use.
 

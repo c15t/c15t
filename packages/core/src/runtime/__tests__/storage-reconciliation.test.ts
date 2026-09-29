@@ -19,16 +19,13 @@ import { readStoredRecordsFromCookieHeader } from '../../modules/persistence/hyd
 import { encodeStoredConsentEnvelopeCompact } from '../../modules/persistence/record-codec';
 import {
 	clearStoredConsentRecords,
-	clearStoredPrivacyOptOuts,
 	readStoredConsentRecord,
 	readStoredNoticeDismissal,
 	readStoredClearEpoch,
-	readStoredPrivacyOptOuts,
 	readStoredVendorChoice,
 	writeStoredClearEpoch,
 	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
-	writeStoredPrivacyOptOuts,
 	writeStoredVendorChoice,
 } from '../../modules/persistence/record-storage';
 import { custom } from '../../transports/mode';
@@ -434,66 +431,6 @@ test("reconciling keeps this runtime's newer queued category decision", async ()
 	const fresh = start(threeCategories);
 	expect(decision(fresh, 'measurement')).toBe(false);
 	expect(decision(fresh, 'marketing')).toBe(false);
-});
-
-const directive = (
-	categories: ('measurement' | 'marketing')[],
-	recordedAt: number
-) => ({ categories, recordedAt, source: 'gpc' as const });
-
-const directiveCategories = (runtime: ConsentRuntime) =>
-	runtime.kernel
-		.getSnapshot()
-		.optOutDirectives.flatMap((entry) => entry.categories)
-		.sort();
-
-test('an older stored privacy list does not drop a newer directive held in memory', () => {
-	const active = start();
-	const now = Date.now();
-	// A directive the kernel holds but storage never had, as from a server.
-	active.kernel.hydrate({
-		now,
-		optOutDirectives: [directive(['measurement'], now)],
-	});
-
-	writeStoredPrivacyOptOuts(
-		[directive(['marketing'], now - 5000)],
-		undefined,
-		now
-	);
-	active.reconcileStorage();
-	expect(directiveCategories(active)).toEqual(['marketing', 'measurement']);
-
-	// Removing the stored list still clears.
-	clearStoredPrivacyOptOuts();
-	expect(active.reconcileStorage()).toBe(true);
-	expect(directiveCategories(active)).toEqual([]);
-});
-
-test("recording a directive keeps another runtime's stored directive", async () => {
-	resolution = matchedResolution(
-		optOutRule({ privacySignals: { gpc: { denyCategories: ['measurement'] } } })
-	);
-	const active = start();
-	expect(active.kernel.getSnapshot().optOutDirectives).toEqual([]);
-	const now = Date.now();
-	writeStoredPrivacyOptOuts(
-		[directive(['marketing'], now - 5000)],
-		undefined,
-		now
-	);
-
-	// The browser's privacy signal records a directive in this runtime.
-	active.kernel.set.privacySignals({ gpc: true });
-	expect(active.kernel.getSnapshot().optOutDirectives).toHaveLength(1);
-	await nextTask();
-
-	const stored = readStoredPrivacyOptOuts(undefined, Date.now());
-	const recordedAt = stored?.ok
-		? stored.record.directives.map((entry) => entry.recordedAt)
-		: [];
-	expect(recordedAt).toContain(now - 5000);
-	expect(recordedAt).toHaveLength(2);
 });
 
 test('applies the subject a vendor record carries when the choice is unreadable', () => {
@@ -1235,34 +1172,6 @@ test('a decision lost to a concurrent write is written back on the next reconcil
 	expect(decision(fresh, 'measurement')).toBe(true);
 });
 
-test('a directive lost to a concurrent write is written back on the next reconcile', async () => {
-	vi.useFakeTimers({ toFake: ['Date'] });
-	vi.setSystemTime(T);
-	resolution = matchedResolution(
-		optOutRule({ privacySignals: { gpc: { denyCategories: ['measurement'] } } })
-	);
-	const active = start();
-	active.kernel.set.privacySignals({ gpc: true });
-	await nextTask();
-	const [own] = active.kernel.getSnapshot().optOutDirectives;
-	expect(own).toBeTruthy();
-
-	// Another tab wrote only its own directive over this one.
-	writeStoredPrivacyOptOuts(
-		[{ categories: ['marketing'], recordedAt: T + 500, source: 'gpc' }],
-		undefined,
-		T + 1000
-	);
-	vi.setSystemTime(T + 1000);
-
-	active.reconcileStorage();
-	await nextTask();
-	const read = readStoredPrivacyOptOuts(undefined, T + 1000);
-	expect(
-		read?.ok ? read.record.directives.map((entry) => entry.recordedAt) : []
-	).toEqual([own?.recordedAt, T + 500]);
-});
-
 const envelopeWith = (
 	categories: Partial<Record<'marketing' | 'measurement', [boolean, number]>>,
 	epoch?: number
@@ -1408,46 +1317,6 @@ test('a server-seeded runtime applies a same-millisecond denial that only reache
 		},
 	});
 	expect(measurement(active)).toBe(false);
-});
-
-test('a directive this runtime merged from storage is written back after a concurrent write drops it', async () => {
-	vi.useFakeTimers({ toFake: ['Date'] });
-	vi.setSystemTime(T);
-	resolution = matchedResolution(
-		optOutRule({ privacySignals: { gpc: { denyCategories: ['measurement'] } } })
-	);
-	const active = start();
-	// Another tab stored a directive this runtime has not read yet. This
-	// runtime's own write keeps it.
-	writeStoredPrivacyOptOuts(
-		[{ categories: ['marketing'], recordedAt: T - 500, source: 'gpc' }],
-		undefined,
-		T
-	);
-	active.kernel.set.privacySignals({ gpc: true });
-	await nextTask();
-	const [own] = active.kernel.getSnapshot().optOutDirectives;
-	const stored = () => {
-		const read = readStoredPrivacyOptOuts(undefined, Date.now());
-		return read?.ok
-			? read.record.directives.map((entry) => entry.recordedAt).sort()
-			: [];
-	};
-	expect(stored()).toEqual([T - 500, own?.recordedAt].sort());
-
-	// That tab has closed. A writer that read storage before either directive
-	// landed stores only its own.
-	vi.setSystemTime(T + 1000);
-	writeStoredPrivacyOptOuts(
-		[{ categories: ['measurement'], recordedAt: T + 500, source: 'gpc' }],
-		undefined,
-		T + 1000
-	);
-
-	active.reconcileStorage();
-	await nextTask();
-	expect(stored()).toEqual([T - 500, own?.recordedAt, T + 500].sort());
-	expect(directiveCategories(active)).toContain('marketing');
 });
 
 test('reconciling adopts a subject a server response set in the cookie alone', async () => {

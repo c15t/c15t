@@ -402,10 +402,8 @@ const takeAction = async function takeAction(
 			);
 			// Wait for all projections before counting the request cookie header.
 			// oxlint-disable-next-line no-await-in-loop -- ordered probe
-			await page.waitForFunction(
-				() =>
-					document.cookie.includes('c15t-notice=') &&
-					document.cookie.includes('c15t-privacy=')
+			await page.waitForFunction(() =>
+				document.cookie.includes('c15t-notice=')
 			);
 			return {
 				actionTaken: 'dismiss',

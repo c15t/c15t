@@ -131,7 +131,7 @@ const restrictLegalBases = function restrictLegalBases(
  * restrictions apply. TCF needs no consent for that processing; the
  * visitor's control is the objection, which the vendor-level check reads.
  * A refused category therefore does not block such a target. Other
- * category restrictions (GPC, opt-out directives, strict scope) still do,
+ * category restrictions (GPC, strict scope) still do,
  * and the category itself is never granted.
  */
 const usesOnlyLegitimateInterest = function usesOnlyLegitimateInterest(
@@ -315,7 +315,6 @@ export const getEffectiveGateState = function getEffectiveGateState(
 		gpc: snapshot.privacySignals.gpc.active,
 		noticeDismissal: snapshot.noticeDismissal,
 		now,
-		optOuts: snapshot.optOutDirectives,
 		policy: snapshot.evaluationPolicy,
 	});
 	return {

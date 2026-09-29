@@ -189,7 +189,6 @@ const module: NuxtModule<C15tNuxtConfig> = defineNuxtModule<C15tNuxtConfig>({
 				'usePromptRequirement',
 				'useNoticeDismissal',
 				'usePrivacySignals',
-				'useOptOutDirectives',
 				'usePolicyRule',
 				'usePolicyResolution',
 				'useConsentRestrictions',

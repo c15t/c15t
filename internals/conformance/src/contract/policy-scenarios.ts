@@ -75,8 +75,7 @@ export type ScenarioPrompt =
 export type ScenarioEvent =
 	| 'choice-recorded'
 	| 'permissions-changed'
-	| 'notice-dismissed'
-	| 'privacy-opt-out';
+	| 'notice-dismissed';
 
 /** A step's observations; omitted properties impose no assertion. */
 export interface PolicyObservation {
@@ -102,13 +101,7 @@ export interface PolicyObservation {
 	events?: Partial<Record<ScenarioEvent, number>>;
 	consentCallbacks?: number;
 	consentRequests?: number;
-	storage?:
-		| 'unchanged'
-		| 'choice-v3'
-		| 'notice-only'
-		| 'privacy-only'
-		| 'cleared';
-	standingOptOut?: readonly PolicyCategory[];
+	storage?: 'unchanged' | 'choice-v3' | 'notice-only' | 'cleared';
 	noticeDismissal?: 'absent' | 'current';
 	firstLayer?: 'choice' | 'notice' | 'hidden';
 	persistentRights?: readonly ('disclosure' | 'preferences' | 'opt-out')[];

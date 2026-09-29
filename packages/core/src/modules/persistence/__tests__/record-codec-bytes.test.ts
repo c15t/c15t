@@ -13,7 +13,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { ChoiceBasis, PrivacyOptOut } from '../../../consent-record/types';
+import type { ChoiceBasis } from '../../../consent-record/types';
 import {
 	flatToString,
 	flattenObject,
@@ -26,8 +26,6 @@ import {
 	encodeClearEpoch,
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
-	encodePrivacyOptOuts,
-	encodePrivacyOptOutsCompact,
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
 } from '../record-codec';
@@ -36,7 +34,6 @@ import {
 	writeStoredClearEpoch,
 	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
-	writeStoredPrivacyOptOuts,
 } from '../record-storage';
 
 const TIME = 1_756_857_600_000;
@@ -292,25 +289,5 @@ describe('auxiliary cookie projection bytes (baseline evidence, not a budget)', 
 		expect(stored).toBe(encodeClearEpoch(TIME));
 		expect(bytes(stored ?? '')).toBe(13);
 		expect(window.localStorage.getItem(`${STORAGE_KEY_V2}-epoch`)).toBe(stored);
-	});
-
-	it('measures the privacy directive projection actually stored', () => {
-		const one: PrivacyOptOut[] = [
-			{
-				categories: ['marketing', 'measurement'],
-				recordedAt: TIME,
-				source: 'gpc',
-			},
-		];
-		const result = writeStoredPrivacyOptOuts(one, undefined, NOW);
-		expect(result.ok).toBe(true);
-		const stored = getRawCookieValue(`${STORAGE_KEY_V2}-privacy`);
-		expect(stored).toBe(
-			encodePrivacyOptOutsCompact({ directives: one, version: 1 })
-		);
-		expect(bytes(stored ?? '')).toBe(29);
-		expect(bytes(encodePrivacyOptOuts({ directives: one, version: 1 }))).toBe(
-			113
-		);
 	});
 });

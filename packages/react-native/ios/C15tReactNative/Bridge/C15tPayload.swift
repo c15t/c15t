@@ -350,7 +350,7 @@ public enum C15tPayload {
             } else if let parsed = value.boolValue {
                 gpc = parsed
             } else {
-                // The signal decides whether a standing directive applies, so a value
+                // The override decides whether the GPC restriction applies, so a value
                 // this build cannot read is refused rather than turned into either
                 // answer.
                 return .failure(.unreadableGpcOverride)

@@ -9,17 +9,15 @@
  * - `hydrate()` is the validated read-only boundary for stored records.
  * - `refresh()` re-evaluates at a supplied time so an elapsed expiry cannot
  *   hide behind a delayed or background timer.
- * - The deadline timer, the visibility listener and the GPC directive are
- *   installed only after a lifecycle command ran, never at construction.
+ * - The deadline timer, the visibility listener and browser GPC detection
+ *   are installed only after a lifecycle command ran, never at construction.
  */
-import type { PrivacyOptOut } from '../consent-record/types';
 import type { PresentedSelection } from '../policy';
 import type {
 	ConsentSnapshot,
 	HydrationRecords,
 	HydrationResult,
 	KernelEvent,
-	KernelTransport,
 	Listener,
 } from '../types';
 import { createListenerSet } from './dispatch';
@@ -43,12 +41,6 @@ export interface KernelRuntime {
 	getGeneration: () => number;
 	/** Fence pending record work after an explicit subject switch. */
 	invalidateRecords: () => void;
-	/**
-	 * Forward standing directives that were recorded without a server
-	 * subject. Called once a subject is established (identify, accepted
-	 * save). Each directive is sent once, with its original `recordedAt`.
-	 */
-	flushPrivacy: () => void;
 	subscribe: (listener: Listener<ConsentSnapshot>) => () => void;
 	emit: (event: KernelEvent) => void;
 	/** Merge a patch and adopt the result when it changes anything. */
@@ -76,8 +68,6 @@ export interface KernelRuntime {
 	 */
 	mergeServerRecords: (records: HydrationRecords) => HydrationResult;
 	refresh: (now?: number) => ConsentSnapshot;
-	/** Record the standing GPC directive when a detected signal is honored. */
-	reconcilePrivacy: (now: number) => void;
 	/** Install or re-arm the deadline timer from the current snapshot. */
 	armDeadlineTimer: () => void;
 	/** Stop timers and listeners. An explicit init or hydrate re-arms. */
@@ -92,7 +82,6 @@ export interface RuntimeOptions {
 	emit: (event: KernelEvent) => void;
 	/** Shared with the event bus so snapshots and events keep one order. */
 	dispatcher: Dispatcher;
-	transport: KernelTransport | undefined;
 }
 
 const detectBrowserGpc = function detectBrowserGpc(): boolean {
@@ -125,7 +114,7 @@ interface BoundDraft<Values> {
 export const createRuntime = function createRuntime(
 	options: RuntimeOptions
 ): KernelRuntime {
-	const { dispatcher, emit, transport } = options;
+	const { dispatcher, emit } = options;
 	let snapshot = options.initialSnapshot;
 	let draft: BoundDraft<PresentedSelection> | null = options.initialDraft
 		? {
@@ -137,8 +126,6 @@ export const createRuntime = function createRuntime(
 	let started = false;
 	let disposed = false;
 	let generation = 0;
-	let forwardedDirectives: Set<string> | undefined;
-	let pendingDirectives: Map<string, object> | undefined;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let visibilityInstalled = false;
 	let listeners: ListenerSet<ConsentSnapshot> | undefined;
@@ -233,100 +220,6 @@ export const createRuntime = function createRuntime(
 		}, delay);
 	};
 
-	const directiveKey = function directiveKey(directive: PrivacyOptOut): string {
-		return `${directive.source}:${directive.recordedAt}:${directive.categories.join(',')}`;
-	};
-
-	const persistDirective = async function persistDirective(
-		directive: PrivacyOptOut,
-		subjectId: string,
-		key: string
-	): Promise<void> {
-		const attempt = {};
-		const recordsGeneration = generation;
-		pendingDirectives ??= new Map();
-		pendingDirectives.set(key, attempt);
-		try {
-			await transport?.recordPrivacyOptOut?.(directive, subjectId);
-			if (generation === recordsGeneration) {
-				forwardedDirectives ??= new Set();
-				forwardedDirectives.add(key);
-			}
-		} catch (error) {
-			emit({ command: 'recordPrivacyOptOut', error, type: 'command:error' });
-		} finally {
-			if (pendingDirectives.get(key) === attempt) {
-				pendingDirectives.delete(key);
-			}
-		}
-	};
-
-	/**
-	 * Directives stay kernel-local until a server subject exists. No consent
-	 * request is made for them and no event is repeated when they are
-	 * forwarded later; they keep their original `recordedAt`.
-	 */
-	const flushPrivacy = function flushPrivacy(): void {
-		const { subject, user } = snapshot;
-		const subjectId = subject?.subjectId;
-		if (!transport?.recordPrivacyOptOut || !subjectId || !user) {
-			return;
-		}
-		for (const directive of snapshot.optOutDirectives) {
-			const key = JSON.stringify([subjectId, directiveKey(directive)]);
-			if (forwardedDirectives?.has(key) || pendingDirectives?.has(key)) {
-				continue;
-			}
-			void persistDirective(directive, subjectId, key);
-		}
-	};
-
-	const reconcilePrivacy = function reconcilePrivacy(at: number): void {
-		if (snapshot.externalPermissions) {
-			return;
-		}
-		if (!started) {
-			return;
-		}
-		// Existing directives remain requests after the live signal disappears.
-		// Forward them when init establishes an identified subject, preserving
-		// their original timestamp and without emitting another privacy event.
-		flushPrivacy();
-		const current = snapshot;
-		const { gpc } = current.privacySignals;
-		// Only a detected user-agent signal records a directive. A developer
-		// override masks permissions but is not a privacy request.
-		if (!(gpc.active && gpc.detected)) {
-			return;
-		}
-		const mapping = current.policyRule.privacySignals.gpc.denyCategories;
-		if (mapping.length === 0) {
-			return;
-		}
-		const covered = new Set<string>();
-		for (const directive of current.optOutDirectives) {
-			for (const category of directive.categories) {
-				covered.add(category);
-			}
-		}
-		if (mapping.every((category) => covered.has(category))) {
-			return;
-		}
-		const directive: PrivacyOptOut = {
-			categories: [...mapping],
-			recordedAt: at,
-			source: 'gpc',
-		};
-		dispatcher.batch(() => {
-			commit({
-				now: at,
-				optOutDirectives: [...current.optOutDirectives, directive],
-			});
-			emit({ directive, snapshot, type: 'privacy:opt-out' });
-		});
-		flushPrivacy();
-	};
-
 	const refresh = function refresh(at: number = now()): ConsentSnapshot {
 		commit({ now: at });
 		armDeadlineTimer();
@@ -369,10 +262,6 @@ export const createRuntime = function createRuntime(
 			patch.iab = { ...snapshot.iab, authority: null, tcString: null };
 		}
 		const changed = commit(patch);
-		if (reset) {
-			forwardedDirectives?.clear();
-			pendingDirectives?.clear();
-		}
 		if (
 			reset ||
 			snapshot.explicitChoice !== before.explicitChoice ||
@@ -380,10 +269,6 @@ export const createRuntime = function createRuntime(
 		) {
 			generation += 1;
 		}
-		// Hydration applies records; it never activates a directive. A clear
-		// therefore leaves the records cleared even while the live signal
-		// keeps masking permissions. Activation happens when init completes
-		// or when a signal is set at runtime.
 		armDeadlineTimer();
 		return { changed, ok: true };
 	};
@@ -409,7 +294,6 @@ export const createRuntime = function createRuntime(
 		batch: dispatcher.batch,
 		commit,
 		emit,
-		flushPrivacy,
 		// A draft presented under an earlier choice contract is stale once the
 		// policy changed materially; it is dropped, never restamped.
 		getDraft: () =>
@@ -434,7 +318,6 @@ export const createRuntime = function createRuntime(
 		rearm() {
 			disposed = false;
 		},
-		reconcilePrivacy,
 		refresh,
 		setDraft(next) {
 			draft = next

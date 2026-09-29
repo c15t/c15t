@@ -538,7 +538,6 @@ export const createConsentRuntime = function createConsentRuntime(
 			kernel.hydrate({
 				choice: null,
 				noticeDismissal: null,
-				optOutDirectives: [],
 				subject: null,
 				vendorChoice: null,
 			});

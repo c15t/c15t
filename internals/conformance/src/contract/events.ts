@@ -3,7 +3,6 @@ export const POLICY_EVENT_NAMES = {
 	'choice-recorded': 'choice:recorded',
 	'notice-dismissed': 'notice:dismissed',
 	'permissions-changed': 'permissions:changed',
-	'privacy-opt-out': 'privacy:opt-out',
 } as const;
 
 /** Callbacks must be observed through public provider configuration. */

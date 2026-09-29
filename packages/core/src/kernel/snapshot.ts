@@ -81,7 +81,7 @@ const UNCONFIGURED: PolicyResolution = Object.freeze({
 	status: 'unconfigured',
 });
 
-// The fallback evaluation without records has no expiry or directive deadline.
+// The fallback evaluation without records has no expiry deadline.
 // Its permissions and prompt are independent of the clock and GPC because
 // the fallback has no GPC deny mapping. Compute the real evaluator once and
 // freeze its result before sharing it between independently owned snapshots.
@@ -89,7 +89,6 @@ const DEFAULT_EFFECTIVE_POLICY = resolveEffectivePolicy(UNCONFIGURED);
 const DEFAULT_EVALUATION_POLICY = buildEvaluationPolicy(
 	DEFAULT_EFFECTIVE_POLICY
 );
-const EMPTY_DIRECTIVES: ConsentSnapshot['optOutDirectives'] = Object.freeze([]);
 const EMPTY_OVERRIDES = Object.freeze({});
 const DEFAULT_PRIVACY_SIGNALS: ConsentSnapshot['privacySignals'] =
 	Object.freeze({
@@ -99,7 +98,6 @@ const DEFAULT_RECORD_EVALUATION = evaluateConsentRecord({
 	choice: null,
 	noticeDismissal: null,
 	now: 0,
-	optOuts: EMPTY_DIRECTIVES,
 	policy: DEFAULT_EVALUATION_POLICY,
 });
 deepFreeze(DEFAULT_RECORD_EVALUATION);
@@ -249,13 +247,6 @@ export const freezeSnapshot = function freezeSnapshot(
 		}
 		Object.freeze(snapshot.restrictions);
 	}
-	if (snapshot.optOutDirectives !== EMPTY_DIRECTIVES) {
-		for (const directive of snapshot.optOutDirectives) {
-			Object.freeze(directive.categories);
-			Object.freeze(directive);
-		}
-		Object.freeze(snapshot.optOutDirectives);
-	}
 	if (snapshot.privacySignals !== DEFAULT_PRIVACY_SIGNALS) {
 		Object.freeze(snapshot.privacySignals.gpc);
 		Object.freeze(snapshot.privacySignals);
@@ -323,7 +314,6 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const records = validated?.ok === true ? validated.records : null;
 	const explicitChoice = records?.choice ?? null;
 	const noticeDismissal = records?.noticeDismissal ?? null;
-	const optOutDirectives = records?.optOutDirectives ?? EMPTY_DIRECTIVES;
 	const subject = records?.subject ?? null;
 	const vendorChoice = records?.vendorChoice ?? null;
 
@@ -351,15 +341,13 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const recordEvaluation =
 		evaluationPolicy === DEFAULT_EVALUATION_POLICY &&
 		explicitChoice === null &&
-		noticeDismissal === null &&
-		optOutDirectives.length === 0
+		noticeDismissal === null
 			? DEFAULT_RECORD_EVALUATION
 			: evaluateConsentRecord({
 					choice: explicitChoice,
 					gpc: privacySignals.gpc.active,
 					noticeDismissal,
 					now,
-					optOuts: optOutDirectives,
 					policy: evaluationPolicy,
 				});
 
@@ -386,7 +374,6 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		model: deriveModel(effective.rule, iab?.enabled ?? false),
 		nextDeadline: evaluation.nextDeadline,
 		noticeDismissal,
-		optOutDirectives,
 		overrides: config.initialOverrides
 			? { ...config.initialOverrides }
 			: EMPTY_OVERRIDES,

@@ -367,7 +367,7 @@ object C15tPayload {
 		}
 
 		if (body.containsKey("gpc") && body["gpc"] !== JsonNull && optBoolean(body["gpc"]) == null) {
-			// `gpc` decides whether a standing directive applies, so a value this build
+			// `gpc` decides whether the GPC restriction applies, so a value this build
 			// cannot read is refused rather than turned into either answer.
 			return OverridesRead.Refused(
 				REJECT_OVERRIDES,

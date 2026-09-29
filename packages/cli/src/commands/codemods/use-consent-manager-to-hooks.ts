@@ -41,10 +41,6 @@ const HOOK_FIELDS = {
 		expression: 'useNoticeDismissal()',
 		hook: 'useNoticeDismissal',
 	},
-	optOutDirectives: {
-		expression: 'useOptOutDirectives()',
-		hook: 'useOptOutDirectives',
-	},
 	policyBanner: {
 		expression: 'usePromptPresentation()',
 		hook: 'usePromptPresentation',
@@ -108,6 +104,8 @@ const MANUAL_HINTS: Record<string, string> = {
 	hasConsented: 'useExplicitChoice() !== null',
 	identifyUser: 'useIdentify()',
 	manager: 'nothing; it was always null in v3',
+	optOutDirectives:
+		'nothing; GPC is no longer stored, read the live signal with usePrivacySignals()',
 	saveConsents:
 		"useHeadlessConsentUI().saveCustomPreferences('all' | 'none'), or with no argument for the draft",
 	setConsent: 'useSaveConsents(), called with { [category]: value }',

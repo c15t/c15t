@@ -93,9 +93,6 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		expect(kernel.getSnapshot().noticeDismissal).toEqual(
 			before.noticeDismissal
 		);
-		expect(kernel.getSnapshot().optOutDirectives).toEqual(
-			before.optOutDirectives
-		);
 		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(false);
 	}
 );
@@ -138,7 +135,7 @@ test('preserves IAB metadata on the next save after unreadable hydration', async
 	expect(readStoredConsentRecord(undefined, NOW).selected?.iab).toEqual(iab);
 });
 
-test('hydrates readable choices without clearing unreadable notice and privacy records', async () => {
+test('hydrates readable choices without clearing an unreadable notice record', async () => {
 	const kernel = createKernel();
 	const handle = persist(kernel);
 	await kernel.commands.save({ measurement: false });
@@ -152,7 +149,7 @@ test('hydrates readable choices without clearing unreadable notice and privacy r
 		throw new DOMException('Cookies blocked', 'SecurityError');
 	});
 	vi.spyOn(localStorage, 'getItem').mockImplementation((key) => {
-		if (key === 'c15t-notice' || key === 'c15t-privacy') {
+		if (key === 'c15t-notice') {
 			throw new DOMException('Record blocked', 'SecurityError');
 		}
 		return key === 'c15t' ? storedChoice : null;
@@ -160,13 +157,9 @@ test('hydrates readable choices without clearing unreadable notice and privacy r
 
 	const stored = readStoredRecords(undefined, NOW);
 	expect(stored.records).not.toHaveProperty('noticeDismissal');
-	expect(stored.records).not.toHaveProperty('optOutDirectives');
 	expect(handle.hydrate()).toBe(true);
 	expect(kernel.getSnapshot().explicitChoice).toEqual(before.explicitChoice);
 	expect(kernel.getSnapshot().noticeDismissal).toEqual(before.noticeDismissal);
-	expect(kernel.getSnapshot().optOutDirectives).toEqual(
-		before.optOutDirectives
-	);
 });
 
 test.each(['getter', 'methods', 'missing'] as const)(
@@ -182,7 +175,6 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		const { cookie } = document;
 		expect(cookie).toContain('c15t=');
 		expect(cookie).toContain('c15t-notice=');
-		expect(cookie).toContain('c15t-privacy=');
 		localStorage.clear();
 		restrictStorage(restriction);
 
@@ -192,9 +184,6 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		expect(restored.getSnapshot().noticeDismissal).toEqual(
 			saved.noticeDismissal
 		);
-		expect(restored.getSnapshot().optOutDirectives).toEqual(
-			saved.optOutDirectives
-		);
 		expect(restored.getSnapshot().effectivePermissions.measurement).toBe(false);
 		expect(document.cookie).toBe(cookie);
 
@@ -203,12 +192,11 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		expect(document.cookie).toMatch(/^c15t-epoch=\d+$/u);
 		expect(restored.getSnapshot().explicitChoice).toBeNull();
 		expect(restored.getSnapshot().noticeDismissal).toBeNull();
-		expect(restored.getSnapshot().optOutDirectives).toEqual([]);
 	}
 );
 
 test.each(['getter', 'methods', 'missing'] as const)(
-	'persists choices, notices and privacy directives when localStorage becomes unavailable through %s',
+	'persists choices and notices when localStorage becomes unavailable through %s',
 	async (restriction) => {
 		const kernel = createKernel();
 		const writer = persist(kernel);
@@ -221,7 +209,6 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		writer.dispose();
 		expect(document.cookie).toContain('c15t=');
 		expect(document.cookie).toContain('c15t-notice=');
-		expect(document.cookie).toContain('c15t-privacy=');
 		const restored = createKernel();
 		persist(restored);
 		expect(restored.getSnapshot().explicitChoice).toEqual(
@@ -229,9 +216,6 @@ test.each(['getter', 'methods', 'missing'] as const)(
 		);
 		expect(restored.getSnapshot().noticeDismissal).toEqual(
 			kernel.getSnapshot().noticeDismissal
-		);
-		expect(restored.getSnapshot().optOutDirectives).toEqual(
-			kernel.getSnapshot().optOutDirectives
 		);
 	}
 );

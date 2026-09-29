@@ -27,12 +27,10 @@ import type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 } from '../../consent-record/types';
 import {
 	checkTimestamp,
 	isNonEmptyString,
-	isOptionalConsentCategory,
 	isPlainRecord,
 	ownKeys,
 	ownValue,
@@ -76,15 +74,6 @@ export interface StoredConsentEnvelope {
 
 /** Local-only notice dismissal record. Version 1 matches the record type. */
 export type StoredNoticeDismissal = NoticeDismissal;
-
-/**
- * Local-only standing privacy directives. Kept as a versioned list so
- * more than one signal source can be recorded later without a rewrite.
- */
-export interface StoredPrivacyOptOuts {
-	version: 1;
-	directives: readonly PrivacyOptOut[];
-}
 
 /** Local vendor denial list. Version 1 matches the kernel record. */
 export type StoredVendorChoice = VendorChoice & {
@@ -777,7 +766,7 @@ export const decodeStoredConsentEnvelopeCompact =
 	};
 
 // ---------------------------------------------------------------------------
-// Notice dismissal and privacy opt-outs (local-only, JSON)
+// Notice dismissal (local-only, JSON)
 // ---------------------------------------------------------------------------
 
 /** Serializes a notice dismissal for localStorage. */
@@ -803,143 +792,12 @@ export const decodeNoticeDismissal = function decodeNoticeDismissal(
 	return { ok: true, record: result.record };
 };
 
-const PRIVACY_OPT_OUT_KEYS = ['source', 'categories', 'recordedAt'] as const;
-
-const validatePrivacyOptOut = function validatePrivacyOptOut(
-	input: unknown,
-	path: string,
-	now: number,
-	issues: StorageIssue[]
-): PrivacyOptOut | null {
-	if (!isPlainRecord(input)) {
-		issues.push({ code: 'not-an-object', path });
-		return null;
-	}
-	let ok = true;
-	for (const key of ownKeys(input)) {
-		if (
-			!PRIVACY_OPT_OUT_KEYS.includes(
-				key as (typeof PRIVACY_OPT_OUT_KEYS)[number]
-			)
-		) {
-			issues.push({ code: 'unknown-key', path: `${path}.${key}` });
-			ok = false;
-		}
-	}
-	const source = ownValue(input, 'source');
-	if (source !== 'gpc') {
-		issues.push({ code: 'invalid-basis', path: `${path}.source` });
-		ok = false;
-	}
-	const recordedAt = ownValue(input, 'recordedAt');
-	const timestampIssue = checkTimestamp(recordedAt, now);
-	if (timestampIssue) {
-		issues.push({ code: timestampIssue, path: `${path}.recordedAt` });
-		ok = false;
-	}
-	const rawCategories = ownValue(input, 'categories');
-	const categories: OptionalConsentCategory[] = [];
-	if (Array.isArray(rawCategories)) {
-		for (const [index, entry] of rawCategories.entries()) {
-			if (typeof entry !== 'string' || !isOptionalConsentCategory(entry)) {
-				issues.push({
-					code: 'unknown-key',
-					path: `${path}.categories[${index}]`,
-				});
-				ok = false;
-				continue;
-			}
-			if (categories.includes(entry)) {
-				issues.push({
-					code: 'duplicate-key',
-					path: `${path}.categories[${index}]`,
-				});
-				ok = false;
-				continue;
-			}
-			categories.push(entry);
-		}
-	} else {
-		issues.push({ code: 'not-an-object', path: `${path}.categories` });
-		ok = false;
-	}
-	if (!ok) {
-		return null;
-	}
-	return {
-		categories: [...categories].sort(),
-		recordedAt: recordedAt as number,
-		source: 'gpc',
-	};
-};
-
-/** Serializes standing privacy directives for localStorage. */
-export const encodePrivacyOptOuts = function encodePrivacyOptOuts(
-	record: StoredPrivacyOptOuts
-): string {
-	return JSON.stringify({
-		directives: record.directives.map((directive) => ({
-			categories: [...directive.categories].sort(),
-			recordedAt: directive.recordedAt,
-			source: directive.source,
-		})),
-		version: 1,
-	});
-};
-
-/** Validates a parsed privacy opt-out list. */
-export const decodePrivacyOptOuts = function decodePrivacyOptOuts(
-	input: unknown,
-	now: number
-): DecodeResult<StoredPrivacyOptOuts> {
-	if (!isPlainRecord(input)) {
-		return { issues: [{ code: 'not-an-object', path: '' }], ok: false };
-	}
-	if (ownValue(input, 'version') !== 1) {
-		return {
-			issues: [{ code: 'unsupported-version', path: 'version' }],
-			ok: false,
-		};
-	}
-	const issues: StorageIssue[] = [];
-	for (const key of ownKeys(input)) {
-		if (key !== 'version' && key !== 'directives') {
-			issues.push({ code: 'unknown-key', path: key });
-		}
-	}
-	const rawDirectives = ownValue(input, 'directives');
-	if (!Array.isArray(rawDirectives)) {
-		issues.push({ code: 'not-an-object', path: 'directives' });
-		return { issues, ok: false };
-	}
-	const directives: PrivacyOptOut[] = [];
-	for (const [index, entry] of rawDirectives.entries()) {
-		const directive = validatePrivacyOptOut(
-			entry,
-			`directives[${index}]`,
-			now,
-			issues
-		);
-		if (directive) {
-			directives.push(directive);
-		}
-	}
-	if (issues.length > 0) {
-		return { issues, ok: false };
-	}
-	return { ok: true, record: { directives, version: 1 } };
-};
-
 // ---------------------------------------------------------------------------
-// Compact cookie projections for notice dismissal and privacy opt-outs
+// Compact cookie projection for notice dismissal
 // ---------------------------------------------------------------------------
 
 /** Prefix of the compact notice-dismissal cookie projection. */
 export const COMPACT_NOTICE_PREFIX = 'v=1';
-/** Prefix of the compact privacy-opt-out cookie projection. */
-export const COMPACT_PRIVACY_PREFIX = 'v=1';
-
-const CATEGORY_LIST_SEPARATOR = '-';
 
 const parseCompactFields = function parseCompactFields(
 	rawValue: string,
@@ -1026,73 +884,6 @@ export const decodeNoticeDismissalCompact =
 			now
 		);
 	};
-
-/**
- * Compact privacy directives for the `<key>-privacy` cookie:
- * `v=1&d=<source>.<recordedAt>.<code-code>|<source>.<recordedAt>.<code>`.
- * Category codes are the same two-letter codes the consent cookie uses.
- */
-export const encodePrivacyOptOutsCompact = function encodePrivacyOptOutsCompact(
-	record: StoredPrivacyOptOuts
-): string {
-	const directives = record.directives.map((directive) =>
-		[
-			directive.source,
-			String(directive.recordedAt),
-			[...directive.categories]
-				.sort()
-				.map((category) => CATEGORY_CODES[category])
-				.join(CATEGORY_LIST_SEPARATOR),
-		].join(TUPLE_SEPARATOR)
-	);
-	const parts = [COMPACT_PRIVACY_PREFIX];
-	if (directives.length > 0) {
-		parts.push(`d${KEY_VALUE_SEPARATOR}${directives.join(LIST_SEPARATOR)}`);
-	}
-	return parts.join(FIELD_SEPARATOR);
-};
-
-/** Decodes compact privacy directives through the shared validator. */
-export const decodePrivacyOptOutsCompact = function decodePrivacyOptOutsCompact(
-	rawValue: string,
-	now: number
-): DecodeResult<StoredPrivacyOptOuts> {
-	const issues: StorageIssue[] = [];
-	const fields = parseCompactFields(rawValue, COMPACT_PRIVACY_PREFIX, issues);
-	if (!fields) {
-		return { issues, ok: false };
-	}
-	for (const key of fields.keys()) {
-		if (key !== 'd') {
-			issues.push({ code: 'unknown-key', path: key });
-		}
-	}
-	if (issues.length > 0) {
-		return { issues, ok: false };
-	}
-	const list = fields.get('d');
-	const directives: unknown[] = [];
-	if (list !== undefined && list !== '') {
-		for (const [index, entry] of list.split(LIST_SEPARATOR).entries()) {
-			const [source, recordedAt, codes, ...rest] = entry.split(TUPLE_SEPARATOR);
-			if (rest.length > 0 || source === undefined || codes === undefined) {
-				return {
-					issues: [{ code: 'malformed-encoding', path: `d[${index}]` }],
-					ok: false,
-				};
-			}
-			const categories = codes
-				.split(CATEGORY_LIST_SEPARATOR)
-				.map((code) => CODE_TO_CATEGORY.get(code) ?? code);
-			directives.push({
-				categories,
-				recordedAt: parseCompactInteger(recordedAt),
-				source,
-			});
-		}
-	}
-	return decodePrivacyOptOuts({ directives, version: 1 }, now);
-};
 
 // ---------------------------------------------------------------------------
 // Vendor denial list (local-only, JSON + compact cookie projection)

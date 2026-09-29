@@ -12,7 +12,7 @@ afterEach(() => {
 	delete (window as Partial<Window>).dataLayer;
 });
 
-test('Google Consent Mode updates each permission and retains GPC directives after signal removal', async () => {
+test('Google Consent Mode updates each permission and follows the live GPC signal', async () => {
 	const now = Date.now();
 	const transport = createOfflineTransport({
 		policyRules: [
@@ -47,15 +47,23 @@ test('Google Consent Mode updates each permission and retains GPC directives aft
 				security_storage: 'granted',
 			})
 		);
+		const lastUpdate = () =>
+			commands.mock.calls.findLast(
+				([command, action]) => command === 'consent' && action === 'update'
+			)?.[2];
 		kernel.set.privacySignals({ gpc: true });
-		kernel.set.privacySignals({ gpc: false });
 		await kernel.commands.save({ marketing: true });
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
-		const updates = commands.mock.calls.filter(
-			([command, action]) => command === 'consent' && action === 'update'
-		);
-		expect(updates.at(-1)?.[2]).toMatchObject({
+		expect(lastUpdate()).toMatchObject({
 			ad_storage: 'denied',
+			security_storage: 'granted',
+		});
+		// GPC is live-only: once the browser stops sending it, the saved
+		// grant applies again.
+		kernel.set.privacySignals({ gpc: false });
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+		expect(lastUpdate()).toMatchObject({
+			ad_storage: 'granted',
 			security_storage: 'granted',
 		});
 	} finally {

@@ -294,7 +294,6 @@ let evaluationTiming = measure(iterations: 20_000, warmup: 500) { _ in
         resolved,
         choice: choice,
         noticeDismissal: nil,
-        optOutDirectives: [],
         gpcActive: false,
         now: clock.now
     )

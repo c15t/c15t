@@ -25,7 +25,6 @@ import { register as registerConsent } from './routes/consent';
 import { register as registerInit } from './routes/init';
 import { register as registerLegalDocument } from './routes/legal-document';
 import { register as registerManifest } from './routes/manifest';
-import { register as registerPrivacyDirective } from './routes/privacy-directive';
 import { register as registerScript } from './routes/script';
 import { register as registerSession } from './routes/session';
 import { register as registerStatus } from './routes/status';
@@ -113,7 +112,6 @@ export const createApp = function createApp(
 	registerLegalDocument(context);
 	registerConsent(context);
 	registerSubject(context);
-	registerPrivacyDirective(context);
 
 	// Registered last so every route above is already on the app and appears
 	// in the generated document.

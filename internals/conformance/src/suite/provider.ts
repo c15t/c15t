@@ -14,7 +14,6 @@ const REQUIRED_STATE_KEYS = [
 	'effectivePermissions',
 	'promptRequirement',
 	'noticeDismissal',
-	'optOutDirectives',
 	'resolution',
 ] as const;
 

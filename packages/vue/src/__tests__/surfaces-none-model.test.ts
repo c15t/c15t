@@ -78,7 +78,6 @@ const renderUnderNone = async function renderUnderNone(rule: PolicyRule) {
 			}),
 			transport: {
 				init: () => Promise.resolve({}),
-				recordPrivacyOptOut: () => Promise.resolve(),
 				save: () => Promise.resolve({ ok: true, subjectId: 'vue-test' }),
 			},
 		},

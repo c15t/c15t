@@ -1,6 +1,6 @@
 /**
- * The hosted transport's record half: saves, identity links, subject reads
- * and privacy directives, without `init`.
+ * The hosted transport's record half: saves, identity links and subject
+ * reads, without `init`.
  *
  * `createHostedTransport` builds on it and adds `init`. An adapter whose
  * server already resolved the visitor's state can use this half on its own
@@ -11,7 +11,6 @@
  * Reading a subject record back is rare (a user switch or an explicit
  * reload), so its reviver loads on first use.
  */
-import type { PrivacyOptOut } from '../consent-record/types';
 import type { KernelTransport, KernelUser, SaveResult } from '../types';
 import { buildDecisionAssertion } from './decision-inputs';
 import type { RememberedDecisionInputs } from './decision-inputs';
@@ -64,20 +63,12 @@ export interface HostedRecordTransport extends KernelTransport {
 	save: (payload: SubjectSavePayload) => Promise<SaveResult>;
 	identify: (user: KernelUser, subjectId: string | null) => Promise<void>;
 	/**
-	 * Reads the backend's merged receipts and standing privacy directives for
-	 * a subject. `null` when the backend has no such subject.
+	 * Reads the backend's merged receipts for a subject. `null` when the
+	 * backend has no such subject.
 	 */
 	loadSubjectRecord: (
 		subjectId: string
 	) => Promise<TransportHydrationRecords | null>;
-	/**
-	 * Records a standing privacy directive against the subject's own server
-	 * record. Resolves without a request when there is no server subject yet.
-	 */
-	recordPrivacyOptOut: (
-		directive: PrivacyOptOut,
-		subjectId: string | null
-	) => Promise<void>;
 }
 
 /** Strip a single trailing slash so `${base}/subjects` doesn't double up. */
@@ -143,7 +134,7 @@ export const resolveFetch = function resolveFetch(
  * @param options - Backend connection options.
  * @param decision - Where saves find a remembered decision. Omit it when
  *   every save carries its own decision inputs.
- * @returns Save, identify, subject-read and privacy-directive methods.
+ * @returns Save, identify and subject-read methods.
  * @example
  * ```ts
  * import { createHostedRecordTransport } from '@c15t/core';
@@ -223,30 +214,6 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 				);
 			}
 			return mapSubjectRecordToHydrationRecords(record, { now: now() });
-		},
-
-		async recordPrivacyOptOut(directive, subjectId): Promise<void> {
-			if (!subjectId) {
-				// No server record exists for this device yet. The kernel keeps the
-				// directive locally; it is never sent through the consent route.
-				return;
-			}
-			const response = await fetchImpl(
-				`${subjectURL(subjectId)}/privacy-directives`,
-				{
-					body: JSON.stringify({
-						categories: [...directive.categories],
-						recordedAt: directive.recordedAt,
-						source: directive.source,
-					}),
-					credentials,
-					headers: jsonHeaders,
-					method: 'POST',
-				}
-			);
-			if (!response.ok) {
-				throw failed('/subjects/:id/privacy-directives', response);
-			}
 		},
 
 		async save(payload): Promise<SaveResult> {

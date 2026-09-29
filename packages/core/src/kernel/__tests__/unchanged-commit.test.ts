@@ -32,7 +32,6 @@ const checkCommit = (initial: ConsentSnapshot, patch: SnapshotPatch) => {
 		emit,
 		initialDraft: null,
 		initialSnapshot: initial,
-		transport: undefined,
 	});
 	runtime.subscribe(listener);
 	const candidate = buildNextSnapshot(initial, patch);
@@ -55,7 +54,6 @@ const checkCommit = (initial: ConsentSnapshot, patch: SnapshotPatch) => {
 				gpc: actual.privacySignals.gpc.active,
 				noticeDismissal: actual.noticeDismissal,
 				now: patch.now ?? initial.evaluatedAt,
-				optOuts: actual.optOutDirectives,
 				policy: actual.evaluationPolicy,
 			});
 	expect(actual.effectivePermissions).toEqual(evaluation.permissions);
@@ -85,11 +83,6 @@ test('every patch input agrees with full snapshot derivation', () => {
 			},
 		},
 		now: { now: NOW + 1000 },
-		optOutDirectives: {
-			optOutDirectives: [
-				{ categories: ['marketing'], recordedAt: NOW, source: 'gpc' },
-			],
-		},
 		overrides: { overrides: { gpc: true } },
 		policyPending: { policyPending: true },
 		policySnapshotToken: { policySnapshotToken: 'token' },
@@ -203,7 +196,6 @@ test('reusing a mutable patch still observes changed privacy and record inputs',
 		emit: vi.fn(),
 		initialDraft: null,
 		initialSnapshot: initial,
-		transport: undefined,
 	});
 	const patch: SnapshotPatch = { privacyDetected: false };
 	expect(runtime.commit(patch)).toBe(false);
