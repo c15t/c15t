@@ -216,6 +216,28 @@ describe('<ConsentBanner />', () => {
 		);
 	});
 
+	it('labels a legal link without a `label` from the translations', async () => {
+		const options: C15tAstroOptions = {
+			legalLinks: {
+				cookiePolicy: { href: '/cookies', label: 'Our cookies' },
+				privacyPolicy: { href: '/privacy' },
+			},
+			mode: offlineMode({ policyRules: [testRule] }),
+		};
+		const english = await render(await buildLocals(options), {
+			legalLinks: ['privacyPolicy', 'cookiePolicy'],
+		});
+		expect(english).toContain('>Privacy Policy</a>');
+		expect(english).toContain('>Our cookies</a>');
+		expect(english).not.toContain('>privacyPolicy</a>');
+
+		const german = await render(
+			await buildLocals(options, { 'accept-language': 'de' }),
+			{ legalLinks: ['privacyPolicy'] }
+		);
+		expect(german).toContain('>Datenschutzerklärung</a>');
+	});
+
 	it('drops the branding tag with `hideBranding`', async () => {
 		const html = await render(await buildLocals(), { hideBranding: true });
 		expect(html).not.toContain('data-testid="consent-banner-branding"');
