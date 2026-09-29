@@ -212,6 +212,11 @@ export const createIframeBlocker = function createIframeBlocker(
 				addIframes(node, iframes);
 			}
 		}
+		// The observer watches the whole document, so most batches (a
+		// script or style added to `<head>`) carry no frame at all.
+		if (iframes.size === 0) {
+			return;
+		}
 		registerIframes(iframes);
 		const pass = buildReconcilePass(kernel.getSnapshot());
 		for (const iframe of iframes) {
@@ -230,8 +235,14 @@ export const createIframeBlocker = function createIframeBlocker(
 
 	if (!disableAuto) {
 		processAll();
-		if (document.body) {
-			observer.observe(document.body, {
+		// The root element rather than `<body>`: client routers such as
+		// Astro's ClientRouter and Turbo replace `<body>` on navigation, and
+		// an observer on the old one never sees the next page's frames. The
+		// root also exists before `<body>` does, for a blocker started from
+		// a script in `<head>`.
+		const root = document.documentElement ?? document.body;
+		if (root) {
+			observer.observe(root, {
 				attributeFilter: ['data-category', 'data-vendor'],
 				attributes: true,
 				childList: true,

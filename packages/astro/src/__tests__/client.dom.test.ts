@@ -339,6 +339,32 @@ describe('ClientRouter navigation', () => {
 			document.querySelector('script[data-c15t-activated="true"]')
 		).not.toBeNull();
 	});
+
+	it('gates iframes on a page the router swapped in', async () => {
+		renderBanner();
+		const booted = start();
+		await booted.acceptAll();
+
+		// The ClientRouter replaces `<body>` itself, not its children.
+		const incoming = document.implementation.createHTMLDocument();
+		incoming.body.innerHTML =
+			'<iframe data-category="marketing" data-src="https://embed.example/video"></iframe>';
+		document.body.replaceWith(document.importNode(incoming.body, true));
+		document.dispatchEvent(new Event('astro:after-swap'));
+		document.dispatchEvent(new Event('astro:page-load'));
+
+		await vi.waitFor(() => {
+			expect(document.querySelector('iframe')?.getAttribute('src')).toBe(
+				'https://embed.example/video'
+			);
+		});
+
+		// And the gate keeps working on the new page when consent changes.
+		await booted.rejectAll();
+		await vi.waitFor(() => {
+			expect(document.querySelector('iframe')?.hasAttribute('src')).toBe(false);
+		});
+	});
 });
 
 describe('opening without an inlined resolution', () => {
