@@ -56,7 +56,7 @@ export const promptForUIStyle = async function promptForUIStyle(
 		'Choose how you want your consent UI components generated.'
 	);
 	context.logger.info(
-		'Learn more: https://c15t.com/docs/frameworks/next/styling/overview'
+		'Learn more: https://c15t.com/docs/frameworks/next/customize'
 	);
 
 	const result = await p.select({

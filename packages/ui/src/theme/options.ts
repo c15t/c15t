@@ -52,7 +52,7 @@ export interface CommonInlineStoreOptions {
 	/**
 	 * Event callbacks for consent actions.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/callbacks
+	 * @see https://c15t.com/docs/frameworks/react/components/consent-manager-provider
 	 * @see {@link Callbacks} for available options
 	 */
 	callbacks?: Callbacks;
@@ -60,7 +60,7 @@ export interface CommonInlineStoreOptions {
 	/**
 	 * Dynamically load scripts based on consent state.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/script-loader
+	 * @see https://c15t.com/docs/frameworks/react/scripts
 	 * @see {@link Script} for available options
 	 */
 	scripts?: Script[];
@@ -118,7 +118,7 @@ export interface CommonInlineStoreOptions {
 	 * calls and blocks requests based on the current consent state and
 	 * configured domain rules.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/network-blocker
+	 * @see https://c15t.com/docs/frameworks/react/scripts
 	 * @see {@link NetworkBlockerConfig} for available options
 	 */
 	networkBlocker?: NetworkBlockerConfig;
@@ -141,7 +141,7 @@ export interface CommonInlineStoreOptions {
 	 * @remarks
 	 * Pass the Promise from `fetchInitialData()` directly to this option.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/server-side
+	 * @see https://c15t.com/docs/frameworks/next/rendering
 	 * @see {@link SSRInitialData} for the data structure
 	 */
 	ssrData?: Promise<SSRInitialData | undefined>;
@@ -164,7 +164,7 @@ export interface ConsentManagerContentOptions {
 	 *
 	 * @deprecated Use `i18n` instead.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/internationalization
+	 * @see https://c15t.com/docs/customization/translations
 	 * @see {@link TranslationConfig} for available options
 	 */
 	translations?: Partial<TranslationConfig>;
@@ -172,7 +172,7 @@ export interface ConsentManagerContentOptions {
 	/**
 	 * Consent categories to show in the consent banner.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/concepts/consent-categories
+	 * @see https://c15t.com/docs/concepts/consent-categories
 	 * @see {@link AllConsentNames} for available consent categories
 	 */
 	consentCategories?: AllConsentNames[];

@@ -15,7 +15,7 @@
 		"translations",
 		"typescript"
 	],
-	"homepage": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
+	"homepage": "https://c15t.com/docs/customization/translations",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},

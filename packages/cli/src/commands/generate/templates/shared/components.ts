@@ -64,7 +64,7 @@ const buildDocComment = function buildDocComment({
 	if (initialDataProp) {
 		return `/**
  * Consent management wrapper for Next.js Pages Router.
- * @see https://c15t.com/docs/frameworks/nextjs/quickstart
+ * @see https://c15t.com/docs/frameworks/next/quickstart
  */`;
 	}
 
