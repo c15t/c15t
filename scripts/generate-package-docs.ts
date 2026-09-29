@@ -37,6 +37,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/javascript/**/*.mdx',
 			'customization/**/*.mdx',
@@ -50,6 +51,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/react/**/*.mdx',
 			'customization/**/*.mdx',
@@ -63,6 +65,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/next/**/*.mdx',
 			'customization/**/*.mdx',
@@ -76,6 +79,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/vue/**/*.mdx',
 			'frameworks/nuxt/**/*.mdx',
@@ -90,6 +94,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/svelte/**/*.mdx',
 			'frameworks/sveltekit/**/*.mdx',
@@ -104,6 +109,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/astro/**/*.mdx',
 			'customization/**/*.mdx',
@@ -117,6 +123,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/tanstack-start/**/*.mdx',
 			'customization/**/*.mdx',
@@ -130,6 +137,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/**/*.mdx',
 			'customization/**/*.mdx',
@@ -141,7 +149,12 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'c15t v3 framework integration and consent management. Install c15t and use its framework subpaths; adapters and add-ons absent from its exports use separate packages.',
 	},
 	{
-		include: ['upgrade-v3.mdx', 'guides/**/*.mdx', 'self-host/**/*.mdx'],
+		include: [
+			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
+			'guides/**/*.mdx',
+			'self-host/**/*.mdx',
+		],
 		name: '@c15t/backend',
 		outDir: 'packages/backend',
 		summary:
@@ -150,6 +163,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/javascript/script-loader.mdx',
 			'frameworks/react/script-loader.mdx',
@@ -189,7 +203,12 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'Script-tag consent docs for c15t on Framer, Webflow, WordPress, and plain HTML: the data attributes, the window.c15t API, headless use, styling, manifest mode, and integrations.',
 	},
 	{
-		include: ['upgrade-v3.mdx', 'guides/**/*.mdx', 'cli/**/*.mdx'],
+		include: [
+			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
+			'guides/**/*.mdx',
+			'cli/**/*.mdx',
+		],
 		name: '@c15t/cli',
 		outDir: 'packages/cli',
 		summary:
