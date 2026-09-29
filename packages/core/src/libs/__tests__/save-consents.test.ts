@@ -1580,6 +1580,91 @@ describe('saveConsents', () => {
 		});
 	});
 
+	describe('hosted outage fallback', () => {
+		function useFallbackState(overrides: Partial<ConsentStoreState> = {}) {
+			const base = mockGet();
+			mockGet = vi.fn().mockReturnValue({
+				...base,
+				initDataSource: 'offline-fallback',
+				...overrides,
+			});
+		}
+
+		it('does not submit grants saved during the fallback', async () => {
+			useFallbackState();
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockManager.setConsent).not.toHaveBeenCalled();
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consentInfo: expect.objectContaining({ requiresReconsent: true }),
+				})
+			);
+		});
+
+		it('still submits rejections saved during the fallback', async () => {
+			useFallbackState();
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'necessary',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockManager.setConsent).toHaveBeenCalledTimes(1);
+		});
+
+		it('does not queue a reload sync that carries a fallback grant', async () => {
+			const mockReload = vi.fn();
+			vi.stubGlobal('window', {
+				...globalThis.window,
+				localStorage: mockLocalStorage,
+				location: {
+					hostname: 'test.example.com',
+					protocol: 'https:',
+					reload: mockReload,
+				},
+			});
+			useFallbackState({
+				consents: {
+					necessary: true,
+					functionality: true,
+					measurement: true,
+					experience: false,
+					marketing: false,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: true,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				consentInfo: { time: Date.now(), subjectId: 'test-subject' },
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockReload).toHaveBeenCalled();
+			expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(
+				PENDING_CONSENT_SYNC_KEY,
+				expect.anything()
+			);
+		});
+	});
+
 	describe('consent revocation reload', () => {
 		let mockReload: ReturnType<typeof vi.fn>;
 

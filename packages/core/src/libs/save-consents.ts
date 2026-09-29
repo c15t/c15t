@@ -260,6 +260,14 @@ export async function saveConsents({
 		...(externalId ? { externalId } : {}),
 		...(identityProvider ? { identityProvider } : {}),
 	};
+	// Grants chosen under the outage fallback need fresh confirmation under the
+	// hosted policy, so never submit or queue them as authoritative consent.
+	const hasUnconfirmedGrant =
+		isTransportFallback &&
+		consentTypes.some(
+			(consent) =>
+				consent.disabled !== true && requestPreferences[consent.name] === true
+		);
 
 	// Check if we need to reload the page due to consent revocation
 	const needsReload = shouldReloadOnConsentChange(
@@ -307,10 +315,12 @@ export async function saveConsents({
 		};
 
 		try {
-			localStorage.setItem(
-				PENDING_CONSENT_SYNC_KEY,
-				JSON.stringify(pendingSync)
-			);
+			if (!hasUnconfirmedGrant) {
+				localStorage.setItem(
+					PENDING_CONSENT_SYNC_KEY,
+					JSON.stringify(pendingSync)
+				);
+			}
 		} catch {
 			// localStorage might be unavailable, continue with reload anyway
 			// Consent is already persisted via the store's set() call
@@ -345,6 +355,10 @@ export async function saveConsents({
 	});
 	if (consentChangedPayload) {
 		emitConsentChanged?.(consentChangedPayload);
+	}
+
+	if (hasUnconfirmedGrant) {
+		return;
 	}
 
 	// Send consent to API in the background - the UI is already updated
