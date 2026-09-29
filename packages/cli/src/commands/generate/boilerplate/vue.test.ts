@@ -20,9 +20,7 @@ describe('Vue v3 boilerplate', () => {
 				mode: 'offline',
 				scripts: ['segment'],
 			});
-			expect(result.files['consent-runtime.ts']).toContain(
-				'translations: context.translations'
-			);
+			expect(result.files['consent-runtime.ts']).toContain('offline({');
 			expect(result.files['consent-runtime.ts']).toContain(
 				"segment({ writeKey: 'YOUR_WRITE_KEY' })"
 			);
@@ -147,4 +145,15 @@ try {
 		},
 		120_000
 	);
+
+	it("offline mode uses core's offline() so language changes switch the copy", () => {
+		const runtime = generateVueBoilerplate({
+			framework: 'vue',
+			mode: 'offline',
+			scripts: [],
+		}).files['consent-runtime.ts'];
+		expect(runtime).toContain("import { offline } from '@c15t/core';");
+		expect(runtime).toMatch(/const mode = offline\(\{ policyRules: /u);
+		expect(runtime).not.toContain('createOfflineTransport');
+	});
 });

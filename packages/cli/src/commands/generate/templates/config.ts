@@ -21,10 +21,20 @@ const generateOfflineConfig = function generateOfflineConfig(
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
 
-	return `import { createConsentKernel, createOfflineTransport } from 'c15t';
+	return `import {
+	createConsentKernel,
+	createOfflineTransport,
+	resolveLocalTranslations,
+} from 'c15t';
 ${devToolsImport}
 export const kernel = createConsentKernel({
-	transport: createOfflineTransport({ policyRules: ${DEFAULT_OFFLINE_RULES} }),
+	transport: createOfflineTransport({
+		policyRules: ${DEFAULT_OFFLINE_RULES},
+		// Serve bundled copy for a language set later with
+		// kernel.set.language(); pass your messages in place of undefined.
+		translationsFor: (language) =>
+			resolveLocalTranslations(language, undefined),
+	}),
 });
 
 void kernel.commands.init();
