@@ -2,6 +2,7 @@ import {
 	buildConsentManifestFromConfig,
 	policyRulePresets,
 } from '@c15t/schema/types';
+import { enTranslations } from '@c15t/translations';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
@@ -140,6 +141,35 @@ describe('consent middleware', () => {
 			},
 		});
 		expect(c15t.snapshot.translations?.language).toBe('fr');
+	});
+
+	it('keeps the other labels in a group when i18n.messages overrides one', async () => {
+		const c15t = await run({
+			options: {
+				i18n: {
+					locale: 'en',
+					messages: {
+						en: {
+							common: { acceptAll: 'Yes please' },
+							cookieBanner: { title: 'Cookies here' },
+						},
+					},
+				},
+				mode: offlineMode({ policyRules: [testRule] }),
+			},
+		});
+		const translations = c15t.snapshot.translations?.translations;
+		expect(translations?.common.acceptAll).toBe('Yes please');
+		expect(translations?.common.rejectAll).toBe(
+			enTranslations.common.rejectAll
+		);
+		expect(translations?.common.customize).toBe(
+			enTranslations.common.customize
+		);
+		expect(translations?.cookieBanner.title).toBe('Cookies here');
+		expect(translations?.cookieBanner.description).toBe(
+			enTranslations.cookieBanner.description
+		);
 	});
 
 	it('skips the network prefetch on a prerendered route', async () => {
