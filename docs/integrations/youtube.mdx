@@ -7,7 +7,9 @@ group: integrations
 ## Configure the video
 
 Use the ID of an embeddable video and the category matching its purpose in your
-policy. The current v3 adapters use consent-gated iframes rather than the v2
+policy. This page uses `marketing` because the YouTube player can set
+advertising identifiers. The framework quickstarts gate their demo video on
+`measurement` instead; either works if your policy says so. The current v3 adapters use consent-gated iframes rather than the v2
 `YouTubeEmbed` convenience component.
 
 ```ts title="src/embed-config.ts"
