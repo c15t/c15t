@@ -6,20 +6,20 @@ group: integrations
 
 ## Choose an integration
 
-Use the vendor helper from `@c15t/scripts` with your existing c15t provider or
-script loader. Every helper returns a script configuration; importing one does
-not install the vendor. Start with your [framework quickstart](/docs/frameworks)
-to connect Inth and render consent UI, then follow the vendor guide.
+Each vendor helper in `@c15t/scripts` returns a script configuration that you
+register with your c15t provider. Importing a helper installs nothing on its
+own. Set up consent with your [framework quickstart](/docs/frameworks) first,
+then follow the vendor guide.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
-`@c15t/scripts` is a separate add-on. Keep the main `c15t` package for imports
-such as `c15t/react` and `c15t/next`.
+`@c15t/scripts` is a separate package. Keep importing c15t itself from `c15t`,
+for example `c15t/react` or `c15t/next`.
 
-Browse integrations by service type below. The tables distinguish helpers that
-wait for permission from helpers
-that load immediately and send consent signals. Read the vendor's revocation
-behavior before choosing either approach.
+The Loading behavior column shows when each helper requests the vendor. Most
+wait for the category to be allowed. A few load on every page and pass the
+permission to the vendor's own consent API, so the browser contacts the vendor
+before a choice.
 
 ## Embeds
 
@@ -36,21 +36,21 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
-| [Cloudflare Zaraz](/docs/integrations/cloudflare-zaraz) | `cloudflareZaraz` | `necessary` | Synchronizes purposes; Zaraz owns tool execution |
+| [Cloudflare Zaraz](/docs/integrations/cloudflare-zaraz) | `cloudflareZaraz` | `necessary` | Always runs; syncs purposes, Zaraz runs the tools |
 | [Google Tag Manager](/docs/integrations/google-tag-manager) | `googleTagManager` | `necessary` | Always loads; signals Google consent |
 
 ## Analytics
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
-| [Google Tag](/docs/integrations/google-tag) | `gtag` | `measurement or marketing` | Always loads; signals Google consent |
+| [Google Tag](/docs/integrations/google-tag) | `gtag` | `measurement` or `marketing` | Always loads; signals Google consent |
 | [Ahrefs Analytics](/docs/integrations/ahrefs-analytics) | `ahrefsAnalytics` | `measurement` | Waits for effective permission |
 | [Adobe Analytics](/docs/integrations/adobe-analytics) | `adobeAnalytics` | `measurement` | Waits for effective permission |
-| [Amplitude](/docs/integrations/amplitude) | `amplitude` | `measurement` | Waits for effective permission |
+| [Amplitude](/docs/integrations/amplitude) | `amplitude` | `measurement` | Waits for effective permission; opts the SDK out on revocation |
 | [Cloudflare Web Analytics](/docs/integrations/cloudflare-web-analytics) | `cloudflareWebAnalytics` | `measurement` | Waits for effective permission |
 | [Clearbit](/docs/integrations/clearbit) | `clearbit` | `marketing` | Waits for effective permission |
-| [Microsoft Clarity](/docs/integrations/microsoft-clarity) | `clarity` | `measurement` | Gated initially; retains SDK and signals storage consent |
-| [Databuddy](/docs/integrations/databuddy) | `databuddy` | `measurement` | Always loads; switches SDK configuration |
+| [Microsoft Clarity](/docs/integrations/microsoft-clarity) | `clarity` | `measurement` | Gated initially; keeps the SDK and signals storage consent |
+| [Databuddy](/docs/integrations/databuddy) | `databuddy` | `measurement` | Always loads; switches the SDK's disabled flag |
 | [Fathom Analytics](/docs/integrations/fathom-analytics) | `fathomAnalytics` | `measurement` | Waits for effective permission |
 | [Heap](/docs/integrations/heap) | `heap` | `measurement` | Waits for effective permission |
 | [Matomo Analytics](/docs/integrations/matomo-analytics) | `matomoAnalytics` | `measurement` | Gated by default; optional consent mode |
@@ -60,7 +60,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
 | [Hightouch](/docs/integrations/hightouch) | `hightouch` | `measurement` | Waits for effective permission |
 | [LogRocket](/docs/integrations/logrocket) | `logRocket` | `measurement` | Waits for effective permission |
 | [Plausible Analytics](/docs/integrations/plausible-analytics) | `plausibleAnalytics` | `measurement` | Waits for effective permission |
-| [PostHog](/docs/integrations/posthog) | `posthog` | `measurement` | Configurable; default always loads |
+| [PostHog](/docs/integrations/posthog) | `posthog` | `measurement` | Configurable; defaults to always loading and calling opt-in and opt-out APIs |
 | [Promptwatch](/docs/integrations/promptwatch) | `promptwatch` | `measurement` | Waits for effective permission |
 | [Pirsch](/docs/integrations/pirsch) | `pirsch` | `measurement` | Waits for effective permission |
 | [RudderStack](/docs/integrations/rudderstack) | `rudderstack` | `measurement` | Gated by default; optional destination consent mode |
@@ -81,29 +81,63 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
-| [Meta Pixel](/docs/integrations/meta-pixel) | `metaPixel` | `marketing` | Waits for effective permission |
-| [OpenAI Pixel](/docs/integrations/openai-pixel) | `openaiPixel` | `marketing` | Gated initially; retains SDK and signals consent |
-| [Pinterest Tag](/docs/integrations/pinterest-tag) | `pinterestTag` | `marketing` | Gated initially; retains the tag and signals consent |
-| [Reddit Pixel](/docs/integrations/reddit-pixel) | `redditPixel` | `marketing` | Gated initially; retains SDK and switches cookies |
-| [TikTok Pixel](/docs/integrations/tiktok-pixel) | `tiktokPixel` | `marketing` | Gated initially; retains SDK and signals consent |
+| [Meta Pixel](/docs/integrations/meta-pixel) | `metaPixel` | `marketing` | Gated initially; keeps the SDK and signals consent |
+| [OpenAI Pixel](/docs/integrations/openai-pixel) | `openaiPixel` | `marketing` | Gated initially; keeps the SDK and signals consent |
+| [Pinterest Tag](/docs/integrations/pinterest-tag) | `pinterestTag` | `marketing` | Gated initially; keeps the tag and signals consent |
+| [Reddit Pixel](/docs/integrations/reddit-pixel) | `redditPixel` | `marketing` | Gated initially; keeps the pixel and toggles first-party cookies |
+| [TikTok Pixel](/docs/integrations/tiktok-pixel) | `tiktokPixel` | `marketing` | Gated initially; keeps the SDK and signals consent |
 | [LinkedIn Insight Tag](/docs/integrations/linkedin-insights) | `linkedinInsights` | `marketing` | Waits for effective permission |
 | [Microsoft UET](/docs/integrations/microsoft-uet) | `microsoftUet` | `marketing` | Always loads; signals ad storage consent |
 | [Snapchat Pixel](/docs/integrations/snapchat-pixel) | `snapchatPixel` | `marketing` | Waits for effective permission |
 | [X Pixel](/docs/integrations/x-pixel) | `xPixel` | `marketing` | Waits for effective permission |
 
-## Keep one owner per vendor
+## Load each vendor once
 
-Remove direct snippets, tracking images, framework plugins and duplicate
-SDK initializers before adding a helper. A vendor loaded outside c15t is not
-controlled by the configuration here. Tag managers and data pipelines can load
-other destinations, which need their own consent settings.
+Remove the vendor's own snippet, tracking image, framework plugin or tag
+manager entry before adding its helper. c15t cannot gate a copy it did not
+load. Tag managers and data pipelines such as Segment can load further
+destinations, which need consent settings of their own.
 
-Initial loading and later event calls are separate. Some helpers keep an SDK
-loaded to send consent updates. Others remove their script element without a
-vendor stop callback. Neither approach can reverse code or requests that already
-ran. Guard application events and verify automatic tracking after revocation.
+When a visitor turns off a category they had allowed, c15t reloads the page so
+that code which already ran stops. Each vendor guide lists what its helper does
+on revocation and how to check it.
 
-Use [custom integrations](/docs/integrations/building-integrations) for a service
-without a helper, or an SDK your application already owns. Follow
-[consent verification](/docs/guides/verify-consent) for fresh sessions, rejection,
-acceptance, revocation and navigation.
+## Send events only to allowed integrations
+
+`createEventDispatcher` from `@c15t/scripts/events` sends one named event to
+every registered integration that has an event API and is allowed right now.
+It drops events while measurement is denied, and one vendor's error does not
+stop delivery to the others:
+
+{/* example: fragment */}
+
+```ts
+import { createEventDispatcher } from '@c15t/scripts/events';
+
+const events = createEventDispatcher({
+  scripts,
+  getSnapshot: () => runtime.kernel.getSnapshot(),
+  pageviews: ['segment'],
+});
+
+events.track('docs_search', { resultCount: 4 });
+events.pageview(location.pathname);
+```
+
+Pass the same `scripts` you registered and a function that returns the live
+consent snapshot. `track` supports Google Tag Manager, Google Tag, PostHog,
+Mixpanel, Segment, Hightouch, Heap, Amplitude, LogRocket, Adobe Analytics,
+Databuddy, Plausible, Fathom, Pirsch, Microsoft Clarity, Hotjar, Vercel
+Analytics, OneDollarStats, Umami, Rybbit, RudderStack and Matomo.
+`pageview` sends single-page-app page views only to the integrations named in
+`pageviews`: PostHog, Segment or Hightouch. Call it from your router's
+navigation hook. The first call records the path without sending, and repeated
+paths or hash-only changes are skipped.
+
+## Add a vendor without a helper
+
+Use [custom integrations](/docs/integrations/building-integrations) for a
+vendor without a helper, or an SDK your app already loads. To keep another
+consent platform in charge, see
+[use c15t with an existing CMP](/docs/integrations/existing-cmp). Test every
+integration with the [consent verification guide](/docs/guides/verify-consent).

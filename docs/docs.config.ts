@@ -278,7 +278,7 @@ export default defineDocsConfig({
 		},
 		{
 			base: 'guides',
-			pages: ['verify-consent', 'troubleshooting', 'shared-consent-controls'],
+			pages: ['verify-consent', 'troubleshooting'],
 			title: 'Verify and troubleshoot',
 		},
 		{
@@ -356,6 +356,7 @@ export default defineDocsConfig({
 				'building-integrations',
 				'granular-consent',
 				'clear-on-revocation',
+				'existing-cmp',
 			],
 			slug: 'integrations',
 			title: 'Integrations',

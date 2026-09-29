@@ -78,7 +78,7 @@ timers and widgets keep working until the page unloads. When an accept, reject
 or save turns off a category or vendor that was granted, the provider reloads
 the page once the save request settles, so the next page runs only permitted
 code. `onBeforeConsentRevocationReload` runs just before the reload. With a
-[`consentSource`](/docs/guides/shared-consent-controls), any withdrawal the
+[`consentSource`](/docs/integrations/existing-cmp), any withdrawal the
 external CMP reports reloads the same way, including expiry.
 
 Otherwise, expiry, policy changes and privacy signals do not reload the page. Set

@@ -1,44 +1,59 @@
 ---
 title: Rybbit Analytics
-description: Configure Rybbit Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load Rybbit Analytics only after measurement consent with the c15t rybbitAnalytics helper, map its tracking options to data attributes, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Rybbit Analytics
 
-Use your Rybbit site ID and select only the tracking features your application intends to enable. This example enables SPA tracking and disables session replay.
+Copy the site ID from your Rybbit tracking snippet. The helper passes it to
+the script as `data-site-id`.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
 
-export const scripts = [rybbitAnalytics({ siteId: 'YOUR_SITE_ID', trackSpa: true, sessionReplay: false })];
+export const scripts = [rybbitAnalytics({ siteId: 'YOUR_SITE_ID' })];
 ```
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `siteId` | Required site ID as a string or number. |
-| `autoTrackPageview / trackSpa` | Automatic page views and client routing. |
-| `trackQuery / trackOutbound / trackErrors` | Query-string, outbound-link and error tracking. |
-| `sessionReplay / webVitals` | Session replay and Web Vitals tracking. |
-| `skipPatterns / maskPatterns / debounce` | URL exclusions, masking and page-view debounce interval. |
-| `analyticsHost / scriptUrl` | Custom analytics host or explicit loader URL. |
-| `apiKey` | Optional browser tracking key. Do not use a management secret. |
+Boolean options become `'true'` or `'false'` data attributes. An option you
+leave unset adds no attribute, so Rybbit uses its own default.
 
-## Consent behavior
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `siteId` | Required | Site ID as a string or number, set as `data-site-id`. Empty or whitespace-only values throw. |
+| `autoTrackPageview` | None | Automatic page views, set as `data-auto-track-pageview`. |
+| `trackSpa` | None | Client-side route tracking, set as `data-track-spa`. |
+| `trackQuery` | None | Query strings in tracked URLs, set as `data-track-query`. |
+| `trackOutbound` | None | Outbound link clicks, set as `data-track-outbound`. |
+| `trackErrors` | None | JavaScript errors, set as `data-track-errors`. |
+| `sessionReplay` | None | Session replay, set as `data-session-replay`. |
+| `webVitals` | None | Web Vitals, set as `data-web-vitals`. |
+| `skipPatterns` | None | URL patterns to skip, written as a JSON array to `data-skip-patterns`. |
+| `maskPatterns` | None | URL patterns to mask, written as a JSON array to `data-mask-patterns`. |
+| `debounce` | None | Page view debounce interval, set as `data-debounce`. |
+| `apiKey` | None | Tracking API key, set as `data-api-key`. The key is visible in the page source. |
+| `analyticsHost` | None | Self-hosted Rybbit host. The helper loads `<analyticsHost>/script.js`. |
+| `scriptUrl` | `https://app.rybbit.io/api/script.js` | Loader URL override. Takes precedence over `analyticsHost`. Blank values are ignored. |
 
-All enabled features share measurement permission. The helper does not stop an SDK that has already run through a vendor shutdown API. Test any enabled replay or automatic tracking after revocation.
+## Loading and revocation
 
-## Verify the integration
+`rybbitAnalytics` uses the `measurement` category. The script loads only while
+measurement is allowed, and every feature you turn on, including session
+replay and Web Vitals, runs under that one category. On revocation the helper
+removes the script element and calls no Rybbit API.
 
-Check the serialized data attributes, including explicit `false` values. Verify one page view per route and that excluded or masked paths behave as configured.
+## Verify Rybbit Analytics
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+After you allow measurement, the `script.js` request goes to `app.rybbit.io`
+or your `analyticsHost`, and its script element carries your `data-site-id`.
+Each option you set appears as a data attribute, including explicit `'false'`
+values. If your code calls `window.rybbit.event` or `window.rybbit.identify`,
+check measurement permission before each call.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

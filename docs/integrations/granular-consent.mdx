@@ -1,209 +1,148 @@
 ---
-title: Granular consent
-description: Let visitors grant a category and still turn one vendor off, without adopting IAB TCF.
+title: Let visitors turn off one vendor
+description: Declare vendors so a visitor can allow a category such as marketing and still switch off one vendor in it, without adopting IAB TCF.
 group: integrations
 ---
 
-Granular consent is choice below the category level: a visitor grants
-marketing and still turns Meta off. The unit of that choice is a vendor, so
-the API names them `vendors`, `vendor` and `data-vendor`, and the hooks
-`useVendorAllowed` and `useVendorDraft`. Everything else stays as it is:
-categories, policies, and the preference center gain vendor rows rather than
-a second consent model.
+## How vendor consent works
 
-## Declare vendors
+A visitor allows marketing, then switches off Meta Pixel. Other marketing
+scripts load; Meta Pixel does not. c15t loads a script, network request or
+iframe that names a vendor only when both are true:
 
-Add `vendors` to your runtime options. Each vendor sits inside a category
-condition and needs a name and a privacy policy URL so the preference surface
-can list it. The React provider takes the same option once its preference
-center renders vendor rows; scripts, rules and iframes are gated the same way
-whichever place declares it:
+- Its category is allowed.
+- The visitor has not switched its vendor off.
 
-```ts
-import { hosted, type Vendor } from 'c15t';
-import { createConsentRuntime } from 'c15t/runtime';
+A vendor switch never grants a category. With marketing denied, Meta Pixel
+stays blocked whatever its own switch says. Under an `iab` policy, vendor slugs
+are ignored and IAB vendor consent comes from the TC string instead.
 
-const vendors = [
-	{
-		id: 'meta-pixel',
-		name: 'Meta Pixel',
-		category: 'marketing',
-		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
-		description: 'Ad conversion measurement and audiences.',
-	},
-	{
-		id: 'google-analytics',
-		name: 'Google Analytics',
-		category: 'measurement',
-		privacyPolicyUrl: 'https://policies.google.com/privacy',
-	},
-] satisfies Vendor[];
+## Declare the vendors
 
-const runtime = createConsentRuntime({
-	mode: hosted({ url: '/api/c15t' }),
-	vendors,
-	scripts: [
-		{
-			id: 'meta-pixel',
-			category: 'marketing',
-			vendor: 'meta-pixel',
-			src: 'https://connect.facebook.net/en_US/fbevents.js',
-		},
-	],
-});
+List each vendor with an `id`, `name`, `category` and `privacyPolicyUrl`. The
+preference dialog only lists vendors that have a name and a privacy policy URL.
 
-// Start in the browser after mount. The endpoint must serve your c15t backend.
-runtime.start();
+```ts title="src/consent-vendors.ts"
+import type { Vendor } from 'c15t';
+
+export const vendors: Vendor[] = [
+  {
+    id: 'meta-pixel',
+    name: 'Meta Pixel',
+    category: 'marketing',
+    privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+    description: 'Ad conversion measurement and audiences.',
+  },
+  {
+    id: 'gtag',
+    name: 'Google Analytics',
+    category: 'measurement',
+    privacyPolicyUrl: 'https://policies.google.com/privacy',
+  },
+];
 ```
 
-The `id` is a lowercase slug of up to 64 characters. Reuse it as the `vendor`
-field on scripts and network rules and as the `data-vendor` attribute on
-iframes. Integrations from `@c15t/scripts` already set `vendor` to their
-manifest slug, so `gtag()` and `metaPixel()` need no extra wiring.
+The `id` must match the `vendor` slug on the script. Every `@c15t/scripts`
+helper except `cloudflareZaraz` sets `vendor` to its script ID, so `metaPixel()` is `meta-pixel` and
+`gtag()` is `gtag`. Each vendor guide names its slug.
 
-A backend can also declare vendors. Add `vendors` and an optional
-`vendorListVersion` to the manifest configuration; `/init` returns them and the
-client merges them with the vendors declared in code. When both declare the
-same id, the copy declared in code wins, and the backend copy comes back if the
-code declaration is removed later. A slug used by a script, rule or iframe
-but declared nowhere still gates loading. It is hidden from the preference surface, and the
-runtime warns about it outside production.
+| Field | Required | Behavior |
+| --- | --- | --- |
+| `id` | Yes | Lowercase slug of up to 64 characters: letters, digits, `.`, `_` and `-`. |
+| `name` | Yes | Name shown in the preference dialog. |
+| `category` | Yes | A category, or a condition such as `{ or: ['measurement', 'marketing'] }`. |
+| `privacyPolicyUrl` | Yes | Link shown next to the vendor. |
+| `description`, `legalName`, `homepageUrl` | No | Extra detail shown on the vendor card. |
+| `disabled` | No | List the vendor without a switch. A stored denial for it no longer applies. |
 
-## How a vendor is gated
+Pass `vendors` where you already pass `scripts`:
 
-A target loads when its category condition passes and the visitor has not
-turned its vendor off:
-
-```text
-loads  =  category condition satisfied  AND  vendor not denied
-```
-
-The category is evaluated first, so an unknown category still throws as a
-configuration error. The iframe blocker is the exception: an `<iframe>` with an
-unknown or empty `data-category` stays blocked and logs a console warning, so one typo
-can't stop the other iframes on the page from being gated. A vendor toggle never grants a category on its own: with
-marketing denied, `meta-pixel` stays blocked whatever its own switch says.
-A script with `alwaysLoad` still mounts, as it does for a denied category;
-its callbacks receive the vendor result in `info.vendor.granted` so a
-self-managing SDK can honor it.
-
-Under an `iab` policy the `vendor` slug is inert. Vendor consent then comes from
-the TC string through `vendorId`, and the vendor rows are not shown.
-
-The same rule applies to the three gates:
-
-| Surface | Field |
+| Framework | Registration point |
 | --- | --- |
-| Script loader | `Script.vendor` |
-| Network blocker | `NetworkBlockerRule.vendor` |
-| Iframe blocker | `data-vendor` on the `<iframe>` |
+| Next.js, TanStack Start | `vendors` prop on `ConsentRoot` |
+| React | `ConsentProvider options={{ ...options, vendors }}` |
+| Nuxt, Vue | `vendors` in the c15t config next to `scripts` |
+| Svelte, SvelteKit | `vendors` in the `ConsentManagerProvider` options |
+| JavaScript | `createConsentRuntime({ ...options, vendors })` |
+
+A self-hosted backend can declare vendors too. `/init` returns them and c15t
+merges them with the vendors in code. When both declare the same `id`, the
+code declaration wins.
+
+## Gate your own scripts, requests and iframes
+
+Put the vendor slug on each target:
+
+| Target | Field |
+| --- | --- |
+| Script configuration | `vendor: 'meta-pixel'` |
+| Network blocker rule | `vendor: 'meta-pixel'` |
+| Iframe blocker | `data-vendor="meta-pixel"` on the `<iframe>` |
 
 An iframe with `data-vendor` and no `data-category` is gated on the vendor
-alone. An unknown `data-vendor` value is granted rather than thrown: a vendor
-the visitor never saw cannot have been turned off. Such a frame has no
-category to follow, so a denial the visitor recorded earlier holds even while
-nothing declares the slug, for example before the backend's vendor list has
-arrived on a cold start.
+alone. A script with `alwaysLoad` still loads when its vendor is off; its
+callbacks receive `info.vendor.granted` so the SDK can stop itself. The Google
+Consent Mode and RudderStack helpers do this for you. While their vendor is
+off, they send every optional category as denied.
 
-A script, rule or frame keeps its slug declared for as long as it is
-configured. If a backend list or a provider update drops the entry, the
-loader or blocker puts it back, so a stored denial keeps gating it. A slug
-several modules share stays under every category they name it with, whichever
-module updates last, and drops a category only once no module names it there.
-Disposing a loader or blocker, or removing a gated frame from the page, drops
-what only it named, so a vendor no live module owns stops being toggleable.
+## What the preference dialog shows
 
-## Record a vendor choice
+`ConsentDialog` and `ConsentWidget` in React, Vue and Svelte list each declared
+vendor under its category, with its own switch. A vendor's switch is disabled
+while its category is off. Save records the vendors the visitor changed. The
+labels come from `consentManagerDialog.vendors` in the translations: `title`,
+`privacyPolicy`, `disabledByCategory` and `switchLabel`.
 
-Vendor grants travel with the save. Stage them and confirm with the next save,
-or pass them next to the categories:
+For a custom dialog in React, `useVendorDraft()` from `c15t/react` reads and
+stages vendor switches, and `useVendorAllowed('meta-pixel')` returns whether
+one vendor may run now. In Vue, `useConsentDraft()` returns a `vendors` map and
+`setVendor`. In Svelte, `getConsentManager()` exposes `selectedVendors`,
+`setSelectedVendor` and `getDisplayedVendors(category)`.
+
+## Record a vendor choice without the dialog
+
+With the headless runtime, stage a vendor and confirm it with the next save,
+or pass vendors with the categories:
 
 ```ts
-// Stage from a toggle handler; nothing changes until save({}) runs. The
-// empty patch confirms no category, so only the staged vendor is recorded;
-// save() with no input would reconfirm every displayed category too.
+// Records only the staged vendor. save() with no argument would also
+// reconfirm every displayed category.
 runtime.stageVendorConsent('meta-pixel', false);
 await runtime.kernel.commands.save({});
 
-// Or confirm categories and vendors in one action.
+// Confirm categories and vendors in one action.
 await runtime.kernel.commands.save({
-	marketing: true,
-	measurement: true,
-	vendors: { 'meta-pixel': false },
+  marketing: true,
+  measurement: true,
+  vendors: { 'meta-pixel': false },
 });
 ```
 
-`stageVendorConsent` stages a vendor slug for the next save; it is not the
-IAB handle's `setVendorConsent`, which sets a TCF vendor by numeric id and
-takes effect at once. The grants can also travel in the save context as
-`{ vendors }`, which wins when both are given.
+c15t stores only the vendors a visitor switched off, and sends the full vendor
+map to the backend with the consent record. Accept all and Reject all clear
+that list, so every vendor follows its category again. Under an opt-out policy,
+every vendor starts on.
 
-Only the vendors the visitor turned off are stored. Accept all and reject all
-both clear that list, so vendors follow their category on a bulk action. A bulk
-action narrowed to the displayed categories only lifts the denials of vendors
-those categories decide on their own; a vendor another granted category would
-still load keeps its denial. A
-vendor that is not declared, or is declared with `disabled: true`, is ignored.
-Under an opt-out policy every vendor starts on and the stored list is the
-do-not-sell list.
+## What switching a vendor off does not do
 
-A vendor-only change records without touching category receipts. The kernel
-emits `vendors:recorded` rather than `choice:recorded`, writes the
-`<storageKey>-vendors` cookie and localStorage entry, and sends the complete
-grant map to the backend as `vendorChoice`. Category confirmation times are not
-renewed. The vendor entry also carries the subject id, so a visitor whose first
-act only decided vendors keeps the same subject after a reload even though no
-category record exists yet.
+- It does not delete cookies the vendor already set.
+  [Clear on revocation](/docs/integrations/clear-on-revocation) does not run,
+  because the category stays allowed. Delete the vendor's cookies from the
+  script's `onConsentChange` when `info.vendor.granted` is `false`.
+- It does not expire. The switch stays off until the visitor changes it or
+  uses Accept all or Reject all, even across a policy change.
+- Adding a vendor does not ask returning visitors again. A new vendor starts
+  on inside an allowed category. Change the policy's `copyRevision` if a new
+  vendor should prompt again.
 
-Scripts see the vendor result in their callbacks. `ScriptCallbackInfo.vendor`
-carries `{ id, granted }` outside IAB mode. Integrations that send Google
-Consent Mode or RudderStack signals send every category as denied while their
-vendor is off, so the vendor's own consent API cannot re-enable tracking.
+## Verify vendor consent
 
-## Show vendors in the preference center
-
-The `ConsentWidget` and `ConsentDialog` in React, Vue and Svelte list vendors
-under their category when the provider declares them. Pass the same `vendors`
-array to `ConsentProvider`, to the `vendors` prop of `ConsentRoot` in
-[Next.js](/docs/frameworks/next/script-loader#granular-consent) and
-[TanStack Start](/docs/frameworks/tanstack-start/quickstart#granular-consent),
-to the Nuxt module or Vue plugin config next to `scripts`, or to
-`ConsentManagerProvider` options in Svelte:
-
-```tsx
-import { ConsentProvider, hosted } from 'c15t/react';
-
-<ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }), vendors }}>
-	{children}
-</ConsentProvider>;
-```
-
-Each category row expands to one card per vendor with its own switch. The
-switches disable while the category is off in the draft, and Save records the
-vendors the visitor moved. A custom control uses `useVendorDraft()` from
-`c15t/react` to read and stage the same grants, with `isStale` and `reset` for
-a draft the policy or vendor list changed under, and `useVendorAllowed(id)` to
-read one vendor's effective result. Copy comes from
-`consentManagerDialog.vendors.{title, privacyPolicy, disabledByCategory,
-switchLabel}` in the translations. In Vue, `useConsentDraft()` returns the
-same `vendors` map and `setVendor`; in Svelte, `getConsentManager()` exposes
-`selectedVendors`, `setSelectedVendor` and `getDisplayedVendors(category)`.
-The three frameworks render the same cards, and the parity suite compares
-their markup, accessibility tree, computed styles and geometry.
-
-## What a denial does not do
-
-Turning a vendor off blocks future loads and requests. It does not delete the
-cookies that vendor already set, and
-[clear on revocation](/docs/integrations/clear-on-revocation) does not help here:
-it runs when a category is denied, and the category stays granted when only one
-of its vendors is off. Remove that vendor's cookies yourself from an
-`onConsentChange` callback that checks `info.vendor.granted`.
-
-A vendor denial has no expiry and no policy basis. It stays until the visitor
-changes it or a bulk action clears it, including across a policy change that
-requires the category choice again.
-
-Adding a vendor to the list does not reopen consent. New vendors default to on
-inside a granted category. Use the policy rule's `copyRevision` when a new
-vendor should prompt the visitor again.
+1. Declare `meta-pixel` and register `metaPixel()`. Open Privacy settings. The
+   marketing row lists Meta Pixel with a switch.
+2. Allow marketing and save. In DevTools Network, `fbevents.js` loads.
+3. Open Privacy settings, switch Meta Pixel off and save. c15t reloads the
+   page. After the reload there is no `fbevents.js` request, and other
+   marketing scripts still load.
+4. Reload again. The Meta Pixel switch is still off.
+5. Turn marketing off. The Meta Pixel switch is disabled.
+6. Open Privacy settings and click Accept all. `fbevents.js` loads again.

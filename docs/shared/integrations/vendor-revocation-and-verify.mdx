@@ -1,0 +1,31 @@
+---
+title: Check a consent-gated vendor helper
+description: The shared browser test and revocation behavior for vendor helpers that wait for consent.
+group: integrations
+---
+
+Test in a private window with an opt-in policy. Open DevTools Network, disable
+the cache and filter by the vendor's domain:
+
+1. Load the page. No request goes to the vendor before you choose.
+2. Click Reject, then reload. There is still no vendor request.
+3. Open Privacy settings and allow the helper's category. The vendor script
+   loads without a page reload.
+4. Turn the category off again and save. c15t reloads the page, and the new
+   page makes no vendor request.
+
+c15t reloads on revocation because removing a script element does not stop
+code that already ran. The vendor's listeners, timers and queued events stay
+alive until the page unloads. If you set `reloadOnConsentRevoked: false`, stop
+the vendor yourself. Register a callback-only script whose `onConsentChange`
+calls the vendor's opt-out API, as shown in
+[custom integrations](/docs/integrations/building-integrations), and check the
+permission before each of your own event calls. The reload does not delete
+cookies the vendor already set; see
+[clear on revocation](/docs/integrations/clear-on-revocation).
+
+The helper sets `vendor` to its script ID, so once you declare that vendor a
+visitor can turn it off inside an allowed category. See
+[let visitors turn off one vendor](/docs/integrations/granular-consent). The
+[consent verification guide](/docs/guides/verify-consent) covers navigation,
+expiry and hosting checks.

@@ -1,12 +1,13 @@
 ---
 title: Hotjar
-description: Configure Hotjar with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.
 group: integrations
 ---
 
 ## Configure Hotjar
 
-Replace the example site ID with your Hotjar site ID. The helper sets the Hotjar queue and settings before requesting the loader.
+Copy the site ID from your Hotjar tracking code, where it is the `hjid` value.
+Remove the original tracking code.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
@@ -20,21 +21,29 @@ export const scripts = [hotjar({ siteId: 1234567 })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `siteId` | Required site ID as a string or number; missing, empty and zero values are rejected. |
-| `version` | Defaults to script version `6`. |
-| `scriptUrl` | Optional full loader URL. Otherwise derived from the site ID and version. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `siteId` | Required | Site ID as a number or string. Set as `window._hjSettings.hjid` and used in the default loader URL. Missing, empty and `0` values throw. |
+| `version` | `6` | Script version, set as `window._hjSettings.hjsv` and the `sv` query parameter of the default loader URL. |
+| `scriptUrl` | `https://static.hotjar.com/c/hotjar-<siteId>.js?sv=<version>` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-The Hotjar loader waits for measurement permission. The helper does not call a recording-stop API on revocation. Removing a script is not evidence that an active recording session has ended.
+`hotjar` uses the `measurement` category. When measurement becomes allowed,
+the helper sets `window._hjSettings` and a queue-backed `window.hj` stub, each
+only when the global is undefined, then loads the Hotjar loader.
 
-## Verify the integration
+On revocation the helper removes the loader script element and calls no Hotjar
+API. A recording in progress continues until the page unloads, so c15t's
+default reload on revocation is what ends it.
 
-Verify the site ID in the script URL, recording configuration, and masking on actual application screens. Test revocation during an active recording and check subsequent requests.
+## Verify Hotjar
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+Filter DevTools Network by `hotjar`. After you allow measurement, the
+`hotjar-<siteId>.js` request loads from `static.hotjar.com`, and
+`window._hjSettings.hjid` holds your site ID. Review a recording of a real
+screen in your app to check that Hotjar masks the fields you expect.
+`window.hj` still exists after revocation, so check measurement permission
+before your own `hj` calls.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

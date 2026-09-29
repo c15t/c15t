@@ -1,43 +1,58 @@
 ---
 title: Pirsch
-description: Configure Pirsch with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Pirsch
 
-Copy the identification code from your Pirsch installation. The helper also initializes Pirsch event bindings when consent is granted after `DOMContentLoaded`.
+Copy the identification code from your Pirsch installation snippet. The helper
+passes it to the script as `data-code`.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { pirsch } from '@c15t/scripts/pirsch';
 
-export const scripts = [pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' })];
+export const scripts = [
+  pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' }),
+];
 ```
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `identificationCode` | Required non-empty code. |
-| `domain` | Optional domain string or array, serialized as a comma-separated value. |
-| `dev` | Optional hostname override for localhost testing. |
-| `hitEndpoint / eventEndpoint` | Optional collection endpoint overrides. |
-| `disablePageViews / extended` | Disable automatic page views or select the extended script. |
-| `scriptUrl` | Optional loader override. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `identificationCode` | Required | Set as `data-code`. Empty or whitespace-only values throw. |
+| `domain` | None | Extra dashboard domains, each optionally as `domain:CODE`. An array becomes a comma-separated `data-domain`. |
+| `dev` | None | Hostname Pirsch reports instead of localhost, set as `data-dev`. Use it to test locally. |
+| `hitEndpoint` | None | Page view endpoint, set as `data-hit-endpoint`. |
+| `eventEndpoint` | None | Event endpoint, set as `data-event-endpoint`. |
+| `disablePageViews` | None | `true` adds `data-disable-page-views` and stops automatic page views. |
+| `extended` | None | `true` loads `https://api.pirsch.io/pirsch-extended.js` instead of `pa.js`. |
+| `scriptUrl` | `https://api.pirsch.io/pa.js` | Loader URL override. Blank values fall back to the default. |
 
-## Consent behavior
+Pirsch finds its script element by ID, so the helper sets the element ID to
+`pianjs`, or to `pirschextendedjs` with `extended`.
 
-The script waits for measurement permission. No vendor stop callback runs on revocation. Check application events and vendor-installed event bindings after a later denial.
+## Loading and revocation
 
-## Verify the integration
+`pirsch` uses the `measurement` category. The script loads only while
+measurement is allowed. Pirsch starts its custom event bindings from a
+`DOMContentLoaded` listener, which has usually fired by the time a visitor
+allows measurement. When the script loads on an already parsed page, the
+helper calls `window.pirschInit()` so those bindings still start.
 
-Grant consent after the page has finished loading and test a custom event. In local development, configure `dev` deliberately before expecting the dashboard to show test traffic.
+On revocation the helper removes the script element and calls no Pirsch API.
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+## Verify Pirsch
+
+After you allow measurement, the `pa.js` request appears and the `#pianjs`
+script element carries your `data-code`. Allow measurement after the page has
+finished loading, then trigger a custom event and check that its request
+appears. If your code calls `window.pirsch` directly, check measurement
+permission before each call.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

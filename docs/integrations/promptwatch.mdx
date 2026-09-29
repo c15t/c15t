@@ -1,12 +1,13 @@
 ---
 title: Promptwatch
-description: Configure Promptwatch with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load the Promptwatch attribution client only after measurement consent with the c15t promptwatch helper, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Promptwatch
 
-Use the project ID from your Promptwatch dashboard. The helper installs the browser attribution client with `data-project-id`.
+Copy the project ID from your Promptwatch dashboard. The helper passes it to
+the client script as `data-project-id`.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
@@ -20,20 +21,24 @@ export const scripts = [promptwatch({ projectId: 'YOUR_PROJECT_ID' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `projectId` | Required non-empty project ID. |
-| `scriptUrl` | Defaults to `https://ingest.promptwatch.com/js/client.min.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `projectId` | Required | Project ID from the Promptwatch dashboard. Empty or whitespace-only values throw. |
+| `scriptUrl` | `https://ingest.promptwatch.com/js/client.min.js` | Loader URL override. Blank values fall back to the default. |
 
-## Consent behavior
+## Loading and revocation
 
-The client waits for measurement permission. This browser helper does not govern a separate server-side Promptwatch integration and has no vendor shutdown callback.
+`promptwatch` uses the `measurement` category. The client loads only while
+measurement is allowed. On revocation the helper removes the script element
+and calls no Promptwatch API.
 
-## Verify the integration
+The helper controls only the browser client. If your server also sends events
+to Promptwatch, check the visitor's measurement permission there as well.
 
-Confirm the project attribute and browser attribution requests. Verify a later denial separately from any server-side event collection your application performs.
+## Verify Promptwatch
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+After you allow measurement, the `client.min.js` request goes to
+`ingest.promptwatch.com` and its script element carries your
+`data-project-id`.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

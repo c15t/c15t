@@ -1,12 +1,13 @@
 ---
 title: Ahrefs Analytics
-description: Configure Ahrefs Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Ahrefs Analytics
 
-Copy the project key from the Ahrefs installation snippet. The helper passes it as `data-key` to the analytics script.
+Copy the project key from the Ahrefs installation snippet. The helper passes it
+to the analytics script as `data-key`.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
@@ -20,20 +21,22 @@ export const scripts = [ahrefsAnalytics({ key: 'YOUR_PROJECT_KEY' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `key` | Required project key. Empty or whitespace-only values throw. |
-| `scriptUrl` | Optional loader override. Defaults to `https://analytics.ahrefs.com/analytics.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `key` | Required | Project key. Empty or whitespace-only values throw. |
+| `scriptUrl` | `https://analytics.ahrefs.com/analytics.js` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-The loader waits for measurement permission. The helper does not call a vendor stop API on revocation. Removing its script element does not remove event listeners the SDK already installed.
+`ahrefsAnalytics` uses the `measurement` category. The script loads only while
+measurement is allowed. On revocation the helper removes the script element and
+calls no Ahrefs API.
 
-## Verify the integration
+## Verify Ahrefs Analytics
 
-After granting permission, check the loaded script has the expected `data-key`. Check a page view and any application calls to `window.AhrefsAnalytics.sendEvent` separately.
+After you allow measurement, the `analytics.js` request appears and its script
+element carries your `data-key`. If your code calls
+`window.AhrefsAnalytics?.sendEvent`, check measurement permission before each
+call.
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

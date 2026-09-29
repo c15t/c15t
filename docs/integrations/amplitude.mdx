@@ -1,40 +1,49 @@
 ---
 title: Amplitude
-description: Configure Amplitude with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation.
 group: integrations
 ---
 
 ## Configure Amplitude
 
-Use the browser project API key. The helper initializes Amplitude Browser SDK 2 for you; remove an existing SDK initializer before registering it.
+Use your Amplitude project API key. The `amplitude` helper initializes Browser
+SDK 2 for you, so remove any existing Amplitude snippet or `init` call.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { amplitude } from '@c15t/scripts/amplitude';
 
-export const scripts = [amplitude({ apiKey: 'YOUR_PROJECT_API_KEY', initOptions: { autocapture: false } })];
+export const scripts = [amplitude({ apiKey: 'YOUR_PROJECT_API_KEY' })];
 ```
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `apiKey` | Required non-empty project API key. |
-| `initOptions` | Optional JSON-serializable Browser SDK 2 initialization options. |
-| `scriptUrl` | Optional loader override. The built-in loader is pinned to Browser SDK 2 version `2.44.4`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `apiKey` | Required | Project API key passed to `amplitude.init`. The helper trims it. Empty or whitespace-only values throw. |
+| `initOptions` | `{}` | Browser SDK 2 options passed as the second argument to `init`. Use JSON-serializable values only. |
+| `scriptUrl` | `https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz` | Loader URL override. The default pins Browser SDK 2 version `2.44.4`. A blank value falls back to the default. |
 
-## Consent behavior
+## Loading and revocation
 
-The SDK waits for measurement permission. Once loaded, consent changes call `setOptOut(false)` or `setOptOut(true)`. Keep application event calls behind the same permission, even when the global API still exists.
+`amplitude` uses the `measurement` category. Before measurement is allowed,
+c15t defines no `window.amplitude` and loads nothing from Amplitude. When
+measurement becomes allowed, the helper creates the Browser SDK 2 queue stub,
+queues `init(apiKey, initOptions)`, then loads the SDK, which replays the
+queue.
 
-## Verify the integration
+On revocation the helper removes the loader script and calls
+`amplitude.setOptOut(true)` on the SDK that already loaded. If the visitor
+allows measurement again before the page reloads, c15t adds the loader again
+and queues another `init`. It does not call `setOptOut(false)` on that path.
 
-Verify the SDK initializes once and that a test event appears only while measurement is allowed. Revoke permission and inspect the `setOptOut(true)` transition before testing navigation.
+## Verify Amplitude
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+After you allow measurement, the `analytics-browser-2.44.4-min.js.gz` request
+loads and a test event reaches your Amplitude project. Revoke measurement, then
+allow it again on a later page and check that events reach Amplitude again.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

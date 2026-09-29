@@ -1,12 +1,13 @@
 ---
 title: Snapchat Pixel
-description: Configure Snapchat Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+description: Load the Snapchat Pixel only after marketing consent with the c15t snapchatPixel helper, guard snaptr event calls, and check it in DevTools.
 group: integrations
 ---
 
-## Configure Snapchat Pixel
+## Configure the Snapchat Pixel
 
-Use the Snapchat Pixel ID. The helper initializes `snaptr` and queues an initial `PAGE_VIEW` unless disabled.
+Copy the pixel ID from Snapchat Ads Manager. The helper passes it to
+`snaptr('init', ...)`.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
@@ -20,22 +21,56 @@ export const scripts = [snapchatPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `pixelId` | Required Snapchat Pixel ID. |
-| `initOptions` | Optional JSON-serializable initialization payload. |
-| `trackPageView` | Defaults to `true`. |
-| `scriptUrl` | Defaults to `https://sc-static.net/scevent.min.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `pixelId` | Required | Pixel ID passed to `snaptr('init', ...)`. |
+| `initOptions` | None | Object passed as the third argument to `snaptr('init', ...)`, such as `user_email`. Pass user data only when your app has the permission it needs. |
+| `trackPageView` | `true` | Queues `snaptr('track', 'PAGE_VIEW')` after `init`. Set `false` to send page views yourself. |
+| `scriptUrl` | `https://sc-static.net/scevent.min.js` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-Marketing permission gates the first load. There is no vendor consent-change callback in this helper. `snapchatPixelEvent` checks whether the API exists but does not check consent.
+`snapchatPixel` uses the `marketing` category. Before marketing is allowed,
+c15t defines no `snaptr` function and loads nothing from Snapchat. When
+marketing becomes allowed, the helper queues `init` and `PAGE_VIEW`, then loads
+`scevent.min.js`.
 
-## Verify the integration
+On revocation the helper removes the script element and calls no Snapchat API,
+so the page reload is what stops the pixel. `window.snaptr` stays defined
+until then.
 
-Confirm one PAGE\_VIEW after permission and avoid a duplicate route event. Revoke marketing and ensure application conversion calls stop even if `snaptr` still exists.
+## Guard your own snaptr calls
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`marketing`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+The helper sends the page view. Events your code sends, such as `PURCHASE` or
+`SIGN_UP`, need their own check. After revocation `window.snaptr` still
+exists, so its presence does not mean marketing is allowed. Check the
+permission first, then that the pixel has loaded:
+
+```ts title="src/track-purchase.ts"
+export function trackPurchase(marketingAllowed: boolean, orderId: string) {
+  if (!marketingAllowed || typeof window.snaptr !== 'function') return;
+  window.snaptr('track', 'PURCHASE', {
+    client_dedup_id: orderId,
+    currency: 'USD',
+    price: 99,
+    transaction_id: orderId,
+  });
+}
+```
+
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. Set `client_dedup_id` to deduplicate
+against the Conversions API. `@c15t/scripts/snapchat-pixel` also exports
+`snapchatPixelEvent`, a typed wrapper around `snaptr('track', ...)`. It does
+nothing until `snaptr` exists and does not check permission, so apply the same
+guard before calling it.
+
+## Verify the Snapchat Pixel
+
+After you allow marketing, `scevent.min.js` loads from `sc-static.net` and the
+pixel sends one `PAGE_VIEW`. If your router also sends `PAGE_VIEW`, check that
+the first page sends one, not two. Trigger one guarded event and check that
+its request appears. Then revoke marketing. Until the page reloads, calling
+`trackPurchase` sends nothing.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

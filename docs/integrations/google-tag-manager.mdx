@@ -1,10 +1,14 @@
 ---
 title: Google Tag Manager
-description: Load GTM with c15t consent signals and verify the tags inside your container.
+description: Load a Google Tag Manager container with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
 group: integrations
 ---
 
-## Register the container
+## Configure Google Tag Manager
+
+Copy the container ID, which starts with `GTM-`, from your GTM workspace.
+Remove the existing GTM snippet, its `<noscript>` iframe and any framework
+plugin that loads the same container.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
@@ -14,42 +18,44 @@ import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 export const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
 ```
 
-Replace the container ID and pass `scripts` to your existing provider options.
-Remove the previous GTM snippet and any duplicate framework integration. The
-helper sends a `consent-update` event after consent changes; `updateEventName`
-customizes that event name.
-
 <include src="../shared/integrations/register-scripts.mdx" />
 
-## Consent Mode is not a zero-request gate
+## Options
 
-This helper sets `alwaysLoad: true`. It prepares the Google queue, sends consent
-defaults and updates, and loads Google's script even before a visitor makes a
-choice. That is different from preventing any request to Google until consent.
-Google describes the distinction in its
-[Consent Mode overview](https://developers.google.com/tag-platform/security/concepts/consent-mode).
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `id` | Required | Container ID, for example `GTM-1234XXX`. |
+| `dataLayer` | `'dataLayer'` | Queue name. A custom name adds `&l=<name>` to the container URL and renames the helper's queue function to `<name>Gtag`. |
+| `updateEventName` | `'consent-update'` | `dataLayer` event pushed after every consent update. Use it as a GTM trigger. |
+| `consentMapping` | The table below | Replaces the category-to-Google mapping. |
 
-The default mapping is:
+<include src="../shared/integrations/google-consent-mode.mdx" />
 
-| c15t category | Google consent types |
-| --- | --- |
-| `necessary` | `security_storage` |
-| `functionality` | `functionality_storage` |
-| `measurement` | `analytics_storage` |
-| `marketing` | `ad_storage`, `ad_user_data`, `ad_personalization` |
-| `experience` | `personalization_storage` |
+## Configure consent inside the container
 
-`consentMapping` replaces the mapping when supplied. Keep the full set of
-signals your integration needs. Test both default and update commands and the
-actual tag behavior. Do not infer a saved grant from an allowed default under an
-opt-out policy.
+`googleTagManager` uses the `necessary` category and `alwaysLoad`, so the
+container loads on every page. Consent signals reach Google tags that support
+Consent Mode. Other tags in the container, such as a third-party pixel added as
+Custom HTML, ignore those signals and fire on their triggers.
 
-## Configure the container too
+For each non-Google tag, add a consent requirement in the tag's consent
+settings, or fire it from a Custom Event trigger on `consent-update`. If a
+vendor must make no request before consent, remove it from the container and
+register its own c15t helper instead.
 
-Loading GTM with consent signals does not make every custom tag consent-aware.
-Configure the appropriate consent checks and triggers for tags inside the
-container. Inspect their requests after rejection and revocation, including
-non-Google tags. Use Google Tag Assistant alongside the browser Network panel.
+## Verify Google Tag Manager
 
-If the requirement is no Google request before permission, do not deploy this
-always-loaded helper unchanged. Choose and verify an explicitly gated setup.
+1. In a private window with an opt-in policy, load the page. `gtm.js` loads.
+   In Google Tag Assistant, the first consent command is `default` with
+   `analytics_storage` and `ad_storage` set to `denied`.
+2. Click Reject, then reload. The `default` command still denies every
+   optional type, and in DevTools Network no non-Google tag in the container
+   fires.
+3. Open Privacy settings and allow measurement. Tag Assistant shows an
+   `update` command with `analytics_storage` set to `granted`, followed by a
+   `consent-update` event, and measurement tags fire.
+4. Turn measurement off again and save. c15t reloads the page, and the new
+   page starts with `analytics_storage` denied.
+
+See the [consent verification guide](/docs/guides/verify-consent) for
+navigation and hosting checks.

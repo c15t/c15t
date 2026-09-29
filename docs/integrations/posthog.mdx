@@ -1,14 +1,14 @@
 ---
 title: PostHog
-description: Choose PostHog loading and cookieless behavior, configure the region, and synchronize v3 permissions.
+description: Load PostHog before or after measurement consent with the c15t posthog helper, choose its cookieless behavior, and sync consent with an SDK you already initialize.
 group: integrations
 ---
 
 ## Configure PostHog
 
-Use the browser project token beginning with `phc_`. Select the region matching
-your PostHog project. This example waits for measurement permission before
-requesting the SDK.
+Use the project token that starts with `phc_`, and the region of your PostHog
+project. This example waits for measurement permission before requesting the
+SDK, and turns off cookieless capture after a refusal.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
@@ -25,79 +25,62 @@ export const scripts = [
 ];
 ```
 
-The helper initializes PostHog. Remove a separate `posthog-js` initializer,
-framework plugin or array snippet before using this setup.
+The helper initializes PostHog itself. Remove any `posthog-js` initializer,
+framework plugin or array snippet that also does, or follow
+[use an existing PostHog SDK](#use-an-existing-posthog-sdk) instead.
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
-## Choose loading and capture behavior separately
+## Options
 
-| `loadMode` | SDK loading | Consent handling |
+| Option | Default | Behavior |
 | --- | --- | --- |
-| `'after-consent'` | Waits for measurement permission | Calls PostHog opt-in and opt-out APIs after load and on changes |
-| `'always'`, the helper default | Loads even while permission is denied | Calls the same consent APIs |
-| `'disabled'` | Does not load PostHog | Does not synchronize consent with an SDK loaded elsewhere |
+| `id` | Required | Project token, starting with `phc_`. |
+| `region` | `'eu'` | `'eu'` or `'us'`. Picks the API, UI and loader hosts when you do not set them. |
+| `apiHost` | `https://eu.i.posthog.com` | API host for a proxy or self-hosted PostHog. Without `scriptUrl`, the loader URL becomes `<apiHost>/static/array.js`. |
+| `uiHost` | The region's UI host | UI host, for example `https://eu.posthog.com`. A custom `apiHost` with no `region` uses the API host. |
+| `scriptUrl` | `https://eu-assets.i.posthog.com/static/array.js` | Loader URL override. |
+| `loadMode` | `'always'` | When the SDK loads. See the table below. |
+| `initOptions` | `{ cookieless_mode: 'on_reject', defaults: '2026-01-30' }` | Options passed to `posthog.init`, merged over the defaults. The helper sets `api_host` and `ui_host` after your values, so change hosts with the options above. |
 
-The helper defaults `initOptions.cookieless_mode` to `'on_reject'`. In that
-mode, PostHog can continue cookieless capture after denial. It requires the
-project's cookieless server hash setting. See
+## Loading and revocation
+
+| `loadMode` | When PostHog loads | Consent sync |
+| --- | --- | --- |
+| `'always'` | On every page, before consent | Calls `opt_in_capturing` or `opt_out_capturing` at load and on every change |
+| `'after-consent'` | Only while measurement is allowed | Calls `opt_in_capturing` at load and `opt_out_capturing` on revocation |
+| `'disabled'` | Never | None. The helper returns an empty callback-only script |
+
+`posthog` uses the `measurement` category. With the default
+`cookieless_mode: 'on_reject'`, PostHog keeps capturing without cookies after a
+refusal. That mode needs cookieless server hashing turned on in your PostHog
+project; see
 [PostHog's cookieless guide](https://posthog.com/tutorials/cookieless-tracking).
+Set `cookieless_mode: 'never'`, as in the example, if a refusal must stop
+capture.
 
-The example overrides this with `'never'` so opting out is not a switch to
-cookieless capture. Loading after consent only controls the initial request;
-for later revocation, verify PostHog's opt-out behavior and stop application
-capture calls too. SDK code that already executed cannot be undone by removing
-its script element.
+## Guard your own capture calls
 
-## Configure hosts and initialization
+Events your code sends need their own permission check. The `posthog` global
+exists before the SDK loads, so its presence does not mean measurement is
+allowed:
 
-| Option | Behavior |
-| --- | --- |
-| `id` | Browser project token. |
-| `region` | `'eu'` by default; use `'us'` for a US project. |
-| `apiHost / uiHost / scriptUrl` | Explicit overrides for proxy or self-hosted PostHog deployments. Keep all hosts aligned. |
-| `loadMode` | Defaults to `'always'`; choose deliberately. |
-| `initOptions` | Additional serializable SDK options, including the cookieless override. |
-
-The helper applies the resolved API and UI hosts after `initOptions`; use the
-top-level host fields to change them. A global `posthog` queue may exist before
-the SDK is ready. Neither API presence nor SDK readiness is a consent grant.
-
-## Keep application events behind permission
-
-With the script helper registered, a React client component can guard an event
-using the current effective permission:
-
-```tsx title="src/signup-event.tsx"
-'use client';
-
-import { useConsent } from 'c15t/react';
-
-export function SignupEvent() {
-  const allowed = useConsent('measurement');
-
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        if (allowed) window.posthog?.capture('signup_started');
-      }}
-    >
-      Start signup
-    </button>
-  );
+```ts title="src/track-signup.ts"
+export function trackSignupStarted(measurementAllowed: boolean) {
+  if (!measurementAllowed) return;
+  window.posthog?.capture('signup_started');
 }
 ```
 
-This is an event-call example, not a signup implementation. Next.js client
-components can import `useConsent` from `c15t/next`.
+Pass the current measurement permission from your framework, for example
+`useConsent('measurement')` in React.
 
 ## Use an existing PostHog SDK
 
-If your app already initializes `posthog-js`, keep that SDK owner and attach a
-callback-only script instead of the loading helper. Initialize your SDK with
-`opt_out_capturing_by_default: true` and `cookieless_mode: 'never'` before
-mounting c15t when denied permission must stop capture.
+If your app already initializes `posthog-js`, keep that setup and register a
+callback-only script instead of the helper. Initialize the SDK with
+`opt_out_capturing_by_default: true` and `cookieless_mode: 'never'` so it
+captures nothing before c15t reports a permission.
 
 ```ts title="src/posthog-consent.ts"
 import type { Script, ScriptCallbackInfo } from 'c15t/modules/script-loader';
@@ -124,22 +107,21 @@ export function posthogConsent(instance: PostHogConsentApi): Script {
 }
 ```
 
-Pass `posthogConsent(posthog)` in the existing provider's `scripts` array, using
-your initialized SDK instance. The callback-only entry synchronizes initial
-and changed effective permissions without loading a second SDK. It does not
-block the SDK import or its initial request. `loadMode: 'disabled'` on the
-loading helper is not a substitute, because it performs no synchronization.
+Add `posthogConsent(posthog)` to the `scripts` you register, passing your
+initialized SDK instance. `callbackOnly` means c15t inserts no script element.
+`alwaysLoad` makes `onBeforeLoad` run on the first page load even while
+measurement is denied, so the SDK is told to opt out. `onConsentChange` runs on
+every later change. This does not delay the SDK import or its first request.
+`loadMode: 'disabled'` is not a substitute, because it syncs nothing.
 
-Keep c15t as the source of truth for the banner and saved choices. Effective
-permission can come from policy defaults; a synchronization callback is not
-proof that the visitor explicitly accepted. Do not reuse v2
-`getOrCreateConsentRuntime` or `onBannerFetched` examples with v3.
+## Verify PostHog
 
-## Verify the integration
+These checks assume `loadMode: 'after-consent'` from the example. After you
+allow measurement, `array.js` loads and capture requests to your API host
+follow. Trigger one guarded event and check that it is sent.
 
-With the example above, a fresh opt-in session should make no PostHog SDK
-request until measurement is allowed. Grant, capture one test event, revoke,
-and confirm later application calls stop. Repeat with persisted consent and
-client navigation. If you choose cookieless capture, verify that behavior
-explicitly in the project rather than expecting silence after denial. See
-[consent verification](/docs/guides/verify-consent).
+With `loadMode: 'always'`, `array.js` loads before a choice instead. Check that
+no capture request is sent while measurement is denied, unless you chose
+cookieless capture.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

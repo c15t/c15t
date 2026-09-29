@@ -1,12 +1,14 @@
 ---
 title: Fathom Analytics
-description: Configure Fathom Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Fathom Analytics
 
-Copy the site ID from your Fathom snippet. Set SPA behavior deliberately when your application navigates without full page reloads.
+Copy the site ID from your Fathom embed code, where it is the `data-site`
+value. If your app changes routes without a full page load, also pass `spa`.
+Without it, the helper leaves Fathom's SPA route tracking off.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
@@ -20,22 +22,27 @@ export const scripts = [fathomAnalytics({ site: 'YOUR_SITE_ID', spa: 'auto' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `site` | Required site ID, passed as `data-site`. |
-| `spa` | `auto`, `history` or `hash`. Omitted by default, so the helper does not enable SPA routing. |
-| `auto / canonical / honorDnt` | Optional booleans passed as data attributes. Omitted values leave the vendor defaults in place. |
-| `scriptUrl` | Defaults to `https://cdn.usefathom.com/script.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `site` | Required | Site ID, set as `data-site`. The helper does not validate it. |
+| `spa` | None | `'auto'`, `'history'` or `'hash'`, set as `data-spa`. When omitted, the script has no `data-spa` attribute and SPA route tracking stays off. |
+| `auto` | None | Sets `data-auto` to `'true'` or `'false'` to control automatic page views. When omitted, Fathom's default applies. |
+| `canonical` | None | Sets `data-canonical` to control canonical URL tracking. When omitted, Fathom's default applies. |
+| `honorDnt` | None | Sets `data-honor-dnt` to control whether Fathom honors Do Not Track. When omitted, Fathom's default applies. |
+| `scriptUrl` | `https://cdn.usefathom.com/script.js` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-The script waits for measurement permission. The helper does not call a Fathom stop API after revocation. Application event calls and any routing listeners need separate verification.
+`fathomAnalytics` uses the `measurement` category. Fathom sets no cookies, but
+the helper still waits for measurement permission. It loads `script.js` with
+`defer`. On revocation the helper removes the script element and calls no
+Fathom API. It does not call `window.fathom.blockTrackingForMe`.
 
-## Verify the integration
+## Verify Fathom Analytics
 
-Check the site ID and `data-spa` attribute, then compare a full page load with client navigation. Avoid installing both this helper and another Fathom routing plugin.
+After you allow measurement, `script.js` loads from `cdn.usefathom.com` and its
+script element carries your `data-site` and `data-spa` values. Change route in
+your app and check that it sends one page view, not two. If your code calls
+`window.fathom?.trackEvent`, check measurement permission before each call.
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

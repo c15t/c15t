@@ -1,12 +1,13 @@
 ---
 title: LogRocket
-description: Configure LogRocket with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load LogRocket session replay only after measurement consent with the c15t logRocket helper, including proxied setups, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure LogRocket
 
-Use the LogRocket app ID in `org-slug/app-slug` form. The helper calls `LogRocket.init` after the SDK loads.
+Copy the app ID from LogRocket Project Setup. It has the form
+`org-slug/app-slug`. Remove the original LogRocket install.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
@@ -20,22 +21,30 @@ export const scripts = [logRocket({ appId: 'your-org/your-app' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `appId` | Required app ID in `org-slug/app-slug` form. |
-| `initOptions` | Optional JSON-serializable init options. Functions cannot be passed through this helper. |
-| `scriptUrl` | Defaults to `https://cdn.logrocket.io/LogRocket.min.js`. |
-| `asyncScriptUrl` | Optional logger-bundle URL for proxied installations. Sets `window._lrAsyncScript` before loading. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `appId` | Required | App ID passed to `LogRocket.init`. The helper trims it. Values that are not two non-empty segments separated by `/` throw. |
+| `initOptions` | `{}` | Second argument to `LogRocket.init`. Use JSON-serializable values only, so functions such as request sanitizers cannot pass through. |
+| `scriptUrl` | `https://cdn.logrocket.io/LogRocket.min.js` | Loader URL override. A blank value falls back to the default. |
+| `asyncScriptUrl` | None | Proxied URL for LogRocket's logger bundle, set as `window._lrAsyncScript` before the loader runs. Set it only when you proxy LogRocket through your own domain. |
 
-## Consent behavior
+## Loading and revocation
 
-The SDK waits for measurement permission. The helper does not provide a LogRocket shutdown callback. Review recording and network-capture settings and implement any required post-load revocation handling through the SDK.
+`logRocket` uses the `measurement` category. When measurement becomes allowed,
+the helper loads `LogRocket.min.js` with `crossorigin="anonymous"` and calls
+`LogRocket.init(appId, initOptions)` after the script loads.
 
-## Verify the integration
+On revocation the helper removes the script element and calls no LogRocket
+API, because LogRocket documents no consent or stop-recording call for the web
+SDK. Recording continues until the page unloads, so c15t's default reload on
+revocation is what stops it. Configure LogRocket's privacy and sanitization
+settings before you deploy, so recordings leave out sensitive DOM, input and
+network data.
 
-For a proxy, check both the main loader and the asynchronously loaded logger bundle. Confirm recording stops as intended after revocation; a missing script tag is insufficient.
+## Verify LogRocket
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+Filter DevTools Network by `logrocket`. After you allow measurement,
+`LogRocket.min.js` loads and `window.LogRocket` exists. With `asyncScriptUrl`,
+check that the logger bundle loads from your proxy URL.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -1,12 +1,13 @@
 ---
 title: Microsoft Clarity
-description: Configure Microsoft Clarity with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load Microsoft Clarity only after measurement consent with the c15t clarity helper, send Consent V2 storage signals and check them in DevTools.
 group: integrations
 ---
 
 ## Configure Microsoft Clarity
 
-Use the Clarity project ID. The helper uses Consent V2 and derives its storage signals from c15t permissions.
+Copy the project ID from your Clarity tracking code, where it follows
+`https://www.clarity.ms/tag/`. The helper builds the loader URL from it.
 
 <CommandTabs command="@c15t/scripts@alpha" mode="install" />
 
@@ -20,21 +21,33 @@ export const scripts = [clarity({ id: 'YOUR_PROJECT_ID' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `id` | Project ID used to construct the loader URL. |
-| `defaultConsent` | Optional boot-time override. Omit it to use c15t state; it does not replace later synchronization. |
-| `scriptUrl` | Optional full Clarity loader URL. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `id` | Required | Clarity project ID. Surrounding whitespace is trimmed. An empty ID throws unless you set `scriptUrl`. |
+| `defaultConsent` | c15t state | Consent V2 value queued once, before the loader. `true` or `false` sets both channels. An object sets `ad_Storage` or `analytics_Storage`, also accepted as `marketing` and `measurement`; channels you leave out follow c15t. Later updates always follow c15t. `true` grants ad storage even while marketing is denied. |
+| `scriptUrl` | `https://www.clarity.ms/tag/<id>` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-The initial loader waits for measurement permission. After loading, it remains installed on revocation and receives `consentv2` updates. c15t maps `measurement` to `analytics_Storage` and `marketing` to `ad_Storage`. Storage denial is not a promise of zero Clarity requests. See [Microsoft's Consent V2 API](https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-consent-api-v2).
+`clarity` uses the `measurement` category, so Clarity loads only while
+measurement is allowed. Before the loader runs, the helper queues
+`clarity('consentv2', ...)` with `analytics_Storage` taken from measurement and
+`ad_Storage` taken from marketing. While Clarity is on the page, every
+permission change sends a new `consentv2` call, so allowing marketing later
+grants `ad_Storage` without reloading Clarity.
 
-## Verify the integration
+On measurement revocation the helper keeps the Clarity script and sends
+`consentv2` with `analytics_Storage` set to `denied`. If the visitor allows
+measurement again before the page reloads, it sends `granted`. A visitor who
+turns off the `microsoft-clarity` vendor gets both channels denied. Denied
+storage limits what Clarity stores; it does not mean Clarity sends no requests.
+See Microsoft's
+[Consent V2 API](https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-consent-api-v2).
 
-Test measurement and marketing independently. Confirm the correct Consent V2 values reach Clarity on initial load and after each change, including a later measurement rejection.
+## Verify Microsoft Clarity
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+Allow only marketing first. Clarity does not load, because it waits for
+measurement. Then allow measurement. The request to
+`www.clarity.ms/tag/<id>` appears without a page reload.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
