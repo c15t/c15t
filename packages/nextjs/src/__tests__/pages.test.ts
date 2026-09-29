@@ -220,6 +220,36 @@ describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
 });
 
 describe('@c15t/nextjs/pages: API bridge', () => {
+	test('API handlers resolve a relative backendURL against host, not x-forwarded-host', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			})
+		);
+		const { manifest } = createPagesApiHandlers({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+		const sink = createResponseSink();
+
+		await manifest(
+			{
+				headers: {
+					host: 'app.example.com',
+					'x-forwarded-host': 'attacker.example',
+					'x-forwarded-proto': 'http',
+				},
+				method: 'GET',
+				url: '/api/consent/manifest',
+			},
+			sink.res
+		);
+
+		const [url] = fetchSpy.mock.calls[0] ?? [];
+		expect(new URL(String(url)).origin).toBe('https://app.example.com');
+	});
+
 	test('toWebRequest rebuilds the URL and reads a streamed body', async () => {
 		const request = await toWebRequest({
 			[Symbol.asyncIterator]: asyncChunks([
@@ -249,7 +279,7 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 			method: 'POST',
 			url: '/api/c15t/init',
 		});
-		expect(request.url).toBe('http://app.example.com/api/c15t/init');
+		expect(request.url).toBe('https://app.example.com/api/c15t/init');
 		expect(await request.json()).toEqual({ a: 1 });
 	});
 

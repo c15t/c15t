@@ -145,6 +145,49 @@ describe('resolveConsent: backend call', () => {
 		}
 	);
 
+	test('a relative backendURL ignores a forged x-forwarded-host', async () => {
+		headerStore.set('host', 'app.example.com');
+		headerStore.set('x-forwarded-host', 'attacker.example');
+		headerStore.set('x-forwarded-proto', 'http');
+		cookieStore.set('sess', 'abc');
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(createInitOutput()), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			})
+		);
+
+		await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url] = fetchSpy.mock.calls[0] ?? [];
+		expect(new URL(String(url)).origin).toBe('https://app.example.com');
+	});
+
+	test('a relative backendURL honours x-forwarded-host when trusted', async () => {
+		headerStore.set('host', '127.0.0.1:3000');
+		headerStore.set('x-forwarded-host', 'edge.example.com');
+		headerStore.set('x-forwarded-proto', 'https');
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(createInitOutput()), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			})
+		);
+
+		await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			trustForwardedHeaders: true,
+		});
+
+		const [url] = fetchSpy.mock.calls[0] ?? [];
+		expect(new URL(String(url)).origin).toBe('https://edge.example.com');
+	});
+
 	test('calls backendURL/init with current context', async () => {
 		headerStore.set('x-vercel-ip-country', 'DE');
 		headerStore.set('host', 'app.example.com');
