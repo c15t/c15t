@@ -21,7 +21,7 @@ export type {
 export type {
 	ExperimentSummaryOutput,
 	ExperimentSummaryQuery,
-	ExperimentVariantSummary,
+	ExperimentArmSummary,
 } from './api/experiment';
 // API types - Init
 export type {

@@ -496,7 +496,7 @@ mean without saying anything about the arm.
 
 ## Read the summary from your backend
 
-The self-hosted backend copies `experiment.id`, `experiment.variant` and
+The self-hosted backend copies `experiment.id`, `experiment.arm` and
 `timeToDecisionMs` out of `metadata` onto their own columns (migration
 `6-experiment-attribution`), so `GET /experiments/:id/summary` can group
 choices per arm without a JSON query. It needs an API key.
@@ -511,9 +511,9 @@ curl 'http://localhost:3000/api/c15t/experiments/banner-shape/summary?from=2026-
 	"experimentId": "banner-shape",
 	"from": "2026-09-01T00:00:00.000Z",
 	"to": "2026-09-30T23:59:59.999Z",
-	"variants": [
+	"arms": [
 		{
-			"variant": "bar",
+			"arm": "wall",
 			"choices": 120,
 			"byAction": {
 				"accept_all": 80,
@@ -526,7 +526,7 @@ curl 'http://localhost:3000/api/c15t/experiments/banner-shape/summary?from=2026-
 			"medianTimeToDecisionMs": 4200
 		},
 		{
-			"variant": "floating",
+			"arm": "control",
 			"choices": 95,
 			"byAction": {
 				"accept_all": 50,
@@ -554,16 +554,14 @@ consent's `givenAt`, both ends inclusive. A date without a time is the whole
 of that day in UTC: `from=2026-09-01` starts at midnight and `to=2026-09-30`
 runs to the end of the 30th, so the example above covers all of September. A
 `from` later than `to` is a 400. `domain` narrows to one domain name. An
-experiment id no consent carries returns `variants: []`. The
+experiment id no consent carries returns `arms: []`. The
 `@c15t/node-sdk` client exposes the same call as
 `client.experiments.summary(id, { from, to, domain })`.
 
-The summary counts choices only. Impressions and notice dismissals never
-reach the backend, so it cannot give you an opt-in rate on its own: the
-denominator comes from the `c15t_surface_shown` events `reportTo` sends to
-your analytics. Use the summary to check the split of actions and surfaces
-per arm, and the median time to decision, against what your analytics tool
-reports.
+The summary counts choices. The other half of an opt-in rate, the visitors
+each arm's banner was owed to, is on the session reports `/init` produces
+(see [Measure the results](#measure-the-results)). Divide `accept_all` per
+arm by the visitors whose reports carry that arm.
 
 ## Try it
 

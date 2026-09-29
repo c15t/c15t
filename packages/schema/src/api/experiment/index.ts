@@ -9,8 +9,8 @@ export {
 	type ExperimentSummaryAction,
 	type ExperimentSummaryOutput,
 	type ExperimentSummaryQuery,
-	type ExperimentVariantSummary,
+	type ExperimentArmSummary,
 	experimentSummaryOutputSchema,
 	experimentSummaryQuerySchema,
-	experimentVariantSummarySchema,
+	experimentArmSummarySchema,
 } from './summary';

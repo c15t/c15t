@@ -153,17 +153,17 @@ export const register = function register({
 						});
 					}
 
-					const variants = yield* summarizeExperiment(experimentId, {
+					const arms = yield* summarizeExperiment(experimentId, {
 						domain: query.domain,
 						from,
 						to,
 					});
 
 					return {
+						arms,
 						experimentId,
 						from: from?.toISOString() ?? null,
 						to: to?.toISOString() ?? null,
-						variants,
 					};
 				})
 			);

@@ -33,18 +33,18 @@ describe('Experiments Endpoints', () => {
 	describe('summarizeExperiment', () => {
 		it('should GET the summary with the id in the path and filters as query', async () => {
 			const summary = {
-				experimentId: 'banner-shape',
-				from: '2026-09-01T00:00:00.000Z',
-				to: null,
-				variants: [
+				arms: [
 					{
+						arm: 'bar',
 						byAction: { all: 3 },
 						bySurface: { banner: 3 },
 						choices: 3,
 						medianTimeToDecisionMs: 4200,
-						variant: 'bar',
 					},
 				],
+				experimentId: 'banner-shape',
+				from: '2026-09-01T00:00:00.000Z',
+				to: null,
 			};
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify(summary), {
@@ -73,7 +73,7 @@ describe('Experiments Endpoints', () => {
 
 		it('should escape the experiment id', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
-				new Response(JSON.stringify({ variants: [] }), {
+				new Response(JSON.stringify({ arms: [] }), {
 					headers: { 'content-type': 'application/json' },
 					status: 200,
 				})

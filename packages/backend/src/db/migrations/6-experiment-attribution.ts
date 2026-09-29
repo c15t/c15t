@@ -2,7 +2,7 @@
  * Experiment attribution as real columns.
  *
  * A v3 client that runs a banner experiment sends the arm on every consent
- * as `metadata.experiment = { id, variant, … }` and the decision latency as
+ * as `metadata.experiment = { id, arm, … }` and the decision latency as
  * `metadata.timeToDecisionMs`. Both land in `consent.metadata`, a free-form
  * JSON column, which is right for an audit trail and useless for a report:
  * JSON path syntax is different on every engine c15t supports, and none of
@@ -14,13 +14,13 @@
  * `consentAction`, which the same query also groups by. `metadata` keeps the
  * full object, untouched; these are a projection of it, not a replacement.
  *
- * - `experimentId`, `experimentVariant`: `indexedText`, because the summary
+ * - `experimentId`, `experimentArm`: `indexedText`, because the summary
  *   query filters on the first and groups by both. On MySQL that has to be
  *   `varchar`, which is the whole reason the logical type exists.
  * - `timeToDecisionMs`: the first `integer` column in the schema. A text
  *   column would sort `"1000"` before `"200"`, and the median is computed
  *   from an ordered scan.
- * - a composite index on `(tenantId, experimentId, experimentVariant)`, the
+ * - a composite index on `(tenantId, experimentId, experimentArm)`, the
  *   shape of the summary query's `where … group by`. A hosted database holds
  *   many tenants, and two of them can run an experiment with the same id,
  *   so the tenant leads.
@@ -47,7 +47,7 @@ import type { ColumnSpec } from '../schema';
 /** The three attribution columns, in the order they are added. */
 export const EXPERIMENT_ATTRIBUTION_COLUMNS: readonly ColumnSpec[] = [
 	{ name: 'experimentId', nullable: true, type: 'indexedText' },
-	{ name: 'experimentVariant', nullable: true, type: 'indexedText' },
+	{ name: 'experimentArm', nullable: true, type: 'indexedText' },
 	{ name: 'timeToDecisionMs', nullable: true, type: 'integer' },
 ];
 
@@ -58,14 +58,14 @@ interface IndexSpec {
 }
 
 /**
- * Composite index on `(tenantId, experimentId, experimentVariant)`: the
+ * Composite index on `(tenantId, experimentId, experimentArm)`: the
  * shape of the summary query's `where … group by`. The tenant leads because
  * a hosted database holds many tenants, and experiment ids such as
  * `banner-shape` repeat across them.
  */
 export const EXPERIMENT_ATTRIBUTION_INDEX: IndexSpec = {
-	columns: ['tenantId', 'experimentId', 'experimentVariant'],
-	name: 'c15t_consent_tenantId_experimentId_experimentVariant_idx',
+	columns: ['tenantId', 'experimentId', 'experimentArm'],
+	name: 'c15t_consent_tenantId_experimentId_experimentArm_idx',
 	table: 'consent',
 };
 

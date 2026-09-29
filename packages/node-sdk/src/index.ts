@@ -49,7 +49,7 @@ export type {
 	ConsentItem,
 	ExperimentSummaryOutput,
 	ExperimentSummaryQuery,
-	ExperimentVariantSummary,
+	ExperimentArmSummary,
 	GetSubjectInput,
 	GetSubjectOutput,
 	GetSubjectParams,

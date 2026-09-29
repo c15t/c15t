@@ -2,7 +2,7 @@
  * Experiment reads: per-arm choice counts for `GET /experiments/:id/summary`.
  *
  * Everything here groups on the columns `6-experiment-attribution` added —
- * `experimentId`, `experimentVariant` — plus `consentAction` and `uiSource`,
+ * `experimentId`, `experimentArm` — plus `consentAction` and `uiSource`,
  * which the baseline already had. None of it reads `metadata`: JSON path
  * syntax differs on every engine c15t supports, which is why the attribution
  * was projected onto columns in the first place.
@@ -23,7 +23,7 @@
  * produces the counts also counts the rows with a `timeToDecisionMs`, and a
  * second query reads the one or two middle rows of that arm's ordered
  * values with `limit … offset …`. The index on
- * `(tenantId, experimentId, experimentVariant)` finds the arm; the engine sorts the
+ * `(tenantId, experimentId, experimentArm)` finds the arm; the engine sorts the
  * arm's values and returns only the middle. The result is exact for any arm
  * size.
  */
@@ -65,17 +65,17 @@ export interface ExperimentFilters {
 	readonly domain?: string;
 }
 
-export interface VariantSummary {
-	readonly variant: string;
+export interface ArmSummary {
+	readonly arm: string;
 	readonly choices: number;
 	readonly byAction: Record<ExperimentSummaryAction, number>;
 	readonly bySurface: Record<string, number>;
 	readonly medianTimeToDecisionMs: number | null;
 }
 
-/** One `(variant, action, surface)` group and its counts. */
+/** One `(arm, action, surface)` group and its counts. */
 interface GroupRow {
-	readonly variant: string;
+	readonly arm: string;
 	readonly action: string | null;
 	readonly surface: string | null;
 	/** Rows in the group. */
@@ -110,7 +110,7 @@ const scope = Effect.fn('experiment.scope')(function* scope(
 
 	const clauses: Statement.Fragment[] = [
 		sql`${sql('c.experimentId')} = ${experimentId}`,
-		sql`${sql('c.experimentVariant')} is not null`,
+		sql`${sql('c.experimentArm')} is not null`,
 		tenant,
 	];
 	if (filters.from !== undefined) {
@@ -134,7 +134,7 @@ const scope = Effect.fn('experiment.scope')(function* scope(
 });
 
 /**
- * One grouped read per experiment: `(variant, action, surface)` with a row
+ * One grouped read per experiment: `(arm, action, surface)` with a row
  * count and a count of the rows that carry a decision time. Both breakdowns
  * and the median's sample size fall out of it in memory.
  */
@@ -143,19 +143,19 @@ const countArms = Effect.fn('experiment.countArms')(function* countArms(
 ) {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql<GroupRow>`
-		select ${sql('c.experimentVariant')} as ${sql('variant')},
+		select ${sql('c.experimentArm')} as ${sql('arm')},
 			${sql('c.consentAction')} as ${sql('action')},
 			${sql('c.uiSource')} as ${sql('surface')},
 			count(*) as ${sql('total')},
 			count(${sql('c.timeToDecisionMs')}) as ${sql('timed')}
 		from ${sql('consent')} as ${sql('c')}
 		where ${where}
-		group by ${sql('c.experimentVariant')}, ${sql('c.consentAction')},
+		group by ${sql('c.experimentArm')}, ${sql('c.consentAction')},
 			${sql('c.uiSource')}
 	`;
 	const arms = new Map<string, ArmCounts>();
 	for (const row of rows) {
-		const arm = arms.get(row.variant) ?? {
+		const arm = arms.get(row.arm) ?? {
 			byAction: emptyActions(),
 			bySurface: {},
 			choices: 0,
@@ -168,7 +168,7 @@ const countArms = Effect.fn('experiment.countArms')(function* countArms(
 		arm.bySurface[surface] = (arm.bySurface[surface] ?? 0) + total;
 		arm.choices += total;
 		arm.timed += Number(row.timed);
-		arms.set(row.variant, arm);
+		arms.set(row.arm, arm);
 	}
 	return arms;
 });
@@ -182,7 +182,7 @@ const countArms = Effect.fn('experiment.countArms')(function* countArms(
  */
 const medianTimeToDecision = Effect.fn('experiment.median')(
 	function* medianTimeToDecision(
-		variant: string,
+		arm: string,
 		where: Statement.Fragment,
 		samples: number
 	) {
@@ -199,7 +199,7 @@ const medianTimeToDecision = Effect.fn('experiment.median')(
 			select ${sql('c.timeToDecisionMs')} as ${sql('ms')}
 			from ${sql('consent')} as ${sql('c')}
 			where ${where}
-				and ${sql('c.experimentVariant')} = ${variant}
+				and ${sql('c.experimentArm')} = ${arm}
 				and ${sql('c.timeToDecisionMs')} is not null
 			order by ${sql('c.timeToDecisionMs')} asc
 			limit ${sql.literal(String(middle))} offset ${sql.literal(String(offset))}
@@ -225,27 +225,27 @@ export const summarizeExperiment = Effect.fn('experiment.summarize')(
 		filters: ExperimentFilters = {}
 	): Generator<
 		Effect.Effect<unknown, SqlError.SqlError, SqlClient.SqlClient | Tenant>,
-		readonly VariantSummary[]
+		readonly ArmSummary[]
 	> {
 		const where = yield* scope(experimentId, filters);
 		const arms = yield* countArms(where);
 
-		const summaries: VariantSummary[] = [];
-		for (const variant of [...arms.keys()].sort()) {
-			const arm = arms.get(variant);
-			if (arm === undefined) {
+		const summaries: ArmSummary[] = [];
+		for (const name of [...arms.keys()].sort()) {
+			const counts = arms.get(name);
+			if (counts === undefined) {
 				continue;
 			}
 			summaries.push({
-				byAction: arm.byAction,
-				bySurface: arm.bySurface,
-				choices: arm.choices,
+				arm: name,
+				byAction: counts.byAction,
+				bySurface: counts.bySurface,
+				choices: counts.choices,
 				medianTimeToDecisionMs: yield* medianTimeToDecision(
-					variant,
+					name,
 					where,
-					arm.timed
+					counts.timed
 				),
-				variant,
 			});
 		}
 		return summaries;

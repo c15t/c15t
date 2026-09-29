@@ -4,13 +4,13 @@ export const consentSchema = v.object({
 	/** Derived consent action (e.g., 'accept_all', 'reject_all', 'opt_out', 'custom') */
 	consentAction: v.nullish(v.string()),
 	domainId: v.string(),
+	/** Arm the subject saw, copied out of `metadata.experiment.arm`. */
+	experimentArm: v.nullish(v.string()),
 	/**
 	 * Experiment the presentation was drawn from, copied out of
 	 * `metadata.experiment.id`.
 	 */
 	experimentId: v.nullish(v.string()),
-	/** Arm the subject saw, copied out of `metadata.experiment.variant`. */
-	experimentVariant: v.nullish(v.string()),
 	givenAt: v.optional(v.date(), () => new Date()),
 	id: v.string(),
 	ipAddress: v.nullish(v.string()),

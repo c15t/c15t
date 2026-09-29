@@ -80,7 +80,8 @@ const actionCount = v.pipe(v.number(), v.integer(), v.minValue(0));
 /**
  * One arm of an experiment, as the summary reports it.
  */
-export const experimentVariantSummarySchema = v.object({
+export const experimentArmSummarySchema = v.object({
+	arm: v.string(),
 	/**
 	 * Consents per stored `consentAction`. Every key is present, `0` when
 	 * the arm has none.
@@ -101,20 +102,19 @@ export const experimentVariantSummarySchema = v.object({
 	 * when none did.
 	 */
 	medianTimeToDecisionMs: v.nullable(v.number()),
-	variant: v.string(),
 });
 
 /**
  * GET /experiments/:id/summary output schema
  */
 export const experimentSummaryOutputSchema = v.object({
+	/** Sorted by arm name. Empty when no consent carries this experiment id. */
+	arms: v.array(experimentArmSummarySchema),
 	experimentId: v.string(),
 	/** The `from` filter as applied, or `null` when unbounded. */
 	from: v.nullable(v.string()),
 	/** The `to` filter as applied, or `null` when unbounded. */
 	to: v.nullable(v.string()),
-	/** Sorted by arm name. Empty when no consent carries this experiment id. */
-	variants: v.array(experimentVariantSummarySchema),
 });
 
 // Type exports
@@ -128,7 +128,7 @@ export type ExperimentSummaryQuery = v.InferOutput<
 >;
 /**
  * Response body of `GET /experiments/:id/summary`: the experiment id, the
- * window as applied, and one {@link ExperimentVariantSummary} per arm. Inferred
+ * window as applied, and one {@link ExperimentArmSummary} per arm. Inferred
  * from {@link experimentSummaryOutputSchema}.
  */
 export type ExperimentSummaryOutput = v.InferOutput<
@@ -137,8 +137,8 @@ export type ExperimentSummaryOutput = v.InferOutput<
 /**
  * One arm of an experiment as the summary reports it: choices split by
  * consent action and surface, plus the median time to decision. Inferred from
- * {@link experimentVariantSummarySchema}.
+ * {@link experimentArmSummarySchema}.
  */
-export type ExperimentVariantSummary = v.InferOutput<
-	typeof experimentVariantSummarySchema
+export type ExperimentArmSummary = v.InferOutput<
+	typeof experimentArmSummarySchema
 >;

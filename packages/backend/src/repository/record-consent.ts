@@ -51,7 +51,7 @@ export interface ConsentSubmissionRequest {
 	readonly metadata?: unknown;
 	/** See `ConsentSubmission`: attribution columns projected from `metadata`. */
 	readonly experimentId?: string | null;
-	readonly experimentVariant?: string | null;
+	readonly experimentArm?: string | null;
 	readonly timeToDecisionMs?: number | null;
 	readonly ipAddress: string | null;
 	readonly userAgent: string | null;
@@ -116,8 +116,8 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		choice: request.choice,
 		consentAction: request.consentAction,
 		domainId: request.domainId,
+		experimentArm: request.experimentArm,
 		experimentId: request.experimentId,
-		experimentVariant: request.experimentVariant,
 		givenAt: request.givenAt,
 		ipAddress: request.ipAddress,
 		jurisdiction: request.jurisdiction,

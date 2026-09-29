@@ -29,7 +29,7 @@ const HOUR = 3_600_000;
 
 interface SeedConsent {
 	readonly id: string;
-	readonly variant: string | null;
+	readonly arm: string | null;
 	readonly action: string | null;
 	readonly surface: string | null;
 	readonly ms: number | null;
@@ -46,88 +46,88 @@ interface SeedConsent {
 const CONSENTS: readonly SeedConsent[] = [
 	{
 		action: 'accept_all',
+		arm: 'bar',
 		id: 'cns_1',
 		ms: 4000,
 		surface: 'banner',
-		variant: 'bar',
 	},
 	{
 		action: 'accept_all',
+		arm: 'bar',
 		id: 'cns_2',
 		ms: 4200,
 		surface: 'banner',
-		variant: 'bar',
 	},
 	{
 		action: 'reject_all',
+		arm: 'bar',
 		id: 'cns_3',
 		ms: 9000,
 		surface: 'banner',
-		variant: 'bar',
 	},
 	{
 		action: 'custom',
+		arm: 'bar',
 		id: 'cns_4',
 		ms: null,
 		surface: 'dialog',
-		variant: 'bar',
 	},
 	{
 		action: 'accept_all',
+		arm: 'bar',
 		givenAt: T0 + 3 * HOUR,
 		id: 'cns_5',
 		ms: 1000,
 		surface: 'banner',
-		variant: 'bar',
 	},
 	{
 		action: 'accept_all',
+		arm: 'floating',
 		id: 'cns_6',
 		ms: 2000,
 		surface: 'banner',
-		variant: 'floating',
 	},
 	{
 		action: 'reject_all',
+		arm: 'floating',
 		id: 'cns_7',
 		ms: 6000,
 		surface: 'dialog',
-		variant: 'floating',
 	},
 	// No arm at all: recorded outside the experiment, never counted.
 	{
 		action: 'accept_all',
+		arm: null,
 		id: 'cns_8',
 		ms: 500,
 		surface: 'banner',
-		variant: null,
 	},
 	// A different experiment, same tenant.
 	{
 		action: 'accept_all',
+		arm: 'bar',
 		experimentId: 'other',
 		id: 'cns_9',
 		ms: 100,
 		surface: 'banner',
-		variant: 'bar',
 	},
 	// Another domain.
 	{
 		action: 'accept_all',
+		arm: 'bar',
 		domainId: 'dom_2',
 		id: 'cns_10',
 		ms: 100,
 		surface: 'widget',
-		variant: 'bar',
 	},
 	// Another tenant, same experiment and arm.
 	{
 		action: 'accept_all',
+		arm: 'bar',
 		id: 'cns_11',
 		ms: 100,
 		surface: 'banner',
 		tenantId: 'tenant_other',
-		variant: 'bar',
 	},
 ];
 
@@ -177,8 +177,8 @@ for (const engine of ENGINES) {
 							encodeRow(encode, {
 								consentAction: consent.action,
 								domainId: consent.domainId ?? 'dom_1',
+								experimentArm: consent.arm,
 								experimentId: consent.experimentId ?? 'banner-shape',
-								experimentVariant: consent.variant,
 								givenAt: new Date(consent.givenAt ?? T0),
 								id: consent.id,
 								purposeIds: '[]',
@@ -221,11 +221,9 @@ for (const engine of ENGINES) {
 			const body = await summary();
 
 			assert.deepStrictEqual(body, {
-				experimentId: 'banner-shape',
-				from: null,
-				to: null,
-				variants: [
+				arms: [
 					{
+						arm: 'bar',
 						byAction: {
 							accept_all: 4,
 							custom: 1,
@@ -237,9 +235,9 @@ for (const engine of ENGINES) {
 						choices: 6,
 						// 100, 1000, 4000, 4200, 9000 — the null is not a sample.
 						medianTimeToDecisionMs: 4000,
-						variant: 'bar',
 					},
 					{
+						arm: 'floating',
 						byAction: {
 							accept_all: 1,
 							custom: 0,
@@ -250,9 +248,11 @@ for (const engine of ENGINES) {
 						bySurface: { banner: 1, dialog: 1 },
 						choices: 2,
 						medianTimeToDecisionMs: 4000,
-						variant: 'floating',
 					},
 				],
+				experimentId: 'banner-shape',
+				from: null,
+				to: null,
 			});
 		});
 
@@ -281,16 +281,16 @@ for (const engine of ENGINES) {
 						['odd', odd],
 						['even', even],
 					] as const;
-					for (const [variant, samples] of arms) {
+					for (const [arm, samples] of arms) {
 						for (const [index, ms] of samples.entries()) {
 							yield* sql`insert into ${sql('consent')} ${sql.insert(
 								encodeRow(encode, {
 									consentAction: 'accept_all',
 									domainId: 'dom_1',
+									experimentArm: arm,
 									experimentId: 'banner-shape',
-									experimentVariant: variant,
 									givenAt: now,
-									id: `cns_${variant}_${index}`,
+									id: `cns_${arm}_${index}`,
 									purposeIds: '[]',
 									subjectId: 'sub_1',
 									tenantId: null,
@@ -305,9 +305,9 @@ for (const engine of ENGINES) {
 
 			const body = await summary();
 			assert.deepStrictEqual(
-				body.variants.map(
-					(arm: { variant: string; medianTimeToDecisionMs: number }) => [
-						arm.variant,
+				body.arms.map(
+					(arm: { arm: string; medianTimeToDecisionMs: number }) => [
+						arm.arm,
 						arm.medianTimeToDecisionMs,
 					]
 				),
@@ -326,8 +326,9 @@ for (const engine of ENGINES) {
 			const body = await summary(`?from=${from}`);
 
 			assert.strictEqual(body.from, from);
-			assert.deepStrictEqual(body.variants, [
+			assert.deepStrictEqual(body.arms, [
 				{
+					arm: 'bar',
 					byAction: {
 						accept_all: 1,
 						custom: 0,
@@ -338,14 +339,12 @@ for (const engine of ENGINES) {
 					bySurface: { banner: 1 },
 					choices: 1,
 					medianTimeToDecisionMs: 1000,
-					variant: 'bar',
 				},
 			]);
 
 			const upTo = await summary(`?to=${new Date(T0).toISOString()}`);
 			assert.strictEqual(
-				upTo.variants.find((arm: { variant: string }) => arm.variant === 'bar')
-					.choices,
+				upTo.arms.find((arm: { arm: string }) => arm.arm === 'bar').choices,
 				5
 			);
 		});
@@ -359,8 +358,7 @@ for (const engine of ENGINES) {
 
 			assert.strictEqual(body.to, `${day}T23:59:59.999Z`);
 			assert.strictEqual(
-				body.variants.find((arm: { variant: string }) => arm.variant === 'bar')
-					.choices,
+				body.arms.find((arm: { arm: string }) => arm.arm === 'bar').choices,
 				6
 			);
 
@@ -396,8 +394,9 @@ for (const engine of ENGINES) {
 			await seed();
 			const body = await summary('?domain=other.example');
 
-			assert.deepStrictEqual(body.variants, [
+			assert.deepStrictEqual(body.arms, [
 				{
+					arm: 'bar',
 					byAction: {
 						accept_all: 1,
 						custom: 0,
@@ -408,7 +407,6 @@ for (const engine of ENGINES) {
 					bySurface: { widget: 1 },
 					choices: 1,
 					medianTimeToDecisionMs: 100,
-					variant: 'bar',
 				},
 			]);
 		});
@@ -421,10 +419,10 @@ for (const engine of ENGINES) {
 			);
 			assert.strictEqual(response.status, 200);
 			assert.deepStrictEqual(await response.json(), {
+				arms: [],
 				experimentId: 'does-not-exist',
 				from: null,
 				to: null,
-				variants: [],
 			});
 		});
 
@@ -463,8 +461,9 @@ for (const engine of ENGINES) {
 				authed
 			);
 			const body = await response.json();
-			assert.deepStrictEqual(body.variants, [
+			assert.deepStrictEqual(body.arms, [
 				{
+					arm: 'bar',
 					byAction: {
 						accept_all: 1,
 						custom: 0,
@@ -475,7 +474,6 @@ for (const engine of ENGINES) {
 					bySurface: { banner: 1 },
 					choices: 1,
 					medianTimeToDecisionMs: 100,
-					variant: 'bar',
 				},
 			]);
 		});

@@ -1151,9 +1151,9 @@ for (const engine of ENGINES) {
 			const metadata = {
 				experiment: {
 					acknowledgedDiagnostics: false,
+					arm: 'bar',
 					assignedBy: 'host',
 					id: 'banner-shape',
-					variant: 'bar',
 				},
 				timeToDecisionMs: 3700,
 			};
@@ -1185,10 +1185,10 @@ for (const engine of ENGINES) {
 					const sql = yield* SqlClient.SqlClient;
 					return yield* sql<{
 						experimentId: string | null;
-						experimentVariant: string | null;
+						experimentArm: string | null;
 						timeToDecisionMs: number | string | null;
 					}>`
-						select ${sql('experimentId')}, ${sql('experimentVariant')},
+						select ${sql('experimentId')}, ${sql('experimentArm')},
 							${sql('timeToDecisionMs')}
 						from ${sql('consent')}
 						where ${sql('id')} = ${body.consentId}
@@ -1196,7 +1196,7 @@ for (const engine of ENGINES) {
 				})
 			);
 			assert.strictEqual(columns[0]?.experimentId, 'banner-shape');
-			assert.strictEqual(columns[0]?.experimentVariant, 'bar');
+			assert.strictEqual(columns[0]?.experimentArm, 'bar');
 			assert.strictEqual(Number(columns[0]?.timeToDecisionMs), 3700);
 		});
 
@@ -1204,9 +1204,9 @@ for (const engine of ENGINES) {
 			await seed();
 			const experiment = {
 				acknowledgedDiagnostics: false,
+				arm: 'bar',
 				assignedBy: 'host',
 				id: 'banner-shape',
-				variant: 'bar',
 			};
 			const saves = await Promise.all(
 				[
@@ -1231,7 +1231,7 @@ for (const engine of ENGINES) {
 			);
 			assert.strictEqual(response.status, 200, await response.clone().text());
 			const body = await response.json();
-			assert.deepStrictEqual(body.variants[0]?.byAction, {
+			assert.deepStrictEqual(body.arms[0]?.byAction, {
 				accept_all: 1,
 				custom: 0,
 				opt_out: 0,
@@ -1246,10 +1246,10 @@ for (const engine of ENGINES) {
 					const sql = yield* SqlClient.SqlClient;
 					const rows = yield* sql<{
 						experimentId: string | null;
-						experimentVariant: string | null;
+						experimentArm: string | null;
 						timeToDecisionMs: number | string | null;
 					}>`
-						select ${sql('experimentId')}, ${sql('experimentVariant')},
+						select ${sql('experimentId')}, ${sql('experimentArm')},
 							${sql('timeToDecisionMs')}
 						from ${sql('consent')}
 						where ${sql('id')} = ${consentId}
@@ -1263,7 +1263,7 @@ for (const engine of ENGINES) {
 			// The id is longer than its column allows, and the decision time is
 			// past what a 32-bit `int` column holds on MySQL and Postgres.
 			const metadata = {
-				experiment: { id: 'x'.repeat(129), variant: 'bar' },
+				experiment: { arm: 'bar', id: 'x'.repeat(129) },
 				timeToDecisionMs: 3_000_000_000,
 			};
 			const response = await post({ ...submission, metadata });
@@ -1277,14 +1277,14 @@ for (const engine of ENGINES) {
 			// The arm goes with the id: a row with an arm and no id would belong
 			// to no experiment, and one with an id and no arm would never be
 			// counted by the summary.
-			assert.isNull(columns?.experimentVariant);
+			assert.isNull(columns?.experimentArm);
 			assert.isNull(columns?.timeToDecisionMs);
 		});
 
 		it('keeps a well-formed experiment when only the decision time is out of range', async () => {
 			await seed();
 			const metadata = {
-				experiment: { id: 'banner-shape', variant: 'bar' },
+				experiment: { arm: 'bar', id: 'banner-shape' },
 				timeToDecisionMs: -1,
 			};
 			const response = await post({ ...submission, metadata });
@@ -1293,14 +1293,14 @@ for (const engine of ENGINES) {
 			const body = await response.json();
 			const columns = await attributionColumns(body.consentId);
 			assert.strictEqual(columns?.experimentId, 'banner-shape');
-			assert.strictEqual(columns?.experimentVariant, 'bar');
+			assert.strictEqual(columns?.experimentArm, 'bar');
 			assert.isNull(columns?.timeToDecisionMs);
 		});
 
 		it('drops the experiment id when the arm is malformed', async () => {
 			await seed();
 			const metadata = {
-				experiment: { id: 'banner-shape', variant: 42 },
+				experiment: { arm: 42, id: 'banner-shape' },
 			};
 			const response = await post({ ...submission, metadata });
 
@@ -1308,7 +1308,7 @@ for (const engine of ENGINES) {
 			const body = await response.json();
 			const columns = await attributionColumns(body.consentId);
 			assert.isNull(columns?.experimentId);
-			assert.isNull(columns?.experimentVariant);
+			assert.isNull(columns?.experimentArm);
 		});
 
 		it('rejects a submission missing its identifiers', async () => {

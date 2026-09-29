@@ -673,7 +673,7 @@ const proofFields = (
 
 export interface AttributionFields {
 	readonly experimentId: string | null;
-	readonly experimentVariant: string | null;
+	readonly experimentArm: string | null;
 	readonly timeToDecisionMs: number | null;
 }
 
@@ -704,7 +704,7 @@ const attributionText = (value: unknown): string | undefined =>
 /**
  * The experiment attribution a submission carries, as column values.
  *
- * A v3 client puts `experiment: { id, variant, … }` and `timeToDecisionMs`
+ * A v3 client puts `experiment: { id, arm, … }` and `timeToDecisionMs`
  * in `metadata`; the summary route groups and orders on them, so they are
  * copied onto real columns at write time. `metadata` is left exactly as sent.
  *
@@ -713,7 +713,7 @@ const attributionText = (value: unknown): string | undefined =>
  * still in `metadata` for the audit trail.
  *
  * The id and the arm are kept together or dropped together. The summary
- * filters on `experimentVariant is not null`, so an id without an arm would
+ * filters on `experimentArm is not null`, so an id without an arm would
  * be a row no report ever counts, and an arm without an id belongs to no
  * experiment.
  */
@@ -726,13 +726,12 @@ const attributionFields = (
 			? (experiment as Record<string, unknown>)
 			: undefined;
 	const experimentId = attributionText(arm?.id);
-	const experimentVariant = attributionText(arm?.variant);
-	const complete =
-		experimentId !== undefined && experimentVariant !== undefined;
+	const experimentArm = attributionText(arm?.arm);
+	const complete = experimentId !== undefined && experimentArm !== undefined;
 	const ms = metadata?.timeToDecisionMs;
 	return {
+		experimentArm: complete ? experimentArm : null,
 		experimentId: complete ? experimentId : null,
-		experimentVariant: complete ? experimentVariant : null,
 		timeToDecisionMs:
 			typeof ms === 'number' &&
 			Number.isInteger(ms) &&

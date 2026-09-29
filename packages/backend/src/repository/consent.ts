@@ -56,7 +56,7 @@ export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	 * the summary can group on them. `metadata` still holds the full object.
 	 */
 	readonly experimentId?: string | null;
-	readonly experimentVariant?: string | null;
+	readonly experimentArm?: string | null;
 	readonly timeToDecisionMs?: number | null;
 	readonly ipAddress?: string | null;
 	readonly userAgent?: string | null;
@@ -350,8 +350,8 @@ const rowValues = (
 			: JSON.stringify(submission.choice),
 	consentAction: submission.consentAction ?? null,
 	domainId: submission.domainId,
+	experimentArm: submission.experimentArm ?? null,
 	experimentId: submission.experimentId ?? null,
-	experimentVariant: submission.experimentVariant ?? null,
 	givenAt: submission.givenAt,
 	id,
 	ipAddress: submission.ipAddress ?? null,
