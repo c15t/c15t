@@ -104,7 +104,8 @@ export interface C15tPluginProps {
 	 * The declaration only narrows the optional half of the resolved policy
 	 * scope: a surface lists `necessary` plus the scope the policy governs that
 	 * this list also names, so the same backend and the same declaration render
-	 * the same rows on web and mobile. Omit it to offer the full policy scope.
+	 * the same rows on web and mobile. Omit it to declare none: a strict policy
+	 * then offers its full scope and a permissive one offers `necessary` alone.
 	 */
 	consentCategories?: readonly C15tConsentCategoryId[];
 	/**
@@ -245,7 +246,7 @@ export interface ResolvedC15tParams {
 	 * Category ids the app declares, de-duplicated; empty means no declaration.
 	 *
 	 * Written as the `com.c15t.categories` plist array and the comma-separated
-	 * `com.c15t.CATEGORIES` meta-data. Absent keys are the full-scope answer,
+	 * `com.c15t.CATEGORIES` meta-data. Absent keys are the no-declaration answer,
 	 * so the empty list is written nowhere rather than as an empty value.
 	 */
 	readonly consentCategories: readonly C15tConsentCategoryId[];
@@ -396,12 +397,12 @@ const normalizeConsentCategories = function normalizeConsentCategories(
 		return [];
 	}
 	if (categories.length === 0) {
-		// An empty list means "no declaration" to both cores, which is the full
-		// policy scope: the opposite of what a host typing `[]` looks like it
-		// means. Omitting the parameter says the full-scope thing honestly.
+		// An empty list means "no declaration" to both cores, which is the
+		// policy's answer for an app that declares nothing, not an app that
+		// offers nothing. Omitting the parameter says that honestly.
 		throw new C15tPluginError(
 			'consentCategories must name at least one category. Omit it ' +
-				'entirely to offer the full policy scope.'
+				'entirely when the app declares no categories.'
 		);
 	}
 	const trimmed = categories.map((category) => category.trim());

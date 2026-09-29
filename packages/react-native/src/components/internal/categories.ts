@@ -42,8 +42,8 @@ const ROW_ORDER: readonly AllConsentNames[] = [
  * Which categories to list.
  *
  * The native core decides the list the surfaces render: `necessary`, then the
- * resolved policy scope narrowed by the app's declared scope, which is the same
- * set the web dialog derives from the policy. This function only puts those
+ * choice scope it projects from the resolved policy and the app's declared
+ * categories, which is the same set the web dialog derives from the policy. This function only puts those
  * names in display order and drops any the vocabulary does not know, because a
  * row it will not accept is a row that cannot be honoured. A snapshot from a
  * core with no configuration yet carries `null`, where the full vocabulary is

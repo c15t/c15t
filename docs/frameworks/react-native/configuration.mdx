@@ -62,7 +62,7 @@ these through `app.json`'s `ios.infoPlist`, which the plugin writes for you.
 | `com.c15t.country` | string | Pin the country used for policy matching. |
 | `com.c15t.region` | string | Pin the region or state code. |
 | `com.c15t.language` | string | Pin the translation language. Defaults to the device locale. |
-| `com.c15t.categories` | string array | Category ids the app declares. Empty means the full policy scope. |
+| `com.c15t.categories` | string array | Category ids the app declares. Empty means none declared: a strict policy offers its full scope, a permissive one only Necessary. |
 | `com.c15t.vendors` | string | Comma-separated IAB vendor ids the app may disclose, e.g. `42, 755, 8`. Android spells this `com.c15t.VENDORS`. Absent or empty means no scope: the core keeps every vendor the backend serves. |
 | `com.c15t.gpc` | boolean | The host app's GPC report. Detection only: it never becomes an override. |
 | `com.c15t.reactnative.AutoBootstrap` | boolean | `false` opts out of the pre-React start. Only written when you opt out, since on is the bridge's default. |
@@ -143,9 +143,22 @@ and `vendors`.
 provider takes: the category ids your app offers. It reaches both platforms as
 one declaration and only narrows the optional half of the resolved policy scope,
 so the same backend and the same list render the same dialog rows on web and
-mobile. Omit it to offer the full policy scope. An unknown id or an empty list
-fails the prebuild rather than shipping a declaration that reads differently
-than you typed it.
+mobile. An unknown id or an empty list fails the prebuild rather than shipping a
+declaration that reads differently than you typed it.
+
+If you omit it, the result depends on the policy's `scopeMode`, as on the web:
+
+- Under a strict policy, the dialog offers the full policy scope.
+- Under a permissive policy, the dialog lists only Necessary. The banner still
+  appears when the policy prompts for a choice. Accept All, Reject All and Save
+  each record an acknowledgement that keeps the banner dismissed across
+  launches, and send a consent receipt for Necessary alone. The
+  acknowledgement expires with the policy's choice validity and after a policy
+  change. A stored choice that is still valid under the current policy also
+  counts as an acknowledgement.
+
+A mobile app has no scripts to discover categories from, so declare every
+category your app gates with the SDK.
 
 `vendors` is the mobile spelling of the `iab.vendors` array a web host passes to
 its provider: the IAB vendor ids your app discloses. It reaches both platforms as

@@ -71,7 +71,7 @@ export const buildMetaDataPairs = function buildMetaDataPairs(
 	}
 	// The comma-separated spelling `C15tAndroid.declaredCategories` parses; iOS
 	// gets the same list as a plist array. An empty declaration stays unwritten,
-	// because absence is the full-scope answer.
+	// because absence is the no-declaration answer.
 	if (params.consentCategories.length > 0) {
 		pairs.push({
 			name: ANDROID_META.categories,
