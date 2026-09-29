@@ -104,4 +104,16 @@ describe('React, Next.js and JavaScript boilerplate', () => {
 			rmSync(root, { force: true, recursive: true });
 		}
 	}, 40_000);
+
+	it("offline JavaScript uses core's offline() so language changes switch the copy", () => {
+		const consent = generateJavaScriptBoilerplate({
+			backendURL: undefined,
+			framework: 'javascript',
+			mode: 'offline',
+			scripts: [],
+		}).files['consent.ts'];
+		expect(consent).toContain("import { offline } from '@c15t/core';");
+		expect(consent).toMatch(/mode: offline\(\{ policyRules: /u);
+		expect(consent).not.toContain('createOfflineTransport');
+	});
 });

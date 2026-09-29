@@ -5,6 +5,7 @@ packages:
   "@c15t/svelte": patch
   "@c15t/astro": patch
   "@c15t/browser": patch
+  "@c15t/cli": patch
 ---
 
 ### Keep app `i18n.messages` overrides when the backend sends translations
@@ -15,7 +16,7 @@ The backend copy is now the base for the visitor's language and the app's `i18n.
 
 Astro also deep-merges `i18n.messages` now. Before, a partial override such as `{ cookieBanner: { title } }` replaced the whole `cookieBanner` section and left its other keys empty.
 
-`@c15t/core` now exports `offline()`, a mode for `createConsentRuntime()` that resolves policy rules locally. A language set through the kernel, with `overrides.language` or `kernel.set.language()`, switches the copy when the bundle or `i18n.messages` has that language. A language with no copy falls back to the default copy, labelled with its own language. The language a server prefetch detected from `Accept-Language` does not switch the copy. `@c15t/browser` uses this transport, so `data-language`, the `overrides.language` option and `setLanguage()` now switch the copy in offline mode. The React and Svelte `offline()` modes are unchanged.
+`@c15t/core` now exports `offline()`, a mode for `createConsentRuntime()` that resolves policy rules locally. A language set through the kernel, with `overrides.language` or `kernel.set.language()`, switches the copy when the bundle or `i18n.messages` has that language. A language with no copy falls back to the default copy, labelled with its own language. The language a server prefetch detected from `Accept-Language` does not switch the copy. `@c15t/browser` uses this transport, so `data-language`, the `overrides.language` option and `setLanguage()` now switch the copy in offline mode. The React and Svelte `offline()` modes are unchanged. The JavaScript boilerplate from `@c15t/cli generate` now uses core's `offline()`, so generated headless projects switch copy too.
 
 `createOfflineTransport()` accepts `translationsFor` and `detectedLanguage` options with the same behavior. Without `translationsFor` it still relabels its copy with the requested language, as before.
 
