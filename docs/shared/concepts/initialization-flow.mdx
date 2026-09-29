@@ -97,7 +97,7 @@ group: reference
   2. **Policy changed** — the material policy fingerprint differs from the fingerprint stored with the user's last consent (re-prompting)
   3. **Storage is accessible** — the browser allows localStorage (not blocked in private mode)
 
-  If the resolved model is `none` or `opt-out` (and `ui.mode` is `none`), consents are auto-granted and the banner never appears. See [Consent Models](/docs/frameworks/react/concepts/consent-models) and [Policy Packs](/docs/frameworks/react/concepts/policy-packs) for details.
+  If the resolved model is `none` or `opt-out` (and `ui.mode` is `none`) and no saved choice exists, consents are auto-granted and the banner never appears. Existing saved choices, including denials, stay in effect. See [Consent Models](/docs/frameworks/react/concepts/consent-models) and [Policy Packs](/docs/frameworks/react/concepts/policy-packs) for details.
 </section>
 
 <section id="debugging">

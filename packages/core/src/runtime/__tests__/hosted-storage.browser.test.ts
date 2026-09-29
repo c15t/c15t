@@ -373,13 +373,9 @@ describe.sequential('hosted storage and recovery', () => {
 				});
 			});
 			await page.evaluate(() => window.hostedStorageTest.save('necessary'));
-			// Avoid the fixture's cookie snapshot while the cookie getter is blocked.
-			expect(
-				await page.evaluate(() => {
-					Reflect.deleteProperty(document, 'cookie');
-					return window.hostedStorageTest.state().measurement;
-				})
-			).toBe(false);
+			const state = await page.evaluate(() => window.hostedStorageTest.state());
+			expect(state.measurement).toBe(false);
+			expect(state.cookie).toBeNull();
 		} finally {
 			await page.close();
 		}

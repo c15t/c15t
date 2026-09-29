@@ -1,6 +1,14 @@
 import { getConsentFromStorage } from '../../libs/cookie';
 import { getOrCreateConsentRuntime } from '../index';
 
+function readCookie() {
+	try {
+		return document.cookie;
+	} catch {
+		return null;
+	}
+}
+
 function create() {
 	const runtime = getOrCreateConsentRuntime({
 		mode: 'hosted',
@@ -24,7 +32,7 @@ function create() {
 					consents: { measurement: boolean };
 					consentInfo: typeof state.consentInfo;
 				}>(),
-				cookie: document.cookie,
+				cookie: readCookie(),
 			};
 		},
 		save: (type: 'necessary' | 'all') => store.getState().saveConsents(type),

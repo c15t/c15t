@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../../../client/client-factory';
 import type { ConsentStoreState } from '../../../store/type';
+import { saveConsentToStorage } from '../../cookie';
 import { hasGlobalPrivacyControlSignal } from '../../global-privacy-control';
 import { initConsentManager } from '../index';
 import {
@@ -16,6 +17,14 @@ import {
 	createMockConsentManager,
 	createMockStoreState,
 } from './test-setup';
+
+vi.mock('../../cookie', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('../../cookie')>();
+	return {
+		...actual,
+		saveConsentToStorage: vi.fn(actual.saveConsentToStorage),
+	};
+});
 
 vi.mock('../../global-privacy-control', () => ({
 	hasGlobalPrivacyControlSignal: vi.fn(),
@@ -423,6 +432,112 @@ describe('initConsentManager', () => {
 			expect(state.consents.measurement).toBe(false);
 		});
 
+		describe('when the material policy fingerprint changes', () => {
+			const grantedConsents = {
+				necessary: true,
+				functionality: false,
+				experience: false,
+				marketing: false,
+				measurement: true,
+				alwaysOn: true,
+			} as ConsentStoreState['consents'];
+
+			async function initWithChangedPolicy() {
+				let state = createMockStoreState({
+					consents: grantedConsents,
+					selectedConsents: grantedConsents,
+					consentInfo: {
+						time: 1_700_000_000_000,
+						subjectId: 'sub_existing',
+						materialPolicyFingerprint: 'f'.repeat(64),
+					},
+					consentTypes: [
+						{
+							name: 'necessary',
+							defaultValue: true,
+							description: '',
+							disabled: true,
+							display: true,
+							gdprType: 1,
+						},
+						{
+							name: 'measurement',
+							defaultValue: false,
+							description: '',
+							disabled: false,
+							display: true,
+							gdprType: 4,
+						},
+						{
+							name: 'alwaysOn' as ConsentStoreState['consentTypes'][number]['name'],
+							defaultValue: true,
+							description: '',
+							disabled: true,
+							display: true,
+							gdprType: 2,
+						},
+					],
+				});
+				storeGet = (() => state) as StoreApi<ConsentStoreState>['getState'];
+				storeSet = ((update) => {
+					state = {
+						...state,
+						...(typeof update === 'function' ? update(state) : update),
+					};
+				}) as StoreApi<ConsentStoreState>['setState'];
+				mockManager = createMockConsentManager({
+					init: vi.fn().mockResolvedValue({
+						data: createMockConsentBannerResponse({
+							policy: {
+								id: 'policy_runtime_gdpr',
+								model: 'opt-in',
+								consent: { categories: ['necessary', 'measurement'] },
+								ui: { mode: 'banner' },
+							},
+						}),
+						error: null,
+					}),
+				});
+
+				await initConsentManager({
+					manager: mockManager,
+					get: storeGet,
+					set: storeSet,
+				});
+				return state;
+			}
+
+			it('revokes grants in memory when the re-prompt state cannot be saved', async () => {
+				vi.mocked(saveConsentToStorage).mockImplementationOnce(() => {
+					throw new Error('Failed to save consent to any storage method');
+				});
+				const warn = vi
+					.spyOn(console, 'warn')
+					.mockImplementation(() => undefined);
+
+				try {
+					const state = await initWithChangedPolicy();
+
+					expect(state.consents.measurement).toBe(false);
+					expect(state.selectedConsents.measurement).toBe(false);
+					expect(state.consentInfo?.requiresReconsent).toBe(true);
+					expect(state.activeUI).toBe('banner');
+				} finally {
+					warn.mockRestore();
+				}
+			});
+
+			it('keeps disabled categories on their configured default', async () => {
+				const state = await initWithChangedPolicy();
+
+				expect(state.consents).toMatchObject({
+					necessary: true,
+					measurement: false,
+					alwaysOn: true,
+				});
+			});
+		});
+
 		it('seeds the current material policy fingerprint for existing consent without reopening UI', async () => {
 			const mockResponse = createMockConsentBannerResponse({
 				policy: {
@@ -828,6 +943,33 @@ describe('initConsentManager', () => {
 					},
 				})
 			);
+		});
+
+		it('does not auto-grant consents from the hosted outage fallback', async () => {
+			const onConsentSet = vi.fn();
+			mockState.config.mode = 'hosted';
+			mockState.callbacks.onConsentSet = onConsentSet;
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: createMockConsentBannerResponse({
+					jurisdiction: 'NONE',
+					policy: { id: 'fallback', model: 'opt-out' },
+				}),
+				error: null,
+				response: null,
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockSet).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					consents: expect.objectContaining({ measurement: true }),
+				})
+			);
+			expect(onConsentSet).not.toHaveBeenCalled();
 		});
 
 		it('should honor Global Privacy Control when auto granting consents', async () => {
