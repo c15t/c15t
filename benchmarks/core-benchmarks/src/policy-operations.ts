@@ -153,7 +153,10 @@ export const createPolicyOperations = (
 			}
 		},
 		// The metric name predates live-only GPC. It is kept so runtime
-		// comparisons against older bases still find the measurement.
+		// comparisons against older bases still find the measurement. The
+		// comparison runs this source against the base's packages too, so it
+		// asserts nothing about what happens after the signal is removed: older
+		// bases kept a standing opt-out there.
 		async realPolicyStandingGpcUs() {
 			const resolution = resolvePolicyRules({
 				countryCode: 'US',
@@ -171,12 +174,10 @@ export const createPolicyOperations = (
 					'GPC did not restrict marketing'
 				);
 				kernel.set.privacySignals({ gpc: false });
-				const snapshot = kernel.getSnapshot();
 				requireCondition(
-					snapshot.effectivePermissions.marketing,
-					'GPC restriction outlived the signal'
+					!kernel.getSnapshot().explicitChoice,
+					'GPC created a choice'
 				);
-				requireCondition(!snapshot.explicitChoice, 'GPC created a choice');
 			} finally {
 				kernel.dispose();
 			}
