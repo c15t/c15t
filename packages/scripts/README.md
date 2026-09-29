@@ -32,7 +32,7 @@ Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/integrations).
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/integrations/overview).
 
 ## Integrations
 

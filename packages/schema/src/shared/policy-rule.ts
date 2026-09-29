@@ -132,7 +132,7 @@ export interface PolicyRuleReview {
  * Presentation is deliberately absent. Configure layout and variants on the
  * host. `review` documents assumptions and is never part of any fingerprint.
  *
- * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
+ * @see {@link https://c15t.com/docs/concepts/policies}
  */
 export interface PolicyRule {
 	/** Frozen v2 receipt metadata. Never part of resolved behavior or presentation. */

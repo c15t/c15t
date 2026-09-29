@@ -103,7 +103,7 @@ export const detectFramework = async function detectFramework(
 			['svelte', 'Svelte', 'svelte'],
 			['nuxt', 'Nuxt', 'vue'],
 			['vue', 'Vue', 'vue'],
-			['solid-js', 'Solid', 'solid'],
+			['solid-js', 'Solid', 'javascript'],
 			['@remix-run/react', 'Remix', 'react'],
 			['gatsby', 'Gatsby', 'react'],
 		].find(([dependency]) => dependency && dependency in deps);

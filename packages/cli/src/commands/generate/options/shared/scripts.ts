@@ -12,7 +12,7 @@ export const getScriptsToAdd = async function getScriptsToAdd({
 	handleCancel,
 }: GetScriptsToAddOptions) {
 	context.logger.info(
-		'@c15t/scripts has various prebuilt scripts for you to use. Learn more: https://c15t.com/docs/integrations'
+		'@c15t/scripts has various prebuilt scripts for you to use. Learn more: https://c15t.com/docs/integrations/overview'
 	);
 
 	const addScriptsSelection = await p.confirm({

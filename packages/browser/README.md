@@ -61,7 +61,7 @@ pnpm add @c15t/browser
 1. Add the tag and reload; the banner appears on the first visit
 2. Put `data-c15t-action="customize"` on any button to open the preference centre
 3. Read consent from `window.c15t` in your own code
-4. For the full set of attributes and options, see the [script tag docs](https://c15t.com/docs/frameworks/javascript/script-tag)
+4. For the full set of attributes and options, see the [script tag reference](https://c15t.com/docs/frameworks/html/attributes-and-api)
 
 ```js
 c15t.on('consent', () => {
@@ -76,7 +76,7 @@ c15t.openDialog();
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/javascript/script-tag).
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/html/quickstart).
 
 ## Deployment Modes
 
@@ -87,7 +87,7 @@ For further information, guides, and examples visit the [reference documentation
 
 ## Optional IAB entry
 
-Load `c15t.iab.js` instead of `c15t.js`, or import `init` from `@c15t/browser/iab`. Configure `iab` with your registered CMP ID and vendor list. This entry includes the CMP, TC codec, purpose/vendor preferences, and IAB styles. The ordinary and headless entries exclude that implementation. Use `client.saveIAB()` to confirm individual IAB choices. See the [IAB script example](https://c15t.com/docs/frameworks/javascript/script-tag#optional-iab-entry).
+Load `c15t.iab.js` instead of `c15t.js`, or import `init` from `@c15t/browser/iab`. Configure `iab` with your registered CMP ID and vendor list. This entry includes the CMP, TC codec, purpose/vendor preferences, and IAB styles. The ordinary and headless entries exclude that implementation. Use `client.saveIAB()` to confirm individual IAB choices. See the [IAB script example](https://c15t.com/docs/frameworks/html/iab).
 
 ## Support
 

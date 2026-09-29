@@ -452,7 +452,7 @@ export interface UIOptions {
 	/**
 	 * Visual theme to apply.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/styling/tokens
+	 * @see https://c15t.com/docs/customization/tokens
 	 * @see {@link Theme} for token structure
 	 */
 	theme?: Theme;
@@ -480,7 +480,7 @@ export interface UIOptions {
 	 * Otherwise, the theme will be detected if you have '.dark' classname in your document.
 	 * `null` leaves the `c15t-dark` class on `<html>` to something else.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/styling/color-scheme
+	 * @see https://c15t.com/docs/customization/tokens
 	 */
 	colorScheme?: 'light' | 'dark' | 'system' | null;
 

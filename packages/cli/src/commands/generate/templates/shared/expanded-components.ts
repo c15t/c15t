@@ -211,7 +211,7 @@ const generateMinimalTheme = function generateMinimalTheme(
  *
  * Customize the colors, typography, and components below to match your design.
  *
- * @see https://c15t.com/docs/customization/theming
+ * @see https://c15t.com/docs/customization/tokens
  */
 export const theme: Theme = {
 	colors: {
@@ -323,7 +323,7 @@ const generateTailwindTheme = function generateTailwindTheme(
  *
  * Customize the colors, typography, and components below to match your design.
  *
- * @see https://c15t.com/docs/customization/theming
+ * @see https://c15t.com/docs/customization/tokens
  */
 export const theme: Theme = {
 	colors: {
@@ -394,7 +394,7 @@ const generateDarkTheme = function generateDarkTheme(
  *
  * Customize the colors, typography, and components below to match your design.
  *
- * @see https://c15t.com/docs/customization/theming
+ * @see https://c15t.com/docs/customization/tokens
  */
 export const theme: Theme = {
 	colors: {

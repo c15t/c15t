@@ -1370,7 +1370,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			return;
 		}
 		console.warn(
-			'c15t: `theme` tokens are no longer turned into CSS in the browser. Render <ConsentTheme theme={theme} /> on the server, or put the CSS from generateThemeCSS() in your stylesheet. See https://c15t.com/docs/frameworks/react/styling/overview'
+			'c15t: `theme` tokens are no longer turned into CSS in the browser. Render <ConsentTheme theme={theme} /> on the server, or put the CSS from generateThemeCSS() in your stylesheet. See https://c15t.com/docs/frameworks/react/customize'
 		);
 	}, [userTheme]);
 

@@ -23,7 +23,7 @@ export const ERROR_CATALOG = {
 	// --- Auth Errors ---
 	AUTH_FAILED: {
 		code: 'AUTH_FAILED',
-		docs: `${URLS.CLI_DOCS}/auth`,
+		docs: `${URLS.DOCS}/cli/commands/hosted`,
 		hint: 'Try running `c15t login` again',
 		message: 'Authentication failed',
 	},
@@ -55,7 +55,7 @@ export const ERROR_CATALOG = {
 	},
 	CONFIG_INVALID: {
 		code: 'CONFIG_INVALID',
-		docs: `${URLS.DOCS}/configuration`,
+		docs: `${URLS.DOCS}/cli/commands/setup`,
 		hint: 'Check your c15t.config.ts file for errors',
 		message: 'Invalid c15t configuration',
 	},
@@ -118,7 +118,7 @@ export const ERROR_CATALOG = {
 	},
 	FRAMEWORK_NOT_DETECTED: {
 		code: 'FRAMEWORK_NOT_DETECTED',
-		docs: `${URLS.CLI_DOCS}/frameworks`,
+		docs: `${URLS.DOCS}/frameworks`,
 		hint: 'Supported frameworks: Next.js, React, Remix, Vite',
 		message: 'Could not detect framework',
 	},
