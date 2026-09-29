@@ -56,7 +56,7 @@ Do not strip them in a Nitro server middleware. During server rendering, the
 c15t plugin forwards the visitor's location headers to the module's init
 route inside the same server, and a middleware runs for that internal request
 too. A middleware that deletes or rewrites location headers there removes the
-location the plugin just forwarded.
+location the plugin has forwarded.
 
 If a client can reach your origin without passing through your CDN, it can
 send any platform header, such as `cf-ipcountry`. Block direct origin access
