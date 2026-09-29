@@ -1,4 +1,3 @@
-import type { ExperimentReportEvent } from '@c15t/core';
 import {
 	readStoredRecords,
 	readStoredRecordsFromCookieHeader,
@@ -688,16 +687,18 @@ test.each(['opt-in', 'opt-out'] as const)(
 	}
 );
 
-test('experiment.reportTo receives the impression with its arm, then the choice', async () => {
+test('the experiment callbacks carry the arm on the impression and the choice', async () => {
 	const { fetchMock } = createFetchMock();
-	const reports: ExperimentReportEvent[] = [];
+	const shown = vi.fn();
+	const recorded = vi.fn();
 	const config: RuntimeConsentConfig = {
 		backendURL: 'https://consent.example',
+		callbacks: { onChoiceRecorded: recorded, onSurfaceShown: shown },
 		customFetch: fetchMock as unknown as typeof fetch,
 		experiment: {
+			arms: { bar: { prompt: { variant: 'bar' } } },
 			id: 'banner-shape',
-			reportTo: (event) => reports.push(event),
-			variants: { bar: { prompt: { variant: 'bar' } }, floating: {} },
+			split: { bar: 1 },
 		},
 		iframeBlocker: false,
 	};
@@ -705,36 +706,19 @@ test('experiment.reportTo receives the impression with its arm, then the choice'
 		config,
 		prefetch: initFixture,
 	});
-	expect(reports).toEqual([]);
-	// start() loads the experiment chunk; the banner is held until the arm
-	// lands, so the first impression already names it.
+	// start() picks the arm and loads the experiment chunk; the banner is
+	// held until the arm is checked, so the first impression already names it.
 	const stop = startVueConsentRuntime(context, config, { runInit: false });
 	try {
-		await vi.waitFor(() =>
-			expect(reports.map((report) => report.name)).toEqual([
-				'c15t_surface_shown',
-			])
-		);
-		const assigned = context.kernel.getSnapshot().experiment;
-		expect(assigned?.assignedBy).toBe('c15t');
-		expect(reports[0]).toMatchObject({
-			assignedBy: 'c15t',
-			experimentId: 'banner-shape',
+		await vi.waitFor(() => expect(shown).toHaveBeenCalledOnce());
+		expect(shown.mock.calls[0]?.[0]).toMatchObject({
+			experiment: { arm: 'bar', assignedBy: 'c15t', id: 'banner-shape' },
 			surface: 'banner',
-			variant: assigned?.variant,
 		});
-		expect(['bar', 'floating']).toContain(reports[0]?.variant);
-
 		await context.kernel.commands.save('all');
-
-		expect(reports.map((report) => report.name)).toEqual([
-			'c15t_surface_shown',
-			'c15t_choice_recorded',
-		]);
-		expect(reports[1]).toMatchObject({
+		expect(recorded.mock.calls[0]?.[0]).toMatchObject({
 			consentAction: 'all',
-			surface: 'banner',
-			variant: assigned?.variant,
+			experiment: { arm: 'bar' },
 		});
 	} finally {
 		stop();

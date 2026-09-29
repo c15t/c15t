@@ -9,11 +9,13 @@ import type {
 	ConsentExperiment,
 	ConsentSnapshot,
 	ConsentState,
+	ExperimentAssignment,
 	PresentationAction,
 } from 'c15t';
 import {
-	assignExperimentVariant,
-	createExperimentReporting,
+	pickExperimentArm,
+	readStoredExperimentArm,
+	writeStoredExperimentArm,
 } from 'c15t/experiment';
 import { createPersistence } from 'c15t/modules/persistence';
 import { createScriptLoader } from 'c15t/modules/script-loader';
@@ -34,35 +36,35 @@ const loader = createScriptLoader({ kernel, scripts });
 const devtools = createDevTools({ kernel });
 
 // The raw kernel has no `experiment` option; the runtime adapters build it
-// from these same helpers. `?experiment=1` picks the arm here, `&arm=wall`
-// forces it the way a flag provider would.
+// from these same helpers. `control` is the default banner and `wall`
+// blocks the page. `?experiment=1` lets c15t pick the arm here; `&arm=wall`
+// sets it the way a flag provider would.
 const search = new URLSearchParams(location.search);
 const arm = search.get('arm');
 const experiment: ConsentExperiment | undefined =
 	search.get('experiment') === '1'
-		? {
-				id: 'banner-shape',
-				variant: arm === 'wall' || arm === 'floating' ? arm : undefined,
-				variants: {
-					floating: {},
-					wall: { prompt: { variant: 'wall' } },
-				},
-			}
+		? { arms: { wall: { prompt: { variant: 'wall' } } }, id: 'banner-shape' }
 		: undefined;
-const experimentKey = function experimentKey(): string {
-	const stored = localStorage.getItem('example-experiment-key');
-	if (stored) {
-		return stored;
-	}
-	const key = crypto.randomUUID();
-	localStorage.setItem('example-experiment-key', key);
-	return key;
+const hostAssignment = function hostAssignment(
+	definition: ConsentExperiment,
+	name: string
+): ExperimentAssignment {
+	return {
+		acknowledgedDiagnostics: false,
+		arm: name === 'wall' ? 'wall' : 'control',
+		assignedBy: 'host',
+		id: definition.id,
+	};
 };
-// Recorded on the kernel so `surface:shown`, `choice:recorded` and
-// `notice:dismissed` carry it.
-const assignment = experiment
-	? assignExperimentVariant(experiment, experimentKey())
-	: null;
+let assignment: ExperimentAssignment | null = null;
+if (experiment) {
+	assignment =
+		arm === null
+			? pickExperimentArm(experiment, readStoredExperimentArm())
+			: hostAssignment(experiment, arm);
+}
+// Recorded on the kernel before `init()`, so `/init` carries the arm and
+// `surface:shown`, `choice:recorded` and `notice:dismissed` include it.
 kernel.set.experiment(assignment);
 const presentation = applyExperimentAssignment(
 	undefined,
@@ -94,32 +96,32 @@ const experimentEvents = element<HTMLElement>('#experiment-events');
 if (assignment) {
 	experimentPanel.hidden = false;
 	element<HTMLElement>('#experiment-arm').textContent =
-		`${assignment.id} · ${assignment.variant} · ${assignment.assignedBy}`;
+		`${assignment.id} · ${assignment.arm} · ${assignment.assignedBy}`;
 }
-// Impressions and choices go to `window.dataLayer` and the in-page log.
-const stopReporting = createExperimentReporting({
-	kernel,
-	reportTo: assignment
-		? [
-				'dataLayer',
-				(event) => {
-					const item = document.createElement('li');
-					const action =
-						event.name === 'c15t_choice_recorded'
-							? ` · ${event.consentAction}`
-							: '';
-					const timing =
-						event.name !== 'c15t_surface_shown' &&
-						event.timeToDecisionMs !== undefined
-							? ` · ${event.timeToDecisionMs} ms`
-							: '';
-					item.textContent =
-						`${event.name} · ${event.variant} · ${event.surface}` +
-						`${action}${timing}`;
-					experimentEvents.append(item);
-				},
-			]
-		: undefined,
+// Impressions and choices made under the arm go to the in-page log.
+const logExperimentEvent = function logExperimentEvent(text: string) {
+	const item = document.createElement('li');
+	item.textContent = text;
+	experimentEvents.append(item);
+};
+const stopSurfaceLog = kernel.events.on('surface:shown', (event) => {
+	if (!event.experiment) {
+		return;
+	}
+	// Keep a picked arm for this browser once the banner has shown it.
+	if (event.experiment.assignedBy === 'c15t') {
+		writeStoredExperimentArm(event.experiment);
+	}
+	logExperimentEvent(
+		`c15t_surface_shown · ${event.experiment.arm} · ${event.surface}`
+	);
+});
+const stopChoiceLog = kernel.events.on('choice:recorded', (event) => {
+	if (event.experiment) {
+		logExperimentEvent(
+			`c15t_choice_recorded · ${event.experiment.arm} · ${event.consentAction}`
+		);
+	}
 });
 const label: Record<PresentationAction, string> = {
 	accept: 'Accept all',
@@ -294,7 +296,8 @@ window.addEventListener('pagehide', (event) => {
 		return;
 	}
 	unsubscribe();
-	stopReporting();
+	stopSurfaceLog();
+	stopChoiceLog();
 	devtools.destroy();
 	loader.dispose();
 	persistence.dispose();

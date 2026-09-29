@@ -342,6 +342,14 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	reportSessions?: boolean;
 
 	/**
+	 * The banner-experiment arm this request runs, from your feature flag.
+	 * Pass the same `id` and arm to the client's `experiment` option. While
+	 * the visitor has no stored choice, the render's session report carries
+	 * it, so the backend counts the visitors each arm's banner was owed to.
+	 */
+	experiment?: { id: string; arm: string };
+
+	/**
 	 * Same-origin prefix where you mounted `createConsentServerRoute()`.
 	 * Set this explicitly to route deferred public vendor lists through it.
 	 * Without it, lists use the manifest URL directly. Self-route detection
@@ -499,8 +507,14 @@ export const resolveConsent = async function resolveConsent(
 							waitUntil: options.onBackgroundRevalidate,
 						},
 		});
+		// A visitor who already chose is not shown the banner, so is not
+		// counted toward the arm.
+		const experiment = base.initialRecords?.choice
+			? undefined
+			: options.experiment;
 		const response = await withResolutionBudget(
 			transport.init({
+				...(experiment && { experiment }),
 				overrides: {
 					...(base.initialOverrides ?? {}),
 					...consentInputsToOverrides({ ...inputs, gpc: undefined }),

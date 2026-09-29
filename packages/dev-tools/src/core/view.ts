@@ -596,7 +596,7 @@ const createExperimentSection = function createExperimentSection(
 	const stats = createElement(document, 'dl', 'c15t-dev-tools__stats');
 	stats.append(
 		createStat(document, 'Experiment', experiment.id),
-		createStat(document, 'Arm', experiment.variant),
+		createStat(document, 'Arm', experiment.arm),
 		createStat(document, 'Assigned by', experiment.assignedBy),
 		createStat(
 			document,

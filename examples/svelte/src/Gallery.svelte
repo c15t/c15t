@@ -27,24 +27,17 @@
 			<p>
 				Arm: <code data-testid="experiment-arm"
 					>{consent.experiment
-						? `${consent.experiment.id} · ${consent.experiment.variant} · ${consent.experiment.assignedBy}`
+						? `${consent.experiment.id} · ${consent.experiment.arm} · ${consent.experiment.assignedBy}`
 						: 'assigning…'}</code
 				>
 			</p>
 			<ul class="statuses">
 				{#each experimentEvents as event, index (index)}
 					<li>
-						<code>{event.name}</code> · {event.variant} · {event.surface}
-						{#if event.name === 'c15t_choice_recorded'}
-							· {event.consentAction}
-						{/if}
-						{#if event.name !== 'c15t_surface_shown' && event.timeToDecisionMs !== undefined}
-							· {event.timeToDecisionMs} ms
-						{/if}
+						<code>{event.name}</code> · {event.arm} · {event.detail}
 					</li>
 				{/each}
 			</ul>
-			<p>The same events are pushed to <code>window.dataLayer</code>.</p>
 		</section>
 	{/if}
 	<section class="card">

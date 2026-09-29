@@ -1,6 +1,5 @@
 'use client';
 
-import type { ExperimentReportEvent } from 'c15t';
 import {
 	ConsentDialogLink,
 	ConsentGate,
@@ -11,6 +10,7 @@ import {
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import type { ExperimentLogEntry } from '../lib/experiment';
 import { posthogConfigured, xPixelConfigured } from '../lib/scripts';
 import type { BannerDesign } from './consent';
 
@@ -40,11 +40,11 @@ const IntegrationStatus = ({
 	);
 };
 
-/** The assigned arm and the events the experiment reported so far. */
+/** The assigned arm and the experiment events logged so far. */
 const ExperimentReadout = ({
 	events,
 }: {
-	events: readonly ExperimentReportEvent[];
+	events: readonly ExperimentLogEntry[];
 }) => {
 	const assignment = useExperiment();
 	return (
@@ -56,7 +56,7 @@ const ExperimentReadout = ({
 				Experiment arm:{' '}
 				<code data-testid="experiment-arm">
 					{assignment
-						? `${assignment.id} · ${assignment.variant} · ${assignment.assignedBy}`
+						? `${assignment.id} · ${assignment.arm} · ${assignment.assignedBy}`
 						: 'assigning…'}
 				</code>
 			</p>
@@ -66,14 +66,7 @@ const ExperimentReadout = ({
 						// oxlint-disable-next-line react/no-array-index-key -- append-only log
 						key={index}
 					>
-						<code>{event.name}</code> · {event.variant} · {event.surface}
-						{event.name === 'c15t_choice_recorded'
-							? ` · ${event.consentAction}`
-							: ''}
-						{event.name !== 'c15t_surface_shown' &&
-						event.timeToDecisionMs !== undefined
-							? ` · ${event.timeToDecisionMs} ms`
-							: ''}
+						<code>{event.name}</code> · {event.arm} · {event.detail}
 					</li>
 				))}
 			</ul>
@@ -97,8 +90,8 @@ export const Demo = ({
 	onDesignChange: (design: BannerDesign) => void;
 	showTrigger: boolean;
 	onTriggerChange: (visible: boolean) => void;
-	/** Reported experiment events, or `null` when no experiment runs. */
-	experimentEvents: readonly ExperimentReportEvent[] | null;
+	/** Logged experiment events, or `null` when no experiment runs. */
+	experimentEvents: readonly ExperimentLogEntry[] | null;
 }) => {
 	const measurementAllowed = useConsent('measurement');
 	const marketingAllowed = useConsent('marketing');

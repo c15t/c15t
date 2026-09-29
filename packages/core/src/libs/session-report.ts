@@ -19,6 +19,8 @@
  */
 
 import {
+	CONSENT_EXPERIMENT_HEADER,
+	parseExperimentHeader,
 	buildConsentSessionReport,
 	CONSENT_SESSION_CLIENT_IP_HEADER,
 	getIpAddress,
@@ -245,7 +247,16 @@ export const reportConsentSession = function reportConsentSession(
 
 	const task = (async () => {
 		try {
-			const body = buildConsentSessionReport(options);
+			// An init route answers the browser's own `/init`, which carries
+			// the arm as a header; a server render passes it explicitly.
+			const body = buildConsentSessionReport({
+				...options,
+				experiment:
+					options.experiment ??
+					parseExperimentHeader(
+						readHeader(options.headers, CONSENT_EXPERIMENT_HEADER)
+					),
+			});
 			const response = await fetchImpl(`${backendURL}/sessions`, {
 				body: JSON.stringify(body),
 				headers: {

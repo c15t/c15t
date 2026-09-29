@@ -3,6 +3,7 @@ import {
 	createHostedTransport,
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core';
+import type { InitContext } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import {
 	consentInputsToOverrides,
@@ -86,6 +87,25 @@ const createForwardHeaders = (
 };
 
 /**
+ * The init context for a server render. The experiment arm goes along only
+ * while the visitor has no stored choice: a visitor who already chose is
+ * not shown the banner, so is not counted toward the arm.
+ */
+const initContext = function initContext(
+	base: ConsentState,
+	options: ResolveConsentOptions
+): InitContext {
+	const context: InitContext = {
+		overrides: base.initialOverrides ?? {},
+		user: base.initialUser ?? null,
+	};
+	if (options.experiment && !base.initialRecords?.choice) {
+		context.experiment = options.experiment;
+	}
+	return context;
+};
+
+/**
  * Resolves the visitor's consent state from a SvelteKit request.
  *
  * 1. Reads the consent cookie, the CDN geo headers, `accept-language`, and
@@ -154,10 +174,7 @@ export const resolveConsent = async function resolveConsent(
 				return fetchImpl(input, { ...init, headers });
 			},
 		});
-		const response = await transport.init?.({
-			overrides: base.initialOverrides ?? {},
-			user: base.initialUser ?? null,
-		});
+		const response = await transport.init?.(initContext(base, options));
 		if (!response) {
 			return base;
 		}

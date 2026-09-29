@@ -1,10 +1,4 @@
 <script setup lang="ts">
-import type { ExperimentReportEvent } from 'c15t';
-import {
-	buildChoiceRecordedReport,
-	buildNoticeDismissedReport,
-	buildSurfaceShownReport,
-} from 'c15t/experiment';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const snapshot = useConsentSnapshot();
@@ -12,32 +6,39 @@ const activeUI = useConsentActiveUI();
 const allowed = computed(() => snapshot.value.effectivePermissions.measurement);
 
 // `NUXT_PUBLIC_C15T_EXPERIMENT=1` puts the banner-shape experiment in the
-// module config (see nuxt.config.ts). The arm comes from `useExperiment()`;
-// the events c15t pushes to `window.dataLayer` are rebuilt here from the
-// kernel for an in-page log.
+// module config (see nuxt.config.ts). The arm comes from `useExperiment()`.
+// Module config is serializable, so it takes no callbacks; the page listens
+// to the kernel's events instead and lists each impression and choice made
+// under the arm.
 const experimentConfigured = Boolean(useConsentConfig().value.experiment);
 const experiment = useExperiment();
 const kernel = useConsentKernel();
-const experimentEvents = ref<ExperimentReportEvent[]>([]);
+const experimentEvents = ref<
+	{
+		name: 'c15t_surface_shown' | 'c15t_choice_recorded';
+		arm: string;
+		detail: string;
+	}[]
+>([]);
 let stopReporting: (() => void)[] = [];
 onMounted(() => {
 	stopReporting = [
 		kernel.events.on('surface:shown', (event) => {
-			const report = buildSurfaceShownReport(event);
-			if (report) {
-				experimentEvents.value.push(report);
+			if (event.experiment) {
+				experimentEvents.value.push({
+					arm: event.experiment.arm,
+					detail: event.surface,
+					name: 'c15t_surface_shown',
+				});
 			}
 		}),
 		kernel.events.on('choice:recorded', (event) => {
-			const report = buildChoiceRecordedReport(event);
-			if (report) {
-				experimentEvents.value.push(report);
-			}
-		}),
-		kernel.events.on('notice:dismissed', (event) => {
-			const report = buildNoticeDismissedReport(event);
-			if (report) {
-				experimentEvents.value.push(report);
+			if (event.experiment) {
+				experimentEvents.value.push({
+					arm: event.experiment.arm,
+					detail: event.consentAction,
+					name: 'c15t_choice_recorded',
+				});
 			}
 		}),
 	];
@@ -80,7 +81,7 @@ onUnmounted(() => {
 				Arm:
 				<code data-testid="experiment-arm">{{
 					experiment
-						? `${experiment.id} · ${experiment.variant} · ${experiment.assignedBy}`
+						? `${experiment.id} · ${experiment.arm} · ${experiment.assignedBy}`
 						: 'assigning…'
 				}}</code>
 			</p>
@@ -89,24 +90,12 @@ onUnmounted(() => {
 					v-for="(event, index) in experimentEvents"
 					:key="index"
 				>
-					<code>{{ event.name }}</code> · {{ event.variant }} ·
-					{{ event.surface }}
-					<template v-if="event.name === 'c15t_choice_recorded'">
-						· {{ event.consentAction }}
-					</template>
-					<template
-						v-if="
-							event.name !== 'c15t_surface_shown' &&
-							event.timeToDecisionMs !== undefined
-						"
-					>
-						· {{ event.timeToDecisionMs }} ms
-					</template>
+					<code>{{ event.name }}</code> · {{ event.arm }} · {{ event.detail }}
 				</li>
 			</ul>
 			<p>
-				The same events are pushed to <code>window.dataLayer</code>. Set
-				<code>NUXT_PUBLIC_C15T_EXPERIMENT_ARM=wall</code> to force the arm.
+				Set <code>NUXT_PUBLIC_C15T_EXPERIMENT_ARM=wall</code> to run the wall
+				arm the way a flag provider would.
 			</p>
 		</section>
 		<h2>Watch the video</h2>

@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 import { consentConfig, demoLocation } from '../../c15t.config';
 import { Consent } from '../../components/consent';
-import { isExperimentArm } from '../../lib/experiment';
+import { toExperimentArm } from '../../lib/experiment';
 
 /**
  * Starts consent resolution for this request and passes the pending result to
@@ -19,7 +19,8 @@ const Layout = async ({ children }: { children: ReactNode }) => {
 		...demoLocation,
 	});
 	// `?experiment=1` runs the banner-shape experiment and `&arm=wall` is
-	// the arm the server resolved (proxy.ts copies both into headers). This
+	// the arm the server resolved (proxy.ts copies both into headers); any
+	// other `arm` value is `control`, and no `arm` lets c15t pick. This
 	// is where `const arm = await bannerShape()` from the Vercel Flags SDK,
 	// or any other flag provider, would go. Reading headers does not wait
 	// for the manifest, so `state` stays pending.
@@ -30,7 +31,7 @@ const Layout = async ({ children }: { children: ReactNode }) => {
 		<Consent
 			state={state}
 			experiment={experiment}
-			experimentVariant={isExperimentArm(arm) ? arm : undefined}
+			experimentArm={arm === null ? undefined : toExperimentArm(arm)}
 		>
 			{children}
 		</Consent>

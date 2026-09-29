@@ -2686,6 +2686,38 @@ describe('createManifestTransport: local init resolution', () => {
 	});
 });
 
+describe('x-c15t-experiment header', () => {
+	test('hosted init carries the arm while the visitor has no stored choice', async () => {
+		const fetchSpy = vi.fn(
+			// oxlint-disable-next-line require-await -- Match the asynchronous fetch contract.
+			async (_url: RequestInfo | URL, _init?: RequestInit) =>
+				new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				})
+		);
+		const kernel = createConsentKernel({
+			initialExperiment: {
+				acknowledgedDiagnostics: false,
+				arm: 'wall',
+				assignedBy: 'host',
+				id: 'banner shape',
+			},
+			transport: createHostedTransport({
+				backendURL: 'https://backend.example',
+				fetch: fetchSpy as unknown as typeof fetch,
+			}),
+		});
+		await kernel.commands.init();
+		const headers = fetchSpy.mock.calls[0]?.[1]?.headers as Record<
+			string,
+			string
+		>;
+		expect(headers['x-c15t-experiment']).toBe('banner%20shape=wall');
+		kernel.dispose();
+	});
+});
+
 describe('x-c15t-version header (issue #916)', () => {
 	test('hosted init and save carry the client version', async () => {
 		const fetchSpy = vi.fn(

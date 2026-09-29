@@ -330,6 +330,23 @@ for (const engine of ENGINES) {
 			assert.strictEqual(onReport.mock.calls[0]?.[1].userAgent, 'Mozilla/5.0');
 		});
 
+		it('puts the arm from x-c15t-experiment on the /init session report', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const response = await reporting.request('/init', {
+				headers: {
+					'x-c15t-experiment': 'banner-shape=wall',
+					'x-c15t-version': '3.0.0',
+				},
+			});
+			assert.strictEqual(response.status, 200);
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 1));
+			assert.deepStrictEqual(onReport.mock.calls[0]?.[0].experiment, {
+				arm: 'wall',
+				id: 'banner-shape',
+			});
+		});
+
 		it('refuses a report a page could have sent', async () => {
 			// A cross-site POST from a browser carries Origin and cannot add the
 			// protocol header without a preflight an untrusted origin fails.

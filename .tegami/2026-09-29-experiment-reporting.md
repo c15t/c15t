@@ -1,5 +1,8 @@
 ---
 packages:
+  '@c15t/schema': minor
+  '@c15t/backend': minor
+  '@c15t/tanstack-start': minor
   '@c15t/core': minor
   '@c15t/react': minor
   '@c15t/nextjs': minor
@@ -11,16 +14,14 @@ packages:
   'c15t': minor
 ---
 
-### Report experiment impressions, choices and notice dismissals
+### Count each experiment arm's visitors through `/init`
 
-Send experiment impressions and choices to analytics without glue. `experiment.reportTo` accepts `'dataLayer'` (pushes `c15t_surface_shown`, `c15t_choice_recorded` and `c15t_notice_dismissed` onto `window.dataLayer` for GTM / gtag), `'posthog'` (calls `window.posthog.capture`), a function, or a list of any of these. Events carry the experiment id, arm, who assigned it, the surface, the decision (`consent_action`, `confirmed`, `time_to_decision_ms`) and the timestamp; no identifiers or user properties. Only visitors the banner showed the arm to are reported.
+The backend now learns which arm a visitor runs before they choose, so a dashboard can compute an opt-in rate per arm without any analytics setup. While a visitor has no stored choice, `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header, and the backend adds `experiment: { id, arm }` to that request's session report. Manifest-mode renders and init routes put it on the report they send to `POST /sessions`. A visitor who already chose is not counted, because they are not shown the banner.
 
-Reporting loads with the experiment chunk, so it costs nothing on a site without an experiment. When a server-rendered banner is on screen before the chunk arrives, its impression is reported once reporting attaches. A throwing reporter is logged and never blocks the consent flow or the other reporters. The `choice:recorded` kernel event and `onChoiceRecorded` payload now include `uiSource` and `consentAction`.
+On a server-rendered page, pass the arm to `resolveConsent({ experiment: { id, arm } })` in `c15t/next`, `@c15t/tanstack-start` and `@c15t/svelte`; Astro and Nuxt send the arm they rendered on their own. `@c15t/schema` exports `CONSENT_EXPERIMENT_HEADER`, `formatExperimentHeader` and `parseExperimentHeader`, and the session report schema gains an optional `experiment`.
 
-Each `'dataLayer'` push carries every property, `undefined` where the event has none, and sends `confirmed` as a comma-separated string, so GTM's merged data model never carries one event's values into the next. The `'posthog'` target holds up to 50 events for 30 seconds while `window.posthog` is not on the page yet and sends them in order once it appears; after that it drops them and stops polling. A `capture` that throws for one held event does not drop the rest.
+The `choice:recorded` kernel event and `onChoiceRecorded` payload now include `uiSource` and `consentAction`, and `onSurfaceShown` and `onChoiceRecorded` carry the arm, so forwarding experiment events to GTM, PostHog or any other tool is one callback.
 
-Opt-out experiments are measurable too. A dismissed `notice` prompt reports `c15t_notice_dismissed` with the arm, the surface and `time_to_decision_ms`, so an opt-out arm has an outcome to count against its impression even though no choice is saved. The `notice:dismissed` kernel event now carries `surface`, `timeToDecisionMs` and `experiment`. The surface is the snapshot's `activeUI`, so a programmatic `dismissNotice()` with no prompt open reports `surface: 'none'` and no timing, the same as a programmatic `save()`.
-
-`createExperimentReporting`, `createPosthogReporter`, the built-in reporters and the report builders are exported from `c15t/experiment` for custom sinks; the report event types are exported from `c15t`.
+Opt-out experiments are measurable too. The `notice:dismissed` kernel event now carries `surface`, `timeToDecisionMs` and `experiment`. The surface is the snapshot's `activeUI`, so a programmatic `dismissNotice()` with no prompt open reports `surface: 'none'` and no timing, the same as a programmatic `save()`.
 
 Dev-tools show the assigned experiment arm and the first impression time of each surface on the Policy tab.

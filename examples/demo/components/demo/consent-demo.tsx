@@ -220,16 +220,17 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 	const params = parseParams(searchParams);
 	const scenario = getScenarioById(params.scenarioId);
 	// `?experiment=1` swaps the scenario presentation for the banner-shape
-	// experiment; `&arm=bar` forces the arm the way a flag provider would.
+	// experiment; `&arm=bar` sets the arm the way a flag provider would.
 	const surface = parseSurfaceParams(searchParams);
 	const { experiment: experimentEnabled, arm } = surface;
 	// The log belongs to one experiment run: switching the arm or turning
 	// the experiment off starts a fresh list instead of mixing runs.
 	const experimentRun = experimentEnabled ? `exp:${arm}` : '';
-	const { events: experimentEvents, report } = useExperimentLog(experimentRun);
+	const { events: experimentEvents, callbacks: experimentCallbacks } =
+		useExperimentLog(experimentRun);
 	const experiment = useMemo(
-		() => demoExperiment({ arm, experiment: experimentEnabled }, report),
-		[experimentEnabled, arm, report]
+		() => demoExperiment({ arm, experiment: experimentEnabled }),
+		[experimentEnabled, arm]
 	);
 	const isSelfHost = backend === 'self-host';
 	const hostedLabel = isSelfHost ? 'Self-hosted' : 'Hosted';
@@ -322,7 +323,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 		// shape, so different regimes look different out of the box. The
 		// experiment replaces it so the arms, not the scenario, decide the shape.
 		...(experiment
-			? { experiment }
+			? { callbacks: experimentCallbacks, experiment }
 			: { presentation: scenario.runtimePresentation }),
 		scripts: createDemoScripts('demo-analytics'),
 		theme: demoTheme,

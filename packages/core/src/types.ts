@@ -505,6 +505,13 @@ export interface KernelConfig {
 export interface InitContext {
 	overrides: Readonly<KernelOverrides>;
 	user: Readonly<KernelUser> | null;
+	/**
+	 * The banner-experiment arm the visitor runs, set only while they have
+	 * no stored choice. Transports send it with the request (`x-c15t-experiment`)
+	 * or put it on the session report, so the backend can count the visitors
+	 * each arm's banner was owed to.
+	 */
+	experiment?: { id: string; arm: string };
 }
 
 /**

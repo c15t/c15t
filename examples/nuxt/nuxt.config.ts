@@ -21,24 +21,19 @@
  *   NUXT_PUBLIC_C15T_EXPERIMENT=1 bun run --cwd examples/nuxt dev
  *   NUXT_PUBLIC_C15T_EXPERIMENT=1 NUXT_PUBLIC_C15T_EXPERIMENT_ARM=wall ...
  *
- * The arm env stands in for a flag provider; omit it and c15t assigns.
- * `reportTo: 'dataLayer'` is the only serializable target; the page reads
- * the same events from the kernel for its in-page log.
+ * The arm env stands in for a flag provider: `wall` runs the wall arm, any
+ * other value runs `control` (the default banner), and leaving it unset lets
+ * c15t pick. The page lists impressions and choices from the kernel's events.
  */
 const experimentArm = process.env.NUXT_PUBLIC_C15T_EXPERIMENT_ARM;
 const experiment =
 	process.env.NUXT_PUBLIC_C15T_EXPERIMENT === '1'
 		? {
+				arms: { wall: { prompt: { variant: 'wall' as const } } },
 				id: 'banner-shape',
-				reportTo: 'dataLayer' as const,
-				variant:
-					experimentArm === 'wall' || experimentArm === 'floating'
-						? experimentArm
-						: undefined,
-				variants: {
-					floating: {},
-					wall: { prompt: { variant: 'wall' as const } },
-				},
+				...(experimentArm !== undefined && {
+					arm: experimentArm === 'wall' ? 'wall' : 'control',
+				}),
 			}
 		: undefined;
 

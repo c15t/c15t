@@ -1,3 +1,8 @@
+import {
+	CONSENT_EXPERIMENT_HEADER,
+	formatExperimentHeader,
+} from '@c15t/schema/types';
+
 import { buildRequestContextHeaders } from '../libs/request-context-headers';
 import type { InitContext } from '../types';
 import { trimSlash } from './hosted-records';
@@ -31,6 +36,7 @@ export const createHostedInitRequest =
 		credentials?: RequestCredentials;
 		headers?: Record<string, string>;
 		overrides: InitContext['overrides'];
+		experiment?: InitContext['experiment'];
 	}): HostedInitRequest {
 		const requestHeaders = {
 			...options.headers,
@@ -43,6 +49,11 @@ export const createHostedInitRequest =
 					accept: 'application/json',
 					...c15tProtocolHeaders,
 					...requestHeaders,
+					...(options.experiment && {
+						[CONSENT_EXPERIMENT_HEADER]: formatExperimentHeader(
+							options.experiment
+						),
+					}),
 				},
 				method: 'GET',
 			},

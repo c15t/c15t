@@ -372,145 +372,101 @@ Each choice saved through `POST /subjects` carries in `metadata`:
 `experiment` object, so impressions and decisions can be joined per arm in
 your analytics without a backend query.
 
-## Report impressions and choices
+## Measure the results
 
-Set `reportTo` on the experiment and c15t sends every impression and choice to
-your analytics tool. Built-in targets cover the GTM data layer and PostHog; a
-function receives the same events for anything else.
+An opt-in rate needs two counts per arm: how many visitors the banner was
+owed to, and how many of them accepted. c15t sends both to the backend on
+its own; you do not wire anything up.
 
-```ts
-experiment: {
-	id: 'banner-shape',
-	variants: { floating: {}, bar: { prompt: { variant: 'bar' } } },
-	reportTo: 'dataLayer',
-}
-```
+- **Visitors owed the banner.** While a visitor has no stored choice, every
+  `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header,
+  and the backend puts it on that request's session report as
+  `experiment: { id, arm }`. In manifest mode, the server render or the
+  init route puts it on the report it sends to `POST /sessions`. A visitor
+  who already chose is not shown the banner, so is not counted.
+- **Choices.** Every choice saved through `POST /subjects` carries the arm
+  in `metadata.experiment`, as above.
 
-`'dataLayer'` pushes `{ event, ...properties }` onto `window.dataLayer`, so a
-GTM container can fire a Custom Event trigger named `c15t_surface_shown` or
-`c15t_choice_recorded` and read the properties as Data Layer Variables. GTM
-merges every push into one model, so each push carries every property, set to
-`undefined` when the event has none, and `confirmed` is a comma-separated
-string. A later impression never inherits the previous choice's values.
-`'posthog'` calls `window.posthog.capture(name, properties)`. While PostHog
-is not on the page yet, up to 50 events are held for 30 seconds and sent in
-order once it loads; after that they are dropped. Both targets are no-ops
-during server rendering.
+On a server-rendered page the server calls `/init`, not the browser, so tell
+it the arm. Pass the same one you give the client:
 
-A function gets the camelCase event object. Pass several targets as an array.
-
-```ts title="Segment"
-import type { ExperimentReportEvent } from 'c15t';
-
-const toSegment = ({ name, ...properties }: ExperimentReportEvent) => {
-	window.analytics.track(name, properties);
-};
-
-experiment: {
-	id: 'banner-shape',
-	variants: { floating: {}, bar: { prompt: { variant: 'bar' } } },
-	reportTo: ['dataLayer', toSegment],
-}
-```
-
-A reporter that throws is logged with `console.error` and never blocks the
-consent flow or the other reporters.
-
-### Events
-
-Every event carries the arm and the surface. The built-in targets send the
-snake\_case property names; a function receives the camelCase ones.
-`c15t_notice_dismissed` fires when a visitor dismisses an opt-out `notice`
-prompt, which records no choice.
-
-| Property (built-in) | Function field | `c15t_surface_shown` | `c15t_choice_recorded` | `c15t_notice_dismissed` |
-| --- | --- | --- | --- | --- |
-| `experiment_id` | `experimentId` | yes | yes | yes |
-| `variant` | `variant` | yes | yes | yes |
-| `assigned_by` | `assignedBy` | `host` or `c15t` | `host` or `c15t` | `host` or `c15t` |
-| `surface` | `surface` | `banner` or `dialog` | `banner`, `dialog`, `widget` or `none` | `banner`, `dialog` or `none` |
-| `shown_at` | `shownAt` | epoch ms | - | - |
-| `action_at` | `actionAt` | - | epoch ms | epoch ms |
-| `consent_action` | `consentAction` | - | `all`, `necessary` or `custom` | - |
-| `confirmed` | `confirmed` | - | categories the action confirmed | - |
-| `time_to_decision_ms` | `timeToDecisionMs` | - | ms from impression to action, when known | ms from impression to dismissal, when known |
-
-`surface: none` means the choice or dismissal was made programmatically,
-through `save()` or `dismissNotice()` with no prompt open, so it has no
-impression to count against and no `time_to_decision_ms`.
-
-### What is sent
-
-c15t adds nothing that identifies the visitor: no subject id, no external id,
-no user properties, no consent values beyond the category names confirmed.
-The receiving tool may add its own. PostHog attaches its `distinct_id` and
-super properties to every `capture`, and a GTM container forwards whatever
-user id it is configured with. An impression fires before any consent
-exists, so either treat the report as first-party, necessary-category
-telemetry under your own policy, or gate it with a function that reads the
-current permissions from your own runtime reference before forwarding. The
-event itself carries no permissions.
-
-```ts title="Only report once measurement is allowed"
-import { createConsentRuntime } from 'c15t/runtime';
-
-const runtime = createConsentRuntime({
-	// ...
-	experiment: {
-		id: 'banner-shape',
-		variants: { floating: {}, bar: { prompt: { variant: 'bar' } } },
-		reportTo: (event) => {
-			if (runtime.kernel.getSnapshot().effectivePermissions.measurement) {
-				window.dataLayer?.push({ event: event.name, ...event });
-			}
-		},
-	},
+```ts title="src/app/layout.tsx"
+const arm = await bannerShape();
+const state = resolveConsent({
+	config,
+	experiment: { id: 'banner-shape', arm },
 });
-runtime.start();
 ```
 
-Under an opt-in policy this drops the impression, since measurement is not
-yet allowed when the banner appears; only the choice gets through. Use it
-when the choice event alone is what your policy allows you to send.
+`resolveConsent` takes `experiment` in `c15t/next`, `@c15t/tanstack-start`
+and `@c15t/svelte`; Astro and Nuxt pass the arm they rendered on their own.
+When c15t picks the arm in the browser, the browser's own `/init` carries
+it, so a server-rendered page that skips the client `/init` has no count
+for built-in assignment. Resolve the arm with a flag on those pages.
+
+### Where the counts go
+
+On inth, the dashboard reads both counts for you. A self-hosted backend
+hands each session report to `sessions.onReport`, which is where you log or
+count it; `experiment` is on the report. Choices are in the `consent` table,
+and [`GET /experiments/:id/summary`](#read-the-summary-from-your-backend)
+groups them per arm.
+
+The opt-in rate of an arm is visitors with an `accept_all` choice under that
+arm, divided by visitors whose session reports carry the arm. Count
+visitors, not requests: an undecided visitor sends a report on every page
+until they choose. Deduplicate the reports per visitor the way you count
+sessions.
+
+### Send the events to your own analytics too
+
+The `onSurfaceShown` and `onChoiceRecorded` callbacks carry the same
+`experiment` object, so one line forwards them to any tool:
+
+```tsx
+<ConsentProvider
+	options={{
+		experiment,
+		callbacks: {
+			onSurfaceShown: ({ experiment, surface }) =>
+				experiment &&
+				window.dataLayer?.push({
+					event: 'c15t_surface_shown',
+					experiment_id: experiment.id,
+					arm: experiment.arm,
+					surface,
+				}),
+			onChoiceRecorded: ({ experiment, consentAction }) =>
+				experiment &&
+				posthog.capture('c15t_choice_recorded', {
+					experiment_id: experiment.id,
+					arm: experiment.arm,
+					consent_action: consentAction,
+				}),
+		},
+	}}
+>
+```
+
+An impression fires before any consent exists. If your analytics tool loads
+only after consent, it never sees a decliner's impression, and its opt-in
+rate trends towards 100%. The backend counts above do not have that gap.
 
 ### Read the results
 
 Consent rates move by a few points, not by half. At a 30% base rate you need
-roughly 2,500 impressions per arm to detect a 5-point change with 80% power,
+roughly 2,500 visitors per arm to detect a 5-point change with 80% power,
 and about 10,000 per arm to detect 2 points. Run a sample-size calculator
 against your own base rate before you start, decide the stop date up front,
-and do not stop early on a good-looking day. Most analytics tools compute the
-significance for you once the two counts are grouped by arm.
-
-The opt-in rate of an arm is the number of visitors with a
-`c15t_choice_recorded` event with `consent_action: all`, divided by the number
-of visitors with a `c15t_surface_shown` event with `surface: banner`, both
-grouped by `experiment_id` and `variant`. Count visitors, not events: the
-banner fires an impression on every page it appears on until the visitor
-decides, so a small banner people ignore for a few pages collects more
-impressions than a wall that forces a decision on the first. Use your tool's
-unique-user count (PostHog `distinct_id`, the GA4 client id) for both sides.
-
-The reporting target has to receive impressions from visitors who decline.
-A tool that loads only after consent, such as PostHog under the loader's
-`after-consent` mode, never sees a decliner's impression, so the rate trends
-towards 100% and says nothing about the arm. Load the target independently of
-the consent it measures, or send the events with a function to a first-party
-endpoint.
+and do not stop early on a good-looking day.
 
 Under an `opt-out` policy with `prompt: 'notice'`, dismissing the notice
-records no choice, so the rate to compare is `c15t_notice_dismissed` events
-per `c15t_surface_shown` event with `surface: banner`. The secondary metric
-is `c15t_surface_shown` events with `surface: dialog` per banner impression:
-whether the arm drove more visitors into the preference center to opt out.
+records no choice, so compare arms on opt-outs instead: `opt_out` choices
+per visitor owed the banner.
 
-Under `opt-out` with `prompt: 'choice'`, the choice event still fires. Count
-`c15t_choice_recorded` events with `consent_action: necessary` per impression
-as the opt-out rate.
-
-Time to decision is the median `time_to_decision_ms` per `experiment_id` and
-`variant` over the choice events. Use the median, not the mean: a visitor who
-leaves the tab open skews the mean without saying anything about the arm.
+Time to decision is the median `timeToDecisionMs` per arm over the choices.
+Use the median, not the mean: a visitor who leaves the tab open skews the
+mean without saying anything about the arm.
 
 ## Try it
 
@@ -518,10 +474,9 @@ Every example app under `examples/` runs this experiment. Open
 `/?experiment=1` in the React, Vue, Svelte, JavaScript and script-tag
 examples, `/app-router?experiment=1` in Next.js, or
 `/consent-example?experiment=1` in TanStack Start and SvelteKit; add
-`&arm=wall` to see a host-resolved arm. The Nuxt and Astro examples take
+`&arm=wall` to see an arm from a flag. The Nuxt and Astro examples take
 static config, so start them with `NUXT_PUBLIC_C15T_EXPERIMENT=1` or
-`C15T_EXPERIMENT=1`. Each page shows the assigned arm and the events it
-reported to `window.dataLayer`.
+`C15T_EXPERIMENT=1`. Each page shows the assigned arm.
 
 ## End an experiment
 

@@ -17,10 +17,6 @@ import type { ConsentKernel, ConsentSnapshot } from '../types';
 import type { StorageConfig } from './cookie';
 import { readStoredExperimentArm } from './experiment-storage';
 import type {
-	ExperimentReporter,
-	ExperimentReporterName,
-} from './experiment-reporting';
-import type {
 	ConsentPresentation,
 	PreferencesPresentation,
 	PresentationAction,
@@ -111,18 +107,6 @@ export interface ConsentExperiment<Arm extends string = string> {
 	 * acknowledgement is recorded on the consent record with the arm.
 	 */
 	acknowledgeDiagnostics?: boolean;
-	/**
-	 * Where to send `c15t_surface_shown`, `c15t_choice_recorded` and
-	 * `c15t_notice_dismissed`. `'dataLayer'` pushes to `window.dataLayer`
-	 * (GTM / gtag), `'posthog'` calls `window.posthog.capture`, and a function
-	 * receives every event. Only visitors the banner showed the arm to are
-	 * reported. Omit to report nothing; the events are still available
-	 * through `callbacks.onSurfaceShown` and `onChoiceRecorded`.
-	 */
-	reportTo?:
-		| ExperimentReporter
-		| ExperimentReporterName
-		| readonly (ExperimentReporter | ExperimentReporterName)[];
 }
 
 /**

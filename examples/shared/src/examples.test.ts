@@ -395,19 +395,19 @@ for (const target of selectedTargets()) {
 					.toBe('banner-shape · wall · host');
 				await expect.poll(dataLayer).toContainEqual(
 					expect.objectContaining({
+						arm: 'wall',
 						event: 'c15t_surface_shown',
 						experiment_id: 'banner-shape',
 						surface: 'banner',
-						variant: 'wall',
 					})
 				);
 				await acceptButton(page).click();
 				await expect.poll(dataLayer).toContainEqual(
 					expect.objectContaining({
+						arm: 'wall',
 						consent_action: 'all',
 						event: 'c15t_choice_recorded',
 						experiment_id: 'banner-shape',
-						variant: 'wall',
 					})
 				);
 				await expect

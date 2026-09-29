@@ -1,5 +1,4 @@
 /* oxlint-disable react/iframe-missing-sandbox -- The fixed cross-origin YouTube player needs scripts and its own origin for playback. */
-import type { ExperimentReportEvent } from 'c15t';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -15,6 +14,7 @@ import { createRoot } from 'react-dom/client';
 
 import { experimentFromSearch } from './experiment';
 import { ExperimentReadout, useExperimentLog } from './experiment-readout';
+import type { ExperimentLogEntry } from './experiment-readout';
 import { scripts } from './scripts';
 
 import 'c15t/react/styles.css';
@@ -41,8 +41,8 @@ const theme = branded
 const Gallery = ({
 	events,
 }: {
-	/** Reported experiment events, or `null` when no experiment runs. */
-	events: ExperimentReportEvent[] | null;
+	/** Logged experiment events, or `null` when no experiment runs. */
+	events: ExperimentLogEntry[] | null;
 }) => {
 	const measurement = useConsent('measurement');
 	const marketing = useConsent('marketing');
@@ -102,15 +102,20 @@ const Gallery = ({
 };
 
 const App = () => {
-	// `?experiment=1` runs the banner-shape experiment; `&arm=wall` forces
+	// `?experiment=1` runs the banner-shape experiment; `&arm=wall` sets
 	// the arm. Without the param the provider gets no `experiment` option.
-	const { events, report } = useExperimentLog();
-	const experiment = useMemo(
-		() => experimentFromSearch(location.search, report),
-		[report]
-	);
+	const { callbacks, events } = useExperimentLog();
+	const experiment = useMemo(() => experimentFromSearch(location.search), []);
 	return (
-		<ConsentProvider options={{ experiment, mode, scripts, theme }}>
+		<ConsentProvider
+			options={{
+				callbacks: experiment ? callbacks : undefined,
+				experiment,
+				mode,
+				scripts,
+				theme,
+			}}
+		>
 			<Gallery events={experiment ? events : null} />
 			<ConsentBanner />
 			<ConsentDialog />

@@ -1,21 +1,79 @@
-import type { ExperimentReportEvent, ExperimentReporter } from 'c15t';
+import type { OnChoiceRecordedPayload, OnSurfaceShownPayload } from 'c15t';
 import { useExperiment } from 'c15t/react';
-import { useCallback, useState } from 'react';
+import { useMemo, useState } from 'react';
 
-/** Collects the events the experiment reports so the page can list them. */
-export const useExperimentLog = function useExperimentLog() {
-	const [events, setEvents] = useState<ExperimentReportEvent[]>([]);
-	const report = useCallback<ExperimentReporter>((event) => {
-		setEvents((previous) => [...previous, event]);
-	}, []);
-	return { events, report };
+/** One experiment event the page lists. */
+export interface ExperimentLogEntry {
+	name: 'c15t_surface_shown' | 'c15t_choice_recorded';
+	arm: string;
+	/** The surface shown, or the consent action recorded. */
+	detail: string;
+}
+
+const pushToDataLayer = function pushToDataLayer(
+	event: Record<string, unknown>
+): void {
+	const page = window as Window & { dataLayer?: unknown[] };
+	page.dataLayer ??= [];
+	page.dataLayer.push(event);
 };
 
-/** The assigned arm and the events reported so far. */
+/**
+ * Provider callbacks that log each impression and choice made under an
+ * experiment arm, and push them to `window.dataLayer` for GTM.
+ */
+export const useExperimentLog = function useExperimentLog() {
+	const [events, setEvents] = useState<ExperimentLogEntry[]>([]);
+	const callbacks = useMemo(
+		() => ({
+			onChoiceRecorded: ({
+				consentAction,
+				experiment,
+			}: OnChoiceRecordedPayload) => {
+				if (!experiment) {
+					return;
+				}
+				pushToDataLayer({
+					arm: experiment.arm,
+					consent_action: consentAction,
+					event: 'c15t_choice_recorded',
+					experiment_id: experiment.id,
+				});
+				setEvents((previous) => [
+					...previous,
+					{
+						arm: experiment.arm,
+						detail: consentAction,
+						name: 'c15t_choice_recorded',
+					},
+				]);
+			},
+			onSurfaceShown: ({ experiment, surface }: OnSurfaceShownPayload) => {
+				if (!experiment) {
+					return;
+				}
+				pushToDataLayer({
+					arm: experiment.arm,
+					event: 'c15t_surface_shown',
+					experiment_id: experiment.id,
+					surface,
+				});
+				setEvents((previous) => [
+					...previous,
+					{ arm: experiment.arm, detail: surface, name: 'c15t_surface_shown' },
+				]);
+			},
+		}),
+		[]
+	);
+	return { callbacks, events };
+};
+
+/** The assigned arm and the events logged so far. */
 export const ExperimentReadout = ({
 	events,
 }: {
-	events: readonly ExperimentReportEvent[];
+	events: readonly ExperimentLogEntry[];
 }) => {
 	const assignment = useExperiment();
 	return (
@@ -28,7 +86,7 @@ export const ExperimentReadout = ({
 				Arm:{' '}
 				<code data-testid="experiment-arm">
 					{assignment
-						? `${assignment.id} · ${assignment.variant} · ${assignment.assignedBy}`
+						? `${assignment.id} · ${assignment.arm} · ${assignment.assignedBy}`
 						: 'assigning…'}
 				</code>
 			</p>
@@ -38,14 +96,7 @@ export const ExperimentReadout = ({
 						// oxlint-disable-next-line react/no-array-index-key -- append-only log
 						key={index}
 					>
-						<code>{event.name}</code> · {event.variant} · {event.surface}
-						{event.name === 'c15t_choice_recorded'
-							? ` · ${event.consentAction}`
-							: ''}
-						{event.name !== 'c15t_surface_shown' &&
-						event.timeToDecisionMs !== undefined
-							? ` · ${event.timeToDecisionMs} ms`
-							: ''}
+						<code>{event.name}</code> · {event.arm} · {event.detail}
 					</li>
 				))}
 			</ul>

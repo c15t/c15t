@@ -1,44 +1,69 @@
 'use client';
 
-import type { ExperimentReportEvent, ExperimentReporter } from 'c15t';
+import type { OnChoiceRecordedPayload, OnSurfaceShownPayload } from 'c15t';
 import { useExperiment } from 'c15t/react';
-import { useCallback, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { Badge } from '../ui/badge';
 
-/**
- * Collects the events one experiment run reports. `run` names the run
- * (arm and switch); when it changes the list starts over, so the readout
- * never shows events from a previous assignment.
- */
-export const useExperimentLog = function useExperimentLog(run: string): {
-	events: readonly ExperimentReportEvent[];
-	report: ExperimentReporter;
-} {
-	const [log, setLog] = useState<{
-		events: ExperimentReportEvent[];
-		run: string;
-	}>({ events: [], run });
-	const report = useCallback<ExperimentReporter>(
-		(event) => {
-			setLog((previous) => ({
-				events: previous.run === run ? [...previous.events, event] : [event],
-				run,
-			}));
-		},
-		[run]
-	);
-	return { events: log.run === run ? log.events : [], report };
-};
+/** One experiment event the readout lists. */
+export interface ExperimentLogEntry {
+	name: 'c15t_surface_shown' | 'c15t_choice_recorded';
+	arm: string;
+	/** The surface shown, or the consent action recorded. */
+	detail: string;
+}
 
 /**
- * Lists the events the banner-shape experiment reported so far. The same
- * events go to `window.dataLayer`; this is the in-page copy.
+ * Provider callbacks that log each impression and choice made under an
+ * arm during one experiment run. `run` names the run (arm and switch);
+ * when it changes the list starts over, so the readout never shows events
+ * from a previous assignment.
  */
+export const useExperimentLog = function useExperimentLog(run: string) {
+	const [log, setLog] = useState<{
+		events: ExperimentLogEntry[];
+		run: string;
+	}>({ events: [], run });
+	const callbacks = useMemo(() => {
+		const append = (entry: ExperimentLogEntry) => {
+			setLog((previous) => ({
+				events: previous.run === run ? [...previous.events, entry] : [entry],
+				run,
+			}));
+		};
+		return {
+			onChoiceRecorded: ({
+				consentAction,
+				experiment,
+			}: OnChoiceRecordedPayload) => {
+				if (experiment) {
+					append({
+						arm: experiment.arm,
+						detail: consentAction,
+						name: 'c15t_choice_recorded',
+					});
+				}
+			},
+			onSurfaceShown: ({ experiment, surface }: OnSurfaceShownPayload) => {
+				if (experiment) {
+					append({
+						arm: experiment.arm,
+						detail: surface,
+						name: 'c15t_surface_shown',
+					});
+				}
+			},
+		};
+	}, [run]);
+	return { callbacks, events: log.run === run ? log.events : [] };
+};
+
+/** Lists the impressions and choices made under the assigned arm so far. */
 export const ExperimentEvents = ({
 	events,
 }: {
-	events: readonly ExperimentReportEvent[];
+	events: readonly ExperimentLogEntry[];
 }) => {
 	const assignment = useExperiment();
 	return (
@@ -47,7 +72,7 @@ export const ExperimentEvents = ({
 				<p className="label-pixel text-muted-foreground">Experiment events</p>
 				{assignment ? (
 					<Badge variant="outline">
-						{assignment.id} · {assignment.variant} · {assignment.assignedBy}
+						{assignment.id} · {assignment.arm} · {assignment.assignedBy}
 					</Badge>
 				) : (
 					<Badge variant="outline">assigning…</Badge>
@@ -55,7 +80,7 @@ export const ExperimentEvents = ({
 			</div>
 			{events.length === 0 ? (
 				<p className="text-muted-foreground text-sm">
-					Nothing reported yet. The banner impression lands once the runtime is
+					Nothing logged yet. The banner impression lands once the runtime is
 					live; a choice follows when you act on it.
 				</p>
 			) : (
@@ -68,22 +93,15 @@ export const ExperimentEvents = ({
 						>
 							<span className="font-medium">{event.name}</span>{' '}
 							<span className="text-muted-foreground">
-								{event.variant} · {event.surface}
-								{event.name === 'c15t_choice_recorded'
-									? ` · ${event.consentAction}`
-									: ''}
-								{event.name !== 'c15t_surface_shown' &&
-								event.timeToDecisionMs !== undefined
-									? ` · ${event.timeToDecisionMs} ms`
-									: ''}
+								{event.arm} · {event.detail}
 							</span>
 						</li>
 					))}
 				</ol>
 			)}
 			<p className="text-muted-foreground text-xs">
-				Also pushed to <code>window.dataLayer</code>. Add{' '}
-				<code>&amp;arm=bar</code> to force the arm as a flag provider would.
+				Add <code>&amp;arm=bar</code> or <code>&amp;arm=control</code> to set
+				the arm as a flag provider would.
 			</p>
 		</div>
 	);

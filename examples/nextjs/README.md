@@ -75,13 +75,15 @@ It does not delete records already submitted to Inth.
 ## Banner experiment
 
 Open `/app-router?experiment=1` to run the banner-shape experiment: c15t
-assigns the `floating` or `wall` arm and the design panel shows
-`banner-shape · <arm> · c15t` with the reported `c15t_surface_shown` and
-`c15t_choice_recorded` events. `/app-router?experiment=1&arm=wall` resolves
-the arm on the server: `proxy.ts` copies the query into request headers,
-`app/app-router/layout.tsx` reads them with `headers()` and passes
-`experimentVariant` down, which is where a flag provider's answer would go.
-Both push the same events to `window.dataLayer`. See
+picks the `control` arm (the default banner) or the `wall` arm, and the design
+panel shows `banner-shape · <arm> · c15t`. `/app-router?experiment=1&arm=wall`
+resolves the arm on the server: `proxy.ts` copies the query into request
+headers, `app/app-router/layout.tsx` reads them with `headers()` and passes
+`experimentArm` down, which is where a flag provider's answer would go. Any
+other `arm` value runs `control`. The provider's `onSurfaceShown` and
+`onChoiceRecorded` callbacks list each impression and choice under the arm,
+and push them to `window.dataLayer` as `c15t_surface_shown` and
+`c15t_choice_recorded`. See
 https://c15t.com/docs/guides/banner-experiments.
 
 PostHog uses `loadMode: 'after-consent'`, so its SDK waits for measurement

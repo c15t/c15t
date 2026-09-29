@@ -47,7 +47,7 @@ const experiment = useExperiment();
 				Arm:
 				<code data-testid="experiment-arm">{{
 					experiment
-						? `${experiment.id} · ${experiment.variant} · ${experiment.assignedBy}`
+						? `${experiment.id} · ${experiment.arm} · ${experiment.assignedBy}`
 						: 'assigning…'
 				}}</code>
 			</p>
@@ -56,22 +56,9 @@ const experiment = useExperiment();
 					v-for="(event, index) in experimentEvents"
 					:key="index"
 				>
-					<code>{{ event.name }}</code> · {{ event.variant }} ·
-					{{ event.surface }}
-					<template v-if="event.name === 'c15t_choice_recorded'">
-						· {{ event.consentAction }}
-					</template>
-					<template
-						v-if="
-							event.name !== 'c15t_surface_shown' &&
-							event.timeToDecisionMs !== undefined
-						"
-					>
-						· {{ event.timeToDecisionMs }} ms
-					</template>
+					<code>{{ event.name }}</code> · {{ event.arm }} · {{ event.detail }}
 				</li>
 			</ul>
-			<p>The same events are pushed to <code>window.dataLayer</code>.</p>
 		</section>
 		<section class="card">
 			<h2>Scripts follow your choices</h2>

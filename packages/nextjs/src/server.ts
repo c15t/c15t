@@ -28,7 +28,11 @@ import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistenc
 import { readProducerPolicyContract } from '@c15t/core/transports';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import type { InitOutput } from '@c15t/schema/types';
-import { resolveBackendURL } from '@c15t/schema/types';
+import {
+	CONSENT_EXPERIMENT_HEADER,
+	formatExperimentHeader,
+	resolveBackendURL,
+} from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
 import type { ConsentConfig } from './config';
@@ -274,6 +278,19 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * @default true
 	 */
 	reportSessions?: boolean;
+	/**
+	 * The banner-experiment arm this request runs, from your feature flag.
+	 * Pass the same `id` and arm to the client's `experiment` option. While
+	 * the visitor has no stored choice, the server's `/init` carries it, or
+	 * its session report does in manifest mode, so the backend counts the
+	 * visitors each arm's banner was owed to.
+	 *
+	 * @example
+	 * ```ts
+	 * resolveConsent({ config, experiment: { id: 'banner-shape', arm } });
+	 * ```
+	 */
+	experiment?: { id: string; arm: string };
 
 	/**
 	 * Receives work that outlives the render (the session report, a manifest
@@ -438,6 +455,26 @@ const fetchHostedInit = async function fetchHostedInit(input: {
 	);
 };
 
+/**
+ * The request's experiment arm while the visitor has no stored choice: a
+ * visitor who already chose is not shown the banner, so is not counted.
+ */
+const undecidedExperiment = function undecidedExperiment(
+	options: ResolveConsentOptions,
+	base: ConsentState
+): ResolveConsentOptions['experiment'] {
+	return base.initialRecords?.choice ? undefined : options.experiment;
+};
+
+/** The `/init` header for an arm, or none. */
+const experimentHeaders = function experimentHeaders(
+	experiment: ResolveConsentOptions['experiment']
+): Record<string, string> {
+	return experiment
+		? { [CONSENT_EXPERIMENT_HEADER]: formatExperimentHeader(experiment) }
+		: {};
+};
+
 const resolveInitWithManifest = function resolveInitWithManifest(input: {
 	absoluteBackend: string;
 	base: ConsentState;
@@ -471,7 +508,9 @@ const resolveInitWithManifest = function resolveInitWithManifest(input: {
 						waitUntil: options.waitUntil,
 					},
 	});
+	const experiment = undecidedExperiment(options, base);
 	return transport.init({
+		...(experiment && { experiment }),
 		overrides: {
 			...(base.initialOverrides ?? {}),
 			...consentInputsToOverrides({ ...manifestInputs, gpc: undefined }),
@@ -635,6 +674,7 @@ export const resolveConsent = async function resolveConsent(
 				headers: {
 					...forward,
 					...createInitHeadersFromOverrides(base.initialOverrides ?? {}),
+					...experimentHeaders(undecidedExperiment(options, base)),
 					'sec-gpc': base.initialPrivacySignals?.gpc ? '1' : '0',
 				},
 				timeoutMs,

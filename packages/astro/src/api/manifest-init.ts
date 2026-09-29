@@ -234,6 +234,12 @@ export interface SessionReportTarget {
 	 * to resolve the view through the init route, which reports it instead.
 	 */
 	abandoned?: () => boolean;
+	/**
+	 * The experiment arm this render ran, while the visitor has no stored
+	 * choice. An init route leaves it out: the browser's own request carries
+	 * it as a header.
+	 */
+	experiment?: { id: string; arm: string };
 }
 
 /**
@@ -314,6 +320,7 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 		reportConsentSession({
 			adapter: '@c15t/astro',
 			backendURL: input.report.backendURL,
+			experiment: input.report.experiment,
 			fetch: input.fetch as typeof globalThis.fetch | undefined,
 			headers: input.report.headers,
 			init: payload,

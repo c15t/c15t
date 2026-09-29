@@ -1001,6 +1001,14 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				overrides: snapshot.overrides,
 				user: snapshot.user,
 			};
+			// A visitor with a stored choice is not shown the banner, so only
+			// an undecided visitor counts toward the arm.
+			if (snapshot.experiment && snapshot.explicitChoice === null) {
+				ctx.experiment = {
+					arm: snapshot.experiment.arm,
+					id: snapshot.experiment.id,
+				};
+			}
 			const response = await transport.init(ctx);
 			if (generation !== initGeneration) {
 				return completeSuperseded(

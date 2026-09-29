@@ -3,11 +3,7 @@ import {
 	custom,
 	EXPERIMENT_STORAGE_KEY,
 } from '@c15t/core';
-import type {
-	ExperimentArmTheme,
-	ExperimentReportEvent,
-	SavePayload,
-} from '@c15t/core';
+import type { ExperimentArmTheme, SavePayload } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import type { Theme } from '@c15t/ui/theme';
@@ -193,36 +189,7 @@ test('built-in assignment lands after mount and is stored for the next visit', a
 	}
 });
 
-test('a prepared prefetch reports the impression without an init call', async () => {
-	const reports: ExperimentReportEvent[] = [];
-	const mounted = mount(
-		{
-			experiment: {
-				...experiment,
-				reportTo: (event) => reports.push(event),
-				variant: 'bar',
-			},
-		},
-		<ConsentBanner />
-	);
-	try {
-		await vi.waitFor(() =>
-			expect(reports.map((report) => report.name)).toEqual([
-				'c15t_surface_shown',
-			])
-		);
-		expect(reports[0]).toMatchObject({
-			assignedBy: 'host',
-			surface: 'banner',
-			variant: 'bar',
-		});
-	} finally {
-		mounted.unmount();
-	}
-});
-
-test('reportTo receives the banner impression and the choice', async () => {
-	const reports: ExperimentReportEvent[] = [];
+test('the arm goes out on /init and on the callbacks', async () => {
 	// Impressions are stamped once init marks the kernel live, so this
 	// transport answers init instead of relying on a prepared prefetch.
 	const offline = createOfflineTransport({
@@ -237,15 +204,15 @@ test('reportTo receives the banner impression and the choice', async () => {
 			},
 		],
 	});
+	const init = vi.fn(offline.init);
 	const save = vi.fn().mockResolvedValue({ ok: true });
+	const shown = vi.fn();
+	const recorded = vi.fn();
 	const mounted = mount(
 		{
-			experiment: {
-				...experiment,
-				reportTo: (event) => reports.push(event),
-				variant: 'bar',
-			},
-			mode: Object.assign(() => ({ init: offline.init, save }), {
+			callbacks: { onChoiceRecorded: recorded, onSurfaceShown: shown },
+			experiment: { ...experiment, arm: 'bar' },
+			mode: Object.assign(() => ({ init, save }), {
 				kind: 'custom' as const,
 			}),
 			prefetch: undefined,
@@ -253,26 +220,23 @@ test('reportTo receives the banner impression and the choice', async () => {
 		<ConsentBanner />
 	);
 	try {
-		await vi.waitFor(() =>
-			expect(reports.map((report) => report.name)).toEqual([
-				'c15t_surface_shown',
-			])
-		);
+		await vi.waitFor(() => expect(shown).toHaveBeenCalledOnce());
+		expect(init.mock.calls[0]?.[0]).toMatchObject({
+			experiment: { arm: 'bar', id: 'banner-shape' },
+		});
+		expect(shown.mock.calls[0]?.[0]).toMatchObject({
+			experiment: { arm: 'bar', assignedBy: 'host' },
+			surface: 'banner',
+		});
 		document
 			.querySelector<HTMLButtonElement>(
 				'[data-testid="consent-banner-accept-button"]'
 			)
 			?.click();
 		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
-		expect(reports.map((report) => report.name)).toEqual([
-			'c15t_surface_shown',
-			'c15t_choice_recorded',
-		]);
-		expect(reports[1]).toMatchObject({
+		expect(recorded.mock.calls[0]?.[0]).toMatchObject({
 			consentAction: 'all',
-			experimentId: 'banner-shape',
-			surface: 'banner',
-			variant: 'bar',
+			experiment: { arm: 'bar' },
 		});
 	} finally {
 		mounted.unmount();

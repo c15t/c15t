@@ -56,36 +56,34 @@ describe('prompt surface params', () => {
 	});
 
 	it('builds the demo experiment only when asked', () => {
-		const report = () => undefined;
-		expect(demoExperiment(EMPTY_SURFACE, report)).toBeUndefined();
-		const assigned = demoExperiment(
-			{ ...EMPTY_SURFACE, experiment: true },
-			report
-		);
-		expect(assigned).toMatchObject({
-			id: 'banner-shape',
-			reportTo: ['dataLayer', report],
-			variant: undefined,
-		});
-		expect(Object.keys(assigned?.variants ?? {})).toEqual(['bar', 'floating']);
+		expect(demoExperiment(EMPTY_SURFACE)).toBeUndefined();
+		const picked = demoExperiment({ ...EMPTY_SURFACE, experiment: true });
+		expect(picked?.id).toBe('banner-shape');
+		// c15t picks the arm when the URL names none.
+		expect(picked).not.toHaveProperty('arm');
+		// `control` is the base presentation, so it is never listed in `arms`.
+		expect(Object.keys(picked?.arms ?? {})).toEqual(['bar']);
 		expect(
-			demoExperiment({ ...EMPTY_SURFACE, arm: 'bar', experiment: true }, report)
-				?.variant
+			demoExperiment({ ...EMPTY_SURFACE, arm: 'bar', experiment: true })?.arm
 		).toBe('bar');
+		expect(
+			demoExperiment({ ...EMPTY_SURFACE, arm: 'control', experiment: true })
+				?.arm
+		).toBe('control');
 	});
 
 	it('keeps the bar arm valid for an opt-out notice prompt', () => {
-		const forced = demoExperiment(
-			{ ...EMPTY_SURFACE, arm: 'bar', experiment: true },
-			() => undefined
-		);
+		const forced = demoExperiment({
+			...EMPTY_SURFACE,
+			arm: 'bar',
+			experiment: true,
+		});
 		// A notice is never blocking and cannot use `wall`, so the arm under
 		// test is a bottom bar, which both `choice` and `notice` accept.
-		expect(forced?.variants.bar).toEqual({
+		expect(forced?.arms.bar).toEqual({
 			prompt: { position: 'bottom', variant: 'bar' },
 		});
-		expect(forced?.variants.bar?.prompt?.blocking).toBeUndefined();
-		expect(forced?.variants.floating).toEqual({});
+		expect(forced?.arms.bar?.prompt?.blocking).toBeUndefined();
 	});
 
 	it('drops unknown variants and positions the variant does not accept', () => {

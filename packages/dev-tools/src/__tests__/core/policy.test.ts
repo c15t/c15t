@@ -316,9 +316,9 @@ it('shows the assigned experiment arm on the policy tab', async () => {
 	const kernel = createConsentKernel({
 		initialExperiment: {
 			acknowledgedDiagnostics: false,
+			arm: 'bar',
 			assignedBy: 'host',
 			id: 'banner-shape',
-			variant: 'bar',
 		},
 		initialPolicyResolution: policyResolution({ model: 'opt-in' }),
 	});

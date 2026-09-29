@@ -82,13 +82,13 @@ const RootComponent = () => {
 	const experimentRun = experimentSwitch.enabled
 		? `exp:${experimentSwitch.arm ?? ''}`
 		: '';
-	const { events, report } = useExperimentLog(experimentRun);
+	const { callbacks, events } = useExperimentLog(experimentRun);
 	const experiment = useMemo(
 		() =>
 			experimentSwitch.enabled
-				? bannerExperiment(experimentSwitch.arm, report)
+				? bannerExperiment(experimentSwitch.arm)
 				: undefined,
-		[experimentSwitch.arm, experimentSwitch.enabled, report]
+		[experimentSwitch.arm, experimentSwitch.enabled]
 	);
 	const experimentEvents = useMemo(
 		() => (experiment ? events : null),
@@ -105,7 +105,10 @@ const RootComponent = () => {
 					state={state}
 					backendURL={consentRoute}
 					scripts={scripts}
-					options={{ experiment }}
+					options={{
+						callbacks: experiment ? callbacks : undefined,
+						experiment,
+					}}
 				>
 					<ConsentBanner />
 					<ConsentDialog />

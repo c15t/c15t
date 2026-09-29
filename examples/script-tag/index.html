@@ -159,29 +159,40 @@
 					},
 				},
 			]);
-			// `?experiment=1` runs a banner-shape experiment: c15t assigns the arm
-			// and reports impressions and choices to window.dataLayer and to the
-			// log below. `&arm=wall` forces the arm the way a flag provider would.
+			// `?experiment=1` runs a banner-shape experiment: `control` is the
+			// default banner and `wall` blocks the page. c15t picks the arm;
+			// `&arm=wall` sets it the way a flag provider would (any other `arm`
+			// value runs `control`). The callbacks log each impression and
+			// choice made under the arm.
 			const experimentParams = new URLSearchParams(location.search);
 			if (experimentParams.get('experiment') === '1') {
 				const arm = experimentParams.get('arm');
+				const experiment = {
+					id: 'banner-shape',
+					arms: { wall: { prompt: { variant: 'wall' } } },
+				};
+				if (arm !== null) {
+					experiment.arm = arm === 'wall' ? 'wall' : 'control';
+				}
 				c15t.push([
 					'config',
 					{
-						experiment: {
-							id: 'banner-shape',
-							variants: {
-								floating: {},
-								wall: { prompt: { variant: 'wall' } },
-							},
-							variant: arm === 'wall' || arm === 'floating' ? arm : undefined,
-							reportTo: [
-								'dataLayer',
-								(event) =>
+						experiment,
+						callbacks: {
+							onSurfaceShown: (event) => {
+								if (event.experiment) {
 									log(
-										`experiment: ${event.name} ${event.variant} ${event.surface}${event.consentAction ? ` ${event.consentAction}` : ''}${event.timeToDecisionMs === undefined ? '' : ` ${event.timeToDecisionMs} ms`}`
-									),
-							],
+										`c15t_surface_shown · ${event.experiment.arm} · ${event.surface}`
+									);
+								}
+							},
+							onChoiceRecorded: (event) => {
+								if (event.experiment) {
+									log(
+										`c15t_choice_recorded · ${event.experiment.arm} · ${event.consentAction}`
+									);
+								}
+							},
 						},
 					},
 				]);
@@ -207,7 +218,7 @@
 					'surfaceShown',
 					(impression) =>
 						log(
-							`surface shown: ${impression.surface}${impression.experiment ? ` (arm ${impression.experiment.variant})` : ''}`
+							`surface shown: ${impression.surface}${impression.experiment ? ` (arm ${impression.experiment.arm})` : ''}`
 						),
 				]
 			);
@@ -253,16 +264,15 @@
 
 			<h2>Banner experiment</h2>
 			<p>
-				Open <a href="/?experiment=1">?experiment=1</a> to let c15t assign a
-				banner-shape arm, or
-				<a href="/?experiment=1&arm=wall">?experiment=1&amp;arm=wall</a> to
-				force the wall arm. Arm:
+				Open <a href="/?experiment=1">?experiment=1</a> to let c15t pick a
+				banner-shape arm (<code>control</code> or <code>wall</code>), or
+				<a href="/?experiment=1&arm=wall">?experiment=1&amp;arm=wall</a> to set
+				the wall arm. Arm:
 				<span
 					class="status"
 					id="experiment-arm"
 					>none</span
-				>. Impressions and choices are pushed to
-				<code>window.dataLayer</code> and appear in the log.
+				>. Impressions and choices made under the arm appear in the log.
 			</p>
 
 			<h2>Page hooks</h2>
@@ -417,7 +427,7 @@
 						const armBadge = document.getElementById('experiment-arm');
 						armBadge.dataset.on = String(Boolean(arm));
 						armBadge.textContent = arm
-							? `${arm.id} · ${arm.variant} · ${arm.assignedBy}`
+							? `${arm.id} · ${arm.arm} · ${arm.assignedBy}`
 							: 'none';
 						for (const badge of document.querySelectorAll('[data-check]')) {
 							const name = badge.dataset.check;

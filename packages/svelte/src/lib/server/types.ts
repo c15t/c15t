@@ -51,4 +51,11 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	frameworkFetch?: typeof globalThis.fetch;
 	/** Extra request headers to forward to the backend. */
 	forwardHeaders?: string[];
+	/**
+	 * The banner-experiment arm this request runs, from your feature flag.
+	 * Pass the same `id` and arm to the client's `experiment` option. While
+	 * the visitor has no stored choice, the server's `/init` carries it, so
+	 * the backend counts the visitors each arm's banner was owed to.
+	 */
+	experiment?: { id: string; arm: string };
 }

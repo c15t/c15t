@@ -19,7 +19,7 @@ const DevTools = import.meta.env.DEV
 		})
 	: null;
 
-/** The assigned arm and the events the experiment reported so far. */
+/** The assigned arm and the experiment events logged so far. */
 const ExperimentReadout = () => {
 	const events = useExperimentEvents();
 	const assignment = useExperiment();
@@ -33,7 +33,7 @@ const ExperimentReadout = () => {
 				Arm:{' '}
 				<code data-testid="experiment-arm">
 					{assignment
-						? `${assignment.id} · ${assignment.variant} · ${assignment.assignedBy}`
+						? `${assignment.id} · ${assignment.arm} · ${assignment.assignedBy}`
 						: 'assigning…'}
 				</code>
 			</p>
@@ -43,20 +43,10 @@ const ExperimentReadout = () => {
 						// oxlint-disable-next-line react/no-array-index-key -- append-only log
 						key={index}
 					>
-						<code>{event.name}</code> · {event.variant} · {event.surface}
-						{event.name === 'c15t_choice_recorded'
-							? ` · ${event.consentAction}`
-							: ''}
-						{event.name !== 'c15t_surface_shown' &&
-						event.timeToDecisionMs !== undefined
-							? ` · ${event.timeToDecisionMs} ms`
-							: ''}
+						<code>{event.name}</code> · {event.arm} · {event.detail}
 					</li>
 				))}
 			</ul>
-			<p>
-				The same events are pushed to <code>window.dataLayer</code>.
-			</p>
 		</section>
 	);
 };

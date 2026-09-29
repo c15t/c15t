@@ -317,16 +317,16 @@ describe('notice:dismissed attribution', () => {
 		await kernel.commands.init();
 		const original = {
 			acknowledgedDiagnostics: false,
+			arm: 'wall',
 			assignedBy: 'host',
 			id: 'banner-shape',
-			variant: 'wall',
 		} as const;
 		kernel.set.experiment(original);
 		// A subscriber reacting to the dismissal commit swaps the arm before
 		// the event is built.
 		const unsubscribe = kernel.subscribe((snapshot) => {
 			if (snapshot.noticeDismissal) {
-				kernel.set.experiment({ ...original, variant: 'floating' });
+				kernel.set.experiment({ ...original, arm: 'floating' });
 			}
 		});
 
@@ -335,7 +335,7 @@ describe('notice:dismissed attribution', () => {
 
 		expect(dismissed[0]?.experiment).toEqual(original);
 		// The event carries the dismissal's own snapshot; the swap lands after.
-		expect(dismissed[0]?.snapshot.experiment?.variant).toBe('wall');
-		expect(kernel.getSnapshot().experiment?.variant).toBe('floating');
+		expect(dismissed[0]?.snapshot.experiment?.arm).toBe('wall');
+		expect(kernel.getSnapshot().experiment?.arm).toBe('floating');
 	});
 });

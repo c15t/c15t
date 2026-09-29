@@ -4,7 +4,10 @@
 	import { env } from '$env/dynamic/public';
 	import { createExampleScripts } from '$lib/example-scripts';
 	import ExperimentReadout from '$lib/experiment-readout.svelte';
-	import { experimentFromSearch } from '$lib/experiment.svelte';
+	import {
+		experimentCallbacks,
+		experimentFromSearch,
+	} from '$lib/experiment.svelte';
 	import {
 		ConsentManagerProvider,
 		ConsentBanner,
@@ -23,7 +26,7 @@
 		env.PUBLIC_X_PIXEL_ID
 	);
 	const devTools = dev ? import('@c15t/svelte/devtools') : null;
-	// `?experiment=1` runs the banner-shape experiment; `&arm=wall` forces
+	// `?experiment=1` runs the banner-shape experiment; `&arm=wall` sets
 	// the arm. Read once: the provider takes its experiment at mount, so the
 	// links below reload the document instead of a client-side navigation.
 	const experiment = experimentFromSearch(page.url.searchParams);
@@ -38,6 +41,7 @@
 </script>
 
 <ConsentManagerProvider
+	callbacks={experiment ? experimentCallbacks : undefined}
 	{experiment}
 	{mode}
 	{scripts}

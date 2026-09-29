@@ -92,13 +92,17 @@ export type {
 	ResolveInitFromManifestInputs,
 	ResolveInitFromManifestOptions,
 	BuildConsentSessionReportOptions,
+	SessionExperiment,
 	SessionReportInputs,
 } from './shared';
 export {
 	buildConsentManifestFromConfig,
 	buildConsentSessionReport,
+	CONSENT_EXPERIMENT_HEADER,
 	CONSENT_SESSION_CLIENT_IP_HEADER,
+	formatExperimentHeader,
 	isSpeculativeRequest,
+	parseExperimentHeader,
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,
 	checkJurisdiction,

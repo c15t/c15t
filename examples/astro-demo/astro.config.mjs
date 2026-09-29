@@ -33,22 +33,16 @@ const iab = process.env.C15T_IAB === '1';
 //
 // The banner is server-rendered, so `@c15t/astro` has no built-in
 // assignment: the arm must be resolved on the host, the way a flag provider
-// would. The arm env stands in for that provider and `floating` is the
-// fallback arm, the same as a flag that never resolves. Only the
-// serializable `'dataLayer'` target fits here; a function reporter would go
-// in `clientEntrypoint`.
-const experimentArm =
-	process.env.C15T_EXPERIMENT_ARM === 'wall' ? 'wall' : 'floating';
+// would. The arm env stands in for that provider and `control` (the default
+// banner) is the fallback arm, the same as a flag that never resolves. To
+// pick an arm per request instead, set `middleware: false` and export
+// `consentMiddleware({ experimentArm })` from src/middleware.ts.
 const experiment =
 	process.env.C15T_EXPERIMENT === '1'
 		? {
+				arm: process.env.C15T_EXPERIMENT_ARM === 'wall' ? 'wall' : 'control',
+				arms: { wall: { prompt: { variant: 'wall' } } },
 				id: 'banner-shape',
-				reportTo: 'dataLayer',
-				variant: experimentArm,
-				variants: {
-					floating: {},
-					wall: { prompt: { variant: 'wall' } },
-				},
 			}
 		: undefined;
 
