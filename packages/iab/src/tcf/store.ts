@@ -1,3 +1,4 @@
+import { createMaterialPolicyFingerprint } from '@c15t/schema/types';
 import type {
 	ConsentManagerInterface,
 	ConsentStoreState,
@@ -271,22 +272,35 @@ export function createIABActions(
 			});
 
 			// Get or generate subjectId
-			let subjectId = getState().consentInfo?.subjectId;
+			const previousConsentInfo = getState().consentInfo;
+			let subjectId = previousConsentInfo?.subjectId;
 			if (!subjectId) {
 				subjectId = generateSubjectId();
 			}
+
+			// Record the policy this choice was made under. Storage merges with the
+			// existing record, so clear a pending re-consent flag explicitly.
+			const policy = getState().lastBannerFetchData?.policy;
+			const materialPolicyFingerprint = policy
+				? await createMaterialPolicyFingerprint(policy)
+				: undefined;
+			const consentInfo = {
+				time: givenAt,
+				subjectId,
+				externalId: user?.id,
+				identityProvider: user?.identityProvider,
+				...(materialPolicyFingerprint ? { materialPolicyFingerprint } : {}),
+				...(previousConsentInfo?.requiresReconsent
+					? { requiresReconsent: false }
+					: {}),
+			};
 
 			// Update core consent state
 			setState({
 				consents: effectiveConsents,
 				selectedConsents: effectiveConsents,
 				activeUI: 'none' as const,
-				consentInfo: {
-					time: givenAt,
-					subjectId,
-					externalId: user?.id,
-					identityProvider: user?.identityProvider,
-				},
+				consentInfo,
 			});
 
 			// Persist custom vendor consents (string IDs are not in TC String)
@@ -306,12 +320,7 @@ export function createIABActions(
 			saveConsentToStorage(
 				{
 					consents: effectiveConsents,
-					consentInfo: {
-						time: givenAt,
-						subjectId,
-						externalId: user?.id,
-						identityProvider: user?.identityProvider,
-					},
+					consentInfo,
 					iabCustomVendorConsents: customVendorConsents,
 					iabCustomVendorLegitimateInterests: customVendorLegitimateInterests,
 				},
