@@ -79,6 +79,11 @@ variables. Pick one of two ways to set them:
   In the root component, render `<ConsentTheme theme={theme} />` from
   `c15t/tanstack-start` inside `<head>`, after `<HeadContent />`.
 
+`ConsentTheme` outranks a plain `:root` rule, wherever each one loads. If you
+use both, a variable set in both places takes the `ConsentTheme` value. Write
+your CSS overrides on `:root:root` to beat it, or move the values into the
+theme.
+
 [Tokens and CSS](/docs/customization/tokens) lists every variable, dark mode
 and scoping tokens to one consent model.
 

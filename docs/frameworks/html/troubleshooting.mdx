@@ -58,10 +58,19 @@ design.
 
 ## Why does the console say "call c15t.init() first"?
 
-Something called a `window.c15t` method before the client existed. Either the
-call was queued with `c15t.push()` as a method other than `config`, `on` or
-`onInit`, or the tag has `data-manual` and nothing called `c15t.init()`. Move
-the call into an `on('ready', ...)` listener, or wait for `c15t.ready()`.
+Something called a `window.c15t` method directly before the client existed,
+for example from an inline script that ran before the tag, or on a page whose
+tag has `data-manual` before anything called `c15t.init()`. Queue the call with
+`c15t.push()`, move it into an `on('ready', ...)` listener, or wait for
+`c15t.ready()`. See
+[which calls you can queue](/docs/frameworks/html/attributes-and-api#which-calls-you-can-queue).
+
+## Why does the console say a queued call "was skipped"?
+
+`c15t.push()` received a method it does not queue, such as `has`,
+`getSnapshot` or `dispose`, or a name c15t does not know. A queue cannot hand
+a value back, so c15t skips the call. Call those methods inside
+`c15t.onInit()` or after `c15t.ready()`.
 
 ## Why is my queued configuration ignored?
 

@@ -266,10 +266,10 @@ check it there too. See
 
 | Option      | Default                                     | Behavior                                                                                                                                                                                    |
 | ----------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pixelId`   | Required                                    | Pixel ID passed to `oaiq('init', ...)`.                                                                                                                                                     |
+| `pixelId`   | Required                                    | Pixel ID passed to `oaiq('init', ...)`. The helper trims it. Empty or whitespace-only values throw.                                                                                         |
 | `debug`     | `false`                                     | Logs SDK activity, including queued and dropped events, to the browser console.                                                                                                             |
 | `user`      | None                                        | User matching fields passed to `init`: `email_sha256`, `phone_number_sha256`, `external_id_sha256`, `first_name_sha256`, `last_name_sha256`, `country`, `city`, `region` and `postal_code`. |
-| `scriptSrc` | `https://bzrcdn.openai.com/sdk/oaiq.min.js` | SDK URL override.                                                                                                                                                                           |
+| `scriptSrc` | `https://bzrcdn.openai.com/sdk/oaiq.min.js` | SDK URL override. A blank value falls back to the default.                                                                                                                                  |
 
 c15t forwards `user` unchanged. Normalize and hash identifiers yourself as
 OpenAI's

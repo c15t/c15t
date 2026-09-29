@@ -60,7 +60,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 - [Adobe Analytics](./integrations/adobe-analytics.md): Load an Adobe Data Collection Tags property only after measurement consent with the c15t adobeAnalytics helper, and check its extensions in DevTools.
 - [Ahrefs Analytics](./integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
-- [Amplitude](./integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation.
+- [Amplitude](./integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
 - [Custom integrations](./integrations/building-integrations.md): Gate a vendor that has no @c15t/scripts helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
 - [Clear on revocation](./integrations/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns when that category is denied, and check the deletion in DevTools.
 - [Clearbit](./integrations/clearbit.md): Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.

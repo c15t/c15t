@@ -265,10 +265,10 @@ check it there too. See
 
 | Option      | Default                                     | Behavior                                                                                                                                |
 | ----------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `appId`     | Required                                    | Sets `app_id` and the loader URL. The helper does not validate it.                                                                      |
+| `appId`     | Required                                    | Sets `app_id` and the loader URL. The helper trims it. Empty or whitespace-only values throw.                                           |
 | `apiBase`   | `https://api-iam.intercom.io`               | Regional API base. `INTERCOM_API_BASES` from `@c15t/scripts/intercom` lists `us`, `eu` and `au`.                                        |
 | `settings`  | None                                        | Extra JSON-serializable settings merged into `window.intercomSettings`. `appId` and `apiBase` override any `app_id` or `api_base` here. |
-| `scriptSrc` | `https://widget.intercom.io/widget/<appId>` | Loader URL override.                                                                                                                    |
+| `scriptSrc` | `https://widget.intercom.io/widget/<appId>` | Loader URL override. A blank value falls back to the default.                                                                           |
 
 ## Loading and revocation
 

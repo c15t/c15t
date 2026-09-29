@@ -26,7 +26,8 @@ and browser resolution in general.
 In the quickstart, every page load asks the backend's `/init` for the
 visitor's policy. In manifest mode your server downloads the project's public
 policy manifest once, caches it, and resolves each visitor locally. Consent
-saves still go to the backend.
+saves still go to the backend, directly or through the
+[consent proxy](#save-consent-through-your-own-origin).
 
 Add a catch-all route at `src/routes/api/c15t/[...path]/+server.ts`:
 
@@ -49,10 +50,10 @@ with the visitor's location, language and GPC. Keep the root
 `+layout.svelte` from the quickstart unchanged. The browser's `hosted()` mode
 still uses the backend URL.
 
-The handlers answer `GET` only. A `POST` or `PATCH` to `/api/c15t` gets a
-`405`, so do not point the browser's `hosted()` mode at `/api/c15t`, or saving
-a choice fails. Keep `hosted({ url })` on the backend URL, as the
-quickstart layout does.
+This route file exports `GET` only, so a `POST` or `PATCH` to `/api/c15t`
+gets a `405`. Keep `hosted({ url })` on the backend URL, as the quickstart
+layout does, or turn on the proxy described in
+[save consent through your own origin](#save-consent-through-your-own-origin).
 
 Keep `backendURL` absolute. A relative URL resolves against the request's
 origin, and one that points back at `/api/c15t` makes the route fetch itself.
@@ -63,6 +64,29 @@ The route caches the manifest in memory for as long as its `s-maxage` allows,
 then serves it stale while it refreshes in the background. It also reports
 each resolved visit to the backend so Inth still counts visitors it never
 served `/init` to; pass `reportSessions: false` to turn that off.
+
+### Save consent through your own origin
+
+To keep every consent request on your site's origin, pass `proxy: true` and
+export the write handlers from the same catch-all route:
+
+{/* example: fragment */}
+
+```ts title="src/routes/api/c15t/[...path]/+server.ts"
+export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } =
+  createSvelteKitConsentRouteHandlers({ backendURL, proxy: true });
+```
+
+Then point the provider at the route with `hosted({ url: '/api/c15t' })`.
+With the proxy on, `GET` still resolves `init` and `manifest` in the process,
+and the handlers forward other requests to `backendURL`. They forward only
+`subjects`, `subjects/:id`, `init`, `manifest`, `health`, `status` and any
+extra paths you list in `proxy: { paths }`, and answer anything else with
+`404`. Cookies go upstream only when `proxy: { cookieNames }` names them. The visitor's address comes from
+`event.getClientAddress()`, and `x-forwarded-host` and `x-forwarded-proto`
+come from `event.url`, so configure your adapter's address header if it runs
+behind a proxy. The proxy needs an absolute `backendURL` or
+`C15T_BACKEND_URL`, not a `manifestURL` alone.
 
 ### Deploy to an edge adapter
 

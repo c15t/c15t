@@ -1,6 +1,6 @@
 ---
 title: Amplitude
-description: Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation.
+description: Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
 group: integrations
 ---
 
@@ -32,13 +32,14 @@ export const scripts = [amplitude({ apiKey: 'YOUR_PROJECT_API_KEY' })];
 `amplitude` uses the `measurement` category. Before measurement is allowed,
 c15t defines no `window.amplitude` and loads nothing from Amplitude. When
 measurement becomes allowed, the helper creates the Browser SDK 2 queue stub,
-queues `init(apiKey, initOptions)`, then loads the SDK, which replays the
-queue.
+queues `init(apiKey, initOptions)` and `setOptOut(false)`, then loads the SDK,
+which replays the queue. Amplitude saves an opt-out in its cookie, so the
+queued `setOptOut(false)` clears one left by an earlier revocation.
 
-On revocation the helper removes the loader script and calls
-`amplitude.setOptOut(true)` on the SDK that already loaded. If the visitor
-allows measurement again before the page reloads, c15t adds the loader again
-and queues another `init`. It does not call `setOptOut(false)` on that path.
+On revocation the helper calls `amplitude.setOptOut(true)` and leaves the SDK
+on the page, because removing the script would not stop the running client.
+If the visitor allows measurement again before the page reloads, the helper
+calls `setOptOut(false)` on that SDK instead of loading a second copy.
 
 ## Verify Amplitude
 

@@ -112,6 +112,14 @@ example prerenders every page with `tanstackStart({ prerender: { enabled: true }
 and serves the output as static files. SPA mode renders the same root route
 into its shell.
 
+`c15t/tanstack-start/static` is a lower-level alternative that bundles the
+manifest at build time. `createStaticConsentResolver({ manifest, geoURL })`
+gives first paint the manifest's unknown-location policy, its fallback rule
+or else its default rule, then the visitor's regional policy once `geoURL`
+answers. You write the consent transport yourself, and new policy needs a
+rebuild. A manifest with neither rule resolves to a failed
+`insufficient-inputs` result.
+
 ## Run on hosts that stop work after the response
 
 The manifest cache refreshes in the background after its `s-maxage`. Some

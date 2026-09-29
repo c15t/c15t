@@ -5,28 +5,13 @@ description: Use the c15t CLI to plan, review and apply c15t setup in an
 group: cli
 ---
 
-## Install the v3 package first
-
-Install `c15t` from the `alpha` dist-tag before you run setup:
-
-| Package manager | Command                  |
-| :-------------- | :----------------------- |
-| npm             | `npm install c15t@alpha` |
-| pnpm            | `pnpm add c15t@alpha`    |
-| yarn            | `yarn add c15t@alpha`    |
-| bun             | `bun add c15t@alpha`     |
-
-Setup installs the packages that are missing from `package.json` without a
-version, and npm's default version of `c15t` is still v2. With `c15t@alpha`
-already installed, setup keeps it.
-
 ## Plan the setup
 
 Run setup from the app directory with your Inth backend URL. Copy the URL from
 your Inth project and export it first:
 
 ```bash
-export C15T_BACKEND_URL="<paste the backend URL from your Inth project>"
+export C15T_BACKEND_URL="https://your-project.inth.app"
 npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --plan --json
 ```
 
@@ -45,8 +30,13 @@ npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --apply
 
 For a Next.js App Router app, setup adds a client provider component under
 `components/consent-manager/` and wraps `{children}` in your root layout with it.
-The provider renders the stock banner and preferences dialog. Add
-`--skip-install` when your workspace tooling installs dependencies.
+The provider renders the stock banner and preferences dialog.
+
+Setup installs the c15t packages it needs, such as `c15t` and
+`@c15t/scripts`, from the CLI's own release line, so `@c15t/cli@alpha`
+installs `c15t@alpha`. It keeps packages
+that are already in `package.json`. Add `--skip-install` when your workspace
+tooling installs dependencies, and install `c15t@alpha` yourself.
 
 Setup refuses to overwrite a generated component that you have edited. To
 change an existing integration, edit its files rather than running setup again.

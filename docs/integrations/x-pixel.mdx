@@ -23,8 +23,8 @@ export const scripts = [xPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `pixelId` | Required | Pixel ID passed to `twq('config', ...)`. |
-| `scriptSrc` | `https://static.ads-twitter.com/uwt.js` | Loader URL override. |
+| `pixelId` | Required | Pixel ID passed to `twq('config', ...)`. The helper trims it. Empty or whitespace-only values throw. |
+| `scriptSrc` | `https://static.ads-twitter.com/uwt.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation
 
@@ -57,9 +57,9 @@ export function trackPurchase(marketingAllowed: boolean, orderId: string) {
 Pass the current marketing permission from your framework, for example
 `useConsent('marketing')` in React. Set `conversion_id` to deduplicate the
 event. `@c15t/scripts/x-pixel` also exports `xPixelEvent`, a typed wrapper
-around `twq('event', ...)`. `xPixelEvent` throws when `twq` is not defined,
-which is the case before marketing is first allowed. It does not check
-permission, so apply the same guard before calling it.
+around `twq('event', ...)`. `xPixelEvent` does nothing while `twq` is
+undefined, which is the case before marketing is first allowed. It does not
+check permission, so apply the same guard before calling it.
 
 ## Verify the X Pixel
 

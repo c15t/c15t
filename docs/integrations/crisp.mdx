@@ -23,14 +23,14 @@ export const scripts = [crisp({ websiteId: 'YOUR_WEBSITE_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `websiteId` | Required | Written to `window.CRISP_WEBSITE_ID`. The helper does not validate it. |
+| `websiteId` | Required | Written to `window.CRISP_WEBSITE_ID`. The helper trims it. Empty or whitespace-only values throw. |
 | `locale` | None | Widget locale, written to `window.CRISP_RUNTIME_CONFIG.locale`. |
 | `sessionMerge` | None | Merges anonymous sessions into token-backed sessions. Written to `CRISP_RUNTIME_CONFIG.session_merge`. |
 | `tokenId` | None | Session continuity token, written to `window.CRISP_TOKEN_ID`. |
 | `cookieDomain` | None | Cookie domain, written to `window.CRISP_COOKIE_DOMAIN`. |
 | `cookieExpiry` | None | Cookie lifetime in seconds, written to `window.CRISP_COOKIE_EXPIRE`. |
 | `safeMode` | `false` | Pushes `['safe', true]` to `$crisp` before the loader. |
-| `scriptSrc` | `https://client.crisp.chat/l.js` | Loader URL override. |
+| `scriptSrc` | `https://client.crisp.chat/l.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation
 
@@ -39,9 +39,10 @@ functionality is allowed, so link another support contact for visitors who
 deny it. On revocation the helper removes the script element and calls no
 Crisp API. The running widget stays until c15t reloads the page.
 
-Before loading, the helper sets `window.$crisp` to a new empty array, which
-drops commands your code pushed earlier. Push `$crisp` commands only after
-functionality is allowed.
+Before loading, the helper creates `window.$crisp` as an empty array unless
+your page already made one. Commands your code pushed onto `$crisp` earlier
+stay queued, and Crisp runs them when it loads. They never reach Crisp while
+functionality is denied.
 
 ## Verify Crisp
 

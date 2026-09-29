@@ -66,4 +66,9 @@ variables on `:root` in a stylesheet and import it right after
 
 Set the hover and text colors yourself; a stylesheet does not derive them.
 
+Pick one of the two for each token. `generateThemeCSS` output outranks a plain
+`:root` rule, so a `--c15t-*` value you set on `:root` loses to the generated
+theme wherever the two overlap. To override a generated value from your
+stylesheet, write the rule on `:root:root`, or move the value into the theme.
+
 <include src="../../shared/svelte/customize.mdx" />

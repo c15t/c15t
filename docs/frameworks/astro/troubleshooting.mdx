@@ -78,11 +78,15 @@ banner and the browser shows it after its own request. Raise the budget with
 `middleware: { timeoutMs }`. See
 [Rendering and deployment](/docs/frameworks/astro/rendering#set-how-long-a-render-waits-for-the-backend).
 
-## Saving a choice fails with a 404
+## The build fails with "manifest mode needs a `backendURL`"
 
-In manifest mode, the browser saves consent to the `backendURL` you pass to
-`manifest()`. Without it, the browser posts to `/api/c15t/subjects` on your own
-site, where no route answers. Pass `manifest({ backendURL })`.
+In manifest mode, the browser saves consent to the backend URL you give
+`manifest()`, so `astro.config` refuses to load without one. Pass
+`manifest({ backendURL })`, or set `C15T_BACKEND_URL` or
+`PUBLIC_C15T_BACKEND_URL` in the environment that runs `astro dev` or
+`astro build`. Astro reads the config before it loads `.env`, so a value only
+in `.env` does not count. An inline `manifest` object needs no backend URL,
+because that app serves its own save route.
 
 ## A vendor loads before the visitor chooses
 
@@ -105,8 +109,8 @@ category, such as `measurement`.
 ## The preference dialog opens without styles
 
 With `styles: false`, c15t does not link the dialog's stylesheet. Import
-`@c15t/ui/styles/dialog.css`, and `@c15t/ui/styles/primitives.css` for the
-Svelte dialog, from your global stylesheet. See
+`c15t/astro/dialog.css`, and `c15t/astro/primitives.css` for the Svelte
+dialog, from your global stylesheet. See
 [load the stylesheet yourself](/docs/frameworks/astro/customize#load-the-stylesheet-yourself).
 
 ## The banner loses its padding with Tailwind CSS

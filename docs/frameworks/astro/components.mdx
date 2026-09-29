@@ -76,9 +76,10 @@ For copy that applies to every page, set translations in the integration's
 
 `ConsentBannerDeferred` renders `ConsentBanner` as an Astro server island
 (`server:defer`), so a cached or prerendered page gets a banner resolved for
-each visitor. It passes its props to `ConsentBanner`. Its prop types list every
-`ConsentBanner` prop except `dismissButtonText` and `hideBranding`. Pass a
-`fallback` slot to show something while the island loads.
+each visitor. It accepts every `ConsentBanner` prop and passes them to
+`ConsentBanner`, plus `force`, which renders the banner even when the server
+decided to hide it. Pass a `fallback` slot to show something while the island
+loads.
 
 Server islands need a server adapter. See
 [cache a page and render the banner per request](/docs/frameworks/astro/rendering#cache-a-page-and-render-the-banner-per-request).

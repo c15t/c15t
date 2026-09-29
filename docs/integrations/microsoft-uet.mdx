@@ -24,8 +24,8 @@ export const scripts = [microsoftUet({ id: 'YOUR_UET_TAG_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `id` | Required | UET tag ID, passed to UET as `ti`. |
-| `scriptSrc` | `//bat.bing.com/bat.js` | Loader URL override. |
+| `id` | Required | UET tag ID, passed to UET as `ti`. The helper trims it. Empty or whitespace-only values throw. |
+| `scriptSrc` | `//bat.bing.com/bat.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation
 

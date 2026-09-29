@@ -48,15 +48,15 @@ mode:
 | --- | --- | --- | --- |
 | Omitted | After measurement is allowed, with `trackPageView` queued | Loads `matomo.js` | Removes the script element and calls no Matomo API |
 | `'required'` | On every page, with `requireConsent` queued | Queues `setConsentGiven` and `trackPageView` | Keeps the script and queues `forgetConsentGiven` |
-| `'given'` | On every page, with `setConsentGiven` and `trackPageView` queued | Queues `setConsentGiven` and `trackPageView` | Keeps the script and queues `forgetConsentGiven` |
+| `'given'` | On every page. With measurement allowed as it loads, `setConsentGiven` and `trackPageView` are queued; otherwise `requireConsent` | Queues `setConsentGiven` and `trackPageView` | Keeps the script and queues `forgetConsentGiven` |
 
-In `'required'` mode Matomo holds tracking until `setConsentGiven`. `'given'`
-queues `setConsentGiven` and a page view on every page load before the helper
-checks c15t, including for a visitor who rejected measurement. Use `'given'`
-only when your policy lets Matomo track without a choice. In both consent
-modes, each consent change while measurement is allowed queues another
-`trackPageView`, for example when the visitor later allows marketing. Matomo
-separates
+In both consent modes Matomo holds tracking until `setConsentGiven`, and the
+helper only queues that call for a visitor who has measurement consent. The
+two modes differ for a visitor who already allowed measurement when the page
+loads: `'given'` skips the up-front `requireConsent`. The helper queues
+another `trackPageView` only when measurement changes from denied to allowed,
+so a change to another category, such as allowing marketing, sends no extra
+page view. Matomo separates
 [tracking consent from cookie consent](https://developer.matomo.org/guides/tracking-consent).
 
 ## Verify Matomo Analytics
@@ -75,6 +75,8 @@ separately in a private window with an opt-in policy:
 3. Turn measurement off and save. c15t reloads the page, and the new page
    loads `matomo.js` without a `matomo.php` request.
 
-With `'given'`, step 1 already sends a `matomo.php` page view. See the
+`'given'` behaves the same in this test. Under an opt-out policy, or after the
+visitor has allowed measurement, both modes send a `matomo.php` page view as
+the page loads. See the
 [consent verification guide](/docs/guides/verify-consent) for navigation and
 hosting checks.

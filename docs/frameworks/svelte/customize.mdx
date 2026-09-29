@@ -42,9 +42,15 @@ every variable.
 
 Do not put colors, radius or other tokens in the provider's `theme` prop. In
 the browser, `theme` applies slots and `consentActions` only; the token values
-are ignored. If your tokens come from data at runtime, `generateThemeCSS(theme)`
-from `@c15t/ui/theme` turns a theme object into the same CSS. Install
-`@c15t/ui@alpha` to use it, insert the result in a `<style>` element after the
-stock stylesheet, and expect the generator to add to your bundle.
+are ignored. In development, the provider logs a warning when `theme` has
+tokens and the page has no `<style id="c15t-theme">`.
+
+If your tokens come from data at runtime, `generateThemeCSS(theme)` from
+`@c15t/ui/theme` turns a theme object into the same CSS. Install
+`@c15t/ui@alpha` to use it, put the result in a `<style id="c15t-theme">`
+element, and expect the generator to add to your bundle. Its selectors outrank
+the stock defaults, so the element works before or after the stylesheet. They
+also outrank a plain `:root` rule of your own, so if you mix both, write your
+overrides on `:root:root`.
 
 <include src="../../shared/svelte/customize.mdx" />

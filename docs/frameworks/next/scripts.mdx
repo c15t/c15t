@@ -22,6 +22,32 @@ policy and the visitor's choice allows it.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 
+## Register several vendors
+
+Every helper goes in the same `scripts` array in `lib/scripts.ts`, in the App
+Router and the Pages Router alike. This array loads Google Tag Manager and
+Meta Pixel together:
+
+{/* example: fragment */}
+
+```ts title="lib/scripts.ts (partial)"
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
+import type { Script } from 'c15t';
+
+export const scripts: Script[] = [
+  googleTagManager({ id: 'GTM-XXXXXXX' }),
+  metaPixel({ pixelId: 'YOUR_PIXEL_ID' }),
+];
+```
+
+Each helper keeps its own consent rules. Meta Pixel waits for marketing, and
+Google Tag Manager follows the
+[Consent Mode contract](/docs/integrations/google-tag-manager). Remove the
+container and pixel snippets from `pages/_document.tsx` or your layout, so each
+vendor loads once. Both helpers throw on an empty ID, so leave a helper out of
+the array until you have its ID.
+
 ## Check each vendor's loading behavior
 
 The example configures PostHog to load after consent and turns off cookieless

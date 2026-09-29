@@ -30,6 +30,10 @@ export function SiteFooter() {
 Render the footer inside `ConsentRoot`, with `ConsentDialog` mounted. It
 renders a `button`; pass `asChild` to render your own link element instead.
 
+`c15t/tanstack-start/components/consent-dialog-link` exports `ConsentDialogLink`
+and nothing else. Import from that path when a module needs only the link, so
+it does not load the rest of the adapter.
+
 <import src="../../../shared/react/components/consent-dialog-link.mdx#props" />
 
 <import src="../../../shared/react/components/consent-dialog-link.mdx#behavior" />
