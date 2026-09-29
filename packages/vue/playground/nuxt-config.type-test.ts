@@ -50,3 +50,15 @@ export const wrongAppConfig = defineAppConfig({
 export const readAppConfig = () => {
 	expectTypeOf(useAppConfig().c15t?.nonce).toEqualTypeOf<string | undefined>();
 };
+
+// Storage options are JSON and reach the runtime from module options.
+expectTypeOf<{
+	storageConfig: { crossSubdomain: true; storageKey: 'consent' };
+}>().toExtend<ModuleOptions>();
+
+export const unknownAppConfig = defineAppConfig({
+	c15t: {
+		// @ts-expect-error Unknown keys are not c15t options.
+		notAnOption: true,
+	},
+});

@@ -6,7 +6,9 @@ import type {
 
 /** The Nuxt module's configuration under the `c15t` key. */
 export interface C15tNuxtConfig
-	extends ConsentConfig, Pick<RuntimeConsentConfig, 'iframeBlocker' | 'nonce'> {
+	extends
+		ConsentConfig,
+		Pick<RuntimeConsentConfig, 'iframeBlocker' | 'nonce' | 'storageConfig'> {
 	/**
 	 * Block `fetch` and XHR requests that match these rules until the
 	 * visitor's consent allows them. Omitted or `false` disables it.
