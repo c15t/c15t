@@ -1,6 +1,8 @@
 ---
 packages:
   '@c15t/svelte': patch
+  '@c15t/core': patch
+  '@c15t/tanstack-start': patch
 ---
 
 ### Forward consent saves through the SvelteKit consent route
@@ -24,3 +26,9 @@ The option and its rules match `createConsentServerRoute({ proxy })` in
 anything else gets `404`. Cookies are forwarded only when `cookieNames`
 names them. The client address comes from `event.getClientAddress()`, and
 `x-forwarded-host` and `x-forwarded-proto` from `event.url`.
+
+The proxy rules now live in `@c15t/core/server` as `forwardConsentRequest`,
+`resolveConsentProxyOptions`, `isConsentProxyPathAllowed` and related
+helpers, and both adapters use them. Each adapter supplies only what its
+framework can trust for the forwarding headers. TanStack Start's proxy
+behaves as before.

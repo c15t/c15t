@@ -5,6 +5,29 @@
  * integration (Next.js, Nuxt, SvelteKit, TanStack Start) would otherwise
  * hand-roll identically behind its own `/manifest` route.
  */
+export type {
+	BuildConsentProxyRequestHeadersInput,
+	ConsentProxyForwarding,
+	ConsentProxyOptions,
+	ForwardConsentRequestInput,
+	ResolvedConsentProxyOptions,
+} from './consent-proxy';
+export {
+	buildConsentProxyRequestHeaders,
+	buildConsentProxyResponseHeaders,
+	CONSENT_PROXY_DEFAULT_FORWARD_HEADERS,
+	CONSENT_PROXY_DEFAULT_PATHS,
+	CONSENT_PROXY_DEFAULT_TIMEOUT_MS,
+	CONSENT_PROXY_FORWARDING_HEADERS,
+	CONSENT_PROXY_PUBLIC_FORWARD_HEADERS,
+	filterCookieHeader,
+	forwardConsentRequest,
+	isCleartextRemoteURL,
+	isConsentProxyPathAllowed,
+	resolveConsentProxyOptions,
+	rewriteProxySetCookie,
+	stripIdentityForCleartext,
+} from './consent-proxy';
 export type { FetchCachedGvlOptions } from './gvl-cache';
 export { clearGvlCache, fetchCachedGvl } from './gvl-cache';
 export type {
