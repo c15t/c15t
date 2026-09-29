@@ -1,41 +1,44 @@
 ---
 title: Hosted projects and authentication
-description: Authenticate with Inth and select or create a hosted consent project.
+description: Sign in to Inth from the c15t CLI, then list, select or create the
+  Inth project that setup uses.
 group: cli
 ---
 
+## Sign in to Inth
+
 ```bash
-c15t login
-c15t projects list --json
+npx @c15t/cli@alpha login
+npx @c15t/cli@alpha projects list --json
 ```
 
-Login uses a browser device flow. `--no-browser` prints the verification instructions without launching a browser. Device login needs a person to approve access; unattended callers must already have valid credentials.
+Login uses a browser device flow. `--no-browser` prints the verification URL instead of opening a browser. A person has to approve the login, so scripts need existing credentials.
 
 ## Local authentication state
 
 ```bash
-c15t status --json
-c15t logout
+npx @c15t/cli@alpha status --json
+npx @c15t/cli@alpha logout
 ```
 
-Credentials are stored in `~/.c15t/config.json` and scoped to the control-plane origin. Files are written atomically with owner-only permissions. Logout removes local credentials even if they have expired. Status checks local credential state, not remote token revocation. Expired sessions require another device login; automatic refresh is not implemented.
+The CLI stores credentials in `~/.c15t/config.json`, readable only by your user, and scopes them to the control-plane origin. Logout removes them even when they have expired. `status` checks the local credentials; it does not ask the server whether a token was revoked. An expired session needs another login, because the CLI does not refresh tokens.
 
-`CONSENT_URL` overrides the control-plane base URL. Credentials from a different origin are not sent to that URL. Signing into another origin or account replaces the local session and clears its selected project.
+`CONSENT_URL` overrides the control-plane URL. The CLI never sends credentials from one origin to another. Signing in to another origin or account replaces the local session and clears its selected project.
 
 ## Select a project
 
 ```bash
-c15t projects select my-org/my-project --json
+npx @c15t/cli@alpha projects select my-org/my-project --json
 ```
 
-Selection sets an account-wide default used by setup. It is not a repository link. Use `--project` in setup to choose a different project explicitly. Bare project names must be unambiguous; prefer an ID or `organization/name`.
+Selecting a project sets the default that setup uses for your account, not for one repository. Pass `--project` to setup to use a different one. A bare project name must be unambiguous, so prefer an ID or `organization/name`.
 
 ## Create a project
 
 ```bash
-c15t projects create my-project --organization my-org --region us-east-1 --json
+npx @c15t/cli@alpha projects create my-project --organization my-org --region us-east-1 --json
 ```
 
-Supply a region available to your organization. Interactive creation lists available organizations and provisioning regions. Creation produces a development project and selects it as the default. Enable production mode through the Inth dashboard.
+Pass a region available to your organization; in a terminal, the CLI lists organizations and regions to pick from. The new project is a development project and becomes the default. Turn on production mode in the Inth dashboard.
 
-A newly created project may be pending. Setup refuses projects without a provisioned backend URL. The CLI does not expose project deletion, deployment, or domain-management commands.
+A new project can take a moment to provision, and setup refuses a project without a backend URL. The CLI has no commands to delete projects, deploy or manage domains.

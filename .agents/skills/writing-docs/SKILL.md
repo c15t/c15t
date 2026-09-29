@@ -79,7 +79,9 @@ Lead installation with `c15t` and use its actual exports: `c15t/react`,
 `c15t/next`, `c15t/vue`, `c15t/tanstack-start`, `c15t/astro`, and `c15t` for the
 headless engine. The installed package name is `c15t`, not the import subpath.
 Use separate packages only for adapters and add-ons absent from its export map.
-Svelte currently requires its dedicated package. Never invent an umbrella
+Svelte currently requires `@c15t/svelte`, and the HTML script tag uses
+`@c15t/browser`. Install commands pin c15t packages to `@alpha` while npm
+`latest` is v2; `scripts/docs-validation.test.ts` enforces it. Never invent an umbrella
 subpath or mechanically replace provider names across adapters.
 Migration pages may show old APIs only in clearly labelled before examples.
 
@@ -167,7 +169,8 @@ Vendor guides need configuration, registration, options, actual loading and
 revocation behavior, and verification. Reuse the shared registration include for
 all supported frameworks; keep adapter-specific differences explicit.
 Shared integration and embed tabs must match the framework selector order:
-Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, JavaScript.
+Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML,
+JavaScript, React Native.
 Keep `docs/docs.config.ts` and the framework index in that order too. Give each
 framework its own usable example, including server/browser ownership and
 cleanup where needed. Do not send Nuxt readers to a plain Vue snippet or
@@ -184,6 +187,10 @@ Use factual titles, unique descriptions and descriptive link text.
 search rankings or citations. The docs host must also verify HTML indexing,
 canonical URLs, redirects, sitemap entries, robots rules and matching structured
 data. Content work alone cannot prove those deployed behaviors.
+
+Follow [the v3 information architecture](references/v3-information-architecture.md)
+for the page set each framework gets, and record moved routes in
+[v3-route-moves.md](references/v3-route-moves.md).
 
 For a broad rewrite or publication review, read
 [the v3 editorial review](references/v3-editorial-review.md) for the historical

@@ -50,6 +50,7 @@
 		"dist-types",
 		"!dist-types/**/__tests__/**",
 		"AGENTS.md",
+		"SKILL.md",
 		"docs"
 	],
 	"type": "module",

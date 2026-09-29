@@ -1,14 +1,32 @@
 ---
-name: c15t-cli-docs
-description: Read and search the @c15t/cli documentation. Use when working with @c15t/cli — its setup, configuration, API, and behavior.
-metadata:
-  source: leadtype
+name: c15t-cli
+description: Set up, customize or debug c15t consent management with @c15t/cli. Use when the task is scaffolding c15t, running codemods or migrating a self-hosted backend, or when a task mentions a cookie banner, consent dialog, GDPR or CCPA prompts, blocking analytics until consent, Google Consent Mode or IAB TCF.
 ---
-# @c15t/cli documentation
 
-c15t v3 setup, codemods, project commands and self-hosted migrations.
+# c15t with @c15t/cli
 
-To work with @c15t/cli, read its bundled docs — they ship with the package and are version-matched to the installed code:
+The Markdown under `./docs` matches the installed version. Read it before writing code: v3 renamed most v2 APIs, so remembered examples are usually wrong.
 
-- Start with `./AGENTS.md`; it links every per-topic Markdown file under `./docs/`.
-- Prefer these local files over fetching anything over the network.
+## Before writing code
+
+1. Find the framework, router, rendering mode (server, static or single-page) and host in the project.
+2. Pick the matching row in [Choose your setup](./docs/concepts/choose-your-setup.md).
+
+## Rules
+
+- Install with the `alpha` tag: `npx @c15t/cli@alpha`. npm `latest` is still v2. Keep every c15t package on the same release.
+- The backend URL comes from the user's Inth project or self-hosted backend. It is public configuration. Never invent one; ask for it or read it from the environment.
+- Register analytics, pixels and embeds through c15t (`@c15t/scripts` helpers or `ConsentGate`) and remove the vendor's own `<script>` tag or plugin. A banner does not block code loaded elsewhere.
+- Gate features on the current permission. Never save a consent choice on page load or from code; only a visitor action records one.
+- Offline mode keeps policies in code and choices in the browser, with no consent records. Not recommended for production environments.
+- Keep one consent provider or root for the whole app, mounted outside route-level components.
+
+## Customize with the smallest change
+
+Copy and languages use i18n configuration. Position and layout use component props. Colors, type, radius and spacing use theme tokens. One part of a component uses slots. Different markup uses compound or headless components.
+
+## Finish with a check
+
+A visible banner proves nothing. In a production build, confirm vendor requests are absent before consent, a rejection survives a reload, and preferences reopen. Follow [Verify consent before shipping](./docs/guides/verify-consent.md). If something fails, start with [Troubleshooting](./docs/guides/troubleshooting.md).
+
+`./AGENTS.md` lists every bundled page.
