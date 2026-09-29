@@ -1,0 +1,107 @@
+---
+title: Scripts and embeds
+description: Load vendor scripts, gate iframes and block tracking requests by consent category in a Vue app with the c15t Vue plugin.
+group: frameworks
+---
+
+## Register vendor scripts
+
+A banner does not stop a script you load with a `<script>` tag in
+`index.html` or a vendor SDK you initialize yourself. Remove those loaders and
+register the vendor with c15t instead, so c15t loads it only while its
+category is allowed.
+
+Create the script configuration with the helpers from `@c15t/scripts`:
+
+<include src="../../shared/examples/vue/scripts.mdx" />
+
+Pass it to the plugin as `scripts`:
+
+<include src="../../shared/examples/vue/main.mdx" />
+
+The plugin starts one script loader when the app mounts, after it has applied
+the visitor's stored choice and privacy signals. Do not also call
+`createScriptLoader` from a component. A component's `onMounted` runs before
+the plugin has read the stored choice, and each script would load twice.
+
+Every vendor guide under [integrations](/docs/integrations/overview) gives the
+helper and options for that vendor.
+
+## Gate an iframe with ConsentGate
+
+`ConsentGate` renders its default slot while the category is allowed and its
+`placeholder` slot otherwise. The iframe is absent from the DOM until the
+visitor allows the category, and Vue removes it when they withdraw.
+
+<include src="../../shared/examples/vue/embed.mdx" />
+
+## Gate an iframe without a wrapper
+
+The plugin also runs the iframe blocker, on by default. Give an iframe
+`data-src` instead of `src`, and a `data-category`. c15t sets `src` when the
+category is allowed and removes it when it is withdrawn.
+
+{/* example: fragment */}
+
+```vue title="src/MapEmbed.vue"
+<template>
+  <iframe
+    data-src="https://www.google.com/maps/embed?pb=YOUR_EMBED_ID"
+    data-category="functionality"
+    title="Store map"
+  />
+</template>
+```
+
+The iframe element stays on the page while blocked, empty. Use `ConsentGate`
+when you want a placeholder with a way to open preferences. Pass
+`iframeBlocker: false` to turn the blocker off.
+
+## Block tracking requests
+
+`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
+until the rule's category is allowed. A blocked `fetch` resolves to a `451`
+response and sends nothing.
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+app.use(c15tVue, {
+  backendURL,
+  networkBlocker: {
+    onRequestBlocked: (info) => console.info('Blocked', info),
+    rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
+  },
+  scripts,
+});
+```
+
+A rule's `domain` also matches its subdomains. Add `pathIncludes` or `methods`
+to narrow it. Requests that match a rule wait from plugin install until the
+blocker starts, so an early request is not sent before consent is known.
+
+## When a visitor withdraws consent
+
+Removing a script tag cannot stop code that already ran. When a save turns off
+a category or vendor that was allowed, c15t reloads the page so the new
+document starts with only permitted code. Set `reloadOnConsentRevoked: false`
+to handle revocation yourself, or use `callbacks.onBeforeConsentRevocationReload`
+to run code before the reload.
+
+`clearOnRevocation` deletes first-party cookies and storage keys that belong to
+a category when it is withdrawn. See
+[clear on revocation](/docs/integrations/clear-on-revocation).
+
+## Content Security Policy
+
+Pass your CSP nonce as `nonce`. The script loader adds it to every `<script>`
+element it creates. A `nonce` on a single script takes precedence. Allow your
+backend origin in `connect-src`.
+
+## Verify gating
+
+In a private window, open the Network tab and load the app under a policy that
+asks for consent. Requests to your vendors and iframe origins are absent.
+Allow one category and save, and only that category's vendors load. Withdraw
+it, and the page reloads without loading the vendor again.
+[Verify consent](/docs/guides/verify-consent) has the full checklist.

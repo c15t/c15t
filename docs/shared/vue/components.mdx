@@ -1,0 +1,58 @@
+---
+title: "Vue and Nuxt components"
+description: "Shared component reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. The Vue and Nuxt components pages include it. */}
+
+## Component reference
+
+Every component reads the consent runtime that the Vue plugin or the Nuxt
+module provides, and each one includes its own styles. In plain Vue, import
+components from the paths in the Vue column. The Nuxt module registers the
+components marked "Global"; import the others from the same paths as Vue.
+
+| Component | Vue import | Nuxt | What it renders |
+| --- | --- | --- | --- |
+| `ConsentRoot` | `c15t/vue/consent-root` | Global | The banner and, once opened, the preference dialog. Switches to the IAB banner and dialog under an IAB policy. Renders `ConsentDialogTrigger` when `showTrigger` is set. |
+| `ConsentPreferencesLink` | `c15t/vue/runtime/components/consent-preferences-link.vue` | Global | A button that opens preferences. Renders nothing until the policy offers preferences. Its slot replaces the "Privacy settings" label. |
+| `ConsentGate` | `c15t/vue/runtime/components/consent-gate.vue` | Global | Its default slot while the `category` prop is allowed, otherwise its `placeholder` slot. |
+| `ConsentWidget` | `c15t/vue/consent-widget` | Global | The category switches and save actions inline, for a privacy page. |
+| `ConsentDialogTrigger` | `c15t/vue/runtime/components/consent-dialog-trigger.vue` | Global | A floating, draggable button that opens preferences. |
+| `ConsentBanner` | `c15t/vue/runtime/components/consent-banner.vue` | Import | The first-layer banner on its own, while `activeUI` is `'banner'`. |
+| `ConsentManager` | `c15t/vue/runtime/components/consent-manager.vue` | Import | The preference dialog on its own, while `activeUI` is `'manager'`. |
+| `IABConsentBanner` | `c15t/vue/runtime/components/iab-consent-banner.vue` | Import | The IAB TCF first layer. |
+| `IABConsentDialog` | `c15t/vue/runtime/components/iab-consent-dialog.vue` | Import | The IAB TCF preference centre. |
+| `ConsentDevTools` | `c15t/vue/devtools` | Import | A development panel for the consent runtime. See below. |
+
+`ConsentFrame` is a deprecated name for `ConsentGate`. Nuxt still registers
+it so older templates resolve.
+
+`ConsentRoot` already renders `ConsentBanner` and `ConsentManager`. Mount one
+or the other, not both, or the visitor sees two banners.
+
+## Component props
+
+| Component | Prop | Type | Default |
+| --- | --- | --- | --- |
+| `ConsentRoot` | `country`, `region` | `string` | Request location. Setting either overrides the location and resolves the policy again. |
+| `ConsentRoot` (Vue only) | `language` | `string` | Browser language. |
+| `ConsentGate` | `category` | `'necessary' \| 'functionality' \| 'measurement' \| 'experience' \| 'marketing'` | Required. |
+| `ConsentBanner` | `variant` | `'floating' \| 'bar' \| 'widget' \| 'wall'` | From `presentation.prompt`, else `floating`. |
+| `ConsentBanner` | `position` | Depends on `variant` | The variant's default position. |
+| `ConsentBanner` | `blocking` | `boolean` | From `presentation.prompt`. |
+| `ConsentWidget` | `hideBranding` | `boolean` | `true` |
+| `ConsentWidget` | `noStyle` | `boolean` | `false` |
+| `ConsentWidget` | `language` | `string` | Page language, for text direction. |
+| `IABConsentBanner` | `primaryButton` | `'reject' \| 'accept' \| 'customize'` | `'customize'` |
+| `IABConsentDialog` | `initialTab` | `'purposes' \| 'vendors'` | `'purposes'` |
+
+A policy can override a banner prop. A choice wall always blocks, a notice
+never blocks, and a position that the variant does not accept falls back to
+the variant's default with a console warning.
+
+`ConsentManager`, `ConsentPreferencesLink` and `ConsentDialogTrigger` take no
+props. Configure the trigger with the `showTrigger`, `triggerDefaultPosition`,
+`triggerSize`, `triggerIcon`, `triggerShowWhen`, `triggerPersistPosition` and
+`triggerAriaLabel` options.

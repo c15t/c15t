@@ -23,14 +23,18 @@ EXAMPLE_TARGET=all bun run --cwd examples/shared test
 ```
 
 Targets are `nextjs`, `react`, `vue`, `svelte`, `javascript`, `nuxt`,
-`nuxt-prerender`, `tanstack-start`, `tanstack-start-streamed`,
-`tanstack-start-same-origin`, `tanstack-start-static`, `astro`, `astro-static`
-and `sveltekit`. `astro-static` builds the Astro demo as a static site with no
-adapter, so every page is prerendered. `nuxt` also runs the journeys on a
-prerendered route and a Nitro-cached route; `nuxt-prerender` runs those two
-routes in client manifest mode. The `tanstack-start-*` targets build the
-TanStack Start example with one of the alternative root routes in
-`examples/tanstack-start/src/rendering`. `src/targets.ts` contains only paths,
+`nuxt-prerender`, `nuxt-static`, `tanstack-start`, `tanstack-start-streamed`,
+`tanstack-start-same-origin`, `tanstack-start-static`, `astro`, `astro-static`,
+`sveltekit` and `html`. `astro-static` builds the Astro demo as a static site
+with no adapter, so every page is prerendered. `nuxt` also runs the journeys on
+a prerendered route and a Nitro-cached route; `nuxt-prerender` runs those two
+routes in client manifest mode. `nuxt-static` runs `nuxt generate` with
+`ssr: false` and client manifest mode, then serves `.output/public` with no
+Nuxt server. The `tanstack-start-*` targets build the TanStack Start example
+with one of the alternative root routes in
+`examples/tanstack-start/src/rendering`. The `vue` target also runs every
+journey against `/headless`, which replaces the stock consent UI with the
+composables. `src/targets.ts` contains only paths,
 commands and environment aliases. No framework provider is implemented here.
 Every run builds again because public backend URLs contain the fixture's port.
 The build uses test vendor IDs, never account credentials.

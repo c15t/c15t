@@ -1,0 +1,35 @@
+---
+title: Composables
+description: Read consent, open preferences and record choices in Nuxt with the composables the c15t Nuxt module auto-imports.
+group: frameworks
+---
+
+<include src="../../shared/vue/composables.mdx" />
+
+## Render content by permission
+
+This Nuxt component shows a block only while marketing is allowed. The module
+auto-imports `useConsent`, so the component has no imports.
+
+{/* example: fragment */}
+
+```vue title="app/components/MarketingOffer.vue"
+<script setup lang="ts">
+const consent = useConsent();
+</script>
+
+<template>
+  <aside v-if="consent.marketing">Personalized offers</aside>
+</template>
+```
+
+Use `v-if`, not `v-show`, when the content loads anything from a third party.
+For iframes use `ConsentGate`, and for vendor scripts use the `scripts` option
+in `app.config.ts`. See [scripts and embeds](/docs/frameworks/nuxt/scripts).
+
+## Composables on the server
+
+The composables work during server rendering. With `manifest: 'server'` they
+return the visitor's resolved policy and stored choice, so the server HTML
+and the first client render agree. With `ssr: false` they start with every
+optional category denied and update once the browser resolves the policy.

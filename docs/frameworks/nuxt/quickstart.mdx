@@ -1,240 +1,135 @@
 ---
 title: Quickstart
-description: Configure the Nuxt module for server rendering, browser initialization or static hosting.
+description: Add c15t to a server-rendered Nuxt app with the Nuxt module, Inth, consent-gated scripts and a preferences link.
 group: frameworks
 ---
 
-[Create an Inth project](https://inth.com) and use its backend endpoint in
-this guide. Configure the project's policy rules and allowed app origins first.
+## Before you start
 
-## Register the Nuxt module
+This guide is for a Nuxt app that runs a Nuxt server, built with `nuxt build`
+and deployed to Node or a serverless preset. The server resolves each
+visitor's policy, so the banner is part of the first HTML. For static hosting
+or `ssr: false`, follow
+[static and SPA output](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting)
+instead. [Choose your setup](/docs/concepts/choose-your-setup) compares every
+option.
+
+The guide uses [Inth](https://inth.com) for policies and consent records.
+Create a project, set its policy rules, add your site's origin to its trusted
+origins, and copy the backend URL. To run the service yourself, use a
+[self-hosted backend](/docs/self-host/overview) URL instead. Offline mode keeps
+policies in your code and choices in the browser, with no consent records.
+Not recommended for production environments.
+
+## Install c15t
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-```ts title="nuxt.config.ts"
-export default defineNuxtConfig({
-  modules: ['c15t/vue'],
-  runtimeConfig: { public: { posthogKey: '', xPixelId: '' } },
-  c15t: {
-    backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL,
-    manifest: true,
-    showTrigger: true,
-  },
-});
+`c15t/vue` is the Nuxt module. You do not install a separate Nuxt package.
+
+## Add the Nuxt module
+
+Paste the backend URL from your Inth project into `.env`. The URL is public;
+it ends up in browser code.
+
+```dotenv title=".env"
+NUXT_PUBLIC_C15T_BACKEND_URL=
 ```
 
-Set `NUXT_PUBLIC_C15T_BACKEND_URL` to your consent backend's absolute base URL.
-Configure its policy rules and trusted origins. `manifest: true` enables the
-server manifest path and registers same-origin init and manifest routes. Nuxt
-resolves the visitor's consent using the manifest and reuses the initial state
-for hydration.
+Register the module in `nuxt.config.ts`:
 
-Past the manifest's `s-maxage` those routes serve it stale and refresh it in
-the background. On request-scoped presets (Vercel, Cloudflare, Netlify) Nitro
-puts the platform's `waitUntil` on the event, and the routes hand the refresh
-to it so it is not cut short when the response is sent. Nothing is needed from
-you. The init route hands its session report to the same `waitUntil`: after
-each resolution it posts a small report to the backend's `POST /sessions`,
-server-to-server, so the backend still counts visitors it never served
-`/init` to. It needs an absolute `backendURL`, never inferred from a manifest URL; set `reportSessions: false` to
-send none.
+<include src="../../shared/examples/nuxt/nuxt-config.mdx" />
 
-Server rendering waits at most `timeoutMs` (500 ms by default) for the
-visitor's policy. If the backend is slow or down, the page renders without
-consent UI in the server HTML, optional categories stay denied, consent-gated
-scripts and iframes stay blocked, and the browser resolves the policy after
-hydration. The manifest request keeps running and fills the cache for the next
-request. The browser's own init requests are not cut short. After a failed
-manifest request with nothing cached, the routes wait 1 second before asking
-the backend again, doubling up to 5 seconds while failures continue; during
-that wait the init route does not fall back to the backend's `/init` unless the
-backend has no `/manifest` endpoint. Set `timeoutMs` in the `c15t` config to
-change the budget, or `false` to remove it.
+`manifest: 'server'` adds two routes to your Nuxt server,
+`/api/c15t/manifest` and `/api/c15t/init`. The server downloads your project's
+public policy manifest, caches it, and resolves each visitor from the request's
+location and language headers. Consent saves still go to Inth.
+[Data fetching](/docs/concepts/data-fetching) compares this with calling the
+backend on every request.
+
+## Mount the consent UI
+
+Add `ConsentRoot` and a preferences link to `app.vue`:
+
+<include src="../../shared/examples/nuxt/root.mdx" />
+
+`ConsentRoot` renders the banner when the visitor's policy asks for one and
+loads the preference dialog when it opens. `ConsentPreferencesLink` renders a
+Privacy settings button that reopens preferences. It renders nothing until the
+policy offers preferences.
+
+The module registers these components and the consent composables, so you
+write no imports and no `app.use()`. Keep `ConsentRoot` in `app.vue`, outside
+`<NuxtPage />`, so it stays mounted across navigation. The components bring
+their own styles.
 
 ## Register consent-gated scripts
 
-Include measurement and marketing categories in your policy for these vendors.
-Remove any existing loaders for them so each script loads once.
-
-Add your PostHog project key and X Pixel ID to `.env`:
+Remove any existing PostHog or X Pixel snippet so each script loads once. Add
+measurement and marketing to your Inth policy, then put the vendor IDs in
+`.env`. An empty ID leaves that vendor out.
 
 ```dotenv title=".env"
-NUXT_PUBLIC_POSTHOG_KEY=
-NUXT_PUBLIC_X_PIXEL_ID=
+VITE_POSTHOG_KEY=
+VITE_X_PIXEL_ID=
 ```
 
-Nuxt reads these values through public runtime configuration.
-An empty ID disables that integration. Create `app/example-scripts.ts`
-using the helper below. It selects PostHog's EU region; change `region` to `'us'`
-for a US project. PostHog waits for measurement permission and disables
-cookieless capture. X Pixel waits for marketing permission.
+Create `app/consent-scripts.ts`. PostHog waits for measurement permission and
+uses its EU region; change `region` to `'us'` for a US project. X Pixel waits
+for marketing permission.
 
 <include src="../../shared/examples/nuxt/scripts.mdx" />
 
-## Block tracking requests
+Register the scripts in `app/app.config.ts`:
 
-`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
-until the visitor grants the rule's category. A blocked `fetch` resolves to a
-`451` response and nothing is sent.
+<include src="../../shared/examples/nuxt/app-config.mdx" />
 
-```ts title="nuxt.config.ts"
-export default defineNuxtConfig({
-  c15t: {
-    networkBlocker: {
-      rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
-    },
-  },
-});
-```
+The module merges the `c15t` key of `app.config.ts` over its options in
+`nuxt.config.ts`, then starts one script loader in the browser after
+hydration. Put options that contain functions, such as `scripts`, `callbacks`
+and `consentSource`, in `app.config.ts`. Module options in `nuxt.config.ts`
+reach the browser as JSON, which drops functions.
 
-Module options reach the browser as JSON, so `onRequestBlocked` is not
-available here.
+`app.config.ts` is part of the browser bundle, so it cannot read
+`runtimeConfig`. The file above reads the IDs from Vite's `VITE_` variables at
+build time. Vendor IDs are public, so you can also write them into the file.
 
-## Mount the root once
+## Gate an embed
 
-```vue title="app/app.vue"
-<script setup lang="ts">
-import { createScriptLoader } from 'c15t/modules/script-loader';
-import { onUnmounted } from 'vue';
-import { createExampleScripts } from './example-scripts';
+Wrap third-party iframes in `ConsentGate`. The iframe does not exist in the
+page until its category is allowed, and it is removed when the visitor
+withdraws permission.
 
-const publicConfig = useRuntimeConfig().public;
-const kernel = useConsentKernel();
-let loader: ReturnType<typeof createScriptLoader> | undefined;
-const removeMountedHook = useNuxtApp().hook('app:mounted', () => {
-  loader = createScriptLoader({
-    kernel,
-    scripts: createExampleScripts(publicConfig.posthogKey, publicConfig.xPixelId),
-  });
-});
-onUnmounted(() => {
-  removeMountedHook();
-  loader?.dispose();
-});
-const activeUI = useConsentActiveUI();
-</script>
+<include src="../../shared/examples/nuxt/embed.mdx" />
 
-<template>
-  <ConsentRoot />
-  <NuxtPage />
-  <footer>
-    <button type="button" @click="activeUI = 'manager'">Privacy settings</button>
-  </footer>
-</template>
-```
+## Verify the setup
 
-Use `app.vue` and `example-scripts.ts` at the project root if that is your
-Nuxt source layout. The module
-registers components and composables. A separate `app.use()` or React-style
-provider is not needed. Keep `ConsentRoot` outside route-specific pages so it
-survives navigation. The mounted hook registers scripts against the module's
-existing kernel after hydration; unmounting the app cleans up the loader.
+Build and start the production server with `nuxt build` and
+`node .output/server/index.mjs`. Open the site in a private window with your
+browser's DevTools on the Network tab, under a policy that asks for consent.
 
-## Customize the theme
+1. Load a page and view its source. The banner markup,
+   `data-testid="consent-banner-root"`, is in the HTML. The Network tab shows
+   no requests to `posthog.com`, `static.ads-twitter.com` or
+   `youtube-nocookie.com`.
+2. Click Reject all, then reload. The banner stays closed and the vendor
+   requests stay absent.
+3. Click Privacy settings, allow Measurement and save. PostHog's `array.js`
+   loads and the video appears. X Pixel stays blocked until you allow
+   Marketing.
+4. Turn Measurement off and save. The page reloads, the video is gone and
+   PostHog does not load again.
 
-Import `defineTheme` from `c15t/vue` in `nuxt.config.ts`. That entry also
-exports the `Theme` type. The helper returns a typed theme object; map its
-values to the module's `tokens` configuration to apply them to the consent UI.
+[Verify consent](/docs/guides/verify-consent) has the full release checklist.
 
-Merge these tokens into your existing module configuration:
+## Next steps
 
-```ts title="nuxt.config.ts"
-import { defineTheme } from 'c15t/vue';
-
-const theme = defineTheme({
-  colors: { primary: '#2f6f4e' },
-  radius: { lg: '4px' },
-});
-
-export default defineNuxtConfig({
-  modules: ['c15t/vue'],
-  runtimeConfig: { public: { posthogKey: '', xPixelId: '' } },
-  c15t: {
-    backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL,
-    manifest: true,
-    showTrigger: true,
-    tokens: {
-      'c15t-primary': theme.colors.primary,
-      'c15t-radius-lg': theme.radius.lg,
-    },
-  },
-});
-```
-
-The consent UI uses a green primary color and a 4px large-radius token. Token
-keys omit the leading `--`. Use `c15t/vue/vue-plugin` for theme imports inside
-Vue components; `c15t/vue` is the Nuxt configuration entry.
-
-## Configure SPA or static output
-
-For a deployment without a Nuxt server, resolve the manifest in the browser and
-set an absolute manifest URL. The default same-origin manifest route needs a
-server and will not exist on static hosting.
-
-```ts title="nuxt.config.ts"
-export default defineNuxtConfig({
-  modules: ['c15t/vue'],
-  runtimeConfig: { public: { posthogKey: '', xPixelId: '' } },
-  c15t: {
-    backendURL: 'https://consent.example.com',
-    manifest: 'client',
-    manifestURL: 'https://consent.example.com/manifest',
-    showTrigger: true,
-  },
-});
-```
-
-Replace the example domain with your backend. Use this configuration with your
-existing SPA or prerendering setup. Client manifest mode does not fetch an init
-route. Without a configured `geoURL`, the browser has no request geography and
-uses the manifest's unknown-location fallback. If you supply a geography
-endpoint, it must return country and region data in the supported shape.
-
-## Verify each deployment
-
-For request SSR, inspect the initial HTML under a policy that requires a prompt,
-then confirm hydration does not record a new choice. For static output, serve
-the generated files and check that all consent URLs exist on the deployed host.
-Reject, reload, navigate and reopen preferences. Use
-[verification](/docs/guides/verify-consent) for the network checks.
-
-## Inspect consent in Nuxt DevTools
-
-In development, the module adds a **c15t** tab to Nuxt DevTools. Open Nuxt
-DevTools with Shift + Option + D (Shift + Alt + D on Windows and Linux) and
-choose c15t. The tab inspects the app's consent kernel: consent values,
-scripts, location, the resolved policy, IAB state, events and consent actions.
-It follows the DevTools light or dark theme.
-
-Nuxt enables its DevTools by default in development. Production builds don't
-register the tab, its `/__c15t_devtools__` page or the client plugin that
-exposes the kernel to it. To turn the tab off in development, set
-`devtools: false`:
-
-```ts title="nuxt.config.ts"
-export default defineNuxtConfig({
-  modules: ['c15t/vue'],
-  c15t: {
-    devtools: false,
-  },
-});
-```
-
-The tab's event history starts when you first open it. Nuxt DevTools keeps the
-tab loaded, so switching to another tab and back keeps the history. Saves and
-actions in the tab change the app's real consent state, as they would through
-the banner.
-
-## Run the complete example
-
-Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
-YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.
-
-## IAB vendor data
-
-For an IAB policy, Nuxt serializes the banner summary and a reference to the
-Global Vendor List. The Vue runtime mounts the shared IAB module after hydration
-and loads the list before saving a TC String. The manifest init route serves
-cacheable versioned lists. Hosted mode reads the list from the existing init
-endpoint. See [server-rendered vendor data](../javascript/iab/overview#server-rendered-vendor-data)
-for cache rules and error behavior.
+- [Rendering and deployment](/docs/frameworks/nuxt/rendering) covers static
+  hosting, `ssr: false`, prerendering and cached routes.
+- [Scripts and embeds](/docs/frameworks/nuxt/scripts) covers the iframe
+  blocker, the network blocker and revocation.
+- [Customize](/docs/frameworks/nuxt/customize) changes colors, layout and copy.
+- [Components](/docs/frameworks/nuxt/components) and
+  [composables](/docs/frameworks/nuxt/composables) list the full API.
+- [Troubleshooting](/docs/frameworks/nuxt/troubleshooting) covers common
+  failures.

@@ -6,6 +6,8 @@ export interface ExampleTarget {
 	failureRoute?: string;
 	/** Build and start environment on top of {@link exampleEnvironment}. */
 	env?: Record<string, string>;
+	/** Build command arguments for `bun`. Defaults to `run build`. */
+	build?: string[];
 }
 
 const preview = (port: number) => ['run', 'start', '--port', String(port)];
@@ -26,7 +28,7 @@ export const targets: ExampleTarget[] = [
 		routes: ['/app-router', '/awaited', '/pages-router', '/client-init'],
 		start: preview,
 	},
-	...['react', 'vue', 'svelte'].map((id) => ({
+	...['react', 'svelte'].map((id) => ({
 		directory: id,
 		failureRoute: '/',
 		id,
@@ -52,6 +54,14 @@ export const targets: ExampleTarget[] = [
 		start: () => ['serve.ts'],
 	},
 	{
+		directory: 'vue',
+		failureRoute: '/',
+		id: 'vue',
+		// `/headless` mounts the same plugin with custom consent UI.
+		routes: ['/', '/headless'],
+		start: preview,
+	},
+	{
 		// Server manifest mode. The prerendered and cached copies of the
 		// page share their HTML between visitors; the browser resolves each
 		// visitor after hydration.
@@ -74,6 +84,18 @@ export const targets: ExampleTarget[] = [
 		id: 'nuxt-prerender',
 		routes: ['/prerendered/consent-example', '/cached/consent-example'],
 		start: () => ['run', 'start'],
+	},
+	{
+		// The same app generated as static files with client manifest mode:
+		// every page is prerendered, no Nuxt server runs, and the browser
+		// fetches the manifest from the backend and resolves the policy.
+		build: ['run', 'generate'],
+		directory: 'nuxt',
+		env: { C15T_NUXT_OUTPUT: 'static' },
+		failureRoute: '/consent-example',
+		id: 'nuxt-static',
+		routes: ['/consent-example'],
+		start: (port) => ['run', 'preview:static', '--port', String(port)],
 	},
 	{
 		directory: 'tanstack-start',

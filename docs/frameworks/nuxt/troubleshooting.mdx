@@ -1,0 +1,92 @@
+---
+title: Troubleshooting
+description: Fix common c15t Nuxt module problems, from a missing banner and scripts that never load to prerendered pages and static hosting.
+group: frameworks
+---
+
+## Why is there no banner?
+
+Check, in order:
+
+1. The visitor's policy asks for one. A policy with prompt `none` shows no
+   banner, which is common in opt-out regions. `useConsentSnapshot()`
+   exposes `policyRule.prompt`, and [DevTools](/docs/frameworks/nuxt/components#debug-with-devtools)
+   shows the matched policy. See [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
+2. `ConsentRoot` is in `app.vue`, not inside a page that unmounts.
+3. The backend answered. In the Network tab, `/api/c15t/init` returns 200 with
+   `manifest: 'server'`, or your `manifestURL` does with `manifest: 'client'`.
+   While resolution fails, c15t shows no UI and keeps every optional category
+   denied.
+4. A stored choice exists. Clear the `c15t` cookie and localStorage entry, or
+   use a private window.
+
+## The banner is not in the server HTML
+
+Only request-time rendering with `manifest: 'server'`, or with `manifest`
+unset, puts the banner in the HTML. With `ssr: false` it appears after the
+manifest loads.
+
+With server rendering, the render waits at most `timeoutMs` for the policy,
+500 milliseconds by default. A slower backend renders the page without consent
+UI and the browser resolves the policy after hydration. Check the server log
+for backend errors, and raise `timeoutMs` if your backend is reachable but
+slow.
+
+## The banner comes back after a visitor rejects
+
+The page was prerendered or served from a cache. The Nuxt payload then carries
+the choice from build time or from another request, and the browser uses it
+instead of the visitor's cookie. Check `routeRules` for `prerender`, `swr`,
+`isr` or `cache`, and whether you build with `nuxt generate` while `ssr` is
+on. Render those pages per request, or build with `ssr: false`. See
+[rendering and deployment](/docs/frameworks/nuxt/rendering#why-prerendered-and-cached-pages-are-not-supported).
+
+## Scripts never load, or load before consent
+
+- The scripts are in `nuxt.config.ts`. Move `scripts` to `app/app.config.ts`,
+  because module options drop functions.
+- The vendor ID is empty at build time. `app.config.ts` cannot read
+  `runtimeConfig`, so a value set only at runtime never reaches it.
+- A second loader, such as the vendor's own Nuxt module or a `useHead` script,
+  also loads the vendor. Remove it, or the vendor loads without consent.
+
+## Static hosting returns 404 for /api/c15t/manifest
+
+A static host has no Nuxt server routes. Use `manifest: 'client'` with an
+absolute `manifestURL` and `ssr: false`, as in
+[deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting).
+If the browser reports a CORS error for the manifest, add your site's origin
+to the Inth project's trusted origins.
+
+## Every visitor gets the same policy on a static site
+
+In `manifest: 'client'` mode the browser has no request location, so it
+resolves the policy for an unknown location. Set `geoURL` to an endpoint that
+returns the visitor's `country` and `region`.
+
+## The server throws "does not provide an export named 'default'"
+
+If the built server fails on its first render with this error for
+`estree-walker`, bundle that package into the server build:
+
+{/* example: fragment */}
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  vite: { ssr: { noExternal: ['estree-walker'] } },
+});
+```
+
+The CommonJS build of Vue's server renderer requires `estree-walker`. When the
+server build leaves that package external, Node loads its ES module build,
+which has no default export.
+
+## A composable throws "Kernel not found"
+
+The composable ran outside the Nuxt app, for example in a server route or a
+plain module. Call consent composables inside a component's `setup`.
+
+## More help
+
+The [shared troubleshooting guide](/docs/guides/troubleshooting) covers
+problems common to every framework.

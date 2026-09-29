@@ -7,6 +7,8 @@
 		"check-types": "nuxt typecheck",
 		"db:migrate": "bunx @c15t/cli self-host migrate",
 		"dev": "nuxt dev",
+		"generate": "nuxt generate",
+		"preview:static": "vite preview --outDir .output/public --host 127.0.0.1 --strictPort",
 		"start": "node .output/server/index.mjs"
 	},
 	"dependencies": {

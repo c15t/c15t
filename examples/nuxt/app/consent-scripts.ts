@@ -2,10 +2,13 @@
 import { posthog } from '@c15t/integrations/posthog';
 import { xPixel } from '@c15t/integrations/x-pixel';
 
-export const createExampleScripts = (
-	posthogKey?: string,
-	xPixelId?: string
-) => [
+// app.config.ts is bundled into the browser build and cannot read
+// runtimeConfig. Vendor IDs are public, so write them here or read them at
+// build time from Vite's VITE_ variables.
+const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
+const xPixelId = import.meta.env.VITE_X_PIXEL_ID;
+
+export const scripts = [
 	...(posthogKey
 		? [
 				posthog({

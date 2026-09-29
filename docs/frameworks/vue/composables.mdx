@@ -1,0 +1,37 @@
+---
+title: Composables
+description: Read consent, open preferences and record choices in a Vue app with the composables exported from c15t/vue/vue-plugin.
+group: frameworks
+---
+
+<include src="../../shared/vue/composables.mdx" />
+
+## Render content by permission
+
+This component shows a block only while marketing is allowed:
+
+{/* example: fragment */}
+
+```vue title="src/MarketingOffer.vue"
+<script setup lang="ts">
+import { useConsent } from 'c15t/vue/vue-plugin';
+
+const consent = useConsent();
+</script>
+
+<template>
+  <aside v-if="consent.marketing">Personalized offers</aside>
+</template>
+```
+
+Use `v-if`, not `v-show`, when the content loads anything from a third party.
+For iframes use `ConsentGate`, and for vendor scripts use the plugin's
+`scripts` option. See [scripts and embeds](/docs/frameworks/vue/scripts).
+
+## Before the policy resolves
+
+The plugin starts with every optional category denied and no recorded choice
+read yet. The composables update when the browser has read the stored choice
+and the policy arrives. Until then the snapshot's `policyPending` is `true` and
+`usePolicyResolution()` reports a status other than `'matched'`, so you can
+hold back UI that depends on the answer.
