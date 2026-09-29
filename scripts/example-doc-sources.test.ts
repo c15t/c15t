@@ -91,6 +91,27 @@ describe('region extraction', () => {
 		});
 	});
 
+	test('publishes Storybook recipes under the Storybook app name', () => {
+		const [region] = findRegions(
+			'apps/storybook-react/src/docs-recipes/bottom-bar.tsx',
+			'// #region docs:bottom-bar\nx\n// #endregion docs:bottom-bar'
+		);
+		expect(region).toMatchObject({
+			app: 'apps/storybook-react',
+			destination: `${generatedExamplesDir}/storybook-react/bottom-bar.mdx`,
+			title: 'src/docs-recipes/bottom-bar.tsx',
+		});
+	});
+
+	test('rejects files outside an example app', () => {
+		expect(() =>
+			findRegions(
+				'apps/parity-runner/src/geometry.ts',
+				'// #region docs:x\nx\n// #endregion docs:x'
+			)
+		).toThrow('is not inside an example app');
+	});
+
 	test('rejects missing and unclosed regions', () => {
 		expect(() => extractRegion(source, 'absent', 'x.tsx')).toThrow(
 			'has no region'
