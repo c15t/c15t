@@ -1574,10 +1574,13 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					emit({ actionAt, snapshot: committed, type: 'vendors:recorded' });
 				}
 				if (acknowledged) {
+					// Attributed like the save that recorded it.
 					emit({
 						dismissal: acknowledgement,
 						snapshot: committed,
+						surface: uiSource,
 						type: 'notice:dismissed',
+						...decisionTiming,
 					});
 				}
 				return { after: committed, generation: recordsGeneration };
