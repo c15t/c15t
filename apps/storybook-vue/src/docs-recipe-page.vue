@@ -1,14 +1,12 @@
-import { ConsentDialogLink } from 'c15t/react';
+<script setup lang="ts">
+import ConsentPreferencesLink from '../../../packages/vue/src/runtime/components/preferences-link.vue';
 
 import '../../docs-recipe-page.css';
-import type { ReactNode } from 'react';
+</script>
 
-/**
- * A plain site page the design recipes render over, so screenshots show the
- * banner in context. Demo scaffolding only; the docs publish the recipes.
- */
-export const RecipePage = ({ children }: { children?: ReactNode }) => (
-	<div className="recipe-page">
+<!-- The plain page the design recipes render over. Demo scaffolding only. -->
+<template>
+	<div class="recipe-page">
 		<header>
 			<strong>Northwind Coffee</strong>
 			<nav aria-label="Main">
@@ -23,7 +21,7 @@ export const RecipePage = ({ children }: { children?: ReactNode }) => (
 				Pick a roast, choose how often it arrives, and change your plan any
 				time. Every bag is roasted the day before it ships.
 			</p>
-			<div className="recipe-page__cards">
+			<div class="recipe-page__cards">
 				<section>
 					<h2>Light</h2>
 					<p>Bright and floral, with a clean finish.</p>
@@ -40,8 +38,8 @@ export const RecipePage = ({ children }: { children?: ReactNode }) => (
 		</main>
 		<footer>
 			<span>© Northwind Coffee</span>
-			<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+			<ConsentPreferencesLink>Privacy settings</ConsentPreferencesLink>
 		</footer>
-		{children}
+		<slot />
 	</div>
-);
+</template>
