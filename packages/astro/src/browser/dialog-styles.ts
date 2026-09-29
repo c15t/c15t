@@ -38,7 +38,10 @@ export const registerDialogStyles = function registerDialogStyles(
 	registered = [...hrefs];
 };
 
-const linkStylesheet = function linkStylesheet(href: string): Promise<void> {
+const linkStylesheet = function linkStylesheet(
+	href: string,
+	nonce: string | undefined
+): Promise<void> {
 	const existing = linked.get(href);
 	if (existing?.element.isConnected) {
 		return existing.loaded;
@@ -46,6 +49,10 @@ const linkStylesheet = function linkStylesheet(href: string): Promise<void> {
 	const element = document.createElement('link');
 	element.rel = 'stylesheet';
 	element.href = href;
+	// A policy that lists only a nonce for styles covers `<link>` too.
+	if (nonce) {
+		element.nonce = nonce;
+	}
 	element.setAttribute(DIALOG_STYLES_ATTRIBUTE, '');
 	const loaded = new Promise<void>((resolve) => {
 		element.addEventListener('load', () => resolve(), { once: true });
@@ -72,12 +79,14 @@ const linkStylesheet = function linkStylesheet(href: string): Promise<void> {
  * Waiting is what keeps the island from painting a frame without its rules.
  * A link something removed is added again.
  *
+ * @param nonce - The page's CSP nonce, put on every link this adds.
  * @returns Resolves once every stylesheet has loaded or failed.
  */
-export const loadDialogStyles =
-	async function loadDialogStyles(): Promise<void> {
-		await Promise.all(registered.map(linkStylesheet));
-	};
+export const loadDialogStyles = async function loadDialogStyles(
+	nonce?: string
+): Promise<void> {
+	await Promise.all(registered.map((href) => linkStylesheet(href, nonce)));
+};
 
 /**
  * Keep the dialog's stylesheets through a ClientRouter navigation.

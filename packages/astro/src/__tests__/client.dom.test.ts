@@ -946,3 +946,104 @@ describe('dialog stylesheets and ClientRouter swaps', () => {
 		expect(booted.getConsent().activeUI).toBe('dialog');
 	});
 });
+
+describe('a CSP nonce on the page', () => {
+	const NONCE = 'p4ge-n0nce';
+
+	/** The config script the server renders with `Astro.locals.c15t.nonce`. */
+	const renderConfigScript = function renderConfigScript(): void {
+		document.head.innerHTML = `<script data-c15t-config nonce="${NONCE}"></script>`;
+	};
+
+	it('goes on the scripts the loader injects', async () => {
+		renderConfigScript();
+		renderBanner();
+		const booted = start({
+			...OPTIONS,
+			scripts: [
+				{
+					category: 'measurement',
+					id: 'nonce-probe',
+					textContent: 'globalThis.__nonceProbe = true;',
+				},
+			],
+		});
+		await booted.acceptAll();
+
+		await vi.waitFor(() => {
+			const loaded = Array.from(document.querySelectorAll('script')).find(
+				(script) => script.textContent?.includes('__nonceProbe')
+			);
+			expect(loaded?.nonce).toBe(NONCE);
+		});
+	});
+
+	it('goes on a gated inline script it activates', async () => {
+		renderConfigScript();
+		renderBanner();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<script type="text/plain" data-c15t-category="measurement">1</script>'
+		);
+		const booted = start();
+		await booted.acceptAll();
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector<HTMLScriptElement>(
+					'script[data-c15t-activated="true"]:not([type])'
+				)?.nonce
+			).toBe(NONCE);
+		});
+	});
+
+	it('goes on the dialog stylesheets it links', async () => {
+		renderConfigScript();
+		registerDialogStyles(['/_astro/dialog.css']);
+		registerDialogAdapter('svelte', () =>
+			Promise.resolve({
+				mount: () =>
+					Promise.resolve({
+						close: vi.fn(),
+						destroy: vi.fn(),
+					} as ConsentDialogHandle),
+				name: 'svelte',
+			})
+		);
+		renderBanner();
+		const booted = start();
+
+		const opening = booted.openDialog();
+		let link: HTMLLinkElement | null = null;
+		await vi.waitFor(() => {
+			link = document.head.querySelector<HTMLLinkElement>(
+				'link[rel="stylesheet"][href="/_astro/dialog.css"]'
+			);
+			expect(link).not.toBeNull();
+		});
+		(link as HTMLLinkElement | null)?.dispatchEvent(new Event('load'));
+		await opening;
+
+		expect((link as HTMLLinkElement | null)?.nonce).toBe(NONCE);
+	});
+});
+
+describe('the boot payload as a JSON data block', () => {
+	it('boots from the block the components render', () => {
+		const payload = {
+			...INLINE_CONFIG,
+			initialTranslations: {
+				language: 'fr',
+				translations: { cookieBanner: { title: '</script>' } },
+			},
+		};
+		document.head.innerHTML = `<script type="application/json" data-c15t-config>${JSON.stringify(
+			payload
+		).replace(/</gu, '\\u003c')}</script>`;
+		renderBanner();
+		client = boot(resolveOptions(OPTIONS));
+
+		expect(client.getConsent().translations?.language).toBe('fr');
+		expect(client.getConsent().policyPending).toBe(false);
+	});
+});

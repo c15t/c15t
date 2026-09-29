@@ -8,6 +8,7 @@ import {
 } from '@c15t/schema/types';
 import { describe, expect, it, vi } from 'vitest';
 
+import { buildInlineCodeHashes } from '../csp';
 import { c15t, createOwnEntryResolver, resolveOptions } from '../integration';
 import { hostedMode, manifestMode, offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
@@ -30,7 +31,10 @@ const INLINE_MANIFEST = await buildConsentManifestFromConfig({
 const specifier = (entry: string): string =>
 	JSON.stringify(resolveOwnEntry(entry));
 
-const runSetup = async function runSetup(options: C15tAstroOptions) {
+const runSetup = async function runSetup(
+	options: C15tAstroOptions,
+	config: Record<string, unknown> = {}
+) {
 	const integration = c15t(options);
 	const calls: SetupCalls = {
 		addMiddleware: vi.fn(),
@@ -38,11 +42,12 @@ const runSetup = async function runSetup(options: C15tAstroOptions) {
 		injectScript: vi.fn(),
 		updateConfig: vi.fn(),
 	};
-	await integration.hooks['astro:config:setup']?.(
-		calls as unknown as Parameters<
-			NonNullable<(typeof integration)['hooks']['astro:config:setup']>
-		>[0]
-	);
+	await integration.hooks['astro:config:setup']?.({
+		...calls,
+		config,
+	} as unknown as Parameters<
+		NonNullable<(typeof integration)['hooks']['astro:config:setup']>
+	>[0]);
 	return { calls, integration };
 };
 
@@ -236,6 +241,29 @@ describe('resolveOptions', () => {
 });
 
 describe('astro:config:setup', () => {
+	it("hands c15t's inline hashes to Astro's CSP when the site turned it on", async () => {
+		const options: C15tAstroOptions = { mode: offlineMode() };
+		const { calls } = await runSetup(options, { security: { csp: true } });
+		expect(calls.updateConfig).toHaveBeenCalledWith({
+			security: {
+				csp: {
+					algorithm: 'SHA-256',
+					scriptDirective: {
+						hashes: (await buildInlineCodeHashes(resolveOptions(options)))
+							.scripts,
+					},
+				},
+			},
+		});
+
+		const without = await runSetup(options);
+		expect(
+			without.calls.updateConfig.mock.calls.some(([update]) =>
+				Object.hasOwn(update as object, 'security')
+			)
+		).toBe(false);
+	});
+
 	it('registers the middleware before user middleware', async () => {
 		const { calls } = await runSetup({
 			mode: hostedMode({ url: '/api/c15t' }),

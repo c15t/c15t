@@ -49,6 +49,18 @@ describe('activateGatedScripts', () => {
 		expect(activated?.dataset.vendor).toBe('ga');
 	});
 
+	it("keeps a script's own nonce over the page's", () => {
+		document.body.innerHTML =
+			'<script type="text/plain" data-c15t-category="measurement" nonce="own">1</script>';
+		activateGatedScripts(snapshot({ measurement: true }), document, 'page');
+
+		expect(
+			document.querySelector<HTMLScriptElement>(
+				`script[${ACTIVATED_ATTRIBUTE}="true"]`
+			)?.nonce
+		).toBe('own');
+	});
+
 	it('preserves src and loading attributes', () => {
 		document.body.innerHTML =
 			'<script type="text/plain" data-c15t-category="marketing" src="https://cdn.example.com/p.js" async defer></script>';

@@ -150,7 +150,7 @@ describe('<ConsentScript />', () => {
 	it('runs the colour-scheme script before the config script', async () => {
 		const html = await render(await buildLocals());
 		const colorScheme = html.indexOf('prefers-color-scheme');
-		const config = html.indexOf('__c15tAstroConfig');
+		const config = html.indexOf('data-c15t-config');
 		expect(colorScheme).toBeGreaterThan(-1);
 		expect(config).toBeGreaterThan(colorScheme);
 	});
@@ -174,7 +174,7 @@ describe('<ConsentScript />', () => {
 			})
 		);
 		expect(html).not.toContain('c15t-dark');
-		expect(html).toContain('__c15tAstroConfig');
+		expect(html).toContain('data-c15t-config');
 	});
 
 	it('emits no colour-scheme script for none', async () => {
@@ -185,7 +185,7 @@ describe('<ConsentScript />', () => {
 			})
 		);
 		expect(html).not.toContain('c15t-dark');
-		expect(html).toContain('__c15tAstroConfig');
+		expect(html).toContain('data-c15t-config');
 	});
 
 	it('emits once per request, even alongside a banner', async () => {
