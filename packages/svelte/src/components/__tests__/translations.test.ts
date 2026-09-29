@@ -4,12 +4,43 @@
  * Mirrors: packages/react/src/hooks/__tests__/use-translations.test.tsx
  */
 
-import type { Translations } from '@c15t/core';
+import { custom } from '@c15t/core';
+import type { KernelTranslations, Translations } from '@c15t/core';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
+import { enTranslations } from '@c15t/translations';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
-import { testOffline } from '../../__tests__/test-offline';
+import { TEST_OPT_IN_RULE, testOffline } from '../../__tests__/test-offline';
+
+const backendEnglish = {
+	language: 'en',
+	translations: {
+		...enTranslations,
+		cookieBanner: {
+			...enTranslations.cookieBanner,
+			description: 'Backend description',
+			title: 'Backend title',
+		},
+	},
+} as KernelTranslations;
+
+const matchedResolution = () =>
+	resolvePolicyRules({
+		countryCode: null,
+		regionCode: null,
+		rules: [TEST_OPT_IN_RULE],
+	});
+
+const appTitle = {
+	messages: {
+		en: { cookieBanner: { title: 'App title' } } as Partial<Translations>,
+	},
+};
 
 describe('Translations', () => {
 	beforeEach(() => {
@@ -278,5 +309,49 @@ describe('Translations', () => {
 				'Alles'
 			);
 		});
+	});
+
+	test('an app override survives hosted init translations for the same language', async () => {
+		render(ContextConsumerFixture, {
+			options: {
+				i18n: appTitle,
+				mode: custom({
+					init: () =>
+						Promise.resolve({
+							policyResolution: writePolicyResolutionWire(matchedResolution()),
+							translations: backendEnglish,
+						}),
+				}),
+			},
+		});
+
+		await waitFor(() => {
+			expect(
+				screen.getByTestId('translation-banner-description')
+			).toHaveTextContent('Backend description');
+		});
+		expect(screen.getByTestId('translation-banner-title')).toHaveTextContent(
+			'App title'
+		);
+	});
+
+	test('an app override survives a SvelteKit prefetch for the same language', () => {
+		render(ContextConsumerFixture, {
+			options: {
+				i18n: appTitle,
+				mode: testOffline(),
+				prefetch: {
+					initialPolicyResolution: matchedResolution(),
+					initialTranslations: backendEnglish,
+				},
+			},
+		});
+
+		expect(screen.getByTestId('translation-banner-title')).toHaveTextContent(
+			'App title'
+		);
+		expect(
+			screen.getByTestId('translation-banner-description')
+		).toHaveTextContent('Backend description');
 	});
 });

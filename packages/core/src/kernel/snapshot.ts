@@ -24,6 +24,7 @@ import {
 	resolveEffectivePolicy,
 } from '../policy';
 import type { PresentedSelection } from '../policy';
+import { applyTranslationOverrides } from '../translations';
 import type {
 	ConsentSnapshot,
 	ConsentState,
@@ -408,7 +409,10 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		subject,
 		surfaceShownAt: UNSHOWN_SURFACES,
 		translations: config.initialTranslations
-			? { ...config.initialTranslations }
+			? applyTranslationOverrides(
+					{ ...config.initialTranslations },
+					config.translationOverrides
+				)
 			: null,
 		user: config.initialUser ? { ...config.initialUser } : null,
 		vendorChoice,

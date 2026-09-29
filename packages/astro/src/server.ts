@@ -1,11 +1,11 @@
 import {
 	seedExperiment,
+	applyTranslationOverrides,
 	deferInitGvl,
 	deferInitGvlToRoute,
 	c15tProtocolHeaders,
 	createConsentKernel,
 	createOfflineTransport,
-	deepMergeTranslations,
 	defaultTranslationConfig,
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
@@ -15,6 +15,7 @@ import type {
 	KernelConfig,
 	KernelOverrides,
 	KernelTranslations,
+	TranslationOverrides,
 	TranslationsResponse,
 } from '@c15t/core';
 /**
@@ -171,6 +172,16 @@ const raceBudget = async function raceBudget<Value>(
 };
 
 /**
+ * The integration's `i18n.messages`, typed as overrides. The option is
+ * serializable and typed loosely; the shape is the same.
+ */
+const readTranslationOverrides = function readTranslationOverrides(
+	options: C15tResolvedOptions
+): TranslationOverrides | undefined {
+	return options.i18n?.messages as TranslationOverrides | undefined;
+};
+
+/**
  * Resolve the language the surfaces should render in.
  *
  * @param options - Integration options.
@@ -196,20 +207,10 @@ export const resolveTranslations = function resolveTranslations(
 	const base =
 		catalogue[language] ??
 		(defaultTranslationConfig.translations.en as TranslationsResponse);
-	const overrides = options.i18n?.messages?.[language] as
-		| Partial<Translations>
-		| undefined;
-	return {
-		language,
-		// Deep, as in every other adapter: overriding `common.acceptAll`
-		// keeps the rest of `common`.
-		translations: overrides
-			? (deepMergeTranslations(
-					base as Translations,
-					overrides
-				) as TranslationsResponse)
-			: base,
-	};
+	return applyTranslationOverrides(
+		{ language, translations: base },
+		readTranslationOverrides(options)
+	);
 };
 
 /**
@@ -788,6 +789,14 @@ export const resolveConsentContext = async function resolveConsentContext(
 	}
 
 	config.initialPolicyPending = config.initialPolicyResolution === undefined;
+	// Hosted and manifest mode replace the copy with the backend's. It is the
+	// base for that language; the app's own messages still win key by key.
+	if (config.initialTranslations) {
+		config.initialTranslations = applyTranslationOverrides(
+			config.initialTranslations,
+			readTranslationOverrides(options)
+		);
+	}
 	// Judge the visitor against the categories the browser runtime will ask
 	// about. The page's config leaves them out: the runtime derives them from
 	// the same options.

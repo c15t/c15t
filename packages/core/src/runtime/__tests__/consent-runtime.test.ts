@@ -1,4 +1,5 @@
 import { resolvePolicyRules } from '@c15t/schema/types';
+import { enTranslations } from '@c15t/translations';
 /**
  * @vitest-environment jsdom
  *
@@ -224,6 +225,101 @@ describe('createRuntimeKernel', () => {
 			externalId: 'user_1',
 			identityProvider: 'auth0',
 		});
+	});
+});
+
+describe('app i18n over backend translations', () => {
+	const backendEnglish = {
+		language: 'en',
+		translations: {
+			...enTranslations,
+			cookieBanner: {
+				...enTranslations.cookieBanner,
+				description: 'Backend description',
+				title: 'Backend title',
+			},
+		},
+	} as never;
+	const appI18n = {
+		messages: { en: { cookieBanner: { title: 'App title' } } },
+	} as never;
+
+	test('an app override survives a hosted init for the same language', async () => {
+		const transport = createTransport({
+			init: vi.fn().mockResolvedValue({
+				...RESOLVED_PREFETCH,
+				translations: backendEnglish,
+			}),
+		});
+		const kernel = createRuntimeKernel({
+			i18n: appI18n,
+			mode: custom(transport),
+		});
+
+		await kernel.commands.init();
+
+		const copy = kernel.getSnapshot().translations?.translations;
+		expect(copy?.cookieBanner.title).toBe('App title');
+		// Keys the app did not override keep the backend's copy.
+		expect(copy?.cookieBanner.description).toBe('Backend description');
+		kernel.dispose();
+	});
+
+	test('an app override survives a server prefetch for the same language', () => {
+		const kernel = createRuntimeKernel({
+			i18n: appI18n,
+			mode: custom(createTransport()),
+			prefetch: { ...RESOLVED_PREFETCH, initialTranslations: backendEnglish },
+		});
+
+		const copy = kernel.getServerSnapshot().translations?.translations;
+		expect(copy?.cookieBanner.title).toBe('App title');
+		expect(copy?.cookieBanner.description).toBe('Backend description');
+		kernel.dispose();
+	});
+
+	test('a regional backend language takes the overrides for its primary language', async () => {
+		const transport = createTransport({
+			init: vi.fn().mockResolvedValue({
+				...RESOLVED_PREFETCH,
+				translations: { language: 'de-AT', translations: enTranslations },
+			}),
+		});
+		const kernel = createRuntimeKernel({
+			i18n: {
+				messages: { de: { cookieBanner: { title: 'Kekse' } } },
+			} as never,
+			mode: custom(transport),
+		});
+
+		await kernel.commands.init();
+
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe('Kekse');
+		kernel.dispose();
+	});
+
+	test('overrides for another language do not leak into the copy', async () => {
+		const transport = createTransport({
+			init: vi.fn().mockResolvedValue({
+				...RESOLVED_PREFETCH,
+				translations: backendEnglish,
+			}),
+		});
+		const kernel = createRuntimeKernel({
+			i18n: {
+				messages: { de: { cookieBanner: { title: 'Kekse' } } },
+			} as never,
+			mode: custom(transport),
+		});
+
+		await kernel.commands.init();
+
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe('Backend title');
+		kernel.dispose();
 	});
 });
 

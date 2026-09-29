@@ -271,7 +271,12 @@ export {
 	mergeTranslationConfigs,
 	prepareTranslationConfig,
 } from '@c15t/translations';
-export { defaultTranslationConfig } from './translations';
+export {
+	applyTranslationOverrides,
+	defaultTranslationConfig,
+	resolveLocalTranslations,
+} from './translations';
+export type { TranslationOverrides } from './translations';
 
 // -- Schema re-exports ---------------------------------------------------------
 export type {
