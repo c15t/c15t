@@ -188,9 +188,9 @@ describe('<IABConsentBanner />', () => {
 			await buildLocals({
 				...iabOptions,
 				experiment: {
+					arm: 'bar',
+					arms: { bar: { prompt: { variant: 'bar' } } },
 					id: 'iab-shape',
-					variant: 'bar',
-					variants: { bar: { prompt: { variant: 'bar' } }, control: {} },
 				},
 			})
 		);

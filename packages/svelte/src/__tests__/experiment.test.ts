@@ -8,11 +8,11 @@ import ProviderOnlyFixture from './fixtures/provider-only-fixture.svelte';
 import { testOffline } from './test-offline';
 
 const experiment: ConsentExperiment = {
-	id: 'banner-shape',
-	variants: {
+	arms: {
 		bar: { prompt: { variant: 'bar' } },
 		floating: { prompt: { variant: 'floating' } },
 	},
+	id: 'banner-shape',
 };
 
 const mount = function mount(overrides: Partial<ConsentExperiment> = {}) {
@@ -59,26 +59,28 @@ test('built-in assignment lands in the snapshot on mount and is stored', async (
 				id: 'banner-shape',
 			})
 		);
-		const { variant } = kernel.getSnapshot().experiment ?? {};
-		expect(['bar', 'floating']).toContain(variant);
-		expect(
-			JSON.parse(localStorage.getItem(EXPERIMENT_STORAGE_KEY) ?? 'null')
-		).toMatchObject({ id: 'banner-shape', variant });
+		const { arm } = kernel.getSnapshot().experiment ?? {};
+		expect(['control', 'bar', 'floating']).toContain(arm);
+		await vi.waitFor(() =>
+			expect(
+				JSON.parse(localStorage.getItem(EXPERIMENT_STORAGE_KEY) ?? 'null')
+			).toEqual({ arm, id: 'banner-shape' })
+		);
 	} finally {
 		unmount();
 	}
 });
 
 test('the arm resolves against the experiment the runtime was created with', async () => {
-	const { manager, rerender, unmount } = mount({ variant: 'bar' });
+	const { manager, rerender, unmount } = mount({ arm: 'bar' });
 	try {
 		expect(manager.presentation?.prompt?.variant).toBe('bar');
 		await rerender({
 			options: {
 				experiment: {
 					...experiment,
-					variant: 'bar',
-					variants: { bar: { prompt: { variant: 'wall' } } },
+					arm: 'bar',
+					arms: { bar: { prompt: { variant: 'wall' } } },
 				},
 				mode: testOffline(),
 				persistence: false,
@@ -91,13 +93,13 @@ test('the arm resolves against the experiment the runtime was created with', asy
 });
 
 test('a host variant is known from the first snapshot', async () => {
-	const { kernel, unmount } = mount({ variant: 'bar' });
+	const { kernel, unmount } = mount({ arm: 'bar' });
 	try {
 		const expected = {
 			acknowledgedDiagnostics: false,
+			arm: 'bar',
 			assignedBy: 'host',
 			id: 'banner-shape',
-			variant: 'bar',
 		};
 		expect(kernel.getServerSnapshot().experiment).toEqual(expected);
 		await vi.waitFor(() =>

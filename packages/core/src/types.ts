@@ -854,10 +854,11 @@ export interface ConsentKernel {
 		/** Set the active UI surface. */
 		activeUI: (ui: KernelActiveUI) => void;
 		/**
-		 * Record the presentation experiment arm this visitor runs and release
-		 * a held prompt; `null` runs no experiment. `gate`, when given, decides
-		 * per policy whether the arm is shown; a rejected arm is withheld
-		 * until a policy accepts it.
+		 * Record the presentation experiment arm this visitor runs; `null`
+		 * runs no experiment. `gate` decides per policy whether the arm is
+		 * shown, and a rejected arm is withheld until a policy accepts it. A
+		 * held prompt stays held until a gate is set or the experiment is
+		 * cleared.
 		 */
 		experiment: (
 			assignment: ExperimentAssignment | null,

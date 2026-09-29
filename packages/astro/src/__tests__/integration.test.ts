@@ -128,28 +128,27 @@ describe('resolveOptions', () => {
 		// visitor never saw.
 		const variants = {
 			bar: { prompt: { variant: 'bar' as const } },
-			control: {},
 		};
 		expect(() =>
 			resolveOptions({
-				experiment: { id: 'banner-shape', variants },
+				experiment: { arms: variants, id: 'banner-shape' },
 				mode: offlineMode(),
 			})
-		).toThrowError(/consentMiddleware\(\{ experimentVariant \}\)/u);
+		).toThrowError(/consentMiddleware\(\{ experimentArm \}\)/u);
 		// A site that composes the middleware resolves the arm per request.
 		expect(
 			resolveOptions({
-				experiment: { id: 'banner-shape', variants },
+				experiment: { arms: variants, id: 'banner-shape' },
 				middleware: false,
 				mode: offlineMode(),
 			}).experiment
 		).toMatchObject({ id: 'banner-shape' });
 		expect(
 			resolveOptions({
-				experiment: { id: 'banner-shape', variant: 'bar', variants },
+				experiment: { arm: 'bar', arms: variants, id: 'banner-shape' },
 				mode: offlineMode(),
 			}).experiment
-		).toMatchObject({ variant: 'bar' });
+		).toMatchObject({ arm: 'bar' });
 	});
 
 	it('keeps custom route paths', () => {

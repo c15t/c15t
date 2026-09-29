@@ -31,7 +31,7 @@ export default onRequest;
  * `src/middleware.ts` that composes it itself. Set `middleware: false` in
  * the integration so it does not also run as the `pre` middleware.
  *
- * @param middlewareOptions - Per-request hooks such as `experimentVariant`.
+ * @param middlewareOptions - Per-request hooks such as `experimentArm`.
  * @returns The middleware handler.
  * @example
  * ```ts
@@ -39,7 +39,7 @@ export default onRequest;
  * import { consentMiddleware } from '@c15t/astro/middleware';
  *
  * export const onRequest = consentMiddleware({
- *   experimentVariant: (context) =>
+ *   experimentArm: (context) =>
  *     context.cookies.get('banner-arm')?.value === 'wall' ? 'wall' : 'floating',
  * });
  * ```

@@ -179,7 +179,7 @@ const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
  * @returns Options with defaults applied.
  * @throws {Error} When `mode` is missing, is not a mode descriptor, is a
  * manifest mode with nowhere to save consent, or `experiment` has neither
- * a `variant` nor a site-composed middleware to resolve one.
+ * an `arm` nor a site-composed middleware to resolve one.
  */
 export const resolveOptions = function resolveOptions(
 	options: C15tAstroOptions
@@ -214,19 +214,19 @@ export const resolveOptions = function resolveOptions(
 		);
 	}
 	// The banner is server-rendered HTML that the browser only shows or
-	// hides, so the arm has to be known on the server: a static `variant`,
-	// or `experimentVariant` on a middleware the site composes itself.
+	// hides, so the arm has to be known on the server: a static `arm`,
+	// or `experimentArm` on a middleware the site composes itself.
 	if (
 		options.experiment &&
-		typeof options.experiment.variant !== 'string' &&
+		typeof options.experiment.arm !== 'string' &&
 		options.middleware !== false &&
 		(typeof options.middleware !== 'object' ||
 			options.middleware.enabled !== false)
 	) {
 		throw new Error(
 			'@c15t/astro: `experiment` needs an arm resolved on the server. ' +
-				'Set `middleware: false` and export `consentMiddleware({ experimentVariant })` ' +
-				'from src/middleware.ts to pick one per request, or pass a fixed `experiment.variant`.'
+				'Set `middleware: false` and export `consentMiddleware({ experimentArm })` ' +
+				'from src/middleware.ts to pick one per request, or pass a fixed `experiment.arm`.'
 		);
 	}
 	const {

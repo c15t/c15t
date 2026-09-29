@@ -22,11 +22,11 @@ const policyRules: PolicyRule[] = [
 ];
 
 const experiment: ConsentExperiment = {
-	id: 'banner-shape',
-	variants: {
+	arms: {
 		bar: { prompt: { variant: 'bar' } },
 		floating: { prompt: { variant: 'floating' } },
 	},
+	id: 'banner-shape',
 };
 
 const createTransport = function createTransport(): KernelTransport {
@@ -90,19 +90,19 @@ describe('runtime experiments', () => {
 		expect(shown[0]).toMatchObject({ experiment: assignment });
 		expect(
 			JSON.parse(localStorage.getItem(EXPERIMENT_STORAGE_KEY) as string)
-		).toEqual({ id: 'banner-shape', variant: assignment?.variant });
+		).toEqual({ arm: assignment?.arm, id: 'banner-shape' });
 		first.runtime.dispose();
 
 		// Force the other arm so stickiness, not luck, is tested.
-		const other = assignment?.variant === 'bar' ? 'floating' : 'bar';
+		const other = assignment?.arm === 'bar' ? 'floating' : 'bar';
 		localStorage.setItem(
 			EXPERIMENT_STORAGE_KEY,
-			JSON.stringify({ id: 'banner-shape', variant: other })
+			JSON.stringify({ arm: other, id: 'banner-shape' })
 		);
 		const second = createRuntime();
 		second.runtime.start();
 		await settled(second.runtime);
-		expect(second.runtime.kernel.getSnapshot().experiment?.variant).toBe(other);
+		expect(second.runtime.kernel.getSnapshot().experiment?.arm).toBe(other);
 		second.runtime.dispose();
 	});
 
@@ -111,9 +111,9 @@ describe('runtime experiments', () => {
 		// the impression to that arm rather than start unassigned.
 		const seeded = {
 			acknowledgedDiagnostics: false,
+			arm: 'bar',
 			assignedBy: 'host' as const,
 			id: 'banner-shape',
-			variant: 'bar',
 		};
 		const runtime = createConsentRuntime({
 			experiment,
@@ -130,31 +130,31 @@ describe('runtime experiments', () => {
 	test('a prefetched arm wins over a host variant', () => {
 		const seeded = {
 			acknowledgedDiagnostics: false,
+			arm: 'bar',
 			assignedBy: 'host' as const,
 			id: 'banner-shape',
-			variant: 'bar',
 		};
 		const runtime = createConsentRuntime({
-			experiment: { ...experiment, variant: 'floating' },
+			experiment: { ...experiment, arm: 'floating' },
 			mode: custom(createTransport()),
 			prefetch: { initialExperiment: seeded },
 		});
-		expect(runtime.kernel.getSnapshot().experiment?.variant).toBe('bar');
+		expect(runtime.kernel.getSnapshot().experiment?.arm).toBe('bar');
 		runtime.dispose();
 	});
 
 	test('a host variant overrides a stored arm and is not stored', async () => {
 		localStorage.setItem(
 			EXPERIMENT_STORAGE_KEY,
-			JSON.stringify({ id: 'banner-shape', variant: 'bar' })
+			JSON.stringify({ arm: 'bar', id: 'banner-shape' })
 		);
-		const { runtime } = createRuntime({ variant: 'floating' });
+		const { runtime } = createRuntime({ arm: 'floating' });
 		// Known before start: the host decided.
 		expect(runtime.kernel.getSnapshot().experiment).toEqual({
 			acknowledgedDiagnostics: false,
+			arm: 'floating',
 			assignedBy: 'host',
 			id: 'banner-shape',
-			variant: 'floating',
 		});
 		runtime.start();
 		await settled(runtime);
@@ -163,7 +163,7 @@ describe('runtime experiments', () => {
 		);
 		expect(
 			JSON.parse(localStorage.getItem(EXPERIMENT_STORAGE_KEY) as string)
-		).toEqual({ id: 'banner-shape', variant: 'bar' });
+		).toEqual({ arm: 'bar', id: 'banner-shape' });
 		runtime.dispose();
 	});
 
@@ -171,7 +171,7 @@ describe('runtime experiments', () => {
 		const error = vi
 			.spyOn(console, 'error')
 			.mockImplementation(() => undefined);
-		const { runtime } = createRuntime({ variant: 'wall' });
+		const { runtime } = createRuntime({ arm: 'wall' });
 		expect(runtime.kernel.getSnapshot().experiment).toBeNull();
 		expect(runtime.kernel.getSnapshot().experimentPending).toBe(false);
 		expect(error).toHaveBeenCalledOnce();
@@ -179,7 +179,7 @@ describe('runtime experiments', () => {
 	});
 
 	test('the arm reaches the save body, surface:shown and choice:recorded', async () => {
-		const { runtime, transport } = createRuntime({ variant: 'bar' });
+		const { runtime, transport } = createRuntime({ arm: 'bar' });
 		const shown: KernelEvent[] = [];
 		const recorded: KernelEvent[] = [];
 		runtime.kernel.events.on('surface:shown', (event) => shown.push(event));
@@ -189,21 +189,21 @@ describe('runtime experiments', () => {
 		runtime.start();
 		await vi.waitFor(() => expect(shown).toHaveLength(1));
 		expect(shown[0]).toMatchObject({
-			experiment: { assignedBy: 'host', variant: 'bar' },
+			experiment: { arm: 'bar', assignedBy: 'host' },
 			surface: 'banner',
 		});
 		await runtime.kernel.commands.save('all');
 		expect(recorded[0]).toMatchObject({
-			experiment: { id: 'banner-shape', variant: 'bar' },
+			experiment: { arm: 'bar', id: 'banner-shape' },
 		});
 		const payload = vi.mocked(transport.save)?.mock.calls[0]?.[0] as
 			| SavePayload
 			| undefined;
 		expect(payload?.experiment).toEqual({
 			acknowledgedDiagnostics: false,
+			arm: 'bar',
 			assignedBy: 'host',
 			id: 'banner-shape',
-			variant: 'bar',
 		});
 		runtime.dispose();
 	});
@@ -214,8 +214,8 @@ describe('runtime experiments', () => {
 			.mockImplementation(() => undefined);
 		const shown: KernelEvent[] = [];
 		const { runtime } = createRuntime({
-			variant: 'loud',
-			variants: { loud: { prompt: { primaryActions: ['accept'] } } },
+			arm: 'loud',
+			arms: { loud: { prompt: { primaryActions: ['accept'] } } },
 		});
 		runtime.kernel.events.on('surface:shown', (event) => shown.push(event));
 		runtime.start();
@@ -232,8 +232,8 @@ describe('runtime experiments', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 		const { runtime } = createRuntime({
 			acknowledgeDiagnostics: true,
-			variant: 'loud',
-			variants: { loud: { prompt: { primaryActions: ['accept'] } } },
+			arm: 'loud',
+			arms: { loud: { prompt: { primaryActions: ['accept'] } } },
 		});
 		runtime.start();
 		await vi.waitFor(() =>
@@ -241,7 +241,7 @@ describe('runtime experiments', () => {
 		);
 		expect(runtime.kernel.getSnapshot().experiment).toMatchObject({
 			acknowledgedDiagnostics: true,
-			variant: 'loud',
+			arm: 'loud',
 		});
 		expect(warn).toHaveBeenCalledOnce();
 		expect(warn.mock.calls[0]?.[1]).toHaveProperty('loud');

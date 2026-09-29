@@ -105,17 +105,17 @@ describe('<ConsentBanner />', () => {
 	it('renders the host-resolved experiment arm and inlines it', async () => {
 		const locals = await buildLocals({
 			experiment: {
+				arm: 'bar',
+				arms: { bar: { prompt: { variant: 'bar' } } },
 				id: 'banner-shape',
-				variant: 'bar',
-				variants: { bar: { prompt: { variant: 'bar' } }, control: {} },
 			},
 			mode: offlineMode({ policyRules: [testRule] }),
 		});
 		expect(locals.snapshot.experiment).toEqual({
 			acknowledgedDiagnostics: false,
+			arm: 'bar',
 			assignedBy: 'host',
 			id: 'banner-shape',
-			variant: 'bar',
 		});
 		const html = await render(locals);
 		expect(html).toContain('data-variant="bar"');

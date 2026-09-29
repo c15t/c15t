@@ -110,16 +110,16 @@ describe('boot', () => {
 		renderBanner();
 		const arm = {
 			acknowledgedDiagnostics: false,
+			arm: 'bar',
 			assignedBy: 'host',
 			id: 'banner-shape',
-			variant: 'bar',
 		};
 		const booted = start(
 			{
 				...OPTIONS,
 				experiment: {
+					arms: { bar: { prompt: { variant: 'bar' } } },
 					id: 'banner-shape',
-					variants: { bar: { prompt: { variant: 'bar' } }, control: {} },
 				},
 				middleware: false,
 			},
@@ -134,8 +134,8 @@ describe('boot', () => {
 		const booted = start({
 			...OPTIONS,
 			experiment: {
+				arms: { bar: { prompt: { variant: 'bar' } } },
 				id: 'banner-shape',
-				variants: { bar: { prompt: { variant: 'bar' } }, control: {} },
 			},
 			middleware: false,
 		});

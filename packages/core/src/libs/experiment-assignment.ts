@@ -1,210 +1,26 @@
 /**
- * Validation and sticky assignment for one experiment in one browser.
+ * Validation and storage for one experiment in one browser.
  *
  * Loaded on demand by {@link startExperiment}, so a site without an
- * experiment never ships it. The controller decides the arm, hands the
- * kernel a gate that checks the arm against each policy, and remembers
- * the arm under {@link EXPERIMENT_STORAGE_KEY} once the banner has shown
- * it. Nothing is written for a visitor who is never prompted, and nothing
- * is written for a host-resolved arm: the host decides that one again on
- * every visit.
+ * experiment never ships it. The controller hands the kernel a gate that
+ * checks the arm against each policy, which releases the held prompt, and
+ * remembers a c15t-picked arm under {@link EXPERIMENT_STORAGE_KEY} once the
+ * banner has shown it. Nothing is written for a visitor who is never
+ * prompted, and nothing is written for a host arm: the host decides that
+ * one again on every visit.
  */
 import type { ConsentSnapshot } from '../types';
-import { deleteCookie, getRawCookieValue, setCookie } from './cookie';
-import type { StorageConfig } from './cookie';
 import type {
-	ConsentExperiment,
 	ExperimentAssignment,
 	ExperimentGate,
 	StartExperimentOptions,
 } from './experiment';
 import {
-	assignExperimentVariant,
 	collectExperimentDiagnostics,
 	describeRejectedArms,
-	experimentConfigError,
 } from './experiment-engine';
 import type { ExperimentDiagnostics } from './experiment-engine';
-import { EXPERIMENT_STORAGE_KEY } from './storage-keys';
-
-/** What the browser keeps between visits: the arm the banner showed. */
-export interface StoredExperimentAssignment {
-	/** {@link ConsentExperiment.id}. */
-	id: string;
-	/** The arm the banner rendered. */
-	variant: string;
-}
-
-const parseStored = function parseStored(
-	raw: string | null | undefined
-): StoredExperimentAssignment | null {
-	if (!raw) {
-		return null;
-	}
-	try {
-		const parsed: unknown = JSON.parse(raw);
-		if (typeof parsed !== 'object' || parsed === null) {
-			return null;
-		}
-		const record = parsed as Record<string, unknown>;
-		// A record from an earlier build may carry `assignedBy: 'host'`; that
-		// arm was the host's call, so built-in assignment does not inherit it.
-		if (
-			typeof record.id !== 'string' ||
-			typeof record.variant !== 'string' ||
-			record.assignedBy === 'host'
-		) {
-			return null;
-		}
-		return { id: record.id, variant: record.variant };
-	} catch {
-		return null;
-	}
-};
-
-const localStorageAvailable = function localStorageAvailable(): boolean {
-	try {
-		return typeof localStorage !== 'undefined' && localStorage !== null;
-	} catch {
-		return false;
-	}
-};
-
-/**
- * Read the stored arm, from localStorage first and the cookie fallback
- * second. Never throws; unreadable storage reads as no record.
- *
- * @returns The stored arm, or `null`.
- */
-export const readStoredExperimentAssignment =
-	function readStoredExperimentAssignment(): StoredExperimentAssignment | null {
-		if (localStorageAvailable()) {
-			try {
-				const stored = parseStored(
-					localStorage.getItem(EXPERIMENT_STORAGE_KEY)
-				);
-				if (stored) {
-					return stored;
-				}
-			} catch {
-				// Fall through to the cookie.
-			}
-		}
-		const raw = getRawCookieValue(EXPERIMENT_STORAGE_KEY);
-		if (!raw) {
-			return null;
-		}
-		try {
-			return parseStored(decodeURIComponent(raw));
-		} catch {
-			return null;
-		}
-	};
-
-/**
- * Persist the arm the banner showed. Writes localStorage when available and
- * falls back to a cookie otherwise. A successful localStorage write also
- * drops any fallback cookie a previous visit left, so a later read that has
- * to fall back to the cookie cannot restore an older arm. Never throws.
- *
- * @param record - The experiment id and arm.
- * @param storageConfig - Cookie domain and path for the fallback.
- */
-export const writeStoredExperimentAssignment =
-	function writeStoredExperimentAssignment(
-		record: StoredExperimentAssignment,
-		storageConfig?: StorageConfig
-	): void {
-		const serialized = JSON.stringify({
-			id: record.id,
-			variant: record.variant,
-		});
-		if (localStorageAvailable()) {
-			try {
-				localStorage.setItem(EXPERIMENT_STORAGE_KEY, serialized);
-				if (getRawCookieValue(EXPERIMENT_STORAGE_KEY)) {
-					deleteCookie(EXPERIMENT_STORAGE_KEY, undefined, storageConfig);
-				}
-				return;
-			} catch {
-				// Quota or blocked storage: keep the cookie as the fallback.
-			}
-		}
-		setCookie(
-			EXPERIMENT_STORAGE_KEY,
-			encodeURIComponent(serialized),
-			undefined,
-			storageConfig
-		);
-	};
-
-const randomKey = function randomKey(): string {
-	return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
-		byte.toString(16).padStart(2, '0')
-	).join('');
-};
-
-/** Inputs of {@link resolveExperimentAssignment}. */
-export interface ResolveExperimentAssignmentInput {
-	experiment: ConsentExperiment;
-	/** The arm this browser stored after a previous banner showed it. */
-	stored: StoredExperimentAssignment | null;
-	/** The hydrated subject id, when the visitor already has one. */
-	subjectId?: string | null;
-	/**
-	 * An arm already on the kernel for this experiment: a server prefetch
-	 * that rendered it. Kept over the stored arm, because the visitor saw it.
-	 */
-	seeded?: ExperimentAssignment | null;
-	/** Random key factory; injectable for tests. */
-	createKey?: () => string;
-}
-
-/**
- * Decide the arm for this browser without touching storage.
- *
- * - A host `variant` wins.
- * - A `seeded` arm the kernel already carries is kept when it still exists.
- * - A stored arm for the same experiment id is reused when it still exists,
- *   so the banner a visitor saw stays the banner they see.
- * - Otherwise the arm is hashed from the subject id, or from a random key
- *   that is not kept: a visitor who never sees the banner is not tracked.
- *
- * @param input - The experiment, the stored arm, the seed and the subject id.
- * @returns The assignment.
- * @throws {Error} When `experiment.variant` names an undeclared arm, or a
- * supplied `weights` map reaches no arm.
- */
-export const resolveExperimentAssignment = function resolveExperimentAssignment(
-	input: ResolveExperimentAssignmentInput
-): ExperimentAssignment {
-	const { experiment, stored, seeded } = input;
-	const acknowledgedDiagnostics = experiment.acknowledgeDiagnostics === true;
-	if (experiment.variant !== undefined) {
-		return assignExperimentVariant(experiment, '');
-	}
-	if (
-		seeded?.id === experiment.id &&
-		Object.hasOwn(experiment.variants, seeded.variant)
-	) {
-		return { ...seeded, acknowledgedDiagnostics };
-	}
-	if (
-		stored?.id === experiment.id &&
-		Object.hasOwn(experiment.variants, stored.variant)
-	) {
-		return {
-			acknowledgedDiagnostics,
-			assignedBy: 'c15t',
-			id: stored.id,
-			variant: stored.variant,
-		};
-	}
-	return assignExperimentVariant(
-		experiment,
-		input.subjectId || (input.createKey ?? randomKey)()
-	);
-};
+import { writeStoredExperimentArm } from './experiment-storage';
 
 /** Options of {@link createExperimentController}. */
 export interface ExperimentControllerOptions extends StartExperimentOptions {
@@ -216,13 +32,11 @@ export interface ExperimentControllerOptions extends StartExperimentOptions {
 		warn?: (message: string, diagnostics: ExperimentDiagnostics) => void;
 		error?: (error: Error) => void;
 	};
-	/** Random key factory; injectable for tests. */
-	createKey?: () => string;
 }
 
 /** Owns one experiment's validation, assignment and storage for one kernel. */
 export interface ExperimentController {
-	/** The arm this browser runs, or `null` when the experiment is invalid. */
+	/** The arm this browser runs, or `null` when none is set. */
 	assignment: ExperimentAssignment | null;
 	/** Stop watching impressions. The arm stays on the kernel. */
 	dispose: () => void;
@@ -238,15 +52,13 @@ const policyKey = function policyKey(snapshot: ConsentSnapshot): string {
 };
 
 /**
- * Validate an experiment, assign this browser's arm and attach both to the
- * kernel.
+ * Check the kernel's arm against each policy and remember a c15t-picked arm.
  *
- * Nothing here throws into the page. An invalid definition logs an error
- * and runs no experiment. An arm a policy rejects is not shown under that
- * policy: the gate answers per policy, once, and the visitor sees the base
- * presentation and is left out of the experiment's records. The arm is
- * stored the first time the banner shows it, and only for built-in
- * assignment.
+ * Nothing here throws into the page. An arm a policy rejects is not shown
+ * under that policy: the gate answers per policy, once, and the visitor
+ * sees `control` and is left out of the experiment's records. Setting the
+ * gate releases the held prompt. The arm is stored the first time the
+ * banner shows it, and only when c15t picked it.
  *
  * @param options - Experiment, kernel, host presentation and reporting.
  * @returns The controller.
@@ -265,13 +77,6 @@ export const createExperimentController = function createExperimentController(
 		((failure: Error) => {
 			console.error(failure);
 		});
-
-	const configError = experimentConfigError(experiment);
-	if (configError) {
-		error(new Error(`${configError} No experiment runs.`));
-		kernel.set.experiment(null);
-		return { assignment: null, dispose: () => undefined };
-	}
 
 	/** Whether each policy seen so far accepts the experiment. */
 	const acceptedByPolicy = new Map<string, boolean>();
@@ -307,14 +112,14 @@ export const createExperimentController = function createExperimentController(
 		return accepted;
 	};
 
-	const snapshot = kernel.getSnapshot();
-	const assignment = resolveExperimentAssignment({
-		createKey: options.createKey,
-		experiment,
-		seeded: snapshot.experiment,
-		stored: readStoredExperimentAssignment(),
-		subjectId: snapshot.subject?.subjectId ?? null,
-	});
+	// The arm is already on the kernel: seeded from the host or a prefetch,
+	// or picked by `startExperiment` before `/init`.
+	const assignment: ExperimentAssignment | null =
+		kernel.getSnapshot().experiment;
+	if (!assignment) {
+		kernel.set.experiment(null);
+		return { assignment: null, dispose: () => undefined };
+	}
 
 	// Remember the arm once the banner has rendered it, so the visitor keeps
 	// seeing the banner they saw. A host arm is the host's to repeat.
@@ -326,8 +131,8 @@ export const createExperimentController = function createExperimentController(
 						return;
 					}
 					stored = true;
-					writeStoredExperimentAssignment(
-						{ id: event.experiment.id, variant: event.experiment.variant },
+					writeStoredExperimentArm(
+						{ arm: event.experiment.arm, id: event.experiment.id },
 						options.storageConfig
 					);
 				})

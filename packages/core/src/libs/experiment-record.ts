@@ -11,7 +11,7 @@ import type { ExperimentAssignment } from './experiment';
  * back from storage or a queued save.
  *
  * @param value - A parsed storage value.
- * @returns `true` for an object with a string `id` and `variant`, an
+ * @returns `true` for an object with a string `id` and `arm`, an
  * `assignedBy` of `host` or `c15t`, and a boolean `acknowledgedDiagnostics`.
  */
 export const isExperimentAssignment = function isExperimentAssignment(
@@ -23,7 +23,7 @@ export const isExperimentAssignment = function isExperimentAssignment(
 	const record = value as Record<string, unknown>;
 	return (
 		typeof record.id === 'string' &&
-		typeof record.variant === 'string' &&
+		typeof record.arm === 'string' &&
 		(record.assignedBy === 'host' || record.assignedBy === 'c15t') &&
 		typeof record.acknowledgedDiagnostics === 'boolean'
 	);

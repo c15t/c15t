@@ -70,9 +70,9 @@ export interface ResolveConsentContextOptions {
 	options: C15tResolvedOptions;
 	/**
 	 * This request's experiment arm, resolved by the middleware's
-	 * `experimentVariant`. Overrides a static `experiment.variant`.
+	 * `experimentArm`. Overrides a static `experiment.arm`.
 	 */
-	experimentVariant?: string;
+	experimentArm?: string;
 	/** Override fetch, mainly for tests. */
 	fetch?: typeof globalThis.fetch;
 	/**
@@ -215,7 +215,7 @@ export const resolveTranslations = function resolveTranslations(
 const readConsentRequest = function readConsentRequest(
 	headers: Headers,
 	options: C15tResolvedOptions,
-	experimentVariant?: string
+	experimentArm?: string
 ): { config: KernelConfig; inputs: ConsentRequestHeaderInputs } {
 	const now = Date.now();
 	const initialRecords = readStoredRecordsFromCookieHeader(
@@ -237,11 +237,11 @@ const readConsentRequest = function readConsentRequest(
 	// The arm is known on the server, so the inlined config and the first
 	// HTML already carry it. The banner is server-rendered, so without an
 	// arm for this request no experiment runs rather than holding the prompt.
-	const variant = experimentVariant ?? options.experiment?.variant;
-	if (options.experiment && variant !== undefined) {
+	const arm = experimentArm ?? options.experiment?.arm;
+	if (options.experiment && arm !== undefined) {
 		const { initialExperiment } = seedExperiment({
 			...options.experiment,
-			variant,
+			arm,
 		});
 		if (initialExperiment) {
 			config.initialExperiment = initialExperiment;
@@ -682,7 +682,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 	const { config: base, inputs } = readConsentRequest(
 		headers,
 		options,
-		prerendered ? undefined : input.experimentVariant
+		prerendered ? undefined : input.experimentArm
 	);
 	const translations = resolveTranslations(options, inputs);
 	// Hosted and manifest mode resolve against the visitor's geo, which a

@@ -67,7 +67,7 @@ const useExperimentDefinition = function useExperimentDefinition(): Ref<
  * @example
  * ```ts
  * const assignment = useExperiment();
- * watchEffect(() => console.log(assignment.value?.variant));
+ * watchEffect(() => console.log(assignment.value?.arm));
  * ```
  */
 export const useExperiment =

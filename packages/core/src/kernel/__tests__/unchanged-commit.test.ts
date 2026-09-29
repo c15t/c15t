@@ -73,9 +73,9 @@ test('every patch input agrees with full snapshot derivation', () => {
 		experiment: {
 			experiment: {
 				acknowledgedDiagnostics: false,
+				arm: 'a',
 				assignedBy: 'host',
 				id: 'exp',
-				variant: 'a',
 			},
 		},
 		experimentPending: { experimentPending: true },

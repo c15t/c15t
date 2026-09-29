@@ -4,14 +4,14 @@ import { describe, expect, it } from 'vitest';
 import {
 	actionAppearanceFromTheme,
 	applyExperimentTheme,
+	experimentConfigError,
+	pickExperimentArm,
 	resolveExperimentPresentation,
 	resolveExperimentTheme,
+	seedExperiment,
 } from '../experiment';
 import type { ConsentExperiment } from '../experiment';
-import {
-	assignExperimentVariant,
-	validateExperiment,
-} from '../experiment-engine';
+import { validateExperiment } from '../experiment-engine';
 
 const choice = normalizePolicyRule({
 	id: 'choice',
@@ -21,82 +21,118 @@ const choice = normalizePolicyRule({
 });
 
 const experiment: ConsentExperiment = {
-	id: 'banner-shape',
-	variants: {
+	arms: {
 		bar: { prompt: { variant: 'bar' } },
 		floating: { prompt: { position: 'bottom-right', variant: 'floating' } },
 	},
+	id: 'banner-shape',
 };
 
-describe('assignExperimentVariant', () => {
-	it('uses the host variant when it names a declared arm', () => {
+describe('pickExperimentArm', () => {
+	it('can pick control, which is always an arm', () => {
+		expect(pickExperimentArm(experiment, null, 0).arm).toBe('control');
+		expect(pickExperimentArm(experiment, null, 0.99).arm).toBe('floating');
+	});
+	it('splits by the given weights', () => {
+		const sixtyForty: ConsentExperiment = {
+			...experiment,
+			split: { bar: 40, control: 60 },
+		};
+		expect(pickExperimentArm(sixtyForty, null, 0.59).arm).toBe('control');
+		expect(pickExperimentArm(sixtyForty, null, 0.61).arm).toBe('bar');
+	});
+	it('gives an arm missing from the split no visitors, prototype keys included', () => {
+		const only: ConsentExperiment = {
+			...experiment,
+			arms: { ...experiment.arms, constructor: {} },
+			split: { bar: 1 },
+		};
+		for (const random of [0, 0.3, 0.6, 0.99]) {
+			expect(pickExperimentArm(only, null, random).arm).toBe('bar');
+		}
+	});
+	it('keeps the arm this browser already saw', () => {
 		expect(
-			assignExperimentVariant({ ...experiment, variant: 'floating' }, 'sub_1')
+			pickExperimentArm(experiment, { arm: 'bar', id: 'banner-shape' }, 0)
 		).toEqual({
 			acknowledgedDiagnostics: false,
-			assignedBy: 'host',
+			arm: 'bar',
+			assignedBy: 'c15t',
 			id: 'banner-shape',
-			variant: 'floating',
 		});
 	});
-	it('throws for a host variant that is not declared', () => {
-		expect(() =>
-			assignExperimentVariant({ ...experiment, variant: 'wall' }, 'sub_1')
-		).toThrow(/variant "wall" is not one of "bar", "floating"/u);
-	});
-	it('is deterministic for the same experiment and subject', () => {
-		const first = assignExperimentVariant(experiment, 'sub_abc');
-		expect(first.assignedBy).toBe('c15t');
-		for (let index = 0; index < 20; index += 1) {
-			expect(assignExperimentVariant(experiment, 'sub_abc')).toEqual(first);
-		}
-	});
-	it('spreads subjects across arms by weight', () => {
-		const weighted: ConsentExperiment = {
-			...experiment,
-			weights: { bar: 90, floating: 10 },
-		};
-		let bars = 0;
-		for (let index = 0; index < 1000; index += 1) {
-			if (assignExperimentVariant(weighted, `sub_${index}`).variant === 'bar') {
-				bars += 1;
-			}
-		}
-		expect(bars).toBeGreaterThan(850);
-		expect(bars).toBeLessThan(950);
-	});
-	it('reports the acknowledgement on the assignment', () => {
+	it('picks again when the stored arm is gone or from another experiment', () => {
 		expect(
-			assignExperimentVariant(
-				{ ...experiment, acknowledgeDiagnostics: true },
-				'sub_1'
-			).acknowledgedDiagnostics
-		).toBe(true);
+			pickExperimentArm(experiment, { arm: 'wall', id: 'banner-shape' }, 0).arm
+		).toBe('control');
+		expect(
+			pickExperimentArm(experiment, { arm: 'bar', id: 'other' }, 0).arm
+		).toBe('control');
 	});
 });
 
-describe('assignExperimentVariant weights', () => {
-	it('rejects a supplied map that reaches no arm', () => {
-		const unusable: Readonly<Record<string, number>>[] = [
-			{ bar: 0, floating: 0 },
-			{ bar: Number.POSITIVE_INFINITY, floating: 1 },
+describe('experimentConfigError', () => {
+	it('accepts a valid definition', () => {
+		expect(experimentConfigError(experiment)).toBeNull();
+		expect(experimentConfigError({ ...experiment, arm: 'control' })).toBeNull();
+	});
+	it('rejects control listed in arms', () => {
+		expect(
+			experimentConfigError({
+				...experiment,
+				arms: { ...experiment.arms },
+			})
+		).toMatch(/`control` is your `presentation`/u);
+	});
+	it('rejects an undeclared arm', () => {
+		expect(experimentConfigError({ ...experiment, arm: 'wall' })).toMatch(
+			/arm "wall"/u
+		);
+	});
+	it('rejects a split with a typo or no positive weight', () => {
+		expect(
+			experimentConfigError({ ...experiment, split: { bar: 1, flaoting: 1 } })
+		).toMatch(/"flaoting"/u);
+		for (const split of [
+			{ bar: 0, control: 0 },
+			{ bar: Number.POSITIVE_INFINITY },
 			{ bar: Number.NaN },
-		];
-		for (const weights of unusable) {
-			expect(() =>
-				assignExperimentVariant({ ...experiment, weights }, 'sub_1')
-			).toThrow(/finite positive weight/u);
+		]) {
+			expect(experimentConfigError({ ...experiment, split })).toMatch(
+				/finite positive weight/u
+			);
 		}
 	});
+});
 
-	it('gives an arm missing from the map weight 0, prototype keys included', () => {
-		const only: ConsentExperiment = {
-			...experiment,
-			variants: { ...experiment.variants, constructor: {} },
-			weights: { bar: 1 },
+describe('seedExperiment', () => {
+	it('seeds a host arm and holds the prompt until the gate unless rendered', () => {
+		const arm = {
+			acknowledgedDiagnostics: false,
+			arm: 'bar',
+			assignedBy: 'host',
+			id: 'banner-shape',
 		};
-		for (let index = 0; index < 50; index += 1) {
-			expect(assignExperimentVariant(only, `sub_${index}`).variant).toBe('bar');
+		expect(seedExperiment({ ...experiment, arm: 'bar' })).toEqual({
+			initialExperiment: arm,
+			initialExperimentPending: true,
+		});
+		expect(seedExperiment({ ...experiment, arm: 'bar' }, null, true)).toEqual({
+			initialExperiment: arm,
+		});
+	});
+	it('holds the prompt for c15t to pick', () => {
+		expect(seedExperiment(experiment)).toEqual({
+			initialExperimentPending: true,
+		});
+	});
+	it('runs no experiment for an invalid definition', () => {
+		const { error } = console;
+		console.error = () => undefined;
+		try {
+			expect(seedExperiment({ ...experiment, arm: 'wall' })).toEqual({});
+		} finally {
+			console.error = error;
 		}
 	});
 });
@@ -107,12 +143,12 @@ describe('resolveExperimentPresentation', () => {
 			resolveExperimentPresentation(
 				{ prompt: { position: 'bottom-left', variant: 'floating' } },
 				{
-					id: 'shape',
-					variants: {
+					arms: {
 						bar: { prompt: { position: undefined, variant: 'bar' } },
 					},
+					id: 'shape',
 				},
-				{ variant: 'bar' }
+				{ arm: 'bar' }
 			).prompt
 		).toEqual({ position: 'bottom-left', variant: 'bar' });
 	});
@@ -125,15 +161,15 @@ describe('resolveExperimentPresentation', () => {
 			},
 			{
 				...experiment,
-				variants: {
-					...experiment.variants,
+				arms: {
+					...experiment.arms,
 					floating: {
 						preferences: { defaults: { measurement: false } },
 						prompt: { position: 'bottom-right', variant: 'floating' },
 					},
 				},
 			},
-			{ variant: 'floating' }
+			{ arm: 'floating' }
 		);
 		expect(resolved).toEqual({
 			preferences: {
@@ -150,18 +186,17 @@ describe('resolveExperimentPresentation', () => {
 	it('returns the base for an arm that no longer exists', () => {
 		const base = { prompt: { variant: 'bar' as const } };
 		expect(
-			resolveExperimentPresentation(base, experiment, { variant: 'gone' })
+			resolveExperimentPresentation(base, experiment, { arm: 'gone' })
 		).toBe(base);
 	});
 });
 
 describe('validateExperiment', () => {
 	const uneven: ConsentExperiment = {
-		id: 'prominence',
-		variants: {
-			control: {},
+		arms: {
 			loud: { prompt: { primaryActions: ['accept'] } },
 		},
+		id: 'prominence',
 	};
 	it('returns no diagnostics for clean arms', () => {
 		expect(validateExperiment(experiment, choice)).toEqual({});
@@ -188,20 +223,19 @@ describe('validateExperiment', () => {
 			})
 		).toThrow(/"bar".*\n.*"floating"|"bar"/u);
 	});
-	it('rejects an unusable weights map when c15t would assign the arm', () => {
-		const zero = { ...experiment, weights: { bar: 0, floating: 0 } };
+	it('rejects an unusable split when c15t would pick the arm', () => {
+		const zero = { ...experiment, split: { bar: 0, floating: 0 } };
 		expect(() => validateExperiment(zero, choice)).toThrow(
 			/finite positive weight/u
 		);
-		// A host-resolved arm never reads the weights.
-		expect(validateExperiment({ ...zero, variant: 'bar' }, choice)).toEqual({});
+		// A host-resolved arm never reads the split.
+		expect(validateExperiment({ ...zero, arm: 'bar' }, choice)).toEqual({});
 	});
 });
 
 describe('resolveExperimentTheme', () => {
 	const themed: ConsentExperiment = {
-		id: 'button-style',
-		variants: {
+		arms: {
 			bold: {
 				theme: {
 					colors: { primary: '#0a0a0a' },
@@ -209,8 +243,8 @@ describe('resolveExperimentTheme', () => {
 					slots: { consentBanner: ['a', 'b'] },
 				},
 			},
-			control: {},
 		},
+		id: 'button-style',
 	};
 	const base = {
 		colors: { primary: '#2f6f4e', secondary: '#fff' },
@@ -218,7 +252,7 @@ describe('resolveExperimentTheme', () => {
 		slots: { consentBanner: ['x'] },
 	};
 	it('merges the arm over the base one group deep, arm wins on the leaf', () => {
-		expect(resolveExperimentTheme(base, themed, { variant: 'bold' })).toEqual({
+		expect(resolveExperimentTheme(base, themed, { arm: 'bold' })).toEqual({
 			colors: { primary: '#0a0a0a', secondary: '#fff' },
 			motion: { duration: '1s' },
 			radius: { lg: '4px' },
@@ -226,27 +260,23 @@ describe('resolveExperimentTheme', () => {
 		});
 	});
 	it('returns the base itself for an arm without a theme', () => {
-		expect(resolveExperimentTheme(base, themed, { variant: 'control' })).toBe(
-			base
-		);
-		expect(resolveExperimentTheme(base, themed, { variant: 'gone' })).toBe(
-			base
-		);
+		expect(resolveExperimentTheme(base, themed, { arm: 'control' })).toBe(base);
+		expect(resolveExperimentTheme(base, themed, { arm: 'gone' })).toBe(base);
 	});
 	it('returns the arm theme when there is no base', () => {
-		expect(
-			resolveExperimentTheme(undefined, themed, { variant: 'bold' })
-		).toEqual(themed.variants.bold?.theme);
+		expect(resolveExperimentTheme(undefined, themed, { arm: 'bold' })).toEqual(
+			themed.arms.bold?.theme
+		);
 	});
 	it('applies only for a matching assignment', () => {
 		expect(
-			applyExperimentTheme(base, themed, { id: 'other', variant: 'bold' })
+			applyExperimentTheme(base, themed, { arm: 'bold', id: 'other' })
 		).toBe(base);
 		expect(applyExperimentTheme(base, undefined, null)).toBe(base);
 		expect(
 			applyExperimentTheme(base, themed, {
+				arm: 'bold',
 				id: 'button-style',
-				variant: 'bold',
 			})?.colors
 		).toEqual({ primary: '#0a0a0a', secondary: '#fff' });
 	});
@@ -280,9 +310,7 @@ describe('actionAppearanceFromTheme', () => {
 
 describe('validateExperiment with arm themes', () => {
 	const uneven: ConsentExperiment = {
-		id: 'button-style',
-		variants: {
-			control: {},
+		arms: {
 			loud: {
 				theme: {
 					consentActions: {
@@ -292,6 +320,7 @@ describe('validateExperiment with arm themes', () => {
 				},
 			},
 		},
+		id: 'button-style',
 	};
 	it('trips equivalent-prominence-overridden for a theme-only arm', () => {
 		expect(() => validateExperiment(uneven, choice)).toThrow(
@@ -306,12 +335,12 @@ describe('validateExperiment with arm themes', () => {
 		expect(Object.keys(diagnostics)).toEqual(['loud']);
 	});
 	it('merges the arm theme over the host theme before checking', () => {
-		expect(() =>
+		// The host styles accept and reject unequally; the arm evens them out,
+		// so only the merged theme passes.
+		expect(
 			validateExperiment(
 				{
-					id: 'button-style',
-					variants: {
-						control: {},
+					arms: {
 						quiet: {
 							theme: {
 								consentActions: {
@@ -320,6 +349,7 @@ describe('validateExperiment with arm themes', () => {
 							},
 						},
 					},
+					id: 'button-style',
 				},
 				choice,
 				{
@@ -331,6 +361,6 @@ describe('validateExperiment with arm themes', () => {
 					},
 				}
 			)
-		).toThrow(/"control": equivalent-prominence-overridden/u);
+		).toEqual({});
 	});
 });

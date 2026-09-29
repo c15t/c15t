@@ -168,8 +168,8 @@ export interface C15tAstroOptions {
 	 * merged over `presentation`, exposed as `snapshot.experiment`, and
 	 * recorded with the impressions and choices of visitors the banner
 	 * showed it to. The banner is server-rendered, so the arm is resolved on
-	 * the server: per request through `consentMiddleware({ experimentVariant })`
-	 * with `middleware: false`, or one fixed `variant` for every visitor.
+	 * the server: per request through `consentMiddleware({ experimentArm })`
+	 * with `middleware: false`, or one fixed `arm` for every visitor.
 	 * Built-in assignment is not available on Astro.
 	 */
 	experiment?: ConsentExperiment;

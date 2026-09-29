@@ -6,39 +6,38 @@ group: guides
 
 ## Vary presentation, not policy
 
-The `experiment` option changes only how the prompt and the preference center
-look: variant, position, layout, primary actions, blocking. The policy rule,
-its categories and its copy stay the same for every arm, so every arm records
-a choice under the same policy fingerprint. c15t merges the assigned arm over
-`presentation`, exposes it as `snapshot.experiment`, and records it on the
-impressions and choices of visitors the banner showed it to, so you can
-compare opt-in rate and time to decision per arm.
+An experiment changes only how the prompt and the preference center look:
+variant, position, layout, primary actions, blocking. The policy rule, its
+categories and its copy stay the same for every arm, so every arm records a
+choice under the same policy fingerprint.
+
+Your normal `presentation` is the `control` arm. Every other arm lists only
+what it changes. Pass the arm your feature flag resolved:
 
 ```tsx title="src/app/providers.tsx"
 'use client';
 
 import { ConsentProvider, hosted } from 'c15t/react';
 
+const bannerShape = {
+	id: 'banner-shape',
+	arms: {
+		invasive: { prompt: { variant: 'wall' } },
+	},
+};
+
 export const Providers = ({
 	children,
-	variant,
+	arm,
 }: {
 	children: React.ReactNode;
-	variant?: string;
+	arm: 'control' | 'invasive';
 }) => (
 	<ConsentProvider
 		options={{
 			mode: hosted({ url: 'https://your-project.inth.app' }),
-			presentation: { prompt: { position: 'bottom-left' } },
-			experiment: {
-				id: 'banner-shape',
-				variants: {
-					floating: {},
-					bar: { prompt: { variant: 'bar', position: 'bottom' } },
-				},
-				// From your flag provider. Omit it for built-in assignment.
-				variant,
-			},
+			presentation: { prompt: { variant: 'floating', position: 'bottom-left' } },
+			experiment: { ...bannerShape, arm },
 		}}
 	>
 		{children}
@@ -46,30 +45,39 @@ export const Providers = ({
 );
 ```
 
+Or let c15t split visitors itself:
+
+```ts
+experiment: { ...bannerShape, split: { control: 60, invasive: 40 } }
+```
+
 | Field | Purpose |
 | --- | --- |
-| `id` | Stable experiment name, recorded with every impression and choice |
-| `variants` | Arm name to `presentation` fragment, merged over the base `presentation` per surface |
-| `variant` | The arm your flag provider resolved; must be a key of `variants` |
-| `weights` | Relative weights for built-in assignment; default equal. Every key must be an arm |
+| `id` | Stable experiment name, recorded with every choice |
+| `arms` | What each arm changes, merged over `presentation`. `control` is your `presentation` and is not listed |
+| `arm` | The arm your flag resolved: `control` or a key of `arms` |
+| `split` | Relative weights when c15t picks the arm; default equal. Keys are `control` and the arms |
 | `acknowledgeDiagnostics` | Run an arm that trips a presentation diagnostic and record that you reviewed it |
 
-The same option exists on `c15t/next` (`ConsentRoot` config), `c15t/vue`,
+c15t merges the arm over `presentation`, exposes it as `snapshot.experiment`,
+sends it with `/init`, and records it on the choices of visitors the banner
+showed it to, so you can compare opt-in rate and time to decision per arm.
+
+The same option exists on `c15t/next` (`ConsentRoot` options), `c15t/vue`,
 `@c15t/svelte`, `@c15t/astro` and `@c15t/browser`.
 
 `experiment` is read once, when the provider mounts. Changing it later has
 no effect; remount the provider (a `key` in React) to switch experiments.
 
 Build the experiment with `defineExperiment()` to have TypeScript check the
-arm names in `variant` and `weights`:
+arm names in `arm` and `split`:
 
 ```ts
 import { defineExperiment } from 'c15t';
 
 export const bannerShape = defineExperiment({
 	id: 'banner-shape',
-	variants: { floating: {}, bar: { prompt: { variant: 'bar' } } },
-	weights: { floating: 90, bar: 10 },
+	arms: { invasive: { prompt: { variant: 'wall' } } },
 });
 ```
 
@@ -92,7 +100,7 @@ export const onRequest = consentMiddleware({
 ```
 
 Return `undefined` to run no experiment for that request. A fixed
-`experiment.variant` in `c15t()` puts every visitor in one arm, which only
+`experiment.arm` in `c15t()` puts every visitor in one arm, which only
 suits a staged rollout. Prerendered routes render once for every visitor, so
 they get no per-request arm. `c15t()` throws at config time when
 `experiment` has neither.
@@ -107,8 +115,7 @@ replaced.
 ```tsx
 experiment: {
 	id: 'button-style',
-	variants: {
-		control: {},
+	arms: {
 		bold: {
 			theme: {
 				colors: { primary: '#0a0a0a' },
@@ -137,8 +144,8 @@ export const ExperimentTheme = () => (
 ```
 
 Rendered from a client component, `ConsentTheme` ships the theme generator.
-With a host-resolved `variant`, you can instead render
-`<ConsentTheme theme={resolveExperimentTheme(theme, experiment, { variant })} />`
+With an arm from your flag, you can instead render
+`<ConsentTheme theme={resolveExperimentTheme(theme, experiment, { arm })} />`
 from a Server Component. Per-action styling through
 `theme.consentActions` runs through the same prominence check as
 presentation: an arm that fills accept and outlines reject trips
@@ -146,17 +153,22 @@ presentation: an arm that fills accept and outlines reject trips
 
 ## Resolve the arm with a flag provider
 
-Resolve the arm wherever your flags live and pass its name as `variant`. c15t
+Resolve the arm wherever your flags live and pass its name as `arm`. c15t
 records `assignedBy: 'host'` and never re-assigns a visitor you assigned.
 
 ### Vercel Flags SDK
 
+Use the `identify` you already have and split however you like; c15t only
+needs the result.
+
 ```ts title="src/flags.ts"
 import { flag } from 'flags/next';
 
-export const bannerShape = flag<'floating' | 'bar'>({
+export const bannerShape = flag<'control' | 'invasive'>({
 	key: 'banner-shape',
-	decide: () => 'bar',
+	identify, // your existing identify
+	decide: ({ entities }) =>
+		toPercent(entities.user.id) < 60 ? 'control' : 'invasive',
 });
 ```
 
@@ -169,23 +181,26 @@ export default async function RootLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const variant = await bannerShape();
+	const arm = await bannerShape();
 	return (
 		<html lang="en">
 			<body>
-				<Providers variant={variant}>{children}</Providers>
+				<Providers arm={arm}>{children}</Providers>
 			</body>
 		</html>
 	);
 }
 ```
 
+To keep some visitors out of the experiment entirely, have the flag return a
+value such as `'off'` and pass no `experiment` for it. Those visitors see
+`presentation` and are not counted.
+
 ### PostHog
 
 PostHog resolves flags asynchronously in the browser. Because `experiment`
-is read once at mount, a provider mounted before the flags load runs
-built-in assignment and never picks up the flag. Wait for the flags, then
-mount the provider with the resolved arm.
+is read once at mount, wait for the flags, then mount the provider with the
+resolved arm.
 
 ```tsx title="src/app/flagged-providers.tsx"
 'use client';
@@ -200,53 +215,51 @@ export const FlaggedProviders = ({
 }: {
 	children: React.ReactNode;
 }) => {
-	const [variant, setVariant] = useState<string | null>(null);
+	const [arm, setArm] = useState<'control' | 'invasive' | null>(null);
 	useEffect(
 		() =>
 			posthog.onFeatureFlags(() => {
 				const flag = posthog.getFeatureFlag('banner-shape');
-				setVariant(typeof flag === 'string' ? flag : 'floating');
+				setArm(flag === 'invasive' ? 'invasive' : 'control');
 			}),
 		[]
 	);
-	if (variant === null) {
-		// Flags not loaded yet: no provider, no banner. Render the page
-		// without consent surfaces, or a placeholder, until they arrive.
+	if (arm === null) {
+		// Flags not loaded yet: no provider, no banner.
 		return children;
 	}
-	return <Providers variant={variant}>{children}</Providers>;
+	return <Providers arm={arm}>{children}</Providers>;
 };
 ```
-
-Pick a fallback arm (`'floating'` above) for a visitor whose flag never
-resolves, so the choice is still attributed to an arm you declared.
 
 ### LaunchDarkly, GrowthBook, Statsig
 
 ```ts
-const variant = ldClient.variation('banner-shape', 'floating');
-const variant = growthbook.getFeatureValue('banner-shape', 'floating');
-const variant = Statsig.getExperiment('banner-shape').get('variant', 'floating');
+const arm = ldClient.stringVariation('banner-shape', 'control');
+const arm = growthbook.getFeatureValue('banner-shape', 'control');
+const arm = StatsigClient.instance()
+	.getExperiment('banner-shape')
+	.get('arm', 'control');
 ```
 
-A `variant` that is not a key of `variants` logs an error and runs no
+An `arm` that is not `control` or a key of `arms` logs an error and runs no
 experiment for that visitor; the page still renders. Treat that as a flag
 misconfiguration.
 
 ## Let c15t assign the arm
 
-Omit `variant` and c15t picks an arm by `weights` (equal by default). It
-hashes the visitor's subject id when the browser already has one, or a random
-key otherwise, and records `assignedBy: 'c15t'`.
+Omit `arm` and c15t picks one by `split` (equal by default) when the page
+starts, before `/init`, and records `assignedBy: 'c15t'`. A visitor who
+already saw an arm keeps it.
 
 The banner waits until the arm is picked, so the visitor never sees the base
 banner swap for their arm. On a server-rendered page that means the banner is
 not in the server HTML; it appears once the browser has loaded the
 assignment chunk. If the chunk fails to load, the base banner shows and no
 experiment runs. To keep the banner in the server HTML, resolve the arm on
-the server and pass it as `variant`.
+the server and pass it as `arm`.
 
-Once the banner has shown the arm, c15t stores `{ id, variant }` under
+Once the banner has shown the arm, c15t stores `{ id, arm }` under
 `c15t-experiment-v1` in localStorage (a cookie when localStorage is
 unavailable), so the visitor keeps seeing the banner they saw. Nothing is
 stored for a visitor who is never prompted, and nothing is stored for a
@@ -255,15 +268,15 @@ record holds no identifier. It exists only to keep the consent banner
 consistent, so treat it like the consent record itself when you describe
 your storage.
 
-A `weights` map that gives no arm a positive weight, or that names an arm
-that does not exist, logs an error and runs no experiment. An arm missing
-from the map has weight `0`.
+A `split` that gives no arm a positive weight, or that names an arm that does
+not exist, logs an error and runs no experiment. An arm missing from the
+split gets no visitors.
 
 ```ts
 experiment: {
 	id: 'banner-shape',
-	variants: { floating: {}, bar: { prompt: { variant: 'bar' } } },
-	weights: { floating: 90, bar: 10 },
+	arms: { invasive: { prompt: { variant: 'wall' } } },
+	split: { control: 60, invasive: 40 },
 }
 ```
 
@@ -309,14 +322,14 @@ import {
 	useResolvedTheme,
 } from 'c15t/react';
 
-const { id, variant, assignedBy } = useExperiment() ?? {};
+const { id, arm, assignedBy } = useExperiment() ?? {};
 const presentation = useResolvedPresentation();
 const theme = useResolvedTheme();
 ```
 
 React exposes three hooks:
 
-- `useExperiment()` returns the assigned arm (`id`, `variant`, `assignedBy`,
+- `useExperiment()` returns the assigned arm (`id`, `arm`, `assignedBy`,
   `acknowledgedDiagnostics`), or `null` while no experiment is configured
   or no arm is assigned yet.
 - `useResolvedPresentation()` returns `presentation` with the assigned
@@ -330,8 +343,8 @@ React exposes three hooks:
 Built-in assignment lands after mount, so `useExperiment()` is `null` on the
 server render and during hydration and the resolved hooks return the base
 values. The banner is held until then, and a clean preferences draft reseeds
-from the arm's `preferences.defaults` when it lands. A host-resolved
-`variant` is known from the first render, on the server too.
+from the arm's `preferences.defaults` when it lands. An
+arm from your flag is known from the first render, on the server too.
 
 Vue exposes `useExperiment()`, `useResolvedPresentation()` and
 `useResolvedTheme(theme)`, Svelte `getConsentManager().experiment`,
@@ -350,7 +363,7 @@ Each choice saved through `POST /subjects` carries in `metadata`:
 
 | Key | Value |
 | --- | --- |
-| `experiment` | `{ id, variant, assignedBy, acknowledgedDiagnostics }` |
+| `experiment` | `{ id, arm, assignedBy, acknowledgedDiagnostics }` |
 | `timeToDecisionMs` | Milliseconds from the surface's first impression to the action |
 
 `uiSource` on the same record names the surface (`banner`, `dialog`,

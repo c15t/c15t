@@ -75,7 +75,7 @@ export interface KernelRuntime {
 	markLive: (at?: number) => void;
 	/**
 	 * Set the arm this visitor runs and the gate that decides, per policy,
-	 * whether it is shown. Releases a held prompt.
+	 * whether it is shown. A gate, or `null`, releases a held prompt.
 	 */
 	setExperiment: (
 		assignment: ExperimentAssignment | null,
@@ -445,11 +445,16 @@ export const createRuntime = function createRuntime(
 		assignment: ExperimentAssignment | null,
 		gate: ExperimentGate | null
 	): void {
+		// The arm alone keeps a held prompt held: it waits for the gate that
+		// checks the arm against the policy. The gate, or no experiment at
+		// all, releases it.
+		const release = gate !== null || assignment === null;
+		const pending = release ? false : snapshot.experimentPending;
 		if (
 			gate === experimentGate &&
-			!snapshot.experimentPending &&
+			pending === snapshot.experimentPending &&
 			assignment?.id === wantedExperiment?.id &&
-			assignment?.variant === wantedExperiment?.variant &&
+			assignment?.arm === wantedExperiment?.arm &&
 			assignment?.assignedBy === wantedExperiment?.assignedBy &&
 			assignment?.acknowledgedDiagnostics ===
 				wantedExperiment?.acknowledgedDiagnostics
@@ -459,7 +464,7 @@ export const createRuntime = function createRuntime(
 		experimentGate = gate;
 		commit({
 			experiment: assignment ? Object.freeze({ ...assignment }) : null,
-			experimentPending: false,
+			experimentPending: pending,
 		});
 	};
 

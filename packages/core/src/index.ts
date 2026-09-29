@@ -302,6 +302,7 @@ export {
 	actionAppearanceFromTheme,
 	applyExperimentAssignment,
 	applyExperimentTheme,
+	CONTROL_ARM,
 	defineExperiment,
 	resolveExperimentPresentation,
 	resolveExperimentTheme,

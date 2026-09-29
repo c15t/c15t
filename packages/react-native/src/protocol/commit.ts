@@ -180,7 +180,7 @@ export interface SavePayload {
 	 */
 	experiment?: {
 		id: string;
-		variant: string;
+		arm: string;
 		assignedBy: 'host' | 'c15t';
 		acknowledgedDiagnostics: boolean;
 	};

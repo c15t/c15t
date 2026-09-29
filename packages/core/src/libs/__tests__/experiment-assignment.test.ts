@@ -11,13 +11,11 @@ import { custom } from '../../transports/mode';
 import { createOfflineTransport } from '../../transports/offline';
 import type { KernelEvent, KernelTransport } from '../../types';
 import type { ConsentExperiment } from '../experiment';
+import { createExperimentController } from '../experiment-assignment';
 import {
-	createExperimentController,
-	readStoredExperimentAssignment,
-	resolveExperimentAssignment,
-	writeStoredExperimentAssignment,
-} from '../experiment-assignment';
-import { assignExperimentVariant } from '../experiment-engine';
+	readStoredExperimentArm,
+	writeStoredExperimentArm,
+} from '../experiment-storage';
 import { EXPERIMENT_STORAGE_KEY } from '../storage-keys';
 
 const choiceRule: PolicyRule = {
@@ -38,21 +36,20 @@ const noticeRule: PolicyRule = {
 };
 
 const experiment: ConsentExperiment = {
-	id: 'banner-shape',
-	variants: {
+	arms: {
 		bar: { prompt: { variant: 'bar' } },
 		floating: { prompt: { variant: 'floating' } },
 	},
+	id: 'banner-shape',
 };
 
 /** Host arm that only a choice policy accepts. */
 const wallExperiment: ConsentExperiment = {
-	id: 'banner-shape',
-	variant: 'wall',
-	variants: {
-		control: {},
+	arm: 'wall',
+	arms: {
 		wall: { prompt: { variant: 'wall' } },
 	},
+	id: 'banner-shape',
 };
 
 const quietReport = { error: () => undefined, warn: () => undefined };
@@ -89,24 +86,58 @@ afterEach(() => {
 
 const storedRaw = () => localStorage.getItem(EXPERIMENT_STORAGE_KEY);
 
+const hostWall = {
+	acknowledgedDiagnostics: false,
+	arm: 'wall',
+	assignedBy: 'host',
+	id: 'banner-shape',
+} as const;
+
+/** A kernel that runs `rules`, holding the prompt with `arm` on it. */
+const heldKernel = function heldKernel(
+	rules: PolicyRule[],
+	arm?: typeof hostWall | { arm: string; assignedBy: 'c15t' }
+) {
+	return createConsentKernel({
+		initialExperiment: arm ? { ...hostWall, ...arm } : undefined,
+		initialExperimentPending: true,
+		initialPolicyPending: true,
+		transport: createOfflineTransport({ policyRules: rules }),
+	});
+};
+
 describe('createExperimentController', () => {
+	test('the gate releases the held prompt with the arm', async () => {
+		const kernel = heldKernel([choiceRule], hostWall);
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		const controller = createExperimentController({
+			experiment: wallExperiment,
+			kernel,
+			report: quietReport,
+		});
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(kernel.getSnapshot().experiment).toEqual(hostWall);
+		controller.dispose();
+		kernel.dispose();
+	});
+
 	test('checks themed arms over the host theme', async () => {
 		const error = vi.fn();
-		const kernel = createConsentKernel({
-			initialPolicyPending: true,
-			transport: createOfflineTransport({ policyRules: [choiceRule] }),
+		const kernel = heldKernel([choiceRule], {
+			...hostWall,
+			arm: 'filled',
 		});
 		// The arm keeps accept and reject in the same fill: `default` supplies
 		// the variant and mode for both, and the arm repeats the mode on
 		// accept. Without the host theme, reject would fall back to a stroke.
 		const controller = createExperimentController({
 			experiment: {
-				id: 'button-style',
-				variant: 'filled',
-				variants: {
-					control: {},
+				arm: 'filled',
+				arms: {
 					filled: { theme: { consentActions: { accept: { mode: 'fill' } } } },
 				},
+				id: 'banner-shape',
 			},
 			kernel,
 			report: { error, warn: () => undefined },
@@ -116,7 +147,7 @@ describe('createExperimentController', () => {
 		});
 		await kernel.commands.init();
 		expect(error).not.toHaveBeenCalled();
-		expect(kernel.getSnapshot().experiment?.variant).toBe('filled');
+		expect(kernel.getSnapshot().experiment?.arm).toBe('filled');
 		controller.dispose();
 		kernel.dispose();
 	});
@@ -154,17 +185,19 @@ describe('createExperimentController', () => {
 			[noticeRule],
 			[choiceRule],
 		]);
-		const kernel = createConsentKernel({ transport });
+		const kernel = createConsentKernel({
+			initialExperiment: hostWall,
+			transport,
+		});
 		const controller = createExperimentController({
 			experiment: wallExperiment,
 			kernel,
 			report: quietReport,
 		});
-		const arm = assignExperimentVariant(wallExperiment, '');
 
 		await kernel.commands.init();
 		expect(kernel.getSnapshot().policyRule.id).toBe(choiceRule.id);
-		expect(kernel.getSnapshot().experiment).toEqual(arm);
+		expect(kernel.getSnapshot().experiment).toEqual(hostWall);
 
 		await kernel.commands.init();
 		expect(kernel.getSnapshot().policyRule.id).toBe('notice');
@@ -172,42 +205,30 @@ describe('createExperimentController', () => {
 
 		await kernel.commands.init();
 		expect(kernel.getSnapshot().policyRule.id).toBe(choiceRule.id);
-		expect(kernel.getSnapshot().experiment).toEqual(arm);
+		expect(kernel.getSnapshot().experiment).toEqual(hostWall);
 
 		controller.dispose();
 		kernel.dispose();
 	});
 
-	test('an invalid definition runs no experiment and releases the held prompt', async () => {
-		const error = vi.fn();
-		const kernel = createConsentKernel({
-			initialExperimentPending: true,
-			initialPolicyPending: true,
-			transport: createOfflineTransport({ policyRules: [choiceRule] }),
-		});
+	test('no arm on the kernel releases the prompt and runs no experiment', async () => {
+		const kernel = heldKernel([choiceRule]);
 		await kernel.commands.init();
 		expect(kernel.getSnapshot().activeUI).toBe('none');
-		createExperimentController({
-			experiment: { ...experiment, weights: { bar: 1, floatng: 1 } },
+		const controller = createExperimentController({
+			experiment,
 			kernel,
-			report: { error, warn: () => undefined },
+			report: quietReport,
 		});
-		expect(error).toHaveBeenCalledOnce();
-		expect(String(error.mock.calls[0]?.[0])).toContain('"floatng"');
-		expect(kernel.getSnapshot().experiment).toBeNull();
+		expect(controller.assignment).toBeNull();
 		expect(kernel.getSnapshot().experimentPending).toBe(false);
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
 		kernel.dispose();
 	});
 
-	test('stores a built-in arm only once the banner has shown it, without a key', async () => {
-		const kernel = createConsentKernel({
-			initialExperimentPending: true,
-			initialPolicyPending: true,
-			transport: createOfflineTransport({ policyRules: [choiceRule] }),
-		});
+	test('stores a c15t-picked arm only once the banner has shown it', async () => {
+		const kernel = heldKernel([choiceRule], { arm: 'bar', assignedBy: 'c15t' });
 		const controller = createExperimentController({
-			createKey: () => 'random-key',
 			experiment,
 			kernel,
 			report: quietReport,
@@ -215,22 +236,18 @@ describe('createExperimentController', () => {
 		expect(storedRaw()).toBeNull();
 		await kernel.commands.init();
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
-		const { variant } = assignExperimentVariant(experiment, 'random-key');
 		expect(JSON.parse(storedRaw() ?? 'null')).toEqual({
+			arm: 'bar',
 			id: 'banner-shape',
-			variant,
 		});
 		controller.dispose();
 		kernel.dispose();
 	});
 
 	test('stores nothing for a visitor who is never prompted', async () => {
-		const kernel = createConsentKernel({
-			initialExperimentPending: true,
-			initialPolicyPending: true,
-			transport: createOfflineTransport({
-				policyRules: [{ ...choiceRule, prompt: 'none' }],
-			}),
+		const kernel = heldKernel([{ ...choiceRule, prompt: 'none' }], {
+			arm: 'bar',
+			assignedBy: 'c15t',
 		});
 		const controller = createExperimentController({
 			experiment,
@@ -245,11 +262,8 @@ describe('createExperimentController', () => {
 		kernel.dispose();
 	});
 
-	test('never stores a host-resolved arm', async () => {
-		const kernel = createConsentKernel({
-			initialPolicyPending: true,
-			transport: createOfflineTransport({ policyRules: [choiceRule] }),
-		});
+	test('never stores a host arm', async () => {
+		const kernel = heldKernel([choiceRule], hostWall);
 		const controller = createExperimentController({
 			experiment: wallExperiment,
 			kernel,
@@ -257,19 +271,13 @@ describe('createExperimentController', () => {
 		});
 		await kernel.commands.init();
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
-		expect(kernel.getSnapshot().experiment?.variant).toBe('wall');
 		expect(storedRaw()).toBeNull();
 		controller.dispose();
 		kernel.dispose();
 	});
 
 	test('a choice from a dialog opened without the banner carries no arm', async () => {
-		const kernel = createConsentKernel({
-			initialPolicyPending: true,
-			transport: createOfflineTransport({
-				policyRules: [{ ...choiceRule, prompt: 'none' }],
-			}),
-		});
+		const kernel = heldKernel([{ ...choiceRule, prompt: 'none' }], hostWall);
 		const controller = createExperimentController({
 			experiment: wallExperiment,
 			kernel,
@@ -279,7 +287,7 @@ describe('createExperimentController', () => {
 		kernel.events.on('surface:shown', (event) => events.push(event));
 		kernel.events.on('choice:recorded', (event) => events.push(event));
 		await kernel.commands.init();
-		expect(kernel.getSnapshot().experiment?.variant).toBe('wall');
+		expect(kernel.getSnapshot().experiment?.arm).toBe('wall');
 		kernel.set.activeUI('dialog');
 		await kernel.commands.save('all');
 		expect(events.map((event) => event.type)).toEqual([
@@ -294,99 +302,33 @@ describe('createExperimentController', () => {
 	});
 });
 
-describe('resolveExperimentAssignment', () => {
-	test('hashes the subject id', () => {
-		const assignment = resolveExperimentAssignment({
-			experiment,
-			stored: null,
-			subjectId: 'sub_1',
-		});
-		expect(assignment).toEqual(assignExperimentVariant(experiment, 'sub_1'));
-	});
-
-	test('keeps a seeded arm over the stored one', () => {
-		const seeded = assignExperimentVariant(experiment, 'server');
-		const stored = {
-			id: 'banner-shape',
-			variant: seeded.variant === 'bar' ? 'floating' : 'bar',
-		};
-		expect(resolveExperimentAssignment({ experiment, seeded, stored })).toEqual(
-			seeded
-		);
-	});
-
-	test('reuses a stored arm of the same experiment', () => {
-		const assignment = resolveExperimentAssignment({
-			createKey: () => 'unused',
-			experiment,
-			stored: { id: 'banner-shape', variant: 'floating' },
-		});
-		expect(assignment).toEqual({
-			acknowledgedDiagnostics: false,
-			assignedBy: 'c15t',
-			id: 'banner-shape',
-			variant: 'floating',
-		});
-	});
-
-	test('a stored arm named after a prototype property is not reused', () => {
-		const assignment = resolveExperimentAssignment({
-			experiment,
-			stored: { id: 'banner-shape', variant: 'constructor' },
-		});
-		expect(Object.keys(experiment.variants)).toContain(assignment.variant);
-	});
-
-	test('re-assigns when the stored arm no longer exists', () => {
-		const assignment = resolveExperimentAssignment({
-			createKey: () => 'key_1',
-			experiment,
-			stored: { id: 'banner-shape', variant: 'wall' },
-		});
-		expect(assignment).toEqual(assignExperimentVariant(experiment, 'key_1'));
-	});
-});
-
-describe('stored assignment', () => {
-	test('ignores a host arm an earlier build stored', () => {
-		localStorage.setItem(
-			EXPERIMENT_STORAGE_KEY,
-			JSON.stringify({
-				acknowledgedDiagnostics: false,
-				assignedBy: 'host',
-				id: 'banner-shape',
-				variant: 'bar',
-			})
-		);
-		expect(readStoredExperimentAssignment()).toBeNull();
-	});
-
+describe('stored arm', () => {
 	test('writes and reads the cookie when localStorage is unavailable', () => {
 		vi.stubGlobal('localStorage', null);
-		writeStoredExperimentAssignment({ id: 'banner-shape', variant: 'bar' });
+		writeStoredExperimentArm({ arm: 'bar', id: 'banner-shape' });
 		expect(document.cookie).toContain(`${EXPERIMENT_STORAGE_KEY}=`);
-		expect(readStoredExperimentAssignment()).toEqual({
+		expect(readStoredExperimentArm()).toEqual({
+			arm: 'bar',
 			id: 'banner-shape',
-			variant: 'bar',
 		});
 	});
 
 	test('a localStorage write drops a stale fallback cookie', () => {
-		const stale = { id: 'banner-shape', variant: 'bar' };
+		const stale = { arm: 'bar', id: 'banner-shape' };
 		const store = localStorage;
 		vi.stubGlobal('localStorage', null);
-		writeStoredExperimentAssignment(stale);
+		writeStoredExperimentArm(stale);
 		vi.stubGlobal('localStorage', store);
-		writeStoredExperimentAssignment({ ...stale, variant: 'floating' });
+		writeStoredExperimentArm({ ...stale, arm: 'floating' });
 		expect(document.cookie).not.toContain(`${EXPERIMENT_STORAGE_KEY}=`);
 		// localStorage gone again: nothing old comes back through the cookie.
 		vi.stubGlobal('localStorage', null);
-		expect(readStoredExperimentAssignment()).toBeNull();
+		expect(readStoredExperimentArm()).toBeNull();
 	});
 
 	test('an unreadable cookie reads as no record', () => {
 		vi.stubGlobal('localStorage', null);
 		document.cookie = `${EXPERIMENT_STORAGE_KEY}=%7B; path=/`;
-		expect(readStoredExperimentAssignment()).toBeNull();
+		expect(readStoredExperimentArm()).toBeNull();
 	});
 });

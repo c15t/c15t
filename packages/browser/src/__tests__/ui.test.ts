@@ -78,12 +78,12 @@ afterEach(() => {
 describe('mountConsentUI', () => {
 	it('rebuilds the banner when the assigned arm changes', async () => {
 		const experiment = {
-			id: 'banner-shape',
-			variant: 'floating',
-			variants: {
+			arm: 'floating',
+			arms: {
 				bar: { prompt: { variant: 'bar' as const } },
 				floating: { prompt: { variant: 'floating' as const } },
 			},
+			id: 'banner-shape',
 		};
 		const { client, root } = await mount({}, { experiment });
 		// The banner waits for the lazily loaded experiment controller.
@@ -94,28 +94,27 @@ describe('mountConsentUI', () => {
 		);
 		client.kernel.set.experiment({
 			acknowledgedDiagnostics: false,
+			arm: 'bar',
 			assignedBy: 'c15t',
 			id: 'banner-shape',
-			variant: 'bar',
 		});
 		expect(query(root, 'consent-banner-root').dataset.variant).toBe('bar');
 	});
 
 	it('creates the stylesheet when an arm theme arrives after mount', async () => {
 		const experiment = {
-			id: 'button-style',
-			variants: {
+			arms: {
 				bold: { theme: { colors: { primary: '#123456' } } },
-				control: {},
 			},
+			id: 'button-style',
 		};
 		// No stylesheet, theme or css: nothing to inject at mount.
 		const { client, root } = await mount({}, { experiment });
 		client.kernel.set.experiment({
 			acknowledgedDiagnostics: false,
+			arm: 'bold',
 			assignedBy: 'c15t',
 			id: 'button-style',
-			variant: 'bold',
 		});
 		expect(root.querySelector('style')?.textContent).toContain('#123456');
 	});

@@ -35,11 +35,11 @@ const resolution: PolicyResolution = {
 };
 
 const experiment: ConsentExperiment = {
-	id: 'banner-shape',
-	variants: {
+	arms: {
 		bar: { prompt: { variant: 'bar' } },
 		floating: { prompt: { variant: 'floating' } },
 	},
+	id: 'banner-shape',
 };
 
 const start = function start(overrides: Partial<ConsentExperiment> = {}) {
@@ -75,11 +75,11 @@ test('built-in assignment holds the banner until the arm is picked, then stores 
 			assignedBy: 'c15t',
 			id: 'banner-shape',
 		});
-		expect(['bar', 'floating']).toContain(assignment?.variant);
+		expect(['bar', 'floating']).toContain(assignment?.arm);
 		expect(context.snapshot.value.activeUI).toBe('banner');
 		expect(
 			JSON.parse(localStorage.getItem(EXPERIMENT_STORAGE_KEY) ?? 'null')
-		).toEqual({ id: 'banner-shape', variant: assignment?.variant });
+		).toEqual({ arm: assignment?.arm, id: 'banner-shape' });
 	} finally {
 		dispose();
 	}
@@ -89,10 +89,12 @@ test('an untouched draft reseeds from the assigned arm; an edited one is kept', 
 	const config: RuntimeConsentConfig = {
 		experiment: {
 			...experiment,
-			variants: {
+			arms: {
 				bar: { preferences: { defaults: { marketing: true } } },
 				floating: { preferences: { defaults: { marketing: true } } },
 			},
+			// Both arms change the defaults; leave `control` out of the split.
+			split: { bar: 1, floating: 1 },
 		},
 	};
 	const context = createVueConsentKernelContext({
@@ -137,10 +139,12 @@ test('an untouched draft picks up the assigned arm defaults', async () => {
 	const config: RuntimeConsentConfig = {
 		experiment: {
 			...experiment,
-			variants: {
+			arms: {
 				bar: { preferences: { defaults: { marketing: true } } },
 				floating: { preferences: { defaults: { marketing: true } } },
 			},
+			// Both arms change the defaults; leave `control` out of the split.
+			split: { bar: 1, floating: 1 },
 		},
 	};
 	const context = createVueConsentKernelContext({
@@ -177,7 +181,7 @@ test('an untouched draft picks up the assigned arm defaults', async () => {
 
 test('the presentation resolves against the experiment the kernel was created with', async () => {
 	const config = shallowRef<RuntimeConsentConfig>({
-		experiment: { ...experiment, variant: 'bar' },
+		experiment: { ...experiment, arm: 'bar' },
 	});
 	const context = createVueConsentKernelContext({
 		config: config.value,
@@ -200,8 +204,8 @@ test('the presentation resolves against the experiment the kernel was created wi
 		config.value = {
 			experiment: {
 				...experiment,
-				variant: 'bar',
-				variants: { bar: { prompt: { variant: 'wall' } } },
+				arm: 'bar',
+				arms: { bar: { prompt: { variant: 'wall' } } },
 			},
 		};
 		await nextTick();
@@ -213,13 +217,13 @@ test('the presentation resolves against the experiment the kernel was created wi
 });
 
 test('a host variant is on the server snapshot and survives start', () => {
-	const { context, dispose } = start({ variant: 'bar' });
+	const { context, dispose } = start({ arm: 'bar' });
 	try {
 		const expected = {
 			acknowledgedDiagnostics: false,
+			arm: 'bar',
 			assignedBy: 'host',
 			id: 'banner-shape',
-			variant: 'bar',
 		};
 		expect(context.kernel.getServerSnapshot().experiment).toEqual(expected);
 		expect(context.snapshot.value.experiment).toEqual(expected);

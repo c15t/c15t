@@ -34,11 +34,11 @@ const resolution = resolvePolicyRules({
 });
 
 const experiment: NonNullable<ConsentProviderOptions['experiment']> = {
-	id: 'banner-shape',
-	variants: {
+	arms: {
 		bar: { prompt: { variant: 'bar' } },
 		floating: { prompt: { variant: 'floating' } },
 	},
+	id: 'banner-shape',
 };
 
 const Probe = () => {
@@ -127,7 +127,7 @@ afterEach(() => {
 
 test('useExperiment() reports the host arm and the banner renders it', async () => {
 	const mounted = mount(
-		{ experiment: { ...experiment, variant: 'bar' } },
+		{ experiment: { ...experiment, arm: 'bar' } },
 		<>
 			<Probe />
 			<ConsentBanner />
@@ -137,9 +137,9 @@ test('useExperiment() reports the host arm and the banner renders it', async () 
 		await vi.waitFor(() =>
 			expect(mounted.read()).toEqual({
 				acknowledgedDiagnostics: false,
+				arm: 'bar',
 				assignedBy: 'host',
 				id: 'banner-shape',
-				variant: 'bar',
 			})
 		);
 		await vi.waitFor(() =>
@@ -156,9 +156,9 @@ test('useExperiment() reports the host arm and the banner renders it', async () 
 		await vi.waitFor(() => expect(mounted.save).toHaveBeenCalledOnce());
 		expect(mounted.payload()?.experiment).toEqual({
 			acknowledgedDiagnostics: false,
+			arm: 'bar',
 			assignedBy: 'host',
 			id: 'banner-shape',
-			variant: 'bar',
 		});
 	} finally {
 		mounted.unmount();
@@ -174,11 +174,11 @@ test('built-in assignment lands after mount and is stored for the next visit', a
 				id: 'banner-shape',
 			})
 		);
-		const { variant } = mounted.read() as { variant: string };
-		expect(['bar', 'floating']).toContain(variant);
+		const { arm } = mounted.read() as { arm: string };
+		expect(['control', 'bar', 'floating']).toContain(arm);
 		expect(
 			JSON.parse(localStorage.getItem(EXPERIMENT_STORAGE_KEY) ?? 'null')
-		).toMatchObject({ id: 'banner-shape', variant });
+		).toEqual({ arm, id: 'banner-shape' });
 	} finally {
 		mounted.unmount();
 	}
@@ -188,12 +188,11 @@ test('an arm theme reaches useResolvedTheme() and a ConsentTheme rendered from i
 	const mounted = mount(
 		{
 			experiment: {
-				id: 'button-style',
-				variant: 'bold',
-				variants: {
+				arm: 'bold',
+				arms: {
 					bold: { theme: { colors: { primary: '#123456' } } },
-					control: {},
 				},
+				id: 'button-style',
 			},
 			theme: { colors: { surface: '#abcdef' } },
 		},
@@ -234,11 +233,10 @@ const mountDraftWithLateArm = function mountDraftWithLateArm() {
 		<ConsentProvider
 			options={{
 				experiment: {
-					id: 'defaults',
-					variants: {
+					arms: {
 						bar: { preferences: { defaults: { marketing: true } } },
-						floating: {},
 					},
+					id: 'defaults',
 				},
 			}}
 			runtime={runtime}
@@ -250,9 +248,9 @@ const mountDraftWithLateArm = function mountDraftWithLateArm() {
 		assign() {
 			runtime.kernel.set.experiment({
 				acknowledgedDiagnostics: false,
+				arm: 'bar',
 				assignedBy: 'c15t',
 				id: 'defaults',
-				variant: 'bar',
 			});
 		},
 		unmount() {
@@ -295,12 +293,12 @@ test('the experiment is read once: a changed option keeps the mounted arm', asyn
 	const container = document.createElement('div');
 	document.body.append(container);
 	const view = createRoot(container);
-	const render = (variants: NonNullable<typeof experiment>['variants']) =>
+	const render = (arms: NonNullable<typeof experiment>['arms']) =>
 		view.render(
 			<ConsentProvider
 				options={{
 					enabled: true,
-					experiment: { id: 'banner-shape', variant: 'bar', variants },
+					experiment: { arm: 'bar', arms, id: 'banner-shape' },
 					mode: Object.assign(() => ({ save }), { kind: 'custom' as const }),
 					persistence: false,
 					prefetch: { initialPolicyResolution: resolution },
@@ -311,7 +309,7 @@ test('the experiment is read once: a changed option keeps the mounted arm', asyn
 		);
 	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 	try {
-		render(experiment.variants);
+		render(experiment.arms);
 		await vi.waitFor(() => expect(readText('presentation')).toBe('bar'));
 		render({ bar: { prompt: { variant: 'wall' } } });
 		await vi.waitFor(() => expect(warn).toHaveBeenCalled());
@@ -372,10 +370,10 @@ test('a disabled provider builds no experiment controller', async () => {
 			<ConsentProvider
 				options={{
 					enabled: false,
-					// Unacknowledged diagnostics: an enabled provider throws here.
+					// A disabled provider runs no experiment, whatever its arms.
 					experiment: {
+						arms: { loud: { prompt: { primaryActions: ['accept'] } } },
 						id: 'banner-shape',
-						variants: { loud: { prompt: { primaryActions: ['accept'] } } },
 					},
 					mode: Object.assign(
 						() => ({ save: vi.fn().mockResolvedValue({ ok: true }) }),
@@ -427,9 +425,9 @@ test('a server render whose policy rejects the arm does not throw', () => {
 				options={{
 					enabled: true,
 					experiment: {
+						arm: 'wall',
+						arms: { wall: { prompt: { variant: 'wall' } } },
 						id: 'banner-shape',
-						variant: 'wall',
-						variants: { control: {}, wall: { prompt: { variant: 'wall' } } },
 					},
 					mode: Object.assign(() => ({ save: vi.fn() }), {
 						kind: 'custom' as const,
