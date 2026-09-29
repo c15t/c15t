@@ -25,14 +25,15 @@ set.
 If neither configuration nor integrations supply categories, the result depends
 on the policy's `scopeMode`:
 
-- Under a permissive policy, the dialog lists only Necessary. The banner still
+- Under any other permissive policy, the dialog lists only Necessary. The banner still
   appears when the policy prompts for a choice. Accept All, Reject All and Save
   each record that the visitor saw it, send a consent receipt for Necessary
   alone in hosted and manifest modes, and keep the banner dismissed after
   reload. The acknowledgement expires with the policy's choice validity and
   after a policy change, like a choice would. A stored choice that is still
   valid under the current policy also counts as an acknowledgement.
-- Under a strict policy, the dialog uses the full policy scope.
+- Under a strict policy, or an IAB TCF policy, the dialog uses the full policy
+  scope. TCF consent is given per purpose and recorded in the TC string.
 
 A category declared after that acknowledgement, such as a newly registered
 script or a discovered iframe, needs a choice, so the banner asks again.

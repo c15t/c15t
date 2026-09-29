@@ -143,6 +143,23 @@ test.each([
 	}
 );
 
+test('an IAB policy with nothing declared keeps its whole scope', async () => {
+	// TCF consent is given per purpose and recorded in the TC string, so it
+	// never shrinks to an acknowledgement.
+	policy = matchedResolution(optInRule({ model: 'iab' }));
+	const runtime = await start();
+	const snapshot = runtime.kernel.getSnapshot();
+	expect(snapshot.policyRule.scopeMode).toBe('permissive');
+	expect(snapshot.evaluationPolicy.choiceScope).toBe(undefined);
+	expect(runtime.consentCategories).toEqual([
+		'necessary',
+		'experience',
+		'functionality',
+		'marketing',
+		'measurement',
+	]);
+});
+
 test('another tab adopts the acknowledgement', async () => {
 	const first = await start();
 	const second = await start();

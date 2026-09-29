@@ -1548,6 +1548,21 @@ const NOTHING_DECLARED_SCENARIO: Scenario = {
 	policySnapshotToken: 'tok-nothing-declared',
 };
 
+/** A permissive IAB rule on a device whose app declares no categories. */
+const NOTHING_DECLARED_IAB_SCENARIO: Scenario = {
+	...NOTHING_DECLARED_SCENARIO,
+	geo: { country: 'FI', region: null },
+	policyRules: [
+		{
+			...necessaryOnlyRule('permissive', 'v1'),
+			id: 'fixture_nothing_declared_iab',
+			match: { countries: ['FI'] },
+			model: 'iab',
+		},
+	],
+	policySnapshotToken: 'tok-nothing-declared-iab',
+};
+
 /** The same device after the publisher revised the rule's copy. */
 const NOTHING_DECLARED_REVISED_SCENARIO: Scenario = {
 	...NOTHING_DECLARED_SCENARIO,
@@ -1569,7 +1584,7 @@ const NOTHING_DECLARED_STRICT_SCENARIO: Scenario = {
  */
 const DECLARATION_NOTES = [
 	'input.consentCategories is the list the app declares: null means it declares nothing, which is a host that never sets consentCategories. A fixture without the key declares every category, necessary, experience, functionality, marketing and measurement.',
-	'with nothing declared, a permissive rule asks about no category: consentCategories lists necessary alone and the choice prompt asks for an acknowledgement. Any save answers it by recording a notice dismissal bound to the choice fingerprint, stamped with the action time. A strict rule still asks about its whole scope.',
+	'with nothing declared, a permissive rule asks about no category: consentCategories lists necessary alone and the choice prompt asks for an acknowledgement. Any save answers it by recording a notice dismissal bound to the choice fingerprint, stamped with the action time. A strict rule, and an IAB rule, still ask about their whole scope.',
 	'the acknowledgement lasts the choice lifetime. It stops answering once it is that old (reason expired) or once the choice fingerprint moves (reason policy-changed), and any category decision still valid under the current choice fingerprint answers the prompt too. nextDeadline includes the moment the last of those runs out.',
 ];
 
@@ -1695,6 +1710,13 @@ const buildNothingDeclaredEvaluationFixtures =
 				id: 'nothing-declared-strict',
 				records: storedFor(SUBJECT.europe),
 				scenario: NOTHING_DECLARED_STRICT_SCENARIO,
+			},
+			{
+				description:
+					'A permissive IAB rule on a device whose app declares no categories. TCF consent is given per purpose and recorded in the TC string, so the subject is still asked about the whole scope: every optional category is listed and the choice prompt is owed with reason missing.',
+				id: 'nothing-declared-iab',
+				records: storedFor(SUBJECT.europe),
+				scenario: NOTHING_DECLARED_IAB_SCENARIO,
 			},
 		];
 		const fixtures: EvaluationFixture[] = [];

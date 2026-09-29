@@ -145,8 +145,10 @@ package enum PolicyEvaluator {
     /// `projectChoiceScope` in `packages/core/src/policy.ts`. A declaration narrows the
     /// policy scope. With nothing declared, a permissive rule asks about none of them,
     /// since categories outside the choice scope stay allowed there, and a strict rule
-    /// asks about its whole scope, since nothing outside it may run. The declaration is
-    /// counted whole, `necessary` included, the way the kernel counts it.
+    /// asks about its whole scope, since nothing outside it may run. An IAB rule also
+    /// asks about its whole scope: TCF consent is given per purpose and recorded in the
+    /// TC string, whatever the app declares. The declaration is counted whole,
+    /// `necessary` included, the way the kernel counts it.
     package static func choiceScope(
         of policy: EvaluationPolicy,
         declared: [ConsentCategory]?
@@ -154,7 +156,7 @@ package enum PolicyEvaluator {
         if let declared, !declared.isEmpty {
             return policy.scope.filter { declared.contains($0.category) }
         }
-        return policy.scopeMode == .permissive ? [] : policy.scope
+        return policy.scopeMode == .permissive && policy.model != .iab ? [] : policy.scope
     }
 
     // MARK: - Authorities

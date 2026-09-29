@@ -266,7 +266,7 @@
 		"a defect is applied to the bytes the core itself just wrote, so the base envelope is always valid for the core that wrote it. Only the named defect may make it unreadable; a base that never decoded in the first place makes the fixture meaningless rather than passing.",
 		"every read case starts from an accept-all, so the bytes really do hold a marketing grant. Denying everything is then the observable difference between failing closed and reading what is there.",
 		"input.consentCategories is the list the app declares: null means it declares nothing, which is a host that never sets consentCategories. A fixture without the key declares every category, necessary, experience, functionality, marketing and measurement.",
-		"with nothing declared, a permissive rule asks about no category: consentCategories lists necessary alone and the choice prompt asks for an acknowledgement. Any save answers it by recording a notice dismissal bound to the choice fingerprint, stamped with the action time. A strict rule still asks about its whole scope.",
+		"with nothing declared, a permissive rule asks about no category: consentCategories lists necessary alone and the choice prompt asks for an acknowledgement. Any save answers it by recording a notice dismissal bound to the choice fingerprint, stamped with the action time. A strict rule, and an IAB rule, still ask about their whole scope.",
 		"the acknowledgement lasts the choice lifetime. It stops answering once it is that old (reason expired) or once the choice fingerprint moves (reason policy-changed), and any category decision still valid under the current choice fingerprint answers the prompt too. nextDeadline includes the moment the last of those runs out."
 	],
 	"protocolVersion": 1,

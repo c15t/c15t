@@ -35,6 +35,8 @@ export interface EffectivePolicy {
  * policy scope. With nothing declared, a permissive rule asks about none of
  * them, since categories outside the choice scope stay allowed there, and a
  * strict rule asks about its whole scope, since nothing outside it may run.
+ * An IAB rule also asks about its whole scope: TCF consent is given per
+ * purpose and recorded in the TC string, whatever the site declares.
  */
 const projectChoiceScope = function projectChoiceScope(
 	rule: ResolvedPolicyRule,
@@ -45,7 +47,9 @@ const projectChoiceScope = function projectChoiceScope(
 			consentCategories.includes(category)
 		);
 	}
-	return rule.scopeMode === 'permissive' ? [] : undefined;
+	return rule.scopeMode === 'permissive' && rule.model !== 'iab'
+		? []
+		: undefined;
 };
 
 const projectEvaluationPolicy = (

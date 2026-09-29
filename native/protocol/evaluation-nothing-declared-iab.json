@@ -1,9 +1,15 @@
 {
-	"description": "The acknowledgement replayed after the publisher revised the rule copy, which moves the choice fingerprint. A dismissal made against another fingerprint does not answer the prompt, and it is owed with reason policy-changed.",
+	"description": "A permissive IAB rule on a device whose app declares no categories. TCF consent is given per purpose and recorded in the TC string, so the subject is still asked about the whole scope: every optional category is listed and the choice prompt is owed with reason missing.",
 	"expected": {
 		"snapshot": {
 			"activeUI": "banner",
-			"consentCategories": ["necessary"],
+			"consentCategories": [
+				"necessary",
+				"experience",
+				"functionality",
+				"marketing",
+				"measurement"
+			],
 			"effectivePermissions": {
 				"necessary": true,
 				"functionality": false,
@@ -16,20 +22,20 @@
 			"explicitChoice": null,
 			"iab": null,
 			"location": {
-				"countryCode": "SE",
+				"countryCode": "FI",
 				"regionCode": null
 			},
 			"model": "opt-in",
 			"nextDeadline": null,
 			"optOutDirectives": [],
 			"overrides": {
-				"country": "SE",
+				"country": "FI",
 				"gpc": null,
 				"language": "en",
 				"region": null
 			},
 			"policyPending": false,
-			"policySnapshotToken": "tok-nothing-declared-revised",
+			"policySnapshotToken": "tok-nothing-declared-iab",
 			"privacySignals": {
 				"gpc": {
 					"active": false,
@@ -39,12 +45,12 @@
 			},
 			"promptRequirement": {
 				"kind": "choice",
-				"reason": "policy-changed"
+				"reason": "missing"
 			},
 			"ready": true,
 			"resolution": {
-				"fingerprint": "090ae7e287c9091d41a5d35dd4ebe1f3ab46f677b13bf88c1f39077f28db2c01",
-				"policyId": "fixture_nothing_declared_permissive",
+				"fingerprint": "705c139ae5ce7d13e00df9dc9cd8cae4aa13047961530697b293d91324feb5ef",
+				"policyId": "fixture_nothing_declared_iab",
 				"status": "matched"
 			},
 			"restrictions": {},
@@ -69,7 +75,7 @@
 			}
 		}
 	},
-	"id": "evaluation-necessary-only-policy-changed",
+	"id": "evaluation-nothing-declared-iab",
 	"input": {
 		"hydrated": true,
 		"now": 1770000000000,
@@ -87,11 +93,7 @@
 		},
 		"storedRecords": {
 			"choice": null,
-			"noticeDismissal": {
-				"dismissedAt": 1770000000000,
-				"fingerprint": "e73b558a53bf8c315f9405ea058900edfaf2771a0e48bc8a641c08a4f3cb2b75",
-				"version": 1
-			},
+			"noticeDismissal": null,
 			"subject": {
 				"subjectId": "sub_1119tDZHoarNxm6kSm3BN6ze9d"
 			}
@@ -101,14 +103,14 @@
 				"branding": "c15t",
 				"jurisdiction": "GDPR",
 				"location": {
-					"countryCode": "SE",
+					"countryCode": "FI",
 					"regionCode": null
 				},
 				"policyResolution": {
 					"fingerprints": {
-						"choice": "bd4fd4d0535c42c7cfb66d162b99a37b57e841cb6deb1aeff616e5a77999a064",
-						"notice": "84fad2112ac610586cce752699f89619ea2aa4e254e7eea87327d879cdd02b2e",
-						"policy": "090ae7e287c9091d41a5d35dd4ebe1f3ab46f677b13bf88c1f39077f28db2c01"
+						"choice": "7b6272c6246851903b6c3f8223b9c07b99ba601402c99cf59fd390e50283d3fa",
+						"notice": "f4db49137cd4356add793eb7496c6cef5118c6c1bef239a95a4cd9cafda5922a",
+						"policy": "705c139ae5ce7d13e00df9dc9cd8cae4aa13047961530697b293d91324feb5ef"
 					},
 					"matchedBy": "country",
 					"policy": {
@@ -117,9 +119,9 @@
 							"equivalent": [["accept", "reject"]],
 							"required": ["accept", "reject"]
 						},
-						"copyRevision": "v2",
-						"id": "fixture_nothing_declared_permissive",
-						"model": "opt-in",
+						"copyRevision": "v1",
+						"id": "fixture_nothing_declared_iab",
+						"model": "iab",
 						"preselectedCategories": [],
 						"privacySignals": {
 							"gpc": {
@@ -145,7 +147,7 @@
 							"noticeMs": 31536000000
 						}
 					},
-					"policyId": "fixture_nothing_declared_permissive",
+					"policyId": "fixture_nothing_declared_iab",
 					"status": "matched",
 					"version": 1
 				},
@@ -164,7 +166,7 @@
 						"rights": {}
 					}
 				},
-				"policySnapshotToken": "tok-nothing-declared-revised"
+				"policySnapshotToken": "tok-nothing-declared-iab"
 			},
 			"headers": {
 				"x-c15t-policy-contract": "1"

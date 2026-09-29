@@ -187,7 +187,9 @@ that only strictly necessary processing runs:
   out.
 
 A strict rule never gets here with nothing declared: nothing outside its scope may run,
-so the subject is asked about the whole of it.
+so the subject is asked about the whole of it. Neither does an IAB rule: TCF consent is
+given per purpose and recorded in the TC string, so it is asked about its whole scope
+whatever the app declares.
 
 `ready` and `policyPending` are the two flags a native SDK gate must consult.
 While either is unset, every optional category reads `false`.
@@ -1234,8 +1236,8 @@ spellings, the same declaration a web host passes to its provider as
 `consentCategories`. The list is what the app offers, and it only ever narrows
 the optional half of the resolved policy scope: `snapshot.consentCategories` is
 `necessary` plus (scope ∩ declaration), and a name the policy does not govern is
-dropped. With no declaration a strict rule offers its full scope and a permissive
-rule offers `necessary` alone, with an acknowledgement prompt; see "State model". iOS reads a string
+dropped. With no declaration a strict or IAB rule offers its full scope and any other
+permissive rule offers `necessary` alone, with an acknowledgement prompt; see "State model". iOS reads a string
 array and drops entries that are not category raw values; Android reads a
 comma-separated list, trims spaces around each name, and drops unknown names the
 same way, so a mistyped id narrows the rows rather than installing a category

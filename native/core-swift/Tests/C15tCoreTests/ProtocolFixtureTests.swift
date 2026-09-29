@@ -1483,6 +1483,7 @@ final class ProtocolFixtureTests: XCTestCase {
         ("evaluation-necessary-only-policy-changed", "expected.snapshot", [.revision]),
         ("evaluation-necessary-only-answered-by-decision", "expected.snapshot", [.revision]),
         ("evaluation-nothing-declared-strict", "expected.snapshot", [.revision]),
+        ("evaluation-nothing-declared-iab", "expected.snapshot", [.revision]),
         ("save-body-all", "expected.snapshotBefore", [.revision]),
         ("save-body-all", "expected.snapshotAfter", [.revision]),
         ("save-body-necessary", "expected.snapshotBefore", [.revision]),
