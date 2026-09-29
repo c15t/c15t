@@ -10,7 +10,7 @@ import {
 	extractConsentRequestInputs,
 } from '@c15t/schema/types';
 
-import { extractRelevantHeaders } from './headers';
+import { CLIENT_FORWARDING_HEADERS, extractRelevantHeaders } from './headers';
 import type {
 	ConsentRequestOptions,
 	ConsentState,
@@ -58,14 +58,23 @@ const createForwardHeaders = (
 	options: ResolveConsentOptions,
 	overrides: ConsentState['initialOverrides']
 ): Record<string, string> => {
+	const trustForwarded = options.trustForwardedHeaders === true;
 	const forward: Record<string, string> = {
-		...extractRelevantHeaders(options.headers),
+		...extractRelevantHeaders(options.headers, {
+			trustForwardedHeaders: trustForwarded,
+		}),
 	};
 	const cookieHeader = options.cookieHeader ?? options.headers.get('cookie');
 	if (cookieHeader) {
 		forward.cookie = cookieHeader;
 	}
+	const clientForwarding = new Set<string>(CLIENT_FORWARDING_HEADERS);
 	for (const key of options.forwardHeaders ?? []) {
+		// Client-settable forwarding headers need the explicit opt-in, even
+		// when named here.
+		if (!trustForwarded && clientForwarding.has(key.toLowerCase())) {
+			continue;
+		}
 		const value = options.headers.get(key);
 		if (value) {
 			forward[key.toLowerCase()] = value;

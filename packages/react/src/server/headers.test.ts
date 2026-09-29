@@ -36,11 +36,33 @@ describe('extractRelevantHeaders', () => {
 			'x-c15t-version': '3.0.0',
 			'x-country-code': 'FR',
 			'x-forwarded-for': '127.0.0.1',
-			'x-forwarded-host': 'example.com',
 			'x-middleware-prefetch': '1',
 			'x-region-code': 'WEST',
 			'x-vercel-ip-country': 'GB',
 			'x-vercel-ip-country-region': 'CA-ON',
+		});
+	});
+
+	it('drops client forwarding headers unless trusted', () => {
+		const headers = new Headers({
+			forwarded: 'host=attacker.example',
+			'user-agent': 'Mozilla/5.0',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
+		});
+
+		const untrusted = extractRelevantHeaders(headers);
+		expect(untrusted).not.toHaveProperty('forwarded');
+		expect(untrusted).not.toHaveProperty('x-forwarded-host');
+		expect(untrusted).not.toHaveProperty('x-forwarded-proto');
+
+		const trusted = extractRelevantHeaders(headers, {
+			trustForwardedHeaders: true,
+		});
+		expect(trusted).toMatchObject({
+			forwarded: 'host=attacker.example',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
 		});
 	});
 

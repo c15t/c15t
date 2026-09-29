@@ -45,7 +45,11 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	 */
 	initRoute?: string;
 
-	/** Extra request headers to forward upstream in hosted mode. */
+	/**
+	 * Extra request headers to forward upstream in hosted mode. `forwarded`,
+	 * `x-forwarded-host` and `x-forwarded-proto` are skipped unless
+	 * `trustForwardedHeaders` is set.
+	 */
 	forwardHeaders?: string[];
 
 	/**
@@ -55,7 +59,8 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	 * forwards the visitor's cookies to the resolved backend, so set this
 	 * only behind a proxy that sets them and drops incoming ones. Prefer
 	 * SvelteKit's `ORIGIN`, `HOST_HEADER` and `PROTOCOL_HEADER` adapter
-	 * settings, which shape `event.url` itself.
+	 * settings, which shape `event.url` itself. Also forwards those three
+	 * headers to the backend, which is skipped otherwise.
 	 *
 	 * @defaultValue false
 	 */
