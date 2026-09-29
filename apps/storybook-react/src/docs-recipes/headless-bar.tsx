@@ -1,0 +1,59 @@
+// #region docs:headless-bar title="src/cookie-bar.tsx"
+import { useHeadlessConsentUI } from 'c15t/react/headless';
+import type { HeadlessConsentBannerAction } from 'c15t/react/headless';
+
+import './cookie-bar.css';
+
+const labels: Record<HeadlessConsentBannerAction, string> = {
+	accept: 'Accept all',
+	customize: 'Preferences',
+	dismiss: 'Got it',
+	reject: 'Reject all',
+	save: 'Save',
+};
+
+export const CookieBar = () => {
+	const { banner, openDialog, performAction } = useHeadlessConsentUI();
+
+	if (!banner.isVisible) {
+		return null;
+	}
+
+	// The policy decides which actions this visitor gets, and in what order.
+	// Preferences has its own button, so it is always there.
+	const actions = banner.orderedActions.filter(
+		(action) => action !== 'customize'
+	);
+
+	return (
+		<section
+			className="cookie-bar"
+			aria-label="Cookie consent"
+		>
+			<p className="cookie-bar__text">
+				We use cookies to measure traffic and improve this site. Choose which
+				ones can run.
+			</p>
+			<div className="cookie-bar__actions">
+				<button
+					type="button"
+					className="cookie-bar__link"
+					onClick={openDialog}
+				>
+					Preferences
+				</button>
+				{actions.map((action) => (
+					<button
+						key={action}
+						type="button"
+						className="cookie-bar__button"
+						onClick={() => performAction(action)}
+					>
+						{labels[action]}
+					</button>
+				))}
+			</div>
+		</section>
+	);
+};
+// #endregion docs:headless-bar

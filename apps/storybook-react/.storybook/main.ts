@@ -58,6 +58,15 @@ const config: StorybookConfig = {
 						find: /^@c15t\/schema$/u,
 						replacement: workspace('packages/schema/src/index.ts'),
 					},
+					// Docs recipes import the umbrella paths readers install.
+					{
+						find: /^c15t\/react\/headless$/u,
+						replacement: workspace('packages/react/src/headless.ts'),
+					},
+					{
+						find: /^c15t\/react$/u,
+						replacement: workspace('packages/react/src/index.ts'),
+					},
 					{
 						find: /^c15t$/u,
 						replacement: workspace('packages/core/src/index.ts'),
