@@ -97,9 +97,10 @@ failed to load, the surface comes back so the visitor can try again.
 `commands.dismissNotice()` acknowledges the current notice. It does not grant
 categories or overwrite existing denials. Global Privacy Control, or GPC, is a
 browser privacy signal. Its configured restrictions can change permissions
-without creating an explicit choice. c15t reads the signal live and never
-stores it or sends it to your backend. When the browser stops sending it, the
-GPC restriction stops too.
+without creating an explicit choice. c15t reads the signal live and keeps no
+standing opt-out for it. When the browser stops sending it, the GPC restriction
+stops too. The backend still sees the current value: `/init` reads the
+`Sec-GPC` header and saves send it as a policy input.
 
 A rule with `prompt: 'none'` can still require a persistent preferences entry
 point. Check the policy's rights instead of hiding preferences merely because

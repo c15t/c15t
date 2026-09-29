@@ -18,6 +18,9 @@ packages:
   "@c15t/nextjs":
     replay:
       - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
   "@c15t/astro":
     replay:
       - exit-prerelease(npm:@c15t/astro)
@@ -41,15 +44,15 @@ packages:
       - exit-prerelease(npm:@c15t/backend)
 ---
 
-### Read GPC live and stop storing it
+### Read GPC live instead of storing standing opt-outs
 
-**Breaking.** Global Privacy Control works as it did in v2. c15t reads the signal on each load and restricts the categories the policy maps to it while the browser sends it. When the browser stops sending it, the restriction ends. c15t no longer writes the `<key>-privacy` cookie or localStorage entry and no longer sends GPC to the backend.
+**Breaking.** Global Privacy Control works as it did in v2. c15t reads the signal on each load and restricts the categories the policy maps to it while the browser sends it. When the browser stops sending it, the restriction ends. c15t no longer writes the `<key>-privacy` cookie or localStorage entry, and the backend no longer records GPC opt-outs. `/init` and saves still carry the current signal as a policy input.
 
 Clearing c15t data still deletes a `-privacy` value an earlier alpha stored. A leftover value is ignored and doesn't affect the other records.
 
 | Removed | Replacement |
 | --- | --- |
-| `snapshot.optOutDirectives`, `useOptOutDirectives()` (React, Vue), `optOutDirectives` on the Svelte context | None. Read the live signal with `usePrivacySignals()`. |
+| `snapshot.optOutDirectives`, `useOptOutDirectives()` (React, Vue, TanStack Start), `optOutDirectives` on the Svelte context | None. Read the live signal with `usePrivacySignals()`. |
 | `PrivacyOptOut` type | None |
 | `'opt-out-directive'` restriction reason | None. GPC restrictions use `'gpc'`. |
 | `recordPrivacyOptOut` on kernel transports, the `privacy:opt-out` event | None |

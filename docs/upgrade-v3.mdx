@@ -85,8 +85,8 @@ An effective permission is not evidence of a grant. Under an opt-out rule it can
 be true before a visitor acts. A notice dismissal updates `noticeDismissal` and
 does not record consent. Global Privacy Control updates `privacySignals` and
 applies its configured restrictions without turning a browser signal into a
-choice. As in v2, c15t reads GPC live and never stores it: when the browser
-stops sending the signal, the restriction stops too.
+choice. As in v2, c15t reads GPC live and keeps no standing opt-out: when the
+browser stops sending the signal, the restriction stops too.
 
 ## Replace `useConsentManager()`
 
@@ -142,7 +142,7 @@ Import hooks from the same entry you used for `useConsentManager()`:
 | `promptRequirement` | `usePromptRequirement()` |
 | `noticeDismissal` | `useNoticeDismissal()` |
 | `privacySignals` | `usePrivacySignals()` |
-| `optOutDirectives` | None. GPC is not stored; read the live signal with `usePrivacySignals()`. |
+| `optOutDirectives` | None. c15t keeps no standing GPC opt-out; read the live signal with `usePrivacySignals()`. |
 | `restrictions` | `useRestrictions()` |
 | `resolution` | `usePolicyResolution()` |
 | `policyRule` | `usePolicyRule()` |
