@@ -175,28 +175,115 @@ export const getFocusableElements = function getFocusableElements(
 };
 
 let scrollLockCount = 0;
-let scrollLockOriginal: { overflow: string; paddingRight: string } | null =
-	null;
+let scrollLockRestore: (() => void) | null = null;
+
+/** Whether an element's computed overflow is `visible` on both axes. */
+const hasVisibleOverflow = (style: CSSStyleDeclaration): boolean =>
+	[style.overflowX, style.overflowY].every(
+		(value) => value === '' || value === 'visible'
+	);
+
+const supportsScrollbarGutter = (): boolean =>
+	typeof CSS !== 'undefined' &&
+	typeof CSS.supports === 'function' &&
+	CSS.supports('scrollbar-gutter', 'stable');
 
 /**
  * Locks document scrolling.
+ *
+ * Hides overflow on whichever element scrolls the page: `<body>` when its
+ * overflow reaches the viewport (the default), otherwise `<html>`, plus
+ * `<body>` when it is its own scroll container. When the page was showing a
+ * classic scrollbar, `scrollbar-gutter: stable` on `<html>` keeps the
+ * viewport width constant so neither in-flow content nor fixed-position
+ * elements move. Where no gutter holds (browsers without `scrollbar-gutter`,
+ * and scrollbars styled with `::-webkit-scrollbar`), `<body>` gets
+ * `padding-right` instead, which keeps in-flow content still.
+ *
  * @returns Cleanup function to restore scroll
  */
 export const setupScrollLock = function setupScrollLock() {
 	// Reference counted: a banner and a dialog can both hold the lock (the
 	// banner's exit animation overlaps the dialog opening), and the page
-	// must only get its original overflow back when the last one lets go.
+	// must only get its original styles back when the last one lets go.
 	if (scrollLockCount === 0) {
-		scrollLockOriginal = {
-			overflow: document.body.style.overflow,
-			paddingRight: document.body.style.paddingRight,
+		const root = document.documentElement;
+		const { body } = document;
+		const rootStyle = window.getComputedStyle(root);
+		// Only a classic scrollbar takes space. Measure it before hiding
+		// overflow: reserving a gutter on a page without one would narrow it.
+		const scrollbarWidth = window.innerWidth - root.clientWidth;
+		const rootWidth = root.getBoundingClientRect().width;
+		const restores: (() => void)[] = [];
+		// Saves the inline values of `property` and any `related` longhands.
+		// A page that set only `overflow-x` reads back an empty `overflow`,
+		// so the longhands are what let the restore keep it.
+		const setStyle = (
+			element: HTMLElement,
+			property: string,
+			value: string,
+			related: string[] = []
+		) => {
+			const saved = [property, ...related].map((name) => ({
+				name,
+				priority: element.style.getPropertyPriority(name),
+				value: element.style.getPropertyValue(name),
+			}));
+			element.style.setProperty(property, value);
+			restores.push(() => {
+				for (const { name } of saved) {
+					element.style.removeProperty(name);
+				}
+				for (const { name, priority, value: previous } of saved) {
+					if (previous) {
+						element.style.setProperty(name, previous, priority);
+					}
+				}
+			});
 		};
-		const scrollbarWidth =
-			window.innerWidth - document.documentElement.clientWidth;
-		document.body.style.overflow = 'hidden';
-		if (scrollbarWidth > 0) {
-			document.body.style.paddingRight = `${scrollbarWidth}px`;
+		const hideOverflow = (element: HTMLElement) => {
+			setStyle(element, 'overflow', 'hidden', ['overflow-x', 'overflow-y']);
+		};
+
+		// While <html> has visible overflow, <body>'s overflow is what the
+		// viewport uses. Hiding it there, rather than on <html>, leaves <body>
+		// out of the scroll-container chain, so sticky elements and margin
+		// collapsing behave as they did before the lock.
+		if (hasVisibleOverflow(rootStyle)) {
+			hideOverflow(body);
+		} else {
+			hideOverflow(root);
+			// Pages that scroll <body> instead of the viewport.
+			if (!hasVisibleOverflow(window.getComputedStyle(body))) {
+				hideOverflow(body);
+			}
 		}
+
+		if (scrollbarWidth > 0) {
+			if (supportsScrollbarGutter()) {
+				if (
+					!rootStyle.getPropertyValue('scrollbar-gutter').includes('stable')
+				) {
+					setStyle(root, 'scrollbar-gutter', 'stable');
+				}
+				// The gutter only holds for native scrollbars: Chromium reserves
+				// none for one styled with `::-webkit-scrollbar`. When the page
+				// still widened, pad <body> by the difference instead, which keeps
+				// in-flow content still (fixed elements still move).
+				const growth = root.getBoundingClientRect().width - rootWidth;
+				if (growth > 0.5) {
+					setStyle(body, 'padding-right', `${growth}px`);
+				}
+			} else {
+				setStyle(body, 'padding-right', `${scrollbarWidth}px`);
+			}
+		}
+
+		scrollLockRestore = () => {
+			for (const restore of restores.reverse()) {
+				restore();
+			}
+		};
 	}
 	scrollLockCount += 1;
 
@@ -207,10 +294,9 @@ export const setupScrollLock = function setupScrollLock() {
 		}
 		released = true;
 		scrollLockCount -= 1;
-		if (scrollLockCount === 0 && scrollLockOriginal) {
-			document.body.style.overflow = scrollLockOriginal.overflow;
-			document.body.style.paddingRight = scrollLockOriginal.paddingRight;
-			scrollLockOriginal = null;
+		if (scrollLockCount === 0 && scrollLockRestore) {
+			scrollLockRestore();
+			scrollLockRestore = null;
 		}
 	};
 };

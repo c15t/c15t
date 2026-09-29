@@ -151,7 +151,11 @@ export default mergeConfig(
 			browser: {
 				enabled: true,
 				instances: [{ browser: 'chromium' }],
-				provider: playwright(),
+				// Headless Chromium hides scrollbars by default. Showing them keeps
+				// classic scrollbar layout (as on Windows and Linux) testable.
+				provider: playwright({
+					launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] },
+				}),
 			},
 			coverage: {
 				// Coverage ratchet: floors below current coverage so regressions
