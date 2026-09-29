@@ -128,22 +128,15 @@ when `C15T_NUXT_OUTPUT=static` is set.
 
 ## Module options
 
-These options go under the `c15t` key in `nuxt.config.ts`, next to the shared
-options on the [customize](/docs/frameworks/nuxt/customize) page.
+The [Nuxt module](/docs/frameworks/nuxt/module#backend-and-rendering) page
+lists `manifest`, `manifestURL`, `geoURL`, `timeoutMs`, `reportSessions` and
+the route options with their defaults. A `manifestURL` with `manifest` unset
+selects server mode, so set `manifest: 'client'` explicitly for static
+output.
 
-| Option | Default | What it does |
-| --- | --- | --- |
-| `backendURL` | None | Your Inth or self-hosted backend. Consent saves go here. |
-| `manifest` | `false` | `'server'` resolves on the Nuxt server. `'client'` resolves in the browser. `false` calls the backend's `/init`. `true` is an older name for `'server'`. |
-| `manifestURL` | `${backendURL}/manifest` in server mode, `manifestRoute` in client mode | Where the manifest is downloaded from. Must be absolute in client mode on a static host. |
-| `geoURL` | None | Client mode only. An endpoint that returns `{ country, region }` for the visitor. |
-| `manifestRoute` | `/api/c15t/manifest` | Path of the manifest route the module adds. |
-| `initRoute` | `/api/c15t/init` | Path of the init route the module adds in server mode. |
-| `timeoutMs` | `500` | Longest wait for the policy during server rendering. `false` waits as long as the backend takes. |
-| `reportSessions` | `true` | Server mode only. After resolving a visitor, the init route reports the session to the backend so Inth still counts visitors it never served `/init` to. Needs an absolute `backendURL`. |
-| `networkBlocker` | None | Rules that block matching `fetch` and XHR requests until their category is allowed. See [scripts and embeds](/docs/frameworks/nuxt/scripts#block-tracking-requests). |
-| `iframeBlocker` | On | `false` turns off the blocker for `data-src` iframes. See [scripts and embeds](/docs/frameworks/nuxt/scripts#gate-an-iframe-without-a-wrapper). |
-| `nonce` | None | A Content Security Policy nonce added to every script the loader creates. See [scripts and embeds](/docs/frameworks/nuxt/scripts#content-security-policy). |
+The server reads the visitor's location from request headers. See
+[geography headers](/docs/frameworks/nuxt/geography-headers) for the list and
+for which ones to trust.
 
 ## Verify your deployment
 

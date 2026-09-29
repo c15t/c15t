@@ -1,6 +1,6 @@
 ---
-title: Scripts and embeds
-description: Load vendor scripts, gate iframes and block tracking requests by consent category in a Nuxt app with the c15t Nuxt module.
+title: Scripts
+description: Load vendor scripts by consent category in a Nuxt app with the c15t Nuxt module, and what happens when a visitor withdraws consent.
 group: frameworks
 ---
 
@@ -31,81 +31,23 @@ above, or write them into the file.
 Every vendor guide under [integrations](/docs/integrations/overview) gives the
 helper and options for that vendor.
 
-## Gate an iframe with ConsentGate
+## Embeds and other requests
 
-`ConsentGate` renders its default slot while the category is allowed and its
-`placeholder` slot otherwise. The iframe is absent from the server HTML and the
-DOM until the visitor allows the category, and Vue removes it when they
-withdraw.
+Scripts cover vendor code c15t loads for you. For the rest:
 
-<include src="../../shared/examples/nuxt/embed.mdx" />
-
-## Gate an iframe without a wrapper
-
-The module also runs the iframe blocker, on by default. Give an iframe
-`data-src` instead of `src`, and a `data-category`. c15t sets `src` when the
-category is allowed and removes it when it is withdrawn.
-
-{/* example: fragment */}
-
-```vue title="app/components/MapEmbed.vue"
-<template>
-  <iframe
-    data-src="https://www.google.com/maps/embed?pb=YOUR_EMBED_ID"
-    data-category="functionality"
-    title="Store map"
-  />
-</template>
-```
-
-The iframe element stays on the page while blocked, empty. Use `ConsentGate`
-when you want a placeholder with a way to open preferences. To turn the
-blocker off, set `iframeBlocker: false` in the module options.
-
-## Block tracking requests
-
-`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
-until the rule's category is allowed. A blocked `fetch` resolves to a `451`
-response and sends nothing. Add it to the module options:
-
-{/* example: fragment */}
-
-```ts title="nuxt.config.ts"
-export default defineNuxtConfig({
-  c15t: {
-    networkBlocker: {
-      rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
-    },
-  },
-});
-```
-
-A rule's `domain` also matches its subdomains. Add `pathIncludes` or `methods`
-to narrow it.
-
-Module options reach the browser as JSON, so the `onRequestBlocked` callback
-goes under the `c15t` key of `app/app.config.ts`. Rules you set there are
-added to the rules from `nuxt.config.ts`:
-
-{/* example: fragment */}
-
-```ts title="app/app.config.ts"
-export default defineAppConfig({
-  c15t: {
-    networkBlocker: {
-      rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
-      onRequestBlocked: (info) => console.info('Blocked', info.url),
-    },
-  },
-});
-```
+- [Embeds](/docs/frameworks/nuxt/embeds) gates iframes with `ConsentGate` or
+  the iframe blocker.
+- [Network blocker](/docs/frameworks/nuxt/network-blocker) holds `fetch` and
+  XHR calls that match a rule until their category is allowed.
 
 ## When a visitor withdraws consent
 
 Removing a script tag cannot stop code that already ran. When a save turns off
 a category or vendor that was allowed, c15t reloads the page so the new
 document starts with only permitted code. Set `reloadOnConsentRevoked: false`
-to handle revocation yourself.
+to handle revocation yourself, or use the
+[`onBeforeConsentRevocationReload` callback](/docs/frameworks/nuxt/callbacks#before-a-revocation-reload)
+to run code before the reload.
 
 `clearOnRevocation` deletes first-party cookies and storage keys that belong to
 a category when it is withdrawn. It is plain data, so it can go in
@@ -113,18 +55,14 @@ a category when it is withdrawn. It is plain data, so it can go in
 
 ## Content Security Policy
 
-Allow each vendor's script origin in your `script-src` directive, and your
-backend or `manifestURL` origin in `connect-src`.
-
-The module's `nonce` option adds a nonce to every script the loader creates.
-Module options and `app.config.ts` are fixed when the app builds, so every
-response gets the same value. A nonce only protects a page when it changes on
-each response, so prefer the origin allowlist.
+Allow each vendor's script host in your `script-src` directive. The module's
+`nonce` option is fixed when the app builds, so prefer the host allowlist.
+See [Content Security Policy](/docs/frameworks/nuxt/content-security-policy).
 
 ## Verify gating
 
 In a private window, open the Network tab and load a page under a policy that
-asks for consent. Requests to your vendors and iframe origins are absent.
+asks for consent. Requests to your vendors are absent.
 Allow one category and save, and only that category's vendors load. Withdraw
 it, and the page reloads without loading the vendor again.
 [Verify consent](/docs/guides/verify-consent) has the full checklist.

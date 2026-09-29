@@ -1,0 +1,67 @@
+---
+title: Callbacks
+description: Run code in a Nuxt app when a visitor records a consent choice, when permissions change, before a revocation reload, and when c15t reports an error.
+group: frameworks
+---
+
+## Register callbacks
+
+Callbacks are functions, so they go under the `c15t` key of
+`app/app.config.ts`, not in `nuxt.config.ts`. Module options reach the
+browser as JSON, which drops functions. Keep the callbacks in their own file:
+
+<include src="../../shared/examples/nuxt/callbacks.mdx" />
+
+Then add them next to `scripts` in `app/app.config.ts`:
+
+{/* example: fragment */}
+
+```ts title="app/app.config.ts"
+export default defineAppConfig({
+  c15t: { callbacks, scripts },
+});
+```
+
+The module wires the callbacks once when its plugin runs. Visitor actions
+happen in the browser, so that is where these callbacks run.
+
+## Available callbacks
+
+| Callback | Runs when | Receives |
+| --- | --- | --- |
+| `onChoiceRecorded` | The visitor clicks Accept all, Reject all or Save, in the stock UI or through `useConsentSave()`. | `snapshot`, `confirmed` (the categories the action covered) and `actionAt` |
+| `onPermissionsChanged` | Any effective permission changes value. | `snapshot` and `previous`, the permissions before the change |
+| `onBeforeConsentRevocationReload` | A save withdraws a granted category or vendor, right before c15t reloads the page. | `preferences`, the permissions after the save |
+| `onError` | A consent command fails, for example a save the backend rejects. | `error`, a message string |
+
+## onChoiceRecorded or onPermissionsChanged
+
+`onChoiceRecorded` fires only for a visitor's action. Use it to count consent
+decisions or to send the choice to your own analytics.
+
+`onPermissionsChanged` also fires when a stored choice expires, when a new
+policy applies, and when a privacy signal such as Global Privacy Control
+changes, with no action from the visitor. Use it to start or stop code that
+depends on a permission. Do not treat it as evidence that the visitor chose
+anything.
+
+Dismissing a notice fires neither callback, because it records no choice and
+changes no permission. Subscribe to it with
+`useConsentKernel().events.on('notice:dismissed', listener)`.
+[How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+explains the difference.
+
+## Before a revocation reload
+
+Removing a script tag cannot stop code that already ran, so c15t reloads the
+page after a save withdraws a granted category or vendor.
+`onBeforeConsentRevocationReload` runs synchronously right before that. Use
+it to call a vendor's shutdown API. Avoid long work, because the reload does
+not wait. Set `reloadOnConsentRevoked: false` to handle revocation yourself.
+
+## Verify
+
+Open the console, load a page and click Accept all. `onChoiceRecorded` logs
+once and `onPermissionsChanged` logs the new permissions. Reload: neither logs
+a new choice. Withdraw a category in preferences and save, and the
+revocation callback runs before the page reloads.

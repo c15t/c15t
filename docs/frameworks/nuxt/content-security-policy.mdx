@@ -1,0 +1,72 @@
+---
+title: Content Security Policy
+description: Allow c15t in a Nuxt app under a Content Security Policy, including the theme token style tag, same-origin routes, the backend and vendor scripts.
+group: frameworks
+---
+
+## What c15t adds to the page
+
+A Nuxt app with c15t adds these to the page, and your policy must allow them:
+
+| What | Directive |
+| --- | --- |
+| The `<style id="c15t-css-vars">` tag with your theme tokens, in the page head | `style-src` |
+| The components' CSS, which Nuxt bundles with your app | `style-src` |
+| Browser requests to `/api/c15t/init` and `/api/c15t/manifest` in server mode | `connect-src 'self'` |
+| Consent saves to your backend's `/subjects`, and `manifestURL` in client mode | `connect-src` |
+| `<script>` elements the script loader creates for `scripts` | `script-src` |
+| Scripts, frames, images and requests your vendors load | `script-src`, `frame-src`, `img-src`, `connect-src` for each vendor |
+
+Nuxt adds its own inline scripts and, by default, inline styles. Its
+documentation and modules such as `nuxt-security` cover those.
+
+## Allow the theme token style tag
+
+`ConsentRoot` writes the `tokens` option into an inline
+`<style id="c15t-css-vars">` tag. A `style-src` without `'unsafe-inline'`
+blocks it, and the banner falls back to the default theme. The tag's content
+is the same for every visitor and only changes when you change `tokens`, so
+you can allow it with a hash:
+
+1. Load a page with the policy enforced.
+2. Copy the `sha256-...` value from the browser's `Refused to apply inline
+   style` console error.
+3. Add it to `style-src` and redeploy.
+
+Recompute the hash whenever you change `tokens`. When your policy already
+allows `'unsafe-inline'` for Nuxt's own styles, the tag needs nothing more.
+
+## Allow the backend
+
+In server mode the browser calls your own origin for `/api/c15t/init`, which
+`'self'` covers, and sends consent saves to your backend. Add the backend's
+origin to `connect-src`. With `manifest: 'client'`, add the origin of
+`manifestURL` too. Under an IAB TCF policy, the browser loads the Global
+Vendor List through the module's init route in server mode, or from your
+backend otherwise.
+
+```txt title="Content-Security-Policy (partial)"
+connect-src 'self' https://<your-backend-host>;
+```
+
+Use the host from your Inth project or your self-hosted backend. Requests the
+Nuxt server makes during rendering are not subject to the browser's policy.
+
+## Allow scripts
+
+List each vendor's script host in `script-src`. The
+[integration guide](/docs/integrations/overview) for each vendor names its
+hosts.
+
+The module's `nonce` option adds a nonce to every script the loader creates.
+Module options and `app.config.ts` are fixed when the app builds, so every
+response gets the same value. A nonce only protects a page when it changes on
+each response, so prefer the host allowlist for c15t's scripts.
+
+## Verify
+
+Enforce the policy, not report-only, and load a page. The banner shows your
+token colors, and the console shows no `Refused to apply inline style`,
+`Refused to connect` or `Refused to load the script` error that mentions a
+c15t element, your backend or a vendor you allowed. Accept all, and the
+vendor scripts load. The save to `/subjects` succeeds.

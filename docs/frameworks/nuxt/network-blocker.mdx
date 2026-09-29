@@ -1,0 +1,100 @@
+---
+title: Network blocker
+description: Hold fetch and XMLHttpRequest calls in a Nuxt app until their consent category is allowed, with rules in the c15t module options.
+group: frameworks
+---
+
+## Add rules
+
+The network blocker stops `fetch` and `XMLHttpRequest` calls in the browser
+that match a rule until the rule's category is allowed. Use it as a backstop
+for tracking calls your own code or a vendor SDK makes. Load vendor SDKs
+through [`scripts`](/docs/frameworks/nuxt/scripts) first, so they do not run
+at all before consent.
+
+Rules are plain data, so they can go in the module options:
+
+{/* example: fragment */}
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  c15t: {
+    networkBlocker: {
+      rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
+    },
+  },
+});
+```
+
+Module options reach the browser as JSON, so the `onRequestBlocked` callback
+goes under the `c15t` key of `app/app.config.ts`. Rules you set there are
+added to the rules from `nuxt.config.ts`:
+
+{/* example: fragment */}
+
+```ts title="app/app.config.ts"
+export default defineAppConfig({
+  c15t: {
+    networkBlocker: {
+      onRequestBlocked: (info) => console.info('Blocked', info.url),
+      rules: [],
+    },
+  },
+});
+```
+
+## Match requests with rules
+
+Each rule names a `domain` and the consent `category` a request needs. The
+domain also matches its subdomains, so `google-analytics.com` covers
+`www.google-analytics.com`. `pathIncludes` narrows a rule to paths that
+contain a substring, and `methods` narrows it to HTTP methods. `category`
+also takes conditions such as `{ and: ['measurement', 'marketing'] }`.
+
+Add `vendor` with a vendor ID to also block the request while the visitor has
+turned that vendor off. Rules for IAB TCF vendors use `vendorId` and the
+`iabPurposes` fields instead.
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `rules` | Required | The rules above. |
+| `enabled` | `true` | `false` keeps the rules but stops blocking. |
+| `logBlockedRequests` | `true` | Logs each blocked request with `console.warn`. |
+| `onRequestBlocked` | Unset | `app.config.ts` only. Called with `{ method, url, rule }` for each blocked request. |
+
+## What a blocked request looks like
+
+A blocked `fetch` resolves to a `451` response with the status text
+`Request blocked by consent`, and nothing is sent. A blocked XHR is aborted
+and fires an `error` event. Requests that match no rule are not delayed.
+
+## When blocking starts
+
+The blocker runs in the browser only. It starts holding matching requests
+when the c15t plugin runs, before your app hydrates. While consent is
+unknown, a matching request waits instead of failing. Once the policy and the
+stored choice apply, a waiting request is sent if consent allows it and
+blocked otherwise. With `manifest: 'server'`, the policy arrives with the
+page, so waiting requests are decided as soon as the app mounts.
+
+Requests your server makes during server rendering, such as `useFetch` on the
+server, are not blocked. Check `useConsent()` before you call a vendor from
+server code.
+
+## What it cannot stop
+
+The blocker sees only browser `fetch` and `XMLHttpRequest` calls made after
+the c15t plugin runs. It cannot stop:
+
+- Scripts you add to the page head with `useHead` or `app.head`, and Nuxt
+  plugins that run before the c15t plugin.
+- Code that saved its own reference to `fetch` before the plugin ran.
+- `navigator.sendBeacon`, `WebSocket`, `EventSource`, and requests from
+  `<img>`, `<script>` and `<iframe>` elements, web workers and service
+  workers.
+
+## Verify
+
+Open the Network tab, clear site data and reload. Requests that match a rule
+do not appear until you allow their category, and the console lists each
+blocked request. Reject, reload, and check that they still do not appear.

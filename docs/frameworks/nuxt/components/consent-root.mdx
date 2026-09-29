@@ -1,0 +1,87 @@
+---
+title: ConsentRoot
+description: Mount the c15t banner, preference dialog and floating trigger in Nuxt with the globally registered ConsentRoot, rendered on the server.
+group: frameworks
+---
+
+## Usage
+
+The Nuxt module registers `ConsentRoot` globally, so you render it without an
+import. Put it in `app.vue`, outside `<NuxtPage />`:
+
+<include src="../../../shared/examples/nuxt/root.mdx" />
+
+`ConsentRoot` reads the consent runtime the module creates. Keep it in
+`app.vue` so it stays mounted when the route changes. It has no slots and
+brings its own styles.
+
+Always mount the Nuxt `ConsentRoot`, not the Vue one from
+`c15t/vue/consent-root`. The Nuxt component renders the banner on the server
+and writes the theme tokens into the page head. The Vue component applies
+tokens only after mount.
+
+## What ConsentRoot renders
+
+`ConsentRoot` picks the surfaces for the visitor's policy:
+
+| Policy | Banner | Preferences |
+| --- | --- | --- |
+| Standard, opt-in or opt-out | [`ConsentBanner`](/docs/frameworks/nuxt/components/consent-banner) | [`ConsentManager`](/docs/frameworks/nuxt/components/consent-manager) |
+| IAB TCF, with a vendor list | [`IABConsentBanner`](/docs/frameworks/nuxt/components/iab-consent-banner) | [`IABConsentDialog`](/docs/frameworks/nuxt/components/iab-consent-dialog) |
+
+It also renders [`ConsentDialogTrigger`](/docs/frameworks/nuxt/components/consent-dialog-trigger)
+when the `showTrigger` option is `true`.
+
+The banner is part of the server render. With `manifest: 'server'`, a visitor
+whose policy asks for consent gets the banner in the first HTML, with no
+layout shift after hydration. On prerendered and cached routes the banner
+appears after the browser resolves the policy. See
+[rendering](/docs/frameworks/nuxt/rendering).
+
+The dialog and the IAB surfaces load as separate chunks. `ConsentRoot`
+prefetches the dialog chunk after the page's `load` event, mounts the dialog
+the first time preferences open, and keeps it mounted after that so its close
+animation runs.
+
+## Theme tokens
+
+`ConsentRoot` writes the `tokens` option into a
+`<style id="c15t-css-vars">` tag in the page head with `useHead`. During
+server rendering the tag is in the first HTML. See
+[customize](/docs/frameworks/nuxt/customize#set-theme-tokens).
+
+## Props
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `country` | `string` | The location from the request headers | Overrides the visitor's country and resolves the policy again. |
+| `region` | `string` | The location from the request headers | Overrides the visitor's region, such as `CA`, and resolves the policy again. |
+
+Use these props to preview another region's policy while you build, such as
+`<ConsentRoot country="DE" />`. The Nuxt `ConsentRoot` has no `language` prop.
+See [translations](/docs/frameworks/nuxt/translations) to change the
+language.
+
+## Compose the surfaces yourself
+
+`ConsentRoot` is the same as rendering the banner, dialog and trigger with the
+right conditions. To place them yourself, render them in place of
+`ConsentRoot`, as in
+[ConsentBanner](/docs/frameworks/nuxt/components/consent-banner#usage). Do not
+render `ConsentRoot` next to them, or the visitor sees two banners.
+
+## Verify
+
+Build and start the app, then view the source of a page under a policy that
+asks for consent. The HTML holds `data-testid="consent-banner-root"` and the
+`c15t-css-vars` style tag. Click Customize and the preference dialog opens.
+Reject, reload, and confirm the banner stays closed.
+
+## Related
+
+- [Nuxt module](/docs/frameworks/nuxt/module) lists the options `ConsentRoot`
+  reads.
+- [Customize](/docs/frameworks/nuxt/customize) changes tokens, layout and
+  slots.
+- [Headless](/docs/frameworks/nuxt/headless) replaces `ConsentRoot` with your
+  own markup.

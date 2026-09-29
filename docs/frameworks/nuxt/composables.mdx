@@ -1,36 +1,63 @@
 ---
 title: Composables
-description: Read consent, open preferences and record choices in Nuxt with the composables the c15t Nuxt module auto-imports.
+description: Every c15t composable the Nuxt module auto-imports, grouped by task, with the difference between a permission and a recorded choice.
 group: frameworks
 ---
 
-<include src="../../shared/vue/composables.mdx" />
+## Use composables without imports
 
-## Render content by permission
+The Nuxt module auto-imports the consent composables, so a component calls
+them directly. This component reads the visitor's permission and recorded
+choice, and opens preferences:
 
-This Nuxt component shows a block only while marketing is allowed. The module
-auto-imports `useConsent`, so the component has no imports.
+<include src="../../shared/examples/nuxt/consent-status.mdx" />
+
+Use `v-if`, not `v-show`, when optional content loads anything from a third
+party. For iframes use [`ConsentGate`](/docs/frameworks/nuxt/components/consent-gate),
+and for vendor scripts use the `scripts` option in `app.config.ts`. See
+[scripts](/docs/frameworks/nuxt/scripts).
+
+A few composables are not auto-imported, among them `useHasConsentPolicy()`,
+`useHasConsentUi()`, `useHasConsentPreferences()` and `useIabTranslations()`.
+Import them from `#c15t/composables`, the alias the module registers for its
+composables:
 
 {/* example: fragment */}
 
-```vue title="app/components/MarketingOffer.vue"
-<script setup lang="ts">
-const consent = useConsent();
-</script>
-
-<template>
-  <aside v-if="consent.marketing">Personalized offers</aside>
-</template>
+```ts
+import { useHasConsentPreferences } from '#c15t/composables';
 ```
 
-Use `v-if`, not `v-show`, when the content loads anything from a third party.
-For iframes use `ConsentGate`, and for vendor scripts use the `scripts` option
-in `app.config.ts`. See [scripts and embeds](/docs/frameworks/nuxt/scripts).
+<import src="../../shared/vue/composables.mdx#rules" />
+
+Server routes and middleware under `server/` run outside the Nuxt app, so the
+composables do not work there.
+
+<import src="../../shared/vue/composables.mdx#permission" />
+
+<import src="../../shared/vue/composables.mdx#read-state" />
 
 ## Composables on the server
 
 The composables work during server rendering. With `manifest: 'server'` they
-return the visitor's resolved policy and stored choice, so the server HTML
-and the first client render agree. On prerendered and cached routes, and with
+return the visitor's resolved policy and stored choice, so the server HTML and
+the first client render agree. On prerendered and cached routes, and with
 `ssr: false`, they start with every optional category denied and update once
-the browser resolves the policy.
+the browser resolves the policy. Until then
+`useConsentSnapshot().value.policyPending` is `true`.
+
+<import src="../../shared/vue/composables.mdx#act" />
+
+See [translations](/docs/frameworks/nuxt/translations) for a language
+switcher.
+
+<import src="../../shared/vue/composables.mdx#headless" />
+
+[Headless](/docs/frameworks/nuxt/headless) builds a complete banner and
+preference form from these composables.
+
+<import src="../../shared/vue/composables.mdx#iab" />
+
+<import src="../../shared/vue/composables.mdx#advanced" />
+
+See [callbacks](/docs/frameworks/nuxt/callbacks) for the `callbacks` option.
