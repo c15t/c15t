@@ -30,6 +30,7 @@
  * <IABConsentDialog />
  * ```
  */
+import { applyExperimentAssignment } from '@c15t/core';
 import {
 	buildBannerRevealScript,
 	buildColorSchemeScript,
@@ -64,7 +65,12 @@ if (!c15t) {
 const { snapshot } = c15t;
 const model = resolveIABPromptModel({
 	classNames: iabPromptClassNames,
-	presentation: c15t.options.presentation,
+	// The arm is the host-resolved `variant`, already on the server snapshot.
+	presentation: applyExperimentAssignment(
+		c15t.options.presentation,
+		c15t.options.experiment,
+		snapshot.experiment
+	),
 	props,
 	snapshot,
 });
@@ -131,6 +137,7 @@ const hidden = c15t.prerendered && !force;
 			data-blocking={model.blocking ? 'true' : undefined}
 			data-position={model.position}
 			data-testid="iab-consent-banner-root"
+			data-variant={model.variant}
 			dir={model.textDirection}
 			hidden={hidden ? true : undefined}
 			lang={model.language}

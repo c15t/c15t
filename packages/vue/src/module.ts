@@ -195,6 +195,9 @@ const module: NuxtModule<C15tNuxtConfig> = defineNuxtModule<C15tNuxtConfig>({
 				'useDismissNotice',
 				'useConsentDraft',
 				'useConsentPolicyActions',
+				'useExperiment',
+				'useResolvedPresentation',
+				'useResolvedTheme',
 
 				'useConsentIabSelection',
 				'useConsentIabSave',

@@ -1,5 +1,7 @@
 import {
 	allConsentNames,
+	applyExperimentAssignment,
+	applyExperimentTheme,
 	consentTypes as defaultConsentTypes,
 	defaultTranslationConfig,
 	has as evaluateHas,
@@ -9,8 +11,10 @@ import {
 import type {
 	ActiveUI,
 	AllConsentNames,
+	ConsentExperiment,
 	ConsentKernel,
 	ConsentPresentation,
+	ExperimentAssignment,
 	ResolvedConsentPresentation,
 	ConsentSnapshot,
 	ConsentState,
@@ -115,7 +119,12 @@ export interface ConsentManagerState extends Pick<
 	selectedConsentTypes: Partial<ConsentState>;
 	/** Granted flag per declared vendor in the draft. */
 	selectedVendors: Readonly<Record<string, boolean>>;
+	/** The configured presentation with the assigned experiment arm merged over it. */
 	presentation?: ConsentPresentation;
+	/** The presentation experiment arm this visitor runs, or `null`. */
+	experiment: Readonly<ExperimentAssignment> | null;
+	/** The configured theme with the assigned experiment arm's theme merged over it. */
+	theme?: Theme;
 	readonly draft: ConsentDraftState;
 	consentCategories: AllConsentNames[];
 	consentTypes: ConsentType[];
@@ -196,6 +205,8 @@ export interface ConsentControllerOptions {
 	getConsentCategories: () => AllConsentNames[];
 	getLegalLinks: () => ConsentManagerOptions['legalLinks'];
 	getPresentation: () => ConsentPresentation | undefined;
+	getExperiment?: () => ConsentExperiment | undefined;
+	getTheme?: () => Theme | undefined;
 }
 
 const toTranslationConfig = function toTranslationConfig(
@@ -265,7 +276,21 @@ const createConsentState = function createConsentState(
 			return options.getDraft();
 		},
 		get presentation() {
-			return options.getPresentation();
+			return applyExperimentAssignment(
+				options.getPresentation(),
+				options.getExperiment?.(),
+				getSnapshotLocal().experiment
+			);
+		},
+		get experiment() {
+			return getSnapshotLocal().experiment;
+		},
+		get theme() {
+			return applyExperimentTheme(
+				options.getTheme?.(),
+				options.getExperiment?.(),
+				getSnapshotLocal().experiment
+			);
 		},
 		// -- Controller-owned state (computed from snapshot + provider options) --
 

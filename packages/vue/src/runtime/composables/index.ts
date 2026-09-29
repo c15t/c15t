@@ -11,4 +11,5 @@ export * from './language';
 export * from './region';
 
 export * from './draft';
+export * from './experiment';
 export * from './use-consent-policy-actions';

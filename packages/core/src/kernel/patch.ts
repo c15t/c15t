@@ -22,6 +22,7 @@ import type {
 	RestrictionReason,
 } from '../consent-record/types';
 import type { AllConsentNames } from '../consent/consent-types';
+import type { ExperimentAssignment } from '../libs/experiment';
 import {
 	buildEvaluationPolicy,
 	deriveActiveUI,
@@ -71,6 +72,7 @@ export interface SnapshotPatch {
 	iab?: KernelIABState | null;
 	vendors?: KernelVendorsState | null;
 	vendorChoice?: VendorChoice | null;
+	experiment?: ExperimentAssignment | null;
 	/** Evaluation time. Defaults to the current `evaluatedAt`. */
 	now?: number;
 }
@@ -128,7 +130,8 @@ export const isUnchangedPatch = function isUnchangedPatch(
 			current.policyPending &&
 		pick(patch.iab, current.iab) === current.iab &&
 		pick(patch.vendors, current.vendors) === current.vendors &&
-		pick(patch.vendorChoice, current.vendorChoice) === current.vendorChoice
+		pick(patch.vendorChoice, current.vendorChoice) === current.vendorChoice &&
+		pick(patch.experiment, current.experiment) === current.experiment
 	);
 };
 
@@ -371,6 +374,7 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		effectivePermissions,
 		evaluatedAt: now,
 		evaluationPolicy,
+		experiment: pick(patch.experiment, current.experiment),
 		explicitChoice,
 		externalPermissions,
 		iab,

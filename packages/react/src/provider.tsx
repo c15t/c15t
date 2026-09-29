@@ -1,9 +1,13 @@
 'use client';
 
 import {
+	applyExperimentAssignment,
+	applyExperimentTheme,
+	assignExperimentVariant,
 	extractConsentNamesFromCondition,
 	watchRevocationReload,
 	createConsentKernel,
+	createExperimentController,
 	disabledPolicyResolution,
 	kernelConfigToInitResponse,
 	declareOwnedVendors,
@@ -13,8 +17,11 @@ import {
 import type {
 	AllConsentNames,
 	ClearOnRevocationConfig,
+	ConsentExperiment,
 	ConsentPresentation,
 	Callbacks,
+	ExperimentController,
+	ExperimentControllerOptions,
 	ConsentKernel,
 	I18nConfig,
 	KernelTransport,
@@ -45,7 +52,14 @@ import { connectConsentSource } from '@c15t/core/runtime/controls';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
 import type { ReactNode } from 'react';
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from 'react';
 
 import type { DialogPreload } from './chunk-warming';
 import { KernelContext, ProviderServicesContext } from './context';
@@ -104,6 +118,13 @@ export interface ConsentProviderOptions
 		> {
 	enabled?: boolean;
 	presentation?: ConsentPresentation;
+	/**
+	 * A/B experiment on prompt/preferences presentation. The assigned arm is
+	 * merged over `presentation`, exposed through `useExperiment()`, and
+	 * recorded with every impression and choice. Initial-only: remount the
+	 * provider to change the experiment.
+	 */
+	experiment?: ConsentExperiment;
 	/**
 	 * Content Security Policy nonce applied to DOM nodes c15t injects.
 	 *
@@ -587,6 +608,12 @@ const createProviderKernel = function createProviderKernel(
 		integrations,
 		prefetch
 	);
+	// A host-resolved arm is known before any render, so the server
+	// snapshot carries it and hydration renders the same variant.
+	const initialExperiment =
+		enabled && options.experiment?.variant !== undefined
+			? assignExperimentVariant(options.experiment, '')
+			: undefined;
 
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const kernel = createConsentKernel({
@@ -603,6 +630,7 @@ const createProviderKernel = function createProviderKernel(
 				extractConsentNamesFromCondition(vendor.category)
 			),
 		],
+		initialExperiment,
 		initialVendors,
 		initialExternalPermissions:
 			enabled && options.consentSource ? {} : undefined,
@@ -726,6 +754,7 @@ const serializeInitialOnlyOptions = function serializeInitialOnlyOptions(
 	options: ConsentProviderOptions
 ): string {
 	return JSON.stringify({
+		experiment: options.experiment,
 		i18n: options.i18n,
 		mode: options.mode?.kind,
 	});
@@ -900,7 +929,9 @@ const useProviderOptionSync = function useProviderOptionSync(
 		}
 		if (initialOnlyRef.current !== serialized) {
 			initialOnlyRef.current = serialized;
-			console.warn('c15t ConsentProvider: remount to change mode or i18n.');
+			console.warn(
+				'c15t ConsentProvider: remount to change mode, i18n or experiment.'
+			);
 		}
 	}, [options]);
 };
@@ -1161,6 +1192,150 @@ const PersistenceMount = ({
 	return null;
 };
 
+/**
+ * Assigns the experiment arm once the browser has hydrated stored records:
+ * mounted after persistence so a returning visitor's subject id seeds the
+ * hash, and before init so the first impression carries the arm.
+ */
+const ExperimentMount = ({
+	controller,
+}: {
+	controller: ExperimentController;
+}) => {
+	useEffect(() => {
+		controller.assign();
+	}, [controller]);
+	return null;
+};
+
+/** The services context: record clearing and the resolved presentation. */
+const useProviderServices = function useProviderServices({
+	clearRef,
+	experiment,
+	externalRuntime,
+	kernel,
+	presentation,
+}: {
+	clearRef: { current: (() => void) | null };
+	experiment: ConsentExperiment | undefined;
+	externalRuntime: ConsentRuntime | undefined;
+	kernel: ConsentKernel;
+	presentation: ConsentPresentation | undefined;
+}) {
+	return useMemo(
+		() => ({
+			clearRecords: () => {
+				if (externalRuntime) {
+					externalRuntime.clearRecords();
+					return;
+				}
+				if (clearRef.current) {
+					clearRef.current();
+				} else {
+					kernel.hydrate({
+						choice: null,
+						noticeDismissal: null,
+						subject: null,
+						vendorChoice: null,
+					});
+					kernel.events.emit({ type: 'records:cleared' });
+				}
+			},
+			getConsentCategories: () => {
+				const snapshot = kernel.getSnapshot();
+				return [
+					'necessary' as const,
+					...(snapshot.evaluationPolicy.choiceScope ??
+						snapshot.policyRule.scope),
+				];
+			},
+			getPresentation: () =>
+				applyExperimentAssignment(
+					presentation,
+					experiment,
+					kernel.getSnapshot().experiment
+				),
+		}),
+		[clearRef, kernel, presentation, experiment, externalRuntime]
+	);
+};
+
+/** What the provider creates once, at mount, and keeps for its lifetime. */
+interface OwnedProviderRuntime {
+	clearOnRevocation: ClearOnRevocationConfig | undefined;
+	consentSource: ConsentProviderOptions['consentSource'];
+	/** The controller, once the provider has been enabled with an experiment. */
+	controller: ExperimentController | null;
+	disabledKernel: ConsentKernel | undefined;
+	/**
+	 * The experiment read at mount. Validation, assignment and attribution
+	 * all derive from it, so presentation and theme resolve against it too;
+	 * a later `options.experiment` is ignored. Remount to change it.
+	 */
+	experiment: ConsentExperiment | undefined;
+	/** Host inputs each arm is validated against, read at mount. */
+	experimentOptions: Omit<ExperimentControllerOptions, 'experiment' | 'kernel'>;
+	external: ConsentRuntime | undefined;
+	kernel: ConsentKernel;
+}
+
+const createOwnedProviderRuntime = function createOwnedProviderRuntime(
+	props: ConsentProviderProps,
+	options: ConsentProviderOptions
+): OwnedProviderRuntime {
+	return {
+		clearOnRevocation: options.clearOnRevocation,
+		consentSource: options.consentSource,
+		controller: null,
+		disabledKernel: props.runtime
+			? undefined
+			: createProviderKernel({ ...options, enabled: false }),
+		experiment: options.experiment,
+		experimentOptions: {
+			presentation: options.presentation,
+			storageConfig: options.storageConfig,
+			theme: options.theme,
+		},
+		external: props.runtime,
+		kernel:
+			props.runtime?.kernel ??
+			createProviderKernel({ ...options, enabled: true }),
+	};
+};
+
+/**
+ * Build the experiment controller once. Validates every arm, so a
+ * misconfigured experiment throws here rather than on the visitor's first
+ * paint. A borrowed runtime already owns its experiment.
+ */
+const attachExperimentController = function attachExperimentController(
+	owned: OwnedProviderRuntime
+): ExperimentController | null {
+	if (!owned.controller && !owned.external && owned.experiment) {
+		owned.controller = createExperimentController({
+			...owned.experimentOptions,
+			experiment: owned.experiment,
+			kernel: owned.kernel,
+		});
+	}
+	return owned.controller;
+};
+
+/**
+ * The experiment controller of an enabled provider. A provider that mounts
+ * enabled builds it in that first render, the same place the kernel is
+ * built, so a misconfigured arm still throws at mount; one that starts
+ * disabled runs no experiment until it is enabled, and builds it in the
+ * first enabled render. `owned` remembers the controller, so a re-render
+ * never creates a second one.
+ */
+const resolveExperimentController = function resolveExperimentController(
+	owned: OwnedProviderRuntime,
+	enabled: boolean
+): ExperimentController | null {
+	return enabled ? attachExperimentController(owned) : owned.controller;
+};
+
 const WindowDebugMount = ({
 	pkg,
 	mode,
@@ -1255,19 +1430,12 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	const { children } = props;
 	const options = (props.options ?? {}) as ConsentProviderOptions;
 	const enabled = getEnabled(options);
-	const [owned, setOwned] = useState(() => ({
-		clearOnRevocation: options.clearOnRevocation,
-		consentSource: options.consentSource,
-		disabledKernel: props.runtime
-			? undefined
-			: createProviderKernel({ ...options, enabled: false }),
-		external: props.runtime,
-		kernel:
-			props.runtime?.kernel ??
-			createProviderKernel({ ...options, enabled: true }),
-	}));
+	const [owned, setOwned] = useState(() =>
+		createOwnedProviderRuntime(props, options)
+	);
 	void setOwned;
-	const { clearOnRevocation: initialClearOnRevocation } = owned;
+	const experimentController = resolveExperimentController(owned, enabled);
+	const { clearOnRevocation: initialClearOnRevocation, experiment } = owned;
 	const {
 		active: activeKernel,
 		external: externalRuntime,
@@ -1280,37 +1448,13 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		}
 	}, [kernel, ownsRuntime, options.consentCategories]);
 	const clearRef = useRef<(() => void) | null>(null);
-	const services = useMemo(
-		() => ({
-			clearRecords: () => {
-				if (externalRuntime) {
-					externalRuntime.clearRecords();
-					return;
-				}
-				if (clearRef.current) {
-					clearRef.current();
-				} else {
-					kernel.hydrate({
-						choice: null,
-						noticeDismissal: null,
-						subject: null,
-						vendorChoice: null,
-					});
-					kernel.events.emit({ type: 'records:cleared' });
-				}
-			},
-			getConsentCategories: () => {
-				const snapshot = kernel.getSnapshot();
-				return [
-					'necessary' as const,
-					...(snapshot.evaluationPolicy.choiceScope ??
-						snapshot.policyRule.scope),
-				];
-			},
-			getPresentation: () => options.presentation,
-		}),
-		[kernel, options.presentation, externalRuntime]
-	);
+	const services = useProviderServices({
+		clearRef,
+		experiment,
+		externalRuntime,
+		kernel,
+		presentation: options.presentation,
+	});
 	const persistenceOptions = owned.consentSource
 		? undefined
 		: normalizePersistenceOptions(options);
@@ -1339,6 +1483,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		return () => {
 			queueMicrotask(() => {
 				if (lifecycle.current === generation) {
+					owned.controller?.dispose();
 					owned.kernel.dispose();
 					owned.disabledKernel?.dispose();
 				}
@@ -1346,7 +1491,17 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		};
 	}, [owned, ownsRuntime]);
 
-	const userTheme = options.theme;
+	// The arm's theme overrides ride on the host theme, so the theme context
+	// follows the assignment.
+	const assignment = useSyncExternalStore(
+		(listener) => kernel.subscribe(listener),
+		() => kernel.getSnapshot().experiment,
+		() => kernel.getServerSnapshot().experiment
+	);
+	const userTheme = useMemo(
+		() => applyExperimentTheme(options.theme, experiment, assignment),
+		[options.theme, experiment, assignment]
+	);
 	// Development only: bundlers replace `process.env.NODE_ENV`, so production
 	// builds drop the check. Tokens need `ConsentTheme` or a stylesheet now.
 	useEffect(() => {
@@ -1396,15 +1551,19 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	const uiConfigValue = useMemo<V3UIConfigValue>(
 		() => ({
 			components: options.components,
+			experiment,
 			legalLinks: options.legalLinks,
 			preloadDialog: options.preloadDialog,
 			presentation: options.presentation,
+			theme: options.theme,
 		}),
 		[
 			options.components,
+			experiment,
 			options.legalLinks,
 			options.preloadDialog,
 			options.presentation,
+			options.theme,
 		]
 	);
 
@@ -1430,6 +1589,9 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 							options={persistenceOptions}
 							clearRef={clearRef}
 						/>
+					) : null}
+					{enabled && experimentController ? (
+						<ExperimentMount controller={experimentController} />
 					) : null}
 					<InitMount
 						enabled={enabled && !owned.consentSource}

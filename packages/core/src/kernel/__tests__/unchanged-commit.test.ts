@@ -70,6 +70,14 @@ test('every patch input agrees with full snapshot derivation', () => {
 		activeUI: { activeUI: 'dialog' },
 		branding: { branding: 'consent' },
 		consentCategories: { consentCategories: ['necessary', 'measurement'] },
+		experiment: {
+			experiment: {
+				acknowledgedDiagnostics: false,
+				assignedBy: 'host',
+				id: 'exp',
+				variant: 'a',
+			},
+		},
 		explicitChoice: { explicitChoice: explicitChoice({ marketing: true }) },
 		externalPermissions: {
 			externalPermissions: normalizeExternalPermissions({ measurement: true }),

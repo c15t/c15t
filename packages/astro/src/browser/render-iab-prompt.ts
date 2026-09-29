@@ -183,6 +183,7 @@ export const buildIABPrompt = function buildIABPrompt(
 			class: model.classes.root,
 			'data-blocking': model.blocking ? 'true' : undefined,
 			'data-position': model.position,
+			'data-variant': model.variant,
 			'data-testid': 'iab-consent-banner-root',
 			dir: model.textDirection,
 			lang: model.language,

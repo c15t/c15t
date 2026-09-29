@@ -31,6 +31,9 @@ import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import { createConsentKernel } from '../kernel';
+import { assignExperimentVariant } from '../libs/experiment';
+import { createExperimentController } from '../libs/experiment-assignment';
+import type { ExperimentController } from '../libs/experiment-assignment';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import { resolveVendors } from '../libs/vendors';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
@@ -88,6 +91,18 @@ export type {
 	RuntimeScriptLoaderOptions,
 } from './types';
 export type { WireRuntimeCallbacksOptions } from './callbacks';
+export type {
+	ExperimentController,
+	ExperimentControllerOptions,
+	StoredExperimentAssignment,
+} from '../libs/experiment-assignment';
+export {
+	createExperimentController,
+	EXPERIMENT_STORAGE_KEY,
+	readStoredExperimentAssignment,
+	resolveExperimentAssignment,
+	writeStoredExperimentAssignment,
+} from '../libs/experiment-assignment';
 export { stringifyRuntimeError, wireRuntimeCallbacks } from './callbacks';
 export type { IABModuleLoader, LazyIABFactory } from './lazy-iab';
 export { isIABConfigured } from './iab-options';
@@ -307,6 +322,15 @@ export const createRuntimeKernel = function createRuntimeKernel(
 		owners: integrations,
 	});
 	const vendorListVersion = prefetch.initialVendors?.listVersion ?? null;
+	// A host-resolved arm is known before any render, so the server
+	// snapshot carries it and the first paint already uses it. A prefetch
+	// that already carries an arm (the Astro middleware, a server seed) is
+	// kept: the server rendered that arm, so the browser has to attribute
+	// the impression to it rather than start unassigned.
+	let initialExperiment = enabled ? prefetch.initialExperiment : undefined;
+	if (enabled && options.experiment?.variant !== undefined) {
+		initialExperiment = assignExperimentVariant(options.experiment, '');
+	}
 
 	return createConsentKernel({
 		...prefetch,
@@ -315,6 +339,7 @@ export const createRuntimeKernel = function createRuntimeKernel(
 		// category selectable at construction, so the server snapshot and the
 		// hydrated one evaluate the same scope.
 		inferredConsentCategories: inferConsentCategories(options, declaredVendors),
+		initialExperiment,
 		initialExternalPermissions:
 			enabled && options.consentSource ? {} : undefined,
 		initialIab:
@@ -431,6 +456,19 @@ export const createConsentRuntime = function createConsentRuntime(
 		options.networkBlocker.enabled !== false
 			? holdNetworkRequests(options.networkBlocker.rules)
 			: null;
+	// Validates every arm now, so a misconfigured experiment fails here
+	// rather than on the visitor's first paint. Assignment waits for
+	// `start()`: it reads storage, and a hydrated subject id may exist by then.
+	const experiment: ExperimentController | null =
+		enabled && options.experiment
+			? createExperimentController({
+					experiment: options.experiment,
+					kernel,
+					presentation: options.presentation,
+					storageConfig: options.storageConfig,
+					theme: options.theme,
+				})
+			: null;
 
 	let iabHandle: ConsentRuntimeIABHandle | null = null;
 	let started = false;
@@ -449,6 +487,9 @@ export const createConsentRuntime = function createConsentRuntime(
 	// Teardown runs in reverse push order, so the kernel — pushed first —
 	// is disposed last, after every module that reads from it.
 	const disposers: (() => void)[] = [() => kernel.dispose()];
+	if (experiment) {
+		disposers.push(() => experiment.dispose());
+	}
 	disposers.push(
 		wireRuntimeCallbacks({
 			callbacks: options.callbacks,
@@ -651,6 +692,9 @@ export const createConsentRuntime = function createConsentRuntime(
 					type: 'init:applied',
 				});
 			}
+			// After hydration, so a returning visitor's subject id seeds the arm
+			// and before init, so the first impression already carries it.
+			experiment?.assign();
 
 			// A server-resolved prefetch already holds the init answer; asking
 			// for it again is one request per page load on every SSR route.

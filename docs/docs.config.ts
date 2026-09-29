@@ -80,6 +80,7 @@ export default defineDocsConfig({
 				'consent-state',
 				'shared-consent-controls',
 				'verify-consent',
+				'banner-experiments',
 				'troubleshooting',
 			],
 			title: 'Understand consent',
