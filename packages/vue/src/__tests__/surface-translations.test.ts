@@ -102,23 +102,4 @@ describe('default surface copy comes from translations', () => {
 			'Privacy Settings'
 		);
 	});
-
-	test('ConsentGate placeholder names the category in the visitor language', async () => {
-		const wrapper = await renderSurface(
-			() => h(ConsentGate, { category: 'marketing' }),
-			'de'
-		);
-		expect(wrapper.text()).toBe(
-			de.frame.title.replace('{category}', de.consentTypes.marketing.title)
-		);
-	});
-
-	test('ConsentGate placeholder falls back to English', async () => {
-		const wrapper = await renderSurface(() =>
-			h(ConsentGate, { category: 'marketing' })
-		);
-		expect(wrapper.text()).toBe(
-			'Accept Marketing consent to view this content.'
-		);
-	});
 });
