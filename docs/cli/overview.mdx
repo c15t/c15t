@@ -1,40 +1,61 @@
 ---
 title: Overview
-description: Inspect and configure c15t projects, manage hosted access, and migrate self-hosted databases.
+description: Run the c15t CLI from @c15t/cli to add c15t to an app, migrate v2 code, manage Inth projects and migrate a self-hosted database.
 group: cli
 ---
 
+## Run the CLI
+
+The CLI ships as `@c15t/cli`. Its v3 release uses the `alpha` dist-tag, like the
+other c15t packages. Run it without installing:
+
 ```bash
-c15t --help
-c15t setup --help
+npx @c15t/cli@alpha --help
 ```
 
-Use the `c15t` executable from your installed `@c15t/cli` package. Pin the CLI release in your dependency manifest and lockfile alongside the c15t release you use. The older executable name `cli` remains available.
+`bunx @c15t/cli@alpha`, `pnpm dlx @c15t/cli@alpha` and `yarn dlx @c15t/cli@alpha`
+work the same way. Keep `@alpha`; without it, npm resolves the v2 CLI.
+
+To pin the version in your repository, install it as a development dependency
+and run the `c15t` executable:
+
+<CommandTabs command="-D @c15t/cli@alpha" mode="install" />
+
+```bash
+npx c15t --help
+```
+
+The package also installs the executable under its older name, `cli`.
 
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
-| `setup` | Plan or apply an integration for a supported project. |
-| `login`, `logout`, `status` | Authenticate with Inth and inspect or clear local credentials. |
-| `projects list`, `projects select`, `projects create` | Manage hosted projects and the account default used by setup. |
-| `self-host migrate` | Inspect and apply backend database migrations. |
-| `codemods` | Run the legacy v1 to v2 transforms. |
-| `skills` | Install c15t skills through the external skills CLI. |
-| `docs`, `changelog`, `github` | Open a URL interactively or return it without a terminal. |
+| `setup` | Add c15t to a Next.js or React app, or generate framework files for any supported framework. `generate` is an alias. |
+| `codemods` | Rewrite `useConsentManager()` calls for v3, or run the v1 to v2 transforms. |
+| `login`, `logout`, `status` | Sign in to Inth, and inspect or clear local credentials. |
+| `projects list`, `projects select`, `projects create` | Manage Inth projects and the default project used by setup. `instances` is an alias. |
+| `self-host migrate` | Plan and apply database migrations for a self-hosted backend. |
+| `skills` | Install c15t agent skills through the external skills CLI. |
+| `docs`, `changelog`, `github` | Open the URL in a browser, or print it when there is no terminal. |
 
-`generate` is an alias for `setup`. `instances` is an alias for `projects`.
+Run `npx @c15t/cli@alpha <command> --help` for a command's options.
 
-## Framework support
+## Pick the right command for your framework
 
-For unpublished v3 development, use [boilerplate generation](./commands/boilerplate). It supports explicit targets for Next.js, React, JavaScript, TanStack Start, Vue/Nuxt, Svelte/SvelteKit, Solid, and Astro. It writes integration files and wiring instructions, with an optional local-package dependency plan.
+`setup` edits an existing app layout for Next.js App Router, Next.js Pages Router
+and React apps with a recognizable root component. It also writes configuration
+for plain JavaScript. See [setup](/docs/cli/commands/setup).
 
-Setup supports Next.js App Router, Next.js Pages Router, generic React applications with a recognizable application component, and vanilla JavaScript configuration. It selects the exported application component when editing a layout and refuses ambiguous layouts.
+For TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid and Astro, `setup` with
+`--framework` writes integration files and wiring instructions, and leaves your
+entry point unchanged. See [framework boilerplate](/docs/cli/commands/boilerplate).
 
-Next.js layout detection includes locale directories and two nested route segments, such as `app/[locale]/(site)/layout.tsx` and `src/app/(site)/[locale]/layout.ts`. A directory named `layout.tsx` does not count as a layout file.
+Remix and Gatsby have no CLI support. Follow the
+[JavaScript quickstart](/docs/frameworks/javascript/quickstart) instead.
 
-Automatic editing of existing application layouts remains limited to the Next.js and React setup paths. For Vue, Nuxt, Svelte, SvelteKit, Solid, Astro, and TanStack Start, generate boilerplate and follow its wiring instructions. Remix and Gatsby require manual integration.
+## Next steps
 
-## Choose a workflow
-
-For terminal setup, follow [Quickstart](./quickstart). For scripts, agents, or another CLI, use the [automation contract](./automation). Legacy transforms have a separate [migration reference](./commands/codemods).
+- [Quickstart](/docs/cli/quickstart): plan and apply setup in an existing app.
+- [Codemods](/docs/cli/commands/codemods): migrate `useConsentManager()` to v3 hooks.
+- [Agents and automation](/docs/cli/automation): JSON results and calling the CLI from code.

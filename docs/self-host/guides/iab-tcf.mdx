@@ -1,6 +1,6 @@
 ---
 title: IAB backend configuration
-description: Publish IAB policy configuration and serve a cached Global Vendor List from a self-hosted c15t backend.
+description: Publish an IAB TCF policy and serve a cached Global Vendor List from a self-hosted c15t backend.
 group: self-host
 ---
 
@@ -45,45 +45,26 @@ names no registered CMP.
 Review the policy's location coverage and add other reviewed regional rules as
 needed.
 
-## Understand the two GVL paths
+## Understand the two GVL settings
 
-`manifest.iab` publishes IAB metadata and a GVL endpoint reference for clients
-resolving a manifest locally. `gvl` configures the backend's own list loading
-when `/init` resolves a matched IAB policy. Enabling one does not configure the
-other's endpoint or cache automatically.
+`manifest.iab` publishes IAB metadata and a GVL endpoint to clients that
+resolve the manifest themselves. `gvl` controls how the backend loads the list
+when `/init` resolves a matched IAB rule. Setting one does not configure the
+other. Both endpoints default to `https://gvl.inth.app`; if you run a different
+compatible endpoint, set `manifest.iab.endpoint` and `gvl.endpoint`.
 
-Both endpoint defaults are `https://gvl.inth.app`. If you operate a different
-compatible endpoint, set `manifest.iab.endpoint` for manifest consumers and
-`gvl.endpoint` for server initialization.
+Adding a `gvl` block turns on list loading. Every `/init` that matches an IAB
+rule then carries the list. Set `gvl.enabled: false` to keep the block but serve the
+list from somewhere else. If your rules resolve as IAB and there is no `gvl`
+block, the backend serves no list and prints a warning at startup.
 
-The backend requests the endpoint itself: the upstream publishes one document at
-its root, and a per-language path such as `/de.json` answers 404. When
-`gvl.vendorIds` is set and holds 500 ids or fewer, the scope travels as a
-`?vendorIds=` query filter, so a scoped deployment fetches its own vendors
-rather than all of them. Measured against the public list, a 32-vendor scope is
-about 11 KB compressed against about 101 KB for the whole document. Above 500
-ids the filter is withheld -- the query string would outrun the request-line
-limit a CDN enforces and fail the whole consent surface -- and the full document
-is narrowed by the same allowlist server-side instead, so a vendor outside the
-scope is never served whoever did the filtering.
+`gvl.vendorIds` is the most the backend will serve. It never fetches a wider
+list to fill gaps, and it filters whatever the upstream returns, so a vendor
+outside the list never reaches a client. Leave `vendorIds` out to serve every
+vendor in the published list.
 
-A matched IAB rule is what needs a list, so a matched IAB rule is also what
-decides that `/init` carries one. There is no second switch to remember:
-everything in the `gvl` block is read by server-side list loading and nothing
-else, so writing the block is the opt-in. `gvl.enabled: false` is how you decline
-while keeping the scope and cache in place, for a deployment that loads the list
-somewhere else. If your rules resolve as IAB and there is no `gvl` block at all,
-the backend serves no list and prints one line at startup saying so, because a
-banner that names no vendors never complains about it on its own.
-
-`gvl.vendorIds` is a ceiling and never a default. The backend does not fetch a
-wider list than you configured in order to fill one in, and the allowlist is
-applied to whatever comes back, so a vendor outside your scope is not handed to
-clients whether the endpoint filtered or not. Leave it out and you are asking for
-every vendor the published list carries.
-
-A native app can ask for less. It declares the vendors it ships on each init
-request:
+A native app can ask for fewer vendors by listing the ones it ships on each
+init request:
 
 ```bash
 curl -i 'http://localhost:3000/api/c15t/init' \
@@ -91,32 +72,29 @@ curl -i 'http://localhost:3000/api/c15t/init' \
   -H 'x-c15t-vendors: 8, 46, 153'
 ```
 
-For a request that resolves a matched IAB policy, the `gvl` in the response is
-the intersection of that list and `gvl.vendorIds`. A vendor the app declares but
-you never configured is not served. A request with no header, or with a header
-the backend cannot read, gets the configured scope. The cap is 500 ids, and a
-longer list is ignored rather than truncated.
-
-The narrowing happens per request and after the cache lookup. Your upstream
-fetch count stays whatever `gvl.endpoint` and `gvl.vendorIds` describe, however
-many different scopes the devices in front of the backend declare.
+For a matched IAB policy, the `gvl` in the response is the intersection of that
+header and `gvl.vendorIds`, so the header can narrow the list but never widen
+it. A missing or unreadable header gets the configured list, and a header with
+more than 500 IDs is ignored. The backend narrows the list after its cache
+lookup, so different app scopes do not add upstream fetches.
 
 Use a [cache adapter](/docs/self-host/guides/caching) to reuse fetched lists.
-`gvl.ttlMs` defaults to one day. A failed upstream fetch or invalid document
-produces a null GVL instead of failing the entire initialization request.
-Verify how the client handles that state before deployment.
+`gvl.ttlMs` defaults to one day. A failed upstream fetch or an invalid document
+gives a null GVL instead of failing `/init`. Check how your client handles that
+before you deploy.
 
-## Verify both initialization paths
+## Check the IAB setup
 
-Inspect `/manifest` for IAB metadata and the selected rule. Call `/init` with a
-location covered by that rule and confirm the policy model is `iab` and the
-response carries the `gvl` field. It is the only copy a device gets: nothing on a
-phone fetches a list, so an absent field there is a disclosure surface with
-nothing in it rather than a round trip the client can make up for. Test a
-location outside the IAB rule so that the ordinary consent flow still works and
-fetches nothing. Send a declared vendor scope too, and check that the `gvl` in
-the response names those vendors and nothing the configuration excluded.
+1. Request `/manifest` and confirm it lists the IAB rule and IAB metadata.
+2. Call `/init` with a location the rule covers, such as the `curl` request
+   above. The policy model is `iab` and the response has a `gvl` field. A native
+   app gets the list only from this response, so a missing `gvl` means the app
+   has no vendors to disclose.
+3. Call `/init` with a location outside the rule. The ordinary consent flow
+   applies and the response has no list.
+4. Send `x-c15t-vendors` and confirm the `gvl` names only those vendors that
+   `gvl.vendorIds` also allows.
 
-Connect the browser using the [IAB add-on guide](/docs/frameworks/react/iab/overview). Keep a
-persistent way to revisit vendor and purpose choices. A preset and a served GVL
-are technical configuration, not proof that an application satisfies TCF rules.
+Connect the browser with the [IAB add-on guide](/docs/frameworks/react/iab/overview),
+and keep a persistent link to vendor and purpose choices. A preset and a served
+GVL are configuration; they do not prove your site meets the TCF rules.

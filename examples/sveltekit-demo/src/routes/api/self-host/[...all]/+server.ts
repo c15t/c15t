@@ -49,9 +49,12 @@ const handler = c15tInstance({
 	trustedOrigins: ['localhost'],
 });
 
+// #region docs:self-host-route
 const handleRequest: RequestHandler = ({ request }) => handler.handler(request);
 
 export const GET = handleRequest;
 export const POST = handleRequest;
+export const PUT = handleRequest;
 export const PATCH = handleRequest;
 export const OPTIONS = handleRequest;
+// #endregion docs:self-host-route

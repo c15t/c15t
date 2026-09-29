@@ -422,9 +422,9 @@ export default defineDocsConfig({
 				'quickstart',
 				'commands/setup',
 				'commands/boilerplate',
+				'commands/codemods',
 				'commands/hosted',
 				'commands/self-host',
-				'commands/codemods',
 				'global-flags',
 				'automation',
 			],
@@ -436,7 +436,6 @@ export default defineDocsConfig({
 				{
 					pages: [
 						'guides/database-setup',
-						'guides/framework-integration',
 						'guides/policy-packs',
 						'guides/caching',
 						'guides/edge-deployment',
@@ -475,7 +474,6 @@ export default defineDocsConfig({
 		},
 		{
 			pages: [
-				'comparison',
 				'contributing/index',
 				'oss/why-open-source',
 				'oss/contributing',

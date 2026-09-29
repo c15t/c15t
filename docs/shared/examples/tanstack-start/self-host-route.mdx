@@ -1,0 +1,21 @@
+{/* Generated from examples/tanstack-start/src/routes/api/self-host/$.ts (docs:self-host-route) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/routes/api/self-host/$.ts"
+const handle = async function handle({ request }: { request: Request }) {
+	const instance = await getInstance();
+	return instance.handler(request);
+};
+
+export const Route = createFileRoute('/api/self-host/$')({
+	server: {
+		handlers: {
+			DELETE: handle,
+			GET: handle,
+			OPTIONS: handle,
+			PATCH: handle,
+			POST: handle,
+			PUT: handle,
+		},
+	},
+});
+```

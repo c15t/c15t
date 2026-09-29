@@ -1,6 +1,6 @@
 ---
 title: Backend configuration
-description: Configure SQL storage, trusted origins, policies, signing and request logging for a self-hosted v3 backend.
+description: Options for a self-hosted c15t backend in c15t-backend.config.ts and c15tInstance, covering SQL storage, trusted origins, policies, signing, script routes and request logging.
 group: self-host
 ---
 
@@ -37,7 +37,7 @@ fallback. Add reviewed rules for other locations in
 | --- | --- |
 | `database` | Required PostgreSQL, MySQL or SQLite connection, or an Effect SQL client layer. |
 | `basePath` | Mount prefix to strip before routing. Set it when the handler receives paths such as `/api/c15t/init`. |
-| `trustedOrigins` | Browser origins receiving CORS permission. Empty or absent allows no cross-origin browser access. |
+| `trustedOrigins` | Hosts whose browsers may call the backend cross-origin, such as `app.example.com` or `*.example.com`. Empty or absent allows none. |
 | `tenantId` | Fixed tenant for this instance's database queries. Omitted uses the single-tenant scope with null tenant IDs. |
 | `manifest` | Policy rules, translations, branding and IAB configuration published by `/manifest` and resolved by `/init`. |
 | `manifestCache` | Public manifest cache durations in seconds. Defaults to `sMaxAge: 300`, `staleWhileRevalidate: 86400`. |
@@ -47,9 +47,10 @@ fallback. Add reviewed rules for other locations in
 | `gvl` | Server-side Global Vendor List loading and cache configuration. Writing the block is the opt-in: `/init` carries the list for every matched IAB policy. `enabled: false` declines. |
 | `ipAddress` | IP recording options. Masking is on unless disabled; `tracking: false` records no IP. |
 | `openapi` | Enabled by default at `/spec.json`. Supports `enabled`, `specPath`, `title` and the documented server `basePath`. |
+| `script` | Script-tag routes at `/c15t.js`, `/c15t.headless.js` and `/c15t.iab.js`. On by default; see [browser script routes](#browser-script-routes). |
 | `version` | Version reported by the status endpoint and OpenAPI document. |
 | `observability` | Logging configuration passed directly to `c15tInstance`. Defaults to warning and error requests. |
-| `sessions` | `onReport` receives every session report: hosts' `POST /sessions` and the backend's own `/init`. The IP in its context follows `ipAddress`; a host report names the visitor only on `X-C15T-Client-IP`, and `/init` reads the connection. Reports land on the request's wide event. A failing sink never fails the request: on `POST /sessions` the failure is recorded on that event; on `/init` the sink runs after the response, registered with the runtime's `waitUntil` where one exists, and a failure is logged as its own event. Nothing is stored. Not accepted by `defineConfig`, like `observability`. |
+| `sessions` | `onReport` receives a report for each visitor resolution: framework servers send them to `POST /sessions`, and the backend's own `/init` adds one. Nothing is stored, and a failing sink never fails the request. Pass it to `c15tInstance`, not `defineConfig`. |
 
 `defineConfig()` checks types and returns the supplied object. It does not load
 environment variables or run migrations. It deliberately rejects `observability`;
@@ -70,18 +71,17 @@ pass logging callbacks when constructing the instance instead.
 
 ## Browser script routes
 
-Disable the script routes when your deployment does not serve browser bundles:
+The backend serves `/c15t.js`, `/c15t.headless.js` and `/c15t.iab.js` by
+default, so a self-hosted instance can serve a configured
+[script tag](/docs/frameworks/html/quickstart) without a separate bundle
+deployment. Turn them off when you do not use the script tag:
 
 ```ts
-createApp(runtime, {
-  script: { enabled: false },
-});
+const backend = c15tInstance({ ...config, script: { enabled: false } });
 ```
 
-`createApp` enables `/c15t.js`, `/c15t.headless.js`, and `/c15t.iab.js` by default
-so a self-hosted instance can serve a configured script tag without a separate
-bundle deployment. The routes expose the public manifest and browser configuration.
-Keep secrets out of `script.config`.
+The routes expose the public manifest and browser configuration. Keep secrets
+out of `script.config`.
 
 `@c15t/backend` installs `@c15t/browser` as a runtime dependency, including its
 core, UI, IAB, and DevTools dependencies. Disabling the routes removes the HTTP
@@ -92,7 +92,7 @@ With `c15tInstance({ basePath: '/api/c15t', ... })`, a script loaded from
 `/api/c15t/c15t.js` calls `/api/c15t/init` and `/api/c15t/subjects`. You do not
 need to repeat the mount path in `script.backendURL`.
 
-Pass these options under `script` in the second argument to `createApp`:
+Pass these options under `script` in the `c15tInstance()` or `defineConfig()` options:
 
 | Option | Default | Behavior |
 | --- | --- | --- |
@@ -110,8 +110,9 @@ and [script-tag guide](/docs/frameworks/html/quickstart) for usage.
 
 ## Origins, identity and secrets
 
-Use complete origins including scheme and any non-default port. CORS controls
-which browser pages can read responses. It is not authentication and does not
+A `trustedOrigins` entry matches a hostname on any web scheme. Add a port to
+pin one, such as `localhost:3000`. `*.example.com` matches subdomains, and `*`
+allows every origin. CORS controls which browser pages can read responses. It is not authentication and does not
 prevent a non-browser client from calling a public endpoint. Keep API keys,
 database credentials and signing keys in server environment variables.
 

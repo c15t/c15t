@@ -87,7 +87,6 @@
 	"docs/self-host/api/configuration.mdx": 1,
 	"docs/self-host/guides/caching.mdx": 1,
 	"docs/self-host/guides/database-setup.mdx": 2,
-	"docs/self-host/guides/framework-integration.mdx": 1,
 	"docs/self-host/guides/iab-tcf.mdx": 1,
 	"docs/self-host/guides/legal-document-snapshot-integration.mdx": 1,
 	"docs/self-host/guides/observability.mdx": 1,
@@ -96,5 +95,5 @@
 	"docs/shared/integrations/consent-embed.mdx": 8,
 	"docs/shared/integrations/register-scripts.mdx": 8,
 	"docs/shared/react/components/dev-tools.mdx": 1,
-	"docs/upgrade-v3.mdx": 6
+	"docs/upgrade-v3.mdx": 1
 }

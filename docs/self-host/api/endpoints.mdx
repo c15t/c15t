@@ -1,6 +1,6 @@
 ---
 title: HTTP endpoints
-description: Use the v3 backend HTTP API for manifests, initialization, consent receipts, identity and legal-document releases.
+description: HTTP endpoints of a self-hosted c15t v3 backend for the manifest, /init, session reports, consent saves, identity links, the script tag and legal-document releases.
 group: self-host
 ---
 
@@ -76,41 +76,35 @@ curl -i 'http://localhost:3000/api/c15t/sessions' \
   -d '{"source":"route","revision":"…","resolution":"matched","policy":{"id":"eu-opt-in","fingerprint":"…","matchedBy":"country","model":"opt-in"},"jurisdiction":"GDPR","country":"DE","region":null,"language":"de","gpc":false}'
 ```
 
-A host that resolves init from a cached manifest never calls `/init`, so the
-backend would not know a visitor was served. The framework adapters send this
-report server-to-server after each resolution, detached from the response. The
-route accepts nothing a page could have sent: a request carrying `Origin`, or
-one without the `X-C15T-Version` header every c15t client sends, is rejected
-with `400`. The
-visitor's user agent travels as `User-Agent` and the visitor's address on
-`X-C15T-Client-IP`, a dedicated header because a platform in front of the
-backend rewrites `X-Forwarded-For` to the connecting server. The backend applies
-its `ipAddress` masking and tracking settings to that value, records the report
-on the request's wide event, hands it to the `sessions.onReport` sink, waits for
-the sink, and answers `204`. It writes nothing to the database.
+A framework server that resolves consent from a cached manifest never calls
+`/init`, so it reports each resolution here instead. The framework adapters send
+the report server-to-server after responding to the visitor. The backend
+applies its `ipAddress` settings, passes the report to `sessions.onReport`,
+logs it, and answers `204`. It writes nothing to the database.
 
-The body shape is `consentSessionReportSchema` in `@c15t/schema`. `source` is
-`route` for an init route and `render` for a server-rendered page; `init` is
-reserved for the backend's own `/init`, which emits the same event, and a report
-claiming it is rejected with `400`. Neither route reports a prefetch or
-prerender (`Sec-Purpose`, `Purpose`, `Next-Router-Prefetch`), nor a `HEAD` probe.
-Each report is one resolution, not one visitor. A page view can produce more
-than one, for example a `render` followed by a `route` when the client
-re-initialises, and every full page load produces a new one. The report carries
-no visitor identifier and nothing ties a `render` to the `route` from the same
-page view, so a consumer that wants sessions builds them: group reports by the
-forwarded address and user agent within a window, and count a visitor once per
-window. That count is approximate by design.
+The route rejects requests a browser could send. A request with an `Origin`
+header, or without the `X-C15T-Version` header, gets `400`. The visitor's user
+agent travels as `User-Agent`, and the visitor's address as `X-C15T-Client-IP`,
+because a platform in front of the backend rewrites `X-Forwarded-For`.
 
-## GET /c15t.js
+The body follows `consentSessionReportSchema` from `@c15t/schema`. `source` is
+`route` for an init route and `render` for a server-rendered page. `init` is
+reserved for the backend's own `/init`, which emits the same report. Prefetches,
+prerenders and `HEAD` requests send no report.
 
-The [script-tag build](/docs/frameworks/html/quickstart) of the consent banner, pre-configured for this backend. The response is the `@c15t/browser` bundle behind a queued `config` call that carries the instance's manifest, the backend origin, and the defaults set in the `script` option. `GET /c15t.headless.js` serves the build with no UI. `GET /c15t.iab.js` serves the optional IAB CMP and preference UI. Use `script.iabPath` to change its path and `script.config.iab` to set CMP options.
+A report is one resolution, not one visitor. A page view can produce a `render`
+and a `route` report, and nothing links them. To count visitors, group reports
+by address and user agent within a time window; the count is approximate.
+
+## Serve the script tag
+
+`GET /c15t.js` serves the [script-tag build](/docs/frameworks/html/quickstart) of the consent banner, configured for this backend. The response is the `@c15t/browser` bundle behind a queued `config` call that carries the instance's manifest, the backend origin, and the defaults set in the `script` option. `GET /c15t.headless.js` serves the build with no UI. `GET /c15t.iab.js` serves the optional IAB CMP and preference UI. Use `script.iabPath` to change its path and `script.config.iab` to set CMP options.
 
 | Query | What it does |
 | --- | --- |
 | `language` | Slice the inlined manifest's translations to one language. |
 
-Cached like `/manifest`: `Cache-Control: public, s-maxage=…` and an `ETag` that answers `If-None-Match` with `304`. Requires `@c15t/browser` next to `@c15t/backend`, or `script.bundles` pointing at the bundle files. Set `script.enabled: false` to remove all three routes.
+Cached like `/manifest`: `Cache-Control: public, s-maxage=…` and an `ETag` that answers `If-None-Match` with `304`. `@c15t/backend` installs `@c15t/browser`, which provides the bundles; `script.bundles` overrides their file paths. Set `script.enabled: false` to remove all three routes.
 
 ## Save and read choices
 

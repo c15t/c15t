@@ -1,6 +1,6 @@
 ---
 title: Backend database setup
-description: Choose a supported SQL connection and apply migrations with the same configuration as the backend.
+description: Connect a self-hosted c15t backend to PostgreSQL, MySQL or SQLite, apply migrations, and upgrade a v2 backend database.
 group: self-host
 ---
 
@@ -36,15 +36,15 @@ An in-memory database is suitable for disposable tests, not retained history.
 
 ## Apply and verify migrations
 
-Use the compatible CLI's `self-host migrate` command with the server's config
-file. Review the report and back up existing data first. Use the same database,
-schema and credentials when running the app, or the server may connect to a
-different unmigrated database.
+```bash
+npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan
+npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --apply
+```
 
-Old adapter import paths are not interchangeable with v3 SQL configuration.
-Inspect the installed backend and migration tooling before upgrading an existing
-store. Do not treat a successful process start as proof that writes and receipt
-reads work; test both.
+Back up existing data first and review the plan. Run the app against the same
+database, schema and credentials, or the server can connect to a different,
+unmigrated database. A server that starts has not proven that writes and reads
+work; save a choice and read it back.
 
 ## Run migrations from a deployment script
 
@@ -83,13 +83,18 @@ relying on rolling back the whole batch. Keep backups and inspect a failed run
 before retrying. PostgreSQL schema creation belongs to migration; the runtime
 and migration configuration must name the same schema.
 
-## Upgrade an existing backend
+## Upgrade a v2 backend
 
-Replace old `adapter` configuration with `database`. v2 ORM adapter imports for
-Drizzle, Prisma, TypeORM and Kysely are no longer public backend entry points.
-You can retain a supported SQL database and connect through the v3 SQL driver.
-MongoDB has no supported automatic migration path to this SQL backend.
+Replace the v2 `adapter` option with `database`. The Drizzle, Prisma, TypeORM
+and Kysely adapters are gone. Keep your PostgreSQL, MySQL or SQLite database and
+point `database` at it with the matching driver. MongoDB has no migration path
+to the v3 backend.
 
-After migration, verify a consent write, a subject read and an authenticated
-external-identity lookup using the upgraded service. A successful `/status` or
-`/manifest` request does not exercise database persistence.
+The migrator recognizes the v2 schema, adopts it, and then applies the v3
+migrations. Run the plan against a restored copy of production first. After
+migrating, check a consent write, a subject read and an authenticated
+external-identity lookup. `/status` and `/manifest` do not write, so they do not
+prove that persistence works.
+
+Deploy the v3 backend together with v3 clients; the
+[migration guide](/docs/upgrade-v3#upgrade-a-self-hosted-backend) explains why.
