@@ -107,7 +107,9 @@ export interface ConsentManagerOptions
 	 * Slot styles and consent-action variants. Design tokens (colors, dark,
 	 * typography, spacing, radius, shadows, motion) are not applied in the
 	 * browser: render `generateThemeCSS(theme)` from `@c15t/ui/theme` in a
-	 * server `load` or a stylesheet instead.
+	 * server `load` as `<style id="c15t-theme">` in `<svelte:head>`, or put
+	 * its output in a stylesheet. In development the provider warns when
+	 * `theme` has tokens and the page has no `#c15t-theme` element.
 	 */
 	theme?: Theme;
 }
