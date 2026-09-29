@@ -129,6 +129,9 @@ const executeStep = function executeStep(step: ManifestStep): void {
 			if (shouldSet && win[step.name] !== undefined) {
 				break;
 			}
+			if (step.keepExistingQueue && Array.isArray(win[step.name])) {
+				break;
+			}
 
 			win[step.name] = cloneStepValue(step.value);
 			break;
@@ -262,6 +265,9 @@ const executeStep = function executeStep(step: ManifestStep): void {
 			if (!pathTarget) {
 				break;
 			}
+			if (step.ifUndefined && pathTarget.target[pathTarget.key] !== undefined) {
+				break;
+			}
 
 			pathTarget.target[pathTarget.key] = cloneStepValue(step.value);
 			break;
@@ -286,6 +292,13 @@ const executeStep = function executeStep(step: ManifestStep): void {
 
 			const targetRecord = target as Record<string, unknown>;
 			for (const methodName of step.methods) {
+				if (
+					step.preserveExisting &&
+					typeof targetRecord[methodName] === 'function'
+				) {
+					continue;
+				}
+
 				targetRecord[methodName] = (...args: unknown[]) => {
 					const queueTarget = resolveQueueTarget(
 						win,
@@ -652,6 +665,10 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 		hasConsentMapping
 	);
 
+	// The vendor consent last seen by this script, so onConsentGranted and
+	// onConsentDenied run on transitions only. Unknown until setup runs.
+	let lastHasConsent: boolean | undefined;
+
 	const script: Script = {
 		alwaysLoad: resolvedManifest.alwaysLoad,
 		async: resolvedManifest.loadScript?.async,
@@ -675,6 +692,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 		hasConsentMapping
 	) {
 		script.onBeforeLoad = (info: ScriptCallbackInfo) => {
+			lastHasConsent = info.hasConsent;
 			const baseContext = {
 				callback: 'onBeforeLoad' as const,
 				elementId: info.elementId,
@@ -727,6 +745,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 			});
 
 			if (info.hasConsent && resolvedManifest.onLoadGrantedSteps.length > 0) {
+				lastHasConsent = true;
 				executePhaseSteps(resolvedManifest.onLoadGrantedSteps, {
 					...baseContext,
 					phase: 'onLoadGranted',
@@ -735,6 +754,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 				!info.hasConsent &&
 				resolvedManifest.onLoadDeniedSteps.length > 0
 			) {
+				lastHasConsent = false;
 				executePhaseSteps(resolvedManifest.onLoadDeniedSteps, {
 					...baseContext,
 					phase: 'onLoadDenied',
@@ -750,6 +770,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 				scriptId: resolvedManifest.vendor,
 			};
 			if (info.hasConsent && resolvedManifest.onLoadGrantedSteps.length > 0) {
+				lastHasConsent = true;
 				executePhaseSteps(resolvedManifest.onLoadGrantedSteps, {
 					...baseContext,
 					phase: 'onLoadGranted',
@@ -758,6 +779,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 				!info.hasConsent &&
 				resolvedManifest.onLoadDeniedSteps.length > 0
 			) {
+				lastHasConsent = false;
 				executePhaseSteps(resolvedManifest.onLoadDeniedSteps, {
 					...baseContext,
 					phase: 'onLoadDenied',
@@ -768,6 +790,8 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 
 	if (hasConsentLifecycle) {
 		script.onConsentChange = (info: ScriptCallbackInfo) => {
+			const consentChanged = lastHasConsent !== info.hasConsent;
+			lastHasConsent = info.hasConsent;
 			const baseContext = {
 				callback: 'onConsentChange' as const,
 				elementId: info.elementId,
@@ -787,6 +811,10 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 					...baseContext,
 					phase: 'onConsentChange',
 				});
+			}
+
+			if (!consentChanged) {
+				return;
 			}
 
 			if (

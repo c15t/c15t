@@ -4,6 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { booleanDataAttribute } from '../_shared/attributes';
+import { requireId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -93,6 +94,8 @@ export interface FathomAnalyticsOptions {
  *
  * @param options - The options for the Fathom Analytics script.
  * @returns The Fathom Analytics script.
+ * @throws {Error} `fathomAnalytics: missing or invalid site` when `site` is
+ *   empty or only whitespace.
  *
  * @example
  * ```ts
@@ -116,7 +119,7 @@ export const fathomAnalytics = function fathomAnalytics(
 			options.scriptUrl,
 			'https://cdn.usefathom.com/script.js'
 		),
-		site: options.site,
+		site: requireId('fathomAnalytics', 'site', options.site),
 		spa: options.spa,
 	});
 

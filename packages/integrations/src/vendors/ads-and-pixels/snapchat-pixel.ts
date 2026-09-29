@@ -4,6 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { buildQueuePixelInstall } from '../_shared/install-builders';
+import { requireId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 export type SnapchatPixelEventName =
@@ -198,12 +199,10 @@ export interface SnapchatPixelOptions {
  * @returns A resolved c15t `Script` configuration that defines the Snapchat
  *   queue stub, runs `init` (and optionally `PAGE_VIEW`), and then loads the
  *   Snapchat SDK script URL.
- * @throws {Error} `resolveManifest` may throw when required placeholders cannot be
- *   resolved (for example, when `pixelId` is missing/empty) or when provided
- *   manifest values are invalid for interpolation.
+ * @throws {Error} `snapchatPixel: missing or invalid pixelId` when `pixelId`
+ *   is missing, empty, or only whitespace.
  *
  * Edge cases:
- * - Missing `pixelId` causes manifest resolution to fail.
  * - Non-numeric or malformed `pixelId` values may initialize incorrectly in
  *   Snapchat even if local script construction succeeds.
  *
@@ -251,7 +250,7 @@ export const snapchatPixel = function snapchatPixel({
 
 	return resolveManifest(manifest, {
 		initOptions,
-		pixelId,
+		pixelId: requireId('snapchatPixel', 'pixelId', pixelId),
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
 			'https://sc-static.net/scevent.min.js'

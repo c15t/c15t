@@ -38,6 +38,15 @@ describe('vendor script URL helpers', () => {
 				)
 			).toBe('https://cdn.example.com/custom.js');
 		});
+
+		it('treats a blank override as unset', () => {
+			expect(resolveScriptUrl('', 'https://cdn.example.com/default.js')).toBe(
+				'https://cdn.example.com/default.js'
+			);
+			expect(
+				resolveScriptUrl('   ', 'https://cdn.example.com/default.js')
+			).toBe('https://cdn.example.com/default.js');
+		});
 	});
 
 	describe('joinUrlPath', () => {

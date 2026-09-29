@@ -3,6 +3,8 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { requireId } from '../_shared/required-id';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -153,6 +155,8 @@ export interface DatabuddyConsentOptions {
  *
  * @param options - Configuration for the Databuddy consent script
  * @returns The Databuddy script configuration object for c15t's script loader
+ * @throws {Error} `databuddy: missing or invalid clientId` when `clientId` is
+ *   empty or only whitespace.
  *
  * @example
  * ```ts
@@ -188,10 +192,13 @@ export const databuddy = function databuddy(
 ): Script {
 	const resolved = resolveManifest(databuddyManifest, {
 		apiUrl: options.apiUrl ?? 'https://basket.databuddy.cc',
-		clientId: options.clientId,
+		clientId: requireId('databuddy', 'clientId', options.clientId),
 		configWhenDenied: options.configWhenDenied,
 		configWhenGranted: options.configWhenGranted,
-		scriptUrl: options.scriptUrl ?? 'https://cdn.databuddy.cc/databuddy.js',
+		scriptUrl: resolveScriptUrl(
+			options.scriptUrl,
+			'https://cdn.databuddy.cc/databuddy.js'
+		),
 	});
 
 	return resolved;

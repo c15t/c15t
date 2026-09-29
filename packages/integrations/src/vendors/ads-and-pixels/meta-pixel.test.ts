@@ -270,4 +270,16 @@ describe('metaPixelEvent', () => {
 			{ eventID: 'event-abc' }
 		);
 	});
+
+	it('does nothing when fbq is unavailable', () => {
+		const globalRef = getTestGlobal();
+		delete globalRef.fbq;
+
+		expect(() => {
+			metaPixelEvent('Purchase', { currency: 'USD', value: 10 });
+			metaPixelCustomEvent('ShareDiscount');
+			metaPixelSingleEvent('pixel-a', 'Lead');
+			metaPixelSingleCustomEvent('pixel-b', 'Step4');
+		}).not.toThrow();
+	});
 });

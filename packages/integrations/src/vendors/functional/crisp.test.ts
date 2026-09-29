@@ -35,6 +35,23 @@ describe('crisp', () => {
 		expect(globalRef.CRISP_WEBSITE_ID).toBe('crisp-123');
 	});
 
+	it('keeps Crisp calls the app queued before the helper ran', () => {
+		const globalRef = getTestGlobal();
+		globalRef.$crisp = [['set', 'user:email', ['visitor@example.com']]];
+		const script = crisp({ safeMode: true, websiteId: 'crisp-123' });
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+			})
+		);
+
+		expect(globalRef.$crisp).toEqual([
+			['set', 'user:email', ['visitor@example.com']],
+			['safe', true],
+		]);
+	});
+
 	it('sets optional Crisp runtime globals when provided', () => {
 		const globalRef = getTestGlobal();
 		const script = crisp({

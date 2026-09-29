@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 export type PlausibleExtension =
 	| 'hash'
@@ -239,8 +240,10 @@ export const plausibleAnalytics = function plausibleAnalytics(
 		apiAttribute: undefined as string | undefined,
 		domain: undefined as string | undefined,
 		initOptions: buildPlausibleInitOptions(normalizedOptions),
-		scriptUrl:
-			normalizedOptions.scriptUrl ?? buildPlausibleScriptUrl(normalizedOptions),
+		scriptUrl: resolveScriptUrl(
+			normalizedOptions.scriptUrl,
+			buildPlausibleScriptUrl(normalizedOptions)
+		),
 	};
 
 	if (scriptId) {
