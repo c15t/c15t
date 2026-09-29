@@ -5,6 +5,6 @@
 }
 
 :root {
-	--c15t-fade-in-animation: fadeIn 0.15s cubic-bezier(0.165, 0.84, 0.44, 1)
-		forwards;
+	--c15t-fade-in-animation: fadeIn var(--c15t-duration-normal)
+		var(--c15t-easing-out) forwards;
 }

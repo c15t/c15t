@@ -63,7 +63,7 @@
 	}
 
 	.item:not(:global(.headless)):has(.trigger:focus-visible) {
-		outline: 2px solid var(--accordion-focus-ring, hsl(227.93, 100%, 63.92%));
+		outline: 2px solid var(--accordion-focus-ring, var(--c15t-primary));
 		/* Fully inset: the first/last items sit flush against the dialog's
 		   scroll container edge, so any part of the ring outside the item's
 		   border box gets clipped by overflow. -2px keeps the 2px ring
@@ -73,7 +73,7 @@
 
 	:global(.c15t-dark)
 		.item:not(:global(.headless)):has(.trigger:focus-visible) {
-		outline-color: var(--accordion-focus-ring-dark, hsl(228.07, 69.8%, 48.04%));
+		outline-color: var(--accordion-focus-ring-dark, var(--c15t-primary));
 	}
 
 	.trigger:not(:global(.headless)):focus-visible {
@@ -114,7 +114,13 @@
 		flex-shrink: 0;
 		align-items: center;
 		justify-content: center;
-		color: var(--accordion-arrow-color, hsl(0, 0%, 63.92%));
+		/* A step lighter than the muted text, so the row's label stays the
+		   loudest thing on it. With the default palette this is the 64%
+		   grey the arrow always had, and 80% in dark mode. */
+		color: var(
+			--accordion-arrow-color,
+			color-mix(in srgb, var(--c15t-text-muted) 60%, var(--c15t-surface))
+		);
 		width: var(--accordion-icon-size, 1.25rem);
 		height: var(--accordion-icon-size, 1.25rem);
 		transition: transform var(--accordion-duration, var(--c15t-duration-normal))
@@ -128,7 +134,10 @@
 	}
 
 	:global(.c15t-dark) .arrow:not(:global(.headless)) {
-		color: var(--accordion-arrow-color-dark, hsl(0, 0%, 80%));
+		color: var(
+			--accordion-arrow-color-dark,
+			color-mix(in srgb, var(--c15t-text-muted) 40%, var(--c15t-text))
+		);
 	}
 
 	.header:not(:global(.headless)) {
@@ -160,7 +169,7 @@
 		display: block;
 		grid-column: 1 / -1;
 		margin: 0;
-		padding: 0 var(--accordion-row-padding-x, 1rem) 0.75rem;
+		padding: 0 var(--accordion-row-padding-x, var(--c15t-space-md)) 0.75rem;
 		color: var(--accordion-restriction-color, var(--c15t-text-muted));
 		font-size: var(--c15t-font-size-sm);
 		line-height: var(--c15t-line-height-normal);
@@ -171,7 +180,13 @@
 		grid-template-rows: 0fr;
 		overflow: hidden;
 		padding: 0;
-		color: var(--accordion-content-color, hsl(0, 0%, 36.08%));
+		/* A step darker than the muted text: the description is the same size as
+		   the label it explains, so tone is what separates them. With the
+		   default palette this is the 36% grey it always had. */
+		color: var(
+			--accordion-content-color,
+			color-mix(in srgb, var(--c15t-text-muted) 87%, var(--c15t-text))
+		);
 		font-size: 0.875rem;
 		line-height: 1.5;
 		letter-spacing: inherit;
@@ -206,7 +221,7 @@
 		opacity: 1;
 		transition: opacity
 			calc(var(--accordion-duration, var(--c15t-duration-normal)) * 0.35)
-			ease-out;
+			var(--c15t-easing-out);
 	}
 
 	.content[data-state='open'] .contentViewport:not(:global(.headless)) {
@@ -222,7 +237,7 @@
 	}
 
 	:global(.c15t-dark) .content:not(:global(.headless)) {
-		color: var(--accordion-content-color-dark, hsl(0, 0%, 60%));
+		color: var(--accordion-content-color-dark, var(--c15t-text-muted));
 	}
 
 	:global([data-disable-animation]) .content:not(:global(.headless)),

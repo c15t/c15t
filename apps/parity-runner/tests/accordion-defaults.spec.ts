@@ -43,6 +43,7 @@ const mount = async (page: Page, order: string[]) => {
 	await page.setContent(`
 		<style>
 			:root { --c15t-space-sm: 8px; --c15t-space-md: 16px;
+				--c15t-text: rgb(26, 26, 26);
 				--c15t-text-muted: rgb(102, 102, 102); --c15t-primary: blue;
 				--c15t-duration-normal: 0s; --c15t-easing: ease; }
 		</style>
@@ -75,9 +76,11 @@ for (const order of [
 			'padding-top',
 			'8px'
 		);
+		// 87% of the muted text mixed with the text colour: rgb(92, 92, 92),
+		// which Chromium serializes as a color-mix() result.
 		await expect(page.locator('#component-description')).toHaveCSS(
 			'color',
-			'rgb(92, 92, 92)'
+			'color(srgb 0.361255 0.361255 0.361255)'
 		);
 		await expect(page.locator('#primitive-description')).toHaveCSS(
 			'color',
@@ -86,9 +89,11 @@ for (const order of [
 		await page.locator('#scope').evaluate((element) => {
 			element.classList.add('c15t-dark');
 		});
+		// The dark description follows --c15t-text-muted, which this page does
+		// not redefine for dark mode.
 		await expect(page.locator('#component-description')).toHaveCSS(
 			'color',
-			'rgb(153, 153, 153)'
+			'rgb(102, 102, 102)'
 		);
 		await expect(page.locator('#primitive-description')).toHaveCSS(
 			'color',

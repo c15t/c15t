@@ -1,6 +1,6 @@
 :root {
 	--preference-item-gap: 0.75rem;
-	--preference-item-leading-gap: 0.5rem;
+	--preference-item-leading-gap: var(--c15t-space-sm);
 	--preference-item-content-color: var(--c15t-text-muted);
 	--preference-item-duration: var(--c15t-duration-normal);
 	--preference-item-ease: var(--c15t-easing);
