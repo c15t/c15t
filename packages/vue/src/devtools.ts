@@ -56,7 +56,7 @@ const serviceProps = {
 
 type Placement = Pick<
 	DevToolsOptions,
-	'container' | 'defaultOpen' | 'embedded' | 'position'
+	'container' | 'defaultOpen' | 'embedded' | 'position' | 'shadow'
 >;
 
 /**
@@ -136,12 +136,19 @@ export const ConsentDevTools = defineComponent({
 		...serviceProps,
 		defaultOpen: Boolean,
 		position: String as PropType<DevToolsPosition>,
+		// `undefined` rather than Vue's boolean default of `false`, so an
+		// omitted prop keeps the engine's shadow-root default.
+		shadow: { default: undefined, type: Boolean },
 	},
 	setup(props) {
 		useProviderDevTools(
 			props,
-			[() => props.defaultOpen, () => props.position],
-			() => ({ defaultOpen: props.defaultOpen, position: props.position })
+			[() => props.defaultOpen, () => props.position, () => props.shadow],
+			() => ({
+				defaultOpen: props.defaultOpen,
+				position: props.position,
+				shadow: props.shadow,
+			})
 		);
 
 		return function ConsentDevToolsRender() {

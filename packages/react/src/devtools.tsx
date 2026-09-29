@@ -115,6 +115,7 @@ export const ConsentDevTools = ({
 	getConsentCategories,
 	maxEvents,
 	position,
+	shadow,
 }: ConsentDevToolsProps): null => {
 	const services = useContext(ProviderServicesContext);
 	const stableServices = useStableServices(
@@ -141,6 +142,7 @@ export const ConsentDevTools = ({
 			kernel,
 			maxEvents,
 			position,
+			shadow,
 		});
 		return () => devTools.destroy();
 	}, [
@@ -151,6 +153,7 @@ export const ConsentDevTools = ({
 		kernel,
 		maxEvents,
 		position,
+		shadow,
 	]);
 
 	return null;
