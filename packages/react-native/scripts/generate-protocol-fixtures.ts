@@ -1064,6 +1064,19 @@ const saveInputFor = function saveInputFor(intent: CommitIntent): SaveInput {
 };
 
 /**
+ * The categories every fixture app declares. With none declared, a permissive
+ * policy offers only necessary and asks for an acknowledgement, and these
+ * fixtures exercise the optional categories themselves.
+ */
+const APP_CATEGORIES: readonly AllConsentNames[] = [
+	'necessary',
+	'experience',
+	'functionality',
+	'marketing',
+	'measurement',
+];
+
+/**
  * Build a kernel over a transport double, with nothing injected but the device.
  *
  * Both harnesses -- the single-step fixtures and the revision trace -- go through
@@ -1094,6 +1107,7 @@ const kernelFor = function kernelFor(
 	}
 	return {
 		kernel: createConsentKernel({
+			consentCategories: [...APP_CATEGORIES],
 			initialOverrides,
 			initialPolicyPending: true,
 			initialPrivacySignals: {
