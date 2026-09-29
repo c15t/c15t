@@ -1,0 +1,23 @@
+---
+/**
+ * Type check only. No page renders this, because a server island needs an
+ * adapter and the demo also builds as a static site.
+ *
+ * `astro check` (this example's `check-types`) fails if
+ * `<ConsentBannerDeferred />` stops accepting a `<ConsentBanner />` prop.
+ */
+import ConsentBannerDeferred from '@c15t/astro/components/consent-banner-deferred.astro';
+---
+
+<ConsentBannerDeferred
+	acceptButtonText="Accept"
+	customizeButtonText="Customize"
+	description="We use cookies."
+	dismissButtonText="OK"
+	hideBranding
+	legalLinks={['privacyPolicy']}
+	noStyle
+	rejectButtonText="Reject"
+	title="Cookies"
+	force
+/>
