@@ -84,6 +84,10 @@ export default mergeConfig(
 					'../react/dist/server/index.js'
 				),
 				'@c15t/react/headless': resolve(__dirname, '../react/dist/headless.js'),
+				'@c15t/react/components/consent-dialog-link': resolve(
+					__dirname,
+					'../react/dist/components/panel-link/index.js'
+				),
 				'@c15t/react': resolve(__dirname, '../react/dist/index.js'),
 				'@c15t/translations/all': resolve(
 					__dirname,
