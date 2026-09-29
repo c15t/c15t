@@ -404,7 +404,9 @@ bundled at build time, for example in an `output: 'export'` site.
 - `loadStaticManifest` fetches and returns the manifest object.
 - `createStaticConsentResolver({ manifest, geo, geoURL })` returns a synchronous
   `initial` result and a `resolved` promise. Without `geo`, or when a `geoURL`
-  returns no location, it resolves the strictest policy in the manifest.
+  returns no location, it uses the manifest's unknown-location policy: its
+  fallback rule, else its default rule. That is the same policy the server
+  helpers apply when a request has no location headers.
 
 A generated manifest contains public policy, not a visitor's choice. The
 helpers do not mount a provider, persist choices or send consent to the
