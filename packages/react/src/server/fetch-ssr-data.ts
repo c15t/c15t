@@ -225,7 +225,9 @@ export const fetchSSRData = async function fetchSSRData(
 	}
 
 	// Normalize URL synchronously
-	const normalizedURL = normalizeBackendURL(backendURL, headers);
+	const normalizedURL = normalizeBackendURL(backendURL, headers, {
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 	if (!normalizedURL) {
 		if (debug) {
 			console.log('[c15t/server] Failed to normalize URL, skipping SSR fetch');

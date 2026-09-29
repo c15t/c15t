@@ -1,4 +1,4 @@
-import { resolveBackendURL } from '@c15t/schema/types';
+import { resolveRequestBackendURL } from '@c15t/core/server';
 
 const ABSOLUTE_URL_REGEX = /^https?:\/\//u;
 
@@ -62,16 +62,21 @@ export const validateBackendURL = function validateBackendURL(
 };
 
 /**
- * Normalizes a backend URL, resolving relative URLs using request headers.
+ * Normalizes a backend URL, resolving relative URLs against the request.
  *
  * @remarks
  * For absolute URLs, returns the URL as-is (with trailing slash trimmed).
- * For relative URLs, attempts to construct the full URL using:
- * 1. x-forwarded-proto + x-forwarded-host/host headers
- * 2. Referer header as fallback
+ * A relative URL resolves against the `host` header: over `https` for a
+ * domain name, and over `http` for `localhost`, an IP address or a
+ * single-label host. `x-forwarded-host`, `x-forwarded-proto` and `forwarded`
+ * are read only when `trustForwardedHeaders` is set, because any client can
+ * send them; the `referer` header is never used.
  *
  * @param backendURL - The backend URL (absolute or relative)
  * @param headersList - The Headers object from the incoming request
+ * @param options - `trustForwardedHeaders`: resolve against the request's
+ * forwarding headers. Set it only behind a proxy that sets them and drops
+ * incoming ones.
  * @returns The normalized absolute URL, or null if it cannot be determined
  *
  * @example
@@ -82,16 +87,20 @@ export const validateBackendURL = function validateBackendURL(
  * normalizeBackendURL('https://api.example.com/', headers);
  * // Returns: 'https://api.example.com'
  *
- * // Relative URL - resolved from headers
+ * // Relative URL - resolved from the host header
  * normalizeBackendURL('/api/consent', headers);
- * // Returns: 'https://example.com/api/consent' (based on headers)
+ * // Returns: 'https://example.com/api/consent' (for `host: example.com`)
  * ```
  *
  * @public
  */
 export const normalizeBackendURL = function normalizeBackendURL(
 	backendURL: string,
-	headersList: Headers
+	headersList: Headers,
+	options: { trustForwardedHeaders?: boolean } = {}
 ): string | null {
-	return resolveBackendURL(backendURL, headersList);
+	return resolveRequestBackendURL(backendURL, {
+		headers: headersList,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 };

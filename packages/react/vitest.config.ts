@@ -83,6 +83,10 @@ export default mergeConfig(
 					'@c15t/core/runtime',
 					resolve(__dirname, '../core/src/runtime/index.ts'),
 				],
+				[
+					'@c15t/core/server',
+					resolve(__dirname, '../core/src/server/index.ts'),
+				],
 				['@c15t/core', resolve(__dirname, '../core/src/index.ts')],
 				['@c15t/schema/types', resolve(__dirname, '../schema/src/types.ts')],
 				[
