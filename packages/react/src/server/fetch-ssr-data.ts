@@ -210,7 +210,9 @@ export const fetchSSRData = async function fetchSSRData(
 	}
 
 	// Extract relevant headers from the request
-	const relevantHeaders = extractRelevantHeaders(headers);
+	const relevantHeaders = extractRelevantHeaders(headers, {
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 
 	logRelevantHeaders(relevantHeaders, debug);
 

@@ -143,6 +143,12 @@ describe('fetchSSRData', () => {
 			'https://example.com/api/c15t/init',
 			expect.any(Object)
 		);
+		const sent = fetchMock.mock.calls[0]?.[1]?.headers as Record<
+			string,
+			string
+		>;
+		expect(sent).not.toHaveProperty('x-forwarded-host');
+		expect(sent).not.toHaveProperty('x-forwarded-proto');
 	});
 
 	it('runs independent fetches for concurrent calls', async () => {

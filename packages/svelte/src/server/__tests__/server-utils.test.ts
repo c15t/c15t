@@ -110,11 +110,27 @@ describe('extractRelevantHeaders', () => {
 		expect(result['x-vercel-ip-country-region']).toBe('BY');
 		expect(result['accept-language']).toBe('de-DE');
 		expect(result['user-agent']).toBe('Mozilla/5.0');
-		expect(result['x-forwarded-host']).toBe('example.com');
+		expect(result).not.toHaveProperty('x-forwarded-host');
 		expect(result['x-forwarded-for']).toBe('1.2.3.4');
 		expect(result['sec-gpc']).toBe('1');
 		expect(result['x-c15t-country']).toBe('DE');
 		expect(result['x-c15t-region']).toBe('BY');
+	});
+
+	test('keeps client forwarding headers only when trusted', () => {
+		const headers = new Headers({
+			forwarded: 'host=attacker.example',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
+		});
+		expect(extractRelevantHeaders(headers)).toEqual({});
+		expect(
+			extractRelevantHeaders(headers, { trustForwardedHeaders: true })
+		).toEqual({
+			forwarded: 'host=attacker.example',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
+		});
 	});
 
 	test('preserves explicit x-c15t override headers over infra headers', () => {
@@ -336,6 +352,32 @@ describe('v3 server helpers', () => {
 		expect(mockFetch.mock.calls[0][0]).toBe(
 			'https://app.example.com/api/c15t/init'
 		);
+	});
+
+	test('resolveConsent does not forward client forwarding headers to the backend', async () => {
+		mockFetch.mockResolvedValue(
+			new Response(JSON.stringify({ branding: 'c15t' }), {
+				headers: { 'Content-Type': 'application/json' },
+				status: 200,
+			})
+		);
+
+		await resolveConsent({
+			backendURL: 'https://api.example.com',
+			fetch: mockFetch,
+			// Naming them in forwardHeaders does not bypass the rule.
+			forwardHeaders: ['forwarded', 'x-forwarded-host', 'x-forwarded-proto'],
+			headers: new Headers({
+				forwarded: 'host=attacker.example',
+				'x-forwarded-host': 'attacker.example',
+				'x-forwarded-proto': 'http',
+			}),
+		});
+
+		const sent = new Headers(mockFetch.mock.calls[0][1].headers);
+		expect(sent.has('forwarded')).toBe(false);
+		expect(sent.has('x-forwarded-host')).toBe(false);
+		expect(sent.has('x-forwarded-proto')).toBe(false);
 	});
 
 	test('resolveConsent honours x-forwarded-host only when trusted', async () => {

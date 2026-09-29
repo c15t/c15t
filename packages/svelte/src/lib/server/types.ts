@@ -62,7 +62,8 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * send those, so set this only behind a proxy that sets them and drops
 	 * incoming ones. SvelteKit's own `ORIGIN`, `HOST_HEADER` and
 	 * `PROTOCOL_HEADER` settings already shape `event.url`, which is usually
-	 * the better place to configure this.
+	 * the better place to configure this. Also forwards those three headers
+	 * to the backend, which is skipped otherwise.
 	 *
 	 * @defaultValue false
 	 */
@@ -74,7 +75,11 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * @internal
 	 */
 	frameworkFetch?: typeof globalThis.fetch;
-	/** Extra request headers to forward to the backend. */
+	/**
+	 * Extra request headers to forward to the backend. `forwarded`,
+	 * `x-forwarded-host` and `x-forwarded-proto` are skipped unless
+	 * `trustForwardedHeaders` is set.
+	 */
 	forwardHeaders?: string[];
 	/**
 	 * The banner experiment with the arm this request runs, from your
