@@ -64,40 +64,33 @@ const resolveGeoOverrides = function resolveGeoOverrides(
 };
 
 /**
- * Server-side rendered consent management wrapper for Next.js App Router
+ * Client-side consent wrapper for the demo's App Router pages.
  *
- * This component provides SSR-compatible consent management by separating
- * server-side configuration from client-side functionality. The server handles
- * initial setup and configuration, while client-side features (callbacks,
- * scripts) are delegated to the ConsentManagerClient component.
+ * Renders `ConsentProvider` from `c15t/react` in hosted mode, with the
+ * standard banner, dialog and trigger plus the IAB banner and dialog. The
+ * visitor's country and region come from the `country` and `region` query
+ * parameters, so the demo can switch jurisdiction without a geo lookup.
+ * The policy demo pages render their own providers, so this wrapper passes
+ * their children through untouched.
  *
  * @param props - Component properties
- * @param props.children - Child components to render within the consent manager context
- * @param props.dialogVariant - Which dialog implementation to use
+ * @param props.children - Child components to render within the consent context
  *
- * @returns The consent manager provider with banner, dialog, and client wrapper
+ * @returns The consent provider with its UI, or the children alone on the
+ * policy demo pages
  *
  * @remarks
- * This split architecture is necessary because certain options like callbacks
- * and scripts cannot be serialized during server-side rendering. For
- * client-only implementations, use `<ConsentProvider />` from
- * `@c15t/nextjs` with an explicit transport mode.
+ * This is a client component. It resolves consent in the browser and does
+ * not use the server-rendered setup from `c15t/next`; see the Next.js
+ * quickstart for that.
  *
  * @example
  * ```tsx
- * // In your root layout.tsx
- * import { ConsentManager } from './consent-manager';
+ * // app/(main)/layout.tsx
+ * import { ConsentManager } from '../../components/consent-manager/provider';
  *
- * export default function RootLayout({ children }) {
- *   return (
- *     <html>
- *       <body>
- *         <ConsentManager dialogVariant="custom-tailwind">
- *           {children}
- *         </ConsentManager>
- *       </body>
- *     </html>
- *   );
+ * export default function Layout({ children }) {
+ *   return <ConsentManager>{children}</ConsentManager>;
  * }
  * ```
  */
