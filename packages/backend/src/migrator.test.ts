@@ -142,6 +142,7 @@ for (const [name, makeConfig] of CONFIGS) {
 					'3-consent-receipts-and-privacy-directives',
 					'4-vendor-choice',
 					'5-drop-subject-identity-authority',
+					'6-experiment-attribution',
 				]);
 
 				const applied = await migrator.apply();

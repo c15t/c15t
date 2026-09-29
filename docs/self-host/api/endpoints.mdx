@@ -22,6 +22,7 @@ you are building a custom transport or server integration.
 | `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. | No |
 | `GET /subjects?externalId=...` | Retrieve subjects for an external identity. | Required |
 | `GET /consents/check?externalId=...&type=a,b` | Return `hasConsent` and `isLatestPolicy` for every requested type. | No |
+| `GET /experiments/:id/summary?from=...&to=...&domain=...` | Choices per arm of a [banner experiment](/docs/guides/banner-experiments), split by action and surface, with the median time to decision. | Required |
 | `PUT /legal-documents/:type/current` | Publish a legal document's current version, hash and effective date. | Required |
 | `GET /spec.json` | Discover the enabled OpenAPI routes. | No |
 

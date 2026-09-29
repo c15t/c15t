@@ -15,6 +15,7 @@ import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as dropIdentityAuthority } from '../db/migrations/5-drop-subject-identity-authority';
+import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from '../http/app';
 import type { AppOptions } from '../http/context';
@@ -59,6 +60,7 @@ export const createHttpHarness = async function createHttpHarness(
 			yield* receipts;
 			yield* vendorChoice;
 			yield* dropIdentityAuthority;
+			yield* attribution;
 		})
 	);
 	const app = createApp(runtime, options);

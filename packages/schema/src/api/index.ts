@@ -1,4 +1,5 @@
 export * from './consent';
+export * from './experiment';
 export {
 	completeTranslationsSchema,
 	cookieBannerTranslationsSchema,
