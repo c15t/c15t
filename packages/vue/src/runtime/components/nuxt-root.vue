@@ -1,7 +1,5 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue';
-
-import { useHead } from '#imports';
+import { onMounted, ref, watch } from 'vue';
 
 import {
 	useConsentActiveUI,
@@ -42,23 +40,6 @@ watch(
 	{ immediate: true }
 );
 
-useHead(
-	computed(() => {
-		const style = Object.entries(config.value.tokens ?? {})
-			.map(([key, value]) => `--${key}: ${String(value)};`)
-			.join(' ');
-		return style
-			? {
-					style: [
-						{
-							id: 'c15t-css-vars',
-							innerHTML: `:root { ${style} }`,
-						},
-					],
-				}
-			: {};
-	})
-);
 // Mount dialog surfaces once first needed, then keep them mounted (close
 // animations, repeat opens). Chunks are prefetched on idle so the first
 // open never pays network+parse.

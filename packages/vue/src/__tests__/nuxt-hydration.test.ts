@@ -74,6 +74,7 @@ vi.mock('#imports', async () => {
 			}
 			return Promise.resolve({ data: makeRef(nuxt.cached) });
 		},
+		useHead: () => undefined,
 		useRequestEvent: () => undefined,
 		useRequestHeaders: () => nuxt.headers,
 		useRuntimeConfig: () => ({ public: { c15t: {} } }),

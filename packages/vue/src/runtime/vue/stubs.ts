@@ -12,6 +12,6 @@ export * from '../composables/stubs/requestHeaders';
 export * from '../composables/stubs/state';
 
 export const useHead = function useHead(_input?: unknown): void {
-	// Plain Vue does not have Nuxt head management; CSS variables are applied by
-	// the Vue root component on mount.
+	// Plain Vue does not have Nuxt head management; the Vue plugin adds the
+	// token CSS to the document itself.
 };

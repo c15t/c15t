@@ -23,6 +23,7 @@ vi.mock('#imports', async () => {
 			},
 		}),
 		useFetch: () => Promise.resolve({ data: makeRef(undefined) }),
+		useHead: () => undefined,
 		useRequestEvent: () => undefined,
 		useRequestHeaders: () => ({}),
 		// Module options arrive as JSON through the public runtime config.

@@ -29,9 +29,6 @@ const config = useConsentConfig();
 const kernel = useConsentKernel();
 
 onMounted(() => {
-	for (const [key, value] of Object.entries(config.value.tokens ?? {})) {
-		document.documentElement.style.setProperty(`--${key}`, String(value));
-	}
 	// Warm the dialog chunk during idle so the first open is instant.
 	if (init.value?.gvl || init.value?.gvlReference) {
 		prefetchIabConsentDialog();
