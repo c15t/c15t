@@ -362,6 +362,33 @@ const GPC_DENYING_OPT_IN_RULE: PolicyRule = {
 };
 
 /**
+ * A full-scope opt-in choice rule for an app that declares no categories.
+ *
+ * Under `permissive` the kernel projects an empty choice scope, because the
+ * categories nobody is asked about stay allowed outside it, and the prompt asks
+ * for an acknowledgement that only strictly necessary processing runs. Under
+ * `strict` nothing outside the scope may run, so the whole scope is asked about
+ * as before. `copyRevision` is the axis a policy edit moves, the same way
+ * `stalePolicyRule` moves it. One country each, so no pack holds two matching
+ * rules, and a 30-day validity so an acknowledgement can be aged past it.
+ */
+const necessaryOnlyRule = function necessaryOnlyRule(
+	scopeMode: 'permissive' | 'strict',
+	copyRevision: string
+): PolicyRule {
+	return {
+		categories: ['experience', 'functionality', 'marketing', 'measurement'],
+		copyRevision,
+		id: `fixture_nothing_declared_${scopeMode}`,
+		match: { countries: [scopeMode === 'permissive' ? 'SE' : 'DK'] },
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode,
+		validity: { choiceDays: 30 },
+	};
+};
+
+/**
  * The two halves of the stale-policy axis.
  *
  * They differ only in `copyRevision`, which is hashed into both prompt
@@ -579,6 +606,15 @@ interface FixtureInput {
 	privacySignals: FixturePrivacySignals;
 	/** Identified user, when the app has one. */
 	user: KernelUser | null;
+	/**
+	 * The categories the app declares, when a fixture is about the declaration.
+	 *
+	 * Absent means the app declares every category, `APP_CATEGORIES` below, which
+	 * is the declaration every fixture without this key was generated under. `null`
+	 * means the app declares nothing, the way a host that never sets
+	 * `consentCategories` configures a native core.
+	 */
+	consentCategories?: readonly AllConsentNames[] | null;
 }
 
 interface EvaluationFixture {
@@ -1003,9 +1039,14 @@ const readyFor = function readyFor(
 
 const inputFor = function inputFor(
 	scenario: Scenario,
-	options: { hydrated?: boolean; records?: StoredRecords } = {}
+	options: {
+		/** The app's declaration, when the fixture is about it. See `FixtureInput`. */
+		declared?: readonly AllConsentNames[] | null;
+		hydrated?: boolean;
+		records?: StoredRecords;
+	} = {}
 ): FixtureInput {
-	return {
+	const input: FixtureInput = {
 		// Every scenario carries a stored subject, so the default is a returning
 		// device whose hydrate() found an envelope. A first launch has to say so, and
 		// then `ready` can only come from the response the transport serves.
@@ -1024,6 +1065,12 @@ const inputFor = function inputFor(
 		transport: transportFor(initBodyFor(scenario)),
 		user: scenario.user,
 	};
+	// Only a fixture about the declaration carries the key, so every other
+	// fixture keeps the bytes it was generated with.
+	if (options.declared !== undefined) {
+		input.consentCategories = options.declared;
+	}
+	return input;
 };
 
 /**
@@ -1064,9 +1111,10 @@ const saveInputFor = function saveInputFor(intent: CommitIntent): SaveInput {
 };
 
 /**
- * The categories every fixture app declares. With none declared, a permissive
- * policy offers only necessary and asks for an acknowledgement, and these
- * fixtures exercise the optional categories themselves.
+ * The categories a fixture app declares unless its input says otherwise. With
+ * none declared, a permissive policy offers only necessary and asks for an
+ * acknowledgement, and most fixtures exercise the optional categories
+ * themselves. The `necessary-only` fixtures set `input.consentCategories`.
  */
 const APP_CATEGORIES: readonly AllConsentNames[] = [
 	'necessary',
@@ -1091,7 +1139,12 @@ const APP_CATEGORIES: readonly AllConsentNames[] = [
 const kernelFor = function kernelFor(
 	input: Pick<
 		FixtureInput,
-		'now' | 'overrides' | 'privacySignals' | 'storedRecords' | 'user'
+		| 'consentCategories'
+		| 'now'
+		| 'overrides'
+		| 'privacySignals'
+		| 'storedRecords'
+		| 'user'
 	>,
 	init: () => Promise<InitResponse>
 ): {
@@ -1107,7 +1160,10 @@ const kernelFor = function kernelFor(
 	}
 	return {
 		kernel: createConsentKernel({
-			consentCategories: [...APP_CATEGORIES],
+			consentCategories:
+				input.consentCategories === undefined
+					? [...APP_CATEGORIES]
+					: (input.consentCategories ?? undefined),
 			initialOverrides,
 			initialPolicyPending: true,
 			initialPrivacySignals: {
@@ -1484,13 +1540,58 @@ const GPC_DENYING_SCENARIO: Scenario = {
 	policySnapshotToken: 'tok-gpc-denying',
 };
 
+/** A permissive rule on a device whose app declares no categories. */
+const NOTHING_DECLARED_SCENARIO: Scenario = {
+	...NARROW_PERMISSIVE_OPT_IN_SCENARIO,
+	geo: { country: 'SE', region: null },
+	policyRules: [necessaryOnlyRule('permissive', 'v1')],
+	policySnapshotToken: 'tok-nothing-declared',
+};
+
+/** The same device after the publisher revised the rule's copy. */
+const NOTHING_DECLARED_REVISED_SCENARIO: Scenario = {
+	...NOTHING_DECLARED_SCENARIO,
+	policyRules: [necessaryOnlyRule('permissive', 'v2')],
+	policySnapshotToken: 'tok-nothing-declared-revised',
+};
+
+/** A strict rule on a device whose app declares no categories. */
+const NOTHING_DECLARED_STRICT_SCENARIO: Scenario = {
+	...NARROW_PERMISSIVE_OPT_IN_SCENARIO,
+	geo: { country: 'DK', region: null },
+	policyRules: [necessaryOnlyRule('strict', 'v1')],
+	policySnapshotToken: 'tok-nothing-declared-strict',
+};
+
+/**
+ * Notes for the fixtures about an app that declares no categories. Only those
+ * fixtures carry them, so every other fixture keeps its bytes.
+ */
+const DECLARATION_NOTES = [
+	'input.consentCategories is the list the app declares: null means it declares nothing, which is a host that never sets consentCategories. A fixture without the key declares every category, necessary, experience, functionality, marketing and measurement.',
+	'with nothing declared, a permissive rule asks about no category: consentCategories lists necessary alone and the choice prompt asks for an acknowledgement. Any save answers it by recording a notice dismissal bound to the choice fingerprint, stamped with the action time. A strict rule still asks about its whole scope.',
+	'the acknowledgement lasts the choice lifetime. It stops answering once it is that old (reason expired) or once the choice fingerprint moves (reason policy-changed), and any category decision still valid under the current choice fingerprint answers the prompt too. nextDeadline includes the moment the last of those runs out.',
+];
+
+/**
+ * Move an acknowledgement back by `days`, the way `ageChoice` ages a receipt.
+ * The record is otherwise the one the save command wrote.
+ */
+const ageDismissal = function ageDismissal(
+	dismissal: NoticeDismissal,
+	days: number
+): NoticeDismissal {
+	return { ...dismissal, dismissedAt: dismissal.dismissedAt - days * DAY_MS };
+};
+
 // -- Fixtures ---------------------------------------------------------------
 
 const evaluationFixture = function evaluationFixture(
 	id: string,
 	description: string,
 	input: FixtureInput,
-	snapshot: KernelSnapshot
+	snapshot: KernelSnapshot,
+	notes: readonly string[] = NOTES
 ): EvaluationFixture {
 	return {
 		description,
@@ -1498,10 +1599,123 @@ const evaluationFixture = function evaluationFixture(
 		id: `evaluation-${id}`,
 		input,
 		kind: 'evaluation',
-		notes: NOTES,
+		notes: [...notes],
 		protocolVersion: PROTOCOL_VERSION,
 	};
 };
+
+/**
+ * The acknowledgement a save records for an app that declares nothing, minted by
+ * the real save command against `scenario`.
+ */
+const mintAcknowledgement = async function mintAcknowledgement(
+	scenario: Scenario
+): Promise<NoticeDismissal> {
+	const minted = await runFixture(inputFor(scenario, { declared: null }), {
+		intent: { action: 'all' },
+	});
+	if (!minted.after.noticeDismissal) {
+		throw new Error(
+			'A save on a choice prompt with nothing to decide recorded no acknowledgement, so the axis proves nothing.'
+		);
+	}
+	return minted.after.noticeDismissal;
+};
+
+/**
+ * An app that declares no categories, against a permissive and a strict rule.
+ *
+ * Every record replayed here comes from the real save command: the
+ * acknowledgement from a save with nothing declared, the category decisions from
+ * a save made while the app still declared every category. Only its age or the
+ * rule it is judged against changes.
+ */
+const buildNothingDeclaredEvaluationFixtures =
+	async function buildNothingDeclaredEvaluationFixtures(): Promise<
+		EvaluationFixture[]
+	> {
+		const acknowledgement = await mintAcknowledgement(
+			NOTHING_DECLARED_SCENARIO
+		);
+		const granted = await runFixture(inputFor(NOTHING_DECLARED_SCENARIO), {
+			intent: { action: 'all' },
+		});
+		const cases: {
+			id: string;
+			description: string;
+			scenario: Scenario;
+			records: StoredRecords;
+		}[] = [
+			{
+				description:
+					'A permissive opt-in rule on a device whose app declares no categories and has nothing stored. The choice scope is empty, so the subject is offered necessary alone, every governed category stays denied, and the choice prompt is owed with reason missing.',
+				id: 'necessary-only-pending',
+				records: storedFor(SUBJECT.europe),
+				scenario: NOTHING_DECLARED_SCENARIO,
+			},
+			{
+				description:
+					'The same device on a later launch, holding the acknowledgement an accept-all recorded. It is a notice dismissal bound to the choice fingerprint and still inside the choice lifetime, so nothing is owed, no surface renders, and the next deadline is when the acknowledgement runs out.',
+				id: 'necessary-only-acknowledged',
+				records: storedFor(SUBJECT.europe, {
+					noticeDismissal: acknowledgement,
+				}),
+				scenario: NOTHING_DECLARED_SCENARIO,
+			},
+			{
+				description:
+					'The acknowledgement aged 400 days against a 30-day choice lifetime. It no longer answers the prompt, and because it was made against the current choice fingerprint the prompt is owed with reason expired.',
+				id: 'necessary-only-acknowledgement-expired',
+				records: storedFor(SUBJECT.europe, {
+					noticeDismissal: ageDismissal(acknowledgement, 400),
+				}),
+				scenario: NOTHING_DECLARED_SCENARIO,
+			},
+			{
+				description:
+					'The acknowledgement replayed after the publisher revised the rule copy, which moves the choice fingerprint. A dismissal made against another fingerprint does not answer the prompt, and it is owed with reason policy-changed.',
+				id: 'necessary-only-policy-changed',
+				records: storedFor(SUBJECT.europe, {
+					noticeDismissal: acknowledgement,
+				}),
+				scenario: NOTHING_DECLARED_REVISED_SCENARIO,
+			},
+			{
+				description:
+					'An accept-all recorded while the app still declared every category, replayed after it stopped declaring any. There is no acknowledgement, but a category decision still valid under the choice fingerprint answers the prompt, so nothing is owed and the grants keep their permissions.',
+				id: 'necessary-only-answered-by-decision',
+				records: storedFor(SUBJECT.europe, {
+					choice: granted.after.explicitChoice ?? null,
+				}),
+				scenario: NOTHING_DECLARED_SCENARIO,
+			},
+			{
+				description:
+					'A strict opt-in rule on a device whose app declares no categories. Nothing outside a strict scope may run, so the subject is still asked about the whole scope: every optional category is listed and the choice prompt is owed with reason missing.',
+				id: 'nothing-declared-strict',
+				records: storedFor(SUBJECT.europe),
+				scenario: NOTHING_DECLARED_STRICT_SCENARIO,
+			},
+		];
+		const fixtures: EvaluationFixture[] = [];
+		// Sequential for the same reason as the evaluation cases: one kernel at a
+		// time against the pinned clock.
+		/* oxlint-disable no-await-in-loop -- sequential on purpose, see above */
+		for (const testCase of cases) {
+			const input = inputFor(testCase.scenario, {
+				declared: null,
+				records: testCase.records,
+			});
+			const { after } = await runFixture(input);
+			fixtures.push(
+				evaluationFixture(testCase.id, testCase.description, input, after, [
+					...NOTES,
+					...DECLARATION_NOTES,
+				])
+			);
+		}
+		return fixtures;
+	};
 
 const buildEvaluationFixtures =
 	async function buildEvaluationFixtures(): Promise<EvaluationFixture[]> {
@@ -1833,6 +2047,8 @@ const buildEvaluationFixtures =
 				)
 			);
 		}
+
+		fixtures.push(...(await buildNothingDeclaredEvaluationFixtures()));
 		return fixtures;
 	};
 
@@ -1854,6 +2070,8 @@ const buildSaveBodyFixtures = async function buildSaveBodyFixtures(): Promise<
 		description: string;
 		scenario: Scenario;
 		intent: CommitIntent;
+		/** Set on the cases about an app that declares nothing. See `FixtureInput`. */
+		declared?: null;
 	}[] = [
 		{
 			description:
@@ -1886,13 +2104,29 @@ const buildSaveBodyFixtures = async function buildSaveBodyFixtures(): Promise<
 			intent: { action: 'all' },
 			scenario: GPC_SCENARIO,
 		},
+		{
+			declared: null,
+			description:
+				'Accept all under a permissive opt-in rule on a device whose app declares no categories. There is no category to confirm, so no receipt is written and the explicit choice stays empty; the save records the acknowledgement as a notice dismissal bound to the choice fingerprint at the action time, the prompt is answered, and the wire body is a receipt for strictly necessary alone with consentAction all.',
+			id: 'necessary-only-all',
+			intent: { action: 'all' },
+			scenario: NOTHING_DECLARED_SCENARIO,
+		},
+		{
+			declared: null,
+			description:
+				'Reject all on the same device. It records the same acknowledgement and sends the same necessary-only receipt, with consentAction necessary: with nothing to decide, both bulk actions cover everything the subject was shown.',
+			id: 'necessary-only-necessary',
+			intent: { action: 'necessary' },
+			scenario: NOTHING_DECLARED_SCENARIO,
+		},
 	];
 	const fixtures: SaveBodyFixture[] = [];
 	// Sequential for the same reason as the evaluation cases: one kernel at a
 	// time against the pinned clock.
 	/* oxlint-disable no-await-in-loop -- sequential on purpose, see above */
 	for (const testCase of cases) {
-		const input = inputFor(testCase.scenario);
+		const input = inputFor(testCase.scenario, { declared: testCase.declared });
 		const { after, before, payload } = await runFixture(input, {
 			actionAt: input.now,
 			intent: testCase.intent,
@@ -1921,7 +2155,10 @@ const buildSaveBodyFixtures = async function buildSaveBodyFixtures(): Promise<
 				intent: testCase.intent,
 			},
 			kind: 'save-body',
-			notes: SAVE_NOTES,
+			notes:
+				testCase.declared === undefined
+					? SAVE_NOTES
+					: [...SAVE_NOTES, ...DECLARATION_NOTES],
 			protocolVersion: PROTOCOL_VERSION,
 		});
 	}
@@ -2093,6 +2330,12 @@ const buildNativeEnvelopeFixtures =
 		const optOut = await runFixture(inputFor(CCPA_SCENARIO), {
 			intent: { action: 'all' },
 		});
+		const acknowledgedInput = inputFor(NOTHING_DECLARED_SCENARIO, {
+			declared: null,
+		});
+		const acknowledged = await runFixture(acknowledgedInput, {
+			intent: { action: 'all' },
+		});
 
 		// A genuine web envelope, produced by the v3 codec and stored by neither
 		// native core. The refusal is only worth pinning if the bytes are real.
@@ -2113,6 +2356,7 @@ const buildNativeEnvelopeFixtures =
 			description: string;
 			id: string;
 			input: NativeEnvelopeFixture['input'];
+			notes?: readonly string[];
 			noticeDismissal: 'empty' | 'present';
 			read: boolean;
 		}[] = [
@@ -2159,6 +2403,16 @@ const buildNativeEnvelopeFixtures =
 				id: 'native-envelope-opt-out-grants',
 				input: { ...inputFor(CCPA_SCENARIO), action: { action: 'all' } },
 				noticeDismissal: 'empty',
+				read: false,
+			},
+			{
+				after: acknowledged.after,
+				description:
+					'An accept-all on a device whose app declares no categories, under a permissive rule. It confirms no category, so the acknowledgement it records is the decision: the envelope stores it as the notice dismissal beside the snapshot, and a relaunch with no backend answers with the same permissions.',
+				id: 'native-envelope-choice-acknowledged',
+				input: { ...acknowledgedInput, action: { action: 'all' } },
+				notes: [...ENVELOPE_NOTES, ...DECLARATION_NOTES],
+				noticeDismissal: 'present',
 				read: false,
 			},
 			{
@@ -2252,7 +2506,7 @@ const buildNativeEnvelopeFixtures =
 			id: testCase.id,
 			input: testCase.input,
 			kind: 'native-envelope',
-			notes: ENVELOPE_NOTES,
+			notes: [...(testCase.notes ?? ENVELOPE_NOTES)],
 			protocolVersion: PROTOCOL_VERSION,
 			reference: ENVELOPE_REFERENCE,
 		}));
