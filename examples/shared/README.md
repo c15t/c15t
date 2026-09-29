@@ -77,3 +77,40 @@ that the public examples do not. Example acceptance owns vendor gating and
 outage recovery. Shared server startup and process cleanup live in
 `scripts/browser-process.ts`. Failed journeys retain screenshots and traces
 under `.ci-reports/`.
+
+## Publish example code in the docs
+
+Setup code in `docs/` comes from these apps, so the docs show code that builds
+and passes the journeys above. Mark the lines to publish with a named region in
+the file's own comment syntax:
+
+```tsx
+// #region docs:app-router-layout
+export default function RootLayout({ children }: { children: ReactNode }) {
+	…
+}
+// #endregion docs:app-router-layout
+```
+
+```vue
+<!-- #region docs:root title="app/app.vue" -->
+<ConsentRoot />
+<!-- #endregion docs:root -->
+```
+
+Then run `bun scripts/sync-example-docs.ts`. Each region becomes
+`docs/shared/examples/<app>/<name>.mdx`, a titled code fence that a page
+includes with `<include src="../../shared/examples/<app>/<name>.mdx" />`.
+The fence title defaults to the file's path inside the app; set `title` when
+readers use a different path. Regions can nest, and nested markers are removed
+from the outer snippet. `internals/next-compat` apps can publish regions too.
+
+Keep demo-only code, such as the design gallery, reset buttons and location
+overrides, outside published regions or in separate files. A region should be
+something a reader can copy into their app unchanged.
+
+`scripts/example-doc-sources.test.ts` fails when a generated snippet is stale
+or orphaned. It also counts hand-written docs fences that import c15t against
+`scripts/hand-written-examples-baseline.json`; that count may only fall. Put
+`{/* example: fragment */}` on the line before a fence that is deliberately a
+partial edit rather than a file, such as one changed prop.

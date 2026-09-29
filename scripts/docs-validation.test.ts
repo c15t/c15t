@@ -216,3 +216,22 @@ test('documentation links, includes and metadata are valid', async () => {
 	});
 	expect(errors).toEqual([]);
 }, 15_000);
+
+test('every include resolves to a file', async () => {
+	// leadtype 0.2.1 lint and conversion only warn when an include is missing,
+	// which silently drops the included setup code from the page.
+	const files = await fg('**/*.mdx', { cwd: docsRoot });
+	const missing: string[] = [];
+	for (const file of files) {
+		const content = readFileSync(resolve(docsRoot, file), 'utf8');
+		for (const match of content.matchAll(
+			/<include[^>]*\ssrc="(?<src>[^"#]+)(?:#[^"]*)?"/gu
+		)) {
+			const src = match.groups?.src ?? '';
+			if (!existsSync(resolve(docsRoot, file, '..', src))) {
+				missing.push(`${file}: ${src}`);
+			}
+		}
+	}
+	expect(missing).toEqual([]);
+});
