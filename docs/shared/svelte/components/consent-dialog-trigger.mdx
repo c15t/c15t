@@ -1,0 +1,54 @@
+{/* Shared by the Svelte and SvelteKit ConsentDialogTrigger pages. */}
+
+## Add a floating privacy button
+
+`ConsentDialogTrigger` is a small round button, fixed to a corner of the
+viewport, that opens the preference dialog. It keeps preferences one click
+away on every page without a footer link. Render it next to `ConsentDialog`:
+
+<include src="../../examples/storybook-svelte/floating-trigger.mdx" />
+
+Render the component inside `ConsentManagerProvider`. `ConsentDialog`'s
+`showTrigger` prop renders the same button for you, but only after the dialog
+chunk loads; a separate `ConsentDialogTrigger` is part of the page from the
+first render.
+
+## Props
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `defaultPosition` | `'bottom-right'`, `'bottom-left'`, `'top-right'` or `'top-left'` | `'bottom-right'` | The corner it starts in. |
+| `persistPosition` | `boolean` | `true` | Remembers the corner a visitor drags it to, in local storage. |
+| `showWhen` | `'always'` or `'never'` | `'always'` | `'never'` hides it. |
+| `size` | `'sm'`, `'md'` or `'lg'` | `'md'` | Button size. |
+| `ariaLabel` | `string` | `'Open privacy settings'` | Accessible name. Translate it yourself; it does not come from `i18n`. |
+| `noStyle` | `boolean` | `false` | Drops c15t's classes, including the fixed positioning. |
+| `class` | `string` | none | Extra class on the button. |
+| `onclick` | `(event: MouseEvent) => void` | none | Runs before the dialog opens. Call `event.preventDefault()` to stop it. |
+| `onPositionChange` | `(corner) => void` | none | Runs after a drag moves it to another corner. |
+
+## Behavior
+
+- The button renders only when the policy offers a way to change preferences,
+  and hides while the dialog is open.
+- Visitors can drag it. On release it snaps to the nearest corner in the
+  direction of the drag. A drag does not open the dialog; a click does.
+- The icon follows the project's branding.
+- It is rendered into `document.body`, so a parent's `overflow` or
+  `transform` does not clip it.
+- It starts loading the dialog chunk in idle time and on hover or focus, like
+  the other buttons that open the dialog.
+
+## Accessibility
+
+The trigger is a `<button type="button">` with `aria-label`, since it shows
+only an icon. Keep the label in the page's language by passing `ariaLabel`.
+Dragging needs a pointer; keyboard users activate it with Enter or Space and
+cannot move it, so pick a `defaultPosition` that does not cover your own
+controls.
+
+## Style the trigger
+
+The button carries `data-testid="consent-dialog-trigger"`,
+`data-c15t-trigger="true"` and `data-c15t-rights`. Its colors come from the
+`--c15t-*` tokens; [tokens and CSS](/docs/customization/tokens) lists them.

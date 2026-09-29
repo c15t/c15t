@@ -1,0 +1,74 @@
+{/* Shared by docs/frameworks/svelte/embeds.mdx and docs/frameworks/sveltekit/embeds.mdx. */}
+
+## Pick a way to gate the embed
+
+A YouTube video, a map or a social post in an iframe contacts its vendor as
+soon as it loads. c15t offers two ways to keep it from loading before
+consent:
+
+| Your markup | Use | Placeholder |
+| --- | --- | --- |
+| A Svelte component you write | `ConsentGate` around the iframe | Built in, or your own snippet |
+| HTML you do not control, such as CMS or Markdown content | The iframe blocker with `data-category` and `data-src` | None; the iframe stays empty |
+
+Both use the visitor's effective permission for one category, and both
+remove the embed again when the visitor withdraws that category.
+
+## Wrap the iframe in ConsentGate
+
+<include src="../examples/svelte/youtube-embed.mdx" />
+
+The iframe is absent from the DOM until measurement is allowed, so the
+browser never requests it. The placeholder snippet replaces the built-in one
+and includes a `ConsentDialogLink`, so a visitor can allow the category from
+the embed's own spot. Keep `ConsentDialog` mounted for that link.
+[ConsentGate](./components/consent-gate) lists its props.
+
+Pick the category the vendor's embed needs. YouTube and maps usually fit
+`measurement` or `marketing`; check what each vendor sets.
+
+## Gate iframes you do not render
+
+The provider's iframe blocker is on by default. It watches the page for
+iframes with a `data-category` attribute:
+
+{/* example: fragment */}
+
+```html
+<iframe
+  title="Store locations"
+  data-category="functionality"
+  data-src="https://www.google.com/maps/embed?pb=..."
+></iframe>
+```
+
+- While the category is denied, the iframe has no `src`, so it loads nothing.
+- When the category is allowed, the blocker copies `data-src` to `src`.
+  Only `http` and `https` URLs are used.
+- When the category is withdrawn, the blocker removes `src` again.
+
+Iframes without `data-category` or `data-vendor` are never touched. Put
+`data-src` in the HTML instead of `src`; an iframe that arrives with `src`
+already starts loading before the blocker sees it. Add `data-vendor` with a
+vendor slug to also keep the iframe empty while the visitor has that vendor
+turned off.
+
+The blocker has no placeholder. Style the empty iframe, or place a note and a
+`ConsentDialogLink` next to it.
+
+Pass `iframeBlocker={false}` on the provider to turn the blocker off.
+
+## Vendor guides
+
+The [YouTube](/docs/integrations/youtube) and
+[Google Maps](/docs/integrations/google-maps) guides have ready embed
+configurations. [Integrations](/docs/integrations/overview) lists the rest.
+
+## Verify the embeds
+
+Clear site data and reload with DevTools open:
+
+1. The Network panel has no request to the embed's host, and the Elements
+   panel shows the placeholder or an iframe without `src`.
+2. Allow the category in preferences. The embed loads without a page reload.
+3. Withdraw the category. The embed disappears, or its iframe loses `src`.

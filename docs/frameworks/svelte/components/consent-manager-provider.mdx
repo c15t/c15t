@@ -1,0 +1,23 @@
+---
+title: ConsentManagerProvider
+description: Mount ConsentManagerProvider at the root of a Svelte app to start c15t, with every prop, its default, and which options update after mount.
+group: frameworks
+---
+
+## Mount the provider
+
+Render `ConsentManagerProvider` once, around your whole app, in the component
+you pass to `mount()`:
+
+<include src="../../../shared/examples/svelte/app.mdx" />
+
+`mode` is the only required prop. `hosted()` points the provider at your Inth
+project for policies and saved choices. The consent components render inside
+the provider; your app's own components can sit anywhere inside it too, so
+they can call the [context getters](../getters).
+
+In a Svelte app without SvelteKit the browser resolves the policy after the
+page loads, so the banner appears after the first paint. Optional categories
+stay denied until then.
+
+<include src="../../../shared/svelte/components/consent-manager-provider.mdx" />

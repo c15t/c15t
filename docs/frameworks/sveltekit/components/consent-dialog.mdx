@@ -1,0 +1,19 @@
+---
+title: ConsentDialog
+description: Add the c15t preference dialog to a SvelteKit root layout with ConsentDialog, including how it loads after hydration, its props, keyboard behavior and theme slots.
+group: frameworks
+---
+
+## Render the dialog
+
+Render `ConsentDialog` once, in the root layout inside
+`ConsentManagerProvider`. The banner's Customize button and
+`ConsentDialogLink` open it:
+
+<include src="../../../shared/examples/sveltekit-demo/layout.mdx" />
+
+`ConsentDialog` is never in the server HTML. It loads in the browser after
+hydration, before anyone opens it, so a server-rendered page does not carry
+its markup or script.
+
+<include src="../../../shared/svelte/components/consent-dialog.mdx" />

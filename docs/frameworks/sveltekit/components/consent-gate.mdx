@@ -1,0 +1,27 @@
+---
+title: ConsentGate
+description: Keep a YouTube video or map out of SvelteKit server HTML until its consent category is allowed with ConsentGate, and replace its placeholder.
+group: frameworks
+---
+
+## Gate an embed behind consent
+
+`ConsentGate` mounts its children only while one category is allowed, and
+shows a placeholder otherwise. Wrap any iframe or widget that sets cookies or
+contacts a vendor when it loads. Save it as its own component, for example
+in `src/lib`, and render it from any route:
+
+<include src="../../../shared/examples/svelte/youtube-embed.mdx" />
+
+`ConsentDialog` must be mounted in the root layout so the placeholder's link
+has a dialog to open. [Embeds](../embeds) covers iframes you cannot wrap.
+
+## The gate on the server
+
+`ConsentGate` renders an empty wrapper on the server, even when the visitor's
+stored choice allows the category. The embed and the placeholder both appear
+in the browser one frame after hydration. So an embed never reaches a cached
+or prerendered page, and a visitor who has not allowed it never requests it.
+Size the wrapper with `class` to avoid a layout shift.
+
+<include src="../../../shared/svelte/components/consent-gate.mdx" />

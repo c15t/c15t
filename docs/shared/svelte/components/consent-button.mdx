@@ -1,0 +1,66 @@
+{/* Shared by the Svelte and SvelteKit ConsentButton pages. */}
+
+## Put consent actions on your own pages
+
+`ConsentButton` is a button that performs one consent action, styled like the
+banner's buttons. Use it on a cookie policy page, an onboarding step or
+anywhere visitors should accept, reject or open preferences outside the
+banner:
+
+<include src="../../examples/storybook-svelte/consent-actions.mdx" />
+
+Render it inside `ConsentManagerProvider`. A button with
+`action="open-consent-dialog"` needs a mounted `ConsentDialog`.
+
+## Props
+
+`ConsentButton` also passes any `<button>` attribute through, such as `id`,
+`disabled` or `aria-describedby`.
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `action` | see below | required | What the click does. |
+| `category` | `AllConsentNames` | none | The category `set-consent` switches on. |
+| `variant` | `'primary'` or `'neutral'` | `'neutral'` | Color emphasis. |
+| `mode` | `'filled'`, `'stroke'`, `'lighter'` or `'ghost'` | `'stroke'` | Fill style. |
+| `size` | `'medium'`, `'small'`, `'xsmall'` or `'xxsmall'` | `'small'` | Button size. |
+| `closeConsentBanner`, `closeConsentDialog` | `boolean` | `false` | Close both surfaces after `dismiss-notice`. |
+| `noStyle` | `boolean` | provider's `noStyle` | Drops c15t's classes. |
+| `class` | `string` | none | Extra class. |
+| `onclick` | `(event: MouseEvent) => void` | none | Runs first. Call `event.preventDefault()` to skip the action. |
+| `children` | `Snippet` | none | The label. |
+
+| `action` | Effect |
+| --- | --- |
+| `accept-consent` | Records every category in scope as allowed. |
+| `reject-consent` | Records only `necessary`, rejecting the rest. |
+| `custom-consent` | Records the current draft, as the dialog's save button does. |
+| `dismiss-notice` | Records that the visitor dismissed a notice. Not a grant. |
+| `open-consent-dialog` | Opens the preference dialog. |
+| `set-consent` | Switches `category` on in the unsaved draft. Nothing is recorded until a save. |
+
+## Behavior
+
+Accept, reject and save record the choice in the same task as the click, and
+the banner or dialog that showed closes. The backend request runs after. A
+failed request is reported through the provider's `onError` callback and
+retried; the click handler does not throw. A save refused because the policy
+changed keeps the dialog open for review.
+
+A button with `open-consent-dialog` starts loading the dialog chunk in idle
+time while mounted, and on hover or focus.
+
+## Accessibility
+
+`ConsentButton` renders `<button type="button">` with its children as the
+accessible name. Write labels that say what happens: "Accept all" records a
+choice, "Choose cookies" opens preferences. Do not label a notice dismissal
+"Accept". [Copy and translations](/docs/customization/translations#write-labels-that-describe-the-action)
+has more guidance.
+
+## Style the button
+
+The button uses c15t's button classes and the `buttonPrimary` or
+`buttonSecondary` theme slot, by `variant`. It carries `data-variant`,
+`data-mode` and `data-size` for CSS. With `noStyle`, it renders with only
+your `class` and none of those attributes.

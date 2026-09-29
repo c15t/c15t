@@ -1,0 +1,15 @@
+---
+title: Embeds
+description: Keep YouTube videos, maps and other iframes out of SvelteKit server HTML and the browser until their consent category is allowed.
+group: frameworks
+---
+
+<include src="../../shared/svelte/embeds.mdx" />
+
+## Embeds in server HTML
+
+`ConsentGate` renders an empty wrapper on the server, so a gated embed is
+never in the server HTML, whatever the visitor chose. It appears in the
+browser after hydration. An iframe with `data-category` and `data-src` is in
+the server HTML without `src`, so it loads nothing until the iframe blocker
+starts in the browser and finds its category allowed.

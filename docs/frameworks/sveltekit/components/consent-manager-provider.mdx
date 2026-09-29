@@ -1,0 +1,30 @@
+---
+title: ConsentManagerProvider
+description: Mount ConsentManagerProvider in a SvelteKit root layout with a server prefetch so the banner is in the first HTML, with every prop and its default.
+group: frameworks
+---
+
+## Mount the provider in the root layout
+
+Resolve consent in the root layout's server load, then pass the result to the
+provider as `prefetch` in the root layout:
+
+<include src="../../../shared/examples/sveltekit-demo/layout-server.mdx" />
+
+<include src="../../../shared/examples/sveltekit-demo/layout.mdx" />
+
+Pass `data.prefetch` through unchanged. The provider starts from it on the
+server and in the browser, so both render the same banner, and the browser
+makes no second `/init` request. The [quickstart](../quickstart) explains
+`loadConsent` and the prerender check.
+
+Keep the provider in the root `+layout.svelte`. A layout stays mounted across
+client-side navigation, so the runtime, the loaded scripts and the dialog
+survive page changes. A provider in a page component would start again on
+every navigation.
+
+Create `scripts` and `callbacks` in the layout component, not in
+`+layout.server.ts`. They hold functions, which a server load cannot send to
+the browser.
+
+<include src="../../../shared/svelte/components/consent-manager-provider.mdx" />

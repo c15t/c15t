@@ -5,6 +5,9 @@ import type { UseNetworkBlockerOptions } from '@c15t/svelte';
 
 // Pass as `networkBlocker={networkBlocker}` on ConsentManagerProvider.
 export const networkBlocker: UseNetworkBlockerOptions = {
+	onRequestBlocked: ({ method, url }) => {
+		console.info('Blocked until consent', method, url);
+	},
 	rules: [
 		{
 			category: 'measurement',
@@ -18,8 +21,5 @@ export const networkBlocker: UseNetworkBlockerOptions = {
 			pathIncludes: '/signals',
 		},
 	],
-	onRequestBlocked: ({ method, url }) => {
-		console.info('Blocked until consent', method, url);
-	},
 };
 ```

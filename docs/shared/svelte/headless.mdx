@@ -55,39 +55,17 @@ button for a notice, and a hard-coded pair of buttons breaks those rules.
 For a custom dialog or settings page, read the category list and the unsaved
 draft from `getConsentManager()`:
 
-{/* example: fragment */}
-
-```svelte
-<script lang="ts">
-  import { getConsentManager } from '@c15t/svelte';
-
-  const consent = getConsentManager();
-</script>
-
-{#each consent.getDisplayedConsents() as category (category.name)}
-  <label>
-    <input
-      type="checkbox"
-      checked={consent.selectedConsents[category.name] ?? false}
-      disabled={category.name === 'necessary'}
-      onchange={(event) =>
-        consent.setConsent(category.name, event.currentTarget.checked)}
-    />
-    {category.name}
-  </label>
-{/each}
-<button type="button" onclick={() => consent.saveConsents('custom')}>Save</button>
-```
+<include src="../examples/storybook-svelte/own-preferences.mdx" />
 
 `setConsent` changes the draft only. `saveConsents('custom')` records it. If
 the policy changes while the draft is open, `consent.draft.isStale` becomes
-`true` and saving throws; show the new categories and let the visitor review
-them. Translated titles and descriptions are in
-`consent.translationConfig`.
+`true` and saving throws, so the example disables Save and shows a message.
+Translated titles and descriptions are in `consent.translationConfig`.
+[Context getters](./getters#work-with-the-draft) covers the draft.
 
 `@c15t/svelte` exports `Dialog`, `Switch`, `Accordion`, `PreferenceItem` and
 the `focusTrap`, `scrollLock` and `portal` actions if you want accessible
-building blocks for the dialog itself.
+building blocks for the dialog itself; see [primitives](./components/primitives).
 
 ## Verify a custom UI
 

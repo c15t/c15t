@@ -1,0 +1,40 @@
+{/* Shared by the Svelte and SvelteKit ConsentDialogLink pages, after each page's usage section. */}
+
+## Props
+
+`ConsentDialogLink` takes its label as children and passes every other
+attribute, such as `class`, `id` or `aria-describedby`, to the `<button>` it
+renders.
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `children` | `Snippet` | required | The visible label, such as "Privacy settings". |
+| `noStyle` | `boolean` | `true` | Unstyled by default so it matches your footer links. Set `false` for c15t's button style. |
+| `onclick` | `(event: MouseEvent) => void` | none | Runs before the dialog opens. Call `event.preventDefault()` to stop it opening. |
+| any button attribute | | | Passed to the `<button>`. |
+
+There is no `asChild`. To style it like your links, give it the same class,
+and reset the button's border, background and padding in that class.
+
+## Behavior
+
+- The link renders only when the policy offers a way to change preferences:
+  a prompt, a visitor right, or an external CMP's preferences. Visitors in a
+  region with no consent law and no rights see no link.
+- A click sets the active surface to `'dialog'`. It needs a mounted
+  `ConsentDialog` in the same provider to show anything.
+- It starts loading the dialog chunk in browser idle time while mounted, and
+  on hover or focus. See [ConsentDialog](./consent-dialog#how-the-dialog-loads).
+
+## Accessibility
+
+The link is a `<button type="button">`, so keyboard users reach it with Tab
+and activate it with Enter or Space. Its accessible name is its text. Keep the
+text specific, such as "Privacy settings" or "Cookie preferences", rather
+than "Click here".
+
+## Style the link
+
+The button carries `data-testid="consent-dialog-link"` and
+`data-c15t-rights` with the rights the policy grants, separated by spaces.
+Style it with your own class; with `noStyle` on, c15t adds no classes.

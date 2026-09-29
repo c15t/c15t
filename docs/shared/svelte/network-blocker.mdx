@@ -1,0 +1,89 @@
+{/* Shared by docs/frameworks/svelte/network-blocker.mdx and docs/frameworks/sveltekit/network-blocker.mdx. */}
+
+## When to use the network blocker
+
+The network blocker stops `fetch` and `XMLHttpRequest` calls to domains you
+list until their consent category is allowed. Use it as a backstop for
+tracking calls from code that is already on the page, such as your own
+analytics wrapper or an SDK you import. It is off until you configure it.
+
+Load vendor SDKs through the provider's `scripts` prop first; see
+[scripts](./scripts). A script that never loads sends nothing, which is
+stronger than blocking its requests one by one.
+
+## Configure the rules
+
+Write the configuration in its own module:
+
+<include src="../examples/storybook-svelte/network-blocker.mdx" />
+
+Pass it to the provider:
+
+{/* example: fragment */}
+
+```svelte
+<ConsentManagerProvider {mode} {scripts} {networkBlocker}>
+```
+
+The provider reads `networkBlocker` once, when it is created. Remount the
+provider to change the rules.
+
+<import src="../react/network-blocker.mdx#rules" />
+
+## What a blocked request looks like
+
+A blocked `fetch` resolves to a response with status `451` and the status
+text `Request blocked by consent`, and nothing is sent. A blocked
+`XMLHttpRequest` is aborted and fires an `error` event. Requests that match no
+rule are not delayed. With `logBlockedRequests` on, the default, each blocked
+request is logged with `console.warn`; `onRequestBlocked` receives
+`{ method, url, rule }`.
+
+## When blocking starts
+
+The provider starts holding matching requests when it is created in the
+browser, before its children run their own code. The blocker module loads
+when the provider mounts and then decides each held request:
+
+- While the policy is still loading, a matching request waits instead of
+  failing. When the policy arrives, with the visitor's stored choice applied,
+  the request is sent if its category is allowed and blocked otherwise.
+- If the policy fails to load, optional categories stay denied and the
+  waiting requests are blocked.
+- A synchronous XHR cannot wait. Before the blocker module loads, a matching
+  one throws a `NetworkError` from `send()`.
+
+When the visitor allows a category later, new requests to its domains go
+through. Requests blocked earlier are not replayed.
+
+## What it cannot stop
+
+The blocker sees only `fetch` and `XMLHttpRequest` calls made after the
+provider is created in the browser. It cannot stop:
+
+- Scripts that run before the provider, such as tags in `index.html` or
+  `app.html` and code at the top level of modules that load first.
+- Code that kept its own reference to `fetch` or `XMLHttpRequest` from before
+  the provider was created.
+- `navigator.sendBeacon`, `WebSocket`, `EventSource`, and requests made by
+  `<img>`, `<script>` and `<iframe>` elements, web workers and service
+  workers.
+- Requests your server makes, such as from a SvelteKit `load` or endpoint.
+
+Keep tracking calls out of that window. Send them from event handlers or
+effects, not at a module's top level, and check
+`getConsentManager().has('measurement')` before you call a vendor from your
+own code.
+
+## Verify the blocker
+
+Open DevTools, clear site data for your origin and reload:
+
+1. Before you choose, requests matching a rule do not reach the network, and
+   the console logs each blocked request.
+2. Allow the rule's category. New matching requests appear in the Network
+   panel.
+3. Reject, reload and confirm they stay blocked.
+
+`fetch('https://www.google-analytics.com/g/collect')` in the console returns a
+response with status `451` while measurement is denied.

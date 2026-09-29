@@ -1,0 +1,18 @@
+---
+title: Dev tools
+description: Inspect consent, scripts, location and events in a SvelteKit app with ConsentDevTools, imported only when $app/environment reports development.
+group: frameworks
+---
+
+## Add the panel in development
+
+Render `ConsentDevTools` inside `ConsentManagerProvider`, and load it only in
+development. `dev` from `$app/environment` is `true` in `vite dev` and
+`false` in a production build, which then drops the import:
+
+<include src="../../../shared/examples/sveltekit-demo/dev-tools.mdx" />
+
+Render `<ConsentDevTools />` from that file in the root layout or any page.
+The panel mounts in the browser only; it is never part of server HTML.
+
+<include src="../../../shared/svelte/components/dev-tools.mdx" />

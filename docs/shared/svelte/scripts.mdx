@@ -20,83 +20,42 @@ way, and a vendor loaded twice sends events twice.
 The `scripts` array is read when the provider is created. Build it once, at
 the top level of the component, not inside an effect.
 
-## Gate an embed with ConsentGate
+## Script options
 
-`ConsentGate` renders an iframe or any other content only while its category
-is allowed. The default placeholder explains what is blocked and opens
-preferences; pass a `placeholder` snippet to replace it.
+Helpers set these for you. For a script without a helper, write the object
+yourself:
 
-{/* example: fragment */}
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `id` | required | A unique name. The loader uses it to add and remove the script once. |
+| `category` | required | The category or condition, such as `'measurement'` or `{ and: ['measurement', 'marketing'] }`, that must be allowed. |
+| `src` or `textContent` | none | The script's URL, or inline code. |
+| `callbackOnly` | `false` | Adds no `<script>` element and only runs the callbacks. Use it to switch an SDK you load yourself on and off. |
+| `alwaysLoad` | `false` | Loads at once, whatever the consent state. Only for scripts that apply consent themselves, such as a tag manager with Consent Mode. |
+| `persistAfterConsentRevoked` | `false` | Keeps the element after withdrawal instead of removing it. |
+| `target` | `'head'` | Where the element goes: `'head'` or `'body'`. |
+| `async`, `defer`, `fetchPriority`, `attributes`, `nonce` | none | Set on the `<script>` element. |
+| `anonymizeId` | `true` | Gives the element a random `id`, so ad blockers do not match it by name. |
+| `vendor` | none | Also waits for this vendor to be allowed, for vendor-level consent outside IAB. |
+| `onBeforeLoad`, `onLoad`, `onError`, `onConsentChange`, `onDispose` | none | Lifecycle callbacks. See [callbacks](./callbacks#script-callbacks). |
 
-```svelte
-<script lang="ts">
-  import { ConsentDialogLink, ConsentGate } from '@c15t/svelte';
-</script>
+## Gate embeds
 
-<ConsentGate category="measurement">
-  {#snippet placeholder()}
-    <p>Allow measurement to load this video.</p>
-    <ConsentDialogLink>Choose video permissions</ConsentDialogLink>
-  {/snippet}
-  <iframe
-    title="YouTube video"
-    src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y"
-    allowfullscreen
-  ></iframe>
-</ConsentGate>
-```
+Iframes are not scripts. Wrap them in `ConsentGate`, which keeps the iframe
+out of the DOM until its category is allowed:
 
-The gated content never renders on the server, so it is absent from the first
-HTML for every visitor. When the visitor withdraws the category, the iframe
-unmounts. The [YouTube](/docs/integrations/youtube) and
-[Google Maps](/docs/integrations/google-maps) guides have ready configurations.
+<include src="../examples/svelte/youtube-embed.mdx" />
 
-## Gate iframes you do not render
+For iframes from a CMS or Markdown, which you cannot wrap, use the iframe
+blocker's `data-category` and `data-src` attributes. [Embeds](./embeds) covers
+both.
 
-The provider's iframe blocker is on by default. It watches the page for
-iframes with a `data-category` attribute and a `data-src` instead of `src`,
-sets `src` from `data-src` once the category is allowed, and removes it again
-when the category is withdrawn. Use it for iframes that come from a CMS or
-Markdown, where you cannot wrap the markup in `ConsentGate`.
+## Block requests from code already on the page
 
-{/* example: fragment */}
-
-```html
-<iframe
-  title="Store locations"
-  data-category="functionality"
-  data-src="https://www.google.com/maps/embed?pb=..."
-></iframe>
-```
-
-Iframes without `data-category` or `data-vendor` are never touched. Pass
-`iframeBlocker={false}` to turn the blocker off.
-
-## Block network requests
-
-The `networkBlocker` provider option stops `fetch` and `XMLHttpRequest` calls
-to the domains you list until their category is allowed. Use it as a backstop
-for beacons from code that is already on the page.
-
-{/* example: fragment */}
-
-```ts
-const networkBlocker = {
-  rules: [
-    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
-  ],
-};
-```
-
-Pass it as `networkBlocker={networkBlocker}` on `ConsentManagerProvider`.
-Blocking starts when the provider is created in the browser, before its
-children run their own code, and matching requests wait until the policy
-resolves. It cannot see requests made before the provider is created, such as
-tags in `app.html` or `index.html`, or `navigator.sendBeacon`, image, script
-and iframe requests. Load vendor SDKs through `scripts` so they wait for
-consent before they run at all.
-
-<import src="../react/network-blocker.mdx#rules" />
+The provider's `networkBlocker` option holds `fetch` and `XMLHttpRequest`
+calls to the domains you list until their category is allowed. It is a
+backstop for code you cannot move into `scripts`. [Network blocker](./network-blocker)
+covers the rules and what it cannot stop.
 
 ## What happens when consent is withdrawn
 

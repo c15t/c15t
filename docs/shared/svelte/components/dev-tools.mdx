@@ -1,0 +1,44 @@
+{/* Shared by the Svelte and SvelteKit dev tools pages, after each page's usage section. */}
+
+## What the panel shows
+
+The panel is a floating inspector for the provider's consent runtime. Its
+tabs:
+
+| Tab | Shows |
+| --- | --- |
+| `consents` | Effective permissions and the recorded choice per category, with switches to stage and save a test choice. |
+| `scripts` | Each registered script and its loading state. |
+| `location` | The country, region and language the policy resolved for, with overrides to test another location. |
+| `policy` | The resolved policy rule, its model, prompt, scope and rights. |
+| `iab` | The TCF state, when IAB is on. |
+| `events` | The consent runtime's events and script lifecycle events. |
+| `actions` | Buttons to open the banner or dialog, reset the draft, clear stored records and resolve the policy again. |
+
+Clearing records from the panel deletes the stored choice through the
+provider's storage settings, so a custom `storageConfig` is respected.
+Location overrides from the panel change the current page only.
+
+## Props
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `position` | `'bottom-right'`, `'bottom-left'`, `'top-right'` or `'top-left'` | `'bottom-right'` | Corner of the panel's toggle. |
+| `defaultOpen` | `boolean` | `false` | Opens the panel on load. |
+| `defaultTab` | one of the tabs above | `'consents'` | The tab it opens on. |
+| `maxEvents` | `number` | `100` | How many events the `events` tab keeps. |
+| `getConsentCategories` | `() => AllConsentNames[]` | the provider's categories | Categories the `consents` tab lists. |
+| `getPresentation` | `() => ConsentPresentation` | the provider's `presentation` | Presentation used for the panel's diagnostics. |
+| `clearRecords` | `() => void` | the provider's own | Replaces what the clear action does. |
+
+The panel renders inside a shadow root with its own stylesheet, so your CSS
+does not restyle it and its CSS does not leak into the page. The
+`ConsentDevToolsProps` type also lists `shadow`, but the Svelte component
+does not pass it on, so setting it has no effect.
+
+## Keep it out of production
+
+The panel can clear consent and change the location the policy resolves for.
+Render it in development only. Importing `@c15t/svelte/devtools` statically
+puts the panel in every bundle that imports the file, so import it
+dynamically behind a development check, as the example above does.

@@ -1,0 +1,49 @@
+{/* Shared by the Svelte and SvelteKit primitives pages. */}
+
+## When to use the primitives
+
+The stock consent components are built from a set of unstyled, accessible
+building blocks that `@c15t/svelte` also exports. Reach for them when you
+build your own preference dialog or settings page with the
+[headless getters](../headless) and want the same keyboard and focus behavior
+as the stock dialog. For the consent state itself, use `getConsentManager()`;
+the primitives know nothing about consent.
+
+Their rules are already in `@c15t/svelte/styles.css`. Each part accepts
+`class` and passes other HTML attributes to its element.
+
+## Compound components
+
+Import each as one object and use its parts, such as `Dialog.Root` and
+`Dialog.Content`. Every part is also exported on its own.
+
+| Component | Parts | Root props |
+| --- | --- | --- |
+| `Dialog` | `Root`, `Portal`, `Backdrop`, `Positioner`, `Content`, `Title`, `Description`, `CloseTrigger` | `open` (bindable, default `false`), `closeOnEscape` (`true`), `closeOnInteractOutside` (`true`), `trapFocus` (`true`), `preventScroll` (`false`), `lazyMount` (`false`), `unmountOnExit` (`false`) |
+| `Switch` | `Root`, `Control`, `Thumb`, `HiddenInput` | `checked` (bindable, default `false`), `disabled`, `type` (`'button'`) |
+| `Tabs` | `Root`, `List`, `Trigger`, `Content` | `value` (bindable), `orientation` (`'horizontal'`), `loop` (`true`), `disabled` |
+| `Accordion` | `Root`, `Item`, `ItemTrigger`, `ItemContent` | `type` (`'single'` or `'multiple'`, required), `value` (bindable), `collapsible` (`false`) |
+| `Collapsible` | `Root`, `Trigger`, `Content`, `Indicator` | `open` (bindable, default `false`), `disabled` |
+| `PreferenceItem` | `Root`, `Trigger`, `Leading`, `Header`, `Title`, `Meta`, `Auxiliary`, `Control`, `Content` | `open` (bindable, default `false`), `disabled`, `noStyle` |
+
+`Portal` renders its children into another element, `document.body` by
+default. Pass `target` as an element or a selector.
+
+## Actions
+
+Three Svelte actions apply the same behavior to your own elements:
+
+| Action | Use | Parameter |
+| --- | --- | --- |
+| `focusTrap` | `use:focusTrap={open}` | `true`, `false`, or `{ enabled, initialFocus }`. Keeps Tab inside the element while enabled. |
+| `scrollLock` | `use:scrollLock={open}` | `boolean`. Stops the page scrolling behind the element. |
+| `portal` | `use:portal` or `use:portal={'#modals'}` | An element or selector, default `body`. Moves the element there and removes it when the component unmounts. |
+
+The banner uses these three actions; the stock dialog uses `Dialog`.
+
+## Check your custom dialog
+
+Open it with the keyboard only. Tab and Shift+Tab stay inside it, Escape
+closes it, and focus returns to the control that opened it. Each switch
+announces its name and state in a screen reader. See the
+[headless page](../headless) for the consent side of a custom dialog.
