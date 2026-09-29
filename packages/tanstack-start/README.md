@@ -26,7 +26,7 @@ TanStack Start cookie banner and consent management platform with SSR-hydrated f
 - Root route loader hands the server-resolved consent state to the client, so the first paint already shows the right banner
 - Same-origin manifest and init server routes with in-process caching, ETag passthrough, and no self-fetch during SSR
 - Request middleware that normalizes CDN geo, language, and Global Privacy Control headers for every request
-- Static helpers for prerendered builds: strictest policy first, client-side geo fix-up afterwards
+- Static helpers for prerendered builds: the manifest's unknown-location policy first, client-side geo fix-up afterwards
 - Prebuilt and customizable cookie banner, consent dialog, and preference center UI
 - Headless hooks for custom consent flows
 - IAB TCF 2.4 UI and hooks through the @c15t/react/iab subpath
