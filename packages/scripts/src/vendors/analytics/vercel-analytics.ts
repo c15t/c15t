@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { trimToUndefined } from '../_shared/script-url';
 
 export type VercelAnalyticsMode = 'auto' | 'development' | 'production';
 
@@ -77,8 +78,9 @@ export interface VercelAnalyticsOptions {
 const getVercelScriptUrl = function getVercelScriptUrl(
 	options: VercelAnalyticsOptions
 ): string {
-	if (options.scriptUrl) {
-		return options.scriptUrl;
+	const scriptUrl = trimToUndefined(options.scriptUrl);
+	if (scriptUrl) {
+		return scriptUrl;
 	}
 	if (options.mode === 'development' || options.debug) {
 		return 'https://va.vercel-scripts.com/v1/script.debug.js';

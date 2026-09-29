@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { requireId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 /**
@@ -385,6 +386,8 @@ export interface PinterestTagOptions {
  * @returns A resolved c15t `Script` configuration that defines the `pintrk`
  *   queue stub, queues `load`, `setconsent`, and optionally `page`, then loads
  *   Pinterest's `core.js`.
+ * @throws {Error} `pinterestTag: missing or invalid tagId` when `tagId` is
+ *   empty or only whitespace.
  *
  * @example
  * ```ts
@@ -443,17 +446,18 @@ export const pinterestTag = function pinterestTag({
 	return resolveManifest(manifest, {
 		loadOptions,
 		scriptUrl: resolveScriptUrl(scriptUrl, 'https://s.pinimg.com/ct/core.js'),
-		tagId,
+		tagId: requireId('pinterestTag', 'tagId', tagId),
 	});
 };
 
 /**
  * Tracks a Pinterest Tag event.
  *
- * This helper is a no-op until Pinterest has been initialized by c15t, so it
- * is safe to call before marketing consent is granted. It does not bypass
- * consent: after revocation Pinterest's own `setconsent(false)` state
- * suppresses the event.
+ * Does nothing when `window.pintrk` is missing, which is the case until
+ * marketing consent is granted and the tag is set up. Events sent before then
+ * are dropped, not queued. The helper does not check consent itself: after a
+ * revocation the tag stays on the page, and Pinterest's `setconsent(false)`
+ * state is what keeps the event from being used for tracking.
  *
  * @param eventName - One of Pinterest's 20 event types or a user-defined
  *   event name.

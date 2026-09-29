@@ -4,6 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { buildQueuePixelInstall } from '../_shared/install-builders';
+import { requireId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 /**
@@ -390,6 +391,8 @@ const buildMetaPixelInstall = function buildMetaPixelInstall({
  *
  * @param options - The options for the Meta Pixel script
  * @returns The Meta Pixel script configuration
+ * @throws {Error} `metaPixel: missing or invalid pixelId` when `pixelId` is
+ *   empty or only whitespace.
  *
  * @example
  * ```ts
@@ -407,6 +410,7 @@ export const metaPixel = function metaPixel({
 	dataProcessingOptions,
 	scriptSrc,
 }: MetaPixelOptions): Script {
+	const normalizedPixelId = requireId('metaPixel', 'pixelId', pixelId);
 	const install = buildMetaPixelInstall({
 		dataProcessingOptions,
 		hasInitOptions: initOptions !== undefined,
@@ -420,7 +424,7 @@ export const metaPixel = function metaPixel({
 
 	const resolved = resolveManifest(manifest, {
 		initOptions,
-		pixelId,
+		pixelId: normalizedPixelId,
 		scriptSrc: resolveScriptUrl(
 			scriptSrc,
 			'https://connect.facebook.net/en_US/fbevents.js'
@@ -428,6 +432,18 @@ export const metaPixel = function metaPixel({
 	});
 
 	return resolved;
+};
+
+/**
+ * Calls `window.fbq` when the Meta Pixel queue exists. Does nothing
+ * otherwise, so the event helpers do not throw before the pixel is set up.
+ */
+const callFbq = function callFbq(...args: unknown[]): void {
+	if (typeof window === 'undefined' || typeof window.fbq !== 'function') {
+		return;
+	}
+
+	(window.fbq as (...fbqArgs: unknown[]) => void)(...args);
 };
 
 const resolveMetaPixelEventOptions = function resolveMetaPixelEventOptions(
@@ -451,7 +467,8 @@ const resolveMetaPixelEventOptions = function resolveMetaPixelEventOptions(
  * @param eventName - The `StandardEventName` to track.
  * @param params - Optional `StandardEventParams[TEventName]` payload.
  * @param eventOptions - Optional `MetaPixelEventOptions` or event ID string.
- * @returns `void`; calls `window.fbq`.
+ * @returns `void`; calls `window.fbq`, or does nothing when the pixel is not
+ * set up (before marketing consent). Events sent then are dropped, not queued.
  *
  * @example
  * ```ts
@@ -465,7 +482,7 @@ export const metaPixelEvent = <TEventName extends StandardEventName>(
 	params?: StandardEventParams[TEventName],
 	eventOptions?: MetaPixelEventOptions | string
 ): void =>
-	window.fbq(
+	callFbq(
 		'track',
 		eventName,
 		params,
@@ -478,13 +495,15 @@ export const metaPixelEvent = <TEventName extends StandardEventName>(
  * @param eventName - The custom event name to track
  * @param params - Optional custom parameters to track
  * @param eventOptions - Optional event options, including Conversions API eventID
+ * @returns `void`; calls `window.fbq`, or does nothing when the pixel is not
+ * set up (before marketing consent). Events sent then are dropped, not queued.
  */
 export const metaPixelCustomEvent = (
 	eventName: string,
 	params?: FbqCustomParams,
 	eventOptions?: MetaPixelEventOptions | string
 ): void =>
-	window.fbq(
+	callFbq(
 		'trackCustom',
 		eventName,
 		params,
@@ -502,7 +521,8 @@ export const metaPixelCustomEvent = (
  * @param eventName - The `StandardEventName` to track.
  * @param params - Optional `StandardEventParams[TEventName]` payload.
  * @param eventOptions - Optional `MetaPixelEventOptions` or event ID string.
- * @returns `void`; calls `window.fbq`.
+ * @returns `void`; calls `window.fbq`, or does nothing when the pixel is not
+ * set up (before marketing consent). Events sent then are dropped, not queued.
  *
  * @example
  * ```ts
@@ -520,7 +540,7 @@ export const metaPixelSingleEvent = <TEventName extends StandardEventName>(
 	params?: StandardEventParams[TEventName],
 	eventOptions?: MetaPixelEventOptions | string
 ): void =>
-	window.fbq(
+	callFbq(
 		'trackSingle',
 		pixelId,
 		eventName,
@@ -538,7 +558,8 @@ export const metaPixelSingleEvent = <TEventName extends StandardEventName>(
  * @param eventName - Custom event name to track.
  * @param params - Optional `FbqCustomParams` payload.
  * @param eventOptions - Optional `MetaPixelEventOptions` or event ID string.
- * @returns `void`; calls `window.fbq`.
+ * @returns `void`; calls `window.fbq`, or does nothing when the pixel is not
+ * set up (before marketing consent). Events sent then are dropped, not queued.
  *
  * @example
  * ```ts
@@ -551,7 +572,7 @@ export const metaPixelSingleCustomEvent = (
 	params?: FbqCustomParams,
 	eventOptions?: MetaPixelEventOptions | string
 ): void =>
-	window.fbq(
+	callFbq(
 		'trackSingleCustom',
 		pixelId,
 		eventName,

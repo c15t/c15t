@@ -3,7 +3,11 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { joinUrlPath, stripTrailingSlashes } from '../_shared/script-url';
+import {
+	joinUrlPath,
+	stripTrailingSlashes,
+	trimToUndefined,
+} from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -68,6 +72,7 @@ interface MatomoManifestOptions {
 
 interface MatomoGrantedHooks {
 	onBeforeLoadGranted: VendorManifest['onBeforeLoadGranted'];
+	onBeforeLoadDenied: VendorManifest['onBeforeLoadDenied'];
 	onConsentGranted: VendorManifest['onConsentGranted'];
 }
 
@@ -117,22 +122,6 @@ const buildInstallSteps = function buildInstallSteps(
 		});
 	}
 
-	if (options.enableConsentMode && options.consentInitiallyGiven) {
-		install.push({
-			queue: '_paq',
-			type: 'pushToQueue',
-			value: ['setConsentGiven'],
-		});
-
-		if (options.trackPageView) {
-			install.push({
-				queue: '_paq',
-				type: 'pushToQueue',
-				value: ['trackPageView'],
-			});
-		}
-	}
-
 	if (options.trackPageView && !options.enableConsentMode) {
 		install.push({
 			queue: '_paq',
@@ -154,22 +143,28 @@ const buildGrantedHooks = function buildGrantedHooks(
 	options: MatomoManifestOptions
 ): MatomoGrantedHooks {
 	const onBeforeLoadGranted: VendorManifest['onBeforeLoadGranted'] = [];
-	if (options.enableConsentMode && !options.consentInitiallyGiven) {
+	const onBeforeLoadDenied: VendorManifest['onBeforeLoadDenied'] = [];
+	if (options.enableConsentMode) {
 		onBeforeLoadGranted.push({
 			queue: '_paq',
 			type: 'pushToQueue',
 			value: ['setConsentGiven'],
 		});
 	}
-	if (
-		options.trackPageView &&
-		options.enableConsentMode &&
-		!options.consentInitiallyGiven
-	) {
+	if (options.trackPageView && options.enableConsentMode) {
 		onBeforeLoadGranted.push({
 			queue: '_paq',
 			type: 'pushToQueue',
 			value: ['trackPageView'],
+		});
+	}
+	// `given` skips the up-front `requireConsent`, so a visitor without
+	// measurement consent still needs it before matomo.js starts tracking.
+	if (options.enableConsentMode && options.consentInitiallyGiven) {
+		onBeforeLoadDenied.push({
+			queue: '_paq',
+			type: 'pushToQueue',
+			value: ['requireConsent'],
 		});
 	}
 
@@ -191,6 +186,7 @@ const buildGrantedHooks = function buildGrantedHooks(
 	}
 
 	return {
+		onBeforeLoadDenied,
 		onBeforeLoadGranted,
 		onConsentGranted,
 	};
@@ -217,12 +213,14 @@ const buildDeniedHooks = function buildDeniedHooks(
  * @param options - Manifest toggles:
  * - `enableConsentMode`: enables Matomo consent queue commands and sets
  * `alwaysLoad`/`persistAfterConsentRevoked`.
- * - `consentInitiallyGiven`: when consent mode is enabled, queues
- * `setConsentGiven` during install instead of `requireConsent`.
+ * - `consentInitiallyGiven`: when consent mode is enabled, skips the
+ * up-front `requireConsent` and queues it on load only when the visitor does
+ * not have measurement consent.
  * - `enableLinkTracking`: queues `enableLinkTracking` during install.
  * - `disableCookies`: queues `disableCookies` during install.
  * - `trackPageView`: queues `trackPageView` immediately only when consent mode
- * is disabled; when consent mode is enabled, queues it in grant hooks.
+ * is disabled; when consent mode is enabled, queues it when the script loads
+ * with measurement consent and when that consent is granted later.
  * @returns A Matomo `VendorManifest` with `install`, consent lifecycle hooks,
  * and consent metadata (`alwaysLoad`, `persistAfterConsentRevoked`) derived
  * from `enableConsentMode`.
@@ -230,7 +228,8 @@ const buildDeniedHooks = function buildDeniedHooks(
 const createMatomoAnalyticsManifest = function createMatomoAnalyticsManifest(
 	options: MatomoManifestOptions
 ): VendorManifest {
-	const { onBeforeLoadGranted, onConsentGranted } = buildGrantedHooks(options);
+	const { onBeforeLoadDenied, onBeforeLoadGranted, onConsentGranted } =
+		buildGrantedHooks(options);
 	let alwaysLoad: true | undefined;
 	let persistAfterConsentRevoked: true | undefined;
 	if (options.enableConsentMode) {
@@ -243,6 +242,7 @@ const createMatomoAnalyticsManifest = function createMatomoAnalyticsManifest(
 		alwaysLoad,
 		category: 'measurement',
 		install: buildInstallSteps(options),
+		onBeforeLoadDenied,
 		onBeforeLoadGranted,
 		onConsentDenied: buildDeniedHooks(options),
 		onConsentGranted,
@@ -276,7 +276,12 @@ export interface MatomoAnalyticsOptions {
 	disableCookies?: boolean;
 	/** Queue an initial `trackPageView`. */
 	trackPageView?: boolean;
-	/** Default Matomo consent state (`required` blocks, `given` starts enabled). */
+	/**
+	 * Enables Matomo's consent API and loads matomo.js before measurement
+	 * consent. `required` queues `requireConsent` first. `given` does not, and
+	 * queues `setConsentGiven` only when the visitor has measurement consent
+	 * as the script loads; otherwise it queues `requireConsent`.
+	 */
 	defaultConsent?: 'required' | 'given';
 }
 
@@ -296,12 +301,12 @@ export const matomoAnalytics = function matomoAnalytics(
 	options: MatomoAnalyticsOptions = {}
 ): Script {
 	const origin = resolveMatomoOrigin(options);
-	let { trackerUrl } = options;
+	let trackerUrl = trimToUndefined(options.trackerUrl);
 	if (!trackerUrl && origin) {
 		trackerUrl = joinUrlPath(origin, 'matomo.php');
 	}
 
-	let { scriptUrl } = options;
+	let scriptUrl = trimToUndefined(options.scriptUrl);
 	if (!scriptUrl && origin) {
 		scriptUrl = joinUrlPath(origin, 'matomo.js');
 	}

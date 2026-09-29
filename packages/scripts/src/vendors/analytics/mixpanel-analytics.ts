@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -163,8 +164,10 @@ export const mixpanelAnalytics = function mixpanelAnalytics({
 
 	return resolveManifest(mixpanelAnalyticsManifest, {
 		initOptions: initOptions ?? {},
-		scriptUrl:
-			scriptUrl ?? 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
+		scriptUrl: resolveScriptUrl(
+			scriptUrl,
+			'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js'
+		),
 		token: normalizedToken,
 	});
 };

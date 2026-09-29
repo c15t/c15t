@@ -1,8 +1,10 @@
 import type { Script } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
-import { vendorManifestContract } from '../../types';
+import { runtimeTimestampValue, vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { requireId } from '../_shared/required-id';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 interface TikTokPixelFunction {
 	grantConsent: () => void;
@@ -33,19 +35,14 @@ declare global {
 /**
  * TikTok Pixel vendor manifest.
  *
- * Uses structured bootstrap steps and provides a consent API
- * via `ttq.grantConsent()` / `ttq.revokeConsent()`.
+ * Reproduces TikTok's base code: the `ttq` method queue, the pixel record
+ * that `ttq.load(pixelId)` keeps in `ttq._i`, `ttq._t`, and `ttq._o`, and a
+ * queued `page()`. The pixel only loads with marketing consent, so setup
+ * queues one `grantConsent()`. Later changes call `ttq.grantConsent()` or
+ * `ttq.revokeConsent()`.
  */
 export const tiktokPixelManifest = {
 	...vendorManifestContract,
-	afterLoad: [
-		{
-			global: 'ttq',
-			method: 'grantConsent',
-
-			type: 'callGlobal',
-		},
-	],
 	bootstrap: [
 		{
 			name: 'TiktokAnalyticsObject',
@@ -85,6 +82,54 @@ export const tiktokPixelManifest = {
 	],
 	category: 'marketing',
 	install: [
+		// Mirror the bookkeeping `ttq.load(pixelId)` does in TikTok's base code.
+		// c15t appends events.js itself, so it records the pixel directly
+		// instead of calling `load`, which would insert a second loader.
+		{
+			ifGlobalIsQueue: true,
+			ifUndefined: true,
+			path: ['ttq', '_i'],
+			type: 'setGlobalPath',
+			value: {},
+		},
+		{
+			ifGlobalIsQueue: true,
+			path: ['ttq', '_i', '{{pixelId}}'],
+			type: 'setGlobalPath',
+			value: [],
+		},
+		{
+			ifGlobalIsQueue: true,
+			path: ['ttq', '_i', '{{pixelId}}', '_u'],
+			type: 'setGlobalPath',
+			value: '{{scriptSrc}}',
+		},
+		{
+			ifGlobalIsQueue: true,
+			ifUndefined: true,
+			path: ['ttq', '_t'],
+			type: 'setGlobalPath',
+			value: {},
+		},
+		{
+			ifGlobalIsQueue: true,
+			path: ['ttq', '_t', '{{pixelId}}'],
+			type: 'setGlobalPath',
+			value: runtimeTimestampValue,
+		},
+		{
+			ifGlobalIsQueue: true,
+			ifUndefined: true,
+			path: ['ttq', '_o'],
+			type: 'setGlobalPath',
+			value: {},
+		},
+		{
+			ifGlobalIsQueue: true,
+			path: ['ttq', '_o', '{{pixelId}}'],
+			type: 'setGlobalPath',
+			value: {},
+		},
 		{
 			global: 'ttq',
 			method: 'grantConsent',
@@ -141,6 +186,8 @@ export interface TikTokPixelOptions {
  *
  * @param options - The options for the TikTok Pixel script
  * @returns The TikTok Pixel script configuration
+ * @throws {Error} `tiktokPixel: missing or invalid pixelId` when `pixelId` is
+ *   empty or only whitespace.
  *
  * @example
  * ```ts
@@ -156,8 +203,11 @@ export const tiktokPixel = function tiktokPixel({
 	scriptSrc,
 }: TikTokPixelOptions): Script {
 	const resolved = resolveManifest(tiktokPixelManifest, {
-		pixelId,
-		scriptSrc: scriptSrc ?? 'https://analytics.tiktok.com/i18n/pixel/events.js',
+		pixelId: requireId('tiktokPixel', 'pixelId', pixelId),
+		scriptSrc: resolveScriptUrl(
+			scriptSrc,
+			'https://analytics.tiktok.com/i18n/pixel/events.js'
+		),
 	});
 
 	return resolved;

@@ -58,6 +58,13 @@ export interface SetGlobalStep {
 	 * @default true
 	 */
 	ifUndefined?: boolean;
+	/**
+	 * Keep the current value when it is already an array, such as a snippet
+	 * queue the page filled before this step ran. Any other value is replaced.
+	 * Only relevant when `ifUndefined` is `false`.
+	 * @default false
+	 */
+	keepExistingQueue?: boolean;
 }
 
 export interface DefineQueueFunctionStep {
@@ -137,6 +144,12 @@ export interface SetGlobalPathStep {
 	value: unknown;
 	/** Only assign while the root global is still a snippet queue array. */
 	ifGlobalIsQueue?: boolean;
+	/**
+	 * Only assign when the target property is `undefined`, mirroring the
+	 * `obj.x = obj.x || value` pattern.
+	 * @default false
+	 */
+	ifUndefined?: boolean;
 }
 
 export interface DefineQueueMethodsStep {
@@ -173,6 +186,14 @@ export interface DefineQueueMethodsStep {
 		| 'wrappedMethodCall'
 		| 'voidMethodCall'
 		| 'callback';
+	/**
+	 * Leave a method alone when the target already has a function under that
+	 * name. Setup runs again when consent is granted after a revocation
+	 * without a page reload; this keeps the methods of an SDK that is still
+	 * running instead of replacing them with queue stubs that nothing drains.
+	 * @default false
+	 */
+	preserveExisting?: boolean;
 }
 
 export interface DefineQueueClassStep {
@@ -318,10 +339,20 @@ export interface VendorManifest extends ManifestContract {
 	/** Steps to run on any consent state change */
 	onConsentChange?: ManifestStep[];
 
-	/** Steps to run when this vendor's category consent is granted */
+	/**
+	 * Steps to run when this vendor's consent changes to granted.
+	 *
+	 * Consent updates that leave this vendor's consent unchanged, such as a
+	 * change to an unrelated category, do not run these steps again.
+	 */
 	onConsentGranted?: ManifestStep[];
 
-	/** Steps to run when this vendor's category consent is denied */
+	/**
+	 * Steps to run when this vendor's consent changes to denied.
+	 *
+	 * Consent updates that leave this vendor's consent unchanged do not run
+	 * these steps again.
+	 */
 	onConsentDenied?: ManifestStep[];
 
 	/**

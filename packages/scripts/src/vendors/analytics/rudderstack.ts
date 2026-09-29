@@ -392,8 +392,9 @@ const validateRequiredString = function validateRequiredString(
 };
 
 const validateOptionalHttpsScriptUrl = function validateOptionalHttpsScriptUrl(
-	scriptUrl: string | undefined
+	scriptUrlOverride: string | undefined
 ): string | undefined {
+	const scriptUrl = trimToUndefined(scriptUrlOverride);
 	if (scriptUrl === undefined) {
 		return undefined;
 	}

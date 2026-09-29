@@ -3,6 +3,8 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { requireId } from '../_shared/required-id';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 // Extended Window interface to include microsoft uet specific properties
 declare global {
@@ -119,6 +121,8 @@ export interface MicrosoftUetOptions {
  *
  * @param options - The options for the Microsoft UET script
  * @returns The Microsoft UET script configuration
+ * @throws {Error} `microsoftUet: missing or invalid id` when `id` is
+ *   empty or only whitespace.
  *
  * @example
  * ```ts
@@ -134,8 +138,8 @@ export const microsoftUet = function microsoftUet({
 	scriptSrc,
 }: MicrosoftUetOptions): Script {
 	const resolved = resolveManifest(microsoftUetManifest, {
-		id,
-		scriptSrc: scriptSrc ?? '//bat.bing.com/bat.js',
+		id: requireId('microsoftUet', 'id', id),
+		scriptSrc: resolveScriptUrl(scriptSrc, '//bat.bing.com/bat.js'),
 	});
 
 	return resolved;

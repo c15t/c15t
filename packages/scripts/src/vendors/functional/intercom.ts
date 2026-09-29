@@ -3,6 +3,8 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { requireId } from '../_shared/required-id';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 export const INTERCOM_API_BASES = {
 	au: 'https://api-iam.au.intercom.io',
@@ -151,6 +153,8 @@ export interface IntercomOptions {
  *
  * @param options - The options for the Intercom script.
  * @returns The Intercom script configuration.
+ * @throws {Error} `intercom: missing or invalid appId` when `appId` is
+ *   empty or only whitespace.
  *
  * @example
  * ```ts
@@ -167,12 +171,17 @@ export const intercom = function intercom({
 	settings,
 	scriptSrc,
 }: IntercomOptions): Script {
+	const normalizedAppId = requireId('intercom', 'appId', appId);
+
 	return resolveManifest(intercomManifest, {
-		scriptSrc: scriptSrc ?? `https://widget.intercom.io/widget/${appId}`,
+		scriptSrc: resolveScriptUrl(
+			scriptSrc,
+			`https://widget.intercom.io/widget/${normalizedAppId}`
+		),
 		settings: {
 			...(settings ?? {}),
 			api_base: apiBase,
-			app_id: appId,
+			app_id: normalizedAppId,
 		},
 	});
 };

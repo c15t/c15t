@@ -166,9 +166,14 @@ declare global {
  * `window.amplitude.invoked`, an `_q` method-call queue, and an `_iq` registry
  * for named instances. It also defines the `Identify` queued helper used by
  * pre-load `identify()` calls. c15t gates the loader on `measurement` consent,
- * queues `init(apiKey, initOptions)` before the bundle loads, and uses
- * `setOptOut(false)` / `setOptOut(true)` for runtime consent changes after the
- * SDK has loaded.
+ * queues `init(apiKey, initOptions)` and `setOptOut(false)` before the bundle
+ * loads, and uses `setOptOut(false)` / `setOptOut(true)` for runtime consent
+ * changes after the SDK has loaded.
+ *
+ * Amplitude stores the opt-out in its cookie, so the queued
+ * `setOptOut(false)` clears an opt-out saved by an earlier revocation. The
+ * script stays on the page after revocation: removing it would not stop the
+ * running SDK, and loading the bundle again would start a second client.
  */
 export const amplitudeManifest = {
 	...vendorManifestContract,
@@ -220,6 +225,14 @@ export const amplitudeManifest = {
 			type: 'loadScript',
 		},
 	],
+	onBeforeLoadGranted: [
+		{
+			args: [false],
+			global: 'amplitude',
+			method: 'setOptOut',
+			type: 'callGlobal',
+		},
+	],
 	onConsentDenied: [
 		{
 			args: [true],
@@ -244,6 +257,7 @@ export const amplitudeManifest = {
 			type: 'callGlobal',
 		},
 	],
+	persistAfterConsentRevoked: true,
 	vendor: 'amplitude',
 } as const satisfies VendorManifest;
 
@@ -274,9 +288,10 @@ export interface AmplitudeOptions {
  *
  * @remarks
  * The generated script is gated on `measurement` consent. It does not load the
- * Amplitude SDK until measurement consent is granted; after the SDK is loaded,
+ * Amplitude SDK until measurement consent is granted, and it clears any
+ * opt-out Amplitude saved earlier when it loads. After the SDK is loaded,
  * later consent changes call `amplitude.setOptOut(false)` or
- * `amplitude.setOptOut(true)`.
+ * `amplitude.setOptOut(true)`, and the script stays on the page.
  *
  * @example
  * ```ts

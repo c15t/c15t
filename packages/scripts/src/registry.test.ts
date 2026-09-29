@@ -151,7 +151,7 @@ const helperParityCases = {
 	amplitude: {
 		expected: {
 			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
+			persistAfterConsentRevoked: true,
 			src: 'https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz',
 		},
 		script: amplitude({ apiKey: 'AMPLITUDE-CONTRACT' }),

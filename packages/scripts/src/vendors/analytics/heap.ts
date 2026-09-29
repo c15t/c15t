@@ -298,7 +298,9 @@ export const heapManifest = {
 		},
 		{
 			methods: [...HEAP_QUEUE_METHODS],
-
+			// A grant after a revocation reruns setup while heap.js is still
+			// running. Keep its live methods rather than queueing into stubs.
+			preserveExisting: true,
 			queue: { global: 'heapReadyCb' },
 			queueFormat: 'callback',
 			target: 'heap',

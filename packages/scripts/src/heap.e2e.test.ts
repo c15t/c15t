@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
 	deniedConsents,
@@ -185,5 +185,38 @@ describe('heap contract', () => {
 
 		expect(result.unloaded).toEqual(['heap-contract']);
 		expect(document.getElementById('c15t-script-heap-contract')).toBeNull();
+	});
+
+	it('keeps live heap.js methods on grant, revoke, grant without a reload', () => {
+		const track = vi.fn();
+		let appends = 0;
+		const script = {
+			...heap({ envId: '123456789' }),
+			id: 'heap-contract',
+		};
+
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('cdn.us.heap-api.com/config/123456789')) {
+				return;
+			}
+
+			appends += 1;
+			if (appends === 1 && win.heap) {
+				// heap.js installs its runtime methods over the snippet stubs once.
+				win.heap.track = track;
+			} else {
+				// Setup ran again for the re-grant. Calls made now must still
+				// reach the running runtime rather than a stub queue.
+				win.heap?.track?.('Signup');
+			}
+			node.dispatchEvent(new Event('load'));
+		});
+
+		loadScripts([script], grantedMeasurementConsents);
+		updateScripts([script], deniedConsents);
+		loadScripts([script], grantedMeasurementConsents);
+
+		expect(appends).toBe(2);
+		expect(track).toHaveBeenCalledWith('Signup');
 	});
 });
