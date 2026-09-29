@@ -78,6 +78,7 @@ const model = resolvePromptModel({
 	presentation: c15t.options.presentation,
 	props,
 	snapshot,
+	theme: c15t.options.theme,
 });
 ---
 
@@ -208,21 +209,15 @@ const model = resolvePromptModel({
 								data-fill={model.shouldFill ? 'true' : undefined}
 								data-testid="consent-banner-footer-sub-group"
 							>
-								{group.map(({ action, label, primary }) => (
+								{group.map(({ action, label, mode, variant }) => (
 									<button
 										class={model.classes.button}
 										data-action={action}
 										data-c15t-action={action}
-										data-mode={props.noStyle ? undefined : 'stroke'}
+										data-mode={mode}
 										data-size={props.noStyle ? undefined : 'small'}
 										data-testid={`consent-banner-${action}-button`}
-										data-variant={
-											props.noStyle
-												? undefined
-												: primary
-													? 'primary'
-													: 'neutral'
-										}
+										data-variant={variant}
 										type="button"
 									>
 										{label}

@@ -900,6 +900,7 @@ export {
 	PROMPT_SLOT_ATTRIBUTE,
 } from './banner/slot';
 export type {
+	PromptAction,
 	PromptModel,
 	PromptModelInput,
 	PromptProps,

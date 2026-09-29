@@ -14,6 +14,7 @@ import type {
 	ConsentSnapshot,
 	LegalLinks,
 } from '@c15t/core';
+import type { Theme } from '@c15t/ui/theme';
 
 import type { PromptClassNames } from '../banner/class-names';
 import { resolvePromptModel } from '../banner/prompt-model';
@@ -25,6 +26,8 @@ import { element, hiddenBanner, readSpot, renderBrandingTag } from './dom';
 export interface RenderPromptOptions {
 	presentation?: ConsentPresentation;
 	legalLinks?: LegalLinks;
+	/** The integration's `theme`, for `consentActions`. */
+	theme?: Theme;
 }
 
 /** What `<ConsentBanner />` leaves in its spot. */
@@ -88,26 +91,22 @@ const renderFooter = function renderFooter(
 					'data-fill': model.shouldFill ? 'true' : undefined,
 					'data-testid': 'consent-banner-footer-sub-group',
 				},
-				group.map(({ action, label, primary }) => {
-					let buttonVariant: string | undefined;
-					if (!props.noStyle) {
-						buttonVariant = primary ? 'primary' : 'neutral';
-					}
-					return element(
+				group.map(({ action, label, mode, variant }) =>
+					element(
 						'button',
 						{
 							class: model.classes.button,
 							'data-action': action,
 							'data-c15t-action': action,
-							'data-mode': props.noStyle ? undefined : 'stroke',
+							'data-mode': mode,
 							'data-size': props.noStyle ? undefined : 'small',
 							'data-testid': `consent-banner-${action}-button`,
-							'data-variant': buttonVariant,
+							'data-variant': variant,
 							type: 'button',
 						},
 						[label]
-					);
-				})
+					)
+				)
 			)
 		);
 	}
@@ -144,6 +143,7 @@ export const buildPrompt = function buildPrompt(
 		presentation: options.presentation,
 		props,
 		snapshot,
+		theme: options.theme,
 	});
 	const description = element(
 		'div',

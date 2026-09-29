@@ -194,8 +194,23 @@ import too; without it the IAB banner and dialog are unstyled.
 The integration's `theme` tokens are rendered on the server as a
 `<style id="c15t-theme">` element next to the config script, so the
 server-rendered banner and the dialog islands share them from the first paint.
-A `theme` in the client entrypoint only adds slot styles and `consentActions`;
-put tokens in the integration's `theme`.
+The banner also reads `consentActions` from the integration's `theme` to set
+each button's `mode` and `variant`, in the same order as the React banner: the
+action's own key, then `primary` for the policy's primary action, then
+`default`. Put tokens and `consentActions` in the integration's `theme`, not
+in the client entrypoint. The IAB banner keeps its fixed button styles, as it
+does in React.
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  theme: {
+    consentActions: {
+      primary: { mode: 'filled' },
+      customize: { mode: 'ghost', variant: 'neutral' },
+    },
+  },
+});
+```
 
 ### Color scheme
 

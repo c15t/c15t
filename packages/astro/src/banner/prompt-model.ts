@@ -18,6 +18,7 @@ import type {
 	LegalLinks,
 } from '@c15t/core';
 import type { Translations } from '@c15t/translations';
+import type { ConsentActionStyle, Theme } from '@c15t/ui/theme';
 import { getTextDirection } from '@c15t/ui/utils';
 
 import type { PromptClassNames } from './class-names';
@@ -54,6 +55,8 @@ export interface PromptModelInput {
 	presentation?: ConsentPresentation;
 	/** The integration's `legalLinks` option. */
 	legalLinks?: LegalLinks;
+	/** The integration's `theme` option. Only `consentActions` is read. */
+	theme?: Theme;
 	/** The stylesheet class names the markup uses. */
 	classNames: PromptClassNames;
 }
@@ -63,6 +66,17 @@ export interface PromptLegalLink {
 	key: keyof LegalLinks;
 	href: string | undefined;
 	label: string;
+}
+
+/** One banner button. */
+export interface PromptAction {
+	action: string;
+	label: string;
+	primary: boolean;
+	/** The button's `data-mode`, or `undefined` with `noStyle`. */
+	mode: string | undefined;
+	/** The button's `data-variant`, or `undefined` with `noStyle`. */
+	variant: string | undefined;
 }
 
 /** Everything the banner markup needs. */
@@ -84,7 +98,7 @@ export interface PromptModel {
 	};
 	legalLinks: PromptLegalLink[];
 	rights: { right: string; label: string }[];
-	actionGroups: { action: string; label: string; primary: boolean }[][];
+	actionGroups: PromptAction[][];
 	classes: {
 		root: string;
 		overlay: string;
@@ -258,6 +272,41 @@ const resolveClasses = function resolveClasses(
 };
 
 /**
+ * The button treatment for one action, in the order the React banner
+ * resolves it: the action's own `theme.consentActions` key, then `primary`
+ * for a primary action, then `default`, then stroke with the primary or
+ * neutral variant. Mode and variant each come from the first layer that
+ * sets them.
+ *
+ * @param action - The consent action.
+ * @param primary - Whether the policy marks the action primary.
+ * @param consentActions - The theme's `consentActions`.
+ * @returns The resolved mode and variant.
+ */
+const resolveConsentActionStyle = function resolveConsentActionStyle(
+	action: string,
+	primary: boolean,
+	consentActions: Theme['consentActions']
+): Required<ConsentActionStyle> {
+	// `save` has no theme key; the other actions each have their own.
+	const themed =
+		action === 'save'
+			? undefined
+			: consentActions?.[action as keyof NonNullable<Theme['consentActions']>];
+	const layers: (ConsentActionStyle | undefined)[] = [
+		themed,
+		primary ? consentActions?.primary : undefined,
+		consentActions?.default,
+	];
+	return {
+		mode: layers.find((layer) => layer?.mode)?.mode ?? 'stroke',
+		variant:
+			layers.find((layer) => layer?.variant)?.variant ??
+			(primary ? 'primary' : 'neutral'),
+	};
+};
+
+/**
  * Resolve the banner's copy, actions, layout and class names.
  *
  * @param input - The snapshot, the component props and the site options.
@@ -300,13 +349,36 @@ export const resolvePromptModel = function resolvePromptModel(
 			? mirrorCorner(presentation.position)
 			: presentation.position;
 
+	// A notice offers no customize, so the resolver's default primary drops
+	// out. When dismiss is the only button it is the primary one, as in the
+	// React and Svelte banners.
+	const orderedActions = actionGroups.flat();
+	const primaries =
+		primaryActions.length === 0 &&
+		orderedActions.length === 1 &&
+		orderedActions[0] === 'dismiss'
+			? orderedActions
+			: primaryActions;
+
 	return {
 		actionGroups: actionGroups.map((group) =>
-			group.map((action) => ({
-				action,
-				label: labels.actions[action] ?? action,
-				primary: primaryActions.includes(action),
-			}))
+			group.map((action) => {
+				const primary = primaries.includes(action);
+				const style = props.noStyle
+					? undefined
+					: resolveConsentActionStyle(
+							action,
+							primary,
+							input.theme?.consentActions
+						);
+				return {
+					action,
+					label: labels.actions[action] ?? action,
+					mode: style?.mode,
+					primary,
+					variant: style?.variant,
+				};
+			})
 		),
 		blocking,
 		classes: resolveClasses(input.classNames, props),

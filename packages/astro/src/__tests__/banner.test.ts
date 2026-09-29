@@ -129,6 +129,53 @@ describe('<ConsentBanner />', () => {
 		expect(html).toContain('data-testid="consent-banner-root"');
 	});
 
+	it('drops the themed button styles with `noStyle`', async () => {
+		const html = await render(
+			await buildLocals({
+				mode: offlineMode({ policyRules: [testRule] }),
+				theme: { consentActions: { default: { mode: 'ghost' } } },
+			}),
+			{ noStyle: true }
+		);
+		const accept =
+			/<button[^>]*data-testid="consent-banner-accept-button"[^>]*>/u.exec(
+				html
+			)?.[0];
+		expect(accept).toBeDefined();
+		expect(accept).not.toContain('data-mode=');
+		expect(accept).not.toContain('data-variant=');
+	});
+
+	it('styles the buttons from `theme.consentActions`', async () => {
+		const html = await render(
+			await buildLocals({
+				mode: offlineMode({ policyRules: [testRule] }),
+				presentation: { prompt: { primaryActions: ['accept'] } },
+				theme: {
+					consentActions: {
+						customize: { mode: 'ghost', variant: 'neutral' },
+						default: { mode: 'filled' },
+						primary: { mode: 'stroke', variant: 'primary' },
+					},
+				},
+			})
+		);
+		const button = (action: string) =>
+			new RegExp(
+				`<button[^>]*data-testid="consent-banner-${action}-button"[^>]*>`,
+				'u'
+			).exec(html)?.[0];
+
+		// The React banner's order (`resolveConsentButtonStyle`): the
+		// action's own key, then `primary`, then `default`, then stroke.
+		expect(button('accept')).toContain('data-mode="stroke"');
+		expect(button('accept')).toContain('data-variant="primary"');
+		expect(button('reject')).toContain('data-mode="filled"');
+		expect(button('reject')).toContain('data-variant="neutral"');
+		expect(button('customize')).toContain('data-mode="ghost"');
+		expect(button('customize')).toContain('data-variant="neutral"');
+	});
+
 	it('renders the branding tag with the shared markup', async () => {
 		const html = await render(await buildLocals());
 		// Matched as one element: separate `toContain` checks would pass
@@ -288,6 +335,10 @@ describe('<ConsentBanner /> under a notice prompt', () => {
 		expect(html).toContain('Do not sell or share my data');
 		expect(html).toContain('data-action="dismiss"');
 		expect(html).toContain('data-c15t-action="dismiss"');
+		// The only button leads, as it does in the React and Svelte banners.
+		expect(
+			/<button[^>]*data-action="dismiss"[^>]*>/u.exec(html)?.[0]
+		).toContain('data-variant="primary"');
 		// Acknowledgement dismisses the notice without recording consent.
 		expect(html).toContain('>OK<');
 		expect(html).not.toContain('>Dismiss<');
