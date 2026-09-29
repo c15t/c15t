@@ -1,6 +1,6 @@
 ---
 title: Backend overview
-description: Understand what the c15t backend provides and choose Inth managed hosting or a self-hosted SQL deployment.
+description: What the c15t consent backend does, and when to use Inth or run @c15t/backend yourself with your own SQL database.
 group: self-host
 ---
 
@@ -11,10 +11,10 @@ the endpoint supplied by your project in the [framework quickstart](/docs/framew
 You get a backend connection without running the SQL service described in these
 guides.
 
-Self-hosting uses `@c15t/backend` and the same client hosted mode. Choose it when
-you need to operate the service yourself. You own database provisioning,
-migrations, backups, policy configuration, signing secrets, availability and
-upgrades.
+Self-hosting runs `@c15t/backend` in your own server, and your app connects to
+it with the same hosted mode it would use for Inth. Choose it when you need to
+operate the service yourself. You own database provisioning, migrations,
+backups, policy configuration, signing secrets, availability and upgrades.
 
 ## What the backend provides
 
@@ -33,10 +33,10 @@ deployed self-hosted backend; static hosting does not require offline mode.
 
 ## What offline mode changes
 
-`offline()` resolves policy and retains choices through client-side storage. It
-does not call this backend, create SQL consent records or obtain hosted
-configuration. It is an alternative deployment mode, not a faster transport to
-the same service. See [choose your setup](/docs/concepts/choose-your-setup).
+`offline()` resolves policy in the browser and keeps choices in browser
+storage. It never calls a backend, so no consent records exist and policy lives
+in your code. Use it for local development and tests. Not recommended for
+production environments. See [choose your setup](/docs/concepts/choose-your-setup).
 
 ## Operate your own backend
 

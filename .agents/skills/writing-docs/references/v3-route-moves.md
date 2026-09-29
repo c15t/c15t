@@ -28,3 +28,5 @@ the old page's task.
 | `/docs/frameworks/javascript/script-tag` | `/docs/frameworks/html/quickstart` | The script tag became the HTML framework. Its reference moved to `/docs/frameworks/html/attributes-and-api`, styling to `/customize`, gating to `/scripts`, and `#optional-iab-entry` to `/docs/frameworks/html/iab` |
 | `/docs/frameworks/javascript/script-loader` | `/docs/frameworks/javascript/scripts` | Renamed to the framework page-set slug |
 | `/docs/frameworks/javascript/building-ui` | `/docs/frameworks/javascript/headless` | Merged into the headless runtime guide |
+| `/docs/self-host/guides/framework-integration` | `/docs/self-host/quickstart#mount-the-request-handler` | Duplicated the quickstart's mount code; per-framework mounts merged into the quickstart |
+| `/docs/comparison` | `/docs/comparisons` | Duplicate of the comparisons index |

@@ -1,14 +1,14 @@
 ---
 title: Agents and automation
-description: Use structured CLI results and version-matched documentation from agents, scripts, and other CLIs.
+description: Read JSON results from the c15t CLI, call it from another program with runCli, and give a coding agent a v3 setup or migration task.
 group: cli
 ---
 
-```bash
-c15t setup offline --plan --json --no-telemetry
-```
+## Read JSON results
 
-## Structured results
+```bash
+npx @c15t/cli@alpha setup offline --plan --json --no-telemetry
+```
 
 `--json` writes one JSON document to stdout. Human diagnostics go to stderr. Check `success` before consuming `data`; a completed process alone does not mean the command succeeded.
 
@@ -27,7 +27,7 @@ c15t setup offline --plan --json --no-telemetry
 
 Commands return their own data under `data`, such as generated edits, hosted projects, or a migration report. Do not parse terminal messages for those values.
 
-## Embed the CLI
+## Call the CLI from code
 
 ```ts
 import { runCli } from '@c15t/cli';
@@ -48,7 +48,7 @@ CommonJS callers on Node versions that support `require(esm)` can use `const { r
 
 For Inth or another host, use explicit project inputs and inspect the returned result. Hosted credentials still use the c15t credential store. Embedding the runner does not merge that store with another CLI's authentication system.
 
-## Agent setup and v3 migration workflow
+## Give an agent a setup or migration task
 
 Give your coding agent this task, replacing the version and mode with your intended choices:
 
@@ -68,7 +68,7 @@ Integrate or migrate c15t in this application using its installed version.
    banner/dialog behavior, and script gating. Report any unverified behavior.
 ```
 
-For v3, source code and installed documentation determine the migration work. The legacy codemod collection targets v2, apart from the named `use-consent-manager-to-hooks` transform. It does not update dependencies, convert a v2 backend configuration to v3, or migrate a database.
+For a v2 to v3 migration, start the agent with the [migration guide](/docs/upgrade-v3). The `use-consent-manager-to-hooks` codemod handles `useConsentManager()`; the other codemods target v1 to v2. No codemod updates dependencies, converts a v2 backend configuration or migrates a database.
 
 `skills` delegates to an external interactive installer and does not support JSON output. Use installed bundled docs directly when building unattended automation.
 

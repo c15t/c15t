@@ -1,569 +1,377 @@
 ---
-title: Upgrade to v3 policies
-description: Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.
+title: Migrate from v2 to v3
+description: Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
 group: reference
 ---
 
-## Rename the integrations dependency
+## What changes in v3
 
-v3 renames `@c15t/scripts` to `@c15t/integrations`. Remove `@c15t/scripts`
-from your dependencies and install `@c15t/integrations` using your package
-manager. During the v3 prerelease, use the `alpha` tag:
+- One package, `c15t`, replaces `@c15t/nextjs`, `@c15t/react` and the v2
+  `c15t` store. Import from its subpaths: `c15t/next`, `c15t/react`, and `c15t`
+  for the headless engine.
+- `ConsentManagerProvider` becomes `ConsentProvider` in React. Next.js apps
+  that resolve consent on the server use `ConsentRoot`.
+- `mode` and `backendURL` become one transport, `hosted({ url })` or
+  `offline()`.
+- Policy packs become policy rules. You set them in your Inth project, in a
+  self-hosted backend's `manifest.policyRules`, or in `offline({ policyRules })`.
+- `useConsentManager()` is gone. Each field has its own hook, and a codemod
+  rewrites most calls.
+- Callbacks have new names, and each reports either a recorded choice or a
+  permission change.
+- Visitors' existing choices keep working. v3 reads the v2 cookie.
+- A self-hosted backend takes `database` instead of `adapter`, and needs a
+  schema migration.
 
-<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+## Upgrade in this order
 
-Replace the package name in each import. Vendor subpaths and helper names stay
-the same.
+1. Upgrade React and React DOM to 18 or newer. The v3 React and Next.js
+   adapters require them, and `c15t/next` requires Next.js 15 or 16.
+2. [Replace the packages](#replace-the-packages).
+3. Run the [`useConsentManager()` codemod](#replace-useconsentmanager) if your
+   code calls it.
+4. Replace the provider for your framework: [Next.js](#nextjs-with-consentmanagerprovider),
+   [React](#react-with-consentmanagerprovider) or [JavaScript](#javascript-with-getorcreateconsentruntime).
+5. Update [callbacks](#replace-callbacks), [policies](#move-policy-packs-to-policy-rules)
+   and [other options](#rename-options-and-components).
+6. If you self-host, [upgrade the backend](#upgrade-a-self-hosted-backend) in the
+   same release as the clients.
+7. [Check the result](#check-the-migration).
 
-Before, in v2 and earlier v3 alphas:
+## Replace the packages
 
-```ts
-import { posthog } from '@c15t/scripts/posthog';
-import { createEventDispatcher } from '@c15t/scripts/events';
-```
+Remove `@c15t/nextjs` and `@c15t/react`, then install `c15t` from the `alpha`
+dist-tag. npm's default tag still resolves v2.
 
-After:
+<CommandTabs command="c15t@alpha @c15t/scripts@alpha" mode="install" />
 
-```ts
-import { posthog } from '@c15t/integrations/posthog';
-import { createEventDispatcher } from '@c15t/integrations/events';
-```
+Drop `@c15t/scripts@alpha` if you do not use its vendor helpers.
 
-The `scripts` configuration option and `Script` type keep their names.
-`@c15t/scripts` remains available as a deprecated compatibility package
-throughout v3. It re-exports the same implementation and types from
-`@c15t/integrations`, so you can migrate imports separately from upgrading
-to v3. Compatibility ends in v4. Previously published versions remain
-available on npm.
+| v2 import | v3 import |
+| --- | --- |
+| `@c15t/nextjs` | `c15t/next`. Server helpers are in `c15t/next/server`, `c15t/next/pages` and `c15t/next/api`. |
+| `@c15t/react` | `c15t/react` |
+| `@c15t/react/headless` | `c15t/react/headless` |
+| `@c15t/nextjs/styles.css` | `c15t/next/styles.css` |
+| `@c15t/react/styles.css` | `c15t/react/styles.css` |
+| `c15t` (`getOrCreateConsentRuntime` and the store) | `c15t` for the engine and `c15t/runtime` for a managed runtime. The APIs are new; see [JavaScript](#javascript-with-getorcreateconsentruntime). |
+| `DevTools` from `@c15t/dev-tools/react` | `DevTools` from `c15t/react/devtools` or `c15t/next/devtools` |
+| `@c15t/scripts/*` | Unchanged helper names; install `@c15t/scripts@alpha`. |
 
-To preview import changes in JavaScript and TypeScript files with the v3 CLI:
-
-```sh
-c15t codemods scripts-to-integrations --dry-run --json
-```
-
-Review the output, then repeat without `--dry-run`. This transform runs only
-when named. Update dependency declarations, lockfiles, and imports inside
-`.vue`, `.svelte`, or `.astro` files separately. Reinstall dependencies and run
-your application's build after migrating.
-
-## React version requirement
-
-The v3 React and Next.js adapters require React and React DOM 18 or newer.
-Upgrade both packages together before installing v3. Earlier alpha peer ranges
-incorrectly allowed React 16 and 17 even though v3 already uses `useId` and
-`useSyncExternalStore`, which those versions do not provide.
-
-## Start with a policy rule
-
-```ts
-import { policyRulePresets } from '@c15t/schema';
-import { offline } from '@c15t/react';
-
-const mode = offline({
-	policyRules: [policyRulePresets.europeOptIn()],
-});
-```
-
-Pass `mode` to `ConsentProvider`. For a backend integration, configure
-`policyRules` on the backend and use `hosted({ url })` in the provider. Follow the
-[React quickstart](/docs/frameworks/react/quickstart),
-[Next.js quickstart](/docs/frameworks/next/quickstart), or
-[JavaScript quickstart](/docs/frameworks/javascript/quickstart) for a complete
-integration.
-
-The CLI no longer offers `offline-add-policy-packs`, which generated v2
-configuration. For offline integrations, configure `offline({ policyRules })`
-as shown above.
-
-Replace legacy `policyPacks` and nested `consent` configuration with rules:
-
-```ts
-import type { PolicyRule } from '@c15t/schema';
-
-const policyRules = [
-	{
-		id: 'default-opt-in',
-		match: { fallback: true },
-		model: 'opt-in',
-		prompt: 'choice',
-		categories: ['measurement', 'marketing'],
-		scopeMode: 'strict',
-	},
-] satisfies PolicyRule[];
-```
-
-`model` controls permission defaults. `prompt` controls whether the visitor must
-make a choice, dismiss a notice, or see no prompt. Opt-in and IAB models require
-`prompt: 'choice'`. Opt-out supports `choice`, `notice`, and `none`. The `none`
-model permits optional categories in scope, allows only `prompt: 'none'`, owes
-no rights, and renders no consent UI. v2's `none` model maps to it directly.
-
-When `categories` selects only some optional categories, you must set
-`scopeMode` explicitly. A strict scope blocks categories outside the rule. A permissive scope allows
-those categories unless another restriction applies. An omitted scope, `['*']`,
-or a list containing only `necessary` expands to the default optional categories.
-`necessary` is always permitted.
-
-`offline()` without `policyRules` resolves `recommendedPolicyRules()`, whose
-Europe rule also matches a visitor with no country. A known US country with a
-missing state uses US opt-out with GPC and persistent preferences; a missing
-Canadian province stays strict opt-in. The last rule is `none` for other known
-unmatched locations. Resolution exposes `matched`, `no-match`,
-`unconfigured`, or `failed`; while nothing has matched, optional categories stay
-denied and no consent surface renders. A missing or malformed policy never grants
-optional permissions by itself.
-
-## Read the state you need
-
-| Purpose | Snapshot field | React hook |
-| --- | --- | --- |
-| Gate scripts and optional features | `effectivePermissions` | `useConsent(category)`, `useConsents()` |
-| Inspect recorded choices and confirmation times | `explicitChoice` | `useExplicitChoice()` |
-| Decide whether to prompt | `promptRequirement` | `usePromptRequirement()` |
-| Inspect the resolved rule | `policyRule` | `usePolicyRule()` |
-| Inspect matching or failure | `resolution` | `usePolicyResolution()` |
-
-An effective permission is not evidence of a grant. Under an opt-out rule it can
-be true before a visitor acts. A notice dismissal updates `noticeDismissal` and
-does not record consent. Global Privacy Control updates `privacySignals` and
-applies its configured restrictions without turning a browser signal into a
-choice. As in v2, c15t reads GPC live and keeps no standing opt-out: when the
-browser stops sending the signal, the restriction stops too.
+The scoped packages `@c15t/nextjs`, `@c15t/react` and `@c15t/core` still exist
+at v3, so imports from them keep working if you pin them to `@alpha`. The docs
+use the `c15t` subpaths.
 
 ## Replace `useConsentManager()`
 
-`useConsentManager()` is gone from `c15t/react`, `c15t/next`,
-`c15t/tanstack-start` and their `/headless` entries. It subscribed to the whole
-consent snapshot, so every component that called it re-rendered on every
-change, including changes to categories it never read. Call one hook per field
-instead; each re-renders only when its own value changes.
+`useConsentManager()` returned the whole consent state, so every component
+that called it re-rendered on every change. v3 has one hook per field. Run the
+codemod first:
 
-Before, in v2 and earlier v3 alphas:
+```bash
+npx @c15t/cli@alpha codemods use-consent-manager-to-hooks --dry-run --json
+```
 
-```tsx title="components/marketing-banner.tsx"
-import { useConsentManager } from 'c15t/react';
+Review the proposed files, then run it again without `--dry-run`. For this v2
+component:
 
-export function MarketingBanner() {
+{/* example: fragment */}
+
+```tsx title="Before (v2): components/accept-button.tsx"
+import { useConsentManager } from '@c15t/react';
+
+export function AcceptButton() {
   const { activeUI, has, saveConsents } = useConsentManager();
-  if (activeUI !== 'banner' || has('marketing')) {
-    return null;
-  }
+  if (activeUI !== 'banner' || has('marketing')) return null;
   return <button type="button" onClick={() => void saveConsents('all')}>Accept</button>;
 }
 ```
 
-After:
+the codemod writes:
 
-```tsx title="components/marketing-banner.tsx"
-import { useActiveUI, useConsent } from 'c15t/react';
-import { useHeadlessConsentUI } from 'c15t/react/headless';
+```tsx title="After (v3): components/accept-button.tsx"
+import { useActiveUI, useConsent } from '@c15t/react';
+import { useHeadlessConsentUI } from '@c15t/react/headless';
 
-export function MarketingBanner() {
-  const activeUI = useActiveUI();
-  const marketing = useConsent('marketing');
-  const { performAction } = useHeadlessConsentUI();
-  if (activeUI !== 'banner' || marketing) {
-    return null;
-  }
-  return <button type="button" onClick={() => void performAction('accept')}>Accept</button>;
+export function AcceptButton() {
+  const activeUI = useActiveUI() ?? 'none';
+  const hasMarketing = useConsent('marketing');
+  const { saveCustomPreferences: saveConsents } = useHeadlessConsentUI();
+  if (activeUI !== 'banner' || hasMarketing) return null;
+  return <button type="button" onClick={() => void saveConsents('all')}>Accept</button>;
 }
 ```
 
-Import hooks from the same entry you used for `useConsentManager()`:
-`c15t/next` and `c15t/next/headless` in Next.js, `c15t/tanstack-start` and
-`c15t/tanstack-start/headless` in TanStack Start.
+The codemod keeps the entry you imported from. Change `@c15t/react` to
+`c15t/react` afterwards if you moved to the umbrella package. Fields it cannot
+rewrite stay on a `useConsentManager()` call under a `TODO(c15t v3)` comment,
+which fails the build until you replace them. The table lists every v2 field.
+Import hooks from `c15t/react`, `c15t/next` or `c15t/tanstack-start`, and
+`useHeadlessConsentUI` from the matching `/headless` entry.
 
-| `useConsentManager()` field | v3 replacement |
+| v2 field | v3 replacement |
 | --- | --- |
-| `activeUI` | `useActiveUI()`. It returns `null` before the kernel picks a surface; the old field reported `'none'`. |
+| `activeUI` | `useActiveUI()`. It returns `null` until c15t picks a surface, where v2 returned `'none'`. |
 | `setActiveUI(ui)` | `useSetActiveUI()` |
 | `has(category)` | `useConsent(category)`, one call per category at the top of the component |
 | `consents` | `useConsents()` |
-| `effectivePermissions` | `useEffectivePermissions()` |
-| `explicitChoice` | `useExplicitChoice()` |
-| `promptRequirement` | `usePromptRequirement()` |
-| `noticeDismissal` | `useNoticeDismissal()` |
-| `privacySignals` | `usePrivacySignals()` |
-| `optOutDirectives` | None. c15t keeps no standing GPC opt-out; read the live signal with `usePrivacySignals()`. |
-| `restrictions` | `useRestrictions()` |
-| `resolution` | `usePolicyResolution()` |
-| `policyRule` | `usePolicyRule()` |
-| `policyCategories` | `usePolicyCategories()`. The old list started with `'necessary'`; this one does not. |
+| `saveConsents('all')` | `useHeadlessConsentUI().saveCustomPreferences('all')` |
+| `saveConsents('necessary')` | `useHeadlessConsentUI().saveCustomPreferences('none')` |
+| `saveConsents('custom')` | `useHeadlessConsentUI().saveCustomPreferences()`, which saves the draft |
+| `selectedConsents` | `useConsentDraft().values` |
+| `setSelectedConsent(name, value)` | `useConsentDraft().set(name, value)` |
+| `setConsent(name, value)` | `useSaveConsents()`, called with `{ [name]: value }` |
+| `consentInfo` | `useExplicitChoice()` |
+| `hasConsented()` | `useExplicitChoice() !== null` |
+| `consentCategories`, `consentTypes`, `getDisplayedConsents()` | `useConsentDraft().displayedCategories`, with labels from `useTranslations().consentTypes` |
+| `policyCategories` | `usePolicyCategories()`. The v2 list started with `'necessary'`; this one does not. |
 | `policyScopeMode` | `usePolicyScopeMode()` |
 | `policyBanner` | `usePromptPresentation()` |
 | `policyDialog` | `usePreferencesPresentation()` |
-| `model` | `useModel()`. It returns `null` while no policy matches; the old field reported `'opt-in'`. |
-| `branding` | `useBranding()`. It returns `null` when unset; the old field reported `'c15t'`. |
+| `model` | `useModel()`. It returns `null` while no policy matches, where v2 returned `'opt-in'`. |
+| `branding` | `useBranding()`. It returns `null` when unset, where v2 returned `'c15t'`. |
 | `iab` | `useIABSnapshot()` |
-| `vendors` | `useDeclaredVendors()` |
-| `vendorChoice` | `useVendorChoice()` |
-| `getDisplayedVendors(category)` | `useDeclaredVendors()`, filtered to vendors whose category condition names the category |
-| `subscribeToConsentChanges(listener)` | `useSubscribeToConsentChanges()`, or the provider's `onPermissionsChanged` callback |
-| `updateConsentCategories(categories)` | `useRegisterConsentCategories()` |
+| `locationInfo` | `useLocation()` |
+| `overrides`, `setOverrides()` | `useOverrides()`, `useSetOverrides()` |
+| `setLanguage()` | `useSetLanguage()` |
+| `user`, `identifyUser()` | `useUser()`, `useIdentify()` |
 | `translationConfig` | `useTranslations()` for the active strings |
-| `selectedConsents`, `selectedConsentTypes` | `useConsentDraft().values` |
-| `setSelectedConsent(name, value)` | `useConsentDraft().set(name, value)` |
-| `selectedVendors` | `useConsentDraft().vendors`, or `useVendorDraft().vendors` |
-| `setSelectedVendor(id, granted)` | `useConsentDraft().setVendor(id, granted)` |
-| `resetDraft()` | `useConsentDraft().reset()` |
-| `draftIsStale` | `useConsentDraft().isStale` |
-| `consentCategories`, `consentTypes`, `getDisplayedConsents()` | `useConsentDraft().displayedCategories`, with labels from `useTranslations().consentTypes` |
-| `saveConsents('all')` | `useHeadlessConsentUI().performAction('accept')` |
-| `saveConsents('necessary')` | `useHeadlessConsentUI().performAction('reject')` |
-| `saveConsents('custom')` | `useHeadlessConsentUI().performAction('save')` |
-| `manager` | Nothing. It was always `null` in v3. |
+| `subscribeToConsentChanges(listener)` | `useSubscribeToConsentChanges()`, or the `onPermissionsChanged` callback |
+| `updateConsentCategories(categories)` | `useRegisterConsentCategories()` |
+| `manager` | Nothing. Use the hooks above. |
 
-The old hook kept one private draft per component, shared by its selection and
-its save. `useConsentDraft()` and `useHeadlessConsentUI()` read the nearest
-`ConsentDraftProvider` instead. When one component stages choices and another
-saves them, or one component calls both hooks, render them inside the same
-`ConsentDraftProvider`; without one, each hook keeps its own draft and a custom
-save commits nothing you staged. `ConsentWidget` already provides one.
+`saveCustomPreferences()` saves the way the stock buttons do. It closes the
+banner or dialog after a successful save. `useSaveConsents()` calls the engine
+directly and does not close anything.
 
-`useHeadlessConsentUI()` saves the way the stock buttons do: it closes the
-surface after a successful save and refuses a draft that the policy made stale.
-`useSaveConsents()` calls the kernel directly and does neither.
+In v2, `useConsentManager()` kept one draft per component. In v3,
+`useConsentDraft()` and `useHeadlessConsentUI()` share the draft of the nearest
+`ConsentDraftProvider`. When one component stages choices and another saves
+them, render both inside the same `ConsentDraftProvider`; otherwise the save
+commits nothing you staged. `ConsentWidget` already includes one. The codemod
+adds a `TODO(c15t v3)` comment where this applies.
 
-The CLI rewrites the common destructuring forms for you:
+## Next.js with `ConsentManagerProvider`
 
-```bash
-c15t codemods use-consent-manager-to-hooks --dry-run --json
-```
+A typical v2 App Router app wrapped the layout in a client component:
 
-It replaces each field that has a one-hook equivalent, turns `has('marketing')`
-calls with a literal category into `useConsent('marketing')`, and maps
-`saveConsents('all' | 'necessary' | 'custom')` calls to
-`useHeadlessConsentUI().saveCustomPreferences()`. Fields it cannot rewrite stay
-on a `useConsentManager()` call under a `TODO(c15t v3)` comment that names the
-replacement, so the build fails at each place that needs manual work. It also
-marks components that now need a shared `ConsentDraftProvider`. Review the
-result, then run it without `--dry-run`.
+{/* example: fragment */}
 
-## Replace choice callbacks
-
-```tsx
-<ConsentProvider
-	options={{
-		mode,
-		callbacks: {
-			onChoiceRecorded(event) {
-				console.log('Visitor recorded a choice', event);
-			},
-			onPermissionsChanged(event) {
-				console.log('Effective permissions changed', event);
-			},
-		},
-	}}
->
-	{children}
-</ConsentProvider>
-```
-
-Replace `onConsentSet` with `onChoiceRecorded` for explicit accept, reject, or
-save actions. Use `onPermissionsChanged` for permission changes caused by a
-choice, expiry, policy update, or privacy signal. Provider callbacks no longer
-include `onBannerFetched`; use the resolved policy and pending state to render
-loading UI, and `onSurfaceShown` to count banner and dialog impressions.
-
-Only `kernel.commands.save()` creates an explicit choice. `save('all')` accepts,
-`save('none')` rejects, and `save({ marketing: false })` confirms only marketing.
-A partial save keeps the other categories' confirmation times. Use
-`commands.dismissNotice()` for the notice action and `kernel.hydrate()` to apply
-validated records without recording an action.
-
-## Keep existing storage
-
-The reader accepts valid v2 storage and translates it into per-category receipts.
-It does not rewrite storage on startup. Existing denials continue to restrict
-permissions; expired or incompatible positive receipts cannot restore grants.
-The next explicit action writes the v3 record. Notice dismissal has a separate
-record.
-
-Pass server-prepared `initialRecords`, `initialPolicyResolution`, and `now`
-through the adapter's prefetch configuration. Do not rebuild consent from a
-boolean `hasConsented` or copy effective permissions into explicit choice records.
-Pending prefetch results cannot restore records after a clear or overwrite a
-newer choice.
-
-## Update custom transports and backend clients
-
-Use `KernelTransport` from `@c15t/core/transports`. Init returns a versioned
-`policyResolution` with a matched rule and fingerprints, or an explicit
-non-matched outcome. Use `mapInitOutputToInitResponse` for an HTTP init payload.
-Do not return legacy `policy` or `policyDecision` fields.
-
-Save requests contain the explicit choice and the categories confirmed by this
-action. Return a `SaveResult` with `ok`; optional identity and record methods
-must preserve the same receipt format. Forward the policy contract headers when
-implementing an HTTP proxy. Keep client, schema, backend, and framework adapters
-on compatible v3 versions.
-
-Use the supplied hosted or manifest transports to capture policy evidence for
-saves and retries. They preserve the action's policy, location, language, and
-privacy signal inputs. A stale policy assertion is an error; it must not silently
-save under a different rule. See the
-[backend endpoint reference](/docs/self-host/api/endpoints) for wire fields.
-
-## Shared runtime ownership
-
-Astro and SvelteKit can create a runtime outside a component tree with
-`createConsentRuntime` from `@c15t/core/runtime`. Pass that runtime to a
-framework provider with its `runtime` prop. The owner calls `start()` after
-mount and `dispose()` when the page no longer needs it. Borrowing providers
-subscribe to the kernel and render UI without initializing or disposing it.
-
-Runtime construction preserves the prepared server snapshot. Storage reads,
-privacy-signal activation and script loading begin on `start()`. Pass server
-records through `prefetch.initialRecords` with their evaluation time to keep
-the first browser render consistent with the server. `runtime.clearRecords()`
-clears both persisted and in-memory records.
-
-Runtime callbacks use `onChoiceRecorded`, `onPermissionsChanged` and
-`onError`. Hydrating records does not report a new visitor choice.
-
-Astro's serializable offline descriptor accepts `policyRules`, just like the
-other adapters' offline factories. Configure a preset or explicit rules;
-omitting them keeps the conservative fallback.
-
-## Presentation corrections
-
-Use `blocking` for backdrop, scroll locking and focus trapping together.
-Choice banners default to non-blocking, choice walls always block, and notices
-never block. A notice configured as a wall falls back to a floating card.
-Preferences remain centered; `variant` and `position` apply only to prompts.
-
-Replace reads of `uncoveredRights` with `preferenceControls`. The latter is a
-list of additional preferences buttons recommended for the stock UI. It does
-not verify disclosure or persistent access to policy rights.
-
-Notice acknowledgement uses `common.acknowledge`, falling back to
-`common.dismiss` for older translation bundles. It does not record a choice.
-
-## Astro notice acknowledgement
-
-```astro
----
-import ConsentBanner from 'c15t/astro/components/consent-banner.astro';
----
-
-<ConsentBanner dismissButtonText="Got it" />
-```
-
-Astro's `ConsentBanner` accepts `dismissButtonText` as an optional string. It
-labels the notice acknowledgement button, which defaults to
-`common.acknowledge` and falls back to `common.dismiss` in older translation
-bundles. Acknowledging a notice preserves the visitor's consent choices.
-
-## IAB blocking behavior
-
-IAB banners and dialogs use the same `presentation.prompt.blocking` and
-`presentation.preferences.blocking` settings as the other consent components.
-A blocking surface shows a backdrop, traps focus and locks page scrolling.
-Explicit `blocking` values take precedence over deprecated `scrollLock` and
-`trapFocus` options. IAB components stay hidden without a matched policy,
-including when a dialog receives `open={true}`.
-
-The React consent dialog still blocks pointer interaction with the page when
-`blocking` is true and you hide its backdrop with `overlay={false}`.
-
-Legacy prompt options now control the whole blocking behavior. For example,
-`scrollLock: true` alone enables a backdrop and focus trapping as well as
-scroll locking. Set `blocking: false` explicitly for a non-modal banner.
-
-Custom dialog backdrops follow the same rule. A dialog resolved as non-blocking
-omits both the default backdrop and a supplied `overlay`. To retain a custom
-backdrop when migrating from `trapFocus: false`, set
-`presentation.preferences.blocking: true` and keep your `overlay` prop.
-
-## Next.js, TanStack Start, Svelte and Astro renames
-
-These names changed without deprecated aliases. `defineConsentConfig`,
-`ConsentConfig` (the URL config) and `ConsentProvider` from `@c15t/react` are
-unchanged.
-
-Next.js (`c15t/next`, `c15t/next/server`, `c15t/next/pages`):
-
-| v2 | v3 |
-| --- | --- |
-| `ConsentBoundary` | `ConsentRoot` |
-| `ConsentBoundaryProps` | `ConsentRootProps` |
-| `config={initialConsent}` (the visitor's resolved state) | `state={...}` |
-| `consent={consentConfig}` (the `defineConsentConfig` result) | `config={consentConfig}` |
-| `prefetchInitialConsent(options)` | `resolveConsent(options)` with `config` or `backendURL` |
-| `readInitialConsentConfig(options)` | `resolveConsent(options)` without `config` or `backendURL` |
-| `InitialConsentConfig`, and `KernelConfig` where it named the returned value | `ConsentState` |
-| `PrefetchInitialConsentOptions` | `ResolveConsentOptions` |
-| `ReadInitialConsentConfigOptions` | `ConsentRequestOptions` |
-| Pages Router `readInitialConsentConfig(req, opts)` and `prefetchInitialConsent({ req, ... })` | `resolveConsent({ req, ... })` |
-
-TanStack Start (`c15t/tanstack-start`, `c15t/tanstack-start/server`):
-
-| v2 | v3 |
-| --- | --- |
-| `ConsentBoundary` | `ConsentRoot` |
-| `config={config}` | `state={state}` |
-| `ConsentConfig` (the returned state) | `ConsentState` |
-| `prefetchInitialConsent` | `resolveConsent(options)` with `backendURL` |
-| `readInitialConsentConfig` | `resolveConsent(options)` without `backendURL` |
-| `createConsentConfigHandler(options)` | `createConsentStateHandler(options)` |
-| `mergeInitIntoConsentConfig` | `mergeInitIntoConsentState` |
-
-`consentLoaderOptions`, `backendURL`, `initRoute` and `DEFAULT_INIT_ROUTE` are
-unchanged.
-
-Svelte (`@c15t/svelte/server`, `@c15t/svelte/kit`):
-
-| v2 | v3 |
-| --- | --- |
-| `prefetchInitialConsent(options)` | `resolveConsent(options)` with `backendURL` |
-| `readInitialConsentConfig(options)` | `resolveConsent(options)` without `backendURL` |
-| `KernelConfig` where it named the returned value | `ConsentState` |
-| `PrefetchInitialConsentOptions`, `ReadInitialConsentConfigOptions` | `ResolveConsentOptions` |
-
-`loadConsent`, `c15tHandle` and `event.locals.c15t.config` now use
-`ConsentState`. `ConsentRequestOptions` is also exported from
-`@c15t/svelte/server`.
-
-Astro (`@c15t/astro/server`): `readInitialConsentConfig` is no longer
-exported. Use `resolveConsentContext`, which the middleware already calls.
-
-## `Frame` is now `ConsentGate`
-
-The component that mounts an embed only while its category is allowed is now
-`ConsentGate` in React, Next.js, TanStack Start, Svelte and Vue. The old names
-still work as deprecated aliases and will be removed in a later major release.
-
-| v2 | v3 |
-| --- | --- |
-| `Frame`, `Frame.Root`, `Frame.Title`, `Frame.Button` | `ConsentGate`, `ConsentGate.Root`, `ConsentGate.Title`, `ConsentGate.Button` |
-| `FrameProps`, `FrameCompoundComponent` | `ConsentGateProps`, `ConsentGateCompoundComponent` |
-| `c15t/react/frame`, `c15t/react/components/frame` | `c15t/react/consent-gate`, `c15t/react/components/consent-gate` |
-| Vue `ConsentFrame`, `@c15t/vue/runtime/components/consent-frame.vue` | `ConsentGate`, `@c15t/vue/runtime/components/consent-gate.vue` |
-
-Props and behavior are unchanged. The placeholder keeps its `frame.*`
-translation keys, `--frame-*` CSS custom properties and
-`data-testid="frame-placeholder"`, so custom copy, styles and tests continue
-to apply.
-
-## Split dialog and widget entries are deferred
-
-`c15t/react/consent-dialog` and `c15t/react/consent-widget` (and their
-`@c15t/react/*` equivalents) now export the same deferred `ConsentDialog` and
-`ConsentWidget` as `c15t/react`. The dialog's code loads when it first opens
-instead of with every page. `<ConsentDialog />`, `<ConsentWidget />` and the
-`ConsentDialog.<Part>` properties need no change.
-
-The two entries no longer export the individual parts. Import those from the
-component entries, which keep the old, eagerly bundled exports:
-
-| Before | After |
-| --- | --- |
-| `import { Card, Header } from 'c15t/react/consent-dialog'` | `import { Card, Header } from 'c15t/react/components/consent-dialog'` |
-| `import { Accordion, Switch } from 'c15t/react/consent-widget'` | `import { Accordion, Switch } from 'c15t/react/components/consent-widget'` |
-
-To keep the dialog in the first load so its first open needs no download,
-import `ConsentDialog` from `c15t/react/components/consent-dialog`.
-
-## Next.js RSC banner removal
-
-The `@c15t/nextjs/rsc` entry (`c15t/next/rsc`) and its `RscConsentBanner`,
-`RscBannerGate` and `RscBannerActions` exports are gone. Imports of that
-entry now fail to resolve. Use the regular banner for server rendering.
-The retained benchmark results showed slightly faster banner visibility and
-interaction for the experimental shell, so this removal should not be read
-as a performance improvement.
-
-Replace `<RscConsentBanner config={config} />` with `<ConsentBanner />` inside
-the same `ConsentRoot`, importing it from `c15t/next` when you use the
-umbrella package or from `@c15t/nextjs` when you depend on the scoped package
-directly. With an awaited `resolveConsent` result, the server renders
-the banner into the response, which is what the RSC variant was for. Move
-`presentation` to `options.presentation` on `ConsentRoot`.
-
-Two defaults differ from the removed shell. It rendered no branding link, so
-pass `hideBranding` to keep that. It also styled only its root and action row
-(through the stock `ConsentBanner.Root` and `PolicyActions`) and left the
-card, title, description, footer and buttons without base classes, whereas
-`ConsentBanner` merges the stock styles into every part. If that changes a
-custom layout, do not reach for `noStyle` on the whole banner, which also
-drops the root positioning and action-row layout the old shell kept; compose
-the compound parts instead and pass `noStyle` only to the parts you styled
-yourself.
-
-`ConsentBanner` has no `classNames` or `children` props. Move each legacy
-`classNames` key to the `ConsentRoot` `options.components` slots, which take
-`{ className }`:
-
-| `classNames` key | Replacement |
-| --- | --- |
-| `root`, `card`, `title`, `footer` | `components.banner.root`, `.card`, `.title`, `.footer` |
-| `description` | `components.description.banner` |
-| `rights`, `rightLink` | `components.banner.rights`, `components.banner.rightLink` |
-| `acceptButton`, `rejectButton`, `customizeButton`, `dismissButton` | No per-button slot. Use `components.button.primary` / `.secondary` for shared styles, or target `[data-action="accept"]`, `[data-action="reject"]`, `[data-action="customize"]` and `[data-action="dismiss"]` in CSS. |
-
-Custom `children`, and any direct use of `RscBannerGate` or
-`RscBannerActions`, map to the compound parts of `ConsentBanner` in a Client
-Component. `RscBannerGate` becomes `ConsentBanner.Root`, which mounts only
-while the policy owes a prompt and reopens on expiry. Remove the gate
-`prompt` and `model` props; the root derives `data-prompt` and `data-model`
-from the `ConsentRoot` policy. Rename `title` to `aria-label` to preserve its
-accessible label. Keep `children`, `className`, `variant`, `position` and
-`blocking` on the root. Add `disableAnimation` and `trapFocus={false}` to
-retain the old gate defaults.
-
-`RscBannerActions`
-becomes `ConsentBanner.PolicyActions`, which renders the rights links and the
-action row the policy requires; `ConsentBanner.Rights`, `RightLink`, `Footer`,
-`FooterSubGroup` and the four buttons are available for finer control.
-`PolicyActions` takes none of the old `acceptLabel`, `rejectLabel`,
-`customizeLabel`, `dismissLabel`, `rightLabels` or `classNames` props: set
-labels through the provider `i18n` translation overrides (`common.acceptAll`,
-`common.rejectAll`, `common.customize`, `common.acknowledge`, `rights.*`), or
-render `ConsentBanner.AcceptButton` and the other buttons with your own
-children; `renderAction` on `PolicyActions` replaces one button; classes move
-to the `components` slots listed in the table. Place the former `children`
-inside `ConsentBanner.Card`:
-
-```tsx title="components/banner.tsx"
+```tsx title="Before (v2): components/consent-manager/provider.tsx"
 'use client';
 
-import { ConsentBanner } from 'c15t/next';
+import { ConsentBanner, ConsentDialog, ConsentManagerProvider } from '@c15t/nextjs';
 
-export function Banner() {
+export default function ConsentManagerClient({ children }) {
   return (
-    <ConsentBanner.Root>
-      <ConsentBanner.Card>
-        <ConsentBanner.Header>
-          <ConsentBanner.Title />
-          <ConsentBanner.Description />
-        </ConsentBanner.Header>
-        <a href="/privacy">Privacy policy</a>
-        <ConsentBanner.PolicyActions />
-      </ConsentBanner.Card>
-    </ConsentBanner.Root>
+    <ConsentManagerProvider
+      options={{ mode: 'hosted', backendURL: 'https://example.com/api/c15t' }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
   );
 }
 ```
 
-## Session reports in manifest mode
+v3 gives you two ways forward:
 
-A host that resolves init from a cached manifest never calls `/init`, so a v3
-backend could not count the visitors it served. From this release every
-server-side resolution sends `POST /sessions` to the backend after the fact,
-server-to-server and detached from the response: the Next.js, TanStack Start,
-SvelteKit, Nuxt and Astro init routes, and the Next.js, TanStack Start and
-Astro render-time prefetches. The browser makes no request.
+- **Resolve consent on the server** (recommended). The server reads the
+  visitor's policy and stored choice, so gated scripts can start right after
+  hydration and the banner can be in the first HTML. Replace the client
+  component with `ConsentRoot`, pass it `resolveConsent()` from
+  `c15t/next/server` as `state` and your `defineConsentConfig()` result as
+  `config`, and add the manifest route. Follow the
+  [App Router guide](/docs/frameworks/next/app-router) or the
+  [Pages Router guide](/docs/frameworks/next/pages-router). This replaces v2's
+  `fetchInitialData()`, `ssrData` and `C15tPrefetch`.
+- **Keep browser initialization**, as v2 did without `fetchInitialData()`. Keep
+  your client component, import from `c15t/next`, and change the provider:
 
-This is a new outbound data flow from your server to the consent backend. The
-report carries the manifest revision, the matched policy, the jurisdiction,
-country, region, language and GPC signal, plus the visitor's user agent and
-address as request headers. It carries no cookies and no identifier. Nothing is
-stored on the backend; the report reaches a `sessions.onReport` sink and the
-request log.
+{/* example: fragment */}
 
-Reporting is on by default and needs an absolute backend URL. Set
-`reportSessions: false` on the adapter to send none. Each report is one
-resolution, not one visitor: a page view can produce a `render` report and a
-`route` report, and nothing in them links the two. A consumer counting sessions
-groups reports by the forwarded address and user agent within a window.
+```tsx title="After (v3): components/consent-manager/provider.tsx, changed lines"
+import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/next';
+
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+
+// In the component, replace ConsentManagerProvider:
+<ConsentProvider options={{ mode: hosted({ url: backendURL }) }}>
+```
+
+Static exports use browser initialization too. See
+[static export](/docs/frameworks/next/static-export) and
+[client-side setup](/docs/frameworks/next/client-side).
+
+Either way, change the stylesheet import to `c15t/next/styles.css`, and paste
+the backend URL from your Inth project or self-hosted backend. The
+[CLI setup command](/docs/cli/quickstart) can generate the browser-initialized
+version for you.
+
+## React with `ConsentManagerProvider`
+
+Swap `ConsentManagerProvider` for `ConsentProvider` from `c15t/react`, and pass
+a transport as `mode`:
+
+| v2 option | v3 option |
+| --- | --- |
+| `mode: 'hosted'` with `backendURL` | `mode: hosted({ url })` |
+| `mode: 'offline'` with `offlinePolicy` | `mode: offline({ policyRules })` |
+| `mode: 'custom'` with `endpointHandlers` | `mode: custom(transport)`, where `transport` implements the v3 transport interface. `endpointHandlers` throws. |
+
+`hosted` and `offline` are exported from `c15t/react`. The
+[React quickstart](/docs/frameworks/react/quickstart) shows the full provider.
+[Data fetching](/docs/concepts/data-fetching) covers custom transports.
+
+Offline mode keeps choices in the browser and records nothing on a server. Not
+recommended for production environments.
+
+## JavaScript with `getOrCreateConsentRuntime`
+
+v2's `getOrCreateConsentRuntime()`, `configureConsentManager()` and the
+Zustand `consentStore` are gone. v3 has two replacements:
+
+- `createConsentKernel()` from `c15t`, with `createHostedTransport()`. You read
+  `kernel.getSnapshot()`, listen with `kernel.subscribe()`, and save with
+  `kernel.commands.save('all' | 'none' | { marketing: false })`. See the
+  [JavaScript quickstart](/docs/frameworks/javascript/quickstart).
+- A script tag that includes the stock banner, for sites without a build
+  step. See [script tag](/docs/frameworks/html/quickstart).
+
+v3 also adds adapters for TanStack Start, Nuxt, Vue, Astro, Svelte and
+SvelteKit. If you wired the v2 runtime into one of these frameworks, move to its
+adapter from [Choose your setup](/docs/concepts/choose-your-setup).
+
+## Replace callbacks
+
+Callbacks stay under `options.callbacks`, with new names:
+
+| v2 callback | v3 callback |
+| --- | --- |
+| `onConsentSet` | `onPermissionsChanged` to react to what may run now. `onChoiceRecorded` to react to the visitor's accept, reject or save. |
+| `onConsentChanged` | `onChoiceRecorded` |
+| `onBannerFetched` | No provider callback. Read `usePolicyResolution()` to know when the policy has resolved. |
+| `onError`, `onBeforeConsentRevocationReload` | Unchanged |
+
+v2's `onConsentSet` also fired on initialization and hydration. In v3,
+`onChoiceRecorded` runs only when the visitor acts, and `onPermissionsChanged`
+runs when effective permissions change for any reason, including expiry, a
+policy update or a privacy signal.
+
+{/* example: fragment */}
+
+```tsx title="After (v3): provider options"
+callbacks: {
+  onChoiceRecorded(event) {
+    console.log('Visitor recorded a choice', event);
+  },
+  onPermissionsChanged(event) {
+    console.log('Effective permissions changed', event);
+  },
+},
+```
+
+## Move policy packs to policy rules
+
+v2 policy packs become policy rules, and `policyPackPresets` becomes
+`policyRulePresets`, exported from `c15t`. Where the rules live depends on your
+backend:
+
+- **Inth**: set the rules in your Inth project. Rules in client code do not
+  change a hosted policy.
+- **Self-hosted**: move the backend's `policyPacks` to `manifest.policyRules`.
+  See [policy configuration](/docs/self-host/guides/policy-packs).
+- **Offline**: move `offlinePolicy.policyPacks` to `offline({ policyRules })`.
+
+{/* example: fragment */}
+
+```tsx title="After (v3): offline policy rules"
+import { policyRulePresets } from 'c15t';
+import { offline } from 'c15t/react';
+
+const mode = offline({
+  policyRules: [policyRulePresets.europeOptIn(), policyRulePresets.worldNone()],
+});
+```
+
+| v2 preset | v3 preset |
+| --- | --- |
+| `europeOptIn()`, `europeIab()` | Same names |
+| `californiaOptIn()`, `californiaOptOut()` | Same names |
+| `quebecOptIn()` | Same name |
+| `worldNoBanner()` | `worldNone()` |
+
+v3 adds presets for more regions. `offline()` without `policyRules` uses
+`recommendedPolicyRules()`. Read [policies](/docs/concepts/policies) before you
+change a rule's model or prompt, and
+[how consent works](/docs/concepts/how-consent-works) for the difference
+between a permission and a recorded choice.
+
+## Rename options and components
+
+| v2 | v3 |
+| --- | --- |
+| `translations` | `i18n` |
+| `backendURL`, `mode: 'hosted'` | `mode: hosted({ url })` |
+| `ssrData` (Next.js) | `ConsentRoot` with `state` from `resolveConsent()` |
+| `iframeBlockerConfig` | `iframeBlocker`, or `false` to turn it off |
+| `Frame` | `ConsentGate`. `Frame` still works as a deprecated alias. |
+| `YouTubeEmbed`, `GoogleMap` | Removed. Wrap your own embed in `ConsentGate`. |
+| `useConsentScript()` | Removed. Register the script in `scripts` with a `@c15t/scripts` helper. |
+| `useSSRStatus()` | Removed |
+
+`ConsentBanner`, `ConsentDialog`, `ConsentDialogLink`, `ConsentDialogTrigger`
+and `ConsentWidget` keep their names. The `scripts`, `networkBlocker`,
+`legalLinks`, `overrides`, `theme` and `colorScheme` options keep theirs too.
+
+## Keep visitors' existing choices
+
+v3 uses the same `c15t` cookie and storage key as v2 and reads v2 records. It
+does not rewrite them on page load; the next accept, reject or save writes a
+v3 record.
+
+A v2 denial keeps restricting its category. A v2 grant keeps applying while it
+is within the policy's validity period and the policy has not changed since the
+visitor chose. Otherwise c15t asks again. Do not copy permissions into new
+records yourself; c15t decides which v2 choices still count.
+
+## Upgrade a self-hosted backend
+
+Deploy the v3 backend and the v3 clients in the same release. A v3 client
+cannot read a v2 backend's `/init` response. Policy resolution fails, optional
+categories stay denied and no banner appears.
+
+1. Install `@c15t/backend@alpha` and the SQL driver for your database.
+2. Replace `adapter` with `database` in your config. The Drizzle, Prisma,
+   TypeORM and Kysely adapters are gone; point `database` at the same SQL
+   database instead. MongoDB has no migration path.
+3. Move `policyPacks`, `branding`, `iab` and `appName` under `manifest`, and
+   rename `policyPacks` to `policyRules`.
+4. Back up the database, then plan and apply the schema migration:
+
+```bash
+npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan
+npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --apply
+```
+
+The migrator recognizes the v2 schema, adopts it, and adds the v3 tables and
+columns. [Database setup](/docs/self-host/guides/database-setup#upgrade-a-v2-backend)
+covers the details, and the [backend quickstart](/docs/self-host/quickstart)
+shows a complete v3 config and route.
+
+## Check the migration
+
+1. Run your typecheck and build. Remaining `TODO(c15t v3)` comments from the
+   codemod fail the build until you resolve them.
+2. Load the app with a v2 consent cookie from before the upgrade. The banner
+   stays closed if that choice still applies, and a rejected category stays
+   blocked.
+3. In a private window, check in DevTools Network that vendor requests wait for
+   consent, start after you accept, and stay absent after you reject and
+   reload.
+4. Reopen preferences from your privacy settings link and change a category.
+
+The [verification guide](/docs/guides/verify-consent) has the full release
+checklist.

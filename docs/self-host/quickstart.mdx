@@ -1,75 +1,153 @@
 ---
 title: Quickstart
-description: Run the consent backend when you need to operate its database, policy and infrastructure yourself.
+description: Run the c15t consent backend yourself with @c15t/backend, create its database schema with the CLI, mount it in Next.js, TanStack Start, Nuxt, SvelteKit or another server, and point your app at it.
 group: self-host
 ---
 
-## Choose self-hosting deliberately
+## Before you start
 
-[Inth](https://inth.com) is the recommended hosted setup. Self-hosting gives you
-responsibility for database operations, migrations, service availability,
-secrets, policy configuration and upgrades. Client applications still use the
-hosted transport, pointed at your service.
+[Inth](https://inth.com) runs this backend for you. Self-host when you need to
+operate the service and its database yourself. You then own provisioning,
+migrations, backups, policy configuration, signing secrets, availability and
+upgrades.
 
-## Configure the backend
+Your c15t app talks to a self-hosted backend exactly as it talks to Inth, through
+hosted mode. Only the backend URL changes.
+
+## Install the backend
 
 <CommandTabs command="@c15t/backend@alpha" mode="install" />
 
-Install `@c15t/backend` and the SQL driver matching your backend release. For the
-SQLite recipe, use `@effect/sql-sqlite-node` at the version declared by the
-backend's peer dependencies.
+Also install the driver for your database. The backend declares each driver as
+an optional peer dependency pinned to one version; install that version.
+
+| Database | Driver |
+| --- | --- |
+| PostgreSQL | `@effect/sql-pg` |
+| MySQL | `@effect/sql-mysql2` |
+| SQLite | `@effect/sql-sqlite-node` |
+
+## Configure it
+
+Create `c15t-backend.config.ts` in the app that will serve the backend:
 
 ```ts title="c15t-backend.config.ts"
 import { defineConfig, policyRulePresets } from '@c15t/backend';
 
 export default defineConfig({
   database: { dialect: 'sqlite', filename: './consent.db' },
-  trustedOrigins: ['http://localhost:3000'],
+  trustedOrigins: ['localhost'],
   manifest: { policyRules: [policyRulePresets.europeOptIn()] },
 });
 ```
 
-This is a local development configuration. Review policy scope and configure
-production origins before deployment. Use persistent storage for the database
-file; an ephemeral filesystem does not retain consent history.
+This is a local development configuration. `trustedOrigins` lists the sites
+whose browsers may call the backend; add your production host before you
+deploy. Keep the SQLite file on persistent storage, because a temporary
+filesystem loses consent history. [Database setup](/docs/self-host/guides/database-setup)
+covers PostgreSQL and MySQL, and [policy configuration](/docs/self-host/guides/policy-packs)
+covers rules for other regions.
 
 ## Create the database schema
 
-Install a compatible v3 CLI locally, then run the migration against the same
-configuration used by the server:
+Run the migration with the same configuration the server uses:
 
 ```bash
-bun run cli self-host migrate --config ./c15t-backend.config.ts
+npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan
+npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --apply
 ```
 
-Review the migration report before applying it. Back up an existing database
-before upgrading. See [database setup](/docs/self-host/guides/database-setup).
+Review the plan before you apply it, and back up an existing database first.
+[Self-hosted migrations](/docs/cli/commands/self-host) explains the report.
 
 ## Mount the request handler
 
-This Next.js Node-runtime example mounts the backend at `/api/c15t`:
+`c15tInstance(options).handler` takes a web `Request` and returns a `Response`.
+Mount it on a catch-all route and route `GET`, `POST`, `PUT`, `PATCH` and
+`OPTIONS` to it. `PUT` publishes legal-document releases; a route that exports
+only `POST` leaves the manifest, `/init` and subject reads unreachable.
+
+Create one instance per server process and reuse it, so requests share its
+database connection pool. Set `basePath` to the path prefix of the requests the
+handler receives, so `/api/c15t/init` routes to `/init`.
+
+### Next.js App Router
 
 ```ts title="app/api/c15t/[[...path]]/route.ts"
 import { c15tInstance } from '@c15t/backend';
 import config from '../../../../c15t-backend.config';
 
 export const runtime = 'nodejs';
-const instance = c15tInstance({ ...config, basePath: '/api/c15t' });
-export const GET = (request: Request) => instance.handler(request);
+const backend = c15tInstance({ ...config, basePath: '/api/c15t' });
+
+export const GET = (request: Request) => backend.handler(request);
 export const POST = GET;
 export const PUT = GET;
 export const PATCH = GET;
 export const OPTIONS = GET;
 ```
 
-Create one instance for the server module rather than a new database pool per
-request. A test or short-lived script should call `instance.dispose()` when it
-finishes. A different framework can pass its web `Request` to the same handler.
+This route needs a Node.js server. A Next.js static export cannot run it; deploy
+the backend separately and give the app its absolute URL.
 
-Set the client's backend URL to the mounted service. Request prefetch requires
-an absolute URL. Test origins, initialization, a saved choice and subsequent
-retrieval before routing production traffic to the backend.
+### TanStack Start
 
-Continue with [configuration](/docs/self-host/api/configuration),
-[HTTP endpoints](/docs/self-host/api/endpoints) and
-[policy configuration](/docs/self-host/guides/policy-packs).
+The TanStack Start example mounts the backend at `/api/self-host` as a server
+route. Its `getInstance()` creates one `c15tInstance()` on first use and reuses
+it:
+
+<include src="../shared/examples/tanstack-start/self-host-route.mdx" />
+
+### Nuxt
+
+The Nuxt example mounts the backend at `/api/self-host` as a Nitro catch-all
+route, converting the h3 event with `toWebRequest()`:
+
+<include src="../shared/examples/nuxt/self-host-route.mdx" />
+
+### SvelteKit
+
+The SvelteKit example creates `handler` with `c15tInstance()` at module level
+and forwards each request to it:
+
+<include src="../shared/examples/sveltekit-demo/self-host-route.mdx" />
+
+### Another server
+
+Pass the incoming web `Request` to `handler` and return its `Response`
+unchanged, keeping status, body and headers such as CORS and cache headers. If
+your framework has its own request type, convert it with the framework's web
+request adapter. If a parent router already strips the prefix, leave `basePath`
+unset rather than stripping it twice.
+
+Tests and one-off scripts should call `instance.dispose()` when they finish to
+close the connection pool. A long-running server does not need to.
+
+## Point your app at the backend
+
+Follow your [framework quickstart](/docs/frameworks) and use your backend's URL,
+such as `https://app.example.com/api/c15t`, where it asks for the Inth URL.
+Server-side resolution needs an absolute URL. The browser only needs the HTTP
+endpoint; keep the config file and database credentials on the server.
+
+The frontend does not have to run the backend. A static site or an edge-rendered
+app can call a backend deployed elsewhere, as long as its origin is in
+`trustedOrigins`.
+
+## Check the deployment
+
+1. Request `/status` and `/manifest` through the public mount point, for example
+   `curl -i https://app.example.com/api/c15t/status`. `/status` returns `200`
+   once the database answers and the schema exists. The manifest lists your
+   policy rules.
+2. Load the app from a trusted origin in a private window. The banner appears
+   for a visitor your policy asks to choose.
+3. Accept, then check DevTools Network for a `POST` to `/subjects` that returns
+   a success status.
+4. Reload. The banner stays closed and your choice is still applied.
+5. For a cross-origin deployment, check that the browser's `OPTIONS` preflight
+   succeeds.
+
+Neither `/status` nor `/manifest` writes to the database, so only steps 3 and 4
+prove that consent writes and reads work. Continue with [configuration](/docs/self-host/api/configuration)
+and [HTTP endpoints](/docs/self-host/api/endpoints).

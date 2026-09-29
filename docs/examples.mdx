@@ -1,81 +1,91 @@
 ---
-title: Runnable examples
-description: Run c15t with PostHog, X Pixel, a YouTube embed and persistent preferences in your framework.
+title: Examples
+description: Runnable c15t example apps for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, JavaScript, the script tag and React Native, what each one shows, and how to run it from the c15t repository.
 ---
 
-## Choose your framework
+## Run an example from the c15t repository
 
-Each example registers PostHog and X Pixel with c15t, gates a YouTube embed,
-and keeps preferences reachable after the banner closes. Open the default and
-branded designs to compare the same consent behavior with different styling.
-
-The source lives in the [c15t examples directory](https://github.com/c15t/c15t/tree/v3/examples).
-Clone the repository, install its dependencies and build the packages:
+The examples live in the [`examples` directory](https://github.com/c15t/c15t/tree/v3/examples)
+of the c15t repository. They build against the packages in the repository, not
+against npm, so you clone the repository and build the packages first:
 
 ```sh
+git clone --branch v3 https://github.com/c15t/c15t.git
+cd c15t
 bun install
 bun run build:libs
 ```
 
-| Framework | Directory | Run from the repository root |
-| --- | --- | --- |
-| Next.js, App and Pages Router | `examples/nextjs` | `bun run --cwd examples/nextjs dev` |
-| TanStack Start | `examples/tanstack-start` | `bun run --cwd examples/tanstack-start dev` |
-| React | `examples/react` | `bun run --cwd examples/react dev` |
-| Nuxt | `examples/nuxt` | `bun run --cwd examples/nuxt dev` |
-| Vue | `examples/vue` | `bun run --cwd examples/vue dev` |
-| Astro | `examples/astro-demo` | `bun run --cwd examples/astro-demo dev` |
-| Svelte | `examples/svelte` | `bun run --cwd examples/svelte dev` |
-| SvelteKit | `examples/sveltekit-demo` | `bun run --cwd examples/sveltekit-demo dev` |
-| HTML | `examples/script-tag` | `bun run --cwd examples/script-tag dev` |
-| JavaScript | `examples/javascript` | `bun run --cwd examples/javascript dev` |
+You need [Bun](https://bun.sh). Each example has a README with its environment
+variables. To add c15t to your own app, follow your
+[framework quickstart](/docs/frameworks) instead; its setup code comes from
+these examples.
 
-Follow the selected directory's README and environment example. Use your Inth
-endpoint and configure its allowed origin. Supply your PostHog project key and
-X Pixel ID to enable the vendor scripts. Some existing showcases also offer a
-self-hosted backend or offline experiments; their README explains the hosted
-configuration for this example.
+## Framework examples
 
-In Next.js, visit `/app-router` and `/pages-router`. In TanStack Start, Nuxt,
-Astro, SvelteKit and HTML, visit `/consent-example`. The JavaScript example
-opens the stock UI at `/` and a custom UI at `/headless/`. The other
-plain-framework examples open directly at `/`.
+Each of these registers PostHog on measurement and X Pixel on marketing, gates a
+YouTube video on measurement, and keeps a privacy settings link after the banner
+closes. A Branded design switch shows the same consent flow with different
+styling. Set the backend URL variable from `.env.example` to the URL from your
+Inth project, and add the example's origin to the project's trusted origins.
+PostHog and X Pixel stay unregistered until you set their IDs.
+
+| Framework | Directory | Run | Open |
+| --- | --- | --- | --- |
+| Next.js, App Router and Pages Router | `examples/nextjs` | `bun run --cwd examples/nextjs dev` | `http://localhost:3011/app-router` and `/pages-router` |
+| TanStack Start | `examples/tanstack-start` | `bun run --cwd examples/tanstack-start dev` | `http://localhost:3010/consent-example` |
+| React with Vite | `examples/react` | `bun run --cwd examples/react dev` | The URL Vite prints |
+| Nuxt | `examples/nuxt` | `bun run --cwd examples/nuxt dev` | `/consent-example` on the URL Nuxt prints |
+| Vue with Vite | `examples/vue` | `bun run --cwd examples/vue dev` | The URL Vite prints |
+| Astro | `examples/astro-demo` | `bun run --cwd examples/astro-demo dev` | `http://localhost:4321/consent-example` |
+| Svelte with Vite | `examples/svelte` | `bun run --cwd examples/svelte dev` | The URL Vite prints |
+| SvelteKit | `examples/sveltekit-demo` | `bun run --cwd examples/sveltekit-demo dev` | `/consent-example` on the URL Vite prints |
+| HTML, script tag | `examples/script-tag` | `bun run --cwd examples/script-tag dev` | `http://localhost:4173/consent-example` |
+| JavaScript with a bundler | `examples/javascript` | `bun run --cwd examples/javascript dev` | The URL Vite prints for the stock UI, and `/headless/` for custom markup |
+
+The TanStack Start, Nuxt and SvelteKit examples also mount a
+self-hosted backend at `/api/self-host`; the
+[backend quickstart](/docs/self-host/quickstart#mount-the-request-handler)
+publishes those routes.
+
+## Other examples
+
+| Example | Directory | What it shows | Run |
+| --- | --- | --- | --- |
+| Script tag showcase | `examples/script-tag` | Offline pages for the headless build with custom markup, theming inside a shadow root, and the IAB entry. | `bun run --cwd examples/script-tag dev`, then open `http://localhost:4173` |
+| Next.js showcase | `examples/demo` | Policy scenarios, a self-hosted backend, IAB and development playgrounds. It needs a PostgreSQL `DATABASE_URL` for the backend. | `bun run dev` from the repository root |
+| React Native | `examples/react-native-bare` | A bare React Native test app for `@c15t/react-native`, with the stock banner and preference screens. | See its README |
+| Expo | `examples/expo-dev` | The same React Native test app as an Expo development build. It does not run in Expo Go. | See its README |
+
+The script-tag showcase pages run offline, so they need no backend. Offline mode keeps
+choices in the browser and records nothing on a server. Not recommended for
+production environments.
 
 ## What to try
 
-1. Reject optional categories and reload. The YouTube iframe and configured
-   vendor scripts should remain blocked under an opt-in policy.
-2. Open **Privacy settings** in the footer and allow measurement only. PostHog
-   and YouTube can load; X Pixel still waits for marketing permission.
-3. Allow marketing, then revoke the optional categories. The iframe is removed
-   and PostHog receives an opt-out. Removing a script cannot undo JavaScript
-   that has already executed.
-4. Switch designs, navigate and reload. The appearance can change without
-   recording a new choice.
+In any framework example, open a private window with DevTools Network open:
 
-PostHog uses `loadMode: 'after-consent'` and disables cookieless capture in
-these examples. Its default helper behavior is different; see
-[PostHog configuration](/docs/integrations/posthog).
+1. Before you choose, no PostHog, X Pixel or YouTube requests appear.
+2. Reject optional categories and reload. The banner stays closed and those
+   requests stay absent.
+3. Open **Privacy settings** and allow measurement only. PostHog and the video
+   load; X Pixel waits for marketing.
+4. Allow marketing, then withdraw it. The video iframe is removed and PostHog
+   receives an opt-out. Removing a script cannot undo code that already ran.
+5. Switch to the Branded design and reload. The styling changes and your choice
+   stays the same.
 
-The JavaScript example's `/headless/` page owns its HTML controls, and every
-other page uses the stock UI. The HTML example gates PostHog and X Pixel with
-inert `<script type="text/plain">` tags and placeholder vendor IDs; revoking a
-category reloads the page instead of sending PostHog an opt-out. DevTools is included where the
-adapter supports it; the Astro example exposes consent state through its page.
+## Run the acceptance suite
 
-## Use the tested source in your app
-
-Keep your framework's provider, script registration and cleanup together.
-Read its [quickstart](/docs/frameworks) for the production setup, then use the
-example files for scripts, embeds and styling. Script snippets in the
-quickstarts are generated from these runnable examples.
-
-The shared browser suite builds the examples and checks consent behavior with
-a fixture backend and intercepted vendor requests. For example:
+The same journeys run automatically. The suite builds each example, serves it
+against a fixture backend and intercepts vendor requests, so it needs no Inth
+project:
 
 ```sh
+bunx playwright@1.61.1 install chromium
 EXAMPLE_TARGET=nextjs bun run --cwd examples/shared test
 ```
 
-See [verification](/docs/guides/verify-consent) for the checks to run against your
-own backend and live vendor accounts before shipping.
+`EXAMPLE_TARGET` takes a comma-separated list of example IDs, such as
+`react,tanstack-start`, or `all`. It defaults to `nextjs`. See the [verification guide](/docs/guides/verify-consent) for the checks
+to run against your own backend and vendor accounts before you ship.

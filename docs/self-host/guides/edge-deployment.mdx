@@ -16,7 +16,7 @@ drivers:
 | `dialect: 'mysql'` | `@effect/sql-mysql2` | A runtime supporting the MySQL driver and its connections. |
 | `dialect: 'sqlite'` | `@effect/sql-sqlite-node` | Node-compatible SQLite dependencies and a durable filesystem for retained data. |
 
-The [Next.js backend mount](/docs/self-host/guides/framework-integration) uses
+The [Next.js backend mount](/docs/self-host/quickstart#nextjs-app-router) uses
 `runtime: 'nodejs'`. A serverless instance's temporary filesystem is not durable
 SQLite storage. Choose a networked database or a deployment with a persistent
 volume and a supported driver.
