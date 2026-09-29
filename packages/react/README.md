@@ -73,7 +73,7 @@ Then add the prebuilt stylesheet to your app-level CSS entrypoint:
 
 If you use the prebuilt IAB TCF UI, also import `@c15t/react/iab/styles.css`. It is published separately so non-IAB apps do not ship those component rules.
 
-To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/react/quickstart#manual-setup).
+To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/react/quickstart).
 
 ## Usage
 

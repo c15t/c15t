@@ -72,7 +72,7 @@ Then add the prebuilt stylesheet to your app-level CSS entrypoint:
 @import "@c15t/nextjs/styles.css";
 ```
 
-To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/next/quickstart#manual-setup).
+To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/next/quickstart).
 
 ## Usage
 

@@ -61,7 +61,7 @@ The CLI will:
 pnpm add @c15t/core
 ```
 
-To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup).
+To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/javascript/quickstart).
 
 ## Usage
 

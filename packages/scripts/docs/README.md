@@ -23,16 +23,16 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 ## Frameworks
 
-- [Scripts and embeds](./frameworks/astro/scripts.md): Load vendor scripts, inline scripts, iframes and fetch requests on an Astro site only after the visitor allows their consent category, and stop them when consent is withdrawn.
+- [Scripts](./frameworks/astro/scripts.md): Load vendor scripts and gated inline scripts on an Astro site only after the visitor allows their consent category, and stop them when consent is withdrawn.
 - [Scripts](./frameworks/html/scripts.md): Hold vendor scripts on a plain HTML page until the visitor allows their category, load scripts with callbacks, handle withdrawal and clear vendor cookies with the c15t script tag and no build step.
 - [Scripts](./frameworks/javascript/scripts.md): Register vendor scripts with @c15t/browser, createConsentRuntime or a consent kernel in JavaScript, and control what happens when a visitor withdraws permission.
 - [Scripts and embeds](./frameworks/next/scripts.md): Register vendor scripts, gate embeds, block network requests and handle revocation in a Next.js ConsentRoot.
-- [Scripts and embeds](./frameworks/nuxt/scripts.md): Load vendor scripts, gate iframes and block tracking requests by consent category in a Nuxt app with the c15t Nuxt module.
+- [Scripts](./frameworks/nuxt/scripts.md): Load vendor scripts by consent category in a Nuxt app with the c15t Nuxt module, and what happens when a visitor withdraws consent.
 - [Scripts and embeds](./frameworks/react/scripts.md): Load vendor scripts, gate iframes, block network requests and clear stored data by consent category in a React app with ConsentProvider.
 - [Scripts and embeds](./frameworks/svelte/scripts.md): Load vendor scripts, iframes and network requests in a Svelte app only after the visitor allows their consent category, and stop them when consent is withdrawn.
 - [Scripts and embeds](./frameworks/sveltekit/scripts.md): Load vendor scripts, iframes and network requests in a SvelteKit app only after the visitor allows their consent category, and stop them when consent is withdrawn.
 - [Scripts and embeds](./frameworks/tanstack-start/scripts.md): Load vendor scripts, gate iframes, block network requests and clear stored data by consent category in a TanStack Start app with ConsentRoot.
-- [Scripts and embeds](./frameworks/vue/scripts.md): Load vendor scripts, gate iframes and block tracking requests by consent category in a Vue app with the c15t Vue plugin.
+- [Scripts](./frameworks/vue/scripts.md): Load vendor scripts by consent category in a Vue app with the c15t Vue plugin, and what happens when a visitor withdraws consent.
 
 ## Concepts
 
