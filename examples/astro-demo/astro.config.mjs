@@ -4,8 +4,8 @@
  * `astro.server.config.mjs` and `astro.static.config.mjs` are the setups the
  * docs publish, and the example suite builds each of them against a backend:
  *
- *   C15T_BACKEND_URL=… bun run --cwd examples/astro-demo build
- *   C15T_BACKEND_URL=… C15T_ASTRO_OUTPUT=static bun run --cwd examples/astro-demo build
+ *   C15T_BACKEND_URL=https://your-project.inth.app bun run --cwd examples/astro-demo build
+ *   C15T_BACKEND_URL=https://your-project.inth.app C15T_ASTRO_OUTPUT=static bun run --cwd examples/astro-demo build
  *
  * Without a backend URL, or with `C15T_IAB` or `C15T_UI` set, the showcase
  * build runs instead. See `astro.showcase.config.mjs`.

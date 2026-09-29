@@ -36,7 +36,7 @@ selects one at build time; the pages stay the same.
 | `static` | `src/rendering/static-root.tsx` | Every page is prerendered; the browser resolves consent |
 
 ```bash
-C15T_TANSTACK_RENDERING=static VITE_C15T_BACKEND_URL=https://... bun run build
+C15T_TANSTACK_RENDERING=static VITE_C15T_BACKEND_URL=https://your-project.inth.app bun run build
 bun run start:static   # serves dist/client only, like a static host
 ```
 
@@ -76,7 +76,7 @@ reaches a bundle.
 ## Production build
 
 ```bash
-VITE_C15T_BACKEND_URL=https://... bun run build
+VITE_C15T_BACKEND_URL=https://your-project.inth.app bun run build
 bun run start
 ```
 

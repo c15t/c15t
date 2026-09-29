@@ -29,7 +29,7 @@ set `ui: 'svelte'` to keep Svelte and silence the message.
 ## `C15T_BACKEND_URL` is set in `.env` but the build cannot see it
 
 Astro evaluates `astro.config.mjs` before it loads `.env`. Set the variable in
-your shell, for example `C15T_BACKEND_URL=… npx astro build`, or in your host's
+your shell, for example `C15T_BACKEND_URL=https://your-project.inth.app npx astro build`, or in your host's
 build environment. Variables that start with `PUBLIC_` and are read in browser
 code, such as vendor IDs, do come from `.env`.
 

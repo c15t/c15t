@@ -8,7 +8,7 @@
  * works offline and every request is visible in the page's log.
  *
  * `/consent-example` is the page the HTML docs publish. Its tag points at
- * jsDelivr and a `YOUR_INTH_BACKEND_URL` placeholder, exactly as a reader
+ * jsDelivr and a `https://your-project.inth.app` placeholder, exactly as a reader
  * copies it. This server swaps the CDN prefix for the local build and the
  * placeholder for `C15T_BACKEND_URL`, so the page runs the code the docs
  * show against this checkout.
@@ -18,7 +18,7 @@
  *
  * ```sh
  * bun run --cwd examples/script-tag dev
- * C15T_BACKEND_URL=<your Inth URL> bun run --cwd examples/script-tag dev
+ * C15T_BACKEND_URL=https://your-project.inth.app bun run --cwd examples/script-tag dev
  * ```
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 const port = Number(process.env.PORT ?? 4173);
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 const cdnPrefix = 'https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/';
-const backendPlaceholder = 'YOUR_INTH_BACKEND_URL';
+const backendPlaceholder = 'https://your-project.inth.app';
 const backendURL = process.env.C15T_BACKEND_URL;
 
 const bundles: Record<string, string> = {

@@ -31,11 +31,12 @@ module names. The Vite plugin resolves those names in a plain Vue app.
 
 ## Install the Vue plugin
 
-Paste the backend URL from your Inth project into `.env.local`. The URL is
+Paste the backend URL from your Inth project, such as
+`https://your-project.inth.app`, into `.env.local`. The URL is
 public; it ends up in browser code.
 
 ```dotenv title=".env.local"
-VITE_C15T_BACKEND_URL=
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
 Install the plugin from `c15t/vue/vue-plugin` in `src/main.ts`:

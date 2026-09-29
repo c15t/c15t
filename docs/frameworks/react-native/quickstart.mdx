@@ -56,7 +56,7 @@ same values to JavaScript under `extra.c15t`.
     [
       "@c15t/react-native/expo-plugin",
       {
-        "backendURL": "https://consent.example.com"
+        "backendURL": "https://your-project.inth.app"
       }
     ]
   ]
@@ -113,7 +113,7 @@ Then declare the backend in `ios/<App>/Info.plist`:
 
 ```xml
 <key>com.c15t.backend.url</key>
-<string>https://consent.example.com</string>
+<string>https://your-project.inth.app</string>
 <key>com.c15t.backend.mode</key>
 <string>hosted</string>
 ```
@@ -132,7 +132,7 @@ in the library manifest and merges on its own, so do not register a second one.
 <application>
   <meta-data
     android:name="com.c15t.PORTAL_URL"
-    android:value="https://consent.example.com" />
+    android:value="https://your-project.inth.app" />
 </application>
 ```
 
