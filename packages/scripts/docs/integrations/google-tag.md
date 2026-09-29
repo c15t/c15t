@@ -30,8 +30,10 @@ Complete your [framework quickstart](https://c15t.com/docs/frameworks) first. Ke
 endpoint, policy, styles and consent UI. Remove the vendor's original script,
 SDK initializer or tag-manager entry, so the vendor loads only through c15t.
 
-The `scripts` export in `src/consent-scripts.ts` is a configuration, not an
-initializer. Add it to the c15t provider you already have, at the registration
+The vendor pages put the helper in `src/consent-scripts.ts`. If your framework
+quickstart already created a scripts file, such as `lib/scripts.ts` in the
+Next.js guide, add the helper to that array instead of creating a second file.
+The `scripts` export is a configuration, not an initializer. Add it to the c15t provider you already have, at the registration
 point for your framework below. These are edits to that provider, not a second
 provider.
 
@@ -303,6 +305,11 @@ Under an opt-out policy, the default command can grant types before the
 visitor has chosen anything. That is a permission, not a recorded choice.
 
 ## Verify the Google tag
+
+These checks are for the `googleTag` helper, which loads before a choice on
+purpose. On a plain HTML page with the script tag, you gate Google's snippet
+instead and it loads only after consent; see
+[HTML scripts](../frameworks/html/scripts.md#google-consent-mode-and-tag-managers).
 
 1. In a private window with an opt-in policy, load the page. `gtag/js` loads.
    In Google Tag Assistant, the `consent` `default` command comes before

@@ -48,3 +48,23 @@ test('package skills link only to pages in the bundle', () => {
 	expect(skill).toContain('Not recommended for production environments.');
 	expect(skill).toContain('`npm install c15t@alpha`');
 });
+
+test('skills fit the package they ship in', () => {
+	const browser = renderPackageSkill(
+		'@c15t/browser',
+		{ install: 'a script tag', topic: 'the site is plain HTML' },
+		new Set(['frameworks/html/quickstart.md', 'frameworks/html/customize.md'])
+	);
+	expect(browser).toContain('data-c15t-category');
+	expect(browser).toContain(
+		'[HTML script tag customization](./docs/frameworks/html/customize.md)'
+	);
+	expect(browser).not.toContain('New apps install `c15t`');
+
+	const next = renderPackageSkill(
+		'@c15t/nextjs',
+		{ install: '`npm install c15t@alpha`', topic: 'Next.js', umbrella: true },
+		new Set()
+	);
+	expect(next).toContain('New apps install `c15t`');
+});
