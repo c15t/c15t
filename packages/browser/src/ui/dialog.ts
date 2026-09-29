@@ -17,8 +17,10 @@ const DEFAULT_DURATION_MS = 200;
  * The preference centre dialog.
  *
  * Opens when the kernel says `activeUI === 'dialog'`. Modal: focus is
- * trapped, the page stops scrolling, Escape closes. Clicking the backdrop
- * does not, matching the other adapters.
+ * trapped, the page stops scrolling. Escape closes it wherever focus is,
+ * as in the React and Vue dialogs. Like the stock dialogs of the other
+ * adapters it has no close button, and clicking the backdrop does not
+ * close it: the visitor leaves through a choice or Escape.
  *
  * @param ctx - The mount context.
  * @param options - Dialog options.
@@ -46,7 +48,9 @@ export const createDialog = function createDialog(
 	} | null = null;
 
 	const onKeyDown = function onKeyDown(event: KeyboardEvent): void {
-		if (event.key === 'Escape') {
+		// The dialog's own handler runs first for keys pressed inside it and
+		// marks the event handled, so the document listener skips it.
+		if (event.key === 'Escape' && !event.defaultPrevented) {
 			event.preventDefault();
 			ctx.client.closeDialog();
 		}
@@ -209,6 +213,10 @@ export const createDialog = function createDialog(
 			content.classList.add(styles.contentEntering);
 		}
 		ctx.root.append(overlay, positioner);
+		// A non-blocking dialog does not trap focus, so Escape pressed on the
+		// page must still reach it.
+		document.addEventListener('keydown', onKeyDown);
+		cleanups.push(() => document.removeEventListener('keydown', onKeyDown));
 		const { blocking } = resolveConsentPresentation({
 			policy: snapshot.policyRule,
 			presentation: ctx.client.presentation,

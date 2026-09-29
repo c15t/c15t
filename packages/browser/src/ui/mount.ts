@@ -139,9 +139,18 @@ export const mountConsentUI = function mountConsentUI(
 		renderedTheme,
 		extension?.stylesheet
 	);
+	// A nonce-based `style-src` blocks an unnonced `<style>`, even in a
+	// shadow root.
+	const createStyle = function createStyle(text: string): HTMLStyleElement {
+		const style = h('style', {}, text);
+		if (client.options.nonce) {
+			style.nonce = client.options.nonce;
+		}
+		return style;
+	};
 	let styleEl: HTMLStyleElement | null = null;
 	if (styleText) {
-		styleEl = h('style', {}, styleText);
+		styleEl = createStyle(styleText);
 		root.append(styleEl);
 	}
 
@@ -192,7 +201,7 @@ export const mountConsentUI = function mountConsentUI(
 			if (styleEl) {
 				styleEl.textContent = text;
 			} else if (text) {
-				styleEl = h('style', {}, text);
+				styleEl = createStyle(text);
 				root.prepend(styleEl);
 			}
 		}

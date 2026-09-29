@@ -121,6 +121,8 @@ export interface C15tGlobal {
 	setLanguage: (code: string) => void;
 	identify: (user: KernelUser) => Promise<void>;
 	mountUI: (options?: ConsentUIOptions) => ConsentUIHandle;
+	/** See {@link ConsentClient.processIframes}. */
+	processIframes: () => void;
 	dispose: () => void;
 	/** Transport factories, for `init({ mode: c15t.hosted({ url }) })`. */
 	hosted: typeof hosted;
@@ -156,6 +158,7 @@ const QUEUE_ACTION_METHODS: ReadonlySet<string> = new Set([
 	'identify',
 	'mountUI',
 	'openDialog',
+	'processIframes',
 	'rejectAll',
 	'save',
 	'saveIAB',
@@ -390,10 +393,6 @@ export const createGlobal = function createGlobal(
 				unsubscribe?.();
 			};
 		},
-		push(...calls) {
-			replayQueue(api, calls);
-			return calls.length;
-		},
 		onInit(listener) {
 			let cancelled = false;
 			const attach = async function attach(): Promise<void> {
@@ -411,6 +410,13 @@ export const createGlobal = function createGlobal(
 			require().openDialog();
 		},
 		pkg: context.pkg ?? '@c15t/browser',
+		processIframes: () => {
+			require().processIframes();
+		},
+		push(...calls) {
+			replayQueue(api, calls);
+			return calls.length;
+		},
 		async ready() {
 			const resolvedClient = await clientReady.promise;
 			return resolvedClient.ready();
