@@ -9,17 +9,34 @@ import type { RequestEvent } from '@sveltejs/kit';
 export const createEvent = function createEvent(
 	input: {
 		url?: string;
+		method?: string;
+		body?: string;
 		headers?: Record<string, string>;
 		locals?: Record<string, unknown>;
 		fetch?: typeof globalThis.fetch;
+		/** Route id and params, as SvelteKit sets them for a matched route. */
+		route?: { id: string; params: Record<string, string> };
+		clientAddress?: string;
 	} = {}
 ): RequestEvent {
 	const url = new URL(input.url ?? 'http://localhost:5173/');
-	const request = new Request(url, { headers: input.headers ?? {} });
+	const request = new Request(url, {
+		body: input.body,
+		headers: input.headers ?? {},
+		method: input.method ?? 'GET',
+	});
 	return {
 		fetch: input.fetch ?? globalThis.fetch,
+		getClientAddress: () => {
+			if (!input.clientAddress) {
+				throw new Error('Could not determine clientAddress');
+			}
+			return input.clientAddress;
+		},
 		locals: input.locals ?? {},
+		params: input.route?.params ?? {},
 		request,
+		route: { id: input.route?.id ?? null },
 		url,
 	} as unknown as RequestEvent;
 };
