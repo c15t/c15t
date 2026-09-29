@@ -54,10 +54,15 @@ export type UsePersistenceOptions = RuntimePersistenceOptions;
  * {@link ConsentRuntimeOptions} contract, forwarded untouched to
  * `createConsentRuntime()` from `@c15t/core/runtime`. `createIAB` is
  * supplied by this package, and `pkg` is fixed to `'@c15t/svelte'`.
+ * Policy rules are not a provider option: pass them to the transport as
+ * `offline({ policyRules })`.
  */
 export interface ConsentManagerOptions
 	extends
-		Omit<ConsentRuntimeOptions, 'createIAB' | 'iab' | 'mode' | 'pkg'>,
+		Omit<
+			ConsentRuntimeOptions,
+			'createIAB' | 'iab' | 'mode' | 'pkg' | 'policyRules'
+		>,
 		Pick<
 			UIOptions,
 			| 'colorScheme'
