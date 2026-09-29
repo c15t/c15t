@@ -1,0 +1,87 @@
+---
+title: Troubleshooting
+description: Fix a missing banner, vendor scripts that run before consent, script tag errors and blocked requests on a plain HTML site that uses the c15t script tag.
+group: frameworks
+---
+
+## Inspect consent with DevTools
+
+Add the DevTools tag next to the c15t tag while you debug. The panel shows
+consent state, gated scripts, the resolved policy and every event. Its Location
+tab changes the country, region, language and GPC signal and runs the policy
+again, so you can see what a visitor elsewhere gets.
+
+{/* example: fragment */}
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.devtools.js"
+  data-open
+  data-tab="location"
+  defer
+></script>
+```
+
+Tag order does not matter. `data-tab` picks the first tab: `consents`,
+`scripts`, `location`, `policy`, `iab`, `events` or `actions`.
+`data-position` picks a corner. The panel is also available as
+`c15t.devtools` in the console. Remove the tag before you publish, because the
+panel shows internal state to every visitor.
+
+## Why is there no banner?
+
+Check the Network tab for the request to your backend's `/init` endpoint.
+
+- **The request failed with a CORS error.** Add your site's exact origin,
+  including `https://` and any `www`, to the trusted origins in your Inth
+  project.
+- **The request returned 200.** The policy for your location may not ask for a
+  banner. Many policies show none outside regions with consent laws. Open the
+  DevTools Location tab and try a country such as `DE`.
+- **There is no request.** The tag did not run. Check that the `src` loads,
+  that no other script on the page threw first, and that the tag has no
+  `data-manual`. A Content Security Policy must allow the CDN in `script-src`
+  and your backend in `connect-src`.
+- **You already chose.** A stored choice hides the banner. Open a private
+  window, or clear the `c15t` cookie and localStorage key.
+
+## Why does a vendor script run before a choice?
+
+The script tag only holds scripts that are `type="text/plain"` with a
+`data-c15t-category`. Search the page source for the vendor's domain. A second
+copy added by a theme setting, a plugin or a tag manager runs on its own terms.
+Remove it, or gate it too.
+
+Check the category as well. Under an opt-out policy, optional categories are
+allowed until the visitor refuses, so vendors load on the first visit by
+design.
+
+## Why does the console say "call c15t.init() first"?
+
+Something called a `window.c15t` method before the client existed. Either the
+call was queued with `c15t.push()` as a method other than `config`, `on` or
+`onInit`, or the tag has `data-manual` and nothing called `c15t.init()`. Move
+the call into an `on('ready', ...)` listener, or wait for `c15t.ready()`.
+
+## Why is my queued configuration ignored?
+
+Look for an inline script that assigns `window.c15t = [...]`. Assignment
+replaces calls other scripts queued before it. Use
+`window.c15t = window.c15t || []` followed by `c15t.push(...)` everywhere.
+A `config` call made after the bundle ran also does nothing; it has to run
+before the tag, or be passed to `c15t.init()` with `data-manual`.
+
+## Why does the page throw "Load c15t.iab.js instead of c15t.js"?
+
+Two c15t bundles are on the page. Keep only `c15t.iab.js` for an IAB policy,
+and remove `c15t.js` or `c15t.headless.js`, including copies a plugin adds.
+
+## Why did the banner change after a release?
+
+`@alpha` in the tag's URL follows the newest prerelease. Replace it with an
+exact version so your page changes only when you change it.
+
+## More symptoms
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems that are
+the same in every setup, such as choices lost on reload and content blockers.

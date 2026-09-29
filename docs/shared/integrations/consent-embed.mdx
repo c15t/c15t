@@ -10,7 +10,7 @@ Create `src/embed-config.ts` using the configuration on this page, then select
 your framework. Keep the existing [consent setup](/docs/frameworks), its policy
 and preferences UI. These examples do not create a second consent provider.
 
-<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'JavaScript', 'React Native']}>
+<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript', 'React Native']}>
   <Tab value="Next.js">
     Render this component inside your existing consent boundary or provider.
 
@@ -259,15 +259,36 @@ and preferences UI. These examples do not create a second consent provider.
     iframe.
   </Tab>
 
+  <Tab value="HTML">
+    The c15t script tag gates iframes that name a category. Put the embed's URL
+    in `data-src` instead of `src`, using the values from the configuration on
+    this page:
+
+    ```html
+    <iframe
+      data-src="https://www.youtube-nocookie.com/embed/VIDEO_ID?playsinline=1"
+      data-category="measurement"
+      title="Product video"
+      loading="lazy"
+      allowfullscreen
+    ></iframe>
+    ```
+
+    c15t sets `src` once the category is allowed and removes it on revocation.
+    Without `src` the iframe loads nothing, so hide it with CSS and show a link
+    to `#c15t-preferences` in its place. See
+    [HTML scripts and embeds](/docs/frameworks/html/scripts#gate-iframes).
+  </Tab>
+
   <Tab value="JavaScript">
-    Use the shared browser helper below with your existing kernel. Put an
+    Use the shared browser helper below with your existing client. Put an
     empty container where the embed should appear:
 
     ```html
     <div id="consent-embed"></div>
     ```
 
-    In your browser entry point, after creating the kernel:
+    In your browser entry point, after `init()`:
 
     ```ts
     import { mountConsentEmbed } from './consent-embed';
@@ -275,13 +296,16 @@ and preferences UI. These examples do not create a second consent provider.
     const container = document.querySelector<HTMLElement>('#consent-embed');
     if (!container) throw new Error('Missing consent embed container');
 
-    const disposeEmbed = mountConsentEmbed(container, kernel, openPreferences);
+    const disposeEmbed = mountConsentEmbed(container, consent.kernel, () =>
+      consent.openDialog(),
+    );
     ```
 
-    `kernel` is the instance from your quickstart. `openPreferences` is your
-    application's function for showing its consent preferences UI. Call
-    `disposeEmbed()` when the page or component is destroyed. The helper observes
-    both the current snapshot and later changes.
+    `consent` is the client from `init()` in your quickstart. With
+    `createConsentRuntime`, pass `runtime.kernel` and your own function that
+    opens preferences. Call `disposeEmbed()` when the page or component is
+    destroyed. Iframe markup with `data-src` and `data-category` also works
+    without the helper, because both setups gate iframes by default.
   </Tab>
 
   <Tab value="React Native">

@@ -601,6 +601,7 @@
     "examples/javascript": {
       "name": "@c15t/example-javascript",
       "dependencies": {
+        "@c15t/browser": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
         "@c15t/integrations": "workspace:*",
         "c15t": "workspace:*",

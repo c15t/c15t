@@ -1,0 +1,75 @@
+{/* Generated from examples/javascript/src/headless.ts (docs:actions) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-ui.ts"
+const label: Record<PresentationAction, string> = {
+	accept: 'Accept all',
+	customize: 'Choose cookies',
+	dismiss: 'OK',
+	reject: 'Reject optional',
+	save: 'Save preferences',
+};
+
+// Each button is a visitor action. Only these calls record a choice.
+const perform = async function perform(action: PresentationAction) {
+	if (action === 'customize') {
+		kernel.set.activeUI('dialog');
+		return;
+	}
+	if (action === 'dismiss') {
+		await kernel.commands.dismissNotice();
+		return;
+	}
+	let choice: Partial<ConsentState> | 'all' | 'none' =
+		action === 'accept' ? 'all' : 'none';
+	if (action === 'save') {
+		choice = {};
+		for (const input of fields.querySelectorAll<HTMLInputElement>('input')) {
+			const category = latest.policyRule.scope.find(
+				(name) => name === input.name
+			);
+			if (category) {
+				choice[category] = input.checked;
+			}
+		}
+	}
+	kernel.set.activeUI('none');
+	const result = await kernel.commands.save(choice);
+	status.textContent = result.ok
+		? 'Your preferences are saved.'
+		: 'Saved in this browser. Backend delivery will retry.';
+};
+
+// The policy decides which actions each surface offers, and in what order.
+const renderActions = function renderActions(
+	container: HTMLElement,
+	surface: 'prompt' | 'preferences',
+	snapshot: ConsentSnapshot
+) {
+	const presentation = resolveConsentPresentation({
+		policy: snapshot.policyRule,
+		surface,
+	});
+	const buttons = presentation.orderedActions.map((action) => {
+		const button = document.createElement('button');
+		button.type = 'button';
+		button.textContent = label[action];
+		button.addEventListener('click', () => {
+			void perform(action);
+		});
+		return button;
+	});
+	if (surface === 'prompt') {
+		for (const right of presentation.rights) {
+			const button = document.createElement('button');
+			button.type = 'button';
+			button.textContent =
+				right === 'opt-out'
+					? 'Do not sell or share my data'
+					: 'Privacy settings';
+			button.addEventListener('click', () => kernel.set.activeUI('dialog'));
+			buttons.push(button);
+		}
+	}
+	container.replaceChildren(...buttons);
+};
+```

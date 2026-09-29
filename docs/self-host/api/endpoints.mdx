@@ -105,7 +105,7 @@ window. That count is approximate by design.
 
 ## GET /c15t.js
 
-The [script-tag build](/docs/frameworks/javascript/script-tag) of the consent banner, pre-configured for this backend. The response is the `@c15t/browser` bundle behind a queued `config` call that carries the instance's manifest, the backend origin, and the defaults set in the `script` option. `GET /c15t.headless.js` serves the build with no UI. `GET /c15t.iab.js` serves the optional IAB CMP and preference UI. Use `script.iabPath` to change its path and `script.config.iab` to set CMP options.
+The [script-tag build](/docs/frameworks/html/quickstart) of the consent banner, pre-configured for this backend. The response is the `@c15t/browser` bundle behind a queued `config` call that carries the instance's manifest, the backend origin, and the defaults set in the `script` option. `GET /c15t.headless.js` serves the build with no UI. `GET /c15t.iab.js` serves the optional IAB CMP and preference UI. Use `script.iabPath` to change its path and `script.config.iab` to set CMP options.
 
 | Query | What it does |
 | --- | --- |

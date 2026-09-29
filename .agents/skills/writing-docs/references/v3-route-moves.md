@@ -25,3 +25,6 @@ the old page's task.
 | `/docs/frameworks/react/script-loader` | `/docs/frameworks/react/scripts` | Merged into the React scripts and embeds page |
 | `/docs/frameworks/react/network-blocker` | `/docs/frameworks/react/scripts#block-requests-an-sdk-sends-itself` | Merged into the React scripts and embeds page |
 | `/docs/frameworks/react/styling/overview` | `/docs/frameworks/react/customize` | Renamed to the framework `customize` page |
+| `/docs/frameworks/javascript/script-tag` | `/docs/frameworks/html/quickstart` | The script tag became the HTML framework. Its reference moved to `/docs/frameworks/html/attributes-and-api`, styling to `/customize`, gating to `/scripts`, and `#optional-iab-entry` to `/docs/frameworks/html/iab` |
+| `/docs/frameworks/javascript/script-loader` | `/docs/frameworks/javascript/scripts` | Renamed to the framework page-set slug |
+| `/docs/frameworks/javascript/building-ui` | `/docs/frameworks/javascript/headless` | Merged into the headless runtime guide |

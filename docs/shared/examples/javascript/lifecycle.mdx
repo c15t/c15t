@@ -1,0 +1,24 @@
+{/* Generated from examples/javascript/src/headless.ts (docs:lifecycle) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-ui.ts"
+const unsubscribe = kernel.subscribe(render);
+const stopErrors = kernel.events.on('command:error', ({ command }) => {
+	if (command === 'init') {
+		status.textContent =
+			'Consent could not load. Check the backend endpoint and allowed origin.';
+	}
+});
+render(kernel.getSnapshot());
+// Reads stored choices, resolves the policy and starts script loading.
+runtime.start();
+
+window.addEventListener('pagehide', (event) => {
+	// Back and Forward restore a cached page with the same runtime.
+	if (event.persisted) {
+		return;
+	}
+	unsubscribe();
+	stopErrors();
+	runtime.dispose();
+});
+```

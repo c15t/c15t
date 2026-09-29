@@ -27,6 +27,7 @@ bun run build:libs
 | Astro | `examples/astro-demo` | `bun run --cwd examples/astro-demo dev` |
 | Svelte | `examples/svelte` | `bun run --cwd examples/svelte dev` |
 | SvelteKit | `examples/sveltekit-demo` | `bun run --cwd examples/sveltekit-demo dev` |
+| HTML | `examples/script-tag` | `bun run --cwd examples/script-tag dev` |
 | JavaScript | `examples/javascript` | `bun run --cwd examples/javascript dev` |
 
 Follow the selected directory's README and environment example. Use your Inth
@@ -36,8 +37,9 @@ self-hosted backend or offline experiments; their README explains the hosted
 configuration for this example.
 
 In Next.js, visit `/app-router` and `/pages-router`. In TanStack Start, Nuxt,
-Astro and SvelteKit, visit `/consent-example`. The plain-framework examples
-open directly at `/`.
+Astro, SvelteKit and HTML, visit `/consent-example`. The JavaScript example
+opens the stock UI at `/` and a custom UI at `/headless/`. The other
+plain-framework examples open directly at `/`.
 
 ## What to try
 
@@ -55,8 +57,10 @@ PostHog uses `loadMode: 'after-consent'` and disables cookieless capture in
 these examples. Its default helper behavior is different; see
 [PostHog configuration](/docs/integrations/posthog).
 
-The JavaScript example owns its HTML controls because the package is headless.
-The framework adapters provide their stock UI. DevTools is included where the
+The JavaScript example's `/headless/` page owns its HTML controls, and every
+other page uses the stock UI. The HTML example gates PostHog and X Pixel with
+inert `<script type="text/plain">` tags and placeholder vendor IDs; revoking a
+category reloads the page instead of sending PostHog an opt-out. DevTools is included where the
 adapter supports it; the Astro example exposes consent state through its page.
 
 ## Use the tested source in your app

@@ -1,0 +1,123 @@
+---
+title: IAB TCF
+description: Load the c15t IAB TCF build on a plain HTML page with one script tag, configure the CMP ID and vendors, and confirm TC strings from your own code.
+group: frameworks
+---
+
+## Load the IAB build
+
+Load `c15t.iab.js` instead of `c15t.js` when your policy uses IAB TCF. It
+contains the CMP, the TC string encoder, the IAB banner and the purpose and
+vendor preference dialog. `c15t.js` and `c15t.headless.js` leave all of that
+out, so pages without an IAB policy stay smaller.
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    iab: { cmpId: YOUR_CMP_ID, vendors: [1, 2, 755] },
+    legalLinks: {
+      privacyPolicy: { href: '/privacy' },
+      cookiePolicy: { href: '/cookies' },
+    },
+    ui: {
+      banner: { legalLinks: ['privacyPolicy', 'cookiePolicy'] },
+      dialog: { legalLinks: ['privacyPolicy'] },
+    },
+  }]);
+</script>
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.iab.js"
+  data-backend-url="YOUR_INTH_BACKEND_URL"
+  defer
+></script>
+```
+
+Replace `YOUR_CMP_ID` with the ID IAB Europe assigned your CMP at
+[registration](https://register.consensu.org/CMP). Every TC string names the
+CMP that wrote it, so never copy an ID from an example. A backend can supply
+`cmpId` and the vendor list instead. `vendors` limits the list to the vendors
+your site works with.
+
+Load only one c15t bundle. `c15t.iab.js` throws an error if `c15t.js` or
+`c15t.headless.js` loaded first. When the resolved policy is not an IAB
+policy, the IAB build shows the ordinary banner. If an IAB policy cannot load
+its vendor list, the banner shows an error and keeps its confirm buttons
+disabled.
+
+A [self-hosted backend](/docs/self-host/overview) serves this build at
+`/c15t.iab.js`. Set `script.config.iab` on the backend to supply CMP defaults.
+
+## Confirm IAB choices from your code
+
+`c15t.acceptAll()` and `c15t.rejectAll()` confirm through the CMP when the
+policy is IAB. For individual choices, change the draft on the CMP handle and
+confirm it with `c15t.saveIAB()`:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['onInit', async (client) => {
+    await client.ready();
+    const cmp = client.runtime.iab;
+    if (!cmp) return;
+    await cmp.whenReady?.();
+    cmp.setPurposeConsent(1, true);
+    cmp.setVendorConsent(755, true);
+    const result = await client.saveIAB();
+    if (!result.ok) client.openDialog();
+  }]);
+</script>
+```
+
+`ready()` waits for the policy. `cmp.whenReady()` waits for the vendor list and
+CMP setup, and rejects if setup fails. The handle also has
+`setPurposeLegitimateInterest`, `setVendorLegitimateInterest` and
+`setSpecialFeatureOptIn`. Each edits the draft; `saveIAB()` confirms it.
+`c15t.save({ ... })` with categories fails under an IAB policy, because it
+cannot produce a TC string.
+
+The CMP installs `window.__tcfapi`. `c15t.dispose()` removes it.
+
+## How the stock dialog groups choices
+
+In the stock preference dialog, turning on a purpose also gives consent to the
+vendors that use that purpose on a consent basis. A purpose's
+legitimate-interest control changes the purpose and its legitimate-interest
+vendors, and turning it off records an objection. A stack's control covers
+its purposes and their consent-based vendors, and shows a mixed state when only
+some are on. The vendor tab has search, per-vendor consent and
+legitimate-interest controls, and each vendor's disclosures from the Global
+Vendor List.
+
+The `runtime.iab` setters each change only the choice they name. A custom UI
+that wants the same grouping must set the related vendor choices itself.
+
+<include src="../../shared/iab-tcf-2-4.mdx" />
+
+## Style and word the IAB UI
+
+The IAB UI takes the same `ui.theme`, `ui.css` and `ui.shadow` options as the
+ordinary banner; see [customize](/docs/frameworks/html/customize). With
+`shadow: false` and your own stylesheet, load both `dist/c15t.css` and
+`dist/c15t.iab.css` from the package.
+
+The IAB banner always shows the c15t branding. `ui.dialog.hideBranding` hides
+it in the preference dialog. `ui.banner.title`, `description` and the button
+text options apply to the IAB banner too, and a description can include
+`{partnerCount}`. `ui.iab.loadErrorText`, `saveErrorText` and
+`moreVendorsText` change the loading error, save error and pagination copy.
+
+Set `ui: false` to render your own IAB UI against the client. The page still
+downloads the IAB build.
+
+## Try it locally
+
+The repository's `examples/script-tag/iab.html` runs the IAB build offline with
+a sample vendor list. Build `@c15t/browser`, run
+`bun run --cwd examples/script-tag dev` and open `/iab`. It uses a
+demonstration CMP ID; replace it with your own for a real site.

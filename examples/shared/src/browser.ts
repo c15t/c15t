@@ -107,8 +107,10 @@ export const saveButton = (page: Page) =>
 	page
 		.getByRole('button', { name: /^(?:save|save preferences|save choices)$/iu })
 		.first();
+// An iframe that has a `src`. Plain HTML keeps the element in the page and
+// gives it a `src` only once the category is allowed.
 export const video = (page: Page) =>
-	page.locator('iframe[title="YouTube video"]');
+	page.locator('iframe[title="YouTube video"][src]');
 
 export const openPreferences = async function openPreferences(
 	page: Page

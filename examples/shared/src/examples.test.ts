@@ -265,13 +265,18 @@ for (const target of selectedTargets()) {
 				await setCategory(page, 'Marketing', false);
 				await saveButton(page).click();
 				await expect.poll(() => requests.posthog).toBe(1);
-				await expect
-					.poll(() =>
-						page.evaluate(() =>
-							sessionStorage.getItem('__examplePosthogConsent')
+				// Plain HTML loads PostHog's own snippet only after consent, so no
+				// helper calls PostHog's opt-in API. The other examples use
+				// `@c15t/scripts`, which does.
+				if (target.id !== 'html') {
+					await expect
+						.poll(() =>
+							page.evaluate(() =>
+								sessionStorage.getItem('__examplePosthogConsent')
+							)
 						)
-					)
-					.toBe('granted');
+						.toBe('granted');
+				}
 				await expect.poll(() => video(page).count()).toBe(1);
 				expect(requests.xPixel).toBe(0);
 				await openPreferences(page);
@@ -281,24 +286,21 @@ for (const target of selectedTargets()) {
 				await openPreferences(page);
 				await setCategory(page, 'Measurement', false);
 				await setCategory(page, 'Marketing', false);
-				if (target.id === 'javascript') {
-					// The bare-kernel example owns its lifecycle without auto-reload.
-					await saveButton(page).click();
-				} else {
-					// Providers reload after revocation. Assert against the new page.
-					await Promise.all([
-						page.waitForEvent('load'),
-						saveButton(page).click(),
-					]);
-				}
+				// Every example reloads after revocation. Assert against the new page.
+				await Promise.all([
+					page.waitForEvent('load'),
+					saveButton(page).click(),
+				]);
 				await expect.poll(() => video(page).count()).toBe(0);
-				await expect
-					.poll(() =>
-						page.evaluate(() =>
-							sessionStorage.getItem('__examplePosthogConsent')
+				if (target.id !== 'html') {
+					await expect
+						.poll(() =>
+							page.evaluate(() =>
+								sessionStorage.getItem('__examplePosthogConsent')
+							)
 						)
-					)
-					.toBe('denied');
+						.toBe('denied');
+				}
 				await openPreferences(page);
 				expect(await categoryControl(page, 'Measurement').isChecked()).toBe(
 					false
@@ -528,7 +530,7 @@ for (const target of selectedTargets()) {
 
 		if (target.id === 'javascript') {
 			test('a persisted pagehide keeps preferences and consent gating active', async () => {
-				await visit('/');
+				await visit('/headless/');
 				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
 				await rejectButton(page).click();
 				// Dispatch the browser lifecycle signal deterministically: Chromium's

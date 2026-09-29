@@ -262,19 +262,27 @@ export default defineDocsConfig({
 					title: 'SvelteKit',
 				},
 				{
+					base: 'html',
+					pages: [
+						'quickstart',
+						'attributes-and-api',
+						'customize',
+						'scripts',
+						'iab',
+						'troubleshooting',
+					],
+					slug: 'html',
+					title: 'HTML',
+				},
+				{
 					base: 'javascript',
 					children: [
 						{
-							pages: ['script-tag', 'script-loader', 'troubleshooting'],
+							pages: ['scripts', 'troubleshooting'],
 							title: 'Integration',
 						},
 						{
-							pages: [
-								'api/overview',
-								'building-ui',
-								'dev-tools',
-								'iab/overview',
-							],
+							pages: ['headless', 'api/overview', 'dev-tools', 'iab/overview'],
 							title: 'API and UI',
 						},
 					],

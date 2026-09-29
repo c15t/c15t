@@ -27,12 +27,13 @@ to the alternatives it rules out.
 | Astro with server output and an adapter | Middleware resolves consent from a cached manifest | [Astro server output](/docs/frameworks/astro/rendering#server-output-with-manifest) |
 | Svelte with Vite | Svelte provider, browser resolves consent | [Svelte](/docs/frameworks/svelte/quickstart) |
 | SvelteKit | Root layout load resolves consent on the server | [SvelteKit](/docs/frameworks/sveltekit/quickstart) |
-| Plain HTML, a CMS, a page builder, or a static site generator such as Hugo or Eleventy | One script tag, stock banner included | [Script tag](/docs/frameworks/javascript/script-tag) |
-| Your own UI, or a framework without an adapter | Headless runtime | [JavaScript](/docs/frameworks/javascript/quickstart) |
+| Plain HTML, a CMS, a page builder, or a static site generator such as Hugo or Eleventy | One script tag, stock banner included | [HTML](/docs/frameworks/html/quickstart) |
+| JavaScript with a bundler and no UI framework | `@c15t/browser` module, stock banner included | [JavaScript](/docs/frameworks/javascript/quickstart) |
+| Your own UI, or a framework without an adapter such as Solid | Headless runtime | [JavaScript headless](/docs/frameworks/javascript/headless) |
 | React Native or Expo | Native consent SDK | [React Native](/docs/frameworks/react-native/quickstart) |
 
-Solid has no c15t adapter. Use the [JavaScript](/docs/frameworks/javascript/quickstart)
-runtime and subscribe to it from your components.
+Solid has no c15t adapter. Use the [headless runtime](/docs/frameworks/javascript/headless#use-c15t-with-solid)
+and subscribe to it from your components.
 
 ## Decide who runs the consent backend
 

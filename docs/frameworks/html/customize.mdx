@@ -1,0 +1,133 @@
+---
+title: Customize
+description: Change the c15t script tag banner on a plain HTML site with theme tokens, extra CSS, layout, copy and legal links, or replace it with your own HTML.
+group: frameworks
+---
+
+## Change colors, radius and fonts
+
+Queue a `config` call with `ui.theme` before the script tag. This block turns
+the buttons purple and rounds the cards:
+
+<include src="../../shared/examples/script-tag/theme.mdx" />
+
+Put the block in the same `<head>` as the tag. The tag has `defer`, so any
+inline script above or below it runs first. `theme` takes the same token
+object as the other c15t packages; [tokens and CSS](/docs/customization/tokens)
+lists every token and what it changes. The banner, the preference dialog and
+the trigger button all read the same tokens.
+
+## Add CSS inside the shadow root
+
+The banner renders in a shadow root with its own copy of the stylesheet, so a
+theme's global `button {}` rule cannot reach it and the banner cannot restyle
+your page. To target one part, pass CSS in `ui.css`. c15t adds it after the
+bundled stylesheet, inside the shadow root:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    ui: { css: '[data-testid="consent-banner-card"] { border: 3px solid #6943a3; }' },
+  }]);
+</script>
+```
+
+Select parts by their `data-testid` attributes, which match the other c15t
+packages. Inspect the banner in the browser's element panel to find a part's
+`data-testid`.
+
+## Style it with your own stylesheet
+
+Add `data-shadow="false"` to the script tag, or set `ui: { shadow: false }`, and
+c15t renders the UI into the page. c15t still adds its stylesheet, and your
+page's CSS now applies too:
+
+{/* example: fragment */}
+
+```css
+[data-c15t-ui] [data-testid="consent-banner-card"] {
+  border: 3px solid #6943a3;
+}
+```
+
+Your theme's global rules reach the banner in this mode, so check buttons and
+headings after you switch. To write every rule yourself, set
+`ui: { shadow: false, noStyle: true }`. c15t then renders unstyled markup with
+the same `data-testid` attributes.
+
+## Change the banner's shape and position
+
+`presentation.prompt` sets the banner's shape and position:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    presentation: { prompt: { variant: 'bar', position: 'bottom' } },
+  }]);
+</script>
+```
+
+| `variant` | Positions |
+| --- | --- |
+| `floating` (default) | `bottom-left` (default), `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` |
+| `bar` | `bottom` (default), `top` |
+| `widget` | `bottom-right` (default), `bottom-left`, `top-left`, `top-right` |
+| `wall` | `center` |
+
+The policy still wins. A notice never blocks the page, a choice wall always
+does, and a policy's required buttons stay visible.
+[Customize your consent interface](/docs/customization/overview#keep-behavior-and-appearance-separate)
+explains the split.
+
+## Change the copy and language
+
+For one-off wording, set `ui.banner.title`, `description`, `acceptButtonText`,
+`rejectButtonText` or `customizeButtonText`. For wording shared by the banner
+and the dialog, and for other languages, use `i18n`. See
+[copy and translations](/docs/customization/translations).
+
+The bundle only carries English. Other languages come from your Inth project,
+the policy manifest or your `i18n` messages. `data-language="de"` on the tag
+forces a language instead of the browser's.
+
+## Show legal links
+
+Add `data-privacy-policy-url`, `data-cookie-policy-url` or `data-terms-url` to
+the tag and the banner and dialog show those links. To show different links on
+each surface, set `legalLinks` in `config`, then list the links for each
+surface in `ui.banner.legalLinks` and `ui.dialog.legalLinks`. An empty list or
+`null` hides links on that surface.
+
+`data-hide-branding` removes the "Secured by c15t" tag from both surfaces.
+`data-color-scheme` picks `light`, `dark` or `system`.
+
+## Build your own banner
+
+Load `c15t.headless.js` instead of `c15t.js` and write the banner in your own
+HTML. The runtime still resolves the policy, stores choices and gates scripts,
+and the `window.c15t` API is the same. Buttons with `data-c15t-action` work
+without code. Listen for the `ui` event to know when to show your banner:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['on', 'ui', (surface) => {
+    document.getElementById('consent-banner').hidden = surface !== 'banner';
+  }]);
+</script>
+```
+
+`surface` is `'banner'`, `'dialog'` or `'none'`. Your banner then owns
+everything the stock one did: the actions the policy requires, notices that
+only need a dismiss button, focus handling, keyboard access and a way to
+reopen preferences. Read [how consent works](/docs/concepts/how-consent-works)
+first. The repository's `examples/script-tag/custom.html` is a working
+headless banner.

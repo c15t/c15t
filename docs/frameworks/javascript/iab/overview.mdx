@@ -1,13 +1,54 @@
 ---
-title: Headless IAB integration
-description: Attach the IAB module to a consent kernel and manage its lifetime and vendor configuration.
+title: IAB TCF
+description: Add IAB TCF to a JavaScript app with the @c15t/browser IAB build, or attach the IAB module to a consent runtime or kernel you own.
 group: frameworks
 ---
 
+## Use the IAB build of @c15t/browser
+
+With the stock UI from the [quickstart](/docs/frameworks/javascript/quickstart),
+import `init` from `@c15t/browser/iab` instead of `@c15t/browser`. This entry
+adds the CMP, the TC string encoder, the IAB banner and the purpose and vendor
+dialog. The plain entry leaves them out.
+
+```ts title="src/main.ts"
+import { init } from '@c15t/browser/iab';
+
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+
+const consent = init({
+  backendURL,
+  iab: { cmpId: YOUR_CMP_ID, vendors: [1, 2, 755] },
+});
+
+await consent.ready();
+const cmp = consent.runtime.iab;
+if (cmp) {
+  await cmp.whenReady?.();
+  cmp.setPurposeConsent(1, true);
+  cmp.setVendorConsent(755, true);
+  const result = await consent.saveIAB();
+  if (!result.ok) consent.openDialog();
+}
+```
+
+Replace `YOUR_CMP_ID` with your registered CMP ID, as explained below. The
+second half shows confirming individual choices from code; the stock dialog
+does this for visitors. `ready()` waits for the policy, and `whenReady()` waits
+for the vendor list and CMP setup. `acceptAll()` and `rejectAll()` confirm
+through the CMP under an IAB policy. `save({ ... })` with categories fails
+under an IAB policy because it cannot produce a TC string; use `saveIAB()`.
+
+When the resolved policy is not an IAB policy, this entry shows the ordinary
+banner. For your own stylesheet with `ui: { shadow: false }`, import both
+`@c15t/browser/styles.css` and `@c15t/browser/iab/styles.css`.
+
 ## Attach the module to your kernel
 
-Install `@c15t/iab` with `c15t`. The following fragment assumes an existing
-kernel connected to Inth and an applicable IAB policy:
+Without `@c15t/browser`, install `@c15t/iab` with `c15t`. The following
+fragment assumes an existing kernel connected to Inth and an applicable IAB
+policy:
 
 ```ts
 import { createIAB } from '@c15t/iab';
@@ -32,6 +73,8 @@ them as `publisherRestrictions` to `createIAB`, in the runtime's `iab`
 options, or in the `iab` options of the Astro integration. The vendor IDs
 below are placeholders; use vendors from your list whose declarations allow
 each restriction.
+
+{/* example: fragment */}
 
 ```ts
 import { createIAB } from '@c15t/iab';

@@ -17,7 +17,7 @@ The `scripts` export is a configuration, not an initializer. Add it to the c15t 
 point for your framework below. These are edits to that provider, not a second
 provider.
 
-<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'JavaScript', 'React Native']}>
+<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript', 'React Native']}>
   <Tab value="Next.js">
     Import the configuration into the client boundary from your router guide:
 
@@ -220,21 +220,39 @@ provider.
     `runtime` to the provider, register scripts when creating that runtime instead.
   </Tab>
 
-  <Tab value="JavaScript">
-    Attach the loader to your existing kernel before calling
-    `kernel.commands.init()`:
+  <Tab value="HTML">
+    The helpers in `@c15t/scripts` are ES modules that need a bundler. On a
+    page that loads the c15t script tag, paste the vendor's own snippet instead
+    and keep it inert until its category is allowed:
 
-    ```ts
-    import { createScriptLoader } from 'c15t/modules/script-loader';
-    import { scripts } from './consent-scripts';
-
-    const loader = createScriptLoader({ kernel, scripts });
+    ```html
+    <script type="text/plain" data-c15t-category="measurement">
+      // The vendor's snippet, unchanged
+    </script>
     ```
 
-    Call `loader.dispose()` when that application instance is destroyed.
-    `kernel` is the hosted kernel from your quickstart. A provider-owned kernel
-    already has a loader; do not attach a second one. See
-    [JavaScript script loading](/docs/frameworks/javascript/script-loader).
+    Use the category this guide names for the vendor. c15t runs the snippet
+    once that category is allowed, and reloads the page when the visitor
+    withdraws it. Helper options on this page, such as `loadMode`, do not apply
+    to a pasted snippet. See [HTML scripts and embeds](/docs/frameworks/html/scripts).
+  </Tab>
+
+  <Tab value="JavaScript">
+    Pass the scripts to `init()` from `@c15t/browser`, next to your backend
+    URL:
+
+    ```ts
+    import { init } from '@c15t/browser';
+    import { scripts } from './consent-scripts';
+
+    const consent = init({ backendURL, scripts });
+    ```
+
+    `backendURL` is the Inth URL from your quickstart. With
+    `createConsentRuntime` from `c15t/runtime`, pass `scripts` to it instead.
+    A kernel you create yourself needs a loader from
+    `c15t/modules/script-loader`. Attach one loader per kernel. See
+    [JavaScript scripts](/docs/frameworks/javascript/scripts).
   </Tab>
 
   <Tab value="React Native">

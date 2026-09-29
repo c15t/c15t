@@ -1,13 +1,31 @@
 # Script-tag example
 
-The `@c15t/browser` banner on a plain HTML page, the way a Framer, Webflow or WordPress site would load it. No framework, no bundler.
+The `@c15t/browser` banner on plain HTML pages, the way a CMS theme, page builder or static site generator loads it. No framework, no bundler.
 
 ```sh
 bun turbo run build --filter=@c15t/browser
 bun run --cwd examples/script-tag dev
 ```
 
-Open http://localhost:4173. No backend is needed: the page runs in offline mode with three built-in policy rules covering European opt-in, US privacy-state opt-out, and no prompt elsewhere and starts as a German visitor. The DevTools panel opens on its Location tab: change the country, run init, and watch the banner follow the policy.
+## The page the HTML docs publish
+
+http://localhost:4173/consent-example is the setup from the [HTML quickstart](https://c15t.com/docs/frameworks/html/quickstart): one tag connected to Inth, PostHog and X Pixel as inert scripts, a YouTube iframe gated on measurement, and a Privacy settings link. `/consent-example/branded` adds the theme block from `branded-theme.html`.
+
+The page's tag points at jsDelivr and a `YOUR_INTH_BACKEND_URL` placeholder, exactly as readers copy it. `serve.ts` swaps both for the local build and `C15T_BACKEND_URL`, so start it with your Inth URL and add `http://localhost:4173` to the project's trusted origins:
+
+```sh
+C15T_BACKEND_URL=<your Inth backend URL> bun run --cwd examples/script-tag dev
+```
+
+The shared acceptance suite runs this page against a fixture backend with vendor requests intercepted:
+
+```sh
+EXAMPLE_TARGET=html bun run --cwd examples/shared test
+```
+
+## The playground
+
+Open http://localhost:4173 for a playground that needs no backend: the page runs in offline mode with three built-in policy rules covering European opt-in, US privacy-state opt-out, and no prompt elsewhere and starts as a German visitor. The DevTools panel opens on its Location tab: change the country, run init, and watch the banner follow the policy.
 
 The page exercises everything a real site gates on consent, all served locally so it works offline and every request shows in the page's log:
 
