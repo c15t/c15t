@@ -15,8 +15,8 @@ Astro has no consent gate component. Use one of these:
 
 | Approach | Use it when |
 | --- | --- |
-| A custom element that renders the iframe | You want a placeholder with a button, and the embed on pages reached with `ClientRouter` |
-| The iframe blocker, with `data-category` and `data-src` | You have iframe markup to gate as it is, on pages loaded without `ClientRouter` |
+| A custom element that renders the iframe | You want a placeholder with a button in place of the embed |
+| The iframe blocker, with `data-category` and `data-src` | You have iframe markup to gate as it is |
 
 ## Gate an embed with a custom element
 
@@ -65,9 +65,8 @@ Always use `data-src`, never `src`, for a gated iframe. The browser starts
 loading a `src` from the HTML before the blocker runs, so an iframe with `src`
 in the markup loads before consent.
 
-The blocker watches the `<body>` that was on the page when c15t started.
-`ClientRouter` replaces `<body>` on each navigation, so on pages you reach
-with `ClientRouter`, use the custom element above instead.
+The blocker watches the whole document, so it also gates iframes on pages you
+reach with `ClientRouter`, which replaces `<body>` on each navigation.
 
 ## Gate an embed on the server
 

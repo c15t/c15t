@@ -23,7 +23,7 @@ retries. The dialog's CSS is already in `@c15t/svelte/styles.css`.
 
 | Prop | Type | Default | Behavior |
 | --- | --- | --- | --- |
-| `open` | `boolean` | follows the consent state | Controls visibility yourself. While `open` is `true`, the dialog stays open. |
+| `open` | `boolean` | follows the consent state | Controls visibility yourself. While `open` is `true`, the dialog stays open, even after Escape. |
 | `showTrigger` | `boolean` or trigger props | `false` | Renders a floating `ConsentDialogTrigger` with the dialog. Pass an object for `defaultPosition`, `persistPosition`, `showWhen`, `size`, `ariaLabel`, `noStyle` and `class`. |
 | `legalLinks` | array of `LegalLinks` keys, or `null` | every configured link | Which of the provider's `legalLinks` to show after the description. |
 | `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
@@ -60,6 +60,10 @@ Customize button, `ConsentDialogLink`, `ConsentDialogTrigger`,
 
 Escape closes the dialog. Clicks outside it do not, so a visitor cannot lose
 unsaved switches by accident. Closing without saving records nothing.
+
+With the `open` prop set, your component owns visibility. Escape then sets
+the active surface to `'none'`, and the dialog stays mounted until you set
+`open` to `false`. Watch `getConsentManager().activeUI` to close it.
 
 ## Accessibility
 

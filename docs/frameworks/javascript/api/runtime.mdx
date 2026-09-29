@@ -25,7 +25,7 @@ Only `mode` is required.
 
 | Option | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `mode` | transport factory | required | Where the policy comes from and where choices go: `hosted()`, `offline()`, `manifest()` or `custom()`. See [transports](/docs/frameworks/javascript/transports). Read once. |
+| `mode` | transport factory | required | Where the policy comes from and where choices go: `hosted()`, `offline()`, `manifest()` or `custom()`. `offline()` switches copy when the kernel's language changes. See [transports](/docs/frameworks/javascript/transports). Read once. |
 | `scripts` | `Script[]` | none | Vendor scripts the loader mounts as categories are allowed. See [script loader](/docs/frameworks/javascript/modules/script-loader). |
 | `consentCategories` | category names | inferred | Categories to offer alongside those your scripts, rules and vendors use, within the policy's scope. |
 | `networkBlocker` | `{ rules, enabled?, logBlockedRequests?, onRequestBlocked? }` or `false` | off | Hold matching `fetch` and XHR requests until their category is allowed. See [network blocker](/docs/frameworks/javascript/modules/network-blocker). |
@@ -38,7 +38,7 @@ Only `mode` is required.
 | `overrides` | `{ country?, region?, language?, gpc? }` | none | Decision inputs the page knows. |
 | `prefetch` | kernel configuration | none | A server-resolved init answer. With a resolved policy, `start()` skips the `/init` request. |
 | `policyRules` | `PolicyRule[]` | none | Rules a local transport resolves. |
-| `i18n` | `{ locale?, messages }` | English | Initial language and messages merged over the bundled English. |
+| `i18n` | `{ locale?, messages }` | English | Initial language, and messages that override the bundled or backend copy key by key for the same language. See [translations](/docs/frameworks/javascript/translations). |
 | `presentation` | `{ prompt?, preferences? }` | none | Layout and blocking, for UIs that call `resolveConsentPresentation`. |
 | `user` | `{ externalId, identityProvider? }` | none | An identified visitor. |
 | `vendors` | `Vendor[]` | none | Vendors offered for vendor-level consent outside IAB. |
@@ -84,6 +84,7 @@ A runtime disposed before it started blocks the requests it was holding.
 | `identify(user)` | Link the consent record to a user. Failures surface through `onError`, not a rejection. |
 | `setOverrides(overrides)` | Replace the country, region, language and GPC inputs. |
 | `reinit()` | Run `/init` again, for example after `setOverrides`. |
+| `processIframes()` | Pause gated iframes that consent does not allow and restore the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. Does nothing before `start()`, after `dispose()` or with `iframeBlocker: false`. |
 | `reconcileStorage()` | Read stored records again and apply changes another runtime or tab made. Returns whether anything changed. |
 | `clearRecords()` | Delete stored choices and reset the kernel's records. |
 | `consentCategories` | `necessary` plus the categories in the current choice scope. |

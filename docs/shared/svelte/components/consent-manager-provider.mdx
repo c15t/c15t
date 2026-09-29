@@ -15,7 +15,7 @@ from `@c15t/svelte` lists every option.
 | `theme` | `Theme` | none | Slot classes and `consentActions` button styles. Design tokens in it are not applied in the browser. Updates after mount. |
 | `presentation` | `ConsentPresentation` | the policy's defaults | Banner and dialog shape, position, button layout and blocking for every component. Updates after mount. |
 | `legalLinks` | `LegalLinks` | none | Privacy policy, cookie policy and terms links shown in the banner and dialog. Updates after mount. |
-| `i18n` | `Partial<I18nConfig>` | bundled English | Copy overrides. A hosted backend's translations replace them; see [translations](../translations). Read once. |
+| `i18n` | `Partial<I18nConfig>` | bundled English | Copy overrides per language. They win key by key over the backend's copy for the same language; see [translations](../translations). Read once. |
 | `colorScheme` | `'light'`, `'dark'`, `'system'` or `null` | none | Toggles the `c15t-dark` class on `<html>`. `null` or unset leaves `<html>` alone. Updates after mount. |
 | `noStyle` | `boolean` | `false` | Renders every component without c15t's classes. A component's own `noStyle` wins. |
 | `disableAnimation` | `boolean` | follows `prefers-reduced-motion` | Turns off enter and exit transitions. |
@@ -40,9 +40,8 @@ from `@c15t/svelte` lists every option.
 | `children` | `Snippet` | none | Your app. The provider renders no markup of its own. |
 
 "Read once" options are read when the provider is created. Changing them later
-has no effect until the provider remounts. For local policy rules, pass
-`offline({ policyRules })` as `mode`; the provider's own `policyRules` option
-does not reach the Svelte `offline()` transport.
+has no effect until the provider remounts. The provider has no `policyRules`
+option. For local policy rules, pass `offline({ policyRules })` as `mode`.
 
 ## What the provider does when it mounts
 

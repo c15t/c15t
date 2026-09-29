@@ -37,18 +37,22 @@ one source:
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
-| `backendURL` | `string` | none | The backend's absolute base URL. See the note on relative URLs below. |
+| `backendURL` | `string` | none | The backend's base URL, absolute or `/`-relative. See the note on relative URLs below. |
 | `initRoute` | `string` | none | Your manifest route, such as `/api/c15t`. Wins over `backendURL`. |
 | `timeoutMs` | `number` or `false` | `500` | Longest wait for the backend or route, in milliseconds. `false` waits as long as it takes. |
 | `cookieName` | `string` | `c15t`, or the handle's | The consent cookie. Match the provider's `storageConfig.storageKey`. |
 | `country`, `region`, `language` | `string` | from headers | Forces one input for this call. |
-| `forwardHeaders` | `string[]` | none | Extra request headers to send to the backend's `/init`. |
+| `forwardHeaders` | `string[]` | none | Extra request headers to send to the backend's `/init`. `forwarded`, `x-forwarded-host` and `x-forwarded-proto` are skipped unless `trustForwardedHeaders` is set. |
+| `trustForwardedHeaders` | `boolean` | `false` | Resolves a relative `backendURL` against the request's forwarding headers instead of `event.url`, and sends those headers to the backend. |
 | `fetch` | `typeof fetch` | `event.fetch` | The fetch used for the backend's `/init`. |
 
-Keep `backendURL` absolute. `loadConsent` resolves a relative URL against the
-request's `x-forwarded-host` or `host` header, which a client can set, and
-sends the request's cookies to the result. For a route in your own app, use
-`initRoute`, which stays inside the process.
+`loadConsent` resolves a relative `backendURL` against `event.url`, which
+SvelteKit builds from the adapter's `ORIGIN`, or its `PROTOCOL_HEADER` and
+`HOST_HEADER` settings. A client's `x-forwarded-host` does not change it. On
+`adapter-node` behind a proxy, set those environment variables as the adapter
+documents. `trustForwardedHeaders: true` reads the forwarding headers
+directly; set it only when your proxy overwrites them. For a route in your own
+app, prefer `initRoute`, which stays inside the process.
 
 `loadConsent` never throws. When the backend fails, answers with an error or
 takes longer than `timeoutMs`, it returns the stored choice without a policy.
@@ -133,11 +137,13 @@ does without a SvelteKit event.
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
 | `headers` | `Headers` | required | The incoming request's headers. |
-| `backendURL` | `string` | none | Calls `<backendURL>/init`. Without it, only the cookie and headers are read. Keep it absolute, as for `loadConsent`. |
+| `backendURL` | `string` | none | Calls `<backendURL>/init`. Without it, only the cookie and headers are read. A relative URL resolves against `requestURL`, or the `host` header when there is none. |
+| `requestURL` | `string` or `URL` | none | The URL the framework resolved the request under, such as SvelteKit's `event.url`. `loadConsent` passes it for you. |
+| `trustForwardedHeaders` | `boolean` | `false` | Resolves a relative `backendURL` against `forwarded`, `x-forwarded-host` and `x-forwarded-proto`, and sends those headers to the backend. |
 | `cookieName` | `string` | `c15t` | The consent cookie. |
 | `cookieHeader` | `string` or `null` | `headers.get('cookie')` | A cookie header to read instead. |
 | `country`, `region`, `language` | `string` | from headers | Forces one input. |
-| `forwardHeaders` | `string[]` | none | Extra headers to send to `/init`. |
+| `forwardHeaders` | `string[]` | none | Extra headers to send to `/init`. Forwarding headers are skipped unless `trustForwardedHeaders` is set. |
 | `fetch` | `typeof fetch` | global `fetch` | The fetch for `/init`. |
 | `now` | `number` | the current time | The request time, shared with the browser. |
 

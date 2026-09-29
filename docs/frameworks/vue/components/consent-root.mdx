@@ -37,12 +37,12 @@ closes.
 
 ## Theme tokens
 
-When `ConsentRoot` mounts, it writes every token from the `tokens` option,
-including the defaults you did not set, as inline styles on the `<html>`
-element. An inline style beats a `:root` rule in your stylesheet, so set token
-values through the `tokens` option. The tokens apply only after mount, which
-is one reason plain Vue does not support server rendering. See
-[rendering](/docs/frameworks/vue/rendering#server-rendering-without-nuxt).
+`ConsentRoot` does not apply theme tokens. The c15tVue plugin adds every
+token from the `tokens` option, including the defaults you did not set, to
+`document.head` in a `<style id="c15t-css-vars">` element when you install
+it, before the first render. Set token values through the `tokens` option
+rather than a `:root` rule in your stylesheet. See
+[customize](/docs/frameworks/vue/customize#set-theme-tokens).
 
 ## Props
 
@@ -74,8 +74,8 @@ render `ConsentRoot` next to them, or the visitor sees two banners.
 
 Load the app in a private window under a policy that asks for consent. The
 banner appears after the policy request to your backend completes. In the
-Elements panel, the `<html>` element's `style` attribute holds the
-`--c15t-*` tokens. Click Customize and the preference dialog opens. Reject,
+Elements panel, the `<style id="c15t-css-vars">` element in `<head>` holds
+the `--c15t-*` tokens. Click Customize and the preference dialog opens. Reject,
 reload, and confirm the banner stays closed.
 
 ## Related

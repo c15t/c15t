@@ -96,10 +96,10 @@ For one banner, the text props on `ConsentBanner`, such as `title` and
 <ConsentBanner title="Your privacy" rejectButtonText="Reject optional" />
 ```
 
-For site-wide copy, where it comes from depends on the mode. In `offline()`
-mode, the provider's `i18n` messages merge over the bundled English copy. In
-`hosted()` mode, the backend's translations replace `i18n` messages once
-`/init` answers, so change hosted copy on the backend.
+For site-wide copy, pass the provider's `i18n` messages. In `offline()` mode
+they merge over the bundled English copy. In `hosted()` mode they merge over
+the backend's copy for the same language, key by key, so keys you leave out
+keep the wording from your Inth project.
 [Translations](./translations) covers both, the message keys and switching
 languages. [Copy and translations](/docs/customization/translations) covers
 wording for each action.

@@ -122,10 +122,13 @@ it like `on`; it attaches as soon as the client exists.
 
 ## Errors thrown by your listeners
 
-A listener that throws does not fail the action that caused the event, and
-c15t reports the error to the console. It can stop later `on` listeners for
-the same event from running, so catch errors inside your own listeners. Keep
-listeners quick, because they run synchronously while the change is applied.
+A listener that throws does not fail the action that caused the event. c15t
+logs the error with `console.error`, then runs the later `on` listeners for
+the same event and dispatches the matching `c15t:*` event on `document`. The
+same holds for a `ready` or `ui` listener that `c15t.on()` runs at once after
+the policy resolved, so `c15t.on()` still returns the function that removes
+the listener. Keep listeners quick, because they run synchronously while the
+change is applied.
 
 ## Check it works
 

@@ -41,6 +41,7 @@ group: reference
   | `getConsentCategories` | `() => readonly ConsentCategory[]` | `consentCategories` | Narrows the categories the Consents panel acts on. It cannot add categories outside the policy. |
   | `getPresentation` | `() => ConsentPresentation \| undefined` | Your `presentation` option | Presentation the Policy panel resolves. |
   | `clearRecords` | `() => void` | Clears the stored consent records | Runs when you clear records from the panel. |
+  | `shadow` | `boolean` | `true` | Mounts the panel inside a shadow root that carries its own stylesheet, so your page's CSS cannot restyle it. `:shadow="false"` mounts the panel in the light DOM and adds its stylesheet to `<head>`. |
 
   Changing a prop destroys the panel and creates a new one, which clears its
   event history.

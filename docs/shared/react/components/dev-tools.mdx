@@ -36,7 +36,10 @@ group: reference
   `position` accepts any corner: `top-left`, `top-right`, `bottom-left`, or
   `bottom-right`. Set `defaultOpen` to open the initial panel and `defaultTab`
   to choose that panel. `maxEvents` limits captured kernel and script events.
-  Set `disabled` to prevent mounting without removing the component.
+  Set `disabled` to prevent mounting without removing the component. The
+  panel renders inside a shadow root by default, so page CSS does not reach
+  it. `shadow={false}` mounts it in the light DOM with its stylesheet in
+  `<head>`.
 
   ## Panels
 

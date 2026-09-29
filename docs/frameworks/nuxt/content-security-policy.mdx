@@ -22,9 +22,9 @@ documentation and modules such as `nuxt-security` cover those.
 
 ## Allow the theme token style tag
 
-`ConsentRoot` writes the `tokens` option into an inline
-`<style id="c15t-css-vars">` tag. A `style-src` without `'unsafe-inline'`
-blocks it, and the banner falls back to the default theme. The tag's content
+The module writes the `tokens` option into an inline
+`<style id="c15t-css-vars">` tag on every page. A `style-src` without
+`'unsafe-inline'` blocks it, and the banner falls back to the default theme. The tag's content
 is the same for every visitor and only changes when you change `tokens`, so
 you can allow it with a hash:
 
@@ -33,8 +33,10 @@ you can allow it with a hash:
    style` console error.
 3. Add it to `style-src` and redeploy.
 
-Recompute the hash whenever you change `tokens`. When your policy already
-allows `'unsafe-inline'` for Nuxt's own styles, the tag needs nothing more.
+Recompute the hash whenever you change `tokens`. When you set the module's
+`nonce` option, the tag carries that nonce, so a `style-src` that lists the
+same nonce allows it. When your policy already allows `'unsafe-inline'` for
+Nuxt's own styles, the tag needs nothing more.
 
 ## Allow the backend
 

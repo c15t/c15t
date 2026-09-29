@@ -14,7 +14,8 @@ A Vue app with c15t adds these to the page, and your policy must allow them:
 | `<script>` elements the script loader creates for `scripts` | `script-src` |
 | Scripts, frames, images and requests your vendors load | `script-src`, `frame-src`, `img-src`, `connect-src` for each vendor |
 | The components' CSS, which Vite bundles with your app | `style-src` |
-| Theme tokens and style bindings, set through the CSSOM | None |
+| The `<style id="c15t-css-vars">` element with your theme tokens, in `<head>` | `style-src` |
+| Style bindings, such as the floating trigger's position, set through the CSSOM | None |
 
 ## Allow the backend
 
@@ -54,14 +55,23 @@ The components import their CSS, which Vite adds to your app's stylesheet in
 a production build. `style-src 'self'` covers it. In development, Vite injects
 `<style>` elements, which need `'unsafe-inline'` in `style-src`.
 
-`ConsentRoot` sets theme tokens with `style.setProperty` on `<html>`, and Vue
-applies the components' `style` bindings, such as the floating trigger's
-position, through the same CSSOM API. A policy does not govern CSSOM changes,
-so neither needs a directive.
+The c15tVue plugin adds your theme tokens to `<head>` in an inline
+`<style id="c15t-css-vars">` element. A `style-src` without
+`'unsafe-inline'` blocks it, and the components fall back to the default
+theme. The element's content is the same for every visitor and only changes
+when you change `tokens`, so you can allow it with a hash. Copy the
+`sha256-...` value from the browser's `Refused to apply inline style` console
+error into `style-src`, and recompute it whenever you change `tokens`. When
+you pass the plugin's `nonce` option, the element carries that nonce too.
+
+Vue applies the components' `style` bindings, such as the floating trigger's
+position, through the CSSOM. A policy does not govern CSSOM changes, so they
+need no directive.
 
 ## Verify
 
-Enforce the policy, not report-only, and load the app. The console shows no
+Enforce the policy, not report-only, and load the app. The banner shows your
+token colors, and the console shows no
 `Refused to connect`, `Refused to load the script` or `Refused to apply
 inline style` error that mentions your backend, a c15t element or a vendor
 you allowed. Accept all, and the vendor scripts load. The save to

@@ -78,8 +78,9 @@ version. It bundles every language, so keep it out of browser code.
 
 ## Offline
 
-`offline()` from `@c15t/browser` resolves bundled rules in the browser and
-sends nothing:
+`offline()` resolves bundled rules in the browser and sends nothing. `c15t`
+and `@c15t/browser` export the same `offline()`, so it works with `init()` and
+with `createConsentRuntime`:
 
 <include src="../../shared/examples/javascript/transport-offline.mdx" />
 
@@ -94,8 +95,19 @@ records. Not recommended for production environments.
 accepts `policyRules` as preset names such as `['europeOptIn', 'worldNone']`.
 [Policies](/docs/concepts/policies) lists the presets.
 
+In offline mode, a language your app sets with `overrides.language`,
+`setLanguage()` or `kernel.set.language()` switches the copy when the bundle
+or `i18n.messages` has that language. A language with no copy shows the
+default copy. The language a server prefetch detected from `Accept-Language`
+does not switch the copy. See
+[translations](/docs/frameworks/javascript/translations#switch-language-at-runtime).
+
 For a kernel you create yourself, `createOfflineTransport({ policyRules })`
-from `c15t` returns the transport object.
+from `c15t` returns the transport object. Pass it `translationsFor`, a
+function that returns the copy for a language or `undefined`, and
+`detectedLanguage` to get the same language switching. Without
+`translationsFor`, the transport serves its starting copy under whatever
+language the kernel asks for.
 
 ## Custom
 

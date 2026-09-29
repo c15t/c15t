@@ -17,8 +17,8 @@ Render this component in `app.vue` in place of `ConsentRoot`. Render
 `ConsentManager` with it, or Customize opens nothing. A statically imported
 `ConsentManager` is part of your main bundle, while `ConsentRoot` loads the
 dialog as a separate chunk. Unlike `ConsentRoot`, these components do not
-switch to the IAB surfaces under an IAB policy and do not write the `tokens`
-option to the page head.
+switch to the IAB surfaces under an IAB policy. The module still writes the
+`tokens` option to the page head.
 
 <import src="../../../shared/vue/components/consent-banner.mdx#behavior" />
 

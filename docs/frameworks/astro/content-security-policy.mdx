@@ -1,6 +1,6 @@
 ---
 title: Content Security Policy
-description: What c15t injects into an Astro page, which origins a Content Security Policy must allow for the consent backend and vendors, and the current limits of nonces and hashes with the Astro integration.
+description: Run c15t on an Astro site under a strict Content Security Policy, with a per-request nonce from your middleware or with Astro's own hash-based CSP, and allow the consent backend and vendors.
 group: frameworks
 ---
 
@@ -10,18 +10,155 @@ A Content Security Policy for an Astro site with c15t has to allow these:
 
 | What | Where it comes from | Directive |
 | --- | --- | --- |
-| The boot payload script, `window.__c15tAstroConfig=…` | Inline, from `ConsentScript` or the first banner on the page | `script-src` |
 | The color-scheme script | Inline, in `<head>`, with `colorScheme` `'system'` or `'dark'` | `script-src` |
 | The banner reveal script | Inline, after a banner on a prerendered page | `script-src` |
-| The page script that starts the consent runtime, and the banner's click handler | Bundled module scripts from your own origin | `script-src 'self'` |
 | `<style id="c15t-theme">` | Inline, when the integration sets `theme` | `style-src` |
+| The page script that starts the consent runtime, and the banner's click handler | Bundled module scripts from your own origin | `script-src 'self'` |
 | `c15t/astro/styles.css` and the dialog stylesheets | Stylesheets from your own origin | `style-src 'self'` |
 | Vendor `<script>` elements | Created by the script loader when a category is allowed | `script-src`, plus each vendor's hosts |
 | Gated inline scripts | Your own `type="text/plain"` scripts, copied into live scripts | `script-src` |
 
+The per-visitor boot payload is not on this list. `ConsentScript` and the
+banners render it as a `<script type="application/json" data-c15t-config>`
+data block. The browser never runs a data block, so a policy does not need to
+allow it.
+
 The dialog islands can render `style` attributes, for example on animated
 sections. If your policy blocks style attributes, allow them with a separate
 `style-src-attr 'unsafe-inline'` directive.
+
+Choose one way to allow the inline code:
+
+| Policy | Use it when |
+| --- | --- |
+| A nonce from your own middleware | Pages render on each request, and you set the policy header yourself |
+| Astro's CSP, `security.csp` | You want Astro to write the policy, including on prerendered pages, and the site does not use `ClientRouter` |
+
+## Allow c15t with a nonce
+
+Set `Astro.locals.c15t.nonce` in your own middleware. The c15t middleware
+runs first, with `order: 'pre'`, so `Astro.locals.c15t` exists by the time
+yours runs. Generate a nonce per request, set it, render, then send the policy
+header with the same nonce:
+
+{/* example: fragment */}
+
+```ts title="src/middleware.ts"
+import { defineMiddleware } from 'astro:middleware';
+
+export const onRequest = defineMiddleware(async (context, next) => {
+  const nonce = crypto.randomUUID();
+  if (context.locals.c15t) {
+    context.locals.c15t.nonce = nonce;
+  }
+  const response = await next();
+  response.headers.set(
+    'content-security-policy',
+    `script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'`
+  );
+  return response;
+});
+```
+
+With the nonce set, every inline `<script>` and `<style>` that `ConsentScript`,
+`ConsentBanner` and `IABConsentBanner` render carries it. The browser runtime
+reads the nonce from the `data-c15t-config` data block and puts it on:
+
+- The vendor scripts the script loader injects, unless a script entry sets its
+  own `nonce`.
+- The gated `type="text/plain"` scripts it activates.
+- The dialog stylesheet links it adds the first time the dialog opens.
+
+### Put the nonce on your gated scripts
+
+When the page has a nonce, c15t activates a gated `type="text/plain"` script
+only if the tag carries that same nonce. Add it to each gated tag you write:
+
+{/* example: fragment */}
+
+```astro title="src/pages/index.astro (partial)"
+<script
+  is:inline
+  type="text/plain"
+  data-c15t-category="measurement"
+  nonce={Astro.locals.c15t?.nonce}
+>
+  console.log('Measurement allowed');
+</script>
+```
+
+c15t skips a gated tag without the nonce, logs a console warning, marks the
+tag `data-c15t-activated="untrusted"` and never tries it again. The check
+exists because c15t activates a tag by creating a new `<script>`, and a policy
+with `'strict-dynamic'` runs a script that trusted code creates without
+checking its nonce. Without the check, a tag injected through an HTML
+injection hole would run once its category was allowed.
+
+Gated tags you insert later from your own code need the nonce too. When you
+call `activateGatedScripts(snapshot, container, nonce)` from
+`c15t/astro/client` for that markup, pass the page's nonce as the third
+argument so the same check applies. Pages without a nonce activate every
+gated tag.
+
+A nonce only works on pages rendered on each request. A prerendered page is
+built once, so every visitor would share one nonce. Use Astro's CSP for
+prerendered pages.
+
+The nonce covers what the c15t components render. Scripts and stylesheets of
+your own that Astro inlines need the nonce or a hash from you.
+
+### Pass the nonce to `ConsentBanner` and `ConsentBannerDeferred`
+
+`ConsentBanner` reads `Astro.locals.c15t.nonce` by default. Its `nonce` prop
+sets the value for that banner only.
+
+`ConsentBannerDeferred` passes the page's nonce to its server island. The
+island renders in a request of its own, but the page's policy is the one that
+applies to the markup the island inserts.
+
+Astro loads a server island with inline scripts that carry no nonce, and one
+of them changes on every render. A nonce policy set from middleware therefore
+blocks the loader, and the deferred banner never arrives. On pages with
+`ConsentBannerDeferred`, use Astro's CSP, which hashes the loader on each
+render, or render `ConsentBanner` instead.
+
+## Allow c15t with Astro's CSP
+
+Turn on Astro's CSP with `security.csp`, or `experimental.csp` in Astro 5:
+
+{/* example: fragment */}
+
+```js title="astro.config.mjs (partial)"
+export default defineConfig({
+  security: { csp: true },
+  integrations: [c15t({ mode: hosted({ url: backendURL }) })],
+});
+```
+
+The c15t integration adds the hashes of the inline code it can render to that
+policy, with the hash algorithm you configured:
+
+- The color-scheme script.
+- The reveal scripts of `ConsentBanner` and `IABConsentBanner`.
+- The theme stylesheet.
+- The inline `textContent` of each entry in the integration's `scripts`
+  option, which the script loader injects.
+
+You do not need `'unsafe-inline'`. Leave it out, because Astro drops the hashes
+from a directive that lists it.
+
+Some code still needs your own entry in the policy:
+
+- Gated `type="text/plain"` scripts you write yourself. Add the hash of each
+  one's text to `security.csp.scriptDirective.hashes`.
+- Scripts registered from the `clientEntrypoint` module. The integration
+  cannot see them when it computes the hashes, so add the hash of each inline
+  one yourself.
+- Vendor script hosts. Add them to `security.csp.scriptDirective.resources`,
+  together with `'self'`, which a custom list no longer includes.
+
+Astro's CSP does not support `ClientRouter`. On a site that uses it, allow the
+inline code with a nonce instead.
 
 ## Allow the consent backend in `connect-src`
 
@@ -37,48 +174,32 @@ when the server did not resolve the policy. Allow those origins:
 {/* example: fragment */}
 
 ```txt title="Content-Security-Policy (partial)"
-connect-src 'self' https://<your-backend-host>;
+connect-src 'self' https://your-project.inth.app;
 ```
 
-Use the host from your Inth project or your self-hosted backend. Server-side
-requests from the middleware and the injected routes run in Astro and are not
-subject to the browser's policy. Under an IAB TCF policy, the browser fetches
-the vendor list from the `/init` route or the URL the policy names. Allow
-that host too.
+Replace `https://your-project.inth.app` with the URL from your Inth project or
+your self-hosted backend. Server-side requests from the middleware and the
+injected routes run in Astro and are not subject to the browser's policy.
+Under an IAB TCF policy, the browser fetches the vendor list from the `/init`
+route or the URL the policy names. Allow that host too.
 
 Vendors add their own hosts to `script-src`, `connect-src`, `img-src` and
 `frame-src`. Each [integration guide](/docs/integrations/overview) lists the
 requests to expect.
 
-## Nonces and hashes
-
-The c15t Astro integration has no nonce option today. Its inline scripts and
-the theme `<style>` carry no nonce, and the script loader creates vendor
-scripts without one.
-
-A hash-based policy cannot cover the boot payload either. It holds the
-visitor's consent, location and language, so its hash changes with each
-visitor. Astro's own `security.csp` hashes the scripts and styles Astro
-bundles, not inline scripts like these, and Astro does not support it
-together with `ClientRouter`.
-
-So a policy that allows scripts only by nonce or hash blocks c15t on Astro.
-Until the integration supports nonces, allow inline scripts and styles with
-`'unsafe-inline'` in `script-src` and `style-src`, and keep the rest of the
-policy strict. Limit `script-src`, `connect-src` and `frame-src` to the hosts
-you use.
-
-The color-scheme script is the same on every page for a given `colorScheme`,
-and the reveal script is the same for a given `storageConfig`, so both could
-be allowed by hash. The boot payload is what stops a hash-only policy.
-
 ## Check your policy
 
-1. Load a page with the policy enforced, not report-only, and open the
-   console. No `Refused to execute inline script` or `Refused to apply inline
-   style` error mentions a c15t element.
-2. The banner renders with your theme colors, and the page source has
-   `window.__c15tAstroConfig`.
-3. Allow a category that gates a vendor. The vendor's script loads, and no
+1. Load a server-rendered page with the policy enforced, not report-only, and
+   open the DevTools Console. No `Refused to execute inline script` or
+   `Refused to apply inline style` error appears.
+2. View the page source. With a nonce policy, the color-scheme `<script>`,
+   `<style id="c15t-theme">` and `<script type="application/json"
+   data-c15t-config>` carry a `nonce` attribute that matches the
+   `content-security-policy` response header. The Elements panel shows the
+   attribute empty, because browsers hide a nonce's value after checking it.
+3. The banner renders with your theme colors, and its buttons record a choice.
+4. Open the preference dialog. It is styled, and the Console shows no
+   `style-src` violation.
+5. Allow a category that gates a vendor. The vendor's script loads, and no
    `connect-src` or `script-src` violation mentions its host.
-4. Save a choice. The request to `/subjects` succeeds.
+6. Save a choice. The request to `/subjects` succeeds in DevTools Network.

@@ -153,7 +153,8 @@ option you still want, such as `theme` here.
 
 The stock UI handles focus for you. A blocking banner and the dialog keep
 Tab inside themselves and stop the page scrolling. Escape closes the dialog
-without saving. Surfaces set `lang` and `dir` from the resolved language.
+without saving, wherever focus is, including a non-blocking dialog. The
+dialog has no close button by design. Surfaces set `lang` and `dir` from the resolved language.
 Transitions follow the visitor's reduced motion setting, and
 `ui.disableAnimation` turns them off.
 

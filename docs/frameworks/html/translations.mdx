@@ -15,7 +15,8 @@ bundle, and which source wins depends on the mode:
 | Manifest | The manifest's translations for the visitor's language. |
 | Offline | English, or the language and messages you set in `i18n`. |
 
-In every mode, text you set in `ui.banner`, such as `title` or
+In every mode, your `i18n.messages` for the language in use override that copy
+key by key. Text you set in `ui.banner`, such as `title` or
 `acceptButtonText`, replaces the translated text for all languages.
 
 ## Pick the language
@@ -37,9 +38,11 @@ force one, add `data-language` to the tag:
 A multilingual site can print each page's language into the tag, for example
 from the `lang` attribute your CMS already writes on `<html>`.
 
-To switch after load, call `c15t.setLanguage('fr')`. c15t asks the backend for
-French copy and re-renders the banner and dialog. In offline mode,
-`setLanguage` has no copy to fetch, so the text stays as it was.
+To switch after load, call `c15t.setLanguage('fr')`. With a backend, c15t asks
+the backend for French copy and re-renders the banner and dialog. In offline
+mode, `data-language` and `c15t.setLanguage()` switch to a language that has
+copy in the bundle or in `i18n.messages`. A language with no copy shows the
+default copy. See [add a language in offline mode](#add-a-language-in-offline-mode).
 
 ## Change the wording
 
@@ -65,9 +68,19 @@ change; the rest keep their default text:
 </script>
 ```
 
-With a backend, the `/init` response carries the project's copy. For the same
-language it replaces your `i18n` messages key by key, so change copy in your
-Inth project, or use the `ui.banner` text options for the banner.
+With a backend, the `/init` response or the manifest carries your Inth
+project's copy for the visitor's language. Your `i18n.messages` for that
+language override it key by key, and keys you leave out keep the project's
+copy. c15t looks for the exact language first, then the primary language, so a
+visitor on `de-AT` gets your `de` messages. Messages for other languages are
+not applied.
+
+A key only overrides the backend when your text differs from c15t's built-in
+wording for that language. So passing the stock bundles from
+`@c15t/translations/all` to enable languages keeps edits made in your Inth project visible,
+while a key you actually reworded stays pinned in code. Core bundles only
+English; for other languages, import `@c15t/translations/all` so c15t can
+recognize its stock wording.
 
 ## Add a language in offline mode
 
@@ -104,6 +117,12 @@ messages over the English defaults:
 
 Keys you leave out stay in English, so translate every key your banner and
 dialog show. The messages follow the same structure every c15t package uses.
+
+The script tag bundles English only, so in offline mode every other language
+needs an entry in `i18n.messages`. With one entry per language,
+`data-language` and `c15t.setLanguage()` switch between them. A regional
+code such as `de-AT` uses the `de` entry when there is no `de-AT` entry. A
+language with no entry shows the default copy.
 
 ## Message keys the stock UI reads
 

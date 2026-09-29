@@ -74,6 +74,12 @@ Know its limits before you add it:
   and the browser then requests `/init` as usual.
 - `mode` is read once, when the provider mounts. Create the `hosted()` mode once
   in the browser rather than on every render.
+- A relative `backendURL` resolves against the request's `host` header, over
+  `https` for a domain name and over `http` for `localhost`, an IP address or
+  a single-label host. `fetchSSRData` ignores `x-forwarded-host`,
+  `x-forwarded-proto` and `forwarded`, and does not send them to the backend.
+  Behind a proxy that overwrites those headers, pass
+  `trustForwardedHeaders: true` to use them.
 
 ### Render the banner in the server HTML
 

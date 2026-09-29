@@ -37,7 +37,8 @@ import ConsentBanner from 'c15t/vue/runtime/components/consent-banner.vue';
 components, for the visitor's policy. Mount `ConsentRoot`, or mount the parts,
 never both, or the visitor sees two banners. Always use the global
 `ConsentRoot` in Nuxt, not `c15t/vue/consent-root`. The global one renders the
-banner on the server and writes theme tokens into the page head.
+banner on the server. The module writes theme tokens into the page head
+whether you mount `ConsentRoot` or the parts.
 
 `ConsentFrame` is a deprecated name for `ConsentGate`. The module still
 registers it so older templates resolve.

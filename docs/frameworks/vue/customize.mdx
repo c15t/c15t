@@ -37,9 +37,11 @@ for `brand-consent-card`.
 `tokens` sets c15t's CSS variables. Keys are the variable names without the
 leading `--`. [Theme tokens](/docs/customization/tokens) lists every token.
 
-When `ConsentRoot` mounts, it writes every token, including the defaults you
-did not set, as inline styles on the `<html>` element. An inline style beats a
-`:root` rule in your stylesheet, so set token values through the `tokens`
+The c15tVue plugin adds every token, including the defaults you did not set,
+to `document.head` in a `<style id="c15t-css-vars">` element when you install
+it, before the first render. Every c15t component gets them, with or without
+`ConsentRoot`. A `:root` rule in your stylesheet can lose to that element
+depending on stylesheet order, so set token values through the `tokens`
 option. `defineTheme` from `c15t/vue/vue-plugin` only types a theme object; it
 does not apply anything.
 
@@ -102,5 +104,5 @@ message keys and writing labels.
 ## Check the result
 
 Run `vite` and open the app in a private window so the banner shows. In the
-Elements panel, the `<html>` element's `style` attribute holds your token
-values.
+Elements panel, the `<style id="c15t-css-vars">` element in `<head>` holds
+your token values.

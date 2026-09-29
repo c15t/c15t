@@ -44,9 +44,9 @@ app.use(c15tVue, {
 });
 ```
 
-Always set `manifest: 'client'` with `manifestURL`. A `manifestURL` on its
-own selects the Nuxt module's server mode, and the browser then calls an
-`/api/c15t/init` route that a plain Vue app does not have.
+In the plain Vue plugin, a `manifestURL` with `manifest` unset also selects
+client mode. The Nuxt module treats the same config as server mode, so keep
+`manifest: 'client'` in config you share with a Nuxt app.
 
 The manifest is the same for every visitor, so a CDN can cache it. The
 browser has no request location, so without `geoURL` every visitor gets the
@@ -58,10 +58,22 @@ Consent saves still go to `backendURL`.
 ## Server rendering without Nuxt
 
 c15t has no server helper for plain Vue. The plugin accepts `prefetch` and
-`initialRecords`, but nothing produces them for a custom Vue server, and
-`ConsentRoot` from `c15t/vue/consent-root` applies theme tokens only after it
-mounts. A server-rendered page would render without the banner and without
-your tokens, then change after hydration.
+`initialRecords`, but nothing produces them for a custom Vue server. A
+server-rendered page renders without the banner, and the banner appears after
+hydration.
+
+Your theme tokens can still be in the first HTML. `generateTokensCSS()` from
+`c15t/vue/vue-plugin` returns the CSS the plugin applies. Put it in a
+`<style id="c15t-css-vars">` element in your server HTML, and the plugin
+reuses that element in the browser:
+
+{/* example: fragment */}
+
+```ts
+import { generateTokensCSS } from 'c15t/vue/vue-plugin';
+
+const tokensStyle = `<style id="c15t-css-vars">${generateTokensCSS(tokens)}</style>`;
+```
 
 For server-rendered Vue, use the c15t Nuxt module; its guide is under Nuxt in
 the framework list.

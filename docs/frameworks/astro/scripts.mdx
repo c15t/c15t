@@ -59,11 +59,19 @@ Three attributes matter:
 - `is:inline` makes Astro ship the tag as written. Without it, Astro bundles the
   script and runs it regardless of consent.
 
+Under a nonce-based Content Security Policy, where your middleware sets
+`Astro.locals.c15t.nonce`, also add `nonce={Astro.locals.c15t?.nonce}` to the
+tag. c15t then activates only gated tags that carry the page's nonce, and
+skips the rest with a console warning. See
+[put the nonce on your gated scripts](/docs/frameworks/astro/content-security-policy#put-the-nonce-on-your-gated-scripts).
+
 c15t checks gated scripts when the page loads, after each consent change and
 after each `ClientRouter` navigation, so a script on a page you navigate to
 runs as soon as it is allowed. A script with `src` works the same way. For
 markup you insert later from your own code, call
 `activateGatedScripts(getConsent(), container)` from `c15t/astro/client`.
+Under a nonce policy, give the inserted tags the nonce and pass it as a third
+argument.
 
 A script that has run cannot be undone. When the visitor withdraws consent,
 c15t reloads the page, and the reloaded page leaves the script inert.

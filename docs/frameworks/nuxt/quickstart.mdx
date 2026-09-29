@@ -58,7 +58,8 @@ Add `ConsentRoot` and a preferences link to `app.vue`:
 
 `ConsentRoot` renders the banner when the visitor's policy asks for one and
 loads the preference dialog when it opens. `ConsentPreferencesLink` renders a
-Privacy settings button that reopens preferences. It renders nothing until the
+button that reopens preferences, labelled with the dialog's title in the
+visitor's language: Privacy Settings in English. It renders nothing until the
 policy offers preferences.
 
 The module registers these components and the consent composables, so you
@@ -117,7 +118,7 @@ browser's DevTools on the Network tab, under a policy that asks for consent.
    `youtube-nocookie.com`.
 2. Click Reject all, then reload. The banner stays closed and the vendor
    requests stay absent.
-3. Click Privacy settings, allow Measurement and save. PostHog's `array.js`
+3. Click Privacy Settings, allow Measurement and save. PostHog's `array.js`
    loads and the video appears. X Pixel stays blocked until you allow
    Marketing.
 4. Turn Measurement off and save. The page reloads, the video is gone and

@@ -53,6 +53,7 @@ match the visitor's state.
 | `noStyle` | `boolean` | `false` | Renders the markup without c15t's class names or button styles |
 | `class` | `string` | None | Extra class on the banner root, kept with `noStyle` |
 | `force` | `boolean` | `false` | Renders the banner even when the server decided to hide it, for visual tests |
+| `nonce` | `string` | `Astro.locals.c15t.nonce` | Content Security Policy nonce for this banner's inline scripts and style. See [Content Security Policy](/docs/frameworks/astro/content-security-policy#allow-c15t-with-a-nonce) |
 
 A prop wins over the translation for the visitor's language, which wins over
 the English default. For wording on every page, set `i18n.messages` in the
@@ -115,9 +116,12 @@ which ones this banner shows:
 ```
 
 A key renders only when the integration defines it. Each link opens in a new
-tab. Give every link a `label` in the integration options, such as
-`{ href: '/privacy', label: 'Privacy policy' }`, so the banner shows your
-wording.
+tab. A link without a `label` reads as the translated name for its type, such
+as "Privacy Policy" in English or "Datenschutzerklärung" in German. Set
+`label` in the integration options, such as
+`{ href: '/privacy', label: 'Privacy notice' }`, to use your own wording.
+[`ConsentDialog`](/docs/frameworks/astro/components/consent-dialog#props)
+takes the same `legalLinks` list.
 
 ## Accessibility
 

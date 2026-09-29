@@ -87,9 +87,10 @@ the choice stays in effect and c15t retries the request later.
 | Method | What it does |
 | --- | --- |
 | `showBanner()`, `openDialog()`, `closeDialog()` | Change the surface c15t wants shown. Records nothing. |
-| `setLanguage(code)` | Sets the language and resolves the policy again, which fetches that language's copy from the backend. |
+| `setLanguage(code)` | Sets the language and resolves the policy again, which fetches that language's copy from the backend. In offline mode the copy comes from the bundled translations and `i18n.messages`. See [translations](/docs/frameworks/javascript/translations). |
 | `setOverrides(overrides)` | Replaces the country, region, language and GPC inputs to policy matching. |
 | `mountUI(options?)` | Removes the stock UI and mounts it again with new UI options. Throws in the headless entry. |
+| `processIframes()` | Pauses gated iframes that consent does not allow and restores the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. See [iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker#check-iframes-on-demand). |
 | `ui` | The mounted UI handle, with `host`, `root`, `update()` and `destroy()`, or `null`. |
 
 ## Lifecycle and internals
@@ -138,7 +139,7 @@ A started client also wires markup on the page, with no code:
 | `hosted`, `offline`, `manifest`, `custom` | Transport factories for the `mode` option. See [transports](/docs/frameworks/javascript/transports). |
 | `manifestNeedsLocation(manifest)` | Whether a manifest's policy depends on the visitor's country, so a page knows it must supply one. |
 | `resolveRules(rules)` | Turns preset names such as `'europeOptIn'` into policy rules. Throws on an unknown name. |
-| `activateGatedScripts(snapshot, root?)` | Runs allowed `text/plain` scripts under `root` yourself, for a setup without a client. Returns how many ran. |
+| `activateGatedScripts(snapshot, root?, options?)` | Runs allowed `text/plain` scripts under `root` yourself, for a setup without a client. `options.nonce` runs only tags that carry that nonce. Returns how many ran. |
 | `mountConsentUI(client, options?)` | Mounts the stock UI for a client. `mountUI()` calls it. |
 | `ACTION_ATTRIBUTE`, `PREFERENCES_HASH`, `CATEGORY_ATTRIBUTE`, `ACTIVATED_ATTRIBUTE` | `'data-c15t-action'`, `'#c15t-preferences'`, `'data-c15t-category'` and `'data-c15t-activated'`. |
 | `version` | The package version. |

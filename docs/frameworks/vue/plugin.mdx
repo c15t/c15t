@@ -18,8 +18,10 @@ the Vite plugin and the `scripts` file.
 ## What the plugin does
 
 `app.use(c15tVue, options)` creates one consent runtime for the app and
-provides it to every component. Nothing runs in the browser until the root
-component mounts. Then the plugin, in order:
+provides it to every component. It also adds your `tokens` to
+`document.head` in a `<style id="c15t-css-vars">` element, before the first
+render. Nothing else runs in the browser until the root component mounts.
+Then the plugin, in order:
 
 1. Reads the visitor's stored choice from the `c15t` cookie and
    localStorage.
@@ -31,7 +33,8 @@ component mounts. Then the plugin, in order:
 5. Loads the IAB TCF module once a policy uses the `iab` model.
 
 Until the policy arrives, every optional category is denied, so gated scripts
-and iframes wait. On Vue 3.5 and later, `app.unmount()` stops every module.
+and iframes wait. On Vue 3.5 and later, `app.unmount()` stops every module
+and removes the token style element.
 Composables called outside this app throw `[c15t] Kernel not found`.
 
 ## Options
@@ -45,7 +48,7 @@ Every option is optional. Options that hold functions, such as `scripts` and
 | --- | --- | --- |
 | `backendURL` | `'/api/c15t'` | Your Inth or self-hosted backend. The browser requests `/init` from it and sends consent saves to it. |
 | `manifest` | Unset | `'client'` downloads the public policy manifest and resolves the policy in the browser instead of calling `/init`. See [rendering](/docs/frameworks/vue/rendering#resolve-from-the-manifest-in-the-browser). |
-| `manifestURL` | `/api/c15t/manifest` | Where client mode downloads the manifest. Set it to an absolute URL, such as `${backendURL}/manifest`. |
+| `manifestURL` | `/api/c15t/manifest` | Where client mode downloads the manifest. Set it to an absolute URL, such as `${backendURL}/manifest`. Setting it with `manifest` unset selects client mode. |
 | `geoURL` | Unset | Client mode only. An endpoint you run that returns `{ country, region }` for the visitor. |
 | `consentCategories` | The policy's categories | Limits the categories the dialog and widget show, within the policy's scope. |
 | `vendors` | Unset | Vendors listed under their category with their own switch. See [granular consent](/docs/integrations/granular-consent). |
@@ -59,7 +62,7 @@ Every option is optional. Options that hold functions, such as `scripts` and
 | `scripts` | Unset | Vendor scripts that load by consent category. See [scripts](/docs/frameworks/vue/scripts). |
 | `networkBlocker` | Off | Rules that hold `fetch` and XHR requests until their category is allowed. See [network blocker](/docs/frameworks/vue/network-blocker). |
 | `iframeBlocker` | On | Gates iframes that carry `data-src` and `data-category`. `false` turns it off. See [embeds](/docs/frameworks/vue/embeds). |
-| `nonce` | Unset | Content Security Policy nonce for every script the loader creates. See [Content Security Policy](/docs/frameworks/vue/content-security-policy). |
+| `nonce` | Unset | Content Security Policy nonce for every script the loader creates and for the token style element. See [Content Security Policy](/docs/frameworks/vue/content-security-policy). |
 | `reloadOnConsentRevoked` | `true` | Reloads the page when a save withdraws a granted category or vendor. |
 | `clearOnRevocation` | Unset | Deletes first-party cookies and storage keys for a withdrawn category. See [clear on revocation](/docs/integrations/clear-on-revocation). |
 
@@ -74,7 +77,7 @@ Every option is optional. Options that hold functions, such as `scripts` and
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `tokens` | The default theme | CSS variables `ConsentRoot` writes to `<html>`. See [customize](/docs/frameworks/vue/customize#set-theme-tokens). |
+| `tokens` | The default theme | CSS variables the plugin adds to `document.head` in a `<style id="c15t-css-vars">` element. See [customize](/docs/frameworks/vue/customize#set-theme-tokens). |
 | `presentation` | Policy defaults | Banner and dialog variant, position, action layout and blocking. |
 | `components` | Unset | Attributes, such as `class`, for named parts of each component. |
 | `legalLinks`, `bannerLegalLinks`, `dialogLegalLinks` | None shown | Links to your privacy policy and similar pages, and which surfaces show them. |
@@ -87,7 +90,7 @@ Every option is optional. Options that hold functions, such as `scripts` and
 
 | Option | What it does |
 | --- | --- |
-| `runtime` | A runtime created elsewhere with `createConsentRuntime()`. The plugin renders it and neither starts nor stops it, and ignores `callbacks`, blockers and `scripts`, which the runtime's owner configures. |
+| `runtime` | A runtime created elsewhere with `createConsentRuntime()`. The plugin renders it and neither starts nor stops it, and ignores `callbacks`, blockers, `scripts` and `tokens`, which the runtime's owner configures. |
 | `prefetch`, `initialRecords` | A resolved policy and stored records from a server, used for the first render. Plain Vue has no server helper that produces them. |
 
 ## Verify

@@ -56,10 +56,23 @@ c15t({
 });
 ```
 
-`i18n.messages` merges key by key with the stock messages for that language,
-so pass only the keys you change. Setting `common.acceptAll` keeps every other
-label in `common`. Override every language you support. A language you leave
-out keeps the stock wording.
+`i18n.messages` merges key by key with the copy for that language, so pass
+only the keys you change. Setting `common.acceptAll` keeps every other label
+in `common`. In hosted and manifest mode the base is the copy your backend
+sends, including wording edited in your Inth project, and your messages win
+for the keys they set. In offline mode the base is the stock wording.
+
+c15t looks up messages for the exact language first, then for its primary
+language, so a visitor resolved to `de-AT` gets your `de` messages when there
+is no `de-AT` entry. Override every language you support. A language you
+leave out keeps the backend's or the stock wording.
+
+A key only overrides the backend when your text differs from c15t's built-in
+wording for that language. So passing the stock bundles from
+`@c15t/translations/all` to enable languages keeps backend edits visible,
+while a key you actually reworded stays pinned in code. Core bundles only
+English; for other languages, import `@c15t/translations/all` so c15t can
+recognize its stock wording.
 
 The options are serialized into the page, so messages are plain strings.
 [Copy and translations](/docs/customization/translations) lists the message
