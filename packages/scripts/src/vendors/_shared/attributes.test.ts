@@ -23,14 +23,16 @@ describe('vendor attribute helpers', () => {
 			expect(listDataAttribute('example.com')).toBe('example.com');
 		});
 
-		it('serializes arrays as JSON', () => {
-			expect(listDataAttribute(['example.com', 'www.example.com'])).toBe(
-				'["example.com","www.example.com"]'
+		it('joins arrays with commas', () => {
+			expect(listDataAttribute(['example.com', ' www.example.com '])).toBe(
+				'example.com,www.example.com'
 			);
 		});
 
-		it('omits empty arrays', () => {
+		it('omits empty arrays and blank values', () => {
 			expect(listDataAttribute([])).toBeUndefined();
+			expect(listDataAttribute(['', '  '])).toBeUndefined();
+			expect(listDataAttribute('  ')).toBeUndefined();
 		});
 	});
 });

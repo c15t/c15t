@@ -274,7 +274,7 @@ describe('analytics loader contracts', () => {
 		expect(attributes).toEqual({
 			dataAutoTrack: 'false',
 			dataBeforeSend: 'beforeSendHook',
-			dataDomains: '["example.com","www.example.com"]',
+			dataDomains: 'example.com,www.example.com',
 			dataHostUrl: 'https://analytics.example.com',
 			dataTag: 'canary',
 			dataWebsiteId: 'UMAMI-CONTRACT',

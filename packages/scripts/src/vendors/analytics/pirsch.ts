@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { listDataAttribute } from '../_shared/attributes';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 declare global {
@@ -99,28 +100,6 @@ export interface PirschOptions {
 	scriptUrl?: string;
 }
 
-const commaListDataAttribute = function commaListDataAttribute(
-	value: string | string[] | undefined
-): string | undefined {
-	if (value === undefined) {
-		return undefined;
-	}
-
-	if (Array.isArray(value)) {
-		const items = value
-			.map((item) => item.trim())
-			.filter((item) => item.length > 0);
-
-		if (items.length === 0) {
-			return undefined;
-		}
-
-		return items.join(',');
-	}
-
-	return trimToUndefined(value);
-};
-
 const presenceDataAttribute = function presenceDataAttribute(
 	value: boolean | undefined
 ): string | undefined {
@@ -183,7 +162,7 @@ export const pirsch = function pirsch(options: PirschOptions): Script {
 	const resolved = resolveManifest(pirschManifest, {
 		dev: trimToUndefined(options.dev),
 		disablePageViews: presenceDataAttribute(options.disablePageViews),
-		domain: commaListDataAttribute(options.domain),
+		domain: listDataAttribute(options.domain),
 		eventEndpoint: trimToUndefined(options.eventEndpoint),
 		hitEndpoint: trimToUndefined(options.hitEndpoint),
 		identificationCode,
