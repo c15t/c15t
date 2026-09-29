@@ -45,10 +45,6 @@ constraint bugs surface here. Delete `.pgdata/` to reset the demo.
 Set `NUXT_PUBLIC_C15T_BACKEND_URL` to point at a hosted c15t instance instead
 of the self-hosted route.
 
-The `vite.ssr.noExternal` entry in `nuxt.config.ts` is a workaround for a
-`@c15t/vue` packaging issue, not part of the integration — see the comment
-there.
-
 ## Consent example
 
 Open `/consent-example` for the shared integration scenario. The existing home
