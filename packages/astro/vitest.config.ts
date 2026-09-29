@@ -6,6 +6,9 @@ import { baseConfig } from '@c15t/vitest-config/base';
 // package ships this plugin to shim it for plain Vue apps; the integration
 // adds the same one when `ui: 'vue'`.
 import shimVueImports from '@c15t/vue/vite';
+// Compiles the Vue dialog island and the `@c15t/vue` components it renders,
+// so a test can mount the real surface.
+import vue from '@vitejs/plugin-vue';
 import { getViteConfig } from 'astro/config';
 import { mergeConfig } from 'vitest/config';
 
@@ -43,7 +46,7 @@ const virtualOptionsPlugin = {
 
 export default getViteConfig(
 	mergeConfig(baseConfig, {
-		plugins: [virtualOptionsPlugin, shimVueImports()],
+		plugins: [virtualOptionsPlugin, shimVueImports(), vue()],
 		resolve: {
 			alias: {
 				'@c15t/astro/server': resolve(__dirname, './src/server.ts'),

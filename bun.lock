@@ -1004,6 +1004,7 @@
         "@c15t/conformance": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
+        "@vitejs/plugin-vue": "6.0.7",
         "astro": "^7.3.0",
         "jsdom": "^25.0.0",
         "react": "^19.0.0",
