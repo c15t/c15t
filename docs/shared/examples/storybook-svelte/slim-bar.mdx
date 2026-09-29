@@ -1,0 +1,23 @@
+{/* Generated from apps/storybook-svelte/src/docs-recipes/slim-bar.ts (docs:slim-bar) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/lib/consent-options.ts"
+import type { ConsentManagerOptions } from '@c15t/svelte';
+
+import './slim-bar.css';
+
+/**
+ * Spread into the options you pass to `ConsentManagerProvider`. The bar
+ * keeps the stock markup and actions; the slot classes put it on one row.
+ */
+export const slimBar = {
+	presentation: {
+		prompt: { position: 'bottom', variant: 'bar' },
+	},
+	theme: {
+		slots: {
+			consentBannerCard: 'slim-bar',
+			consentBannerHeader: 'slim-bar__text',
+		},
+	},
+} satisfies Partial<ConsentManagerOptions>;
+```

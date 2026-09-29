@@ -10,9 +10,15 @@
 	padding: 0.5rem 1.5rem;
 }
 
+/* Title and description share one line. */
 .slim-bar__text {
+	display: flex;
 	flex: 1 1 20rem;
-	margin: 0;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0 0.5rem;
+	padding: 0;
 }
 
 /* The actions share the text's row, so drop the footer's own box. */

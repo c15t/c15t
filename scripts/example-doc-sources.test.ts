@@ -46,24 +46,25 @@ describe('generated example snippets', () => {
 });
 
 describe('design recipes', () => {
-	// The docs show one headless bar design across adapters, so every copy of
-	// its stylesheet must match the one the React recipe publishes.
-	test('every headless bar uses the same stylesheet', () => {
-		const copies = regions.filter(
-			(region) => region.name === 'headless-bar-css'
-		);
-		expect(copies.length).toBeGreaterThan(1);
-		const [first, ...rest] = copies.map((region) =>
-			extractRegion(
-				readFileSync(resolve(root, region.source), 'utf8'),
-				region.name,
-				region.source
-			)
-		);
-		for (const copy of rest) {
-			expect(copy).toBe(first);
+	// The docs show one design across adapters, so every copy of a recipe's
+	// stylesheet must match the others.
+	test.each(['headless-bar-css', 'slim-bar-css'])(
+		'every %s copy matches',
+		(name) => {
+			const copies = regions.filter((region) => region.name === name);
+			expect(copies.length).toBeGreaterThan(1);
+			const [first, ...rest] = copies.map((region) =>
+				extractRegion(
+					readFileSync(resolve(root, region.source), 'utf8'),
+					region.name,
+					region.source
+				)
+			);
+			for (const copy of rest) {
+				expect(copy).toBe(first);
+			}
 		}
-	});
+	);
 });
 
 describe('region extraction', () => {
