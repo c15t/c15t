@@ -6,6 +6,7 @@ import {
 	addImports,
 	addPlugin,
 	addServerHandler,
+	addTypeTemplate,
 	createResolver,
 	defineNuxtModule,
 } from '@nuxt/kit';
@@ -13,7 +14,7 @@ import type { Nuxt, NuxtModule } from '@nuxt/schema';
 import { defu } from 'defu';
 import { joinURL } from 'ufo';
 
-import type { ModuleOptions } from './module-options';
+import type { ModuleOptions } from './nuxt-options';
 import {
 	DEVTOOLS_ICON_ROUTE,
 	DEVTOOLS_PAGE_ROUTE,
@@ -27,10 +28,11 @@ import {
 export { defineTheme, type Theme } from '@c15t/ui/theme';
 
 export type {
+	C15tNuxtAppConfig,
 	C15tNuxtConfig,
 	ConsentModuleOptions,
 	ModuleOptions,
-} from './module-options';
+} from './nuxt-options';
 
 /**
  * The part of a Nuxt DevTools custom tab this module sends. Declared here
@@ -171,6 +173,39 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				method: 'get',
 				route: manifestRoute,
 			});
+		}
+
+		// Type the `c15t` key of `app.config.ts`. A type template reaches the
+		// app's types whichever package registered the module, including the
+		// `c15t` umbrella. It imports the option types from the declarations
+		// next to this file: the source in this repo, `module.d.mts` once built.
+		const optionTypes = ['nuxt-options.ts', 'module.d.mts']
+			.map((file) => resolver.resolve(`./${file}`))
+			.find((path) => existsSync(path));
+		if (optionTypes) {
+			const specifier = optionTypes
+				.replace(/\.ts$/u, '')
+				.replace(/\.d\.mts$/u, '.mjs');
+			addTypeTemplate(
+				{
+					filename: 'types/c15t-app-config.d.ts',
+					getContents: () =>
+						[
+							`import type { C15tNuxtAppConfig } from ${JSON.stringify(specifier)};`,
+							'',
+							"declare module '@nuxt/schema' {",
+							'\tinterface CustomAppConfig {',
+							'\t\t/** c15t options, merged over the `c15t` module options. */',
+							'\t\tc15t?: Partial<C15tNuxtAppConfig>;',
+							'\t}',
+							'}',
+							'',
+							'export {};',
+							'',
+						].join('\n'),
+				},
+				{ nitro: true, nuxt: true }
+			);
 		}
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
