@@ -42,6 +42,17 @@ Check the Next.js server and browser requests after following the
    including submissions. Direct requests to the backend are expected when you
    have not configured a rewrite.
 
+## Why does React warn about objects with symbol properties?
+
+A development error that says objects with symbol properties are not
+supported, pointing at `ConsentRoot`, means a Server Component passed the
+`defineConsentConfig` result to it. The config carries a symbol key that React cannot serialize.
+
+Move `ConsentRoot` into a `'use client'` wrapper that imports `consentConfig`
+itself, and pass only `state` from the layout, as the
+[App Router guide](/docs/frameworks/next/app-router#register-scripts-in-a-client-wrapper)
+shows.
+
 ## Why is the visitor's location unknown on the server?
 
 `resolveConsent` and the local init handler read the visitor's country

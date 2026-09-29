@@ -87,11 +87,10 @@ export default defineDocsConfig({
 					children: [
 						{
 							pages: [
-								'optimization',
-								'script-loader',
-								'network-blocker',
+								'scripts',
 								'geography-headers',
 								'content-security-policy',
+								'optimization',
 								'troubleshooting',
 							],
 							title: 'Integration',
@@ -110,8 +109,8 @@ export default defineDocsConfig({
 							title: 'Components',
 						},
 						{
-							pages: ['styling/overview'],
-							title: 'Styling',
+							pages: ['customize'],
+							title: 'Customize',
 						},
 						{
 							pages: ['hooks/overview'],
@@ -132,11 +131,10 @@ export default defineDocsConfig({
 					],
 					pages: [
 						'quickstart',
-						'data-fetching',
+						'rendering',
 						'app-router',
 						'pages-router',
 						'static-export',
-						'server-side',
 						'client-side',
 					],
 					slug: 'next',

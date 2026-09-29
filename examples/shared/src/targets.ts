@@ -23,7 +23,7 @@ export const targets: ExampleTarget[] = [
 		directory: 'nextjs',
 		failureRoute: '/client-init',
 		id: 'nextjs',
-		routes: ['/app-router', '/pages-router'],
+		routes: ['/app-router', '/awaited', '/pages-router', '/client-init'],
 		start: preview,
 	},
 	...['react', 'vue', 'svelte', 'javascript'].map((id) => ({

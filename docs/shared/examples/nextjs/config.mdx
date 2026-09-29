@@ -1,0 +1,15 @@
+{/* Generated from examples/nextjs/c15t.config.ts (docs:config) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+
+const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
+if (!backendURL) {
+	throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL to your Inth backend URL');
+}
+
+export const consentConfig = defineConsentConfig({
+	backendURL,
+	manifestURL: '/api/c15t/manifest',
+});
+```

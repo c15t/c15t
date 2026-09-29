@@ -167,7 +167,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'guides/**/*.mdx',
 			'frameworks/javascript/script-loader.mdx',
 			'frameworks/react/script-loader.mdx',
-			'frameworks/next/script-loader.mdx',
+			'frameworks/next/scripts.mdx',
 			'customization/**/*.mdx',
 			'integrations/**/*.mdx',
 		],

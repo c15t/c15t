@@ -33,17 +33,21 @@ page.
 | Cold manifest cache | Fetch public policy from the backend, cache it and resolve consent locally. |
 | Warm manifest cache | Reuse cached policy and resolve consent locally; local route requests and rendering still take time. |
 
-### How much faster is a warm manifest?
+### Measured performance
 
-In a local SSR benchmark with **150 ms of simulated backend latency**, a warm
-manifest reduced median time to first byte from **157.6 ms to 7.4 ms** across
-10 new-visitor samples per setup. Both setups waited for consent before rendering.
+Two benchmark reports measure these setups. Each report lists its machine,
+network conditions, samples and reproduction steps.
 
-The warm cache skipped the upstream policy fetch. A cold cache still needs that
-fetch, so the benefit depends on your backend latency and cache hit rate.
+- [Manifest versus backend init](https://github.com/c15t/c15t/tree/v3/benchmarks/reports/next-manifest-2026-09-10).
+  With 150 ms of simulated backend latency, a warm manifest cache cut the
+  median server response time for a new visitor from about 158 ms to about
+  7 ms. A cold cache still waits for the upstream fetch.
+- [Streamed versus awaited layout](https://github.com/c15t/c15t/tree/v3/benchmarks/reports/next-consent-boundary-2026-09-25).
+  With a 4× CPU slowdown, the streamed layout painted the page in about
+  90 ms and the awaited layout in about 390 ms, because React held the
+  awaited page's streamed reveal. The streamed banner mounts after hydration.
 
-See the [benchmark results](https://github.com/c15t/c15t/tree/ccfe906682ba06cef7b56a16cc8fd10728df77d3/benchmarks/reports/next-manifest-2026-09-10)
-for the measurements and test conditions.
+Measure your own deployment before you choose a layout for speed.
 
 ## Keep browser consent requests on your origin
 
@@ -107,20 +111,13 @@ separate `ConsentRoot` `backendURL` prop because it overrides the shared value.
 
 ### Keep route handlers pointed upstream
 
-The ready-made App Router handlers read the absolute upstream URL from
-`C15T_BACKEND_URL`. Keep these exports from the router guide:
-
-```ts title="app/api/c15t/manifest/route.ts"
-export { manifestGET as GET } from 'c15t/next/api';
-```
-
-```ts title="app/api/c15t/init/route.ts"
-export { GET } from 'c15t/next/api';
-```
-
-Pages Router uses `createPagesApiHandlers()` with the same environment
-configuration. Export `.manifest` and `.init` from the respective API files as
-shown in the [Pages Router guide](/docs/frameworks/next/pages-router).
+The ready-made handlers read the absolute upstream URL from
+`C15T_BACKEND_URL`, so the manifest route from your router guide needs no
+change. The same applies to the
+[optional local init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route)
+if you added one. Set `C15T_BACKEND_URL` to the absolute backend URL. Without
+it the handlers fall back to `NEXT_PUBLIC_C15T_BACKEND_URL`, and if that is
+`/api/c15t` the manifest route fetches itself.
 
 If you configure handlers with `createNextConsentRouteHandlers({ backendURL })`,
 pass the absolute upstream URL. Passing the browser's local `consentConfig`
@@ -193,10 +190,9 @@ Keep one boundary in the App Router root layout or Pages Router `_app.tsx`.
 Remounting it during navigation creates another runtime and repeats startup
 work. Keep the stylesheet and consent UI in that shared root too.
 
-Choose when to resolve consent according to your page. Use
-[server rendering](/docs/frameworks/next/server-side) for resolved initial HTML
-or streaming, and [client-side initialization](/docs/frameworks/next/client-side)
-when the browser should prepare consent.
+Choose when to resolve consent according to your page. See
+[rendering and deployment](/docs/frameworks/next/rendering) for server
+rendering, streaming and browser initialization.
 
 Measure cold entry, a warm manifest cache and client navigation separately.
 Check server requests as well as the browser Network panel. Confirm that

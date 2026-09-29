@@ -144,11 +144,12 @@ for (const target of selectedTargets()) {
 
 		for (const route of target.routes) {
 			if (target.id === 'nextjs') {
-				// The App Router layout passes the pending consent state without
-				// awaiting it, so the page renders first and the banner mounts
-				// after hydration. The Pages Router awaits it in
-				// getServerSideProps and renders the banner on the server.
-				const bannerInHTML = route !== '/app-router';
+				// The default App Router layout passes the pending consent state
+				// without awaiting it, and the browser-init layout passes none, so
+				// their banners mount after hydration. The awaited layout and the
+				// Pages Router resolve consent first and render the banner on
+				// the server.
+				const bannerInHTML = ['/awaited', '/pages-router'].includes(route);
 				test(`${route}: initial HTML renders the page with embeds blocked`, async () => {
 					const response = await fetch(`${server.baseURL}${route}`);
 					expect(response.ok).toBe(true);
@@ -503,27 +504,21 @@ for (const target of selectedTargets()) {
 		}
 
 		if (target.id === 'nextjs') {
-			test('reset clears the recorded grant and Custom keeps consent controls', async () => {
-				await visit('/app-router');
-				await expect.poll(() => acceptButton(page).isVisible()).toBe(true);
-				await acceptButton(page).click();
-				await expect.poll(() => requests.posthog).toBe(1);
-				await expect.poll(() => requests.xPixel).toBe(1);
-				await expect.poll(() => video(page).count()).toBe(1);
-				await page
-					.getByRole('button', { exact: true, name: 'Reset demo' })
-					.click();
+			test('the branded route keeps the policy actions and the saved choice', async () => {
+				await visit('/branded');
 				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
-				expect(await video(page).count()).toBe(0);
-				await page.getByRole('button', { exact: true, name: 'Custom' }).click();
 				await rejectButton(page).click();
 				await openPreferences(page);
-				await setCategory(page, 'Measurement', false);
-				await setCategory(page, 'Marketing', false);
+				await setCategory(page, 'Measurement', true);
 				await saveButton(page).click();
-				await page.waitForTimeout(300);
-				expect(requests.posthog).toBe(1);
-				expect(requests.xPixel).toBe(1);
+				await expect.poll(() => requests.posthog).toBe(1);
+				await page
+					.getByRole('link', { exact: true, name: 'Default design' })
+					.click();
+				await page.waitForURL('**/app-router');
+				await expect.poll(() => video(page).count()).toBe(1);
+				expect(await rejectButton(page).isVisible()).toBe(false);
+				expect(requests.xPixel).toBe(0);
 				expect(requests.unexpected).toEqual([]);
 			});
 		}
