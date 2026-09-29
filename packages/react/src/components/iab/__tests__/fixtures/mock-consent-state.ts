@@ -131,7 +131,7 @@ export const mockGVL: GlobalVendorList = {
 		},
 		2: {
 			id: 2,
-			name: 'Actively scan device characteristics for identification',
+			name: 'Identify devices based on information actively requested',
 			description:
 				'With your acceptance, certain characteristics specific to your device...',
 			illustrations: [],
@@ -235,6 +235,10 @@ export const mockGVL: GlobalVendorList = {
 			purposes: [8, 10],
 			specialFeatures: [],
 		},
+	},
+	standardTexts: {
+		features:
+			'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
 	},
 };
 

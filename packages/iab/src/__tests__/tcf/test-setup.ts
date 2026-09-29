@@ -134,7 +134,7 @@ export function createMockSpecialFeatures(): Record<number, GVLSpecialFeature> {
 		},
 		2: {
 			id: 2,
-			name: 'Actively scan device characteristics for identification',
+			name: 'Identify devices based on information actively requested',
 			description: 'Description for special feature 2',
 			illustrations: ['Illustration for special feature 2'],
 		},
@@ -246,6 +246,10 @@ export function createMockGVL(
 		specialFeatures: createMockSpecialFeatures(),
 		vendors: createMockVendors(),
 		stacks: createMockStacks(),
+		standardTexts: {
+			features:
+				'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+		},
 		...overrides,
 	};
 }
@@ -382,7 +386,7 @@ export function setupTCFApiMock(): {
 						cmpVersion: 0,
 						cmpId: 0,
 						gvlVersion: 0,
-						tcfPolicyVersion: 5, // TCF 2.3
+						tcfPolicyVersion: 5, // TCF 2.4
 					},
 					true
 				);
@@ -694,6 +698,7 @@ export function createMockConsentEvent(
 	vendor: {
 		consents: Record<number, boolean>;
 		legitimateInterests: Record<number, boolean>;
+		disclosedVendors: Record<number, boolean>;
 	};
 	specialFeatureOptins: Record<number, boolean>;
 	publisher: {
@@ -723,6 +728,7 @@ export function createMockConsentEvent(
 		vendor: {
 			consents: {},
 			legitimateInterests: {},
+			disclosedVendors: {},
 		},
 		specialFeatureOptins: {},
 		publisher: {

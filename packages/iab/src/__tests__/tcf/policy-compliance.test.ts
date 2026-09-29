@@ -1,5 +1,5 @@
 /**
- * IAB Policy Compliance Tests for IAB TCF 2.3
+ * IAB Policy Compliance Tests for IAB TCF 2.4
  *
  * Tests for IAB TCF policy compliance per Chapter II and III of the spec.
  *
@@ -16,7 +16,7 @@ import {
 	createMockTCFConsentAllGranted,
 } from './test-setup';
 
-describe('IAB Policy Compliance - TCF 2.3', () => {
+describe('IAB Policy Compliance - TCF 2.4', () => {
 	let mockGVL: GlobalVendorList;
 
 	beforeEach(() => {
@@ -152,7 +152,9 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 				expect(mockGVL.specialFeatures[1].name).toContain('geolocation');
 
 				// Special Feature 2
-				expect(mockGVL.specialFeatures[2].name).toContain('scan');
+				expect(mockGVL.specialFeatures[2].name).toBe(
+					'Identify devices based on information actively requested'
+				);
 			});
 		});
 	});
@@ -307,7 +309,7 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 		});
 	});
 
-	describe('TCF 2.3 Specific Requirements', () => {
+	describe('TCF 2.4 Specific Requirements', () => {
 		describe('vendorsDisclosed Requirement', () => {
 			it('should track vendors disclosed in UI', async () => {
 				const consent: TCFConsentData = {

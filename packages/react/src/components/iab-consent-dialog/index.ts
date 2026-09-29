@@ -46,14 +46,14 @@ export interface IABConsentDialogCompoundComponent
 }
 
 /**
- * IAB TCF 2.3 compliant consent dialog dialog component.
+ * IAB TCF 2.4 compliant consent dialog dialog component.
  *
  * @remarks
  * This component serves as the main entry point for rendering an IAB-compliant consent dialog.
  * It provides a structured layout with required IAB TCF elements.
  *
  * Key features:
- * - IAB TCF 2.3 compliant
+ * - IAB TCF 2.4 compliant
  * - Fully accessible by default
  * - Customizable appearance
  * - Compound component pattern support

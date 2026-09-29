@@ -8,7 +8,7 @@ import type { GlobalVendorList, TCFConsentData } from '../../types/iab-tcf';
 import type { NonIABVendor } from '../../types/non-iab-vendor';
 
 /**
- * IAB TCF 2.3 runtime state.
+ * IAB TCF 2.4 runtime state.
  *
  * @remarks
  * This interface encapsulates all IAB-specific state, including the Global Vendor List,
@@ -48,7 +48,7 @@ export interface IABState {
 	specialFeatureOptIns: Record<number, boolean>;
 
 	/**
-	 * Vendors disclosed to the user in the CMP UI (TCF 2.3 requirement).
+	 * Vendors disclosed to the user in the CMP UI (TCF 2.4 requirement).
 	 *
 	 * This tracks which vendors were shown to the user, regardless of
 	 * whether consent was given. Required for TC String generation.
@@ -271,7 +271,7 @@ export interface IABModule {
  */
 export interface IABConfig {
 	/**
-	 * Enable IAB TCF 2.3 mode.
+	 * Enable IAB TCF 2.4 mode.
 	 *
 	 * When enabled, c15t will:
 	 * - Fetch GVL from gvl.inth.app
@@ -341,7 +341,11 @@ export interface IABConfig {
 	publisherCountryCode?: string;
 
 	/**
-	 * Whether consent is service-specific (not global).
+	 * Whether the TC string is service-specific.
+	 *
+	 * @deprecated TCF requires IsServiceSpecific=1 in every TC string, and
+	 * group-specific scope is also encoded as 1. c15t always encodes `true`
+	 * and logs a warning if you pass `false`. Remove this option.
 	 * @default true
 	 */
 	isServiceSpecific?: boolean;

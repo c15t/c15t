@@ -1,7 +1,7 @@
 /**
  * IAB Banner E2E Tests
  *
- * Browser-based tests for IAB TCF 2.3 compliant banner.
+ * Browser-based tests for IAB TCF 2.4 compliant banner.
  *
  * These tests run in Vitest browser mode and test the full IAB consent flow.
  * The mock GVL is passed directly via config.iab.gvl to bypass network fetching.

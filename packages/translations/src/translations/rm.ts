@@ -98,6 +98,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Questas èn necessarias per la funcziunalitad e la segirezza da la pagina. Tenor IAB TCF na pudais vus betg far opposiziun cunter questas finamiras spezialas.',
 			},
+			features: {
+				title: 'Funcziuns',
+				description:
+					'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+			},
 			vendorList: {
 				search: 'Tscherchar proveders...',
 				showingCount: 'Mussa {filtered} da {total} proveders',

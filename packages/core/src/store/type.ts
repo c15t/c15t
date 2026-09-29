@@ -593,7 +593,7 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	ssrData?: Promise<SSRInitialData | undefined>;
 
 	/**
-	 * IAB TCF 2.3 configuration.
+	 * IAB TCF 2.4 configuration.
 	 *
 	 * Most users don't need this - only enable if you work with
 	 * IAB-registered programmatic advertising vendors.
@@ -736,7 +736,7 @@ export interface StoreRuntimeState extends StoreConfig {
 	 *
 	 * - 'opt-in' - Requires explicit consent before non-essential cookies or tracking. (GDPR Style)
 	 * - 'opt-out' - Allows processing until the user exercises a right to opt out. (CCPA Style)
-	 * - 'iab' - IAB TCF 2.3 mode for programmatic advertising compliance. (GDPR jurisdictions only)
+	 * - 'iab' - IAB TCF 2.4 mode for programmatic advertising compliance. (GDPR jurisdictions only)
 	 */
 	model: Model;
 
@@ -776,7 +776,7 @@ export interface StoreRuntimeState extends StoreConfig {
 	initDataSourceDetail: string | null;
 
 	/**
-	 * IAB TCF 2.3 state and actions (null when not configured or not in IAB mode).
+	 * IAB TCF 2.4 state and actions (null when not configured or not in IAB mode).
 	 *
 	 * @remarks
 	 * This encapsulates all IAB-specific state and methods including the Global Vendor List,

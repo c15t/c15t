@@ -14,6 +14,7 @@
 import { linkedinInsights } from '../src/vendors/ads-and-pixels/linkedin-insights';
 import { metaPixel } from '../src/vendors/ads-and-pixels/meta-pixel';
 import { microsoftUet } from '../src/vendors/ads-and-pixels/microsoft-uet';
+import { pinterestTag } from '../src/vendors/ads-and-pixels/pinterest-tag';
 import { redditPixel } from '../src/vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from '../src/vendors/ads-and-pixels/snapchat-pixel';
 import { tiktokPixel } from '../src/vendors/ads-and-pixels/tiktok-pixel';
@@ -39,6 +40,7 @@ import { logRocket } from '../src/vendors/analytics/logrocket';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
+import { oneDollarStats } from '../src/vendors/analytics/one-dollar-stats';
 import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
 import { posthog } from '../src/vendors/analytics/posthog';
@@ -52,6 +54,7 @@ import { segment } from '../src/vendors/analytics/segment';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { crisp } from '../src/vendors/functional/crisp';
+import { frontChat } from '../src/vendors/functional/front-chat';
 import { intercom } from '../src/vendors/functional/intercom';
 import { googleTagManager } from '../src/vendors/tag-managers/google-tag-manager';
 import type { LiveProbeCheckResult, LiveVendorProbeConfig } from './types';
@@ -801,6 +804,23 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		},
 	},
 	{
+		vendor: 'one-dollar-stats',
+		tier: 'full',
+		createScript: () =>
+			oneDollarStats({ hostname: 'c15t-live-probe.invalid', devmode: 'true' }),
+		loaderUrlSubstring: 'assets.onedollarstats.com/stonks.js',
+		runtimeCheck: () => {
+			const stonks = (
+				window as Window & { stonks?: { view?: unknown; event?: unknown } }
+			).stonks;
+			return check(
+				typeof stonks?.view === 'function' &&
+					typeof stonks?.event === 'function',
+				'window.stonks view and event present after loader executed'
+			);
+		},
+	},
+	{
 		vendor: 'promptwatch',
 		tier: 'full',
 		createScript: () =>
@@ -1029,6 +1049,29 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			'Crisp adds no observable global for placeholder website ids, so no runtime is asserted. Upgrading to full tier needs a real website id supplied as a secret.',
 	},
 	{
+		vendor: 'front-chat',
+		// The stable loader URL returns a 302 to a versioned bundle. The
+		// monitor records that first response, so accept the redirect while
+		// still requiring the runtime installed by the final bundle below.
+		tier: 'loader-only',
+		createScript: () => frontChat({ chatId: 'c15tfake' }),
+		loaderUrlSubstring: 'chat-assets.frontapp.com/v1/chat.bundle.js',
+		bootstrapCheck: () =>
+			check(
+				typeof window.FrontChat === 'undefined',
+				'FrontChat is not seeded before the vendor loader executes'
+			),
+		// The helper seeds no FrontChat stub, so this function can only be
+		// installed by the real loader. The embedded chat page stays blocked.
+		runtimeCheck: () =>
+			check(
+				typeof window.FrontChat === 'function',
+				'window.FrontChat present after the vendor loader executed'
+			),
+		notes:
+			'The public Front Chat loader redirects to a versioned bundle; runtime installation is still required. The chat iframe and every other third-party request are blocked. This does not validate a live chat session with a real channel.',
+	},
+	{
 		vendor: 'intercom',
 		// The widget bootstrap serves real JS for any app id but boots nothing
 		// observable for placeholder ids, so runtime cannot be asserted without
@@ -1230,6 +1273,45 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				typeof (window.twq as XPixelRuntime | undefined)?.exe === 'function',
 				'twq.exe present after loader executed'
 			),
+	},
+	{
+		vendor: 'pinterest-tag',
+		tier: 'full',
+		createScript: () => pinterestTag({ tagId: '123456789012345' }),
+		loaderUrlSubstring: 's.pinimg.com/ct/core.js',
+		// core.js loads the versioned runtime from this path. Collection uses
+		// ct.pinterest.com and must remain blocked by the probe.
+		allowUrlSubstrings: ['https://s.pinimg.com/ct/lib/'],
+		bootstrapCheck: () => {
+			const stub = window.pintrk;
+
+			if (typeof stub !== 'function') {
+				return check(false, 'expected window.pintrk stub function');
+			}
+
+			return check(
+				stub.version === '3.0' &&
+					Array.isArray(stub.queue) &&
+					stub.queue.length > 0,
+				'pinterest tag stub version and queue seeded before load'
+			);
+		},
+		runtimeCheck: () => {
+			// Pinterest's runtime never replaces `window.pintrk`; it drains the
+			// stub's queue and swaps `queue.push` for its command dispatcher, and
+			// `load` records the tag id on the stub. Neither exists pre-load.
+			const stub = window.pintrk as
+				| (Window['pintrk'] & { tagId?: unknown })
+				| undefined;
+			const queue = stub?.queue;
+
+			return check(
+				Array.isArray(queue) &&
+					queue.push !== Array.prototype.push &&
+					typeof stub?.tagId === 'string',
+				'pintrk.queue.push replaced and tagId recorded after loader executed'
+			);
+		},
 	},
 ];
 

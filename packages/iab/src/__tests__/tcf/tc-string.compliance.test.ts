@@ -1,12 +1,12 @@
 /**
- * TC String Compliance Tests for IAB TCF 2.3
+ * TC String Compliance Tests for IAB TCF 2.4
  *
  * Tests for TC String encoding and decoding compliance.
  *
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GlobalVendorList, TCFConsentData } from '../../tcf/iab-tcf-types';
 import {
 	decodeTCString,
@@ -21,7 +21,7 @@ import {
 	createMockTCFConsentAllGranted,
 } from './test-setup';
 
-describe('TC String Compliance - IAB TCF 2.3', () => {
+describe('TC String Compliance - IAB TCF 2.4', () => {
 	let mockGVL: GlobalVendorList;
 
 	beforeEach(() => {
@@ -250,7 +250,7 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 			expect(decoded.specialFeatureOptIns[2]).toBeUndefined();
 		});
 
-		it('should encode vendorsDisclosed (TCF 2.3 requirement)', async () => {
+		it('should encode vendorsDisclosed (TCF 2.4 requirement)', async () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: {},
@@ -375,7 +375,7 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 
 			const decoded = await decodeTCString(tcString);
 
-			// TCF 2.3 uses policy version 5
+			// TCF 2.4 uses policy version 5
 			expect(decoded.policyVersion).toBe(5);
 		});
 	});
@@ -489,6 +489,29 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 
 			const decoded = await decodeTCString(tcString);
 			expect(decoded.isServiceSpecific).toBe(true);
+		});
+
+		it('should ignore isServiceSpecific=false and warn once', async () => {
+			vi.resetModules();
+			const tcStringModule = await import('../../tcf/tc-string');
+			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+			try {
+				for (let i = 0; i < 2; i++) {
+					const tcString = await tcStringModule.generateTCString(
+						createMockTCFConsentAllGranted(),
+						mockGVL,
+						{ cmpId: 28, cmpVersion: 1, isServiceSpecific: false }
+					);
+					const decoded = await tcStringModule.decodeTCString(tcString);
+					expect(decoded.isServiceSpecific).toBe(true);
+				}
+
+				expect(warn).toHaveBeenCalledTimes(1);
+				expect(warn.mock.calls[0]?.[0]).toContain('isServiceSpecific');
+			} finally {
+				warn.mockRestore();
+			}
 		});
 	});
 

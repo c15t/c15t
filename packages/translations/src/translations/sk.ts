@@ -98,6 +98,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Tieto sú potrebné pre funkčnosť a bezpečnosť stránky. Podľa IAB TCF nemôžete vzniesť námietku proti týmto osobitným účelom.',
 			},
+			features: {
+				title: 'Funkcie',
+				description:
+					'Tieto spôsoby spracúvania možno použiť výlučne na dosiahnutie jedného alebo viacerých účelov, z ktorých si môžete zvoliť v tomto oznámení.',
+			},
 			vendorList: {
 				search: 'Hľadať dodávateľov...',
 				showingCount: 'Zobrazuje sa {filtered} z {total} dodávateľov',

@@ -9,7 +9,7 @@
 		"Audit Logging: Comprehensive logging of all consent-related actions",
 		"Domain Management: Handle multiple domains and subdomains",
 		"Policy Management: Version and manage consent policies",
-		"IAB TCF 2.3 support: Configure GVL, CMP registration, and custom vendors"
+		"IAB TCF 2.4 support: Configure GVL, CMP registration, and custom vendors"
 	],
 	"prerequisites": [
 		"Node.js 18.17.0 or later",

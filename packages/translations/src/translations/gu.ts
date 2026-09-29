@@ -95,6 +95,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'આ સાઇટની કાર્યક્ષમતા અને સુરક્ષા માટે જરૂરી છે. IAB TCF મુજબ, તમે આ ખાસ હેતુઓ સામે વાંધો ઉઠાવી શકતા નથી.',
 			},
+			features: {
+				title: 'સુવિધાઓ',
+				description:
+					'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+			},
 			vendorList: {
 				search: 'વિક્રેતાઓ શોધો...',
 				showingCount: '{total} માંથી {filtered} વિક્રેતાઓ',

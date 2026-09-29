@@ -23,6 +23,10 @@ import {
 	microsoftUetManifest,
 } from './vendors/ads-and-pixels/microsoft-uet';
 import {
+	pinterestTag,
+	pinterestTagManifest,
+} from './vendors/ads-and-pixels/pinterest-tag';
+import {
 	redditPixel,
 	redditPixelManifest,
 } from './vendors/ads-and-pixels/reddit-pixel';
@@ -71,6 +75,10 @@ import {
 	mixpanelAnalytics,
 	mixpanelAnalyticsManifest,
 } from './vendors/analytics/mixpanel-analytics';
+import {
+	oneDollarStats,
+	oneDollarStatsManifest,
+} from './vendors/analytics/one-dollar-stats';
 import { pirsch, pirschManifest } from './vendors/analytics/pirsch';
 import {
 	plausibleAnalytics,
@@ -99,6 +107,7 @@ import {
 	vercelAnalyticsManifest,
 } from './vendors/analytics/vercel-analytics';
 import { crisp, crispManifest } from './vendors/functional/crisp';
+import { frontChat, frontChatManifest } from './vendors/functional/front-chat';
 import { intercom, intercomManifest } from './vendors/functional/intercom';
 import {
 	googleTagManager,
@@ -265,6 +274,14 @@ const helperParityCases = {
 			src: 'https://analytics.example.com/matomo.js',
 		},
 	},
+	oneDollarStats: {
+		script: oneDollarStats(),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://assets.onedollarstats.com/stonks.js',
+		},
+	},
 	posthog: {
 		script: posthog({ id: 'phc_123' }),
 		expected: {
@@ -339,6 +356,14 @@ const helperParityCases = {
 			src: 'https://client.crisp.chat/l.js',
 		},
 	},
+	frontChat: {
+		script: frontChat({ chatId: 'front-chat-123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://chat-assets.frontapp.com/v1/chat.bundle.js',
+		},
+	},
 	intercom: {
 		script: intercom({ appId: 'abc123' }),
 		expected: {
@@ -403,6 +428,14 @@ const helperParityCases = {
 			src: 'https://static.ads-twitter.com/uwt.js',
 		},
 	},
+	pinterestTag: {
+		script: pinterestTag({ tagId: '2613654212508' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://s.pinimg.com/ct/core.js',
+		},
+	},
 } satisfies Record<
 	BuiltInScriptIntegrationKey,
 	Parameters<typeof expectScriptMatchesIntegration>[2] extends infer Expected
@@ -430,6 +463,7 @@ const vendorManifests = [
 	hightouchManifest,
 	logRocketManifest,
 	matomoAnalyticsManifest,
+	oneDollarStatsManifest,
 	posthogManifest,
 	promptwatchManifest,
 	pirschManifest,
@@ -440,6 +474,7 @@ const vendorManifests = [
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
 	crispManifest,
+	frontChatManifest,
 	intercomManifest,
 	metaPixelManifest,
 	redditPixelManifest,
@@ -448,6 +483,7 @@ const vendorManifests = [
 	microsoftUetManifest,
 	snapchatPixelManifest,
 	xPixelManifest,
+	pinterestTagManifest,
 ];
 
 function getPublicScriptExportSubpaths(): string[] {

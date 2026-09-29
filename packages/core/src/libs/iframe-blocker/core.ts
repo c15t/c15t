@@ -35,25 +35,23 @@ function createDefaultConsentState(): ConsentState {
  * Determine the required consent for an iframe based on its category attribute
  *
  * @param iframe - The iframe element to check
- * @returns The required consent type or undefined if no consent is required
- *
- * @throws {Error} When the category attribute contains an invalid consent name
+ * @returns The required consent type, `undefined` if no consent is required,
+ * or `null` if the category attribute names no known consent category
+ * (including an empty value)
  */
 function determineRequiredConsent(
 	iframe: HTMLIFrameElement
-): AllConsentNames | undefined {
+): AllConsentNames | null | undefined {
 	const categoryAttr = iframe.getAttribute('data-category');
 
-	if (!categoryAttr) {
+	if (categoryAttr === null) {
 		// No category attribute means no consent required
 		return undefined;
 	}
 
 	// Validate that it's a valid consent name
 	if (!allConsentNames.includes(categoryAttr as AllConsentNames)) {
-		throw new Error(
-			`Invalid category attribute "${categoryAttr}" on iframe. Must be one of: ${allConsentNames.join(', ')}`
-		);
+		return null;
 	}
 
 	return categoryAttr as AllConsentNames;
@@ -62,9 +60,12 @@ function determineRequiredConsent(
 /**
  * Process a single iframe element based on consent settings
  *
+ * An iframe whose category attribute names no known consent category stays
+ * blocked and is reported with a warning. Throwing here used to stop every
+ * other iframe in the pass from being blocked.
+ *
  * @param iframe - The iframe element to process
  * @param consents - Current consent state
- * @throws {Error} When the iframe has an invalid category attribute
  */
 function processIframeElement(
 	iframe: HTMLIFrameElement,
@@ -74,11 +75,19 @@ function processIframeElement(
 	const requiredConsent = determineRequiredConsent(iframe);
 
 	// If no consent is required, allow the iframe to load normally
-	if (!requiredConsent) {
+	if (requiredConsent === undefined) {
 		return;
 	}
 
-	const hasConsent = has(requiredConsent, consents);
+	if (requiredConsent === null) {
+		console.warn(
+			`[c15t] iframe-blocker: invalid data-category "${iframe.getAttribute(
+				'data-category'
+			)}". Must be one of: ${allConsentNames.join(', ')}. The iframe stays blocked.`
+		);
+	}
+
+	const hasConsent = requiredConsent !== null && has(requiredConsent, consents);
 
 	// If iframe has consent, load it
 	if (hasConsent) {
@@ -93,6 +102,66 @@ function processIframeElement(
 			iframe.removeAttribute('src');
 		}
 	}
+}
+
+/**
+ * Process a single iframe, skipping it if page script can't read it.
+ *
+ * Some browsers throw when page script reads a node it has no access to,
+ * such as one inserted by an extension (Firefox raises "Permission denied to
+ * access property"). One such iframe must not stop the rest of the pass.
+ *
+ * @param iframe - The iframe element to process
+ * @param consents - Current consent state
+ * @returns Whether the iframe has a `data-category` attribute
+ */
+function processIframeSafely(
+	iframe: HTMLIFrameElement,
+	consents: ConsentState
+): boolean {
+	try {
+		processIframeElement(iframe, consents);
+		return iframe.hasAttribute('data-category');
+	} catch {
+		// The iframe can't be read by page script, so it can't be managed either.
+		return false;
+	}
+}
+
+/**
+ * Collect the iframes in a node added to the DOM: the node itself if it is
+ * an iframe, plus any iframes inside it.
+ *
+ * Some browsers throw when page script reads a node it has no access to,
+ * such as one inserted by an extension (Firefox raises "Permission denied to
+ * access property"). Such a node is skipped rather than aborting the whole
+ * mutation batch.
+ *
+ * @param node - A node from `MutationRecord.addedNodes`
+ * @returns The iframes found, or the ones found before the node became unreadable
+ */
+function getAddedIframes(node: Node): HTMLIFrameElement[] {
+	const iframes: HTMLIFrameElement[] = [];
+
+	try {
+		if (node.nodeType !== Node.ELEMENT_NODE) {
+			return iframes;
+		}
+
+		const element = node as Element;
+
+		if (element.tagName && element.tagName.toUpperCase() === 'IFRAME') {
+			iframes.push(element as HTMLIFrameElement);
+		}
+
+		element.querySelectorAll?.('iframe').forEach((iframe) => {
+			iframes.push(iframe);
+		});
+	} catch {
+		// The node can't be read by page script, so it can't be managed either.
+	}
+
+	return iframes;
 }
 
 /**
@@ -133,7 +202,7 @@ export function createIframeBlocker(
 		const iframes = document.querySelectorAll('iframe');
 
 		iframes.forEach((iframe) => {
-			processIframeElement(iframe, consents);
+			processIframeSafely(iframe, consents);
 		});
 	}
 
@@ -144,21 +213,8 @@ export function createIframeBlocker(
 		const observer = new MutationObserver((mutations) => {
 			mutations.forEach((mutation) => {
 				mutation.addedNodes.forEach((node) => {
-					if (node.nodeType === Node.ELEMENT_NODE) {
-						const element = node as Element;
-
-						// Check if the added node is an iframe
-						if (element.tagName && element.tagName.toUpperCase() === 'IFRAME') {
-							processIframeElement(element as HTMLIFrameElement, consents);
-						}
-
-						// Check if the added node contains iframes
-						const iframes = element.querySelectorAll?.('iframe');
-						if (iframes) {
-							iframes.forEach((iframe) => {
-								processIframeElement(iframe, consents);
-							});
-						}
+					for (const iframe of getAddedIframes(node)) {
+						processIframeSafely(iframe, consents);
 					}
 				});
 			});
@@ -228,7 +284,13 @@ export function getIframeConsentCategories(): AllConsentNames[] {
 	}
 
 	iframes.forEach((iframe) => {
-		const categoryAttr = iframe.getAttribute('data-category');
+		let categoryAttr: string | null;
+		try {
+			categoryAttr = iframe.getAttribute('data-category');
+		} catch {
+			// The iframe can't be read by page script; see processIframeSafely.
+			return;
+		}
 
 		if (!categoryAttr) {
 			return;
@@ -275,7 +337,7 @@ export function processAllIframes(consents: ConsentState): void {
 	}
 
 	iframes.forEach((iframe) => {
-		processIframeElement(iframe, consents);
+		processIframeSafely(iframe, consents);
 	});
 }
 
@@ -309,28 +371,9 @@ export function setupIframeObserver(
 
 		mutations.forEach((mutation) => {
 			mutation.addedNodes.forEach((node) => {
-				if (node.nodeType === Node.ELEMENT_NODE) {
-					const element = node as Element;
-
-					// Check if the added node is an iframe
-					if (element.tagName && element.tagName.toUpperCase() === 'IFRAME') {
-						processIframeElement(element as HTMLIFrameElement, currentConsents);
-						// Check if iframe has a data-category attribute
-						if (element.hasAttribute('data-category')) {
-							hasNewCategories = true;
-						}
-					}
-
-					// Check if the added node contains iframes
-					const iframes = element.querySelectorAll?.('iframe');
-					if (iframes && iframes.length > 0) {
-						iframes.forEach((iframe) => {
-							processIframeElement(iframe, currentConsents);
-							// Check if iframe has a data-category attribute
-							if (iframe.hasAttribute('data-category')) {
-								hasNewCategories = true;
-							}
-						});
+				for (const iframe of getAddedIframes(node)) {
+					if (processIframeSafely(iframe, currentConsents)) {
+						hasNewCategories = true;
 					}
 				}
 			});

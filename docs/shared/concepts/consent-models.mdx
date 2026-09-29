@@ -13,7 +13,7 @@ group: reference
   |-------|-----------|--------|----------------------|
   | `opt-in` | Explicit consent required | Blocking banner | `false` (except `necessary`) |
   | `opt-out` | Processing allowed by default | Non-blocking notice | `true` (all granted) |
-  | `iab` | IAB TCF 2.3 for programmatic ads | TCF banner | Managed by TCF framework |
+  | `iab` | IAB TCF 2.4 for programmatic ads | TCF banner | Managed by TCF framework |
   | `null` | No regulation detected | No banner | `true` (all auto-granted) |
 
   There are two ways c15t determines which model applies:
@@ -46,7 +46,7 @@ group: reference
 
   ### IAB
 
-  IAB Transparency and Consent Framework (TCF) 2.3 mode for programmatic advertising compliance. Only activates when two conditions are met: the jurisdiction is `GDPR` or `UK_GDPR`, and `iab.enabled` is `true` in your configuration.
+  IAB Transparency and Consent Framework (TCF) 2.4 mode for programmatic advertising compliance. Only activates when two conditions are met: the jurisdiction is `GDPR` or `UK_GDPR`, and `iab.enabled` is `true` in your configuration.
 
   When active, IAB mode generates TC strings, registers the `__tcfapi` CMP API, and works with the Global Vendor List (GVL) for machine-readable consent signals. If `iab.enabled` is not set, GDPR jurisdictions fall back to standard opt-in.
 

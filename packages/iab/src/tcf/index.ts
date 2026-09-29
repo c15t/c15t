@@ -1,5 +1,5 @@
 /**
- * IAB TCF 2.3 Support Module
+ * IAB TCF 2.4 Support Module
  *
  * Provides IAB Transparency & Consent Framework support for c15t.
  * This is an opt-in feature - no bundle impact for users who don't enable it.

@@ -1,12 +1,46 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { parse } from '@babel/parser';
+
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const PACKAGES_ROOT = path.join(REPO_ROOT, 'packages');
-const SPECIFIER_REGEXES = [
-	/(from\s+['"])([^'"]+)(['"])/g,
-	/(import\(\s*['"])([^'"]+)(['"]\s*\))/g,
-];
+/** Collect actual module literals without matching examples or literal types. */
+const collectModuleSpecifiers = function collectModuleSpecifiers(source) {
+	const ast = parse(source, {
+		attachComment: false,
+		plugins: [['typescript', { dts: true }]],
+		sourceType: 'module',
+	});
+	const specifiers = [];
+	const pending = [ast.program];
+	while (pending.length > 0) {
+		const node = pending.pop();
+		if (!node || typeof node !== 'object') {
+			continue;
+		}
+		if (Array.isArray(node)) {
+			pending.push(...node);
+			continue;
+		}
+		if (typeof node.type !== 'string') {
+			continue;
+		}
+		if (
+			node.type === 'ImportDeclaration' ||
+			node.type === 'ExportNamedDeclaration' ||
+			node.type === 'ExportAllDeclaration'
+		) {
+			if (node.source) {
+				specifiers.push(node.source);
+			}
+		} else if (node.type === 'TSImportType') {
+			specifiers.push(node.argument);
+		}
+		pending.push(...Object.values(node));
+	}
+	return specifiers.sort((left, right) => right.start - left.start);
+};
 
 async function discoverPackageTargets() {
 	try {
@@ -100,6 +134,7 @@ function toPackageSpecifier(targetFilePath, target) {
 	return target.specifier;
 }
 
+/** Emit a runtime-compatible path for a declaration in the same package. */
 function toExplicitRelativeSpecifier(fromFilePath, targetFilePath) {
 	let relativePath = normalizePath(
 		path.relative(path.dirname(fromFilePath), targetFilePath)
@@ -109,12 +144,8 @@ function toExplicitRelativeSpecifier(fromFilePath, targetFilePath) {
 		relativePath = `./${relativePath}`;
 	}
 
-	if (relativePath.endsWith('/index.d.ts')) {
-		return relativePath.slice(0, -'/index.d.ts'.length);
-	}
-
 	if (relativePath.endsWith('.d.ts')) {
-		return relativePath.slice(0, -'.d.ts'.length);
+		return `${relativePath.slice(0, -'.d.ts'.length)}.js`;
 	}
 
 	return relativePath;
@@ -146,6 +177,7 @@ async function collectDeclarationFiles(directory) {
 	return files.flat();
 }
 
+/** Locate declarations for source and already-normalized JavaScript specifiers. */
 async function resolveDeclarationTarget(fromFilePath, specifier) {
 	if (!specifier.startsWith('.')) {
 		return null;
@@ -154,7 +186,7 @@ async function resolveDeclarationTarget(fromFilePath, specifier) {
 	const resolvedBasePath = path.resolve(path.dirname(fromFilePath), specifier);
 	const candidatePaths = [
 		resolvedBasePath,
-		`${resolvedBasePath}.d.ts`,
+		`${resolvedBasePath.replace(/\.js$/u, '')}.d.ts`,
 		path.join(resolvedBasePath, 'index.d.ts'),
 	];
 
@@ -167,11 +199,10 @@ async function resolveDeclarationTarget(fromFilePath, specifier) {
 	return null;
 }
 
+/** Rewrite module literals in a declaration while preserving all other text. */
 async function normalizeDeclarationFile(filePath, currentTarget) {
 	const original = await fs.readFile(filePath, 'utf8');
-	const matches = SPECIFIER_REGEXES.flatMap((regex) =>
-		Array.from(original.matchAll(regex))
-	);
+	const matches = collectModuleSpecifiers(original);
 
 	if (matches.length === 0) {
 		return;
@@ -179,7 +210,7 @@ async function normalizeDeclarationFile(filePath, currentTarget) {
 
 	const resolvedSpecifiers = new Map();
 
-	for (const [, , specifier] of matches) {
+	for (const { value: specifier } of matches) {
 		if (resolvedSpecifiers.has(specifier)) {
 			continue;
 		}
@@ -212,12 +243,18 @@ async function normalizeDeclarationFile(filePath, currentTarget) {
 
 	let normalized = original;
 
-	for (const regex of SPECIFIER_REGEXES) {
-		normalized = normalized.replace(
-			regex,
-			(fullMatch, prefix, specifier, suffix) =>
-				`${prefix}${resolvedSpecifiers.get(specifier) ?? specifier}${suffix}`
-		);
+	// Replace from right to left so parser offsets stay valid. Keep every
+	// byte outside module literals, including comments and literal types.
+	for (const { start, end, value } of matches) {
+		const specifier = resolvedSpecifiers.get(value) ?? value;
+		if (specifier === value) {
+			continue;
+		}
+		const quote = original[start];
+		const escaped = JSON.stringify(specifier).slice(1, -1);
+		const replacement =
+			quote === "'" ? escaped.replaceAll("'", "\\'") : escaped;
+		normalized = `${normalized.slice(0, start)}${quote}${replacement}${quote}${normalized.slice(end)}`;
 	}
 
 	if (normalized !== original) {

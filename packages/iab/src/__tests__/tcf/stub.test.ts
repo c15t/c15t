@@ -163,7 +163,7 @@ describe('IAB TCF Stub', () => {
 					// apiVersion can be 2.2 or 2.3 depending on implementation
 					cmpId: 0,
 					gvlVersion: 0,
-					tcfPolicyVersion: 5, // TCF 2.3
+					tcfPolicyVersion: 5, // TCF 2.4
 				}),
 				true
 			);
