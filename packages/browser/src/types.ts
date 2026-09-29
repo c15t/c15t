@@ -157,10 +157,14 @@ export interface ConsentClientOptions extends Pick<
 	 * instead of `'unsafe-inline'`. A script's own `nonce` takes precedence.
 	 *
 	 * The script-tag build reads `data-nonce`, then the tag's own `nonce`, so
-	 * `<script nonce="…" src=".../c15t.js">` needs nothing else. Inert
-	 * `<script type="text/plain" data-c15t-category>` tags keep their own
-	 * nonce and never receive this one: stamping it would let injected
-	 * markup run as trusted script.
+	 * `<script nonce="…" src=".../c15t.js">` needs nothing else.
+	 *
+	 * With a nonce set, inert `<script type="text/plain" data-c15t-category>`
+	 * tags run only when they carry the same nonce; others are skipped with
+	 * a warning and marked `data-c15t-activated="untrusted"`. Activation
+	 * creates a new script, which a `'strict-dynamic'` policy runs without a
+	 * nonce, so injected markup would otherwise run once consent is granted.
+	 * The configured nonce is never copied onto an inert tag.
 	 */
 	nonce?: string;
 	/** IAB configuration. Requires the `@c15t/browser/iab` entry. */

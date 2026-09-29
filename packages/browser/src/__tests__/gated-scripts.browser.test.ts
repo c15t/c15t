@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createConsentClient } from '../client';
 import { activateGatedScripts } from '../gated-scripts';
@@ -83,5 +83,52 @@ describe('gated script execution in Chromium', () => {
 		client.dispose();
 
 		await expect.poll(() => root.documentElement.dataset.executed).toBe('true');
+	});
+});
+
+describe("gated scripts under 'strict-dynamic'", () => {
+	const openStrictDynamic = async () => {
+		const root = await createFrame('/__c15t-test__/strict-dynamic');
+		const client = createConsentClient({ ui: false });
+		return { client, root };
+	};
+	const settle = () =>
+		new Promise((resolve) => {
+			setTimeout(resolve, 500);
+		});
+
+	it('runs injected inert tags when no nonce is configured', async () => {
+		const { client, root } = await openStrictDynamic();
+
+		activateGatedScripts(client.getSnapshot(), root);
+		client.dispose();
+
+		// Why the nonce matters: the policy trusts every script c15t creates.
+		await expect.poll(() => root.documentElement.dataset.trusted).toBe('true');
+		await expect
+			.poll(() => root.documentElement.dataset.externalInjected)
+			.toBe('true');
+		expect(root.documentElement.dataset.inlineInjected).toBe('true');
+	});
+
+	it('activates only tags carrying the configured nonce', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			/* expected */
+		});
+		const { client, root } = await openStrictDynamic();
+
+		activateGatedScripts(client.getSnapshot(), root, {
+			nonce: 'c15t-test-nonce',
+		});
+		client.dispose();
+
+		await expect.poll(() => root.documentElement.dataset.trusted).toBe('true');
+		await settle();
+		expect(root.documentElement.dataset.externalInjected).toBeUndefined();
+		expect(root.documentElement.dataset.inlineInjected).toBeUndefined();
+		expect(
+			root.querySelectorAll('[data-c15t-activated="untrusted"]')
+		).toHaveLength(2);
+		warn.mockRestore();
 	});
 });

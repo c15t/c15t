@@ -278,7 +278,8 @@ export const createConsentClient = function createConsentClient(
 	const gatedScripts = createGatedScriptActivator(
 		() => kernel.getSnapshot(),
 		undefined,
-		kernel.set.registerConsentCategories
+		kernel.set.registerConsentCategories,
+		options.nonce
 	);
 	let startingRuntime = false;
 	let drainingRuntimeEvents = false;
