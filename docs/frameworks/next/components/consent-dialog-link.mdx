@@ -33,9 +33,11 @@ export function SiteFooter() {
 }
 ```
 
-Render `SiteFooter` from the root layout as a child of the `Consent`
-wrapper, in place of the inline footer the router guides show. The layout
-stays a Server Component; only this file needs `'use client'`. The link
+Render `SiteFooter` inside the `Consent` wrapper, in place of the inline
+footer the router guides show. In the App Router, render it from the root
+layout, which stays a Server Component; only this file needs `'use client'`.
+In the Pages Router, render it from `pages/_app.tsx` inside `Consent`, next to
+`<Component {...pageProps} />`. The link
 renders a `button`, so the CSS for `.footer-link` should reset button chrome
 if your footer styles target anchors only.
 
