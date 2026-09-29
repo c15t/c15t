@@ -22,6 +22,12 @@ import type { Requests } from './browser';
 import { startExample } from './server';
 import { selectedTargets } from './targets';
 
+/** The `--c15t-primary` each example's Branded design sets, where checked. */
+const BRANDED_PRIMARY: Record<string, string> = {
+	svelte: '#6943a3',
+	sveltekit: '#146b56',
+};
+
 for (const target of selectedTargets()) {
 	describe(target.id, () => {
 		let server: Awaited<ReturnType<typeof startExample>>;
@@ -296,6 +302,20 @@ for (const target of selectedTargets()) {
 					.or(page.getByRole('link', { name: /branded/iu }))
 					.first();
 				await branded.click();
+				const brandedPrimary = BRANDED_PRIMARY[target.id];
+				if (brandedPrimary) {
+					// Branded must reach the tokens the consent UI reads. A provider
+					// `theme` prop alone no longer produces CSS in the browser.
+					await expect
+						.poll(() =>
+							page.evaluate(() =>
+								getComputedStyle(document.documentElement)
+									.getPropertyValue('--c15t-primary')
+									.trim()
+							)
+						)
+						.toBe(brandedPrimary);
+				}
 				await expect.poll(() => video(page).count()).toBe(1);
 				// A query navigation keeps the example route while exercising persisted
 				// entry in every router, including plain HTML examples.

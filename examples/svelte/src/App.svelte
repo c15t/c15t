@@ -16,24 +16,16 @@
 		throw new Error('Set VITE_C15T_BACKEND_URL to your Inth endpoint');
 	}
 	const mode = hosted({ url: backendURL });
-	const branded =
-		new URLSearchParams(location.search).get('design') === 'branded';
-	const theme = branded
-		? {
-				colors: {
-					primary: '#6943a3',
-					primaryHover: '#533285',
-					textOnPrimary: '#ffffff',
-				},
-				radius: { lg: '18px' },
-			}
-		: undefined;
+	// The provider does not turn theme tokens into CSS. The Branded tokens
+	// are plain CSS variables in style.css, under [data-design='branded'].
+	if (new URLSearchParams(location.search).get('design') === 'branded') {
+		document.documentElement.dataset.design = 'branded';
+	}
 </script>
 
 <ConsentManagerProvider
 	{mode}
 	{scripts}
-	{theme}
 >
 	<Gallery /><ConsentBanner /><ConsentDialog /><DevTools />
 </ConsentManagerProvider>

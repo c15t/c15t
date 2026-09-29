@@ -25,7 +25,7 @@
 
 <svelte:head>
 	{#if data.themeCSS}
-		<!-- generateThemeCSS escapes `<`, so its output is safe in <style>. -->
+		<!-- generateThemeCSS escapes `<`, so its output is safe in a style element. -->
 		{@html `<style id="c15t-theme">${data.themeCSS}</style>`}
 	{/if}
 </svelte:head>
