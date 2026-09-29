@@ -56,8 +56,9 @@ its own positions. `bar` takes `top` or `bottom`, `wall` takes `center`,
 wall always blocks, a notice never blocks, and the policy can restore a
 required button you left out of `layout`.
 
-`ConsentBanner` also takes `variant`, `position` and `blocking` as props when
-you render it yourself.
+[`ConsentBanner`](/docs/frameworks/vue/components/consent-banner#props) also
+takes `variant`, `position` and `blocking` as props when you render it
+yourself.
 
 ## Style one part of a component
 
@@ -84,14 +85,15 @@ app.use(c15tVue, {
 });
 ```
 
-[Copy and translations](/docs/customization/translations) covers message keys
-and writing labels.
+[Translations](/docs/frameworks/vue/translations) covers the visitor's
+language, and [copy and translations](/docs/customization/translations) covers
+message keys and writing labels.
 
 ## Other display options
 
 | Option | What it does |
 | --- | --- |
-| `showTrigger` | Renders the floating `ConsentDialogTrigger` from `ConsentRoot`. |
+| `showTrigger` | Renders the floating [`ConsentDialogTrigger`](/docs/frameworks/vue/components/consent-dialog-trigger) from `ConsentRoot`. |
 | `triggerDefaultPosition`, `triggerSize`, `triggerIcon`, `triggerShowWhen` | Place and style that trigger. |
 | `hideBranding`, `bannerHideBranding`, `dialogHideBranding` | Hide the "Secured by" tag. |
 | `disableAnimation` | Turns off banner and dialog animations. |

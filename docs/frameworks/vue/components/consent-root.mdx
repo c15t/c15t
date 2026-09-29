@@ -1,0 +1,88 @@
+---
+title: ConsentRoot
+description: Mount the c15t banner, preference dialog and floating trigger in a Vue app with one ConsentRoot component from c15t/vue/consent-root.
+group: frameworks
+---
+
+## Usage
+
+Render `ConsentRoot` once in your root component, next to your page content.
+Import it from `c15t/vue/consent-root`:
+
+<include src="../../../shared/examples/vue/app.mdx" />
+
+`ConsentRoot` reads the consent runtime that
+[the c15tVue plugin](/docs/frameworks/vue/plugin) creates in `src/main.ts`.
+Keep it in the root component, outside your router view, so it stays mounted
+when the route changes. It has no slots and brings its own styles.
+
+## What ConsentRoot renders
+
+`ConsentRoot` picks the surfaces for the visitor's policy and the current
+`activeUI`:
+
+| Policy | `activeUI` is `'banner'` | `activeUI` is `'manager'` |
+| --- | --- | --- |
+| Standard, opt-in or opt-out | [`ConsentBanner`](/docs/frameworks/vue/components/consent-banner) | [`ConsentManager`](/docs/frameworks/vue/components/consent-manager) |
+| IAB TCF, with a vendor list | [`IABConsentBanner`](/docs/frameworks/vue/components/iab-consent-banner) | [`IABConsentDialog`](/docs/frameworks/vue/components/iab-consent-dialog) |
+
+It also renders [`ConsentDialogTrigger`](/docs/frameworks/vue/components/consent-dialog-trigger)
+when the `showTrigger` option is `true`.
+
+Nothing renders until the visitor's policy has resolved. The dialog and the
+IAB surfaces load as separate chunks. After the page's `load` event,
+`ConsentRoot` prefetches the dialog chunk in an idle moment, so the first
+Customize click does not wait for the network. The dialog unmounts when it
+closes.
+
+## Theme tokens
+
+When `ConsentRoot` mounts, it writes every token from the `tokens` option,
+including the defaults you did not set, as inline styles on the `<html>`
+element. An inline style beats a `:root` rule in your stylesheet, so set token
+values through the `tokens` option. The tokens apply only after mount, which
+is one reason plain Vue does not support server rendering. See
+[rendering](/docs/frameworks/vue/rendering#server-rendering-without-nuxt).
+
+## Props
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `country` | `string` | The location the backend detects | Overrides the visitor's country and resolves the policy again. |
+| `region` | `string` | The location the backend detects | Overrides the visitor's region, such as `CA`, and resolves the policy again. |
+| `language` | `string` | The browser language | Overrides the language and resolves again, which fetches the banner and dialog text in that language. |
+
+Setting any prop sends it to the backend with the next policy request. Use
+`country` and `region` to preview another region's policy while you build.
+Bind `language` to your site's language switcher:
+
+{/* example: fragment */}
+
+```vue
+<ConsentRoot :language="locale" />
+```
+
+## Compose the surfaces yourself
+
+`ConsentRoot` is the same as rendering `ConsentBanner`, `ConsentManager` and
+the IAB components with the right conditions. To place or configure them
+yourself, render them in place of `ConsentRoot`, as in
+[ConsentBanner](/docs/frameworks/vue/components/consent-banner#usage). Do not
+render `ConsentRoot` next to them, or the visitor sees two banners.
+
+## Verify
+
+Load the app in a private window under a policy that asks for consent. The
+banner appears after the policy request to your backend completes. In the
+Elements panel, the `<html>` element's `style` attribute holds the
+`--c15t-*` tokens. Click Customize and the preference dialog opens. Reject,
+reload, and confirm the banner stays closed.
+
+## Related
+
+- [c15tVue plugin](/docs/frameworks/vue/plugin) lists the options
+  `ConsentRoot` reads.
+- [Customize](/docs/frameworks/vue/customize) changes tokens, layout and
+  slots.
+- [Headless](/docs/frameworks/vue/headless) replaces `ConsentRoot` with your
+  own markup.

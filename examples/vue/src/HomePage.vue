@@ -4,17 +4,11 @@
  * the gated video. The consent setup is in `main.ts` and `App.vue`.
  */
 import { useConsentSnapshot } from 'c15t/vue/vue-plugin';
-import { defineAsyncComponent } from 'vue';
 
+import ConsentDevTools from './ConsentDevTools.vue';
 import VideoEmbed from './VideoEmbed.vue';
 
 const snapshot = useConsentSnapshot();
-
-// Development builds only: the dynamic import keeps DevTools out of
-// production bundles.
-const DevTools = import.meta.env.DEV
-	? defineAsyncComponent(() => import('c15t/vue/devtools'))
-	: null;
 </script>
 
 <template>
@@ -54,5 +48,5 @@ const DevTools = import.meta.env.DEV
 			<VideoEmbed />
 		</section>
 	</main>
-	<DevTools v-if="DevTools" />
+	<ConsentDevTools />
 </template>

@@ -1,0 +1,62 @@
+---
+title: Translations
+description: Where the c15t banner and dialog text comes from in a Vue app, how c15t picks the visitor's language, and how to switch it at runtime.
+group: frameworks
+---
+
+## Where the text comes from
+
+The banner, dialog and IAB text comes from the translations in your Inth
+project, or your self-hosted backend's configuration. The backend sends the
+text for the visitor's language with the policy. Edit copy there, not in your
+Vue code. The Vue plugin has no option for message overrides.
+
+[Copy and translations](/docs/customization/translations) lists the message
+keys and how to write labels that describe each action.
+
+## How c15t picks the language
+
+By default the browser's own language decides. The browser sends it as
+`Accept-Language` with the policy request to `/init`. With
+`manifest: 'client'`, c15t reads `navigator.language` and resolves the text
+from the manifest. When your project has no text for that language, the
+backend picks its fallback language.
+
+The text direction follows the resolved language. Arabic, Hebrew and other
+right-to-left languages render the banner and dialog with `dir="rtl"`, and a
+default corner position mirrors.
+
+## Follow your site's language
+
+Bind the `language` prop of `ConsentRoot` to your site's current language.
+When the prop changes, `ConsentRoot` stores the language and resolves the
+policy again, which fetches the text in that language:
+
+{/* example: fragment */}
+
+```vue
+<ConsentRoot :language="locale" />
+```
+
+Without `ConsentRoot`, set the language with `useConsentLanguage()` and then
+resolve again with the kernel:
+
+<include src="../../shared/examples/vue/language-switcher.mdx" />
+
+## Text that does not come from translations
+
+A few labels are fixed English strings in the Vue components. Replace them in
+the visitor's language when your site has more than one:
+
+| Text | Where | How to change it |
+| --- | --- | --- |
+| "Privacy settings" | `ConsentPreferencesLink` | Pass the label in its default slot. |
+| "Content requires permission." | `ConsentGate` without a placeholder | Pass a `placeholder` slot. |
+| "Open privacy settings" | `ConsentDialogTrigger` label | Set the `triggerAriaLabel` option. |
+
+## Verify
+
+Set your browser's preferred language to one your project translates, open
+the app in a private window and confirm the banner uses it. Switch the
+language with your switcher and confirm the banner and dialog text change
+without a page reload.

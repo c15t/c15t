@@ -1,0 +1,77 @@
+---
+title: "ConsentManager"
+description: "Shared ConsentManager reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt ConsentManager pages. */}
+
+<section id="behavior">
+  ## What ConsentManager renders
+
+  `ConsentManager` is the preference dialog, the component the React adapter
+  calls `ConsentDialog`. It opens while `activeUI` is `'manager'`. Anything
+  that sets `activeUI` to `'manager'` opens it: the banner's Customize button,
+  `ConsentPreferencesLink`, `ConsentDialogTrigger` and your own code. It
+  renders nothing until the visitor's policy has resolved, and nothing when
+  the policy owes no consent UI.
+
+  The dialog holds the same content as `ConsentWidget`: a list of the
+  categories the policy lets the visitor choose, each with a switch and a
+  description, and the vendors you declared under each category. Necessary is
+  always on. The footer shows Reject all, Accept all and Save, with Save as the
+  primary button.
+
+  - Save records the switches as they are. Accept all and Reject all record a
+    choice for every category the policy covers.
+  - After a successful action the dialog closes. The banner comes back only if
+    the policy still requires a choice.
+  - Escape closes the dialog without saving.
+  - If the policy changes while the dialog is open, the dialog shows "Privacy
+    choices have changed." with a button that reloads the switches from the
+    new policy. Save stays blocked until the visitor reviews them.
+
+  The title comes from `consentManagerDialog.title` in the resolved
+  translations. `dialogLegalLinks` picks which of your `legalLinks` appear
+  under the description. The dialog has no props, slots or text props.
+</section>
+
+<section id="accessibility">
+  ## Accessibility and focus
+
+  The dialog renders in `document.body` with `role="dialog"`, labelled by its
+  title and described by its description. By default it is modal: it shows a
+  backdrop, sets `aria-modal="true"`, locks page scrolling, moves focus to the
+  first control inside and keeps Tab inside the dialog. When it closes, focus
+  returns to the element that had it before. Set
+  `presentation.preferences.blocking` to `false` for a non-modal dialog with
+  no backdrop.
+
+  Each category switch is a `button` with `role="switch"`, `aria-checked` and
+  the category title as its label. Each category row expands with a button
+  that sets `aria-expanded` and `aria-controls`.
+</section>
+
+<section id="styling">
+  ## Style the dialog
+
+  The `components.dialog` option adds attributes to `root`, `overlay`,
+  `container`, `card`, `header`, `title` and `content`. The category list
+  inside uses `components.manager`, `components.accordion`,
+  `components['accordion-item']`, `components.switch` and
+  `components['vendor-list']`. [Component slots](/docs/customization/slots)
+  lists every part. `presentation.preferences` sets the footer's `layout`,
+  `primaryActions`, `direction`, `uiProfile` and `blocking`.
+
+  `dialogHideBranding`, or `hideBranding` for every surface, hides the
+  "Secured by" tag. `disableAnimation` turns off the transitions.
+</section>
+
+<section id="verify">
+  ## Verify
+
+  Open preferences, turn one optional category on and click Save. The dialog
+  closes. Reload and open preferences again: the switch is still on. Press
+  Escape with the dialog open and confirm it closes and focus returns to the
+  control that opened it.
+</section>
