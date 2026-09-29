@@ -440,9 +440,17 @@ export const useDismissNotice =
 	};
 
 /**
- * The presentation experiment arm this visitor runs, or `null` while no
- * experiment is configured or the arm is not assigned yet. Built-in
- * assignment lands after mount; a host-resolved `variant` is known at once.
+ * The presentation experiment arm this visitor runs. Built-in assignment
+ * lands after mount; a host-resolved `variant` is known at once.
+ *
+ * @returns The assignment, or `null` while no experiment is configured, the
+ * arm is not assigned yet, or the visitor's policy rejects it.
+ *
+ * @example
+ * ```tsx
+ * const arm = useExperiment();
+ * return arm ? <p>{arm.id}: {arm.variant}</p> : null;
+ * ```
  */
 export const useExperiment =
 	function useExperiment(): Readonly<ExperimentAssignment> | null {
@@ -451,7 +459,9 @@ export const useExperiment =
 
 /**
  * The host presentation with the assigned experiment arm merged over it.
- * Equal to `options.presentation` while no arm is assigned.
+ *
+ * @returns The presentation to render: `options.presentation` itself while
+ * no arm is assigned.
  */
 export const useResolvedPresentation = function useResolvedPresentation():
 	| ConsentPresentation
@@ -466,7 +476,10 @@ export const useResolvedPresentation = function useResolvedPresentation():
 
 /**
  * The host theme with the assigned experiment arm's `theme` merged over it.
- * Equal to `options.theme` while no arm is assigned or the arm has no theme.
+ * Render its tokens with `<ConsentTheme theme={useResolvedTheme()} />`.
+ *
+ * @returns The theme to render: `options.theme` itself while no arm is
+ * assigned or the arm has no theme.
  */
 export const useResolvedTheme = function useResolvedTheme(): Theme | undefined {
 	const { experiment, theme } = useUIConfig();
