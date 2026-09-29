@@ -1,0 +1,137 @@
+import { policyRulePresets } from '@c15t/core';
+import { resolvePolicyRules } from '@c15t/schema/types';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { createGlobal, installGlobal } from '../global';
+import type { C15tGlobal } from '../global';
+import type { ConsentClientOptions } from '../types';
+
+const testWindow = window as Window & { c15t?: unknown };
+const policy = {
+	...policyRulePresets.europeOptIn(),
+	categories: ['measurement'] as const,
+	match: { isDefault: true },
+	scopeMode: 'strict' as const,
+};
+const options: ConsentClientOptions = {
+	consentCategories: ['measurement'],
+	policyRules: [policy],
+	prefetch: {
+		initialPolicyResolution: resolvePolicyRules({ rules: [policy] }),
+	},
+	reloadOnConsentRevoked: false,
+	ui: false,
+};
+
+/** Install over whatever the page queued, then init the way the tag does. */
+const loadTag = function loadTag(queue: unknown[]): C15tGlobal {
+	testWindow.c15t = queue;
+	const api = installGlobal(createGlobal({ pkg: '@c15t/browser/test' }));
+	api.init();
+	return api;
+};
+
+afterEach(() => {
+	(testWindow.c15t as C15tGlobal | undefined)?.dispose?.();
+	testWindow.c15t = undefined;
+	vi.restoreAllMocks();
+	localStorage.clear();
+	for (const entry of document.cookie.split(';')) {
+		document.cookie = `${entry.split('=')[0]?.trim()}=; Max-Age=0; path=/`;
+	}
+	document.body.replaceChildren();
+});
+
+describe('queued calls before the tag loads', () => {
+	it('runs a queued openDialog once the policy resolves', async () => {
+		const api = loadTag([['config', options], ['openDialog']]);
+
+		await vi.waitFor(() => {
+			expect(api.getSnapshot().activeUI).toBe('dialog');
+		});
+	});
+
+	it('keeps calls queued after a client action', async () => {
+		const onReady = vi.fn();
+		const api = loadTag([
+			['config', options],
+			['showBanner'],
+			['on', 'ready', onReady],
+		]);
+
+		await api.ready();
+
+		expect(onReady).toHaveBeenCalledOnce();
+	});
+
+	it.each([
+		['acceptAll', 'rejectAll', false],
+		['rejectAll', 'acceptAll', true],
+	] as const)(
+		'runs %s then %s in queue order',
+		async (first, second, granted) => {
+			const onConsent = vi.fn();
+			const api = loadTag([
+				['config', options],
+				[first],
+				[second],
+				['on', 'consent', onConsent],
+			]);
+
+			await vi.waitFor(() => {
+				expect(onConsent).toHaveBeenCalledTimes(2);
+			});
+
+			expect(api.has('measurement')).toBe(granted);
+		}
+	);
+
+	it('warns about and skips an unknown method without dropping the rest', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const api = loadTag([
+			['config', options],
+			['notAMethod', 1],
+			['getSnapshot'],
+			'not a call',
+			['openDialog'],
+		]);
+
+		await vi.waitFor(() => {
+			expect(api.getSnapshot().activeUI).toBe('dialog');
+		});
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining("'notAMethod'"));
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining("'getSnapshot'"));
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('not [method, ...args]'),
+			'not a call'
+		);
+	});
+
+	it('reports a failing call and still runs the calls after it', async () => {
+		const error = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		const api = loadTag([['config', options], ['save', null], ['openDialog']]);
+
+		await vi.waitFor(() => {
+			expect(api.getSnapshot().activeUI).toBe('dialog');
+		});
+		expect(error).toHaveBeenCalledWith(
+			expect.stringContaining('c15t.save()'),
+			expect.any(TypeError)
+		);
+	});
+
+	it('waits for a manual init before running queued actions', async () => {
+		testWindow.c15t = [['config', options], ['openDialog']];
+		const api = installGlobal(createGlobal({ pkg: '@c15t/browser/test' }));
+		await Promise.resolve();
+		expect(api.client).toBeNull();
+
+		api.init();
+
+		await vi.waitFor(() => {
+			expect(api.getSnapshot().activeUI).toBe('dialog');
+		});
+	});
+});
