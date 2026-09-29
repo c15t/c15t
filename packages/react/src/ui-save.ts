@@ -45,9 +45,11 @@ export const saveConsentUI = (
 		return pending;
 	}
 	const after = kernel.getSnapshot();
+	// A choice prompt with nothing to decide records an acknowledgement.
 	if (
 		after.explicitChoice !== before.explicitChoice ||
-		after.vendorChoice !== before.vendorChoice
+		after.vendorChoice !== before.vendorChoice ||
+		after.noticeDismissal !== before.noticeDismissal
 	) {
 		if (actions.get(kernel) === action) {
 			kernel.set.activeUI(settledUI(after));

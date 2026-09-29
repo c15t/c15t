@@ -104,6 +104,7 @@ describe('displayed consent actions', () => {
 					captured.manager = manager;
 				},
 				options: {
+					consentCategories: ['necessary', 'marketing'],
 					disableAnimation: true,
 					mode: custom({ save }),
 					persistence: false,
@@ -163,6 +164,7 @@ describe('displayed consent actions', () => {
 					captured.manager = manager;
 				},
 				options: {
+					consentCategories: ['necessary', 'marketing'],
 					disableAnimation: true,
 					mode: custom({ save }),
 					persistence: false,
@@ -225,6 +227,7 @@ describe('displayed consent actions', () => {
 					captured.manager = manager;
 				},
 				options: {
+					consentCategories: ['necessary', 'marketing'],
 					disableAnimation: true,
 					mode: custom({ save }),
 					persistence: false,
@@ -521,3 +524,69 @@ test('scripts infer the displayed categories without a configured list', async (
 		result.unmount();
 	}
 });
+
+test.each(['all', 'necessary', 'custom'] as const)(
+	'with nothing declared, %s from the necessary-only dialog closes it before the save settles',
+	async (action) => {
+		const save = vi.fn(() => Promise.withResolvers<{ ok: boolean }>().promise);
+		const captured: {
+			kernel?: ConsentKernel;
+			manager?: ConsentManagerState;
+		} = {};
+		const result = render(ConformanceFixture, {
+			component: 'consent-banner',
+			onKernel: (kernel) => {
+				captured.kernel = kernel;
+			},
+			onManager: (manager) => {
+				captured.manager = manager;
+			},
+			options: {
+				disableAnimation: true,
+				mode: custom({ save }),
+				persistence: false,
+				prefetch: policyFixture(),
+			},
+		});
+		try {
+			const kernel = required(captured.kernel);
+			const manager = required(captured.manager);
+			await tick();
+			expect(kernel.getSnapshot().activeUI).toBe('banner');
+			expect(screen.getByTestId('consent-banner-root')).toBeTruthy();
+			manager.setActiveUI('dialog');
+			await tick();
+			expect(
+				document.querySelectorAll('[data-testid^="consent-widget-switch-"]')
+			).toHaveLength(1);
+			expect(
+				screen.getByTestId('consent-widget-switch-necessary')
+			).toBeTruthy();
+			void manager.saveConsents(action);
+			// The acknowledgement is recorded in the call, so the dialog
+			// closes before the request, which never settles here.
+			expect(kernel.getSnapshot().activeUI).toBe('none');
+			expect(kernel.getSnapshot().promptRequirement).toEqual({
+				kind: 'none',
+			});
+			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+			expect(save).toHaveBeenCalledWith(
+				expect.objectContaining({
+					confirmed: expect.objectContaining({ categories: {} }),
+				})
+			);
+			// Reopened later, the prompt is already answered: only the renewed
+			// acknowledgement tells the dialog to close before the request.
+			await new Promise((resolve) => {
+				setTimeout(resolve, 5);
+			});
+			manager.setActiveUI('dialog');
+			await tick();
+			void manager.saveConsents(action);
+			expect(kernel.getSnapshot().activeUI).toBe('none');
+			await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+		} finally {
+			result.unmount();
+		}
+	}
+);

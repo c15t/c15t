@@ -285,7 +285,10 @@ export interface ConsentClient {
 	 * @param condition - A category name or a `has()` condition.
 	 */
 	has: (condition: HasCondition<AllConsentNames>) => boolean;
-	/** Whether the visitor has already made a choice. */
+	/**
+	 * Whether the visitor has already made a choice, or acknowledged a
+	 * banner that had only strictly necessary to show.
+	 */
 	hasConsented: () => boolean;
 	/** Grant every offered category and close the UI. */
 	acceptAll: () => Promise<SaveResult>;

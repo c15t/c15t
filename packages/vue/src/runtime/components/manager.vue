@@ -153,8 +153,11 @@ const onAction = async function onAction(action: PresentationAction) {
 			if (
 				fromManager &&
 				sequence === actionSequence &&
+				// A choice prompt with nothing to decide records an
+				// acknowledgement instead of a choice.
 				(after.explicitChoice !== before.explicitChoice ||
-					after.vendorChoice !== before.vendorChoice)
+					after.vendorChoice !== before.vendorChoice ||
+					after.noticeDismissal !== before.noticeDismissal)
 			) {
 				closeManager();
 				actionSequence += 1;

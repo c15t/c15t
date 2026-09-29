@@ -265,6 +265,41 @@ describe('mountConsentUI', () => {
 		).toBeNull();
 	});
 
+	it.each([
+		['accept', 'consent-banner-accept-button'],
+		['reject', 'consent-banner-reject-button'],
+	])(
+		'shows only Strictly necessary when nothing is declared, and %s dismisses the banner',
+		async (_action, button) => {
+			const { root, client } = await mount(
+				{ trigger: { showWhen: 'after-consent' } },
+				{
+					consentCategories: undefined,
+					policyRules: [
+						{ ...policyRulePresets.europeOptIn(), match: { isDefault: true } },
+					],
+				}
+			);
+			expect(client.consentCategories).toEqual(['necessary']);
+			client.openDialog();
+			expect(
+				root.querySelectorAll('[data-testid^="consent-widget-switch-"]')
+			).toHaveLength(1);
+			query(root, 'consent-widget-switch-necessary');
+			client.showBanner();
+			query(root, button).click();
+			await vi.waitFor(() =>
+				expect(client.getSnapshot().activeUI).toBe('none')
+			);
+			expect(client.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
+			expect(client.hasConsented()).toBe(true);
+			expect(query(root, 'consent-dialog-trigger').hidden).toBe(false);
+			expect(
+				root.querySelector('[data-testid="consent-banner-root"]')
+			).toBeNull();
+		}
+	);
+
 	it('opens the preference centre, toggles a draft and saves it', async () => {
 		const { root, client } = await mount();
 
