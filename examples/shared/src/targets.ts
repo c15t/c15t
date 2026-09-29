@@ -50,7 +50,9 @@ export const targets: ExampleTarget[] = [
 		directory: 'script-tag',
 		failureRoute: '/consent-example',
 		id: 'html',
-		routes: ['/consent-example'],
+		// `/consent-example/headless` swaps in the headless build and the
+		// page's own bottom bar from `headless-bar.html`.
+		routes: ['/consent-example', '/consent-example/headless'],
 		start: () => ['serve.ts'],
 	},
 	{

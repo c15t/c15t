@@ -57,7 +57,7 @@ if (process.argv.includes('--check')) {
 
 /** The published page, with its CDN tag and backend URL made local. */
 const renderConsentExample = function renderConsentExample(
-	branded: boolean
+	design: 'default' | 'branded' | 'headless'
 ): Response {
 	if (!backendURL) {
 		return new Response(
@@ -65,15 +65,25 @@ const renderConsentExample = function renderConsentExample(
 			{ status: 500 }
 		);
 	}
-	let html = readFileSync(here('./consent-example.html'), 'utf8')
-		.replaceAll(cdnPrefix, '/')
-		.replaceAll(backendPlaceholder, backendURL);
-	if (branded) {
+	let html = readFileSync(here('./consent-example.html'), 'utf8');
+	if (design === 'branded') {
 		html = html.replace(
 			'</head>',
 			`${readFileSync(here('./branded-theme.html'), 'utf8')}</head>`
 		);
 	}
+	if (design === 'headless') {
+		// Swap the stock tag for the headless build and the page's own bar.
+		html = html
+			.replace(/<script\s+src="[^"]*\/c15t\.js"[\s\S]*?<\/script>/u, '')
+			.replace(
+				'</body>',
+				`${readFileSync(here('./headless-bar.html'), 'utf8')}</body>`
+			);
+	}
+	html = html
+		.replaceAll(cdnPrefix, '/')
+		.replaceAll(backendPlaceholder, backendURL);
 	return new Response(html, {
 		headers: {
 			'cache-control': 'no-store',
@@ -115,10 +125,13 @@ Bun.serve({
 			return Response.json({ ok: true, received: events });
 		}
 		if (pathname === '/consent-example') {
-			return renderConsentExample(false);
+			return renderConsentExample('default');
 		}
 		if (pathname === '/consent-example/branded') {
-			return renderConsentExample(true);
+			return renderConsentExample('branded');
+		}
+		if (pathname === '/consent-example/headless') {
+			return renderConsentExample('headless');
 		}
 		const file = bundles[pathname] ?? pages[pathname];
 		if (!file) {
