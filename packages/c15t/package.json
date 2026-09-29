@@ -606,6 +606,8 @@
 		},
 		"./astro/styles.css": "./dist/astro/styles.css",
 		"./astro/iab/styles.css": "./dist/astro/iab/styles.css",
+		"./astro/dialog.css": "./dist/astro/dialog.css",
+		"./astro/primitives.css": "./dist/astro/primitives.css",
 		"./astro/components/consent-script.astro": {
 			"types": "./shims/astro/components/consent-script.astro.d.ts",
 			"import": "./shims/astro/components/consent-script.astro.js",
