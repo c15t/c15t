@@ -373,6 +373,51 @@ describe('Zaraz consent bridge through the kernel and script loader', () => {
 		expect(api.getAll()).toEqual({ analytics: false });
 	});
 
+	it('declares a vendor slug so visitors can turn the bridge off', () => {
+		expect(
+			cloudflareZaraz({ purposes: { measurement: ['analytics'] } }).vendor
+		).toBe('cloudflare-zaraz');
+	});
+
+	it('denies every purpose while the visitor has the Zaraz vendor turned off', () => {
+		const { api } = installZaraz({ ads: true, analytics: true });
+		const script = cloudflareZaraz({
+			purposes: { marketing: ['ads'], measurement: ['analytics'] },
+		});
+		const consents = {
+			...deniedConsents,
+			marketing: true,
+			measurement: true,
+		};
+
+		script.onLoad?.({
+			consents,
+			elementId: script.id,
+			hasConsent: false,
+			id: script.id,
+			vendor: { granted: false, id: 'cloudflare-zaraz' },
+		});
+		expect(api.getAll()).toEqual({ ads: false, analytics: false });
+
+		script.onConsentChange?.({
+			consents,
+			elementId: script.id,
+			hasConsent: true,
+			id: script.id,
+			vendor: { granted: true, id: 'cloudflare-zaraz' },
+		});
+		expect(api.getAll()).toEqual({ ads: true, analytics: true });
+
+		script.onConsentChange?.({
+			consents,
+			elementId: script.id,
+			hasConsent: false,
+			id: script.id,
+			vendor: { granted: false, id: 'cloudflare-zaraz' },
+		});
+		expect(api.getAll()).toEqual({ ads: false, analytics: false });
+	});
+
 	it('does not read browser globals during helper construction', () => {
 		vi.stubGlobal('window', undefined);
 		vi.stubGlobal('document', undefined);
