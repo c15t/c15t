@@ -31,14 +31,13 @@ import {
 	resolveStorageKeys,
 } from '@c15t/core/modules/persistence';
 import { inferConsentCategories, isIABConfigured } from '@c15t/core/runtime';
-import { fetchCachedGvl } from '@c15t/core/server';
+import { fetchCachedGvl, resolveRequestBackendURL } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
 import { readProducerPolicyContract } from '@c15t/core/transports';
 import {
 	consentInputsToOverrides,
 	CONSENT_REQUEST_HEADER_NAMES,
 	extractConsentRequestInputs,
-	resolveBackendURL,
 } from '@c15t/schema/types';
 import type {
 	ConsentRequestHeaderInputs,
@@ -265,28 +264,15 @@ const consentCookieName = function consentCookieName(
  * `Request.url` from whatever proxy configuration the deployment declared,
  * so trusting a forwarded header on top of it would let a forged header
  * steer this server-side fetch, cookies and all, at a host of the caller's
- * choosing. Seeding the protocol from the request URL also keeps a relative
- * URL resolving on a plain `http://localhost` dev server, where the shared
- * resolver would otherwise assume `https`.
+ * choosing. The rule is shared with the other adapters through
+ * `resolveRequestBackendURL` in `@c15t/core/server`.
  */
 const resolveAgainstRequest = function resolveAgainstRequest(
 	url: string,
 	headers: Headers,
 	requestURL?: string
 ): string | null {
-	if (requestURL) {
-		try {
-			const parsed = new URL(requestURL);
-			return resolveBackendURL(url, {
-				host: parsed.host,
-				'x-forwarded-proto': parsed.protocol.replace(':', ''),
-			});
-		} catch {
-			return null;
-		}
-	}
-	const host = headers.get('host');
-	return host ? resolveBackendURL(url, { host }) : null;
+	return resolveRequestBackendURL(url, { headers, requestURL });
 };
 
 /**

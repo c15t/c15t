@@ -1,57 +1,22 @@
-import { resolveBackendURL } from '@c15t/schema/types';
+import { resolveRequestBackendURL } from '@c15t/core/server';
 
 import { trimTrailingSlashes } from './path';
 
-const FORWARDED_HEADER_NAMES = [
-	'x-forwarded-proto',
-	'x-forwarded-ssl',
-	'x-forwarded-host',
-	'host',
-	'referer',
-] as const;
-
 /**
- * Headers `resolveBackendURL` needs to turn a relative backend URL into an
- * absolute one.
+ * Resolves a relative or absolute backend URL against the incoming request.
  *
- * By default the authority comes from `request.url` only: the host and
+ * By default the origin comes from `request.url` only: the host and
  * protocol the server itself resolved the request under. `x-forwarded-*`
  * headers are client-controlled unless a trusted proxy strips them, and a
  * relative `backendURL` resolved against them would let a visitor point the
  * server's own manifest fetch, or the proxied consent save, at any origin.
  * Pass `trustForwardedHeaders: true` only when the app runs behind a proxy
  * that sets those headers and drops incoming ones.
- */
-export const getRequestResolutionHeaders = function getRequestResolutionHeaders(
-	request: Request,
-	trustForwardedHeaders = false
-): Record<string, string> {
-	const headers: Record<string, string> = {};
-	try {
-		const url = new URL(request.url);
-		headers.host = url.host;
-		headers['x-forwarded-proto'] = url.protocol.replace(/:$/u, '');
-	} catch {
-		// Relative request URLs (some test doubles) carry no host.
-	}
-	if (!trustForwardedHeaders) {
-		return headers;
-	}
-	for (const name of FORWARDED_HEADER_NAMES) {
-		const value = request.headers.get(name);
-		if (value) {
-			headers[name] = value;
-		}
-	}
-	return headers;
-};
-
-/**
- * Resolves a relative or absolute backend URL against the incoming request.
  *
  * @param url - The configured backend or manifest URL.
  * @param request - The incoming request.
- * @param trustForwardedHeaders - Honour `x-forwarded-*` from the request.
+ * @param trustForwardedHeaders - Honour `forwarded` and `x-forwarded-*`
+ * from the request.
  * @returns The absolute URL, or `null` when it cannot be resolved.
  */
 export const resolveRequestURL = function resolveRequestURL(
@@ -59,10 +24,11 @@ export const resolveRequestURL = function resolveRequestURL(
 	request: Request,
 	trustForwardedHeaders = false
 ): string | null {
-	return resolveBackendURL(
-		url,
-		getRequestResolutionHeaders(request, trustForwardedHeaders)
-	);
+	return resolveRequestBackendURL(url, {
+		headers: request.headers,
+		requestURL: request.url,
+		trustForwardedHeaders,
+	});
 };
 
 /** `true` when `url` targets the request's own origin under `pathPrefix`. */
