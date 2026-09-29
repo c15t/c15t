@@ -110,6 +110,12 @@ export const demoGvl = {
  *
  * TCF fixes the IAB banner and dialog controls, so an `iab` pack cannot
  * carry `ui.*` overrides — the policy resolver rejects one that does.
+ *
+ * `categories` names only part of the optional categories, so the rule
+ * must say how the rest behave. Without `scopeMode` the resolver rejects
+ * the rule and every visitor gets the safe fallback policy instead.
+ * `permissive` leaves `functionality` allowed, as it was before the field
+ * became required.
  */
 export const demoIabPolicy = {
 	categories: ['marketing', 'measurement'],
@@ -117,4 +123,5 @@ export const demoIabPolicy = {
 	match: { fallback: true, isDefault: true },
 	model: 'iab',
 	prompt: 'choice',
+	scopeMode: 'permissive',
 };
