@@ -46,6 +46,7 @@ import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '../primitives';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import { saveIABChoice } from '../utils/save-iab-choice';
 import ConsentActions from './actions.vue';
+import IabFeatureItem from './iab-feature-item.vue';
 import type { IabVendorId } from './iab-purpose-item.vue';
 import IabPurposeItem from './iab-purpose-item.vue';
 import IabStackItem from './iab-stack-item.vue';
@@ -724,6 +725,34 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 												/>
 											</div>
 										</div>
+
+										<!-- Features: informational, no controls (TCF Policies v5.0.b) -->
+										<section
+											v-if="display.featureRows.length > 0"
+											:aria-label="iabT?.preferenceCenter?.features?.title"
+											:class="dialogStyles.featuresSection"
+											data-testid="iab-consent-dialog-features"
+										>
+											<div :class="dialogStyles.featuresHeader">
+												<h3 :class="dialogStyles.featuresTitle">
+													{{ iabT?.preferenceCenter?.features?.title }}
+												</h3>
+												<p :class="dialogStyles.featuresDescription">
+													{{
+														display.featuresStandardText ??
+														iabT?.preferenceCenter?.features?.description
+													}}
+												</p>
+											</div>
+											<div :class="dialogStyles.featuresList">
+												<IabFeatureItem
+													v-for="row in display.featureRows"
+													:key="row.testId"
+													:feature="row"
+													:test-id="row.testId"
+												/>
+											</div>
+										</section>
 
 										<div
 											v-bind="config.components?.['iab-dialog']?.consentNotice"

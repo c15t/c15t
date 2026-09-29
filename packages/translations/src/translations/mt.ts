@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				"Personalizza s-settings tal-privatezza tiegħek hawn. Tista' tagħżel liema tipi ta' cookies u teknoloġiji ta' traċċar tippermetti.",
+			features: {
+				description:
+					'Dawn il-mezzi ta’ pproċessar jistgħu jintużaw biss biex jintlaħaq skop wieħed jew diversi skopijiet li għalihom tingħata għażla f’dan l-avviż.',
+				title: 'Karatteristiċi',
+			},
 			footer: {
 				consentStorage:
 					'Il-preferenzi tal-kunsens huma maħżuna f’cookie msemmija "euconsent-v2" għal 13-il xahar. Il-perjodu tal-ħażna jista’ jiġġedded meta taġġorna l-preferenzi tiegħek.',

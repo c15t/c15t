@@ -60,6 +60,15 @@ const VENDOR_LIST_KEYS = [
 	'vendors',
 ];
 
+/**
+ * Top-level names the schema carries and the native cores do not read yet.
+ *
+ * `standardTexts` arrived with TCF 2.4. The web must show it by 23 October 2026;
+ * native apps have until 23 February 2027, so the Swift and Kotlin lists are
+ * compared against {@link VENDOR_LIST_KEYS} without it until they ingest it.
+ */
+const WEB_ONLY_VENDOR_LIST_KEYS = ['standardTexts'];
+
 /** The collections that share the purpose shape, which is four of the five. */
 const DEFINITION_KEYS = [
 	'description',
@@ -178,7 +187,8 @@ const bodyBetween = function bodyBetween(
 };
 
 /**
- * Keys of a schema factory: `export const NAME = ... v.object({...})`();)();`.
+ * Keys of a schema factory: `export const NAME = ... v.looseObject({...})`();)();`
+ * (or `v.object`).
  *
  * Members are read at two tabs, which is the depth a factory's own keys sit at,
  * so the members of `dataRetention`'s inline object -- four tabs down, inside the
@@ -188,7 +198,7 @@ const schemaKeys = function schemaKeys(source: string, name: string): string[] {
 	const body = bodyBetween(
 		source,
 		new RegExp(
-			`export const ${name} =[\\s\\S]*?v\\.object\\(\\{(?<body>[\\s\\S]*?)\\n\\t\\}\\)\\)\\(\\);`,
+			`export const ${name} =[\\s\\S]*?v\\.(?:looseObject|object)\\(\\{(?<body>[\\s\\S]*?)\\n\\t\\}\\)\\)\\(\\);`,
 			'u'
 		),
 		name,
@@ -209,7 +219,7 @@ const inlineSchemaKeys = function inlineSchemaKeys(
 	const body = bodyBetween(
 		source,
 		new RegExp(
-			`\\t${property}: v\\.optional\\(\\n\\t{3}v\\.object\\(\\{(?<body>[\\s\\S]*?)\\n\\t{3}\\}\\)`,
+			`\\t${property}: v\\.optional\\(\\n\\t{3}v\\.(?:looseObject|object)\\(\\{(?<body>[\\s\\S]*?)\\n\\t{3}\\}\\)`,
 			'u'
 		),
 		`${property} (inline)`,
@@ -345,7 +355,7 @@ describe('the vendor-list name sets', () => {
 describe('the schema writes these names', () => {
 	test('the document itself', () => {
 		expect(sorted(schemaKeys(SCHEMA, 'globalVendorListSchema'))).toEqual(
-			VENDOR_LIST_KEYS
+			sorted([...VENDOR_LIST_KEYS, ...WEB_ONLY_VENDOR_LIST_KEYS])
 		);
 	});
 

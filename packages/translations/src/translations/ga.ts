@@ -93,6 +93,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Saincheap do shocruithe príobháideachais anseo. Is féidir leat na cineálacha fianán agus teicneolaíochtaí rianaithe a cheadaíonn tú a roghnú.',
+			features: {
+				description:
+					'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+				title: 'Gnéithe',
+			},
 			footer: {
 				consentStorage:
 					'Stóráiltear roghanna toilithe i bhfianán darb ainm "euconsent-v2" ar feadh 13 mhí. D\'fhéadfaí an tréimhse stórála a athnuachan nuair a nuashonraíonn tú do roghanna.',

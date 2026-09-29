@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Dostosuj tutaj swoje ustawienia prywatności. Możesz wybrać, które rodzaje plików cookie i technologii śledzenia chcesz zaakceptować.',
+			features: {
+				description:
+					'Te sposoby przetwarzania mogą być wykorzystywane wyłącznie w celu realizacji jednego lub kilku celów, co do których dajemy Ci wybór w niniejszej informacji.',
+				title: 'Funkcje',
+			},
 			footer: {
 				consentStorage:
 					'Preferencje dotyczące zgody są przechowywane w pliku cookie o nazwie „euconsent-v2” przez 13 miesięcy. Okres przechowywania może zostać odnowiony, gdy zaktualizujesz swoje preferencje.',

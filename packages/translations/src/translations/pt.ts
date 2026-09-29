@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Personalize suas configurações de privacidade aqui. Você pode escolher quais tipos de cookies e tecnologias de rastreamento você permite.',
+			features: {
+				description:
+					'Esses meios de processamento podem ser usados exclusivamente para atingir uma ou mais finalidades, para as quais você tem a opção de escolher neste aviso.',
+				title: 'Funcionalidades',
+			},
 			footer: {
 				consentStorage:
 					'As preferências de consentimento são armazenadas num cookie chamado "euconsent-v2" durante 13 meses. O período de armazenamento pode ser renovado quando atualizar as suas preferências.',

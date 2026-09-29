@@ -810,7 +810,7 @@
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@happy-dom/global-registrator": "^20.0.0",
-        "@iabtechlabtcf/core": "^1.5.21",
+        "@iabtechlabtcf/core": "^1.5.22",
         "typescript": "6.0.3",
       },
     },
@@ -1185,7 +1185,7 @@
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/schema": "workspace:*",
-        "@iabtechlabtcf/core": "^1.5.21",
+        "@iabtechlabtcf/core": "^1.5.22",
       },
       "devDependencies": {
         "@c15t/conformance": "workspace:*",
@@ -1275,7 +1275,7 @@
         "@c15t/conformance": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
-        "@iabtechlabtcf/core": "^1.5.20",
+        "@iabtechlabtcf/core": "^1.5.22",
         "genversion": "3.2.0",
         "msw": "^2.14.6",
         "typescript": "7.0.2",
@@ -1300,7 +1300,7 @@
         "@c15t/iab": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
-        "@iabtechlabtcf/core": "1.5.21",
+        "@iabtechlabtcf/core": "1.5.22",
         "@react-native/codegen": "0.87.1",
         "@types/react-dom": "19.2.3",
         "jsdom": "25.0.1",
@@ -2250,7 +2250,7 @@
 
     "@hono/standard-validator": ["@hono/standard-validator@0.2.3", "", { "peerDependencies": { "@standard-schema/spec": "^1.0.0", "hono": ">=3.9.0" } }, "sha512-bp9vHu6Va6SfMHC3D4ZLBbT/woi+AZ9CRdTXQu3kLJuLh2W/Gb9UO4hijS+BQAGFXi4EGpXdetxpzwTAawSVeg=="],
 
-    "@iabtechlabtcf/core": ["@iabtechlabtcf/core@1.5.21", "", {}, "sha512-DgesUdC/s4qiL41X8TfgF+EPINMGUMyd9AL2up5jC2l+uTbgJycf1mIEniPFJwuxGgSvDx9X4H44JIN+2rw66Q=="],
+    "@iabtechlabtcf/core": ["@iabtechlabtcf/core@1.5.22", "", {}, "sha512-Iaz42mXXflxLL19nU7S7RBV1hjELln32mettVVTxdzFFqxVPze6dOzgaNMHP/L9a2Anr017D7yFAcPzMgnfchw=="],
 
     "@img/colour": ["@img/colour@1.1.0", "", {}, "sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ=="],
 

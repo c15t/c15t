@@ -1,6 +1,6 @@
 import { readStoredRecords } from '@c15t/core/modules/persistence';
 /**
- * E2E Test Setup for IAB TCF 2.3 Components
+ * E2E Test Setup for IAB TCF 2.4 Components
  *
  * Provides utilities for browser-based E2E testing of IAB components.
  * Uses MSW (Mock Service Worker) for network-level mocking.

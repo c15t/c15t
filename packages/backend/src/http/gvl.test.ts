@@ -142,6 +142,26 @@ describe('resolveGvl', () => {
 		assert.strictEqual(calls, 1, 'second call should be served from cache');
 	});
 
+	it('keeps standardTexts through parsing and the cache', async () => {
+		// TCF Policies v5.0.b require the Features standard text in the UI, so
+		// validation must not strip it before it reaches the client.
+		const cache = memoryCache();
+		const standardTexts = { features: 'Features standard text' };
+		const fetchOnce = (() =>
+			new Response(
+				JSON.stringify({ ...GVL, standardTexts })
+			)) as unknown as typeof globalThis.fetch;
+
+		const first = await resolveGvl('en', { cache, fetch: fetchOnce });
+		const second = await resolveGvl('en', {
+			cache,
+			fetch: respondWith(GVL, false),
+		});
+
+		assert.deepStrictEqual(first?.standardTexts, standardTexts);
+		assert.deepStrictEqual(second?.standardTexts, standardTexts);
+	});
+
 	it('treats a regional tag as its primary subtag', async () => {
 		const cache = memoryCache();
 		await resolveGvl('de-DE', { cache, fetch: respondWith(GVL) });

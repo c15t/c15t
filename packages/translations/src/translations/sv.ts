@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Anpassa dina integritetsinställningar här. Du kan välja vilka typer av cookies och spårningstekniker du tillåter.',
+			features: {
+				description:
+					'Dessa behandlingsmetoder får endast användas i syfte att uppnå ett eller flera av de ändamål som du ges möjlighet att välja i detta meddelande.',
+				title: 'Funktioner',
+			},
 			footer: {
 				consentStorage:
 					'Samtyckesinställningar lagras i en cookie med namnet "euconsent-v2" i 13 månader. Lagringstiden kan förnyas när du uppdaterar dina inställningar.',

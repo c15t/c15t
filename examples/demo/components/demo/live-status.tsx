@@ -23,7 +23,7 @@ const LANGUAGE_OPTIONS = [
 ] as const;
 
 const MODEL_LABELS: Record<string, string> = {
-	iab: 'IAB TCF 2.3',
+	iab: 'IAB TCF 2.4',
 	'opt-in': 'Opt-in',
 	'opt-out': 'Opt-out',
 };

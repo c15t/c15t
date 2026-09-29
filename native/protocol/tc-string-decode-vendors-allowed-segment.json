@@ -314,7 +314,7 @@
 	"oracle": {
 		"package": "@iabtechlabtcf/core",
 		"repository": "InteractiveAdvertisingBureau/iabtcf-es",
-		"version": "1.5.21",
+		"version": "1.5.22",
 		"encodeOptions": {
 			"isForVendors": true,
 			"version": 2

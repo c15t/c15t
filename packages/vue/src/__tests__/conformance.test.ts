@@ -238,7 +238,7 @@ const buildInitOutput = function buildInitOutput(
 	// The same-origin init route ships the vendor list for IAB policies,
 	// and the Nuxt plugin hands that payload to the server render.
 	if (isIabComponent(opts.component)) {
-		init.gvl = MINIMAL_GVL as unknown as GlobalVendorList;
+		init.gvl = (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList;
 	}
 	return init;
 };
@@ -267,7 +267,7 @@ const buildKernelConfig = function buildKernelConfig(
 		base.initialIab = {
 			cmpId: IAB_FIXTURE_CMP_ID,
 			enabled: true,
-			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+			gvl: (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList,
 		};
 	}
 	if (initMode === 'authoritative') {

@@ -55,6 +55,7 @@ import type {
 } from './internal/iab-copy';
 import { resolveIabCopy, withTotal } from './internal/iab-copy';
 import {
+	ConsentIabFeatureSection,
 	ConsentIabLockedSection,
 	ConsentIabPurposeRow,
 	ConsentIabStackRow,
@@ -701,6 +702,13 @@ const ConsentIabDrawerBody = (): ReactNode => {
 				rows={model.essentialRows}
 				theme={theme}
 				vendorCount={model.essentialPartnerCount}
+			/>
+			<ConsentIabFeatureSection
+				copy={copy}
+				parts={parts}
+				rows={model.featureRows}
+				standardText={model.featuresStandardText}
+				theme={theme}
 			/>
 		</ConsentSurfaceBody>
 	);

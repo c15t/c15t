@@ -1,5 +1,5 @@
 /**
- * `@c15t/iab` — IAB TCF 2.3 module for the c15t consent kernel.
+ * `@c15t/iab` — IAB TCF 2.4 module for the c15t consent kernel.
  *
  * Consumes the `@c15t/core` kernel and provides CMP-compliant IAB TCF
  * functionality:
@@ -8,7 +8,7 @@
  * - Fetches the Global Vendor List (GVL) with HTTP cache + in-flight
  *   deduplication. Respects `gvl: null` on the `/init` response
  *   (server-side non-IAB region opt-out).
- * - Encodes TCF 2.3 strings via lazy-loaded `@iabtechlabtcf/core` so
+ * - Encodes TCF 2.4 strings via lazy-loaded `@iabtechlabtcf/core` so
  *   the 50KB encoder only loads when `save()` is actually called.
  * - Persists vendor/purpose/LI/special-feature consent through
  *   `kernel.set.iab()`, preserving the framework-neutral kernel
@@ -63,7 +63,7 @@ import {
 	iabPurposesToC15tConsents,
 } from './tcf/purpose-mapping';
 import { destroyIABStub as destroyStub, initializeIABStub } from './tcf/stub';
-import { generateTCString } from './tcf/tc-string';
+import { generateTCString, resolveIsServiceSpecific } from './tcf/tc-string';
 
 /**
  * Public option surface for `createIAB`. Mirrors v2's `IABUserConfig`
@@ -89,7 +89,13 @@ export interface CreateIABOptions {
 	customVendors?: NonIABVendor[];
 	/** Publisher country code (ISO 3166-1 alpha-2). Default: 'US'. */
 	publisherCountryCode?: string;
-	/** Whether the CMP is service-specific. Default: true. */
+	/**
+	 * Ignored: c15t always encodes IsServiceSpecific=1.
+	 *
+	 * @deprecated TCF requires IsServiceSpecific=1. Group-specific scope is
+	 * also encoded as 1. Passing `false` logs a warning once and has no
+	 * other effect.
+	 */
 	isServiceSpecific?: boolean;
 	/**
 	 * Publisher restrictions encoded into every TC string this CMP saves and
@@ -212,7 +218,7 @@ export interface IABHandle {
 	/** Flip every vendor + purpose consent to false. */
 	rejectAll: () => void;
 	/**
-	 * Encode the current state as a TCF 2.3 string and commit to the
+	 * Encode the current state as a TCF 2.4 string and commit to the
 	 * kernel (via `set.iab({ tcString })`). Does NOT call
 	 * `kernel.commands.save()` — the caller decides whether to persist
 	 * or just emit the string.
@@ -336,11 +342,10 @@ const applyBlanket = function applyBlanket(
  * is known. Invalid input shows none: the CMP rejects it before saving.
  */
 const restrictionsForDisplay = function restrictionsForDisplay(
-	input: unknown,
-	isServiceSpecific: boolean
+	input: unknown
 ): PublisherRestriction[] {
 	try {
-		return validatePublisherRestrictions(input, { isServiceSpecific });
+		return validatePublisherRestrictions(input);
 	} catch {
 		return [];
 	}
@@ -729,7 +734,7 @@ export const createIAB = function createIAB(
 ): IABHandle {
 	const { kernel, cmpVersion = CMP_VERSION_NUMBER, vendors, gvlURL } = options;
 	const cmpId = assertValidCmpId(options.cmpId);
-	const isServiceSpecific = options.isServiceSpecific ?? true;
+	const isServiceSpecific = resolveIsServiceSpecific(options.isServiceSpecific);
 	/** Restrictions checked against the most recently published list. */
 	let publisherRestrictions: PublisherRestriction[] = [];
 	// Later changes to the caller's array must not change what is encoded.
@@ -738,10 +743,7 @@ export const createIAB = function createIAB(
 	);
 	const restrictionsForBlanket = (gvl: GlobalVendorList) => {
 		try {
-			return validatePublisherRestrictions(configuredRestrictions, {
-				gvl,
-				isServiceSpecific,
-			});
+			return validatePublisherRestrictions(configuredRestrictions, { gvl });
 		} catch {
 			// whenReady(), generateTCString() and save() report this error.
 			return [];
@@ -761,7 +763,7 @@ export const createIAB = function createIAB(
 		kernel,
 		options,
 		preloadedGvl ?? null,
-		restrictionsForDisplay(configuredRestrictions, isServiceSpecific)
+		restrictionsForDisplay(configuredRestrictions)
 	);
 
 	let cmpApi: CMPApi | null = null;
@@ -1233,10 +1235,7 @@ export const createIAB = function createIAB(
 	): boolean => !valid && readIAB(kernel).authority === retained;
 	const restrictionsForList = (gvl: GlobalVendorList) => {
 		try {
-			return validatePublisherRestrictions(configuredRestrictions, {
-				gvl,
-				isServiceSpecific,
-			});
+			return validatePublisherRestrictions(configuredRestrictions, { gvl });
 		} catch (error) {
 			// Authority confirmed against an earlier list must not keep gating
 			// scripts once this CMP can no longer publish a string.
@@ -1557,7 +1556,7 @@ export const createIAB = function createIAB(
 			...iab.vendorLegitimateInterests,
 		});
 		// `vendorsDisclosed` should reflect every vendor the CMP made
-		// available to the user, per TCF 2.3. For MVP we mirror the set
+		// available to the user, per the TCF. For MVP we mirror the set
 		// of vendors whose consent has been considered.
 		const disclosed: Record<string, boolean> = {};
 		for (const id of Object.keys(vendorConsents)) {

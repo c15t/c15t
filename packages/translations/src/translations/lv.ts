@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Pielāgojiet savus privātuma iestatījumus šeit. Jūs varat izvēlēties, kāda veida sīkdatnes un izsekošanas tehnoloģijas atļaut.',
+			features: {
+				description:
+					'Šos apstrādes līdzekļus var izmantot tikai viena vai vairāku mērķu sasniegšanai, attiecībā uz kuriem jums ir dota izvēle šajā paziņojumā.',
+				title: 'Funkcijas',
+			},
 			footer: {
 				consentStorage:
 					'Piekrišanas iestatījumi tiek glabāti sīkdatnē ar nosaukumu "euconsent-v2" 13 mēnešus. Glabāšanas ilgums var tikt atjaunots, kad jūs atjaunināt savus iestatījumus.',

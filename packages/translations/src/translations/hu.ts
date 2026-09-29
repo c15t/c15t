@@ -94,6 +94,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Testreszabhatja adatvédelmi beállításait itt. Kiválaszthatja, hogy milyen típusú sütiket és nyomkövető technológiákat engedélyez.',
+			features: {
+				description:
+					'Ezek az adatkezelési módok kizárólag egy vagy több olyan cél érdekében használhatók fel, amelyekre vonatkozóan Önnek választási lehetősége van a jelen közleményben.',
+				title: 'Funkciók',
+			},
 			footer: {
 				consentStorage:
 					'A hozzájárulási beállításokat egy "euconsent-v2" nevű sütiben tároljuk 13 hónapig. A tárolási időtartam megújulhat, amikor Ön frissíti a beállításait.',

@@ -160,6 +160,55 @@ describe('IAB browser entry', () => {
 			query(client, 'special-purpose-item-1').querySelector('[role="switch"]')
 		).toBeNull();
 	});
+	it('shows features in their own section with the standard text and no controls', async () => {
+		const { 1: feature } = completeGVL.features;
+		if (!feature) {
+			throw new Error('Missing feature fixture');
+		}
+		const client = await start({
+			iab: {
+				cmpId: 28,
+				gvl: {
+					...completeGVL,
+					features: {
+						...completeGVL.features,
+						1: { ...feature, illustrations: ['Feature illustration'] },
+					},
+				},
+			},
+		});
+		query(client, 'iab-consent-banner-customize-button').click();
+		const section = query(client, 'iab-consent-dialog-features');
+
+		expect(section.getAttribute('aria-label')).toBe('Features');
+		expect(section.textContent).toContain(
+			completeGVL.standardTexts?.features ?? 'missing standard text'
+		);
+		expect(section.querySelector('[data-testid="feature-item-1"]')).toBe(
+			query(client, 'feature-item-1')
+		);
+		expect(section.textContent).toContain('Feature illustration');
+		expect(
+			section.querySelector('[role="switch"], [role="checkbox"], input')
+		).toBeNull();
+		expect(section.textContent).not.toContain(
+			'Required for site functionality'
+		);
+		// Special purposes keep their locked presentation.
+		expect(query(client, 'special-purpose-item-1').textContent).toContain(
+			'Required for site functionality'
+		);
+	});
+	it('falls back to the translated features text when the GVL has none', async () => {
+		const client = await start({
+			iab: { cmpId: 28, gvl: { ...completeGVL, standardTexts: undefined } },
+		});
+		query(client, 'iab-consent-banner-customize-button').click();
+
+		expect(query(client, 'iab-consent-dialog-features').textContent).toContain(
+			'These means of processing can be used solely in pursuit of one or several purposes'
+		);
+	});
 	it('opens the vendors tab from the partner disclosure and shows policy URLs', async () => {
 		const client = await start();
 		query(client, 'iab-consent-banner-partners-link').click();

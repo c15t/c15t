@@ -10,7 +10,7 @@ import {
 	clearBrowserConsentStorage,
 } from '@c15t/conformance/suite';
 import type { SuiteApi } from '@c15t/conformance/suite';
-import type { ConsentPresentation } from '@c15t/core';
+import type { ConsentPresentation, GlobalVendorList } from '@c15t/core';
 import { afterEach, describe, expect, test } from 'vitest';
 
 import { init as initIAB } from '../iab';
@@ -41,7 +41,9 @@ const driver = (shadow: boolean): TestDriver => ({
 				? {
 						cmpId: IAB_FIXTURE_CMP_ID,
 						cmpVersion: IAB_FIXTURE_CMP_VERSION,
-						gvl: structuredClone(MINIMAL_GVL),
+						gvl: structuredClone(
+							options.gvl ?? MINIMAL_GVL
+						) as GlobalVendorList,
 					}
 				: undefined,
 			mode: 'offline',

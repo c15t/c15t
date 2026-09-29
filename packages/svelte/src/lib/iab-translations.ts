@@ -48,6 +48,10 @@ export interface IABTranslations {
 			title: string;
 			tooltip: string;
 		};
+		features: {
+			title: string;
+			description: string;
+		};
 		vendorList: {
 			search: string;
 			showingCount: string;

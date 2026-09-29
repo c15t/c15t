@@ -11,7 +11,7 @@ import type { AllConsentNames } from '@c15t/core';
 /**
  * Maps IAB TCF purpose IDs to c15t consent categories.
  *
- * IAB TCF 2.3 defines 11 purposes:
+ * IAB TCF 2.4 defines 11 purposes:
  * - Purpose 1: Store and/or access information on a device -> `necessary`
  * - Purpose 2: Use limited data to select advertising -> `marketing`
  * - Purpose 3: Create profiles for personalised advertising -> `marketing`

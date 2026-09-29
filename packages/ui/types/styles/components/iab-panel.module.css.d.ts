@@ -21,6 +21,11 @@ declare const styles: {
   readonly "emptyStateText": string;
   readonly "examplesList": string;
   readonly "examplesToggle": string;
+  readonly "featuresDescription": string;
+  readonly "featuresHeader": string;
+  readonly "featuresList": string;
+  readonly "featuresSection": string;
+  readonly "featuresTitle": string;
   readonly "footer": string;
   readonly "header": string;
   readonly "headerContent": string;

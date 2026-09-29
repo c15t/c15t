@@ -376,7 +376,7 @@
 			"id": "tc-string-parity-nothing-set",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "c3ae7fb8a49a6506ad5a28b69080c3ed74b7ae38c12ba9b0ca274c78b4408020"
+			"sha256": "4d54b2c5213d39cb124a982a2d47397e0cf28939b7826e7c84d539d55930f9e6"
 		},
 		{
 			"bytes": 8694,
@@ -384,7 +384,7 @@
 			"id": "tc-string-parity-purposes-full",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "321d5ccbf9d6225cf632d3eff80567397ade24e8e00152ffd0402cbbcace1c03"
+			"sha256": "72fca45074618f8b69f0feb55ceae1deeae71ffba5da9786ca66c6973442a6df"
 		},
 		{
 			"bytes": 8864,
@@ -392,7 +392,7 @@
 			"id": "tc-string-parity-li-and-special-features",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "555a7b7967d983db35c15591a8cddd94b38c050837a5bce47de279b37435aaf2"
+			"sha256": "5982ce26d1eaca0b2c83a55f72b9dac8b492212206899d14b96d8457b80dbc2b"
 		},
 		{
 			"bytes": 8600,
@@ -400,7 +400,7 @@
 			"id": "tc-string-parity-vendor-consents-empty",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "b88fdb8fa14fca869b16978d497b57485564f22af722cffb7714ca405f03f4c1"
+			"sha256": "55a59cf69608f7ac1fa799c5f09117a9fc440df2bbf226271062af70182272cc"
 		},
 		{
 			"bytes": 8623,
@@ -408,7 +408,7 @@
 			"id": "tc-string-parity-vendor-consents-single",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "17938773dd807d3a5c8282bfe48670e0106d31f83effe6e702a21e8bcf4a1293"
+			"sha256": "975b2cfbddc5effe8d7d71ee79d5a169aec96bf8bd1ae5e6eb82e68ed46392b7"
 		},
 		{
 			"bytes": 8642,
@@ -416,7 +416,7 @@
 			"id": "tc-string-parity-vendor-consents-bitfield",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "8814f0d72920bd3dbc4e0dc1e930e2651a389c211b562bea990bbdc8abc3c4b5"
+			"sha256": "b3272b5ff86ad8ba8f13e39f086d030cf4786077f2fa22a662745302e22d71b6"
 		},
 		{
 			"bytes": 8671,
@@ -424,7 +424,7 @@
 			"id": "tc-string-parity-vendor-consents-range",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "c98abdf3225ac276bb54648250c98072f9e7a779951f3ca5608243cacb162e01"
+			"sha256": "64165ab340da7acd304a15e05d1a603a2bba182e35d2664a4529259145a82597"
 		},
 		{
 			"bytes": 8594,
@@ -432,7 +432,7 @@
 			"id": "tc-string-parity-single-vendor-id-45",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "1c5cbd38b26fcc5c3dc68e0c660df5c471836178a04e0f4c453f5dabb9aed0f4"
+			"sha256": "d151af8a4c5fbef162d3fa2f80012d94327408fe9eec1bfd83efa0142b716206"
 		},
 		{
 			"bytes": 8569,
@@ -440,7 +440,7 @@
 			"id": "tc-string-parity-single-vendor-id-46",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "ec37d8aca8489dec70f005b5d9028ab3eff0c081b01bab2b39eb01ff41338a8d"
+			"sha256": "611400e72a16dfa128efde039ed19efad78d6ce8b433bebacf203e499d1e8716"
 		},
 		{
 			"bytes": 8657,
@@ -448,7 +448,7 @@
 			"id": "tc-string-parity-vendor-consents-sparse-range",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "c8528f7f31ea25b12af6e000c5774c4ec792b58010fbcd15abc370031e1ed6ff"
+			"sha256": "80058ce338cb1743d138459efe73c32d0e6d46bf937313b0660197db9d1f19c7"
 		},
 		{
 			"bytes": 12743,
@@ -456,7 +456,7 @@
 			"id": "tc-string-parity-vendors-disclosed-long-bitfield",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "b23038ef8f3226cd86857b7b2255042f49e9093364092ad3017c5da544837223"
+			"sha256": "29d4a5c2bec0f86b708825de2678dd6f5d258808b2f03fbd22a9e54e659453b3"
 		},
 		{
 			"bytes": 9582,
@@ -464,7 +464,7 @@
 			"id": "tc-string-parity-pruned-signals",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "94afc466e8136a3da4dfae3f7921bbcb164313ce4d5df32c8bf078943ff607dd"
+			"sha256": "bd4d72d26ac0d4b3fe266151f48d80d371be88393aaceb979dfed0f399621667"
 		},
 		{
 			"bytes": 8588,
@@ -472,7 +472,7 @@
 			"id": "tc-string-parity-policy-version-4",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "369d2f876f518b4229c6074d5c8d879d6e7db45254e9d574b843b691e9d2a7e8"
+			"sha256": "a140249f4e26d3d30f74c002e327982ad835ae1c25f417503cda4e16fb5860de"
 		},
 		{
 			"bytes": 8598,
@@ -480,7 +480,7 @@
 			"id": "tc-string-parity-policy-version-5",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "bef6848934f6d1f1c59aa6561d61fa80db1452df431f05cc871ed393a57b47b6"
+			"sha256": "866de555af21a093b3403a12e81aeaf21e97d9803388ed9ec1b0820039e8abe3"
 		},
 		{
 			"bytes": 8705,
@@ -488,7 +488,7 @@
 			"id": "tc-string-parity-vendor-list-version-max",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "b956016913229569a6a7186917df9183cc4606316b893393775dd45e7b5c8a3b"
+			"sha256": "7432a237726a77a39110ee7a1576e68928fcf4682606bd34f1bf658f505c01e0"
 		},
 		{
 			"bytes": 8994,
@@ -496,7 +496,7 @@
 			"id": "tc-string-parity-service-specific-false",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "84948e2e7b208410a51e8538f176281bbacef83e70d024c7a14f738cf77ffc81"
+			"sha256": "172818e0fa4cfe9bf9ce979fec2fa8f2307d45b30212a62312b5a684dadf7b10"
 		},
 		{
 			"bytes": 8867,
@@ -504,7 +504,7 @@
 			"id": "tc-string-parity-consent-language-from-vendor-list",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "deeb57c51e6fe78bd573220c38ae074402417eb194fed4b2c5ae2510e4440bd6"
+			"sha256": "c9964bf4b1079402f272be53ced54e03ca3401d463e7658b0ba138eb02c2e397"
 		},
 		{
 			"bytes": 8808,
@@ -512,7 +512,7 @@
 			"id": "tc-string-decode-purpose-one-treatment-service-specific",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "16d1e85ad30d03710ba3f44b4f2447c66e1b91bf89b2b8473b4e7949200cc162"
+			"sha256": "fd44a5eb69b7510aa8a8876a48bda784943d9d65abb2203f9026289740ef5815"
 		},
 		{
 			"bytes": 9119,
@@ -520,7 +520,7 @@
 			"id": "tc-string-decode-purpose-one-treatment-global",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "5311e7bf1b079392b6025fb91db93a5ce27c5f869bc8ab781db04c635919b70f"
+			"sha256": "83016550f28e7ec3961d8a0c2ff6a1c26e5c6aef66ad067ed790b3f423bc2a2a"
 		},
 		{
 			"bytes": 9210,
@@ -528,7 +528,7 @@
 			"id": "tc-string-decode-non-standard-texts-and-oob",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "8dcae48ab69d955ae23c656bcc2f14bb2ecae507703322e186e86e777eb2608c"
+			"sha256": "b768a6499227e11770937c5254d5d7c85cff55829ec6762cf34a28bff2890f5c"
 		},
 		{
 			"bytes": 10950,
@@ -536,7 +536,7 @@
 			"id": "tc-string-decode-restrictions-mixed-single-and-range",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "f20cb1b0f223be6e8a049fae78660f0fe3db963831b243f3b1f88b4ad4e5516a"
+			"sha256": "284eefd5b0b9551171e3c81379376648c57c450928f6182f5bd364407ca83565"
 		},
 		{
 			"bytes": 9676,
@@ -544,7 +544,7 @@
 			"id": "tc-string-decode-restrictions-three-types",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "4f94f31f8a76a3d2b72251f478e23f30862e4776016ab2505c3ff0193cb44e60"
+			"sha256": "7897a36c3f253c879cdd45c904219b7eb75f05b925de0b40f04075dedb7a87ce"
 		},
 		{
 			"bytes": 8928,
@@ -552,7 +552,7 @@
 			"id": "tc-string-decode-restrictions-empty-tail",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "bd8d0613fd7c3a6116ff4237978e4ef1af0df181fc3149b5b9a6e569a8c9b09e"
+			"sha256": "173ac4858b88fb82ede38588a9e069d1ac9c3e6b0ff01c16eb57580e9ad915c3"
 		},
 		{
 			"bytes": 9240,
@@ -560,7 +560,7 @@
 			"id": "tc-string-decode-wide-custom-purposes",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "5fc2e56f4089d90ddf941faa3527a6d094010df4af0c6f6f2b14ddad8f9c7059"
+			"sha256": "7c60804f0e00eae0f6076811b49b946c6d3547ca35dc9fa20550af46110b53d9"
 		},
 		{
 			"bytes": 9350,
@@ -568,7 +568,7 @@
 			"id": "tc-string-decode-vendors-allowed-segment",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "22984f2de54edf994680307f49e52eefe3f3933bcd4ff9a99e66dd2725536ce7"
+			"sha256": "97adabdd4fbe549d125486b70337b55b90ebc38ae70ca86a314b4efa38d18eab"
 		},
 		{
 			"bytes": 8869,
@@ -576,7 +576,7 @@
 			"id": "tc-string-decode-vendor-li-wide",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "b7ec15fccd4de7387a1323b8287260025e54719317ebde43af6d24455560284a"
+			"sha256": "75e8d25270cbf6a66e404404ef301b1f0a09b8b4b7bd4013d1b68814c3739bdc"
 		},
 		{
 			"bytes": 8877,
@@ -584,7 +584,7 @@
 			"id": "tc-string-decode-created-before-last-updated",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "ff9f59d3d475fc636b0e245268edd2d1a84b15f16f54aecbc7bd396279fae2a3"
+			"sha256": "37c31980d63fdd43897a45fe30b3d67c24553376c30566595dc74b41b3e07f18"
 		},
 		{
 			"bytes": 9728,
@@ -592,7 +592,7 @@
 			"id": "tc-string-parity-deleted-vendor-consent",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "ac7e6aa5bdb91b36cec9705720d3073f5e9567a8276cb229f4eead63cb9a2c82"
+			"sha256": "43d2af328aec11a7f5f354de3e8bf9639573e9c1de157f084d0f066ff67e358e"
 		},
 		{
 			"bytes": 10899,
@@ -600,7 +600,7 @@
 			"id": "tc-string-decode-deleted-vendor-three-vectors",
 			"kind": "tc-string",
 			"protocolVersion": 1,
-			"sha256": "332d519d17097f003eb06fe85f2b07bea584fbd570e8fd7a8bab8fb96ce79e88"
+			"sha256": "65ee3b653d2b4a57d0624423e651646a8c7f50e897bffe0305ff6dad4a8350eb"
 		},
 		{
 			"bytes": 51413,

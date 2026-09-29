@@ -449,7 +449,7 @@ describe('the purposes tab', () => {
 		expect(tree.saved).toHaveLength(0);
 	});
 
-	test('lists the locked rows as special purposes and then features', () => {
+	test('lists only special purposes as locked rows', () => {
 		const tree = mountDrawer();
 		const essential = row(tree, 'iab-essential-section');
 
@@ -459,13 +459,27 @@ describe('the purposes tab', () => {
 			[...essential.querySelectorAll('[data-testid]')].map((node) =>
 				node.getAttribute('data-testid')
 			)
-		).toStrictEqual([
-			'special-purpose-item-1',
-			'special-purpose-item-2',
-			'feature-item-1',
-			'feature-item-2',
-			'feature-item-3',
-		]);
+		).toStrictEqual(['special-purpose-item-1', 'special-purpose-item-2']);
+	});
+
+	test('shows features with the standard text and no control', () => {
+		const tree = mountDrawer();
+		const features = row(tree, 'iab-features-section');
+
+		expect(features.textContent).toContain(
+			'These means of processing can be used solely in pursuit of one or several purposes'
+		);
+
+		tap(control(features, 'button', 'Link different devices'));
+
+		expect(
+			[...features.querySelectorAll('[data-testid]')].map((node) =>
+				node.getAttribute('data-testid')
+			)
+		).toStrictEqual(['feature-item-1', 'feature-item-2', 'feature-item-3']);
+		expect(roleNodes(features, 'switch')).toHaveLength(0);
+		expect(features.textContent).toContain('Google Advertising Products');
+		expect(tree.saved).toHaveLength(0);
 	});
 });
 

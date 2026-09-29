@@ -61,7 +61,7 @@ import type { Vendor, VendorList } from '@iabtechlabtcf/core';
  * so a lockfile that drifts fails the run instead of quietly re-deriving every
  * golden string under a different encoder.
  */
-const ORACLE_VERSION = '1.5.21';
+const ORACLE_VERSION = '1.5.22';
 
 /** What produced these expectations, so a runner can name it in a failure. */
 export const TC_STRING_ORACLE = {

@@ -74,8 +74,12 @@ export interface PublisherRestrictionContext {
 	 */
 	gvl?: GlobalVendorList;
 	/**
-	 * Whether the TC string is service-specific. The spec allows publisher
-	 * restrictions only in service-specific strings. Default: `true`.
+	 * Ignored. c15t always writes service-specific TC strings, because TCF
+	 * requires IsServiceSpecific=1, so restrictions are always allowed.
+	 * `decodeTCString` still rejects restrictions in a string that is not
+	 * service-specific.
+	 *
+	 * @deprecated Every TC string c15t writes is service-specific.
 	 */
 	isServiceSpecific?: boolean;
 	/**
@@ -200,9 +204,8 @@ const checkDeclaration = (
  * @throws {PublisherRestrictionError} When a restriction is malformed,
  * uses the reserved type `3`, requires legitimate interest for a purpose
  * that is consent-only under `context.policyVersion` (the current policy
- * when omitted), gives one vendor two types for the same purpose,
- * appears in a string that is not service-specific, or, with a vendor
- * list, does not match the vendor's declarations.
+ * when omitted), gives one vendor two types for the same purpose or, with
+ * a vendor list, does not match the vendor's declarations.
  *
  * @example
  * ```ts
@@ -223,11 +226,6 @@ export const validatePublisherRestrictions =
 		}
 		if (!Array.isArray(input)) {
 			return fail('publisherRestrictions must be an array.');
-		}
-		if (input.length > 0 && context.isServiceSpecific === false) {
-			fail(
-				'Publisher restrictions are only allowed in service-specific TC strings. Remove them or set isServiceSpecific to true.'
-			);
 		}
 		const groups = new Map<string, PublisherRestriction>();
 		const byVendorPurpose = new Map<string, number>();

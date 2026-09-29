@@ -25,6 +25,7 @@
 	import type { VendorId } from '../iab-types';
 	import { Tabs } from '../primitives';
 	import Branding from './branding.svelte';
+	import IABFeatureItem from './iab-feature-item.svelte';
 	import IABPurposeItem from './iab-purpose-item.svelte';
 	import IABStackItem from './iab-stack-item.svelte';
 	import IABVendorList from './iab-vendor-list.svelte';
@@ -407,7 +408,7 @@
 									{/if}
 								{/each}
 
-								<!-- Essential Functions: Special Purposes + Features (locked) -->
+								<!-- Essential Functions: Special Purposes (locked) -->
 								{#if display.essentialRows.length > 0}
 									<div
 										class={noStyle ? '' : styles.specialPurposesSection || ''}
@@ -475,6 +476,37 @@
 											</div>
 										{/if}
 									</div>
+								{/if}
+
+								<!-- Features: informational, no controls (TCF Policies v5.0.b) -->
+								{#if display.featureRows.length > 0}
+									<section
+										aria-label={iabT.preferenceCenter.features.title}
+										class={noStyle ? '' : styles.featuresSection || ''}
+										data-testid="iab-consent-dialog-features"
+									>
+										<div class={noStyle ? '' : styles.featuresHeader || ''}>
+											<h3 class={noStyle ? '' : styles.featuresTitle || ''}>
+												{iabT.preferenceCenter.features.title}
+											</h3>
+											<p
+												class={noStyle ? '' : styles.featuresDescription || ''}
+											>
+												{display.featuresStandardText ??
+													iabT.preferenceCenter.features.description}
+											</p>
+										</div>
+										<div class={noStyle ? '' : styles.featuresList || ''}>
+											{#each display.featureRows as row (row.testId)}
+												<IABFeatureItem
+													feature={row}
+													testId={row.testId}
+													{noStyle}
+													{iabT}
+												/>
+											{/each}
+										</div>
+									</section>
 								{/if}
 
 								<!-- Consent storage notice -->

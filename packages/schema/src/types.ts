@@ -138,6 +138,7 @@ export type {
 	GVLSpecialFeature,
 	GVLSpecialPurpose,
 	GVLStack,
+	GVLStandardTexts,
 	GVLVendor,
 	GVLVendorUrl,
 } from './shared/gvl';

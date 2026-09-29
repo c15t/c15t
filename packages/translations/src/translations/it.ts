@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Personalizza le tue impostazioni di privacy. Puoi scegliere i tipi di cookies e tecnologie di tracciamento che autorizzi.',
+			features: {
+				description:
+					'Questi mezzi di trattamento possono essere usati esclusivamente per perseguire una o più finalità su cui all’utente è richiesto di esprimere una preferenza nella presente informativa.',
+				title: 'Funzionalità',
+			},
 			footer: {
 				consentStorage:
 					'Le preferenze di consenso vengono memorizzate in un cookie denominato "euconsent-v2" per 13 mesi. La durata di memorizzazione può essere rinnovata quando aggiorni le tue preferenze.',

@@ -85,6 +85,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'在此自定义您的隐私设置。您可以选择允许哪些类型的 cookies 和跟踪技术。',
+			features: {
+				description:
+					'这些处理方式仅可用于本通知中向您提供选择的一种或多种目的。',
+				title: '功能',
+			},
 			footer: {
 				consentStorage:
 					'同意偏好存储在名为 "euconsent-v2" 的 cookie 中，有效期为 13 个月。当您更新同意偏好时，该有效期可能会重新开始计算。',

@@ -2,7 +2,11 @@
 /**
  * IAB TCF Global Vendor List (GVL) schemas and types.
  *
- * Based on IAB TCF v2.3 specification.
+ * Based on IAB TCF v2.4 specification.
+ *
+ * Every object schema is loose: fields the IAB adds to the vendor list later
+ * pass through validation instead of being stripped.
+ *
  * @see https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework
  */
 import * as v from 'valibot';
@@ -11,7 +15,7 @@ import * as v from 'valibot';
 // so consumers can discard unused GVL schemas, including nested validators.
 
 export const gvlPurposeSchema = /* @__PURE__ */ (() =>
-	v.object({
+	v.looseObject({
 		description: v.string(),
 		descriptionLegal: v.optional(v.string()),
 		id: v.number(),
@@ -20,7 +24,7 @@ export const gvlPurposeSchema = /* @__PURE__ */ (() =>
 	}))();
 
 export const gvlSpecialPurposeSchema = /* @__PURE__ */ (() =>
-	v.object({
+	v.looseObject({
 		description: v.string(),
 		descriptionLegal: v.optional(v.string()),
 		id: v.number(),
@@ -29,7 +33,7 @@ export const gvlSpecialPurposeSchema = /* @__PURE__ */ (() =>
 	}))();
 
 export const gvlFeatureSchema = /* @__PURE__ */ (() =>
-	v.object({
+	v.looseObject({
 		description: v.string(),
 		descriptionLegal: v.optional(v.string()),
 		id: v.number(),
@@ -38,7 +42,7 @@ export const gvlFeatureSchema = /* @__PURE__ */ (() =>
 	}))();
 
 export const gvlSpecialFeatureSchema = /* @__PURE__ */ (() =>
-	v.object({
+	v.looseObject({
 		description: v.string(),
 		descriptionLegal: v.optional(v.string()),
 		id: v.number(),
@@ -47,19 +51,19 @@ export const gvlSpecialFeatureSchema = /* @__PURE__ */ (() =>
 	}))();
 
 export const gvlVendorUrlSchema = /* @__PURE__ */ (() =>
-	v.object({
+	v.looseObject({
 		langId: v.string(),
 		legIntClaim: v.optional(v.string()),
 		privacy: v.optional(v.string()),
 	}))();
 
 export const gvlVendorSchema = /* @__PURE__ */ (() =>
-	v.object({
+	v.looseObject({
 		cookieMaxAgeSeconds: v.nullable(v.number()),
 		cookieRefresh: v.boolean(),
 		dataCategories: v.optional(v.array(v.number())),
 		dataRetention: v.optional(
-			v.object({
+			v.looseObject({
 				purposes: v.optional(v.record(v.string(), v.number())),
 				specialPurposes: v.optional(v.record(v.string(), v.number())),
 				stdRetention: v.optional(v.number()),
@@ -73,7 +77,7 @@ export const gvlVendorSchema = /* @__PURE__ */ (() =>
 		legIntPurposes: v.array(v.number()),
 		name: v.string(),
 		overflow: v.optional(
-			v.object({
+			v.looseObject({
 				httpGetLimit: v.number(),
 			})
 		),
@@ -86,7 +90,7 @@ export const gvlVendorSchema = /* @__PURE__ */ (() =>
 	}))();
 
 export const gvlStackSchema = /* @__PURE__ */ (() =>
-	v.object({
+	v.looseObject({
 		description: v.string(),
 		id: v.number(),
 		name: v.string(),
@@ -95,14 +99,29 @@ export const gvlStackSchema = /* @__PURE__ */ (() =>
 	}))();
 
 export const gvlDataCategorySchema = /* @__PURE__ */ (() =>
-	v.object({
+	v.looseObject({
 		description: v.string(),
 		id: v.number(),
 		name: v.string(),
 	}))();
 
+/**
+ * Standard texts the IAB publishes with the vendor list.
+ *
+ * TCF Policies v5.0.b require CMPs to show `features` alongside the list of
+ * Features. The other keys are reserved by `@iabtechlabtcf/core` and may be
+ * absent.
+ */
+export const gvlStandardTextsSchema = /* @__PURE__ */ (() =>
+	v.looseObject({
+		features: v.string(),
+		purposes: v.optional(v.string()),
+		specialFeatures: v.optional(v.string()),
+		specialPurposes: v.optional(v.string()),
+	}))();
+
 export const globalVendorListSchema = /* @__PURE__ */ (() =>
-	v.object({
+	v.looseObject({
 		dataCategories: v.optional(v.record(v.string(), gvlDataCategorySchema)),
 		features: v.record(v.string(), gvlFeatureSchema),
 		gvlSpecificationVersion: v.number(),
@@ -111,17 +130,47 @@ export const globalVendorListSchema = /* @__PURE__ */ (() =>
 		specialFeatures: v.record(v.string(), gvlSpecialFeatureSchema),
 		specialPurposes: v.record(v.string(), gvlSpecialPurposeSchema),
 		stacks: v.record(v.string(), gvlStackSchema),
+		/** Standard texts published with the vendor list (TCF 2.4+). */
+		standardTexts: v.optional(gvlStandardTextsSchema),
 		tcfPolicyVersion: v.number(),
 		vendorListVersion: v.number(),
 		vendors: v.record(v.string(), gvlVendorSchema),
 	}))();
 
-export type GVLPurpose = v.InferOutput<typeof gvlPurposeSchema>;
-export type GVLSpecialPurpose = v.InferOutput<typeof gvlSpecialPurposeSchema>;
-export type GVLFeature = v.InferOutput<typeof gvlFeatureSchema>;
-export type GVLSpecialFeature = v.InferOutput<typeof gvlSpecialFeatureSchema>;
-export type GVLVendorUrl = v.InferOutput<typeof gvlVendorUrlSchema>;
-export type GVLVendor = v.InferOutput<typeof gvlVendorSchema>;
-export type GVLStack = v.InferOutput<typeof gvlStackSchema>;
-export type GVLDataCategory = v.InferOutput<typeof gvlDataCategorySchema>;
-export type GlobalVendorList = v.InferOutput<typeof globalVendorListSchema>;
+/**
+ * Parsed output without the `[key: string]: unknown` index signature that
+ * `v.looseObject` adds.
+ *
+ * Unknown fields still pass through at runtime. The types name only the
+ * fields c15t knows, so a misspelt field stays a type error and `in` checks
+ * still tell a GVL vendor from a custom vendor. `v.record` index signatures
+ * have a concrete value type and are kept.
+ */
+type KnownFields<Value> = Value extends readonly (infer Item)[]
+	? KnownFields<Item>[]
+	: Value extends object
+		? {
+				[
+					Key in keyof Value as string extends Key
+						? unknown extends Value[Key]
+							? never
+							: Key
+						: Key
+				]: KnownFields<Value[Key]>;
+			}
+		: Value;
+
+type GVLOutput<Schema extends v.GenericSchema> = KnownFields<
+	v.InferOutput<Schema>
+>;
+
+export type GVLPurpose = GVLOutput<typeof gvlPurposeSchema>;
+export type GVLSpecialPurpose = GVLOutput<typeof gvlSpecialPurposeSchema>;
+export type GVLFeature = GVLOutput<typeof gvlFeatureSchema>;
+export type GVLSpecialFeature = GVLOutput<typeof gvlSpecialFeatureSchema>;
+export type GVLVendorUrl = GVLOutput<typeof gvlVendorUrlSchema>;
+export type GVLVendor = GVLOutput<typeof gvlVendorSchema>;
+export type GVLStack = GVLOutput<typeof gvlStackSchema>;
+export type GVLDataCategory = GVLOutput<typeof gvlDataCategorySchema>;
+export type GVLStandardTexts = GVLOutput<typeof gvlStandardTextsSchema>;
+export type GlobalVendorList = GVLOutput<typeof globalVendorListSchema>;

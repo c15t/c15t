@@ -91,6 +91,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Passt Är Privatsphär Astellungen hei un. Dir kënnt wielen wéi eng Zorte vu Cookien an Tracking-Technologien Dir erlaabt.',
+			features: {
+				description:
+					'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+				title: 'Fonctiounen',
+			},
 			footer: {
 				consentStorage:
 					'Zoustëmmungsvirléiften ginn an engem Cookie mam Numm "euconsent-v2" fir 13 Méint gespäichert. D’Späicherdauer kann erneiert ginn, wann Dir Är Virléiften aktualiséiert.',

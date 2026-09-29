@@ -100,6 +100,8 @@ export const TEST_IDS = {
 		card: 'iab-consent-dialog-card',
 		// Close affordance rendered by the Vue IAB dialog card.
 		closeButton: 'iab-consent-dialog-close',
+		// Informational Features section; it must never hold a control.
+		features: 'iab-consent-dialog-features',
 
 		overlay: 'iab-consent-dialog-overlay',
 		root: 'iab-consent-dialog-root',

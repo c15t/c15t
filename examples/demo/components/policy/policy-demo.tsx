@@ -684,7 +684,7 @@ export const PolicyDemo = () => {
 						<p className="text-muted-foreground max-w-xl text-sm leading-6 sm:text-base">
 							Switch geography, policy source, and language. This page resolves
 							the active policy, shows current consent state, and turns on IAB
-							TCF 2.3 when the selected policy requires it.
+							TCF 2.4 when the selected policy requires it.
 						</p>
 					</div>
 

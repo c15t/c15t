@@ -1,14 +1,14 @@
 {
 	"name": "@c15t/iab",
 	"version": "3.0.0-alpha.3",
-	"description": "IAB TCF 2.3 addon for c15t with TC String generation, GVL support, and programmatic advertising consent.",
+	"description": "IAB TCF 2.4 addon for c15t with TC String generation, GVL support, and programmatic advertising consent.",
 	"keywords": [
 		"cmp",
 		"consent",
 		"gdpr",
 		"global-vendor-list",
 		"iab",
-		"iab-tcf-2.3",
+		"iab-tcf-2.4",
 		"privacy",
 		"programmatic-advertising",
 		"tc-string",
@@ -60,7 +60,7 @@
 	"dependencies": {
 		"@c15t/core": "workspace:*",
 		"@c15t/schema": "workspace:*",
-		"@iabtechlabtcf/core": "^1.5.21"
+		"@iabtechlabtcf/core": "^1.5.22"
 	},
 	"devDependencies": {
 		"@c15t/conformance": "workspace:*",

@@ -58,7 +58,10 @@ const mobileRows = function mobileRows() {
 		}
 	}
 
-	for (const row of IAB_DEMO_DISPLAY_MODEL.essentialRows) {
+	for (const row of [
+		...IAB_DEMO_DISPLAY_MODEL.essentialRows,
+		...IAB_DEMO_DISPLAY_MODEL.featureRows,
+	]) {
 		rows.push({ id: row.id, kind: row.kind, testId: row.testId });
 	}
 
@@ -103,13 +106,10 @@ describe('the mirror of the web display model', () => {
 		]);
 		expect(
 			IAB_DEMO_DISPLAY_MODEL.essentialRows.map((row) => row.testId)
-		).toStrictEqual([
-			'special-purpose-item-1',
-			'special-purpose-item-2',
-			'feature-item-1',
-			'feature-item-2',
-			'feature-item-3',
-		]);
+		).toStrictEqual(['special-purpose-item-1', 'special-purpose-item-2']);
+		expect(
+			IAB_DEMO_DISPLAY_MODEL.featureRows.map((row) => row.testId)
+		).toStrictEqual(['feature-item-1', 'feature-item-2', 'feature-item-3']);
 	});
 
 	test('takes every test id from the web helper, not from a mobile-side template', () => {
@@ -145,7 +145,7 @@ describe('the mirror of the web display model', () => {
 		expect(IAB_DEMO_DISPLAY_MODEL.essentialRows[0]?.testId).toBe(
 			'special-purpose-item-1'
 		);
-		expect(IAB_DEMO_DISPLAY_MODEL.essentialRows[2]?.testId).toBe(
+		expect(IAB_DEMO_DISPLAY_MODEL.featureRows[0]?.testId).toBe(
 			'feature-item-1'
 		);
 	});
@@ -176,7 +176,7 @@ describe('the mirror of the web display model', () => {
 		}
 	});
 
-	test('locks the essential rows and leaves the rest movable', () => {
+	test('locks the essential rows, leaves the rest movable and features without a control', () => {
 		expect(
 			IAB_DEMO_DISPLAY_MODEL.consentRows.every(
 				(row) => row.kind === 'stack' || (!row.locked && row.toggle !== 'none')
@@ -185,6 +185,11 @@ describe('the mirror of the web display model', () => {
 		expect(
 			IAB_DEMO_DISPLAY_MODEL.essentialRows.every(
 				(row) => row.locked && row.toggle === 'none'
+			)
+		).toBe(true);
+		expect(
+			IAB_DEMO_DISPLAY_MODEL.featureRows.every(
+				(row) => !row.locked && row.toggle === 'none'
 			)
 		).toBe(true);
 	});

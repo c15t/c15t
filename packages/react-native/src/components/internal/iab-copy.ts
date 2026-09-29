@@ -33,6 +33,13 @@ export interface ConsentIabCopy {
 	readonly essentialTitle: string;
 	/** Heading over a partner's claimed features. */
 	readonly features: string;
+	/**
+	 * Explains that features only serve the purposes the subject chooses. Shown
+	 * when the model carries no `featuresStandardText`.
+	 */
+	readonly featuresDescription: string;
+	/** Heading of the informational features section. */
+	readonly featuresTitle: string;
 	/** Heading over the partners that are registered with the TCF. */
 	readonly iabVendors: string;
 	/** Heading of the legitimate-interest leg of a partner's disclosure. */
@@ -74,6 +81,9 @@ export const ENGLISH_IAB_COPY: ConsentIabCopy = {
 		'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.',
 	essentialTitle: 'Essential Functions (Required)',
 	features: 'Features',
+	featuresDescription:
+		'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+	featuresTitle: 'Features',
 	iabVendors: 'IAB Registered Vendors',
 	legitimateInterest: 'Legitimate Interest',
 	legitimateInterestShort: 'Leg. Interest',

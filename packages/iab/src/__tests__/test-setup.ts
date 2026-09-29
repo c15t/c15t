@@ -136,7 +136,7 @@ export const createMockSpecialFeatures =
 				description: 'Description for special feature 2',
 				id: 2,
 				illustrations: ['Illustration for special feature 2'],
-				name: 'Actively scan device characteristics for identification',
+				name: 'Identify devices based on information actively requested',
 			},
 		};
 	};
@@ -240,6 +240,10 @@ export const createMockGVL = function createMockGVL(
 		specialFeatures: createMockSpecialFeatures(),
 		specialPurposes: createMockSpecialPurposes(),
 		stacks: createMockStacks(),
+		standardTexts: {
+			features:
+				'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+		},
 		tcfPolicyVersion: 5,
 		vendorListVersion: 142,
 		vendors: createMockVendors(),
@@ -376,7 +380,7 @@ export const setupTCFApiMock = function setupTCFApiMock(): {
 						displayStatus: 'hidden',
 						gdprApplies: true,
 						gvlVersion: 0,
-						// TCF 2.3
+						// TCF 2.4 still uses policy version 5
 						tcfPolicyVersion: 5,
 					},
 					true
@@ -683,6 +687,7 @@ export const createMockConsentEvent = function createMockConsentEvent(
 	};
 	vendor: {
 		consents: Record<number, boolean>;
+		disclosedVendors: Record<string | number, boolean>;
 		legitimateInterests: Record<number, boolean>;
 	};
 	specialFeatureOptins: Record<number, boolean>;
@@ -719,6 +724,7 @@ export const createMockConsentEvent = function createMockConsentEvent(
 		useNonStandardTexts: false,
 		vendor: {
 			consents: {},
+			disclosedVendors: {},
 			legitimateInterests: {},
 		},
 	};

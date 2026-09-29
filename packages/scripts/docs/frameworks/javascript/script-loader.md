@@ -92,3 +92,9 @@ Script gating does not remove cookies or Web Storage entries that a script
 already wrote. Configure [clear on revocation](../../integrations/clear-on-revocation.md)
 on your runtime, or attach its module to your existing kernel, to remove
 declared data when its category is denied.
+
+## Shared lifecycle controls
+
+See [shared consent controls](../../guides/shared-consent-controls.md) for external CMPs,
+preference delegation, withdrawal reloads, and application events. These controls
+use the same core runtime across frameworks.

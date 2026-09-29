@@ -45,9 +45,11 @@ export type ConsentIabDisplayRowKind =
 /**
  * Which consent map a row's toggle writes to.
  *
- * Mirrors `HeadlessIABDisplayToggle`. `'none'` is the locked essential rows:
- * they render a toggle that is on and cannot be moved, because their legal
- * basis is not consent.
+ * Mirrors `HeadlessIABDisplayToggle`. `'none'` means the row writes to no
+ * consent map, and {@link ConsentIabDisplayRow.locked} tells the two cases
+ * apart: special purposes are locked and render a toggle that is on and cannot
+ * be moved, because their legal basis is not consent; features are not locked
+ * and render no control at all.
  */
 export type ConsentIabDisplayToggle = 'purpose' | 'special-feature' | 'none';
 
@@ -141,7 +143,10 @@ export interface ConsentIabDisplayRow {
 	illustrations: string[];
 	/** Row kind, never `'stack'`. */
 	kind: Exclude<ConsentIabDisplayRowKind, 'stack'>;
-	/** Whether the toggle is fixed on. */
+	/**
+	 * Whether the row shows a toggle fixed on. `true` only for special purposes;
+	 * feature rows are `false` and show no toggle.
+	 */
 	locked: boolean;
 	/** Display name. */
 	name: string;
@@ -307,10 +312,22 @@ export interface ConsentIabDisplayModel {
 	consentRows: ConsentIabDisplayConsentRow[];
 	/** The processed GVL the rows were built from. */
 	data: ConsentIabDialogData;
-	/** Distinct vendors named by the essential rows. */
+	/** Distinct vendors named by the essential (special purpose) rows. */
 	essentialPartnerCount: number;
-	/** The locked "essential functions" rows, in render order. */
+	/** The locked "essential functions" rows: special purposes only. */
 	essentialRows: ConsentIabDisplayRow[];
+	/**
+	 * The informational Features rows, in render order. TCF Policies v5.0.b
+	 * forbid showing Features next to a control that cannot be disabled, so these
+	 * render with no switch or lock.
+	 */
+	featureRows: ConsentIabDisplayRow[];
+	/**
+	 * The IAB standard text shown under the Features heading, from the GVL's
+	 * `standardTexts.features`. `null` when the GVL does not carry it; the
+	 * drawer then shows {@link ConsentIabCopy.featuresDescription}.
+	 */
+	featuresStandardText: string | null;
 	/** Whether the GVL is still on its way. */
 	isLoading: boolean;
 	/** Whether there is a GVL to render. */
