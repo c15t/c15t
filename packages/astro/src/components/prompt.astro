@@ -46,9 +46,16 @@ interface Props extends PromptProps {
 	 * Useful for visual testing.
 	 */
 	force?: boolean;
+	/**
+	 * Content Security Policy nonce for this banner's inline code.
+	 * Defaults to `Astro.locals.c15t.nonce`. `<ConsentBannerDeferred />`
+	 * passes the page's nonce here: the island renders in a request of its
+	 * own, whose nonce the page's policy does not list.
+	 */
+	nonce?: string;
 }
 
-const { force = false, ...props } = Astro.props;
+const { force = false, nonce: nonceProp, ...props } = Astro.props;
 
 const { c15t } = Astro.locals;
 
@@ -59,6 +66,9 @@ if (!c15t) {
 }
 
 const { snapshot } = c15t;
+// Rendered as a server island, this is a request of its own with its own
+// nonce, but the page's policy is the one that judges the inserted markup.
+const nonce = nonceProp ?? c15t.nonce;
 // No resolved policy means no consent surface, even when forced.
 const shouldRender = c15t.hasConsentUi && (force || c15t.shouldShowBanner);
 // A prerendered page is shared by every visitor, so it cannot know whether
@@ -98,13 +108,13 @@ const model = resolvePromptModel({
 
 {
 	emitConfig && colorSchemeScript && (
-		<script is:inline nonce={c15t.nonce} set:html={colorSchemeScript} />
+		<script is:inline nonce={nonce} set:html={colorSchemeScript} />
 	)
 }
 
 {
 	themeCSS && (
-		<style is:inline id="c15t-theme" nonce={c15t.nonce} set:html={themeCSS} />
+		<style is:inline id="c15t-theme" nonce={nonce} set:html={themeCSS} />
 	)
 }
 
@@ -114,7 +124,7 @@ const model = resolvePromptModel({
 			is:inline
 			type="application/json"
 			data-c15t-config
-			nonce={c15t.nonce}
+			nonce={nonce}
 			set:html={buildConfigJSON(c15t.config)}
 		/>
 	)
@@ -268,7 +278,7 @@ const model = resolvePromptModel({
 	shouldRender && hidden && (
 		<script
 			is:inline
-			nonce={c15t.nonce}
+			nonce={nonce}
 			set:html={buildBannerRevealScript(
 				c15t.options.storageConfig,
 				'consent-banner'
