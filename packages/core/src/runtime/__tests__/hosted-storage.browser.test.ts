@@ -5,7 +5,14 @@ import { policyDefaults } from '@c15t/schema/types';
 import { enTranslations } from '@c15t/translations';
 import { build } from 'esbuild';
 import { type Browser, chromium, type Page } from 'playwright';
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import {
+	afterAll,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from 'vitest';
 import type { InitResponse } from '../../client/client-interface';
 import type {} from './hosted-storage.fixture';
 
@@ -95,6 +102,12 @@ async function reload(page: Page) {
 }
 
 describe.sequential('hosted storage and recovery', () => {
+	beforeEach(() => {
+		unavailable = false;
+		model = 'opt-out';
+		changedPolicy = false;
+	});
+
 	test('keeps an explicit rejection across init retries and recovery', async () => {
 		unavailable = false;
 		model = 'opt-out';

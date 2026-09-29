@@ -261,12 +261,24 @@ export async function saveConsents({
 		...(identityProvider ? { identityProvider } : {}),
 	};
 	// Grants chosen under the outage fallback need fresh confirmation under the
-	// hosted policy, so never submit or queue them as authoritative consent.
-	const hasUnconfirmedGrant =
-		isTransportFallback &&
+	// hosted policy, so submit only the denials from such a choice.
+	const unconfirmedGrants = isTransportFallback
+		? consentTypes.filter(
+				(consent) =>
+					consent.disabled !== true && requestPreferences[consent.name] === true
+			)
+		: [];
+	const submittedPreferences: Partial<ConsentState> = { ...requestPreferences };
+	for (const consent of unconfirmedGrants) {
+		delete submittedPreferences[consent.name];
+	}
+	const submittedAction = unconfirmedGrants.length > 0 ? 'custom' : type;
+	const shouldSubmit =
+		unconfirmedGrants.length === 0 ||
 		consentTypes.some(
 			(consent) =>
-				consent.disabled !== true && requestPreferences[consent.name] === true
+				consent.disabled !== true &&
+				submittedPreferences[consent.name] === false
 		);
 
 	// Check if we need to reload the page due to consent revocation
@@ -301,9 +313,9 @@ export async function saveConsents({
 	if (needsReload) {
 		// Store pending sync data for API call after reload
 		const pendingSync: PendingConsentSync = {
-			type,
+			type: submittedAction,
 			subjectId,
-			preferences: requestPreferences,
+			preferences: submittedPreferences,
 			givenAt,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model,
@@ -315,7 +327,7 @@ export async function saveConsents({
 		};
 
 		try {
-			if (!hasUnconfirmedGrant) {
+			if (shouldSubmit) {
 				localStorage.setItem(
 					PENDING_CONSENT_SYNC_KEY,
 					JSON.stringify(pendingSync)
@@ -357,7 +369,7 @@ export async function saveConsents({
 		emitConsentChanged?.(consentChangedPayload);
 	}
 
-	if (hasUnconfirmedGrant) {
+	if (!shouldSubmit) {
 		return;
 	}
 
@@ -366,13 +378,13 @@ export async function saveConsents({
 		body: {
 			type: 'cookie_banner',
 			domain: window.location.hostname,
-			preferences: requestPreferences,
+			preferences: submittedPreferences,
 			subjectId,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model ?? undefined,
 			givenAt,
 			uiSource: options?.uiSource ?? 'api',
-			consentAction: type,
+			consentAction: submittedAction,
 			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
 			...(externalId ? { externalSubjectId: externalId } : {}),
 			...(identityProvider ? { identityProvider } : {}),

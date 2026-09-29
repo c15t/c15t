@@ -1621,7 +1621,38 @@ describe('saveConsents', () => {
 			expect(mockManager.setConsent).toHaveBeenCalledTimes(1);
 		});
 
-		it('does not queue a reload sync that carries a fallback grant', async () => {
+		it('submits only the denials from a mixed fallback choice', async () => {
+			useFallbackState({
+				selectedConsents: {
+					necessary: true,
+					functionality: true,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockManager.setConsent).toHaveBeenCalledWith({
+				body: expect.objectContaining({
+					consentAction: 'custom',
+					preferences: {
+						necessary: true,
+						measurement: false,
+						experience: false,
+						marketing: false,
+					},
+				}),
+			});
+		});
+
+		it('queues only the denials when a fallback revocation reloads', async () => {
 			const mockReload = vi.fn();
 			vi.stubGlobal('window', {
 				...globalThis.window,
@@ -1658,9 +1689,20 @@ describe('saveConsents', () => {
 			});
 
 			expect(mockReload).toHaveBeenCalled();
-			expect(mockLocalStorage.setItem).not.toHaveBeenCalledWith(
-				PENDING_CONSENT_SYNC_KEY,
-				expect.anything()
+			const queued = vi
+				.mocked(mockLocalStorage.setItem)
+				.mock.calls.find(([key]) => key === PENDING_CONSENT_SYNC_KEY);
+			expect(JSON.parse(queued?.[1] ?? '{}')).toMatchObject({
+				type: 'custom',
+				preferences: {
+					necessary: true,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+			});
+			expect(JSON.parse(queued?.[1] ?? '{}').preferences).not.toHaveProperty(
+				'functionality'
 			);
 		});
 	});

@@ -408,7 +408,7 @@ export async function updateStore(
 	if (isTransportFallback || get().consentInfo?.requiresReconsent) {
 		// A transport failure changes effective permissions only. Leave the
 		// durable choice and its authoritative fingerprint untouched.
-		const consents = getDefaultConsents(currentState.consentTypes);
+		const consents = getDefaultConsents(get().consentTypes);
 		set({ consents, selectedConsents: consents });
 	}
 
