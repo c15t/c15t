@@ -174,26 +174,43 @@ const resolveMode = function resolveMode(input: {
 
 /**
  * Mounts the consent provider for a Next.js app. Render it once, near the
- * top of the tree, with the `state` a Server Component resolved through
- * `resolveConsent()`.
+ * top of the tree, from a `'use client'` wrapper that imports the
+ * `defineConsentConfig` result itself. A Server Component passes only the
+ * `state` it resolved through `resolveConsent()`: the config carries a
+ * symbol brand, which React cannot serialize across the server/client
+ * boundary.
  *
  * @example
  * ```tsx
- * // app/layout.tsx
+ * // components/consent.tsx
+ * 'use client';
  * import { ConsentRoot } from '@c15t/nextjs';
+ * import type { ConsentRootProps } from '@c15t/nextjs';
+ * import { consentConfig } from '@/c15t.config';
+ *
+ * export function Consent({ children, state }: {
+ *   children: React.ReactNode;
+ *   state: ConsentRootProps['state'];
+ * }) {
+ *   return (
+ *     <ConsentRoot state={state} config={consentConfig}>
+ *       {children}
+ *     </ConsentRoot>
+ *   );
+ * }
+ *
+ * // app/layout.tsx (Server Component)
  * import { resolveConsent } from '@c15t/nextjs/server';
- * import { consentConfig } from '@/consent.config';
+ * import { consentConfig } from '@/c15t.config';
+ * import { Consent } from '@/components/consent';
  *
  * export default function RootLayout({ children }) {
  *   return (
  *     <html>
  *       <body>
- *         <ConsentRoot
- *           state={resolveConsent({ config: consentConfig })}
- *           config={consentConfig}
- *         >
+ *         <Consent state={resolveConsent({ config: consentConfig })}>
  *           {children}
- *         </ConsentRoot>
+ *         </Consent>
  *       </body>
  *     </html>
  *   );

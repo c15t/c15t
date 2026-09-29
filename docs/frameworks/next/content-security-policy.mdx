@@ -33,8 +33,8 @@ Add a `nonce` prop to the `Consent` wrapper from the
 import type { ReactNode } from 'react';
 import { ConsentRoot } from 'c15t/next';
 import type { ConsentRootProps } from 'c15t/next';
-import { consentConfig } from '../c15t.config';
-import { scripts } from '../lib/scripts';
+import { consentConfig } from '@/c15t.config';
+import { scripts } from '@/lib/scripts';
 
 export function Consent({
   children,
@@ -67,9 +67,9 @@ import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
 import { resolveConsent } from 'c15t/next/server';
-import { consentConfig } from '../c15t.config';
-import { Consent } from '../components/consent';
-import './globals.css';
+import { consentConfig } from '@/c15t.config';
+import { Consent } from '@/components/consent';
+import '@/styles/globals.css';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
   const nonce = (await headers()).get('x-nonce') ?? undefined;

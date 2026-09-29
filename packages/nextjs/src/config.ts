@@ -87,9 +87,10 @@ const assertConsentURL = function assertConsentURL(
  * (Server Component or `getServerSideProps`), and `ConsentRoot` (client).
  * Each reads the fields it needs, so the URLs are never repeated.
  *
- * The returned object is frozen plain data: no `next` imports, safe to
- * import from a `'use client'` file, and serializable as a Server Component
- * prop.
+ * The returned object is frozen data with no `next` imports, safe to import
+ * from a route file, a Server Component and a `'use client'` file. It is not
+ * a Server Component prop: its symbol brand cannot cross the server/client
+ * boundary, so import it in the client file that renders `ConsentRoot`.
  *
  * @param config - Backend base URL plus the optional same-origin routes.
  * @returns The validated, frozen config.
@@ -128,19 +129,32 @@ const assertConsentURL = function assertConsentURL(
  * ```
  *
  * ```tsx
- * // app/layout.tsx
+ * // components/consent.tsx
+ * 'use client';
  * import { ConsentRoot } from '@c15t/nextjs';
- * import { resolveConsent } from '@c15t/nextjs/server';
  * import { consentConfig } from '@/consent.config';
  *
- * export default async function RootLayout({ children }) {
- *   const state = await resolveConsent({ config: consentConfig });
+ * export function Consent({ children, state }) {
+ *   return (
+ *     <ConsentRoot state={state} config={consentConfig}>
+ *       {children}
+ *     </ConsentRoot>
+ *   );
+ * }
+ * ```
+ *
+ * ```tsx
+ * // app/layout.tsx
+ * import { resolveConsent } from '@c15t/nextjs/server';
+ * import { consentConfig } from '@/consent.config';
+ * import { Consent } from '@/components/consent';
+ *
+ * export default function RootLayout({ children }) {
+ *   const state = resolveConsent({ config: consentConfig });
  *   return (
  *     <html>
  *       <body>
- *         <ConsentRoot state={state} config={consentConfig}>
- *           {children}
- *         </ConsentRoot>
+ *         <Consent state={state}>{children}</Consent>
  *       </body>
  *     </html>
  *   );

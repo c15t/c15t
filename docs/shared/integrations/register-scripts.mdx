@@ -36,9 +36,10 @@ provider.
     </ConsentRoot>
     ```
 
-    For a Pages Router or static-export setup using `ConsentProvider`, add
-    `scripts` to its existing `options` instead. Keep the router-specific setup
-    from [Next.js script loading](/docs/frameworks/next/script-loader).
+    App Router, Pages Router and static export all use this `ConsentRoot` in
+    the `'use client'` wrapper `components/consent.tsx`. Keep `scripts` there,
+    because a Server Component cannot pass script callbacks to it. See
+    [Next.js scripts and embeds](/docs/frameworks/next/scripts).
   </Tab>
 
   <Tab value="TanStack Start">

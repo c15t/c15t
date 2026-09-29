@@ -17,3 +17,8 @@ the old page's task.
 | `/docs/frameworks/react/concepts/policy-presets` | `/docs/concepts/policies` | Merged; the policy diagnostic moved to `/docs/frameworks/react/troubleshooting` |
 | `/docs/frameworks/javascript/concepts/policy-presets` | `/docs/concepts/policies` | Merged; the policy diagnostic moved to `/docs/frameworks/javascript/troubleshooting` |
 | `/docs/guides/shared-consent-controls` | `/docs/integrations/existing-cmp` | Renamed to its task, keeping another CMP; the event dispatcher moved to `/docs/integrations/overview` |
+| `/docs/frameworks/next/server-side` | `/docs/frameworks/next/rendering` | Merged into the Next.js rendering decision page; the layouts live in `/docs/frameworks/next/app-router` |
+| `/docs/frameworks/next/data-fetching` | `/docs/frameworks/next/rendering#choose-how-the-server-gets-the-policy` | Merged into the Next.js rendering decision page |
+| `/docs/frameworks/next/script-loader` | `/docs/frameworks/next/scripts` | Merged with the network blocker into one scripts and embeds page |
+| `/docs/frameworks/next/network-blocker` | `/docs/frameworks/next/scripts#block-network-requests` | Merged into the scripts and embeds page |
+| `/docs/frameworks/next/styling/overview` | `/docs/frameworks/next/customize` | Renamed to match the v3 framework page set |

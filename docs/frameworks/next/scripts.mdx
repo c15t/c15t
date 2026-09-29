@@ -1,0 +1,156 @@
+---
+title: Scripts and embeds
+description: Register vendor scripts, gate embeds, block network requests and handle revocation in a Next.js ConsentRoot.
+group: frameworks
+---
+
+## Install the script helpers
+
+The [App Router](/docs/frameworks/next/app-router),
+[Pages Router](/docs/frameworks/next/pages-router) and
+[static export](/docs/frameworks/next/static-export) guides already register
+scripts. Use this page to add vendors to an existing setup or to change how
+they load. Install the helpers if you have not:
+
+<CommandTabs command="@c15t/scripts@alpha" mode="install" />
+
+Keep `c15t.config.ts`, the manifest route and the layout from your router
+guide. Adding a vendor needs no server change. Server-rendered state, a
+streamed promise and browser initialization with `state={{}}` all reach the
+same `ConsentRoot`, and no script loads until the browser has a resolved
+policy and the visitor's choice allows it.
+
+<include src="../../shared/next-consent-wrapper.mdx" />
+
+## Check each vendor's loading behavior
+
+The example configures PostHog to load after consent and turns off cookieless
+capture. Its default helper can load before consent and use the SDK's own
+consent controls. Read the [PostHog guide](/docs/integrations/posthog) before
+you change those settings.
+
+Ordinary scripts wait for their category's permission. Give each script a
+stable, unique `id`, and remove any other loader for the same vendor. Helpers
+with `alwaysLoad` can load an SDK before permission is granted, so a category
+alone does not guarantee that no request happens. See the
+[vendor guides](/docs/integrations/overview) for each helper's contract.
+
+Removing a script element cannot undo JavaScript that already ran or requests
+already sent. When a visitor turns off a category they had granted,
+`ConsentRoot` reloads the page, so the next page runs only permitted code. See
+[reload after revocation](/docs/frameworks/next/components/consent-manager-provider#reload-after-revocation).
+
+Use [custom integrations](/docs/integrations/building-integrations) for a
+vendor without a helper. Google helpers follow the
+[Consent Mode contract](/docs/integrations/google-tag-manager).
+
+## Gate an iframe or widget
+
+Wrap an embed in `ConsentGate` in a Client Component. The iframe stays out of
+the page until its category is allowed, and leaves the page when the visitor
+revokes it. [ConsentGate](/docs/frameworks/next/components/consent-gate) shows
+the component and what the server HTML contains for each layout.
+
+## Let visitors turn off one vendor
+
+A visitor can grant marketing and still turn one vendor off. Declare the
+vendors next to the scripts in `lib/scripts.ts`, using the `vendor` slug each
+script already carries:
+
+{/* example: fragment */}
+
+```ts title="lib/scripts.ts (partial)"
+import type { Vendor } from 'c15t';
+
+export const vendors: Vendor[] = [
+  {
+    id: 'x-pixel',
+    name: 'X Pixel',
+    category: 'marketing',
+    privacyPolicyUrl: 'https://x.com/privacy',
+  },
+];
+```
+
+Then pass them to the `ConsentRoot` in `components/consent.tsx`:
+
+{/* example: fragment */}
+
+```tsx title="components/consent.tsx (partial)"
+import { scripts, vendors } from '@/lib/scripts';
+
+<ConsentRoot state={state} config={consentConfig} scripts={scripts} vendors={vendors}>
+```
+
+The preference center lists each vendor under its category with a switch.
+Helpers from `@c15t/scripts` set `vendor` to their manifest slug, so `xPixel()`
+needs no extra wiring. Give a hand-written script the same slug in its `vendor`
+field. A backend manifest can declare vendors too. See
+[granular consent](/docs/integrations/granular-consent) for storage, bulk
+actions and the hooks a custom control uses.
+
+## Block network requests
+
+The network blocker stops `fetch` and `XMLHttpRequest` calls to domains you
+list until the visitor grants their category. Use it for beacons and API calls
+that bypass script loading, such as a pixel fired by an SDK already on the
+page. Define the rules in `components/consent.tsx` and pass them to
+`ConsentRoot`. `onRequestBlocked` is a function, so the rules cannot come from
+a Server Component.
+
+{/* example: fragment */}
+
+```tsx title="components/consent.tsx (partial)"
+import type { ConsentRootProps } from 'c15t/next';
+
+const networkBlocker: NonNullable<ConsentRootProps['networkBlocker']> = {
+  rules: [
+    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
+    { id: 'meta-pixel', domain: 'facebook.com', pathIncludes: '/tr', category: 'marketing' },
+  ],
+};
+
+// On the existing root:
+<ConsentRoot state={state} config={consentConfig} scripts={scripts} networkBlocker={networkBlocker}>
+```
+
+Keep the page content inside `ConsentRoot`. Blocking starts when it renders, so
+components outside it that send requests while rendering, and modules evaluated
+before it, are not covered.
+
+<import src="../../shared/react/network-blocker.mdx#rules" />
+
+<import src="../../shared/react/network-blocker.mdx#behavior" />
+
+<import src="../../shared/react/network-blocker.mdx#limits" />
+
+## Clear stored tracking data
+
+Script gating does not remove cookies or Web Storage entries a script already
+wrote. Pass `clearOnRevocation` to `ConsentRoot` to remove declared data when
+its category is denied. See
+[clear on revocation](/docs/integrations/clear-on-revocation) for
+configuration and browser limits.
+
+To keep another consent platform in charge, see
+[use c15t with an existing CMP](/docs/integrations/existing-cmp). To send your
+own events only to allowed integrations, see
+[send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations).
+
+## Verify the integration
+
+Open the production build in a fresh browser session with DevTools open.
+
+1. Under an opt-in policy, neither PostHog nor X Pixel requests anything before
+   you choose.
+2. Open **Privacy settings** and allow measurement only. PostHog loads and
+   X Pixel stays blocked.
+3. Reject, reload, and reopen **Privacy settings**. The rejection is still
+   selected and neither vendor loads.
+4. Turn a granted category off. The page reloads and that vendor does not load
+   again.
+5. If you added network-blocker rules, requests matching them stay absent from
+   the Network panel until you grant their category.
+
+The [runnable example](/docs/examples) has the same script definitions, and
+[the consent checks](/docs/guides/verify-consent) cover the release checklist.

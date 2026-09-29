@@ -8,14 +8,14 @@ group: frameworks
 
 `defineConsentConfig` from `c15t/next` declares the URLs shared by
 `resolveConsent` and `ConsentRoot`. For help choosing a setup, start with
-[data fetching](/docs/frameworks/next/data-fetching).
+[rendering and deployment](/docs/frameworks/next/rendering).
 Requires Next.js 15 or 16 (`next ^15.0.0 || ^16.0.0`).
 
 | Property | Behavior |
 | --- | --- |
 | `backendURL` | Required backend base URL. Consent submissions go to `/subjects` under this URL. Without `manifestURL`, server prefetch calls its `/init` endpoint. |
 | `manifestURL` | Optional URL that serves the policy manifest. Setting it enables manifest resolution. |
-| `initURL` | Optional browser initialization endpoint. With the local manifest handler, this resolves policy using the browser request's geography. |
+| `initURL` | Optional browser initialization endpoint. With the local manifest handler, this resolves policy using the browser request's geography. In manifest mode, `resolveConsent` also uses it as the same-origin route the browser loads a deferred IAB Global Vendor List from. |
 
 The current API does not derive `manifestURL` or `initURL` from `backendURL`,
 and declaring URLs does not create routes. Values can be absolute HTTP or
@@ -127,7 +127,7 @@ network request and returns cookie- and header-only state; see
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `backendURL` | `config.backendURL` | Backend base URL. An explicit value overrides `config.backendURL`. Without a manifest source, `resolveConsent` calls `${backendURL}/init`. Omit both `backendURL` and `config` for cookie-only state. |
-| `config` | none | A `defineConsentConfig` result supplying `backendURL` and `manifestURL`. Explicit options on this bag win over its fields. `initURL` is not read. |
+| `config` | none | A `defineConsentConfig` result supplying `backendURL` and `manifestURL`. Explicit options on this bag win over its fields. In manifest mode, `initURL` names the same-origin route the browser loads a deferred IAB Global Vendor List from; it does not change how the server resolves policy. |
 | `manifestURL` | `config.manifestURL` | Manifest route URL. When set, server prefetch resolves policy from the manifest and does not call backend `/init`. The manifest is read through the in-process manifest cache, whether the URL is your manifest route or the backend's `/manifest`. |
 | `manifest` | none | Inline manifest object used instead of fetching `manifestURL`. Any `manifestURL` is still resolved first, so a relative one needs a request host. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Wrap it in Next.js fetch caching only in manifest mode; the `/init` call carries visitor cookies and returns per-visitor state, so keep it uncached. |
@@ -286,7 +286,7 @@ test harness where `next/headers` is unavailable:
 ```ts title="server/consent.ts"
 import { resolveConsent } from 'c15t/next/server';
 import { createPagesRequestContext } from 'c15t/next/pages';
-import { consentConfig } from '../c15t.config';
+import { consentConfig } from '@/c15t.config';
 import type { IncomingMessage } from 'node:http';
 
 export function resolveRequestConsent(req: IncomingMessage) {
@@ -390,8 +390,34 @@ A warm policy cache avoids backend `/init` during request resolution. The app
 may still read its manifest route, cold caches fetch upstream data, and choices
 still reach the backend. IAB policies can also require a Global Vendor List
 fetch. See [manifest caching](/docs/frameworks/next/optimization) for cache
-settings, and [server rendering](/docs/frameworks/next/server-side) for awaiting
-or streaming prefetch results.
+settings, and [rendering and deployment](/docs/frameworks/next/rendering) for
+awaiting or streaming prefetch results.
+
+## Static manifest helpers
+
+`c15t/next/static` exports `loadStaticManifest`, `createStaticManifestModule`
+and `createStaticConsentResolver` for resolving consent from a manifest
+bundled at build time, for example in an `output: 'export'` site.
+
+- `createStaticManifestModule({ manifestURL })` fetches a manifest and returns
+  TypeScript source for a module you write to disk and import.
+- `loadStaticManifest` fetches and returns the manifest object.
+- `createStaticConsentResolver({ manifest, geo, geoURL })` returns a synchronous
+  `initial` result and a `resolved` promise. Without `geo`, or when a `geoURL`
+  returns no location, it resolves the strictest policy in the manifest.
+
+A generated manifest contains public policy, not a visitor's choice. The
+helpers do not mount a provider, persist choices or send consent to the
+backend. You wire them into a custom transport passed as `options.mode`, and
+publishing new policy needs a rebuild. The
+[static export guide](/docs/frameworks/next/static-export) uses backend `/init`
+instead, which needs none of this. Never bake a build machine's location or
+cookies into a shared static page.
+
+A static export can also resolve a manifest in the browser without these
+helpers. Set `manifestURL` in `defineConsentConfig` to an absolute URL the
+browser can fetch from your site's origin. Browser manifest resolution has no
+location input, so every visitor gets your unknown-location rule.
 
 ## Geography and privacy signals
 
@@ -443,6 +469,14 @@ perform IP lookup. Supply `policyRules` to replace that pack when your local
 policy needs different behavior. Browser persistence stores choices, but this
 setup has no backend record service. See
 [transport choices](/docs/concepts/data-fetching) for the tradeoffs.
+
+`ConsentRoot` also runs offline when it gets no backend URL, from neither a
+`backendURL` prop nor `config.backendURL`, and no `options.mode`. A
+`backendURL={process.env.NEXT_PUBLIC_C15T_BACKEND_URL}` prop that is
+`undefined` at build time therefore gives you offline mode with no error. Not
+recommended for production environments. The `c15t.config.ts` in the router
+guides throws when the variable is missing, so a misconfigured build fails
+instead.
 
 ### Authenticated hosted vendor lists
 

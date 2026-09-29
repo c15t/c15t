@@ -15,45 +15,15 @@ next to the banner; it opens whenever something makes `dialog` the active
 surface: the banner's Customize button, a `ConsentDialogLink` in your footer,
 a `ConsentDialogTrigger`, or your own code.
 
-```tsx title="components/consent.tsx"
-'use client';
+<include src="../../../shared/examples/nextjs/consent-wrapper.mdx" />
 
-import type { ReactNode } from 'react';
-import {
-  ConsentBanner,
-  ConsentDialog,
-  ConsentDialogLink,
-  ConsentRoot,
-} from 'c15t/next';
-import type { ConsentRootProps } from 'c15t/next';
-import { consentConfig } from '../c15t.config';
-
-export function Consent({
-  children,
-  state,
-}: {
-  children: ReactNode;
-  state: ConsentRootProps['state'];
-}) {
-  return (
-    <ConsentRoot state={state} config={consentConfig}>
-      {children}
-      <ConsentBanner />
-      <ConsentDialog hideBranding />
-      <footer>
-        <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-      </footer>
-    </ConsentRoot>
-  );
-}
-```
+Pass props on that element, for example `<ConsentDialog hideBranding />`.
 
 The root layout renders `Consent` with the `state` from
-`resolveConsent`, as in the router guides. The dialog itself renders
-nothing on the server: it mounts through a portal after hydration, so the
-server HTML and the streamed shell are unaffected by it. If the visitor owes
-a choice or notice, routes that await `resolveConsent` can render the
-banner on the server. Pages Router pages without `getServerSideProps` show it
+`resolveConsent`, as in the router guides. The dialog renders nothing on the
+server. It mounts through a portal after hydration, so it does not change the
+server HTML or the streamed shell. If the visitor owes a choice or notice,
+routes that await `resolveConsent` can render the banner on the server. Pages Router pages without `getServerSideProps` show it
 after browser policy resolution. No banner appears when the policy requires
 no prompt or an existing record already satisfies it.
 
@@ -92,6 +62,6 @@ instead; this dialog stays closed for the `iab` model.
 The compound parts import from `c15t/next` as properties of `ConsentDialog`,
 and `ConsentWidget` from the same module. Server Components cannot render
 them: keep the composition in a file with `'use client'`. See
-[Styling](../styling/overview) for slots and tokens.
+[Customize](/docs/frameworks/next/customize) for slots and tokens.
 
 <import src="../../../shared/react/components/consent-dialog.mdx#verify" />

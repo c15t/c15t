@@ -1,112 +1,85 @@
 ---
 title: Client-side initialization
-description: Initialize Next.js consent in the browser with one backend URL, without server prefetch or local API handlers.
+description: Initialize c15t in the browser in a Next.js app with one backend URL, without server prefetch, a manifest route or API handlers.
 group: frameworks
 ---
 
-## Choose when consent resolves
+## When to initialize in the browser
 
-Use browser initialization when consent does not need to be resolved in the
-initial HTML. This works with prerendered pages and client navigation. No
-`resolveConsent`, manifest route or rewrite is required for this setup.
+This setup has the fewest files. The browser calls your Inth backend's `/init`
+after the page loads, so the server does no consent work and every page can be
+static. The HTML is the same for every visitor, and the banner appears after
+hydration.
 
-Use [server rendering](/docs/frameworks/next/server-side) when consent UI should
-render on the server after policy resolution, or when resolution should start
-on the server while the page streams.
+Use it when you do not need the banner in the server HTML and do not want a
+manifest route. For a server app, the [App Router](/docs/frameworks/next/app-router)
+and [Pages Router](/docs/frameworks/next/pages-router) guides resolve consent
+on the server and make no `/init` request per visit. For `output: 'export'`,
+follow [static export](/docs/frameworks/next/static-export).
+[Rendering and deployment](/docs/frameworks/next/rendering) compares every
+path.
 
-"Client-side initialization" describes where consent resolves. Next.js can
-still prerender a Client Component's initial markup. Optional permissions stay
-denied and consent UI stays hidden until policy resolution succeeds.
+Until the policy resolves, optional categories stay denied and the banner
+stays hidden.
 
 ## Configure one backend URL
 
-[Inth](https://inth.com) is recommended for production. A self-hosted c15t
-backend uses the same configuration with its own public endpoint.
+[Create an Inth project](https://inth.com), set its policy rules and add your
+site's origin to its trusted origins. A self-hosted backend works the same way
+with its own URL.
 
-<CommandTabs command="c15t@alpha" mode="install" />
+<CommandTabs command="c15t@alpha @c15t/scripts@alpha" mode="install" />
 
-Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute public backend endpoint and
-configure your app's allowed origin there. Create this shared file at the
-project root:
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the backend URL from your Inth project and
+create `c15t.config.ts` at the project root:
 
 ```ts title="c15t.config.ts"
 import { defineConsentConfig } from 'c15t/next';
 
 const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
+if (!backendURL) {
+	throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL to your Inth backend URL');
+}
 
 export const consentConfig = defineConsentConfig({ backendURL });
 ```
 
-With the current API, a config containing only `backendURL` initializes through
-`${backendURL}/init` and submits choices to `${backendURL}/subjects`. It does
-not enable manifest resolution or generate API routes. Use
-[data fetching](/docs/frameworks/next/data-fetching) to choose manifest mode.
+A config with only `backendURL` initializes through `${backendURL}/init` and
+posts choices to `${backendURL}/subjects`. It does not turn on manifest mode or
+create routes.
 
-## Mount one browser ConsentRoot
+<include src="../../shared/next-consent-wrapper.mdx" />
 
-```tsx title="components/consent.tsx"
-'use client';
+## Mount the wrapper with an empty state
 
-import type { ReactNode } from 'react';
-import {
-  ConsentBanner,
-  ConsentDialog,
-  ConsentDialogLink,
-  ConsentRoot,
-} from 'c15t/next';
-import { consentConfig } from '../c15t.config';
+Load the [stylesheet for your Tailwind version](/docs/frameworks/next/customize#load-the-stylesheet)
+from your global CSS. In the App Router, mount the wrapper in the root layout:
 
-export function Consent({ children }: { children: ReactNode }) {
-  return (
-    <ConsentRoot state={{}} config={consentConfig}>
-      {children}
-      <ConsentBanner />
-      <ConsentDialog />
-      <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-    </ConsentRoot>
-  );
-}
-```
+<include src="../../shared/examples/nextjs/browser-layout.mdx" />
 
-`state={{}}` supplies no server-resolved policy. `ConsentRoot` starts hosted
-initialization in the browser. Keep it mounted across client navigation.
+In the Pages Router, mount it in `_app.tsx`. Without `getServerSideProps`,
+every page passes `{}`:
 
-For App Router, load the [stylesheet for your Tailwind version](/docs/frameworks/next/styling/overview#stylesheet)
-from `app/globals.css`, then mount the wrapper in the root layout:
+<include src="../../shared/examples/nextjs/pages-app.mdx" />
 
-```tsx title="app/layout.tsx"
-import type { ReactNode } from 'react';
-import { Consent } from '../components/consent';
-import './globals.css';
+`state={{}}` supplies no server state, so `ConsentRoot` initializes in the
+browser. Keep it mounted across client navigation.
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <body><Consent>{children}</Consent></body>
-    </html>
-  );
-}
-```
+## Optional same-origin rewrite
 
-For Pages Router, put the same `Consent` wrapper around
-`<Component {...pageProps} />` in `pages/_app.tsx` and import the stylesheet
-there. No `getServerSideProps` is needed for consent in this variant.
-
-## Optional optimizations and local development
-
-A [same-origin rewrite](/docs/frameworks/next/optimization) can avoid an
-additional browser connection to the backend domain. It is optional and needs
-a Next.js server or equivalent hosting proxy. A full static export can keep
-the direct public URL shown here.
-
-Offline mode is not recommended for production environments. For local
-development and tests without a backend, use the
-[offline example](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
+A [same-origin rewrite](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
+from `/api/c15t` to the backend saves the browser a separate connection to the
+backend's domain. It needs a Next.js server or a proxy at your host.
 
 ## Verify browser initialization
 
-In a fresh session, confirm the browser calls `/init`, displays the resolved
-prompt, and sends no denied vendor requests. Save a rejection, reload, and
-reopen preferences. The choice should persist. Test a failed backend request
-too; hidden consent UI must not be interpreted as permission.
+Open the production build in a fresh browser session with DevTools open.
+
+1. The browser calls `${backendURL}/init` once, then shows the banner. No
+   PostHog or X Pixel request runs.
+2. Click **Reject all** and reload. The banner stays closed and neither vendor
+   loads.
+3. Open **Privacy settings**. The rejection is still selected. Allow
+   measurement only; PostHog loads and X Pixel stays blocked.
+4. Block the backend's domain in DevTools and reload in a fresh session. No
+   banner appears and no vendor loads. A hidden banner is not permission.

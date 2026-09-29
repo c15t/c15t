@@ -1,21 +1,24 @@
 'use client';
 
-import {
-	ConsentDialogLink,
-	ConsentGate,
-	useConsent,
-	usePersistence,
-} from 'c15t/next';
+import { ConsentDialogTrigger, ConsentGate, useConsent } from 'c15t/next';
+import { ConsentDevTools } from 'c15t/next/devtools';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { posthogConfigured, xPixelConfigured } from '../lib/scripts';
-import type { BannerDesign } from './consent';
+import { posthogConfigured, xPixelConfigured } from '@/lib/scripts';
 
-const designs: { value: BannerDesign; label: string }[] = [
-	{ label: 'Default', value: 'default' },
-	{ label: 'Branded', value: 'branded' },
-	{ label: 'Custom', value: 'custom' },
+const routes = [
+	{ href: '/app-router', label: 'App Router' },
+	{ href: '/awaited', label: 'Awaited' },
+	{ href: '/pages-router', label: 'Pages Router' },
+	{ href: '/client-init', label: 'Browser init' },
+];
+
+const designs = [
+	{ href: '/app-router', label: 'Default design' },
+	{ href: '/branded', label: 'Branded design' },
 ];
 
 const IntegrationStatus = ({
@@ -38,30 +41,16 @@ const IntegrationStatus = ({
 	);
 };
 
-export const Demo = ({
-	children,
-	design,
-	onDesignChange,
-	showTrigger,
-	onTriggerChange,
-}: {
-	children: ReactNode;
-	design: BannerDesign;
-	onDesignChange: (design: BannerDesign) => void;
-	showTrigger: boolean;
-	onTriggerChange: (visible: boolean) => void;
-}) => {
+/**
+ * Demo gallery rendered by every example route inside that route's
+ * `Consent` wrapper. It owns only demo controls. The consent setup lives in
+ * the root layouts, `components/consent.tsx` and `pages/_app.tsx`.
+ */
+export const Demo = ({ children }: { children: ReactNode }) => {
 	const measurementAllowed = useConsent('measurement');
 	const marketingAllowed = useConsent('marketing');
-	// The boundary disables its automatic persistence so this is the sole owner.
-	// Its public clear() method resets only c15t records, not other site storage.
-	const persistence = usePersistence();
-
-	const reset = () => {
-		persistence.clear();
-		// Reload also removes previously executed vendor code and its globals.
-		window.location.reload();
-	};
+	const pathname = usePathname();
+	const [showTrigger, setShowTrigger] = useState(false);
 
 	return (
 		<div className="demo-shell">
@@ -74,9 +63,15 @@ export const Demo = ({
 					c15t<span> / next.js</span>
 				</a>
 				<nav aria-label="Example routes">
-					<Link href="/app-router">App Router</Link>
-					<Link href="/pages-router">Pages Router</Link>
-					<Link href="/client-init">Browser init</Link>
+					{routes.map(({ href, label }) => (
+						<Link
+							key={href}
+							href={href}
+							aria-current={pathname === href ? 'page' : undefined}
+						>
+							{label}
+						</Link>
+					))}
 				</nav>
 			</header>
 			<main>
@@ -88,7 +83,7 @@ export const Demo = ({
 						Video and analytics follow your permissions. Reject, allow a
 						category, or reopen your preferences to try another choice.
 					</p>
-					{children}
+					<p className="route-note">{children}</p>
 				</section>
 
 				<section
@@ -96,38 +91,30 @@ export const Demo = ({
 					aria-labelledby="design-heading"
 				>
 					<div>
-						<h2 id="design-heading">Choose a banner design</h2>
+						<h2 id="design-heading">Compare banner designs</h2>
 						<p>The same policy and actions, with different presentation.</p>
 					</div>
 					<div className="design-controls">
-						<fieldset
-							className="design-buttons"
+						<nav
+							className="design-links"
 							aria-label="Banner design"
 						>
-							{designs.map(({ value, label }) => (
-								<button
-									key={value}
-									type="button"
-									aria-pressed={design === value}
-									onClick={() => onDesignChange(value)}
+							{designs.map(({ href, label }) => (
+								<a
+									key={href}
+									href={href}
+									aria-current={pathname === href ? 'page' : undefined}
 								>
 									{label}
-								</button>
+								</a>
 							))}
-						</fieldset>
-						<button
-							className="text-button"
-							type="button"
-							onClick={reset}
-						>
-							Reset demo
-						</button>
+						</nav>
 					</div>
 					<label className="trigger-option">
 						<input
 							type="checkbox"
 							checked={showTrigger}
-							onChange={(event) => onTriggerChange(event.target.checked)}
+							onChange={(event) => setShowTrigger(event.target.checked)}
 						/>
 						Show floating preferences trigger
 					</label>
@@ -193,15 +180,13 @@ export const Demo = ({
 						</div>
 						<p className="caption">
 							Open c15t DevTools in the corner to inspect consent state and
-							script activity.
+							script activity, or to clear stored records.
 						</p>
 					</section>
 				</div>
 			</main>
-			<footer className="site-footer">
-				<p>Your preferences are available whenever you need them.</p>
-				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
-			</footer>
+			{showTrigger && <ConsentDialogTrigger />}
+			<ConsentDevTools position="bottom-right" />
 		</div>
 	);
 };

@@ -23,42 +23,20 @@ cookieless capture after rejection. X Pixel waits for marketing consent. Remove
 any existing loader for these vendors, including `next/script` and tag-manager
 entries, so each integration loads once.
 
-Create this client wrapper. It keeps scripts and browser callbacks in the client
-while the router supplies the visitor's resolved state through `state`:
+Create this client wrapper. It owns everything that has to run in the browser:
+the consent config, the scripts, the banner, the dialog and a persistent
+preferences link. The layout or `_app.tsx` passes only the visitor's state.
 
-```tsx title="components/consent.tsx"
-'use client';
+<include src="./examples/nextjs/consent-wrapper.mdx" />
 
-import type { ReactNode } from 'react';
-import {
-  ConsentBanner,
-  ConsentDialog,
-  ConsentDialogLink,
-  ConsentRoot,
-} from 'c15t/next';
-import type { ConsentRootProps } from 'c15t/next';
-import { consentConfig } from '../c15t.config';
-import { scripts } from '../lib/scripts';
+Import `consentConfig` in this `'use client'` file, as shown, and do not pass it
+from a Server Component. `defineConsentConfig` marks its result with a symbol
+key, and React cannot send an object with symbol keys from a Server Component
+to a Client Component.
 
-export function Consent({
-  children,
-  state,
-}: {
-  children: ReactNode;
-  state: ConsentRootProps['state'];
-}) {
-  return (
-    <ConsentRoot state={state} config={consentConfig} scripts={scripts}>
-      {children}
-      <ConsentBanner />
-      <ConsentDialog />
-      <footer>
-        <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-      </footer>
-    </ConsentRoot>
-  );
-}
-```
-
-`ConsentRoot` already provides the consent runtime. Mount this wrapper once;
+`ConsentRoot` already provides the consent runtime. Mount this wrapper once and
 do not add a second provider. Keep your site's content and footer inside it.
+
+The files import through the `@/` path alias that `create-next-app` sets up.
+With a `src/` directory the alias points at `src/`, so the same imports work.
+Without the alias, use relative paths.

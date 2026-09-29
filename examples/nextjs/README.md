@@ -1,8 +1,10 @@
 # Next.js consent example
 
-One application demonstrates c15t with App Router and Pages Router, a gated
-YouTube video, PostHog, X Pixel, three banner designs and persistent preferences.
-It uses the public `c15t/next` integration and a cached Inth manifest.
+One application demonstrates c15t with the App Router and the Pages Router, a
+gated YouTube video, PostHog, X Pixel, a branded design and persistent
+preferences. It uses the public `c15t/next` integration and a cached Inth
+manifest. The setup code in the Next.js docs is published from marked regions
+in these files.
 
 ## Run
 
@@ -17,9 +19,8 @@ bun run dev
 Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the exact endpoint from your Inth project.
 Configure its policy with measurement and marketing categories, an
 unknown-location rule, and trusted origins for `http://localhost:3011` and your
-production host. This demo overrides the visitor location to the United Kingdom
-using `country: 'GB'` in `demoLocation`. Remove that override to use trusted
-geography headers from your deployment platform.
+production host. Local requests carry no geography headers, so the example
+shows your unknown-location rule until you deploy to a host that sends them.
 
 Open `http://localhost:3011/app-router`. For a production build:
 
@@ -35,41 +36,41 @@ integration is disabled and labelled "Not configured".
 
 ## Follow the setup files
 
-- `c15t.config.ts` shares the backend and explicit manifest URL. There is no
-  local init route or backend rewrite.
+- `c15t.config.ts` shares the backend and explicit manifest URL.
 - `app/api/c15t/manifest/route.ts` serves the cached public manifest for both
-  routers. The handler uses the backend environment variable configured above.
-- `app/app-router/layout.tsx` starts server prefetch and passes the pending
-  result to the boundary without awaiting it, so the page renders without
-  waiting for the manifest and the banner mounts after hydration. To render
-  the banner in the initial HTML instead, await `resolveConsent` in an async
-  component inside `<Suspense>`, which holds the page back with it.
-- `pages/pages-router.tsx` awaits the Pages Router helper in `getServerSideProps`.
-  `pages/_app.tsx` passes `initialConsent` to the same client wrapper.
-- `app/client-init/page.tsx` skips prefetch. The browser resolves the manifest,
-  using the same UK location override.
-- `components/consent.tsx` registers scripts, consent UI and DevTools once.
-- `components/demo.tsx` shows the iframe, permission indicators and footer link.
-- `lib/theme.ts` and `components/custom-banner.tsx` contain the branded theme
-  and compound banner. Custom markup retains policy-defined copy and actions.
+  routers.
+- `components/consent.tsx` is the client wrapper: `ConsentRoot`, scripts,
+  banner, dialog and the Privacy settings link. Layouts pass it only `state`.
+- Each App Router route group has its own root layout:
+  - `app/(streamed)/layout.tsx` starts `resolveConsent` without awaiting it,
+    for `/app-router` and `/branded`. The page renders first and the banner
+    mounts after hydration.
+  - `app/(awaited)/layout.tsx` awaits `resolveConsent` inside `Suspense`, for
+    `/awaited`. The banner is part of the server HTML.
+  - `app/(browser)/layout.tsx` passes `state={{}}`, for `/client-init`. The
+    page is static and the browser resolves the manifest.
+- `pages/pages-router.tsx` resolves consent in `getServerSideProps`, and
+  `pages/_app.tsx` passes `initialConsent` to the same wrapper.
+- `app/(streamed)/branded/layout.tsx` renders `ConsentTheme` with the theme in
+  `lib/theme.ts`.
+- `components/demo.tsx` is demo-only: the gallery, gated iframe, permission
+  indicators, the floating trigger toggle and c15t DevTools.
 
-Each router owns one boundary. Navigation between routers reloads the document;
-choices survive through c15t persistence. The gallery owns one `usePersistence()`
-instance so its Reset demo button can call `clear()`. The boundary's automatic
-persistence is disabled to avoid creating a second owner. Reset clears c15t
-records for this site and reloads, removing previously executed vendor code.
-It does not delete records already submitted to Inth.
+Moving between route groups or routers loads the whole page. Choices survive
+through c15t persistence. To start over, open c15t DevTools, choose
+**Clear stored records**, and reload. Clearing does not delete records already
+submitted to Inth.
 
 ## Try the behavior
 
-1. Start with an opt-in policy and no saved choice. The video should be replaced
-   by its placeholder; configured PostHog and X Pixel integrations are blocked.
+1. Start with an opt-in policy and no saved choice. The video shows its
+   placeholder, and configured PostHog and X Pixel integrations are blocked.
 2. Allow measurement only. YouTube and PostHog can load; X Pixel stays blocked.
-3. Open Privacy settings in the footer and revoke measurement. The iframe is
-   removed. Already-sent vendor requests cannot be undone.
-4. Reject, reload, then switch routers. Your saved choice should remain.
-5. Switch Default, Branded and Custom designs. Reset to see a dismissed banner
-   again. The policy's actions remain the same across designs.
+3. Open Privacy settings in the footer and revoke measurement. The page
+   reloads and the iframe is gone. Already-sent vendor requests cannot be
+   undone.
+4. Reject, reload, then switch routes. Your saved choice remains.
+5. Open the branded design. The policy's actions and your choice stay the same.
 6. Enable the floating preferences trigger and inspect c15t DevTools.
 
 PostHog uses `loadMode: 'after-consent'`, so its SDK waits for measurement
@@ -81,6 +82,7 @@ The video is `https://www.youtube-nocookie.com/embed/czTksCF6X8Y`. The
 `ConsentGate` component keeps its iframe unmounted until measurement is
 allowed. A nocookie URL is still a third-party request once loaded.
 
-Browser acceptance tests should intercept vendor and YouTube requests with
-fixtures for deterministic results. Check actual playback separately with the
-live video. Backend initialization failures must not grant optional permissions.
+Browser acceptance tests in `examples/shared` intercept vendor and YouTube
+requests with fixtures for deterministic results. Check actual playback
+separately with the live video. Backend initialization failures must not grant
+optional permissions.

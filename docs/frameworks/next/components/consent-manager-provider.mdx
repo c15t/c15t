@@ -15,6 +15,13 @@ Follow [App Router](/docs/frameworks/next/app-router) or
 Keep `ConsentRoot` mounted across navigation and import the stylesheet once
 at the app root.
 
+Render `ConsentRoot` from a `'use client'` wrapper that imports your
+`consentConfig`, and pass only `state` from the Server Component layout.
+`defineConsentConfig` marks its result with a symbol key, and React cannot
+pass an object with symbol keys from a Server Component to a Client
+Component. The `state` from `resolveConsent`, or its promise, is plain data
+and can cross.
+
 ## Props
 
 | Prop | Purpose |
@@ -23,15 +30,37 @@ at the app root.
 | `config` | Shared configuration from `defineConsentConfig` in `c15t.config.ts` |
 | `backendURL` | Overrides `config.backendURL` |
 | `scripts` | Consent-managed script configurations |
+| `vendors` | Vendors the preference center lists under their category, each with its own switch. Merged with vendors the backend declares. See [granular consent](/docs/frameworks/next/scripts#let-visitors-turn-off-one-vendor) |
+| `clearOnRevocation` | Cookies and Web Storage keys to remove when their category is denied. Initial-only; remount `ConsentRoot` to replace it |
 | `scriptLoader` | Script-loader options |
-| `networkBlocker` | [Network-blocker](/docs/frameworks/next/network-blocker) options, or `false` to disable it |
+| `networkBlocker` | [Network-blocker](/docs/frameworks/next/scripts#block-network-requests) options, or `false` to disable it |
 | `persistence` | Browser persistence options; defaults to `true` |
 | `options` | Provider options such as styling, callbacks and an explicit `mode` override |
 
+### Which transport does ConsentRoot use?
+
+Without `options.mode`, `ConsentRoot` picks the transport from its URLs:
+
+- With `config.initURL`, the browser initializes through that route and saves
+  to `${backendURL}/subjects`.
+- Otherwise, with `config.manifestURL`, the browser resolves the manifest
+  itself. The resolver loads on first use, so it stays out of the initial
+  bundle.
+- Otherwise, with a backend URL, the browser calls `${backendURL}/init`.
+- With no backend URL at all, `ConsentRoot` runs offline. Choices stay in the
+  browser and nothing is recorded. Not recommended for production
+  environments.
+
+The last case also applies when a `backendURL` prop is `undefined` because an
+environment variable was missing at build time. The `c15t.config.ts` in the
+router guides throws instead, so a misconfigured build fails. See
+[offline configuration](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
+
 ## Provider options
 
-`ConsentRoot` passes `options` to its provider. Keep scripts, persistence and
-network-blocker configuration in their top-level `ConsentRoot` props.
+`ConsentRoot` passes `options` to its provider. Keep scripts, vendors,
+`clearOnRevocation`, persistence and network-blocker configuration in their
+top-level `ConsentRoot` props; `options` does not accept them.
 
 The provider owns initialization, persistence, script loading and subscriptions.
 Changing its initial mode or prefetch configuration is not a supported way to
@@ -67,7 +96,7 @@ Its owner must start and dispose that runtime.
 
 For standard Next.js setups, keep `ConsentRoot`. It supports
 [browser initialization](/docs/frameworks/next/client-side) as well as
-[server prefetch](/docs/frameworks/next/server-side).
+[server rendering](/docs/frameworks/next/rendering).
 
 ## Reload after revocation
 
@@ -85,8 +114,9 @@ itself on revocation, for example through its own opt-out API.
 
 ## Clear data when consent is denied
 
-Pass `clearOnRevocation` to `ConsentRoot`, or through the client provider's
-`options`, to declare cookies and Web Storage keys by optional consent category.
-Cleanup runs in the browser after policy resolution. The provider option is
-initial-only. See [clear on revocation](/docs/integrations/clear-on-revocation)
+Pass `clearOnRevocation` to `ConsentRoot` to declare cookies and Web Storage
+keys by optional consent category. `ConsentRoot` does not accept it inside
+`options`. If you use `ConsentProvider` directly, pass it in that provider's
+`options`. Cleanup runs in the browser after policy resolution, and the value
+is initial-only. See [clear on revocation](/docs/integrations/clear-on-revocation)
 for examples, cookie scopes, and browser limits.
