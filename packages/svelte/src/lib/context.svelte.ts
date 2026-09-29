@@ -384,9 +384,12 @@ const createConsentState = function createConsentState(
 			const fromDialog = before.activeUI === 'dialog';
 			const recorded = () => {
 				const after = kernel.getSnapshot();
+				// A choice prompt with nothing to decide records an
+				// acknowledgement instead of a choice.
 				return (
 					after.explicitChoice !== before.explicitChoice ||
-					after.vendorChoice !== before.vendorChoice
+					after.vendorChoice !== before.vendorChoice ||
+					after.noticeDismissal !== before.noticeDismissal
 				);
 			};
 			const closeDialog = () => {

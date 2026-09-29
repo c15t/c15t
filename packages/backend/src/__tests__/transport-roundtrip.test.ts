@@ -193,6 +193,35 @@ describe.each(ENGINES)(
 			);
 		});
 
+		it('records the receipt of a banner that offered only strictly necessary', async () => {
+			const subjectId = 'sub_roundtrip4';
+			const saved = await transport.save({
+				...payload(
+					subjectId,
+					{ categories: {}, version: 3 },
+					{ actionAt: T0, categories: {} },
+					{
+						experience: false,
+						functionality: false,
+						marketing: false,
+						measurement: false,
+						necessary: true,
+					}
+				),
+				consentAction: 'all',
+			});
+			assert.deepStrictEqual(saved, { ok: true, subjectId });
+			assert.strictEqual(await harness.count('consent'), 1);
+			const read = await harness.json('GET', `/subjects/${subjectId}`);
+			const consents = read.body.consents as {
+				preferences?: unknown;
+				type: string;
+			}[];
+			assert.strictEqual(consents.length, 1);
+			assert.strictEqual(consents[0]?.type, 'cookie_banner');
+			assert.deepStrictEqual(consents[0]?.preferences, { necessary: true });
+		});
+
 		it('reads a save made by a client without receipts as legacy receipts the evaluator grandfathers', async () => {
 			const subjectId = 'sub_roundtrip2';
 			// A pre-receipt client sends the legacy HTTP wire, not today's SavePayload.

@@ -89,12 +89,16 @@ export interface ExplicitChoice {
 	categories: Partial<Record<OptionalConsentCategory, CategoryDecision>>;
 }
 
-/** Local record that the current notice was explicitly dismissed. */
+/**
+ * Local record that the current notice was explicitly dismissed. The same
+ * record acknowledges a choice prompt that had no category to decide; it
+ * then carries the choice fingerprint instead of the notice fingerprint.
+ */
 export interface NoticeDismissal {
 	version: 1;
 	/** Epoch milliseconds of the dismissal. */
 	dismissedAt: number;
-	/** Notice prompt fingerprint the dismissal was made against. */
+	/** Prompt fingerprint the dismissal was made against. */
 	fingerprint: string;
 }
 
@@ -126,7 +130,10 @@ export interface EvaluationPolicy {
 	scope: readonly OptionalConsentCategory[];
 	/** How categories outside `scope` behave. */
 	scopeMode: 'strict' | 'permissive';
-	/** Displayed categories required for a choice. Defaults to the policy scope. */
+	/**
+	 * Displayed categories required for a choice. Defaults to the policy
+	 * scope. Empty means a choice prompt only asks for an acknowledgement.
+	 */
 	choiceScope?: readonly OptionalConsentCategory[];
 	choice: RecordValidity;
 	notice: RecordValidity;

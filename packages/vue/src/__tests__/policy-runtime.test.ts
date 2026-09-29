@@ -1,3 +1,4 @@
+import type { AllConsentNames } from '@c15t/core';
 import { readStoredRecords } from '@c15t/core/modules/persistence';
 import {
 	normalizePolicyRule,
@@ -36,6 +37,8 @@ const resolution = (patch: Partial<PolicyRule> = {}): PolicyResolution => {
 	};
 };
 afterEach(() => vi.restoreAllMocks());
+/** What a site offering the fixture policy's categories declares. */
+const DECLARED: AllConsentNames[] = ['marketing', 'measurement'];
 
 test('subject-only prefetch preserves browser receipts without a prepared record seed', async () => {
 	const now = 1_800_000_000_000;
@@ -94,7 +97,7 @@ test('a draft reads the raw grant under GPC and confirms only displayed categori
 	const now = 1_800_000_000_000;
 	vi.spyOn(Date, 'now').mockReturnValue(now);
 	const context = createVueConsentKernelContext({
-		config: {},
+		config: { consentCategories: DECLARED },
 		kernelConfig: {
 			initialPolicyResolution: resolution({
 				privacySignals: { gpc: { denyCategories: ['marketing'] } },
@@ -115,7 +118,7 @@ test('a draft reads the raw grant under GPC and confirms only displayed categori
 		})
 	);
 	app.provide(symbolKernelContext, context);
-	app.provide(consentConfigKey, {});
+	app.provide(consentConfigKey, { consentCategories: DECLARED });
 	const container = document.createElement('div');
 	app.mount(container);
 	try {
@@ -184,7 +187,7 @@ test('a draft preserves configured category order and confirms only the displaye
 test('material policy changes block an already displayed draft until review', async () => {
 	let current = resolution();
 	const context = createVueConsentKernelContext({
-		config: {},
+		config: { consentCategories: DECLARED },
 		kernelConfig: {
 			initialPolicyResolution: current,
 			transport: {
@@ -205,7 +208,7 @@ test('material policy changes block an already displayed draft until review', as
 		})
 	);
 	app.provide(symbolKernelContext, context);
-	app.provide(consentConfigKey, {});
+	app.provide(consentConfigKey, { consentCategories: DECLARED });
 	app.mount(document.createElement('div'));
 	try {
 		draft.values.value.marketing = true;

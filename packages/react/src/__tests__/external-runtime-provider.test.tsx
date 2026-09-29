@@ -10,6 +10,12 @@ import { policyFixture } from './policy-fixture';
 
 const createRuntime = function createRuntime(): ConsentRuntime {
 	return createConsentRuntime({
+		consentCategories: [
+			'functionality',
+			'experience',
+			'measurement',
+			'marketing',
+		],
 		mode: offline(),
 		pkg: '@c15t/react-external-test',
 		prefetch: policyFixture({ measurement: false }),

@@ -28,7 +28,7 @@ import {
 	readStoredRecordsFromCookieHeader,
 	resolveStorageKeys,
 } from '@c15t/core/modules/persistence';
-import { isIABConfigured } from '@c15t/core/runtime';
+import { inferConsentCategories, isIABConfigured } from '@c15t/core/runtime';
 import { fetchCachedGvl } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
 import { readProducerPolicyContract } from '@c15t/core/transports';
@@ -738,7 +738,17 @@ export const resolveConsentContext = async function resolveConsentContext(
 	}
 
 	config.initialPolicyPending = config.initialPolicyResolution === undefined;
-	const snapshot = snapshotFromConfig(config);
+	// Judge the visitor against the categories the browser runtime will ask
+	// about. The page's config leaves them out: the runtime derives them from
+	// the same options.
+	const snapshot = snapshotFromConfig({
+		...config,
+		consentCategories: options.consentCategories,
+		inferredConsentCategories: inferConsentCategories(
+			options,
+			config.initialVendors?.declared
+		),
+	});
 	return {
 		// The snapshot above is the one a first-time visitor gets, which is
 		// what the build renders. The config the page inlines drops it: any

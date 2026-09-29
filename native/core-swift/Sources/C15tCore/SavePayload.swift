@@ -317,7 +317,10 @@ enum SubjectPostBodyBuilder {
 
     /// Receipts for exactly the categories this act confirmed, read out of the
     /// complete choice so the time and basis are the kernel's and not restamped
-    /// here. `nil` when the action confirmed nothing that has a receipt.
+    /// here. An act that confirmed nothing, such as the acknowledgement of a prompt
+    /// with no category to decide, sends an empty receipt rather than none:
+    /// `buildConfirmedChoiceWire` does the same, because a backend reads a body
+    /// without `choice` as a 2.x submission and stamps receipts from `preferences`.
     private static func choiceWire(for payload: SavePayload) -> JSONValue? {
         var categories: [String: JSONValue] = [:]
         for category in OptionalConsentCategory.ordered {
@@ -343,7 +346,6 @@ enum SubjectPostBodyBuilder {
                 "value": .bool(decision.value),
             ])
         }
-        guard !categories.isEmpty else { return nil }
         return .object(["categories": .object(categories), "version": .integer(3)])
     }
 }

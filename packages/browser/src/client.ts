@@ -18,6 +18,7 @@ import type { ConsentRuntimeIABFactory } from '@c15t/core/runtime';
 
 import { createDeferred } from './deferred';
 import { createGatedScriptActivator } from './gated-scripts';
+import { hasDecided } from './has-decided';
 import { manifest } from './transports/manifest';
 import { offline } from './transports/offline';
 import type {
@@ -377,9 +378,11 @@ export const createConsentClient = function createConsentClient(
 		// request finish in the background: its outcome never reopens the
 		// surface, and a failed request stays queued for replay.
 		const after = kernel.getSnapshot();
+		// A choice prompt with nothing to decide records an acknowledgement.
 		if (
 			after.explicitChoice !== before.explicitChoice ||
-			after.vendorChoice !== before.vendorChoice
+			after.vendorChoice !== before.vendorChoice ||
+			after.noticeDismissal !== before.noticeDismissal
 		) {
 			if (surface !== 'none') {
 				settleSurface();
@@ -528,7 +531,7 @@ export const createConsentClient = function createConsentClient(
 			return evaluateConsent({ category: condition }, snapshot);
 		},
 		hasConsented() {
-			return kernel.getSnapshot().explicitChoice !== null;
+			return hasDecided(kernel.getSnapshot());
 		},
 		async identify(user: KernelUser) {
 			await runtime.identify(user);

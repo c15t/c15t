@@ -254,6 +254,7 @@ const mountActions = async function mountActions() {
 	view.render(
 		<ConsentProvider
 			options={{
+				consentCategories: ['marketing', 'measurement'],
 				mode: Object.assign(() => ({ save }), { kind: 'custom' as const }),
 				persistence: false,
 				prefetch: {

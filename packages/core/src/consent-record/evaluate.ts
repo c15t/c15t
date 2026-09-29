@@ -163,6 +163,79 @@ const hasChoiceRefusal = function hasChoiceRefusal(
 	);
 };
 
+const acknowledgementExpiry = function acknowledgementExpiry(
+	acknowledgement: NoticeDismissal,
+	policy: EvaluationPolicy
+): number | null {
+	return policy.choice.maxAgeMs === null
+		? null
+		: acknowledgement.dismissedAt + policy.choice.maxAgeMs;
+};
+
+/**
+ * When the choice prompt with nothing to decide stops being answered, or
+ * `undefined` when it is not answered now. A choice acknowledgement is a
+ * dismissal record made against the choice fingerprint; any decision still
+ * valid under the current choice contract answers it too. `null` means one
+ * of them never expires.
+ */
+const acknowledgedUntil = function acknowledgedUntil(
+	input: ConsentEvaluationInput,
+	categories: Record<OptionalConsentCategory, CategoryEvaluation>
+): number | null | undefined {
+	const { policy } = input;
+	const expiries: (number | null)[] = [];
+	const dismissal = input.noticeDismissal;
+	if (dismissal && dismissal.fingerprint === policy.choice.fingerprint) {
+		const expiresAt = acknowledgementExpiry(dismissal, policy);
+		if (expiresAt === null || input.now < expiresAt) {
+			expiries.push(expiresAt);
+		}
+	}
+	for (const category of OPTIONAL_CONSENT_CATEGORIES) {
+		const evaluation = categories[category];
+		if (evaluation.authority === 'valid') {
+			expiries.push(evaluation.expiresAt);
+		}
+	}
+	if (expiries.length === 0) {
+		return undefined;
+	}
+	return expiries.includes(null) ? null : Math.max(...(expiries as number[]));
+};
+
+/**
+ * A choice prompt with nothing to decide, because no displayed category is
+ * in the policy scope, still asks once: the visitor acknowledges that only
+ * strictly necessary processing runs. The acknowledgement lasts as long as
+ * a choice would and binds to the choice fingerprint, so a policy edit asks
+ * again. A stale acknowledgement or decision says why it is asked again.
+ */
+const deriveAcknowledgementRequirement =
+	function deriveAcknowledgementRequirement(
+		input: ConsentEvaluationInput,
+		categories: Record<OptionalConsentCategory, CategoryEvaluation>
+	): PromptRequirement {
+		if (acknowledgedUntil(input, categories) !== undefined) {
+			return { kind: 'none' };
+		}
+		const { policy } = input;
+		const dismissal = input.noticeDismissal;
+		const authorities = OPTIONAL_CONSENT_CATEGORIES.map(
+			(category) => categories[category].authority
+		);
+		if (
+			(dismissal && dismissal.fingerprint === policy.choice.fingerprint) ||
+			authorities.includes('expired')
+		) {
+			return requirement('choice', 'expired');
+		}
+		if (dismissal || authorities.includes('policy-changed')) {
+			return requirement('choice', 'policy-changed');
+		}
+		return requirement('choice', 'missing');
+	};
+
 /**
  * Refusals suppress automatic choice prompts, including when another category
  * is new or a grant expires. Permissions still expire and users can open
@@ -170,6 +243,7 @@ const hasChoiceRefusal = function hasChoiceRefusal(
  * known material mismatch in the required scope, then any required
  * category without a decision, then any required positive decision past
  * its lifetime. Neither elapsed time nor a policy edit cancels a refusal.
+ * An empty choice scope asks for an acknowledgement instead.
  */
 const deriveChoiceRequirement = function deriveChoiceRequirement(
 	input: ConsentEvaluationInput,
@@ -177,7 +251,10 @@ const deriveChoiceRequirement = function deriveChoiceRequirement(
 ): PromptRequirement {
 	const { policy } = input;
 	const choiceScope = policy.choiceScope ?? policy.scope;
-	if (choiceScope.length === 0 || hasChoiceRefusal(policy, categories)) {
+	if (choiceScope.length === 0) {
+		return deriveAcknowledgementRequirement(input, categories);
+	}
+	if (hasChoiceRefusal(policy, categories)) {
 		return { kind: 'none' };
 	}
 	const decisions = input.choice?.categories;
@@ -249,10 +326,32 @@ const derivePromptRequirement = function derivePromptRequirement(
 };
 
 /**
+ * When an acknowledged empty choice scope asks again: once the last record
+ * answering it runs out. Empty when it is not answered or never runs out.
+ */
+const acknowledgementDeadline = function acknowledgementDeadline(
+	input: ConsentEvaluationInput,
+	categories: Record<OptionalConsentCategory, CategoryEvaluation>,
+	promptRequirement: PromptRequirement
+): number[] {
+	const { policy } = input;
+	if (
+		policy.prompt !== 'choice' ||
+		(policy.choiceScope ?? policy.scope).length > 0 ||
+		promptRequirement.kind !== 'none'
+	) {
+		return [];
+	}
+	const until = acknowledgedUntil(input, categories);
+	return typeof until === 'number' ? [until] : [];
+};
+
+/**
  * Earliest future time at which permissions or the prompt can change.
  * A positive in-scope grant matters when its expiry changes a permission
- * (opt-in and IAB) or a choice prompt; a notice dismissal matters only
- * under a notice prompt.
+ * (opt-in and IAB) or a choice prompt; a dismissal matters under a notice
+ * prompt, and as an acknowledgement under a choice prompt with an empty
+ * choice scope.
  */
 const deriveNextDeadline = function deriveNextDeadline(
 	input: ConsentEvaluationInput,
@@ -283,6 +382,9 @@ const deriveNextDeadline = function deriveNextDeadline(
 			candidates.push(evaluation.expiresAt);
 		}
 	}
+	candidates.push(
+		...acknowledgementDeadline(input, categories, promptRequirement)
+	);
 	const dismissal = input.noticeDismissal;
 	if (
 		policy.prompt === 'notice' &&

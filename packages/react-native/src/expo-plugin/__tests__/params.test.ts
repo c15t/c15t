@@ -70,8 +70,8 @@ describe('resolveParams', () => {
 		).toThrowError(/must be one of custom, hosted, offline, selfHosted/u);
 	});
 
-	it('defaults no declared category scope to the full policy scope', () => {
-		// Empty means "write nothing", which the cores read as the full scope.
+	it('defaults to no declared category scope', () => {
+		// Empty means "write nothing", which the cores read as no declaration.
 		expect(
 			resolveParams({ backendURL: BACKEND }).consentCategories
 		).toStrictEqual([]);
@@ -100,7 +100,7 @@ describe('resolveParams', () => {
 	it('refuses an empty category list instead of meaning "everything"', () => {
 		expect(() =>
 			resolveParams({ backendURL: BACKEND, consentCategories: [] })
-		).toThrowError(/Omit it entirely to offer the full policy scope/u);
+		).toThrowError(/Omit it entirely when the app declares no categories/u);
 	});
 
 	it('defaults no declared vendor scope to every served vendor', () => {

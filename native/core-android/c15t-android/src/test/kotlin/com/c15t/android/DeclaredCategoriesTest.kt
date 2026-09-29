@@ -53,7 +53,7 @@ class DeclaredCategoriesTest {
 	}
 
 	@Test
-	fun `nothing usable stays absent, which is the full policy scope`() {
+	fun `nothing usable stays absent, which declares no categories`() {
 		// Absent and "an empty list" answer the same question the same way at the
 		// core, but they arrive here differently, and each is its own way a host
 		// can mean "I did not declare a scope".

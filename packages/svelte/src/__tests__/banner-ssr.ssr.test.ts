@@ -33,6 +33,7 @@ const BANNER_POLICY = resolvePolicyRules({
 	],
 });
 const savedKernel = createConsentKernel({
+	consentCategories: ['marketing', 'measurement'],
 	initialPolicyResolution: BANNER_POLICY,
 	now: Date.now(),
 });

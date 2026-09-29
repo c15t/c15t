@@ -429,6 +429,7 @@ describe('refusals across policy updates', () => {
 			});
 			const after = resolve({ ...rule, copyRevision: 'updated-purposes' });
 			const kernel = createConsentKernel({
+				consentCategories: ['marketing', 'measurement'],
 				initialPolicyResolution: before,
 				now: POLICY_NOW,
 				transport: {
@@ -727,6 +728,7 @@ describe('lifecycle: timers, refresh, dispose, rearm', () => {
 
 	test('a distant deadline is clamped and re-armed instead of overflowing', async () => {
 		const kernel = createConsentKernel({
+			consentCategories: ['marketing'],
 			initialPolicyResolution: matchedResolution(
 				optInRule({ validity: { choiceDays: 40 } })
 			),
@@ -745,6 +747,7 @@ describe('lifecycle: timers, refresh, dispose, rearm', () => {
 
 	test('a full rejection under opt-out schedules no timer', async () => {
 		const kernel = createConsentKernel({
+			consentCategories: ['marketing'],
 			initialPolicyResolution: matchedResolution(optOutRule()),
 			now: POLICY_NOW,
 		});

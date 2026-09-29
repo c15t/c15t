@@ -63,7 +63,7 @@ object SaveBodyBuilder {
 		put("subjectId", payload.subjectId)
 		put("type", "cookie_banner")
 		payload.uiSource?.let { put("uiSource", it.wireName) }
-		confirmedChoice(payload)?.let { put("choice", it) }
+		put("choice", confirmedChoice(payload))
 		// No `tcString`. An `iab` rule is read and evaluated, but a TC String opens with a
 		// CMP ID IAB Europe assigned, and this build holds no registered one: it reads
 		// neither `cmpId` nor the vendor vectors a string would assert off `/init`, and
@@ -101,16 +101,20 @@ object SaveBodyBuilder {
 	}
 
 	/**
-	 * Receipts for exactly the confirmed categories, or `null` when the payload
-	 * holds no receipt or confirmed nothing, in which case the key is absent.
+	 * Receipts for exactly the confirmed categories.
+	 *
+	 * An act that confirmed nothing, such as the acknowledgement of a prompt with no
+	 * category to decide, sends an empty receipt rather than none:
+	 * `buildConfirmedChoiceWire` does the same, because a backend reads a body
+	 * without `choice` as a 2.x submission and stamps receipts from `preferences`.
 	 */
-	private fun confirmedChoice(payload: SavePayload): JsonObject? {
-		val choice = payload.choice ?: return null
-		if (choice.consents.isEmpty() || payload.confirmed.categories.isEmpty()) {
-			return null
-		}
+	private fun confirmedChoice(payload: SavePayload): JsonObject {
 		val categories = LinkedHashMap<String, JsonObject>()
+		val choice = payload.choice
 		for (wire in payload.confirmed.categories.keys) {
+			if (choice == null) {
+				break
+			}
 			val value = choice.consents[wire] ?: continue
 			categories[wire] = buildJsonObject {
 				putJsonObject("basis") {
@@ -120,9 +124,6 @@ object SaveBodyBuilder {
 				put("confirmedAt", choice.actionAt)
 				put("value", value)
 			}
-		}
-		if (categories.isEmpty()) {
-			return null
 		}
 		return buildJsonObject {
 			put("categories", JsonObject(categories))

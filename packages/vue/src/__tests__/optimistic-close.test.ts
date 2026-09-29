@@ -211,3 +211,83 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 		});
 	}
 }
+
+for (const action of ['accept', 'reject', 'save'] as const) {
+	test(`with nothing declared, ${action} in the necessary-only manager acknowledges and closes before the save settles`, async () => {
+		const bodies: unknown[] = [];
+		const fetch = vi.fn((input: RequestInfo | URL, request?: RequestInit) => {
+			if (!String(input).endsWith('/subjects')) {
+				return Promise.resolve(Response.json({}));
+			}
+			bodies.push(JSON.parse(String(request?.body)));
+			return Promise.withResolvers<Response>().promise;
+		});
+		const config = {
+			backendURL: 'https://consent.example',
+			customFetch: fetch as unknown as typeof globalThis.fetch,
+			disableAnimation: true,
+			trapFocus: false,
+		} as ConsentConfig;
+		const context = createVueConsentKernelContext({ config, prefetch: init });
+		const stop = startVueConsentRuntime(context, config, { runInit: false });
+		expect(context.kernel.getSnapshot().activeUI).toBe('banner');
+		context.activeUI.value = 'manager';
+		const wrapper = mount(ConsentManager, {
+			attachTo: document.body,
+			global: {
+				provide: {
+					[consentConfigKey as symbol]: config,
+					[symbolKernelContext as symbol]: context,
+					[symbolKernel as symbol]: context.kernel,
+					[symbolSnapshot as symbol]: context.snapshot,
+					[symbolInit as symbol]: context.init,
+					[symbolActiveUI as symbol]: context.activeUI,
+					[symbolConsent as symbol]: context.storedConsent,
+				},
+			},
+		});
+		try {
+			await flushPromises();
+			expect(
+				document.querySelectorAll('[data-testid^="consent-widget-switch-"]')
+			).toHaveLength(1);
+			expect(
+				document.querySelector(
+					'[data-testid="consent-widget-switch-necessary"]'
+				)
+			).not.toBeNull();
+			document
+				.querySelector<HTMLButtonElement>(`[data-testid="${buttons[action]}"]`)
+				?.click();
+			// Closed in the click task, before the request is sent.
+			expect(context.kernel.getSnapshot().activeUI).toBe('none');
+			expect(context.kernel.getSnapshot().promptRequirement).toEqual({
+				kind: 'none',
+			});
+			await vi.waitFor(() => expect(bodies).toHaveLength(1));
+			expect(bodies[0]).toMatchObject({
+				choice: { categories: {}, version: 3 },
+				preferences: { necessary: true },
+			});
+			// Reopened later, the prompt is already answered: only the renewed
+			// acknowledgement tells the manager to close before the request.
+			await new Promise((resolve) => {
+				setTimeout(resolve, 5);
+			});
+			context.activeUI.value = 'manager';
+			await flushPromises();
+			document
+				.querySelector<HTMLButtonElement>(`[data-testid="${buttons[action]}"]`)
+				?.click();
+			expect(context.kernel.getSnapshot().activeUI).toBe('none');
+			await vi.waitFor(() => expect(bodies).toHaveLength(2));
+		} finally {
+			const { element } = wrapper;
+			wrapper.unmount();
+			element.remove();
+			stop();
+			context.dispose();
+			await flushPromises();
+		}
+	});
+}

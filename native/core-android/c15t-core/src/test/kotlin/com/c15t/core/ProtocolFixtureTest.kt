@@ -631,6 +631,7 @@ class ProtocolFixtureTest {
 				gpc = overrides["gpc"]?.jsonPrimitive?.booleanOrNull,
 			),
 			detectedGpc = deviceDetection,
+			consentCategories = declaredCategories(fixtureId, input),
 		)
 
 		val initScript = ArrayDeque<HttpResponse>()
@@ -662,6 +663,26 @@ class ProtocolFixtureTest {
 			executor = TaskExecutor.DIRECT,
 		)
 		return Run(kernel = kernel, http = http, initScript = initScript, backend = backend, store = store)
+	}
+
+	/**
+	 * The categories the fixture app declares.
+	 *
+	 * A fixture without `input.consentCategories` was generated with every category
+	 * declared, so that is what the core is configured with. `null` is an app that
+	 * declares nothing. A name this build does not know fails the fixture rather than
+	 * narrowing the list by accident.
+	 */
+	private fun declaredCategories(fixtureId: String, input: JsonObject): List<ConsentCategory>? {
+		val declared = input["consentCategories"] ?: return ConsentCategory.entries.toList()
+		if (declared is JsonNull) {
+			return null
+		}
+		return declared.jsonArray.map { name ->
+			val wire = name.jsonPrimitive.content
+			ConsentCategory.fromWireName(wire)
+				?: fail("$fixtureId: input.consentCategories names $wire, which is not a category")
+		}
 	}
 
 	/**

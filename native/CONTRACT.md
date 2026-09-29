@@ -155,13 +155,41 @@ mobile, minus IAB:
 layer does not have to branch.
 
 `consentCategories` is the subject-facing list a consent surface draws: `necessary`
-first, then the resolved policy scope narrowed by the host's declared scope, all
-optional names in canonical sorted order. That is the same set the web dialog derives
-from the policy (`choiceScope` crossed with `scope` in `packages/core`), so the same
-backend and the same declaration list the same rows on both platforms, and a name the
-policy does not govern is never rendered. With no policy resolved the list falls back
-to the safe fallback rule's scope: every optional category the vocabulary knows.
+first, then the choice scope, all optional names in canonical sorted order. The choice
+scope is `projectChoiceScope` in `packages/core/src/policy.ts`: the resolved policy
+scope narrowed by the host's declared categories, or, when the host declares nothing,
+none of a `permissive` rule's scope and all of a `strict` one's. That is the same set
+the web dialog derives, so the same backend and the same declaration list the same rows
+on both platforms, and a name the policy does not govern is never rendered. With no
+policy resolved the list falls back to the safe fallback rule, which is strict and
+covers every optional category the vocabulary knows, narrowed by the declaration.
 `null` answers only for a core with no configuration installed at all.
+
+The choice scope is also what the choice prompt asks about and what a bulk action
+covers: `save(all)` and `save(necessary)` confirm the categories in it and nothing
+else, and report `consentAction` `custom` when it is narrower than the policy scope.
+When it is empty, because a permissive rule meets a host that declared nothing, the
+subject is offered `necessary` alone and the prompt asks once for an acknowledgement
+that only strictly necessary processing runs:
+
+- The acknowledgement is a `noticeDismissal` record, `{ version: 1, dismissedAt,
+  fingerprint }`, whose fingerprint is the policy's choice fingerprint rather than the
+  notice one. Any `save()` records it at the action time (keeping a stored one at
+  least as new), confirms no category, leaves `explicitChoice` as it was, and sends a
+  receipt: `preferences` `{ necessary: true }`, `choice` `{ categories: {}, version:
+  3 }`, and `consentAction` `all` or `necessary` for the bulk actions.
+- The prompt is answered while the acknowledgement is younger than the choice lifetime,
+  or while any category decision is still valid under the current choice fingerprint.
+  Otherwise the reason is `expired` when the acknowledgement or a decision made under
+  the current fingerprint aged out, `policy-changed` when the only records were made
+  under another fingerprint or are some other dismissal, and `missing` when there is
+  nothing at all. `nextDeadline` includes the moment the last record answering it runs
+  out.
+
+A strict rule never gets here with nothing declared: nothing outside its scope may run,
+so the subject is asked about the whole of it. Neither does an IAB rule: TCF consent is
+given per purpose and recorded in the TC string, so it is asked about its whole scope
+whatever the app declares.
 
 `ready` and `policyPending` are the two flags a native SDK gate must consult.
 While either is unset, every optional category reads `false`.
@@ -478,8 +506,9 @@ subject is asked, which is the half a snapshot on its own cannot carry:
   cannot trust its own snapshot until `/init` answers, and a cached grant turns back
   into a prompt.
 - `noticeDismissal` is a record and not a permission: it decides whether the notice is
-  still owed, so it travels beside the snapshot instead of being folded into it.
-  Losing it does not grant anything; it asks the question again.
+  still owed, or, bound to the choice fingerprint, whether a choice prompt with nothing
+  to decide has been acknowledged, so it travels beside the snapshot instead of being
+  folded into it. Losing it does not grant anything; it asks the question again.
 
 `version` gates readability rather than the decision, and `storedAt` is diagnostics
 and the newest-writer-wins check. Neither changes an answer by itself, so both are
@@ -933,7 +962,9 @@ invented. Every fixture carries `now` (the fixed clock every side must use),
 `body`, which holds the `policyResolution` wire value rather than raw
 `policyRules`), the `storedRecords` protected storage holds at start, the device's
 `overrides` and `privacySignals`, and `user`. A `save-body-*` input adds the
-`intent`. Nothing is derived from a random value: the subject id is always
+`intent`. A fixture about the host's declaration adds `consentCategories`, where `null`
+is a host that declares nothing; a fixture without the key was generated with every
+category declared, and a runner configures its core that way. Nothing is derived from a random value: the subject id is always
 supplied, so no fixture depends on a CSPRNG. The fixtures carry a UUID v4, the
 shape an install minted before this format existed, which every core still has to
 hydrate. An id a device mints itself uses the base58 shape under "Subject identity".
@@ -1204,13 +1235,13 @@ bridge's own default.
 spellings, the same declaration a web host passes to its provider as
 `consentCategories`. The list is what the app offers, and it only ever narrows
 the optional half of the resolved policy scope: `snapshot.consentCategories` is
-`necessary` plus (scope ∩ declaration), a name the policy does not govern is
-dropped, and with no declaration the full scope is offered. iOS reads a string
+`necessary` plus (scope ∩ declaration), and a name the policy does not govern is
+dropped. With no declaration a strict or IAB rule offers its full scope and any other
+permissive rule offers `necessary` alone, with an acknowledgement prompt; see "State model". iOS reads a string
 array and drops entries that are not category raw values; Android reads a
 comma-separated list, trims spaces around each name, and drops unknown names the
 same way, so a mistyped id narrows the rows rather than installing a category
-that cannot exist. A declaration that parses to nothing reads as absent, which
-is the full-scope answer, not an empty dialog. Neither key travels to JavaScript
+that cannot exist. A declaration that parses to nothing reads as absent. Neither key travels to JavaScript
 through `extra.c15t`: the snapshot already carries the decided list, and a
 second copy could only disagree with it.
 

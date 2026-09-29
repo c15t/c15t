@@ -71,11 +71,11 @@ test('server construction and repeated init use the client scope without changin
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 		kernel.set.consentCategories(['necessary']);
 		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
+		// Nothing declared under a permissive rule asks about no category, and
+		// the stored measurement choice already answers that prompt.
 		kernel.set.consentCategories(undefined);
-		expect(kernel.getSnapshot().promptRequirement).toEqual({
-			kind: 'choice',
-			reason: 'missing',
-		});
+		expect(kernel.getSnapshot().evaluationPolicy.choiceScope).toEqual([]);
+		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
 	} finally {
 		kernel.dispose();
 	}

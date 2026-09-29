@@ -49,7 +49,9 @@ for (const scenario of ['notice', 'scoped', 'necessary-only'] as const) {
 				<ConsentProvider
 					options={{
 						consentCategories:
-							scenario === 'notice' ? undefined : ['necessary', 'measurement'],
+							scenario === 'notice'
+								? ['marketing', 'measurement']
+								: ['necessary', 'measurement'],
 						enabled: true,
 						mode: Object.assign(() => ({ save }), { kind: 'custom' as const }),
 						persistence: false,

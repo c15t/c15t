@@ -733,12 +733,38 @@ final class ProtocolFixtureTests: XCTestCase {
         return CoreConfig(
             store: store,
             transport: http.map { Fixture.transport($0) },
+            consentCategories: try declaredCategories(entry: entry, input: input),
             overrides: overrides,
             user: user,
             gpc: detectedFromFixture,
             now: clock.reading,
             initRetry: .disabled
         )
+    }
+
+    /// The categories the fixture app declares.
+    ///
+    /// A fixture without `input.consentCategories` was generated with every category
+    /// declared, so that is what the core is configured with. `null` is an app that
+    /// declares nothing, which is a `nil` here. A name this build does not know is an
+    /// error rather than a row dropped on the floor.
+    private func declaredCategories(entry: Index.Entry, input: JSONValue) throws -> [ConsentCategory]? {
+        guard let declared = input["consentCategories"] else {
+            return ConsentCategory.allCases
+        }
+        guard let names = declared.arrayValue else {
+            if declared.isNull { return nil }
+            throw Failure.unsupported(fixture: entry.id, detail: "input.consentCategories is neither a list nor null")
+        }
+        return try names.map { name in
+            guard let raw = name.stringValue, let category = ConsentCategory(rawValue: raw) else {
+                throw Failure.unsupported(
+                    fixture: entry.id,
+                    detail: "input.consentCategories names \(render(name)), which is not a category"
+                )
+            }
+            return category
+        }
     }
 
     // MARK: - Stored envelopes
@@ -1449,6 +1475,15 @@ final class ProtocolFixtureTests: XCTestCase {
         ("evaluation-opt-out-denial-under-stale-policy", "expected.snapshot", [.revision]),
         ("evaluation-opt-out-grant-under-stale-policy", "expected.snapshot", [.revision]),
         ("evaluation-gpc-under-opt-in-no-receipt", "expected.snapshot", [.revision]),
+        // An app that declares no categories. The choice scope, the acknowledgement and
+        // its reasons match the kernel; the numbering runs ahead as it does everywhere.
+        ("evaluation-necessary-only-pending", "expected.snapshot", [.revision]),
+        ("evaluation-necessary-only-acknowledged", "expected.snapshot", [.revision]),
+        ("evaluation-necessary-only-acknowledgement-expired", "expected.snapshot", [.revision]),
+        ("evaluation-necessary-only-policy-changed", "expected.snapshot", [.revision]),
+        ("evaluation-necessary-only-answered-by-decision", "expected.snapshot", [.revision]),
+        ("evaluation-nothing-declared-strict", "expected.snapshot", [.revision]),
+        ("evaluation-nothing-declared-iab", "expected.snapshot", [.revision]),
         ("save-body-all", "expected.snapshotBefore", [.revision]),
         ("save-body-all", "expected.snapshotAfter", [.revision]),
         ("save-body-necessary", "expected.snapshotBefore", [.revision]),
@@ -1457,6 +1492,10 @@ final class ProtocolFixtureTests: XCTestCase {
         ("save-body-explicit-partial", "expected.snapshotAfter", [.revision]),
         ("save-body-ccpa-gpc", "expected.snapshotBefore", [.revision]),
         ("save-body-ccpa-gpc", "expected.snapshotAfter", [.revision, .deadline]),
+        ("save-body-necessary-only-all", "expected.snapshotBefore", [.revision]),
+        ("save-body-necessary-only-all", "expected.snapshotAfter", [.revision]),
+        ("save-body-necessary-only-necessary", "expected.snapshotBefore", [.revision]),
+        ("save-body-necessary-only-necessary", "expected.snapshotAfter", [.revision]),
         // The stored snapshot of a `native-envelope` write case is the same snapshot
         // an evaluation fixture asserts after the same action, so it runs one ahead
         // for the same reason. The read cases assert no snapshot: their bytes are
@@ -1465,6 +1504,7 @@ final class ProtocolFixtureTests: XCTestCase {
         ("native-envelope-partial-denials", "expected.snapshot", [.revision]),
         ("native-envelope-notice-dismissed", "expected.snapshot", [.revision]),
         ("native-envelope-opt-out-grants", "expected.snapshot", [.deadline, .revision]),
+        ("native-envelope-choice-acknowledged", "expected.snapshot", [.revision]),
     ]
 
     private static func divergences(for id: String) -> [Divergence] {

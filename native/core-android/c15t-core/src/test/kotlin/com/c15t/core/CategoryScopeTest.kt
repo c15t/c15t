@@ -23,13 +23,28 @@ class CategoryScopeTest {
 		val kernel = kernelWithPolicy(
 			scope = """["measurement"]""",
 			declared = null,
+			scopeMode = """"strict"""",
 		)
 
 		assertEquals(
 			listOf("necessary", "measurement"),
 			kernel.snapshot().consentCategories,
-			"a host that declares nothing is asked about the whole scope, and about nothing the scope does not name",
+			"a host that declares nothing is asked about the whole of a strict scope, and about nothing the scope does not name",
 		)
+	}
+
+	@Test
+	fun `a permissive rule and no declaration offer necessary alone`() {
+		// Categories outside a permissive choice scope stay allowed, so with nothing
+		// declared there is no category to ask about: `projectChoiceScope` in
+		// `packages/core/src/policy.ts` answers an empty scope, and the prompt asks for
+		// an acknowledgement instead.
+		val kernel = kernelWithPolicy(
+			scope = """["measurement"]""",
+			declared = null,
+		)
+
+		assertEquals(listOf("necessary"), kernel.snapshot().consentCategories)
 	}
 
 	@Test
@@ -95,6 +110,7 @@ class CategoryScopeTest {
 	private fun kernelWithPolicy(
 		scope: String,
 		declared: List<ConsentCategory>?,
+		scopeMode: String = """"permissive"""",
 	): C15tKernel {
 		val kernel = testKernel(
 			config = NativeConfig(
@@ -103,7 +119,7 @@ class CategoryScopeTest {
 			),
 			store = C15tStore(InMemoryKeyValueStore()),
 			transport = RecordingTransport()
-				.respondInit(initSuccess(body = initBody(scope = scope))),
+				.respondInit(initSuccess(body = initBody(scope = scope, scopeMode = scopeMode))),
 		)
 		kernel.bootstrap()
 		return kernel

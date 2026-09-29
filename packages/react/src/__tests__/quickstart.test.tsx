@@ -35,7 +35,13 @@ test('the preset quickstart records rejection, restores it, and reopens preferen
 	clearStorage();
 	const onChoiceRecorded = vi.fn();
 	const app = (
-		<ConsentProvider options={{ callbacks: { onChoiceRecorded }, mode }}>
+		<ConsentProvider
+			options={{
+				callbacks: { onChoiceRecorded },
+				consentCategories: ['marketing'],
+				mode,
+			}}
+		>
 			<ChoiceProbe />
 			<ConsentBanner />
 			<ConsentDialog />

@@ -77,7 +77,7 @@ export const buildInfoPlistEntries = function buildInfoPlistEntries(
 	}
 	// A real plist array, not a joined string: the bridge reads this key as
 	// `[String]` and drops names that are not category raw values. An empty
-	// declaration stays unwritten, because absence is the full-scope answer.
+	// declaration stays unwritten, because absence is the no-declaration answer.
 	if (params.consentCategories.length > 0) {
 		entries[IOS_PLIST_KEY.categories] = [...params.consentCategories];
 	}

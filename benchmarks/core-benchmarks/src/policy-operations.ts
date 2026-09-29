@@ -20,7 +20,19 @@ export const createPolicyOperations = (
 		}),
 	};
 	const ready = async () => {
-		const kernel = createConsentKernel({ transport });
+		// A site declares the categories its integrations use. With none, a
+		// permissive policy asks only for an acknowledgement, and these arms
+		// measure real category grants.
+		const kernel = createConsentKernel({
+			consentCategories: [
+				'necessary',
+				'experience',
+				'functionality',
+				'marketing',
+				'measurement',
+			],
+			transport,
+		});
 		const result = await kernel.commands.init();
 		if (!result.ok || kernel.getSnapshot().resolution.status !== 'matched') {
 			kernel.dispose();
