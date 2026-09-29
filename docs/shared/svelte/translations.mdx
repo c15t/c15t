@@ -1,0 +1,86 @@
+{/* Shared by docs/frameworks/svelte/translations.mdx and docs/frameworks/sveltekit/translations.mdx. */}
+
+## Where the copy comes from
+
+The banner, dialog, widget, gate placeholder and IAB surfaces read their text
+from one set of translations for the visitor's language. Which set depends on
+the provider's `mode`:
+
+| Mode | Copy comes from | Languages |
+| --- | --- | --- |
+| `hosted()` | The backend's `/init` response, in the language the browser or server asked for | Every language the backend bundles: bg, cs, cy, da, de, el, en, es, et, fi, fr, ga, gu, he, hi, hr, hu, id, is, it, lb, lt, lv, mt, nb, nl, nn, pl, pt, rm, ro, sk, sl, sv and zh |
+| `offline()` | The provider's `i18n` prop, merged over bundled English | English, plus any language you supply in full |
+
+The browser bundle carries English only. Other languages arrive from the
+backend, or from messages you pass.
+
+## Change the copy for one banner
+
+`ConsentBanner` takes `title`, `description`, `acceptButtonText`,
+`rejectButtonText`, `customizeButtonText` and `dismissButtonText`. These props
+win in every mode:
+
+{/* example: fragment */}
+
+```svelte
+<ConsentBanner
+  title="Cookies on this site"
+  rejectButtonText="Reject optional"
+/>
+```
+
+The props replace the text in every language, so pass values in the page's
+language, or compute them from your own i18n library.
+
+## Change the copy site-wide
+
+Pass `i18n` to the provider. `messages` holds partial translations per
+language; the keys you leave out keep c15t's copy:
+
+<include src="../examples/storybook-svelte/consent-i18n.mdx" />
+
+`locale` selects the language the provider starts in, `en` by default. Only
+that language's messages apply at first.
+
+In `hosted()` mode, the backend's translations replace these messages once
+`/init` answers, and a server `prefetch` already holds the backend's copy. So
+with a hosted backend, change site-wide copy on the backend, or use the
+component props above. A self-hosted backend takes `customTranslations` and
+`i18n` in its [configuration](/docs/self-host/api/configuration).
+
+In `offline()` mode, `i18n` is the only source of copy, and it applies from the
+first render.
+
+## Common message keys
+
+| Key | Where it shows |
+| --- | --- |
+| `cookieBanner.title`, `cookieBanner.description` | Choice banner heading and body. |
+| `cookieBanner.noticeTitle`, `cookieBanner.noticeDescription` | Notice banner heading and body. |
+| `common.acceptAll`, `common.rejectAll`, `common.customize`, `common.save` | Banner and dialog buttons. |
+| `common.acknowledge` | The notice's dismiss button. |
+| `common.securedBy` | The "Secured by" tag. |
+| `consentManagerDialog.title`, `consentManagerDialog.description` | Preference dialog heading and body. |
+| `consentTypes.<category>.title`, `consentTypes.<category>.description` | A category's name and description, such as `consentTypes.measurement.title`. |
+| `frame.title`, `frame.actionButton` | The `ConsentGate` placeholder. `{category}` is replaced by the category title. |
+
+[Copy and translations](/docs/customization/translations) covers wording for
+each action and testing long labels.
+
+## Switch the language
+
+`getConsentManager().setLanguage(code)` switches the language and resolves the
+policy again, so a hosted backend returns copy in the new language. Call it
+from your language switcher's event handler. The visitor's language otherwise
+comes from the `Accept-Language` header, or from `overrides.language` on the
+provider.
+
+The root of the banner, dialog and widget sets `dir` from the active
+language, so right-to-left languages such as Hebrew lay out correctly.
+
+## Verify the copy
+
+Open the page with the browser language set to each language you support.
+The banner, the dialog's category names and the gate placeholder all use that
+language. Then choose a narrow window and zoom to 200%: long labels wrap
+without cutting off.

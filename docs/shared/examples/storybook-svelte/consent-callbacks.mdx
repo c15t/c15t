@@ -5,22 +5,23 @@ import type { ConsentProviderCallbacks } from '@c15t/svelte';
 
 // Pass as `callbacks={callbacks}` on ConsentManagerProvider.
 export const callbacks: ConsentProviderCallbacks = {
+	// Runs just before c15t reloads the page after a withdrawal.
+	onBeforeConsentRevocationReload: ({ preferences }) => {
+		console.info('Reloading with', preferences);
+	},
 	// An explicit accept, reject or save. Never runs for defaults, expiry,
 	// policy changes or privacy signals.
 	onChoiceRecorded: ({ snapshot, confirmed }) => {
 		console.info('Visitor chose', snapshot.explicitChoice, confirmed);
 	},
-	// Any change to what may run, whatever caused it.
-	onPermissionsChanged: ({ snapshot, previous }) => {
-		console.info('Permissions', previous, '->', snapshot.effectivePermissions);
-	},
-	// A failed backend request, such as an unreachable /init.
+	// A failed command, such as an /init request that could not reach the
+	// backend.
 	onError: ({ error }) => {
 		console.warn('c15t error', error);
 	},
-	// Runs just before c15t reloads the page after a withdrawal.
-	onBeforeConsentRevocationReload: ({ preferences }) => {
-		console.info('Reloading with', preferences);
+	// Any change to what may run, whatever caused it.
+	onPermissionsChanged: ({ snapshot, previous }) => {
+		console.info('Permissions', previous, '->', snapshot.effectivePermissions);
 	},
 };
 ```

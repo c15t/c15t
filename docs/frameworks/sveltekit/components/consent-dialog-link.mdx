@@ -1,0 +1,18 @@
+---
+title: ConsentDialogLink
+description: Let visitors reopen c15t preferences from a SvelteKit layout footer with ConsentDialogLink, rendered in server HTML when the policy offers preferences.
+group: frameworks
+---
+
+## Reopen preferences from your footer
+
+`ConsentDialogLink` is an unstyled button that opens the preference dialog.
+Put it in the root layout's footer, so it is on every page:
+
+<include src="../../../shared/examples/sveltekit-demo/layout.mdx" />
+
+It needs `ConsentDialog` mounted in the same provider. With a server
+`prefetch`, the link is in the server HTML. Without one, such as on a
+prerendered page, it appears after hydration once the policy resolves.
+
+<include src="../../../shared/svelte/components/consent-dialog-link.mdx" />

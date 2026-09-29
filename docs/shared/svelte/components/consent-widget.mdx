@@ -1,0 +1,57 @@
+{/* Shared by the Svelte and SvelteKit ConsentWidget pages. */}
+
+## Put preferences on a page
+
+`ConsentWidget` renders the preference controls inline: one switch per
+category, an expandable description for each, and the save buttons the policy
+allows. It is the same widget `ConsentDialog` shows, without the dialog
+around it. Use it for a privacy settings page:
+
+<include src="../../examples/storybook-svelte/privacy-settings-page.mdx" />
+
+Render the page inside `ConsentManagerProvider`. The widget works without
+`ConsentDialog`, but keep the dialog mounted elsewhere if the banner's
+Customize button should also work.
+
+## Props
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `hideBranding` | `boolean` | `true` | Shows the "Secured by" tag when `false`. |
+| `noStyle` | `boolean` | provider's `noStyle` | Drops c15t's classes. |
+| `class` | `string` | none | Extra class on the root element. |
+
+## Behavior
+
+`ConsentWidget` renders nothing until a policy resolves and asks for consent
+UI. Then it lists the provider's `consentCategories`, limited to the policy's
+scope, with `necessary` always on and disabled.
+
+Each switch starts from the visitor's recorded choice. Before a choice, a
+switch is on under an opt-out policy or for a category the policy preselects,
+and off otherwise. Moving a switch changes an unsaved draft
+that every consent component on the page shares. The save button records the
+draft; the accept and reject buttons record every category at once.
+
+A category with declared vendors lists them under its description, each with
+its own switch, so a visitor can allow a category and still turn one vendor
+off. Under an IAB policy, vendor rows are not shown.
+
+If the policy changes while the visitor has unsaved changes, the widget shows
+an alert with a **Review preferences** button. Saving the stale draft fails
+until the visitor reviews it, so a choice made under the old policy is never
+recorded under the new one.
+
+## Accessibility
+
+- Each category switch has the `switch` role and the category title as its
+  accessible name.
+- Each category heading is a button with `aria-expanded` that opens its
+  description. Opening one closes the others.
+- The stale-policy message uses `role="alert"`, so screen readers announce it.
+
+## Style the widget
+
+`ConsentWidget` reads the `consentWidget` and `consentWidgetFooter` theme
+slots. The root carries `data-testid="consent-widget-root"`, and each
+category row carries `data-testid="consent-widget-accordion-item-<category>"`.

@@ -87,26 +87,22 @@ a reject button keeps it, whatever the layout says.
 
 ## Change the copy
 
-For wording used across the site, pass `i18n` to the provider. Messages merge
-over the bundled translations, per language:
+For one banner, the text props on `ConsentBanner`, such as `title` and
+`rejectButtonText`, replace the copy in every mode:
 
 {/* example: fragment */}
 
-```ts
-const i18n = {
-  messages: {
-    en: {
-      common: { rejectAll: 'Reject optional', customize: 'Choose cookies' },
-      cookieBanner: { title: 'Your privacy' },
-    },
-  },
-};
+```svelte
+<ConsentBanner title="Your privacy" rejectButtonText="Reject optional" />
 ```
 
-Pass it as `i18n={i18n}`. For one banner, the text props such as `title` and
-`rejectButtonText` on `ConsentBanner` are enough.
-[Copy and translations](/docs/customization/translations) covers the message
-keys and languages.
+For site-wide copy, where it comes from depends on the mode. In `offline()`
+mode, the provider's `i18n` messages merge over the bundled English copy. In
+`hosted()` mode, the backend's translations replace `i18n` messages once
+`/init` answers, so change hosted copy on the backend.
+[Translations](./translations) covers both, the message keys and switching
+languages. [Copy and translations](/docs/customization/translations) covers
+wording for each action.
 
 ## Remove c15t's styles
 

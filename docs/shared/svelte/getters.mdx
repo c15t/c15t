@@ -1,105 +1,177 @@
 {/* Shared by docs/frameworks/svelte/getters.mdx and docs/frameworks/sveltekit/getters.mdx. */}
 
-## Read consent in a component
+## Where getters work
 
-Svelte has no consent hooks or stores. Call a context getter from
-`@c15t/svelte` at the top level of a component's `<script>`, inside
+Svelte has no consent hooks or stores. `@c15t/svelte` exports context getters
+instead. Call one at the top level of a component's `<script>`, inside
 `ConsentManagerProvider`, and read its properties in markup or in `$derived`.
 The properties read the provider's `$state`, so the component updates when
 consent changes.
 
-{/* example: fragment */}
+A getter uses Svelte's `getContext`, so it throws when you call it:
 
-```svelte
-<script lang="ts">
-  import { getConsentManager } from '@c15t/svelte';
+- in an event handler, an effect or a timer,
+- in a component rendered outside the provider,
+- in a plain `.ts` module.
 
-  const consent = getConsentManager();
-  const measurementAllowed = $derived(consent.has('measurement'));
-</script>
+Call it once at the top level and keep the returned object; its methods work
+from event handlers later. The same getters are exported from
+`@c15t/svelte/headless`.
 
-{#if measurementAllowed}
-  <p>Analytics is on.</p>
-{/if}
-```
+| Getter | Returns | Use it to |
+| --- | --- | --- |
+| `getConsentManager()` | `ConsentManagerState` | Read permissions and choices, and record choices. Start here. |
+| `getHeadlessConsent()` | Surface state and actions | Build your own banner. See [headless](./headless). |
+| `getIAB()` | `SvelteIABState` or `null` | Read or change IAB TCF consent. |
+| `getConsentKernel()` | `ConsentKernel` | Subscribe to raw events or call low-level commands. |
+| `getSnapshot()` | `ConsentSnapshot` | Read the full kernel snapshot once. |
 
-Like any Svelte `getContext` call, a getter throws when you call it inside an
-event handler, an effect, or a component outside the provider.
-
-| Getter | Returns |
-| --- | --- |
-| `getConsentManager()` | The reactive consent state and the actions on this page. Start here. |
-| `getHeadlessConsent()` | Banner and dialog visibility, the actions the policy allows, and `performAction()`. See the headless page. |
-| `getConsentKernel()` | The underlying kernel, for `subscribe()` and low-level commands. |
-| `getSnapshot()` | The kernel snapshot at the moment you call it. It does not update; read `getConsentManager()` properties for live values. |
-| `getIAB()` | IAB TCF state and actions at the moment you call it, or `null`. Read `getConsentManager().iab` for live values. |
-
-The same getters are exported from `@c15t/svelte/headless`.
-
-## Permission or recorded choice
+## Read a permission or a recorded choice
 
 A permission answers "may this run now?" A recorded choice answers "what did
-the visitor decide?" Under an opt-out policy a category can be allowed before
-the visitor has chosen anything, so never treat a permission as consent the
-visitor gave. [How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+the visitor decide?" They differ. Under an opt-out policy a category can be
+allowed before the visitor chooses anything, and Global Privacy Control can
+deny a category the visitor allowed. Load scripts and render optional
+features from permissions; use the recorded choice only to show or report
+what the visitor decided.
+
+<include src="../examples/storybook-svelte/consent-status.mdx" />
+
+Before the visitor chooses, this component shows "No" and "Not chosen".
+[How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
 explains the difference.
 
-| Property | Answers |
+| Property or method | Answers |
 | --- | --- |
-| `consent.effectivePermissions.measurement` | Whether measurement may run now. |
-| `consent.has('measurement')` | The same, and it accepts conditions such as `{ and: ['measurement', 'marketing'] }` or `{ or: [...] }`. |
-| `consent.explicitChoice` | The visitor's recorded choice, or `null` before they choose. `explicitChoice.categories.measurement.value` is their answer for one category. |
-| `consent.noticeDismissal` | Whether a notice was dismissed. Dismissing a notice is not consent. |
-| `consent.privacySignals.gpc.detected` | Whether the browser sent Global Privacy Control. |
-| `consent.policyRule` | The resolved policy: `model`, `prompt`, `scope` and `rights`. |
-| `consent.hasPolicy` | Whether a policy has resolved. Optional categories stay denied until it does. |
-| `consent.activeUI` | `'banner'`, `'dialog'` or `'none'`. |
-| `consent.location` | The country and region the policy was resolved for. |
+| `has(condition)` | Whether a category, or a condition such as `{ and: ['measurement', 'marketing'] }` or `{ or: [...] }`, is allowed now. |
+| `effectivePermissions` | Every category's permission, such as `effectivePermissions.measurement`. |
+| `explicitChoice` | The visitor's recorded choice, or `null` before they choose. `explicitChoice.categories.measurement.value` is one category's answer. |
+| `noticeDismissal` | Whether and when a notice was dismissed. Dismissing a notice is not consent. |
+| `privacySignals` | Signals from the browser, such as `privacySignals.gpc.detected`. |
+| `restrictions` | Per category, the reasons a recorded grant is overridden, such as GPC. |
+| `vendorChoice`, `selectedVendors` | Recorded and draft grants for individual vendors outside IAB. |
 
-Load scripts and render optional features from permissions. Use the recorded
-choice only to show what the visitor decided or to report on it.
+## Read the policy and the UI state
 
-## Open preferences and save choices
+| Property | Value |
+| --- | --- |
+| `hasPolicy` | `true` once a policy resolved for the visitor. Optional categories stay denied until then. |
+| `policyPending` | `true` while the policy request is in flight. |
+| `policyRule` | The resolved rule: `model`, `prompt`, `scope`, `rights` and more. |
+| `resolution` | The resolution outcome, with `status` of `matched`, `failed` or another state. |
+| `model` | `'opt-in'`, `'opt-out'`, `'iab'` or `'none'`. |
+| `promptRequirement` | Whether the visitor owes a choice, a notice acknowledgement or nothing. |
+| `hasConsentUi` | Whether the policy calls for any consent surface. |
+| `hasConsentPreferences` | Whether a way back to preferences should show. `ConsentDialogLink` renders on this. |
+| `activeUI` | `'banner'`, `'dialog'` or `'none'`. |
+| `location` | The country and region the policy resolved for. |
+| `overrides` | The forced country, region, language or GPC value, if any. |
+| `consentCategories`, `consentTypes` | The categories the preference UI offers, as names and as full definitions. |
+| `translationConfig`, `translations` | The active copy and language. |
+| `legalLinks`, `presentation` | The provider's `legalLinks` and `presentation` props. |
+| `user`, `subject` | The identified user and the backend's subject for this visitor. |
 
-{/* example: fragment */}
+## Record a choice
 
-```svelte
-<script lang="ts">
-  import { getConsentManager } from '@c15t/svelte';
+Call the methods from event handlers. Save methods return a promise.
 
-  const consent = getConsentManager();
+<include src="../examples/storybook-svelte/privacy-controls.mdx" />
 
-  const allowAnalytics = async () => {
-    consent.setConsent('measurement', true);
-    await consent.saveConsents('custom');
-  };
-</script>
-
-<button type="button" onclick={() => consent.setActiveUI('dialog')}>
-  Privacy settings
-</button>
-<button type="button" onclick={allowAnalytics}>Allow analytics</button>
-```
+Clicking **Allow analytics** records measurement as allowed and leaves the
+other categories as they were. **Privacy settings** opens the dialog.
 
 | Method | Effect |
 | --- | --- |
-| `setActiveUI('dialog')` | Opens the preference dialog. `'banner'` shows the banner, `'none'` closes both. |
-| `setConsent(category, value)` | Changes the value in the unsaved draft the dialog shows. Nothing is recorded yet. |
-| `saveConsents('custom')` | Records the draft. |
+| `setActiveUI(surface)` | `'dialog'` opens preferences, `'banner'` shows the banner, `'none'` closes both. Records nothing. |
+| `setConsent(category, value)` | Changes one category in the unsaved draft. `setSelectedConsent` is the same method. |
+| `setSelectedVendor(vendorId, granted)` | Changes one vendor in the draft. Ignored for undeclared or disabled vendors. |
+| `saveConsents('custom')` | Records the draft. Throws when the policy changed since the draft started; see [the draft](#work-with-the-draft). |
 | `saveConsents('all')` | Records every category in scope as allowed. |
 | `saveConsents('necessary')` | Records only `necessary`, rejecting the rest. |
-| `dismissNotice()` | Records that the visitor dismissed a notice. |
-| `setLanguage(code)` | Switches the UI language and fetches translations again. |
-| `subscribeToConsentChanges(listener)` | Calls `listener` with the permissions after each change. Returns an unsubscribe function. |
+| `dismissNotice()` | Records that the visitor dismissed a notice. Only works while a notice is due. |
+| `setLanguage(code)` | Switches the language and resolves the policy again for it. |
+| `getDisplayedConsents()` | The categories to render in your own preference UI. |
+| `getDisplayedVendors(category)` | The vendors to list under one category. Empty under an IAB policy. |
+| `subscribeToConsentChanges(listener)` | Calls `listener` with the permissions after every snapshot change. Returns an unsubscribe function. |
 
-A save updates permissions in the same task, so gated scripts and
+A save updates permissions in the same task, so registered scripts and
 `ConsentGate` react before the backend request finishes. A failed request is
-kept and retried; it does not undo the choice. If a save withdraws a category
-that was granted, the provider reloads the page by default so code that
-already ran is gone. Set `reloadOnConsentRevoked: false` on the provider to
-handle that yourself.
+kept and retried; it does not undo the choice, and the provider's `onError`
+callback reports it. When a save withdraws a category that was granted, the
+provider reloads the page by default so code that already ran is gone. Set
+`reloadOnConsentRevoked={false}` on the provider to handle that yourself.
 
-To clear a stored choice while testing, use the DevTools panel. In code,
-`getConsentKernel()` gives access to the kernel's commands and `subscribe()`;
-see [consent state](/docs/concepts/consent-state) for what each command
-changes.
+Only call save methods from a visitor's action. Saving on page load records a
+choice the visitor never made.
+
+## Work with the draft
+
+`consent.draft` is the unsaved state every preference surface on the page
+shares: the dialog, `ConsentWidget` and your own UI.
+
+| Member | Behavior |
+| --- | --- |
+| `values` | Each category's draft value. Starts from the recorded choice, or from the policy's defaults before a choice. `selectedConsents` is the same object. |
+| `vendors` | Each declared vendor's draft grant. |
+| `isStale` | `true` when the policy or vendor list changed after the draft started. |
+| `set(category, value)`, `setVendor(id, granted)` | The same as `setConsent` and `setSelectedVendor`. |
+| `reset()` | Discards unsaved changes. |
+
+When `isStale` is `true`, `saveConsents('custom')` throws "The policy changed.
+Review your preferences before saving." Show the visitor the current
+categories, call `draft.reset()`, and let them save again.
+
+## Read and change IAB TCF consent
+
+`getConsentManager().iab` is the live IAB state, or `null` when IAB is off.
+`getIAB()` returns the same object at the moment you call it; read `.iab` on
+the manager for values that update.
+
+| Member | Value or effect |
+| --- | --- |
+| `config.enabled`, `config.cmpId` | Whether the add-on is on, and the CMP ID. |
+| `gvl`, `isLoadingGVL` | The Global Vendor List, and whether it is still loading. |
+| `purposeConsents`, `vendorConsents`, `specialFeatureOptIns` | The visitor's TCF choices, staged or saved. |
+| `tcString` | The saved TC String, or `null`. |
+| `nonIABVendors` | Custom vendors outside the IAB list. |
+| `acceptAll()`, `rejectAll()` | Set every purpose and vendor. |
+| `setPurposeConsent(id, value)`, `setPurposeLegitimateInterest(id, value)` | Change one purpose. |
+| `setVendorConsent(id, value)`, `setVendorLegitimateInterest(id, value)` | Change one vendor. |
+| `setSpecialFeatureOptIn(id, value)` | Change one special feature. |
+| `save()` | Writes the TC String and records the choice. |
+| `preferenceCenterTab`, `setPreferenceCenterTab(tab)` | The tab `IABConsentDialog` shows. |
+
+Until the TCF add-on finishes loading, the action methods queue and replay.
+See [IAB TCF](./iab) for setup.
+
+## Listen to consent events
+
+`getConsentKernel()` returns the consent kernel behind the provider. Its
+`events.on(type, listener)` subscribes to one event and returns an
+unsubscribe function. Subscribe in `$effect` so Svelte removes the listener
+when the component unmounts:
+
+<include src="../examples/storybook-svelte/consent-events.mdx" />
+
+`choice:recorded` fires for an explicit accept, reject or save.
+`permissions:changed` fires for any change to what may run. For callbacks that
+cover the whole app, use the provider's `callbacks` prop instead; see
+[callbacks](./callbacks).
+
+The kernel also has `subscribe(listener)`, which runs on every snapshot
+change, `getSnapshot()`, and `commands` for `init()`, `save()`,
+`dismissNotice()` and `identify()`. Prefer the manager's methods; they keep
+the draft and the open surface in step, which the raw commands do not.
+`getSnapshot()` from `@c15t/svelte` returns the snapshot at the moment you
+call it and does not update.
+
+## Other exports
+
+| Export | Purpose |
+| --- | --- |
+| `hosted({ url })` | The `mode` for an Inth or self-hosted backend. |
+| `offline({ policyRules })` | The `mode` that resolves policies in the browser with no backend. Not recommended for production environments. |
+| `custom(transport)` | The `mode` for your own transport. |
+| `createConsentRuntime(options)` | Creates a runtime to share between providers. See [ConsentManagerProvider](./components/consent-manager-provider#share-one-runtime). |
+| `resolveConsentPresentation(input)` | Resolves the banner or dialog shape and actions a policy asks for, as `getHeadlessConsent()` does. |
+| `defaultTranslationConfig`, `mergeTranslationConfigs`, `prepareTranslationConfig`, `detectBrowserLanguage` | Translation helpers. |

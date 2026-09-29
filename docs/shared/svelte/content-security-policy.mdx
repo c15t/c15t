@@ -1,0 +1,56 @@
+{/* Shared by the Svelte and SvelteKit Content Security Policy pages, after each page's framework section. */}
+
+## What c15t adds to the page
+
+A Content Security Policy has to allow each thing c15t or your vendors put on
+the page:
+
+| c15t does | Directive | Allow |
+| --- | --- | --- |
+| Requests the policy from `/init` and saves choices to `/subjects` | `connect-src` | Your backend's origin. `'self'` covers a same-origin route such as `/api/c15t`. |
+| Adds a `<script>` element for each allowed entry in `scripts` | `script-src` | Each vendor's script host, or the provider's `nonce`. |
+| Lets vendor scripts load more scripts, pixels and requests | `script-src`, `img-src`, `connect-src` | The hosts each vendor documents. |
+| Sets `src` on gated iframes, or mounts `ConsentGate` children | `frame-src` | Each embed's host, such as `https://www.youtube-nocookie.com`. |
+| Styles its components from `@c15t/svelte/styles.css` | `style-src` | `'self'`, since your bundler serves the file. |
+| Fetches the Global Vendor List under an IAB policy | `connect-src` | The vendor list host the policy names, when it is not your own origin. |
+
+The dev tools panel attaches a stylesheet to its shadow root. Keep the panel
+out of production builds, as its page describes, and a production policy
+does not need to allow it.
+
+## Stamp a nonce on vendor scripts
+
+If your server creates a nonce for each response and puts it in the
+`Content-Security-Policy` header as `'nonce-<value>'`, pass the same value to
+the provider:
+
+{/* example: fragment */}
+
+```svelte
+<ConsentManagerProvider {mode} {scripts} nonce={cspNonce}>
+```
+
+The script loader then sets that nonce on every `<script>` it adds, for both
+`src` and inline `textContent` scripts. A `nonce` on one `scripts` entry wins
+for that script. The provider reads `nonce` once, when it is created.
+
+The nonce covers only the elements c15t creates. A script that a vendor's
+script loads by itself does not get it; allow that host in `script-src`, or
+add `'strict-dynamic'` so scripts loaded by a trusted script are trusted too.
+With `'strict-dynamic'`, browsers ignore host allowlists in `script-src`, so
+every script on the page needs the nonce or a hash.
+
+## Verify the policy
+
+Enforce the policy, not report-only, and open the console with site data
+cleared:
+
+1. The banner renders with its styles, and no `Refused to` message mentions a
+   c15t element or `@c15t/svelte/styles.css`.
+2. Allow a category. Its vendor scripts load, and none are refused. A refused
+   script from a vendor's own host means that host is missing from
+   `script-src`.
+3. Save a choice. The request to `/subjects` succeeds; a `connect-src`
+   violation means the backend's origin is missing.
+4. Allow the category of a gated embed. It loads; a `frame-src` violation
+   names the host to add.

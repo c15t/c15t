@@ -1,0 +1,81 @@
+{/* Shared by the Svelte and SvelteKit ConsentDialog pages, after each page's usage section. */}
+
+## How the dialog loads
+
+`ConsentDialog` is not part of the first page load. The component you render
+is a small loader; the dialog itself is a separate chunk that it imports:
+
+- In browser idle time after the page's `load` event, while a button that
+  opens the dialog is mounted. Those buttons are the banner's Customize button,
+  `ConsentDialogLink`, `ConsentDialogTrigger`, the `ConsentGate` placeholder
+  and `ConsentButton` with `action="open-consent-dialog"`.
+- When such a button is hovered or focused.
+- At the latest, when the dialog opens.
+
+Set the provider's `preloadDialog` to `'intent'` to skip the idle load and
+load only on hover, focus or open. Idle loading is also skipped when the
+browser asks to save data, on 2G connections and offline. Every
+`ConsentDialog` on the page shares one import. If the import fails, the
+surface the dialog replaced comes back, and the next hover, focus or open
+retries. The dialog's CSS is already in `@c15t/svelte/styles.css`.
+
+## Props
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `open` | `boolean` | follows the consent state | Controls visibility yourself. While `open` is `true`, the dialog stays open. |
+| `showTrigger` | `boolean` or trigger props | `false` | Renders a floating `ConsentDialogTrigger` with the dialog. Pass an object for `defaultPosition`, `persistPosition`, `showWhen`, `size`, `ariaLabel`, `noStyle` and `class`. |
+| `legalLinks` | array of `LegalLinks` keys, or `null` | every configured link | Which of the provider's `legalLinks` to show after the description. |
+| `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
+| `models` | `Model[]` | `['opt-in', 'opt-out', 'iab', 'none']` | Policy models the dialog opens for. `none` is included so a policy with no prompt but a right to change preferences still opens it. |
+| `noStyle` | `boolean` | provider's `noStyle` | Drops c15t's classes. |
+| `class` | `string` | none | Extra class on the dialog content. |
+
+`ConsentDialog` has no text props. Its title and description come from the
+`consentManagerDialog` translations; see [translations](../translations).
+
+With `showTrigger`, the dialog loads when it mounts, because the trigger needs
+it at once. The trigger appears right after hydration. To keep a trigger in
+server HTML, render `ConsentDialogTrigger` next to the dialog instead.
+
+## What the dialog contains
+
+The dialog renders the heading, the description with legal links, and a
+[`ConsentWidget`](./consent-widget) with one switch per category and the save
+buttons the policy allows. Categories come from the provider's
+`consentCategories`, limited to the policy's scope. `necessary` is always on
+and cannot be switched off.
+
+Switches change an unsaved draft. The save button records the draft; the
+accept and reject buttons record every category at once. The dialog closes in the same task
+the choice is recorded. If the policy changes while the dialog is open, the
+widget shows an alert and asks the visitor to review before saving.
+
+## Open and close the dialog
+
+Anything that sets the active surface to `'dialog'` opens it: the banner's
+Customize button, `ConsentDialogLink`, `ConsentDialogTrigger`,
+`getConsentManager().setActiveUI('dialog')` or
+`getHeadlessConsent().openDialog()`.
+
+Escape closes the dialog. Clicks outside it do not, so a visitor cannot lose
+unsaved switches by accident. Closing without saving records nothing.
+
+## Accessibility
+
+- The dialog content is labelled by its title (`aria-labelledby`) and
+  described by its description (`aria-describedby`).
+- While the dialog is blocking, which is the default, focus is trapped inside
+  it and the page behind does not scroll. The provider's `presentation` can
+  turn blocking off for the dialog.
+- Each category switch is a `switch` role labelled with the category title.
+- The root sets `dir` from the active language.
+
+## Style the dialog
+
+`ConsentDialog` reads these theme slots: `consentDialog`, `consentDialogCard`,
+`consentDialogHeader`, `consentDialogTitle`, `consentDialogDescription`,
+`consentDialogContent` and `consentDialogTag`. The widget inside it reads the
+`ConsentWidget` slots. The content element carries
+`data-testid="consent-dialog-root"` and `data-blocking="true"` while
+blocking.

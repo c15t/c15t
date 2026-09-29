@@ -1,0 +1,70 @@
+---
+title: Content Security Policy
+description: Write a Content Security Policy for a SvelteKit app using c15t with kit.csp, covering vendor hosts, the server-rendered theme style and style attributes.
+group: frameworks
+---
+
+## Configure kit.csp
+
+SvelteKit writes the `Content-Security-Policy` header when you set `kit.csp`
+in `svelte.config.js`. It adds nonces or hashes to its own inline scripts. Add
+the hosts c15t and your vendors need to the directives:
+
+{/* example: fragment */}
+
+```js title="svelte.config.js (partial)"
+const config = {
+  kit: {
+    csp: {
+      mode: 'auto',
+      directives: {
+        'connect-src': ['self', 'https://your-project.inth.app'],
+        'frame-src': ['https://www.youtube-nocookie.com'],
+        'script-src': ['self', 'https://<vendor-script-host>'],
+      },
+    },
+  },
+};
+```
+
+Replace `https://your-project.inth.app` with the backend URL from your Inth
+project, and list each vendor's script host.
+
+SvelteKit does not pass the nonce it generates to your components, so the
+provider's `nonce` prop cannot reuse it. Allow vendor hosts in `script-src`
+instead. Host sources still apply next to SvelteKit's nonces, as long as the
+list has no `'strict-dynamic'`.
+
+## Allow the generated theme
+
+The `<style id="c15t-theme">` element from
+[customize](./customize#render-brand-tokens-on-the-server) is inline CSS that
+you render with `{@html}`. `kit.csp` adds no nonce or hash to it, so a
+`style-src` without `'unsafe-inline'` blocks it and the banner falls back to
+the stock colors. Either add the SHA-256 hash of the element's text to
+`style-src`, which stays fixed while the theme does not change, or switch to
+[a stylesheet](./customize#use-a-stylesheet-instead), which `'self'` covers.
+Browsers ignore `'unsafe-inline'` in a list that also has a nonce or hash, so
+adding it does not help under `mode: 'nonce'` or `'auto'`.
+
+## Style attributes in server HTML
+
+In the browser, Svelte sets `style` values through the DOM, which a policy
+does not block. Server-rendered HTML is different. A `style` attribute in the
+HTML is inline style, and `style-src` without `'unsafe-inline'` blocks it.
+c15t renders `style` attributes for theme slot `style` values and for the
+position of `ConsentDialogTrigger`. Svelte does not set them again during
+hydration, so a blocked value stays unapplied.
+
+Use class names in theme slots instead of `style` objects, or allow style
+attributes with a separate `style-src-attr 'unsafe-inline'` directive.
+
+## Server requests
+
+`loadConsent`, `c15tHandle` and the manifest route call the backend from your
+server, which the browser's policy does not govern. Only the browser's own
+requests, such as saving a choice, need the backend in `connect-src`. With
+the [consent proxy](./rendering#save-consent-through-your-own-origin), those
+go to your own origin and `'self'` covers them.
+
+<include src="../../shared/svelte/content-security-policy.mdx" />

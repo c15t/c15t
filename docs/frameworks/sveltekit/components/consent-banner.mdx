@@ -1,0 +1,30 @@
+---
+title: ConsentBanner
+description: Show the c15t cookie banner in SvelteKit server HTML with ConsentBanner, and set its variant, position, button layout, copy, accessibility and styling hooks.
+group: frameworks
+---
+
+## Render the banner
+
+Render `ConsentBanner` once, in the root layout inside
+`ConsentManagerProvider`, next to `ConsentDialog`:
+
+<include src="../../../shared/examples/sveltekit-demo/layout.mdx" />
+
+The banner decides for itself whether to show. You do not wrap it in a
+condition.
+
+## Banner in the server HTML
+
+When the provider's `prefetch` holds a resolved policy, SvelteKit renders the
+banner into the page's HTML. It is visible at first paint, and a returning
+visitor's choice applies before hydration. The entry transition runs once, at
+first paint; hydration does not replay it.
+
+The banner is not in the HTML when the page was prerendered, when
+`loadConsent` fell back after a slow or failed backend, or when the visitor
+already chose. The browser then shows it after hydration if it is due.
+[Troubleshooting](../troubleshooting#why-is-the-banner-missing-from-the-server-html)
+covers each case.
+
+<include src="../../../shared/svelte/components/consent-banner.mdx" />

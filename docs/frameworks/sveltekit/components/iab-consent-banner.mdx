@@ -1,0 +1,14 @@
+---
+title: IABConsentBanner
+description: Show the IAB TCF 2.4 first-layer banner to visitors under an IAB policy in a SvelteKit app with IABConsentBanner, its props and behavior.
+group: frameworks
+---
+
+<include src="../../../shared/svelte/components/iab-consent-banner.mdx" />
+
+## IAB banner in the server HTML
+
+With a server-resolved IAB policy in `prefetch`, `IABConsentBanner` renders
+into the server HTML. The browser then fetches the Global Vendor List from the
+route the server names. [IAB TCF](../iab#iab-on-the-server) covers the server
+side.
