@@ -10,7 +10,7 @@ Check, in order:
 
 1. The visitor's policy asks for one. A policy with prompt `none` shows no
    banner, which is common in opt-out regions. `useConsentSnapshot()`
-   exposes `policyRule.prompt`, and [DevTools](/docs/frameworks/nuxt/components#debug-with-devtools)
+   exposes `policyRule.prompt`, and [DevTools](/docs/frameworks/nuxt/components/dev-tools)
    shows the matched policy. See [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
 2. `ConsentRoot` is in `app.vue`, not inside a page that unmounts.
 3. The backend answered. In the Network tab, `/api/c15t/init` returns 200 with
@@ -75,6 +75,12 @@ returns the visitor's `country` and `region`.
 
 The composable ran outside the Nuxt app, for example in a server route or a
 plain module. Call consent composables inside a component's `setup`.
+
+## Every visitor resolves the same location
+
+The server found no location header, or a visitor-supplied `x-c15t-country`
+header won. Check which headers reach Nuxt and which ones you trust in
+[geography headers](/docs/frameworks/nuxt/geography-headers).
 
 ## More help
 

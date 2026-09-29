@@ -1,0 +1,66 @@
+---
+title: Embeds
+description: Keep YouTube videos, maps and other iframes out of a Nuxt page until their consent category is allowed, with ConsentGate or the iframe blocker.
+group: frameworks
+---
+
+## Pick a method
+
+| Method | Use it when |
+| --- | --- |
+| `ConsentGate` | You render the iframe in a Vue component and want a placeholder with a way to open preferences. The server HTML respects the visitor's choice. |
+| The iframe blocker | The iframe comes from markup you do not render with a component, such as CMS content, or you want no wrapper. |
+
+Both keep the iframe's `src` out of the page until the category is allowed,
+so the embed's host receives no request before consent.
+
+## Gate an embed with ConsentGate
+
+Wrap the iframe in the globally registered
+[`ConsentGate`](/docs/frameworks/nuxt/components/consent-gate):
+
+<include src="../../shared/examples/nuxt/embed.mdx" />
+
+The iframe is absent from the server HTML and the DOM until the visitor
+allows measurement. The `placeholder` slot shows a message and a
+[`ConsentPreferencesLink`](/docs/frameworks/nuxt/components/consent-preferences-link)
+until then. When the visitor withdraws measurement, Vue removes the iframe.
+
+Pick the category that matches what the embed does. The example uses
+measurement for YouTube because its player measures views. A map or chat
+widget usually belongs under functionality or experience.
+
+## Gate an iframe with the iframe blocker
+
+The module runs the iframe blocker in the browser by default. Give an iframe
+`data-src` instead of `src`, and a `data-category`:
+
+{/* example: fragment */}
+
+```vue title="app/components/MapEmbed.vue"
+<template>
+  <iframe
+    data-src="https://www.google.com/maps/embed?pb=YOUR_EMBED_ID"
+    data-category="functionality"
+    title="Store map"
+  />
+</template>
+```
+
+The server HTML has no `src`, so nothing loads before hydration. After
+hydration, c15t sets `src` from `data-src` when the category is allowed and
+removes it when the category is withdrawn. It watches the page, so iframes
+added by later navigation are handled too. The iframe element stays in the
+page while blocked, empty. Add `data-vendor` with a vendor ID to also block
+the iframe while the visitor has turned that vendor off.
+
+To turn the blocker off, set `iframeBlocker: false` in the module options.
+
+## Verify
+
+View the page source in a private window, under a policy that asks for
+consent. No iframe has a `src` pointing at `youtube-nocookie.com` or
+`google.com/maps`, and the Network tab shows no request to them. Allow the
+category and save: the iframe loads. Withdraw it and save: the page reloads
+without the embed. The [YouTube](/docs/integrations/youtube) and
+[Google Maps](/docs/integrations/google-maps) guides cover sizing and titles.

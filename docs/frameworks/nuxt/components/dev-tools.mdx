@@ -1,0 +1,34 @@
+---
+title: DevTools
+description: Inspect consent state, the resolved policy, location, scripts and consent events in a Nuxt app during development with ConsentDevTools.
+group: frameworks
+---
+
+## Usage
+
+The module does not register `ConsentDevTools`. Import it from
+`c15t/vue/devtools` with a dynamic import that runs only in development:
+
+<include src="../../../shared/examples/nuxt/devtools.mdx" />
+
+Render this component anywhere in your app, such as `app.vue`.
+`import.meta.dev` is `false` in production builds, so the dynamic import and
+the panel stay out of your production bundle. A static `import` would ship
+DevTools to every visitor even when `v-if` hides it. The panel mounts in the
+browser only.
+
+<import src="../../../shared/vue/components/dev-tools.mdx#behavior" />
+
+<import src="../../../shared/vue/components/dev-tools.mdx#props" />
+
+## Verify
+
+Run `nuxt dev` and open the app. A DevTools button appears in the corner you
+set. Open the Location panel and check the country the server resolved. Build
+with `nuxt build`, start the server and confirm the button does not appear.
+
+## Related
+
+- [Troubleshooting](/docs/frameworks/nuxt/troubleshooting) uses DevTools to
+  explain a missing banner.
+- [Verify consent](/docs/guides/verify-consent) is the release checklist.

@@ -1,0 +1,44 @@
+---
+title: ConsentDialogTrigger
+description: Show a floating, draggable button that reopens the c15t preference dialog in Nuxt, and configure its corner, size, icon and label.
+group: frameworks
+---
+
+## Usage
+
+Turn the trigger on with `showTrigger` in the module options. `ConsentRoot`
+then renders it. The trigger options are plain data, so they can go in
+`nuxt.config.ts`:
+
+{/* example: fragment */}
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  c15t: {
+    showTrigger: true,
+    triggerDefaultPosition: 'bottom-left',
+  },
+});
+```
+
+The module also registers `ConsentDialogTrigger` globally. When you compose
+the surfaces without `ConsentRoot`, render it yourself:
+
+<include src="../../../shared/examples/nuxt/consent-surfaces.mdx" />
+
+<import src="../../../shared/vue/components/consent-dialog-trigger.mdx#behavior" />
+
+<import src="../../../shared/vue/components/consent-dialog-trigger.mdx#options" />
+
+All trigger options go under the `c15t` key in `nuxt.config.ts` or
+`app.config.ts`.
+
+<import src="../../../shared/vue/components/consent-dialog-trigger.mdx#accessibility" />
+
+<import src="../../../shared/vue/components/consent-dialog-trigger.mdx#verify" />
+
+## Related
+
+- [ConsentPreferencesLink](/docs/frameworks/nuxt/components/consent-preferences-link)
+  is an inline alternative for a footer.
+- [Nuxt module](/docs/frameworks/nuxt/module) lists every option.

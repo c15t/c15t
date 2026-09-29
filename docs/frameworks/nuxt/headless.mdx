@@ -26,7 +26,8 @@ satisfies the prompt, so c15t sets `activeUI` to `null` and the banner closes.
 `useConsentDraft()` holds the preference form. `displayedCategories` lists the
 categories the policy lets the visitor choose, `values` holds each switch, and
 `save()` records them. Preferences stay open after a save, so close them
-yourself.
+yourself. [Composables](/docs/frameworks/nuxt/composables#build-a-preference-form)
+lists every field of the draft.
 
 Add focus handling, a close control and styles before you ship this. The
 component keeps the bare markup so the consent logic is easy to read.
