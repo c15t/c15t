@@ -187,8 +187,12 @@ export async function initializeIABMode(
 
 		updateIABState(storeAccess, { cmpApi });
 
-		// Load existing TC String from storage if available
-		const existingTcString = cmpApi.loadFromStorage();
+		// Load existing TC String from storage if available. Skip it while a
+		// material policy change requires re-consent: restoring it would re-enable
+		// invalidated grants and hide the prompt.
+		const existingTcString = get().consentInfo?.requiresReconsent
+			? null
+			: cmpApi.loadFromStorage();
 
 		if (existingTcString) {
 			await restoreConsentFromTCString(existingTcString, storeAccess);
