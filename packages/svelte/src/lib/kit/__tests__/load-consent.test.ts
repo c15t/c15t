@@ -537,3 +537,29 @@ describe('loadConsent with a slow init route', () => {
 		expect(reports).toHaveLength(1);
 	});
 });
+
+describe('loadConsent with a relative backendURL', () => {
+	test('resolves against event.url, not a forged x-forwarded-host', async () => {
+		const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse(INIT_PAYLOAD)));
+		const event = createEvent({
+			headers: {
+				cookie: CONSENTED_COOKIE,
+				host: 'attacker.example',
+				'x-forwarded-host': 'attacker.example',
+				'x-forwarded-proto': 'https',
+			},
+			url: 'http://localhost:5173/',
+		});
+
+		await loadConsent(event, {
+			backendURL: '/api/c15t',
+			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+		});
+
+		expect(fetchImpl).toHaveBeenCalledTimes(1);
+		const [input] = fetchImpl.mock.calls[0] as unknown as [RequestInfo];
+		const target = new URL(typeof input === 'string' ? input : input.url);
+		expect(target.origin).toBe('http://localhost:5173');
+		expect(target.pathname).toBe('/api/c15t/init');
+	});
+});

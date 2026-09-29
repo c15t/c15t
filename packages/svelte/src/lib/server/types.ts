@@ -40,8 +40,29 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * c15t backend base URL, absolute or origin-relative. When set, the
 	 * helper calls `${backendURL}/init` and folds the response into the
 	 * returned state. Omit it to only read cookies and headers.
+	 *
+	 * A relative URL resolves against `requestURL`, or the `host` header
+	 * when there is none. `x-forwarded-*` headers are ignored unless
+	 * `trustForwardedHeaders` is set.
 	 */
 	backendURL?: string;
+	/**
+	 * The URL SvelteKit resolved the request under (`event.url`). A
+	 * relative `backendURL` resolves against its origin. `loadConsent`
+	 * passes it for you.
+	 */
+	requestURL?: string | URL;
+	/**
+	 * Resolve a relative `backendURL` against the request's `forwarded`,
+	 * `x-forwarded-host` and `x-forwarded-proto` headers. Any client can
+	 * send those, so set this only behind a proxy that sets them and drops
+	 * incoming ones. SvelteKit's own `ORIGIN`, `HOST_HEADER` and
+	 * `PROTOCOL_HEADER` settings already shape `event.url`, which is usually
+	 * the better place to configure this.
+	 *
+	 * @defaultValue false
+	 */
+	trustForwardedHeaders?: boolean;
 	/** Fetch implementation for the `/init` call. */
 	fetch?: typeof globalThis.fetch;
 	/**

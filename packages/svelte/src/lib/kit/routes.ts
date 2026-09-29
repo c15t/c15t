@@ -20,12 +20,12 @@ import {
 	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
 	reportConsentSession,
+	resolveRequestBackendURL,
 	resolveSessionReportBackendURL,
 } from '@c15t/core/server';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
-	resolveBackendURL,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import type {
@@ -221,10 +221,7 @@ const resolveAgainstRequest = function resolveAgainstRequest(
 	url: string,
 	event: RequestEvent
 ): string | null {
-	return resolveBackendURL(url, {
-		host: event.url.host,
-		'x-forwarded-proto': event.url.protocol.replace(':', ''),
-	});
+	return resolveRequestBackendURL(url, { requestURL: event.url });
 };
 
 /**

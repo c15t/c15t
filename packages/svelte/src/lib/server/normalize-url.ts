@@ -1,4 +1,4 @@
-import { resolveBackendURL } from '@c15t/schema/types';
+import { resolveRequestBackendURL } from '@c15t/core/server';
 
 const ABSOLUTE_URL_REGEX = /^https?:\/\//u;
 
@@ -48,7 +48,8 @@ export const validateBackendURL = function validateBackendURL(
 };
 
 /**
- * Normalizes a backend URL, resolving relative URLs using request headers.
+ * Normalizes a backend URL, resolving a relative URL against the request's
+ * `host` header. Client-supplied `x-forwarded-*` headers are ignored.
  *
  * @param backendURL - The backend URL (absolute or relative)
  * @param headersList - The Headers object from the incoming request
@@ -60,5 +61,5 @@ export const normalizeBackendURL = function normalizeBackendURL(
 	backendURL: string,
 	headersList: Headers
 ): string | null {
-	return resolveBackendURL(backendURL, headersList);
+	return resolveRequestBackendURL(backendURL, { headers: headersList });
 };
