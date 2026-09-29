@@ -20,6 +20,7 @@
 	import { setConsentContext, setThemeContext } from '../context.svelte';
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
 	import { isIABConfigured, lazyCreateIAB } from '../iab-loader';
+	import { warnOnUnappliedThemeTokens } from '../theme-warning';
 	import type { ConsentManagerOptions } from '../types';
 
 	type ProviderOptionsInput = Omit<ConsentManagerOptions, 'mode'> & {
@@ -548,6 +549,11 @@
 	});
 
 	const userTheme = $derived(options.theme);
+
+	// Development only. Tokens need `generateThemeCSS` output in the page.
+	$effect(() => {
+		warnOnUnappliedThemeTokens(userTheme);
+	});
 
 	setThemeContext({
 		get colorScheme() {
