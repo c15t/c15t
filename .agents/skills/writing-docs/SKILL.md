@@ -22,6 +22,27 @@ read the `leadtype` skill before changing MDX components or generation.
    shared explanations in `docs/` and reuse them through leadtype includes or
    links. Do not clone a React guide and replace its framework name.
 
+## Take setup code from the example apps
+
+Code that wires c15t into an app comes from `examples/*` or
+`internals/next-compat/*`, which CI builds and tests. Do not hand-write a
+provider, layout, route handler or config file in MDX. Hand-written snippets
+drift: one Next.js page passed a `defineConsentConfig()` result from a server
+layout to `ConsentRoot`, which React cannot serialize.
+
+1. Find the example for the path you document. If none exists, add a route or
+   app and cover it in `examples/shared` before writing the page.
+2. Keep demo-only code (galleries, reset buttons, location overrides) out of
+   the file, or outside the published region.
+3. Mark the lines with `#region docs:<name>` and `#endregion docs:<name>`, then
+   run `bun scripts/sync-example-docs.ts`.
+4. Include `docs/shared/examples/<app>/<name>.mdx` from the page.
+
+A fence that is deliberately a fragment, such as one changed prop, needs
+`{/* example: fragment */}` on the line before it. The baseline in
+`scripts/hand-written-examples-baseline.json` counts older hand-written fences
+and may only fall. See `examples/shared/README.md` for marker syntax.
+
 ## Write for people and agents
 
 Lead each page with the answer and its deployment constraints. Use familiar

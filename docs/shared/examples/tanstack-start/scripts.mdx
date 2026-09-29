@@ -1,20 +1,20 @@
-{/* Generated from examples/svelte/src/scripts.ts by scripts/sync-example-docs.ts. */}
+{/* Generated from examples/tanstack-start/src/example-scripts.ts (docs:scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
 
-```ts title="src/scripts.ts"
+```ts title="src/example-scripts.ts"
 import { posthog } from '@c15t/scripts/posthog';
 import { xPixel } from '@c15t/scripts/x-pixel';
 
-const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
-const xPixelId = import.meta.env.VITE_X_PIXEL_ID;
-
-export const scripts = [
+export const createExampleScripts = (
+	posthogKey?: string,
+	xPixelId?: string
+) => [
 	...(posthogKey
 		? [
 				posthog({
-					apiHost: import.meta.env.VITE_POSTHOG_HOST,
 					id: posthogKey,
 					initOptions: { cookieless_mode: 'never' },
 					loadMode: 'after-consent',
+					region: 'eu',
 				}),
 			]
 		: []),

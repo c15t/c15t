@@ -1,3 +1,4 @@
+// #region docs:scripts
 import { posthog } from '@c15t/scripts/posthog';
 import { xPixel } from '@c15t/scripts/x-pixel';
 
@@ -17,3 +18,4 @@ export const createExampleScripts = (
 		: []),
 	...(xPixelId ? [xPixel({ pixelId: xPixelId })] : []),
 ];
+// #endregion docs:scripts
