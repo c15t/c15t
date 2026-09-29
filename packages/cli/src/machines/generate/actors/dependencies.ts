@@ -12,6 +12,7 @@ import { fromPromise } from 'xstate';
 import { SCOPED_FRAMEWORK_PACKAGES, UMBRELLA_PACKAGE } from '~/constants';
 import type { PackageManager } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
+import { dependencyName } from '~/utils/c15t-release';
 
 /**
  * Input for the dependency installation actor
@@ -307,10 +308,7 @@ export const checkInstalledDependencies =
 			};
 
 			for (const dep of dependencies) {
-				// Handle scoped packages
-				const depName = dep.startsWith('@') ? dep : dep.split('@')[0];
-
-				if (depName && isDependencySatisfied(depName, allDeps)) {
+				if (isDependencySatisfied(dependencyName(dep), allDeps)) {
 					installed.push(dep);
 				} else {
 					missing.push(dep);

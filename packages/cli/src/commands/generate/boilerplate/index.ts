@@ -318,7 +318,7 @@ export const generateBoilerplate = async (context: CliContext) => {
 	}
 	const files = {
 		...template.files,
-		'README.md': `# c15t ${options.framework} integration\n\nGenerated for the unpublished v3 API.\n\n${instructions.map((instruction, index) => `${index + 1}. ${instruction}`).join('\n\n')}\n`,
+		'README.md': `# c15t ${options.framework} integration\n\n${instructions.map((instruction, index) => `${index + 1}. ${instruction}`).join('\n\n')}\n`,
 	};
 	const { edits } = await collectFileEdits(async () => {
 		for (const [name, content] of Object.entries(files)) {

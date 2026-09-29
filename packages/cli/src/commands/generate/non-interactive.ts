@@ -19,6 +19,7 @@ import {
 	saveGenerationJournal,
 	clearGenerationJournal,
 } from '../../machines/generate/journal';
+import { withC15tRelease } from '../../utils/c15t-release';
 import { planGenerateFiles } from './options/utils/generate-files';
 import type { GenerateMode } from './options/utils/generate-files';
 import type { UIStyle, ExpandedTheme } from './prompts';
@@ -298,7 +299,7 @@ export const generateWithoutPrompts = async (
 		dependencies.push('@c15t/dev-tools');
 	}
 	const { missing: missingDependencies } = await checkInstalledDependencies({
-		dependencies,
+		dependencies: dependencies.map((dependency) => withC15tRelease(dependency)),
 		projectRoot: context.projectRoot,
 	});
 	const plan = await planGenerateFiles({
