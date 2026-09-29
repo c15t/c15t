@@ -116,6 +116,29 @@ describe.each(surfaces)('%s', (_name, component, options) => {
 	});
 });
 
+describe('<ConsentBanner /> rendered as a server island', () => {
+	it("carries the page's nonce, not the island request's", async () => {
+		// `<ConsentBannerDeferred />` renders the banner in a request of its
+		// own, with its own nonce, and passes the page's nonce as a prop.
+		const html = await container.renderToString(ConsentBanner, {
+			locals: {
+				c15t: await buildLocals(
+					{ mode: offlineMode({ policyRules: [testRule] }) },
+					'island-request-nonce'
+				),
+			},
+			props: { nonce: NONCE },
+		});
+		const tags = inlineTags(html);
+
+		expect(tags.length).toBeGreaterThanOrEqual(3);
+		for (const tag of tags) {
+			expect(tag).toContain(`nonce="${NONCE}"`);
+		}
+		expect(html).not.toContain('island-request-nonce');
+	});
+});
+
 describe("Astro's own CSP", () => {
 	/** The hash a browser computes for an inline element's text. */
 	const sha256 = (content: string): string =>

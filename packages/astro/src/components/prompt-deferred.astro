@@ -15,6 +15,11 @@
  * <ConsentBannerDeferred />
  * ```
  *
+ * Under a nonce-based Content Security Policy, the island's inline code
+ * carries the page's nonce from `Astro.locals.c15t.nonce`, since the page's
+ * policy is the one that applies to it. Astro's own island loader is an
+ * inline script without a nonce, so the policy has to allow it too.
+ *
  * Needs an adapter with on-demand rendering available (`output: 'server'`,
  * or `output: 'static'` with the page's own `prerender` left on and the
  * adapter configured). Without one, use `<ConsentBanner />` on an
@@ -33,6 +38,6 @@ interface Props extends PromptProps {
 }
 ---
 
-<ConsentBanner server:defer {...Astro.props}>
+<ConsentBanner server:defer {...Astro.props} nonce={Astro.locals.c15t?.nonce}>
 	<slot name="fallback" slot="fallback" />
 </ConsentBanner>
