@@ -56,6 +56,13 @@ expectTypeOf<{
 	storageConfig: { crossSubdomain: true; storageKey: 'consent' };
 }>().toExtend<ModuleOptions>();
 
+// The domain the hosted transport sends with consent requests.
+expectTypeOf<{ domain: 'example.com' }>().toExtend<ModuleOptions>();
+export const wrongDomain: ModuleOptions = {
+	// @ts-expect-error A domain is a string.
+	domain: 1,
+};
+
 export const unknownAppConfig = defineAppConfig({
 	c15t: {
 		// @ts-expect-error Unknown keys are not c15t options.

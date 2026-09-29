@@ -8,7 +8,10 @@ import type {
 export interface C15tNuxtConfig
 	extends
 		ConsentConfig,
-		Pick<RuntimeConsentConfig, 'iframeBlocker' | 'nonce' | 'storageConfig'> {
+		Pick<
+			RuntimeConsentConfig,
+			'domain' | 'iframeBlocker' | 'nonce' | 'storageConfig'
+		> {
 	/**
 	 * Block `fetch` and XHR requests that match these rules until the
 	 * visitor's consent allows them. Omitted or `false` disables it.
