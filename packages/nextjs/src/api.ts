@@ -11,12 +11,12 @@ import {
 } from '@c15t/core/libs/manifest-cache';
 import {
 	reportConsentSession,
+	resolveRequestBackendURL,
 	resolveSessionReportBackendURL,
 } from '@c15t/core/server';
 import {
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
-	resolveBackendURL,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import type {
@@ -55,6 +55,16 @@ export interface NextConsentManifestHandlersOptions {
 	 * Defaults to `C15T_MANIFEST_URL`.
 	 */
 	manifestURL?: string;
+
+	/**
+	 * Resolve a relative `backendURL` or `manifestURL` against the request's
+	 * `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead
+	 * of the request URL. Any client can send those headers, so set this
+	 * only behind a proxy that sets them and drops incoming ones.
+	 *
+	 * @default false
+	 */
+	trustForwardedHeaders?: boolean;
 
 	/**
 	 * Next.js Data Cache lifetime for the manifest fetch.
@@ -133,33 +143,21 @@ const readManifestRevalidateFromEnv = function readManifestRevalidateFromEnv():
 	return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 };
 
-const getRequestResolutionHeaders = function getRequestResolutionHeaders(
-	request: Request
-): Record<string, string> {
-	const url = new URL(request.url);
-	const headers: Record<string, string> = {
-		host: url.host,
-	};
-	for (const name of [
-		'x-forwarded-proto',
-		'x-forwarded-ssl',
-		'x-forwarded-host',
-		'host',
-		'referer',
-	]) {
-		const value = request.headers.get(name);
-		if (value) {
-			headers[name] = value;
-		}
-	}
-	return headers;
-};
-
+/**
+ * Resolves a configured URL against the route request. A relative URL takes
+ * the origin of `request.url`, which Next.js builds itself; `x-forwarded-*`
+ * headers are read only when `trustForwardedHeaders` is set.
+ */
 const resolveRequestURL = function resolveRequestURL(
 	backendURL: string,
-	request: Request
+	request: Request,
+	options: NextConsentManifestHandlersOptions
 ): string | null {
-	return resolveBackendURL(backendURL, getRequestResolutionHeaders(request));
+	return resolveRequestBackendURL(backendURL, {
+		headers: request.headers,
+		requestURL: request.url,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 };
 
 const resolveManifestURL = function resolveManifestURL(
@@ -168,7 +166,7 @@ const resolveManifestURL = function resolveManifestURL(
 ): string {
 	const manifestURL = options.manifestURL ?? getEnv('C15T_MANIFEST_URL');
 	if (manifestURL) {
-		const resolved = resolveRequestURL(manifestURL, request);
+		const resolved = resolveRequestURL(manifestURL, request, options);
 		if (!resolved) {
 			throw new Error('@c15t/nextjs/api: invalid C15T_MANIFEST_URL.');
 		}
@@ -184,7 +182,7 @@ const resolveManifestURL = function resolveManifestURL(
 			'@c15t/nextjs/api: configure C15T_BACKEND_URL or C15T_MANIFEST_URL.'
 		);
 	}
-	const resolved = resolveRequestURL(backendURL, request);
+	const resolved = resolveRequestURL(backendURL, request, options);
 	if (!resolved) {
 		throw new Error('@c15t/nextjs/api: invalid C15T_BACKEND_URL.');
 	}

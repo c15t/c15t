@@ -4,6 +4,7 @@
  * speak. Typed structurally so the public `@c15t/nextjs/pages` surface does
  * not depend on `@types/node`.
  */
+import { resolveRequestOrigin } from '@c15t/core/server';
 
 /**
  * Node-style incoming headers: lowercase names, arrays for repeated headers.
@@ -43,12 +44,6 @@ export interface NodeApiResponseLike {
 	write: (chunk: Uint8Array) => unknown;
 	end: (chunk?: Uint8Array) => unknown;
 }
-
-const firstHeaderValue = function firstHeaderValue(
-	value: string | string[] | undefined
-): string | undefined {
-	return Array.isArray(value) ? value[0] : value;
-};
 
 /**
  * Converts Node-style incoming headers to a Web `Headers` instance.
@@ -106,18 +101,19 @@ const readBody = async function readBody(
 
 /**
  * Converts a Node `IncomingMessage` into a Web `Request`. The URL is rebuilt
- * from `x-forwarded-proto`, `x-forwarded-host`/`host`, and `req.url`, the
- * same inputs the route handlers use to resolve a relative backend URL.
+ * from the `host` header and `req.url`, over `http` for loopback hosts and
+ * `https` otherwise. The route handlers resolve a relative backend URL
+ * against it, so `x-forwarded-*` headers, which any client can send, are
+ * read only when `trustForwardedHeaders` is set.
  */
 export const toWebRequest = async function toWebRequest(
-	req: NodeApiRequestLike
+	req: NodeApiRequestLike,
+	trustForwardedHeaders = false
 ): Promise<Request> {
-	const protocol = firstHeaderValue(req.headers['x-forwarded-proto']) ?? 'http';
-	const host =
-		firstHeaderValue(req.headers['x-forwarded-host']) ??
-		firstHeaderValue(req.headers.host) ??
-		'localhost';
-	const url = new URL(req.url ?? '/', `${protocol}://${host}`);
+	const origin =
+		resolveRequestOrigin({ headers: req.headers, trustForwardedHeaders }) ??
+		'http://localhost';
+	const url = new URL(req.url ?? '/', origin);
 	const method = req.method ?? 'GET';
 	const body =
 		method === 'GET' || method === 'HEAD' ? undefined : await readBody(req);

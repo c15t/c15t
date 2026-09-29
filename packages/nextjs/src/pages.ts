@@ -118,7 +118,8 @@ export type PagesApiHandler = (
 ) => Promise<void>;
 
 const toPagesApiHandler = function toPagesApiHandler(
-	handler: (request: Request) => Promise<Response>
+	handler: (request: Request) => Promise<Response>,
+	trustForwardedHeaders: boolean
 ): PagesApiHandler {
 	return async (req, res) => {
 		// The App Router only exposes GET for these routes and answers other
@@ -131,7 +132,9 @@ const toPagesApiHandler = function toPagesApiHandler(
 			);
 			return;
 		}
-		const response = await handler(await toWebRequest(req));
+		const response = await handler(
+			await toWebRequest(req, trustForwardedHeaders)
+		);
 		await writeWebResponse(response, res);
 	};
 };
@@ -157,8 +160,11 @@ export const createPagesApiHandlers = function createPagesApiHandlers(
 	options: NextConsentManifestHandlersOptions | ConsentConfig = {}
 ): { init: PagesApiHandler; manifest: PagesApiHandler } {
 	const handlers = createNextConsentRouteHandlers(options);
+	const trustForwardedHeaders =
+		(options as NextConsentManifestHandlersOptions).trustForwardedHeaders ===
+		true;
 	return {
-		init: toPagesApiHandler(handlers.GET),
-		manifest: toPagesApiHandler(handlers.manifestGET),
+		init: toPagesApiHandler(handlers.GET, trustForwardedHeaders),
+		manifest: toPagesApiHandler(handlers.manifestGET, trustForwardedHeaders),
 	};
 };

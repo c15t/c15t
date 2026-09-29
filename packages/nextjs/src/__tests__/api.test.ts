@@ -223,7 +223,7 @@ describe('@c15t/nextjs/api', () => {
 		expect(response.headers.get('x-c15t-next-revalidate')).toBe('90');
 	});
 
-	test('relative backendURL resolves from forwarded headers before request URL host', async () => {
+	test('relative backendURL resolves against request.url, not a forged x-forwarded-host', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(MANIFEST_FIXTURE), {
 				headers: {
@@ -239,6 +239,38 @@ describe('@c15t/nextjs/api', () => {
 
 		await manifestGET(
 			new Request('https://app.example.com/api/c15t/manifest', {
+				headers: {
+					host: 'attacker.example',
+					referer: 'https://attacker.example/',
+					'x-forwarded-host': 'attacker.example',
+					'x-forwarded-proto': 'http',
+				},
+			})
+		);
+
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'https://app.example.com/api/c15t/manifest',
+			expect.any(Object)
+		);
+	});
+
+	test('relative backendURL resolves from forwarded headers when trusted', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: {
+					'cache-control': 'public, s-maxage=120',
+				},
+				status: 200,
+			})
+		);
+		const { manifestGET } = createNextConsentRouteHandlers({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			trustForwardedHeaders: true,
+		});
+
+		await manifestGET(
+			new Request('http://127.0.0.1:3000/api/c15t/manifest', {
 				headers: {
 					'x-forwarded-host': 'edge.example.com',
 					'x-forwarded-proto': 'https',
