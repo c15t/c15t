@@ -484,14 +484,49 @@ export default defineDocsConfig({
 				},
 				{
 					base: 'html',
-					pages: [
-						'quickstart',
-						'attributes-and-api',
-						'customize',
-						'scripts',
-						'iab',
-						'troubleshooting',
+					children: [
+						{
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'callbacks',
+								'content-security-policy',
+								'dev-tools',
+								'troubleshooting',
+							],
+							title: 'Integration',
+						},
+						{
+							pages: [
+								'components',
+								'components/banner',
+								'components/dialog',
+								'components/trigger',
+								'components/action-buttons',
+								'components/preferences-link',
+								'components/gated-script',
+							],
+							title: 'Components',
+						},
+						{
+							pages: ['customize', 'translations'],
+							title: 'Customize',
+						},
+						{
+							pages: ['headless'],
+							title: 'Headless',
+						},
+						{
+							pages: ['iab'],
+							title: 'IAB TCF',
+						},
+						{
+							pages: ['attributes-and-api', 'api', 'configuration'],
+							title: 'Reference',
+						},
 					],
+					pages: ['quickstart', 'platforms'],
 					slug: 'html',
 					title: 'HTML',
 				},

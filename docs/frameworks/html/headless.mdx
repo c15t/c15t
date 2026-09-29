@@ -1,0 +1,114 @@
+---
+title: Headless
+description: Render your own consent banner and preferences in plain HTML with c15t.headless.js, the ui event and data-c15t-action buttons, while c15t keeps resolving the policy, storing choices and gating scripts.
+group: frameworks
+---
+
+## When to go headless
+
+Load `c15t.headless.js` when theme tokens and CSS cannot give you the banner
+you want, for example a bar that matches your site's markup exactly. The
+headless build keeps everything except the UI:
+
+- policy resolution, stored choices and backend saves;
+- gated scripts, gated iframes and the network blocker;
+- `window.c15t`, its events and the `data-c15t-action` page hooks.
+
+It ships no banner, no preference dialog, no trigger and no CSS. Before you
+switch, check whether [customize](/docs/frameworks/html/customize) covers the
+change, because a custom UI takes on every duty the stock one handles.
+
+## Build a bottom bar
+
+This block replaces the stock tag. It loads the headless build, then renders a
+bar with Accept, Reject, Preferences and Save controls. The accept, reject,
+customize and dismiss buttons are `data-c15t-action` buttons, so they need no
+code. One `ui` listener shows the bar, switches it into preferences mode and
+swaps the buttons for a notice:
+
+<include src="../../shared/examples/script-tag/headless-bar.mdx" />
+
+Put the block at the end of `<body>`. The example page in the c15t repository,
+`examples/script-tag/headless-bar.html`, runs it against a test backend in the
+acceptance suite.
+
+## Follow the surface c15t wants shown
+
+c15t still decides which surface should show. The `ui` event reports it:
+
+| `ui` payload | What your page shows |
+| --- | --- |
+| `'banner'` | The first prompt. Read `promptRequirement.kind` to choose between a choice and a notice. |
+| `'dialog'` | Your preferences view. A `data-c15t-action="customize"` button, a `#c15t-preferences` link or `c15t.openDialog()` asked for it. |
+| `'none'` | Nothing. Hide the bar. |
+
+A `ui` listener added after the policy resolved runs at once with the current
+surface, so a late script does not miss the first banner. Your own controls
+change the surface with `c15t.showBanner()`, `c15t.openDialog()` and
+`c15t.closeDialog()`, or the matching `data-c15t-action` values. None of them
+records anything.
+
+## Read the prompt the policy requires
+
+`c15t.getSnapshot()` returns the fields a custom UI renders from:
+
+| Field | What it tells your UI |
+| --- | --- |
+| `promptRequirement.kind` | `'choice'` needs a decision, `'notice'` needs only an acknowledgement, `'none'` needs no prompt. |
+| `policyRule.actions.required` | The buttons the policy requires on the first prompt, such as `accept` and `reject`. |
+| `policyRule.actions.allowed` | Every button the policy allows there. |
+| `policyRule.rights` | Rights the visitor has, such as `preferences` and `opt-out`. |
+| `policyRule.scope` | The categories the policy covers. |
+| `effectivePermissions` | Whether each category is allowed right now. |
+| `explicitChoice` | What the visitor recorded, if anything. |
+
+Use `c15t.has(category)` to set each switch in your preferences view to the
+current permission. Save exactly what the switches show with
+`c15t.save({ measurement: true, marketing: false })`.
+
+## What your UI must handle
+
+A custom UI takes on everything the stock banner does:
+
+- **Every prompt kind.** Show a decision for `choice`, a dismissable notice
+  for `notice`, and nothing for `none`. Do not assume every prompt is accept
+  or reject, or that no prompt means consent.
+- **The policy's required actions.** Render every action in
+  `policyRule.actions.required`, at equal prominence where the policy asks.
+- **A way back.** Keep a [preferences link](/docs/frameworks/html/components/preferences-link)
+  on every page after the banner closes.
+- **Visitor actions only.** Call `save()`, `acceptAll()`, `rejectAll()` and
+  `dismissNotice()` only from a click or key press, never on load.
+- **Accessibility.** Focus, keyboard use, labels, error states and narrow
+  screens are yours. Use native buttons and a labelled region or dialog.
+
+Read [how consent works](/docs/concepts/how-consent-works) for the difference
+between a permission and a recorded choice.
+
+## Keep the stock dialog with your own banner
+
+To replace only the banner, keep `c15t.js` and turn the stock banner off:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', { ui: { banner: false } }]);
+</script>
+```
+
+Your banner then follows the `ui` event for `'banner'`, and its customize
+button opens the stock preference dialog.
+
+## Check it works
+
+Open the page in a private window with the Network tab open.
+
+1. The bar appears once the policy resolves, with the buttons your policy
+   requires. Vendor requests are absent.
+2. Click **Reject all** and reload. The bar stays hidden and vendors stay
+   blocked.
+3. Click the **Privacy settings** link, turn on Measurement only and click
+   **Save**. Measurement vendors load and marketing vendors do not.
+4. Tab through the bar. Every control is reachable and labelled.

@@ -1,0 +1,141 @@
+---
+title: Install on your platform
+description: Where to paste the c15t script tag, gated vendor snippets and the privacy settings link in WordPress, Webflow, Shopify, Squarespace, Wix, Framer, Ghost, Hugo, Eleventy and Jekyll.
+group: frameworks
+---
+
+## What every platform needs
+
+Whatever builds your pages, three pieces go in three places:
+
+| Piece | Where it goes |
+| --- | --- |
+| The c15t script tag from the [quickstart](/docs/frameworks/html/quickstart#add-the-script-tag) | The shared `<head>` every page renders. |
+| Each vendor snippet, changed to `type="text/plain"` | Wherever the vendor told you to paste it. Remove the original copy. |
+| A link to `#c15t-preferences` | The footer or legal menu every page renders. |
+
+The tag must be on every page. A page without it has no consent state, and its
+vendor scripts follow their own rules. After you publish, check a page from
+each template your site uses, such as the home page, a blog post and a
+product page.
+
+## WordPress
+
+Add the tag to your child theme's `header.php`, right before `</head>`. Edits
+to a parent theme are lost when it updates. A block theme without
+`header.php` can print the tag from the child theme's `functions.php`:
+
+{/* example: fragment */}
+
+```php
+add_action('wp_head', function () {
+  echo '<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js" data-backend-url="https://your-project.inth.app" defer></script>';
+}, 1);
+```
+
+Priority `1` prints the tag before other plugins' head output. Replace the
+backend URL with your Inth project's URL.
+
+Plugins that add analytics or pixels for you, such as a site stats plugin or
+a marketing integration, print active tags you cannot change to
+`text/plain`. Turn off that plugin's tracking output and paste the vendor's
+snippet as a gated tag instead, or keep the plugin and hold its requests with
+a [network blocker](/docs/frameworks/html/network-blocker) rule.
+
+Add the privacy settings link as a custom link in your footer menu, with the
+URL `#c15t-preferences`.
+
+## Webflow
+
+Paste the tag in Site settings, Custom code, Head code. Paste gated vendor
+snippets there too, or in an Embed element for one page. Put the
+`#c15t-preferences` link in your footer component. Publish the site after each
+change; custom code does not run in the Designer.
+
+## Shopify
+
+Edit your theme's code and paste the tag in `layout/theme.liquid`, before
+`</head>`. Put the privacy settings link in the footer menu with the URL
+`#c15t-preferences`. Checkout pages do not render `theme.liquid`, so the tag
+does not run there.
+
+Apps that install tracking tags add them outside your theme. Check the page
+source for each vendor after you install c15t, and turn off an app's own
+tracking where it offers a setting.
+
+## Squarespace
+
+Paste the tag in the Code Injection page's Header field. Code injection is not
+available on every plan. Add a footer link with the URL `#c15t-preferences`.
+
+## Wix
+
+Add the tag as custom code in your site settings, placed in the head and
+loaded on all pages. Custom code needs a site plan with a connected domain.
+Add a footer link to `#c15t-preferences`.
+
+## Framer
+
+Paste the tag in your site settings' custom code, in the section for the start
+or end of `<head>`. Add a link with the URL `#c15t-preferences` in your
+footer. Publish to see it on the live site.
+
+## Ghost
+
+Paste the tag in Settings, Code injection, Site header. Add a navigation item
+with the URL `#c15t-preferences` to the secondary navigation, which most
+themes render in the footer.
+
+## Hugo
+
+Add the tag to the template that renders `<head>`, usually
+`layouts/_default/baseof.html` or a head partial. Copy a theme's file into
+your own `layouts/` directory before editing it, so a theme update does not
+overwrite your change.
+
+## Eleventy
+
+Add the tag to the base layout in your `_includes` directory that every page
+extends.
+
+## Jekyll
+
+Add the tag to `_includes/head.html` or `_layouts/default.html`. Copy a
+theme's file into your site before editing it.
+
+## Plain HTML and server includes
+
+Add the tag to each page's `<head>`, or to the shared header include your
+server uses.
+
+## Tag managers
+
+Do not load the c15t tag from Google Tag Manager or another tag manager. The
+tag manager runs its own tags before c15t could decide anything, and it is a
+vendor that needs consent itself. Load c15t directly in `<head>`, then gate the
+tag manager's snippet like any other vendor. [Scripts](/docs/frameworks/html/scripts#google-consent-mode-and-tag-managers)
+covers Google Consent Mode.
+
+## Caching and optimization plugins
+
+Plugins and CDN features that combine, defer or delay scripts can rewrite a
+gated tag's `type`, move it, or delay the c15t tag until the first click. Any
+of these breaks gating. Exclude the c15t tag, `c15t.js`, and every tag with
+`data-c15t-category` from script optimization. Then check the page source of
+the published site. Each gated tag still has `type="text/plain"` before a
+choice.
+
+A full-page cache is safe. The tag reads the visitor's choice in the browser,
+so every visitor can get the same cached HTML.
+
+## Check it works
+
+On the published site, open a page from each template in a private window
+with the Network tab open.
+
+1. The banner appears, and filtering for each vendor's domain shows no
+   request before a choice.
+2. Click **Reject All** and open another page. The banner stays closed.
+3. Click the footer's privacy settings link. The preference dialog opens.
+4. View the page source. There is one c15t tag, and every vendor snippet is
+   `type="text/plain"`.

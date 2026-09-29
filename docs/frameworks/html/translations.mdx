@@ -1,0 +1,143 @@
+---
+title: Translations
+description: Choose the language of the c15t banner and preference dialog on a plain HTML site, change its wording, and add languages in hosted and offline mode with the script tag.
+group: frameworks
+---
+
+## Where the copy comes from
+
+The script tag bundles English only. Other languages come from outside the
+bundle, and which source wins depends on the mode:
+
+| Mode | Where the copy comes from |
+| --- | --- |
+| Hosted, with `data-backend-url` | Your Inth project. The backend picks the language from the visitor's browser, or from `data-language`, and sends its copy with the policy. |
+| Manifest | The manifest's translations for the visitor's language. |
+| Offline | English, or the language and messages you set in `i18n`. |
+
+In every mode, text you set in `ui.banner`, such as `title` or
+`acceptButtonText`, replaces the translated text for all languages.
+
+## Pick the language
+
+In hosted and manifest mode, c15t follows the visitor's browser language. To
+force one, add `data-language` to the tag:
+
+{/* example: fragment */}
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
+  data-backend-url="https://your-project.inth.app"
+  data-language="de"
+  defer
+></script>
+```
+
+A multilingual site can print each page's language into the tag, for example
+from the `lang` attribute your CMS already writes on `<html>`.
+
+To switch after load, call `c15t.setLanguage('fr')`. c15t asks the backend for
+French copy and re-renders the banner and dialog. In offline mode,
+`setLanguage` has no copy to fetch, so the text stays as it was.
+
+## Change the wording
+
+Set `i18n.messages` in a queued `config` call. You only list the keys you
+change; the rest keep their default text:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    i18n: {
+      locale: 'en',
+      messages: {
+        en: {
+          common: { acceptAll: 'Accept', rejectAll: 'Reject optional' },
+          cookieBanner: { title: 'Cookies on this site' },
+        },
+      },
+    },
+  }]);
+</script>
+```
+
+With a backend, the `/init` response carries the project's copy. For the same
+language it replaces your `i18n` messages key by key, so change copy in your
+Inth project, or use the `ui.banner` text options for the banner.
+
+## Add a language in offline mode
+
+Offline mode shows the language named in `i18n.locale`, built from your
+messages over the English defaults:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    i18n: {
+      locale: 'de',
+      messages: {
+        de: {
+          common: {
+            acceptAll: 'Alle akzeptieren',
+            rejectAll: 'Alle ablehnen',
+            customize: 'Anpassen',
+            save: 'Einstellungen speichern',
+            acknowledge: 'OK',
+          },
+          cookieBanner: {
+            title: 'Wir respektieren Ihre Privatsphäre',
+            description: 'Diese Website verwendet Cookies, um Ihr Erlebnis zu verbessern.',
+          },
+        },
+      },
+    },
+  }]);
+</script>
+```
+
+Keys you leave out stay in English, so translate every key your banner and
+dialog show. The messages follow the same structure every c15t package uses.
+
+## Message keys the stock UI reads
+
+| Key | Where it shows |
+| --- | --- |
+| `cookieBanner.title`, `cookieBanner.description` | Banner heading and text under a choice policy. |
+| `cookieBanner.noticeTitle`, `cookieBanner.noticeDescription` | Banner heading and text under a notice policy. |
+| `common.acceptAll`, `common.rejectAll`, `common.customize` | Banner and dialog buttons. |
+| `common.acknowledge` | The notice's dismiss button. |
+| `common.save` | The dialog's save button. |
+| `common.securedBy` | The "Secured by" tag. |
+| `consentManagerDialog.title`, `consentManagerDialog.description` | Dialog heading and text. |
+| `consentTypes.measurement.title`, `consentTypes.measurement.description` and the other categories | Each category row in the dialog. |
+| `legalLinks.privacyPolicy`, `legalLinks.cookiePolicy`, `legalLinks.termsOfService` | Legal link labels, when a link has no `label` of its own. |
+| `rights.optOut`, `rights.preferences` | The extra button an opt-out policy adds to the banner. |
+
+The trigger's accessible name is not a message. Set `ui.trigger.ariaLabel`
+per page instead.
+
+## Right-to-left languages
+
+For a right-to-left language such as Hebrew, the banner and dialog set
+`dir="rtl"` and a banner at a default left or right position moves to the
+other side. Check wrapping and button order after you switch.
+
+[Copy and translations](/docs/customization/translations) covers labelling
+actions honestly and testing long strings.
+
+## Check it works
+
+1. Set your browser's preferred language to German and open the page in a
+   private window. With a backend, the banner shows your project's German
+   copy.
+2. Add `data-language="fr"` to the tag and reload. The banner switches to
+   French.
+3. Open the preference dialog. Its title, category names and buttons use the
+   same language as the banner.

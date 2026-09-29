@@ -1,0 +1,106 @@
+---
+title: Configuration
+description: Every option you can pass to the c15t script tag on a plain HTML page through a queued config call, including scripts with callbacks, the network blocker, theme tokens, presentation, translations and storage.
+group: frameworks
+---
+
+## Pass options before the tag
+
+Attributes on the script tag cover the common options. For everything else,
+queue a `config` call in an inline script before the tag:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    legalLinks: { privacyPolicy: { href: '/privacy' } },
+    ui: { banner: { legalLinks: ['privacyPolicy'] } },
+    reloadOnConsentRevoked: true,
+  }]);
+</script>
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
+  data-backend-url="https://your-project.inth.app"
+  defer
+></script>
+```
+
+The tag has `defer`, so an inline script anywhere in `<head>` runs before it.
+Later `config` calls win over earlier ones, and all of them win over the tag's
+attributes. `ui`, `ui.banner` and `ui.dialog` merge key by key; other options
+replace the earlier value. A `config` call after the client started does
+nothing and logs a warning. [window.c15t API](/docs/frameworks/html/api#how-options-merge)
+explains the order.
+
+A `config` object can hold functions, such as script callbacks, because it
+never leaves the page.
+
+<import src="../../shared/browser/client-options.mdx#connection" />
+
+The [attributes reference](/docs/frameworks/html/attributes-and-api#choose-a-mode)
+compares the modes.
+
+<import src="../../shared/browser/client-options.mdx#gating" />
+
+Each of these has a guide: [scripts](/docs/frameworks/html/scripts),
+[embeds](/docs/frameworks/html/embeds),
+[network blocker](/docs/frameworks/html/network-blocker) and
+[events and callbacks](/docs/frameworks/html/callbacks).
+
+<import src="../../shared/browser/client-options.mdx#presentation" />
+
+<import src="../../shared/browser/client-options.mdx#ui" />
+
+The banner, dialog and trigger options are on their component pages:
+[banner](/docs/frameworks/html/components/banner),
+[preference dialog](/docs/frameworks/html/components/dialog) and
+[floating trigger](/docs/frameworks/html/components/trigger).
+
+## Which attribute sets which option
+
+| Attribute | Option |
+| --- | --- |
+| `data-backend-url` | `backendURL` |
+| `data-mode` | `mode` |
+| `data-manifest-url` | `manifestURL` |
+| `data-policy-rules` | `policyRules` |
+| `data-categories` | `consentCategories` |
+| `data-country`, `data-region`, `data-language` | `overrides.country`, `overrides.region`, `overrides.language` |
+| `data-privacy-policy-url`, `data-cookie-policy-url`, `data-terms-url` | `legalLinks`, plus `ui.banner.legalLinks` and `ui.dialog.legalLinks` |
+| `data-color-scheme` | `ui.colorScheme` |
+| `data-trigger` | `ui.trigger: true` |
+| `data-hide-branding` | `ui.banner.hideBranding` and `ui.dialog.hideBranding` |
+| `data-shadow="false"` | `ui.shadow: false` |
+| `data-no-ui` | `ui: false` |
+
+## Store the consent cookie across subdomains
+
+By default c15t stores choices in a cookie and a localStorage key named `c15t`
+on the current host, for 365 days. To share one choice between
+`www.example.com` and `shop.example.com`, set `storageConfig`:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    storageConfig: { crossSubdomain: true, defaultExpiryDays: 180 },
+  }]);
+</script>
+```
+
+`crossSubdomain` sets the cookie on the root domain. `defaultDomain`, such as
+`'.example.com'`, sets it explicitly and wins over `crossSubdomain`. Use the
+same settings on every site that shares the cookie. localStorage stays per
+host, so a tab on another subdomain picks up a change when it next becomes
+visible. [Consent state](/docs/concepts/consent-state#keep-open-tabs-in-step)
+explains the rules.
+
+## Turn consent management off
+
+`enabled: false` allows every category, shows no UI and loads every
+configured script at once, as for a visitor who accepted everything. Use it
+for internal preview builds, not for visitors a consent law covers.
