@@ -34,10 +34,27 @@ export const targets: ExampleTarget[] = [
 		start: preview,
 	})),
 	{
+		// Server manifest mode. The prerendered and cached copies of the
+		// page share their HTML between visitors; the browser resolves each
+		// visitor after hydration.
 		directory: 'nuxt',
 		failureRoute: '/consent-example',
 		id: 'nuxt',
-		routes: ['/consent-example'],
+		routes: [
+			'/consent-example',
+			'/prerendered/consent-example',
+			'/cached/consent-example',
+		],
+		start: () => ['run', 'start'],
+	},
+	{
+		// The same shared-HTML routes in client manifest mode, where the
+		// browser resolves the manifest itself.
+		directory: 'nuxt',
+		env: { C15T_NUXT_MANIFEST: 'client' },
+		failureRoute: '/prerendered/consent-example',
+		id: 'nuxt-prerender',
+		routes: ['/prerendered/consent-example', '/cached/consent-example'],
 		start: () => ['run', 'start'],
 	},
 	{

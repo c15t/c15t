@@ -53,7 +53,7 @@ const openPreferences = () => {
 		position="bottom-right"
 	/>
 
-	<NuxtPage v-if="route.path === '/consent-example'" />
+	<NuxtPage v-if="route.path.endsWith('/consent-example')" />
 	<main
 		v-else
 		class="page"

@@ -13,6 +13,11 @@
  *   the request path. Set `manifest: 'client'` for SPA/static hosting
  *   (the browser fetches the manifest once and resolves locally), or omit
  *   to call the backend `/init` directly (the v2-compatible default).
+ *   `C15T_NUXT_MANIFEST=client` builds the demo in client mode.
+ * - `routeRules`: two copies of `/consent-example` whose HTML every visitor
+ *   shares, one prerendered at build time and one cached by Nitro. c15t
+ *   leaves visitor state out of that HTML and resolves the visitor in the
+ *   browser after hydration.
  */
 /**
  * Module config is static, so the banner-shape experiment is switched on
@@ -41,11 +46,15 @@ export default defineNuxtConfig({
 	c15t: {
 		backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
 		experiment,
-		manifest: true,
+		manifest: process.env.C15T_NUXT_MANIFEST === 'client' ? 'client' : true,
 	},
 	compatibilityDate: '2026-07-04',
 	devtools: { enabled: true },
 	modules: ['c15t/vue'],
+	routeRules: {
+		'/cached/consent-example': { swr: 60 },
+		'/prerendered/consent-example': { prerender: true },
+	},
 	runtimeConfig: { public: { posthogKey: '', xPixelId: '' } },
 	typescript: { strict: true },
 });
