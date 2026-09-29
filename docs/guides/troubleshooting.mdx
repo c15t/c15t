@@ -1,67 +1,133 @@
 ---
-title: Troubleshoot consent
-description: Diagnose missing banners, early vendor requests, lost choices and hydration differences.
+title: Troubleshooting
+description: Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
 group: guides
 ---
 
+## Start with three checks
+
+Most problems show up in one of these places. Run them before changing code.
+
+1. **Which c15t is running.** In the browser console, run `window.c15t`. v3
+   prints `{ version, pkg, mode }`, for example `mode: 'manifest'` from
+   `@c15t/nextjs`. `undefined` means no c15t provider has mounted on this
+   page. A `window.c15tStore` object means the page runs v2. With the script
+   tag, `window.c15t` is the full browser API instead.
+2. **The backend request.** In DevTools Network, filter by your backend URL.
+   Look for `/init` or `/manifest` and check its status. A CORS error means
+   the backend does not trust your site's origin.
+3. **Consent state.** Add the c15t DevTools panel from your framework's guide.
+   It shows the resolved policy, whether a prompt is needed, each category's
+   permission and the scripts c15t manages.
+
+Your framework's troubleshooting page covers adapter-specific failures, such
+as Next.js prerendering errors or SvelteKit hydration.
+
+## "Can't resolve 'c15t/next'" or a missing export
+
+npm's `latest` tag still points to c15t v2, which has no framework entry
+points. A plain `npm install c15t` therefore installs v2, and imports such as
+`c15t/next`, `c15t/react` or `ConsentRoot` fail with "Package subpath is not
+defined by exports" or "Module not found".
+
+Install the v3 release and check the lockfile:
+
+<CommandTabs command="c15t@alpha" mode="install" />
+
+Keep every c15t package, including `@c15t/scripts`, on the same release.
+Mixing v2 and v3 packages is not supported.
+
 ## Why is there no banner?
 
-Inspect `resolution` and `promptRequirement` before changing styles. Pending or
-failed initialization, no matching rule, a valid stored choice and a rule that
-requires no prompt can all produce no banner for different reasons. A missing
-stylesheet can also make rendered controls appear incorrectly.
+No banner is sometimes correct. Find out which case you have:
 
-Check the backend URL and Network response, then confirm the active policy for
-the visitor's location. Do not solve missing UI by granting every category or
-setting `enabled: false`: disabling the runtime permits optional loading.
+| What DevTools shows | Cause | Fix |
+| --- | --- | --- |
+| The backend request failed or has a CORS error | Wrong backend URL, or your origin is not trusted | Copy the URL from your Inth project exactly, including any path. Add the site's origin, such as `https://www.example.com` or `http://localhost:3000`, to the project's trusted origins. |
+| No backend request at all | No provider mounted, or the environment variable is empty in this build | Check `window.c15t`. Public environment variables are compiled in; rebuild after setting them. |
+| The policy resolved and no prompt is needed | The visitor's location maps to a policy without a prompt, such as a US state without a privacy law in the recommended rules | Expected. Test from a location that needs a prompt. Server helpers such as Next.js `resolveConsent` accept a `country` override for testing; remove it before you deploy. |
+| The policy resolved and a choice is stored | A returning visitor | Expected. Clear site data or use a private window. |
+| The banner is in the DOM but invisible or unstyled | The stylesheet is missing, or loaded before Tailwind CSS 4 | Import your framework's c15t stylesheet from your global CSS. See [customization](/docs/customization/overview). |
 
-## Why does the UI disappear with a content blocker?
+Do not "fix" a missing banner by granting every category or turning c15t off.
+While the policy is unresolved, every optional category stays denied. Turning
+the runtime off lets optional scripts load.
 
-Check the browser Network panel for `ERR_BLOCKED_BY_CLIENT` or a failed dynamic
-import. Older c15t builds used component filenames such as
-`consent-dialog-*.js`, which some cookie-annoyance lists block. Update the c15t
-packages and rebuild the app. Current component modules use neutral filenames;
-public component imports stay the same. This also covers Vite development
-requests used by TanStack Start and other Vite integrations.
+## Why does analytics load before the visitor chooses?
 
-Extensions can separately hide elements with cosmetic filters or block a
-configured backend URL. Check the failed request or hidden element to distinguish
-those cases from a missing component module.
+c15t only controls scripts you register with it. Find every other loader:
 
-## Why does analytics run before a choice?
+- A `<script>` tag in your HTML, layout or `_document`.
+- A framework plugin, such as `@next/third-parties`, `nuxt-gtag` or a Vercel
+  or Netlify analytics toggle.
+- A tag in Google Tag Manager that fires on page view.
+- An embed, such as a YouTube iframe, rendered without `ConsentGate`.
 
-Check effective permission under the selected policy, then find every loader
-for that vendor. Remove unconditional script tags, framework analytics plugins
-and duplicate tag-manager entries. c15t's script registration only controls the
-scripts registered with it.
+Remove the extra loader and register the vendor through
+[integrations](/docs/integrations/overview). Then reload with the Network panel
+open and cache disabled. The vendor's domain should be absent until you allow
+its category.
 
-Google helpers intentionally load with Consent Mode defaults. A Google request
-is not by itself proof that its storage consent was granted. If your requirement
-is no request at all, do not use an always-loaded helper unchanged.
+Also check the policy. Under an opt-out policy, optional categories are allowed
+before a choice, so the request is expected.
 
-## Why does a choice disappear on reload?
+Google Tag and Google Tag Manager are an exception by design. Their helpers
+load before a choice and send Google Consent Mode signals, so a request to
+Google before consent is expected. If you need no request at all before
+consent, read [Google Tag Manager](/docs/integrations/google-tag-manager) first.
 
-Check whether persistence is disabled, browser storage is blocked, the origin
-changed, or the receipt expired or no longer matches the current policy.
-A development example with `persistence: false` deliberately resets on reload.
-Do not "repair" persistence by saving permissions automatically on mount.
+## Why does the choice disappear on reload?
 
-## Why does hydration differ from server HTML?
+| Check | Fix |
+| --- | --- |
+| After saving, does DevTools Application show a `c15t` cookie and a `c15t` localStorage entry? | If not, look for `persistence: false` in your config. Examples use it on purpose; production apps should not. |
+| Does the browser block storage, for example in a sandboxed iframe or a strict privacy mode? | The choice works for the current page only. Nothing to fix in your app. |
+| Did the domain, subdomain or protocol change between visits? | Cookies and localStorage are per origin. Serve the site from one origin, or share the cookie across subdomains. |
+| Did the policy change since the visitor chose? | A changed policy, a new required category or an expired choice prompts again. This is intended. |
 
-Use the adapter's request helper and pass the returned configuration unchanged
-to its boundary. Check that server and browser use the same backend and policy
-inputs. A module-level mutable runtime on a server can share one visitor's state
-with another request; create request-owned state instead.
+Never save a choice automatically on page load to make persistence "stick".
+That records consent the visitor did not give.
 
-## Why does static hosting fail when development works?
+## Why does the page reload after saving preferences?
 
-A static host has no app server for init routes, proxies or server functions.
-Use absolute external consent URLs or an explicitly local policy. Test the
-production output with a static file server, not the framework dev server.
+A visitor turned off a category or vendor they had allowed. Scripts that
+already ran cannot be unloaded, so c15t reloads the page to start clean with
+only permitted code. Set `reloadOnConsentRevoked: false` if you clean up
+revoked vendors yourself; [clearing data on revocation](/docs/integrations/clear-on-revocation)
+covers the options.
 
-## Why does customization do nothing?
+## Why does the server HTML differ from the browser?
 
-Check the imported stylesheet, the correct token or slot, and which element
-carries the state attribute. `data-variant` on a banner root is not a matching
-attribute on its child card. Check cascade layers and the Tailwind version
-before adding specificity. See [customization](/docs/customization/overview).
+Pass the value your framework's server helper returns to the provider
+unchanged. Do not merge it with defaults or rebuild it from permissions. Make
+sure the server and browser use the same backend URL, because two backends can
+resolve different policies.
+
+Never keep consent state in a module-level variable on the server. One
+visitor's state can leak into another request. Create it per request, as the
+framework guides do.
+
+## Why does the static build fail when development works?
+
+A static host serves files only. Route handlers, server functions, rewrites
+and proxies that worked under the dev server do not exist after deployment.
+Point the browser at the absolute backend URL from Inth instead of a
+same-origin `/api/c15t` path, then test the built output with a static file
+server, not the dev server. [Choose your setup](/docs/concepts/choose-your-setup)
+lists the static path for each framework.
+
+## Why does the UI disappear with an ad blocker?
+
+Check the Network panel for `ERR_BLOCKED_BY_CLIENT`. Some filter lists block
+the consent backend's domain or old c15t chunk names such as
+`consent-dialog-*.js`. Current releases use neutral chunk names; update and
+rebuild. If the backend domain is blocked, the banner cannot load policy and
+every optional category stays denied.
+
+## Why does my theme do nothing?
+
+Check that the c15t stylesheet loads, that you set a token or slot the
+component actually reads, and that the state attribute you target is on the
+element you style. A `data-variant` on the banner root is not on its card.
+Check the Tailwind version and CSS layer order before adding specificity. See
+[customization](/docs/customization/overview).

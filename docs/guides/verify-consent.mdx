@@ -1,61 +1,93 @@
 ---
 title: Verify consent before shipping
-description: Test requests, policy resolution, persistence, navigation and preference changes in a production build.
+description: Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
 group: guides
 ---
 
-## Establish the policy under test
+## What you are checking
 
-Use a fresh browser profile and a known policy. For an opt-in choice policy,
-optional requests should be absent before a choice. Opt-out and notice policies
-have different defaults; inspect the resolved rule rather than expecting every
-region to show the same banner. Keep test geography overrides out of production.
+A banner on screen proves only that the banner renders. Before shipping,
+confirm four things in a production build:
 
-Inventory scripts in your HTML, application code, tag manager, plugins and
-embeds. A c15t provider cannot make an independently loaded vendor wait for a
-choice. Remove duplicate loaders before interpreting the result.
+1. Optional vendors make no requests before the visitor allows them.
+2. A rejection survives a reload and a new tab.
+3. The visitor can reopen preferences and change their mind.
+4. The policy is right for each location you serve.
+
+Run the checks against `next build && next start`, `vite preview`, or your
+framework's equivalent. Dev servers load code differently and hide problems.
+
+## Set up the browser
+
+1. Open a private window, so no earlier choice is stored.
+2. Open DevTools, select Network, and turn on **Disable cache** and
+   **Preserve log**.
+3. List the vendors you expect, such as `posthog.com`, `googletagmanager.com`,
+   `connect.facebook.net` or `youtube-nocookie.com`. You will filter by each.
+
+Before testing, list every place a vendor could load: `<script>` tags,
+framework analytics plugins, tag manager tags and embeds. c15t cannot hold
+back code it does not load. Remove duplicates first, or the results mean
+nothing.
 
 ## Run the visitor flow
 
-| Action | Check |
+| Step | What to check |
 | --- | --- |
-| Load without a stored choice | Correct policy and prompt; category-gated vendors stay blocked when permission is denied |
-| Reject optional categories | Prompt closes; denied vendors remain blocked |
-| Reload | Valid rejection persists; no new choice event is emitted by hydration |
-| Reopen preferences | Settings remain reachable after the banner closes |
-| Save one category | Only that category gets a new confirmation time |
-| Navigate without reloading | One runtime remains active; no duplicate vendor initialization |
-| Revoke a grant | Future gated work stops and configured cleanup runs |
-| Load with an expired or incompatible grant | It does not silently restore optional permissions |
-| Block the consent backend | Failed resolution is observable; absence of a banner does not grant permission |
-| Block browser storage | Interaction still works where supported; verify whether the choice survives reload |
+| Load the page | The banner appears under an opt-in policy. Filter Network by each vendor domain; opt-in vendors show no requests. |
+| Click Reject | The banner closes. Vendor domains still show no requests. |
+| Reload | No banner. Still no vendor requests. DevTools Application shows a `c15t` cookie. |
+| Open a new tab on the same site | Same result as the reload. |
+| Open preferences from your footer link | The dialog opens with the categories you rejected turned off. |
+| Allow one category and save | Only vendors in that category start loading. The others stay silent. |
+| Turn that category off again | The page reloads, and the vendor does not load after the reload. |
+| Navigate between pages without a full reload | Each vendor loads once, not once per navigation. |
 
-Inspect Network before the page starts loading, with cache disabled for the test.
-Filter by the vendor's script and collection domains. Hiding an iframe after it
-loads is too late to prevent the initial request.
+Google Tag and Google Tag Manager load before consent on purpose and send
+Consent Mode signals. For them, check that the consent state in the request
+parameters changes when the visitor chooses, not that requests are absent.
+See [Google Tag Manager](/docs/integrations/google-tag-manager).
 
-Google Consent Mode integrations intentionally load their scripts and send
-consent signals. Test their default and update commands separately from a
-zero-request gate. See [Google Tag Manager](/docs/integrations/google-tag-manager)
-and [Google Tag](/docs/integrations/google-tag).
+## Check each location
 
-## Test the production hosting shape
+Policies usually differ by region. Test at least:
 
-For static sites, serve the generated files. Confirm no request depends on an
-API route or rewrite that only exists in development. For SSR, inspect the
-initial HTML and check that hydration does not change a valid stored choice.
-Test a direct visit as well as client navigation.
+- A location that needs a choice, such as Germany or the United Kingdom.
+- A location without a prompt, such as a US state without a privacy law in
+  your rules.
+- A request with no location headers at all. c15t applies your policy's
+  fallback for unknown locations; make sure that fallback is what you want.
 
-For a cross-origin backend, check allowed origins, protocol and reachable URLs.
-A public backend URL is not an API secret. Keep credentials out of client props
-and public environment variables.
+Use a VPN, your host's geolocation preview, or the `country` option on your
+framework's server helper while testing. Remove test overrides before you
+deploy.
+
+## Check privacy signals
+
+Turn on Global Privacy Control in the browser. Brave and DuckDuckGo send it by
+default; in Firefox, enable it in Privacy settings. Reload and confirm the
+categories your policy restricts for GPC are denied, without the visitor
+having clicked anything. Turn GPC off and confirm the restriction ends.
+
+## Check failure behavior
+
+Block the backend URL in DevTools (right-click the request, then **Block
+request URL**) and reload. No banner appears, and no optional vendor loads.
+A missing banner must never mean "allowed". Then unblock it and confirm the
+page recovers.
 
 ## Check the interface
 
-Use a narrow viewport, long translated labels and keyboard-only navigation.
-Check that blocking dialogs trap focus, return it to the trigger when closed,
-and do not leave scrolling locked. Non-blocking notices should allow interaction
-with the page. Test contrast and focus indicators after applying a theme.
+- Tab through the banner and dialog with the keyboard only. Focus stays inside
+  a modal dialog and returns to the button that opened it when it closes.
+- Set the viewport to 375 pixels wide and switch to a language with long
+  labels, such as German.
+- After applying your theme, check text contrast and that focus rings are
+  visible.
 
-Record the policy, framework, deployment and observed request behavior with the
-test result. "The banner appears" is only one assertion.
+## Record the result
+
+Write down the framework, the rendering mode, the policy you tested, and the
+requests you saw before and after consent. "The banner appears" is not a test
+result. If something fails, [troubleshooting](/docs/guides/troubleshooting)
+starts with three checks that locate most problems.
