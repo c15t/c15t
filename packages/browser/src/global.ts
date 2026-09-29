@@ -87,6 +87,16 @@ export interface C15tGlobal {
 	 * @returns A function that cancels the call if it has not run yet.
 	 */
 	onInit: (listener: (client: ConsentClient) => void) => Unsubscribe;
+	/**
+	 * Run `[method, ...args]` calls the same way as calls queued before the
+	 * tag loaded, so `window.c15t = window.c15t || []; c15t.push([...])`
+	 * works whether the snippet runs before or after the tag. Unsupported
+	 * methods are skipped with a warning.
+	 *
+	 * @param calls - One or more `[method, ...args]` arrays.
+	 * @returns The number of calls received.
+	 */
+	push: (...calls: unknown[]) => number;
 	/** The DevTools panel, once `c15t.devtools.js` has mounted it. */
 	devtools: DevToolsInstance | null;
 	/** Resolves once the policy is resolved. Safe to call before `init()`. */
@@ -379,6 +389,10 @@ export const createGlobal = function createGlobal(
 				pendingListeners.delete(attach);
 				unsubscribe?.();
 			};
+		},
+		push(...calls) {
+			replayQueue(api, calls);
+			return calls.length;
 		},
 		onInit(listener) {
 			let cancelled = false;
