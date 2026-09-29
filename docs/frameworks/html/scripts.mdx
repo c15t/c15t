@@ -158,11 +158,51 @@ covers patterns, cookie domains and browser limits.
 
 The script tag does not send Google Consent Mode signals. The Google tag and
 Google Tag Manager helpers in `@c15t/scripts` do, but they need a bundler. On
-a plain HTML page, put the Google tag or the Tag Manager container in a
-`text/plain` tag with the category it needs. Google then loads only after
-consent, so it sends no cookieless pings before a choice. If you need Consent
-Mode signals on a plain page, write the `gtag('consent', ...)` calls yourself
-and update them from a `c15t.on('consent', ...)` listener.
+a plain HTML page, gate Google's snippet like any other vendor. Google then
+loads only after consent, so it sends nothing before a choice.
+
+Google's GA4 snippet is two tags. Gate both, and remove `async` from the first
+so the library finishes loading before the inline code runs:
+
+```html
+<script type="text/plain" data-c15t-category="measurement" src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX"></script>
+<script type="text/plain" data-c15t-category="measurement">
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXX');
+</script>
+```
+
+If you need Consent Mode instead, load Google's snippet ungated and send the
+signals yourself. Put this before Google's tags:
+
+```html
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('consent', 'default', {
+    analytics_storage: 'denied',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+  });
+  window.c15t = window.c15t || [];
+  c15t.push(['on', 'consent', (snapshot) => {
+    const allowed = snapshot.effectivePermissions;
+    const state = (granted) => (granted ? 'granted' : 'denied');
+    gtag('consent', 'update', {
+      analytics_storage: state(allowed.measurement),
+      ad_storage: state(allowed.marketing),
+      ad_user_data: state(allowed.marketing),
+      ad_personalization: state(allowed.marketing),
+    });
+  }]);
+</script>
+```
+
+With Consent Mode, Google receives requests before a choice, marked as denied.
+Decide which behavior your policy needs before you pick one.
 
 The vendor guides under [integrations](/docs/integrations/overview) have an
 HTML tab with the no-build setup.
