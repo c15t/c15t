@@ -7,6 +7,10 @@ export default defineDocsConfig({
 			title: 'Frameworks',
 		},
 		{
+			slug: 'concepts',
+			title: 'Concepts',
+		},
+		{
 			slug: 'guides',
 			title: 'Guides',
 		},
@@ -38,7 +42,7 @@ export default defineDocsConfig({
 	llms: {
 		sections: [
 			{
-				body: 'These docs describe v3. Start with Inth hosted setup, identify the framework, router and deployment, then read its quickstart. Static sites can use Inth directly. Use page Markdown and package-bundled docs for targeted context. Verify scripts, rejection, reload and preferences; banner visibility alone is insufficient.',
+				body: 'These docs describe c15t v3. Find the app in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.',
 				heading: 'Using these docs',
 				type: 'markdown',
 			},
@@ -46,7 +50,10 @@ export default defineDocsConfig({
 				heading: 'Start here',
 				links: [
 					{
-						urlPath: '/docs/frameworks',
+						urlPath: '/docs/concepts/choose-your-setup',
+					},
+					{
+						urlPath: '/docs/concepts/how-consent-works',
 					},
 					{
 						urlPath: '/docs/customization/overview',
@@ -69,20 +76,8 @@ export default defineDocsConfig({
 	},
 	navigation: [
 		{
-			pages: ['index', 'examples'],
+			pages: ['index', 'concepts/choose-your-setup', 'examples'],
 			title: 'Getting started',
-		},
-		{
-			base: 'guides',
-			pages: [
-				'deployment-modes',
-				'data-fetching',
-				'consent-state',
-				'shared-consent-controls',
-				'verify-consent',
-				'troubleshooting',
-			],
-			title: 'Understand consent',
 		},
 		{
 			base: 'frameworks',
@@ -90,10 +85,6 @@ export default defineDocsConfig({
 				{
 					base: 'next',
 					children: [
-						{
-							pages: ['concepts/consent-categories', 'concepts/policy-presets'],
-							title: 'Policies',
-						},
 						{
 							pages: [
 								'optimization',
@@ -160,10 +151,6 @@ export default defineDocsConfig({
 				{
 					base: 'react',
 					children: [
-						{
-							pages: ['concepts/consent-categories', 'concepts/policy-presets'],
-							title: 'Policies',
-						},
 						{
 							pages: ['script-loader', 'network-blocker', 'troubleshooting'],
 							title: 'Integration',
@@ -236,10 +223,6 @@ export default defineDocsConfig({
 					base: 'javascript',
 					children: [
 						{
-							pages: ['concepts/consent-categories', 'concepts/policy-presets'],
-							title: 'Policies',
-						},
-						{
 							pages: ['script-tag', 'script-loader', 'troubleshooting'],
 							title: 'Integration',
 						},
@@ -281,6 +264,22 @@ export default defineDocsConfig({
 			pages: ['index'],
 			slug: 'frameworks',
 			title: 'Frameworks',
+		},
+		{
+			base: 'concepts',
+			pages: [
+				'how-consent-works',
+				'consent-categories',
+				'policies',
+				'data-fetching',
+				'consent-state',
+			],
+			title: 'Concepts',
+		},
+		{
+			base: 'guides',
+			pages: ['verify-consent', 'troubleshooting', 'shared-consent-controls'],
+			title: 'Verify and troubleshoot',
 		},
 		{
 			base: 'customization',

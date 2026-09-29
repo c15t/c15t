@@ -1,22 +1,16 @@
 ---
-title: Data fetching and transports
-description: Choose cached manifests, backend init or offline policy resolution, and understand where consent records are saved.
-group: guides
+title: Data fetching
+description: How c15t gets policy data through a cached manifest, backend /init, the browser or offline rules, and where consent choices are saved.
+group: concepts
 ---
 
-## Start with Inth and a cached manifest
+## Compare the fetching paths
 
-Use Inth for managed policy and consent records. For a Next.js application with
-a server, use a cached manifest to resolve policy in your application. Route
-browser consent traffic directly to Inth, or optionally use a Next.js rewrite
-to keep those requests on your app's origin. Follow the
-[Next.js manifest setup](/docs/frameworks/next/data-fetching).
-
-Backend ownership and data fetching are separate decisions. Inth manages the
-backend for you. A [self-hosted backend](/docs/self-host/quickstart) uses the same
-protocol while you operate its database, policies and availability. A static
-site can still call Inth. Only `offline()` deliberately removes consent backend
-requests and stores choices locally.
+Where policy resolves and where choices are saved are separate from who runs
+the backend. Inth and a [self-hosted backend](/docs/self-host/quickstart) speak
+the same protocol, so every path below works with either. Only `offline()`
+removes backend requests. For a recommendation by framework, start with
+[choose your setup](/docs/concepts/choose-your-setup).
 
 | Fetching path | Where policy resolves | Where choices are submitted | Choose it when |
 | --- | --- | --- | --- |
@@ -42,6 +36,16 @@ request path before promising a latency improvement.
 Do not put secrets, visitor identifiers or consent records into a manifest.
 Keep personalized init responses out of shared caches. Changing a policy also
 requires a refresh strategy for cached or build-time manifests.
+
+## How manifest mode counts visitors
+
+The backend counts visitors from `/init` requests, and manifest resolution
+skips them. To keep the count, the server adapters send a session report after
+each resolution: the host posts to the backend's `POST /sessions` from the
+server, after the response. The browser sends nothing, and the report stores
+no identity; the visitor's IP address and user agent are forwarded under the
+backend's usual IP handling. Static output resolves in the browser and sends
+no report. Set `reportSessions: false` on an adapter to turn it off.
 
 ## What does regular `/init` do?
 
@@ -133,7 +137,7 @@ export const mode = offline();
 With no `policyRules`, the current offline transport uses the recommended rule
 pack. Supplying `policyRules` replaces that pack. Unknown country and region are
 real resolution inputs; offline mode does not discover a visitor's location.
-Use [policy rules](/docs/frameworks/next/concepts/policy-presets) to understand
+Use [policy rules](/docs/concepts/policies) to understand
 matching and defaults, and test the missing-location case.
 
 Offline mode is an explicit architecture choice, not an automatic fallback for

@@ -113,4 +113,5 @@ something a reader can copy into their app unchanged.
 or orphaned. It also counts hand-written docs fences that import c15t against
 `scripts/hand-written-examples-baseline.json`; that count may only fall. Put
 `{/* example: fragment */}` on the line before a fence that is deliberately a
-partial edit rather than a file, such as one changed prop.
+partial edit rather than a file, such as one changed prop. When you move or
+rename a page, move its baseline entry with it.
