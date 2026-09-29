@@ -23,8 +23,11 @@ EXAMPLE_TARGET=all bun run --cwd examples/shared test
 ```
 
 Targets are `nextjs`, `react`, `vue`, `svelte`, `javascript`, `nuxt`,
-`tanstack-start`, `astro`, `astro-static` and `sveltekit`. `astro-static` builds
-the Astro demo as a static site with no adapter, so every page is prerendered. `src/targets.ts` contains only paths,
+`nuxt-prerender`, `tanstack-start`, `astro`, `astro-static` and `sveltekit`.
+`astro-static` builds the Astro demo as a static site with no adapter, so every
+page is prerendered. `nuxt` also runs the journeys on a prerendered route and a
+Nitro-cached route; `nuxt-prerender` runs those two routes in client manifest
+mode. `src/targets.ts` contains only paths,
 commands and environment aliases. No framework provider is implemented here.
 Every run builds again because public backend URLs contain the fixture's port.
 The build uses test vendor IDs, never account credentials.

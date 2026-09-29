@@ -50,6 +50,13 @@ of the self-hosted route.
 Open `/consent-example` for the shared integration scenario. The existing home
 and showcase routes remain available.
 
+`/prerendered/consent-example` is the same page prerendered at build time, and
+`/cached/consent-example` is the same page cached by Nitro (`swr`). Every
+visitor gets the same HTML there, so it renders without the banner and the
+browser resolves the visitor's policy and stored choice after hydration. Set
+`C15T_NUXT_MANIFEST=client` at build time to run the demo in client manifest
+mode.
+
 For hosted operation, create an [Inth](https://inth.com) project, configure an
 opt-in policy covering `measurement` and `marketing`, and allow this app's
 origin. Set `NUXT_PUBLIC_C15T_BACKEND_URL` to the exact public backend URL supplied by Inth.

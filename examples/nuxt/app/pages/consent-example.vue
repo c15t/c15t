@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed, onUnmounted } from 'vue';
 
+// The same page under route rules that share its HTML between visitors
+// (see `routeRules` in nuxt.config.ts).
+definePageMeta({
+	alias: ['/prerendered/consent-example', '/cached/consent-example'],
+});
+
 const snapshot = useConsentSnapshot();
 const activeUI = useConsentActiveUI();
 const allowed = computed(() => snapshot.value.effectivePermissions.measurement);

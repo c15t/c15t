@@ -157,6 +157,7 @@ export const createCiPlan = function createCiPlan(
 		['svelte', 'svelte'],
 		['javascript', 'javascript'],
 		['nuxt', 'nuxt'],
+		['nuxt-prerender', 'nuxt'],
 		['tanstack-start', 'tanstack-start'],
 		['astro', 'astro-demo'],
 		['astro-static', 'astro-demo'],
@@ -178,6 +179,7 @@ export const createCiPlan = function createCiPlan(
 			'svelte',
 			'javascript',
 			'nuxt',
+			'nuxt-prerender',
 			'tanstack-start',
 			'astro',
 			'astro-static',
@@ -246,7 +248,7 @@ export const createCiPlan = function createCiPlan(
 			examples.some(
 				(target) =>
 					workspace.directory ===
-					`examples/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', sveltekit: 'sveltekit-demo' } as Record<string, string>)[target] ?? target}`
+					`examples/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', 'nuxt-prerender': 'nuxt', sveltekit: 'sveltekit-demo' } as Record<string, string>)[target] ?? target}`
 			)
 		) {
 			required.add(workspace.name);
