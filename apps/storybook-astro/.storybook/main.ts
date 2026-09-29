@@ -78,6 +78,16 @@ const config: StorybookConfig = {
 						find: /^@c15t\/react\/iab$/u,
 						replacement: workspace('packages/react/src/iab.ts'),
 					},
+					// Docs recipes import the umbrella package the way a reader's
+					// site does.
+					{
+						find: /^c15t\/astro(?<capture1>\/.*)?$/u,
+						replacement: '@c15t/astro$1',
+					},
+					{
+						find: /^c15t\/react$/u,
+						replacement: workspace('packages/react/src/index.ts'),
+					},
 					{
 						find: /^c15t$/u,
 						replacement: workspace('packages/core/src/index.ts'),

@@ -18,7 +18,7 @@ serialization, so they hold values, not functions.
 | Wording on one banner | `ConsentBanner` props |
 | Light or dark surfaces | `colorScheme` |
 | Banner position and blocking | `presentation` |
-| Links to your policies | `legalLinks` |
+| Links to your policies | `legalLinks`, and the banner's `legalLinks` prop |
 | Your own CSS from scratch | `noStyle` on the banner, or `styles: false` |
 
 [Customize your consent interface](/docs/customization/overview) explains how
@@ -107,7 +107,8 @@ groups.
 
 For one banner, pass the `title`, `description`, `acceptButtonText`,
 `rejectButtonText`, `customizeButtonText` or `dismissButtonText` props
-instead. See [components](/docs/frameworks/astro/components#consentbanner).
+instead. [Translations](/docs/frameworks/astro/translations) covers languages
+and the message keys the banner reads.
 
 ## Change the banner's shape and position
 
@@ -149,21 +150,22 @@ swap replaces the attributes of `<html>`.
 
 ## Add links to your policies
 
-Define the links once in the integration options. The banner and dialog show
-them next to the description:
+Define the links once in the integration options, each with a `label`:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
   mode: hosted({ url: backendURL }),
   legalLinks: {
-    privacyPolicy: { href: '/privacy' },
+    privacyPolicy: { href: '/privacy', label: 'Privacy policy' },
     cookiePolicy: { href: '/cookies', label: 'Cookie policy' },
   },
 });
 ```
 
-`label` overrides the translated link text. To show fewer links on one banner,
-pass `legalLinks={['privacyPolicy']}` to `ConsentBanner`, or `null` for none.
+`ConsentBanner` shows only the ones you list in its `legalLinks` prop, such
+as `legalLinks={['privacyPolicy', 'cookiePolicy']}`. The preference dialog on
+Astro does not show them. See
+[ConsentBanner legal links](/docs/frameworks/astro/components/consent-banner#legal-links).
 
 ## Load the stylesheet yourself
 

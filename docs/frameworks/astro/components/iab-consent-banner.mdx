@@ -1,0 +1,93 @@
+---
+title: IABConsentBanner
+description: Render the IAB TCF 2.4 banner as server HTML on an Astro site with c15t, with the purposes, partner count and actions TCF requires, its props, accessibility and styling attributes.
+group: frameworks
+---
+
+## Usage
+
+Under an IAB TCF policy, replace `ConsentBanner` and `ConsentDialog` with the
+IAB pair:
+
+<include src="../../../shared/examples/astro-demo/iab-layout.mdx" />
+
+The integration must set `iab`. See [IAB TCF](/docs/frameworks/astro/iab) for
+the CMP ID, the vendor list and publisher restrictions.
+
+## What it renders
+
+`IABConsentBanner` renders on the server, with no framework JavaScript:
+
+- A title and description that name the number of partners. The partners
+  count is a button that opens `IABConsentDialog` on the vendors tab.
+- A list of the purposes, stacks and special features the vendor list covers,
+  with "and N more" when it names only some.
+- A notice about legitimate interest, and whether the choice applies to this
+  site only or to a group of sites.
+- Reject all and Accept all, plus a Customize button that opens the IAB
+  preference center.
+
+The banner sits in the bottom-left corner, or bottom-right for right-to-left
+languages. It does not read the `presentation.prompt` variant or position.
+
+The summary comes from the same model the React, Svelte and Vue IAB banners
+read, so every framework names the same purposes.
+
+## When it renders
+
+The banner needs a resolved IAB policy and a vendor list, because every line
+of its copy counts from the list.
+
+- With server output, `manifest()` and `hosted()` get the vendor list through
+  `/init`, and the banner is part of the first HTML.
+- In `offline()` mode, set `iab.gvl` or `iab.gvlURL`, or the server has no
+  list to render from.
+- On a prerendered page, or while the list has not arrived, the server renders
+  a hidden placeholder. The browser renders the banner into it once it has
+  both the policy and the list.
+
+A visitor who has already chosen gets no banner markup.
+
+## Props
+
+| Prop | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `primaryButton` | `'accept' \| 'reject' \| 'customize'` | `'customize'` | Which action gets the filled button |
+| `models` | `string[]` | `['iab']` | Consent models this banner responds to |
+| `scrollLock` | `boolean` | From `presentation` | Makes the banner blocking, with a backdrop, scroll lock and focus trap |
+| `hideBranding` | `boolean` | `false` | Removes the "Secured by" tag |
+| `noStyle` | `boolean` | `false` | Renders the markup without c15t's class names |
+| `class` | `string` | None | Extra class on the banner root |
+| `force` | `boolean` | `false` | Renders the banner even when the server decided to hide it |
+
+The banner's copy comes from the IAB translations for the visitor's language.
+It has no copy props.
+
+## Accessibility
+
+- The card has `role="region"` and an `aria-label` set to the banner title.
+- A blocking banner has `role="dialog"` and `aria-modal="true"`. The browser
+  locks page scroll and traps focus in the card until the visitor answers.
+- The partners count is a `<button>`, so keyboard users can open the vendor
+  list from the description.
+- The root carries `lang` and `dir` for the translation's language.
+
+## Style the banner
+
+IAB styles load with the integration once `iab` is set, from
+`c15t/astro/iab/styles.css`. The banner keeps its own button styles and does
+not read `theme.consentActions`. Theme tokens still apply.
+
+| Element | Attributes |
+| --- | --- |
+| Root | `data-testid="iab-consent-banner-root"`, `data-position`, `data-blocking`, `data-c15t-visible` |
+| Backdrop | `data-testid="iab-consent-banner-overlay"` |
+| Card and footer | `data-testid="iab-consent-banner-card"`, `data-testid="iab-consent-banner-footer"` |
+| Partners button | `data-testid="iab-consent-banner-partners-link"` |
+| Actions | `data-action` and `data-testid="iab-consent-banner-<action>-button"` |
+
+## Related
+
+- [IABConsentDialog](/docs/frameworks/astro/components/iab-consent-dialog)
+  is the preference center this banner opens.
+- [IAB TCF](/docs/frameworks/astro/iab) covers configuration and testing.

@@ -49,7 +49,9 @@ The integration registers a middleware that runs before every page. It reads
 the visitor's consent cookie, location headers and Global Privacy Control
 signal, resolves the policy, and stores the result in `Astro.locals.c15t`. The
 components render from it, so the banner is part of the HTML and a visitor who
-has already chosen gets no banner markup at all.
+has already chosen gets no banner markup at all. Such a page holds one
+visitor's decision, so keep it out of shared caches. See
+[Server API](/docs/frameworks/astro/server#cache-server-rendered-pages-safely).
 
 `manifest()` downloads your project's public policy file, caches it on the
 server and resolves each request locally. The browser asks the injected

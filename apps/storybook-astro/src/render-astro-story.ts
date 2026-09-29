@@ -9,6 +9,7 @@
  * that the story exercises the shipped runtime, not a stand-in.
  */
 
+import type { C15tClientOptionsExtension } from '@c15t/astro';
 import {
 	boot,
 	getConsentClient,
@@ -103,10 +104,13 @@ const resetPage = function resetPage(): void {
  * Render one catalogued Astro variant into the Storybook canvas.
  *
  * @param variantId - The id from the story catalogue.
+ * @param extension - What a site's `clientEntrypoint` would default-export,
+ * such as callbacks.
  * @returns The element Storybook should mount.
  */
 export const renderAstroStory = function renderAstroStory(
-	variantId: string
+	variantId: string,
+	extension?: C15tClientOptionsExtension
 ): HTMLElement {
 	const variant = requireStoryVariant(variantId);
 	const entry = prerendered[variantId];
@@ -134,7 +138,7 @@ export const renderAstroStory = function renderAstroStory(
 	// returns, but `boot()` has to see the markup to wire the banner. Queue
 	// the boot for the next task instead of guessing.
 	queueMicrotask(() => {
-		const client = boot(entry.options as Parameters<typeof boot>[0]);
+		const client = boot(entry.options as Parameters<typeof boot>[0], extension);
 		if (variant.openDialog) {
 			void client.openDialog(variant.openDialog);
 		}

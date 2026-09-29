@@ -1,0 +1,125 @@
+---
+title: Dialog islands and your own islands
+description: Choose whether React, Vue or Svelte renders the c15t preference dialog on an Astro site, and read consent from your own framework islands through the page's shared consent runtime.
+group: frameworks
+---
+
+## How the dialog islands work
+
+The c15t banner is plain `.astro` markup. The preference dialog and the IAB
+TCF dialog need component state, so each one is an island in a UI framework.
+The integration's `ui` option picks that framework:
+
+| `ui` | Dialog comes from | Install |
+| --- | --- | --- |
+| `'svelte'` (default) | `@c15t/svelte`, bundled with `c15t` | `@astrojs/svelte svelte` |
+| `'react'` | `c15t/react` | `@astrojs/react react react-dom` |
+| `'vue'` | `c15t/vue` | `@astrojs/vue vue` |
+
+The island is not a `client:load` island. c15t mounts it into
+`ConsentDialog`'s empty host the first time something opens the dialog. A
+visitor who only accepts or rejects from the banner downloads no framework
+code for the dialog at all.
+
+## Pick the framework your site ships
+
+A site that already renders React or Vue islands should set `ui` to that
+framework, so the dialog reuses the runtime visitors already download. A site
+with no framework islands should keep the Svelte default, because Svelte's
+runtime is the smallest of the three.
+
+Register the framework's Astro integration before `c15t()`:
+
+{/* example: fragment */}
+
+```js title="astro.config.mjs (partial)"
+integrations: [react(), c15t({ mode: hosted({ url: backendURL }), ui: 'react' })],
+```
+
+The build stops when that integration is missing, and names the packages to
+install. Only the framework `ui` names ends up in your build. With
+`ui: 'svelte'` the build never resolves React or Vue.
+
+The integration logs a hint when your site loads `@astrojs/react` or
+`@astrojs/vue` while `ui` is unset. It never switches the framework on its
+own. Set `ui` to silence the hint, including `ui: 'svelte'` to keep Svelte.
+
+A site that never opens a dialog, such as one that only shows a notice, can
+set `requireUIIntegration: false` and install no framework.
+
+## Use consent in your own islands
+
+Your own React, Vue or Svelte islands can read consent with their adapter's
+hooks. Give the adapter the page's runtime, from
+`getConsentClient()?.runtime`, instead of letting it create a second one. A
+second runtime would keep its own copy of consent and fall out of step with
+the banner.
+
+This React island shows whether measurement is allowed and opens the
+preference dialog:
+
+<include src="../../shared/examples/storybook-astro/react-island.mdx" />
+
+Render it without server rendering, so it runs only in the browser, where the
+runtime exists:
+
+{/* example: fragment */}
+
+```astro title="src/pages/index.astro (partial)"
+<ConsentStatus client:only="react" />
+```
+
+Three details matter:
+
+- **Borrow the runtime.** With `runtime`, `ConsentProvider` neither starts nor
+  disposes the runtime. The page owns it.
+- **Pass `colorScheme: null`.** Without it, the adapter manages the
+  `c15t-dark` class itself and can undo the integration's `colorScheme`.
+- **Open dialogs through `c15t/astro/client`.** Call `openDialog()` to open
+  preferences. An adapter's own dialog state, such as `useSetActiveUI()` in
+  React, does not mount the Astro dialog island.
+
+The island needs `c15t/react` and its Astro integration even when `ui` is
+`'svelte'`. `useConsent()` reads a permission. To show the visitor's recorded
+choice, read `explicitChoice` from the snapshot. See
+[read a permission, not a recorded choice](/docs/frameworks/astro/client-api#read-a-permission-not-a-recorded-choice).
+
+### Vue and Svelte islands
+
+The Vue and Svelte adapters take the page runtime the same way:
+
+| Framework | Pass the runtime to | With |
+| --- | --- | --- |
+| React | `ConsentProvider` from `c15t/react` | `runtime={runtime}` and `options={{ colorScheme: null }}` |
+| Vue | `app.use(c15tVue, …)`, with `c15tVue` from `c15t/vue/vue-plugin` | `{ runtime, colorScheme: null }` |
+| Svelte | `ConsentManagerProvider` from `@c15t/svelte` | `runtime={runtime}` and `options={{ colorScheme: null }}` |
+
+For Vue, an island's app is set up in the `appEntrypoint` module of
+`@astrojs/vue`. Install the plugin there, and only when `getConsentClient()`
+returns a client, because the entrypoint also runs on the server. The Vue
+composables also need the `c15tVue()` Vite
+plugin from `c15t/vue/vite`. The integration adds it with `ui: 'vue'`. With
+another `ui`, add it to `vite.plugins` in `astro.config.mjs` yourself.
+
+For Svelte, install `@c15t/svelte@alpha`, because the `c15t` package has no
+Svelte export.
+
+Render Vue and Svelte islands that read consent with `client:only`, for the
+same reason as the React one.
+
+### Without a framework
+
+A plain `<script>` or a custom element needs no adapter. Use `subscribe()`
+and `getConsent()` from `c15t/astro/client`, as the
+[video component](/docs/frameworks/astro/embeds) does.
+
+## Check the islands
+
+1. Build the site and open a page in a private window with DevTools Network
+   open. Before you open the dialog, no chunk for the `ui` framework's dialog
+   loads.
+2. Hover **Cookie preferences**. The dialog chunks download.
+3. Open the dialog, allow measurement and save. Your own island updates to
+   match without a reload.
+4. Toggle your system's dark mode. The banner and the dialog follow the
+   integration's `colorScheme`, not your island.
