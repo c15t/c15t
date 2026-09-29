@@ -411,9 +411,9 @@ export interface C15tResolvedOptions extends Omit<
 /** Consent context the middleware attaches to every request. */
 export interface C15tLocals {
 	/**
-	 * Server-resolved kernel configuration. Inline it into the page with
-	 * `<ConsentBanner />` or `buildConfigScript()` so the browser boots with
-	 * no `/init` roundtrip.
+	 * Server-resolved kernel configuration. `<ConsentScript />` and
+	 * `<ConsentBanner />` inline it as a JSON data block (see
+	 * `buildConfigJSON()`) so the browser boots with no `/init` roundtrip.
 	 */
 	config: KernelConfig;
 
@@ -463,4 +463,35 @@ export interface C15tLocals {
 
 	/** The integration options, as the browser will receive them. */
 	options: C15tResolvedOptions;
+
+	/**
+	 * Content Security Policy nonce for this request.
+	 *
+	 * c15t's middleware leaves it unset. Set it from your own middleware,
+	 * which runs after c15t's, when your policy allows inline code by nonce
+	 * instead of `'unsafe-inline'`. Every inline `<script>` and `<style>`
+	 * the c15t components render carries it, and the browser runtime puts
+	 * it on the scripts it loads, the gated inline scripts it activates and
+	 * the dialog stylesheets it links.
+	 *
+	 * @example
+	 * ```ts
+	 * // src/middleware.ts
+	 * import { defineMiddleware } from 'astro:middleware';
+	 *
+	 * export const onRequest = defineMiddleware(async (context, next) => {
+	 *   const nonce = crypto.randomUUID();
+	 *   if (context.locals.c15t) {
+	 *     context.locals.c15t.nonce = nonce;
+	 *   }
+	 *   const response = await next();
+	 *   response.headers.set(
+	 *     'content-security-policy',
+	 *     `script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'`
+	 *   );
+	 *   return response;
+	 * });
+	 * ```
+	 */
+	nonce?: string;
 }

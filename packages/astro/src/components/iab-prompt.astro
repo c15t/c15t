@@ -34,7 +34,7 @@ import {
 	buildBannerRevealScript,
 	buildColorSchemeScript,
 	buildThemeCSS,
-	buildConfigScript,
+	buildConfigJSON,
 	IAB_PROMPT_SLOT_ATTRIBUTE,
 	iabPromptClassNames,
 	markConfigEmitted,
@@ -85,13 +85,27 @@ const hidden = c15t.prerendered && !force;
 
 {
 	emitConfig && colorSchemeScript && (
-		<script is:inline set:html={colorSchemeScript} />
+		<script is:inline nonce={c15t.nonce} set:html={colorSchemeScript} />
 	)
 }
 
-{themeCSS && <style is:inline id="c15t-theme" set:html={themeCSS} />}
+{
+	themeCSS && (
+		<style is:inline id="c15t-theme" nonce={c15t.nonce} set:html={themeCSS} />
+	)
+}
 
-{emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
+{
+	emitConfig && (
+		<script
+			is:inline
+			type="application/json"
+			data-c15t-config
+			nonce={c15t.nonce}
+			set:html={buildConfigJSON(c15t.config)}
+		/>
+	)
+}
 
 {
 	/*
@@ -231,6 +245,7 @@ const hidden = c15t.prerendered && !force;
 	shouldRender && hidden && (
 		<script
 			is:inline
+			nonce={c15t.nonce}
 			set:html={buildBannerRevealScript(
 				c15t.options.storageConfig,
 				'iab-consent-banner'

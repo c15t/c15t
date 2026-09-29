@@ -15,7 +15,7 @@
 import {
 	buildColorSchemeScript,
 	buildThemeCSS,
-	buildConfigScript,
+	buildConfigJSON,
 	markConfigEmitted,
 } from '@c15t/astro/server';
 
@@ -27,12 +27,31 @@ const colorSchemeScript = shouldEmit
 const themeCSS = shouldEmit ? buildThemeCSS(c15t.options.theme) : '';
 ---
 
-{colorSchemeScript && <script is:inline set:html={colorSchemeScript} />}
+{
+	colorSchemeScript && (
+		<script is:inline nonce={c15t?.nonce} set:html={colorSchemeScript} />
+	)
+}
 
-{themeCSS && <style is:inline id="c15t-theme" set:html={themeCSS} />}
+{
+	themeCSS && (
+		<style
+			is:inline
+			id="c15t-theme"
+			nonce={c15t?.nonce}
+			set:html={themeCSS}
+		/>
+	)
+}
 
 {
 	shouldEmit && (
-		<script is:inline set:html={buildConfigScript(c15t.config)} />
+		<script
+			is:inline
+			type="application/json"
+			data-c15t-config
+			nonce={c15t.nonce}
+			set:html={buildConfigJSON(c15t.config)}
+		/>
 	)
 }

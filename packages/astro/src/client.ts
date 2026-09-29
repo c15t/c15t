@@ -156,8 +156,57 @@ const getWindow = function getWindow(): ClientWindow | undefined {
 	return typeof window === 'undefined' ? undefined : (window as ClientWindow);
 };
 
+/**
+ * The boot payload the server rendered.
+ *
+ * The components write it as a JSON data block. A page that sets
+ * `window.__c15tAstroConfig` itself, with `buildConfigScript()`, still
+ * wins, as before the data block existed.
+ *
+ * @returns The payload, or an empty config when the page has none.
+ */
 const readInlinedConfig = function readInlinedConfig(): KernelConfig {
-	return getWindow()?.[CONFIG_KEY] ?? {};
+	const assigned = getWindow()?.[CONFIG_KEY];
+	if (assigned) {
+		return assigned;
+	}
+	const block = document.querySelector(
+		'script[type="application/json"][data-c15t-config]'
+	);
+	if (!block?.textContent) {
+		return {};
+	}
+	try {
+		return JSON.parse(block.textContent) as KernelConfig;
+	} catch {
+		return {};
+	}
+};
+
+/**
+ * The page's Content Security Policy nonce, read once at boot.
+ *
+ * Module state because the gated-script and stylesheet passes run from
+ * document listeners that only see the client. A ClientRouter swap keeps
+ * the first document's policy, so the first page's nonce stays the right
+ * one for the rest of the visit.
+ */
+let pageNonce: string | undefined;
+
+/**
+ * The nonce the server put on the inline config script, from
+ * `Astro.locals.c15t.nonce`.
+ *
+ * Read through the `nonce` property first: browsers hide the attribute's
+ * value once a policy has checked it, but keep it on the property.
+ *
+ * @returns The nonce, or `undefined` when the page was rendered without one.
+ */
+const readPageNonce = function readPageNonce(): string | undefined {
+	const script = document.querySelector<HTMLScriptElement>(
+		'script[data-c15t-config]'
+	);
+	return script?.nonce || script?.getAttribute('nonce') || undefined;
 };
 
 /**
@@ -263,7 +312,7 @@ const loadDialogChunks = async function loadDialogChunks(
 			const adapter = await loadDialogAdapter(client.options.ui);
 			await adapter.preload?.();
 		})(),
-		loadDialogStyles(),
+		loadDialogStyles(pageNonce),
 	]);
 };
 
@@ -436,6 +485,7 @@ const createClient = function createClient(
 	extension: C15tClientOptionsExtension = {}
 ): AstroConsentClient {
 	const inlined = readInlinedConfig();
+	pageNonce = readPageNonce();
 	// A prerendered page inlines no clock: the build's would age every
 	// stored record against the day the site was built.
 	const config: KernelConfig =
@@ -463,6 +513,7 @@ const createClient = function createClient(
 			initPath: options.endpoints.initPath,
 		}),
 		networkBlocker: extension.networkBlocker ?? options.networkBlocker,
+		nonce: pageNonce,
 		pkg: '@c15t/astro',
 		policyRules:
 			options.mode.type === 'offline' ? options.mode.policyRules : undefined,
@@ -578,7 +629,7 @@ const createClient = function createClient(
 					// for both so the dialog never paints without its rules.
 					const [adapter] = await Promise.all([
 						loadDialogAdapter(options.ui),
-						loadDialogStyles(),
+						loadDialogStyles(pageNonce),
 					]);
 					if (disposed) {
 						return;
@@ -870,7 +921,7 @@ const attach = function attach(client: AstroConsentClient): void {
 	ensurePromptRendered(client, snapshot);
 	syncBannerVisibility(snapshot);
 	syncSurfaceVisibility(snapshot);
-	activateGatedScripts(snapshot);
+	activateGatedScripts(snapshot, document, pageNonce);
 };
 
 /**
@@ -992,7 +1043,7 @@ export const boot = function boot(
 		ensurePromptRendered(client, snapshot);
 		syncBannerVisibility(snapshot);
 		syncSurfaceVisibility(snapshot);
-		activateGatedScripts(snapshot);
+		activateGatedScripts(snapshot, document, pageNonce);
 	});
 
 	// The ClientRouter replaces the document without re-evaluating modules,

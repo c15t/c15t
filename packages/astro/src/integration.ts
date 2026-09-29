@@ -509,6 +509,7 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 			async 'astro:config:setup'({
 				addMiddleware,
 				command: setupCommand,
+				config,
 				injectRoute,
 				injectScript,
 				updateConfig,
@@ -518,6 +519,15 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 				updateConfig({
 					vite: { plugins: await buildVitePlugins(resolved) },
 				});
+
+				// With Astro's own CSP on, allow the inline code the components
+				// render. Loaded here so the package root, which browser code
+				// may import, does not pull in the server renderers.
+				const { buildAstroCspUpdate } = await import('./csp');
+				const csp = await buildAstroCspUpdate(config, resolved);
+				if (csp) {
+					updateConfig(csp);
+				}
 
 				if (resolved.middleware.enabled) {
 					addMiddleware({

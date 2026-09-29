@@ -37,17 +37,25 @@ const COPIED_ATTRIBUTES = [
 	'crossorigin',
 	'integrity',
 	'referrerpolicy',
-	'nonce',
 	'id',
 ];
 
-const activate = function activate(element: HTMLScriptElement): void {
+const activate = function activate(
+	element: HTMLScriptElement,
+	pageNonce: string | undefined
+): void {
 	const replacement = document.createElement('script');
 	for (const name of COPIED_ATTRIBUTES) {
 		const value = element.getAttribute(name);
 		if (value !== null) {
 			replacement.setAttribute(name, value);
 		}
+	}
+	// Through the property: browsers hide a checked nonce attribute's value,
+	// so copying the attribute would hand the replacement an empty nonce.
+	const nonce = element.nonce || element.getAttribute('nonce') || pageNonce;
+	if (nonce) {
+		replacement.nonce = nonce;
 	}
 	for (const attribute of Array.from(element.attributes)) {
 		if (
@@ -74,11 +82,14 @@ const activate = function activate(element: HTMLScriptElement): void {
  *
  * @param snapshot - The current kernel snapshot.
  * @param root - Where to scan. Defaults to the whole document.
+ * @param nonce - The page's CSP nonce, for a gated script that carries
+ * none of its own.
  * @returns The number of scripts activated by this pass.
  */
 export const activateGatedScripts = function activateGatedScripts(
 	snapshot: ConsentSnapshot,
-	root: ParentNode = document
+	root: ParentNode = document,
+	nonce?: string
 ): number {
 	const selector = `script[${CATEGORY_ATTRIBUTE}]:not([${ACTIVATED_ATTRIBUTE}])`;
 	const elements = Array.from(
@@ -107,7 +118,7 @@ export const activateGatedScripts = function activateGatedScripts(
 		if (!allowed) {
 			continue;
 		}
-		activate(element);
+		activate(element, nonce);
 		activated += 1;
 	}
 	return activated;
