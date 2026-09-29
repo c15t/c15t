@@ -41,5 +41,8 @@ EXAMPLE_TARGET=javascript bun run --cwd examples/shared test
 ```
 
 The docs publish marked regions from `src/main.ts`, `src/branded.ts`,
-`src/consent-runtime.ts`, `src/headless.ts`, `src/scripts.ts` and
-`src/kernel.ts`. DevTools mounts only in development.
+`src/consent-runtime.ts`, `src/headless.ts`, `src/scripts.ts`,
+`src/kernel.ts` and the `src/ref-*.ts` files. No page imports `kernel.ts` or
+the `ref-*.ts` files; they hold reference setups for the transports, modules,
+callbacks and translations pages, and `bun run check-types` compiles them.
+DevTools mounts only in development.

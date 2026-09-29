@@ -1,6 +1,6 @@
 ---
 title: Consent kernel API
-description: Use the kernel for policy resolution, state subscriptions and explicit consent commands.
+description: Reference for the c15t consent kernel in JavaScript, covering how to get or create one, its snapshot and subscriptions, commands, setters, hydration, events and listener ordering.
 group: frameworks
 ---
 
@@ -13,17 +13,114 @@ one:
 - `runtime.kernel`, from `createConsentRuntime` in `c15t/runtime`.
 - A kernel you create yourself, as shown [below](#create-a-kernel-yourself).
 
-The kernel alone supplies state and commands, not a rendered interface or
-automatic script scanning.
+The kernel alone supplies state and commands. It renders nothing, loads no
+script and reads no storage; the modules around it do that.
+
+{/* example: fragment */}
 
 ```ts
 const unsubscribe = kernel.subscribe((snapshot) => {
-  console.log(snapshot.resolution, snapshot.effectivePermissions);
+  console.log(snapshot.resolution.status, snapshot.effectivePermissions);
 });
 ```
 
-This fragment assumes one of the kernels above. Retain `unsubscribe` and call
-it during teardown.
+This fragment assumes one of the kernels above. Keep `unsubscribe` and call it
+during teardown.
+
+## Read state
+
+| Member | Returns | What it does |
+| --- | --- | --- |
+| `getSnapshot()` | `ConsentSnapshot` | The current state, frozen. Cheap to call. See the [snapshot reference](/docs/frameworks/javascript/api/snapshot). |
+| `subscribe(listener)` | `() => void` | Call `listener` with each new snapshot. |
+| `getServerSnapshot()` | `ConsentSnapshot` | The first snapshot, as a server render saw it. Render from this during hydration, then switch to `getSnapshot()`. |
+| `refresh(now?)` | `ConsentSnapshot` | Evaluate again at `now`, so an expired choice cannot linger behind a timer. Returns the new snapshot. |
+
+A snapshot keeps the same object for a field whose value did not change, so
+`previous.effectivePermissions === next.effectivePermissions` tells you
+permissions did not change.
+
+## Choose commands by intent
+
+Commands are asynchronous and are the only way to record anything.
+
+| Command | Returns | Effect |
+| --- | --- | --- |
+| `commands.init()` | `Promise<{ ok, error? }>` | Resolve the policy through the transport. Failed attempts retry in the background. |
+| `commands.save('all')` | `Promise<SaveResult>` | Record acceptance of every category in scope. |
+| `commands.save('none')` | `Promise<SaveResult>` | Record rejection of every optional category in scope. |
+| `commands.save({ marketing: false })` | `Promise<SaveResult>` | Record only the categories you name. |
+| `commands.save()` | `Promise<SaveResult>` | Record the staged draft, falling back to the current choice or the policy's defaults for each category. |
+| `commands.dismissNotice()` | `Promise<NoticeDismissResult>` | Record that the visitor saw a notice. Grants nothing. Only works while `promptRequirement.kind` is `notice`. |
+| `commands.identify(user)` | `Promise<void>` | Link the record to `{ externalId, identityProvider? }` and load the server's record for that subject. |
+
+`save(input, context)` takes a second argument. `context.categories` narrows
+`'all'`, `'none'` or an empty input to the categories your UI displays, which
+is how `@c15t/browser` limits Accept All to the dialog's categories.
+`context.vendors` records vendor-level grants.
+
+A save updates permissions and notifies subscribers before the backend
+request starts. `SaveResult.ok` reports the request. When it fails, the choice
+stays in effect and the payload is queued for retry.
+[Consent state](/docs/concepts/consent-state#when-a-choice-is-saved)
+documents the ordering.
+
+## Change inputs and UI state
+
+`set` operations run synchronously and notify subscribers. None of them
+records a choice.
+
+| Setter | What it changes |
+| --- | --- |
+| `set.activeUI('banner' \| 'dialog' \| 'none')` | The surface your UI should show. |
+| `set.draft(values)` | Staged category values that a no-argument `save()` confirms. Never a grant. |
+| `set.vendorDraft(values)` | Staged vendor grants for the next save. `null` clears them. |
+| `set.overrides({ country, region, language, gpc })` | Decision inputs. Call `commands.init()` after it to resolve the policy again. |
+| `set.language(code)` | The language override. |
+| `set.privacySignals({ gpc })` | The detected GPC signal. c15t reads the browser's signal itself; use this to pass one detected elsewhere, such as a `Sec-GPC` request header. |
+| `set.consentCategories(categories)` | The configured categories. Discovered categories stay. |
+| `set.registerConsentCategories(categories)` | Add categories your integrations use. They stay for the kernel's lifetime. |
+| `set.vendors(patch, options?)` | Merge declared vendors. |
+| `set.subjectId(id)` | The subject ID. |
+| `set.iab(patch)`, `set.externalPermissions(values)` | Written by the IAB module and by `consentSource`. Do not call them yourself. |
+
+## Apply stored records
+
+`kernel.hydrate(records)` applies validated records, such as a choice read
+from a cookie, without counting as a visitor action. Omitted keys keep their
+value and `null` clears one. An invalid record rejects the whole call with
+`{ ok: false, issues }`. Hydration emits `permissions:changed` when
+permissions change, and never `choice:recorded`. The persistence module
+calls it for you.
+
+## Events
+
+`kernel.events.on(type, listener)` returns an unsubscribe function. Each
+listener receives the event object.
+
+| Event | Fields | When |
+| --- | --- | --- |
+| `init:applied` | `snapshot` | A policy resolved, from the transport or a resolved prefetch. |
+| `init:failed` | `error`, `attempt`, `nextRetryMs` | Initialization failed. `nextRetryMs` is `null` when no retry remains. |
+| `choice:recorded` | `snapshot`, `confirmed`, `actionAt` | An accept, reject or save recorded categories. |
+| `permissions:changed` | `snapshot`, `previous` | Effective permissions changed value, for any reason. |
+| `notice:dismissed` | `snapshot`, `dismissal` | A notice was acknowledged. |
+| `vendors:recorded` | `snapshot`, `actionAt` | A save changed which vendors are denied. |
+| `vendors:set` | `snapshot` | The declared vendor list changed. |
+| `overrides:set` | `snapshot` | Decision inputs changed. |
+| `user:identified` | `snapshot` | `identify` linked a user. |
+| `subject:resolved` | `snapshot` | A save received the server's subject ID. |
+| `iab:set` | `snapshot` | The IAB state changed. |
+| `records:cleared` | none | Stored records were cleared. |
+| `save:replayed` | `subjectId`, `ok`, `rejected?` | A queued save was sent again. `rejected` holds the backend's refusal code. |
+| `preferences:requested` | none | An external CMP should open its preferences. |
+| `command:init:started`, `command:save:started` | none | A command began. |
+| `command:init:completed`, `command:save:completed` | `result` | A command finished. |
+| `command:error` | `command`, `error` | A command failed. |
+
+Use `choice:recorded` to react to a visitor's decision and
+`permissions:changed` to start and stop code. [Callbacks](/docs/frameworks/javascript/callbacks)
+explains the difference.
 
 ## How listeners are notified
 
@@ -46,22 +143,6 @@ change produced.
   already queued still arrive, so other listeners end on the current snapshot.
   A listener that changes consent after that point is not called again.
 
-## Choose commands by intent
-
-| Command | Effect |
-| --- | --- |
-| `commands.init()` | Resolve the current policy and initialization data |
-| `commands.save('all')` | Record acceptance for the applicable categories |
-| `commands.save('none')` | Record rejection of optional categories |
-| `commands.save({ marketing: false })` | Confirm only the supplied category |
-| `commands.dismissNotice()` | Record notice acknowledgement without a grant |
-| `hydrate(...)` | Apply validated records without a visitor action |
-| `dispose()` | Release kernel resources |
-
-Use `set` operations for runtime inputs and UI state according to their types.
-They do not replace explicit save actions. Read [how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
-for permission, receipt and callback semantics.
-
 ## Create a kernel yourself
 
 Most apps should use `createConsentRuntime` or `@c15t/browser`, which connect
@@ -74,23 +155,45 @@ This kernel stores choices and loads scripts. It has no iframe blocker,
 network blocker or data clearing, and it does not reload the page when a
 visitor withdraws permission, so a vendor that already ran keeps running.
 Add each one you need from its `c15t/modules/*` entry point, and dispose it
-before the kernel.
+before the kernel:
 
-## Own optional modules explicitly
+| Module | Entry point | Page |
+| --- | --- | --- |
+| Persistence | `c15t/modules/persistence` | [Persistence](/docs/frameworks/javascript/modules/persistence) |
+| Script loader | `c15t/modules/script-loader` | [Script loader](/docs/frameworks/javascript/modules/script-loader) |
+| Network blocker | `c15t/modules/network-blocker` | [Network blocker](/docs/frameworks/javascript/modules/network-blocker) |
+| Iframe blocker | `c15t/modules/iframe-blocker` | [Iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker) |
+| Clear on revocation | `c15t/modules/clear-on-revocation` | [Clear on revocation](/docs/frameworks/javascript/modules/clear-on-revocation) |
+| Reload after withdrawal | `watchRevocationReload` from `c15t` | This page, below |
 
-Persistence, script loading and request blocking are separate modules when you
-use the kernel directly. Dispose their handles before disposing the kernel.
-`createConsentRuntime` from `c15t/runtime` assembles those responsibilities
-when you need one owner shared by multiple UI roots. Constructing a runtime does
-not activate browser side effects; the owner calls `start()` after mount and
-`dispose()` at teardown.
+`watchRevocationReload({ kernel, isEnabled, getOnBeforeReload? })` reloads the
+page after a save turns off something that was allowed. It returns a
+disposer.
 
-Browser persistence follows choices made in other tabs. Tabs on the same origin
-share localStorage, so a change there arrives at once through the `storage`
-event. A tab on another subdomain that shares only the consent cookie gets no
-such event; it reads stored records again when the page becomes visible or the
-window regains focus. Call `persistence.reconcile()` or
-`runtime.reconcileStorage()` to read them at another moment, for example after
-a response set the consent cookie. See
-[keep open tabs in step](/docs/concepts/consent-state#keep-open-tabs-in-step)
-for the rules, ordering and the `sync: false` option.
+`createConsentKernel(config)` takes a `transport`, not a transport factory.
+Use `createHostedTransport({ backendURL })` or `createOfflineTransport()`
+from `c15t`, or your own object with `init` and `save`. Other useful config
+fields:
+
+| Field | What it does |
+| --- | --- |
+| `transport` | Carries `init`, `save`, `identify` and `loadSubjectRecord`. Without it, commands succeed and send nothing. |
+| `consentCategories` | Categories to offer, within the policy's scope. |
+| `initialOverrides`, `initialUser` | Decision inputs and an identified user at start. |
+| `initialRecords`, `initialPolicyResolution` | Records and a policy a server already resolved. |
+| `initialTranslations` | Copy to start with. |
+| `initRetry` | Retry for a failed `init`: `{ maxAttempts, baseDelayMs, maxDelayMs }`, or `false`. Defaults to 5 attempts from 1 second up to 30 seconds. |
+| `now` | The evaluation clock at start, for a server render and its hydration to agree. |
+
+Construction has no side effects, so a server can build a kernel and read its
+snapshot.
+
+## Check it works
+
+1. Subscribe to the kernel and log `policyPending` and `resolution.status`.
+   After `commands.init()`, `policyPending` is `false` and the status is
+   `matched`.
+2. Add an `events.on('choice:recorded', …)` listener. It logs once for each
+   accept, reject or save, and not on reload.
+3. Call `kernel.dispose()`. Background retries stop; `getSnapshot()` still
+   works.

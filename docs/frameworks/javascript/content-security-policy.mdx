@@ -1,0 +1,83 @@
+---
+title: Content Security Policy
+description: Allow c15t in a JavaScript app under a Content Security Policy, covering backend requests, the stock UI's styles, nonces for vendor scripts and gated snippets, and embeds.
+group: frameworks
+---
+
+## What c15t needs from your policy
+
+Your bundle contains c15t, so `script-src` already covers it. The rest:
+
+| Directive | Allow | Why |
+| --- | --- | --- |
+| `connect-src` | Your backend's origin, such as `https://your-project.inth.app` | `/init`, `/subjects`, and `/manifest` in manifest mode. |
+| `script-src` | Each vendor's script origin, or a nonce | Scripts the script loader adds and gated `text/plain` tags it runs. |
+| `style-src` | `'unsafe-inline'`, unless you load the stylesheet from your bundle | The stock UI's `<style>` element. |
+| `frame-src` | Each embed's origin | Iframes the iframe blocker releases. |
+| `img-src`, `connect-src` | Each vendor's collection endpoints | What vendor scripts send once they run. |
+
+A missing `connect-src` entry stops the policy from resolving. The console
+shows a CSP violation for `/init`, and no banner appears.
+
+## Put a nonce on created scripts
+
+With `createConsentRuntime`, pass the page's nonce once. The script loader
+puts it on every `<script>` it creates:
+
+{/* example: fragment */}
+
+```ts
+createConsentRuntime({ mode: hosted({ url: backendURL }), scripts, nonce });
+```
+
+`@c15t/browser` has no `nonce` option. Set `nonce` on each script instead:
+
+{/* example: fragment */}
+
+```ts
+const scripts = [{ ...posthog({ id: posthogKey }), nonce }];
+```
+
+A script's own `nonce` wins over the runtime's. Read the nonce from wherever
+your server puts it, such as a `<meta>` tag or a data attribute. With
+`'strict-dynamic'` in `script-src`, scripts that a trusted script creates are
+allowed, so vendor origins need no entry. Some vendors then load more scripts
+of their own, which `'strict-dynamic'` allows too.
+
+A `<script type="text/plain" data-c15t-category>` tag in your HTML keeps its
+`nonce` when c15t runs it, so put the nonce on the inert tag.
+
+## Allow the stock UI's styles
+
+The stock UI renders its CSS, theme tokens and `ui.css` into a `<style>`
+element inside its shadow root. That element has no nonce, so `style-src`
+needs `'unsafe-inline'`.
+
+To avoid it, render into the page and import the stylesheet from your
+bundle, which your bundler emits as a CSS file:
+
+{/* example: fragment */}
+
+```ts
+import '@c15t/browser/styles.css';
+
+init({ backendURL, ui: { shadow: false, styles: false } });
+```
+
+With `styles: false` and no `theme` or `css` option, c15t adds no `<style>`
+element. Put token overrides in your own CSS. Under IAB, also import
+`@c15t/browser/iab/styles.css`.
+
+The headless entries, `createConsentRuntime` and the kernel add no styles.
+The DevTools panel adds a `<style>` element, which is one more reason to keep
+it out of production builds.
+
+## Check it works
+
+1. Send the policy as `Content-Security-Policy-Report-Only` and open the app
+   with the console open.
+2. The console shows no violation for `/init`, `/subjects` or the banner's
+   styles. The banner renders styled.
+3. Allow each category. Each vendor's scripts and requests load without a
+   violation.
+4. Switch to `Content-Security-Policy` and repeat.

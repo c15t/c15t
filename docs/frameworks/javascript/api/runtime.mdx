@@ -1,0 +1,112 @@
+---
+title: createConsentRuntime
+description: Reference for createConsentRuntime from c15t/runtime, the framework-agnostic consent runtime behind every c15t adapter, with every option, what start and dispose do, and the runtime handle's methods.
+group: frameworks
+---
+
+## What the runtime owns
+
+`createConsentRuntime` builds a [consent kernel](/docs/frameworks/javascript/api/overview)
+and connects the modules a page needs, such as stored choices, script
+loading, iframe gating, network blocking, data clearing, IAB, callbacks and
+the reload after a withdrawal. It renders nothing. Use it when you render your own UI, connect a
+framework without a c15t adapter, or share one consent state between several
+parts of a page. `@c15t/browser` builds one for you; see
+[choose a headless API](/docs/frameworks/javascript/headless#choose-a-headless-api).
+
+<include src="../../../shared/examples/javascript/runtime.mdx" />
+
+Creating the runtime has no side effects. It reads no storage and sends no
+request until `start()`, so the module can also load on a server.
+
+## Options
+
+Only `mode` is required.
+
+| Option | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `mode` | transport factory | required | Where the policy comes from and where choices go: `hosted()`, `offline()`, `manifest()` or `custom()`. See [transports](/docs/frameworks/javascript/transports). Read once. |
+| `scripts` | `Script[]` | none | Vendor scripts the loader mounts as categories are allowed. See [script loader](/docs/frameworks/javascript/modules/script-loader). |
+| `consentCategories` | category names | inferred | Categories to offer alongside those your scripts, rules and vendors use, within the policy's scope. |
+| `networkBlocker` | `{ rules, enabled?, logBlockedRequests?, onRequestBlocked? }` or `false` | off | Hold matching `fetch` and XHR requests until their category is allowed. See [network blocker](/docs/frameworks/javascript/modules/network-blocker). |
+| `iframeBlocker` | `{ disableAutomaticBlocking? }` or `false` | on | Gate `<iframe data-src data-category>`. See [iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker). |
+| `clearOnRevocation` | cookies and storage keys per category | off | Delete named browser data when its category is denied. Read once. See [clear on revocation](/docs/frameworks/javascript/modules/clear-on-revocation). |
+| `persistence` | `boolean` or `{ storageConfig?, skipHydration?, sync? }` | `true` | Read and write choices in the cookie and localStorage, and follow other tabs. `false` keeps choices in memory only. See [persistence](/docs/frameworks/javascript/modules/persistence). |
+| `storageConfig` | `{ storageKey?, crossSubdomain?, defaultDomain?, defaultExpiryDays? }` | key `c15t`, 365 days | Cookie and localStorage naming and lifetime. |
+| `reloadOnConsentRevoked` | `boolean` | `true` | Reload after an accept, reject or save turns off a category or vendor that was allowed, once the save request finishes. |
+| `callbacks` | `{ onChoiceRecorded?, onPermissionsChanged?, onError?, onBeforeConsentRevocationReload? }` | none | See [callbacks](/docs/frameworks/javascript/callbacks). |
+| `overrides` | `{ country?, region?, language?, gpc? }` | none | Decision inputs the page knows. |
+| `prefetch` | kernel configuration | none | A server-resolved init answer. With a resolved policy, `start()` skips the `/init` request. |
+| `policyRules` | `PolicyRule[]` | none | Rules a local transport resolves. |
+| `i18n` | `{ locale?, messages }` | English | Initial language and messages merged over the bundled English. |
+| `presentation` | `{ prompt?, preferences? }` | none | Layout and blocking, for UIs that call `resolveConsentPresentation`. |
+| `user` | `{ externalId, identityProvider? }` | none | An identified visitor. |
+| `vendors` | `Vendor[]` | none | Vendors offered for vendor-level consent outside IAB. |
+| `nonce` | `string` | none | CSP nonce the script loader puts on every `<script>` it creates. A script's own `nonce` wins. |
+| `scriptLoader` | `{ onDebug? }` | none | Receive every script loader lifecycle event. |
+| `iab` | IAB options or `false` | none | CMP settings. Needs `createIAB`. |
+| `createIAB` | `createIAB` from `@c15t/iab` | none | The IAB module factory. Without it, `iab` is ignored. |
+| `consentSource` | external source | none | Follow another CMP. Turns off persistence, init, IAB and choice UI. See [use c15t with an existing CMP](/docs/integrations/existing-cmp). |
+| `enabled` | `boolean` | `true` | `false` grants every category, skips init and mounts no blocker, persistence or IAB. Scripts load at once. |
+| `windowDebug` | `boolean` | `true` | Install a small `window.c15t` object with `version`, `pkg` and `mode` on `start()`. |
+| `pkg` | `string` | `'@c15t/core'` | The package name `window.c15t` reports. |
+
+## What start and dispose do
+
+`runtime.start()` mounts, in order:
+
+1. the `window.c15t` debug object, unless `windowDebug: false`;
+2. persistence, which reads stored choices;
+3. the `/init` request, unless a resolved `prefetch` makes it redundant;
+4. the script loader, when `scripts` is not empty;
+5. the network blocker, when configured;
+6. the iframe blocker, unless `iframeBlocker: false`;
+7. the IAB module, when `iab` and `createIAB` are set;
+8. data clearing, when `clearOnRevocation` is set.
+
+`start()` does nothing without a `document`, so you can call it from shared
+code. A second call does nothing. The callback bridge and the reload watcher
+attach at construction, so they hear events from the first `start()`.
+
+Network blocker rules hold matching requests from construction, before
+`start()` installs the blocker. The blocker then decides each held request.
+
+`runtime.dispose()` undoes everything in reverse, then disposes the kernel.
+A runtime disposed before it started blocks the requests it was holding.
+
+## Runtime handle
+
+| Member | What it does |
+| --- | --- |
+| `kernel` | The kernel. Read and change consent through it. |
+| `start()`, `dispose()` | Mount and unmount every browser side effect. |
+| `started` | Whether `start()` has run and the runtime is not disposed. |
+| `identify(user)` | Link the consent record to a user. Failures surface through `onError`, not a rejection. |
+| `setOverrides(overrides)` | Replace the country, region, language and GPC inputs. |
+| `reinit()` | Run `/init` again, for example after `setOverrides`. |
+| `reconcileStorage()` | Read stored records again and apply changes another runtime or tab made. Returns whether anything changed. |
+| `clearRecords()` | Delete stored choices and reset the kernel's records. |
+| `consentCategories` | `necessary` plus the categories in the current choice scope. |
+| `setConsentCategories(categories)` | Replace the configured categories. Discovered ones stay. |
+| `stageVendorConsent(vendorId, granted)`, `resetVendorDraft()` | Stage or drop a vendor-level choice for the next save. |
+| `iab` | The CMP handle under IAB, or `null`. |
+| `onIABChange(listener)` | Called when `iab` is mounted or removed. Returns an unsubscribe function. |
+
+## Other exports
+
+| Export from `c15t/runtime` | What it does |
+| --- | --- |
+| `createLazyIABFactory(loader)` | Wrap a dynamic `import('@c15t/iab')` so the IAB code loads as a separate chunk when the runtime mounts IAB. Pass its `create` as `createIAB`. |
+| `isIABConfigured(iab)` | Whether an `iab` option turns IAB on. |
+| `connectConsentSource(kernel, source)` | Drive a kernel you own from another CMP. |
+| `wireRuntimeCallbacks({ kernel, callbacks })` | Attach the four callbacks to a kernel you own. Returns a disposer. |
+
+## Check it works
+
+1. Create the runtime and subscribe to `runtime.kernel` before `start()`.
+2. Call `start()` in the browser. The Network tab shows one `/init` request,
+   and your subscriber receives a snapshot whose `resolution.status` is
+   `matched`.
+3. Call `runtime.kernel.commands.save('none')` from a button. A `/subjects`
+   request follows and reloading keeps the choice.
+4. Call `runtime.dispose()`. Scripts the loader added are removed.
