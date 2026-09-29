@@ -1,15 +1,9 @@
 <script lang="ts">
-	import {
-		ConsentGate,
-		ConsentDialogLink,
-		getConsentManager,
-	} from '@c15t/svelte';
+	import { getConsentManager } from '@c15t/svelte';
 	import { DevTools } from '@c15t/svelte/devtools';
 
-	import { experimentEvents } from './experiment.svelte';
+	import YouTubeEmbed from './YouTubeEmbed.svelte';
 
-	let { experimentConfigured = false }: { experimentConfigured?: boolean } =
-		$props();
 	const consent = getConsentManager();
 </script>
 
@@ -18,32 +12,8 @@
 	<h1>Consent example</h1>
 	<p>One consent setup for your analytics, advertising and video embeds.</p>
 	<nav aria-label="Banner design">
-		<a href="/">Default</a><a href="/?design=branded">Branded</a><a
-			href="/?experiment=1">Experiment</a
-		><a href="/?experiment=1&arm=wall">Experiment (wall arm)</a>
+		<a href="/">Default</a><a href="/?design=branded">Branded</a>
 	</nav>
-	{#if experimentConfigured}
-		<section
-			class="card"
-			data-testid="experiment"
-		>
-			<h2>Banner experiment</h2>
-			<p>
-				Arm: <code data-testid="experiment-arm"
-					>{consent.experiment
-						? `${consent.experiment.id} · ${consent.experiment.arm} · ${consent.experiment.assignedBy}`
-						: 'assigning…'}</code
-				>
-			</p>
-			<ul class="statuses">
-				{#each experimentEvents as event, index (index)}
-					<li>
-						<code>{event.name}</code> · {event.arm} · {event.detail}
-					</li>
-				{/each}
-			</ul>
-		</section>
-	{/if}
 	<section class="card">
 		<h2>Scripts follow your choices</h2>
 		<ul class="statuses">
@@ -65,18 +35,7 @@
 	</section>
 	<section class="card">
 		<h2>YouTube embed</h2>
-		<ConsentGate category="measurement">
-			{#snippet placeholder()}<div class="placeholder">
-					<p>Allow measurement to load this YouTube video.</p>
-					<ConsentDialogLink>Choose video permissions</ConsentDialogLink>
-				</div>{/snippet}
-			<iframe
-				title="YouTube video"
-				src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y?playsinline=1"
-				allow="encrypted-media; picture-in-picture"
-				allowfullscreen
-			></iframe>
-		</ConsentGate>
+		<YouTubeEmbed />
 	</section>
 </main>
 <DevTools />
