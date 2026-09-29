@@ -69,3 +69,11 @@ export {
 	SESSION_REPORT_CLIENT_IP_HEADER,
 	SESSION_REPORT_FORWARD_HEADERS,
 } from '../libs/session-report';
+export type {
+	RequestHeaderSource,
+	ResolveRequestOriginOptions,
+} from './request-origin';
+export {
+	resolveRequestBackendURL,
+	resolveRequestOrigin,
+} from './request-origin';
