@@ -12,11 +12,12 @@ test('filtered bundles retain the actual theme source', async () => {
 		new URL('../docs/customization/recipes.mdx', import.meta.url)
 	);
 	const markdown = await restorePackageDocIncludes(
-		'[Error: Could not include file ../examples/brand-theme.ts]',
+		'[Error: Could not include file ../shared/examples/storybook-react/brand-theme.mdx]',
 		source
 	);
 	expect(markdown).toContain('export const brandTheme = defineTheme(');
 	expect(markdown).toContain('../assets/v3/brand-card.png');
+	expect(markdown).toContain('../assets/v3/headless-bar.png');
 	expect(markdown).not.toContain('[Error:');
 });
 
