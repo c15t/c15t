@@ -192,16 +192,17 @@ describe('normalizeBackendURL', () => {
 		expect(result).toBe('https://api.example.com/consent');
 	});
 
-	test('relative URL resolved with x-forwarded-host and x-forwarded-proto', () => {
+	test('relative URL ignores forged x-forwarded-host and x-forwarded-proto', () => {
 		const headers = new Headers({
-			'x-forwarded-host': 'example.com',
-			'x-forwarded-proto': 'https',
+			host: 'app.example.com',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
 		});
 		const result = normalizeBackendURL('/api/consent', headers);
-		expect(result).toBe('https://example.com/api/consent');
+		expect(result).toBe('https://app.example.com/api/consent');
 	});
 
-	test('relative URL resolved with host header (no x-forwarded-host)', () => {
+	test('relative URL resolved with host header', () => {
 		const headers = new Headers({
 			host: 'example.com',
 		});
@@ -209,29 +210,18 @@ describe('normalizeBackendURL', () => {
 		expect(result).toBe('https://example.com/api/consent');
 	});
 
-	test('defaults to https when no x-forwarded-proto', () => {
-		const headers = new Headers({
-			'x-forwarded-host': 'example.com',
-		});
+	test('uses http for a loopback host', () => {
+		const headers = new Headers({ host: 'localhost:5173' });
 		const result = normalizeBackendURL('/api/consent', headers);
-		expect(result).toBe('https://example.com/api/consent');
+		expect(result).toBe('http://localhost:5173/api/consent');
 	});
 
-	test('uses x-forwarded-proto when provided', () => {
-		const headers = new Headers({
-			'x-forwarded-host': 'example.com',
-			'x-forwarded-proto': 'http',
-		});
-		const result = normalizeBackendURL('/api/consent', headers);
-		expect(result).toBe('http://example.com/api/consent');
-	});
-
-	test('falls back to referer when no host headers', () => {
+	test('does not fall back to the referer', () => {
 		const headers = new Headers({
 			referer: 'https://mysite.com/page',
 		});
 		const result = normalizeBackendURL('/api/consent', headers);
-		expect(result).toBe('https://mysite.com/api/consent');
+		expect(result).toBeNull();
 	});
 
 	test('returns null when cannot resolve relative URL', () => {
@@ -248,7 +238,7 @@ describe('normalizeBackendURL', () => {
 
 	test('trims trailing slash from resolved URL', () => {
 		const headers = new Headers({
-			'x-forwarded-host': 'example.com',
+			host: 'example.com',
 		});
 		const result = normalizeBackendURL('/api/consent/', headers);
 		expect(result).toBe('https://example.com/api/consent');
@@ -320,6 +310,56 @@ describe('v3 server helpers', () => {
 		});
 		expect(result.initialOverrides?.country).toBe('DE');
 		expect(mockFetch).not.toHaveBeenCalled();
+	});
+
+	test('resolveConsent does not send cookies to a forged x-forwarded-host', async () => {
+		mockFetch.mockResolvedValue(
+			new Response(JSON.stringify({ branding: 'c15t' }), {
+				headers: { 'Content-Type': 'application/json' },
+				status: 200,
+			})
+		);
+		const headers = new Headers({
+			cookie: 'c15t=abc',
+			host: 'app.example.com',
+			'x-forwarded-host': 'attacker.example',
+		});
+
+		await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch: mockFetch,
+			headers,
+			requestURL: 'https://app.example.com/page',
+		});
+
+		expect(mockFetch).toHaveBeenCalledOnce();
+		expect(mockFetch.mock.calls[0][0]).toBe(
+			'https://app.example.com/api/c15t/init'
+		);
+	});
+
+	test('resolveConsent honours x-forwarded-host only when trusted', async () => {
+		mockFetch.mockResolvedValue(
+			new Response(JSON.stringify({ branding: 'c15t' }), {
+				headers: { 'Content-Type': 'application/json' },
+				status: 200,
+			})
+		);
+
+		await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch: mockFetch,
+			headers: new Headers({
+				'x-forwarded-host': 'edge.example.com',
+				'x-forwarded-proto': 'https',
+			}),
+			requestURL: 'http://127.0.0.1:3000/',
+			trustForwardedHeaders: true,
+		});
+
+		expect(mockFetch.mock.calls[0][0]).toBe(
+			'https://edge.example.com/api/c15t/init'
+		);
 	});
 
 	test('resolveConsent calls normalized URL /init', async () => {

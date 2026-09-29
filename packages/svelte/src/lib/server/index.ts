@@ -6,13 +6,13 @@ import {
 } from '@c15t/core';
 import type { InitContext } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
+import { resolveRequestBackendURL } from '@c15t/core/server';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 } from '@c15t/schema/types';
 
 import { extractRelevantHeaders } from './headers';
-import { normalizeBackendURL } from './normalize-url';
 import type {
 	ConsentRequestOptions,
 	ConsentState,
@@ -114,10 +114,13 @@ const resolveConsentState = async function resolveConsentState(
 	if (!options.backendURL) {
 		return base;
 	}
-	const absoluteBackend = normalizeBackendURL(
-		options.backendURL,
-		options.headers
-	);
+	// Never resolve against client-supplied forwarding headers by default:
+	// the call below carries the request's cookies to whatever host this is.
+	const absoluteBackend = resolveRequestBackendURL(options.backendURL, {
+		headers: options.headers,
+		requestURL: options.requestURL,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 	if (!absoluteBackend) {
 		return base;
 	}
