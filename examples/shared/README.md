@@ -110,7 +110,9 @@ Then run `bun scripts/sync-example-docs.ts`. Each region becomes
 includes with `<include src="../../shared/examples/<app>/<name>.mdx" />`.
 The fence title defaults to the file's path inside the app; set `title` when
 readers use a different path. Regions can nest, and nested markers are removed
-from the outer snippet. `internals/next-compat` apps can publish regions too.
+from the outer snippet. `internals/next-compat` apps can publish regions too,
+and so can the Storybook apps in `apps/storybook-*`: a region in
+`apps/storybook-react` becomes `docs/shared/examples/storybook-react/<name>.mdx`.
 
 Keep demo-only code, such as the design gallery, reset buttons and location
 overrides, outside published regions or in separate files. A region should be

@@ -5,8 +5,14 @@ import { basename, extname, resolve } from 'node:path';
 /**
  * Directories whose apps are built and tested in CI. Documentation code that
  * wires c15t into an application comes from marked regions in these files.
+ * `apps` is scanned for its Storybook apps, whose design recipes CI runs
+ * through `test-storybook`.
  */
-export const exampleRoots = ['examples', 'internals/next-compat'] as const;
+export const exampleRoots = [
+	'examples',
+	'internals/next-compat',
+	'apps',
+] as const;
 
 /** Where generated snippets are written, relative to the repository root. */
 export const generatedExamplesDir = 'docs/shared/examples';
@@ -73,13 +79,20 @@ export const appFor = (source: string): string => {
 	if (compat?.groups?.name) {
 		return `internals/next-compat/${compat.groups.name}`;
 	}
+	const storybook = source.match(/^apps\/(?<name>storybook-[^/]+)\//u);
+	if (storybook?.groups?.name) {
+		return `apps/${storybook.groups.name}`;
+	}
 	throw new Error(`${source} is not inside an example app.`);
 };
 
 const destinationFor = (app: string, name: string): string => {
-	const prefix = app.startsWith('examples/')
-		? app.slice('examples/'.length)
-		: `next-compat/${app.slice('internals/next-compat/'.length)}`;
+	let prefix = `next-compat/${app.slice('internals/next-compat/'.length)}`;
+	if (app.startsWith('examples/')) {
+		prefix = app.slice('examples/'.length);
+	} else if (app.startsWith('apps/')) {
+		prefix = app.slice('apps/'.length);
+	}
 	return `${generatedExamplesDir}/${prefix}/${name}.mdx`;
 };
 
