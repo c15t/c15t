@@ -135,7 +135,7 @@ for (const engine of ENGINES) {
 						'5-drop-subject-identity-authority',
 						'6-experiment-attribution',
 					]);
-					assert.deepStrictEqual(yield* ledger, [1, 2, 3, 4, 5]);
+					assert.deepStrictEqual(yield* ledger, [1, 2, 3, 4, 5, 6]);
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 120_000 }
 		);
