@@ -48,6 +48,11 @@ it for a vendor snippet you would rather keep in HTML. `createConsentRuntime`
 and a plain kernel do not scan the page for these tags;
 `activateGatedScripts(snapshot)` from `@c15t/browser` runs them for you.
 
+With the `nonce` option set, `@c15t/browser` runs only the tags that carry the
+same `nonce`, and marks the others `data-c15t-activated="untrusted"`. Pass
+`{ nonce }` as the third argument of `activateGatedScripts` for the same
+check. See [Content Security Policy](/docs/frameworks/javascript/content-security-policy).
+
 ## When a visitor withdraws permission
 
 A script that has run cannot be unloaded. `@c15t/browser` and

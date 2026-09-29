@@ -46,11 +46,18 @@ answer belongs to one visitor.
 
 ## Trust only your own infrastructure
 
-The `x-c15t-*` headers always win. A visitor who sends
+The `x-c15t-*` headers always win, by design. A visitor who sends
 `x-c15t-country: US` picks their own policy unless something removes the
-header first. Configure the edge that terminates all your traffic, such as
-your CDN or load balancer, to delete incoming `x-c15t-country`,
-`x-c15t-region` and `x-c15t-gpc` headers before it sets any of its own.
+header first. The header only changes the policy for the visitor who sent it.
+For geography you can trust, configure the edge that terminates all your
+traffic, such as your CDN or load balancer, to delete incoming
+`x-c15t-country`, `x-c15t-region` and `x-c15t-gpc` headers before it sets any
+of its own.
+
+Stripping the headers also turns off the `country` and `region` props of
+`ConsentRoot` in server mode. In the browser, those props reach the
+`/api/c15t/init` route as `x-c15t-country` and `x-c15t-region` headers, so
+the edge removes them too.
 
 Do not strip them in a Nitro server middleware. During server rendering, the
 c15t plugin forwards the visitor's location headers to the module's init
@@ -67,7 +74,8 @@ with your host's origin protection.
 Use one of these while you build, never in production:
 
 - Render `<ConsentRoot country="DE" />`, or pass `region` too. c15t resolves
-  the policy again for that location.
+  the policy again for that location. In server mode this only works while
+  nothing strips the `x-c15t-*` headers.
 - Send the override header yourself, for example
   `curl -H 'x-c15t-country: DE' http://localhost:3000/api/c15t/init`. This
   only works while nothing strips the header.

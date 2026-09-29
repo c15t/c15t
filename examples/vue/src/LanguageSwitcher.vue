@@ -9,8 +9,8 @@ import { useConsentKernel, useConsentLanguage } from 'c15t/vue/vue-plugin';
 const language = useConsentLanguage();
 const kernel = useConsentKernel();
 
-// Setting the language only stores it. Resolving again fetches the banner
-// and dialog text in that language.
+// Resolving again with `init()` loads the banner and dialog text in the
+// new language.
 const switchTo = (code: string) => {
 	language.value = code;
 	void kernel.commands.init();

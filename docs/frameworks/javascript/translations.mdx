@@ -15,7 +15,8 @@ outside the bundle, and which source wins depends on the transport:
 | Manifest | The manifest's translations for the visitor's language. |
 | Offline or custom | English, or the `locale` and `messages` you set in `i18n`. |
 
-In every mode, text you set in `ui.banner`, such as `title` or
+In every mode, your `i18n.messages` for the language in use override that copy
+key by key. Text you set in `ui.banner`, such as `title` or
 `acceptButtonText`, replaces the translated banner text for all languages.
 
 ## Set messages
@@ -27,9 +28,19 @@ keeps every default you leave out:
 <include src="../../shared/examples/javascript/translations.mdx" />
 
 This example runs offline, so the German copy shows as written. With a
-backend, the `/init` response carries your Inth project's copy, and for the
-same language it replaces your `i18n` messages key by key. Change copy in
-your Inth project, or use `ui.banner` for the banner.
+backend, the `/init` response, a server prefetch or the manifest carries your
+Inth project's copy for the visitor's language. Your `i18n.messages` for that
+language override it key by key, and keys you leave out keep the project's
+copy. c15t looks for the exact language first, then the primary language, so
+a visitor on `de-AT` gets your `de` messages. Messages for other languages
+are not applied.
+
+A key only overrides the backend when your text differs from c15t's built-in
+wording for that language. So passing the stock bundles from
+`@c15t/translations/all` to enable languages keeps edits made in your Inth project visible,
+while a key you actually reworded stays pinned in code. Core bundles only
+English; for other languages, import `@c15t/translations/all` so c15t can
+recognize its stock wording.
 
 Offline mode is shown here to keep the example short. Not recommended for
 production environments.
@@ -44,8 +55,14 @@ The banner and dialog re-render. With a runtime or kernel, call
 To follow your app's own language setting from the first render, pass it as
 an override: `init({ backendURL, overrides: { language: 'fr' } })`.
 
-In offline mode there is no copy to fetch. Put every language in `messages`
-and create the client with the `locale` you need.
+In offline mode there is no copy to fetch. With `offline()` from `c15t` or
+`@c15t/browser`, a language set with the `language` override,
+`setLanguage()` or `kernel.set.language()` switches to that language's copy
+from the bundle or `i18n.messages`. This works for `@c15t/browser` and for a
+headless `createConsentRuntime({ mode: offline() })`. A language with no copy
+shows the default copy, and the language a server prefetch detected from
+`Accept-Language` does not switch the copy. The bundle has English only, so
+put every other language in `messages`.
 
 ## Use c15t's bundled translations
 

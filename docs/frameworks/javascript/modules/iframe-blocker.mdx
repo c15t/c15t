@@ -31,10 +31,12 @@ runs, so always use `data-src`.
 
 ## Iframes your code adds
 
-The blocker watches `<body>` for new iframes and for changes to
+The blocker watches the whole document for new iframes and for changes to
 `data-category` and `data-vendor`. An iframe your app renders after load is
 gated as soon as it is inserted, before the browser fetches it, as long as it
-is inserted with `data-src` and no `src`.
+is inserted with `data-src` and no `src`. Watching the document root keeps the
+blocker working when a client router such as Turbo replaces `<body>`, and lets
+it start from a script in `<head>` before `<body>` exists.
 
 To render the embed yourself instead, skip the attributes and create the
 iframe when `snapshot.effectivePermissions.measurement` becomes `true`. The
@@ -61,16 +63,35 @@ visitor can allow the category.
 | `iframeBlocker` value | Effect |
 | --- | --- |
 | omitted or `{}` | Gate every iframe with `data-category` or `data-vendor`. |
-| `{ disableAutomaticBlocking: true }` | Do not scan or watch the page. `data-src` iframes stay unloaded until you call `processAllIframes()` on a blocker you own. |
+| `{ disableAutomaticBlocking: true }` | Do not scan or watch the page. c15t checks iframes only when you call `processIframes()`. See [check iframes on demand](#check-iframes-on-demand). |
 | `false` | No blocker. `data-src` iframes never load. |
 
 The categories of gated iframes are added to the categories the preference
 dialog offers.
 
+## Check iframes on demand
+
+With `iframeBlocker: { disableAutomaticBlocking: true }`, the blocker does
+nothing until you call `processIframes()`. Each call pauses gated iframes,
+those with `data-category` or `data-vendor`, that consent does not allow, and
+restores the ones it does. Call it after you add iframes and after consent
+changes:
+
+{/* example: fragment */}
+
+```ts
+consent.on('consent', () => consent.processIframes());
+```
+
+`consent.processIframes()` is on the `@c15t/browser` client, and
+`runtime.processIframes()` on a runtime from `createConsentRuntime`. The call
+does nothing before `start()`, after `dispose()`, or when `iframeBlocker` is
+`false`. With automatic blocking on, the blocker does this by itself.
+
 ## Attach it to your own kernel
 
-A kernel from `createConsentKernel` has no iframe blocker. Create one after
-the page's `<body>` exists:
+A kernel from `createConsentKernel` has no iframe blocker. Create one for
+it:
 
 <include src="../../../shared/examples/javascript/iframe-blocker.mdx" />
 

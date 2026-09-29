@@ -43,17 +43,11 @@ and [callbacks](/docs/frameworks/javascript/callbacks).
 [Customize](/docs/frameworks/javascript/customize) shows these options at
 work.
 
-## Options the runtime has and the client does not
+## Options the client passes to the runtime
 
 `@c15t/browser` builds a [consent runtime](/docs/frameworks/javascript/api/runtime)
-for you and passes most options through. A few runtime options have no client
-equivalent:
-
-| Runtime option | Client behavior |
-| --- | --- |
-| `nonce` | Not available. Set `nonce` on each `scripts` entry instead. See [Content Security Policy](/docs/frameworks/javascript/content-security-policy). |
-| `persistence` | Always on, reading and writing the cookie and localStorage named in `storageConfig`. |
-| `vendors` | Not available. Vendors come from the backend and from `vendor` fields on scripts and rules. |
-| `scriptLoader.onDebug` | Not available. Use the DevTools Scripts tab. |
-
-Use `createConsentRuntime` directly when you need one of these.
+for you and passes every option in the tables above through, including
+`nonce`, `persistence`, `scriptLoader` and `vendors`. Two runtime options have
+no client equivalent. The `@c15t/browser/iab` entry supplies `createIAB`, and
+the client turns `windowDebug` off so the runtime does not replace
+`window.c15t`.

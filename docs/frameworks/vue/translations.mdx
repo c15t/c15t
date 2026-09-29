@@ -38,20 +38,24 @@ policy again, which fetches the text in that language:
 <ConsentRoot :language="locale" />
 ```
 
-Without `ConsentRoot`, set the language with `useConsentLanguage()` and then
-resolve again with the kernel:
+Without `ConsentRoot`, assign the language to `useConsentLanguage()`. A new
+language runs init again, which fetches the banner and dialog text in that
+language. Assigning the current language does nothing:
 
 <include src="../../shared/examples/vue/language-switcher.mdx" />
 
+The assignment alone loads the new text. The example's extra
+`kernel.commands.init()` call repeats the request and is not needed.
+
 ## Text that does not come from translations
 
-A few labels are fixed English strings in the Vue components. Replace them in
-the visitor's language when your site has more than one:
+`ConsentPreferencesLink` and the `ConsentGate` placeholder read their default
+text from the translations, in English until init has delivered copy. One
+label in the Vue components is a c15t option instead. Set it in the visitor's
+language when your site has more than one:
 
 | Text | Where | How to change it |
 | --- | --- | --- |
-| "Privacy settings" | `ConsentPreferencesLink` | Pass the label in its default slot. |
-| "Content requires permission." | `ConsentGate` without a placeholder | Pass a `placeholder` slot. |
 | "Open privacy settings" | `ConsentDialogTrigger` label | Set the `triggerAriaLabel` option. |
 
 ## Verify

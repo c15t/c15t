@@ -16,7 +16,7 @@ when they are allowed. Each needs a directive:
 | `script-src` | A nonce or hash for each inline script | Your queued `config` and `on` calls, and inline gated snippets. |
 | `script-src` | Each vendor's script origin | Gated `<script src>` tags and `scripts` entries. |
 | `connect-src` | Your backend's origin, such as `https://your-project.inth.app` | `/init`, `/subjects`, and `/manifest` in manifest mode. |
-| `style-src` | `'unsafe-inline'`, unless you serve the stylesheet as a file | The stock UI's `<style>` element. |
+| `style-src` | The same nonce as the c15t tag, or the host you serve `c15t.css` from | The stock UI's `<style>` element, or the stylesheet file. |
 | `frame-src` | Each embed's origin, such as `https://www.youtube-nocookie.com` | Gated iframes. |
 | `img-src`, `connect-src` | Each vendor's collection endpoints | What the vendor scripts send once they run. |
 
@@ -49,26 +49,40 @@ script that talks to `window.c15t`, and on every gated inline script:
 
 Your server generates `RANDOM_PER_RESPONSE` for each response and sends the
 same value in the header, such as
-`Content-Security-Policy: script-src 'nonce-RANDOM_PER_RESPONSE' 'strict-dynamic'`.
+`Content-Security-Policy: script-src 'nonce-RANDOM_PER_RESPONSE' 'strict-dynamic'; style-src 'nonce-RANDOM_PER_RESPONSE'`.
 A static host that cannot vary the response cannot use a nonce; list origins
 and hashes instead.
 
-When c15t runs a gated tag, it copies the tag's `nonce` to the tag it creates,
-so the browser accepts the snippet. With `'strict-dynamic'`, scripts that c15t
-creates are trusted because the c15t tag itself carries the nonce. Without
-`'strict-dynamic'`, each vendor origin must be in `script-src`.
+The c15t tag reads its own `nonce` and puts it on the stock UI's `<style>`
+element and on every script that a `scripts` entry in `config` loads. An
+entry's own `nonce` wins. To give c15t a nonce without putting it on the tag,
+for example when `script-src` allows the tag by its origin, set
+`data-nonce="RANDOM_PER_RESPONSE"` on the tag instead. `data-nonce` wins over
+the tag's `nonce`.
 
-Scripts listed under `scripts` in `config` do not inherit a nonce from the
-page. Set `nonce` on each entry when your policy needs one.
+Once the c15t tag has a nonce, c15t runs only the gated `text/plain` tags
+that carry the same nonce. c15t runs a gated tag by creating a new `<script>`,
+and `'strict-dynamic'` lets scripts that trusted code creates run without a
+nonce, so without this check a tag injected into your page would run once its
+category was allowed. c15t skips a gated tag without the nonce, logs a console
+warning and marks the tag `data-c15t-activated="untrusted"`. It never copies
+the nonce onto a gated tag, so add `nonce="RANDOM_PER_RESPONSE"` to every gated
+tag you write, including tags your own code inserts later.
+
+When c15t runs a gated tag, it copies that tag's `nonce` to the tag it
+creates, so the browser accepts the snippet. With `'strict-dynamic'`, scripts
+that c15t creates are trusted because the c15t tag itself carries the nonce.
+Without `'strict-dynamic'`, each vendor origin must be in `script-src`.
 
 ## Allow the stock UI's styles
 
 `c15t.js` renders its CSS in a `<style>` element inside the UI's shadow root.
-That element has no nonce, so `style-src` needs `'unsafe-inline'` for the
-stock UI. Theme tokens and `ui.css` go into the same element.
+Theme tokens and `ui.css` go into the same element. The element carries the
+nonce from the c15t tag, or from `data-nonce`, so
+`style-src 'nonce-RANDOM_PER_RESPONSE'` allows it without `'unsafe-inline'`.
 
-To avoid `'unsafe-inline'`, render into the page and serve the stylesheet as a
-file:
+A host that cannot send a nonce can render into the page and serve the
+stylesheet as a file instead:
 
 {/* example: fragment */}
 

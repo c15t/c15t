@@ -81,9 +81,9 @@ group: reference
   ## Change the language
 
   `useConsentLanguage()` returns a writable computed with the language
-  override, or `null`. Setting it only stores the override. Call
-  `useConsentKernel().commands.init()` afterwards so c15t fetches the banner
-  and dialog text in that language.
+  override, or `null`. Assigning a new language code stores it and runs init
+  again, so c15t fetches the banner and dialog text in that language.
+  Assigning the current language, or `null`, does nothing.
 </section>
 
 <section id="headless">

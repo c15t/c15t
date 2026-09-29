@@ -149,8 +149,10 @@ drop the built-in styles with `noStyle`.
 
 ## Change the copy
 
-Labels, descriptions and languages come from the provider's `i18n` option and
-from the translations in your Inth project.
+Labels, descriptions and languages come from the translations in your Inth
+project and from the provider's `i18n` option. For the visitor's language,
+`i18n.messages` replace the project's copy key by key, and keys you leave out
+keep the project's wording.
 [Copy and translations](/docs/customization/translations) shows the message
 keys. For one banner, `ConsentBanner` also accepts text props such as
 `dismissButtonText`.

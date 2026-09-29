@@ -22,9 +22,9 @@ renders is inline, so it works before any module script has loaded.
 | --- | --- | --- |
 | Color-scheme `<script>` | `colorScheme` is `'system'` or `'dark'` | Sets the `c15t-dark` class on `<html>` before first paint |
 | `<style id="c15t-theme">` | The integration sets `theme` | Holds the `--c15t-*` custom properties for your tokens |
-| Boot payload `<script>` | Always | Hands the browser the consent decision the server resolved |
+| Boot payload `<script type="application/json" data-c15t-config>` | Always | Hands the browser the consent decision the server resolved |
 
-The boot payload sets `window.__c15tAstroConfig` to the resolved consent
+The boot payload is a JSON data block holding the resolved consent
 configuration: the policy, the visitor's stored consent and the translations
 for the negotiated language. The browser starts from it, so a page rendered on
 the server needs no `/init` request and the banner does not flicker. The
@@ -58,9 +58,11 @@ decision, and the browser requests one.
 
 ## Content Security Policy
 
-All three elements are inline. A policy that restricts inline scripts or
-styles must allow them. The boot payload changes with each visitor, so it
-cannot be allowed with a fixed hash. See
+The color-scheme script and the theme `<style>` are inline code. They carry
+`Astro.locals.c15t.nonce` when your middleware sets it, and under Astro's
+`security.csp` the integration adds their hashes to the policy. The boot
+payload is a data block that the browser never runs, so a policy does not
+need to allow it. See
 [Content Security Policy](/docs/frameworks/astro/content-security-policy).
 
 ## Related
@@ -69,6 +71,6 @@ cannot be allowed with a fixed hash. See
   same elements when `ConsentScript` is missing.
 - [Integration options](/docs/frameworks/astro/integration) covers `theme` and
   `colorScheme`.
-- [Server API](/docs/frameworks/astro/server) documents `buildConfigScript`,
+- [Server API](/docs/frameworks/astro/server) documents `buildConfigJSON`,
   `buildThemeCSS` and `buildColorSchemeScript`, the helpers behind these
   elements.

@@ -41,7 +41,9 @@ island request. See
 | `acceptButtonText` | `string` | `common.acceptAll` | Accept button label |
 | `rejectButtonText` | `string` | `common.rejectAll` | Reject button label |
 | `customizeButtonText` | `string` | `common.customize` | Customize button label |
+| `dismissButtonText` | `string` | `common.acknowledge` | Label of the button that acknowledges a notice |
 | `legalLinks` | `('privacyPolicy' \| 'cookiePolicy' \| 'termsOfService')[] \| null` | None | Which configured legal links to show |
+| `hideBranding` | `boolean` | `false` | Removes the "Secured by" tag |
 | `noStyle` | `boolean` | `false` | Renders the markup without c15t's class names |
 | `class` | `string` | None | Extra class on the banner root |
 | `force` | `boolean` | `false` | Renders the banner even when the server decided to hide it |
@@ -50,6 +52,12 @@ Astro serializes the props of a server island for the island request, so pass
 plain strings, booleans and arrays. See
 [ConsentBanner](/docs/frameworks/astro/components/consent-banner#props) for
 what each prop does.
+
+`ConsentBannerDeferred` also passes the page's `Astro.locals.c15t.nonce` to
+the island, so the inline code the island inserts carries the nonce the
+page's policy allows. Astro's own island loader carries no nonce, so a nonce
+policy from your middleware blocks the island. See
+[Content Security Policy](/docs/frameworks/astro/content-security-policy#pass-the-nonce-to-consentbanner-and-consentbannerdeferred).
 
 ## Show something while the island loads
 

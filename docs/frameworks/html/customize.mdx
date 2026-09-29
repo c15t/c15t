@@ -103,8 +103,10 @@ page lists them. For wording shared by the banner and the dialog, and for other
 languages, see [translations](/docs/frameworks/html/translations).
 
 The bundle only carries English. Other languages come from your Inth project,
-the policy manifest or your `i18n` messages. `data-language="de"` on the tag
-forces a language instead of the browser's.
+the policy manifest or your `i18n` messages. Your `i18n` messages for the
+language in use override the project's or manifest's copy key by key, and
+keys you leave out keep that copy. `data-language="de"` on the tag forces a
+language instead of the browser's.
 
 ## Show legal links
 

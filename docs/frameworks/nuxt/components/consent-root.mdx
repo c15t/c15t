@@ -16,9 +16,8 @@ import. Put it in `app.vue`, outside `<NuxtPage />`:
 brings its own styles.
 
 Always mount the Nuxt `ConsentRoot`, not the Vue one from
-`c15t/vue/consent-root`. The Nuxt component renders the banner on the server
-and writes the theme tokens into the page head. The Vue component applies
-tokens only after mount.
+`c15t/vue/consent-root`. The Nuxt component renders the banner on the
+server.
 
 ## What ConsentRoot renders
 
@@ -45,9 +44,10 @@ animation runs.
 
 ## Theme tokens
 
-`ConsentRoot` writes the `tokens` option into a
-`<style id="c15t-css-vars">` tag in the page head with `useHead`. During
-server rendering the tag is in the first HTML. See
+The Nuxt module's plugin, not `ConsentRoot`, writes the `tokens` option
+into a `<style id="c15t-css-vars">` tag in the page head, on every page and
+with the module's `nonce`. During server rendering and prerendering the tag is
+in the first HTML. See
 [customize](/docs/frameworks/nuxt/customize#set-theme-tokens).
 
 ## Props
@@ -56,11 +56,11 @@ server rendering the tag is in the first HTML. See
 | --- | --- | --- | --- |
 | `country` | `string` | The location from the request headers | Overrides the visitor's country and resolves the policy again. |
 | `region` | `string` | The location from the request headers | Overrides the visitor's region, such as `CA`, and resolves the policy again. |
+| `language` | `string` | The browser language | Overrides the language and resolves the policy again, which fetches the banner and dialog text in that language. |
 
-Use these props to preview another region's policy while you build, such as
-`<ConsentRoot country="DE" />`. The Nuxt `ConsentRoot` has no `language` prop.
-See [translations](/docs/frameworks/nuxt/translations) to change the
-language.
+Use `country` and `region` to preview another region's policy while you
+build, such as `<ConsentRoot country="DE" />`. Bind `language` to your site's
+current language. See [translations](/docs/frameworks/nuxt/translations).
 
 ## Compose the surfaces yourself
 

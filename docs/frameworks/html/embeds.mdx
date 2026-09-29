@@ -67,9 +67,11 @@ request, so always use `data-src`.
 
 ## Iframes added later
 
-c15t watches the page. An iframe that a page builder, a CMS widget or your own
-script adds later is gated the moment it appears, and so is an iframe whose
-`data-category` changes.
+c15t watches the whole document. An iframe that a page builder, a CMS widget
+or your own script adds later is gated the moment it appears, and so is an
+iframe whose `data-category` changes. This keeps working when a client router
+such as Turbo replaces `<body>` on navigation, and when the c15t tag runs in
+`<head>` before `<body>` exists.
 
 ## Configure the iframe blocker
 
@@ -88,11 +90,35 @@ The iframe blocker is on by default in every `@c15t/browser` build. Set
 | Value | Effect |
 | --- | --- |
 | omitted or `{}` | Gate every iframe with `data-category` or `data-vendor`, including ones added later. |
-| `{ disableAutomaticBlocking: true }` | Do not scan or watch the page. c15t never sets or removes a `src`, so `data-src` iframes stay unloaded. |
+| `{ disableAutomaticBlocking: true }` | Do not scan or watch the page. c15t sets or removes a `src` only when you call `c15t.processIframes()`. See [check iframes yourself](#check-iframes-yourself). |
 | `false` | Turn the blocker off. `data-src` iframes never load. |
 
 The categories on gated iframes are added to the preference dialog, as they
 are for gated scripts.
+
+## Check iframes yourself
+
+With `iframeBlocker: { disableAutomaticBlocking: true }`, c15t leaves iframes
+alone until your page calls `c15t.processIframes()`. Each call pauses gated
+iframes, those with `data-category` or `data-vendor`, that consent does not
+allow, and restores the ones it does. Call it after the policy resolves, after
+you add iframes, and after consent changes:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', { iframeBlocker: { disableAutomaticBlocking: true } }]);
+  c15t.push(['processIframes']);
+  c15t.push(['on', 'consent', () => c15t.processIframes()]);
+</script>
+```
+
+A queued `processIframes` runs once the policy has resolved, so
+`c15t.push(['processIframes'])` is safe before and after the tag loads. With
+automatic blocking on, c15t does this by itself and you do not need to call
+it.
 
 ## Vendor embeds
 

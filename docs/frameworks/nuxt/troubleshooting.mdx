@@ -78,8 +78,9 @@ plain module. Call consent composables inside a component's `setup`.
 
 ## Every visitor resolves the same location
 
-The server found no location header, or a visitor-supplied `x-c15t-country`
-header won. Check which headers reach Nuxt and which ones you trust in
+The server found no location header, or an `x-c15t-country` header that your
+own code adds, such as a test middleware, won. A header a visitor sends only
+changes that visitor's policy. Check which headers reach Nuxt and which ones you trust in
 [geography headers](/docs/frameworks/nuxt/geography-headers).
 
 ## More help

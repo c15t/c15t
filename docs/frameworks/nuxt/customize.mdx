@@ -41,12 +41,13 @@ export default defineNuxtConfig({
 });
 ```
 
-The Nuxt `ConsentRoot` writes the tokens into a `<style id="c15t-css-vars">`
-tag in the page head with `useHead`. During server rendering the tag is in the
-first HTML, so the banner already has your colors. Prerendered and cached
-routes keep the tag, because tokens are the same for every visitor. With
-`ssr: false`, `useHead` adds the same tag in the browser when `ConsentRoot`
-mounts, so tokens apply there too. Set tokens through this option rather than
+The Nuxt module's plugin writes the tokens, including the defaults you did
+not set, into a `<style id="c15t-css-vars">` tag in the page head on every
+page, whether or not `ConsentRoot` renders. During server rendering and
+prerendering the tag is in the first HTML, so the banner already has your
+colors. Cached routes keep the tag, because tokens are the same for every
+visitor. With `ssr: false`, the plugin adds the same tag in the browser. The
+tag carries the module's `nonce` when you set one. Set tokens through this option rather than
 a `:root` rule in your own CSS, which can lose to that tag depending on
 stylesheet order. [Theme tokens](/docs/customization/tokens) lists every token.
 

@@ -35,7 +35,7 @@ before or after the tag. `push` returns the number of calls it received.
 | --- | --- |
 | `config`, `init`, `on`, `onInit` | In place, in queue order, as the bundle loads. |
 | `subscribe` | Once the client exists. |
-| `acceptAll`, `rejectAll`, `save`, `dismissNotice`, `saveIAB`, `showBanner`, `openDialog`, `closeDialog`, `setLanguage`, `identify`, `mountUI` | In queue order, once the policy has resolved. A queued `openDialog` therefore stays open instead of being replaced by the banner. |
+| `acceptAll`, `rejectAll`, `save`, `dismissNotice`, `saveIAB`, `showBanner`, `openDialog`, `closeDialog`, `setLanguage`, `identify`, `mountUI`, `processIframes` | In queue order, once the policy has resolved. A queued `openDialog` therefore stays open instead of being replaced by the banner. |
 | Any other method, such as `getSnapshot`, `has`, `hasConsented`, `ready` or `dispose`, and names c15t does not know | Skipped, with a console warning. Call them from `onInit` or after `ready()`. |
 
 A queued call that throws is reported with `console.error`, and the calls
@@ -133,7 +133,7 @@ the choice stays in effect, and c15t retries the request later.
 | `showBanner()` | Shows the banner. Records nothing. |
 | `openDialog()` | Opens the preference dialog. Records nothing. |
 | `closeDialog()` | Closes the banner or dialog. Records nothing. |
-| `setLanguage(code)` | Switches language, asks the backend for that copy and re-renders. See [translations](/docs/frameworks/html/translations). |
+| `setLanguage(code)` | Switches language and re-renders with that language's copy, from the backend or, in offline mode, from the bundled copy and `i18n.messages`. See [translations](/docs/frameworks/html/translations). |
 | `mountUI(options?)` | Removes the stock UI and mounts it again, with new UI options or the configured ones. Throws in `c15t.headless.js`. |
 
 In `c15t.headless.js`, `showBanner`, `openDialog` and `closeDialog` still
@@ -148,6 +148,7 @@ can follow them.
 | `init(options?)` | Starts the client. Only needed with `data-manual`. |
 | `onInit(listener)` | Calls `listener` with the client once it exists, at once if it already does. Returns a function that cancels the call. |
 | `push(...calls)` | Runs `[method, ...args]` calls by the queue rules above. |
+| `processIframes()` | Pauses gated iframes that consent does not allow and restores the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. See [embeds](/docs/frameworks/html/embeds#check-iframes-yourself). |
 | `dispose()` | Removes the UI, the DevTools panel, page listeners, blockers and the scripts c15t added. Code that already ran keeps running. |
 
 ## Properties

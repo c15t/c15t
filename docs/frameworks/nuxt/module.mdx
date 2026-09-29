@@ -21,7 +21,7 @@ the whole setup.
 | --- | --- |
 | Components | `ConsentRoot`, `ConsentWidget`, `ConsentPreferencesLink`, `ConsentDialogTrigger`, `ConsentGate` and the deprecated `ConsentFrame`, all global. See [components](/docs/frameworks/nuxt/components). |
 | Composables | 25 composables, auto-imported. See [composables](/docs/frameworks/nuxt/composables). |
-| A Nuxt plugin | Creates the consent runtime for each request on the server and once in the browser, and resolves the visitor's policy during server rendering. |
+| A Nuxt plugin | Creates the consent runtime for each request on the server and once in the browser, resolves the visitor's policy during server rendering, and writes the `tokens` option into the page head. |
 | Server routes | With `manifest: 'server'`, `GET /api/c15t/init` and `GET /api/c15t/manifest`. With `manifest: 'client'` and no `manifestURL`, only the manifest route. |
 | The `#c15t/composables` alias | Points at the module's composables, for the few that are not auto-imported. |
 
@@ -33,7 +33,8 @@ iframe blocker and, under an IAB policy, the IAB module.
 ## nuxt.config.ts or app.config.ts
 
 The module merges the `c15t` key of `app/app.config.ts` over its options in
-`nuxt.config.ts`. Arrays from both files are combined.
+`nuxt.config.ts`. Arrays from both files are combined. The module types both
+keys, including when you register it as `c15t/vue`.
 
 | Put it in | Options |
 | --- | --- |
@@ -70,6 +71,7 @@ mode fits which deployment.
 | `consentCategories` | The policy's categories | Limits the categories the dialog and widget show, within the policy's scope. |
 | `vendors` | Unset | Vendors listed under their category with their own switch. See [granular consent](/docs/integrations/granular-consent). |
 | `storageConfig` | `{ storageKey: 'c15t' }` | Cookie and localStorage name, `crossSubdomain`, `defaultDomain` and `defaultExpiryDays`. Use the same value in both config files. |
+| `domain` | The browser's hostname | The domain the browser sends with each consent save to the backend's `/subjects`. |
 | `reloadOnConsentRevoked` | `true` | Reloads the page when a save withdraws a granted category or vendor. |
 | `clearOnRevocation` | Unset | Deletes first-party cookies and storage keys for a withdrawn category. |
 | `consentSource` | Unset | Hands the decision to an existing consent tool. `app.config.ts` only. See [use c15t with an existing CMP](/docs/integrations/existing-cmp). |
@@ -81,14 +83,14 @@ mode fits which deployment.
 | `scripts` | Unset | Vendor scripts that load by consent category. `app.config.ts` only. See [scripts](/docs/frameworks/nuxt/scripts). |
 | `networkBlocker` | Off | Rules that hold `fetch` and XHR requests until their category is allowed. See [network blocker](/docs/frameworks/nuxt/network-blocker). |
 | `iframeBlocker` | On | Gates iframes that carry `data-src` and `data-category`. `false` turns it off. See [embeds](/docs/frameworks/nuxt/embeds). |
-| `nonce` | Unset | A nonce for every script the loader creates. See [Content Security Policy](/docs/frameworks/nuxt/content-security-policy). |
+| `nonce` | Unset | A nonce for every script the loader creates and for the theme token style tag. See [Content Security Policy](/docs/frameworks/nuxt/content-security-policy). |
 | `callbacks` | Unset | `app.config.ts` only. See [callbacks](/docs/frameworks/nuxt/callbacks). |
 
 ### Appearance
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `tokens` | The default theme | CSS variables `ConsentRoot` writes into the page head. See [customize](/docs/frameworks/nuxt/customize#set-theme-tokens). |
+| `tokens` | The default theme | CSS variables the module writes into a `<style id="c15t-css-vars">` tag in the page head on every page. See [customize](/docs/frameworks/nuxt/customize#set-theme-tokens). |
 | `presentation` | Policy defaults | Banner and dialog variant, position, action layout and blocking. |
 | `components` | Unset | Attributes, such as `class`, for named parts of each component. |
 | `legalLinks`, `bannerLegalLinks`, `dialogLegalLinks` | None shown | Links to your privacy policy and similar pages, and which surfaces show them. |

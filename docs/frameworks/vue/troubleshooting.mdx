@@ -42,17 +42,18 @@ Check, in order:
 
 ## The browser requests /api/c15t/init
 
-`manifestURL` is set without `manifest: 'client'`. A `manifestURL` on its own
-selects server manifest mode, which calls the `/api/c15t/init` route that only
-the Nuxt module provides. Add `manifest: 'client'` next to `manifestURL`. The
-same route appears when `backendURL` is unset, because the plugin then
-defaults to `/api/c15t`.
+`backendURL` is unset, so the plugin defaults to `/api/c15t` and requests
+the `/api/c15t/init` route that only the Nuxt module provides. Set
+`backendURL` to your backend. `manifest: 'server'` calls the same route, so
+use `manifest: 'client'` or leave `manifest` unset in a plain Vue app.
 
 ## Tokens in my CSS do not apply
 
-`ConsentRoot` writes every token as an inline style on `<html>` when it
-mounts, and an inline style beats a `:root` rule. Set values through the
-plugin's `tokens` option. See [customize](/docs/frameworks/vue/customize#set-theme-tokens).
+The c15tVue plugin appends a `<style id="c15t-css-vars">` element to
+`<head>` when you install it. The element sets every token, including the
+defaults. A `:root` rule in your stylesheet for the same variable competes
+with it on source order, so it may lose. Set values through the plugin's
+`tokens` option. See [customize](/docs/frameworks/vue/customize#set-theme-tokens).
 
 ## A script loads twice, or before consent
 

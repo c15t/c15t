@@ -30,11 +30,12 @@ Location overrides from the panel change the current page only.
 | `getConsentCategories` | `() => AllConsentNames[]` | the provider's categories | Categories the `consents` tab lists. |
 | `getPresentation` | `() => ConsentPresentation` | the provider's `presentation` | Presentation used for the panel's diagnostics. |
 | `clearRecords` | `() => void` | the provider's own | Replaces what the clear action does. |
+| `shadow` | `boolean` | `true` | `false` mounts the panel without a shadow root. |
 
-The panel renders inside a shadow root with its own stylesheet, so your CSS
-does not restyle it and its CSS does not leak into the page. The
-`ConsentDevToolsProps` type also lists `shadow`, but the Svelte component
-does not pass it on, so setting it has no effect.
+By default the panel renders inside a shadow root with its own stylesheet,
+so your CSS does not restyle it and its CSS does not leak into the page.
+`shadow={false}` mounts the panel in the light DOM instead and puts its
+stylesheet in `<head>`.
 
 ## Keep it out of production
 

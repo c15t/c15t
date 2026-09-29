@@ -54,6 +54,7 @@ Every attribute is optional. The tag reads them once, when the script runs.
 | `data-shadow="false"` | Render the UI into the page instead of a shadow root, so your stylesheet applies. See [customize](/docs/frameworks/html/customize#style-it-with-your-own-stylesheet). |
 | `data-no-ui` | Start the runtime without the stock UI. `c15t.js` still downloads the UI code and CSS; load `c15t.headless.js` to skip them. The UI attributes above are ignored. |
 | `data-manual` | Do not start. Your page calls `c15t.init()` later. See [start c15t yourself](/docs/frameworks/html/api#start-c15t-yourself). |
+| `data-nonce` | The Content Security Policy nonce for the stock UI's `<style>` element and the scripts c15t loads. Without it, c15t uses the tag's own `nonce` attribute. See [Content Security Policy](/docs/frameworks/html/content-security-policy). |
 
 Flag attributes such as `data-trigger` are on when present, unless their value
 is `false`. `data-shadow` is the exception. Only `data-shadow="false"` changes
@@ -90,7 +91,7 @@ write them:
 
 | Attribute | Where | Meaning |
 | --- | --- | --- |
-| `data-c15t-activated` | Gated `<script>` | `true` once the tag ran, `invalid` when its category is unknown. |
+| `data-c15t-activated` | Gated `<script>` | `true` once the tag ran, `invalid` when its category is unknown, `untrusted` when the page has a nonce and the tag lacks it. |
 | `data-c15t-paused` | Gated `<iframe>` | c15t removed a `src` the iframe already had. |
 | `data-c15t-ui` | The UI host `<div>` | The element that holds the banner, dialog and trigger. |
 | `data-testid` | Parts of the stock UI | Stable names for styling and tests. Each component page lists them. |

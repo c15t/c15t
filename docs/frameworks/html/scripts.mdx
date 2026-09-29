@@ -33,6 +33,9 @@ Change the vendor's tag to `type="text/plain"` and add
 <script type="text/plain" data-c15t-category="marketing" src="https://vendor.example/tag.js"></script>
 ```
 
+On a page whose c15t tag has a nonce, add the same `nonce` to each gated tag,
+or c15t skips it. See
+[gated tags on a page with a nonce](/docs/frameworks/html/components/gated-script#gated-tags-on-a-page-with-a-nonce).
 The [quickstart](/docs/frameworks/html/quickstart#gate-your-vendor-scripts)
 shows this with PostHog and X Pixel. [Gated scripts](/docs/frameworks/html/components/gated-script)
 covers load order, copied attributes and tags added after load.
@@ -88,7 +91,7 @@ element again when the visitor withdraws it.
 | `alwaysLoad` | Load whatever the consent state. Use it only for tags that manage consent themselves. |
 | `persistAfterConsentRevoked` | Keep the element on the page after withdrawal. |
 | `target` | `'head'` (default) or `'body'`. |
-| `async`, `defer`, `nonce`, `fetchPriority`, `attributes` | Attributes for the created `<script>` element. |
+| `async`, `defer`, `nonce`, `fetchPriority`, `attributes` | Attributes for the created `<script>` element. Without its own `nonce`, the script gets the c15t tag's nonce. |
 | `anonymizeId` | Give the element a random `id` so blockers cannot match it by name. On by default. |
 | `vendor` | A vendor ID for vendor-level consent. |
 | `onBeforeLoad`, `onLoad`, `onError` | Run before a load attempt, after the script loads, or when it fails. |

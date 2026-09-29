@@ -1,6 +1,6 @@
 ---
 title: ConsentDialog
-description: Add the c15t preference dialog to an Astro site as an island that downloads only when a visitor opens it, and control when it loads, which framework renders it and how it opens.
+description: Add the c15t preference dialog to an Astro site as an island that downloads only when a visitor opens it, and control when it loads, which framework renders it, how it opens and which legal links it shows.
 group: frameworks
 ---
 
@@ -24,6 +24,7 @@ dialog mounts into the page the first time something opens it:
 | Prop | Type | Default | Effect |
 | --- | --- | --- | --- |
 | `preload` | `boolean` | `false` | Downloads the dialog once the browser is idle, on every page that renders it |
+| `legalLinks` | `('privacyPolicy' \| 'cookiePolicy' \| 'termsOfService')[] \| null` | None | Which links from the integration's `legalLinks` the dialog shows, the same list `ConsentBanner` takes |
 
 ## When the dialog downloads
 
@@ -60,8 +61,20 @@ second one for a single dialog. See
 The dialog lists the categories the policy covers, each with a switch, and
 offers Accept all, Reject all and Save. `necessary` is always on. The dialog
 follows the integration's `theme`, `presentation.preferences` and
-`consentCategories`. It does not show the integration's `legalLinks`. Link
-your policies from the banner or your footer.
+`consentCategories`.
+
+To link your policies from the dialog, define them in the integration's
+`legalLinks` option and list the keys in the `legalLinks` prop:
+
+{/* example: fragment */}
+
+```astro title="src/layouts/base.astro (partial)"
+<ConsentDialog legalLinks={['privacyPolicy', 'cookiePolicy']} />
+```
+
+c15t passes the list to the Svelte, React or Vue dialog island. A key renders
+only when the integration defines it. A link without a `label` reads as the
+translated name for its type, such as "Privacy Policy" in English.
 
 Save, Accept all and Reject all record a choice and close the dialog. Turning
 off a category that was allowed reloads the page, unless the integration sets

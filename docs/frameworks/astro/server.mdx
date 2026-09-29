@@ -50,6 +50,7 @@ Add the middleware types to `src/env.d.ts`:
 | `decision` | The policy decision, when the mode produced one |
 | `config` | The payload `ConsentScript` inlines for the browser |
 | `options` | The integration options |
+| `nonce` | The Content Security Policy nonce for this request. c15t leaves it unset. Set it from your own middleware, and the components put it on their inline scripts and styles |
 
 On a prerendered page, `snapshot` is what a first-time visitor would get, and
 `prerendered` is `true`. On a route listed in `middleware.skip`, and on the
@@ -134,7 +135,8 @@ a custom middleware or your own components:
 | Export | Does |
 | --- | --- |
 | `resolveConsentContext({ headers, url, options, prerendered?, timeoutMs?, fetch?, onBackgroundRevalidate? })` | Resolves the value the middleware stores on `Astro.locals.c15t` |
-| `buildConfigScript(config)` | The inline script body that hands the browser its boot payload |
+| `buildConfigJSON(config)` | The boot payload as JSON, for a `<script type="application/json" data-c15t-config>` data block |
+| `buildConfigScript(config)` | The boot payload as a script that sets `window.__c15tAstroConfig`. The browser still reads it. It changes per visitor, so a policy can allow it only by nonce or `'unsafe-inline'` |
 | `buildThemeCSS(theme)` | The CSS for `<style id="c15t-theme">`, or an empty string |
 | `buildColorSchemeScript(colorScheme)` | The first-paint color-scheme script, or an empty string |
 | `buildBannerRevealScript(storageConfig, testId)` | The inline script that shows a prerendered banner to visitors with nothing stored |
@@ -154,8 +156,8 @@ register `onRequest` from `c15t/astro/middleware` with Astro's `sequence()` in
 ## Check the server path
 
 1. View the page source of a first visit on a server-rendered page. It
-   contains `data-testid="consent-banner-root"` and a script that sets
-   `window.__c15tAstroConfig`.
+   contains `data-testid="consent-banner-root"` and a
+   `<script type="application/json" data-c15t-config>` data block.
 2. Choose, then reload. The source has no banner markup, and DevTools Network
    shows no browser request to `/init` on that page.
 3. Request `/api/c15t/init` and check the `Cache-Control: private, no-store`

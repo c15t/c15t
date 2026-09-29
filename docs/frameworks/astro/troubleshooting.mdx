@@ -107,6 +107,13 @@ Open the console. c15t logs a warning for a `data-c15t-category` value that is
 not a category name, and leaves that script inert. The attribute takes one
 category, such as `measurement`.
 
+Under a nonce-based Content Security Policy, c15t also skips a gated tag that
+lacks the page's nonce. The console shows a warning about a script without
+the page's CSP nonce, and the tag has `data-c15t-activated="untrusted"` in the
+Elements panel. Add `nonce={Astro.locals.c15t?.nonce}` to the tag and reload.
+c15t never retries a tag it marked `untrusted`. See
+[put the nonce on your gated scripts](/docs/frameworks/astro/content-security-policy#put-the-nonce-on-your-gated-scripts).
+
 ## The preference dialog opens without styles
 
 With `styles: false`, c15t does not link the dialog's stylesheet. Import
@@ -138,10 +145,10 @@ ran on the server. Call it in the browser, and try again on
 
 ## The banner shows no links to my policies
 
-`ConsentBanner` shows only the legal links its `legalLinks` prop lists, even
-when the integration defines them. Pass
-`legalLinks={['privacyPolicy', 'cookiePolicy']}`, and give each link a
-`label` in the integration's `legalLinks` option. See
+`ConsentBanner` and `ConsentDialog` show only the legal links their
+`legalLinks` prop lists, even when the integration defines them. Pass
+`legalLinks={['privacyPolicy', 'cookiePolicy']}` to each, and define those
+keys in the integration's `legalLinks` option. See
 [ConsentBanner legal links](/docs/frameworks/astro/components/consent-banner#legal-links).
 
 ## An iframe loads before the visitor chooses
@@ -161,10 +168,12 @@ Your island created its own consent runtime, or its adapter is managing the
 
 ## The console reports a Content Security Policy violation
 
-c15t renders inline scripts and a theme `<style>`, and the Astro integration
-has no nonce option yet. See
-[Content Security Policy](/docs/frameworks/astro/content-security-policy) for
-what to allow.
+c15t renders inline scripts and a theme `<style>`. Under a nonce policy, set
+`Astro.locals.c15t.nonce` from your own middleware so they carry the nonce.
+Under Astro's `security.csp`, the integration adds their hashes for you. A
+`ConsentBannerDeferred` island stays blocked under a nonce policy, because
+Astro's island loader carries no nonce. See
+[Content Security Policy](/docs/frameworks/astro/content-security-policy).
 
 ## More help
 

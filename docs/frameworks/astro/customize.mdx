@@ -99,9 +99,10 @@ c15t({
 The server picks the visitor's language from `Accept-Language`. Set
 `i18n.locale` to force one, or `detectLanguage: false` to use the default.
 
-`i18n.messages` merges key by key with the stock translations for that
-language, so pass only the keys you change. Setting `common.acceptAll` keeps
-every other label in `common`.
+`i18n.messages` merges key by key with the copy for that language, so pass
+only the keys you change. Setting `common.acceptAll` keeps every other label in
+`common`. In `hosted()` and `manifest()` modes, the copy your backend sends is
+the base, and your `i18n.messages` override it for the same language.
 [Copy and translations](/docs/customization/translations) covers the message
 groups.
 
@@ -150,7 +151,7 @@ swap replaces the attributes of `<html>`.
 
 ## Add links to your policies
 
-Define the links once in the integration options, each with a `label`:
+Define the links once in the integration options:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
@@ -162,9 +163,10 @@ c15t({
 });
 ```
 
-`ConsentBanner` shows only the ones you list in its `legalLinks` prop, such
-as `legalLinks={['privacyPolicy', 'cookiePolicy']}`. The preference dialog on
-Astro does not show them. See
+`ConsentBanner` and `ConsentDialog` show only the ones you list in their
+`legalLinks` prop, such as `legalLinks={['privacyPolicy', 'cookiePolicy']}`.
+A link without a `label` reads as the translated name for its type, such as
+"Privacy Policy". See
 [ConsentBanner legal links](/docs/frameworks/astro/components/consent-banner#legal-links).
 
 ## Load the stylesheet yourself

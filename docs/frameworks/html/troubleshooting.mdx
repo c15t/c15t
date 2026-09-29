@@ -46,10 +46,21 @@ move it. View the published page's source and check that each gated tag still
 has `type="text/plain"`. See
 [caching and optimization plugins](/docs/frameworks/html/platforms#caching-and-optimization-plugins).
 
+## Why does a gated script never run on a page with a nonce?
+
+When the c15t tag has a `nonce` or `data-nonce`, c15t runs only gated
+`text/plain` tags that carry the same nonce. Open the console and look for a
+warning that c15t skipped a `data-c15t-category` script, and check the tag in
+the Elements panel for `data-c15t-activated="untrusted"`. Add
+`nonce="RANDOM_PER_RESPONSE"`, with the value your server sends, to the tag,
+including tags your own code inserts later. See
+[gated tags on a page with a nonce](/docs/frameworks/html/components/gated-script#gated-tags-on-a-page-with-a-nonce).
+
 ## Why is the banner unstyled or missing its colors?
 
-A Content Security Policy without `'unsafe-inline'` in `style-src` blocks the
-stock UI's `<style>` element. The console shows a CSP violation. Allow it, or
+A Content Security Policy whose `style-src` does not allow the stock UI's
+`<style>` element blocks it, and the console shows a CSP violation. Put the
+nonce from your `style-src` on the c15t tag, as `nonce` or `data-nonce`, or
 serve the stylesheet as a file as
 [Content Security Policy](/docs/frameworks/html/content-security-policy#allow-the-stock-uis-styles)
 describes.

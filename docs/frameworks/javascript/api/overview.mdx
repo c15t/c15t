@@ -182,6 +182,7 @@ fields:
 | `initialOverrides`, `initialUser` | Decision inputs and an identified user at start. |
 | `initialRecords`, `initialPolicyResolution` | Records and a policy a server already resolved. |
 | `initialTranslations` | Copy to start with. |
+| `translationOverrides` | Messages keyed by language, such as your `i18n.messages`. The kernel applies the entry for the active language over `initialTranslations` and over each init response, key by key. |
 | `initRetry` | Retry for a failed `init`: `{ maxAttempts, baseDelayMs, maxDelayMs }`, or `false`. Defaults to 5 attempts from 1 second up to 30 seconds. |
 | `now` | The evaluation clock at start, for a server render and its hydration to agree. |
 

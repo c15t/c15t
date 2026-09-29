@@ -84,9 +84,13 @@ call `wireRuntimeCallbacks({ kernel, callbacks })` from `c15t/runtime`.
 ## Errors thrown by your code
 
 A callback or kernel listener that throws does not stop other listeners or
-fail the action. c15t reports it with `reportError` in the browser. A client
-`on` listener that throws can stop later `on` listeners for the same event,
-so catch errors inside your own listeners.
+fail the action. c15t reports it with `reportError` in the browser.
+
+A listener added with `on()` on the `@c15t/browser` client that throws is
+logged with `console.error`. The later `on` listeners for the same event and
+the matching `c15t:*` event on `document` still run. This covers the `ready`
+and `ui` listeners that `on()` calls at once after the policy resolved, so
+`on()` still returns its unsubscribe function.
 
 ## Check it works
 

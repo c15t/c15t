@@ -26,9 +26,25 @@ i18n: {
 
 Supply the same message keys in each supported locale. A one-off component prop
 such as `dismissButtonText` is useful for one banner; use translations for a
-site-wide change. Astro's serializable integration options and Vue's module
-configuration have their own types, so verify those shapes before copying a
-React object.
+site-wide change. Astro's serializable integration options have their own
+types, so verify that shape before copying a React object. The Vue plugin and
+Nuxt module have no `i18n` option; their copy comes from the backend.
+
+## Combine messages with backend copy
+
+With a backend or a manifest, the copy it sends for the visitor's language is
+the base. Your `i18n.messages` for that language replace it key by key, and
+keys you leave out keep the backend's wording, including copy edited in your
+Inth project. c15t looks up messages for the exact language first, then for
+its primary language, so `de-AT` uses your `de` messages when there is no
+`de-AT` entry. Messages for other languages are not applied.
+
+A key only overrides the backend when your text differs from c15t's built-in
+wording for that language. So passing the stock bundles from
+`@c15t/translations/all` to enable languages keeps backend edits visible,
+while a key you actually reworded stays pinned in code. Core bundles only
+English; for other languages, import `@c15t/translations/all` so c15t can
+recognize its stock wording.
 
 ## Write labels that describe the action
 

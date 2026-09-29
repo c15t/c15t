@@ -64,6 +64,10 @@ Required. Build it with one of the three helpers from `c15t/astro`:
 the browser would have nowhere to save consent. An inline `manifest` needs
 none.
 
+On the server, a relative `url`, `backendURL` or `manifestURL`, such as
+`/api/c15t`, resolves against the URL Astro gives the request, `Astro.url`.
+c15t does not read `x-forwarded-host` or other forwarding headers to build it.
+
 `offline()` accepts `policyRules`, the rules to resolve locally. Without them
 it resolves the recommended rule pack. Choices persist in the visitor's cookie
 and localStorage only, and there are no consent records.
@@ -95,7 +99,7 @@ the browser.
 | `theme` | `Theme` | Stock tokens | Tokens rendered on the server into `<style id="c15t-theme">`, plus `consentActions` button styles |
 | `colorScheme` | `'system' \| 'light' \| 'dark' \| 'none'` | `'system'` | Who sets the `c15t-dark` class on `<html>` |
 | `presentation` | `{ prompt?, preferences? }` | Floating banner | Banner variant, position, action layout and blocking, and the dialog's blocking and default selections |
-| `legalLinks` | `{ privacyPolicy?, cookiePolicy?, termsOfService? }` | None | Each an `{ href, label? }`. `ConsentBanner` shows the ones its `legalLinks` prop lists |
+| `legalLinks` | `{ privacyPolicy?, cookiePolicy?, termsOfService? }` | None | Each an `{ href, label? }`. Without `label`, a link reads as the translated name for its type. `ConsentBanner` and `ConsentDialog` show the ones their `legalLinks` prop lists |
 | `i18n` | `{ locale?, messages?, detectLanguage? }` | Negotiated from `Accept-Language` | Language and wording. See [Translations](/docs/frameworks/astro/translations) |
 | `styles` | `boolean` | `true` | Adds `c15t/astro/styles.css` to every page, and the IAB stylesheet when `iab` is set |
 

@@ -36,10 +36,21 @@ exact origin, including the port in development, to your Inth project's
 trusted origins. A CSP error means your policy's `connect-src` lacks the
 backend's origin. See [Content Security Policy](/docs/frameworks/javascript/content-security-policy).
 
+## Why does a gated script in my HTML never run?
+
+With the `nonce` option set, `@c15t/browser` runs only
+`<script type="text/plain" data-c15t-category>` tags that carry the same
+nonce. Open the console and look for a warning that c15t skipped a
+`data-c15t-category` script, and check the tag for
+`data-c15t-activated="untrusted"`. Add the page's nonce to the tag, including
+tags your code inserts later. See
+[Content Security Policy](/docs/frameworks/javascript/content-security-policy).
+
 ## Why is the stock banner unstyled?
 
-A Content Security Policy without `'unsafe-inline'` in `style-src` blocks the
-`<style>` element the stock UI adds. Allow it, or import
+A Content Security Policy whose `style-src` does not allow the `<style>`
+element the stock UI adds blocks it. Pass the nonce from your `style-src` as
+the `nonce` option, or import
 `@c15t/browser/styles.css` with `ui: { shadow: false, styles: false }` as
 [Content Security Policy](/docs/frameworks/javascript/content-security-policy#allow-the-stock-uis-styles)
 describes.

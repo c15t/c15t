@@ -132,6 +132,7 @@ network request and returns cookie- and header-only state; see
 | `manifest` | none | Inline manifest object used instead of fetching `manifestURL`. Any `manifestURL` is still resolved first, so a relative one needs a request host. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Wrap it in Next.js fetch caching only in manifest mode; the `/init` call carries visitor cookies and returns per-visitor state, so keep it uncached. |
 | `forwardHeaders` | `[]` | Request header names copied onto the outgoing call. Backend `/init` also forwards `x-forwarded-for` and `user-agent` automatically; manifest requests forward only this list. Headers absent from the request are skipped. |
+| `trustForwardedHeaders` | `false` | Resolve a `/`-relative `backendURL` or `manifestURL` against the request's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead of `host`. Set it only behind a proxy that sets those headers and drops the ones a client sends. |
 | `onError` | none | Receives the failure from the backend or manifest request, including a `ManifestUnavailableError` when `timeoutMs` runs out or the manifest is backing off after a failure. When omitted, failures are logged with `console.warn` only when `NODE_ENV` is not `production`. |
 | `timeoutMs` | `500` | Longest the render waits for policy, in milliseconds, counted from the manifest or backend `/init` request. When it runs out, the helper returns the baseline state described below. `false` waits for the manifest cache's 5 second request timeout, or for the `fetch` implementation on backend `/init`. |
 | `reportSessions` | `true` | In manifest mode, report the resolved init to the backend's `POST /sessions` after the render, server-to-server, so the backend still counts the visitor. Forwards the visitor's user agent and client IP on `x-c15t-client-ip`, never cookies. `false` sends none. |
@@ -190,17 +191,20 @@ route, is read through the same in-process cache, so renders do not fetch the
 backend on every request. The manifest route adds the Next.js Data Cache and a
 cacheable response for your CDN, so it remains the recommended setup.
 
-Absolute `http(s)` URLs are used as given. A `/`-relative `backendURL` or
-`manifestURL` is resolved from the request: the scheme comes from
-`x-forwarded-proto` and defaults to `https`; the host comes from
-`x-forwarded-host`, then `host`, then the `referer` host. When no host is available, `resolveConsent` reports the error
-and returns the baseline state. Those headers decide where the server sends
-the request, so behind a proxy the edge must overwrite `x-forwarded-host` and
-`x-forwarded-proto` rather than pass client values through; otherwise a client
-can point server prefetch at a host of its choosing. When you cannot guarantee
-that, use absolute URLs. Use `https` for any production `backendURL`: the
-`/init` call forwards the visitor's cookies, which plain HTTP exposes on the
-path; keep `http` for local development only.
+Absolute `http(s)` URLs are used as given. `resolveConsent` resolves a
+`/`-relative `backendURL` or `manifestURL` against the request's `host`
+header. A domain name resolves over `https`. `localhost`, an IP address or a
+single-label host such as `app:3000` resolves over `http`. The
+`x-forwarded-host`, `x-forwarded-proto`, `forwarded` and `referer` headers
+are ignored, because any client can send them and the `/init` call carries the
+visitor's cookies to the resolved host. When no `host` header is available,
+`resolveConsent` reports the error and returns the baseline state.
+
+Behind a proxy that sets `x-forwarded-host` and `x-forwarded-proto` and drops
+the values a client sends, pass `trustForwardedHeaders: true` to resolve
+against them instead. Use `https` for any production `backendURL`: the `/init`
+call forwards the visitor's cookies, which plain HTTP exposes on the path;
+keep `http` for local development only.
 
 Forwarded headers differ by path. The backend `/init` call carries the
 request cookies, `x-forwarded-for`, `user-agent`, any `forwardHeaders`, and
@@ -312,6 +316,7 @@ with no options, so they read only environment variables.
 | `manifestURL` | `C15T_MANIFEST_URL` | Full upstream manifest URL. Takes precedence over `backendURL` plus `/manifest`. |
 | `manifestRevalidateSeconds` | `300`; env `C15T_MANIFEST_REVALIDATE_SECONDS` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it; the env value `'false'` also disables it. The env value is read with `parseInt`, so `60seconds` becomes `60` and `1e2` becomes `1`; values without a leading number or below `0` fall back to the default. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the manifest and Global Vendor List requests. |
+| `trustForwardedHeaders` | `false` | Resolve a `/`-relative `backendURL` or `manifestURL` against the request's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead of `request.url`. Set it only behind a proxy that sets those headers and drops the ones a client sends. |
 | `onBackgroundRevalidate` | none | Receives detached work started by a request: a background manifest refresh, and the init route's session report. Keep it alive with `after` from `next/server` or a platform `waitUntil`. Called inside the handler; the promises never reject. See [Optimization](/docs/frameworks/next/optimization#configure-manifest-cache-refresh). |
 | `reportSessions` | `true` | Report each init the route resolves to the backend's `POST /sessions`, server-to-server and detached from the response, so the backend still counts the visitor. Needs an absolute `backendURL`; nothing is inferred from a manifest URL. `false` sends none. |
 | `fetchGvl` | built-in cached fetcher | Loads the Global Vendor List for IAB policies. Called only under the conditions described in this section. |
@@ -321,10 +326,11 @@ either source wins over `backendURL`. URLs are resolved per request, so a
 missing or invalid value fails the request rather than the build: with neither
 `backendURL` nor `manifestURL` configured the handler throws
 `@c15t/nextjs/api: configure C15T_BACKEND_URL or C15T_MANIFEST_URL.`. A
-`/`-relative value is resolved against the incoming request's host and
-forwarded headers, which points the handler at your own app and lets a client
-that controls `x-forwarded-host` choose the upstream. Keep upstream URLs
-absolute so the manifest route neither fetches itself nor an attacker's host.
+`/`-relative value is resolved against the origin of `request.url`, which
+Next.js builds itself. Forwarding headers are read only with
+`trustForwardedHeaders: true`. A relative value still points the handler at
+your own app, so keep upstream URLs absolute; otherwise the manifest route
+fetches itself.
 
 Passing a `defineConsentConfig` result uses only its `backendURL`. Its
 `manifestURL` and `initURL` name the routes these handlers serve, so
@@ -368,7 +374,10 @@ options or a `defineConsentConfig` result and returns `{ init, manifest }`:
 `init` wraps `GET` and `manifest` wraps `manifestGET`, each taking the Node
 `req` and `res` of a `pages/api` route. Because a `pages/api` default export
 receives every method, requests other than `GET` and `HEAD` are answered with
-`405` and an `allow: GET` header before the wrapped handler runs.
+`405` and an `allow: GET` header before the wrapped handler runs. The bridge
+rebuilds the request URL from the `host` header, over `http` for `localhost`,
+IP and single-label hosts and `https` otherwise, and reads forwarding headers
+only with `trustForwardedHeaders: true`.
 
 ## Manifest request resolution
 

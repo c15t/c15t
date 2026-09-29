@@ -8,7 +8,7 @@ the provider's `mode`:
 
 | Mode | Copy comes from | Languages |
 | --- | --- | --- |
-| `hosted()` | The backend's `/init` response, in the language the browser or server asked for | Every language the backend bundles: bg, cs, cy, da, de, el, en, es, et, fi, fr, ga, gu, he, hi, hr, hu, id, is, it, lb, lt, lv, mt, nb, nl, nn, pl, pt, rm, ro, sk, sl, sv and zh |
+| `hosted()` | The backend's `/init` response, in the language the browser or server asked for, with the provider's `i18n` messages for that language on top | Every language the backend bundles: bg, cs, cy, da, de, el, en, es, et, fi, fr, ga, gu, he, hi, hr, hu, id, is, it, lb, lt, lv, mt, nb, nl, nn, pl, pt, rm, ro, sk, sl, sv and zh |
 | `offline()` | The provider's `i18n` prop, merged over bundled English | English, plus any language you supply in full |
 
 The browser bundle carries English only. Other languages arrive from the
@@ -39,14 +39,24 @@ language; the keys you leave out keep c15t's copy:
 
 <include src="../examples/storybook-svelte/consent-i18n.mdx" />
 
-`locale` selects the language the provider starts in, `en` by default. Only
-that language's messages apply at first.
+`locale` selects the language the provider starts in, `en` by default.
 
-In `hosted()` mode, the backend's translations replace these messages once
-`/init` answers, and a server `prefetch` already holds the backend's copy. So
-with a hosted backend, change site-wide copy on the backend, or use the
-component props above. A self-hosted backend takes `customTranslations` and
-`i18n` in its [configuration](/docs/self-host/api/configuration).
+In `hosted()` mode, the backend's copy for the visitor's language is the base,
+and your `i18n` messages for that language replace it key by key. Keys you do
+not list keep the backend's copy, including copy edited in your Inth project.
+The same applies to the copy in a SvelteKit `prefetch`. c15t picks the
+messages for the exact language first, then for its primary language, so a
+visitor resolved to `de-AT` gets your `de` messages when there is no `de-AT`
+entry. Messages for other languages are not applied.
+
+A key only overrides the backend when your text differs from c15t's built-in
+wording for that language. So passing the stock bundles from
+`@c15t/translations/all` to enable languages keeps backend edits visible,
+while a key you actually reworded stays pinned in code. Core bundles only
+English; for other languages, import `@c15t/translations/all` so c15t can
+recognize its stock wording. A
+self-hosted backend takes `customTranslations` and `i18n` in its
+[configuration](/docs/self-host/api/configuration).
 
 In `offline()` mode, `i18n` is the only source of copy, and it applies from the
 first render.
@@ -70,7 +80,8 @@ each action and testing long labels.
 ## Switch the language
 
 `getConsentManager().setLanguage(code)` switches the language and resolves the
-policy again, so a hosted backend returns copy in the new language. Call it
+policy again, so a hosted backend returns copy in the new language and your
+`i18n` messages for that language apply on top. Call it
 from your language switcher's event handler. The visitor's language otherwise
 comes from the `Accept-Language` header, or from `overrides.language` on the
 provider.

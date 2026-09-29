@@ -76,7 +76,8 @@ waits for marketing permission.
 
 `ConsentRoot` renders the banner when the visitor's policy asks for one and
 loads the preference dialog when it opens. `ConsentPreferencesLink` renders a
-Privacy settings button that reopens preferences. It renders nothing until the
+button that reopens preferences, labelled with the dialog's title in the
+visitor's language: Privacy Settings in English. It renders nothing until the
 policy offers preferences. Replace `HomePage` with your own content or router
 view. Keep `ConsentRoot` in the root component so it stays mounted. The
 components bring their own styles; there is no stylesheet to import.
@@ -100,7 +101,7 @@ under a policy that asks for consent.
    `static.ads-twitter.com` or `youtube-nocookie.com` appear.
 2. Click Reject all, then reload. The banner stays closed and the vendor
    requests stay absent.
-3. Click Privacy settings, allow Measurement and save. PostHog's `array.js`
+3. Click Privacy Settings, allow Measurement and save. PostHog's `array.js`
    loads and the video appears. X Pixel stays blocked until you allow
    Marketing.
 4. Turn Measurement off and save. The page reloads, the video is gone and
