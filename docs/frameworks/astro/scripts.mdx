@@ -1,6 +1,6 @@
 ---
-title: Scripts and embeds
-description: Load vendor scripts, inline scripts, iframes and fetch requests on an Astro site only after the visitor allows their consent category, and stop them when consent is withdrawn.
+title: Scripts
+description: Load vendor scripts and gated inline scripts on an Astro site only after the visitor allows their consent category, and stop them when consent is withdrawn.
 group: frameworks
 ---
 
@@ -68,42 +68,15 @@ markup you insert later from your own code, call
 A script that has run cannot be undone. When the visitor withdraws consent,
 c15t reloads the page, and the reloaded page leaves the script inert.
 
-## Gate an embed
+## Gate embeds and requests
 
-An iframe sends requests as soon as it is in the page, so render it only while
-its category is allowed. This component shows a placeholder with a
-preferences button until measurement is allowed, and removes the iframe when
-permission is withdrawn:
+An iframe loads as soon as it is in the page, so gate embeds separately. See
+[Embeds](/docs/frameworks/astro/embeds) for a component that renders an iframe
+only while its category is allowed, and for the iframe blocker.
 
-<include src="../../shared/examples/astro-demo/consent-video.mdx" />
-
-The same pattern works for maps, chat widgets and social posts. The
-[YouTube](/docs/integrations/youtube) and
-[Google Maps](/docs/integrations/google-maps) guides include a reusable helper.
-
-## Block tracking requests
-
-`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
-until the visitor allows the rule's category. A blocked `fetch` resolves to a
-`451` response and nothing is sent. Add the rules to the integration options:
-
-```js title="astro.config.mjs (partial)"
-c15t({
-  mode: hosted({ url: backendURL }),
-  networkBlocker: {
-    rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
-  },
-});
-```
-
-A rule matches the domain and its subdomains. Add `pathIncludes` or `methods`
-to narrow it. To log blocked requests with `onRequestBlocked`, set
-`networkBlocker` in the client entrypoint's default export instead. It replaces
-the integration option.
-
-The network blocker covers requests made through `fetch` and
-`XMLHttpRequest`. It does not stop `navigator.sendBeacon`, WebSockets, image
-pixels, `<script>` tags or iframes.
+To stop `fetch` and `XMLHttpRequest` calls to tracking hosts until consent,
+add rules to `networkBlocker`. See
+[Network blocker](/docs/frameworks/astro/network-blocker).
 
 ## Clear data when consent is withdrawn
 
@@ -116,16 +89,18 @@ cookies and storage keys when its category is withdrawn. See
 By default c15t reloads the page after a save turns off a category that was
 allowed, because it cannot stop code that has already run. Set
 `reloadOnConsentRevoked: false` in the integration options only if every script
-on the page stops itself when its category is withdrawn.
+on the page stops itself when its category is withdrawn. Stop your own code
+from the `onPermissionsChanged` callback. See
+[Callbacks](/docs/frameworks/astro/callbacks).
 
 ## Check script loading
 
 Build the site and open it in a private window with DevTools Network open:
 
 1. Before you choose, filter for each vendor's domain. There are no requests,
-   and no iframe from the embed's domain.
+   and a gated inline script has not run.
 2. Allow one category from **Cookie preferences**. Only that category's vendors
-   load, and the embed appears if it uses that category.
+   load, and inline scripts gated on it run.
 3. Reload. The allowed vendors load again, and the others stay absent.
 4. Withdraw the category and save. The page reloads and the vendor does not
    load.

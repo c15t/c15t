@@ -1,0 +1,101 @@
+---
+title: Geography headers
+description: Which request headers the c15t Astro middleware reads for the visitor's country, region, language and Global Privacy Control, how to check your host sends them, and how to test a region locally.
+group: frameworks
+---
+
+## Where the location comes from
+
+On server output, the c15t middleware reads the visitor's location from the
+request headers your host adds, and resolves the policy for that location.
+The headers never leave your server. With `hosted()`, the middleware sends
+the resolved values to your backend's `/init` as c15t override headers. With
+`manifest()`, it resolves the policy itself.
+
+On a static or prerendered page, there is no request at build time. The
+browser's own `/init` request carries the location instead, and your backend
+or the `/api/c15t/init` route reads it from that request.
+
+## Which headers are read?
+
+Within each group, the first header with a value wins:
+
+| Input | Headers, highest precedence first | Source |
+| --- | --- | --- |
+| Country | `x-c15t-country`, `cf-ipcountry`, `x-vercel-ip-country`, `x-amz-cf-ipcountry`, `x-country-code`, `x-country` | c15t override, Cloudflare, Vercel, CloudFront, generic |
+| Region | `x-c15t-region`, `cf-region-code`, `x-vercel-ip-country-region`, `x-region-code` | c15t override, Cloudflare, Vercel, generic |
+| Global Privacy Control | `x-c15t-gpc`, `sec-gpc` | c15t override, browser signal |
+| Language | `accept-language` | Browser |
+
+`i18n.locale` in the integration outranks `accept-language`. GPC values count
+only as `1` or `0`. Any other value is treated as absent.
+
+When no country header has a value, the location is unknown, and your
+policy's rule for an unknown location applies to every visitor.
+[Policies](/docs/concepts/policies) explains rule matching.
+
+## Check that your host sends them
+
+c15t does not keep a list of which hosts add which headers. Check your own
+deployment: add a page that prints the inputs the middleware saw, deploy it,
+and open it.
+
+{/* example: fragment */}
+
+```astro title="src/pages/consent-debug.astro"
+---
+export const prerender = false;
+const { inputs } = Astro.locals.c15t;
+---
+
+<pre>{JSON.stringify(inputs, null, 2)}</pre>
+```
+
+`country` should hold your two-letter country code. If it is missing, your
+host does not add one of the headers above. Turn on the host's geolocation
+headers, or put a proxy such as Cloudflare in front of the site. Remove the
+page after the check.
+
+The Node adapter behind a load balancer receives whatever headers the load
+balancer forwards. AWS CloudFront's own `CloudFront-Viewer-Country` header is
+not in the list. Map it to `x-c15t-country` at the edge that terminates
+traffic.
+
+## Only your edge may set `x-c15t-*` headers
+
+`x-c15t-country`, `x-c15t-region` and `x-c15t-gpc` override the host's
+headers. A visitor who sends them chooses their own policy rule. The c15t
+middleware does not strip them. In production, the edge that terminates all
+traffic must delete incoming `x-c15t-*` headers before anything else sets
+them. Blocking direct access to your origin keeps requests on that edge, but
+it does not replace the stripping, because a forwarded client header still
+passes through.
+
+## Test a region locally
+
+The override headers are how you test a policy without a VPN. Send them to a
+server-rendered page:
+
+```sh
+curl -H 'x-c15t-country: DE' http://localhost:4321/
+curl -H 'x-c15t-country: US' -H 'x-c15t-region: CA' http://localhost:4321/
+curl -H 'sec-gpc: 1' http://localhost:4321/
+curl -H 'accept-language: de-DE,de;q=0.9' http://localhost:4321/
+```
+
+The HTML contains the banner for that region, or none for a region whose
+policy shows no banner. In a browser, a header-rewriting extension that sets
+`x-c15t-country` does the same for every request, including `/init`.
+
+With `hosted()`, `hosted({ url, headers: { 'x-c15t-country': 'DE' } })` pins
+the country for the server and the browser `/init` requests alike. Use it only
+in a development configuration.
+
+## Check the geography
+
+1. Deploy and open the site from two locations with different policy rules,
+   for example through a VPN or your host's geo testing tools.
+2. Each location gets its own banner: an opt-in region shows the banner with
+   optional categories denied, and a region with no banner rule shows none.
+3. Send `x-c15t-country` from outside your edge and confirm the edge removes
+   it before it reaches the site.

@@ -1,0 +1,95 @@
+---
+title: Callbacks
+description: Run your own code on an Astro site when a visitor records a consent choice, when permissions change, before a revocation reload and on errors, with c15t callbacks in the client entrypoint.
+group: frameworks
+---
+
+## Where callbacks go
+
+Callbacks are functions, and the integration options in `astro.config.mjs`
+must survive JSON serialization. So callbacks go in the default export of the
+module that the integration's `clientEntrypoint` names. They run in the
+browser, on the page's one consent runtime.
+
+Put them in their own module:
+
+<include src="../../shared/examples/storybook-astro/callbacks.mdx" />
+
+Then add them to the client entrypoint from the
+[quickstart](/docs/frameworks/astro/quickstart):
+
+{/* example: fragment */}
+
+```ts title="src/consent-client.ts (partial)"
+import { callbacks } from './consent-callbacks';
+
+export default {
+  callbacks,
+  scripts: createExampleScripts(
+    import.meta.env.PUBLIC_POSTHOG_KEY,
+    import.meta.env.PUBLIC_X_PIXEL_ID
+  ),
+} satisfies C15tClientOptionsExtension;
+```
+
+## Choose the callback
+
+| Callback | Runs when | Receives |
+| --- | --- | --- |
+| `onChoiceRecorded` | The visitor selects accept, reject or save | `{ snapshot, confirmed, actionAt }` |
+| `onPermissionsChanged` | Any effective permission changes value | `{ snapshot, previous }` |
+| `onBeforeConsentRevocationReload` | A save turned off a category that was allowed, just before the page reloads | `{ preferences }` |
+| `onError` | c15t reports an error, such as a failed request | `{ error }`, a message string |
+
+## `onChoiceRecorded` versus `onPermissionsChanged`
+
+They answer different questions:
+
+- `onChoiceRecorded` means the visitor did something. It runs once per
+  accept, reject or save. `snapshot.explicitChoice` holds the recorded
+  decision. Use it to report consent rates or to send a choice to your own
+  systems.
+- `onPermissionsChanged` means what may run has changed. It runs after a
+  choice that changes a permission, and also when a policy, an expiry or a
+  Global Privacy Control signal changes one. `previous` holds the permissions
+  before the change, and `snapshot.effectivePermissions` holds them after.
+  Use it to start or stop your own code.
+
+Neither callback runs for a notice acknowledgement, which records no consent.
+A returning visitor whose stored choice loads on page load triggers no
+`onChoiceRecorded`, because loading a stored choice is not an action. On a
+static or prerendered page, the browser loads that choice after the page
+starts, so `onPermissionsChanged` can run on page load. Write it to handle
+that.
+
+## Stop code when consent is withdrawn
+
+By default, c15t reloads the page after a save turns off a category that was
+allowed, because it cannot stop code that has already run.
+`onBeforeConsentRevocationReload` runs synchronously just before that reload.
+Use it for quick work, such as calling a vendor's opt-out API. The reload does
+not wait for promises.
+
+With `reloadOnConsentRevoked: false` in the integration, there is no reload.
+Stop your own code from `onPermissionsChanged` instead, and check that every
+vendor on the page can stop itself. See
+[withdraw consent without reloading](/docs/frameworks/astro/scripts#withdraw-consent-without-reloading).
+
+## Listen from a script instead
+
+Callbacks run for the whole site. A script on one page can subscribe to
+changes itself with `subscribe()` from `c15t/astro/client`. For single
+events, `getConsentClient()?.runtime.kernel.events.on('choice:recorded', listener)`
+takes the same event names the callbacks map to. See the
+[client API](/docs/frameworks/astro/client-api).
+
+## Check your callbacks
+
+1. Open the site in a private window and select **Accept All**.
+   `onChoiceRecorded` runs once and `onPermissionsChanged` runs with
+   `previous.measurement` set to `false`.
+2. Reload. `onChoiceRecorded` does not run, because loading a stored choice
+   is not a new action.
+3. Open **Cookie preferences**, turn off Measurement and save.
+   `onChoiceRecorded` and `onPermissionsChanged` run, and
+   `onBeforeConsentRevocationReload` runs before the page reloads.

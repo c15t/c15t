@@ -1,0 +1,129 @@
+---
+title: Translations
+description: Set the language and wording of the c15t banner and preference dialog on an Astro site with the integration's i18n option, from Accept-Language negotiation to per-language message overrides and banner props.
+group: frameworks
+---
+
+## How the language is chosen
+
+On a server-rendered page, the c15t middleware picks the language for each
+request, in this order:
+
+1. `i18n.locale`, when you set it.
+2. The request's `Accept-Language` header, unless `i18n.detectLanguage` is
+   `false`.
+3. English.
+
+The server inlines only that language's messages into the page, so the
+browser downloads one language, not the whole catalogue. The banner root
+carries `lang` and `dir` for it, so right-to-left languages such as Hebrew lay
+out correctly.
+
+On a static or prerendered page there is no request at build time. The HTML
+starts in `i18n.locale` or English, and the browser switches to the language
+its `/init` answer returns.
+
+c15t ships messages for Bulgarian, Chinese, Croatian, Czech, Danish, Dutch,
+English, Estonian, Finnish, French, German, Greek, Gujarati, Hebrew, Hindi,
+Hungarian, Icelandic, Indonesian, Irish, Italian, Latvian, Lithuanian,
+Luxembourgish, Maltese, Norwegian Bokmål, Norwegian Nynorsk, Polish,
+Portuguese, Romanian, Romansh, Slovak, Slovenian, Spanish, Swedish and Welsh.
+
+## Change the wording
+
+Set `i18n.messages` in the integration options, keyed by language:
+
+{/* example: fragment */}
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: hosted({ url: backendURL }),
+  i18n: {
+    messages: {
+      en: {
+        common: {
+          acceptAll: 'Accept all',
+          rejectAll: 'Reject optional',
+          customize: 'Choose cookies',
+        },
+        cookieBanner: {
+          title: 'Cookies on this site',
+          description: 'We use cookies to measure traffic and show relevant ads.',
+        },
+      },
+    },
+  },
+});
+```
+
+`i18n.messages` merges key by key with the stock messages for that language,
+so pass only the keys you change. Setting `common.acceptAll` keeps every other
+label in `common`. Override every language you support. A language you leave
+out keeps the stock wording.
+
+The options are serialized into the page, so messages are plain strings.
+[Copy and translations](/docs/customization/translations) lists the message
+groups and how to word each action.
+
+## Messages the banner reads
+
+| Key | Shown as |
+| --- | --- |
+| `cookieBanner.title`, `cookieBanner.description` | Heading and body of a choice banner |
+| `cookieBanner.noticeTitle`, `cookieBanner.noticeDescription` | Heading and body of a notice |
+| `common.acceptAll`, `common.rejectAll`, `common.customize` | The choice banner's buttons |
+| `common.acknowledge` | The button that acknowledges a notice |
+| `rights.optOut`, `rights.preferences` | "Do not sell or share my data" and "Manage preferences" |
+| `common.securedBy` | The branding tag |
+
+The preference dialog reads the `consentManagerDialog`, `consentTypes` and
+`common` groups. The IAB banner and dialog read the `iab` group.
+
+## Force one language
+
+Set `i18n.locale` to render every page in one language, whatever the browser
+asks for:
+
+{/* example: fragment */}
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: hosted({ url: backendURL }),
+  i18n: { locale: 'de' },
+});
+```
+
+Set `i18n.detectLanguage: false` instead to ignore `Accept-Language` and use
+English unless `locale` says otherwise.
+
+## Change the copy of one banner
+
+`ConsentBanner` props win over the messages, for that banner only:
+
+{/* example: fragment */}
+
+```astro title="src/layouts/base.astro (partial)"
+<ConsentBanner
+  title="Your privacy"
+  acceptButtonText="Allow all"
+  rejectButtonText="Only necessary"
+/>
+```
+
+The props are `title`, `description`, `acceptButtonText`,
+`rejectButtonText`, `customizeButtonText` and `dismissButtonText`. They apply
+in every language, so use them only on a single-language site or with values
+you translate yourself. See
+[ConsentBanner props](/docs/frameworks/astro/components/consent-banner#props).
+
+## Check the translations
+
+1. Set your browser's preferred language to German and open a
+   server-rendered page in a private window. The banner is in German, and its
+   root has `lang="de"`.
+2. Open **Cookie preferences**. The dialog is in the same language.
+3. Set `i18n.locale` and reload. The banner stays in that language whatever
+   the browser asks for.
+4. Test your longest labels at a narrow width, as
+   [Copy and translations](/docs/customization/translations#test-more-than-english)
+   describes.

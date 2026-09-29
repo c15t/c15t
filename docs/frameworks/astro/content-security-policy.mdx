@@ -1,0 +1,84 @@
+---
+title: Content Security Policy
+description: What c15t injects into an Astro page, which origins a Content Security Policy must allow for the consent backend and vendors, and the current limits of nonces and hashes with the Astro integration.
+group: frameworks
+---
+
+## What c15t adds to the page
+
+A Content Security Policy for an Astro site with c15t has to allow these:
+
+| What | Where it comes from | Directive |
+| --- | --- | --- |
+| The boot payload script, `window.__c15tAstroConfig=…` | Inline, from `ConsentScript` or the first banner on the page | `script-src` |
+| The color-scheme script | Inline, in `<head>`, with `colorScheme` `'system'` or `'dark'` | `script-src` |
+| The banner reveal script | Inline, after a banner on a prerendered page | `script-src` |
+| The page script that starts the consent runtime, and the banner's click handler | Bundled module scripts from your own origin | `script-src 'self'` |
+| `<style id="c15t-theme">` | Inline, when the integration sets `theme` | `style-src` |
+| `c15t/astro/styles.css` and the dialog stylesheets | Stylesheets from your own origin | `style-src 'self'` |
+| Vendor `<script>` elements | Created by the script loader when a category is allowed | `script-src`, plus each vendor's hosts |
+| Gated inline scripts | Your own `type="text/plain"` scripts, copied into live scripts | `script-src` |
+
+The dialog islands can render `style` attributes, for example on animated
+sections. If your policy blocks style attributes, allow them with a separate
+`style-src-attr 'unsafe-inline'` directive.
+
+## Allow the consent backend in `connect-src`
+
+The browser sends consent to `${backendURL}/subjects`, and requests `/init`
+when the server did not resolve the policy. Allow those origins:
+
+| Mode | Browser requests go to |
+| --- | --- |
+| `hosted({ url })` | The `url` origin, for `/init` and `/subjects` |
+| `manifest({ backendURL })` | Your own origin for `/api/c15t/init`, and the `backendURL` origin for `/subjects` |
+| `offline()` | No consent backend |
+
+{/* example: fragment */}
+
+```txt title="Content-Security-Policy (partial)"
+connect-src 'self' https://<your-backend-host>;
+```
+
+Use the host from your Inth project or your self-hosted backend. Server-side
+requests from the middleware and the injected routes run in Astro and are not
+subject to the browser's policy. Under an IAB TCF policy, the browser fetches
+the vendor list from the `/init` route or the URL the policy names. Allow
+that host too.
+
+Vendors add their own hosts to `script-src`, `connect-src`, `img-src` and
+`frame-src`. Each [integration guide](/docs/integrations/overview) lists the
+requests to expect.
+
+## Nonces and hashes
+
+The c15t Astro integration has no nonce option today. Its inline scripts and
+the theme `<style>` carry no nonce, and the script loader creates vendor
+scripts without one.
+
+A hash-based policy cannot cover the boot payload either. It holds the
+visitor's consent, location and language, so its hash changes with each
+visitor. Astro's own `security.csp` hashes the scripts and styles Astro
+bundles, not inline scripts like these, and Astro does not support it
+together with `ClientRouter`.
+
+So a policy that allows scripts only by nonce or hash blocks c15t on Astro.
+Until the integration supports nonces, allow inline scripts and styles with
+`'unsafe-inline'` in `script-src` and `style-src`, and keep the rest of the
+policy strict: limit `script-src`, `connect-src` and `frame-src` to the hosts
+you use.
+
+The color-scheme script is the same on every page for a given `colorScheme`,
+and the reveal script is the same for a given `storageConfig`, so both could
+be allowed by hash. The boot payload is what stops a hash-only policy.
+
+## Check your policy
+
+1. Load a page with the policy enforced, not report-only, and open the
+   console. No `Refused to execute inline script` or `Refused to apply inline
+   style` error mentions a c15t element.
+2. The banner renders with your theme colors, and the page source has
+   `window.__c15tAstroConfig`.
+3. Allow a category that gates a vendor. The vendor's script loads, and no
+   `connect-src` or `script-src` violation mentions its host.
+4. Save a choice. The request to `/subjects` succeeds.

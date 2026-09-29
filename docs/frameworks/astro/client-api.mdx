@@ -1,29 +1,29 @@
 ---
 title: Client API
-description: Read and change consent on an Astro site, from Astro.locals.c15t on the server to getConsentClient() in browser scripts, with preferences, saves, framework islands, external consent sources and analytics events.
+description: Reference for c15t/astro/client on an Astro site, grouped by task, from reading permissions and recorded choices to opening dialogs, saving consent, gated scripts, the page runtime, external consent sources and analytics events.
 group: frameworks
 ---
 
-## Read consent in a browser script
+## One runtime per page load
 
-The integration starts one consent runtime per page load and keeps it across
-`ClientRouter` navigation. Every script and island on the page shares it. Get
-it with `getConsentClient()` from `c15t/astro/client`, then read the current
-state with `getConsent()` and listen for changes with `subscribe()`.
+The `c15t()` integration starts one consent runtime per page load and keeps
+it across `ClientRouter` navigation. Every script and island on the page
+shares it. There is no provider to wrap your components in.
+`c15t/astro/client` is how browser code reaches that runtime.
 
-This component loads a YouTube video only while measurement is allowed, and
-removes it when the visitor withdraws permission:
+`getConsentClient()` returns the page's client, or `null` on the server and
+before the runtime starts. The runtime starts from a module script, and module
+scripts run in document order, so a script of yours can run first. Try again
+on `DOMContentLoaded`, which fires after every module script has run:
 
 <include src="../../shared/examples/astro-demo/consent-video.mdx" />
 
-`getConsentClient()` returns `null` on the server and before the runtime
-starts. c15t starts from a module script, and module scripts run in document
-order, so a script of yours can run first. The component above tries again on
-`DOMContentLoaded`, which fires after every module script has run.
+The exports that take no client, such as `getConsent()` and `openDialog()`,
+look the client up for you and do nothing before it starts.
 
 ## Read a permission, not a recorded choice
 
-The snapshot from `getConsent()` holds both. They answer different questions:
+A consent snapshot holds both. They answer different questions:
 
 | Field | Answers | Use it to |
 | --- | --- | --- |
@@ -31,43 +31,51 @@ The snapshot from `getConsent()` holds both. They answer different questions:
 | `explicitChoice` | What did the visitor decide? | Show the visitor's choice, report consent rates |
 
 Under an opt-out policy, `effectivePermissions.measurement` can be `true`
-before the visitor has done anything. See
+before the visitor has done anything, while `explicitChoice` is `null`. A
+Global Privacy Control signal can turn a permission off with no recorded
+choice at all. Gate code on `effectivePermissions`. See
 [How consent works](/docs/concepts/how-consent-works) and the
 [consent state reference](/docs/concepts/consent-state).
 
-## Page client methods
+## Read consent
 
-`getConsentClient()` returns an object with these members:
+| Export | Returns |
+| --- | --- |
+| `getConsentClient()` | The page's `AstroConsentClient`, or `null` |
+| `getConsent()` | The current snapshot, or `null` before the runtime starts |
+| `subscribe(listener)` | An unsubscribe function. `listener` receives every new snapshot. Before the runtime starts, it returns a no-op |
+
+The client has the same two methods, `client.getConsent()` and
+`client.subscribe(listener)`, which never return `null`.
+
+The snapshot fields you are most likely to read:
+
+| Field | Holds |
+| --- | --- |
+| `effectivePermissions` | `true` or `false` for each category, right now |
+| `explicitChoice` | The visitor's recorded decision per category, or `null` |
+| `activeUI` | `'banner'`, `'dialog'` or `'none'`, and `null` before the policy resolves |
+| `model` | The policy's model: `'opt-in'`, `'opt-out'`, `'iab'` or `'none'` |
+| `policyRule` | The matched rule, with its `id`, `prompt` and `rights` |
+| `policyPending` | `true` while the first `/init` answer is outstanding |
+| `location` | Country and region the backend resolved, or `null` |
+| `translations` | The active language and its translation bundle |
+
+A listener runs synchronously on each change. Keep it quick, and read only the
+fields you need.
+
+## Open and close dialogs
 
 | Member | Does |
 | --- | --- |
-| `getConsent()` | Returns the current consent snapshot |
-| `subscribe(listener)` | Calls `listener` with each new snapshot. Returns an unsubscribe function |
-| `openDialog(kind?, tab?)` | Opens the `'preferences'` dialog, or `'iab'` with an optional `'purposes'` or `'vendors'` tab |
-| `closeDialog()` | Closes the open dialog |
-| `acceptAll()` | Saves a grant for every configured category |
-| `rejectAll()` | Saves a rejection of everything except `necessary` |
-| `save(consents)` | Saves the categories you pass, such as `{ measurement: true }` |
-| `identify(user)` | Links the consent record to your own user ID |
-| `runtime` | The underlying consent runtime, for framework islands |
-| `options` | The integration options as the browser received them |
-
-`c15t/astro/client` also exports shortcuts that do nothing before the runtime
-starts:
-
-| Export | Does |
-| --- | --- |
-| `getConsent()` | Returns the snapshot, or `null` before the runtime starts |
-| `subscribe(listener)` | Subscribes, or returns a no-op unsubscribe before the runtime starts |
-| `openDialog(kind?, tab?)` | Opens a dialog |
+| `openDialog(kind?, tab?)` | Opens `'preferences'` (default) or `'iab'`. For `'iab'`, `tab` is `'purposes'` or `'vendors'` |
+| `client.closeDialog()` | Closes the open dialog |
 | `preloadDialog()` | Downloads the dialog without opening it |
-| `activateGatedScripts(snapshot, root?)` | Runs gated inline scripts the snapshot allows. See [Scripts and embeds](/docs/frameworks/astro/scripts#gate-an-inline-script) |
 
-Save only from a visitor's action, such as a button click. Calling
-`acceptAll()` or `save()` when a page loads records a choice the visitor never
-made.
-
-## Open preferences from your own control
+`openDialog()` downloads and mounts the dialog island the first time. While
+the first `/init` answer is outstanding, it waits for it, then opens nothing
+if the policy owes no consent interface. With an external consent source, it
+opens the other platform's preferences.
 
 `ConsentDialogTrigger` needs no script. For a control you render yourself,
 call `openDialog()` from its click handler:
@@ -82,50 +90,93 @@ document.querySelector('#privacy-link')?.addEventListener('click', () => {
 });
 ```
 
-## Read consent on the server
+## Save consent
 
-The integration's middleware resolves consent before each page renders and
-stores it in `Astro.locals.c15t`. Add the middleware types to `src/env.d.ts` so
-TypeScript knows about it:
-
-<include src="../../shared/examples/astro-demo/env-types.mdx" />
-
-| Field | Holds |
+| Member | Does |
 | --- | --- |
-| `snapshot` | The consent snapshot for this request, the same shape as `getConsent()` |
-| `shouldShowBanner` | Whether this request should see the banner |
-| `hasPolicy` | Whether a policy rule resolved for this request |
-| `hasConsentUi` | Whether that rule requires a banner or a way to reopen preferences |
-| `prerendered` | Whether this render is shared by every visitor, as on a prerendered page |
-| `inputs` | The request's `country`, `region`, `language` and `gpc` values |
-| `decision` | The policy decision, when the backend produced one |
-| `config` | The payload `ConsentScript` inlines for the browser |
-| `options` | The integration options |
+| `client.acceptAll()` | Saves a grant for every category the policy covers |
+| `client.rejectAll()` | Saves a rejection of everything except `necessary` |
+| `client.save(consents)` | Saves the categories you pass, such as `{ measurement: true }` |
+| `client.identify(user)` | Links the consent record to your own user, as `{ externalId }` |
 
-On a prerendered page, `snapshot` carries no visitor state, and `prerendered`
-is `true`. A route listed in `middleware.skip` has no `Astro.locals.c15t`.
+Each applies the choice in the browser at once and returns a promise that
+settles when the backend has answered. A failed request keeps the choice in
+the browser and retries later.
 
-Use `snapshot.effectivePermissions` to decide what the server renders, such as
-an embed that is allowed on this request. Do not build consent records from
-these values. `resolveConsentContext`, `buildConfigScript`, `buildThemeCSS`
-and `buildColorSchemeScript` from `c15t/astro/server` are the pieces the
-middleware and components use, for a custom middleware.
+Save only from a visitor's action, such as a button click. Calling
+`acceptAll()` or `save()` when a page loads records a choice the visitor never
+made. A save that turns off a category that was allowed reloads the page,
+unless the integration sets `reloadOnConsentRevoked: false`.
 
-## Share the runtime with framework islands
+Call `identify()` after your visitor signs in. `externalId` is your own user
+ID. `identityProvider` and `properties` are optional.
 
-A React, Vue or Svelte island can use its adapter's hooks and components on the
-page's runtime. Pass `getConsentClient()?.runtime` to the adapter instead of
-creating a second runtime:
+## Run gated inline scripts
 
-| Framework | Pass the runtime to |
+`activateGatedScripts(snapshot, root?)` runs every inline script marked
+`type="text/plain"` and `data-c15t-category` that the snapshot allows, inside
+`root` or the whole document. It returns the number of scripts it ran.
+
+c15t calls it after every consent change and every `ClientRouter`
+navigation. Call it yourself only for markup you insert from your own code:
+
+{/* example: fragment */}
+
+```ts
+import { activateGatedScripts, getConsent } from 'c15t/astro/client';
+
+const snapshot = getConsent();
+if (snapshot) {
+  activateGatedScripts(snapshot, container);
+}
+```
+
+See [gate an inline script](/docs/frameworks/astro/scripts#gate-an-inline-script).
+
+## Use the page runtime directly
+
+The client exposes two properties for advanced use:
+
+| Member | Holds |
 | --- | --- |
-| React | `ConsentProvider` from `c15t/react`, as its `runtime` prop |
-| Vue | The `c15tVue` plugin from `c15t/vue`, as the `runtime` option |
-| Svelte | `ConsentManagerProvider` from `@c15t/svelte`, as its `runtime` prop |
+| `client.runtime` | The underlying consent runtime. Pass it to a React, Vue or Svelte island. See [your own islands](/docs/frameworks/astro/islands#use-consent-in-your-own-islands) |
+| `client.options` | The integration options as the browser received them |
 
-The adapter then neither starts nor disposes the runtime. The page owns it.
-For Svelte, install `@c15t/svelte@alpha`, because the `c15t` package has no
-Svelte export.
+`client.runtime.kernel.events.on(type, listener)` subscribes to individual
+consent events, such as `'choice:recorded'` and `'permissions:changed'`. For
+most sites, the `callbacks` in the client entrypoint are simpler. See
+[Callbacks](/docs/frameworks/astro/callbacks).
+
+Do not call `client.dispose()` in your own code. The page owns the runtime,
+and a disposed runtime stops every consent surface on the page.
+
+## Keep scripts working across `ClientRouter`
+
+With `ClientRouter`, module scripts run once per page load, not once per
+navigation. The consent runtime survives each swap, so `getConsentClient()`
+keeps returning the same client and your subscriptions keep firing.
+
+Markup your script changed is replaced on a swap. Render it again on
+`astro:page-load`:
+
+{/* example: fragment */}
+
+```ts
+import { getConsent, subscribe } from 'c15t/astro/client';
+
+const render = () => {
+  const allowed = getConsent()?.effectivePermissions.measurement ?? false;
+  document.querySelector('#analytics-state')?.replaceChildren(
+    allowed ? 'Analytics on' : 'Analytics off'
+  );
+};
+
+subscribe(render);
+document.addEventListener('astro:page-load', render);
+```
+
+A custom element, like the video component above, reconnects on its own when
+the new page contains it.
 
 ## Use an external consent source
 
@@ -167,6 +218,16 @@ same scripts and the page's `getConsent`:
 Events sent while consent is denied are dropped, not queued. Keep search text
 and other personal data out of event properties unless you have set up their
 collection on purpose.
+
+## Advanced exports
+
+`c15t/astro/client` also exports what the integration's page script uses:
+`boot`, `attachBannerActions`, `registerDialogAdapter`,
+`registerDialogSurface`, `registerDialogStyles`, `syncBannerVisibility` and
+`syncSurfaceVisibility`, plus the attribute names `ACTION_ATTRIBUTE`,
+`DIALOG_ATTRIBUTE` and `DIALOG_TAB_ATTRIBUTE`. The integration calls them for
+you. You need them only to run c15t's client without the integration, as a
+test harness does.
 
 ## Check the client API
 

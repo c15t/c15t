@@ -329,16 +329,48 @@ export default defineDocsConfig({
 				},
 				{
 					base: 'astro',
-					pages: [
-						'quickstart',
-						'rendering',
-						'components',
-						'client-api',
-						'customize',
-						'scripts',
-						'iab',
-						'troubleshooting',
+					children: [
+						{
+							pages: [
+								'components',
+								'components/consent-script',
+								'components/consent-banner',
+								'components/consent-banner-deferred',
+								'components/consent-dialog',
+								'components/consent-dialog-trigger',
+								'components/iab-consent-banner',
+								'components/iab-consent-dialog',
+							],
+							title: 'Components',
+						},
+						{
+							pages: ['integration', 'client-api', 'server', 'islands'],
+							title: 'Reference',
+						},
+						{
+							pages: ['customize', 'translations'],
+							title: 'Customize',
+						},
+						{
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'callbacks',
+								'troubleshooting',
+							],
+							title: 'Integration',
+						},
+						{
+							pages: ['geography-headers', 'content-security-policy'],
+							title: 'Deployment',
+						},
+						{
+							pages: ['iab'],
+							title: 'IAB TCF',
+						},
 					],
+					pages: ['quickstart', 'rendering'],
 					slug: 'astro',
 					title: 'Astro',
 				},

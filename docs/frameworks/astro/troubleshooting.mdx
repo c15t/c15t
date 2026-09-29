@@ -98,7 +98,8 @@ because that app serves its own save route.
   measurement can be allowed from the start. Check `effectivePermissions` in
   the snapshot.
 
-See [Scripts and embeds](/docs/frameworks/astro/scripts).
+See [Scripts](/docs/frameworks/astro/scripts) and
+[Embeds](/docs/frameworks/astro/embeds).
 
 ## A gated inline script never runs
 
@@ -134,6 +135,36 @@ navigation. See
 The runtime starts from a module script, and your script ran before it, or it
 ran on the server. Call it in the browser, and try again on
 `DOMContentLoaded`. See [Client API](/docs/frameworks/astro/client-api).
+
+## The banner shows no links to my policies
+
+`ConsentBanner` shows only the legal links its `legalLinks` prop lists, even
+when the integration defines them. Pass
+`legalLinks={['privacyPolicy', 'cookiePolicy']}`, and give each link a
+`label` in the integration's `legalLinks` option. See
+[ConsentBanner legal links](/docs/frameworks/astro/components/consent-banner#legal-links).
+
+## An iframe loads before the visitor chooses
+
+An iframe with `src` in the HTML loads before any script runs. Put the URL in
+`data-src` with a `data-category`, or render the iframe from a component that
+adds it only while the category is allowed. See
+[Embeds](/docs/frameworks/astro/embeds).
+
+## My own island is out of step with the banner, or turns dark mode off
+
+Your island created its own consent runtime, or its adapter is managing the
+`c15t-dark` class. Pass `getConsentClient()?.runtime` to the adapter as
+`runtime`, set `colorScheme: null` in its options, and render the island with
+`client:only`. See
+[use consent in your own islands](/docs/frameworks/astro/islands#use-consent-in-your-own-islands).
+
+## The console reports a Content Security Policy violation
+
+c15t renders inline scripts and a theme `<style>`, and the Astro integration
+has no nonce option yet. See
+[Content Security Policy](/docs/frameworks/astro/content-security-policy) for
+what to allow.
 
 ## More help
 

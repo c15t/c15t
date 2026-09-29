@@ -1,0 +1,94 @@
+---
+title: ConsentBannerDeferred
+description: Render the c15t consent banner in an Astro server island, so a cached or prerendered page still shows each visitor the banner for their own location and stored choice.
+group: frameworks
+---
+
+## Usage
+
+Use `ConsentBannerDeferred` in place of `ConsentBanner` when the page HTML is
+cached or prerendered but the banner must still come from each visitor's own
+request:
+
+<include src="../../../shared/examples/astro-demo/cached-layout.mdx" />
+
+`ConsentBannerDeferred` renders `ConsentBanner` with Astro's `server:defer`
+directive. The page HTML stays the same for everyone. After the page loads,
+Astro requests the island from `/_server-islands/ConsentBanner`. That request
+carries the visitor's cookie and location headers, so the c15t middleware
+resolves consent for it and the banner arrives with the visitor's own policy.
+
+## When to use it
+
+| Page | Use |
+| --- | --- |
+| Rendered on each request | `ConsentBanner` |
+| Served from a CDN cache, or prerendered, on a site with a server adapter | `ConsentBannerDeferred` |
+| Built by a static site with no adapter | `ConsentBanner`, which the browser renders after `/init` |
+
+Server islands need a server adapter. A purely static build cannot answer the
+island request. See
+[cache a page and render the banner per request](/docs/frameworks/astro/rendering#cache-a-page-and-render-the-banner-per-request).
+
+## Props
+
+`ConsentBannerDeferred` passes its props to `ConsentBanner`:
+
+| Prop | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `title` | `string` | Translation | Banner heading |
+| `description` | `string` | Translation | Banner body text |
+| `acceptButtonText` | `string` | `common.acceptAll` | Accept button label |
+| `rejectButtonText` | `string` | `common.rejectAll` | Reject button label |
+| `customizeButtonText` | `string` | `common.customize` | Customize button label |
+| `legalLinks` | `('privacyPolicy' \| 'cookiePolicy' \| 'termsOfService')[] \| null` | None | Which configured legal links to show |
+| `noStyle` | `boolean` | `false` | Renders the markup without c15t's class names |
+| `class` | `string` | None | Extra class on the banner root |
+| `force` | `boolean` | `false` | Renders the banner even when the server decided to hide it |
+
+Astro serializes the props of a server island for the island request, so pass
+plain strings, booleans and arrays. See
+[ConsentBanner](/docs/frameworks/astro/components/consent-banner#props) for
+what each prop does.
+
+## Show something while the island loads
+
+Pass a `fallback` slot. Astro shows it until the island's response replaces
+it:
+
+{/* example: fragment */}
+
+```astro title="src/layouts/cached.astro (partial)"
+<ConsentBannerDeferred>
+  <div slot="fallback" aria-hidden="true"></div>
+</ConsentBannerDeferred>
+```
+
+Most sites leave the fallback empty. A visitor who has already chosen gets an
+empty island response, and a placeholder the size of a banner would flash and
+disappear for them.
+
+## What stays the same
+
+- `ConsentScript` still goes in `<head>`. On a prerendered page it inlines a
+  payload with no visitor state, and the island brings the visitor's own
+  decision.
+- `ConsentDialog` and `ConsentDialogTrigger` stay in the cached layout. They
+  do not depend on the visitor.
+- Accessibility, attributes and styling match
+  [ConsentBanner](/docs/frameworks/astro/components/consent-banner).
+
+## Check the server island
+
+View the page source of a first visit. It contains no banner markup. In
+DevTools Network, a request to `/_server-islands/ConsentBanner` returns it.
+Accept or reject, then reload: the island request returns no banner. Vendor
+requests stay absent until you allow their category. See
+[Verify consent](/docs/guides/verify-consent).
+
+## Related
+
+- [Rendering and deployment](/docs/frameworks/astro/rendering) compares every
+  rendering path.
+- [Server API](/docs/frameworks/astro/server) explains how the middleware
+  resolves the island's request.
