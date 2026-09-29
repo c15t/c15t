@@ -247,7 +247,6 @@ test('a live kernel stamps an unchanged patch like the full derivation', () => {
 		emit,
 		initialDraft: null,
 		initialSnapshot: initial,
-		transport: undefined,
 	});
 	runtime.subscribe(listener);
 	runtime.markLive(NOW + 5);
