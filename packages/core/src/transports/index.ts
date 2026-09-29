@@ -48,7 +48,8 @@ export type {
 	OfflineKernelTransport,
 	OfflineTransportOptions,
 } from './offline';
-export { createOfflineTransport } from './offline';
+export { createOfflineTransport, offline } from './offline';
+export type { OfflineModeOptions } from './offline';
 export {
 	ConsentSaveRejectedError,
 	isConsentSaveRejection,

@@ -110,7 +110,8 @@ export type {
 	OfflineKernelTransport,
 	OfflineTransportOptions,
 } from './transports/offline';
-export { createOfflineTransport } from './transports/offline';
+export { createOfflineTransport, offline } from './transports/offline';
+export type { OfflineModeOptions } from './transports/offline';
 export { buildSubjectPostBody } from './transports/subject-body';
 export {
 	C15T_POLICY_CONTRACT_HEADER,
