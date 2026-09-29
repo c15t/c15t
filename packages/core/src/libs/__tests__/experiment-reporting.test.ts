@@ -338,7 +338,7 @@ describe('createPosthogReporter limits', () => {
 });
 
 describe('createExperimentReporting', () => {
-	it('replays an impression stamped before it subscribed', async () => {
+	it('replays an impression stamped before it subscribed', () => {
 		const kernel = createConsentKernel();
 		kernel.set.experiment(assignment);
 		kernel.markLive();
