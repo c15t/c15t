@@ -5,6 +5,7 @@ import {
 	c15tProtocolHeaders,
 	createConsentKernel,
 	createOfflineTransport,
+	deepMergeTranslations,
 	defaultTranslationConfig,
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
@@ -46,6 +47,7 @@ import type {
 	GlobalVendorList,
 	InitOutput,
 } from '@c15t/schema/types';
+import type { Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import type { Theme } from '@c15t/ui/theme';
@@ -195,11 +197,18 @@ export const resolveTranslations = function resolveTranslations(
 		catalogue[language] ??
 		(defaultTranslationConfig.translations.en as TranslationsResponse);
 	const overrides = options.i18n?.messages?.[language] as
-		| Partial<TranslationsResponse>
+		| Partial<Translations>
 		| undefined;
 	return {
 		language,
-		translations: overrides ? { ...base, ...overrides } : base,
+		// Deep, as in every other adapter: overriding `common.acceptAll`
+		// keeps the rest of `common`.
+		translations: overrides
+			? (deepMergeTranslations(
+					base as Translations,
+					overrides
+				) as TranslationsResponse)
+			: base,
 	};
 };
 
