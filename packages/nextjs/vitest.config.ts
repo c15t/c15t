@@ -65,6 +65,7 @@ export default mergeConfig(
 					'../core/src/transports/index.ts'
 				),
 				'@c15t/core/server': resolve(__dirname, '../core/src/server/index.ts'),
+				'@c15t/core/static': resolve(__dirname, '../core/src/static.ts'),
 				'@c15t/core/runtime/controls': resolve(
 					__dirname,
 					'../core/src/runtime/controls.ts'

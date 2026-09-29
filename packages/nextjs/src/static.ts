@@ -2,15 +2,19 @@ import {
 	createStaticManifestModule as createModule,
 	loadStaticManifest as loadManifest,
 } from '@c15t/core/server';
-import type {
-	ConsentManifest,
-	InitOutput,
-	ResolveInitFromManifestInputs,
-} from '@c15t/schema/types';
-import { resolveInitFromManifest } from '@c15t/schema/types';
-import { baseTranslations } from '@c15t/translations/all';
+import { resolveUnknownLocationInit } from '@c15t/core/static';
+import type { ConsentManifest } from '@c15t/schema/types';
 
 export type { ConsentManifest } from '@c15t/schema/types';
+export type {
+	StaticConsentResolution,
+	StaticConsentResolverOptions,
+	StaticGeoResult,
+} from '@c15t/core/static';
+export {
+	createStaticConsentResolver,
+	resolveUnknownLocationInit,
+} from '@c15t/core/static';
 
 export interface StaticManifestModuleOptions {
 	manifestURL: string;
@@ -20,138 +24,13 @@ export interface StaticManifestModuleOptions {
 	importSource?: string;
 }
 
-export interface StaticGeoResult {
-	country?: string | null;
-	countryCode?: string | null;
-	region?: string | null;
-	regionCode?: string | null;
-}
-
-export interface StaticConsentResolverOptions {
-	manifest: ConsentManifest;
-	geo?: StaticGeoResult | null;
-	geoURL?: string;
-	language?: string;
-	gpc?: boolean;
-	fetch?: typeof globalThis.fetch;
-}
-
-export interface StaticConsentResolution {
-	/**
-	 * Synchronous policy outcome for first paint. Unknown geography never
-	 * rewrites a configured matcher.
-	 */
-	initial: InitOutput;
-
-	/**
-	 * Resolves to the geo-specific result when `geo` or `geoURL` is available.
-	 * Falls back to `initial` when geo cannot be resolved.
-	 */
-	resolved: Promise<InitOutput>;
-}
-
-const readBrowserLanguage = function readBrowserLanguage(): string | undefined {
-	if (typeof navigator === 'undefined') {
-		return undefined;
-	}
-	return navigator.languages?.[0] ?? navigator.language;
-};
-
-const readBrowserGpc = function readBrowserGpc(): boolean | undefined {
-	if (typeof navigator === 'undefined') {
-		return undefined;
-	}
-	return (
-		(navigator as Navigator & { globalPrivacyControl?: unknown })
-			.globalPrivacyControl === true
-	);
-};
-
-const normalizeGeo = function normalizeGeo(
-	geo: StaticGeoResult | null | undefined
-): ResolveInitFromManifestInputs {
-	return {
-		country: geo?.country ?? geo?.countryCode ?? undefined,
-		region: geo?.region ?? geo?.regionCode ?? undefined,
-	};
-};
-
-/** Resolve unknown geography without rewriting configured policy matchers. */
-export const resolveStrictestDefaultInit = function resolveStrictestDefaultInit(
-	manifest: ConsentManifest,
-	inputs: Omit<ResolveInitFromManifestInputs, 'country' | 'region'> = {}
-): InitOutput {
-	return resolveInitFromManifest(
-		manifest,
-		{ ...inputs, country: null, region: null },
-		{ baseTranslations }
-	);
-};
-
-const fetchStaticGeo = async function fetchStaticGeo(
-	geoURL: string,
-	fetchImpl: typeof globalThis.fetch
-): Promise<StaticGeoResult | null> {
-	const response = await fetchImpl(geoURL, {
-		headers: { accept: 'application/json' },
-		method: 'GET',
-	});
-	if (!response.ok) {
-		return null;
-	}
-	return (await response.json()) as StaticGeoResult;
-};
-
-export const createStaticConsentResolver = function createStaticConsentResolver(
-	options: StaticConsentResolverOptions
-): StaticConsentResolution {
-	const language = options.language ?? readBrowserLanguage() ?? 'en';
-	const gpc = options.gpc ?? readBrowserGpc();
-	const commonInputs = { gpc, language };
-	const initialGeo = normalizeGeo(options.geo);
-	const hasGeo = Boolean(initialGeo.country || initialGeo.region);
-	const initial = hasGeo
-		? resolveInitFromManifest(
-				options.manifest,
-				{
-					...commonInputs,
-					...initialGeo,
-				},
-				{ baseTranslations }
-			)
-		: resolveStrictestDefaultInit(options.manifest, commonInputs);
-
-	return {
-		initial,
-		resolved: (async () => {
-			if (hasGeo) {
-				return initial;
-			}
-			if (!options.geoURL) {
-				return initial;
-			}
-			const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
-			if (!fetchImpl) {
-				return initial;
-			}
-			const geo = await fetchStaticGeo(options.geoURL, fetchImpl).catch(
-				() => null
-			);
-			const resolvedGeo = normalizeGeo(geo);
-			if (!resolvedGeo.country && !resolvedGeo.region) {
-				return initial;
-			}
-			return resolveInitFromManifest(
-				options.manifest,
-				{
-					...commonInputs,
-					...resolvedGeo,
-				},
-				{ baseTranslations }
-			);
-		})(),
-	};
-};
+/**
+ * Resolves the init payload for a visitor whose location is unknown.
+ *
+ * @deprecated Renamed to {@link resolveUnknownLocationInit}. It returns the
+ * manifest's configured unknown-location policy, not the strictest one.
+ */
+export const resolveStrictestDefaultInit = resolveUnknownLocationInit;
 
 /** Fetches the manifest used by static builds. */
 export const loadStaticManifest = (
