@@ -431,7 +431,7 @@ describe('ConsentManager widget composition', () => {
 
 test('branding trigger renders the current brand mark instead of a menu icon', async () => {
 	const { context, wrapper } = await renderManager(
-		{ triggerIcon: 'branding' },
+		{ triggerIcon: 'branding', triggerShowWhen: 'always' },
 		ConsentDialogTrigger
 	);
 	try {

@@ -75,6 +75,7 @@ const renderWithoutPolicy = async function renderWithoutPolicy() {
 		disableAnimation: true,
 		hideBranding: true,
 		trapFocus: false,
+		triggerShowWhen: 'always',
 	} as ConsentConfig;
 	const context = createVueConsentKernelContext({
 		config,
