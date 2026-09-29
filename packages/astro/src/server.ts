@@ -815,7 +815,9 @@ export const buildConfigJSON = function buildConfigJSON(
  *
  * The components use {@link buildConfigJSON} instead. This form runs, so a
  * Content Security Policy has to allow it; it changes per visitor, so only
- * a nonce or `'unsafe-inline'` can.
+ * a nonce or `'unsafe-inline'` can. Put the nonce on the script: the
+ * browser runtime reads it from there for the scripts and stylesheets it
+ * adds.
  *
  * @param config - The resolved kernel configuration.
  * @returns JavaScript safe for inline `<script>` injection.

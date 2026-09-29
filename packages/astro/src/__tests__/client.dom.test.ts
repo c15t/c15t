@@ -16,6 +16,7 @@ import {
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
+import { buildConfigScript } from '../server';
 import type { C15tAstroOptions, C15tIABOptions } from '../types';
 import { registerDialogAdapter } from '../ui/adapter';
 import type { ConsentDialogHandle } from '../ui/adapter';
@@ -937,6 +938,33 @@ describe('a CSP nonce on the page', () => {
 				(script) => script.textContent?.includes('__nonceProbe')
 			);
 			expect(loaded?.nonce).toBe(NONCE);
+		});
+	});
+
+	it('is read from a legacy buildConfigScript() script', async () => {
+		// A page that assigns `window.__c15tAstroConfig` itself renders no
+		// `data-c15t-config` element; the nonce is on its own script.
+		const legacy = document.createElement('script');
+		legacy.nonce = NONCE;
+		legacy.textContent = buildConfigScript(INLINE_CONFIG);
+		document.head.append(legacy);
+		// What running it does; jsdom here does not run scripts.
+		(window as unknown as Record<string, unknown>).__c15tAstroConfig =
+			INLINE_CONFIG;
+		renderBanner();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<script type="text/plain" data-c15t-category="measurement">1</script>'
+		);
+		client = boot(resolveOptions(OPTIONS));
+		await client.acceptAll();
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector<HTMLScriptElement>(
+					'script[data-c15t-activated="true"]:not([type])'
+				)?.nonce
+			).toBe(NONCE);
 		});
 	});
 

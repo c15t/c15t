@@ -194,8 +194,9 @@ const readInlinedConfig = function readInlinedConfig(): KernelConfig {
 let pageNonce: string | undefined;
 
 /**
- * The nonce the server put on the inline config script, from
- * `Astro.locals.c15t.nonce`.
+ * The nonce the server put on the config data block, from
+ * `Astro.locals.c15t.nonce`, or on a page's own `buildConfigScript()`
+ * script.
  *
  * Read through the `nonce` property first: browsers hide the attribute's
  * value once a policy has checked it, but keep it on the property.
@@ -203,9 +204,13 @@ let pageNonce: string | undefined;
  * @returns The nonce, or `undefined` when the page was rendered without one.
  */
 const readPageNonce = function readPageNonce(): string | undefined {
-	const script = document.querySelector<HTMLScriptElement>(
-		'script[data-c15t-config]'
-	);
+	// A page that still assigns the payload with `buildConfigScript()` has
+	// no `data-c15t-config` element; its own script carries the nonce.
+	const script =
+		document.querySelector<HTMLScriptElement>('script[data-c15t-config]') ??
+		Array.from(document.scripts).find((element) =>
+			element.textContent?.startsWith(`window.${CONFIG_KEY}=`)
+		);
 	return script?.nonce || script?.getAttribute('nonce') || undefined;
 };
 
