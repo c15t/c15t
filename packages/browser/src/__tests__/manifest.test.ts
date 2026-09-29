@@ -89,6 +89,7 @@ describe('manifest()', () => {
 			)
 		);
 		const client = createConsentClient({
+			consentCategories: ['measurement'],
 			mode: manifest({
 				backendURL: 'https://example.test',
 				fetch: fetchSpy,

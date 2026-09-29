@@ -6,9 +6,10 @@
  * snapshot data only. Commands emit their lifecycle events
  * (`*:started`, `*:completed`, `command:error`).
  *
- * Only `save()` records an explicit choice, and it captures one action
- * time before any yield, network call or persistence. `dismissNotice()`
- * records the local dismissal only. `init()` folds a complete transport
+ * Only `save()` records an explicit choice, or acknowledges a choice prompt
+ * with no category to decide, and it captures one action time before any
+ * yield, network call or persistence. `dismissNotice()` records the local
+ * dismissal only. `init()` folds a complete transport
  * response and installs the deadline timer.
  */
 
@@ -34,6 +35,7 @@ import type {
 	KernelIABAuthority,
 	KernelTransport,
 	KernelUser,
+	NoticeDismissal,
 	NoticeDismissResult,
 	SaveInput,
 	SavePayload,
@@ -167,9 +169,13 @@ export const resolveSaveSelection = function resolveSaveSelection(
 				);
 	if (input === 'all' || input === 'none') {
 		const bulkAction = input === 'all' ? 'all' : 'necessary';
+		// With nothing to decide, the bulk action still covers everything the
+		// visitor was shown: strictly necessary alone.
 		return {
 			consentAction:
-				displayed.length === rule.scope.length ? bulkAction : 'custom',
+				displayed.length === rule.scope.length || choiceScope.length === 0
+					? bulkAction
+					: 'custom',
 			values: narrow(scopeSelection(rule, input === 'all')),
 		};
 	}
@@ -599,6 +605,40 @@ const saveUnderNoneRegime = function saveUnderNoneRegime(
 		return null;
 	}
 	return { confirmed: [], ok: true, subjectId: snapshot.subject?.subjectId };
+};
+
+/**
+ * The acknowledgement a save records when the choice prompt has no category
+ * to decide, or `null` when the choice scope has one. It is a dismissal
+ * record bound to the choice fingerprint, so persistence, cross-tab
+ * reconciliation and the deadline timer carry it like a notice dismissal,
+ * and the evaluator never mistakes it for one. A stored acknowledgement at
+ * least as new is kept.
+ */
+const choiceAcknowledgement = function choiceAcknowledgement(
+	snapshot: ConsentSnapshot,
+	actionAt: number
+): NoticeDismissal | null {
+	const policy = snapshot.evaluationPolicy;
+	if (
+		policy.prompt !== 'choice' ||
+		(policy.choiceScope ?? policy.scope).length > 0
+	) {
+		return null;
+	}
+	const current = snapshot.noticeDismissal;
+	if (
+		current &&
+		current.fingerprint === policy.choice.fingerprint &&
+		current.dismissedAt >= actionAt
+	) {
+		return current;
+	}
+	return {
+		dismissedAt: actionAt,
+		fingerprint: policy.choice.fingerprint,
+		version: 1,
+	};
 };
 
 /** Subject written by a save: the stored identifiers plus the current user's. */
@@ -1362,7 +1402,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				return result;
 			}
 			const categoriesChanged = recorded.confirmed.length > 0;
-			if (!categoriesChanged && !vendorsChanged) {
+			// Any action on a choice prompt with nothing to decide acknowledges
+			// it, and sends a receipt for strictly necessary alone.
+			const acknowledgement = owedNothing
+				? null
+				: choiceAcknowledgement(before, actionAt);
+			if (!categoriesChanged && !vendorsChanged && !acknowledgement) {
 				// Nothing confirmed: no receipt, no choice event, no request, no write.
 				// A staged vendor value the selection ignored (undeclared, disabled)
 				// is dropped too, or a later declaration would let an unrelated save
@@ -1391,6 +1436,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			if (vendorsChanged) {
 				patch.vendorChoice = nextVendorChoice;
 			}
+			const acknowledged =
+				acknowledgement !== null && acknowledgement !== before.noticeDismissal;
+			if (acknowledged) {
+				patch.noticeDismissal = acknowledgement;
+			}
 			applySaveAuthority(patch, before, context?.iabAuthority);
 			// Listeners run when the batch closes, after this action's events
 			// are queued: `after` and the events carry this action's snapshot
@@ -1415,6 +1465,13 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				}
 				if (vendorsChanged) {
 					emit({ actionAt, snapshot: committed, type: 'vendors:recorded' });
+				}
+				if (acknowledged) {
+					emit({
+						dismissal: acknowledgement,
+						snapshot: committed,
+						type: 'notice:dismissed',
+					});
 				}
 				return { after: committed, generation: recordsGeneration };
 			});

@@ -27,6 +27,13 @@ const withProvider = function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
 		<ConsentProvider
 			options={{
+				// A permissive policy offers only what the site declares.
+				consentCategories: [
+					'functionality',
+					'experience',
+					'measurement',
+					'marketing',
+				],
 				mode: offline(),
 				persistence: false,
 				prefetch: policyFixture(),

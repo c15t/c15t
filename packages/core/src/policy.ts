@@ -30,6 +30,24 @@ export interface EffectivePolicy {
 	fingerprints: PolicyFingerprints;
 }
 
+/**
+ * Categories the visitor is asked about. Declared categories narrow the
+ * policy scope. With nothing declared, a permissive rule asks about none of
+ * them, since categories outside the choice scope stay allowed there, and a
+ * strict rule asks about its whole scope, since nothing outside it may run.
+ */
+const projectChoiceScope = function projectChoiceScope(
+	rule: ResolvedPolicyRule,
+	consentCategories?: readonly AllConsentNames[] | null
+): readonly OptionalConsentCategory[] | undefined {
+	if (consentCategories?.length) {
+		return rule.scope.filter((category) =>
+			consentCategories.includes(category)
+		);
+	}
+	return rule.scopeMode === 'permissive' ? [] : undefined;
+};
+
 const projectEvaluationPolicy = (
 	effective: EffectivePolicy,
 	consentCategories?: readonly AllConsentNames[] | null
@@ -40,9 +58,7 @@ const projectEvaluationPolicy = (
 			fingerprint: fingerprints.choice,
 			maxAgeMs: Math.round(rule.validity.choiceMs),
 		},
-		choiceScope: consentCategories?.length
-			? rule.scope.filter((category) => consentCategories.includes(category))
-			: undefined,
+		choiceScope: projectChoiceScope(rule, consentCategories),
 		gpcDenyCategories: rule.privacySignals.gpc.denyCategories,
 		legacyMaterialFingerprint: fingerprints.legacyMaterial ?? null,
 		model: rule.model,

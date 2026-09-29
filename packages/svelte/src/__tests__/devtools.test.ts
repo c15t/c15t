@@ -37,7 +37,10 @@ describe('@c15t/svelte/devtools', () => {
 	test('keeps explicit service callbacks live without remounting', async () => {
 		const firstClear = vi.fn();
 		const nextClear = vi.fn();
+		// Declared categories keep the inspector's scope, and so the mounted
+		// panel, stable when the offline policy resolves.
 		const result = render(DevToolsFixture, {
+			categories: ['measurement', 'marketing'],
 			clearRecords: firstClear,
 			getPresentation: () => undefined,
 			presentation: { preferences: { primaryActions: ['accept'] } },
@@ -48,6 +51,7 @@ describe('@c15t/svelte/devtools', () => {
 			root?.querySelector<HTMLButtonElement>('[data-tab="policy"]')?.click();
 			expect(root?.textContent).toContain('Resolved defaults only');
 			await result.rerender({
+				categories: ['measurement', 'marketing'],
 				clearRecords: nextClear,
 				getPresentation: () => undefined,
 			});
@@ -66,6 +70,7 @@ describe('@c15t/svelte/devtools', () => {
 	test('uses provider presentation and clears its custom persistence key', async () => {
 		const storageKey = 'svelte-devtools-clear';
 		const result = render(DevToolsFixture, {
+			categories: ['measurement', 'marketing'],
 			presentation: { preferences: { primaryActions: ['accept'] } },
 			storageKey,
 		});

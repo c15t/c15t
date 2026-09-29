@@ -369,6 +369,7 @@ test('uses current callback props without replacing the kernel', async () => {
 		<ConsentProvider
 			options={{
 				callbacks: { onChoiceRecorded: first },
+				consentCategories: ['marketing'],
 				mode,
 				persistence: false,
 				prefetch,
@@ -381,6 +382,7 @@ test('uses current callback props without replacing the kernel', async () => {
 		<ConsentProvider
 			options={{
 				callbacks: { onChoiceRecorded: second },
+				consentCategories: ['marketing'],
 				mode,
 				persistence: false,
 				prefetch,
@@ -632,6 +634,7 @@ test('protects consent records after the persistence storage key changes', async
 		<ConsentProvider
 			options={{
 				clearOnRevocation,
+				consentCategories: ['marketing', 'measurement'],
 				mode,
 				persistence: {
 					skipHydration: true,
@@ -651,6 +654,7 @@ test('protects consent records after the persistence storage key changes', async
 		<ConsentProvider
 			options={{
 				clearOnRevocation,
+				consentCategories: ['marketing', 'measurement'],
 				mode,
 				persistence: {
 					skipHydration: true,
@@ -668,6 +672,7 @@ test('protects consent records after the persistence storage key changes', async
 		<ConsentProvider
 			options={{
 				clearOnRevocation,
+				consentCategories: ['marketing', 'measurement'],
 				mode,
 				persistence: {
 					skipHydration: true,

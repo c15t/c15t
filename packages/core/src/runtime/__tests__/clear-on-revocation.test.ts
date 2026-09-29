@@ -31,6 +31,7 @@ const seed = () => {
 const createRuntime = (options: Partial<ConsentRuntimeOptions> = {}) => {
 	const runtime = createConsentRuntime({
 		clearOnRevocation: config,
+		consentCategories: ['measurement'],
 		mode: custom({
 			init: () =>
 				Promise.resolve({

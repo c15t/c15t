@@ -27,6 +27,13 @@ const getDefined = <Value>(
 };
 
 const defaultOptions: ConsentManagerOptions = {
+	// A permissive policy offers only what the site declares.
+	consentCategories: [
+		'functionality',
+		'experience',
+		'measurement',
+		'marketing',
+	],
 	mode: testOffline(),
 };
 

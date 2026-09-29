@@ -118,6 +118,7 @@ describe('policy records and Svelte controls', () => {
 		render(Fixture, {
 			capture: context.capture,
 			options: {
+				consentCategories: ['marketing'],
 				mode: custom({
 					init: () =>
 						Promise.resolve({
