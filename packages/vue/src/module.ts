@@ -6,14 +6,14 @@ import {
 	addImports,
 	addPlugin,
 	addServerHandler,
+	addTypeTemplate,
 	createResolver,
 	defineNuxtModule,
 } from '@nuxt/kit';
 import type { NuxtModule } from '@nuxt/schema';
 import { defu } from 'defu';
 
-import type { ConsentConfig } from './runtime/config';
-import type { UseNetworkBlockerOptions } from './runtime/kernel';
+import type { C15tNuxtConfig } from './nuxt-options';
 import {
 	resolveManifestMode,
 	resolveNuxtInitRoute,
@@ -21,21 +21,11 @@ import {
 } from './runtime/manifest';
 
 export { defineTheme, type Theme } from '@c15t/ui/theme';
-
-/** The Nuxt module's configuration under the `c15t` key. */
-export interface C15tNuxtConfig extends ConsentConfig {
-	/**
-	 * Block `fetch` and XHR requests that match these rules until the
-	 * visitor's consent allows them. Omitted or `false` disables it.
-	 *
-	 * Module options reach the browser through `runtimeConfig.public` as
-	 * JSON, so the `onRequestBlocked` callback is not accepted here.
-	 */
-	networkBlocker?: Omit<UseNetworkBlockerOptions, 'onRequestBlocked'> | false;
-}
-
-/** Options accepted by the Nuxt module. */
-export type ModuleOptions = Partial<C15tNuxtConfig>;
+export type {
+	C15tNuxtAppConfig,
+	C15tNuxtConfig,
+	ModuleOptions,
+} from './nuxt-options';
 
 // Annotated explicitly: the inferred type names `NuxtModule` through
 // @nuxt/schema's store path, which is not portable across installs (TS2883).
@@ -123,6 +113,39 @@ const module: NuxtModule<C15tNuxtConfig> = defineNuxtModule<C15tNuxtConfig>({
 				method: 'get',
 				route: manifestRoute,
 			});
+		}
+
+		// Type the `c15t` key of `app.config.ts`. A type template reaches the
+		// app's types whichever package registered the module, including the
+		// `c15t` umbrella. It imports the option types from the declarations
+		// next to this file: the source in this repo, `module.d.mts` once built.
+		const optionTypes = ['nuxt-options.ts', 'module.d.mts']
+			.map((file) => resolver.resolve(`./${file}`))
+			.find((path) => existsSync(path));
+		if (optionTypes) {
+			const specifier = optionTypes
+				.replace(/\.ts$/u, '')
+				.replace(/\.d\.mts$/u, '.mjs');
+			addTypeTemplate(
+				{
+					filename: 'types/c15t-app-config.d.ts',
+					getContents: () =>
+						[
+							`import type { C15tNuxtAppConfig } from ${JSON.stringify(specifier)};`,
+							'',
+							"declare module '@nuxt/schema' {",
+							'\tinterface CustomAppConfig {',
+							'\t\t/** c15t options, merged over the `c15t` module options. */',
+							'\t\tc15t?: Partial<C15tNuxtAppConfig>;',
+							'\t}',
+							'}',
+							'',
+							'export {};',
+							'',
+						].join('\n'),
+				},
+				{ nitro: true, nuxt: true }
+			);
 		}
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
