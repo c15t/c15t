@@ -48,11 +48,9 @@ test('Google Consent Mode updates each permission and follows the live GPC signa
 			})
 		);
 		const lastUpdate = () =>
-			commands.mock.calls
-				.filter(
-					([command, action]) => command === 'consent' && action === 'update'
-				)
-				.at(-1)?.[2];
+			commands.mock.calls.findLast(
+				([command, action]) => command === 'consent' && action === 'update'
+			)?.[2];
 		kernel.set.privacySignals({ gpc: true });
 		await kernel.commands.save({ marketing: true });
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
