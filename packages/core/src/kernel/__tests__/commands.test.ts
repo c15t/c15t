@@ -41,6 +41,7 @@ describe('resolveSaveSelection', () => {
 
 	test("'all' over a displayed subset still reports the bulk action", () => {
 		const snap = buildInitialSnapshot({
+			consentCategories: ['experience', 'marketing', 'measurement'],
 			initialPolicyResolution: matchedResolution(
 				optInRule({ categories: ['marketing', 'measurement', 'experience'] })
 			),

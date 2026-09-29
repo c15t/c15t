@@ -276,6 +276,7 @@ describe('displayed consent actions', () => {
 					captured.manager = manager;
 				},
 				options: {
+					consentCategories: ['marketing'],
 					disableAnimation: true,
 					mode: custom({}),
 					persistence: false,

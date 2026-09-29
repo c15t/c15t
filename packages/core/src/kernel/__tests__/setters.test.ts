@@ -99,6 +99,7 @@ describe('buildSetters', () => {
 	test('set.activeUI across an elapsed deadline re-evaluates at the toggle time', async () => {
 		vi.spyOn(Date, 'now').mockReturnValue(NOW);
 		const kernel = createConsentKernel({
+			consentCategories: ['marketing'],
 			initialPolicyResolution: matchedResolution(
 				optInRule({
 					categories: ['marketing'],

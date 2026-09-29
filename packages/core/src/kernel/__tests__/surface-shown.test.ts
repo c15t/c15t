@@ -21,6 +21,7 @@ afterEach(() => {
 
 const setup = (save = vi.fn().mockResolvedValue({ ok: true })) => {
 	const kernel = createConsentKernel({
+		consentCategories: ['marketing', 'measurement'],
 		initialPolicyResolution: matchedResolution(
 			optInRule({ categories: ['marketing', 'measurement'] })
 		),
@@ -183,6 +184,7 @@ describe('surface:shown', () => {
 		vi.spyOn(Date, 'now').mockReturnValue(NOW + 500);
 		const save = vi.fn().mockResolvedValue({ ok: true });
 		const kernel = createConsentKernel({
+			consentCategories: ['marketing', 'measurement'],
 			initialPolicyResolution: matchedResolution(
 				optInRule({
 					categories: ['marketing', 'measurement'],

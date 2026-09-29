@@ -653,7 +653,13 @@ const applyNoticeAcknowledgement = function applyNoticeAcknowledgement(
 	before: ConsentSnapshot,
 	actionAt: number
 ): void {
-	if (before.promptRequirement.kind !== 'notice') {
+	// Only a notice prompt, and never over an acknowledgement this save
+	// already made (a choice prompt with nothing to decide records its own).
+	if (
+		patch.noticeDismissal !== undefined ||
+		before.evaluationPolicy.prompt !== 'notice' ||
+		before.promptRequirement.kind !== 'notice'
+	) {
 		return;
 	}
 	patch.noticeDismissal = {
