@@ -541,19 +541,38 @@ const prepareVueRecords = (
 	};
 };
 
-const hydrateVuePersistence = (
+/**
+ * Mount persistence over the kernel's records.
+ *
+ * Records the server read from the request cookie seed the kernel first.
+ * Persistence then applies any newer denial storage holds on top: the
+ * cookie can miss a choice localStorage kept, and HTML from a cache the
+ * server did not recognise can carry nobody's records. A stored grant
+ * never overrides the seed. Without a seed, storage hydrates the kernel.
+ */
+const mountVuePersistence = (
 	context: VueConsentKernelContext,
-	persistence: ReturnType<typeof createPersistence>
-): void => {
+	storageConfig: StorageConfig | undefined
+): ReturnType<typeof createPersistence> => {
 	if (context.initialRecords) {
 		context.kernel.hydrate(context.initialRecords);
-		return;
+		return createPersistence({
+			kernel: context.kernel,
+			skipHydration: true,
+			storageConfig,
+		});
 	}
 	const prefetchedSubject = context.kernel.getSnapshot().subject;
+	const persistence = createPersistence({
+		kernel: context.kernel,
+		skipHydration: true,
+		storageConfig,
+	});
 	persistence.hydrate();
 	if (prefetchedSubject) {
 		context.kernel.hydrate({ subject: prefetchedSubject });
 	}
+	return persistence;
 };
 
 const resolveInitialPolicyPending = (
@@ -909,12 +928,7 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		typeof document !== 'undefined' &&
 		typeof localStorage !== 'undefined'
 	) {
-		const persistence = createPersistence({
-			kernel: context.kernel,
-			skipHydration: true,
-			storageConfig: config.storageConfig,
-		});
-		hydrateVuePersistence(context, persistence);
+		const persistence = mountVuePersistence(context, config.storageConfig);
 		const clearMemory = context.clearRecords;
 		context.clearRecords = persistence.clear;
 		disposers.push(() => {
