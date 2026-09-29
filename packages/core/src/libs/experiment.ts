@@ -147,7 +147,14 @@ const mergeSurface = function mergeSurface<
 	if (!arm) {
 		return base;
 	}
-	const merged = { ...base, ...arm } as Surface & PreferencesPresentation;
+	// A key the arm leaves `undefined` is omitted, not a reset: spreading it
+	// would wipe the base value.
+	const merged = { ...base } as Surface & PreferencesPresentation;
+	for (const [key, value] of Object.entries(arm)) {
+		if (value !== undefined) {
+			(merged as Record<string, unknown>)[key] = value;
+		}
+	}
 	const baseDefaults = (base as PreferencesPresentation).defaults;
 	const armDefaults = (arm as PreferencesPresentation).defaults;
 	if (baseDefaults && armDefaults) {

@@ -102,6 +102,21 @@ describe('assignExperimentVariant weights', () => {
 });
 
 describe('resolveExperimentPresentation', () => {
+	it('keeps a base value the arm leaves undefined', () => {
+		expect(
+			resolveExperimentPresentation(
+				{ prompt: { position: 'bottom-left', variant: 'floating' } },
+				{
+					id: 'shape',
+					variants: {
+						bar: { prompt: { position: undefined, variant: 'bar' } },
+					},
+				},
+				{ variant: 'bar' }
+			).prompt
+		).toEqual({ position: 'bottom-left', variant: 'bar' });
+	});
+
 	it('merges the arm over the base per surface, arm wins', () => {
 		const resolved = resolveExperimentPresentation(
 			{
