@@ -143,6 +143,8 @@
 		"@c15t/ui": "workspace:*"
 	},
 	"devDependencies": {
+		"@astrojs/react": "^6.0.6",
+		"@astrojs/svelte": "^9.0.1",
 		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
