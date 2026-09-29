@@ -12,6 +12,7 @@ import {
 	defineNuxtPlugin,
 	useAppConfig,
 	useFetch,
+	useHead,
 	useRequestEvent,
 	useRequestHeaders,
 	useRuntimeConfig,
@@ -34,6 +35,7 @@ import {
 	resolveNuxtTimeoutMs,
 } from './manifest';
 import { isSharedNuxtRender } from './shared-render';
+import { generateTokensCSS, TOKENS_STYLE_ID } from './theme-tokens';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -52,6 +54,23 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 				appConfig.c15t,
 				runtimeConfig.public.c15t
 			) as Partial<RuntimeConsentConfig>
+	);
+	// Tokens go in the head from the plugin, so the server HTML carries them
+	// for the first paint and composed surfaces without ConsentRoot get
+	// them too. Registered before the first await, while the Nuxt context
+	// is still current.
+	useHead(
+		computed(() => {
+			const style: Record<string, string> = {
+				id: TOKENS_STYLE_ID,
+				innerHTML: generateTokensCSS(config.value.tokens),
+				key: TOKENS_STYLE_ID,
+			};
+			if (config.value.nonce) {
+				style.nonce = config.value.nonce;
+			}
+			return { style: [style] };
+		})
 	);
 	// HTML that is prerendered or cached is served to every visitor, so it
 	// must carry nobody's consent, location or request headers. The server
