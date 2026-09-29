@@ -83,12 +83,18 @@ const UI_ADAPTERS: Record<
 		adapterModule: string;
 		adapterExport: string;
 		surfaceModule: string;
+		/**
+		 * The stylesheets the island's dialog needs beyond `styles.css`. The
+		 * client links them when the dialog opens.
+		 */
+		dialogStyles: string[];
 	}
 > = {
 	react: {
 		adapterExport: 'reactDialogAdapter',
 		adapterModule: '@c15t/astro/ui/react',
 		astroIntegration: '@astrojs/react',
+		dialogStyles: ['@c15t/ui/styles/dialog.css'],
 		packages: ['@astrojs/react', '@c15t/react', 'react', 'react-dom'],
 		surfaceModule: '@c15t/astro/islands/panel-surface.tsx',
 	},
@@ -96,6 +102,12 @@ const UI_ADAPTERS: Record<
 		adapterExport: 'svelteDialogAdapter',
 		adapterModule: '@c15t/astro/ui/svelte',
 		astroIntegration: '@astrojs/svelte',
+		// The Svelte components read the `@c15t/ui/styles/primitives` class
+		// maps, whose rules live in their own stylesheet.
+		dialogStyles: [
+			'@c15t/ui/styles/dialog.css',
+			'@c15t/ui/styles/primitives.css',
+		],
 		packages: ['@astrojs/svelte', 'svelte'],
 		surfaceModule: '@c15t/astro/islands/panel-surface.svelte',
 	},
@@ -103,6 +115,7 @@ const UI_ADAPTERS: Record<
 		adapterExport: 'vueDialogAdapter',
 		adapterModule: '@c15t/astro/ui/vue',
 		astroIntegration: '@astrojs/vue',
+		dialogStyles: ['@c15t/ui/styles/dialog.css'],
 		packages: ['@astrojs/vue', '@c15t/vue', 'vue'],
 		surfaceModule: '@c15t/astro/islands/panel-surface.vue',
 	},
@@ -261,18 +274,30 @@ const createVirtualOptionsPlugin = function createVirtualOptionsPlugin(
  */
 const buildBootScript = function buildBootScript(
 	options: C15tAstroOptions,
-	ui: C15tUIAdapterName,
+	resolved: C15tResolvedOptions,
 	resolveEntry: EntryResolver
 ): string {
+	const { ui } = resolved;
 	const adapter = UI_ADAPTERS[ui];
 	const quote = (specifier: string): string =>
 		JSON.stringify(resolveEntry(specifier));
 	const lines = [
 		`import options from '${VIRTUAL_ID}';`,
-		`import { boot, registerDialogAdapter, registerDialogSurface } from ${quote('@c15t/astro/client')};`,
+		`import { boot, registerDialogAdapter, registerDialogStyles, registerDialogSurface } from ${quote('@c15t/astro/client')};`,
 		`registerDialogAdapter('${ui}', async () => (await import(${quote(adapter.adapterModule)})).${adapter.adapterExport});`,
 		`registerDialogSurface('${ui}', () => import(${quote(adapter.surfaceModule)}));`,
 	];
+	// `?url` makes each stylesheet an emitted file and the import a string,
+	// so no dialog rule reaches the page until the client links it.
+	if (resolved.styles !== false) {
+		const names = adapter.dialogStyles.map((_, index) => `dialogStyle${index}`);
+		adapter.dialogStyles.forEach((specifier, index) => {
+			lines.push(
+				`import ${names[index]} from ${JSON.stringify(`${resolveEntry(specifier)}?url`)};`
+			);
+		});
+		lines.push(`registerDialogStyles([${names.join(', ')}]);`);
+	}
 	if (options.clientEntrypoint) {
 		lines.push(
 			`import clientOptions from '${options.clientEntrypoint}';`,
@@ -300,13 +325,10 @@ export const buildStylesImport = function buildStylesImport(
 	if (resolved.styles === false) {
 		return '';
 	}
+	// The dialog's stylesheets are not here: they would block every first
+	// paint for a surface most visitors never open. The boot script
+	// registers them and the client links them on the first open.
 	const lines = [`import ${quote('@c15t/astro/styles.css')};`];
-	// The React and Svelte dialog islands import the dialog stylesheet, so
-	// it arrives with their chunk. Astro's build drops the stylesheets the
-	// Vue island's components import, so for Vue the page carries them.
-	if (resolved.ui === 'vue') {
-		lines.push(`import ${quote('@c15t/ui/styles/dialog.css')};`);
-	}
 	if (isIABConfigured(resolved.iab)) {
 		lines.push(`import ${quote('@c15t/astro/iab/styles.css')};`);
 	}
@@ -502,10 +524,7 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 
 				// `page` runs the boot on every page, before any island
 				// hydrates, so the runtime exists before anything asks for it.
-				injectScript(
-					'page',
-					buildBootScript(options, resolved.ui, resolveEntry)
-				);
+				injectScript('page', buildBootScript(options, resolved, resolveEntry));
 
 				// `page-ssr` is Astro's hook for page-wide CSS. The components
 				// cannot import their own: the server build resolves the class

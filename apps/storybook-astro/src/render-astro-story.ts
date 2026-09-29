@@ -45,7 +45,7 @@ const registerAdapters = function registerAdapters(ui: AstroUIAdapter): void {
 		);
 		registerDialogSurface(
 			'react',
-			() => import('@c15t/astro/islands/consent-dialog-surface.tsx')
+			() => import('@c15t/astro/islands/panel-surface.tsx')
 		);
 		return;
 	}
@@ -57,7 +57,7 @@ const registerAdapters = function registerAdapters(ui: AstroUIAdapter): void {
 		);
 		registerDialogSurface(
 			'vue',
-			() => import('@c15t/astro/islands/consent-dialog-surface.vue')
+			() => import('@c15t/astro/islands/panel-surface.vue')
 		);
 		return;
 	}
@@ -68,7 +68,7 @@ const registerAdapters = function registerAdapters(ui: AstroUIAdapter): void {
 	);
 	registerDialogSurface(
 		'svelte',
-		() => import('@c15t/astro/islands/consent-dialog-surface.svelte')
+		() => import('@c15t/astro/islands/panel-surface.svelte')
 	);
 };
 

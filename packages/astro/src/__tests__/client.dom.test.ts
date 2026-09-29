@@ -1,12 +1,14 @@
 import type { ConsentSnapshot } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resetDialogStylesForTest } from '../browser/dialog-styles';
 import { whenIABReady } from '../browser/iab';
 import {
 	attachBannerActions,
 	boot,
 	getConsent,
 	getConsentClient,
+	registerDialogStyles,
 	subscribe,
 	syncBannerVisibility,
 	syncSurfaceVisibility,
@@ -80,6 +82,7 @@ const start = function start(
 };
 
 beforeEach(() => {
+	resetDialogStylesForTest();
 	localStorage.clear();
 	document.body.innerHTML = '';
 	document.head.innerHTML = '';
@@ -715,5 +718,167 @@ describe('networkBlocker', () => {
 		expect(onRequestBlocked).toHaveBeenCalledWith(
 			expect.objectContaining({ url: TRACKER })
 		);
+	});
+});
+
+describe('dialog stylesheets and ClientRouter swaps', () => {
+	const DIALOG_CSS = '/_astro/dialog.css';
+
+	/** Registers a Svelte adapter that records where each surface mounted. */
+	const registerRecordingAdapter = function registerRecordingAdapter() {
+		const targets: HTMLElement[] = [];
+		const destroy = vi.fn();
+		registerDialogAdapter('svelte', () =>
+			Promise.resolve({
+				mount: ({ target }) => {
+					targets.push(target);
+					return Promise.resolve({
+						close: vi.fn(),
+						destroy,
+					} as ConsentDialogHandle);
+				},
+				name: 'svelte',
+			})
+		);
+		return { destroy, targets };
+	};
+
+	const dialogLink = () =>
+		document.head.querySelector<HTMLLinkElement>(
+			`link[rel="stylesheet"][href="${DIALOG_CSS}"]`
+		);
+
+	/** Opens the dialog, answering the stylesheet download. */
+	const openWithStyles = async function openWithStyles(
+		booted: AstroConsentClient
+	): Promise<void> {
+		const opening = booted.openDialog();
+		await vi.waitFor(() => {
+			expect(dialogLink()).not.toBeNull();
+		});
+		dialogLink()?.dispatchEvent(new Event('load'));
+		await opening;
+	};
+
+	/** What the ClientRouter does: parse the next page, swap body and head. */
+	const swapPage = function swapPage(): Document {
+		const incoming = document.implementation.createHTMLDocument();
+		const beforeSwap = Object.assign(new Event('astro:before-swap'), {
+			newDocument: incoming,
+		});
+		document.dispatchEvent(beforeSwap);
+		document.body.replaceWith(incoming.body.cloneNode(true));
+		renderBanner();
+		document.dispatchEvent(new Event('astro:after-swap'));
+		return incoming;
+	};
+
+	it('mounts the dialog only once its stylesheet has loaded', async () => {
+		registerDialogStyles([DIALOG_CSS]);
+		const { targets } = registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+
+		const opening = booted.openDialog();
+		await vi.waitFor(() => {
+			expect(dialogLink()).not.toBeNull();
+		});
+		await tick();
+		expect(targets).toHaveLength(0);
+
+		dialogLink()?.dispatchEvent(new Event('load'));
+		await opening;
+		expect(targets).toHaveLength(1);
+		expect(booted.getConsent().activeUI).toBe('dialog');
+	});
+
+	it('opens unstyled rather than not at all when the stylesheet fails', async () => {
+		registerDialogStyles([DIALOG_CSS]);
+		const { targets } = registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+
+		const opening = booted.openDialog();
+		await vi.waitFor(() => {
+			expect(dialogLink()).not.toBeNull();
+		});
+		dialogLink()?.dispatchEvent(new Event('error'));
+		await opening;
+
+		expect(targets).toHaveLength(1);
+		// Forgotten, so the next open downloads it again.
+		expect(dialogLink()).toBeNull();
+	});
+
+	it('hands the stylesheet to the incoming page so the swap keeps it', async () => {
+		registerDialogStyles([DIALOG_CSS]);
+		registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+		await openWithStyles(booted);
+
+		const incoming = document.implementation.createHTMLDocument();
+		document.dispatchEvent(
+			Object.assign(new Event('astro:before-swap'), { newDocument: incoming })
+		);
+
+		const copies = incoming.head.querySelectorAll(
+			`link[rel="stylesheet"][href="${DIALOG_CSS}"]`
+		);
+		expect(copies).toHaveLength(1);
+	});
+
+	it('does not copy a stylesheet the incoming page already links', async () => {
+		registerDialogStyles([DIALOG_CSS]);
+		registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+		await openWithStyles(booted);
+
+		const incoming = document.implementation.createHTMLDocument();
+		incoming.head.innerHTML = `<link rel="stylesheet" href="${DIALOG_CSS}">`;
+		document.dispatchEvent(
+			Object.assign(new Event('astro:before-swap'), { newDocument: incoming })
+		);
+
+		expect(
+			incoming.head.querySelectorAll(`link[href="${DIALOG_CSS}"]`)
+		).toHaveLength(1);
+	});
+
+	it('remounts an open dialog on the page a swap brings in', async () => {
+		const { destroy, targets } = registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+		await booted.openDialog();
+		const [first] = targets;
+
+		swapPage();
+
+		await vi.waitFor(() => {
+			expect(targets).toHaveLength(2);
+		});
+		expect(first?.isConnected).toBe(false);
+		expect(targets[1]?.isConnected).toBe(true);
+		expect(destroy).toHaveBeenCalledOnce();
+		expect(booted.getConsent().activeUI).toBe('dialog');
+	});
+
+	it('reopens a closed dialog on the page, not the one a swap removed', async () => {
+		const { targets } = registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+		await booted.openDialog();
+		booted.closeDialog();
+
+		swapPage();
+		await tick();
+		// Closed dialogs stay closed across the swap.
+		expect(targets).toHaveLength(1);
+
+		await booted.openDialog();
+		expect(targets).toHaveLength(2);
+		expect(targets[1]?.isConnected).toBe(true);
+		expect(booted.getConsent().activeUI).toBe('dialog');
 	});
 });

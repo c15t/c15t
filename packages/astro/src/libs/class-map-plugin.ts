@@ -7,13 +7,29 @@
  * stylesheet, so that CSS is a duplicate. `@c15t/ui` ships each class map
  * without its CSS import as `<name>.node.js` for runtimes that cannot load
  * CSS; this points the browser build at those instead.
+ *
+ * The dialog's own stylesheets are delivered by the client, which links
+ * them when the dialog opens (see `browser/dialog-styles.ts`). The islands
+ * import them too, directly or through `@c15t/ui/styles/dialog`, and those
+ * imports resolve to an empty module here: left alone, a build either drops
+ * them or ships the same rules a second time.
  */
 
 /** `@c15t/ui/styles/components/<name>`, but not the `.css` subpaths. */
 const CLASS_MAP = /^@c15t\/ui\/styles\/components\/[a-z-]+$/u;
 
-/** The IAB components' class maps, whose rules live in the IAB stylesheet. */
+/** `@c15t/ui/styles/dialog`, the module that imports `dialog.css`. */
+const DIALOG_STYLES_MODULE = /^@c15t\/ui\/styles\/dialog$/u;
+
+/** Stylesheets the client links itself when the dialog opens. */
+const CLIENT_LINKED_CSS =
+	/^@c15t\/ui\/styles\/(?:dialog|primitives|components\/[a-z-]+)\.css$/u;
+
+/** The IAB components' class maps and CSS, whose rules live in the IAB stylesheet. */
 const IAB_CLASS_MAP = /^@c15t\/ui\/styles\/components\/iab-/u;
+
+/** The module an island's client-linked stylesheet import resolves to. */
+export const EMPTY_STYLESHEET_ID = '\0c15t:client-linked-stylesheet';
 
 /** Options for {@link createClassMapPlugin}. */
 export interface ClassMapPluginOptions {
@@ -42,6 +58,7 @@ interface ResolveContext {
 export interface ClassMapPlugin {
 	name: string;
 	enforce: 'pre';
+	load: (id: string) => string | null;
 	resolveId: (
 		this: ResolveContext,
 		id: string,
@@ -62,15 +79,23 @@ export const createClassMapPlugin = function createClassMapPlugin(
 ): ClassMapPlugin {
 	return {
 		enforce: 'pre',
+		load(id) {
+			return id === EMPTY_STYLESHEET_ID ? 'export {};' : null;
+		},
 		name: 'c15t:class-maps-without-css',
 		async resolveId(id, importer, resolveOptions = {}) {
 			// The server build already resolves the `node` condition.
 			if (
-				!CLASS_MAP.test(id) ||
 				(IAB_CLASS_MAP.test(id) && !options.iabStylesInjected) ||
 				resolveOptions.ssr === true ||
 				this.environment?.config?.consumer === 'server'
 			) {
+				return null;
+			}
+			if (CLIENT_LINKED_CSS.test(id)) {
+				return EMPTY_STYLESHEET_ID;
+			}
+			if (!(CLASS_MAP.test(id) || DIALOG_STYLES_MODULE.test(id))) {
 				return null;
 			}
 			const resolved = await this.resolve(id, importer, {
