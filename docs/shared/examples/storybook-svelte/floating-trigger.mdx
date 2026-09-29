@@ -1,0 +1,15 @@
+{/* Generated from apps/storybook-svelte/src/docs-examples/floating-trigger.svelte (docs:floating-trigger) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```svelte title="src/lib/privacy-trigger.svelte"
+<script lang="ts">
+	import { ConsentDialog, ConsentDialogTrigger } from '@c15t/svelte';
+</script>
+
+<!-- A floating button in the bottom-left corner that opens preferences.
+     Visitors can drag it to another corner; c15t remembers where. -->
+<ConsentDialogTrigger
+	defaultPosition="bottom-left"
+	size="sm"
+/>
+<ConsentDialog />
+```

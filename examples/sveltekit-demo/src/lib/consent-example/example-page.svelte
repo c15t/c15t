@@ -3,12 +3,10 @@
 	 * The page content every consent recipe route renders. It stands in for
 	 * your application; the recipe itself lives in each route's layout.
 	 */
-	import { dev } from '$app/environment';
+	import ConsentDevTools from '$lib/consent-dev-tools.svelte';
 	import { ConsentGate } from '@c15t/svelte';
 
 	import './example.css';
-
-	const devTools = dev ? import('@c15t/svelte/devtools') : null;
 </script>
 
 <main class="consent-example">
@@ -31,8 +29,4 @@
 		></iframe>
 	</ConsentGate>
 </main>
-{#if devTools}
-	{#await devTools then { ConsentDevTools }}
-		<ConsentDevTools />
-	{/await}
-{/if}
+<ConsentDevTools />

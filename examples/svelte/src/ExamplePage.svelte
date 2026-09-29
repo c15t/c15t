@@ -1,10 +1,8 @@
 <script lang="ts">
-	import {
-		ConsentGate,
-		ConsentDialogLink,
-		getConsentManager,
-	} from '@c15t/svelte';
+	import { getConsentManager } from '@c15t/svelte';
 	import { DevTools } from '@c15t/svelte/devtools';
+
+	import YouTubeEmbed from './YouTubeEmbed.svelte';
 
 	const consent = getConsentManager();
 </script>
@@ -37,18 +35,7 @@
 	</section>
 	<section class="card">
 		<h2>YouTube embed</h2>
-		<ConsentGate category="measurement">
-			{#snippet placeholder()}<div class="placeholder">
-					<p>Allow measurement to load this YouTube video.</p>
-					<ConsentDialogLink>Choose video permissions</ConsentDialogLink>
-				</div>{/snippet}
-			<iframe
-				title="YouTube video"
-				src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y?playsinline=1"
-				allow="encrypted-media; picture-in-picture"
-				allowfullscreen
-			></iframe>
-		</ConsentGate>
+		<YouTubeEmbed />
 	</section>
 </main>
 <DevTools />
