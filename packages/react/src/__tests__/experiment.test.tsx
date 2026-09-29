@@ -93,6 +93,7 @@ const mount = function mount(
 	view.render(
 		<ConsentProvider
 			options={{
+				consentCategories: ['marketing', 'measurement'],
 				enabled: true,
 				mode: Object.assign(() => ({ save }), { kind: 'custom' as const }),
 				persistence: false,
@@ -223,6 +224,7 @@ test('an arm theme reaches useResolvedTheme() and a ConsentTheme rendered from i
  */
 const mountDraftWithLateArm = function mountDraftWithLateArm() {
 	const runtime = createConsentRuntime({
+		consentCategories: ['marketing', 'measurement'],
 		mode: custom({ save: vi.fn().mockResolvedValue({ ok: true }) }),
 		prefetch: { initialPolicyResolution: resolution },
 	});

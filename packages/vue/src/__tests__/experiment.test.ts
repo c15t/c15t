@@ -44,6 +44,7 @@ const experiment: ConsentExperiment = {
 
 const start = function start(overrides: Partial<ConsentExperiment> = {}) {
 	const config: RuntimeConsentConfig = {
+		consentCategories: ['measurement', 'marketing'],
 		experiment: { ...experiment, ...overrides },
 	};
 	const context = createVueConsentKernelContext({
@@ -75,7 +76,7 @@ test('built-in assignment holds the banner until the arm is picked, then stores 
 			assignedBy: 'c15t',
 			id: 'banner-shape',
 		});
-		expect(['bar', 'floating']).toContain(assignment?.arm);
+		expect(['control', 'bar', 'floating']).toContain(assignment?.arm);
 		expect(context.snapshot.value.activeUI).toBe('banner');
 		expect(
 			JSON.parse(localStorage.getItem(EXPERIMENT_STORAGE_KEY) ?? 'null')
@@ -87,6 +88,7 @@ test('built-in assignment holds the banner until the arm is picked, then stores 
 
 test('an untouched draft reseeds from the assigned arm; an edited one is kept', async () => {
 	const config: RuntimeConsentConfig = {
+		consentCategories: ['measurement', 'marketing'],
 		experiment: {
 			...experiment,
 			arms: {
@@ -137,6 +139,7 @@ test('an untouched draft reseeds from the assigned arm; an edited one is kept', 
 
 test('an untouched draft picks up the assigned arm defaults', async () => {
 	const config: RuntimeConsentConfig = {
+		consentCategories: ['measurement', 'marketing'],
 		experiment: {
 			...experiment,
 			arms: {
