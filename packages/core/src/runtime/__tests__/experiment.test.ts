@@ -30,7 +30,9 @@ const experiment: ConsentExperiment = {
 	id: 'banner-shape',
 };
 
-const createTransport = function createTransport(): KernelTransport {
+const createTransport = function createTransport(): Required<
+	Pick<KernelTransport, 'init' | 'save'>
+> {
 	const offline = createOfflineTransport({ policyRules });
 	return {
 		init: vi.fn((context) => offline.init(context)),
