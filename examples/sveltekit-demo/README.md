@@ -71,6 +71,13 @@ absent before measurement permission. The example emits no custom conversion
 events. Script removal cannot undo SDK code that already ran; application event
 calls must also stop after withdrawal.
 
+Open `/consent-example?experiment=1` to run the banner-shape experiment: c15t
+assigns the `floating` or `wall` arm and the page shows
+`banner-shape · <arm> · c15t` with the reported `c15t_surface_shown` and
+`c15t_choice_recorded` events. `/consent-example?experiment=1&arm=wall` forces
+the arm the way a flag provider would. Both push the same events to
+`window.dataLayer`. See https://c15t.com/docs/guides/banner-experiments.
+
 This route owns a separate standard provider and skips the root IAB showcase
 provider and its server load. Without the public backend URL it uses `/api/c15t`.
 The existing showcase and benchmark routes retain their original modes.

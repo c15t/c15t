@@ -38,6 +38,18 @@ EXAMPLE_TARGET=javascript bun run --cwd examples/shared test
 `src/scripts.ts` contains the vendor configuration. Framework setup stays in
 this example's source files so documentation can use the same code.
 
+## Banner experiment
+
+Open `/?experiment=1` to run the banner-shape experiment: c15t assigns the
+`floating` or `wall` arm and the page shows `banner-shape · <arm> · c15t` with
+the `c15t_surface_shown` and `c15t_choice_recorded` events it reported. Open
+`/?experiment=1&arm=wall` to force the arm the way a flag provider would
+(`assignedBy: host`). Both push the same events to `window.dataLayer`.
+The raw kernel has no `experiment` option, so `src/main.ts` picks the arm with
+`assignExperimentVariant`, records it with `kernel.set.experiment()`, merges it
+with `applyExperimentAssignment` and reports with `createExperimentReporting`.
+See https://c15t.com/docs/guides/banner-experiments.
+
 The JavaScript package is headless, so both designs use application-owned HTML.
 The example renders actions from the resolved policy and uses a native dialog
 for focus management. It demonstrates category-based policies, not IAB TCF UI.

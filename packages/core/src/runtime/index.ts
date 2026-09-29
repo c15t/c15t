@@ -90,6 +90,12 @@ export type {
 } from './types';
 export type { WireRuntimeCallbacksOptions } from './callbacks';
 export { stringifyRuntimeError, wireRuntimeCallbacks } from './callbacks';
+export type {
+	ExperimentReportEvent,
+	ExperimentReporter,
+	ExperimentReporterName,
+	ExperimentReportingOptions,
+} from '../libs/experiment-reporting';
 export type { IABModuleLoader, LazyIABFactory } from './lazy-iab';
 export { isIABConfigured } from './iab-options';
 export { createLazyIABFactory } from './lazy-iab';

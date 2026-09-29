@@ -1,4 +1,5 @@
 /* oxlint-disable react/iframe-missing-sandbox -- The fixed cross-origin YouTube player needs scripts and its own origin for playback. */
+import type { ExperimentReportEvent } from 'c15t';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -9,8 +10,11 @@ import {
 	useConsent,
 } from 'c15t/react';
 import { DevTools } from 'c15t/react/devtools';
+import { useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { experimentFromSearch } from './experiment';
+import { ExperimentReadout, useExperimentLog } from './experiment-readout';
 import { scripts } from './scripts';
 
 import 'c15t/react/styles.css';
@@ -34,7 +38,12 @@ const theme = branded
 		}
 	: undefined;
 
-const Gallery = () => {
+const Gallery = ({
+	events,
+}: {
+	/** Reported experiment events, or `null` when no experiment runs. */
+	events: ExperimentReportEvent[] | null;
+}) => {
 	const measurement = useConsent('measurement');
 	const marketing = useConsent('marketing');
 	return (
@@ -45,7 +54,10 @@ const Gallery = () => {
 			<nav aria-label="Banner design">
 				<a href="/">Default</a>
 				<a href="/?design=branded">Branded</a>
+				<a href="/?experiment=1">Experiment</a>
+				<a href="/?experiment=1&arm=wall">Experiment (wall arm)</a>
 			</nav>
+			{events && <ExperimentReadout events={events} />}
 			<section className="card">
 				<h2>Scripts follow your choices</h2>
 				<ul className="statuses">
@@ -89,15 +101,26 @@ const Gallery = () => {
 	);
 };
 
+const App = () => {
+	// `?experiment=1` runs the banner-shape experiment; `&arm=wall` forces
+	// the arm. Without the param the provider gets no `experiment` option.
+	const { events, report } = useExperimentLog();
+	const experiment = useMemo(
+		() => experimentFromSearch(location.search, report),
+		[report]
+	);
+	return (
+		<ConsentProvider options={{ experiment, mode, scripts, theme }}>
+			<Gallery events={experiment ? events : null} />
+			<ConsentBanner />
+			<ConsentDialog />
+			<DevTools />
+		</ConsentProvider>
+	);
+};
+
 const root = document.getElementById('app');
 if (!root) {
 	throw new Error('Missing #app');
 }
-createRoot(root).render(
-	<ConsentProvider options={{ mode, scripts, theme }}>
-		<Gallery />
-		<ConsentBanner />
-		<ConsentDialog />
-		<DevTools />
-	</ConsentProvider>
-);
+createRoot(root).render(<App />);

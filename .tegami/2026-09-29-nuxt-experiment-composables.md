@@ -1,0 +1,8 @@
+---
+packages:
+  '@c15t/vue': patch
+---
+
+### Auto-import the experiment composables in Nuxt
+
+Nuxt auto-imports `useExperiment()` and `useResolvedPresentation()`, so a page can read the assigned banner-experiment arm without importing from `c15t/vue/vue-plugin`.

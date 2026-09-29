@@ -17,8 +17,30 @@
 				video embeds.
 			</p>
 			<nav aria-label="Banner design">
-				<a href="/">Default</a><a href="/?design=branded">Branded</a>
+				<a href="/">Default</a><a href="/?design=branded">Branded</a
+				><a href="/?experiment=1">Experiment</a
+				><a href="/?experiment=1&arm=wall">Experiment (wall arm)</a>
 			</nav>
+			<section
+				id="experiment"
+				class="card"
+				data-testid="experiment"
+				hidden
+			>
+				<h2>Banner experiment</h2>
+				<p>
+					Arm:
+					<code
+						id="experiment-arm"
+						data-testid="experiment-arm"
+					></code>
+				</p>
+				<ul
+					id="experiment-events"
+					class="statuses"
+				></ul>
+				<p>The same events are pushed to <code>window.dataLayer</code>.</p>
+			</section>
 			<section class="card">
 				<h2>Scripts follow your choices</h2>
 				<ul class="statuses">
@@ -61,6 +83,10 @@
 				</button>
 			</footer>
 		</main>
+		<div
+			id="consent-backdrop"
+			hidden
+		></div>
 		<section
 			id="consent-prompt"
 			aria-labelledby="prompt-title"

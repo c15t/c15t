@@ -321,6 +321,16 @@ export type {
 } from './libs/experiment';
 export { EXPERIMENT_STORAGE_KEY } from './libs/storage-keys';
 export type {
+	ExperimentChoiceRecordedReport,
+	ExperimentNoticeDismissedReport,
+	ExperimentReportEvent,
+	ExperimentReporter,
+	ExperimentReporterName,
+	ExperimentReportProperties,
+	ExperimentReportTarget,
+	ExperimentSurfaceShownReport,
+} from './libs/experiment-reporting';
+export type {
 	ConsentPresentation,
 	PromptPresentation,
 	PromptVariant,

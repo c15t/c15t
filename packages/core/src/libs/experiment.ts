@@ -17,6 +17,10 @@ import type { ConsentKernel, ConsentSnapshot } from '../types';
 import type { StorageConfig } from './cookie';
 import { readStoredExperimentArm } from './experiment-storage';
 import type {
+	ExperimentReporter,
+	ExperimentReporterName,
+} from './experiment-reporting';
+import type {
 	ConsentPresentation,
 	PreferencesPresentation,
 	PresentationAction,
@@ -107,6 +111,16 @@ export interface ConsentExperiment<Arm extends string = string> {
 	 * acknowledgement is recorded on the consent record with the arm.
 	 */
 	acknowledgeDiagnostics?: boolean;
+	/**
+	 * Where to send impression and choice events. `'dataLayer'` pushes to
+	 * `window.dataLayer` (GTM / gtag), `'posthog'` calls `window.posthog.capture`,
+	 * a function receives every event. Omit to report nothing; the events are
+	 * still available through `callbacks.onSurfaceShown` / `onChoiceRecorded`.
+	 */
+	reportTo?:
+		| ExperimentReporter
+		| ExperimentReporterName
+		| readonly (ExperimentReporter | ExperimentReporterName)[];
 }
 
 /**

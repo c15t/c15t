@@ -19,6 +19,8 @@ The page exercises everything a real site gates on consent, all served locally s
 
 A second page, http://localhost:4173/custom, loads `c15t.headless.js` instead and renders its own consent card with the site's HTML and CSS, the way zed.dev/docs ships its banner on c15t: `data-c15t-action` buttons for accept and reject, one `ui` listener to show, hide and switch the card into configure mode, and `c15t.save()` behind the Save button.
 
+Open http://localhost:4173/?experiment=1 to run a banner-shape experiment from a queued `config` call: c15t assigns the `floating` or `wall` arm, the page shows it, and every impression and choice is pushed to `window.dataLayer` and logged. Add `&arm=wall` to force the arm the way a flag provider would. See https://c15t.com/docs/guides/banner-experiments.
+
 `index.html` shows the three ways to configure the tag: `data-*` attributes, and `config` and `on` calls queued on `window.c15t` before the script loads.
 
 Open http://localhost:4173/styled for theme tokens and CSS inside a shadow root, or http://localhost:4173/styled?shadow=false for the same border applied by the page stylesheet. Both run offline. Banner styling and geometry need no backend.

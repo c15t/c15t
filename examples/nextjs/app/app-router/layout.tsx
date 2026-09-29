@@ -1,8 +1,10 @@
 import { resolveConsent } from 'c15t/next/server';
+import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 
 import { consentConfig, demoLocation } from '../../c15t.config';
 import { Consent } from '../../components/consent';
+import { isExperimentArm } from '../../lib/experiment';
 
 /**
  * Starts consent resolution for this request and passes the pending result to
@@ -11,12 +13,28 @@ import { Consent } from '../../components/consent';
  * in the server HTML instead, await it in an async component inside
  * `<Suspense>`; see the App Router guide.
  */
-const Layout = ({ children }: { children: ReactNode }) => {
+const Layout = async ({ children }: { children: ReactNode }) => {
 	const state = resolveConsent({
 		config: consentConfig,
 		...demoLocation,
 	});
-	return <Consent state={state}>{children}</Consent>;
+	// `?experiment=1` runs the banner-shape experiment and `&arm=wall` is
+	// the arm the server resolved (proxy.ts copies both into headers). This
+	// is where `const arm = await bannerShape()` from the Vercel Flags SDK,
+	// or any other flag provider, would go. Reading headers does not wait
+	// for the manifest, so `state` stays pending.
+	const requestHeaders = await headers();
+	const experiment = requestHeaders.get('x-example-experiment') === '1';
+	const arm = requestHeaders.get('x-example-experiment-arm');
+	return (
+		<Consent
+			state={state}
+			experiment={experiment}
+			experimentVariant={isExperimentArm(arm) ? arm : undefined}
+		>
+			{children}
+		</Consent>
+	);
 };
 
 export default Layout;
