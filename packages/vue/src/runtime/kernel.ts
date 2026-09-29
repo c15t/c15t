@@ -844,7 +844,7 @@ const refreshClientGeo = async function refreshClientGeo(
 		context.kernel.set.overrides(overrides);
 		await context.kernel.commands.init();
 	} catch {
-		// Keep the strict unknown-geo manifest result when the optional geo
+		// Keep the manifest's unknown-location result when the optional geo
 		// microfetch is unavailable.
 	}
 };
