@@ -16,7 +16,11 @@ import { join } from 'node:path';
 
 import { beforeEach, describe, expect, test } from 'vitest';
 
-import { defaultTheme, generateThemeCSS, themeToVars } from '../../theme/utils';
+import {
+	defaultTheme,
+	generateDefaultThemeCSS,
+	themeToVars,
+} from '../../theme/utils';
 
 const DIST_DIR = join(__dirname, '..', '..', '..', 'dist');
 
@@ -137,20 +141,16 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		expect(preamble.startsWith('/* default theme tokens')).toBe(true);
 	});
 
-	test('matches what a host passing theme: defaultTheme would inject', () => {
-		// Byte-for-byte parity with `generateThemeCSS(defaultTheme)` is what
-		// keeps CSS and JS from drifting, and what makes the defaults behave
-		// exactly like a provider-injected theme.
-		expect(css).toContain(generateThemeCSS(defaultTheme));
+	test('matches the defaults serialized from defaultTheme', () => {
+		// Byte-for-byte parity with the runtime serializer is what keeps CSS
+		// and JS from drifting.
+		expect(css).toContain(generateDefaultThemeCSS(defaultTheme));
 	});
 
 	test('emits the tokens unlayered', () => {
-		// A provider's injected `<style id="c15t-theme">` is unlayered. Unlayered
-		// declarations outrank every cascade layer, so keeping the defaults
-		// unlayered too is what leaves source order — and therefore the injected
-		// override — in charge. If a host imports this stylesheet into a layer
-		// (`@import ... layer(c15t)`, as examples/sveltekit-demo does), the
-		// override wins by layer precedence instead.
+		// Unlayered, so a host's own unlayered `:root` overrides placed after
+		// the stylesheet still win by source order, as they always have. A
+		// `generateThemeCSS` theme wins by specificity wherever it lands.
 		const layerStart = css.indexOf('@layer components');
 		const tokensStart = findBlockStart(css, LIGHT_SELECTOR);
 		expect(tokensStart).toBeGreaterThanOrEqual(0);

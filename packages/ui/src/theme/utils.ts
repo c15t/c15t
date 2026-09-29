@@ -434,26 +434,38 @@ const serializeThemeVars = function serializeThemeVars(
 		.join('');
 };
 
-/**
- * Generates a CSS string for the theme variables.
- *
- * Call it where your app renders on the server or at build time, and put
- * the result in a `<style>` element or a stylesheet. The browser runtime no
- * longer generates theme CSS. `<` is written as a CSS escape, so the result
- * is safe inside a `<style>` element.
- * Apply `c15t-no-transitions` while switching themes to suppress animations.
- * @param theme - Theme tokens to serialize.
- * @param colorScheme - Select a scheme before hydration; defaults to root classes.
- * @returns Theme CSS, including system preference rules when requested.
- */
-export const generateThemeCSS = function generateThemeCSS(
+type ThemeColorScheme = 'light' | 'dark' | 'system' | null;
+
+interface ThemeSelectors {
+	root: string;
+	dark: string;
+}
+
+// `:host` is the shadow-DOM counterpart of `:root`: custom properties set
+// there inherit into a shadow tree, which `:root` never reaches. Outside a
+// shadow root it matches nothing, so light-DOM hosts are unaffected.
+const DEFAULT_THEME_SELECTORS: ThemeSelectors = {
+	dark: ':root.dark,:host(.dark),.dark .c15t-theme-root,:root.c15t-dark,:host(.c15t-dark),.c15t-dark .c15t-theme-root',
+	root: ':root,:host,.c15t-theme-root',
+};
+
+// The same elements, each light-DOM selector repeated once so it carries
+// one more class-level specificity point than the package defaults. A theme
+// then overrides the defaults wherever it lands in the document: SvelteKit,
+// for one, writes `<svelte:head>` before its stylesheet links. `:host` stays
+// single: a shadow root gets the stylesheet and the theme from the script
+// tag's mount, which writes the theme last, so order already decides there.
+const THEME_OVERRIDE_SELECTORS: ThemeSelectors = {
+	dark: ':root:root.dark,:host(.dark),.dark .c15t-theme-root.c15t-theme-root,:root:root.c15t-dark,:host(.c15t-dark),.c15t-dark .c15t-theme-root.c15t-theme-root',
+	root: ':root:root,:host,.c15t-theme-root.c15t-theme-root',
+};
+
+const buildThemeCSS = function buildThemeCSS(
 	theme: Theme,
-	colorScheme?: 'light' | 'dark' | 'system' | null
+	colorScheme: ThemeColorScheme | undefined,
+	selectors: ThemeSelectors
 ): string {
-	// `:host` is the shadow-DOM counterpart of `:root`: custom properties set
-	// there inherit into a shadow tree, which `:root` never reaches. Outside
-	// a shadow root it matches nothing, so light-DOM hosts are unaffected.
-	const root = ':root,:host,.c15t-theme-root';
+	const { root } = selectors;
 	const dark =
 		(colorScheme
 			? serializeThemeVars({ colors: defaultDarkColors }, true)
@@ -462,9 +474,48 @@ export const generateThemeCSS = function generateThemeCSS(
 	// surrounding `<style>` element.
 	return `${root}{${colorScheme === 'dark' ? dark : serializeThemeVars(theme, false)}}
 ${colorScheme === 'system' ? `@media(prefers-color-scheme:dark){${root}{${dark}}}` : ''}
-:root.dark,:host(.dark),.dark .c15t-theme-root,:root.c15t-dark,:host(.c15t-dark),.c15t-dark .c15t-theme-root{${dark}}
+${selectors.dark}{${dark}}
 .c15t-no-transitions,.c15t-no-transitions *,.c15t-no-transitions *::before,.c15t-no-transitions *::after{transition: none !important;animation: none !important;}`.replace(
 		/</gu,
 		'\\3c '
 	);
+};
+
+/**
+ * Generates a CSS string for the theme variables.
+ *
+ * Call it where your app renders on the server or at build time, and put
+ * the result in a `<style>` element or a stylesheet. The browser runtime no
+ * longer generates theme CSS. `<` is written as a CSS escape, so the result
+ * is safe inside a `<style>` element.
+ *
+ * The selectors are one specificity step above the default tokens in
+ * `styles.css`, so the result overrides them whether it lands before or
+ * after the package stylesheet in the document.
+ * Apply `c15t-no-transitions` while switching themes to suppress animations.
+ * @param theme - Theme tokens to serialize.
+ * @param colorScheme - Select a scheme before hydration; defaults to root classes.
+ * @returns Theme CSS, including system preference rules when requested.
+ */
+export const generateThemeCSS = function generateThemeCSS(
+	theme: Theme,
+	colorScheme?: ThemeColorScheme
+): string {
+	return buildThemeCSS(theme, colorScheme, THEME_OVERRIDE_SELECTORS);
+};
+
+/**
+ * Generates the package's default token block: the same declarations as
+ * {@link generateThemeCSS}, on the base `:root` selectors that the theme's
+ * selectors outrank. The build writes `defaultTheme` through it into
+ * `styles.css`.
+ *
+ * @internal
+ * @param theme - Theme tokens to serialize.
+ * @returns Theme CSS on the base selectors.
+ */
+export const generateDefaultThemeCSS = function generateDefaultThemeCSS(
+	theme: Theme
+): string {
+	return buildThemeCSS(theme, undefined, DEFAULT_THEME_SELECTORS);
 };

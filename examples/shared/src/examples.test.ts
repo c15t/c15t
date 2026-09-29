@@ -416,6 +416,30 @@ for (const target of selectedTargets()) {
 			});
 		}
 
+		if (target.id === 'sveltekit') {
+			test('a theme rendered in svelte:head overrides the stylesheet defaults', async () => {
+				await visit('/consent-example?theme=branded');
+				// SvelteKit writes `<svelte:head>` before its stylesheet links, so
+				// the package defaults load after the theme and must still lose.
+				const firstStyle = await page.evaluate(
+					() =>
+						document.querySelector('#c15t-theme, link[rel="stylesheet"]')?.id
+				);
+				expect(firstStyle).toBe('c15t-theme');
+				const token = (name: string) =>
+					page.evaluate(
+						(property) =>
+							getComputedStyle(document.documentElement)
+								.getPropertyValue(property)
+								.trim(),
+						name
+					);
+				expect(await token('--c15t-primary')).toBe('#146b56');
+				expect(await token('--c15t-radius-lg')).toBe('1.25rem');
+				expect(requests.unexpected).toEqual([]);
+			});
+		}
+
 		if (target.id === 'javascript') {
 			test('a persisted pagehide keeps preferences and consent gating active', async () => {
 				await visit('/');
