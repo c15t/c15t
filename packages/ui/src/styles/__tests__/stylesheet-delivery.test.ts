@@ -280,9 +280,10 @@ describe('the render-blocking stylesheet holds only first-paint rules', () => {
 		for (const file of ['dialog.css', 'primitives.css']) {
 			const css = readDist(join(DIST_DIR, 'styles', file));
 			const root = parse(css);
+			// The layer order statement, then one block holding every rule.
 			const topLevel = root.nodes.filter((node) => node.type !== 'comment');
-			expect(topLevel).toHaveLength(1);
-			expect(topLevel[0]).toMatchObject({
+			expect(topLevel).toHaveLength(2);
+			expect(topLevel[1]).toMatchObject({
 				name: 'layer',
 				params: 'components',
 				type: 'atrule',

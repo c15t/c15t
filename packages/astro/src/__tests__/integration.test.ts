@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
@@ -190,6 +190,18 @@ describe('astro:config:setup', () => {
 		expect(calls.injectScript).toHaveBeenCalledWith(
 			'page-ssr',
 			`import ${specifier('@c15t/astro/styles.css')};`
+		);
+	});
+
+	it('injects a stylesheet that declares the Tailwind 4 layer order first', () => {
+		// It lands ahead of a site's Tailwind stylesheet, and layers rank by
+		// first mention. Declaring `components` alone would rank it below
+		// `base`, where preflight strips the banner's padding and borders.
+		const css = readFileSync(resolveOwnEntry('@c15t/astro/styles.css'), 'utf8');
+		const firstStatement = css.replace(/\/\*[\s\S]*?\*\//gu, '').trim();
+
+		expect(firstStatement.split('\n')[0]).toBe(
+			'@layer properties, theme, base, components, utilities;'
 		);
 	});
 

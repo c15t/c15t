@@ -11,7 +11,9 @@
  *      styled UI instead of falling back to browser defaults
  *    - :root custom properties and @keyframes stay unlayered
  *    - `styles.css` / `iab/styles.css` wrap component rules in `@layer components`
- *      for Tailwind 4 and native CSS layer consumers
+ *      for Tailwind 4 and native CSS layer consumers; every layered file opens
+ *      with Tailwind 4's layer order statement so `components` never ranks
+ *      below `base`
  *    - `styles.tw3.css` / `iab/styles.tw3.css` emit the same component rules flat
  *      for Tailwind 3, which cannot import a standalone layered stylesheet from JS
  *
@@ -335,6 +337,19 @@ const DEFAULT_THEME_CSS = [
 ].join('\n');
 
 /**
+ * Tailwind 4's layer order: it emits `@layer properties;` and then
+ * `@layer theme, base, components, utilities;`. Layers rank by first
+ * mention, so a page that loads a c15t sheet before Tailwind's (Astro
+ * injects it from `page-ssr`; an app may import it above its own CSS) would
+ * declare `components` first and rank it below `base`, where preflight
+ * zeroes the banner's padding and borders. Every layered entrypoint opens
+ * with the full order, so `components` lands between `base` and `utilities`
+ * whichever sheet loads first. Without Tailwind the other four layers stay
+ * empty. `@c15t/ui/postcss-tailwind3` removes the statement with the blocks.
+ */
+const LAYER_ORDER = '@layer properties, theme, base, components, utilities;';
+
+/**
  * Wrap component rules in `@layer components`. Tailwind 4 declares that layer
  * before its utilities, so bare utilities override c15t without
  * `!important`. Tailwind 3 hosts either import the flat `.tw3.css` variant or
@@ -389,11 +404,11 @@ const nonIab = collectCssParts(
 const rootCss = nonIab.rootParts.join('\n\n');
 const firstPaintRules = rulesFor(nonIab.ruleParts, 'first-paint', 'styles.css');
 
-// dist/styles.css — tokens, every variable, first-paint rules in
-// @layer components (Tailwind 4 and native CSS layers). Render-blocking.
+// dist/styles.css — layer order, tokens, every variable, first-paint rules
+// in @layer components (Tailwind 4 and native CSS layers). Render-blocking.
 writeDist(
 	'styles.css',
-	joinParts([DEFAULT_THEME_CSS, rootCss, layered(firstPaintRules)])
+	joinParts([LAYER_ORDER, DEFAULT_THEME_CSS, rootCss, layered(firstPaintRules)])
 );
 
 // dist/styles.tw3.css — the same, flat (Tailwind 3 entry imports)
@@ -408,6 +423,7 @@ writeDist(
 writeDist(
 	'styles/dialog.css',
 	joinParts([
+		LAYER_ORDER,
 		'/* @c15t/ui dialog styles. Needs @c15t/ui/styles.css for tokens and variables. */',
 		layered(rulesFor(nonIab.ruleParts, 'dialog', 'styles/dialog.css')),
 	])
@@ -432,6 +448,7 @@ writeDist('styles/dialog.d.ts', 'export {};\n');
 writeDist(
 	'styles/primitives.css',
 	joinParts([
+		LAYER_ORDER,
 		'/* @c15t/ui primitive styles. Needs @c15t/ui/styles.css for tokens and variables. */',
 		layered(rulesFor(nonIab.ruleParts, 'primitives', 'styles/primitives.css')),
 	])
@@ -457,7 +474,7 @@ if (IAB_COMPONENTS.length > 0) {
 	// dist/iab/styles.css — @layer components
 	writeDist(
 		'iab/styles.css',
-		joinParts([iabBanner, iabRoot, layered(iabRules)])
+		joinParts([LAYER_ORDER, iabBanner, iabRoot, layered(iabRules)])
 	);
 
 	// dist/iab/styles.tw3.css — flat rules (for Tailwind 3 layout imports)

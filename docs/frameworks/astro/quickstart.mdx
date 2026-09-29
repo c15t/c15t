@@ -176,11 +176,18 @@ that opens the dialog. With `ui: 'svelte'` it also links
 `@c15t/ui/styles/primitives.css`. The dialog mounts once they have loaded, and
 the links stay in `<head>` across ClientRouter navigations.
 
+The integration injects the stylesheet ahead of your own CSS. It opens with
+Tailwind CSS 4's layer order,
+`@layer properties, theme, base, components, utilities;`. Cascade layers rank
+by the order they are first named, so on a Tailwind 4 site the c15t
+`components` layer stays above Tailwind's preflight in `base`, and the banner
+keeps its padding and borders. Without Tailwind the other layers stay empty.
+
 To load the styles yourself, for example from a global stylesheet that orders
-its own cascade layers, set `styles: false` and import the files below. With
-`styles: false` the runtime links no dialog stylesheet, so import the dialog's
-rules as well. Sites that set `iab` need the IAB
-import too; without it the IAB banner and dialog are unstyled.
+its own cascade layers, set `styles: false` and import the files below after
+your layer order statement. With `styles: false` the runtime links no dialog
+stylesheet, so import the dialog's rules as well. Sites that set `iab` need the
+IAB import too; without it the IAB banner and dialog are unstyled.
 
 ```css title="src/styles/global.css"
 @import 'c15t/astro/styles.css';

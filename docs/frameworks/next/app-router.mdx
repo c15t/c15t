@@ -153,11 +153,13 @@ browser retries policy resolution after hydration, and gated scripts and
 embeds stay blocked until it succeeds. Pass `onError` to report these
 failures; see [troubleshooting](/docs/frameworks/next/troubleshooting).
 
-Keep the c15t stylesheet in `globals.css` rather than importing
-`c15t/next/styles.css` from a layout or component. Tailwind CSS 4 declares its
-cascade layers in that file; when the c15t stylesheet is bundled separately
-and lands first, Tailwind's preflight sits above the c15t component layer and
-strips the banner's padding, borders and button styles.
+Import the c15t stylesheet from `globals.css`, as the
+[styling guide](/docs/frameworks/next/styling/overview#stylesheet) shows. If
+you import `c15t/next/styles.css` from a layout or component instead, Next.js
+may bundle it separately and load it before Tailwind CSS 4's stylesheet. The c15t
+stylesheet declares Tailwind's layer order first, so Tailwind's preflight still
+sits below the c15t component layer and the banner keeps its padding, borders
+and button styles.
 
 The layout stays synchronous with `cacheComponents: true`, so Next.js can
 prerender the page into the static shell. A `ConsentGate` rendered in that

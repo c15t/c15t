@@ -1,14 +1,19 @@
 import { spawn } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import process from 'node:process';
 import { setTimeout as delay } from 'node:timers/promises';
 
 import { chromium } from 'playwright';
+
+const C15T_UI_STYLESHEET = 'packages/ui/dist/styles.css';
 
 /**
  * The v3 Tailwind override contract:
  *
  * - Tailwind 4: c15t rules live in `@layer components`; bare utilities
  *   (`bg-blue-600`) are layered after them and win without !important.
+ *   `components` stays above preflight's `base` even when c15t's stylesheet
+ *   loads before Tailwind's.
  * - Tailwind 3: no cascade layers exist (tw3 unwraps `@layer components`
  *   into plain rules), so c15t base selectors win over bare utilities by
  *   specificity — same semantics as v2. The supported override path is the
@@ -37,6 +42,7 @@ const apps = [
 		// tw4 already proves the stronger bare-utility contract.
 		expectImportantUtilities: false,
 		expectPreflightSurvival: false,
+		verifyLoadedBeforeTailwind: true,
 	},
 	{
 		dir: 'benchmarks/no-tw-test',
@@ -239,6 +245,86 @@ const verifyBanner = async function verifyBanner(page, app) {
 	assertBorderIntact(cardStyles, `${app.label} v3 banner card`);
 };
 
+/**
+ * Loads `@c15t/ui/styles.css` as its own stylesheet at the top of `<head>`,
+ * ahead of the app's Tailwind 4 CSS, the way Astro's `page-ssr` injection
+ * orders them. Cascade layers rank by first mention, so unless c15t's sheet
+ * declares Tailwind's full layer order, `components` ranks below `base` and
+ * preflight zeroes the banner's padding and borders.
+ */
+const verifyBannerLoadedBeforeTailwind =
+	async function verifyBannerLoadedBeforeTailwind(browser, app) {
+		const page = await browser.newPage({
+			viewport: { height: 900, width: 1280 },
+		});
+		const url = `http://127.0.0.1:${app.port}/matrix/banner`;
+		const stylesheetPath = '/__c15t-loaded-first.css';
+
+		try {
+			await page.route(url, async (route) => {
+				const response = await route.fetch();
+				const html = await response.text();
+				await route.fulfill({
+					body: html.replace(
+						/<head[^>]*>/u,
+						(head) => `${head}<link rel="stylesheet" href="${stylesheetPath}">`
+					),
+					response,
+				});
+			});
+			await page.route(`**${stylesheetPath}`, async (route) => {
+				await route.fulfill({
+					body: await readFile(C15T_UI_STYLESHEET, 'utf8'),
+					contentType: 'text/css',
+				});
+			});
+			await page.goto(url, { waitUntil: 'networkidle' });
+
+			const firstStylesheet = await page.evaluate(
+				() => document.styleSheets[0]?.href ?? ''
+			);
+			if (!firstStylesheet.endsWith(stylesheetPath)) {
+				throw new Error(
+					`${app.label} c15t-first: expected c15t's stylesheet to load first, received ${firstStylesheet}`
+				);
+			}
+
+			const readPart = async (part) => {
+				const locator = page
+					.locator(`[data-testid="consent-banner-${part}"]`)
+					.first();
+				await locator.waitFor();
+				return readStyles(locator);
+			};
+			const [card, header, footer] = await Promise.all(
+				['card', 'header', 'footer'].map(readPart)
+			);
+			const stripped = [
+				Number.parseFloat(card.borderTopWidth) > 0
+					? ''
+					: `card border-width ${card.borderTopWidth}`,
+				...Object.entries({ footer, header }).map(([part, styles]) =>
+					styles.padding
+						.split(' ')
+						.some((value) => Number.parseFloat(value) > 0)
+						? ''
+						: `${part} padding ${styles.padding}`
+				),
+			].filter(Boolean);
+			if (stripped.length > 0) {
+				throw new Error(
+					`${app.label} v3 banner loaded before Tailwind: preflight stripped ${stripped.join(', ')}`
+				);
+			}
+			assertBorderIntact(
+				card,
+				`${app.label} v3 banner loaded before Tailwind card`
+			);
+		} finally {
+			await page.close();
+		}
+	};
+
 const verifyDialog = async function verifyDialog(page, app) {
 	await page.goto(`http://127.0.0.1:${app.port}/matrix/dialog`, {
 		waitUntil: 'networkidle',
@@ -295,6 +381,9 @@ const verifyApp = async function verifyApp(browser, app) {
 			await verifyWidget(page, app);
 		} finally {
 			await page.close();
+		}
+		if (app.verifyLoadedBeforeTailwind) {
+			await verifyBannerLoadedBeforeTailwind(browser, app);
 		}
 	} catch (error) {
 		if (stderr.length > 0) {

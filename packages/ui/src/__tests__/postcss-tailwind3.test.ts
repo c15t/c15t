@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -66,11 +67,27 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 
 	test('removes bare @layer order statements for scoped c15t files', async () => {
 		const css = await postcss([tailwind3Plugin]).process(
-			'@layer theme, base, components, utilities;',
+			'@layer properties, theme, base, components, utilities;',
 			{ from: '/app/node_modules/@c15t/ui/dist/styles/components/button.css' }
 		);
 
 		expect(css.css.trim()).toBe('');
+	});
+
+	test('leaves no @layer in the built sheets the dialog and primitives load', async () => {
+		// Both open with the layer order statement; Tailwind 3 has no layers
+		// to order, so the plugin drops it along with the blocks.
+		for (const file of ['dialog.css', 'primitives.css']) {
+			const from = join(TEST_DIR, '..', '..', 'dist', 'styles', file);
+			// oxlint-disable-next-line no-await-in-loop -- Two small files.
+			const result = await postcss([tailwind3Plugin]).process(
+				readFileSync(from, 'utf8'),
+				{ from }
+			);
+
+			expect(result.css).toContain('.c15t-ui-');
+			expect(result.css).not.toMatch(/@layer\b/u);
+		}
 	});
 
 	test('normalizes the in-process module namespace into a working plugin', async () => {
