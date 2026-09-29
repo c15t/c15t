@@ -89,13 +89,13 @@ set `experiment`. A site without an experiment does not download them.
 The Astro banner is server-rendered HTML that the browser only shows or
 hides, so the arm is resolved on the server. To pick it per request, set
 `middleware: false` in `c15t()` and compose the consent middleware yourself
-with `experimentVariant`:
+with `experimentArm`:
 
 ```ts title="src/middleware.ts"
 import { consentMiddleware } from '@c15t/astro/middleware';
 
 export const onRequest = consentMiddleware({
-	experimentVariant: async (context) => await bannerShapeFlag(context),
+	experimentArm: async (context) => await bannerShapeFlag(context),
 });
 ```
 
