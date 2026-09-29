@@ -37,7 +37,7 @@ policy's rule for an unknown location applies to every visitor.
 ## Check that your host sends them
 
 c15t does not keep a list of which hosts add which headers. Check your own
-deployment: add a page that prints the inputs the middleware saw, deploy it,
+deployment. Add a page that prints the inputs the middleware saw, deploy it,
 and open it.
 
 {/* example: fragment */}
@@ -95,7 +95,7 @@ in a development configuration.
 
 1. Deploy and open the site from two locations with different policy rules,
    for example through a VPN or your host's geo testing tools.
-2. Each location gets its own banner: an opt-in region shows the banner with
+2. Each location gets its own banner. An opt-in region shows the banner with
    optional categories denied, and a region with no banner rule shows none.
 3. Send `x-c15t-country` from outside your edge and confirm the edge removes
    it before it reaches the site.
