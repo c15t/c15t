@@ -24,7 +24,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 ## Frameworks
 
 - [Scripts and embeds](./docs/frameworks/astro/scripts.md): Load vendor scripts, inline scripts, iframes and fetch requests on an Astro site only after the visitor allows their consent category, and stop them when consent is withdrawn.
-- [Scripts and embeds](./docs/frameworks/html/scripts.md): Hold vendor scripts, iframes and network requests on a plain HTML page until the visitor allows their category, with the c15t script tag and no build step.
+- [Scripts](./docs/frameworks/html/scripts.md): Hold vendor scripts on a plain HTML page until the visitor allows their category, load scripts with callbacks, handle withdrawal and clear vendor cookies with the c15t script tag and no build step.
 - [Scripts](./docs/frameworks/javascript/scripts.md): Register vendor scripts with @c15t/browser, createConsentRuntime or a consent kernel in JavaScript, and control what happens when a visitor withdraws permission.
 - [Scripts and embeds](./docs/frameworks/next/scripts.md): Register vendor scripts, gate embeds, block network requests and handle revocation in a Next.js ConsentRoot.
 - [Scripts and embeds](./docs/frameworks/nuxt/scripts.md): Load vendor scripts, gate iframes and block tracking requests by consent category in a Nuxt app with the c15t Nuxt module.

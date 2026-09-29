@@ -258,7 +258,7 @@ and keep it inert until its category is allowed:
 Use the category this guide names for the vendor. c15t runs the snippet
 once that category is allowed, and reloads the page when the visitor
 withdraws it. Helper options on this page, such as `loadMode`, do not apply
-to a pasted snippet. See [HTML scripts and embeds](https://c15t.com/docs/frameworks/html/scripts).
+to a pasted snippet. See [HTML scripts](https://c15t.com/docs/frameworks/html/scripts).
 
 **JavaScript**
 
