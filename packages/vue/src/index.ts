@@ -56,8 +56,23 @@ export type C15tVuePluginOptions = Partial<RuntimeConsentConfig> & {
 	runtime?: ConsentRuntime;
 };
 
+/**
+ * Plain Vue has no Nuxt server to host the init route that server manifest
+ * mode calls. A `manifestURL` without an explicit `manifest` mode therefore
+ * means the browser fetches and resolves that manifest itself.
+ */
+const resolvePlainVueOptions = function resolvePlainVueOptions(
+	options: C15tVuePluginOptions | undefined
+): C15tVuePluginOptions | undefined {
+	if (options?.manifestURL && options.manifest === undefined) {
+		return { ...options, manifest: 'client' };
+	}
+	return options;
+};
+
 export const c15tVue: Plugin<[C15tVuePluginOptions?]> = {
-	install(app: App, options?: C15tVuePluginOptions) {
+	install(app: App, pluginOptions?: C15tVuePluginOptions) {
+		const options = resolvePlainVueOptions(pluginOptions);
 		if (options) {
 			app.provide(consentConfigKey, options);
 		}

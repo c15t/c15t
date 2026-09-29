@@ -235,3 +235,27 @@ test('a context disposed before the blocker loads fails its held requests closed
 	).toBe(false);
 	expect(window.fetch).toBe(network);
 });
+
+test('a manifestURL alone resolves the manifest in the browser, with no init route', async () => {
+	const requests: string[] = [];
+	const network = vi.fn((input: RequestInfo | URL) => {
+		requests.push(String(input));
+		return Promise.resolve(new Response('{}', { status: 503 }));
+	});
+	vi.stubGlobal('fetch', network);
+	const container = document.createElement('div');
+	document.body.append(container);
+	const app = createApp(defineComponent({ setup: () => () => h('main') }));
+	// Plain Vue has no Nuxt server, so there is no `/api/c15t/init` to call.
+	app.use(c15tVue, { manifestURL: 'https://cdn.example.test/manifest' });
+	cleanups.push(() => {
+		app.unmount();
+		container.remove();
+	});
+	app.mount(container);
+
+	await expect
+		.poll(() => requests)
+		.toContain('https://cdn.example.test/manifest');
+	expect(requests.some((url) => url.includes('/init'))).toBe(false);
+});
