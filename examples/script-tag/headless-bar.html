@@ -67,6 +67,20 @@
 		outline: 2px solid #fca311;
 		outline-offset: 2px;
 	}
+	/* On narrow screens, Reject and Accept share a row at equal width. */
+	@media (max-width: 30rem) {
+		.cookie-bar__actions {
+			width: 100%;
+		}
+
+		.cookie-bar__actions button {
+			flex: 1 1 40%;
+		}
+
+		.cookie-bar__actions .cookie-bar__link {
+			flex-basis: 100%;
+		}
+	}
 	/* #endregion docs:headless-bar-css */
 
 	/* The headless build has no dialog, so preferences open inside the bar. */
