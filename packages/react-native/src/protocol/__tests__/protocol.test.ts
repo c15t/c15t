@@ -380,23 +380,9 @@ describe('protocol fixtures', () => {
 			// the package that generated the fixtures, not on a device.
 			expect(describeSnapshotWireDrift(snapshot)).toEqual([]);
 			expect(snapshot.iab).toBeNull();
-			// Directives are records the kernel commits when a live privacy signal
-			// fires, so the field is a list of them rather than a permanently empty
-			// array. `native/CONTRACT.md` said "always [] on mobile" and its own
-			// Corrections section retires that: the kernel is the authority.
-			const directives = snapshot.optOutDirectives as Record<string, unknown>[];
-			expect(Array.isArray(directives)).toBe(true);
-			for (const directive of directives) {
-				expect(typeof directive.source).toBe('string');
-				expect(Array.isArray(directive.categories)).toBe(true);
-				expect(typeof directive.recordedAt).toBe('number');
-			}
-			// Only an active signal may leave one standing, so the empty case stays
-			// pinned rather than free: a directive without an active gpc is a kernel
-			// that recorded something it should not have.
-			const gpc = (snapshot.privacySignals as Record<string, unknown>)
-				.gpc as Record<string, unknown>;
-			expect(directives.length === 0 || gpc.active === true).toBe(true);
+			// GPC is a live signal and nothing records it, so no snapshot carries a
+			// stored directive for it.
+			expect(snapshot).not.toHaveProperty('optOutDirectives');
 			expect(snapshot.error).toBeNull();
 			expect(typeof snapshot.ready).toBe('boolean');
 			expect(typeof snapshot.policyPending).toBe('boolean');

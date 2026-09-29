@@ -142,6 +142,7 @@ class C15tStore(
 		}
 		return tryDecode(C15tStoreKeys.SNAPSHOT, SnapshotEnvelope.serializer()) { raw ->
 			RetiredWireFields.assertReadable(json, raw)
+			RetiredWireFields.withoutDroppedFields(json, raw)
 		}
 	}
 
@@ -225,7 +226,7 @@ class C15tStore(
 		key: String,
 		deserializer: DeserializationStrategy<T>,
 		json: Json = this.json,
-		inspect: (String) -> Unit = {},
+		prepare: (String) -> String = { it },
 	): T? {
 		val raw = try {
 			backend.read(key)
@@ -237,8 +238,7 @@ class C15tStore(
 			return null
 		}
 		return try {
-			inspect(raw)
-			json.decodeFromString(deserializer, raw)
+			json.decodeFromString(deserializer, prepare(raw))
 		} catch (error: Exception) {
 			onReadFailure(key, error)
 			null

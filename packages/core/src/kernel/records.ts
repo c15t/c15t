@@ -11,8 +11,6 @@ import type {
 	ConsentSubject,
 	ExplicitChoice,
 	NoticeDismissal,
-	OptionalConsentCategory,
-	PrivacyOptOut,
 } from '../consent-record/types';
 import {
 	checkTimestamp,
@@ -32,7 +30,6 @@ export interface ValidatedRecords {
 	choice?: ExplicitChoice | null;
 	subject?: ConsentSubject | null;
 	noticeDismissal?: NoticeDismissal | null;
-	optOutDirectives?: readonly PrivacyOptOut[];
 	vendorChoice?: VendorChoice | null;
 }
 
@@ -41,10 +38,6 @@ export type ValidateRecordsResult =
 	| { ok: false; issues: RecordIssue[] };
 
 const SUBJECT_KEYS = ['subjectId', 'externalId', 'identityProvider'] as const;
-
-const OPTIONAL_CATEGORY_SET: ReadonlySet<string> = new Set(
-	OPTIONAL_CONSENT_CATEGORIES
-);
 
 const validateSubject = function validateSubject(
 	input: unknown,
@@ -73,57 +66,6 @@ const validateSubject = function validateSubject(
 		any = true;
 	}
 	return any ? subject : null;
-};
-
-const validateDirective = function validateDirective(
-	input: unknown,
-	path: string,
-	now: number,
-	issues: RecordIssue[]
-): PrivacyOptOut | null {
-	if (!isPlainRecord(input)) {
-		issues.push({ code: 'not-an-object', path });
-		return null;
-	}
-	let ok = true;
-	if (ownValue(input, 'source') !== 'gpc') {
-		issues.push({ code: 'invalid-basis', path: `${path}.source` });
-		ok = false;
-	}
-	const recordedAt = ownValue(input, 'recordedAt');
-	const timestampIssue = checkTimestamp(recordedAt, now);
-	if (timestampIssue) {
-		issues.push({ code: timestampIssue, path: `${path}.recordedAt` });
-		ok = false;
-	}
-	const rawCategories = ownValue(input, 'categories');
-	const categories: OptionalConsentCategory[] = [];
-	if (Array.isArray(rawCategories)) {
-		for (const [index, entry] of rawCategories.entries()) {
-			if (typeof entry !== 'string' || !OPTIONAL_CATEGORY_SET.has(entry)) {
-				issues.push({
-					code: 'unknown-key',
-					path: `${path}.categories[${index}]`,
-				});
-				ok = false;
-				continue;
-			}
-			if (!categories.includes(entry as OptionalConsentCategory)) {
-				categories.push(entry as OptionalConsentCategory);
-			}
-		}
-	} else {
-		issues.push({ code: 'not-an-object', path: `${path}.categories` });
-		ok = false;
-	}
-	if (!ok) {
-		return null;
-	}
-	return {
-		categories: categories.sort(),
-		recordedAt: recordedAt as number,
-		source: 'gpc',
-	};
 };
 
 /**
@@ -185,8 +127,8 @@ export const validateVendorChoice = function validateVendorChoice(
 
 /**
  * Validate hydration input. Keys that are omitted stay omitted so the
- * caller can preserve current values; `null` and empty arrays pass through
- * as explicit clears.
+ * caller can preserve current values; `null` passes through as an explicit
+ * clear.
  */
 export const validateHydrationRecords = function validateHydrationRecords(
 	input: HydrationRecords,
@@ -233,26 +175,6 @@ export const validateHydrationRecords = function validateHydrationRecords(
 			}
 		}
 	}
-	if (input.optOutDirectives !== undefined) {
-		if (Array.isArray(input.optOutDirectives)) {
-			const directives: PrivacyOptOut[] = [];
-			for (const [index, entry] of input.optOutDirectives.entries()) {
-				const directive = validateDirective(
-					entry,
-					`optOutDirectives[${index}]`,
-					now,
-					issues
-				);
-				if (directive) {
-					directives.push(directive);
-				}
-			}
-			records.optOutDirectives = directives;
-		} else {
-			issues.push({ code: 'not-an-object', path: 'optOutDirectives' });
-		}
-	}
-
 	if (input.vendorChoice !== undefined) {
 		if (input.vendorChoice === null) {
 			records.vendorChoice = null;

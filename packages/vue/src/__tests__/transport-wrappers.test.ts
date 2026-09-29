@@ -58,11 +58,6 @@ const receipt = {
 	confirmedAt: now - 1000,
 	value: true,
 };
-const directive = {
-	categories: ['measurement'],
-	recordedAt: now - 2000,
-	source: 'gpc',
-};
 
 // Use the public Vue context and real transports: injected kernel transports
 // cannot detect methods lost by a framework wrapper.
@@ -76,7 +71,6 @@ test.each(modes)(
 					String(url) === subjectURL && init?.method === 'GET'
 						? {
 								consents: [],
-								privacyDirectives: [directive],
 								subject: { externalId: 'person', id: subjectId },
 								subjectChoice: {
 									categories: { marketing: receipt },
@@ -119,7 +113,6 @@ test.each(modes)(
 		expect(context.snapshot.value.explicitChoice?.categories.marketing).toEqual(
 			receipt
 		);
-		expect(context.snapshot.value.optOutDirectives).toEqual([directive]);
 		expect(onChoiceRecorded).not.toHaveBeenCalled();
 		expect(
 			fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')
@@ -128,7 +121,7 @@ test.each(modes)(
 );
 
 test.each(modes)(
-	'%s transport records detected GPC through the subject privacy endpoint',
+	'%s transport keeps detected GPC in the browser',
 	async (manifest) => {
 		vi.spyOn(Date, 'now').mockReturnValue(now);
 		const fetchMock = vi.fn<FetchRequest>((url, init) =>
@@ -155,25 +148,15 @@ test.each(modes)(
 		disposers.push(context.dispose);
 		context.kernel.hydrate({});
 		await context.kernel.commands.identify({ externalId: 'person' });
+		const requests = fetchMock.mock.calls.length;
 		context.kernel.set.privacySignals({ gpc: true });
-		await vi.waitFor(() =>
-			expect(
-				fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST')
-			).toHaveLength(1)
-		);
-		const post = fetchMock.mock.calls.find(
-			([, init]) => init?.method === 'POST'
-		);
-		expect(post?.[0]).toBe(`${subjectURL}/privacy-directives`);
-		expect(JSON.parse(String(post?.[1]?.body))).toEqual({
-			categories: ['marketing'],
-			recordedAt: now,
-			source: 'gpc',
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
 		});
+		expect(context.snapshot.value.privacySignals.gpc.active).toBe(true);
+		expect(context.snapshot.value.effectivePermissions.marketing).toBe(false);
+		expect(fetchMock.mock.calls).toHaveLength(requests);
 		expect(context.snapshot.value.subject?.subjectId).toBe(subjectId);
-		expect(context.snapshot.value.optOutDirectives).toEqual([
-			{ categories: ['marketing'], recordedAt: now, source: 'gpc' },
-		]);
 		expect(onChoiceRecorded).not.toHaveBeenCalled();
 	}
 );

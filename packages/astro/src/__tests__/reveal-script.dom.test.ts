@@ -57,15 +57,17 @@ describe('buildBannerRevealScript', () => {
 			'a legacy record in localStorage',
 			() => localStorage.setItem('privacy-consent-storage', '{}'),
 		],
-		[
-			'a stored privacy directive',
-			() => localStorage.setItem('c15t-privacy', '{}'),
-		],
 	])('leaves it to the runtime with %s', (_name, store) => {
 		store();
 		run(buildBannerRevealScript(undefined, 'consent-banner'));
 		expect(root()?.hidden).toBe(true);
 		expect(overlay()?.hidden).toBe(true);
+	});
+
+	it('ignores a leftover privacy directive from an earlier alpha', () => {
+		localStorage.setItem('c15t-privacy', '{}');
+		run(buildBannerRevealScript(undefined, 'consent-banner'));
+		expect(root()?.hidden).toBe(false);
 	});
 
 	describe('with localStorage blocked', () => {

@@ -22,6 +22,21 @@ enum RetiredEnvelope {
         "a stored snapshot written by an older build cannot be read; consent resets to "
         + "deny-all and the next /init resolves it again"
 
+    /// Snapshot key an alpha build wrote for standing privacy directives.
+    ///
+    /// Unlike `test` and `msa`, this key is dropped rather than refused. A directive
+    /// only ever restricted categories, and c15t no longer stores one: GPC is a live
+    /// signal again, so its restriction lifts when the signal goes away. Hydration
+    /// re-runs the evaluator with the signal as it is now, and a signal that is still
+    /// live restores its `gpc` restriction on the spot. Refusing the envelope instead
+    /// would reset every alpha install to deny-all, since every alpha snapshot wrote
+    /// this key, even as an empty list.
+    static let optOutDirectivesKey = "optOutDirectives"
+
+    /// Restriction reason an alpha build wrote for a standing directive. Dropped on
+    /// read for the same reason as ``optOutDirectivesKey``.
+    static let optOutDirectiveReason = "opt-out-directive"
+
     /// Throw when a key that exists only to be refused is present.
     ///
     /// `KeyedDecodingContainer.allKeys` reports the keys a type declares, never ones

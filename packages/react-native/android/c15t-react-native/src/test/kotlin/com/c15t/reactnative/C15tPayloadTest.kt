@@ -94,7 +94,7 @@ class C15tPayloadTest {
 			"a device that was never served a list writes null rather than inventing an empty one",
 			snapshot["iab"] is JsonNull,
 		)
-		assertTrue(snapshot.containsKey("optOutDirectives"))
+		assertFalse("GPC is live only, so nothing stores a directive", snapshot.containsKey("optOutDirectives"))
 		val overrides = snapshot["overrides"]!!.jsonObject
 		assertEquals("de", overrides["language"]!!.jsonPrimitive.content)
 		assertEquals(
@@ -294,7 +294,7 @@ class C15tPayloadTest {
 
 	@Test
 	fun `a gpc that is neither a boolean nor null is refused`() {
-		// The signal decides whether a standing directive applies, so a value this
+		// The override decides whether the GPC restriction applies, so a value this
 		// build cannot read must not become either answer.
 		val refused = C15tPayload.parseOverrides(
 			"""{"gpc":"yes"}""",

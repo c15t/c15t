@@ -407,12 +407,6 @@ export const usePrivacySignals =
 		return useKernelSelector((snapshot) => snapshot.privacySignals);
 	};
 
-/** Read optOutDirectives from the kernel without a competing projection. */
-export const useOptOutDirectives =
-	function useOptOutDirectives(): ConsentSnapshot['optOutDirectives'] {
-		return useKernelSelector((snapshot) => snapshot.optOutDirectives);
-	};
-
 /** Read resolution from the kernel without a competing projection. */
 export const usePolicyResolution =
 	function usePolicyResolution(): ConsentSnapshot['resolution'] {

@@ -44,24 +44,18 @@ package enum PolicyEvaluator {
     /// Evaluate one policy against stored records at time `now`.
     ///
     /// - Parameter gpcActive: the GPC signal the evaluator honors, i.e. the
-    ///   developer override when set, otherwise the detected signal.
-    /// - Parameter optOutDirectives: standing directives recorded from a signal.
-    ///   They outlive the live signal, so they deny even after the signal is gone.
+    ///   developer override when set, otherwise the detected signal. It is live
+    ///   only: nothing about it is stored, so the restriction lifts with the signal.
     package static func evaluate(
         _ resolved: ResolvedPolicy,
         choice: ExplicitChoice?,
         noticeDismissal: NoticeDismissal?,
-        optOutDirectives: [PrivacyOptOut],
         gpcActive: Bool,
         now: Int64
     ) -> ConsentEvaluation {
         let policy = resolved.policy
         let scope = Set(policy.scope)
         let gpcDenied = gpcActive ? Set(policy.gpcDenyCategories) : []
-        let directiveDenied = directiveCategories(
-            from: optOutDirectives,
-            notAfter: now
-        )
 
         var permissions = ConsentState.necessaryOnly
         var restrictions: [OptionalConsentCategory: [RestrictionReason]] = [:]
@@ -86,9 +80,6 @@ package enum PolicyEvaluator {
             }
             if gpcDenied.contains(category) {
                 categoryRestrictions.append(.gpc)
-            }
-            if directiveDenied.contains(category) {
-                categoryRestrictions.append(.optOutDirective)
             }
 
             var categoryPermitted = defaultPermission(
@@ -285,18 +276,5 @@ package enum PolicyEvaluator {
             deadlines.append(expiresAt)
             return nil
         }
-    }
-
-    /// Categories a standing directive restricts. A directive dated in the future
-    /// is ignored: a record that has not happened yet must not deny anything.
-    private static func directiveCategories(
-        from directives: [PrivacyOptOut],
-        notAfter now: Int64
-    ) -> Set<OptionalConsentCategory> {
-        var categories: Set<OptionalConsentCategory> = []
-        for directive in directives where directive.recordedAt <= now {
-            categories.formUnion(directive.categories)
-        }
-        return categories
     }
 }

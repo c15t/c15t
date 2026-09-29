@@ -172,7 +172,6 @@ export {
 	usePromptRequirement,
 	useNoticeDismissal,
 	usePrivacySignals,
-	useOptOutDirectives,
 	usePolicyResolution,
 	usePolicyRule,
 	useRestrictions,

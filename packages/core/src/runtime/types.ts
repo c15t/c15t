@@ -342,12 +342,11 @@ export interface ConsentRuntime {
 	 * on the same page, or cookies rewritten without a localStorage change.
 	 *
 	 * This runtime's queued writes land first. Category decisions then
-	 * merge per category, keeping the newer decision for each; privacy
-	 * directives merge as a union; a stored notice or vendor record replaces
-	 * the in-memory one unless it is older. A record removed from storage
-	 * since this runtime last read or wrote it is cleared so the active
-	 * policy applies, and unreadable storage changes nothing. Subscribers
-	 * are notified once when anything changed.
+	 * merge per category, keeping the newer decision for each; a stored
+	 * notice or vendor record replaces the in-memory one unless it is older.
+	 * A record removed from storage since this runtime last read or wrote it
+	 * is cleared so the active policy applies, and unreadable storage
+	 * changes nothing. Subscribers are notified once when anything changed.
 	 *
 	 * @returns Whether any in-memory record changed. `false` before
 	 * {@link ConsentRuntime.start}, after {@link ConsentRuntime.dispose}, and

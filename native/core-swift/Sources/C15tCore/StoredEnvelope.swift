@@ -83,6 +83,16 @@ struct StoredEnvelope: Sendable, Codable, Equatable {
         return known.isSuperset(of: requested)
     }
 
+    private static let retiredSnapshotDirectives =
+        "snapshot.\(RetiredEnvelope.optOutDirectivesKey)"
+
+    private static let snapshotRestrictions = "snapshot.restrictions"
+
+    private static func holdsOnlyRetiredReasons(_ value: JSONValue) -> Bool {
+        guard case let .array(reasons) = value, !reasons.isEmpty else { return false }
+        return reasons.allSatisfy { $0.stringValue == RetiredEnvelope.optOutDirectiveReason }
+    }
+
     private static func collectKeyPaths(
         of value: JSONValue,
         at path: String,
@@ -104,6 +114,11 @@ struct StoredEnvelope: Sendable, Codable, Equatable {
                 // that as unknown refuses the whole envelope: a stored choice becomes
                 // nothing stored, on every launch, with nothing on the snapshot to say why.
                 if case .null = item { continue }
+                // Retired directive state this build drops on purpose rather than refuses:
+                // the directive list, and a restriction entry that held nothing but the
+                // directive's reason. See ``RetiredEnvelope/optOutDirectivesKey``.
+                if keyPath == retiredSnapshotDirectives { continue }
+                if path == snapshotRestrictions, holdsOnlyRetiredReasons(item) { continue }
                 paths.insert(keyPath)
                 collectKeyPaths(of: item, at: keyPath, into: &paths)
             }

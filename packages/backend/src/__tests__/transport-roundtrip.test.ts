@@ -7,10 +7,8 @@
  * Every other test in this package stops at the HTTP boundary, and the core
  * transport tests stop at a fake fetch. This is where the two are shown to
  * agree about what a receipt means: the times and bases the client sent are
- * what the evaluator sees after a real write and read, a partial save leaves
- * the untouched category's original receipt in force, and a standing privacy
- * directive recorded through the privacy route restricts the evaluator's
- * permissions without ever touching the consent table.
+ * what the evaluator sees after a real write and read, and a partial save
+ * leaves the untouched category's original receipt in force.
  *
  * The core sources are imported by path on purpose. `@c15t/backend` does not
  * depend on `@c15t/core`, and a workspace dependency for one test would put
@@ -183,7 +181,6 @@ describe.each(ENGINES)(
 				choice: records?.choice ?? null,
 				noticeDismissal: null,
 				now: NOW,
-				optOuts: records?.optOutDirectives,
 				policy: evaluationPolicy(),
 			});
 			assert.strictEqual(evaluation.permissions.marketing, false);
@@ -196,55 +193,8 @@ describe.each(ENGINES)(
 			);
 		});
 
-		it('records a standing privacy directive through the privacy route and the evaluator restricts on it', async () => {
-			const subjectId = 'sub_roundtrip2';
-			await transport.save(
-				payload(
-					subjectId,
-					{ categories: { marketing: receipt(true, T0) }, version: 3 },
-					{ actionAt: T0, categories: { marketing: true } },
-					{
-						experience: false,
-						functionality: false,
-						marketing: true,
-						measurement: false,
-						necessary: true,
-					}
-				)
-			);
-			const consentsBefore = await harness.count('consent');
-
-			await transport.recordPrivacyOptOut(
-				{ categories: ['marketing'], recordedAt: T1, source: 'gpc' },
-				subjectId
-			);
-
-			// A privacy request, not a consent: the consent table is untouched.
-			assert.strictEqual(await harness.count('consent'), consentsBefore);
-			assert.strictEqual(await harness.count('privacyDirective'), 1);
-
-			const records = await transport.loadSubjectRecord(subjectId);
-			assert.deepStrictEqual(records?.optOutDirectives, [
-				{ categories: ['marketing'], recordedAt: T1, source: 'gpc' },
-			]);
-
-			const evaluation = evaluateConsentRecord({
-				choice: records?.choice ?? null,
-				noticeDismissal: null,
-				now: NOW,
-				optOuts: records?.optOutDirectives,
-				policy: evaluationPolicy(),
-			});
-			// The explicit grant is intact; the directive restricts on top of it.
-			assert.strictEqual(records?.choice?.categories.marketing?.value, true);
-			assert.strictEqual(evaluation.permissions.marketing, false);
-			assert.deepStrictEqual(evaluation.restrictions.marketing, [
-				'opt-out-directive',
-			]);
-		});
-
 		it('reads a save made by a client without receipts as legacy receipts the evaluator grandfathers', async () => {
-			const subjectId = 'sub_roundtrip3';
+			const subjectId = 'sub_roundtrip2';
 			// A pre-receipt client sends the legacy HTTP wire, not today's SavePayload.
 			const saved = await harness.json('POST', '/subjects', {
 				consentAction: 'custom',

@@ -26,9 +26,6 @@ object PolicyEvaluator {
 	/** Restriction reason for a category denied by an active GPC signal. */
 	const val RESTRICTION_GPC = "gpc"
 
-	/** Restriction reason for a standing opt-out directive. */
-	const val RESTRICTION_DIRECTIVE = "opt-out-directive"
-
 	/**
 	 * Evaluate [snapshot] against [policy] at [now] and return a snapshot with
 	 * [ConsentSnapshot.effectivePermissions], [ConsentSnapshot.promptRequirement],
@@ -94,14 +91,6 @@ object PolicyEvaluator {
 		// `active` is the whole rule. Reading `detected` here would let a device
 		// report override an app that turned GPC off.
 		val gpcActive = snapshot.privacySignals.gpc.active
-		val directiveCategories = if (gpcActive) {
-			snapshot.optOutDirectives
-				.filter { it.source == RESTRICTION_GPC }
-				.flatMap { directive -> directive.categories.mapNotNull { ConsentCategory.fromWireName(it) } }
-				.toSet()
-		} else {
-			emptySet()
-		}
 
 		val permissions = LinkedHashMap<ConsentCategory, Boolean>(ConsentCategory.OPTIONAL.size)
 		val restrictions = LinkedHashMap<String, List<String>>()
@@ -125,9 +114,6 @@ object PolicyEvaluator {
 			}
 			if (gpcActive && category in policy.gpcDenyCategories) {
 				reasons += RESTRICTION_GPC
-			}
-			if (category in directiveCategories) {
-				reasons += RESTRICTION_DIRECTIVE
 			}
 
 			var allowed = defaultPermission(policy.model, inScope, policy.scopeMode)

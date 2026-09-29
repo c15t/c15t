@@ -5,7 +5,7 @@
  *
  * Covers:
  * - Hydration from cookie / localStorage through the kernel boundary
- * - Writing only on explicit kernel events (choice, notice, privacy)
+ * - Writing only on explicit kernel events (choice, notice, vendors)
  * - skipHydration option
  * - clear() removes every record and resets the kernel
  * - dispose stops further writes
@@ -207,42 +207,39 @@ describe('persistence: write path', () => {
 		expect(read.getSnapshot().explicitChoice).toBeNull();
 	});
 
-	test('a detected GPC signal writes only the privacy record and its projection', () => {
+	test('GPC restricts only while the signal is live and is never stored', () => {
+		const rule = optOutRule({
+			privacySignals: { gpc: { denyCategories: ['marketing'] } },
+			prompt: 'none',
+		});
 		const kernel = createConsentKernel({
-			initialPolicyResolution: matchedResolution(
-				optOutRule({
-					privacySignals: { gpc: { denyCategories: ['marketing'] } },
-					prompt: 'none',
-				})
-			),
+			initialPolicyResolution: matchedResolution(rule),
 			now: NOW,
 		});
 		const handle = createPersistence({ kernel });
 		kernel.set.privacySignals({ gpc: true });
 		flushWrites();
 
-		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
-		expect(localStorage.getItem(`${STORAGE_KEY_V2}-privacy`)).toContain(
-			'"source":"gpc"'
-		);
-		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-privacy`]);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(kernel.getSnapshot().restrictions.marketing).toEqual(['gpc']);
+		expect(Object.keys(localStorage)).toEqual([]);
+		expect(cookieNames()).toEqual([]);
+
+		// The browser stops sending the signal: the restriction goes with it.
+		kernel.set.privacySignals({ gpc: false });
+		flushWrites();
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+		expect(kernel.getSnapshot().restrictions.marketing).toBeUndefined();
 		handle.dispose();
 
-		// The signal disappears; the standing directive still denies.
+		// A fresh runtime over the same storage has nothing to restore.
 		const read = createConsentKernel({
-			initialPolicyResolution: matchedResolution(
-				optOutRule({
-					privacySignals: { gpc: { denyCategories: ['marketing'] } },
-					prompt: 'none',
-				})
-			),
+			initialPolicyResolution: matchedResolution(rule),
 			now: NOW + 1000,
 		});
 		createPersistence({ kernel: read });
-		expect(read.getSnapshot().effectivePermissions.marketing).toBe(false);
-		expect(read.getSnapshot().restrictions.marketing).toEqual([
-			'opt-out-directive',
-		]);
+		expect(read.getSnapshot().effectivePermissions.marketing).toBe(true);
+		expect(read.getSnapshot().restrictions).toEqual({});
 	});
 });
 
@@ -261,6 +258,18 @@ describe('persistence: clear', () => {
 		await kernel.commands.dismissNotice();
 		kernel.set.privacySignals({ gpc: true });
 		localStorage.setItem(PENDING_SAVES_STORAGE_KEY, '[]');
+		// A standing directive an earlier v3 alpha stored. Clearing still
+		// removes it so the old value does not linger.
+		localStorage.setItem(
+			`${STORAGE_KEY_V2}-privacy`,
+			JSON.stringify({
+				directives: [
+					{ categories: ['marketing'], recordedAt: NOW - 1, source: 'gpc' },
+				],
+				version: 1,
+			})
+		);
+		document.cookie = `${STORAGE_KEY_V2}-privacy=v=1&d=gpc.${NOW - 1}.mk; path=/`;
 		// Writes are still queued: clear must cancel them, not flush them.
 		handle.clear();
 		flushWrites();
@@ -277,10 +286,8 @@ describe('persistence: clear', () => {
 			kind: 'notice',
 			reason: 'missing',
 		});
-		// The standing directive is gone and nothing recreates it from a queued
-		// flush; the live signal alone keeps masking the permission.
-		expect(snap.optOutDirectives).toEqual([]);
-		// Only the clear epoch stays behind, so no record comes back.
+		// Only the clear epoch stays behind, so no record comes back. The live
+		// signal alone keeps masking the permission.
 		expect(Object.keys(localStorage)).toEqual([`${STORAGE_KEY_V2}-epoch`]);
 		expect(document.cookie).toBe(`${STORAGE_KEY_V2}-epoch=${NOW}`);
 		expect(snap.effectivePermissions.marketing).toBe(false);

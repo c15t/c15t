@@ -494,7 +494,6 @@ public final class ConsentCore: @unchecked Sendable {
                 resolved,
                 choice: choice,
                 noticeDismissal: noticeDismissal,
-                optOutDirectives: currentSnapshot.optOutDirectives,
                 gpcActive: gpcSignal.active,
                 now: actionAt
             )
@@ -774,7 +773,6 @@ public final class ConsentCore: @unchecked Sendable {
                 resolved,
                 choice: currentSnapshot.explicitChoice,
                 noticeDismissal: noticeDismissal,
-                optOutDirectives: currentSnapshot.optOutDirectives,
                 gpcActive: gpcSignal.active,
                 now: at
             )
@@ -931,7 +929,6 @@ public final class ConsentCore: @unchecked Sendable {
                 // IAB state behind, and the next init serves it again if the matched
                 // model is still `iab`.
                 draft.iab = nil
-                draft.optOutDirectives = []
                 draft.nextDeadline = nil
                 draft.error = nil
                 draft.evaluatedAt = now
@@ -1292,7 +1289,6 @@ public final class ConsentCore: @unchecked Sendable {
             resolved,
             choice: currentSnapshot.explicitChoice,
             noticeDismissal: noticeDismissal,
-            optOutDirectives: currentSnapshot.optOutDirectives,
             gpcActive: gpcSignal.active,
             now: now
         )
@@ -1495,7 +1491,6 @@ public final class ConsentCore: @unchecked Sendable {
             // the server can say about it, and must survive the round trip.
             if let records = response.records {
                 draft.explicitChoice = merge(records: records)
-                draft.optOutDirectives = records.optOutDirectives
             }
 
             switch PolicyWireReader.read(response.policyResolution) {
@@ -1519,7 +1514,6 @@ public final class ConsentCore: @unchecked Sendable {
                     resolved,
                     choice: draft.explicitChoice,
                     noticeDismissal: noticeDismissal,
-                    optOutDirectives: draft.optOutDirectives,
                     gpcActive: gpcSignal.active,
                     now: nowMs
                 )

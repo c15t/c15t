@@ -112,7 +112,7 @@ class SnapshotWireTest {
 		val ownedByKernel = SnapshotWire.KERNEL_OBJECT_KEYS.keys
 		val names = wire.keys.toList()
 		assertEquals(stored.keys.toList(), names, "the wire moves a key the model does not declare")
-		assertEquals(22, names.size, "the snapshot carries 22 keys, `iab` included")
+		assertEquals(21, names.size, "the snapshot carries 21 keys, `iab` included")
 		names.filterNot { it in ownedByKernel }.forEach { name ->
 			assertEquals(stored.getValue(name), wire.getValue(name), "$name was rewritten on the way out")
 		}

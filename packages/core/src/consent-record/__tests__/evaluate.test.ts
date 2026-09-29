@@ -509,22 +509,6 @@ describe('evaluateConsentRecord: privacy signals', () => {
 		expect(result.restrictions).toEqual({});
 	});
 
-	it('keeps a standing directive after the live signal disappears', () => {
-		const result = evaluateConsentRecord({
-			choice: makeChoice({ marketing: true }, NOW, currentBasis(policy)),
-			gpc: false,
-			noticeDismissal: null,
-			now: NOW,
-			optOuts: [
-				{ categories: ['marketing'], recordedAt: NOW - DAY, source: 'gpc' },
-			],
-			policy,
-		});
-		expect(result.permissions.marketing).toBe(false);
-		expect(result.permissions.measurement).toBe(true);
-		expect(result.restrictions.marketing).toEqual(['opt-out-directive']);
-	});
-
 	it('does not acknowledge a required notice', () => {
 		const notice = makePolicy({
 			gpcDenyCategories: ['marketing'],

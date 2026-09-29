@@ -856,14 +856,9 @@ export const buildBannerRevealScript = function buildBannerRevealScript(
 	testId: 'consent-banner' | 'iab-consent-banner'
 ): string {
 	const keys = resolveStorageKeys(storageConfig);
-	// A stored GPC or opt-out directive (`-privacy`) can also mean the banner
-	// is not owed, so it counts as something stored.
-	const names = [
-		keys.consent,
-		keys.notice,
-		keys.privacy,
-		keys.legacyConsent,
-	].filter((name): name is string => Boolean(name));
+	const names = [keys.consent, keys.notice, keys.legacyConsent].filter(
+		(name): name is string => Boolean(name)
+	);
 	// `<` is escaped so a storage key can never close the script tag.
 	const json = JSON.stringify(names).replace(/</gu, '\\u003c');
 	// An IIFE keeps its variables out of the page's global scope. Blocked

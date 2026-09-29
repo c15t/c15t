@@ -46,7 +46,7 @@ it('inspects notice, privacy and rights without creating a choice or writing sto
 		'Required prompt',
 		'missing',
 		'Local notice dismissal',
-		'Standing privacy directives',
+		'Privacy signals',
 		'Action constraints and persistent rights',
 		'opt-out',
 		'Presentation resolution',
@@ -58,14 +58,12 @@ it('inspects notice, privacy and rights without creating a choice or writing sto
 	expect(text).toContain('"nextDeadline": null');
 	expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
-	expect(kernel.getSnapshot().optOutDirectives).toHaveLength(1);
 	expect(writes).not.toHaveBeenCalled();
 	expect(choice).not.toHaveBeenCalled();
-	const [directive] = kernel.getSnapshot().optOutDirectives;
 	await tools.actions.dismissNotice();
 	expect(kernel.getSnapshot().noticeDismissal).not.toBeNull();
 	expect(kernel.getSnapshot().explicitChoice).toBeNull();
-	expect(kernel.getSnapshot().optOutDirectives[0]).toEqual(directive);
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 	expect(
 		tools.getState().events.some((event) => event.type === 'notice:dismissed')
 	).toBe(true);

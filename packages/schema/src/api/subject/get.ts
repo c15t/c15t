@@ -8,7 +8,6 @@ import * as v from 'valibot';
 
 import { subjectChoiceWireSchema } from './choice-wire';
 import { subjectIdSchema } from './post';
-import { privacyDirectiveWireSchema } from './privacy-directive';
 import { vendorChoiceWireSchema } from './vendor-choice-wire';
 
 /**
@@ -92,16 +91,15 @@ export const consentItemSchema = v.object({
 
 /**
  * GET /subject/:id output schema
+ *
+ * A non-strict object on purpose: parsing drops keys it does not declare.
+ * Backends from 3.0.0-alpha.0 to alpha.3 also return `privacyDirectives`,
+ * which v3 no longer reads, and a newer client must still accept that
+ * response.
  */
 export const getSubjectOutputSchema = v.object({
 	consents: v.array(consentItemSchema),
 	isValid: v.boolean(),
-	/**
-	 * Standing privacy directives that apply to this subject: its own, plus
-	 * authenticated identity-level directives when its identity link is
-	 * trusted. Absent from backends that predate directives.
-	 */
-	privacyDirectives: v.optional(v.array(privacyDirectiveWireSchema)),
 	subject: v.object({
 		createdAt: v.optional(v.date()),
 

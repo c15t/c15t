@@ -57,7 +57,6 @@ afterEach(() => {
 	for (const key of [
 		storageKey,
 		`${storageKey}-notice`,
-		`${storageKey}-privacy`,
 		`${storageKey}-epoch`,
 	]) {
 		document.cookie = `${key}=; Max-Age=0; Path=/`;
@@ -250,7 +249,7 @@ describe('Next.js request policy and RSC hydration', () => {
 		});
 	}
 
-	test('server reads notice and standing privacy projections without writes', async () => {
+	test('server reads the notice dismissal and request GPC without writes', async () => {
 		vi.spyOn(Date, 'now').mockReturnValue(now);
 		const prepared = policyFixture(
 			{},
@@ -268,9 +267,8 @@ describe('Next.js request policy and RSC hydration', () => {
 			storageConfig: { storageKey },
 		});
 		await kernel.commands.dismissNotice();
-		kernel.set.privacySignals({ gpc: true });
 		await vi.waitFor(() =>
-			expect(document.cookie).toContain(`${storageKey}-privacy=`)
+			expect(document.cookie).toContain(`${storageKey}-notice=`)
 		);
 		persistence.dispose();
 		kernel.dispose();
@@ -280,13 +278,13 @@ describe('Next.js request policy and RSC hydration', () => {
 			...(await resolveConsent({
 				cookieName: storageKey,
 				now,
-				request: request(cookie),
+				request: request(cookie, '1'),
 			})),
 		};
 		const rendered = await hydrate(config);
 		expect(rendered.prompts.every((value) => !value)).toBe(true);
+		expect(rendered.snapshot()?.privacySignals.gpc.active).toBe(true);
 		expect(rendered.snapshot()?.effectivePermissions.marketing).toBe(false);
-		expect(rendered.snapshot()?.optOutDirectives).toHaveLength(1);
 		expect(document.cookie).toBe(cookie);
 	});
 
@@ -380,7 +378,6 @@ describe('Next.js request policy and RSC hydration', () => {
 			);
 			const rendered = await hydrate(config);
 			expect(rendered.snapshot()?.privacySignals.gpc.detected).toBe(true);
-			expect(rendered.snapshot()?.optOutDirectives).toHaveLength(1);
 			expect(rendered.snapshot()?.effectivePermissions.marketing).toBe(false);
 		} finally {
 			if (before) {

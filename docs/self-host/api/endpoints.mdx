@@ -17,15 +17,11 @@ you are building a custom transport or server integration.
 | `GET /manifest` | Geo-independent policy configuration, optionally sliced with `?language=en`. | No |
 | `GET /init` | Resolve configuration for this request's location, language and privacy signals. | No |
 | `POST /sessions` | Report an init a host resolved from a cached manifest. Server-to-server only; nothing is stored. | No |
-| `POST /subjects` | Record a consent submission and its category receipts. | Optional, affects asserted identity authority |
-| `GET /subjects/:id` | Read this subject's consent status, merged choices and privacy directives. Optional `?type=a,b` filter. | No, the subject ID is the capability |
-| `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. | Optional, distinguishes browser and API authority |
+| `POST /subjects` | Record a consent submission and its category receipts. | No |
+| `GET /subjects/:id` | Read this subject's consent status and merged choices. Optional `?type=a,b` filter. | No, the subject ID is the capability |
+| `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. | No |
 | `GET /subjects?externalId=...` | Retrieve subjects for an external identity. | Required |
 | `GET /consents/check?externalId=...&type=a,b` | Return `hasConsent` and `isLatestPolicy` for every requested type. | No |
-| `POST /subjects/:id/privacy-directives` | Record a privacy directive for one subject. | No, subject-scoped |
-| `GET /subjects/:id/privacy-directives` | Read directives applying to the subject. | No, subject-scoped |
-| `POST /privacy-directives` | Record an identity-level privacy directive. | Required |
-| `GET /privacy-directives?externalId=...&identityProvider=...` | Read identity-level privacy directives. | Required |
 | `PUT /legal-documents/:type/current` | Publish a legal document's current version, hash and effective date. | Required |
 | `GET /spec.json` | Discover the enabled OpenAPI routes. | No |
 
@@ -181,9 +177,8 @@ supplied by the client. A late save can only claim a time inside the lifetime
 of a token this backend signed, for a policy that is still current, but within
 that range the backend can't tell a genuine click time from a chosen one.
 
-Privacy directives are stored separately from consent records. Saving consent
-does not delete an existing directive. An API-authenticated identity link has
-different authority from a browser-asserted link.
+The backend does not store GPC as a standing opt-out. `/init` reads `Sec-GPC`
+on each request, and the client applies the signal live in the browser.
 
 ## Make an administrative request
 

@@ -377,7 +377,6 @@ const buildMountedRuntimeDisplay = function buildMountedRuntimeDisplay(
 			effectivePermissions: snapshot.effectivePermissions,
 			explicitChoice: snapshot.explicitChoice,
 			noticeDismissal: snapshot.noticeDismissal,
-			optOutDirectives: snapshot.optOutDirectives,
 			policyPending: snapshot.policyPending,
 			privacySignals: snapshot.privacySignals,
 			promptRequirement: snapshot.promptRequirement,

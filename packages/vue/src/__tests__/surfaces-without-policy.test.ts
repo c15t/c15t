@@ -86,7 +86,6 @@ const renderWithoutPolicy = async function renderWithoutPolicy() {
 			},
 			transport: {
 				init: () => Promise.resolve(response),
-				recordPrivacyOptOut: () => Promise.resolve(),
 				save: () => Promise.resolve({ ok: true, subjectId: 'vue-test' }),
 			},
 		},

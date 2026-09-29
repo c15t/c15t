@@ -50,15 +50,6 @@ import {
 } from './subject-choice';
 import type { StoredChoice, StoredVendorChoice } from './subject-choice';
 
-/**
- * Who asserted a subject's external identity link.
- *
- * `api` means an authenticated caller linked it; `browser` means the
- * subject's own device did through a public route. Rows written before the
- * column existed are `null`, which reads as untrusted.
- */
-export type IdentityAuthority = 'api' | 'browser';
-
 export interface ConsentRow {
 	readonly id: string;
 	readonly subjectId: string;
@@ -96,7 +87,6 @@ export interface SubjectWithConsents {
 	readonly id: string;
 	readonly externalId: string | null;
 	readonly identityProvider: string | null;
-	readonly identityAuthority: IdentityAuthority | null;
 	readonly createdAt: Date;
 	readonly consents: readonly ConsentRow[];
 	/** Latest receipt per category across the cookie-banner consents. */
@@ -109,7 +99,6 @@ interface JoinedRow {
 	readonly subject_id: string;
 	readonly subject_externalId: string | null;
 	readonly subject_identityProvider: string | null;
-	readonly subject_identityAuthority: string | null;
 	// Engine-shaped: SQLite returns epoch milliseconds where the others
 	// return a Date. Decoded on the way out by `groupSubjects`.
 	readonly subject_createdAt: unknown;
@@ -139,7 +128,6 @@ const JOINED_COLUMNS: readonly (readonly [column: string, alias: string])[] = [
 	['s.id', 'subject_id'],
 	['s.externalId', 'subject_externalId'],
 	['s.identityProvider', 'subject_identityProvider'],
-	['s.identityAuthority', 'subject_identityAuthority'],
 	['s.createdAt', 'subject_createdAt'],
 	['c.id', 'consent_id'],
 	['c.policyId', 'consent_policyId'],
@@ -210,9 +198,6 @@ const joinedSelect = Effect.fn('repository.joinedSelect')(
  * that is an absence, not a record. Insertion order is preserved, so the
  * caller's `order by` decides the result order.
  */
-const toIdentityAuthority = (value: string | null): IdentityAuthority | null =>
-	value === 'api' || value === 'browser' ? value : null;
-
 const groupSubjects = (
 	rows: readonly JoinedRow[],
 	latestIds: ReadonlySet<string>,
@@ -227,7 +212,6 @@ const groupSubjects = (
 			createdAt: toDate(row.subject_createdAt),
 			externalId: row.subject_externalId,
 			id: row.subject_id,
-			identityAuthority: toIdentityAuthority(row.subject_identityAuthority),
 			identityProvider: row.subject_identityProvider,
 			vendorChoice: null,
 		};
@@ -428,8 +412,6 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		subjectId: string;
 		externalId: string;
 		identityProvider: string;
-		/** Who is asserting the link. Decides what the link may unlock. */
-		authority: IdentityAuthority;
 		ipAddress: string | null;
 		userAgent: string | null;
 	}) {
@@ -458,7 +440,6 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 					update ${sql('subject')} set
 						${sql('externalId')} = ${input.externalId},
 						${sql('identityProvider')} = ${input.identityProvider},
-						${sql('identityAuthority')} = ${input.authority},
 						${sql('updatedAt')} = ${encode(new Date())}
 					where ${sql('id')} = ${input.subjectId} and ${scope}
 				`;
@@ -483,7 +464,6 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 							id: generateEntityId('auditLog'),
 							ipAddress: input.ipAddress,
 							metadata: JSON.stringify({
-								authority: input.authority,
 								externalId: input.externalId,
 								identityProvider: input.identityProvider,
 							}),
@@ -496,7 +476,6 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		);
 
 		return {
-			authority: input.authority,
 			externalId: input.externalId,
 			id: input.subjectId,
 			identityProvider: input.identityProvider,
@@ -521,8 +500,6 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 		subjectId: string;
 		externalId?: string | null;
 		identityProvider?: string | null;
-		/** Who asserted `externalId`. Ignored when there is none. */
-		identityAuthority?: IdentityAuthority;
 		tenantId?: string | null;
 	}) {
 		const sql = yield* SqlClient.SqlClient;
@@ -535,9 +512,6 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 				createdAt: now,
 				externalId: input.externalId ?? null,
 				id: input.subjectId,
-				identityAuthority: input.externalId
-					? (input.identityAuthority ?? 'browser')
-					: null,
 				identityProvider: input.externalId
 					? (input.identityProvider ?? 'external')
 					: 'anonymous',

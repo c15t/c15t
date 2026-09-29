@@ -5,15 +5,13 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import type { ChoiceBasis, PrivacyOptOut } from '../../../consent-record/types';
+import type { ChoiceBasis } from '../../../consent-record/types';
 import {
 	EPOCH_CLOCK_TOLERANCE_MS,
 	decodeClearEpoch,
 	decodeNoticeDismissal,
-	decodePrivacyOptOuts,
 	decodeStoredConsentEnvelopeCompact,
 	encodeNoticeDismissal,
-	encodePrivacyOptOuts,
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
 	isCompactStoredConsentEnvelope,
@@ -300,7 +298,7 @@ describe('IAB metadata own keys', () => {
 	});
 });
 
-describe('notice dismissal and privacy opt-out codecs', () => {
+describe('notice dismissal codec', () => {
 	it('round-trips a notice dismissal and rejects other versions', () => {
 		const record = {
 			dismissedAt: NOW - DAY,
@@ -315,51 +313,6 @@ describe('notice dismissal and privacy opt-out codecs', () => {
 		expect(decodeNoticeDismissal({ ...record, version: 2 }, NOW).ok).toBe(
 			false
 		);
-	});
-
-	it('round-trips standing GPC directives with sorted categories', () => {
-		const directives: PrivacyOptOut[] = [
-			{
-				categories: ['marketing', 'measurement'],
-				recordedAt: NOW - DAY,
-				source: 'gpc',
-			},
-		];
-		const decoded = decodePrivacyOptOuts(
-			JSON.parse(encodePrivacyOptOuts({ directives, version: 1 })),
-			NOW
-		);
-		expect(decoded).toEqual({
-			ok: true,
-			record: {
-				directives: [
-					{
-						categories: ['marketing', 'measurement'],
-						recordedAt: NOW - DAY,
-						source: 'gpc',
-					},
-				],
-				version: 1,
-			},
-		});
-	});
-
-	it('rejects directives with necessary, duplicates, unknown sources or future times', () => {
-		const bad = [
-			{ categories: ['necessary'], recordedAt: NOW - DAY, source: 'gpc' },
-			{
-				categories: ['marketing', 'marketing'],
-				recordedAt: NOW - DAY,
-				source: 'gpc',
-			},
-			{ categories: ['marketing'], recordedAt: NOW - DAY, source: 'dnt' },
-			{ categories: ['marketing'], recordedAt: NOW + 1, source: 'gpc' },
-		];
-		for (const directive of bad) {
-			expect(
-				decodePrivacyOptOuts({ directives: [directive], version: 1 }, NOW).ok
-			).toBe(false);
-		}
 	});
 });
 

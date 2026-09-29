@@ -191,7 +191,6 @@ for (const engine of ENGINES) {
 					yield* setup;
 					yield* submit({ ...submission, externalId: 'ext_1' });
 					yield* linkExternalId({
-						authority: 'api',
 						externalId: 'ext_1',
 						identityProvider: 'auth0',
 						ipAddress: null,

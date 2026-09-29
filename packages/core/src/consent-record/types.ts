@@ -98,18 +98,6 @@ export interface NoticeDismissal {
 	fingerprint: string;
 }
 
-/**
- * Standing privacy directive recorded from a user-agent signal. It is a
- * privacy request, not a consent record, and it outlives the live signal.
- */
-export interface PrivacyOptOut {
-	source: 'gpc';
-	/** Categories the directive restricts. */
-	categories: readonly OptionalConsentCategory[];
-	/** Epoch milliseconds when the directive was recorded. */
-	recordedAt: number;
-}
-
 /** Subject identifiers carried at the record's enclosing boundary. */
 export interface ConsentSubject {
 	subjectId?: string;
@@ -153,11 +141,7 @@ export interface EvaluationPolicy {
 }
 
 /** Why a category is restricted regardless of grants or defaults. */
-export type RestrictionReason =
-	| 'explicit-denial'
-	| 'strict-scope'
-	| 'gpc'
-	| 'opt-out-directive';
+export type RestrictionReason = 'explicit-denial' | 'strict-scope' | 'gpc';
 
 /** Authority status of a stored positive or negative decision. */
 export type DecisionAuthority =

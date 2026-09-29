@@ -107,8 +107,6 @@ export interface SubmissionContext {
 	readonly policySnapshot: PolicySnapshotOptions | undefined;
 	readonly tenantId: string | undefined;
 	readonly ipAddress: IpAddressConfig | undefined;
-	/** Whether the request authenticated with an API key. */
-	readonly authenticated: boolean;
 	/** Server clock, epoch milliseconds. Receipts may not be later than this. */
 	readonly now: number;
 }

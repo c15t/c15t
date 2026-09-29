@@ -18,11 +18,9 @@ import {
 	readStoredConsentRecord,
 	readStoredConsentRecordFromCookieHeader,
 	readStoredNoticeDismissal,
-	readStoredPrivacyOptOuts,
 	resolveStorageKeys,
 	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
-	writeStoredPrivacyOptOuts,
 } from '../record-storage';
 
 const NOW = 1_800_000_000_000;
@@ -446,7 +444,6 @@ describe('raw candidate reading', () => {
 			epoch: 'custom-key-epoch',
 			legacyConsent: STORAGE_KEY,
 			notice: 'custom-key-notice',
-			privacy: 'custom-key-privacy',
 			vendors: 'custom-key-vendors',
 		});
 	});
@@ -653,7 +650,7 @@ describe('v3 writes', () => {
 	});
 });
 
-describe('notice dismissal and privacy opt-outs', () => {
+describe('notice dismissal', () => {
 	beforeEach(() => {
 		document.cookie = '';
 		window.localStorage.clear();
@@ -664,7 +661,7 @@ describe('notice dismissal and privacy opt-outs', () => {
 		window.localStorage.clear();
 	});
 
-	it('stores notice and privacy records separately from the consent record', () => {
+	it('stores the notice record separately from the consent record', () => {
 		writeStoredConsentEnvelope(
 			{
 				categories: {
@@ -686,11 +683,6 @@ describe('notice dismissal and privacy opt-outs', () => {
 			undefined,
 			NOW
 		);
-		writeStoredPrivacyOptOuts(
-			[{ categories: ['marketing'], recordedAt: NOW - DAY, source: 'gpc' }],
-			undefined,
-			NOW
-		);
 
 		expect(window.localStorage.getItem(STORAGE_KEY_V2)).toBe(consentLocal);
 		expect(readStoredConsentRecord(undefined, NOW).selected?.choice).toEqual(
@@ -704,15 +696,6 @@ describe('notice dismissal and privacy opt-outs', () => {
 				version: 1,
 			},
 		});
-		expect(readStoredPrivacyOptOuts(undefined, NOW)).toEqual({
-			ok: true,
-			record: {
-				directives: [
-					{ categories: ['marketing'], recordedAt: NOW - DAY, source: 'gpc' },
-				],
-				version: 1,
-			},
-		});
 		expect(
 			readStoredConsentRecord(undefined, NOW).selected?.choice.categories
 		).toHaveProperty('marketing');
@@ -720,14 +703,12 @@ describe('notice dismissal and privacy opt-outs', () => {
 
 	it('reports an invalid local record instead of treating it as absent', () => {
 		window.localStorage.setItem(resolveStorageKeys().notice, '{"version":1}');
-		window.localStorage.setItem(resolveStorageKeys().privacy, 'nope');
 
 		expect(readStoredNoticeDismissal(undefined, NOW)?.ok).toBe(false);
-		expect(readStoredPrivacyOptOuts(undefined, NOW)?.ok).toBe(false);
 		expect(readStoredNoticeDismissal({ storageKey: 'other' }, NOW)).toBeNull();
 	});
 
-	it('clears choices, notice dismissal and privacy directives together', () => {
+	it('clears choices, notice dismissal and a legacy privacy record together', () => {
 		const config = { storageKey: 'custom-key' };
 		writeStoredConsentEnvelope(
 			{ categories: {}, subject: { subjectId: SUBJECT_ID }, version: 3 },
@@ -739,10 +720,10 @@ describe('notice dismissal and privacy opt-outs', () => {
 			config,
 			NOW
 		);
-		writeStoredPrivacyOptOuts(
-			[{ categories: ['marketing'], recordedAt: NOW - DAY, source: 'gpc' }],
-			config,
-			NOW
+		// An earlier v3 alpha stored standing GPC directives here.
+		window.localStorage.setItem(
+			'custom-key-privacy',
+			'{"directives":[],"version":1}'
 		);
 
 		clearStoredConsentRecords(undefined, config);

@@ -4,15 +4,14 @@
  * Synchronous and read-only: the storage read never migrates, mirrors,
  * renews or deletes anything. The first structurally valid consent
  * candidate wins (cookie, configured localStorage, legacy localStorage),
- * the notice dismissal and privacy directives are read with the same
- * `now`, and everything is applied through `kernel.hydrate()`, which
+ * the notice dismissal and vendor denials are read with the same `now`,
+ * and everything is applied through `kernel.hydrate()`, which
  * validates again and never emits a choice event.
  */
 import type { ConsentSubject } from '../../consent-record/types';
 import type { ConsentKernel, HydrationRecords } from '../../types';
 import {
 	choiceSinceEpoch,
-	directivesSinceEpoch,
 	noticeSinceEpoch,
 	vendorChoiceSinceEpoch,
 } from './epoch';
@@ -24,8 +23,6 @@ import {
 	readStoredConsentRecordFromCookieHeader,
 	readStoredNoticeDismissal,
 	readStoredNoticeDismissalFromCookieHeader,
-	readStoredPrivacyOptOuts,
-	readStoredPrivacyOptOutsFromCookieHeader,
 	readStoredVendorChoice,
 	readStoredVendorChoiceFromCookieHeader,
 } from './record-storage';
@@ -72,20 +69,6 @@ const kernelVendorChoice = function kernelVendorChoice(
 	};
 };
 
-/** The notice dismissal and privacy directives left by the clear epoch. */
-const auxiliarySinceEpoch = function auxiliarySinceEpoch(
-	notice: ReturnType<typeof readStoredNoticeDismissal>,
-	privacy: ReturnType<typeof readStoredPrivacyOptOuts>,
-	epoch: number
-): Pick<HydrationRecords, 'noticeDismissal' | 'optOutDirectives'> {
-	return {
-		noticeDismissal: noticeSinceEpoch(notice?.ok ? notice.record : null, epoch),
-		optOutDirectives: privacy?.ok
-			? [...directivesSinceEpoch(privacy.record.directives, epoch)]
-			: [],
-	};
-};
-
 /**
  * The selected envelope as the clear in force leaves it. An envelope with
  * nothing left since the clear is a cleared one (the caller passes no
@@ -112,7 +95,6 @@ const envelopeSinceEpoch = function envelopeSinceEpoch(
 const composeRecords = function composeRecords(
 	selection: StoredConsentSelection,
 	notice: ReturnType<typeof readStoredNoticeDismissal>,
-	privacy: ReturnType<typeof readStoredPrivacyOptOuts>,
 	vendors: ReturnType<typeof readStoredVendorChoice>,
 	clearEpoch: number,
 	now: number
@@ -135,7 +117,7 @@ const composeRecords = function composeRecords(
 	);
 	const records: HydrationRecords = {
 		choice,
-		...auxiliarySinceEpoch(notice, privacy, epoch),
+		noticeDismissal: noticeSinceEpoch(notice?.ok ? notice.record : null, epoch),
 		now,
 		// The envelope's subject wins; the vendor record's copy covers a visitor
 		// whose only act so far decided vendors.
@@ -148,8 +130,7 @@ const composeRecords = function composeRecords(
 		found:
 			selected !== null ||
 			vendorRecord !== null ||
-			records.noticeDismissal !== null ||
-			privacy?.ok === true,
+			records.noticeDismissal !== null,
 		iab: selected?.iab ?? null,
 		records,
 		vendorSubject: vendorRecord?.subject ?? null,
@@ -173,7 +154,6 @@ const hasUndecodableChoice = function hasUndecodableChoice(
 interface Unreadable {
 	choice: boolean;
 	notice: boolean;
-	privacy: boolean;
 	vendors: boolean;
 }
 
@@ -184,11 +164,10 @@ interface Unreadable {
 const markUndecodable = function markUndecodable(
 	unreadable: Unreadable,
 	selection: StoredConsentSelection,
-	results: Record<'notice' | 'privacy' | 'vendors', { ok: boolean } | null>
+	results: Record<'notice' | 'vendors', { ok: boolean } | null>
 ): void {
 	unreadable.choice ||= hasUndecodableChoice(selection);
 	unreadable.notice ||= results.notice?.ok === false;
-	unreadable.privacy ||= results.privacy?.ok === false;
 	unreadable.vendors ||= results.vendors?.ok === false;
 };
 
@@ -205,7 +184,6 @@ const readRecords = function readRecords(
 	const unreadable: Unreadable = {
 		choice: false,
 		notice: false,
-		privacy: false,
 		vendors: false,
 	};
 	const selection = readStoredConsentRecord(storageConfig, now, () => {
@@ -213,9 +191,6 @@ const readRecords = function readRecords(
 	});
 	const notice = readStoredNoticeDismissal(storageConfig, now, () => {
 		unreadable.notice = true;
-	});
-	const privacy = readStoredPrivacyOptOuts(storageConfig, now, () => {
-		unreadable.privacy = true;
 	});
 	const clearEpoch = readStoredClearEpoch(storageConfig, now);
 	const vendors = readStoredVendorChoice(
@@ -227,22 +202,14 @@ const readRecords = function readRecords(
 		Math.max(clearEpoch, selection.selected?.epoch ?? 0)
 	);
 	if (preserveUndecodable) {
-		markUndecodable(unreadable, selection, { notice, privacy, vendors });
+		markUndecodable(unreadable, selection, { notice, vendors });
 	}
 	const {
 		choice: choiceUnavailable,
 		notice: noticeUnavailable,
-		privacy: privacyUnavailable,
 		vendors: vendorsUnavailable,
 	} = unreadable;
-	const stored = composeRecords(
-		selection,
-		notice,
-		privacy,
-		vendors,
-		clearEpoch,
-		now
-	);
+	const stored = composeRecords(selection, notice, vendors, clearEpoch, now);
 	// An absent value only clears memory when every candidate was readable.
 	// A valid record from an available source can still hydrate normally.
 	if (!selection.selected && choiceUnavailable) {
@@ -253,9 +220,6 @@ const readRecords = function readRecords(
 	}
 	if (!notice?.ok && noticeUnavailable) {
 		delete stored.records.noticeDismissal;
-	}
-	if (!privacy?.ok && privacyUnavailable) {
-		delete stored.records.optOutDirectives;
 	}
 	if (!vendors?.ok && vendorsUnavailable) {
 		delete stored.records.vendorChoice;
@@ -290,8 +254,8 @@ export const readStoredRecordsForReconcile =
 
 /**
  * Server read of every cookie-carried record from a request `Cookie`
- * header at `now`. The choice, the notice projection, the privacy
- * projection and the vendor projection are decoded with the same validators
+ * header at `now`. The choice, the notice projection and the vendor
+ * projection are decoded with the same validators
  * the browser uses, so a server render seeded with the result matches the
  * client's hydration.
  */
@@ -304,11 +268,6 @@ export const readStoredRecordsFromCookieHeader =
 		return composeRecords(
 			readStoredConsentRecordFromCookieHeader(cookieHeader, storageConfig, now),
 			readStoredNoticeDismissalFromCookieHeader(
-				cookieHeader,
-				storageConfig,
-				now
-			),
-			readStoredPrivacyOptOutsFromCookieHeader(
 				cookieHeader,
 				storageConfig,
 				now

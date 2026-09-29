@@ -165,7 +165,7 @@ final class C15tPayloadTests: XCTestCase {
     }
 
     func testAGpcThatIsNeitherABooleanNorNullIsRefused() {
-        // The signal decides whether a standing directive applies, so a value this
+        // The override decides whether the GPC restriction applies, so a value this
         // build cannot read must not become either answer.
         let result = C15tPayload.parseOverrides(
             #"{"gpc":"yes"}"#,

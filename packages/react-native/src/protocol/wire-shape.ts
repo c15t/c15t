@@ -55,7 +55,6 @@ export const SNAPSHOT_KEYS = [
 	'location',
 	'overrides',
 	'privacySignals',
-	'optOutDirectives',
 	'translations',
 	'nextDeadline',
 	'evaluatedAt',

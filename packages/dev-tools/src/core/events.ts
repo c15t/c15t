@@ -9,7 +9,6 @@ const EVENT_TYPES = [
 	'choice:recorded',
 	'permissions:changed',
 	'notice:dismissed',
-	'privacy:opt-out',
 	'overrides:set',
 	'user:identified',
 	'subject:resolved',
@@ -42,7 +41,6 @@ function snapshotData(snapshot: ConsentSnapshot): Record<string, unknown> {
 		explicitChoice: snapshot.explicitChoice,
 		model: snapshot.model,
 		noticeDismissal: snapshot.noticeDismissal,
-		optOutDirectives: snapshot.optOutDirectives,
 		privacySignals: snapshot.privacySignals,
 		promptRequirement: snapshot.promptRequirement,
 		resolution: snapshot.resolution.status,
@@ -146,14 +144,6 @@ export function kernelEventToDevToolsEvent(
 				data: { ...snapshotData(event.snapshot), dismissal: event.dismissal },
 				id,
 				message: 'Local notice dismissed',
-				timestamp,
-				type: event.type,
-			};
-		case 'privacy:opt-out':
-			return {
-				data: { ...snapshotData(event.snapshot), directive: event.directive },
-				id,
-				message: 'Privacy opt-out recorded',
 				timestamp,
 				type: event.type,
 			};

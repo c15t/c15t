@@ -2,11 +2,10 @@
  * Write kernel records to storage.
  *
  * Every write is driven by an explicit kernel event: a recorded choice
- * writes the v3 envelope, a dismissed notice writes the notice record, a
- * recorded directive writes the privacy record, a recorded vendor toggle
- * writes the vendor record. Category times are
+ * writes the v3 envelope, a dismissed notice writes the notice record and a
+ * recorded vendor toggle writes the vendor record. Category times are
  * written exactly as the kernel holds them; nothing here stamps the clock
- * into a receipt.
+ * into a receipt. GPC is a live signal and is never written.
  */
 
 import type { ConsentSnapshot } from '../../types';
@@ -19,7 +18,6 @@ import {
 	clearStoredVendorChoice,
 	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
-	writeStoredPrivacyOptOuts,
 	writeStoredVendorChoice,
 } from './record-storage';
 import type { StorageConfig } from './types';
@@ -86,18 +84,6 @@ export const writeNoticeToStorage = function writeNoticeToStorage(
 		return;
 	}
 	writeStoredNoticeDismissal(snapshot.noticeDismissal, storageConfig, now);
-};
-
-/** Write the standing privacy directives. No-op outside the browser. */
-export const writePrivacyToStorage = function writePrivacyToStorage(
-	snapshot: ConsentSnapshot,
-	storageConfig: StorageConfig | undefined,
-	now: number
-): void {
-	if (typeof document === 'undefined') {
-		return;
-	}
-	writeStoredPrivacyOptOuts(snapshot.optOutDirectives, storageConfig, now);
 };
 
 /**

@@ -1,6 +1,7 @@
 package com.c15t.core
 
 import com.c15t.core.model.ConsentCategory
+import com.c15t.core.model.ConsentModel
 import com.c15t.core.model.ConsentSnapshot
 import com.c15t.core.model.ConsentState
 import com.c15t.core.model.ConsentSubject
@@ -8,6 +9,9 @@ import com.c15t.core.model.DecisionInputs
 import com.c15t.core.model.GpcSignal
 import com.c15t.core.model.KernelOverrides
 import com.c15t.core.model.PrivacySignals
+import com.c15t.core.policy.EvaluationPolicy
+import com.c15t.core.policy.PolicyPrompt
+import com.c15t.core.policy.ScopeMode
 import com.c15t.core.store.C15tStore
 import com.c15t.core.store.C15tStoreKeys
 import com.c15t.core.store.C15tJson
@@ -93,6 +97,60 @@ class OverrideAndSignalTest {
 		}
 
 		assertNull(C15tStore(backend).readEnvelope())
+	}
+
+	// Every alpha snapshot wrote `optOutDirectives`, even as an empty list, and a
+	// directive-denied category carried an `opt-out-directive` reason. v3 dropped the
+	// directive: GPC is a live signal, and its restriction lifts with the signal. Both
+	// are dropped on read, because refusing them would reset every alpha install.
+
+	@Test
+	fun `an alpha envelope carrying standing directives is read without them`() {
+		val backend = InMemoryKeyValueStore()
+		storeAlphaDirectiveEnvelope(backend)
+
+		val restored = assertNotNull(C15tStore(backend).readEnvelope(), "every alpha envelope carried the key")
+		assertEquals(listOf("gpc"), restored.snapshot.restrictions["marketing"])
+		assertNull(
+			restored.snapshot.restrictions["measurement"],
+			"a category restricted only by a directive has no restriction now",
+		)
+	}
+
+	@Test
+	fun `a restored directive stops restricting once the signal is gone`() {
+		val backend = InMemoryKeyValueStore()
+		storeAlphaDirectiveEnvelope(backend)
+
+		val kernel = testKernel(store = C15tStore(backend))
+		kernel.bootstrap()
+		val snapshot = kernel.snapshot()
+
+		assertTrue(kernel.hasStoredSnapshot)
+		assertTrue(kernel.isAllowed(ConsentCategory.MARKETING), "opt-out allows marketing with no live signal")
+		assertTrue(kernel.isAllowed(ConsentCategory.MEASUREMENT))
+		assertNull(snapshot.restrictions["marketing"])
+		assertNull(snapshot.restrictions["measurement"])
+	}
+
+	@Test
+	fun `a live signal still restricts after restoring an alpha envelope`() {
+		val backend = InMemoryKeyValueStore()
+		storeAlphaDirectiveEnvelope(backend)
+
+		val kernel = testKernel(
+			config = NativeConfig(portalUrl = "https://test.c15t.app", detectedGpc = true),
+			store = C15tStore(backend),
+		)
+		kernel.bootstrap()
+		val snapshot = kernel.snapshot()
+
+		assertFalse(kernel.isAllowed(ConsentCategory.MARKETING), "the live signal denies marketing")
+		assertEquals(listOf("gpc"), snapshot.restrictions["marketing"])
+		assertTrue(
+			kernel.isAllowed(ConsentCategory.MEASUREMENT),
+			"measurement was denied only by the stored directive, which no longer applies",
+		)
 	}
 
 	@Test
@@ -402,6 +460,50 @@ class OverrideAndSignalTest {
 		).jsonObject.toMutableMap()
 		val snapshot = assertNotNull(root["snapshot"] as? JsonObject).toMutableMap()
 		retire(snapshot)
+		root["snapshot"] = JsonObject(snapshot)
+
+		backend.putSilently(C15tStoreKeys.SNAPSHOT, Json.encodeToString(JsonElement.serializer(), JsonObject(root)))
+		backend.putSilently(C15tStoreKeys.SUBJECT, """{"id":"$SUBJECT_ID"}""")
+	}
+
+	/**
+	 * Park an envelope in the alpha shape: a CCPA-style opt-out rule whose GPC denial
+	 * covers marketing, and a snapshot holding a directive for marketing and measurement,
+	 * with marketing restricted by the signal and the directive and measurement by the
+	 * directive alone.
+	 */
+	private fun storeAlphaDirectiveEnvelope(backend: InMemoryKeyValueStore) {
+		val envelope = SnapshotEnvelope(
+			snapshot = ConsentSnapshot(
+				revision = 4,
+				policyPending = false,
+				ready = true,
+				model = ConsentModel.OPT_OUT,
+				subject = ConsentSubject(id = SUBJECT_ID),
+			),
+			evaluationPolicy = EvaluationPolicy(
+				id = "us-1",
+				model = ConsentModel.OPT_OUT,
+				prompt = PolicyPrompt.CHOICE,
+				scope = ConsentCategory.OPTIONAL.toList(),
+				scopeMode = ScopeMode.STRICT,
+				choiceMs = 30L * 24 * 60 * 60 * 1000,
+				noticeMs = 30L * 24 * 60 * 60 * 1000,
+				gpcDenyCategories = listOf(ConsentCategory.MARKETING),
+				choiceFingerprint = "choice-fp-1",
+				policyFingerprint = "policy-fp-1",
+			),
+		)
+		val root = Json.parseToJsonElement(
+			C15tJson.storage.encodeToString(SnapshotEnvelope.serializer(), envelope)
+		).jsonObject.toMutableMap()
+		val snapshot = assertNotNull(root["snapshot"] as? JsonObject).toMutableMap()
+		snapshot["optOutDirectives"] = Json.parseToJsonElement(
+			"""[{"source":"gpc","categories":["marketing","measurement"],"recordedAt":1770000000000}]"""
+		)
+		snapshot["restrictions"] = Json.parseToJsonElement(
+			"""{"marketing":["gpc","opt-out-directive"],"measurement":["opt-out-directive"]}"""
+		)
 		root["snapshot"] = JsonObject(snapshot)
 
 		backend.putSilently(C15tStoreKeys.SNAPSHOT, Json.encodeToString(JsonElement.serializer(), JsonObject(root)))

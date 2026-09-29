@@ -111,7 +111,5 @@ describe('buildSetters', () => {
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(kernel.getSnapshot().restrictions.marketing).toEqual(['gpc']);
 		expect(permissions).toHaveBeenCalledTimes(1);
-		// An override is not a detected signal: no standing directive.
-		expect(kernel.getSnapshot().optOutDirectives).toEqual([]);
 	});
 });

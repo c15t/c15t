@@ -137,10 +137,6 @@ describe('policy contract header', () => {
 		});
 		await transport.save(PAYLOAD);
 		await transport.identify({ externalId: 'u' }, 'sub_test');
-		await transport.recordPrivacyOptOut(
-			{ categories: ['marketing'], recordedAt: 1, source: 'gpc' },
-			'sub_test'
-		);
 		for (const call of fetchSpy.mock.calls) {
 			const headers = (call[1] as RequestInit).headers as Record<
 				string,
@@ -426,6 +422,8 @@ describe('hosted subject record boundary', () => {
 			},
 		],
 		isValid: true,
+		// An earlier v3 alpha backend still sends standing directives. GPC is
+		// a live signal now, so the reader ignores them.
 		privacyDirectives: [
 			{
 				authority: 'subject',
@@ -453,7 +451,7 @@ describe('hosted subject record boundary', () => {
 		},
 	};
 
-	test('loadSubjectRecord maps the backend record onto hydration records', async () => {
+	test('loadSubjectRecord maps the backend record and ignores alpha privacy directives', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(respond(subjectRead));
 		const transport = createHostedTransport({
 			backendURL: '/api/c15t',
@@ -465,13 +463,6 @@ describe('hosted subject record boundary', () => {
 		expect(records).toEqual({
 			choice: subjectRead.subjectChoice,
 			now: 1_700_000_200_000,
-			optOutDirectives: [
-				{
-					categories: ['marketing'],
-					recordedAt: 1_700_000_100_000,
-					source: 'gpc',
-				},
-			],
 			subject: { externalId: 'person-42', subjectId: 'sub_test' },
 			vendorChoice: null,
 		});
@@ -500,7 +491,6 @@ describe('hosted subject record boundary', () => {
 			},
 			version: 3,
 		});
-		expect(records?.optOutDirectives).toEqual([]);
 	});
 
 	test('loadSubjectRecord refuses to salvage an item whose receipts it cannot read', async () => {
@@ -584,43 +574,6 @@ describe('hosted subject record boundary', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 		await expect(transport.loadSubjectRecord('sub_nobody')).resolves.toBeNull();
-	});
-
-	test('recordPrivacyOptOut posts to the privacy route and never the consent route', async () => {
-		const fetchSpy = vi.fn().mockResolvedValue(respond({ ok: true }));
-		const transport = createHostedTransport({
-			backendURL: '/api/c15t',
-			fetch: fetchSpy as unknown as typeof globalThis.fetch,
-		});
-		await transport.recordPrivacyOptOut(
-			{
-				categories: ['marketing', 'measurement'],
-				recordedAt: 1,
-				source: 'gpc',
-			},
-			'sub_test'
-		);
-		const [url, init] = fetchSpy.mock.calls[0] ?? [];
-		expect(url).toBe('/api/c15t/subjects/sub_test/privacy-directives');
-		expect((init as RequestInit).method).toBe('POST');
-		expect(JSON.parse((init as RequestInit).body as string)).toEqual({
-			categories: ['marketing', 'measurement'],
-			recordedAt: 1,
-			source: 'gpc',
-		});
-	});
-
-	test('recordPrivacyOptOut sends nothing without a server subject', async () => {
-		const fetchSpy = vi.fn();
-		const transport = createHostedTransport({
-			backendURL: '/api/c15t',
-			fetch: fetchSpy as unknown as typeof globalThis.fetch,
-		});
-		await transport.recordPrivacyOptOut(
-			{ categories: ['marketing'], recordedAt: 1, source: 'gpc' },
-			null
-		);
-		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 });
 
@@ -748,11 +701,6 @@ describe('identity without a server subject', () => {
 		schemaVersion: 2,
 	};
 	const user = { externalId: 'person', identityProvider: 'idp' };
-	const directive = {
-		categories: ['marketing' as const],
-		recordedAt: 1,
-		source: 'gpc' as const,
-	};
 
 	test.each([
 		{
@@ -783,9 +731,6 @@ describe('identity without a server subject', () => {
 			const transport = build(fetchSpy as unknown as typeof globalThis.fetch);
 
 			await expect(transport.identify(user, null)).resolves.toBeUndefined();
-			await expect(
-				transport.recordPrivacyOptOut(directive, null)
-			).resolves.toBeUndefined();
 			expect(fetchSpy).not.toHaveBeenCalled();
 
 			// The save carries the identity; the transport remembers no subject.
@@ -797,13 +742,12 @@ describe('identity without a server subject', () => {
 				identityProvider: 'idp',
 			});
 			await transport.identify(user, null);
-			await transport.recordPrivacyOptOut(directive, null);
 			expect(fetchSpy).toHaveBeenCalledTimes(1);
 
 			// Only the subject the kernel passes is acted on.
-			await transport.recordPrivacyOptOut(directive, 'sub_test');
+			await transport.identify(user, 'sub_test');
 			expect(fetchSpy.mock.calls[1]?.[0]).toBe(
-				'https://api.example.com/c15t/subjects/sub_test/privacy-directives'
+				'https://api.example.com/c15t/subjects/sub_test'
 			);
 		}
 	);

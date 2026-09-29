@@ -36,7 +36,7 @@ projects just because their endpoint paths match.
 
 ## Keep visitor state out of shared caches
 
-`GET /init`, `GET /subjects/:id` and privacy-directive reads return `no-store`.
+`GET /init` and `GET /subjects/:id` return `no-store`.
 Do not override that header with a CDN rule. `/init` contains a resolved policy
 for request inputs; subject endpoints contain private state.
 

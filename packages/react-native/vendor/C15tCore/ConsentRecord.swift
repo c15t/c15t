@@ -186,21 +186,3 @@ public struct NoticeDismissal: Sendable, Codable, Equatable {
         self.fingerprint = fingerprint
     }
 }
-
-/// A standing privacy directive recorded from a user-agent signal. It is a
-/// privacy request, not a consent record, and it outlives the live signal.
-public struct PrivacyOptOut: Sendable, Codable, Equatable {
-    public let source: String
-    public let categories: [OptionalConsentCategory]
-    public let recordedAt: Int64
-
-    public init(
-        source: String = "gpc",
-        categories: [OptionalConsentCategory],
-        recordedAt: Int64
-    ) {
-        self.source = source
-        self.categories = categories
-        self.recordedAt = recordedAt
-    }
-}

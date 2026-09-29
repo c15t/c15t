@@ -177,17 +177,6 @@ data class KernelUser(
 	val properties: Map<String, String>? = null,
 )
 
-/**
- * Standing privacy directive recorded from a device signal. It is a privacy
- * request, not a consent record, and it outlives the live signal.
- */
-@Serializable
-data class OptOutDirective(
-	val source: String,
-	val categories: List<String> = emptyList(),
-	val recordedAt: Long,
-)
-
 /** A failure the core wants the host to surface. */
 @Serializable
 data class KernelError(
@@ -306,7 +295,6 @@ data class ConsentSnapshot(
 	val location: ConsentLocation? = null,
 	val overrides: KernelOverrides = KernelOverrides(),
 	val privacySignals: PrivacySignals = PrivacySignals(),
-	val optOutDirectives: List<OptOutDirective> = emptyList(),
 	/** Opaque translation bundle from `/init`, carried through untouched. */
 	val translations: JsonObject? = null,
 	/** Earliest future time (epoch ms) that can change permissions or the prompt. */

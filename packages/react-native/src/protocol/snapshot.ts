@@ -166,8 +166,6 @@ export interface ConsentSnapshot {
 	readonly overrides: NativeOverrides;
 	/** Effective privacy signals. */
 	readonly privacySignals: NativePrivacySignals;
-	/** Standing privacy directives. Always empty in this phase. */
-	readonly optOutDirectives: readonly [];
 	/** Resolved translation bundle. */
 	readonly translations: KernelTranslations | null;
 	/** Earliest future time (epoch ms) that can change permissions. */

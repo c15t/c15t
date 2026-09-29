@@ -51,7 +51,6 @@ export const denyAllSnapshot = function denyAllSnapshot(
 		location: null,
 		model: 'none',
 		nextDeadline: null,
-		optOutDirectives: [],
 		overrides: defaultNativeOverrides(DEFAULT_NATIVE_LANGUAGE),
 		policyPending: true,
 		policySnapshotToken: null,

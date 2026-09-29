@@ -18,16 +18,15 @@
  *
  * Ties: a category decision in the clearing millisecond counts only when
  * its writer had seen the clear (see {@link choiceSinceEpoch}). The notice
- * dismissal, vendor denials and privacy directives keep a tie: after a
- * clear none of them exists, so one surviving a tie can only restrict or
- * hide the notice, never grant.
+ * dismissal and vendor denials keep a tie: after a clear neither exists,
+ * so one surviving a tie can only restrict or hide the notice, never
+ * grant.
  *
  * Pure.
  */
 import type {
 	ExplicitChoice,
 	NoticeDismissal,
-	PrivacyOptOut,
 } from '../../consent-record/types';
 import type { VendorChoice } from '../../types';
 
@@ -83,15 +82,4 @@ export const noticeSinceEpoch = function noticeSinceEpoch(
 	epoch: number
 ): NoticeDismissal | null {
 	return record && record.dismissedAt >= epoch ? record : null;
-};
-
-/** The directives recorded at or after `epoch`. */
-export const directivesSinceEpoch = function directivesSinceEpoch(
-	directives: readonly PrivacyOptOut[],
-	epoch: number
-): readonly PrivacyOptOut[] {
-	if (epoch <= 0 || directives.every((entry) => entry.recordedAt >= epoch)) {
-		return directives;
-	}
-	return directives.filter((entry) => entry.recordedAt >= epoch);
 };

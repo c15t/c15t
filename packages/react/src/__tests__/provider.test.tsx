@@ -466,7 +466,7 @@ test('StrictMode remount keeps persistence subscriptions active', async () => {
 });
 
 test.each(['header', 'browser'] as const)(
-	'prepared mount persists %s GPC without init or category choice',
+	'prepared mount applies %s GPC live without init, category choice or storage',
 	async (source) => {
 		const key = `react-prepared-gpc-${source}`;
 		const previous = Object.getOwnPropertyDescriptor(
@@ -506,22 +506,21 @@ test.each(['header', 'browser'] as const)(
 				</StrictMode>
 			);
 			await vi.waitFor(() =>
-				expect(localStorage.getItem(`${key}-privacy`)).not.toBeNull()
+				expect(kernel.getSnapshot().privacySignals.gpc.active).toBe(true)
 			);
-			expect(kernel.getSnapshot().optOutDirectives).toHaveLength(1);
-			expect(kernel.getServerSnapshot().optOutDirectives).toEqual([]);
+			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 			expect(kernel.getSnapshot().explicitChoice).toEqual(
 				prepared.initialRecords?.choice
 			);
+			expect(localStorage.getItem(`${key}-privacy`)).toBeNull();
+			// The restriction ends with the signal; the stored grant applies again.
 			kernel.set.privacySignals({ gpc: false });
-			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 			expect(init).not.toHaveBeenCalled();
 			expect(save).not.toHaveBeenCalled();
 			expect(onChoiceRecorded).not.toHaveBeenCalled();
 			await screen.unmount();
 		} finally {
-			localStorage.removeItem(`${key}-privacy`);
-			document.cookie = `${key}-privacy=; Max-Age=0; Path=/`;
 			if (previous) {
 				Object.defineProperty(navigator, 'globalPrivacyControl', previous);
 			} else {

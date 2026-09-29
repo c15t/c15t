@@ -754,7 +754,6 @@ export const createVueConsentKernelContext =
 				kernel.hydrate({
 					choice: null,
 					noticeDismissal: null,
-					optOutDirectives: [],
 					subject: null,
 				});
 				kernel.events.emit({ type: 'records:cleared' });

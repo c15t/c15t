@@ -431,7 +431,6 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
     public let location: LocationContext?
     public let overrides: ConsentOverrides
     public let privacySignals: PrivacySignals
-    public let optOutDirectives: [PrivacyOptOut]
     public let translations: TranslationsBundle?
     /// Epoch milliseconds of the earliest future event that can change a
     /// permission or the prompt.
@@ -466,7 +465,6 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         location: LocationContext? = nil,
         overrides: ConsentOverrides = .default(),
         privacySignals: PrivacySignals = .none,
-        optOutDirectives: [PrivacyOptOut] = [],
         translations: TranslationsBundle? = nil,
         nextDeadline: Int64? = nil,
         evaluatedAt: Int64 = 0,
@@ -489,7 +487,6 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         self.location = location
         self.overrides = overrides
         self.privacySignals = privacySignals
-        self.optOutDirectives = optOutDirectives
         self.translations = translations
         self.nextDeadline = nextDeadline
         self.evaluatedAt = evaluatedAt
@@ -534,7 +531,6 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         var location: LocationContext?
         var overrides: ConsentOverrides
         var privacySignals: PrivacySignals
-        var optOutDirectives: [PrivacyOptOut]
         var translations: TranslationsBundle?
         var nextDeadline: Int64?
         var evaluatedAt: Int64
@@ -560,7 +556,6 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
             location = current.location
             overrides = current.overrides
             privacySignals = current.privacySignals
-            optOutDirectives = current.optOutDirectives
             translations = current.translations
             nextDeadline = current.nextDeadline
             evaluatedAt = current.evaluatedAt
@@ -586,7 +581,6 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
                 location: location,
                 overrides: overrides,
                 privacySignals: privacySignals,
-                optOutDirectives: optOutDirectives,
                 translations: translations,
                 nextDeadline: nextDeadline,
                 evaluatedAt: evaluatedAt,
@@ -615,7 +609,6 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         case location
         case overrides
         case privacySignals
-        case optOutDirectives
         case translations
         case nextDeadline
         case evaluatedAt
@@ -658,7 +651,6 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         try container.encodeIfPresent(location, forKey: .location)
         try container.encode(overrides, forKey: .overrides)
         try container.encode(privacySignals, forKey: .privacySignals)
-        try container.encode(optOutDirectives, forKey: .optOutDirectives)
         try container.encodeIfPresent(translations, forKey: .translations)
         try container.encodeIfPresent(nextDeadline, forKey: .nextDeadline)
         try container.encode(evaluatedAt, forKey: .evaluatedAt)
@@ -697,11 +689,11 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         // holds the flat array fails here, and the store treats an unreadable
         // envelope as nothing stored, which is the deny-all direction.
         let restrictionKeys = try container.decode(
-            [String: [RestrictionReason]].self,
+            [String: [String]].self,
             forKey: .restrictions
         )
         var parsedRestrictions: [OptionalConsentCategory: [RestrictionReason]] = [:]
-        for (name, reasons) in restrictionKeys {
+        for (name, rawReasons) in restrictionKeys {
             guard let category = OptionalConsentCategory(rawValue: name) else {
                 throw DecodingError.dataCorrupted(
                     DecodingError.Context(
@@ -710,7 +702,24 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
                     )
                 )
             }
-            parsedRestrictions[category] = reasons
+            let reasons = try rawReasons
+                .filter { $0 != RetiredEnvelope.optOutDirectiveReason }
+                .map { raw -> RestrictionReason in
+                    guard let reason = RestrictionReason(rawValue: raw) else {
+                        throw DecodingError.dataCorrupted(
+                            DecodingError.Context(
+                                codingPath: [CategoryCodingKey(name)],
+                                debugDescription: "\(raw) is not a restriction reason"
+                            )
+                        )
+                    }
+                    return reason
+                }
+            // A category restricted only by a retired directive carries no restriction
+            // now, and the evaluator never writes an empty list.
+            if !reasons.isEmpty {
+                parsedRestrictions[category] = reasons
+            }
         }
         restrictions = parsedRestrictions
         resolution = try container.decode(PolicyResolutionInfo.self, forKey: .resolution)
@@ -722,10 +731,6 @@ public struct ConsentSnapshot: Sendable, Codable, Equatable {
         location = try container.decodeIfPresent(LocationContext.self, forKey: .location)
         overrides = try container.decode(ConsentOverrides.self, forKey: .overrides)
         privacySignals = try container.decode(PrivacySignals.self, forKey: .privacySignals)
-        optOutDirectives = try container.decode(
-            [PrivacyOptOut].self,
-            forKey: .optOutDirectives
-        )
         translations = try container.decodeIfPresent(
             TranslationsBundle.self,
             forKey: .translations

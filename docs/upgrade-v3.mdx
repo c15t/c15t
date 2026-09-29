@@ -83,8 +83,10 @@ optional permissions by itself.
 
 An effective permission is not evidence of a grant. Under an opt-out rule it can
 be true before a visitor acts. A notice dismissal updates `noticeDismissal` and
-does not record consent. Global Privacy Control updates privacy signals and
-configured opt-out directives without turning a browser signal into a choice.
+does not record consent. Global Privacy Control updates `privacySignals` and
+applies its configured restrictions without turning a browser signal into a
+choice. As in v2, c15t reads GPC live and never stores it: when the browser
+stops sending the signal, the restriction stops too.
 
 ## Replace `useConsentManager()`
 
@@ -140,7 +142,7 @@ Import hooks from the same entry you used for `useConsentManager()`:
 | `promptRequirement` | `usePromptRequirement()` |
 | `noticeDismissal` | `useNoticeDismissal()` |
 | `privacySignals` | `usePrivacySignals()` |
-| `optOutDirectives` | `useOptOutDirectives()` |
+| `optOutDirectives` | None. GPC is not stored; read the live signal with `usePrivacySignals()`. |
 | `restrictions` | `useRestrictions()` |
 | `resolution` | `usePolicyResolution()` |
 | `policyRule` | `usePolicyRule()` |
@@ -232,8 +234,8 @@ validated records without recording an action.
 The reader accepts valid v2 storage and translates it into per-category receipts.
 It does not rewrite storage on startup. Existing denials continue to restrict
 permissions; expired or incompatible positive receipts cannot restore grants.
-The next explicit action writes the v3 record. Notice dismissal and privacy
-opt-out directives have separate records.
+The next explicit action writes the v3 record. Notice dismissal has a separate
+record.
 
 Pass server-prepared `initialRecords`, `initialPolicyResolution`, and `now`
 through the adapter's prefetch configuration. Do not rebuild consent from a

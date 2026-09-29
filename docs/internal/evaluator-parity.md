@@ -89,7 +89,7 @@ scenario pairs a refusal with an expired receipt.
    Swift reaches the same wrong answer by a different route
    (`PolicyEvaluator.swift`, `if !inScope` only overrides for `.strict`).
 2. `explicit-denial` is missing from Kotlin entirely.
-   `PolicyEvaluator.kt` declares `strict-scope`, `gpc` and `opt-out-directive`
+   `PolicyEvaluator.kt` declares `strict-scope` and `gpc`
    and never a denial reason, so `effectiveRestrictions` cannot agree with the web answer
    or the Swift answer. Swift already appends `.explicitDenial`
    (`PolicyEvaluator.swift:108`). Ordering matters for the wire: web puts

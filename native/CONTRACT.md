@@ -146,7 +146,6 @@ mobile, minus IAB:
     policySnapshotToken: string | null
     overrides: { country | null, region | null, language, gpc | null }
     privacySignals: { gpc: { detected, override | null, active } }
-    optOutDirectives: []
     translations: KernelTranslations | null
     nextDeadline: number | null
     evaluatedAt: number
@@ -501,6 +500,16 @@ garbage is indistinguishable from one the subject actually gave. It covers:
   one shape most likely to read as valid.
 - a document from before the corrections below: `overrides.test`, or `privacySignals`
   as a boolean `gpc`/`msa` pair.
+
+One retired field is dropped on read instead of refused: the standing privacy
+directive an alpha build stored. Every alpha snapshot wrote `optOutDirectives`, even as
+an empty list, and a category it denied carried an `opt-out-directive` restriction.
+Both cores drop the key, and drop that reason from `restrictions`, before the
+unknown-key check runs; any other unknown restriction reason still makes the envelope
+unreadable. Dropping is safe because a directive only ever restricted, v3 no longer
+stores one, and hydration re-runs the evaluator with the signal as it is now, so a GPC
+signal that is still live puts its `gpc` restriction straight back. Refusing instead
+would reset every alpha install to deny-all.
 - a document from another codec entirely, including a genuine web v3 envelope.
 
 Whether the bytes decoded is the only observation that separates a refusal from a
@@ -722,7 +731,7 @@ What the core publishes, and what it keeps:
     promptRequirement / activeUI              none / none until the next init
     effectivePermissions                      necessary only
     explicitChoice, noticeDismissal, resolution, policySnapshotToken, location,
-    translations, optOutDirectives, restrictions, nextDeadline, error
+    translations, restrictions, nextDeadline, error
                                               absent, as a cold start leaves them
     subject                                   kept, external id included
     overrides, privacySignals                 kept: configuration, not consent
@@ -1356,15 +1365,14 @@ the contract moved, not the kernel.
 - Privacy signals follow `KernelPrivacySignals`: `gpc` is an object with
   `detected`, `override`, and `active`, and the evaluator honors `active`. There
   is no `msa` signal anywhere in v3.
-- `optOutDirectives` is not "always empty on mobile". A live GPC signal commits a
-  standing directive the moment init is applied, with `recordedAt` equal to the
-  clock the init was evaluated at, so a fixture with an active signal carries one
-  directive and its categories carry the `opt-out-directive` restriction as well as
-  `gpc`. Both native cores were told to expect an empty array and neither recorded
-  directives at all.
+- GPC is a live signal, never a stored record. The snapshot has no
+  `optOutDirectives` and `restrictions` has no `opt-out-directive` reason: the `gpc`
+  restriction applies while `privacySignals.gpc.active` is true and lifts when it is
+  not. No directive is stored or sent to a server; the signal reaches the backend
+  only as the decision inputs of a save. An alpha of v3 briefly recorded a standing directive from a live
+  signal; that was removed, and the native cores never recorded one.
 - `revision` is a monotonic counter over committed mutations, not a count of the
-  steps a runner took. An active privacy signal commits a directive during init, so
-  that fixture is already at 2 where the others reach 1. It is not comparable
+  steps a runner took. It is not comparable
   across the three implementations, because hydration and bootstrap are mutations in
   some cores and not in others, and the absolute number a fixture states is therefore
   each core's own business. Pin the number a fixture states; do not derive it from

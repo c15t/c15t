@@ -79,12 +79,11 @@ Types `1` and `2` block the target when the vendor list does not mark the
 purpose as flexible for that vendor. Targets without a `vendorId` ignore
 restrictions. A target that uses only legitimate interest once restrictions
 apply is not blocked by a refused category, since it needs no consent; its
-legitimate interest signals and the visitor's objection decide. GPC, opt-out
-directives and strict scope still block it, and the category stays refused for
-scripts that depend on it. Accept all grants the vendor signal a restriction
-moves a purpose to, including legitimate interest for a vendor that declares
-none. Legitimate interest a restriction introduces applies until the visitor
-objects: the preference centres show it as allowed, and saving without touching
-it encodes it as allowed. `introducedLegitimateInterest` from
-`@c15t/iab/headless` lists those purposes and vendors for custom preference
-UIs.
+legitimate interest signals and the visitor's objection decide. GPC and strict
+scope still block it, and the category stays refused for scripts that depend on
+it. Accept all grants the vendor signal a restriction moves a purpose to,
+including legitimate interest for a vendor that declares none. Legitimate
+interest a restriction introduces applies until the visitor objects: the
+preference centres show it as allowed, and saving without touching it encodes
+it as allowed. `introducedLegitimateInterest` from `@c15t/iab/headless` lists
+those purposes and vendors for custom preference UIs.
