@@ -75,3 +75,40 @@ release, report your Next.js version and config on
 [c15t/c15t#1107](https://github.com/c15t/c15t/issues/1107).
 
 <include src="../../guides/troubleshooting.mdx" />
+
+## Inspect the active policy
+
+Place this diagnostic component inside your existing consent
+boundary. It reads state without recording a choice.
+
+```tsx title="app/consent-policy-debug.tsx"
+'use client';
+
+import { useSnapshot } from 'c15t/next';
+
+export function ConsentPolicyDebug() {
+  const snapshot = useSnapshot();
+  const resolution = snapshot.resolution;
+
+  return (
+    <pre>
+      {JSON.stringify(
+        {
+          status: resolution.status,
+          policy: resolution.status === 'matched' ? resolution.policy.id : null,
+          prompt: snapshot.promptRequirement,
+          permissions: snapshot.effectivePermissions,
+          location: snapshot.location,
+          privacySignals: snapshot.privacySignals,
+        },
+        null,
+        2,
+      )}
+    </pre>
+  );
+}
+```
+
+The diagnostic subscribes to consent changes. Remove it after verification.
+For a production feature gate, use `useConsent('marketing')` or the category
+your feature needs instead of subscribing to the whole snapshot.

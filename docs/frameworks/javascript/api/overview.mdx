@@ -54,7 +54,7 @@ change produced.
 | `dispose()` | Release kernel resources |
 
 Use `set` operations for runtime inputs and UI state according to their types.
-They do not replace explicit save actions. Read [consent state](/docs/guides/consent-state)
+They do not replace explicit save actions. Read [how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
 for permission, receipt and callback semantics.
 
 ## Own optional modules explicitly
@@ -73,5 +73,5 @@ such event; it reads stored records again when the page becomes visible or the
 window regains focus. Call `persistence.reconcile()` or
 `runtime.reconcileStorage()` to read them at another moment, for example after
 a response set the consent cookie. See
-[keep open tabs in step](/docs/guides/consent-state#keep-open-tabs-in-step)
+[keep open tabs in step](/docs/concepts/consent-state#keep-open-tabs-in-step)
 for the rules, ordering and the `sync: false` option.

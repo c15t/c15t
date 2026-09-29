@@ -146,3 +146,20 @@ See [Optimization](/docs/frameworks/next/optimization) for cache settings and th
 [fetching reference](/docs/frameworks/next/api-reference/data-fetching#geography-and-privacy-signals)
 for trusted location headers. Same-origin rewrites are optional and do not enable
 server rendering.
+
+## Keep Next.js server and browser state aligned
+
+Keep the prepared configuration from your
+[App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup intact when passing it
+to the consent boundary. That configuration includes the resolved policy,
+stored records and evaluation time. Replacing it with a separately selected
+browser preset can change the first render's permissions or prompt.
+
+Use the request's location and privacy signals when resolving policy. Do not
+cache a visitor's resolved configuration as shared policy data. A public
+manifest can be shared; the decision made from it belongs to the request.
+Use [data fetching](/docs/frameworks/next/data-fetching) to choose between a
+shared manifest, request-time `/init` and local policy resolution.
+For a deployment without a Next.js server, follow
+[static export](/docs/frameworks/next/static-export).

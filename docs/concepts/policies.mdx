@@ -1,6 +1,7 @@
 ---
-title: Policy behavior
-description: Read the active policy and keep consent controls consistent with it.
+title: Policies
+description: How policy models, prompts and scope decide what c15t asks visitors, where to change the rules, and why a banner may not appear.
+group: concepts
 ---
 
 ## What the policy controls
@@ -27,12 +28,12 @@ must do the same.
 Use `effectivePermissions` to gate a script or embed. A `true` value under an
 opt-out rule does not mean the visitor clicked Accept. Read `explicitChoice`
 when you need the visitor's recorded decision. See
-[consent state](/docs/guides/consent-state) for these distinctions.
+[how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice) for these distinctions.
 
 ## Where to change the rules
 
 For Inth, configure policy rules on your hosted project. The app receives those
-rules through the configured [data-fetching path](/docs/guides/data-fetching). Importing
+rules through the configured [data-fetching path](/docs/concepts/data-fetching). Importing
 `recommendedPolicyRules()` or changing browser styling does not override the
 hosted policy.
 
@@ -40,7 +41,7 @@ For a backend you operate, use the
 [policy packs guide](/docs/self-host/guides/policy-packs). It covers
 `manifest.policyRules`, preset selection and custom matchers. Browser-only
 setups own their rules locally; see
-[deployment modes](/docs/guides/deployment-modes).
+[choose your setup](/docs/concepts/choose-your-setup).
 
 Presets are starting configurations. Select them for your actual processing,
 and review their assumptions before allowing optional categories by default.

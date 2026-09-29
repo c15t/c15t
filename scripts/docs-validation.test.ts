@@ -72,14 +72,47 @@ test('framework quickstarts resolve inside the host framework group', async () =
 	}
 });
 
+/**
+ * v3 is published under the `alpha` dist-tag while `latest` is still v2.
+ * Set this to `undefined` when v3 becomes `latest`, then drop the tags.
+ */
+const installTag: string | undefined = 'alpha';
+
+test('c15t install commands select the documented release', async () => {
+	const files = await fg('**/*.mdx', { cwd: docsRoot });
+	const wrong: string[] = [];
+	for (const file of files) {
+		const content = readFileSync(resolve(docsRoot, file), 'utf8');
+		for (const match of content.matchAll(
+			/<CommandTabs command="(?<command>[^"]+)"/gu
+		)) {
+			for (const name of (match.groups?.command ?? '').split(' ')) {
+				const bare = name.replace(/(?<=.)@[^/]*$/u, '');
+				// React Native is released separately and has no alpha tag.
+				if (
+					!/^(?:c15t|@c15t\/.+)$/u.test(bare) ||
+					bare === '@c15t/react-native'
+				) {
+					continue;
+				}
+				const expected = installTag ? `${bare}@${installTag}` : bare;
+				if (name !== expected) {
+					wrong.push(`${file}: ${name} (expected ${expected})`);
+				}
+			}
+		}
+	}
+	expect(wrong).toEqual([]);
+});
+
 test('installation tabs flatten to usable umbrella-package commands', async () => {
 	const { markdown } = await convertMdxToMarkdown(
 		resolve(docsRoot, 'frameworks/react/quickstart.mdx'),
 		[remarkInclude, ...defaultRemarkPlugins]
 	);
-	expect(markdown).toContain('npm install c15t');
-	expect(markdown).toContain('pnpm add c15t');
-	expect(markdown).toContain('bun add c15t');
+	expect(markdown).toContain(`npm install c15t@${installTag}`);
+	expect(markdown).toContain(`pnpm add c15t@${installTag}`);
+	expect(markdown).toContain(`bun add c15t@${installTag}`);
 	expect(markdown).toContain("from 'c15t/react'");
 	expect(markdown).not.toContain('CommandTabs');
 	expect(markdown).not.toContain('package-install');
@@ -206,7 +239,7 @@ test('documentation links, includes and metadata are valid', async () => {
 			violation.rule === 'cross-framework-link'
 		) {
 			const target = violation.message.match(
-				/`\/docs\/(?<route>frameworks\/[a-z-]+\/quickstart)`/u
+				/`\/docs\/(?<route>frameworks\/[a-z-]+\/[a-z-/]+)`/u
 			)?.groups?.route;
 			if (target && existsSync(resolve(docsRoot, `${target}.mdx`))) {
 				return false;

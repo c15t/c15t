@@ -5,3 +5,37 @@ group: frameworks
 ---
 
 <include src="../../guides/troubleshooting.mdx" />
+
+## Inspect the active policy
+
+Call this helper with the kernel from your existing
+[JavaScript setup](/docs/frameworks/javascript/quickstart). It logs the current
+state and later changes without recording a choice.
+
+```ts title="src/observe-consent-policy.ts"
+import type { ConsentKernel } from 'c15t';
+
+export function observeConsentPolicy(kernel: ConsentKernel) {
+  const report = () => {
+    const snapshot = kernel.getSnapshot();
+    const resolution = snapshot.resolution;
+
+    console.log({
+      status: resolution.status,
+      policy: resolution.status === 'matched' ? resolution.policy.id : null,
+      prompt: snapshot.promptRequirement,
+      permissions: snapshot.effectivePermissions,
+      location: snapshot.location,
+      privacySignals: snapshot.privacySignals,
+    });
+  };
+
+  report();
+  return kernel.subscribe(report);
+}
+```
+
+The helper returns an unsubscribe function. Call it when you remove the
+diagnostic or dispose the app. Production gates should read
+`kernel.getSnapshot().effectivePermissions` at the point where an optional
+feature would run.

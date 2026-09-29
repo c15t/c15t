@@ -70,8 +70,8 @@ renders. Changing between a borrowed runtime and a provider-created one still
 requires remounting the provider. IAB actions taken before its handle is ready
 wait for that handle. If the provider unmounts or switches runtimes first, a
 pending `save()` rejects with an `AbortError` instead of waiting indefinitely.
-See [consent state](/docs/guides/consent-state) and
-[deployment modes](/docs/guides/deployment-modes).
+See [how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice) and
+[choose your setup](/docs/concepts/choose-your-setup).
 
 ## Reload after revocation
 
