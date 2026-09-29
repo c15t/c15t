@@ -10,8 +10,9 @@ The `experiment` option changes only how the prompt and the preference center
 look: variant, position, layout, primary actions, blocking. The policy rule,
 its categories and its copy stay the same for every arm, so every arm records
 a choice under the same policy fingerprint. c15t merges the assigned arm over
-`presentation`, exposes it as `snapshot.experiment`, and saves it with every
-choice, so you can compare opt-in rate and time to decision per arm.
+`presentation`, exposes it as `snapshot.experiment`, and records it on the
+impressions and choices of visitors the banner showed it to, so you can
+compare opt-in rate and time to decision per arm.
 
 ```tsx title="src/app/providers.tsx"
 'use client';
@@ -50,7 +51,7 @@ export const Providers = ({
 | `id` | Stable experiment name, recorded with every impression and choice |
 | `variants` | Arm name to `presentation` fragment, merged over the base `presentation` per surface |
 | `variant` | The arm your flag provider resolved; must be a key of `variants` |
-| `weights` | Relative weights for built-in assignment; default equal |
+| `weights` | Relative weights for built-in assignment; default equal. Every key must be an arm |
 | `acknowledgeDiagnostics` | Run an arm that trips a presentation diagnostic and record that you reviewed it |
 
 The same option exists on `c15t/next` (`ConsentRoot` config), `c15t/vue`,
@@ -59,11 +60,42 @@ The same option exists on `c15t/next` (`ConsentRoot` config), `c15t/vue`,
 `experiment` is read once, when the provider mounts. Changing it later has
 no effect; remount the provider (a `key` in React) to switch experiments.
 
-On Astro, `variant` is required. The banner is server-rendered HTML that the
-browser only shows or hides, so an arm assigned in the browser would be
-recorded for a banner the visitor never saw. Resolve the arm on the server,
-from a flag or a cookie, and pass it as `variant`; `c15t()` throws at config
-time without one.
+Build the experiment with `defineExperiment()` to have TypeScript check the
+arm names in `variant` and `weights`:
+
+```ts
+import { defineExperiment } from 'c15t';
+
+export const bannerShape = defineExperiment({
+	id: 'banner-shape',
+	variants: { floating: {}, bar: { prompt: { variant: 'bar' } } },
+	weights: { floating: 90, bar: 10 },
+});
+```
+
+Assignment and arm validation load as a separate chunk, only on pages that
+set `experiment`. A site without an experiment does not download them.
+
+### Astro
+
+The Astro banner is server-rendered HTML that the browser only shows or
+hides, so the arm is resolved on the server. To pick it per request, set
+`middleware: false` in `c15t()` and compose the consent middleware yourself
+with `experimentVariant`:
+
+```ts title="src/middleware.ts"
+import { consentMiddleware } from '@c15t/astro/middleware';
+
+export const onRequest = consentMiddleware({
+	experimentVariant: async (context) => await bannerShapeFlag(context),
+});
+```
+
+Return `undefined` to run no experiment for that request. A fixed
+`experiment.variant` in `c15t()` puts every visitor in one arm, which only
+suits a staged rollout. Prerendered routes render once for every visitor, so
+they get no per-request arm. `c15t()` throws at config time when
+`experiment` has neither.
 
 ### Vary the theme
 
@@ -89,7 +121,25 @@ experiment: {
 
 Read the merged theme with `useResolvedTheme()` in React,
 `useResolvedTheme(theme)` in Vue, `getConsentManager().theme` in Svelte and
-`client.theme` in `@c15t/browser`. Per-action styling through
+`client.theme` in `@c15t/browser`. Astro renders the arm's tokens with the
+banner. In React, `consentActions` and slot overrides apply through the
+provider, but colour, radius and other tokens reach the page through
+`ConsentTheme`, so render it from the resolved theme:
+
+```tsx
+'use client';
+
+import { ConsentTheme, useResolvedTheme } from 'c15t/react';
+
+export const ExperimentTheme = () => (
+	<ConsentTheme theme={useResolvedTheme()} />
+);
+```
+
+Rendered from a client component, `ConsentTheme` ships the theme generator.
+With a host-resolved `variant`, you can instead render
+`<ConsentTheme theme={resolveExperimentTheme(theme, experiment, { variant })} />`
+from a Server Component. Per-action styling through
 `theme.consentActions` runs through the same prominence check as
 presentation: an arm that fills accept and outlines reject trips
 `equivalent-prominence-overridden` and needs `acknowledgeDiagnostics: true`.
@@ -179,22 +229,35 @@ const variant = growthbook.getFeatureValue('banner-shape', 'floating');
 const variant = Statsig.getExperiment('banner-shape').get('variant', 'floating');
 ```
 
-A `variant` that is not a key of `variants` throws at provider construction.
-Treat that as a flag misconfiguration, not a visitor error.
+A `variant` that is not a key of `variants` logs an error and runs no
+experiment for that visitor; the page still renders. Treat that as a flag
+misconfiguration.
 
 ## Let c15t assign the arm
 
-Omit `variant` and c15t hashes a stable key into the arms by `weights`
-(equal by default). The key is the stored subject id when the browser already
-has one, or a random key created on first visit. The assignment is stored under
-`c15t-experiment-v1` in localStorage (a cookie when localStorage is unavailable)
-so a returning visitor keeps their arm. Only the random key is written to that
-record; the subject id stays in the consent record. c15t records
-`assignedBy: 'c15t'`.
+Omit `variant` and c15t picks an arm by `weights` (equal by default). It
+hashes the visitor's subject id when the browser already has one, or a random
+key otherwise, and records `assignedBy: 'c15t'`.
 
-An arm missing from a supplied `weights` map has weight `0`. A map that gives
-no arm a positive weight is a configuration error and fails when the provider
-is constructed.
+The banner waits until the arm is picked, so the visitor never sees the base
+banner swap for their arm. On a server-rendered page that means the banner is
+not in the server HTML; it appears once the browser has loaded the
+assignment chunk. If the chunk fails to load, the base banner shows and no
+experiment runs. To keep the banner in the server HTML, resolve the arm on
+the server and pass it as `variant`.
+
+Once the banner has shown the arm, c15t stores `{ id, variant }` under
+`c15t-experiment-v1` in localStorage (a cookie when localStorage is
+unavailable), so the visitor keeps seeing the banner they saw. Nothing is
+stored for a visitor who is never prompted, and nothing is stored for a
+host-resolved arm: your flag provider decides that one on every visit. The
+record holds no identifier. It exists only to keep the consent banner
+consistent, so treat it like the consent record itself when you describe
+your storage.
+
+A `weights` map that gives no arm a positive weight, or that names an arm
+that does not exist, logs an error and runs no experiment. An arm missing
+from the map has weight `0`.
 
 ```ts
 experiment: {
@@ -205,19 +268,37 @@ experiment: {
 ```
 
 Changing `id` starts a new experiment and re-assigns everyone. Removing an
-arm re-assigns only the visitors who were in it.
+arm re-assigns only the visitors who were in it. For a clean analysis, change
+`id` rather than editing the arms of a running experiment.
 
-Built-in assignment is not available on `@c15t/astro`; pass `variant`.
+Built-in assignment is not available on `@c15t/astro`; see
+[Astro](#astro).
 
 ## Acknowledge presentation diagnostics
 
-Each arm is resolved under the active policy the same way `presentation` is.
-An arm that trips a diagnostic, for example `equivalent-prominence-overridden`
-because it makes accept primary while reject stays neutral, is rejected when
-the provider is constructed. Set `acknowledgeDiagnostics: true` to run it.
-c15t then logs the diagnostics once outside production and records
+Each arm is resolved under the visitor's policy the same way `presentation`
+is. An arm that trips a diagnostic, for example
+`equivalent-prominence-overridden` because it makes accept primary while
+reject stays neutral, is not shown under that policy: those visitors see the
+base presentation, are not counted in the experiment, and c15t logs the
+diagnostics. Set `acknowledgeDiagnostics: true` to run the arm anyway. c15t
+then logs the diagnostics as a warning once per policy and records
 `acknowledgedDiagnostics: true` with the arm on every choice. You own the
 legal review of that arm; c15t records that you made it.
+
+The check runs in the browser once the policy is known, so catch a rejected
+arm before you deploy with `validateExperiment` in a test:
+
+```ts
+import { validateExperiment } from 'c15t/experiment';
+
+test('banner-shape arms pass under the EU policy', () => {
+	validateExperiment(bannerShape, euPolicy, { presentation });
+});
+```
+
+It throws for an invalid definition and for arms with unacknowledged
+diagnostics.
 
 ## Read the assignment
 
@@ -248,10 +329,9 @@ React exposes three hooks:
 
 Built-in assignment lands after mount, so `useExperiment()` is `null` on the
 server render and during hydration and the resolved hooks return the base
-values; they update in the same render the arm lands, and a clean
-preferences draft reseeds from the arm's `preferences.defaults`. A
-host-resolved `variant` is known from the first render, on the server too.
-The provider reads `experiment` once, at mount; remount to change it.
+values. The banner is held until then, and a clean preferences draft reseeds
+from the arm's `preferences.defaults` when it lands. A host-resolved
+`variant` is known from the first render, on the server too.
 
 Vue exposes `useExperiment()`, `useResolvedPresentation()` and
 `useResolvedTheme(theme)`, Svelte `getConsentManager().experiment`,
@@ -259,6 +339,12 @@ Vue exposes `useExperiment()`, `useResolvedPresentation()` and
 `client.theme`. Every adapter also reports the arm on `snapshot.experiment`.
 
 ## What is recorded
+
+An impression or a choice carries the arm only once the banner has shown it
+in the current page. A returning visitor who reopens the preference center
+from a footer link, or saves from an inline widget, never saw the arm's
+banner, so their choice is recorded without it and does not count toward any
+arm.
 
 Each choice saved through `POST /subjects` carries in `metadata`:
 
@@ -272,6 +358,12 @@ Each choice saved through `POST /subjects` carries in `metadata`:
 `onSurfaceShown` and `onChoiceRecorded` callbacks carry the same
 `experiment` object, so impressions and decisions can be joined per arm in
 your analytics without a backend query.
+
+## End an experiment
+
+Move the winning arm's fragment into `presentation` (and its `theme` into
+`theme`), then remove `experiment`. Visitors keep their consent; the stored
+arm is ignored once no experiment reads it.
 
 ## Copy is out of scope
 
