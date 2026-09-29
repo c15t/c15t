@@ -284,7 +284,7 @@ data class ConsentSnapshot(
 	val promptRequirement: PromptRequirement = PromptRequirement.NONE,
 	val effectivePermissions: ConsentState = ConsentState.DENY_ALL,
 	val explicitChoice: ExplicitChoice? = null,
-	/** Configured categories; `null` uses the full policy scope. */
+	/** The categories the consent surfaces list: `necessary` plus the choice scope. */
 	val consentCategories: List<String>? = null,
 	/** Category name to restriction reasons, for explainability. */
 	val restrictions: Map<String, List<String>> = emptyMap(),

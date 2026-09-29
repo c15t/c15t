@@ -1,5 +1,6 @@
 package com.c15t.core
 
+import com.c15t.core.model.ConsentCategory
 import com.c15t.core.model.KernelError
 import com.c15t.core.model.KernelUser
 import com.c15t.core.model.ConsentSubject
@@ -214,9 +215,19 @@ fun subjectIdForSequence(sequence: Int): String {
 
 private const val BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
+/**
+ * The host config most tests run under: every category declared. With nothing declared,
+ * the permissive rules [initBody] serves by default offer `necessary` alone and ask for an
+ * acknowledgement, and most tests are about the optional categories themselves.
+ */
+val TEST_CONFIG = NativeConfig(
+	portalUrl = "https://test.c15t.app",
+	consentCategories = ConsentCategory.entries.toList(),
+)
+
 /** Build a kernel wired to in-memory doubles with inline task execution. */
 fun testKernel(
-	config: NativeConfig = NativeConfig(portalUrl = "https://test.c15t.app"),
+	config: NativeConfig = TEST_CONFIG,
 	store: C15tStore,
 	clock: FixedClock = FixedClock(),
 	transport: C15tTransport = C15tTransport.NONE,

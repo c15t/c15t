@@ -1,6 +1,7 @@
 package com.c15t.core
 
 import com.c15t.core.model.ActiveUI
+import com.c15t.core.model.ConsentAction
 import com.c15t.core.model.ConsentCategory
 import com.c15t.core.model.ConsentDecision
 import com.c15t.core.model.ConsentSnapshot
@@ -19,6 +20,7 @@ import com.c15t.core.model.SavePayload
 import com.c15t.core.policy.EvaluationPolicy
 import com.c15t.core.policy.NoticeDismissal
 import com.c15t.core.policy.PolicyEvaluator
+import com.c15t.core.policy.PolicyPrompt
 import com.c15t.core.spi.Clock
 import com.c15t.core.spi.TaskExecutor
 import com.c15t.core.store.C15tStore
@@ -259,7 +261,15 @@ class C15tKernel(
 				// after the signal that caused it is gone.
 				privacySignals = signalsFor(hydratedOverrides),
 			)
-			publishPure(PolicyEvaluator.evaluate(hydrated, envelope.evaluationPolicy, envelope.noticeDismissal, now))
+			publishPure(
+				PolicyEvaluator.evaluate(
+					hydrated,
+					envelope.evaluationPolicy,
+					envelope.noticeDismissal,
+					now,
+					choiceScopeOf(envelope.evaluationPolicy),
+				),
+			)
 			persist()
 		}
 
@@ -530,29 +540,62 @@ class C15tKernel(
 		// prompt must not report "no surface": `buildSubjectPostBody` in `@c15t/core`
 		// reads the pre-commit `activeUI` for the same reason.
 		var surfaceAtAction: ActiveUI? = null
+		var action: ConsentAction
+		var confirmed: Map<String, Boolean>
+		var acknowledgement: NoticeDismissal?
 
 		synchronized(mutationLock) {
 			val current = state.get()
 			base = current
 			surfaceAtAction = current.activeUI
 			policy = evaluationPolicy
-			val intentConsents = intent.consentsByCategory
+			// A bulk action covers the categories the prompt asks about, which is what
+			// `resolveSaveSelection` in `@c15t/core` narrows it to. Before a policy
+			// resolves that is the safe fallback rule's: every optional category,
+			// narrowed by the declaration.
+			val policyScope = policy?.scope ?: ConsentCategory.OPTIONAL
+			val choiceScope = choiceScopeOf(policy) ?: fallbackChoiceScope()
+			val intentConsents = when (intent) {
+				is CommitIntent.All -> choiceScope.associateWith { true }
+				is CommitIntent.Necessary -> choiceScope.associateWith { false }
+				is CommitIntent.Explicit -> intent.consents
+			}
+			// With nothing to decide, a bulk action still covers everything the subject
+			// was shown: strictly necessary alone.
+			action = if (
+				intent is CommitIntent.Explicit ||
+				choiceScope.size == policyScope.size ||
+				choiceScope.isEmpty()
+			) {
+				intent.action
+			} else {
+				ConsentAction.CUSTOM
+			}
 			val prior = stillValid(current.explicitChoice, policy, actionAt)
 			val consents = LinkedHashMap(prior)
 			for ((category, value) in intentConsents) {
 				consents[category.wireName] = value
 			}
-			val confirmed = LinkedHashMap<String, Boolean>(intentConsents.size)
-			for ((category, value) in intentConsents) {
-				confirmed[category.wireName] = value
+			confirmed = LinkedHashMap<String, Boolean>(intentConsents.size).apply {
+				for ((category, value) in intentConsents) {
+					put(category.wireName, value)
+				}
 			}
 
-			val choice = ExplicitChoice(
-				consents = consents,
-				action = intent.action,
-				actionAt = actionAt,
-				fingerprint = policy?.choiceFingerprint,
-			)
+			// Any action on a choice prompt with nothing to decide acknowledges it. One
+			// that confirmed no category leaves the stored choice as it was, the way the
+			// kernel only patches a choice it changed.
+			acknowledgement = choiceAcknowledgement(policy, choiceScope, actionAt)
+			val choice = if (acknowledgement != null && confirmed.isEmpty()) {
+				current.explicitChoice
+			} else {
+				ExplicitChoice(
+					consents = consents,
+					action = action,
+					actionAt = actionAt,
+					fingerprint = policy?.choiceFingerprint,
+				)
+			}
 			published = PolicyEvaluator.evaluate(
 				snapshot = current.copy(
 					explicitChoice = choice,
@@ -560,15 +603,16 @@ class C15tKernel(
 					error = null,
 				),
 				policy = policy,
-				noticeDismissal = noticeDismissal,
+				noticeDismissal = acknowledgement ?: noticeDismissal,
 				now = actionAt,
+				choiceScope = choiceScope,
 			)
 		}
 
 		// Built from the snapshot computed above, which is a value: the frozen body is the
 		// one that revision describes, and building it here keeps the subject resolution and
 		// its storage write off the lock, as the class requires.
-		val payload = buildSavePayload(published, policy, intent, actionAt, surfaceAtAction)
+		val payload = buildSavePayload(published, policy, action, confirmed, actionAt, surfaceAtAction)
 
 		// Obligation first, state second. A process that dies at this point already has
 		// the action on disk, and a save that gets no further than here promised nothing.
@@ -585,6 +629,7 @@ class C15tKernel(
 				false
 			} else {
 				state.set(published)
+				acknowledgement?.let { noticeDismissal = it }
 				true
 			}
 		}
@@ -659,6 +704,7 @@ class C15tKernel(
 				policy = evaluationPolicy,
 				noticeDismissal = noticeDismissal,
 				now = now,
+				choiceScope = choiceScopeOf(evaluationPolicy),
 			)
 			state.set(published)
 		}
@@ -739,6 +785,7 @@ class C15tKernel(
 				policy = evaluationPolicy,
 				noticeDismissal = noticeDismissal,
 				now = clock.nowMillis(),
+				choiceScope = choiceScopeOf(evaluationPolicy),
 			)
 			state.set(published)
 		}
@@ -1126,6 +1173,7 @@ class C15tKernel(
 				policy = evaluationPolicy,
 				noticeDismissal = noticeDismissal,
 				now = clock.nowMillis(),
+				choiceScope = choiceScopeOf(evaluationPolicy),
 			)
 			state.set(published)
 		}
@@ -1298,14 +1346,11 @@ class C15tKernel(
 	private fun buildSavePayload(
 		published: ConsentSnapshot,
 		policy: EvaluationPolicy?,
-		intent: CommitIntent,
+		action: ConsentAction,
+		confirmed: Map<String, Boolean>,
 		actionAt: Long,
 		surfaceAtAction: ActiveUI?,
 	): SavePayload {
-		val confirmed = LinkedHashMap<String, Boolean>(intent.consentsByCategory.size)
-		for ((category, value) in intent.consentsByCategory) {
-			confirmed[category.wireName] = value
-		}
 	val subject = published.subject ?: resolveSubject()
 	// Derived rather than read off the snapshot, so the claim a write makes about
 	// its own decision inputs is the same value the evaluator honored.
@@ -1325,7 +1370,7 @@ class C15tKernel(
 			user = published.subject?.externalId?.let { KernelUser(externalId = it) },
 			model = published.model,
 			uiSource = surfaceAtAction,
-			consentAction = intent.action,
+			consentAction = action,
 			policySnapshotToken = published.policySnapshotToken,
 			decisionInputs = DecisionInputs(
 				policyId = published.resolution.policyId,
@@ -1343,30 +1388,64 @@ class C15tKernel(
 	 * The categories the consent surfaces list right now.
 	 *
 	 * The same derivation the web dialog uses (`getDisplayedConsents` in
-	 * `use-manager.ts`): `necessary` first, then the policy scope narrowed by the
-	 * host's own declaration. A host that declares nothing is asked about the whole
-	 * scope; a name the host declares that the resolved policy does not govern is
-	 * dropped, because a row the evaluator will not honour is a row that cannot be
-	 * honoured. Before any policy resolves the evaluator runs the safe fallback
-	 * rule over every optional category, so the scope behind the list is the full
-	 * optional set -- the same rows the web shows while it waits for init.
+	 * `use-manager.ts`): `necessary` first, then the choice scope, which is the
+	 * policy scope narrowed by the host's own declaration. A host that declares
+	 * nothing is asked about the whole scope of a strict rule and about none of a
+	 * permissive one, where it is offered `necessary` alone; a name the host declares
+	 * that the resolved policy does not govern is dropped, because a row the
+	 * evaluator will not honour is a row that cannot be honoured. Before any policy
+	 * resolves the evaluator runs the safe fallback rule, which is strict, over every
+	 * optional category, so the scope behind the list is the full optional set --
+	 * the same rows the web shows while it waits for init.
 	 *
 	 * The list is `necessary` plus the optional names in canonical (sorted) order;
 	 * the JavaScript layer restyles that into display order, and both native cores
 	 * emit this exact shape so the protocol fixtures can pin them together.
 	 */
 	private fun decidedCategories(policy: EvaluationPolicy?): List<String> {
-		val declared = config.consentCategories?.takeIf { it.isNotEmpty() }?.toSet()
-		val scope: Set<ConsentCategory> =
-			policy?.scope?.toSet() ?: ConsentCategory.OPTIONAL.toSet()
+		val scope = (choiceScopeOf(policy) ?: fallbackChoiceScope()).toSet()
 		return buildList {
 			add(ConsentCategory.NECESSARY.wireName)
-			addAll(
-				ConsentCategory.OPTIONAL
-					.filter { it in scope && (declared == null || it in declared) }
-					.map { it.wireName },
-			)
+			addAll(ConsentCategory.OPTIONAL.filter { it in scope }.map { it.wireName })
 		}
+	}
+
+	/** The categories the choice prompt asks about under [policy], or `null` with none. */
+	private fun choiceScopeOf(policy: EvaluationPolicy?): List<ConsentCategory>? =
+		policy?.choiceScope(config.consentCategories)
+
+	/**
+	 * The choice scope before any policy resolves: the safe fallback rule is strict
+	 * and governs every optional category, so the declaration narrows that.
+	 */
+	private fun fallbackChoiceScope(): List<ConsentCategory> {
+		val declared = config.consentCategories?.takeIf { it.isNotEmpty() }
+		return ConsentCategory.OPTIONAL.filter { declared == null || it in declared }
+	}
+
+	/**
+	 * The acknowledgement a save records when the choice prompt has no category to
+	 * decide, or `null` when it has one.
+	 *
+	 * `choiceAcknowledgement` in `packages/core/src/kernel/commands.ts`. It is a notice
+	 * dismissal bound to the choice fingerprint, so the envelope carries it the way it
+	 * carries a notice dismissal, and the evaluator never mistakes it for one. A stored
+	 * acknowledgement at least as new is kept. Called with [mutationLock] held, because
+	 * it reads [noticeDismissal].
+	 */
+	private fun choiceAcknowledgement(
+		policy: EvaluationPolicy?,
+		choiceScope: List<ConsentCategory>,
+		actionAt: Long,
+	): NoticeDismissal? {
+		if (policy == null || policy.prompt != PolicyPrompt.CHOICE || choiceScope.isNotEmpty()) {
+			return null
+		}
+		val current = noticeDismissal
+		if (current != null && current.fingerprint == policy.choiceFingerprint && current.dismissedAt >= actionAt) {
+			return current
+		}
+		return NoticeDismissal(dismissedAt = actionAt, fingerprint = policy.choiceFingerprint)
 	}
 
 	/** The receipts from before this action that the current policy still honours. */

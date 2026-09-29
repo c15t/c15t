@@ -46,12 +46,15 @@ package enum PolicyEvaluator {
     /// - Parameter gpcActive: the GPC signal the evaluator honors, i.e. the
     ///   developer override when set, otherwise the detected signal. It is live
     ///   only: nothing about it is stored, so the restriction lifts with the signal.
+    /// - Parameter choiceScope: the categories the choice prompt asks about, from
+    ///   ``choiceScope(of:declared:)``. `nil` asks about the whole policy scope.
     package static func evaluate(
         _ resolved: ResolvedPolicy,
         choice: ExplicitChoice?,
         noticeDismissal: NoticeDismissal?,
         gpcActive: Bool,
-        now: Int64
+        now: Int64,
+        choiceScope: [OptionalConsentCategory]? = nil
     ) -> ConsentEvaluation {
         let policy = resolved.policy
         let scope = Set(policy.scope)
@@ -115,7 +118,7 @@ package enum PolicyEvaluator {
         let promptReason = promptRequirement(
             policy: policy,
             resolved: resolved,
-            scope: scope,
+            choiceScope: Set(choiceScope ?? policy.scope),
             choice: choice,
             restrictions: restrictions,
             noticeDismissal: noticeDismissal,
@@ -133,6 +136,25 @@ package enum PolicyEvaluator {
             promptReason: promptReason,
             nextDeadline: deadlines.min()
         )
+    }
+
+    // MARK: - Choice scope
+
+    /// The categories the choice prompt asks about.
+    ///
+    /// `projectChoiceScope` in `packages/core/src/policy.ts`. A declaration narrows the
+    /// policy scope. With nothing declared, a permissive rule asks about none of them,
+    /// since categories outside the choice scope stay allowed there, and a strict rule
+    /// asks about its whole scope, since nothing outside it may run. The declaration is
+    /// counted whole, `necessary` included, the way the kernel counts it.
+    package static func choiceScope(
+        of policy: EvaluationPolicy,
+        declared: [ConsentCategory]?
+    ) -> [OptionalConsentCategory] {
+        if let declared, !declared.isEmpty {
+            return policy.scope.filter { declared.contains($0.category) }
+        }
+        return policy.scopeMode == .permissive ? [] : policy.scope
     }
 
     // MARK: - Authorities
@@ -236,13 +258,97 @@ package enum PolicyEvaluator {
         return nil
     }
 
+    // MARK: - Acknowledgement
+
+    /// When the choice prompt with nothing to decide stops being answered, or `nil`
+    /// when nothing answers it now.
+    ///
+    /// `acknowledgedUntil` copied. The acknowledgement is a notice dismissal made
+    /// against the choice fingerprint and younger than the choice lifetime, and any
+    /// decision still valid under the current choice fingerprint answers the prompt
+    /// too, whatever category it is for and whichever way it went.
+    private static func acknowledgedUntil(
+        policy: EvaluationPolicy,
+        resolved: ResolvedPolicy,
+        choice: ExplicitChoice?,
+        noticeDismissal: NoticeDismissal?,
+        now: Int64
+    ) -> Int64? {
+        var expiries: [Int64] = []
+        if let noticeDismissal, noticeDismissal.fingerprint == resolved.choiceFingerprint {
+            let expiresAt = expiry(of: noticeDismissal.dismissedAt, maxAgeMs: policy.choiceMaxAgeMs)
+            if now < expiresAt {
+                expiries.append(expiresAt)
+            }
+        }
+        for category in OptionalConsentCategory.ordered {
+            guard let decision = choice?.categories[category],
+                  authority(of: decision, against: resolved.choiceFingerprint) == .valid
+            else { continue }
+            let expiresAt = expiry(of: decision.confirmedAt, maxAgeMs: policy.choiceMaxAgeMs)
+            if now < expiresAt {
+                expiries.append(expiresAt)
+            }
+        }
+        return expiries.max()
+    }
+
+    /// Why a choice prompt with nothing to decide is owed, or `nil` when it is
+    /// answered.
+    ///
+    /// `deriveAcknowledgementRequirement` copied, order included: a stale
+    /// acknowledgement or an aged decision reads `expired`, any other dismissal or a
+    /// decision under an older basis reads `policy-changed`, and nothing at all reads
+    /// `missing`. An answered prompt adds the moment its last answer runs out to the
+    /// deadlines, which is `acknowledgementDeadline`.
+    private static func acknowledgementReason(
+        policy: EvaluationPolicy,
+        resolved: ResolvedPolicy,
+        choice: ExplicitChoice?,
+        noticeDismissal: NoticeDismissal?,
+        now: Int64,
+        deadlines: inout [Int64]
+    ) -> PromptReason? {
+        if let until = acknowledgedUntil(
+            policy: policy,
+            resolved: resolved,
+            choice: choice,
+            noticeDismissal: noticeDismissal,
+            now: now
+        ) {
+            deadlines.append(until)
+            return nil
+        }
+        var expired = false
+        var policyChanged = false
+        for category in OptionalConsentCategory.ordered {
+            guard let decision = choice?.categories[category] else { continue }
+            switch authority(of: decision, against: resolved.choiceFingerprint) {
+            case .policyChanged:
+                policyChanged = true
+            case .valid:
+                // Not answering it, so its lifetime has run out.
+                expired = true
+            case .absent:
+                break
+            }
+        }
+        if noticeDismissal?.fingerprint == resolved.choiceFingerprint || expired {
+            return .expired
+        }
+        if noticeDismissal != nil || policyChanged {
+            return .policyChanged
+        }
+        return .missing
+    }
+
     // MARK: - Prompt
 
     /// Decide what interaction is still owed, and collect the notice deadline.
     private static func promptRequirement(
         policy: EvaluationPolicy,
         resolved: ResolvedPolicy,
-        scope: Set<OptionalConsentCategory>,
+        choiceScope: Set<OptionalConsentCategory>,
         choice: ExplicitChoice?,
         restrictions: [OptionalConsentCategory: [RestrictionReason]],
         noticeDismissal: NoticeDismissal?,
@@ -254,8 +360,20 @@ package enum PolicyEvaluator {
             return nil
 
         case .choice:
+            // An empty choice scope still asks once: the subject acknowledges that only
+            // strictly necessary processing runs.
+            if choiceScope.isEmpty {
+                return acknowledgementReason(
+                    policy: policy,
+                    resolved: resolved,
+                    choice: choice,
+                    noticeDismissal: noticeDismissal,
+                    now: now,
+                    deadlines: &deadlines
+                )
+            }
             return choiceReason(
-                scope: scope,
+                scope: choiceScope,
                 choice: choice,
                 restrictions: restrictions,
                 choiceFingerprint: resolved.choiceFingerprint,

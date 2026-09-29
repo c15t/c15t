@@ -30,7 +30,9 @@ public struct CoreConfig: @unchecked Sendable {
     /// preview build wants. Use ``C15tTransport/offline()`` instead when the
     /// device is merely unreachable, so saves queue up for later.
     public let transport: (any C15tTransport)?
-    /// Categories to offer. `nil` uses the full policy scope.
+    /// Categories to offer. `nil` or empty declares none: a strict policy offers
+    /// its full scope and a permissive one offers `necessary` alone, with an
+    /// acknowledgement prompt.
     public let consentCategories: [ConsentCategory]?
     /// The vendor ids this deployment may disclose, or `nil` for no declaration.
     ///
@@ -448,6 +450,8 @@ public final class ConsentCore: @unchecked Sendable {
             let baseRevision: Int
             let next: ConsentSnapshot
             let result: CommitResult
+            /// The acknowledgement this action records, installed with `next`.
+            let acknowledgement: NoticeDismissal?
         }
 
         let prepared: Result<Planned, CoreErrorInfo> = lock.withLock {
@@ -472,15 +476,21 @@ public final class ConsentCore: @unchecked Sendable {
                 ))
             }
 
+            // A bulk action covers the categories the prompt asks about, which is
+            // what `resolveSaveSelection` in `packages/core` narrows it to.
+            let choiceScope = choiceScopeLocked(resolved)
             let receipts = categories(
                 for: intent,
-                scope: resolved.policy.scope,
+                scope: choiceScope,
                 current: currentSnapshot.explicitChoice
             )
+            // With nothing to decide, a bulk action still covers everything the
+            // subject was shown: strictly necessary alone.
+            let coversShown = choiceScope.count == resolved.policy.scope.count || choiceScope.isEmpty
             let action: ConsentAction
             switch intent {
-            case .all: action = .all
-            case .necessary: action = .necessary
+            case .all: action = coversShown ? .all : .custom
+            case .necessary: action = coversShown ? .necessary : .custom
             case .custom: action = .custom
             }
 
@@ -490,12 +500,24 @@ public final class ConsentCore: @unchecked Sendable {
                 actionAt: actionAt,
                 fingerprint: resolved.choiceFingerprint
             )
+            // Any action on a choice prompt with nothing to decide acknowledges it.
+            // One that confirmed no category leaves the stored choice as it was, the
+            // way the kernel only patches a choice it changed.
+            let acknowledgement = choiceAcknowledgement(
+                resolved,
+                choiceScope: choiceScope,
+                actionAt: actionAt
+            )
+            let storedChoice = acknowledgement != nil && receipts.isEmpty
+                ? currentSnapshot.explicitChoice
+                : choice
             let evaluation = PolicyEvaluator.evaluate(
                 resolved,
-                choice: choice,
-                noticeDismissal: noticeDismissal,
+                choice: storedChoice,
+                noticeDismissal: acknowledgement ?? noticeDismissal,
                 gpcActive: gpcSignal.active,
-                now: actionAt
+                now: actionAt,
+                choiceScope: choiceScope
             )
 
             // The surface the subject acted on, read before the commit rewrites it.
@@ -508,7 +530,7 @@ public final class ConsentCore: @unchecked Sendable {
             // nothing to take back.
             let baseRevision = currentSnapshot.revision
             let next = currentSnapshot.byApplying { draft in
-                draft.explicitChoice = choice
+                draft.explicitChoice = storedChoice
                 draft.effectivePermissions = evaluation.permissions
                 draft.restrictions = evaluation.restrictions
                 draft.promptRequirement = evaluation.promptRequirement
@@ -567,7 +589,8 @@ public final class ConsentCore: @unchecked Sendable {
                         permissions: next.effectivePermissions,
                         consentAction: action,
                         confirmed: receipts
-                    )
+                    ),
+                    acknowledgement: acknowledgement
                 ))
             } catch {
                 return .failure(CoreErrorInfo(
@@ -623,6 +646,9 @@ public final class ConsentCore: @unchecked Sendable {
             let applied = lock.withLock { () -> Bool in
                 guard currentSnapshot.revision == plan.baseRevision else { return false }
                 currentSnapshot = plan.next
+                if let acknowledgement = plan.acknowledgement {
+                    noticeDismissal = acknowledgement
+                }
                 return true
             }
             guard applied else {
@@ -774,7 +800,8 @@ public final class ConsentCore: @unchecked Sendable {
                 choice: currentSnapshot.explicitChoice,
                 noticeDismissal: noticeDismissal,
                 gpcActive: gpcSignal.active,
-                now: at
+                now: at,
+                choiceScope: choiceScopeLocked(resolved)
             )
             currentSnapshot = currentSnapshot.byApplying { draft in
                 draft.promptRequirement = evaluation.promptRequirement
@@ -1221,12 +1248,14 @@ public final class ConsentCore: @unchecked Sendable {
     /// The categories the consent surfaces list right now.
     ///
     /// The same derivation the web dialog uses (`getDisplayedConsents` in
-    /// `use-manager.ts`): `necessary` first, then the policy scope narrowed by the
-    /// host's own declaration. A host that declares nothing is asked about the whole
-    /// scope; a name the host declares that the resolved policy does not govern is
-    /// dropped, because a row the evaluator will not honour is a row that cannot be
-    /// honoured. Before any policy resolves the evaluator runs the safe fallback
-    /// rule over every optional category, so the scope behind the list is the full
+    /// `use-manager.ts`): `necessary` first, then the choice scope, which is the
+    /// policy scope narrowed by the host's own declaration. A host that declares
+    /// nothing is asked about the whole scope of a strict rule and about none of a
+    /// permissive one, where it is offered `necessary` alone; a name the host
+    /// declares that the resolved policy does not govern is dropped, because a row
+    /// the evaluator will not honour is a row that cannot be honoured. Before any
+    /// policy resolves the evaluator runs the safe fallback rule, which is strict,
+    /// over every optional category, so the scope behind the list is the full
     /// optional set -- the same rows the web shows while it waits for init.
     ///
     /// The list is `necessary` plus the optional names in canonical (sorted) order;
@@ -1235,26 +1264,48 @@ public final class ConsentCore: @unchecked Sendable {
     ///
     /// Callers must already hold the lock, because the answer reads ``config``.
     private func decidedCategories(_ resolved: ResolvedPolicy?) -> [ConsentCategory] {
-        var declared: Set<ConsentCategory>?
-        if let list = config?.consentCategories, !list.isEmpty {
-            declared = Set(list)
-        }
-        let scope: Set<ConsentCategory>
+        let scope: [OptionalConsentCategory]
         if let resolved {
-            scope = Set(resolved.policy.scope.map(\.category))
+            scope = choiceScopeLocked(resolved)
+        } else if let list = config?.consentCategories, !list.isEmpty {
+            scope = OptionalConsentCategory.allCases.filter { list.contains($0.category) }
         } else {
-            scope = Set(OptionalConsentCategory.allCases.map(\.category))
+            scope = Array(OptionalConsentCategory.allCases)
         }
-        let optional = OptionalConsentCategory.allCases
-            .lazy
+        let optional = scope
             .map(\.category)
-            .filter { category in
-                guard scope.contains(category) else { return false }
-                guard let declared else { return true }
-                return declared.contains(category)
-            }
             .sorted { $0.rawValue < $1.rawValue }
-        return [ConsentCategory.necessary] + Array(optional)
+        return [ConsentCategory.necessary] + optional
+    }
+
+    /// The categories the choice prompt asks about under `resolved`, narrowed by the
+    /// host's declaration. Callers must already hold the lock, because the answer
+    /// reads ``config``.
+    private func choiceScopeLocked(_ resolved: ResolvedPolicy) -> [OptionalConsentCategory] {
+        PolicyEvaluator.choiceScope(of: resolved.policy, declared: config?.consentCategories)
+    }
+
+    /// The acknowledgement a save records when the choice prompt has no category to
+    /// decide, or `nil` when it has one.
+    ///
+    /// `choiceAcknowledgement` in `packages/core/src/kernel/commands.ts`. It is a notice
+    /// dismissal bound to the choice fingerprint, so the envelope carries it the way it
+    /// carries a notice dismissal, and the evaluator never mistakes it for one. A
+    /// stored acknowledgement at least as new is kept. Callers must already hold the
+    /// lock, because the answer reads ``noticeDismissal``.
+    private func choiceAcknowledgement(
+        _ resolved: ResolvedPolicy,
+        choiceScope: [OptionalConsentCategory],
+        actionAt: Int64
+    ) -> NoticeDismissal? {
+        guard resolved.policy.prompt == .choice, choiceScope.isEmpty else { return nil }
+        if let current = noticeDismissal,
+           current.fingerprint == resolved.choiceFingerprint,
+           current.dismissedAt >= actionAt
+        {
+            return current
+        }
+        return NoticeDismissal(dismissedAt: actionAt, fingerprint: resolved.choiceFingerprint)
     }
 
     /// Map an intent onto the receipts it confirms. Callers must already hold the
@@ -1290,7 +1341,8 @@ public final class ConsentCore: @unchecked Sendable {
             choice: currentSnapshot.explicitChoice,
             noticeDismissal: noticeDismissal,
             gpcActive: gpcSignal.active,
-            now: now
+            now: now,
+            choiceScope: choiceScopeLocked(resolved)
         )
         currentSnapshot = currentSnapshot.byApplying { draft in
             draft.effectivePermissions = evaluation.permissions
@@ -1515,7 +1567,8 @@ public final class ConsentCore: @unchecked Sendable {
                     choice: draft.explicitChoice,
                     noticeDismissal: noticeDismissal,
                     gpcActive: gpcSignal.active,
-                    now: nowMs
+                    now: nowMs,
+                    choiceScope: choiceScopeLocked(resolved)
                 )
                 draft.effectivePermissions = evaluation.permissions
                 draft.restrictions = evaluation.restrictions

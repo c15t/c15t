@@ -123,7 +123,8 @@ public struct C15tBridgeConfiguration: Sendable, Equatable {
     public var storageMode: StorageMode
     public var keychainService: String
     public var overrides: ConsentOverrides
-    /// Categories to offer. `nil` uses the full policy scope.
+    /// Categories to offer. `nil` declares none: a strict policy offers its full
+    /// scope and a permissive one offers `necessary` alone.
     public var consentCategories: [ConsentCategory]?
     /// The IAB vendor ids the app declares, or `nil` when it declares no scope.
     ///

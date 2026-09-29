@@ -35,12 +35,15 @@ object PolicyEvaluator {
 	 * @param policy the validated rule, or `null` for a non-matched resolution,
 	 * which uses the safe opt-in fallback.
 	 * @param noticeDismissal the local notice dismissal, if any.
+	 * @param choiceScope the categories the choice prompt asks about, from
+	 * [EvaluationPolicy.choiceScope]. `null` asks about the whole policy scope.
 	 */
 	fun evaluate(
 		snapshot: ConsentSnapshot,
 		policy: EvaluationPolicy?,
 		noticeDismissal: NoticeDismissal?,
 		now: Long,
+		choiceScope: List<ConsentCategory>? = null,
 	): ConsentSnapshot {
 		// The two flags a native gate must consult. While either is unset the
 		// first layer stays hidden and no optional category can read true.
@@ -144,9 +147,23 @@ object PolicyEvaluator {
 		// policy only the choice obligation is reported, because that is the only
 		// kind the kernel names there -- the notice underneath it is not a second
 		// prompt to put on the wire.
+		val asked = choiceScope ?: policy.scope
+		// An empty choice scope still asks once: the subject acknowledges that only
+		// strictly necessary processing runs.
+		val acknowledgedUntil = if (policy.prompt == PolicyPrompt.CHOICE && asked.isEmpty()) {
+			acknowledgedUntil(choice, noticeDismissal, policy, now)
+		} else {
+			null
+		}
 		val prompt = when (policy.prompt) {
 			PolicyPrompt.CHOICE ->
-				choiceReason(choice, policy, restrictions, now)
+				(
+					if (asked.isEmpty()) {
+						acknowledgementReason(choice, noticeDismissal, policy, now, acknowledgedUntil)
+					} else {
+						choiceReason(choice, policy, asked, restrictions, now)
+					}
+				)
 					?.let { PromptRequirement(acknowledge = true, purpose = purpose, reason = it) }
 					?: PromptRequirement.NONE
 
@@ -158,10 +175,13 @@ object PolicyEvaluator {
 			PolicyPrompt.NONE -> PromptRequirement.NONE
 		}
 
-		// The next moment a receipt lapses and permissions or the prompt change.
+		// The next moment a receipt lapses and permissions or the prompt change. An
+		// answered acknowledgement asks again once the last record answering it runs
+		// out, which is `acknowledgementDeadline` in the kernel.
 		val nextDeadline = listOfNotNull(
 			choice?.let { it.actionAt + policy.choiceMs }?.takeIf { choiceCurrent && it > now },
 			noticeDismissal?.let { it.dismissedAt + policy.noticeMs }?.takeIf { noticeCurrent && it > now },
+			acknowledgedUntil?.takeIf { it > now },
 		).minOrNull()
 
 		var state = ConsentState(necessary = true)
@@ -240,10 +260,10 @@ object PolicyEvaluator {
 	private fun choiceReason(
 		choice: com.c15t.core.model.ExplicitChoice?,
 		policy: EvaluationPolicy,
+		scope: List<ConsentCategory>,
 		restrictions: Map<String, List<String>>,
 		now: Long,
 	): PromptReason? {
-		val scope = policy.scope
 		if (scope.isEmpty()) {
 			return null
 		}
@@ -271,6 +291,70 @@ object PolicyEvaluator {
 			missing -> PromptReason.MISSING
 			expired -> PromptReason.EXPIRED
 			else -> null
+		}
+	}
+
+	/**
+	 * When the choice prompt with nothing to decide stops being answered, or `null`
+	 * when nothing answers it now.
+	 *
+	 * `acknowledgedUntil` in the kernel. The acknowledgement is a notice dismissal
+	 * made against the choice fingerprint and younger than the choice lifetime, and
+	 * any decision still valid under the current choice fingerprint answers the
+	 * prompt too, whichever category it is for and whichever way it went. This core
+	 * keeps one fingerprint and one action time for a whole commit, so "any decision"
+	 * is the commit as a whole. Both lifetimes end at the instant the kernel ends
+	 * them, `now >= expiry`.
+	 */
+	private fun acknowledgedUntil(
+		choice: com.c15t.core.model.ExplicitChoice?,
+		dismissal: NoticeDismissal?,
+		policy: EvaluationPolicy,
+		now: Long,
+	): Long? {
+		val expiries = mutableListOf<Long>()
+		if (dismissal != null && dismissal.fingerprint == policy.choiceFingerprint) {
+			val expiresAt = dismissal.dismissedAt + policy.choiceMs
+			if (now < expiresAt) {
+				expiries += expiresAt
+			}
+		}
+		if (choice != null && choice.consents.isNotEmpty() && choice.matchesFingerprint(policy.choiceFingerprint)) {
+			val expiresAt = choice.actionAt + policy.choiceMs
+			if (now < expiresAt) {
+				expiries += expiresAt
+			}
+		}
+		return expiries.maxOrNull()
+	}
+
+	/**
+	 * Why a choice prompt with nothing to decide is owed, or `null` when it is
+	 * answered.
+	 *
+	 * `deriveAcknowledgementRequirement` copied, order included: a stale
+	 * acknowledgement or an aged decision reads `expired`, any other dismissal or a
+	 * decision under an older basis reads `policy-changed`, and nothing at all reads
+	 * `missing`.
+	 */
+	private fun acknowledgementReason(
+		choice: com.c15t.core.model.ExplicitChoice?,
+		dismissal: NoticeDismissal?,
+		policy: EvaluationPolicy,
+		now: Long,
+		acknowledgedUntil: Long?,
+	): PromptReason? {
+		if (acknowledgedUntil != null) {
+			return null
+		}
+		// A decision that answers nothing now has either aged out under the current
+		// fingerprint or was made under another one.
+		val decided = choice != null && choice.consents.isNotEmpty()
+		val current = decided && choice?.matchesFingerprint(policy.choiceFingerprint) == true
+		return when {
+			dismissal?.fingerprint == policy.choiceFingerprint || current -> PromptReason.EXPIRED
+			dismissal != null || decided -> PromptReason.POLICY_CHANGED
+			else -> PromptReason.MISSING
 		}
 	}
 

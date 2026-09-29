@@ -733,12 +733,38 @@ final class ProtocolFixtureTests: XCTestCase {
         return CoreConfig(
             store: store,
             transport: http.map { Fixture.transport($0) },
+            consentCategories: try declaredCategories(entry: entry, input: input),
             overrides: overrides,
             user: user,
             gpc: detectedFromFixture,
             now: clock.reading,
             initRetry: .disabled
         )
+    }
+
+    /// The categories the fixture app declares.
+    ///
+    /// A fixture without `input.consentCategories` was generated with every category
+    /// declared, so that is what the core is configured with. `null` is an app that
+    /// declares nothing, which is a `nil` here. A name this build does not know is an
+    /// error rather than a row dropped on the floor.
+    private func declaredCategories(entry: Index.Entry, input: JSONValue) throws -> [ConsentCategory]? {
+        guard let declared = input["consentCategories"] else {
+            return ConsentCategory.allCases
+        }
+        guard let names = declared.arrayValue else {
+            if declared.isNull { return nil }
+            throw Failure.unsupported(fixture: entry.id, detail: "input.consentCategories is neither a list nor null")
+        }
+        return try names.map { name in
+            guard let raw = name.stringValue, let category = ConsentCategory(rawValue: raw) else {
+                throw Failure.unsupported(
+                    fixture: entry.id,
+                    detail: "input.consentCategories names \(render(name)), which is not a category"
+                )
+            }
+            return category
+        }
     }
 
     // MARK: - Stored envelopes

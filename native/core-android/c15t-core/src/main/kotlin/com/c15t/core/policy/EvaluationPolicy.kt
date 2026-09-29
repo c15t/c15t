@@ -73,4 +73,22 @@ data class EvaluationPolicy(
 	 * answer it used to give until the next `/init` serves the real one.
 	 */
 	val noticeFingerprint: String = choiceFingerprint,
-)
+) {
+	/**
+	 * The categories the choice prompt asks about, in canonical order.
+	 *
+	 * `projectChoiceScope` in `packages/core/src/policy.ts`. A declaration narrows
+	 * [scope]. With nothing declared, a permissive rule asks about none of them,
+	 * since categories outside the choice scope stay allowed there, and a strict
+	 * rule asks about its whole scope, since nothing outside it may run. The
+	 * declaration is counted whole, `necessary` included, the way the kernel
+	 * counts it.
+	 *
+	 * @param declared the categories the host declares, `null` or empty for none.
+	 */
+	fun choiceScope(declared: Collection<ConsentCategory>?): List<ConsentCategory> = when {
+		!declared.isNullOrEmpty() -> scope.filter { it in declared }
+		scopeMode == ScopeMode.PERMISSIVE -> emptyList()
+		else -> scope
+	}
+}

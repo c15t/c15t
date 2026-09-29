@@ -16,8 +16,9 @@ import com.c15t.core.transport.C15tProtocol
  * same-origin proxy.
  * @property domain Value sent as the `domain` field of `POST /subjects`. Defaults
  * to the host of [portalUrl].
- * @property consentCategories Categories the host offers. `null` uses the full
- * policy scope.
+ * @property consentCategories Categories the host offers. `null` or empty declares
+ * none: a strict policy offers its full scope and a permissive one offers
+ * `necessary` alone, with an acknowledgement prompt.
  * @property vendors Vendor ids this deployment may disclose, or `null` for no
  * declaration. The Android twin of `iab.vendors` on web.
  *
