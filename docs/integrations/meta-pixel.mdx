@@ -1,10 +1,14 @@
 ---
 title: Meta Pixel
-description: Register the Meta Pixel under marketing permission and verify event calls after revocation.
+description: Load the Meta Pixel only after marketing consent with the c15t metaPixel helper, guard fbq event calls, and check it in DevTools.
 group: integrations
 ---
 
-## Register the pixel
+## Configure the Meta Pixel
+
+Copy the pixel ID from Meta Events Manager. Remove the original pixel snippet,
+its `<noscript>` tracking image and any tag-manager entry that loads the same
+pixel.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
@@ -14,20 +18,57 @@ import { metaPixel } from '@c15t/integrations/meta-pixel';
 export const scripts = [metaPixel({ pixelId: '123456789012345' })];
 ```
 
-Replace the pixel ID and pass `scripts` to your existing provider or core script
-loader. The helper uses the `marketing` category. Remove the original pixel
-snippet, including a separately installed tracking image or tag-manager entry.
-
 <include src="../shared/integrations/register-scripts.mdx" />
 
-## Keep event calls behind permission
+## Options
 
-Initialization and later application events are separate responsibilities. If
-application code calls `fbq` directly, check effective marketing permission
-before each optional event and ensure the API is available. Do not assume a
-function still present on `window` means the visitor still permits tracking.
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `pixelId` | Required | Pixel ID passed to `fbq('init', ...)`. |
+| `initOptions` | None | Object passed as the third argument to `fbq('init', ...)`. |
+| `trackPageView` | `true` | Queues `fbq('track', 'PageView')` after `init`. Set `false` to send page views yourself. |
+| `dataProcessingOptions` | None | `{ options, country?, state? }`. Queues `fbq('dataProcessingOptions', ...)` before `init`, for example `{ options: ['LDU'], country: 1, state: 1000 }` for Limited Data Use in California. |
+| `scriptSrc` | `https://connect.facebook.net/en_US/fbevents.js` | Loader URL override. |
 
-For an opt-in policy, verify no pixel script or collection request occurs before
-permission or after rejection. Grant permission, send a test event, revoke and
-confirm future application events stop. Check navigation for duplicate page
-views. See [verification](/docs/guides/verify-consent).
+## Loading and revocation
+
+`metaPixel` uses the `marketing` category. Before marketing is allowed, c15t
+defines no `fbq` function and loads nothing from Meta. When marketing becomes
+allowed, the helper queues `fbq('consent', 'grant')`, the optional data
+processing options, `init` and `PageView`, then loads `fbevents.js`.
+
+On revocation the helper keeps the pixel script and calls
+`fbq('consent', 'revoke')`. If the visitor allows marketing again before the
+page reloads, it calls `fbq('consent', 'grant')`.
+
+## Guard your own fbq calls
+
+The helper sends the pixel's page view. Events your code sends, such as
+`Purchase` or `Lead`, need their own check. After revocation `window.fbq` still
+exists, so its presence does not mean marketing is allowed. Check the
+permission first, then that the pixel has loaded:
+
+```ts title="src/track-purchase.ts"
+export function trackPurchase(marketingAllowed: boolean, value: number) {
+  if (!marketingAllowed || typeof window.fbq !== 'function') return;
+  window.fbq('track', 'Purchase', { currency: 'USD', value });
+}
+```
+
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. `@c15t/scripts/meta-pixel` also exports
+typed wrappers: `metaPixelEvent`, `metaPixelCustomEvent`,
+`metaPixelSingleEvent` and `metaPixelSingleCustomEvent`. They call
+`window.fbq` without either check, so apply the same guard before calling them.
+Their last argument accepts an event ID string for Conversions API
+deduplication.
+
+## Verify the Meta Pixel
+
+After you allow marketing, `fbevents.js` loads and a request to
+`facebook.com/tr` carries `ev=PageView`. Trigger one guarded event and check
+that its `tr` request appears. Then revoke marketing. Before the reload,
+calling `trackPurchase` sends nothing. With client-side navigation, check that
+each route change sends one page view, not two.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

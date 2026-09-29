@@ -1,42 +1,54 @@
 ---
 title: Adobe Analytics
-description: Configure Adobe Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load an Adobe Data Collection Tags property only after measurement consent with the c15t adobeAnalytics helper, and check its extensions in DevTools.
 group: integrations
 ---
 
 ## Configure Adobe Analytics
 
-Copy the full HTTPS embed URL for your Adobe Data Collection property environment. Replace the example URL; Adobe does not have a shared Analytics loader that only needs an account ID.
+Copy the full embed URL for your property environment from the Adobe Data
+Collection embed code. Adobe has no shared loader that takes only an account
+ID, so `adobeAnalytics` needs the whole URL. Remove the original embed code.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { adobeAnalytics } from '@c15t/integrations/adobe-analytics';
 
-export const scripts = [adobeAnalytics({
-    scriptUrl: 'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js',
-  })];
+export const scripts = [
+  adobeAnalytics({
+    scriptUrl:
+      'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js',
+  }),
+];
 ```
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `scriptUrl` | Required full HTTPS property embed URL. Invalid or non-HTTPS URLs throw. |
-| `async` | Defaults to `true`. |
-| `seedAdobeDataLayer` | Defaults to `true`. Creates `window.adobeDataLayer` only if absent. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `scriptUrl` | Required | Full `https:` embed URL of the Tags property environment. Self-hosted embeds work. The helper trims the value. Empty, unparseable and non-`https:` URLs throw. |
+| `async` | `true` | Loads the Tags library asynchronously. Set `false` only for a legacy synchronous deployment. |
+| `seedAdobeDataLayer` | `true` | Sets `window.adobeDataLayer` to an empty array before the library loads, only when the global is undefined. |
 
-## Consent behavior
+## Loading and revocation
 
-Measurement permission gates the property loader. Rules and extensions inside the Adobe property may load other services. Review those destinations and their purposes too; this helper does not assign separate consent categories to individual Adobe rules.
+`adobeAnalytics` uses the `measurement` category. The property embed loads
+only while measurement is allowed. On revocation the helper removes the script
+element and calls no Adobe API.
 
-## Verify the integration
+The property can load Adobe Analytics, Web SDK and other extensions through its
+rules. c15t sees only the embed script, so every extension runs under the one
+measurement permission. If a rule loads a service with another purpose, such
+as advertising, configure that rule in Adobe to respect your consent model too.
 
-Confirm the environment URL is correct and inspect requests from every enabled extension. Check that revoking permission stops application data-layer events; the helper does not call an Adobe shutdown API.
+## Verify Adobe Analytics
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+After you allow measurement, the request for your embed URL appears, then the
+requests from the extensions the property enables. `window._satellite` exists
+once the Tags library runs. Check that each extension's requests match the
+measurement purpose.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

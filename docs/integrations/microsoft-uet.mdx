@@ -1,12 +1,14 @@
 ---
 title: Microsoft UET
-description: Configure Microsoft UET with c15t v3, understand marketing permission and verify loading and revocation.
+description: Load Microsoft Advertising UET on every page with the c15t microsoftUet helper, send ad_storage consent defaults and updates, and verify both in DevTools.
 group: integrations
 ---
 
 ## Configure Microsoft UET
 
-Use your Microsoft Advertising UET tag ID. The helper owns the `uetq` queue and enables automatic SPA tracking when it constructs UET.
+Copy your UET tag ID from Microsoft Advertising. Remove the UET snippet and
+any tag-manager entry that loads the same tag, because the helper creates the
+`uetq` queue and constructs UET itself.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
@@ -20,20 +22,40 @@ export const scripts = [microsoftUet({ id: 'YOUR_UET_TAG_ID' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `id` | Required UET tag ID. |
-| `scriptSrc` | Optional loader override. Defaults to `//bat.bing.com/bat.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `id` | Required | UET tag ID, passed to UET as `ti`. |
+| `scriptSrc` | `//bat.bing.com/bat.js` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-UET loads even when marketing permission is denied. The helper queues an `ad_storage` consent default before loading, sends updates on permission changes, and retains UET after revocation. It queues `pageLoad` after initialization. This is consent signaling, not a zero-request gate.
+`microsoftUet` uses the `marketing` category and `alwaysLoad`, so `bat.js`
+loads on every page whether or not marketing is allowed. Before the script
+loads, the helper calls `uetq.push('consent', 'default', { ad_storage })` with
+`granted` or `denied` from the current marketing permission. After `bat.js`
+loads, it constructs UET with `enableAutoSpaTracking: true` and pushes
+`pageLoad`. This is consent signaling, not a request gate. Microsoft's consent
+mode decides what UET does while `ad_storage` is denied.
 
-## Verify the integration
+The helper never removes UET. When marketing changes, it calls
+`uetq.push('consent', 'update', { ad_storage })` with the new value. Automatic
+SPA tracking sends page loads on client-side navigation, so do not push
+`pageLoad` from your router.
 
-Expect the script request before consent. Check default and update commands, page-load events, and SPA navigation. Do not install a second UET tag through a tag manager.
+## Verify Microsoft UET
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`marketing`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+1. In a private window with an opt-in policy, load the page. The `bat.js`
+   request goes to `bat.bing.com` before you choose, and UET sends its page
+   load.
+2. Click Reject, then reload. `bat.js` still loads, and the page starts with
+   `ad_storage` denied.
+3. Open Privacy settings and allow marketing. No second `bat.js` request
+   appears, because the helper sends a consent update to the running tag
+   instead of reloading it.
+4. Navigate to another route in a single-page app. UET sends one page load for
+   the route change, not two.
+5. Turn marketing off again and save. c15t reloads the page, and the new page
+   starts with `ad_storage` denied.
+
+See the [consent verification guide](/docs/guides/verify-consent) for
+navigation and hosting checks.

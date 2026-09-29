@@ -1,12 +1,12 @@
 ---
 title: Reddit Pixel
-description: Configure Reddit Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+description: Load the Reddit Pixel only after marketing consent with the c15t redditPixel helper, guard rdt conversion calls, and check it in DevTools.
 group: integrations
 ---
 
-## Configure Reddit Pixel
+## Configure the Reddit Pixel
 
-Use your Reddit Pixel ID. The helper initializes `rdt` and queues `PageVisit` by default.
+Copy your Reddit Pixel ID. The helper passes it to `rdt('init', ...)`.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
@@ -20,23 +20,56 @@ export const scripts = [redditPixel({ pixelId: 't2_YOUR_PIXEL_ID' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `pixelId` | Required Reddit Pixel ID. |
-| `trackPageVisit` | Defaults to `true`. |
-| `initOptions` | Optional Reddit initialization and matching settings. |
-| `disableFirstPartyCookies` | Merged into the initialization options when supplied. |
-| `scriptUrl` | Defaults to `https://www.redditstatic.com/ads/pixel.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `pixelId` | Required | Pixel ID passed to `rdt('init', ...)`. |
+| `trackPageVisit` | `true` | Queues `rdt('track', 'PageVisit')` after `init`. Set `false` to send page visits yourself. |
+| `initOptions` | None | Object passed as the third argument to `rdt('init', ...)`. It accepts Reddit's matching fields, such as `email` and `externalId`, `aam` for automatic advanced matching, `optOut`, and the Limited Data Use fields `dpm`, `dpcc` and `dprc`. |
+| `disableFirstPartyCookies` | None | When set, overrides `initOptions.disableFirstPartyCookies`. |
+| `scriptUrl` | `https://www.redditstatic.com/ads/pixel.js` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-The first load waits for marketing permission. The helper retains the pixel after revocation and calls `disableFirstPartyCookies`; a later grant calls `enableFirstPartyCookies`. Disabling cookies does not stop all events. `redditPixelEvent` checks API availability, not consent.
+`redditPixel` uses the `marketing` category. Before marketing is allowed, c15t
+defines no `rdt` function and loads nothing from Reddit. When marketing becomes
+allowed, the helper queues `init` and `PageVisit`, then loads `pixel.js`.
 
-## Verify the integration
+On revocation the helper keeps the pixel and calls
+`rdt('disableFirstPartyCookies')`. If the visitor allows marketing again before
+the page reloads, it calls `rdt('enableFirstPartyCookies')`. Disabling cookies
+does not stop the pixel from sending events, so the reload and your own guard
+are what stop tracking.
 
-Inspect the initial PageVisit and verify cookie commands on revocation. Stop application conversion calls when marketing is denied, even if `rdt` remains callable.
+## Guard your own rdt calls
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`marketing`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+The helper sends the page visit. Conversions your code sends, such as
+`Purchase` or `Lead`, need their own check. After revocation `window.rdt` still
+exists, so its presence does not mean marketing is allowed. Check the
+permission first, then that the pixel has loaded:
+
+```ts title="src/track-purchase.ts"
+export function trackPurchase(marketingAllowed: boolean, orderId: string) {
+  if (!marketingAllowed || typeof window.rdt !== 'function') return;
+  window.rdt('track', 'Purchase', {
+    conversionId: orderId,
+    currency: 'USD',
+    value: 99.99,
+  });
+}
+```
+
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. Set `conversionId` to deduplicate against
+the Conversions API. `@c15t/scripts/reddit-pixel` also exports
+`redditPixelEvent`, a typed wrapper around `rdt('track', ...)`. It does nothing
+until `rdt` exists and does not check permission, so apply the same guard
+before calling it.
+
+## Verify the Reddit Pixel
+
+After you allow marketing, `pixel.js` loads from `www.redditstatic.com` and the
+pixel sends one `PageVisit`. Trigger one guarded event and check that its
+request appears. Then revoke marketing. Until the page reloads, calling
+`trackPurchase` sends nothing.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -1,12 +1,13 @@
 ---
 title: X Pixel
-description: Configure X Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+description: Load the X Pixel only after marketing consent with the c15t xPixel helper, guard twq conversion events, and check it in DevTools.
 group: integrations
 ---
 
-## Configure X Pixel
+## Configure the X Pixel
 
-Use your X Pixel ID. The helper configures `twq` and loads the pixel SDK. Event conversion IDs are separate from the pixel ID.
+Copy your X Pixel ID. The helper passes it to `twq('config', ...)`. Conversion
+event IDs, which look like `tw-xxxx-xxxx`, are separate from the pixel ID.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
@@ -20,20 +21,50 @@ export const scripts = [xPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `pixelId` | Required X Pixel ID. |
-| `scriptSrc` | Defaults to `https://static.ads-twitter.com/uwt.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `pixelId` | Required | Pixel ID passed to `twq('config', ...)`. |
+| `scriptSrc` | `https://static.ads-twitter.com/uwt.js` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-Marketing permission gates the loader. The helper has no vendor revocation callback. `xPixelEvent` throws when `twq` is unavailable, but an available `twq` does not prove current consent.
+`xPixel` uses the `marketing` category. Before marketing is allowed, c15t
+defines no `twq` function and loads nothing from X. When marketing becomes
+allowed, the helper queues `twq('config', pixelId)`, then loads `uwt.js`.
 
-## Verify the integration
+On revocation the helper removes the script element and calls no X API. X
+exposes no consent update call, so the page reload is what stops the pixel.
+`window.twq` stays defined until then.
 
-Call conversion events only after both permission and SDK readiness. Confirm a fresh rejection prevents the loader and that future conversion calls stop after revocation.
+## Guard your own twq calls
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`marketing`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+Conversion events come from your code, and each one needs its own check.
+After revocation `window.twq` still exists, so its presence does not mean
+marketing is allowed. Check the permission first, then that the pixel has
+loaded:
+
+```ts title="src/track-purchase.ts"
+export function trackPurchase(marketingAllowed: boolean, orderId: string) {
+  if (!marketingAllowed || typeof window.twq !== 'function') return;
+  window.twq('event', 'tw-xxxx-xxxx', {
+    conversion_id: orderId,
+    currency: 'USD',
+    value: 99.99,
+  });
+}
+```
+
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. Set `conversion_id` to deduplicate the
+event. `@c15t/scripts/x-pixel` also exports `xPixelEvent`, a typed wrapper
+around `twq('event', ...)`. `xPixelEvent` throws when `twq` is not defined,
+which is the case before marketing is first allowed. It does not check
+permission, so apply the same guard before calling it.
+
+## Verify the X Pixel
+
+After you allow marketing, `uwt.js` loads from `static.ads-twitter.com`.
+Trigger one guarded event and check that its request to X appears. Then revoke
+marketing. Until the page reloads, calling `trackPurchase` sends nothing.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

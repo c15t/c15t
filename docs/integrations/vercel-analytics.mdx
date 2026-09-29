@@ -1,41 +1,54 @@
 ---
 title: Vercel Analytics
-description: Configure Vercel Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load the Vercel Web Analytics script only after measurement consent with the c15t vercelAnalytics helper, choose the debug script, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Vercel Analytics
 
-Enable Web Analytics for the target project and remove an existing Analytics component or script installation. If your deployment requires a DSN or custom endpoint, pass those explicitly.
+Enable Web Analytics for the project in Vercel. Remove the `Analytics`
+component or `inject()` call from `@vercel/analytics` so c15t loads the
+script once.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { vercelAnalytics } from '@c15t/integrations/vercel-analytics';
 
-export const scripts = [vercelAnalytics({ disableAutoTrack: false })];
+export const scripts = [vercelAnalytics()];
 ```
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `dsn` | Optional project DSN for non-Vercel or self-hosted deployments. |
-| `disableAutoTrack` | Set `true` when application code owns page-view events. |
-| `mode / debug` | `development` or `debug: true` selects the debug script. `auto` does not infer your build environment. |
-| `endpoint / scriptUrl` | Optional collection endpoint and loader overrides. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `dsn` | None | Project DSN for deployments outside Vercel, set as `data-dsn`. |
+| `disableAutoTrack` | None | `true` sets `data-disable-auto-track="1"` and stops automatic page views. |
+| `mode` | None | `'development'` loads the debug script. `'auto'` and `'production'` load the production script. The helper does not detect your environment. |
+| `debug` | None | `true` loads `https://va.vercel-scripts.com/v1/script.debug.js`. |
+| `endpoint` | None | Custom ingestion endpoint, set as `data-endpoint`. |
+| `scriptUrl` | `https://va.vercel-scripts.com/v1/script.js` | Loader URL override. Takes precedence over `mode` and `debug`. |
 
-## Consent behavior
+The helper also sets `data-sdkn="c15t"` on the script element.
 
-The tracker waits for measurement permission. The helper uses the hosted Vercel script by default and does not supply a vendor shutdown callback after revocation.
+## Loading and revocation
 
-## Verify the integration
+`vercelAnalytics` uses the `measurement` category. When measurement becomes
+allowed, the helper defines the `window.vaq` queue and a `window.va` stub,
+unless they exist, then loads the script. Calls to `window.va` made before the
+script finishes loading wait in `window.vaq`.
 
-Confirm the production or debug loader URL, the project destination, and one page view per navigation. A local debug request is not proof that production analytics is configured.
+On revocation the helper removes the script element and calls no Vercel API.
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+## Verify Vercel Analytics
+
+After you allow measurement, `script.js` loads from `va.vercel-scripts.com`
+with `data-sdkn="c15t"`, and each client-side navigation sends one page view.
+With `debug` or `mode: 'development'` the helper loads `script.debug.js`
+instead, so a working debug build does not prove your production settings.
+After revocation `window.va` still exists, so if your code sends custom events
+through it, check measurement permission before each call.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -1,43 +1,66 @@
 ---
 title: Mixpanel
-description: Configure Mixpanel with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Mixpanel
 
-Replace the example with your 32-character hexadecimal Mixpanel project token. The helper initializes the default Mixpanel instance; named instances and `people.*` queue helpers are outside its contract.
+Copy the 32-character project token from your Mixpanel installation snippet,
+where it is passed to `mixpanel.init`. Remove that snippet.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { mixpanelAnalytics } from '@c15t/integrations/mixpanel-analytics';
 
-export const scripts = [mixpanelAnalytics({
+export const scripts = [
+  mixpanelAnalytics({
     token: '0123456789abcdef0123456789abcdef',
     initOptions: { opt_out_tracking_by_default: true },
-  })];
+  }),
+];
 ```
+
+Mixpanel initializes as soon as its SDK loads, before the helper's first
+opt-in or opt-out call. `opt_out_tracking_by_default` starts a visitor who has
+not opted in as opted out, so nothing is tracked during that gap. That
+includes `track` calls your code queued before the SDK loaded, which replay
+during initialization.
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `token` | Required 32-character hexadecimal project token. |
-| `initOptions` | Optional JSON-serializable SDK options. This example starts tracking opted out during initialization. |
-| `scriptUrl` | Optional loader override. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `token` | Required | 32-character hexadecimal project token. Surrounding whitespace is trimmed; any other value throws. |
+| `initOptions` | `{}` | Mixpanel config passed to `init`. Use JSON-serializable values only. |
+| `scriptUrl` | `https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-This helper sets `alwaysLoad: true`: Mixpanel is requested even while measurement is denied. It calls `opt_in_tracking` or `opt_out_tracking` after loading and on permission changes. The example uses [Mixpanel's default opt-out setting](https://docs.mixpanel.com/docs/tracking-methods/sdks/javascript) to cover SDK initialization. This is not a no-request-before-consent setup.
+`mixpanelAnalytics` uses the `measurement` category with `alwaysLoad`, so the
+Mixpanel SDK loads on every page, before any choice. When the SDK loads, the
+helper calls `mixpanel.opt_in_tracking()` if measurement is allowed and
+`mixpanel.opt_out_tracking()` if not. It calls the matching method again on
+each later consent change. The SDK stays on the page after revocation.
 
-## Verify the integration
+Before the SDK loads, the helper queues `track`, `identify`, `reset`,
+`register`, `opt_in_tracking` and `opt_out_tracking` on the default instance.
+Named instances and `people.*` calls are not queued.
 
-Expect a loader request before permission. Check that tracking starts only when allowed, that revocation calls opt-out, and that your own `track` calls stop. Remove any separately initialized Mixpanel SDK.
+## Verify Mixpanel
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+1. In a private window with an opt-in policy, load the page. The request to
+   `cdn.mxpnl.com` appears before you choose. In the console,
+   `mixpanel.has_opted_out_tracking()` returns `true`.
+2. Click Reject, then reload. The SDK loads again and still reports opted
+   out. Call `mixpanel.track('Test')`; no tracking request goes to Mixpanel.
+3. Open Privacy settings and allow measurement. Without a reload,
+   `has_opted_out_tracking()` returns `false` and tracking requests appear.
+4. Turn measurement off again and save. c15t reloads the page, and the new
+   page loads the SDK opted out.
+
+See the [consent verification guide](/docs/guides/verify-consent) for
+navigation and hosting checks.

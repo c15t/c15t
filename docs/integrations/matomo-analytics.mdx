@@ -1,13 +1,14 @@
 ---
 title: Matomo Analytics
-description: Choose gated loading or Matomo consent signaling and configure the correct tracker endpoints.
+description: Load Matomo after measurement consent with the c15t matomoAnalytics helper, or use Matomo's own consent mode, and check each mode in DevTools.
 group: integrations
 ---
 
-## Configure Matomo
+## Configure Matomo Analytics
 
-Use the site ID and base URL from your Matomo installation. This setup waits
-for measurement permission before requesting `matomo.js`.
+Copy the site ID and your Matomo URL from the Matomo tracking code. For Matomo
+Cloud, pass `cloudId`, for example `'your-site.matomo.cloud'`, instead of
+`matomoUrl`.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
@@ -16,49 +17,64 @@ import { matomoAnalytics } from '@c15t/integrations/matomo-analytics';
 
 export const scripts = [
   matomoAnalytics({
-    siteId: 1,
     matomoUrl: 'https://analytics.example.com',
+    siteId: 1,
   }),
 ];
 ```
 
-Replace the base URL and site ID. For Matomo Cloud, use
-`cloudId: 'your-site.matomo.cloud'` instead of `matomoUrl`.
-
 <include src="../shared/integrations/register-scripts.mdx" />
-
-## Choose the loading mode
-
-| `defaultConsent` | Initial load | Later changes |
-| --- | --- | --- |
-| Omitted | Waits for measurement permission | Removes the script on revocation; no Matomo consent callback |
-| `'required'` | Loads immediately with `requireConsent` | Signals `setConsentGiven` and `forgetConsentGiven`; keeps the SDK loaded |
-| `'given'` | Loads immediately with an initial grant | Signals later changes; keeps the SDK loaded |
-
-Set `defaultConsent: 'required'` only when you intend the SDK to load before
-permission and let Matomo control tracking. Do not select `'given'` to make an
-opt-in setup start tracking before the visitor's choice. Matomo distinguishes
-[tracking consent from cookie consent](https://developer.matomo.org/guides/tracking-consent).
-
-With the default gated mode, removing the script does not stop a tracker that
-has already executed. Add a vendor stop strategy if later denial must stop all
-automatic tracking, or deliberately use Matomo's consent-signaling mode.
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `siteId` | Defaults to `1`. Use your actual site ID. |
-| `matomoUrl / cloudId` | Base URL or Cloud identifier used to derive `matomo.js` and `matomo.php`. |
-| `trackerUrl / scriptUrl` | Explicit endpoint overrides. Both are required if no base or Cloud ID is supplied. |
-| `trackPageView` | Defaults to `true`. In required-consent mode, page views are queued on grants. |
-| `enableLinkTracking` | Defaults to `false`. |
-| `disableCookies` | Defaults to `false`; cookie disabling does not select a loading mode. |
-| `defaultConsent` | Omitted by default. `'required'` and `'given'` enable consent signaling. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `matomoUrl` | None | Self-hosted Matomo base URL. The helper loads `<matomoUrl>/matomo.js` and sends hits to `<matomoUrl>/matomo.php`. |
+| `cloudId` | None | Matomo Cloud ID, used when `matomoUrl` is not set. A value ending in `.matomo.cloud` becomes `https://<cloudId>`. Any other value becomes `https://cdn.matomo.cloud/<cloudId>`. |
+| `trackerUrl` | `matomo.php` on the Matomo origin | Tracker endpoint override. |
+| `scriptUrl` | `matomo.js` on the Matomo origin | Loader URL override. Without `matomoUrl` or `cloudId`, set both `trackerUrl` and `scriptUrl`, or the helper throws. |
+| `siteId` | `1` | Site ID queued with `setSiteId`. |
+| `trackPageView` | `true` | Queues `trackPageView`. The table below shows when. |
+| `enableLinkTracking` | `false` | Queues `enableLinkTracking`. |
+| `disableCookies` | `false` | Queues `disableCookies`. It does not change when Matomo loads. |
+| `defaultConsent` | None | `'required'` or `'given'` switches to Matomo consent mode. |
 
-## Verify the integration
+## Loading and revocation
 
-Check both the script and collection endpoints, especially with Cloud or proxy
-configuration. Test the chosen mode in a fresh session, grant measurement,
-revoke it, and inspect subsequent events. Check page-view counts during
-navigation and renewed grants. See [consent verification](/docs/guides/verify-consent).
+`matomoAnalytics` uses the `measurement` category. `defaultConsent` picks the
+mode:
+
+| `defaultConsent` | Loads | When measurement is allowed | On revocation |
+| --- | --- | --- | --- |
+| Omitted | After measurement is allowed, with `trackPageView` queued | Loads `matomo.js` | Removes the script element and calls no Matomo API |
+| `'required'` | On every page, with `requireConsent` queued | Queues `setConsentGiven` and `trackPageView` | Keeps the script and queues `forgetConsentGiven` |
+| `'given'` | On every page, with `setConsentGiven` and `trackPageView` queued | Queues `setConsentGiven` and `trackPageView` | Keeps the script and queues `forgetConsentGiven` |
+
+In `'required'` mode Matomo holds tracking until `setConsentGiven`. `'given'`
+queues `setConsentGiven` and a page view on every page load before the helper
+checks c15t, including for a visitor who rejected measurement. Use `'given'`
+only when your policy lets Matomo track without a choice. In both consent
+modes, each consent change while measurement is allowed queues another
+`trackPageView`, for example when the visitor later allows marketing. Matomo
+separates
+[tracking consent from cookie consent](https://developer.matomo.org/guides/tracking-consent).
+
+## Verify Matomo Analytics
+
+Without `defaultConsent`, allowing measurement loads `matomo.js`, and a
+`matomo.php` request carries the page view.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
+
+With `defaultConsent: 'required'`, Matomo loads before the choice, so test it
+separately in a private window with an opt-in policy:
+
+1. Load the page. `matomo.js` loads, and no `matomo.php` request follows.
+2. Open Privacy settings and allow measurement. Without a reload, a
+   `matomo.php` request carries the page view.
+3. Turn measurement off and save. c15t reloads the page, and the new page
+   loads `matomo.js` without a `matomo.php` request.
+
+With `'given'`, step 1 already sends a `matomo.php` page view. See the
+[consent verification guide](/docs/guides/verify-consent) for navigation and
+hosting checks.

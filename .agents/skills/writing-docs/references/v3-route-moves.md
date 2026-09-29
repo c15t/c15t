@@ -16,3 +16,4 @@ the old page's task.
 | `/docs/frameworks/next/concepts/policy-presets` | `/docs/concepts/policies` | Merged; the policy diagnostic moved to `/docs/frameworks/next/troubleshooting` |
 | `/docs/frameworks/react/concepts/policy-presets` | `/docs/concepts/policies` | Merged; the policy diagnostic moved to `/docs/frameworks/react/troubleshooting` |
 | `/docs/frameworks/javascript/concepts/policy-presets` | `/docs/concepts/policies` | Merged; the policy diagnostic moved to `/docs/frameworks/javascript/troubleshooting` |
+| `/docs/guides/shared-consent-controls` | `/docs/integrations/existing-cmp` | Renamed to its task, keeping another CMP; the event dispatcher moved to `/docs/integrations/overview` |

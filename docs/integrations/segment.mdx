@@ -1,12 +1,13 @@
 ---
 title: Segment
-description: Configure Segment with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load Segment Analytics.js only after measurement consent with the c15t segment helper, guard your own track and identify calls, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Segment
 
-Copy the browser source write key. The helper prepares the Analytics.js queue and requests the loader for that source.
+Copy the write key of your Segment JavaScript source. The helper builds the
+loader URL from it.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
@@ -20,21 +21,52 @@ export const scripts = [segment({ writeKey: 'YOUR_SOURCE_WRITE_KEY' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `writeKey` | Required non-empty source write key. |
-| `trackPageView` | Defaults to `true`; queues one initial `analytics.page()` call. |
-| `scriptUrl` | Optional full loader override. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `writeKey` | Required | Source write key. Empty or whitespace-only values throw. |
+| `loadOptions` | `{}` | Set as `window.analytics._loadOptions` before the loader runs. Analytics.js reads it on initialization. |
+| `trackPageView` | `true` | Queues one `analytics.page()` call before the loader. Set `false` to send page views yourself. |
+| `scriptUrl` | `https://cdn.segment.com/analytics.js/v1/<writeKey>/analytics.min.js` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-Measurement permission gates Analytics.js. Destinations configured in Segment can have different purposes. A measurement grant does not establish marketing permission for every destination; configure destination consent or use separately gated helpers. There is no Segment shutdown callback in this helper.
+`segment` uses the `measurement` category. Before measurement is allowed, c15t
+defines no `window.analytics` and loads nothing from Segment. When measurement
+becomes allowed, the helper creates the `window.analytics` queue with `track`,
+`page`, `identify`, `group`, `alias` and `reset`, sets the load options,
+queues the page view, then loads Analytics.js. On revocation the helper
+removes the script element and calls no Segment API.
 
-## Verify the integration
+Segment forwards events to every destination enabled on the source. A
+measurement grant does not cover a destination that needs marketing
+permission. Configure destination consent in Segment, or load that vendor with
+its own c15t helper instead.
 
-Check the source and every enabled browser destination. Avoid duplicate page calls from router code, and stop application `track`, `identify` and `page` calls after revocation.
+## Guard your own Segment calls
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+The helper sends the first page view. Calls your code makes, such as `track`
+and `identify`, need their own check. After revocation `window.analytics`
+still exists, so its presence does not mean measurement is allowed. Check the
+permission first, then that the queue exists:
+
+```ts title="src/track-signup.ts"
+export function trackSignup(measurementAllowed: boolean, plan: string) {
+  if (!measurementAllowed || !window.analytics) return;
+  window.analytics.track('Signup', { plan });
+}
+```
+
+Pass the current measurement permission from your framework, for example
+`useConsent('measurement')` in React. Analytics.js sends no page view on
+client-side route changes, so call `window.analytics.page()` from your router
+behind the same check.
+
+## Verify Segment
+
+After you allow measurement, `analytics.min.js` loads from `cdn.segment.com`
+with your write key in the path, and a page call goes to `api.segment.io`.
+Check that each browser destination on the source loads only under the
+permission it needs. Then revoke measurement. Before the reload, calling
+`trackSignup` sends nothing.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

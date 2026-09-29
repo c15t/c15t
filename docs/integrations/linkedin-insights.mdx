@@ -1,12 +1,14 @@
 ---
 title: LinkedIn Insight Tag
-description: Configure LinkedIn Insight Tag with c15t v3, understand marketing permission and verify loading and revocation.
+description: Load the LinkedIn Insight Tag only after marketing consent with the c15t linkedinInsights helper, guard lintrk conversion calls, and check it in DevTools.
 group: integrations
 ---
 
-## Configure LinkedIn Insight Tag
+## Configure the LinkedIn Insight Tag
 
-Use the Insight Tag partner ID from LinkedIn Campaign Manager. The helper sets the partner globals and loads the Insight Tag.
+Copy the partner ID from LinkedIn Campaign Manager under Data, Signals manager,
+Insight Tag. Remove the original Insight Tag snippet and its `<noscript>`
+tracking image.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
@@ -20,20 +22,46 @@ export const scripts = [linkedinInsights({ id: 'YOUR_PARTNER_ID' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `id` | Required Insight Tag partner ID. |
-| `scriptSrc` | Optional loader override. Defaults to LinkedIn's `insight.min.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `id` | Required | Partner ID. The helper sets it as `_linkedin_partner_id` and appends it to `_linkedin_data_partner_ids`. |
+| `scriptSrc` | `https://snap.licdn.com/li.lms-analytics/insight.min.js` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-Marketing permission gates the loader. There is no helper-provided LinkedIn revocation callback. Keep conversion calls behind current marketing permission.
+`linkedinInsights` uses the `marketing` category. Before marketing is allowed,
+c15t sets no LinkedIn globals and loads nothing from LinkedIn. When marketing
+becomes allowed, the helper sets the partner ID globals, defines the `lintrk`
+queue, then loads `insight.min.js`.
 
-## Verify the integration
+On revocation the helper removes the script element and calls no LinkedIn API,
+so the page reload is what stops the tag. `window.lintrk` stays defined until
+then.
 
-Remove the original snippet and any tracking image. Confirm the partner ID and inspect conversion requests after grant, navigation and revocation.
+## Guard your own lintrk calls
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`marketing`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+The Insight Tag tracks page views itself. Conversions your code sends through
+`lintrk('track', ...)` need their own check, because `window.lintrk` still
+exists after revocation. Check the permission first, then that the tag is set
+up:
+
+```ts title="src/track-signup.ts"
+export function trackSignup(marketingAllowed: boolean) {
+  if (!marketingAllowed || typeof window.lintrk !== 'function') return;
+  window.lintrk('track', { conversion_id: 1234567 });
+}
+```
+
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. Use the conversion ID from your LinkedIn
+conversion. `@c15t/scripts/linkedin-insights` exports no event wrapper.
+
+## Verify the LinkedIn Insight Tag
+
+After you allow marketing, `insight.min.js` loads from `snap.licdn.com`, and
+`window._linkedin_data_partner_ids` in the console contains your partner ID.
+Trigger one guarded conversion and check that its request to LinkedIn appears.
+Then revoke marketing. Until the page reloads, calling `trackSignup` sends
+nothing.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

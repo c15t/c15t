@@ -1,40 +1,45 @@
 ---
 title: Cloudflare Web Analytics
-description: Configure Cloudflare Web Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+description: Load the Cloudflare Web Analytics beacon only after measurement consent with the c15t cloudflareWebAnalytics helper, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Cloudflare Web Analytics
 
-Copy the beacon token from the Web Analytics installation snippet. Disable any Cloudflare automatic beacon injection for this site before letting c15t own the script.
+Copy the beacon token from the Web Analytics installation snippet. If
+Cloudflare adds the beacon to this site automatically, turn that off so the
+page has one beacon and c15t controls it.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { cloudflareWebAnalytics } from '@c15t/integrations/cloudflare-web-analytics';
 
-export const scripts = [cloudflareWebAnalytics({ token: 'YOUR_BEACON_TOKEN', spa: true })];
+export const scripts = [cloudflareWebAnalytics({ token: 'YOUR_BEACON_TOKEN' })];
 ```
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `token` | Required non-empty beacon token. |
-| `spa` | Defaults to `true`, included in the `data-cf-beacon` configuration. |
-| `scriptUrl` | Optional loader override. Defaults to `https://static.cloudflareinsights.com/beacon.min.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `token` | Required | Beacon token, written into the `data-cf-beacon` attribute. The helper trims it. Empty values throw. |
+| `spa` | `true` | Written into `data-cf-beacon`. Turns on Cloudflare's route tracking for single-page apps. Set `false` for a site with only full page loads. |
+| `scriptUrl` | `https://static.cloudflareinsights.com/beacon.min.js` | Loader URL override. |
 
-## Consent behavior
+## Loading and revocation
 
-The helper gates the beacon on measurement permission. A cookieless vendor configuration does not bypass that gate. There is no helper-provided shutdown callback for a beacon that has already executed.
+`cloudflareWebAnalytics` uses the `measurement` category. Cloudflare Web
+Analytics sets no cookies, but the helper still waits for measurement
+permission. It loads `beacon.min.js` with `defer`. On revocation the helper
+removes the script element and calls no Cloudflare API.
 
-## Verify the integration
+## Verify Cloudflare Web Analytics
 
-Inspect `data-cf-beacon` and confirm one beacon installation. Navigate between client routes to check SPA tracking and repeat after revocation.
+Filter DevTools Network by `cloudflareinsights.com`. After you allow
+measurement, `beacon.min.js` loads and its script element carries
+`data-cf-beacon` with your token and `"spa":true`. Change route in your app and
+check that the beacon reports the new page.
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`measurement`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
