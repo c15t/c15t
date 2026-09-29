@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { detectFramework } from '../../context/framework-detection';
 import type { CliContext } from '../../context/types';
+import { c15tReleaseSpecifier } from '../../utils/c15t-release';
 import { generateWithoutPrompts } from './non-interactive';
 
 const install = vi.fn();
@@ -215,6 +216,19 @@ describe('noninteractive setup', () => {
 			redacted: true,
 		});
 		expect(await readFile(target, 'utf8')).toBe(secret);
+	});
+	it('installs c15t packages from the release line of the CLI', async () => {
+		const context = await fixture({ apply: true, scripts: 'google-tag' });
+		const release = c15tReleaseSpecifier();
+		const result = await run(context);
+		const pinned = [`c15t@${release}`, `@c15t/scripts@${release}`];
+		expect(result.dependencies).toEqual(pinned);
+		expect(install).toHaveBeenCalledWith(
+			context.projectRoot,
+			pinned,
+			'npm',
+			expect.any(AbortSignal)
+		);
 	});
 	it('restores generated files when dependency installation fails', async () => {
 		install.mockRejectedValueOnce(new Error('installation failed'));

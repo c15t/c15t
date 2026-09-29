@@ -5,6 +5,7 @@
  */
 
 import { UMBRELLA_PACKAGE } from '~/constants';
+import { withC15tRelease } from '~/utils/c15t-release';
 
 import type {
 	FileModification,
@@ -209,7 +210,12 @@ export const addDependencies = function addDependencies({
 	}
 
 	return {
-		dependenciesToAdd: [...new Set([...context.dependenciesToAdd, ...deps])],
+		dependenciesToAdd: [
+			...new Set([
+				...context.dependenciesToAdd,
+				...deps.map((dependency) => withC15tRelease(dependency)),
+			]),
+		],
 	};
 };
 

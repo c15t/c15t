@@ -100,4 +100,22 @@ describe('checkInstalledDependencies', () => {
 
 		expect(result.missing).toEqual(['@c15t/dev-tools']);
 	});
+
+	it('matches pinned requests to installed packages by name', async () => {
+		const root = await createProject({
+			dependencies: { '@c15t/scripts': '3.0.0-alpha.2', c15t: '3.0.0-alpha.3' },
+		});
+
+		const result = await checkInstalledDependencies({
+			dependencies: [
+				'c15t@alpha',
+				'@c15t/scripts@alpha',
+				'@c15t/dev-tools@alpha',
+			],
+			projectRoot: root,
+		});
+
+		expect(result.installed).toEqual(['c15t@alpha', '@c15t/scripts@alpha']);
+		expect(result.missing).toEqual(['@c15t/dev-tools@alpha']);
+	});
 });
