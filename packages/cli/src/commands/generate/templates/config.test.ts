@@ -22,4 +22,12 @@ describe('JavaScript client config', () => {
 			generateClientConfigContent('hosted', 'https://consent.example.com')
 		).toMatchSnapshot();
 	});
+
+	it('offline kernel resolves copy for a language set later', () => {
+		const content = generateClientConfigContent('offline');
+		expect(content).toContain('resolveLocalTranslations');
+		expect(content).toMatch(
+			/translationsFor: \(language\) =>\s+resolveLocalTranslations\(language, undefined\)/u
+		);
+	});
 });

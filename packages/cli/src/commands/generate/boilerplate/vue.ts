@@ -15,14 +15,8 @@ const runtimeSource = function runtimeSource(
 		options.mode === 'hosted'
 			? `const mode = hosted({ url: ${JSON.stringify(options.backendURL)} });`
 			: `// Review this starting policy for your site before deployment.
-const mode: ProviderTransportFactory = Object.assign(
-	(context: Parameters<ProviderTransportFactory>[0]) => createOfflineTransport({
-		translations: context.translations,
-		policyRules: ${DEFAULT_OFFLINE_RULES},
-	}),
-	{ kind: 'offline' as const },
-);`;
-	return `${options.mode === 'hosted' ? "import { hosted } from '@c15t/core';" : "import { createOfflineTransport, type ProviderTransportFactory } from '@c15t/core';"}
+const mode = offline({ policyRules: ${DEFAULT_OFFLINE_RULES} });`;
+	return `${options.mode === 'hosted' ? "import { hosted } from '@c15t/core';" : "import { offline } from '@c15t/core';"}
 import { createConsentRuntime } from '@c15t/core/runtime';
 ${generateScriptsImport(options.scripts)}
 
