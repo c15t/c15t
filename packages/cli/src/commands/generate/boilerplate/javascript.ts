@@ -14,22 +14,14 @@ export const generateJavaScriptBoilerplate = (
 		...(options.scripts.length ? ['@c15t/integrations'] : []),
 	],
 	files: {
-		'consent.ts': `import { ${options.mode === 'hosted' ? 'hosted' : 'createOfflineTransport, type ProviderTransportFactory'} } from '@c15t/core';
+		'consent.ts': `import { ${options.mode === 'hosted' ? 'hosted' : 'offline'} } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 ${generateScriptsImport(options.scripts)}
-${
-	options.mode === 'offline'
-		? `const mode: ProviderTransportFactory = Object.assign(
-	(context: Parameters<ProviderTransportFactory>[0]) => createOfflineTransport({ translations: context.translations, policyRules: ${DEFAULT_OFFLINE_RULES} }),
-	{ kind: 'offline' as const },
-);`
-		: ''
-}
 
 // Call once from your browser entry point. Dispose when the application unmounts.
 export function startConsent() {
 	const runtime = createConsentRuntime({
-		mode: ${options.mode === 'hosted' ? `hosted({ url: ${JSON.stringify(options.backendURL)} })` : 'mode'},
+		mode: ${options.mode === 'hosted' ? `hosted({ url: ${JSON.stringify(options.backendURL)} })` : `offline({ policyRules: ${DEFAULT_OFFLINE_RULES} })`},
 		pkg: '@c15t/core',
 		${options.scripts.length ? `scripts: ${generateScriptsArrayValue(options.scripts, '\t\t')},` : ''}
 	});
