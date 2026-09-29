@@ -128,68 +128,60 @@ describe('normalizeBackendURL', () => {
 		}
 	});
 
-	it('should construct URL from x-forwarded headers', () => {
+	it('should ignore x-forwarded headers by default', () => {
+		const headers = createMockHeaders({
+			host: 'example.com',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
+		});
+
+		const result = normalizeBackendURL('/api/c15t', headers);
+		expect(result).toBe('https://example.com/api/c15t');
+	});
+
+	it('should construct URL from x-forwarded headers when trusted', () => {
 		const headers = createMockHeaders({
 			'x-forwarded-host': 'example.com',
 			'x-forwarded-proto': 'https',
 		});
 
-		const result = normalizeBackendURL('/api/c15t', headers);
+		const result = normalizeBackendURL('/api/c15t', headers, {
+			trustForwardedHeaders: true,
+		});
 		expect(result).toBe('https://example.com/api/c15t');
 	});
 
-	it('should construct URL from x-forwarded headers and trim trailing slashes', () => {
+	it('should construct URL from the host header and trim trailing slashes', () => {
 		const testCases = [
 			{
 				expected: 'https://my-instance.c15t.dev/api/c15t',
-				headers: {
-					'x-forwarded-host': 'my-instance.c15t.dev',
-					'x-forwarded-proto': 'https',
-				},
 				input: '/api/c15t/',
 			},
-			{
-				expected: 'https://example.com/api',
-				headers: {
-					'x-forwarded-host': 'example.com',
-					'x-forwarded-proto': 'https',
-				},
-				input: '/api/',
-			},
+			{ expected: 'https://my-instance.c15t.dev/api', input: '/api/' },
 		];
+		const headers = createMockHeaders({ host: 'my-instance.c15t.dev' });
 
-		for (const { headers: headerData, input, expected } of testCases) {
-			const headers = createMockHeaders(headerData);
-			const result = normalizeBackendURL(input, headers);
-			expect(result).toBe(expected);
+		for (const { input, expected } of testCases) {
+			expect(normalizeBackendURL(input, headers)).toBe(expected);
 		}
 	});
 
-	it('should use host header when x-forwarded-host is not available', () => {
+	it('should use http for a localhost host header', () => {
 		const headers = createMockHeaders({
-			host: 'example.com',
+			host: 'localhost:3000',
 		});
 
 		const result = normalizeBackendURL('/api/c15t', headers);
-		expect(result).toBe('https://example.com/api/c15t');
+		expect(result).toBe('http://localhost:3000/api/c15t');
 	});
 
-	it('should use referer when host headers are not available', () => {
+	it('should not use the referer', () => {
 		const headers = createMockHeaders({
 			referer: 'https://example.com/some/path',
 		});
 
 		const result = normalizeBackendURL('/api/c15t', headers);
-		expect(result).toBe('https://example.com/api/c15t');
-	});
-
-	it('should use referer and trim trailing slashes', () => {
-		const headers = createMockHeaders({
-			referer: 'https://my-instance.c15t.dev/some/path',
-		});
-
-		const result = normalizeBackendURL('/api/c15t/', headers);
-		expect(result).toBe('https://my-instance.c15t.dev/api/c15t');
+		expect(result).toBeNull();
 	});
 
 	it('should return null when no headers are available to determine base URL', () => {

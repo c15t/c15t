@@ -6,8 +6,7 @@ import { fetchSSRData } from './fetch-ssr-data';
 const createRequestHeaders = function createRequestHeaders(): Headers {
 	const headers = new Headers();
 	headers.set('cf-ipcountry', 'US');
-	headers.set('x-forwarded-proto', 'https');
-	headers.set('x-forwarded-host', 'example.com');
+	headers.set('host', 'example.com');
 	return headers;
 };
 
@@ -128,6 +127,23 @@ describe('fetchSSRData', () => {
 			);
 		}
 	);
+
+	it('resolves a relative backendURL against host, not a forged x-forwarded-host', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(createResponse({ categories: [], gvl: null }));
+		vi.stubGlobal('fetch', fetchMock);
+		const headers = createRequestHeaders();
+		headers.set('x-forwarded-host', 'attacker.example');
+		headers.set('x-forwarded-proto', 'http');
+
+		await fetchSSRData({ backendURL: '/api/c15t', headers });
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://example.com/api/c15t/init',
+			expect.any(Object)
+		);
+	});
 
 	it('runs independent fetches for concurrent calls', async () => {
 		const fetchMock = vi
