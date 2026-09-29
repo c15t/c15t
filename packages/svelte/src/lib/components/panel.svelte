@@ -4,6 +4,7 @@
 		defaultTranslationConfig,
 		resolveConsentPresentation,
 	} from '@c15t/core';
+	import { isDialogDismissKey } from '@c15t/ui/primitives';
 	import styles from '@c15t/ui/styles/components/consent-dialog';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
@@ -58,7 +59,10 @@
 		getTextDirection(consent.state.translationConfig?.defaultLanguage)
 	);
 
-	// Open state
+	// Open state. With `open` set the parent owns visibility, as in React:
+	// Escape still asks the consent manager to close (`activeUI` becomes
+	// `'none'`), but the dialog stays until `open` turns false.
+	const controlled = $derived(openProp !== undefined);
 	const isOpen = $derived(
 		consent.state.hasConsentUi &&
 			models.includes(consent.state.model) &&
@@ -146,6 +150,14 @@
 			lastResolvedOpen = false;
 		}
 	});
+
+	const handleControlledDismiss = function handleControlledDismiss(
+		event: KeyboardEvent
+	) {
+		if (controlled && isDialogDismissKey(event.key)) {
+			consent.state.setActiveUI('none');
+		}
+	};
 </script>
 
 {#if triggerProps}
@@ -155,7 +167,7 @@
 <Dialog.Root
 	bind:open={dialogOpen}
 	closeOnInteractOutside={false}
-	closeOnEscape={true}
+	closeOnEscape={!controlled}
 	trapFocus={preferences.blocking}
 	preventScroll={preferences.scrollLock}
 	lazyMount
@@ -182,6 +194,7 @@
 				aria-describedby="consent-dialog-description"
 				data-blocking={preferences.blocking ? 'true' : undefined}
 				data-testid="consent-dialog-root"
+				onkeydown={handleControlledDismiss}
 			>
 				<!-- Card -->
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
