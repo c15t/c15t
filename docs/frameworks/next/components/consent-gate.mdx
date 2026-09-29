@@ -36,10 +36,9 @@ export function ProductVideo() {
 ```
 
 Import `ProductVideo` into any page or Server Component; only this file needs
-`'use client'`. `marketing` must be in your policy scope. If you set a
-non-empty `options.consentCategories` list on `ConsentRoot`, include
-`marketing` there too so the preference center can display and save it.
-`ConsentGate` does not add categories to that list.
+`'use client'`. `marketing` must be in your policy scope. `ConsentGate`
+registers its category when it mounts, so the preference center lists
+Marketing even if you set `options.consentCategories` without it.
 
 `ConsentGate` does not read the clock during server rendering, so a page that
 renders it can still be prerendered, including with `cacheComponents: true`.

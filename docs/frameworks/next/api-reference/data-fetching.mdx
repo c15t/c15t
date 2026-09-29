@@ -276,7 +276,7 @@ that were not detected are `undefined` (for example
 `initialPrivacySignals.gpc` without a `sec-gpc` header), and
 `getServerSideProps` rejects `undefined` values in development. Round-trip the
 result through `JSON.parse(JSON.stringify(result))` before returning it as a
-prop, as `examples/nextjs/pages/pages-router.tsx` does.
+prop, as the [Pages Router guide](/docs/frameworks/next/pages-router#resolve-consent-in-getserversideprops) does.
 
 `createPagesRequestContext(req)` builds the `request` adapter itself. Headers
 are converted to Web `Headers`, and cookies are read from the `cookie` header.

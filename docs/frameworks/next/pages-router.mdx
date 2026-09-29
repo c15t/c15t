@@ -94,7 +94,7 @@ Import `resolveConsent` from `c15t/next/pages` and pass it the `req` from
 <include src="../../shared/examples/nextjs/pages-ssr.mdx" />
 
 The JSON round trip removes `undefined` fields, such as an absent GPC signal,
-because Next.js rejects them in props. The page renders the banner in the
+because `next dev` rejects `undefined` in `getServerSideProps` props. The page renders the banner in the
 server HTML, and the browser applies the same state without an `/init`
 request.
 
