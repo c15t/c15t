@@ -1,9 +1,7 @@
 import { createDevTools } from '@c15t/dev-tools';
 import {
 	applyExperimentAssignment,
-	assignExperimentVariant,
 	createConsentKernel,
-	createExperimentReporting,
 	createHostedTransport,
 	resolveConsentPresentation,
 } from 'c15t';
@@ -13,6 +11,10 @@ import type {
 	ConsentState,
 	PresentationAction,
 } from 'c15t';
+import {
+	assignExperimentVariant,
+	createExperimentReporting,
+} from 'c15t/experiment';
 import { createPersistence } from 'c15t/modules/persistence';
 import { createScriptLoader } from 'c15t/modules/script-loader';
 

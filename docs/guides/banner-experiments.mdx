@@ -388,10 +388,13 @@ experiment: {
 
 `'dataLayer'` pushes `{ event, ...properties }` onto `window.dataLayer`, so a
 GTM container can fire a Custom Event trigger named `c15t_surface_shown` or
-`c15t_choice_recorded` and read the properties as Data Layer Variables.
+`c15t_choice_recorded` and read the properties as Data Layer Variables. GTM
+merges every push into one model, so each push carries every property, set to
+`undefined` when the event has none, and `confirmed` is a comma-separated
+string. A later impression never inherits the previous choice's values.
 `'posthog'` calls `window.posthog.capture(name, properties)`. While PostHog
-is not on the page yet, for example under the loader's `after-consent` mode,
-the events are held and sent in order once it loads. Both targets are no-ops
+is not on the page yet, up to 50 events are held for 30 seconds and sent in
+order once it loads; after that they are dropped. Both targets are no-ops
 during server rendering.
 
 A function gets the camelCase event object. Pass several targets as an array.
@@ -479,12 +482,21 @@ against your own base rate before you start, decide the stop date up front,
 and do not stop early on a good-looking day. Most analytics tools compute the
 significance for you once the two counts are grouped by arm.
 
-The opt-in rate of an arm is the number of `c15t_choice_recorded` events with
-`consent_action: all` divided by the number of `c15t_surface_shown` events
-with the same `experiment_id` and `variant`. Group both counts by those two
-properties and the ratio per group is the metric to compare. Add `surface` to
-the grouping when the dialog runs its own arm, so a choice made in the
-preference center is not counted against the banner impression.
+The opt-in rate of an arm is the number of visitors with a
+`c15t_choice_recorded` event with `consent_action: all`, divided by the number
+of visitors with a `c15t_surface_shown` event with `surface: banner`, both
+grouped by `experiment_id` and `variant`. Count visitors, not events: the
+banner fires an impression on every page it appears on until the visitor
+decides, so a small banner people ignore for a few pages collects more
+impressions than a wall that forces a decision on the first. Use your tool's
+unique-user count (PostHog `distinct_id`, the GA4 client id) for both sides.
+
+The reporting target has to receive impressions from visitors who decline.
+A tool that loads only after consent, such as PostHog under the loader's
+`after-consent` mode, never sees a decliner's impression, so the rate trends
+towards 100% and says nothing about the arm. Load the target independently of
+the consent it measures, or send the events with a function to a first-party
+endpoint.
 
 Under an `opt-out` policy with `prompt: 'notice'`, dismissing the notice
 records no choice, so the rate to compare is `c15t_notice_dismissed` events

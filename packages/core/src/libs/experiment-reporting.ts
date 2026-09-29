@@ -86,12 +86,14 @@ export type ExperimentReportTarget = NonNullable<ConsentExperiment['reportTo']>;
  * Build the report for a `surface:shown` event.
  *
  * @param event - The kernel event.
- * @returns The report, or `null` when no experiment arm is assigned.
+ * @returns The report, or `null` when the event carries no arm.
  */
 export const buildSurfaceShownReport = function buildSurfaceShownReport(
 	event: Extract<KernelEvent, { type: 'surface:shown' }>
 ): ExperimentSurfaceShownReport | null {
-	const experiment = event.experiment ?? event.snapshot.experiment;
+	// Only an arm the banner showed: the kernel leaves `experiment` off
+	// events from visitors who never saw it.
+	const { experiment } = event;
 	if (!experiment) {
 		return null;
 	}
@@ -109,12 +111,14 @@ export const buildSurfaceShownReport = function buildSurfaceShownReport(
  * Build the report for a `choice:recorded` event.
  *
  * @param event - The kernel event.
- * @returns The report, or `null` when no experiment arm is assigned.
+ * @returns The report, or `null` when the event carries no arm.
  */
 export const buildChoiceRecordedReport = function buildChoiceRecordedReport(
 	event: Extract<KernelEvent, { type: 'choice:recorded' }>
 ): ExperimentChoiceRecordedReport | null {
-	const experiment = event.experiment ?? event.snapshot.experiment;
+	// Only an arm the banner showed: the kernel leaves `experiment` off
+	// events from visitors who never saw it.
+	const { experiment } = event;
 	if (!experiment) {
 		return null;
 	}
@@ -138,12 +142,14 @@ export const buildChoiceRecordedReport = function buildChoiceRecordedReport(
  * Build the report for a `notice:dismissed` event.
  *
  * @param event - The kernel event.
- * @returns The report, or `null` when no experiment arm is assigned.
+ * @returns The report, or `null` when the event carries no arm.
  */
 export const buildNoticeDismissedReport = function buildNoticeDismissedReport(
 	event: Extract<KernelEvent, { type: 'notice:dismissed' }>
 ): ExperimentNoticeDismissedReport | null {
-	const experiment = event.experiment ?? event.snapshot.experiment;
+	// Only an arm the banner showed: the kernel leaves `experiment` off
+	// events from visitors who never saw it.
+	const { experiment } = event;
 	if (!experiment) {
 		return null;
 	}
@@ -220,8 +226,27 @@ const reportingWindow = function reportingWindow(): ReportingWindow | null {
 	return window as unknown as ReportingWindow;
 };
 
+/** Every key a data-layer push carries, so each push resets the others. */
+const DATA_LAYER_KEYS = [
+	'experiment_id',
+	'variant',
+	'assigned_by',
+	'surface',
+	'shown_at',
+	'action_at',
+	'consent_action',
+	'confirmed',
+	'time_to_decision_ms',
+] as const;
+
 /**
  * Pushes `{ event, ...properties }` onto `window.dataLayer`. No-op in SSR.
+ *
+ * GTM merges each push into one persistent model, so every push carries
+ * every key: a key the event does not have is `undefined`, which clears
+ * what an earlier c15t push left there. `confirmed` is a comma-separated
+ * string, because GTM merges arrays index by index and a shorter list
+ * would keep the tail of a longer one.
  *
  * @param event - The report event.
  */
@@ -232,15 +257,28 @@ export const dataLayerReporter: ExperimentReporter = function dataLayerReporter(
 	if (!host) {
 		return;
 	}
+	const properties = toExperimentReportProperties(event);
+	const push: Record<string, unknown> = { event: event.name };
+	for (const key of DATA_LAYER_KEYS) {
+		push[key] = properties[key];
+	}
+	if (properties.confirmed) {
+		push.confirmed = properties.confirmed.join(',');
+	}
 	host.dataLayer ||= [];
-	host.dataLayer.push({
-		event: event.name,
-		...toExperimentReportProperties(event),
-	});
+	host.dataLayer.push(push);
 };
 
 /** How often the PostHog reporter checks for a late-loading SDK. */
 const POSTHOG_POLL_MS = 250;
+/**
+ * How long the PostHog reporter waits for the SDK. A visitor who declines
+ * measurement may never load it; after this the held events are dropped
+ * and the poll stops.
+ */
+const POSTHOG_WAIT_MS = 30_000;
+/** Events held while waiting; older ones are dropped past this. */
+const POSTHOG_BUFFER_LIMIT = 50;
 
 /** A PostHog reporter with the disposer for its buffer and poll timer. */
 export interface PosthogReporterHandle {
@@ -252,54 +290,90 @@ export interface PosthogReporterHandle {
 
 /**
  * Build a PostHog reporter with its own buffer. Events captured before
- * `window.posthog.capture` exists are held and sent in order once it
- * appears. `dispose` stops the wait and drops whatever is still held, so a
- * disposed runtime never reports late. No-op in SSR.
+ * `window.posthog.capture` exists are held, up to 50, and sent in order
+ * once it appears. If it has not appeared within 30 seconds the held
+ * events are dropped and the wait ends; the next event starts a new one.
+ * `dispose` stops the wait and drops whatever is still held, so a disposed
+ * runtime never reports late. No-op in SSR.
  *
+ * @param onError - Receives a `capture` that throws for a held event.
+ * Defaults to `console.error`.
  * @returns The reporter and its disposer.
  */
-export const createPosthogReporter =
-	function createPosthogReporter(): PosthogReporterHandle {
-		const buffer: ExperimentReportEvent[] = [];
-		let poll: ReturnType<typeof setInterval> | undefined;
-		const stopPolling = function stopPolling() {
-			if (poll !== undefined) {
-				clearInterval(poll);
-				poll = undefined;
-			}
-		};
-		/** Send every buffered event once `window.posthog.capture` exists. */
-		const flush = function flush(): boolean {
-			const posthog = reportingWindow()?.posthog;
-			if (!posthog?.capture) {
-				return false;
-			}
-			for (const event of buffer.splice(0)) {
-				posthog.capture(event.name, { ...toExperimentReportProperties(event) });
-			}
-			return true;
-		};
-		return {
-			dispose() {
-				stopPolling();
-				buffer.length = 0;
-			},
-			reporter(event) {
-				if (!reportingWindow()) {
-					return;
-				}
-				buffer.push(event);
-				if (flush() || poll !== undefined) {
-					return;
-				}
-				poll = setInterval(() => {
-					if (flush()) {
-						stopPolling();
-					}
-				}, POSTHOG_POLL_MS);
-			},
-		};
+export const createPosthogReporter = function createPosthogReporter(
+	onError: (error: unknown, event: ExperimentReportEvent) => void = (
+		error,
+		event
+	) => {
+		console.error(
+			`c15t experiment: PostHog threw while sending ${event.name}.`,
+			error
+		);
+	}
+): PosthogReporterHandle {
+	const buffer: ExperimentReportEvent[] = [];
+	let poll: ReturnType<typeof setInterval> | undefined;
+	let waitingSince = 0;
+	const stopPolling = function stopPolling() {
+		if (poll !== undefined) {
+			clearInterval(poll);
+			poll = undefined;
+		}
 	};
+	/** Send the held events, one at a time, once `capture` exists. */
+	const flush = function flush(): boolean {
+		const posthog = reportingWindow()?.posthog;
+		if (!posthog?.capture) {
+			return false;
+		}
+		while (buffer.length > 0) {
+			const event = buffer.shift() as ExperimentReportEvent;
+			try {
+				posthog.capture(event.name, { ...toExperimentReportProperties(event) });
+			} catch (error) {
+				try {
+					onError(error, event);
+				} catch {
+					// A failing error handler must not strand the rest.
+				}
+			}
+		}
+		return true;
+	};
+	const tick = function tick() {
+		if (flush()) {
+			stopPolling();
+			return;
+		}
+		if (Date.now() - waitingSince >= POSTHOG_WAIT_MS) {
+			stopPolling();
+			buffer.length = 0;
+		}
+	};
+	return {
+		dispose() {
+			stopPolling();
+			buffer.length = 0;
+		},
+		reporter(event) {
+			if (!reportingWindow()) {
+				return;
+			}
+			buffer.push(event);
+			if (buffer.length > POSTHOG_BUFFER_LIMIT) {
+				buffer.shift();
+			}
+			if (poll !== undefined) {
+				return;
+			}
+			if (flush()) {
+				return;
+			}
+			waitingSince = Date.now();
+			poll = setInterval(tick, POSTHOG_POLL_MS);
+		},
+	};
+};
 
 /**
  * Calls `window.posthog.capture(name, properties)`. While PostHog is not on
@@ -371,6 +445,11 @@ export interface ExperimentReportingOptions {
 	reportTo: ExperimentReportTarget | undefined;
 	/** Receives a reporter's thrown value. Defaults to `console.error`. */
 	onError?: (error: unknown, event: ExperimentReportEvent) => void;
+	/**
+	 * Also report impressions the kernel stamped before this subscription:
+	 * a server-rendered banner can be on screen before reporting attaches.
+	 */
+	replay?: boolean;
 }
 
 /**
@@ -390,17 +469,6 @@ export const createExperimentReporting = function createExperimentReporting(
 	options: ExperimentReportingOptions
 ): Unsubscribe {
 	const disposers: (() => void)[] = [];
-	const reporters = reporterEntries(options.reportTo).map((entry) => {
-		if (entry === 'posthog') {
-			const handle = createPosthogReporter();
-			disposers.push(handle.dispose);
-			return handle.reporter;
-		}
-		return typeof entry === 'function' ? entry : BUILT_IN_REPORTERS[entry];
-	});
-	if (reporters.length === 0) {
-		return () => undefined;
-	}
 	const onError =
 		options.onError ??
 		((error: unknown, event: ExperimentReportEvent) => {
@@ -409,6 +477,17 @@ export const createExperimentReporting = function createExperimentReporting(
 				error
 			);
 		});
+	const reporters = reporterEntries(options.reportTo).map((entry) => {
+		if (entry === 'posthog') {
+			const handle = createPosthogReporter(onError);
+			disposers.push(handle.dispose);
+			return handle.reporter;
+		}
+		return typeof entry === 'function' ? entry : BUILT_IN_REPORTERS[entry];
+	});
+	if (reporters.length === 0) {
+		return () => undefined;
+	}
 	const send = function send(event: ExperimentReportEvent | null) {
 		if (!event) {
 			return;
@@ -436,6 +515,28 @@ export const createExperimentReporting = function createExperimentReporting(
 			send(buildNoticeDismissedReport(event))
 		),
 	];
+	if (options.replay) {
+		// Same rule as the kernel's events: the arm counts once the banner
+		// has shown it, and the dialog only after the banner.
+		const snapshot = options.kernel.getSnapshot();
+		const { experiment, surfaceShownAt } = snapshot;
+		if (experiment && surfaceShownAt.banner !== null) {
+			for (const surface of ['banner', 'dialog'] as const) {
+				const shownAt = surfaceShownAt[surface];
+				if (shownAt !== null) {
+					send(
+						buildSurfaceShownReport({
+							experiment,
+							shownAt,
+							snapshot,
+							surface,
+							type: 'surface:shown',
+						})
+					);
+				}
+			}
+		}
+	}
 	return () => {
 		for (const dispose of subscriptions) {
 			dispose();

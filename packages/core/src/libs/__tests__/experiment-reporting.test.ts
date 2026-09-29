@@ -97,6 +97,20 @@ afterEach(() => {
 });
 
 describe('build reports', () => {
+	it('reports only the arm the event carries, never the snapshot arm', () => {
+		// The kernel leaves `experiment` off an event from a visitor who never
+		// saw the arm's banner, even while the snapshot holds the arm.
+		const event = shown(null);
+		const withSnapshotArm = { ...event, snapshot: snapshot(assignment) };
+		expect(buildSurfaceShownReport(withSnapshotArm)).toBeNull();
+		expect(
+			buildChoiceRecordedReport({
+				...recorded(null),
+				snapshot: snapshot(assignment),
+			})
+		).toBeNull();
+	});
+
 	it('reports a notice dismissal as the outcome of an opt-out arm', () => {
 		expect(buildNoticeDismissedReport(dismissed(assignment))).toEqual({
 			actionAt: 1800,
@@ -167,7 +181,7 @@ describe('dataLayer reporter', () => {
 			{
 				action_at: 1500,
 				assigned_by: 'host',
-				confirmed: ['marketing', 'measurement'],
+				confirmed: 'marketing,measurement',
 				consent_action: 'all',
 				event: 'c15t_choice_recorded',
 				experiment_id: 'banner-shape',
@@ -176,6 +190,21 @@ describe('dataLayer reporter', () => {
 				variant: 'bar',
 			},
 		]);
+	});
+
+	it('resets every key on each push, so GTM does not carry a choice into the next impression', () => {
+		const host = window as ReportingWindow;
+		dataLayerReporter(
+			buildChoiceRecordedReport(recorded(assignment)) as ExperimentReportEvent
+		);
+		dataLayerReporter(
+			buildSurfaceShownReport(shown(assignment)) as ExperimentReportEvent
+		);
+		const impression = host.dataLayer?.[1] as Record<string, unknown>;
+		for (const key of ['consent_action', 'confirmed', 'time_to_decision_ms']) {
+			expect(impression).toHaveProperty(key);
+			expect(impression[key]).toBeUndefined();
+		}
 	});
 
 	it('appends to an existing dataLayer', () => {
@@ -261,7 +290,76 @@ describe('createPosthogReporter', () => {
 	});
 });
 
+describe('createPosthogReporter limits', () => {
+	it('stops waiting for PostHog after 30 seconds and drops what it held', () => {
+		vi.useFakeTimers();
+		try {
+			const handle = createPosthogReporter();
+			handle.reporter(
+				buildSurfaceShownReport(shown(assignment)) as ExperimentReportEvent
+			);
+			vi.advanceTimersByTime(30_250);
+			const capture = vi.fn();
+			(window as ReportingWindow).posthog = { capture };
+			vi.advanceTimersByTime(1000);
+			expect(capture).not.toHaveBeenCalled();
+			expect(vi.getTimerCount()).toBe(0);
+			handle.dispose();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('keeps sending held events when capture throws for one', () => {
+		vi.useFakeTimers();
+		try {
+			const onError = vi.fn();
+			const handle = createPosthogReporter(onError);
+			const event = buildSurfaceShownReport(
+				shown(assignment)
+			) as ExperimentReportEvent;
+			handle.reporter(event);
+			handle.reporter(event);
+			const capture = vi
+				.fn()
+				.mockImplementationOnce(() => {
+					throw new Error('posthog down');
+				})
+				.mockImplementation(() => undefined);
+			(window as ReportingWindow).posthog = { capture };
+			vi.advanceTimersByTime(250);
+			expect(capture).toHaveBeenCalledTimes(2);
+			expect(onError).toHaveBeenCalledOnce();
+			handle.dispose();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});
+
 describe('createExperimentReporting', () => {
+	it('replays an impression stamped before it subscribed', async () => {
+		const kernel = createConsentKernel();
+		kernel.set.experiment(assignment);
+		kernel.markLive();
+		expect(kernel.getSnapshot().surfaceShownAt.banner).not.toBeNull();
+		const reports: ExperimentReportEvent[] = [];
+		const stop = createExperimentReporting({
+			kernel,
+			replay: true,
+			reportTo: (event) => reports.push(event),
+		});
+		expect(reports).toEqual([
+			expect.objectContaining({
+				name: 'c15t_surface_shown',
+				surface: 'banner',
+				variant: 'bar',
+			}),
+		]);
+		stop();
+		kernel.dispose();
+	});
+
 	const kernelWith = (
 		reportTo: ExperimentReportTarget,
 		onError?: ExperimentReportingOptions['onError']

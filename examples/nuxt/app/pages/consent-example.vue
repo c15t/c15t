@@ -4,7 +4,7 @@ import {
 	buildChoiceRecordedReport,
 	buildNoticeDismissedReport,
 	buildSurfaceShownReport,
-} from 'c15t';
+} from 'c15t/experiment';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const snapshot = useConsentSnapshot();

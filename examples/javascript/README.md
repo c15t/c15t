@@ -47,7 +47,7 @@ the `c15t_surface_shown` and `c15t_choice_recorded` events it reported. Open
 (`assignedBy: host`). Both push the same events to `window.dataLayer`.
 The raw kernel has no `experiment` option, so `src/main.ts` picks the arm with
 `assignExperimentVariant`, records it with `kernel.set.experiment()`, merges it
-with `applyExperimentAssignment` and reports with `createExperimentReporting`.
+with `applyExperimentAssignment` and reports with `createExperimentReporting` from `c15t/experiment`.
 See https://c15t.com/docs/guides/banner-experiments.
 
 The JavaScript package is headless, so both designs use application-owned HTML.

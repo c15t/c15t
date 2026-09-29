@@ -706,13 +706,15 @@ test('experiment.reportTo receives the impression with its arm, then the choice'
 		prefetch: initFixture,
 	});
 	expect(reports).toEqual([]);
-	// Assignment and the impression both happen in start(); the reporter was
-	// subscribed at context creation, so the impression already names the arm.
+	// start() loads the experiment chunk; the banner is held until the arm
+	// lands, so the first impression already names it.
 	const stop = startVueConsentRuntime(context, config, { runInit: false });
 	try {
-		expect(reports.map((report) => report.name)).toEqual([
-			'c15t_surface_shown',
-		]);
+		await vi.waitFor(() =>
+			expect(reports.map((report) => report.name)).toEqual([
+				'c15t_surface_shown',
+			])
+		);
 		const assigned = context.kernel.getSnapshot().experiment;
 		expect(assigned?.assignedBy).toBe('c15t');
 		expect(reports[0]).toMatchObject({

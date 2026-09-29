@@ -6,8 +6,8 @@ import type { PolicyRule } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { ConsentExperiment } from '../../libs/experiment';
-import { EXPERIMENT_STORAGE_KEY } from '../../libs/storage-keys';
 import type { ExperimentReportEvent } from '../../libs/experiment-reporting';
+import { EXPERIMENT_STORAGE_KEY } from '../../libs/storage-keys';
 import { clearStoredConsentRecords } from '../../modules/persistence/record-storage';
 import { custom } from '../../transports/mode';
 import { createOfflineTransport } from '../../transports/offline';
