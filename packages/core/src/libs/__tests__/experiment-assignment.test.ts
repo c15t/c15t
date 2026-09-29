@@ -10,7 +10,7 @@ import { createConsentRuntime } from '../../runtime';
 import { custom } from '../../transports/mode';
 import { createOfflineTransport } from '../../transports/offline';
 import type { KernelEvent, KernelTransport } from '../../types';
-import type { ConsentExperiment } from '../experiment';
+import type { ConsentExperiment, ExperimentAssignment } from '../experiment';
 import { createExperimentController } from '../experiment-assignment';
 import {
 	readStoredExperimentArm,
@@ -96,7 +96,7 @@ const hostWall = {
 /** A kernel that runs `rules`, holding the prompt with `arm` on it. */
 const heldKernel = function heldKernel(
 	rules: PolicyRule[],
-	arm?: typeof hostWall | { arm: string; assignedBy: 'c15t' }
+	arm?: Partial<ExperimentAssignment>
 ) {
 	return createConsentKernel({
 		initialExperiment: arm ? { ...hostWall, ...arm } : undefined,
