@@ -122,6 +122,25 @@ describe('queued calls before the tag loads', () => {
 		);
 	});
 
+	it('runs a queued processIframes once the policy resolves', async () => {
+		const iframe = document.createElement('iframe');
+		iframe.setAttribute('data-category', 'measurement');
+		iframe.setAttribute('src', 'https://example.com/embed');
+		document.body.append(iframe);
+
+		loadTag([
+			[
+				'config',
+				{ ...options, iframeBlocker: { disableAutomaticBlocking: true } },
+			],
+			['processIframes'],
+		]);
+
+		await vi.waitFor(() => {
+			expect(iframe.getAttribute('src')).toBeNull();
+		});
+	});
+
 	it('waits for a manual init before running queued actions', async () => {
 		testWindow.c15t = [['config', options], ['openDialog']];
 		const api = installGlobal(createGlobal({ pkg: '@c15t/browser/test' }));

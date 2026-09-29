@@ -336,3 +336,122 @@ describe('createConsentClient', () => {
 		expect(client.has('marketing')).toBe(true);
 	});
 });
+
+describe('on() listener isolation', () => {
+	it('keeps notifying listeners and the document after one throws', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {
+			/* expected */
+		});
+		const client = start();
+		await client.ready();
+		const failure = new Error('listener failed');
+		const later = vi.fn();
+		const onDocument = vi.fn();
+		client.on('consent', () => {
+			throw failure;
+		});
+		client.on('consent', later);
+		document.addEventListener('c15t:consent', onDocument);
+
+		await client.acceptAll();
+
+		expect(later).toHaveBeenCalledOnce();
+		expect(onDocument).toHaveBeenCalledOnce();
+		expect(error).toHaveBeenCalledWith(
+			expect.stringContaining('"consent" listener threw'),
+			failure
+		);
+		document.removeEventListener('c15t:consent', onDocument);
+		error.mockRestore();
+	});
+
+	it('returns an unsubscribe when a replayed ready listener throws', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {
+			/* expected */
+		});
+		const client = start();
+		await client.ready();
+
+		const off = client.on('ready', () => {
+			throw new Error('ready listener failed');
+		});
+
+		expect(off).toBeTypeOf('function');
+		expect(error).toHaveBeenCalledOnce();
+		error.mockRestore();
+	});
+});
+
+describe('runtime options', () => {
+	it('keeps nothing in storage with persistence off', async () => {
+		const client = start({ persistence: false });
+		await client.ready();
+
+		await client.acceptAll();
+		// Storage writes land one task after the save.
+		await new Promise((resolve) => {
+			setTimeout(resolve, 10);
+		});
+
+		expect(client.has('measurement')).toBe(true);
+		expect(document.cookie).not.toContain('c15t');
+		expect(Object.keys(localStorage)).toEqual([]);
+	});
+
+	it('declares vendors given in the options', async () => {
+		const client = start({
+			vendors: [{ category: 'marketing', id: 'example-pixel' }],
+		});
+		await client.ready();
+
+		expect(
+			client.getSnapshot().vendors?.declared.map((vendor) => vendor.id)
+		).toContain('example-pixel');
+	});
+
+	it('stamps the nonce on scripts it loads and reports to scriptLoader', async () => {
+		const onDebug = vi.fn();
+		const client = start({
+			nonce: 'page-nonce',
+			scriptLoader: { onDebug },
+			scripts: [
+				{
+					category: 'necessary',
+					id: 'nonce-probe',
+					textContent: 'window.__nonceProbe = true;',
+				},
+			],
+		});
+		await client.ready();
+
+		await vi.waitFor(() => {
+			const loaded = Array.from(document.scripts).find((script) =>
+				script.textContent?.includes('__nonceProbe')
+			);
+			expect(loaded?.nonce).toBe('page-nonce');
+		});
+		expect(onDebug).toHaveBeenCalled();
+	});
+});
+
+describe('processIframes', () => {
+	it('checks frames on demand when automatic blocking is off', async () => {
+		const iframe = document.createElement('iframe');
+		iframe.setAttribute('data-category', 'marketing');
+		iframe.setAttribute('src', 'https://example.com/embed');
+		document.body.append(iframe);
+		const client = start({
+			iframeBlocker: { disableAutomaticBlocking: true },
+		});
+		await client.ready();
+		expect(iframe.getAttribute('src')).toBe('https://example.com/embed');
+
+		client.processIframes();
+		expect(iframe.getAttribute('src')).toBeNull();
+
+		await client.acceptAll();
+		expect(iframe.getAttribute('src')).toBeNull();
+		client.processIframes();
+		expect(iframe.getAttribute('src')).toBe('https://example.com/embed');
+	});
+});

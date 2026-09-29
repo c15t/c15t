@@ -121,7 +121,13 @@ export const mountConsentUI = function mountConsentUI(
 
 	const styleText = buildStyleText(options, extension?.stylesheet);
 	if (styleText) {
-		root.append(h('style', {}, styleText));
+		const style = h('style', {}, styleText);
+		// A nonce-based `style-src` blocks an unnonced `<style>`, even in a
+		// shadow root.
+		if (client.options.nonce) {
+			style.nonce = client.options.nonce;
+		}
+		root.append(style);
 	}
 
 	const wrapper = h('div', { class: 'c15t-host' });

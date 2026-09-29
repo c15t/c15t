@@ -39,6 +39,27 @@ export default mergeConfig(
 			{
 				configureServer(server) {
 					server.middlewares.use((request, response, next) => {
+						if (!request.url?.startsWith('/__c15t-test__/ui-csp')) {
+							next();
+							return;
+						}
+						response.setHeader('Content-Type', 'text/html');
+						response.setHeader(
+							'Content-Security-Policy',
+							"style-src 'nonce-c15t-test-nonce'"
+						);
+						response.end(
+							readFileSync(
+								resolve(__dirname, 'src/__tests__/fixtures/ui-csp.html')
+							)
+						);
+					});
+				},
+				name: 'ui-csp-fixture',
+			},
+			{
+				configureServer(server) {
+					server.middlewares.use((request, response, next) => {
 						if (request.url !== '/__c15t-test__/storage-sync') {
 							next();
 							return;

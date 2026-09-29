@@ -179,6 +179,26 @@ const dispatchDocumentEvent = function dispatchDocumentEvent(
 	document.dispatchEvent(new CustomEvent(`c15t:${name}`, { detail }));
 };
 
+/**
+ * Run one `on()` listener so a throw is reported instead of stopping the
+ * listeners after it and the matching `c15t:*` document event.
+ */
+const callListener = function callListener<PayloadType>(
+	event: keyof ConsentClientEventMap,
+	listener: (payload: PayloadType) => void,
+	payload: PayloadType
+): void {
+	try {
+		listener(payload);
+	} catch (error) {
+		// oxlint-disable-next-line no-console -- A page listener failed; keep dispatching.
+		console.error(
+			`@c15t/browser: a "${event}" listener threw; the other listeners still run.`,
+			error
+		);
+	}
+};
+
 const resolvePageAction = function resolvePageAction(
 	target: EventTarget | null
 ): PageAction | null {
@@ -227,15 +247,19 @@ export const createConsentClient = function createConsentClient(
 		iframeBlocker: options.iframeBlocker,
 		mode: mode.factory,
 		networkBlocker: options.networkBlocker,
+		nonce: options.nonce,
 		overrides: options.overrides,
+		persistence: options.persistence,
 		pkg: options.pkg ?? context.pkg ?? '@c15t/browser',
 		policyRules: resolveRules(options.policyRules),
 		prefetch: options.prefetch,
 		presentation: options.presentation,
 		reloadOnConsentRevoked: options.reloadOnConsentRevoked,
+		scriptLoader: options.scriptLoader,
 		scripts: options.scripts,
 		storageConfig: options.storageConfig,
 		user: options.user,
+		vendors: options.vendors,
 		// The script-tag build owns `window.c15t`; core must not overwrite it.
 		windowDebug: false,
 	});
@@ -263,7 +287,7 @@ export const createConsentClient = function createConsentClient(
 		EventName extends keyof ConsentClientEventMap,
 	>(event: EventName, payload: ConsentClientEventMap[EventName]): void {
 		for (const listener of listeners[event]) {
-			listener(payload);
+			callListener(event, listener, payload);
 		}
 		dispatchDocumentEvent(event, payload);
 	};
@@ -559,10 +583,16 @@ export const createConsentClient = function createConsentClient(
 			// learns which surface is already up, so a custom banner wired
 			// after a fast offline init does not miss its cue.
 			if (event === 'ready' && readySnapshot) {
-				(listener as (payload: ConsentSnapshot) => void)(readySnapshot);
+				callListener(
+					event,
+					listener as (payload: ConsentSnapshot) => void,
+					readySnapshot
+				);
 			}
 			if (event === 'ui' && readySnapshot) {
-				(listener as (payload: KernelActiveUI) => void)(
+				callListener(
+					event,
+					listener as (payload: KernelActiveUI) => void,
 					kernel.getSnapshot().activeUI
 				);
 			}
@@ -572,6 +602,9 @@ export const createConsentClient = function createConsentClient(
 		},
 		openDialog,
 		options,
+		processIframes() {
+			runtime.processIframes();
+		},
 		ready() {
 			return ready.promise;
 		},
