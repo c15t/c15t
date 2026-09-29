@@ -14,6 +14,8 @@
  * <ConsentDialog />
  * ```
  */
+import type { LegalLinks } from '@c15t/core';
+
 interface Props {
 	/**
 	 * Warm the island's chunk once the browser is idle, so the first open
@@ -22,13 +24,25 @@ interface Props {
 	 * @default false
 	 */
 	preload?: boolean;
+	/**
+	 * Which of the integration's `legalLinks` the dialog shows after its
+	 * description, the same list `<ConsentBanner legalLinks>` takes.
+	 * `undefined` or `null` shows none.
+	 *
+	 * @example
+	 * ```astro
+	 * <ConsentDialog legalLinks={['privacyPolicy', 'cookiePolicy']} />
+	 * ```
+	 */
+	legalLinks?: (keyof LegalLinks)[] | null;
 }
 
-const { preload = false } = Astro.props;
+const { preload = false, legalLinks } = Astro.props;
 ---
 
 <div
 	data-c15t-dialog-host="preferences"
+	data-legal-links={legalLinks ? legalLinks.join(' ') : undefined}
 	data-preload={preload ? 'true' : undefined}
 >
 </div>

@@ -25,6 +25,7 @@ import type {
 	ConsentState,
 	KernelConfig,
 	KernelUser,
+	LegalLinks,
 	Unsubscribe,
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
@@ -217,6 +218,26 @@ const ensureDialogHost = function ensureDialogHost(): HTMLElement {
 	host.id = DIALOG_HOST_ID;
 	document.body.appendChild(host);
 	return host;
+};
+
+/**
+ * The legal links `<ConsentDialog legalLinks>` asked for.
+ *
+ * Read when the island mounts rather than at boot, so the list follows
+ * the page a ClientRouter navigation swapped in.
+ *
+ * @returns The link keys, or `undefined` when the page asked for none.
+ */
+const readDialogLegalLinks = function readDialogLegalLinks():
+	| (keyof LegalLinks)[]
+	| undefined {
+	const value = document
+		.querySelector('[data-c15t-dialog-host="preferences"]')
+		?.getAttribute('data-legal-links');
+	if (value === null || value === undefined) {
+		return undefined;
+	}
+	return value.split(/\s+/u).filter(Boolean) as (keyof LegalLinks)[];
 };
 
 /**
@@ -573,6 +594,8 @@ const createClient = function createClient(
 					const target = ensureDialogHost();
 					const handle = await adapter.mount({
 						kind,
+						legalLinks:
+							kind === 'preferences' ? readDialogLegalLinks() : undefined,
 						options,
 						runtime,
 						tab,
