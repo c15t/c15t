@@ -15,6 +15,7 @@
  * that is the only place a framework specifier appears.
  */
 
+import type { LegalLinks } from '@c15t/core';
 import type { ConsentRuntime } from '@c15t/core/runtime';
 
 import type { C15tResolvedOptions, C15tUIAdapterName } from '../types';
@@ -37,6 +38,12 @@ export interface ConsentDialogContext {
 	 * preferences dialog, which has no tabs.
 	 */
 	tab?: 'purposes' | 'vendors';
+	/**
+	 * Which of the integration's `legalLinks` the preferences dialog shows,
+	 * from `<ConsentDialog legalLinks>`. `undefined` or `null` shows none.
+	 * Ignored by the IAB dialog.
+	 */
+	legalLinks?: (keyof LegalLinks)[] | null;
 }
 
 /**

@@ -11,6 +11,7 @@
 	leaves `start()`/`dispose()` to the owner.
 -->
 <script lang="ts">
+	import type { LegalLinks } from '@c15t/core';
 	import type { ConsentRuntime } from '@c15t/core/runtime';
 	import { ConsentDialog, ConsentManagerProvider } from '@c15t/svelte';
 	import type { Component } from 'svelte';
@@ -25,12 +26,15 @@
 		runtime,
 		kind = 'preferences',
 		tab,
+		legalLinks,
 	}: {
 		options: Record<string, unknown>;
 		runtime: ConsentRuntime;
 		kind?: 'preferences' | 'iab';
 		/** Which IAB preference-centre tab to open on. */
 		tab?: 'purposes' | 'vendors';
+		/** Which legal links the preferences dialog shows. */
+		legalLinks?: (keyof LegalLinks)[] | null;
 	} = $props();
 
 	// The TCF surface is the larger half of this island and only an IAB site
@@ -57,6 +61,6 @@
 			<IABDialog {tab} />
 		{/if}
 	{:else}
-		<ConsentDialog />
+		<ConsentDialog {legalLinks} />
 	{/if}
 </ConsentManagerProvider>

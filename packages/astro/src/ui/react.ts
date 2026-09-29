@@ -37,6 +37,7 @@ export const reactDialogAdapter: ConsentDialogAdapter = {
 			createElement(surface.default as never, {
 				...buildProviderProps(context.runtime, context.options),
 				kind: context.kind,
+				legalLinks: context.legalLinks,
 				tab: context.tab,
 			})
 		);

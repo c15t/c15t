@@ -3,6 +3,7 @@ import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import ConsentDialogTrigger from '../components/panel-trigger.astro';
+import ConsentDialog from '../components/panel.astro';
 import ConsentBanner from '../components/prompt.astro';
 import { resolveOptions } from '../integration';
 import { hostedMode, offlineMode } from '../mode';
@@ -606,5 +607,19 @@ describe('<ConsentBanner /> under a none rule', () => {
 		expect(
 			/<[^>]*data-testid="consent-dialog-trigger"[^>]*>/u.exec(trigger)?.[0]
 		).not.toContain('hidden');
+	});
+});
+
+describe('<ConsentDialog />', () => {
+	it('carries its legalLinks to the island on the host element', async () => {
+		const withLinks = await container.renderToString(ConsentDialog, {
+			props: { legalLinks: ['privacyPolicy', 'termsOfService'] },
+		});
+		expect(withLinks).toContain(
+			'data-legal-links="privacyPolicy termsOfService"'
+		);
+
+		const without = await container.renderToString(ConsentDialog, {});
+		expect(without).not.toContain('data-legal-links');
 	});
 });

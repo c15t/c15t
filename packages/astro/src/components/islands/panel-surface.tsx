@@ -16,6 +16,7 @@
  * copy: the switch would flip, and the save would commit nothing.
  */
 
+import type { LegalLinks } from '@c15t/core';
 import type { ConsentRuntime } from '@c15t/core/runtime';
 import {
 	ConsentDialog,
@@ -88,6 +89,8 @@ export interface ConsentDialogSurfaceProps {
 	kind?: 'preferences' | 'iab';
 	/** Which IAB preference-centre tab to open on. */
 	tab?: 'purposes' | 'vendors';
+	/** Which legal links the preferences dialog shows. */
+	legalLinks?: (keyof LegalLinks)[] | null;
 }
 
 const ConsentDialogSurface = ({
@@ -95,6 +98,7 @@ const ConsentDialogSurface = ({
 	options,
 	kind = 'preferences',
 	tab,
+	legalLinks,
 }: ConsentDialogSurfaceProps) => (
 	<ConsentProvider
 		runtime={runtime}
@@ -104,7 +108,7 @@ const ConsentDialogSurface = ({
 			<IABDialogSurface tab={tab} />
 		) : (
 			<ConsentDraftProvider>
-				<ConsentDialog />
+				<ConsentDialog legalLinks={legalLinks} />
 			</ConsentDraftProvider>
 		)}
 	</ConsentProvider>
