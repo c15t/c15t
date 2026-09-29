@@ -61,7 +61,7 @@ pnpm add c15t
 
 Prefer granular installs? The scoped packages ship the same code: `@c15t/core` (headless engine), `@c15t/react`, and `@c15t/nextjs`.
 
-To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup).
+To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/javascript/quickstart).
 
 ## Usage
 
