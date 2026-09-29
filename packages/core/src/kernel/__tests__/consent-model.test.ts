@@ -300,6 +300,26 @@ describe('explicit saves', () => {
 		expect(events).toEqual(['permissions', 'choice']);
 	});
 
+	test('saving the same values again records another choice', async () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: fixtureResolution(),
+			now: POLICY_NOW,
+		});
+		const choice = vi.fn();
+		kernel.events.on('choice:recorded', choice);
+
+		await kernel.commands.save('none');
+		await kernel.commands.save('none');
+
+		// Unlike v2's onConsentChanged, a repeated save is still a recorded
+		// choice: it renews the confirmation time. The migration guide relies on it.
+		expect(choice).toHaveBeenCalledTimes(2);
+		expect(choice.mock.calls[1]?.[0].confirmed).toEqual([
+			'marketing',
+			'measurement',
+		]);
+	});
+
 	test('a positive value outside the active scope rejects atomically', async () => {
 		const kernel = createConsentKernel({
 			initialPolicyResolution: fixtureResolution(),

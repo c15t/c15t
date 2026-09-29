@@ -165,7 +165,7 @@ import { ConsentBanner, ConsentDialog, ConsentManagerProvider } from '@c15t/next
 export default function ConsentManagerClient({ children }) {
   return (
     <ConsentManagerProvider
-      options={{ mode: 'hosted', backendURL: 'https://example.com/api/c15t' }}
+      options={{ mode: 'hosted', backendURL: 'https://your-project.c15t.dev' }}
     >
       <ConsentBanner />
       <ConsentDialog />
@@ -205,8 +205,10 @@ Static exports use browser initialization too. See
 [static export](/docs/frameworks/next/static-export) and
 [client-side setup](/docs/frameworks/next/client-side).
 
-Either way, change the stylesheet import to `c15t/next/styles.css`, and paste
-the backend URL from your Inth project or self-hosted backend. The
+Either way, change the stylesheet import to `c15t/next/styles.css`, and keep
+your backend URL. An existing hosted URL such as `https://your-project.c15t.dev`
+keeps working with v3 clients. New Inth projects use URLs such as
+`https://your-project.inth.app`. The
 [CLI setup command](/docs/cli/quickstart) can generate the browser-initialized
 version for you.
 
@@ -251,9 +253,17 @@ Callbacks stay under `options.callbacks`, with new names:
 | v2 callback | v3 callback |
 | --- | --- |
 | `onConsentSet` | `onPermissionsChanged` to react to what may run now. `onChoiceRecorded` to react to the visitor's accept, reject or save. |
-| `onConsentChanged` | `onChoiceRecorded` |
+| `onConsentChanged` | `onChoiceRecorded`. See the note below the table. |
 | `onBannerFetched` | No provider callback. Read `usePolicyResolution()` to know when the policy has resolved. |
 | `onError`, `onBeforeConsentRevocationReload` | Unchanged |
+
+v2's `onConsentChanged` fired only when a save changed at least one category's
+value, and passed `preferences` and `previousPreferences`. v3's
+`onChoiceRecorded` fires for every accept, reject or save that confirms a
+category, including one that saves the same values again, because each save
+renews the choice's confirmation time. Its payload carries `snapshot`,
+`confirmed` and `actionAt`. To act only on a real change, keep the last
+`snapshot.explicitChoice` you saw and compare it.
 
 v2's `onConsentSet` also fired on initialization and hydration. In v3,
 `onChoiceRecorded` runs only when the visitor acts, and `onPermissionsChanged`

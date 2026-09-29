@@ -11,10 +11,10 @@ bun run --cwd examples/script-tag dev
 
 http://localhost:4173/consent-example is the setup from the [HTML quickstart](https://c15t.com/docs/frameworks/html/quickstart): one tag connected to Inth, PostHog and X Pixel as inert scripts, a YouTube iframe gated on measurement, and a Privacy settings link. `/consent-example/branded` adds the theme block from `branded-theme.html`.
 
-The page's tag points at jsDelivr and a `YOUR_INTH_BACKEND_URL` placeholder, exactly as readers copy it. `serve.ts` swaps both for the local build and `C15T_BACKEND_URL`, so start it with your Inth URL and add `http://localhost:4173` to the project's trusted origins:
+The page's tag points at jsDelivr and a `https://your-project.inth.app` placeholder, exactly as readers copy it. `serve.ts` swaps both for the local build and `C15T_BACKEND_URL`, so start it with your Inth URL and add `http://localhost:4173` to the project's trusted origins:
 
 ```sh
-C15T_BACKEND_URL=<your Inth backend URL> bun run --cwd examples/script-tag dev
+C15T_BACKEND_URL=https://your-project.inth.app bun run --cwd examples/script-tag dev
 ```
 
 The shared acceptance suite runs this page against a fixture backend with vendor requests intercepted:

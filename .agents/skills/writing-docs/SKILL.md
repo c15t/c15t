@@ -64,8 +64,10 @@ reference tables where humans need discovery; do not delete useful reference
 because an agent could inspect a declaration file.
 
 Lead quickstarts with Inth hosted consent management, including static sites.
-Keep self-hosting and browser-only modes as deliberate alternatives. Use the
-exact endpoint supplied by the Inth project; never invent a project URL.
+Keep self-hosting and browser-only modes as deliberate alternatives. Where a page needs a literal backend URL, use `https://your-project.inth.app`
+and tell readers to replace it with the URL from their Inth project. Existing
+`*.c15t.dev` URLs from v2 keep working; show them only in migration examples.
+Self-hosted examples use your own origin, such as `https://app.example.com/api/c15t`.
 Prefer one working path followed by links to alternatives. For hosted examples,
 name the required backend URL, policy configuration and trusted origin. For
 browser-only examples, state where choices persist and what backend services are

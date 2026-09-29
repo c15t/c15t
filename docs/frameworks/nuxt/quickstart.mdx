@@ -29,11 +29,12 @@ Not recommended for production environments.
 
 ## Add the Nuxt module
 
-Paste the backend URL from your Inth project into `.env`. The URL is public;
+Paste the backend URL from your Inth project, such as
+`https://your-project.inth.app`, into `.env`. The URL is public;
 it ends up in browser code.
 
 ```dotenv title=".env"
-NUXT_PUBLIC_C15T_BACKEND_URL=
+NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
 Register the module in `nuxt.config.ts`:
