@@ -211,6 +211,38 @@ export const createRuntime = function createRuntime(
 		});
 	};
 
+	/**
+	 * Deliver an adopted snapshot to subscribers, then its events. Runs as
+	 * one batch so a listener that commits again queues behind this
+	 * transition instead of overtaking it.
+	 */
+	const publish = function publish(
+		current: ConsentSnapshot,
+		adopted: ConsentSnapshot,
+		shown: PromptSurface | null
+	): void {
+		dispatcher.batch(() => {
+			if (listeners) {
+				dispatcher.deliver(listeners, adopted);
+			}
+			if (adopted.effectivePermissions !== current.effectivePermissions) {
+				emit({
+					previous: current.effectivePermissions,
+					snapshot: adopted,
+					type: 'permissions:changed',
+				});
+			}
+			if (shown !== null) {
+				emit({
+					shownAt: adopted.evaluatedAt,
+					snapshot: adopted,
+					surface: shown,
+					type: 'surface:shown',
+				});
+			}
+		});
+	};
+
 	const commit = function commit(patch: SnapshotPatch): boolean {
 		const current = snapshot;
 		let adopted: ConsentSnapshot;
@@ -262,26 +294,7 @@ export const createRuntime = function createRuntime(
 		// this commit's events nor see a stale `hiddenBySave`. Deliver the
 		// snapshot this commit produced, never the live cell, so later
 		// listeners still observe this transition first.
-		dispatcher.batch(() => {
-			if (listeners) {
-				dispatcher.deliver(listeners, adopted);
-			}
-			if (adopted.effectivePermissions !== current.effectivePermissions) {
-				emit({
-					previous: current.effectivePermissions,
-					snapshot: adopted,
-					type: 'permissions:changed',
-				});
-			}
-			if (shown !== null) {
-				emit({
-					shownAt: adopted.evaluatedAt,
-					snapshot: adopted,
-					surface: shown,
-					type: 'surface:shown',
-				});
-			}
-		});
+		publish(current, adopted, shown);
 		return true;
 	};
 
@@ -367,9 +380,15 @@ export const createRuntime = function createRuntime(
 		live = true;
 		// A surface visible before init ran is first shown now; the stamp
 		// records that impression once and emits `surface:shown` for it.
-		if (impressionDue(snapshot)) {
-			commit({ now: at });
+		// Only the stamp changes, so skip the patch checks a commit runs:
+		// this sits on every first visit's init.
+		const current = snapshot;
+		if (!impressionDue(current)) {
+			return;
 		}
+		snapshot = stampCurrent(current, at);
+		hiddenBySave = null;
+		publish(current, snapshot, current.activeUI);
 	};
 
 	const applyRecords = function applyRecords(
