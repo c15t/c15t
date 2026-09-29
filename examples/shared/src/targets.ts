@@ -65,10 +65,17 @@ export const targets: ExampleTarget[] = [
 		start: () => ['run', 'start'],
 	},
 	{
+		// Server output with manifest mode. The prerendered route leaves the
+		// policy to the browser; the cached route renders its banner in a
+		// server island.
 		directory: 'astro-demo',
 		failureRoute: '/consent-example',
 		id: 'astro',
-		routes: ['/consent-example'],
+		routes: [
+			'/consent-example',
+			'/consent-example-prerendered',
+			'/consent-example-cached',
+		],
 		start: () => ['dist/server/entry.mjs'],
 	},
 	{

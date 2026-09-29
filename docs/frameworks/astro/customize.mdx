@@ -1,0 +1,205 @@
+---
+title: Customize
+description: Change the c15t banner and preference dialog on an Astro site with theme tokens, button styles, copy, dark mode, legal links and your own stylesheet order, all from the integration options.
+group: frameworks
+---
+
+## Choose what to change
+
+Astro takes every customization through the `c15t()` options in
+`astro.config.mjs`, and renders it on the server. The options must survive JSON
+serialization, so they hold values, not functions.
+
+| Change | Use |
+| --- | --- |
+| Brand colors, radius, type, spacing | `theme` tokens |
+| Which button looks primary | `theme.consentActions` |
+| Wording on every page | `i18n.messages` |
+| Wording on one banner | `ConsentBanner` props |
+| Light or dark surfaces | `colorScheme` |
+| Banner position and blocking | `presentation` |
+| Links to your policies | `legalLinks` |
+| Your own CSS from scratch | `noStyle` on the banner, or `styles: false` |
+
+[Customize your consent interface](/docs/customization/overview) explains how
+these choices relate across frameworks.
+
+## Set theme tokens
+
+Put tokens in the integration's `theme` option:
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: hosted({ url: backendURL }),
+  theme: {
+    colors: {
+      primary: '#146b56',
+      primaryHover: '#105442',
+      textOnPrimary: '#ffffff',
+    },
+    radius: { lg: '1.25rem' },
+  },
+});
+```
+
+`ConsentScript` renders the tokens on the server as a
+`<style id="c15t-theme">` element, so the banner and the dialog share them from
+the first paint. Set hover and text colors together with a brand color, so each
+button state stays readable. [Theme tokens and CSS](/docs/customization/tokens)
+lists the tokens.
+
+Put tokens in the integration options, not in the client entrypoint. The
+browser does not turn tokens into CSS, so tokens in the client entrypoint's
+`theme` have no effect.
+
+## Style the banner buttons
+
+`theme.consentActions` sets each button's `mode` and `variant`. c15t reads the
+button's own key first, then `primary` for the action the policy marks as
+primary, then `default`:
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: hosted({ url: backendURL }),
+  theme: {
+    consentActions: {
+      primary: { mode: 'filled' },
+      customize: { mode: 'ghost', variant: 'neutral' },
+    },
+  },
+});
+```
+
+The IAB TCF banner keeps its own button styles.
+
+## Change the copy
+
+For wording on every page and in the dialog, set `i18n.messages`, keyed by
+language:
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: hosted({ url: backendURL }),
+  i18n: {
+    messages: {
+      en: {
+        cookieBanner: {
+          title: 'Cookies on this site',
+          description: 'We use cookies to measure traffic and show relevant ads.',
+        },
+      },
+    },
+  },
+});
+```
+
+The server picks the visitor's language from `Accept-Language`. Set
+`i18n.locale` to force one, or `detectLanguage: false` to use the default.
+
+A group you pass, such as `cookieBanner` or `common`, replaces the stock group
+for that language rather than merging with it. Include every key of each group
+you change. [Copy and translations](/docs/customization/translations) covers
+the message groups.
+
+For one banner, pass the `title`, `description`, `acceptButtonText`,
+`rejectButtonText`, `customizeButtonText` or `dismissButtonText` props
+instead. See [components](/docs/frameworks/astro/components#consentbanner).
+
+## Change the banner's shape and position
+
+`presentation.prompt` sets the banner's shape and where it sits:
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: hosted({ url: backendURL }),
+  presentation: {
+    prompt: { variant: 'bar', position: 'bottom' },
+  },
+});
+```
+
+`variant` is `'floating'` (default), `'bar'`, `'widget'` or `'wall'`. The policy
+still decides which actions the banner must offer, and a notice never becomes a
+blocking wall. [Customize your consent interface](/docs/customization/overview#keep-behavior-and-appearance-separate)
+explains what presentation can and cannot change.
+
+## Set light or dark mode
+
+The banner and dialog turn dark when `<html>` has the `c15t-dark` class. The
+integration's `colorScheme` option decides who sets it:
+
+| Value | Behavior |
+| --- | --- |
+| `'system'` (default) | Follows `prefers-color-scheme`, including changes while the page is open |
+| `'dark'` | Always adds the class |
+| `'light'` | Always removes the class |
+| `'none'` | Never adds or removes the class. Your site sets it |
+
+With the first three values, `ConsentScript` sets the class before first paint,
+and c15t sets it again after each `ClientRouter` navigation.
+
+Use `'none'` when your site has its own theme switch. Toggle `c15t-dark` on
+`<html>` together with your own dark class. If your theme script does not run
+on `astro:after-swap`, set the class again there, because a `ClientRouter`
+swap replaces the attributes of `<html>`.
+
+## Add links to your policies
+
+Define the links once in the integration options. The banner and dialog show
+them next to the description:
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: hosted({ url: backendURL }),
+  legalLinks: {
+    privacyPolicy: { href: '/privacy' },
+    cookiePolicy: { href: '/cookies', label: 'Cookie policy' },
+  },
+});
+```
+
+`label` overrides the translated link text. To show fewer links on one banner,
+pass `legalLinks={['privacyPolicy']}` to `ConsentBanner`, or `null` for none.
+
+## Load the stylesheet yourself
+
+The integration adds `c15t/astro/styles.css` to every page ahead of your own
+CSS. It holds the tokens and the banner rules. The dialog's rules load only
+when a visitor first reaches for the dialog, and stay across `ClientRouter`
+navigation. Do not import `c15t/astro/styles.css` again.
+
+The stylesheet starts with Tailwind CSS 4's layer order,
+`@layer properties, theme, base, components, utilities;`. Cascade layers rank
+by the order they are first named, so on a Tailwind 4 site c15t's `components`
+layer stays above Tailwind's preflight in `base`, and the banner keeps its
+padding and borders. Without Tailwind the extra layers stay empty.
+
+To control the order yourself, for example from a global stylesheet that names
+its own layers, set `styles: false` and import the files after your layer
+order statement. With `styles: false`, c15t links no dialog stylesheet either,
+so import the dialog rules too. They are in `@c15t/ui`, which the `c15t` package
+does not export, so install `@c15t/ui@alpha` as well:
+
+```css title="src/styles/global.css"
+@import 'c15t/astro/styles.css';
+@import '@c15t/ui/styles/dialog.css';
+/* Only with ui: 'svelte'. */
+@import '@c15t/ui/styles/primitives.css';
+/* Only when the integration sets iab. */
+@import 'c15t/astro/iab/styles.css';
+```
+
+Keep c15t's stylesheet when you restyle the surfaces. The browser hides the
+banner with the `hidden` attribute, and the stylesheet makes that attribute
+beat the banner's own `display` rule. For markup with no c15t class names at
+all, pass `noStyle` to `ConsentBanner` and style its `data-testid` and
+`data-*` attributes.
+
+## Check your changes
+
+- View the page source. It contains `<style id="c15t-theme">` with your tokens.
+- Open the banner and the preference dialog in light and dark mode. Both use
+  your colors, and every button label is readable.
+- Change the browser language and reload. The copy follows it, or stays in
+  `i18n.locale` when you set one.
+- Navigate with `ClientRouter`. The colors and dark mode stay the same.

@@ -44,10 +44,10 @@ own components, import `@c15t/ui/styles/dialog` rather than the `.css` file
 if the module can run on the server.
 
 Svelte loads its dialog with the page, so `c15t/svelte/styles.css` also
-imports the dialog and primitive rules. Astro injects the banner rules; the
-React and Svelte dialog islands import the rest, and Astro links those
-stylesheets on every page, so in Astro the dialog rules still block rendering.
-Vue components import their own stylesheets.
+imports the dialog and primitive rules. Astro injects the banner rules on every
+page and links the dialog's stylesheets when a visitor first points at, focuses
+or opens a control that opens the dialog, so in Astro the dialog rules do not
+block rendering. Vue components import their own stylesheets.
 
 The dialog rules sit in `@layer components` and declare no variables, so
 tokens from `theme`, variables you override in your own CSS, and Tailwind 4

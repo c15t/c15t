@@ -1,0 +1,34 @@
+---
+/**
+ * The demo's page frame: navigation and a heading around the published
+ * layouts.
+ *
+ * One request resolves one policy, so the frame picks the IAB layout when
+ * the server resolved a TCF policy (`C15T_IAB=1`) and the standard one
+ * otherwise. A real site ships the layout it needs.
+ */
+import '../styles/global.css';
+import BaseLayout from './base.astro';
+import IABLayout from './iab.astro';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+const Layout =
+	Astro.locals.c15t?.snapshot.model === 'iab' ? IABLayout : BaseLayout;
+---
+
+<Layout title={`${title} — c15t Astro demo`}>
+	<nav>
+		<a href="/">Home</a>
+		<a href="/consent-example">Consent example</a>
+		<a href="/second">Second page</a>
+		<a href="/geo">Geo overrides</a>
+		<a href="/iab">IAB TCF</a>
+	</nav>
+
+	<h1>{title}</h1>
+	<slot />
+</Layout>

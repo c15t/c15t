@@ -1,10 +1,10 @@
-<!-- #region docs:layout -->
+<!-- #region docs:iab-layout -->
 ---
 import { ClientRouter } from 'astro:transitions';
-import ConsentBanner from 'c15t/astro/components/consent-banner.astro';
-import ConsentDialog from 'c15t/astro/components/consent-dialog.astro';
 import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
 import ConsentScript from 'c15t/astro/components/consent-script.astro';
+import IABConsentBanner from 'c15t/astro/components/iab-consent-banner.astro';
+import IABConsentDialog from 'c15t/astro/components/iab-consent-dialog.astro';
 
 interface Props {
 	title: string;
@@ -24,10 +24,10 @@ const { title } = Astro.props;
 	<body>
 		<slot />
 		<footer>
-			<ConsentDialogTrigger>Cookie preferences</ConsentDialogTrigger>
+			<ConsentDialogTrigger kind="iab">Cookie preferences</ConsentDialogTrigger>
 		</footer>
-		<ConsentBanner />
-		<ConsentDialog />
+		<IABConsentBanner />
+		<IABConsentDialog />
 	</body>
 </html>
-<!-- #endregion docs:layout -->
+<!-- #endregion docs:iab-layout -->

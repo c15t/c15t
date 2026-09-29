@@ -1,7 +1,9 @@
-<!-- #region docs:layout -->
+{/* Generated from examples/astro-demo/src/layouts/cached.astro (docs:cached-layout) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```astro title="src/layouts/cached.astro"
 ---
 import { ClientRouter } from 'astro:transitions';
-import ConsentBanner from 'c15t/astro/components/consent-banner.astro';
+import ConsentBannerDeferred from 'c15t/astro/components/consent-banner-deferred.astro';
 import ConsentDialog from 'c15t/astro/components/consent-dialog.astro';
 import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
 import ConsentScript from 'c15t/astro/components/consent-script.astro';
@@ -26,8 +28,8 @@ const { title } = Astro.props;
 		<footer>
 			<ConsentDialogTrigger>Cookie preferences</ConsentDialogTrigger>
 		</footer>
-		<ConsentBanner />
+		<ConsentBannerDeferred />
 		<ConsentDialog />
 	</body>
 </html>
-<!-- #endregion docs:layout -->
+```

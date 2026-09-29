@@ -1,0 +1,137 @@
+---
+title: Troubleshooting
+description: Fix common c15t problems on Astro sites, from build errors about adapters and UI integrations to a missing banner, scripts that run too early, unstyled dialogs and saves that fail.
+group: frameworks
+---
+
+## The build says manifest mode needs a server adapter
+
+`manifest()` adds on-demand `/api/c15t/init` and `/api/c15t/manifest` routes,
+and `astro build` stops when no adapter can serve them. Either add your host's
+adapter and use server output, or switch to `hosted({ url })` for a static
+site. See [Rendering and deployment](/docs/frameworks/astro/rendering).
+
+## The build says `ui` needs an Astro integration
+
+The preference dialog is an island in the framework that the `ui` option names,
+so that framework's Astro integration must be installed and listed before
+`c15t()` in `astro.config.mjs`. For `ui: 'svelte'`, install `@astrojs/svelte`
+and `svelte`. For `'react'`, install `@astrojs/react`, `react` and `react-dom`.
+For `'vue'`, install `@astrojs/vue` and `vue`.
+
+A site that only shows a notice and never opens the dialog can set
+`requireUIIntegration: false` instead.
+
+If the build log suggests `ui: 'react'` or `ui: 'vue'`, your site already loads
+that framework. Set `ui` to it so visitors do not download Svelte as well, or
+set `ui: 'svelte'` to keep Svelte and silence the message.
+
+## `C15T_BACKEND_URL` is set in `.env` but the build cannot see it
+
+Astro evaluates `astro.config.mjs` before it loads `.env`. Set the variable in
+your shell, for example `C15T_BACKEND_URL=… npx astro build`, or in your host's
+build environment. Variables that start with `PUBLIC_` and are read in browser
+code, such as vendor IDs, do come from `.env`.
+
+## A component says `Astro.locals.c15t` is missing
+
+`ConsentBanner` and `IABConsentBanner` read the consent context that the
+integration's middleware sets. Check that:
+
+- `c15t()` is in the `integrations` list of `astro.config.mjs`.
+- The integration does not set `middleware: false`.
+- The route is not listed in `middleware.skip`.
+
+## Why is there no banner?
+
+Check these in order:
+
+1. **The visitor already chose.** A saved choice hides the banner. Open a
+   private window.
+2. **The policy asks for no banner.** A rule whose prompt is `none`, such as
+   one you set up for visitors in the United States, shows no banner. Look at the
+   `/init` response, or `Astro.locals.c15t.snapshot.policyRule`, to see which
+   policy matched. [Policies](/docs/concepts/policies#why-the-banner-may-be-absent)
+   explains each case.
+3. **The policy did not resolve.** If the browser's `/init` request failed, no
+   banner or `ConsentDialogTrigger` appears and optional categories stay
+   denied. Check DevTools Network for a failed or blocked request.
+4. **The page shares its HTML.** On a static or prerendered page, the banner
+   appears after the `/init` request returns, not in the first HTML.
+
+On server output, the location comes from your host's headers, such as
+`cf-ipcountry` on Cloudflare or `x-vercel-ip-country` on Vercel. To test a
+region locally, send `x-c15t-country` with the request. Only your own edge may
+set `x-c15t-*` headers in production, because they override the host's.
+
+## The browser's `/init` request fails with a CORS error
+
+With `hosted()`, the browser calls your backend directly. Add the exact origin
+of the site, including the scheme and port, to your Inth project's trusted
+origins. A preview deployment has its own origin, so add it too.
+
+## The banner is missing from server HTML now and then
+
+The middleware waits up to 500 ms for the policy. When the backend is slower,
+for example on the first request after a deploy, the page renders without the
+banner and the browser shows it after its own request. Raise the budget with
+`middleware: { timeoutMs }`. See
+[Rendering and deployment](/docs/frameworks/astro/rendering#set-how-long-a-render-waits-for-the-backend).
+
+## Saving a choice fails with a 404
+
+In manifest mode, the browser saves consent to the `backendURL` you pass to
+`manifest()`. Without it, the browser posts to `/api/c15t/subjects` on your own
+site, where no route answers. Pass `manifest({ backendURL })`.
+
+## A vendor loads before the visitor chooses
+
+- The vendor's own snippet is still in your layout or a tag manager. Remove it,
+  so only c15t loads the vendor.
+- An inline script is missing `type="text/plain"` or `is:inline`. Without
+  `is:inline`, Astro bundles the script and runs it straight away.
+- The policy allows the category before a choice. Under an opt-out policy,
+  measurement can be allowed from the start. Check `effectivePermissions` in
+  the snapshot.
+
+See [Scripts and embeds](/docs/frameworks/astro/scripts).
+
+## A gated inline script never runs
+
+Open the console. c15t logs a warning for a `data-c15t-category` value that is
+not a category name, and leaves that script inert. The attribute takes one
+category, such as `measurement`.
+
+## The preference dialog opens without styles
+
+With `styles: false`, c15t does not link the dialog's stylesheet. Import
+`@c15t/ui/styles/dialog.css`, and `@c15t/ui/styles/primitives.css` for the
+Svelte dialog, from your global stylesheet. See
+[load the stylesheet yourself](/docs/frameworks/astro/customize#load-the-stylesheet-yourself).
+
+## The banner loses its padding with Tailwind CSS
+
+Tailwind's preflight in the `base` layer is overriding c15t's `components`
+layer. This happens when your own stylesheet names its layers before c15t's
+stylesheet does. Put `components` after `base` in your first `@layer`
+statement, or set `styles: false` and import `c15t/astro/styles.css` after your
+layer order statement.
+
+## The dark mode is wrong or flashes
+
+Keep `ConsentScript` in `<head>`, so the color scheme is set before first
+paint. If your site has its own theme switch, set `colorScheme: 'none'` and
+toggle `c15t-dark` on `<html>` yourself, including after `ClientRouter`
+navigation. See
+[set light or dark mode](/docs/frameworks/astro/customize#set-light-or-dark-mode).
+
+## `getConsentClient()` returns `null`
+
+The runtime starts from a module script, and your script ran before it, or it
+ran on the server. Call it in the browser, and try again on
+`DOMContentLoaded`. See [Client API](/docs/frameworks/astro/client-api).
+
+## More help
+
+[Troubleshooting](/docs/guides/troubleshooting) covers problems shared by every
+framework, such as content blockers and choices that disappear on reload.

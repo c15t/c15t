@@ -162,33 +162,23 @@ provider.
   </Tab>
 
   <Tab value="Astro">
-    Point the existing Astro integration at a client module. Keep its `mode`,
-    `ui` and framework integration from the [Astro quickstart](/docs/frameworks/astro/quickstart).
-    Import `fileURLToPath` in your Astro configuration:
+    Add the scripts to the client entrypoint from the
+    [Astro quickstart](/docs/frameworks/astro/quickstart), the module that the
+    integration's `clientEntrypoint` option names. Keep `mode`, `ui` and the
+    framework integration in `astro.config.mjs` as they are. If the module
+    already exports scripts, combine the two arrays.
 
-    ```js title="astro.config.mjs"
-    import { fileURLToPath } from 'node:url';
-    ```
-
-    Add this option to the existing `c15t({ ... })` call. Resolve the path from
-    the configuration file because Astro injects the import into a virtual module:
-
-    ```js
-    clientEntrypoint: fileURLToPath(new URL('./src/c15t.client.ts', import.meta.url)),
-    ```
-
-    Export the scripts from that module:
-
-    ```ts title="src/c15t.client.ts"
+    ```ts title="src/consent-client.ts"
     import type { C15tClientOptionsExtension } from 'c15t/astro';
     import { scripts } from './consent-scripts';
 
     export default { scripts } satisfies C15tClientOptionsExtension;
     ```
 
-    The integration passes this extension to its shared browser runtime. Vendor
-    helpers contain callbacks, so do not put them in the serialized `scripts`
-    option in `astro.config.mjs`. Keep one runtime across consent islands and
+    Vendor helpers contain callbacks, and the integration options in
+    `astro.config.mjs` are serialized into the page, so do not put helpers in
+    the integration's `scripts` option. The integration passes the client
+    entrypoint to the one runtime every page shares, including across
     `ClientRouter` navigation.
   </Tab>
 
