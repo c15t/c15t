@@ -1,0 +1,114 @@
+---
+title: Troubleshooting
+description: Fix a missing server-rendered banner, server function errors, proxy and firewall failures, and early vendor requests in a TanStack Start app that uses c15t.
+group: frameworks
+---
+
+## The banner is not in the server HTML
+
+**Check.** View the page source under a policy that asks for a choice. Look for
+`data-testid="consent-banner-root"`.
+
+| Cause | Fix |
+| --- | --- |
+| The root loader streams the consent promise | Expected. The banner mounts after hydration. Await the server function to render it on the server; see [rendering](/docs/frameworks/tanstack-start/rendering) |
+| The page is prerendered or the app runs in SPA mode | Expected. The browser resolves consent after the page loads |
+| The backend took longer than 500 ms, often on the first request after a start | The server rendered without consent and the browser resolved it. Later requests use the cached manifest. Raise `timeoutMs` in `createConsentStateHandler` if needed |
+| No country header reaches the server | Check that `consentRequestMiddleware()` is in `src/start.ts` and that your host adds a geo header. Without one the visitor gets your fallback policy |
+| The visitor has a stored choice | Expected. The server reads the `c15t` cookie and renders no banner |
+
+## The server function fails to resolve at runtime
+
+**Cause.** `createServerFn()` was called inside a package, a function or a
+conditional. Start's compiler identifies each server function by the file and
+the top-level assignment where you call `createServerFn()`.
+
+**Fix.** Declare `const getConsentState = createServerFn(...).handler(createConsentStateHandler({ backendURL }))`
+at the top level of your own route module, as in the
+[quickstart](/docs/frameworks/tanstack-start/quickstart#resolve-consent-in-the-root-route).
+
+## A serialization error mentions a function
+
+**Cause.** A server function or loader returns something with functions in it,
+such as vendor script configurations or a `hosted()` mode.
+
+**Fix.** Return only the consent state from the server function. Import
+`scripts` in the root route module and pass them to `ConsentRoot` there.
+
+## The same-origin setup never renders the banner on the server
+
+**Cause.** `createConsentStateHandler` got `/api/c15t` as its `backendURL`. A
+server that fetches its own route during a render can stall, so the helper
+skips the fetch and returns only the cookie and header state.
+
+**Fix.** Give `createConsentStateHandler` and `createConsentServerRoute` the
+absolute backend URL. Only `ConsentRoot` takes `/api/c15t`.
+
+## Saves through /api/c15t fail with 403 or a challenge page
+
+**Cause.** The backend's firewall blocks the proxied `POST /subjects`. A server
+cannot solve a browser challenge, such as Vercel Attack Challenge Mode or
+Cloudflare Super Bot Fight Mode.
+
+**Fix.** Exempt the consent paths from the challenge. Requests from the route
+carry an `x-c15t-proxy: @c15t/tanstack-start` header you can match in a
+firewall rule. If rate limits treat every visitor as one IP address, and your
+host overwrites `x-forwarded-for`, set `trustForwardedHeaders: true` on
+`createConsentServerRoute`.
+
+## The browser calls /api/c15t/init and gets a 404
+
+**Cause.** `ConsentRoot` defaults `initRoute` to `/api/c15t/init`, and the app
+has no consent server route.
+
+**Fix.** Pass `initRoute={false}` to call your backend URL directly, or mount
+the [same-origin route](/docs/frameworks/tanstack-start/rendering#keep-consent-requests-on-your-origin).
+
+## A vendor loads before the visitor chooses
+
+**Check.** Search route `head()` definitions, your root component and any tag
+manager for the vendor's script or SDK initializer.
+
+**Fix.** Remove every loader except the one in `ConsentRoot`'s `scripts`. c15t
+only gates scripts registered with it.
+[Scripts and embeds](/docs/frameworks/tanstack-start/scripts) covers the
+options.
+
+## Inspect the active policy
+
+Render this component inside `ConsentRoot`. It reads state and records no
+choice:
+
+{/* example: fragment */}
+
+```tsx title="src/components/consent-policy-debug.tsx"
+import { useSnapshot } from 'c15t/tanstack-start';
+
+export function ConsentPolicyDebug() {
+  const snapshot = useSnapshot();
+  const resolution = snapshot.resolution;
+
+  return (
+    <pre>
+      {JSON.stringify(
+        {
+          status: resolution.status,
+          policy: resolution.status === 'matched' ? resolution.policy.id : null,
+          prompt: snapshot.promptRequirement,
+          location: snapshot.location,
+        },
+        null,
+        2,
+      )}
+    </pre>
+  );
+}
+```
+
+`location` shows the country and region the server resolved. Remove the
+component after you finish.
+
+## Other problems
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers choices that do not
+persist, content blockers and customization.

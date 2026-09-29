@@ -2,10 +2,10 @@
 import { posthog } from '@c15t/scripts/posthog';
 import { xPixel } from '@c15t/scripts/x-pixel';
 
-export const createExampleScripts = (
-	posthogKey?: string,
-	xPixelId?: string
-) => [
+const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
+const xPixelId = import.meta.env.VITE_X_PIXEL_ID;
+
+export const scripts = [
 	...(posthogKey
 		? [
 				posthog({

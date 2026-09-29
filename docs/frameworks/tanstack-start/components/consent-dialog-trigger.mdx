@@ -1,0 +1,37 @@
+---
+title: ConsentDialogTrigger
+description: Add a floating button or toolbar to a TanStack Start app that reopens the c15t preference dialog after the first prompt.
+group: frameworks
+---
+
+## Add a floating preferences button
+
+`ConsentDialogTrigger` is a draggable floating button that opens the
+preference dialog. Render it once inside `ConsentRoot`, next to the banner and
+dialog:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+import { ConsentDialogTrigger } from 'c15t/tanstack-start';
+
+// Inside ConsentRoot, next to ConsentDialog:
+<ConsentDialogTrigger showWhen="after-prompt" />
+```
+
+`showWhen="after-prompt"` hides the button while a choice or notice is owed, so
+it never competes with the banner. It renders nothing until a policy resolves,
+and nothing under a policy that owes no rights.
+
+## Props
+
+<import src="../../../shared/react/components/consent-dialog-trigger.mdx#props" />
+
+## Add your own controls with the toolbar
+
+`ConsentDialogTriggerToolbar` renders one built-in preferences action plus
+controls your app owns, such as a theme toggle. Each action needs a stable
+`id`, a `label`, an `icon` and an `onSelect` callback. Import it from
+`c15t/tanstack-start`.
+
+<import src="../../../shared/react/components/consent-dialog-trigger.mdx#toolbar-props" />

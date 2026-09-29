@@ -6,29 +6,15 @@ group: frameworks
 
 ## Usage
 
-`ConsentDialogTrigger` is a draggable floating button that opens the preference center. Place it once, next to the banner and dialog, so visitors can revisit their choices without a footer link.
+`ConsentDialogTrigger` is a draggable floating button that opens the preference center. Place it once inside `ConsentProvider`, next to the banner and dialog from the [quickstart](/docs/frameworks/react/quickstart), so visitors can revisit their choices without a footer link.
 
-```tsx
-import {
-  ConsentBanner,
-  ConsentDialog,
-  ConsentDialogTrigger,
-  ConsentProvider,
-  offline,
-} from 'c15t/react';
-import { policyRulePresets } from '@c15t/schema';
+{/* example: fragment */}
 
-const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
+```tsx title="src/consent.tsx"
+import { ConsentDialogTrigger } from 'c15t/react';
 
-export function App() {
-  return (
-    <ConsentProvider options={{ mode }}>
-      <ConsentBanner />
-      <ConsentDialog />
-      <ConsentDialogTrigger showWhen="after-prompt" />
-    </ConsentProvider>
-  );
-}
+// Inside the ConsentProvider from your quickstart, next to the dialog:
+<ConsentDialogTrigger showWhen="after-prompt" />
 ```
 
 `showWhen="after-prompt"` keeps the button out of the way while a choice or notice is still owed and shows it once the visitor has answered, so the banner and the trigger never compete for the same corner. The default, `always`, shows it whenever the preference center is closed.
@@ -92,10 +78,12 @@ Toolbars are horizontal by default. Set `orientation="vertical"` to stack the ac
 
 The toolbar follows the standard precedence: bundled styles, then provider slots, then direct `className` and `style` on the toolbar or on one action. Use `noStyle` for a fully custom implementation.
 
+{/* example: fragment */}
+
 ```tsx
 <ConsentProvider
   options={{
-    mode: offline({ policyRules: [policyRulePresets.europeOptIn()] }),
+    mode,
     components: {
       trigger: {
         toolbar: { className: 'my-toolbar' },

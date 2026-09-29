@@ -1,0 +1,119 @@
+---
+title: Rendering
+description: How c15t resolves consent in client-rendered React apps, React Router framework mode, Remix and other server-rendered React apps without a c15t adapter.
+group: frameworks
+---
+
+## Pick your rendering path
+
+`c15t/react` resolves consent in the browser. That works for every React app,
+including server-rendered ones. What changes is what the first HTML contains.
+
+| Your app | Where consent resolves | Setup |
+| --- | --- | --- |
+| Vite, or another client-rendered single-page app | Browser, after the bundle loads | [Quickstart](/docs/frameworks/react/quickstart) |
+| Prerendered or static HTML | Browser, after the page loads | [Quickstart](/docs/frameworks/react/quickstart), see [static pages](#static-and-prerendered-pages) |
+| React Router framework mode, Remix, or another server-rendered React app | Browser, after hydration | [Quickstart](/docs/frameworks/react/quickstart), see [server-rendered apps](#react-router-remix-and-other-server-rendered-apps) |
+| Next.js or TanStack Start | Server, per request | That framework's guide in the [framework list](/docs/frameworks) |
+
+Pick the Next.js or TanStack Start adapter if you use those frameworks. They
+read the visitor's cookie and location on the server, so the banner can be in
+the first HTML. [Choose your setup](/docs/concepts/choose-your-setup#server-rendering-or-browser-rendering)
+explains the difference in general terms.
+
+## Client-rendered apps
+
+The [quickstart](/docs/frameworks/react/quickstart) setup runs entirely in the
+browser:
+
+1. The page loads with no consent state. Every optional category is denied.
+2. `ConsentProvider` requests `GET /init` from your backend URL. The backend
+   picks the visitor's policy from their location.
+3. The provider applies the policy and any stored choice. It shows the banner
+   if the policy asks for one, and loads the scripts the visitor allowed.
+
+Until step 3 finishes, gated scripts and `ConsentGate` embeds stay blocked. If
+the backend request fails, they stay blocked and no banner shows.
+
+## React Router, Remix and other server-rendered apps
+
+React Router framework mode, Remix and similar frameworks have no c15t adapter.
+Use the quickstart's `Consent` component and render it in your root component,
+around the outlet. In React Router framework mode that is `app/root.tsx`.
+
+`ConsentProvider` renders on the server without touching browser APIs, and the
+browser takes over after hydration:
+
+- The server HTML contains your page but no banner and no consent state.
+- After hydration the browser requests `/init`, then shows the banner if the
+  policy asks for one.
+- The server render and the first browser render agree, so hydration does not
+  warn or change a stored choice.
+
+Two details differ from the Vite setup. Expose the backend URL to browser code
+the way your framework handles public values; React Router framework mode builds
+with Vite, so `VITE_C15T_BACKEND_URL` works there. Import
+`c15t/react/styles.css` where your framework loads global CSS, so the server
+HTML links it.
+
+### Skip the browser's first init request
+
+This is optional. `fetchSSRData` from `c15t/react/server` calls the backend's
+`/init` from your server loader, forwarding the visitor's location and
+language headers. Pass the result to the browser, wrap it in a promise and give
+it to `hosted({ url, initialData })`. The provider's first init then uses that
+response instead of a network request.
+
+Know its limits before you add it:
+
+- It saves the browser's round trip to the backend. It does not put the banner
+  in the server HTML; the banner still mounts after hydration.
+- Every page view makes a server-to-server `/init` request. Do not cache the
+  loader response, because it contains one visitor's policy.
+- It returns `undefined` when the request has no location or language headers,
+  and the browser then requests `/init` as usual.
+- `mode` is read once, when the provider mounts. Create the `hosted()` mode once
+  in the browser rather than on every render.
+
+### Render the banner in the server HTML
+
+c15t has no framework-neutral helper for this. `ConsentProvider` accepts a
+server-resolved `prefetch` state, but the Next.js and TanStack Start adapters
+build that state from the request's cookie, headers and a cached policy
+manifest. Building it by hand ties your app to internal shapes. If the banner
+must be part of the first paint, use one of those adapters. Otherwise keep the
+browser path.
+
+## Static and prerendered pages
+
+A prerendered page is the same HTML for every visitor, so it cannot contain one
+visitor's consent. Use the quickstart setup unchanged. The browser talks to the
+backend URL directly, so the static host needs no server route. Add the site's
+origin to the trusted origins in your Inth project.
+
+Do not cache a response that contains a visitor's consent in a CDN or a shared
+page cache. [Data fetching](/docs/concepts/data-fetching) covers what is safe to
+cache.
+
+## Where the browser sends requests
+
+With `hosted({ url })`, the browser calls two backend endpoints:
+
+| Request | When |
+| --- | --- |
+| `GET {url}/init` | Once per page load, to resolve the policy |
+| `POST {url}/subjects` | When the visitor accepts, rejects or saves |
+
+Both go to the backend's origin, so it must list your site as a trusted origin.
+[Data fetching](/docs/concepts/data-fetching) compares this with proxies and
+custom transports.
+
+## Check the rendering path
+
+1. Open the page in a private window and view the page source. In a
+   server-rendered app the HTML contains your content and no element with
+   `data-testid="consent-banner-root"`.
+2. In DevTools Network, filter by your backend URL. One `/init` request runs
+   after the JavaScript loads, or none if you pass `initialData`.
+3. The banner appears once that request finishes. Vendor requests stay absent
+   until you allow their category.

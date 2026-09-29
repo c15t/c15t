@@ -1,0 +1,70 @@
+---
+title: Hooks
+description: Read consent permissions, open the preference dialog and save choices in TanStack Start components with the hooks exported from c15t/tanstack-start.
+group: frameworks
+---
+
+## Read only the state you need
+
+`c15t/tanstack-start` re-exports every hook from `c15t/react`. Each hook reads
+the runtime from `ConsentRoot`, so call hooks in components rendered inside it.
+Any route component qualifies, because `ConsentRoot` wraps the `Outlet` in the
+root route.
+
+{/* example: fragment */}
+
+```tsx title="src/components/optional-feature.tsx"
+import { useConsent } from 'c15t/tanstack-start';
+
+export function OptionalFeature() {
+  const allowed = useConsent('marketing');
+  return allowed ? <div>Optional marketing content</div> : null;
+}
+```
+
+On the server, hooks read the state the root loader resolved, so a route
+renders the same result in the server HTML and in the first browser render.
+
+<import src="../../shared/react/hooks/overview.mdx#read-state" />
+
+## Open the preference dialog
+
+Set the active surface to `'dialog'` from any component inside `ConsentRoot`:
+
+{/* example: fragment */}
+
+```tsx title="src/components/privacy-menu-item.tsx"
+import { useSetActiveUI } from 'c15t/tanstack-start';
+
+export function PrivacyMenuItem() {
+  const setActiveUI = useSetActiveUI();
+  return (
+    <button type="button" onClick={() => setActiveUI('dialog')}>
+      Cookie preferences
+    </button>
+  );
+}
+```
+
+`ConsentDialogLink` does the same without a hook.
+
+## Save from a visitor action
+
+{/* example: fragment */}
+
+```tsx title="src/components/reject-button.tsx"
+import { useSaveConsents } from 'c15t/tanstack-start';
+
+export function RejectButton() {
+  const save = useSaveConsents();
+  return <button type="button" onClick={() => void save('none')}>Reject optional</button>;
+}
+```
+
+<import src="../../shared/react/hooks/overview.mdx#save-guidance" />
+
+## Where hooks do not work
+
+Hooks need React context, so they do not run in loaders, `beforeLoad`, server
+functions or server routes. On the server, read the request's consent state
+with `resolveConsent` from `c15t/tanstack-start/server`.

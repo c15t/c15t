@@ -1,0 +1,39 @@
+---
+title: ConsentDialogLink
+description: Add a ConsentDialogLink to a TanStack Start footer so visitors can reopen the c15t preference dialog from your own text link.
+group: frameworks
+---
+
+## Reopen preferences from your footer
+
+`ConsentDialogLink` is an unstyled button that opens the preference dialog.
+Put it where your site keeps its legal links so preferences stay reachable
+after the banner closes. The
+[quickstart](/docs/frameworks/tanstack-start/quickstart#resolve-consent-in-the-root-route)
+renders one in the root route's footer.
+
+{/* example: fragment */}
+
+```tsx title="src/components/site-footer.tsx"
+import { ConsentDialogLink } from 'c15t/tanstack-start';
+
+export function SiteFooter() {
+  return (
+    <footer>
+      <a href="/privacy">Privacy policy</a>
+      <ConsentDialogLink className="footer-link">Privacy settings</ConsentDialogLink>
+    </footer>
+  );
+}
+```
+
+Render the footer inside `ConsentRoot`, with `ConsentDialog` mounted. It
+renders a `button`; pass `asChild` to render your own link element instead.
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#props" />
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#behavior" />
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-dialog-link.mdx#verify" />

@@ -1,7 +1,8 @@
-html[data-consent-example-theme='branded'] * {
-	--c15t-primary: #146b56 !important;
-	--c15t-primary-hover: #105442 !important;
-	--c15t-radius-lg: 1.25rem !important;
+/* The Branded theme button overrides c15t theme tokens. */
+:root[data-consent-example-theme='branded'] {
+	--c15t-primary: #146b56;
+	--c15t-primary-hover: #105442;
+	--c15t-radius-lg: 1.25rem;
 }
 .consent-example {
 	max-width: 48rem;

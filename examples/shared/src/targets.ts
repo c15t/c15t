@@ -64,6 +64,25 @@ export const targets: ExampleTarget[] = [
 		routes: ['/consent-example'],
 		start: () => ['run', 'start'],
 	},
+	// The same TanStack Start pages under each alternative root route in
+	// `examples/tanstack-start/src/rendering`: a streamed consent loader, the
+	// same-origin `/api/c15t` server route, and prerendered static files.
+	...['streamed', 'same-origin'].map((rendering) => ({
+		directory: 'tanstack-start',
+		env: { C15T_TANSTACK_RENDERING: rendering },
+		failureRoute: '/consent-example',
+		id: `tanstack-start-${rendering}`,
+		routes: ['/consent-example'],
+		start: () => ['run', 'start'],
+	})),
+	{
+		directory: 'tanstack-start',
+		env: { C15T_TANSTACK_RENDERING: 'static' },
+		failureRoute: '/consent-example',
+		id: 'tanstack-start-static',
+		routes: ['/consent-example'],
+		start: () => ['run', 'start:static'],
+	},
 	{
 		// Server output with manifest mode. The prerendered route leaves the
 		// policy to the browser; the cached route renders its banner in a

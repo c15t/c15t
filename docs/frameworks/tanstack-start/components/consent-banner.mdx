@@ -1,0 +1,50 @@
+---
+title: ConsentBanner
+description: Render the c15t consent banner in a TanStack Start app, set its variant and position, and override its labels.
+group: frameworks
+---
+
+## Render the banner
+
+Render `ConsentBanner` once inside `ConsentRoot`, next to `ConsentDialog`. The
+[quickstart](/docs/frameworks/tanstack-start/quickstart#resolve-consent-in-the-root-route)
+does this in the root route. With an awaited root loader, the banner is part of
+the server HTML for visitors who owe a choice.
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+import { ConsentBanner } from 'c15t/tanstack-start';
+
+// Inside ConsentRoot:
+<ConsentBanner variant="bar" position="bottom" />
+```
+
+The banner renders what the active policy requires. A `choice` prompt shows
+reject and accept at equal prominence, plus customize when the policy offers it.
+A `notice` prompt shows an "OK" button and a "Do not sell or share my data"
+button that opens preferences. A policy with `prompt: 'none'` renders nothing,
+and so does a visitor whose policy has not resolved.
+
+## Props
+
+<import src="../../../shared/react/components/consent-banner.mdx#props" />
+
+## Variants
+
+The policy decides which actions the banner offers. The variant decides their
+shape. Set `variant` on the banner, or `options.presentation.prompt` on
+`ConsentRoot` for every banner. The prop wins.
+
+| Variant | Positions | Default |
+| --- | --- | --- |
+| `floating` | `bottom-left`, `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` | `bottom-left` |
+| `bar` | `top`, `bottom` | `bottom` |
+| `widget` | `bottom-left`, `bottom-right`, `top-left`, `top-right` | `bottom-right` |
+| `wall` | `center` | `center` |
+
+A `wall` blocks the page until the visitor answers. A notice never blocks, so a
+notice `wall` falls back to `floating`. Every part is also available as
+`ConsentBanner.<Part>` for custom layouts, such as `ConsentBanner.Root`,
+`ConsentBanner.Card` and `ConsentBanner.PolicyActions`.
+[Customize](/docs/frameworks/tanstack-start/customize) covers tokens and slots.

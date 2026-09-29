@@ -1,0 +1,43 @@
+---
+title: ConsentGate
+description: Gate a YouTube video, map or other iframe behind consent in a TanStack Start app with ConsentGate, showing a placeholder until the category is allowed.
+group: frameworks
+---
+
+## Gate an embed behind consent
+
+`ConsentGate` mounts its children only while one category is allowed and shows
+a placeholder otherwise. Wrap any iframe or widget that contacts a vendor when
+it loads:
+
+{/* example: fragment */}
+
+```tsx title="src/components/product-video.tsx"
+import { ConsentGate } from 'c15t/tanstack-start';
+
+export function ProductVideo() {
+  return (
+    <ConsentGate category="marketing" style={{ aspectRatio: '16 / 9' }}>
+      <iframe
+        src="https://www.youtube-nocookie.com/embed/VIDEO_ID"
+        title="Product tour"
+        allowFullScreen
+      />
+    </ConsentGate>
+  );
+}
+```
+
+With an awaited root loader, the server HTML already contains the placeholder
+or, for a visitor who allowed the category, the iframe. The category must be in
+your policy's scope.
+
+<import src="../../../shared/react/components/consent-gate.mdx#props" />
+
+<import src="../../../shared/react/components/consent-gate.mdx#behavior" />
+
+<import src="../../../shared/react/components/consent-gate.mdx#composition" />
+
+<import src="../../../shared/react/components/consent-gate.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-gate.mdx#verify" />

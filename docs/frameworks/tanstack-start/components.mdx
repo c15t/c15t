@@ -1,0 +1,74 @@
+---
+title: Components
+description: ConsentRoot and the consent banner, dialog, widget, links, gate and DevTools components a TanStack Start app imports from c15t/tanstack-start.
+group: frameworks
+---
+
+## Import from c15t/tanstack-start
+
+`c15t/tanstack-start` exports `ConsentRoot` and re-exports every component and
+hook from `c15t/react`. Import them from `c15t/tanstack-start` so your app has
+one import path. They behave the same as in a React app, and render on the
+server with the state the root loader resolved.
+
+| Component | Renders | Reference |
+| --- | --- | --- |
+| `ConsentRoot` | The consent runtime, seeded with the root loader's state | [Below](#consentroot) |
+| `ConsentBanner` | The banner, when the policy asks for one | [ConsentBanner](/docs/frameworks/tanstack-start/components/consent-banner) |
+| `ConsentDialog` | The preference dialog | [ConsentDialog](/docs/frameworks/tanstack-start/components/consent-dialog) |
+| `ConsentWidget` | The preference controls inline in a page | [ConsentWidget](/docs/frameworks/tanstack-start/components/consent-widget) |
+| `ConsentDialogLink` | A button that opens the dialog, for your footer | [ConsentDialogLink](/docs/frameworks/tanstack-start/components/consent-dialog-link) |
+| `ConsentDialogTrigger` | A floating button that opens the dialog | [ConsentDialogTrigger](/docs/frameworks/tanstack-start/components/consent-dialog-trigger) |
+| `ConsentGate` | Its children only while a category is allowed | [ConsentGate](/docs/frameworks/tanstack-start/components/consent-gate) |
+| `ConsentTheme` | A `<style>` element with your theme tokens | [Customize](/docs/frameworks/tanstack-start/customize) |
+| `DevTools` from `c15t/react/devtools` | A development panel for consent state and scripts | [DevTools](/docs/frameworks/tanstack-start/components/dev-tools) |
+
+Render every component inside `ConsentRoot`. Do not also mount
+`ConsentProvider`; `ConsentRoot` already renders one.
+
+## ConsentRoot
+
+`ConsentRoot` wraps the app in the root route. It takes the state the root
+loader resolved on the server and creates the consent runtime from it, so the
+server HTML and the first browser render match. The
+[quickstart](/docs/frameworks/tanstack-start/quickstart#resolve-consent-in-the-root-route)
+shows it in context.
+
+| Prop | Purpose |
+| --- | --- |
+| `state` | Required. The loader's consent state, a promise of it for a [streamed loader](/docs/frameworks/tanstack-start/rendering#stream-the-page-while-consent-resolves), or `{}` for [pages without a server render](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts) |
+| `backendURL` | Your backend URL, or `/api/c15t` with the [same-origin route](/docs/frameworks/tanstack-start/rendering#keep-consent-requests-on-your-origin). Without it, `ConsentRoot` runs in offline mode. Not recommended for production environments. |
+| `initRoute` | Where the browser requests `/init`. Defaults to `/api/c15t/init`, served by `createConsentServerRoute`. `false` calls `${backendURL}/init` directly |
+| `scripts` | Consent-gated vendor scripts. See [scripts and embeds](/docs/frameworks/tanstack-start/scripts) |
+| `vendors` | Vendors listed under their category with their own switch |
+| `networkBlocker` | Rules that hold `fetch` and `XMLHttpRequest` calls until their category is allowed |
+| `clearOnRevocation` | Cookies and storage keys to delete when a category is denied |
+| `persistence` | Stores the visitor's choice. On by default |
+| `scriptLoader` | Options for the script loader module |
+| `options` | Any other `ConsentProvider` option, such as `theme`, `i18n`, `presentation`, `callbacks`, `consentCategories`, `reloadOnConsentRevoked` or `preloadDialog` |
+
+`ConsentRoot` creates the runtime once, when it mounts, and ignores later
+changes to `state`, `backendURL` and `initRoute`. Keep it in the root route so
+client navigation never remounts it.
+
+The root entry also exports `DEFAULT_INIT_ROUTE` (`'/api/c15t/init'`),
+`consentPrefetchHead` for pages without a server render, and
+`buildPrefetchScript`, the script builder behind it.
+
+## Server entry points
+
+| Import | Exports | Use |
+| --- | --- | --- |
+| `c15t/tanstack-start/server` | `createConsentStateHandler`, `resolveConsent`, `consentLoaderOptions`, `mergeInitIntoConsentState` | Resolve the visitor's state in a server function |
+| `c15t/tanstack-start/middleware` | `consentRequestMiddleware` | Read location, language and privacy headers on every request |
+| `c15t/tanstack-start/api` | `createConsentServerRoute`, `GET`, `manifestGET`, `initGET` | Serve `/api/c15t/*` from your app |
+| `c15t/tanstack-start/headless` | Headless hooks | [Custom markup](/docs/frameworks/tanstack-start/headless) |
+
+`resolveConsent` is the function behind `createConsentStateHandler`. Call it
+directly from a server route or middleware that already holds the `Request`,
+and pass it as `request`. Import server entry points only from server code.
+
+## IAB TCF components
+
+The IAB banner and dialog come from `c15t/react/iab`. See
+[IAB TCF](/docs/frameworks/tanstack-start/iab).

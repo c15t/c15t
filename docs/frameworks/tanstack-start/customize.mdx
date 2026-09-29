@@ -1,0 +1,152 @@
+---
+title: Customize
+description: Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a TanStack Start app with the stylesheet, theme tokens, ConsentRoot options and slots.
+group: frameworks
+---
+
+## Pick the right tool
+
+| Change | Use |
+| --- | --- |
+| Brand colors, fonts, radius, spacing | [Theme tokens](#change-colors-fonts-and-radius) |
+| Which button is filled or outlined | [`consentActions`](#style-the-action-buttons) |
+| Banner shape and position | [`ConsentBanner` props or `presentation`](#change-the-banner-shape) |
+| One element of a component | [Slots](#style-one-part-with-slots) |
+| Labels and languages | [Copy and translations](#change-the-copy) |
+| Different markup entirely | [Headless](/docs/frameworks/tanstack-start/headless) |
+
+`ConsentRoot` passes every option other than its own props through `options`
+to the React provider, so the React styling options apply unchanged.
+[Customization](/docs/customization/overview) explains how the choices relate.
+
+## Load the stylesheet
+
+The [quickstart](/docs/frameworks/tanstack-start/quickstart) root route links
+the stylesheet through `head()`:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+import consentCss from 'c15t/tanstack-start/styles.css?url';
+
+// In createRootRoute({ head: () => ({ links: [...] }) }):
+{ href: consentCss, rel: 'stylesheet' }
+```
+
+If your app already has a global stylesheet, you can `@import` the c15t
+stylesheet from it instead. With Tailwind v3, import
+`c15t/tanstack-start/styles.tw3.css` from your Tailwind entry, between the
+`components` and `utilities` directives. The rules live in
+`@layer components`, so Tailwind v4 utilities override them without extra
+specificity.
+
+## Change colors, fonts and radius
+
+Colors, radii, shadows, typography and motion come from `--c15t-*` CSS
+variables. Pick one of two ways to set them:
+
+- **Set the variables in your CSS.** Nothing extra ships to the browser. Load
+  this after the c15t stylesheet:
+
+  ```css title="src/styles.css"
+  :root {
+    --c15t-primary: #2f6f4e;
+    --c15t-primary-hover: #24563c;
+    --c15t-text-on-primary: #fff;
+    --c15t-radius-lg: 4px;
+  }
+  ```
+
+- **Render `ConsentTheme` in the root route.** Use this when the theme lives in
+  TypeScript. The root component renders on the server, so the `<style>`
+  element is in the first HTML. It also runs in the browser, so the theme
+  generator ships in the bundle.
+
+  {/* example: fragment */}
+
+  ```tsx title="src/consent-theme.ts"
+  import { defineTheme } from 'c15t/tanstack-start';
+
+  export const theme = defineTheme({
+    colors: { primary: '#2f6f4e', primaryHover: '#24563c' },
+    radius: { lg: '4px' },
+  });
+  ```
+
+  In the root component, render `<ConsentTheme theme={theme} />` from
+  `c15t/tanstack-start` inside `<head>`, after `<HeadContent />`.
+
+[Tokens and CSS](/docs/customization/tokens) lists every variable, dark mode
+and scoping tokens to one consent model.
+
+## Style the action buttons
+
+`consentActions` decides how each action looks. `default` applies to every
+button, `primary` to the action the policy or your props mark primary, and
+`accept`, `reject`, `customize` and `dismiss` to one action each. Pass it
+through `ConsentRoot`'s `options`:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+<ConsentRoot
+  state={consent}
+  backendURL={backendURL}
+  initRoute={false}
+  scripts={scripts}
+  options={{
+    theme: {
+      consentActions: {
+        primary: { variant: 'primary', mode: 'filled' },
+      },
+    },
+  }}
+>
+```
+
+`options.theme` only reads `consentActions` and slot styles. Tokens passed there
+do nothing, and the provider logs a warning in development.
+
+## Change the banner shape
+
+`ConsentBanner` takes `variant` (`floating`, `bar`, `widget` or `wall`) and
+`position`, such as `<ConsentBanner variant="bar" position="bottom" />`. To use
+one shape everywhere, set `options.presentation.prompt` on `ConsentRoot`
+instead. [ConsentBanner](/docs/frameworks/tanstack-start/components/consent-banner#variants)
+lists every variant and position.
+
+## Style one part with slots
+
+Each component part is a slot that accepts any attribute its element takes,
+such as `className` or `style`. Set slots in `ConsentRoot`'s
+`options.components`, keyed by component and part:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+options={{
+  components: {
+    banner: {
+      card: { className: 'rounded-none shadow-none' },
+    },
+  },
+}}
+```
+
+[Slots](/docs/customization/slots) lists the keys for every component and when
+to drop the built-in styles with `noStyle`.
+
+## Change the copy
+
+Labels, descriptions and languages come from the translations in your Inth
+project and from `options.i18n` on `ConsentRoot`.
+[Copy and translations](/docs/customization/translations) shows the message
+keys.
+
+## Check the result
+
+Clear site data and reload under a policy that shows a banner. View the page
+source: with an awaited loader, the banner is in the HTML with your classes
+and, if you render `ConsentTheme`, a `<style id="c15t-theme">` element. Open
+the preference dialog too, since it reads the same tokens. Test a narrow
+window, keyboard focus and contrast on the primary button.

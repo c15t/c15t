@@ -1,13 +1,13 @@
-{/* Generated from examples/tanstack-start/src/example-scripts.ts (docs:scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
+{/* Generated from examples/tanstack-start/src/scripts.ts (docs:scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
 
-```ts title="src/example-scripts.ts"
+```ts title="src/scripts.ts"
 import { posthog } from '@c15t/scripts/posthog';
 import { xPixel } from '@c15t/scripts/x-pixel';
 
-export const createExampleScripts = (
-	posthogKey?: string,
-	xPixelId?: string
-) => [
+const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
+const xPixelId = import.meta.env.VITE_X_PIXEL_ID;
+
+export const scripts = [
 	...(posthogKey
 		? [
 				posthog({

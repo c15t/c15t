@@ -1,7 +1,4 @@
-/* The only required stylesheet: prebuilt c15t component styles. */
-@import 'c15t/tanstack-start/styles.css';
-
-/* Demo chrome below. */
+/* Demo chrome for the home page. The root route links the c15t stylesheet. */
 body {
 	margin: 0;
 	font-family: system-ui, sans-serif;

@@ -1,0 +1,134 @@
+---
+title: Scripts and embeds
+description: Load vendor scripts, gate iframes, block network requests and clear stored data by consent category in a TanStack Start app with ConsentRoot.
+group: frameworks
+---
+
+## Register vendor scripts
+
+Pass vendor loaders to `ConsentRoot` through its `scripts` prop. `ConsentRoot`
+loads each script in the browser when its category is allowed and removes it
+when the category is denied. The [quickstart](/docs/frameworks/tanstack-start/quickstart)
+registers PostHog and X Pixel in `src/scripts.ts`:
+
+<include src="../../shared/examples/tanstack-start/scripts.mdx" />
+
+The root route imports that module and passes it on:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+import { scripts } from '../scripts';
+
+<ConsentRoot state={consent} backendURL={backendURL} initRoute={false} scripts={scripts}>
+```
+
+Import vendor helpers in route modules, not in a server function. A server
+function's return value must be serializable, and vendor loaders contain
+functions. Scripts only load in the browser, so importing them in the root
+route adds nothing to the server HTML.
+
+Each helper from `@c15t/scripts` sets its own category and a stable `id`.
+Remove every other loader for the same vendor, such as a `scripts` entry in a
+route's `head()` or an SDK you initialize at module level, so the vendor loads
+once and only through c15t. [Integrations](/docs/integrations/overview) lists
+every helper, and [building integrations](/docs/integrations/building-integrations)
+covers a vendor without one.
+
+## What happens when consent changes
+
+- **Allowed.** The script loads, or its SDK starts, the first time its category
+  is allowed. With an awaited root loader, a returning visitor's allowed
+  scripts start right after hydration.
+- **Denied later.** The script element is removed. Code that already ran keeps
+  running, so after the visitor turns off a category they had allowed, the page
+  reloads once the save finishes. Set `reloadOnConsentRevoked: false` in
+  `ConsentRoot`'s `options` only if every gated vendor stops itself.
+- **`alwaysLoad` helpers.** Some integrations, such as Google Consent Mode,
+  load before consent and pass the visitor's choice to the vendor. Read the
+  vendor's guide; a category on a script does not always mean zero requests.
+
+## Gate an iframe or widget
+
+Wrap embeds in `ConsentGate`. It renders its children only while the category
+is allowed and shows a placeholder otherwise:
+
+{/* example: fragment */}
+
+```tsx title="src/components/product-video.tsx"
+import { ConsentGate } from 'c15t/tanstack-start';
+
+export function ProductVideo() {
+  return (
+    <ConsentGate category="marketing">
+      <iframe
+        src="https://www.youtube-nocookie.com/embed/VIDEO_ID"
+        title="Product tour"
+        allowFullScreen
+      />
+    </ConsentGate>
+  );
+}
+```
+
+Replace `VIDEO_ID` with your video. The server HTML contains the placeholder,
+never the iframe, unless the root loader resolved the category as allowed.
+[ConsentGate](/docs/frameworks/tanstack-start/components/consent-gate) documents the
+placeholder and its props. For iframes in HTML you do not render with React,
+set `data-category` and `data-src` instead of `src`; `ConsentRoot` sets `src`
+once the category is allowed.
+
+## Block requests an SDK sends itself
+
+Pass `networkBlocker` rules to `ConsentRoot` to stop `fetch` and
+`XMLHttpRequest` calls to a domain until its category is allowed:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+const networkBlocker = {
+  rules: [
+    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
+    { id: 'meta-pixel', domain: 'facebook.com', pathIncludes: '/tr', category: 'marketing' },
+  ],
+};
+
+<ConsentRoot state={consent} backendURL={backendURL} initRoute={false} scripts={scripts} networkBlocker={networkBlocker}>
+```
+
+The blocker runs in the browser only. It does not see requests your server
+functions or server routes make.
+
+<import src="../../shared/react/network-blocker.mdx#rules" />
+
+<import src="../../shared/react/network-blocker.mdx#behavior" />
+
+<import src="../../shared/react/network-blocker.mdx#limits" />
+
+## Clear stored data after revocation
+
+Removing a script does not delete the cookies or storage entries it wrote. Pass
+`clearOnRevocation` to `ConsentRoot` to delete the entries you list for each
+category when it is denied. `ConsentRoot` reads it once, when it mounts.
+[Clear on revocation](/docs/integrations/clear-on-revocation) covers
+configuration and browser limits.
+
+## Vendors with their own switch
+
+To let a visitor allow a category but turn off one vendor, pass `vendors` to
+`ConsentRoot`. The preference dialog then lists each vendor under its category.
+Helpers from `@c15t/scripts` already carry their vendor slug.
+[Granular consent](/docs/integrations/granular-consent) explains the setup.
+
+## Check the scripts
+
+Open DevTools Network in a private window, filter by each vendor's domain and
+reload.
+
+1. Before a choice under an opt-in policy, no vendor script, iframe or blocked
+   domain appears. The page source has no vendor `<script>` tags.
+2. Allow one category. Only that category's vendors load.
+3. Turn the category off. The page reloads and the vendor stays absent.
+4. Reload again. The rejection holds, and the server HTML shows no banner.
+
+[Verify consent](/docs/guides/verify-consent) has the full checklist.

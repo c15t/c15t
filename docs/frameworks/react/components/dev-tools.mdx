@@ -1,6 +1,6 @@
 ---
 title: DevTools
-description: A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
+description: Inspect consent state, location, loaded scripts and consent events in a React app during development with the c15t DevTools panel.
 group: frameworks
 ---
 
@@ -8,35 +8,38 @@ group: frameworks
 
 ## Usage
 
-This example uses Vite's `import.meta.env.DEV` build-time flag. For another
-bundler, use its development flag instead. For example, webpack projects can
-use a configured `process.env.NODE_ENV === 'development'` replacement;
-`process` is not a browser global.
+Render `DevTools` inside `ConsentProvider`. This example loads it only in
+development with Vite's `import.meta.env.DEV` flag, so production bundles never
+download it. For another bundler, use its development flag instead; for
+example, webpack projects can use a configured
+`process.env.NODE_ENV === 'development'` replacement, since `process` is not a
+browser global.
 
-```tsx
-import { lazy, Suspense, type ReactNode } from 'react';
-import { ConsentProvider, hosted } from 'c15t/react';
+{/* example: fragment */}
 
-const DevTools =
-  import.meta.env.DEV
-    ? lazy(() =>
-        import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })),
-      )
-    : () => null;
+```tsx title="src/consent-devtools.tsx"
+import { lazy, Suspense } from 'react';
 
-export function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentProvider options={{ mode: hosted({ url: 'https://your-instance.c15t.dev' }) }}>
-      {children}
-      <Suspense fallback={null}>
-        <DevTools />
-      </Suspense>
-    </ConsentProvider>
-  );
+const DevTools = import.meta.env.DEV
+  ? lazy(() =>
+      import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })),
+    )
+  : null;
+
+export function ConsentDevTools() {
+  return DevTools ? (
+    <Suspense fallback={null}>
+      <DevTools />
+    </Suspense>
+  ) : null;
 }
 ```
 
-Import the adapter from `c15t/react/devtools` when you use the umbrella package, or `c15t/react/devtools` when you install the React package directly. `@c15t/dev-tools` exports the imperative engine, not the React component.
+Render `<ConsentDevTools />` inside the provider from your
+[quickstart](/docs/frameworks/react/quickstart), next to the banner. Import the
+component from `c15t/react/devtools` when you installed the `c15t` package, or
+from `@c15t/react/devtools` when you installed `@c15t/react` directly.
+`@c15t/dev-tools` exports the imperative engine, not the React component.
 
 If the CLI cannot identify your bundler's development flag, it generates
 `const DevTools = false` with a setup comment. Replace `false` with your

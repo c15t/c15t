@@ -1,64 +1,53 @@
 # c15t × TanStack Start example
 
-Minimal c15t TanStack Start integration through the `c15t` umbrella package
-(`c15t/tanstack-start` ≡ `@c15t/tanstack-start`): a server function in the
-root route loader, one `<ConsentRoot>` around the app, one splat server
-route for the same-origin consent endpoints, plus a self-hosted
-`@c15t/backend` mounted at `/api/self-host` (`src/routes/api/self-host/$.ts`)
-so the whole demo, including the consent manifest, is served from a single
-origin.
+A TanStack Start app wired to c15t through the `c15t` umbrella package
+(`c15t/tanstack-start`). The files the docs publish:
+
+- `src/start.ts` registers `consentRequestMiddleware()`, so every server
+  request reads one normalized set of geo, language and GPC headers.
+- `src/routes/__root.tsx` declares `getConsentState` with
+  `createServerFn().handler(createConsentStateHandler({ backendURL }))`. The
+  root loader awaits it on the server, so the banner is in the first HTML.
+  `ConsentRoot` reads the result with `Route.useLoaderData()` and, with
+  `initRoute={false}`, calls the backend directly from the browser.
+- `src/scripts.ts` registers PostHog and X Pixel.
+- `src/routes/api/c15t/$.ts` mounts `createConsentServerRoute({ proxy: true })`
+  for the same-origin rendering variant.
 
 ```bash
 bun install
 bun run dev        # http://localhost:3010
 ```
 
-## What it shows
+Without `VITE_C15T_BACKEND_URL`, `bun run dev` uses the self-hosted
+`@c15t/backend` mounted at `/api/self-host` (`src/routes/api/self-host/$.ts`).
+Production builds require `VITE_C15T_BACKEND_URL`.
 
-- `src/routes/__root.tsx` declares `getConsentState` with
-  `createServerFn().handler(createConsentStateHandler({ backendURL }))`.
-  The loader runs it on the server, where it reads the `c15t` cookie and the
-  geo headers and resolves init from the backend manifest. `ConsentRoot`
-  reads the result back with `Route.useLoaderData()`, so the banner is in the
-  first HTML with zero CLS and hydration never disagrees with the server.
-  `consentLoaderOptions` keeps the loader from re-running on client-side
-  navigation.
-- `src/routes/api/c15t/$.ts` mounts
-  `createConsentServerRoute({ backendURL, proxy: true })`.
-  `GET /api/c15t/manifest` passes the cached backend manifest through with its
-  `cache-control` and `etag` (and answers `304` to `if-none-match`);
-  `GET /api/c15t/init` resolves consent locally from that manifest for the
-  request's country, region, language, and GPC signal, with no
-  consent-backend round trip on the request path. See
-  `internals/rfcs/0001-consent-manifest.md`.
-- `proxy: true` forwards the rest of the consent traffic (`POST
-  /api/c15t/subjects`, `PATCH /api/c15t/subjects/:id`, `GET /api/c15t/status`)
-  to `backendURL`, so `ConsentRoot` takes `backendURL="/api/c15t"` and
-  the browser only ever talks to this origin, like a Next.js rewrite. The
-  proxy forwards the browser's `user-agent`, `accept-language`, `cookie`,
-  `origin`, `referer`, and geo headers plus the client IP in
-  `x-forwarded-for`, and tags the request with `x-c15t-proxy` and
-  `x-c15t-version`, so a hosted backend behind Vercel Firewall or Cloudflare
-  scores it like a direct visitor. Anything off the allowlist
-  (`GET /api/c15t/anything-else`) is a 404. If the hosted backend runs Vercel
-  Attack Challenge Mode or Cloudflare Super Bot Fight Mode, exempt the consent
-  paths: a server cannot solve a browser challenge.
-- `src/start.ts` registers `consentRequestMiddleware()` so server routes,
-  server functions, and the self-hosted backend all read one canonical set of
-  `x-c15t-country` / `x-c15t-region` / `sec-gpc` headers, whichever CDN
-  populated them.
-- `src/routes/index.tsx` reads the live state with the re-exported React
-  hooks (`useConsent('marketing')`, `useActiveUI`, `usePolicyDecision`, ...)
-  and opens the preferences dialog with `useSetActiveUI()`.
+## Rendering variants
 
-Try the region preview from the page itself, or by hand: `?country=DE`
-resolves GDPR/opt-in with a banner, `?country=US&region=CA` resolves
-CCPA/opt-out with no banner at all. `src/middleware/region-override.ts`
-turns the query into geo headers; it also reads the `referer` for
-same-origin follow-up requests (`/api/c15t/init`, `POST /api/c15t/subjects`)
-so the
-browser stays on the policy the server rendered. It is a development aid,
-not part of the integration.
+`src/rendering` holds alternative root routes. `C15T_TANSTACK_RENDERING`
+selects one at build time; the pages stay the same.
+
+| Value | Root route | What changes |
+| --- | --- | --- |
+| unset | `src/routes/__root.tsx` | The loader awaits consent; the banner is in the server HTML |
+| `streamed` | `src/rendering/streamed-root.tsx` | The loader returns the pending consent state; the banner mounts after hydration |
+| `same-origin` | `src/rendering/same-origin-root.tsx` | The browser sends init and saves to `/api/c15t` on this origin |
+| `static` | `src/rendering/static-root.tsx` | Every page is prerendered; the browser resolves consent |
+
+```bash
+C15T_TANSTACK_RENDERING=static VITE_C15T_BACKEND_URL=https://... bun run build
+bun run start:static   # serves dist/client only, like a static host
+```
+
+## Demo files
+
+`src/demo` holds the demo pages' components and CSS, and the IAB banner the
+home page shows for the self-hosted backend's IAB policy. Try the region
+preview from the home page, or by hand: `?country=DE` resolves the IAB
+policy, `?country=US&region=CA` resolves an opt-out policy with no banner.
+`scripts/region-preview.mjs` turns the query into geo headers in the dev
+server and in `scripts/serve.mjs`, outside the app. Never ship it.
 
 ## Storage
 
@@ -79,24 +68,19 @@ locally and only fails once deployed. Delete `.pgdata/` to reset the demo.
 
 ## Pointing at a hosted backend
 
-Set `VITE_C15T_BACKEND_URL` to your c15t instance to skip the self-hosted
-route. The URL is public by design; keep any other `C15T_*` value out of the
-`VITE_` prefix so it never reaches a bundle.
-
-```bash
-VITE_C15T_BACKEND_URL=https://your-instance.c15t.dev bun run dev
-```
-
-The server function prefetches the manifest from it and the consent route
-proxies to it; the browser keeps talking to `/api/c15t`. The self-host route
-keeps working but nothing calls it.
+Set `VITE_C15T_BACKEND_URL` to the backend URL from your [Inth](https://inth.com)
+project and add this app's origin to the project's trusted origins. The URL is
+public; keep any other `C15T_*` value out of the `VITE_` prefix so it never
+reaches a bundle.
 
 ## Production build
 
 ```bash
-bun run build
-DATABASE_URL=postgres://... bun run start
+VITE_C15T_BACKEND_URL=https://... bun run build
+bun run start
 ```
+
+Set `DATABASE_URL` as well if the build points at the self-hosted route.
 
 `vite build` emits `dist/server/server.js` as a bare `{ fetch }` handler with
 no listener, so `bun run start` hosts it with `scripts/serve.mjs`: srvx on
@@ -106,39 +90,22 @@ which is the Node hosting shape TanStack Start documents for that output.
 
 ## Consent example
 
-Open `/consent-example` for the shared integration scenario. The existing home
-and showcase routes remain available.
+Open `/consent-example` for the shared integration scenario. Public vendor
+settings are optional:
 
-For hosted operation, create an [Inth](https://inth.com) project, configure an
-opt-in policy covering `measurement` and `marketing`, and allow this app's
-origin. Set `VITE_C15T_BACKEND_URL` to the exact public backend URL supplied by Inth.
-Then run from the repository root:
-
-```sh
-bun run --cwd examples/tanstack-start dev
-```
-
-Public vendor settings are optional:
-
-- `VITE_POSTHOG_KEY`: PostHog browser project key. The example selects the EU region;
-  change `region` in `example-scripts.ts` for a US project.
+- `VITE_POSTHOG_KEY`: PostHog browser project key. The example selects the EU
+  region; change `region` in `src/scripts.ts` for a US project.
 - `VITE_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
 
-An unset vendor setting omits that loader. PostHog uses `loadMode: 'after-consent'`
-and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. Remove
-other initializers for these vendors before reusing the example.
+An unset vendor setting omits that loader. PostHog uses
+`loadMode: 'after-consent'` and `cookieless_mode: 'never'`. X Pixel waits for
+marketing permission. The YouTube iframe only mounts with measurement
+permission and is removed on revocation. The Default theme and Branded theme
+buttons override CSS tokens without replacing the consent runtime.
 
-The YouTube nocookie iframe only mounts with measurement permission and is
-removed on revocation. The placeholder opens preferences. Use the footer's
-Privacy settings control to reopen the dialog. Default theme and Branded theme
-buttons demonstrate CSS token overrides without replacing the consent runtime.
+The shared acceptance suite builds each rendering variant against a fixture
+backend:
 
-Test a fresh rejection, grant, reload and withdrawal. Confirm PostHog and X
-requests are absent before their respective permissions, and the iframe is
-absent before measurement permission. The example emits no custom conversion
-events. Script removal cannot undo SDK code that already ran; application event
-calls must also stop after withdrawal.
-
-The root route keeps its existing server prefetch, proxy and IAB components.
-Without the backend override, the existing self-hosted backend is used.
-Development DevTools uses the React adapter against that same runtime.
+```sh
+EXAMPLE_TARGET=tanstack-start,tanstack-start-streamed,tanstack-start-same-origin,tanstack-start-static bun run --cwd examples/shared test
+```
