@@ -50,7 +50,7 @@ export const startExample = async function startExample(target: ExampleTarget) {
 	try {
 		// Public environment values are build inputs. Never reuse a build carrying
 		// an earlier fixture port, and never substitute a development server.
-		const build = launch(['run', 'build'], cwd, env);
+		const build = launch(target.build ?? ['run', 'build'], cwd, env);
 		running = build;
 		const [code] = await once(build.child, 'exit');
 		if (code !== 0) {

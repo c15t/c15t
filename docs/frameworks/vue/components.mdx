@@ -1,0 +1,55 @@
+---
+title: Components
+description: Every c15t Vue component, its import path, props and what it renders, plus DevTools for debugging consent in a Vue app.
+group: frameworks
+---
+
+<include src="../../shared/vue/components.mdx" />
+
+## Import a component
+
+Components other than `ConsentRoot`, `ConsentWidget` and `ConsentDevTools`
+have no short entry point. Import the `.vue` file by its full path:
+
+{/* example: fragment */}
+
+```ts
+import ConsentGate from 'c15t/vue/runtime/components/consent-gate.vue';
+```
+
+Every component must render inside the app that installed `c15tVue`, because
+it reads the consent runtime the plugin provides.
+
+## Debug with DevTools
+
+`ConsentDevTools` from `c15t/vue/devtools` opens a panel that shows the
+visitor's permissions, registered scripts, location, resolved policy, IAB
+state and consent events, with actions to change them. Load it in development
+builds only:
+
+{/* example: fragment */}
+
+```vue title="src/App.vue"
+<script setup lang="ts">
+import { defineAsyncComponent } from 'vue';
+
+const ConsentDevTools = import.meta.env.DEV
+  ? defineAsyncComponent(() => import('c15t/vue/devtools'))
+  : null;
+</script>
+
+<template>
+  <ConsentDevTools v-if="ConsentDevTools" position="bottom-right" />
+</template>
+```
+
+`import.meta.env.DEV` is `false` in production builds, so the dynamic import
+and the panel stay out of your production bundle. Render the component inside
+the app that installed `c15tVue`. It mounts its panel in `document.body`.
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `position` | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'` | `'bottom-right'` |
+| `defaultOpen` | `boolean` | `false` |
+| `defaultTab` | `'consents' \| 'scripts' \| 'location' \| 'policy' \| 'iab' \| 'events' \| 'actions'` | `'consents'` |
+| `maxEvents` | `number` | `100` |

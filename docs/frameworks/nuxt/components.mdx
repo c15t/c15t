@@ -1,0 +1,36 @@
+---
+title: Components
+description: Every c15t component available in Nuxt, which ones the Nuxt module registers globally, their props and what they render.
+group: frameworks
+---
+
+<include src="../../shared/vue/components.mdx" />
+
+## Use a component the module does not register
+
+Import `ConsentBanner`, `ConsentManager` and the IAB components from their
+`c15t/vue/runtime/components/` paths inside a Nuxt component. Render them in
+place of `ConsentRoot`, not beside it.
+
+In Nuxt, always mount the globally registered `ConsentRoot`. It renders the
+banner on the server and writes the theme tokens into the page head. The Vue
+entry point `c15t/vue/consent-root` applies tokens only after mount.
+
+## Debug with DevTools
+
+`ConsentDevTools` from `c15t/vue/devtools` opens a panel that shows the
+visitor's permissions, registered scripts, location, resolved policy, IAB
+state and consent events, with actions to change them. Load it in development builds only:
+
+<include src="../../shared/examples/nuxt/devtools.mdx" />
+
+`import.meta.dev` is `false` in production builds, so the dynamic import and
+the panel stay out of your production bundle. Render the component anywhere
+inside your app. It mounts its panel in `document.body`.
+
+| Prop | Type | Default |
+| --- | --- | --- |
+| `position` | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'` | `'bottom-right'` |
+| `defaultOpen` | `boolean` | `false` |
+| `defaultTab` | `'consents' \| 'scripts' \| 'location' \| 'policy' \| 'iab' \| 'events' \| 'actions'` | `'consents'` |
+| `maxEvents` | `number` | `100` |

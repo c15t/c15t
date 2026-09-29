@@ -1,0 +1,65 @@
+---
+title: Troubleshooting
+description: Fix common c15t Vue plugin problems, from unresolved imports and a missing banner to tokens that do not apply and scripts that load twice.
+group: frameworks
+---
+
+## Vite cannot resolve #imports or #c15t/composables
+
+The c15t Vite plugin is missing. Add `c15tVue()` from `c15t/vue/vite` to the
+`plugins` array in `vite.config.ts`, next to `@vitejs/plugin-vue`. See the
+[quickstart](/docs/frameworks/vue/quickstart#add-the-vite-plugin).
+
+## app.use() fails or does nothing
+
+Import the plugin from `c15t/vue/vue-plugin`. `c15t/vue` is the Nuxt module
+and is not a Vue plugin.
+
+## A composable throws "Kernel not found"
+
+The component is outside the app that installed `c15tVue`, for example a
+separate `createApp()` instance, or the composable ran outside `setup`. Install
+the plugin on the app that renders the component, and call composables inside
+`setup`.
+
+## Why is there no banner?
+
+Check, in order:
+
+1. The visitor's policy asks for one. A policy with prompt `none` shows no
+   banner, which is common in opt-out regions.
+   [DevTools](/docs/frameworks/vue/components#debug-with-devtools) shows the
+   matched policy. See [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
+2. `ConsentRoot` is in the root component, not inside a route that unmounts.
+3. The backend answered. In the Network tab, `/init` returns 200. A CORS
+   error means your site's origin is missing from the Inth project's trusted
+   origins. While resolution fails, c15t shows no UI and keeps every optional
+   category denied.
+4. `VITE_C15T_BACKEND_URL` was set when Vite built the app. Vite replaces it at
+   build time, so restart the dev server or rebuild after changing it.
+5. A stored choice exists. Clear the `c15t` cookie and localStorage entry, or
+   use a private window.
+
+## Tokens in my CSS do not apply
+
+`ConsentRoot` writes every token as an inline style on `<html>` when it
+mounts, and an inline style beats a `:root` rule. Set values through the
+plugin's `tokens` option. See [customize](/docs/frameworks/vue/customize#set-theme-tokens).
+
+## A script loads twice, or before consent
+
+- The vendor is registered both in the plugin's `scripts` and in a
+  `createScriptLoader` call. Keep only `scripts`.
+- The vendor's own snippet is still in `index.html`, or its SDK is initialized
+  in your code. Remove it so c15t is the only loader.
+
+## The page flashes without the banner on a server-rendered Vue app
+
+c15t does not support server rendering for plain Vue. Use the c15t Nuxt
+module. See
+[server rendering without Nuxt](/docs/frameworks/vue/rendering#server-rendering-without-nuxt).
+
+## More help
+
+The [shared troubleshooting guide](/docs/guides/troubleshooting) covers
+problems common to every framework.

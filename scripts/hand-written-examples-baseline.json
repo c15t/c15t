@@ -24,7 +24,6 @@
 	"docs/frameworks/next/pages-router.mdx": 1,
 	"docs/frameworks/next/static-export.mdx": 1,
 	"docs/frameworks/next/troubleshooting.mdx": 1,
-	"docs/frameworks/nuxt/quickstart.mdx": 2,
 	"docs/frameworks/react-native/configuration.mdx": 1,
 	"docs/frameworks/react-native/quickstart.mdx": 2,
 	"docs/frameworks/react-native/troubleshooting.mdx": 1,
@@ -38,7 +37,6 @@
 	"docs/frameworks/react/headless.mdx": 1,
 	"docs/frameworks/react/hooks/overview.mdx": 2,
 	"docs/frameworks/react/iab/overview.mdx": 2,
-	"docs/frameworks/vue/quickstart.mdx": 5,
 	"docs/integrations/adobe-analytics.mdx": 1,
 	"docs/integrations/ahrefs-analytics.mdx": 1,
 	"docs/integrations/amplitude.mdx": 1,
@@ -91,7 +89,7 @@
 	"docs/self-host/guides/policy-packs.mdx": 2,
 	"docs/self-host/quickstart.mdx": 2,
 	"docs/shared/integrations/consent-embed.mdx": 8,
-	"docs/shared/integrations/register-scripts.mdx": 8,
+	"docs/shared/integrations/register-scripts.mdx": 6,
 	"docs/shared/react/components/dev-tools.mdx": 1,
 	"docs/upgrade-v3.mdx": 1
 }

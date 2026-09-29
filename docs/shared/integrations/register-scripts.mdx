@@ -81,74 +81,41 @@ provider.
   </Tab>
 
   <Tab value="Nuxt">
-    Attach one loader from the root `app.vue`, after the Nuxt module has
-    started its browser runtime. This keeps vendor callbacks in application code rather
-    than serialized `nuxt.config.ts` runtime configuration.
+    Register the scripts under the `c15t` key in `app/app.config.ts`. Adjust the
+    relative import to where you created `consent-scripts.ts`:
 
-    ```vue title="app/app.vue"
-    <script setup lang="ts">
-    import { onUnmounted } from 'vue';
-    import { createScriptLoader } from 'c15t/modules/script-loader';
+    ```ts title="app/app.config.ts"
     import { scripts } from '../src/consent-scripts';
 
-    const nuxtApp = useNuxtApp();
-    const kernel = useConsentKernel();
-    let loader: ReturnType<typeof createScriptLoader> | undefined;
-
-    const removeMountedHook = nuxtApp.hook('app:mounted', () => {
-      loader = createScriptLoader({ kernel, scripts });
+    export default defineAppConfig({
+      c15t: { scripts },
     });
-    onUnmounted(() => {
-      removeMountedHook();
-      loader?.dispose();
-    });
-    </script>
-
-    <template>
-      <ConsentRoot />
-      <NuxtPage />
-    </template>
     ```
 
-    Merge the setup code into your root and retain its footer and preferences
-    link. `useConsentKernel` is auto-imported by the c15t Nuxt module. Adjust the
-    relative script import if your `app.vue` is at the project root. This loader
-    waits until the module has applied browser persistence and privacy signals,
-    then reads the current snapshot and observes future changes. Do not also register these scripts
-    in another loader. See the [Nuxt quickstart](/docs/frameworks/nuxt/quickstart).
+    The Nuxt module merges this over its options in `nuxt.config.ts` and starts
+    one script loader in the browser after hydration, once it has applied the
+    visitor's stored choice and privacy signals. Keep `scripts` out of
+    `nuxt.config.ts`, which reaches the browser as JSON and drops the vendor
+    callbacks. `app.config.ts` cannot read `runtimeConfig`, so write the vendor
+    IDs into `consent-scripts.ts` or read them from `VITE_` variables. See
+    [Nuxt scripts and embeds](/docs/frameworks/nuxt/scripts).
   </Tab>
 
   <Tab value="Vue">
-    Use the kernel already provided by the Vue plugin. Merge this setup into
-    `App.vue`, whose lifetime covers the application:
+    Pass the scripts to the existing `c15tVue` plugin call in `src/main.ts`:
 
-    ```vue title="src/App.vue"
-    <script setup lang="ts">
-    import { onMounted, onUnmounted } from 'vue';
-    import { createScriptLoader } from 'c15t/modules/script-loader';
-    import { useConsentKernel } from 'c15t/vue/vue-plugin';
-    import ConsentRoot from 'c15t/vue/consent-root';
+    {/* example: fragment */}
+
+    ```ts title="src/main.ts"
     import { scripts } from './consent-scripts';
 
-    const kernel = useConsentKernel();
-    let loader: ReturnType<typeof createScriptLoader> | undefined;
-
-    onMounted(() => {
-      loader = createScriptLoader({ kernel, scripts });
-    });
-    onUnmounted(() => loader?.dispose());
-    </script>
-
-    <template>
-      <ConsentRoot />
-      <main>Your application</main>
-    </template>
+    app.use(c15tVue, { backendURL, scripts });
     ```
 
-    Keep your existing page content and preferences link. The plugin still owns
-    the kernel and persistence; this component owns only the vendor loader.
-    Do not register the same scripts in plugin configuration as well. See the
-    [Vue quickstart](/docs/frameworks/vue/quickstart).
+    Keep your existing backend URL and other options. The plugin starts one
+    script loader when the app mounts, after it has applied the visitor's stored
+    choice. Do not also call `createScriptLoader` from a component. See
+    [Vue scripts and embeds](/docs/frameworks/vue/scripts).
   </Tab>
 
   <Tab value="Astro">

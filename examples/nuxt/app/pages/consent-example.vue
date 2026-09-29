@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted } from 'vue';
+import { onUnmounted } from 'vue';
 
 // The same page under route rules that share its HTML between visitors
 // (see `routeRules` in nuxt.config.ts).
@@ -7,9 +7,8 @@ definePageMeta({
 	alias: ['/prerendered/consent-example', '/cached/consent-example'],
 });
 
-const snapshot = useConsentSnapshot();
-const activeUI = useConsentActiveUI();
-const allowed = computed(() => snapshot.value.effectivePermissions.measurement);
+// Demo only: the branded theme overrides c15t tokens from
+// `consent-example.css` so the test suite can switch designs in place.
 const setTheme = (theme: string) => {
 	document.documentElement.dataset.consentExampleTheme = theme;
 };
@@ -17,6 +16,7 @@ onUnmounted(() => {
 	delete document.documentElement.dataset.consentExampleTheme;
 });
 </script>
+
 <template>
 	<main class="consent-example">
 		<h1>Consent example</h1>
@@ -37,31 +37,7 @@ onUnmounted(() => {
 			Branded theme
 		</button>
 		<h2>Watch the video</h2>
-		<iframe
-			v-if="allowed"
-			src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y"
-			title="YouTube video"
-			allowfullscreen
-		/>
-		<div v-else>
-			<p>
-				Allow measurement to load this YouTube video. No video request is sent
-				before permission.
-			</p>
-			<button
-				type="button"
-				@click="activeUI = 'manager'"
-			>
-				Open privacy settings
-			</button>
-		</div>
-		<footer>
-			<button
-				type="button"
-				@click="activeUI = 'manager'"
-			>
-				Privacy settings
-			</button>
-		</footer>
+		<VideoEmbed />
+		<ConsentDebugTools />
 	</main>
 </template>

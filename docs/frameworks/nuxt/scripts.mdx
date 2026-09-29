@@ -1,0 +1,109 @@
+---
+title: Scripts and embeds
+description: Load vendor scripts, gate iframes and block tracking requests by consent category in a Nuxt app with the c15t Nuxt module.
+group: frameworks
+---
+
+## Register vendor scripts
+
+A banner does not stop a script you load with a `<script>` tag, `useHead` or a
+vendor's Nuxt module. Remove those loaders and register the vendor with c15t
+instead, so c15t loads it only while its category is allowed.
+
+Create the script configuration with the helpers from `@c15t/scripts`:
+
+<include src="../../shared/examples/nuxt/scripts.mdx" />
+
+Register it under the `c15t` key in `app/app.config.ts`:
+
+<include src="../../shared/examples/nuxt/app-config.mdx" />
+
+The module starts one script loader in the browser after hydration, once it
+has applied the visitor's stored choice and privacy signals. Do not also call
+`createScriptLoader` yourself, or each script loads twice.
+
+`scripts` must go in `app.config.ts`. Module options in `nuxt.config.ts`
+reach the browser as JSON, which drops the functions inside each script.
+`app.config.ts` is bundled into the browser, so it cannot read
+`runtimeConfig`. Read vendor IDs from `VITE_` variables at build time, as
+above, or write them into the file.
+
+Every vendor guide under [integrations](/docs/integrations/overview) gives the
+helper and options for that vendor.
+
+## Gate an iframe with ConsentGate
+
+`ConsentGate` renders its default slot while the category is allowed and its
+`placeholder` slot otherwise. The iframe is absent from the server HTML and the
+DOM until the visitor allows the category, and Vue removes it when they
+withdraw.
+
+<include src="../../shared/examples/nuxt/embed.mdx" />
+
+## Gate an iframe without a wrapper
+
+The module also runs the iframe blocker, on by default. Give an iframe
+`data-src` instead of `src`, and a `data-category`. c15t sets `src` when the
+category is allowed and removes it when it is withdrawn.
+
+{/* example: fragment */}
+
+```vue title="app/components/MapEmbed.vue"
+<template>
+  <iframe
+    data-src="https://www.google.com/maps/embed?pb=YOUR_EMBED_ID"
+    data-category="functionality"
+    title="Store map"
+  />
+</template>
+```
+
+The iframe element stays on the page while blocked, empty. Use `ConsentGate`
+when you want a placeholder with a way to open preferences.
+
+## Block tracking requests
+
+`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
+until the rule's category is allowed. A blocked `fetch` resolves to a `451`
+response and sends nothing. Add it to the module options:
+
+{/* example: fragment */}
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  c15t: {
+    networkBlocker: {
+      rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
+    },
+  },
+});
+```
+
+A rule's `domain` also matches its subdomains. Add `pathIncludes` or `methods`
+to narrow it. The Nuxt module does not accept the `onRequestBlocked` callback,
+because module options are serialized.
+
+## When a visitor withdraws consent
+
+Removing a script tag cannot stop code that already ran. When a save turns off
+a category or vendor that was allowed, c15t reloads the page so the new
+document starts with only permitted code. Set `reloadOnConsentRevoked: false`
+to handle revocation yourself.
+
+`clearOnRevocation` deletes first-party cookies and storage keys that belong to
+a category when it is withdrawn. It is plain data, so it can go in
+`nuxt.config.ts`. See [clear on revocation](/docs/integrations/clear-on-revocation).
+
+## Content Security Policy
+
+The Nuxt module's options have no `nonce`. Allow each vendor's script origin
+in your `script-src` directive, and your backend or `manifestURL` origin in
+`connect-src`.
+
+## Verify gating
+
+In a private window, open the Network tab and load a page under a policy that
+asks for consent. Requests to your vendors and iframe origins are absent.
+Allow one category and save, and only that category's vendors load. Withdraw
+it, and the page reloads without loading the vendor again.
+[Verify consent](/docs/guides/verify-consent) has the full checklist.

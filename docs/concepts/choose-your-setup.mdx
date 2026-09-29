@@ -21,8 +21,10 @@ to the alternatives it rules out.
 | TanStack Start in SPA mode or prerendered | Browser resolves consent | [TanStack Start rendering](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts) |
 | React with Vite, or another single-page app | Browser resolves consent | [React](/docs/frameworks/react/quickstart) |
 | React Router framework mode, Remix, or another server-rendered React app | Browser resolves consent after hydration | [React rendering](/docs/frameworks/react/rendering#react-router-remix-and-other-server-rendered-apps) |
-| Nuxt | Nuxt module resolves consent on the server | [Nuxt](/docs/frameworks/nuxt/quickstart) |
+| Nuxt with a Nuxt server | Nuxt module resolves consent on the server from a cached manifest | [Nuxt](/docs/frameworks/nuxt/quickstart) |
+| Nuxt on static hosting, or with `ssr: false` | Nuxt module, browser resolves consent from the manifest | [Nuxt static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting) |
 | Vue with Vite | Vue plugin, browser resolves consent | [Vue](/docs/frameworks/vue/quickstart) |
+| Vue rendered on the server without Nuxt | Not supported. Use Nuxt. | [Vue rendering](/docs/frameworks/vue/rendering#server-rendering-without-nuxt) |
 | Astro with static output | Browser resolves consent through the hosted backend | [Astro static output](/docs/frameworks/astro/rendering#static-output-with-hosted) |
 | Astro with server output and an adapter | Middleware resolves consent from a cached manifest | [Astro server output](/docs/frameworks/astro/rendering#server-output-with-manifest) |
 | Svelte with Vite | Svelte provider, browser resolves consent | [Svelte](/docs/frameworks/svelte/quickstart) |

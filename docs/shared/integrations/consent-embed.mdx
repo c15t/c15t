@@ -92,64 +92,66 @@ and preferences UI. These examples do not create a second consent provider.
   </Tab>
 
   <Tab value="Nuxt">
-    Use the reactive snapshot from the existing consent runtime. The Nuxt module auto-imports the consent composables.
+    The Nuxt module registers `ConsentGate` and `ConsentPreferencesLink`, so
+    this component imports only the embed configuration.
 
     ```vue title="app/components/ConsentEmbed.vue"
     <script setup lang="ts">
     import { embedCategory, embedURL, embedTitle, embedAspectRatio } from '../../src/embed-config';
-
-    const snapshot = useConsentSnapshot();
-    const activeUI = useConsentActiveUI();
     </script>
 
     <template>
-      <iframe
-        v-if="snapshot.effectivePermissions[embedCategory]"
-        :src="embedURL"
-        :title="embedTitle"
-        loading="lazy"
-        allowfullscreen
-        :style="{ width: '100%', aspectRatio: embedAspectRatio, minHeight: '200px', border: 0 }"
-      />
-      <button v-else type="button" @click="activeUI = 'manager'">
-        Open privacy settings to view this content
-      </button>
+      <ConsentGate :category="embedCategory">
+        <iframe
+          :src="embedURL"
+          :title="embedTitle"
+          loading="lazy"
+          allowfullscreen
+          :style="{ width: '100%', aspectRatio: embedAspectRatio, minHeight: '200px', border: 0 }"
+        />
+        <template #placeholder>
+          <p>Allow {{ embedCategory }} to load this content.</p>
+          <ConsentPreferencesLink>Open privacy settings</ConsentPreferencesLink>
+        </template>
+      </ConsentGate>
     </template>
     ```
 
-    Use `v-if` so a denied iframe is removed from the DOM. Hiding an existing
-    iframe with `v-show` or CSS does not prevent its requests.
+    `ConsentGate` keeps the iframe out of the server HTML and the DOM while
+    permission is denied, and removes it on revocation. See
+    [Nuxt scripts and embeds](/docs/frameworks/nuxt/scripts).
   </Tab>
 
   <Tab value="Vue">
-    Use the reactive snapshot from the existing consent runtime. The c15t Vue plugin must already be installed on this app.
+    Render this component inside the app that installed the c15t Vue plugin.
 
     ```vue title="src/ConsentEmbed.vue"
     <script setup lang="ts">
-    import { useConsentSnapshot, useConsentActiveUI } from 'c15t/vue/vue-plugin';
+    import ConsentGate from 'c15t/vue/runtime/components/consent-gate.vue';
+    import ConsentPreferencesLink from 'c15t/vue/runtime/components/consent-preferences-link.vue';
     import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
-
-    const snapshot = useConsentSnapshot();
-    const activeUI = useConsentActiveUI();
     </script>
 
     <template>
-      <iframe
-        v-if="snapshot.effectivePermissions[embedCategory]"
-        :src="embedURL"
-        :title="embedTitle"
-        loading="lazy"
-        allowfullscreen
-        :style="{ width: '100%', aspectRatio: embedAspectRatio, minHeight: '200px', border: 0 }"
-      />
-      <button v-else type="button" @click="activeUI = 'manager'">
-        Open privacy settings to view this content
-      </button>
+      <ConsentGate :category="embedCategory">
+        <iframe
+          :src="embedURL"
+          :title="embedTitle"
+          loading="lazy"
+          allowfullscreen
+          :style="{ width: '100%', aspectRatio: embedAspectRatio, minHeight: '200px', border: 0 }"
+        />
+        <template #placeholder>
+          <p>Allow {{ embedCategory }} to load this content.</p>
+          <ConsentPreferencesLink>Open privacy settings</ConsentPreferencesLink>
+        </template>
+      </ConsentGate>
     </template>
     ```
 
-    Use `v-if` so a denied iframe is removed from the DOM. Hiding an existing
-    iframe with `v-show` or CSS does not prevent its requests.
+    `ConsentGate` keeps the iframe out of the DOM while permission is denied,
+    and removes it on revocation. See
+    [Vue scripts and embeds](/docs/frameworks/vue/scripts).
   </Tab>
 
   <Tab value="Astro">

@@ -35,5 +35,17 @@ runs these examples with a fixture backend and intercepted vendor requests:
 EXAMPLE_TARGET=vue bun run --cwd examples/shared test
 ```
 
-`src/scripts.ts` contains the vendor configuration. Framework setup stays in
-this example's source files so documentation can use the same code.
+The files the docs publish are complete recipes:
+
+- `vite.config.ts` adds the c15t Vite plugin.
+- `src/main.ts` installs `c15tVue` with the backend URL and `scripts`.
+- `src/scripts.ts` holds the vendor configuration.
+- `src/App.vue` mounts `ConsentRoot` and `ConsentPreferencesLink`.
+- `src/VideoEmbed.vue` gates the YouTube iframe with `ConsentGate`.
+- `src/branded.ts` is `main.ts` with tokens, presentation and a slot class.
+- `src/headless.ts`, `src/HeadlessApp.vue` and `src/ConsentPrompt.vue` replace
+  the stock UI with the composables.
+
+`src/entry.ts` is demo-only: it mounts the branded setup for `?design=branded`,
+the headless setup for `/headless`, and `main.ts` otherwise. `src/HomePage.vue`
+holds the demo page content and loads DevTools in development builds.

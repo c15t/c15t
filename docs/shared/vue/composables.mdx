@@ -1,0 +1,75 @@
+---
+title: "Vue and Nuxt composables"
+description: "Shared composable reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. The Vue and Nuxt composables pages include it. */}
+
+## Composable reference
+
+In plain Vue, import these composables from `c15t/vue/vue-plugin`. The Nuxt
+module auto-imports every composable in this table, so Nuxt components call
+them without an import. Call them inside `setup` of a component rendered by
+the app that installed c15t. Anywhere else they throw an error such as
+`[c15t] Kernel not found`.
+
+| Composable | Returns | Use it to |
+| --- | --- | --- |
+| `useConsent()` | Computed `Record<category, boolean>` | Read every category's current permission. |
+| `useHasConsent()` | Computed array of allowed categories | List what may run now. |
+| `useEffectivePermissions()` | Computed permissions | Same values as `useConsent()`, read from the snapshot field. |
+| `useExplicitChoice()` | Computed recorded choice, or `null` | Read what the visitor decided. |
+| `useStoredConsent()` | Computed recorded choice | Same value as `useExplicitChoice()`. |
+| `useConsentSave()` | `(categories \| 'all' \| 'none') => Promise<SaveResult>` | Record a choice. An array grants the listed categories and denies the rest. |
+| `useConsentActiveUI()` | Writable computed `'banner' \| 'manager' \| null` | Open the banner or preferences, or close them. |
+| `useConsentDraft()` | Draft values, displayed categories and `save()` | Build your own preference form. |
+| `useDismissNotice()` | Function | Dismiss a notice. This records an acknowledgement, not consent. |
+| `usePromptRequirement()` | Computed prompt requirement | Check whether the policy asks for a choice, a notice or nothing. |
+| `useNoticeDismissal()` | Computed notice record, or `null` | Check whether the visitor dismissed a notice. |
+| `usePolicyRule()` | Computed policy rule | Read the model, prompt, scope and rights of the visitor's policy. |
+| `usePolicyResolution()` | Computed resolution | Check whether a policy matched the visitor. |
+| `usePrivacySignals()` | Computed privacy signals | Read whether Global Privacy Control was detected and applied. |
+| `useConsentRestrictions()` | Computed restrictions | See why a permission is limited. |
+| `useConsentPolicyActions(surface)` | Resolved actions, variant, position and blocking | Render the buttons a custom banner or dialog must show. `surface` is `'prompt'` or `'preferences'`. |
+| `useConsentSnapshot()` | `Ref<ConsentSnapshot>` | Read any snapshot field. |
+| `useConsentKernel()` | The consent kernel | Call kernel commands the composables do not cover. |
+| `useConsentConfig()` | Computed configuration | Read the merged options. |
+| `useConsentInit()` | Computed translations, location, branding and IAB data | Read display data from the resolved policy. |
+| `useConsentLanguage()` | Writable computed language, or `null` | Switch the consent UI language. |
+| `useRequestRegion()` | Computed `{ country, region }` | Read the location the policy resolved for. |
+| `useConsentComponent(name)` | Computed slot attributes | Read the `components` slots for one component. |
+| `useConsentIabSelection()` | IAB selection state | Build a custom IAB preference centre. |
+| `useConsentIabSave()` | Function | Save an IAB selection and write the TC String. |
+
+`c15t/vue/vue-plugin` also exports `useHasConsentPolicy()`,
+`useHasConsentUi()` and `useHasConsentPreferences()`. They return computed
+booleans that say whether a policy matched, whether it owes any consent UI, and
+whether a preferences control should render. Nuxt does not auto-import them.
+
+## Permission or recorded choice
+
+`useConsent()` and `useHasConsent()` answer "may this run now?" Under an
+opt-out policy a category can be allowed before the visitor has done anything.
+Use them to decide whether to run code or render optional content.
+
+`useExplicitChoice()` answers "what did the visitor decide?" It stays `null`
+until the visitor accepts, rejects or saves. Use it to show the visitor's
+choice or to report consent rates. Loading a page never changes it.
+[How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+explains the difference.
+
+## Open preferences
+
+Set the active UI to `'manager'` to open the preference dialog. Vue uses
+`'manager'` where the React adapter uses `'dialog'`.
+
+{/* example: fragment */}
+
+```ts
+const activeUI = useConsentActiveUI();
+activeUI.value = 'manager';
+```
+
+`ConsentPreferencesLink` does the same and hides itself when the policy offers
+no preferences, so prefer it for a footer link.
