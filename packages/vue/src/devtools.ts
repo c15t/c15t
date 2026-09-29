@@ -42,6 +42,9 @@ export const ConsentDevTools = defineComponent({
 		getPresentation: Function as PropType<DevToolsOptions['getPresentation']>,
 		maxEvents: Number,
 		position: String as PropType<DevToolsPosition>,
+		// `undefined` rather than Vue's boolean default of `false`, so an
+		// omitted prop keeps the engine's shadow-root default.
+		shadow: { default: undefined, type: Boolean },
 	},
 	setup(props) {
 		const kernel = useConsentKernel();
@@ -69,6 +72,7 @@ export const ConsentDevTools = defineComponent({
 					() => props.defaultTab,
 					() => props.maxEvents,
 					() => props.position,
+					() => props.shadow,
 					() => JSON.stringify([...new Set(getCategories())].sort()),
 					() => Boolean(props.clearRecords ?? context?.clearRecords),
 				],
@@ -89,6 +93,7 @@ export const ConsentDevTools = defineComponent({
 						kernel,
 						maxEvents: props.maxEvents,
 						position: props.position,
+						shadow: props.shadow,
 					});
 				},
 				{ immediate: true }

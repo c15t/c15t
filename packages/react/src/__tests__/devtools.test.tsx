@@ -552,6 +552,24 @@ describe('v3 React DevTools adapter', () => {
 		await view.unmount();
 	});
 
+	test('mounts in the light DOM when shadow is false', async () => {
+		const view = await render(
+			<Provider>
+				<ConsentDevTools shadow={false} />
+			</Provider>
+		);
+		try {
+			await vi.waitFor(() => {
+				expect(
+					document.body.querySelector('[data-c15t-dev-tools]')
+				).not.toBeNull();
+			});
+			expect(document.querySelector('[data-c15t-dev-tools-host]')).toBeNull();
+		} finally {
+			await view.unmount();
+		}
+	});
+
 	test('rejects an enabled adapter outside the v3 provider', async () => {
 		await expect(render(<ConsentDevTools />)).rejects.toThrow(
 			'DevTools must be rendered inside <ConsentProvider>'
