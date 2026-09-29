@@ -78,6 +78,7 @@ test('every patch input agrees with full snapshot derivation', () => {
 				variant: 'a',
 			},
 		},
+		experimentPending: { experimentPending: true },
 		explicitChoice: { explicitChoice: explicitChoice({ marketing: true }) },
 		externalPermissions: {
 			externalPermissions: normalizeExternalPermissions({ measurement: true }),

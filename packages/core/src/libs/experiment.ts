@@ -3,19 +3,21 @@
  *
  * A host declares arms as {@link ConsentPresentation} fragments and either
  * resolves the arm itself (any feature-flag provider) or lets c15t assign
- * one deterministically. The assignment is recorded on every impression
- * and choice so opt-in rates can be compared per arm. Arms vary
+ * one. The arm is recorded on the impressions and choices of visitors the
+ * banner showed it to, so opt-in rates can be compared per arm. Arms vary
  * presentation and theme tokens only; policy semantics and copy are
  * untouched.
+ *
+ * This module is what every page ships: the types, merging an arm over the
+ * host presentation, and the seed. Assignment and validation live in
+ * `experiment-assignment` and `experiment-engine`, loaded on demand.
  */
-import type { ResolvedPolicyRule } from '@c15t/schema/types';
-
-import { resolveConsentPresentation } from './policy-actions';
+import type { ConsentKernel, ConsentSnapshot } from '../types';
+import type { StorageConfig } from './cookie';
 import type {
 	ConsentPresentation,
 	PreferencesPresentation,
 	PresentationAction,
-	PresentationDiagnostic,
 	PromptPresentation,
 } from './policy-actions';
 
@@ -66,31 +68,63 @@ export interface ExperimentArm extends ConsentPresentation {
 	theme?: ExperimentArmTheme;
 }
 
-/** A/B experiment on prompt/preferences presentation. */
-export interface ConsentExperiment {
+/**
+ * A/B experiment on prompt/preferences presentation.
+ *
+ * @typeParam Arm - The arm names. Inferred when the experiment is built
+ * with {@link defineExperiment}, so `variant` and `weights` reject a name
+ * that is not an arm.
+ */
+export interface ConsentExperiment<Arm extends string = string> {
 	/** Stable experiment identifier, recorded with every impression and choice. */
 	id: string;
-	/** Presentation and theme per arm. Keys are variant names. */
-	variants: Readonly<Record<string, ExperimentArm>>;
+	/** Presentation and theme per arm. Keys are the arm names. */
+	variants: Readonly<Record<Arm, ExperimentArm>>;
 	/**
-	 * Arm resolved by the host (any flag provider). When omitted, c15t assigns
-	 * deterministically from the subject id using `weights`.
+	 * The arm your flag provider resolved for this visitor. When omitted,
+	 * c15t picks one by `weights` and keeps it for this browser once the
+	 * banner has shown it. An arm that is not declared runs no experiment
+	 * and logs an error.
 	 */
-	variant?: string;
+	variant?: NoInfer<Arm>;
 	/**
 	 * Relative weights per arm for built-in assignment. Default: equal. An
 	 * arm missing from a supplied map has weight `0`. A supplied map must
-	 * give at least one arm a positive weight.
+	 * give at least one arm a positive weight and name only declared arms.
 	 */
-	weights?: Readonly<Record<string, number>>;
+	weights?: Readonly<Partial<Record<NoInfer<Arm>, number>>>;
 	/**
 	 * Run arms that trip presentation diagnostics (for example
-	 * `equivalent-prominence-overridden`). Without this, such an arm is
-	 * rejected at registration. The acknowledgement is recorded on the
-	 * consent record with the arm.
+	 * `equivalent-prominence-overridden`). Without this, a visitor whose
+	 * policy rejects an arm sees the base presentation and is not counted in
+	 * the experiment. The acknowledgement is recorded on the consent record
+	 * with the arm.
 	 */
 	acknowledgeDiagnostics?: boolean;
 }
+
+/**
+ * Declare an experiment with its arm names inferred, so a misspelled
+ * `variant` or `weights` key is a type error. Returns its argument.
+ *
+ * @typeParam Arm - The arm names, inferred from `variants`.
+ * @param experiment - The experiment definition.
+ * @returns `experiment`, unchanged.
+ *
+ * @example
+ * ```ts
+ * const bannerShape = defineExperiment({
+ *   id: 'banner-shape',
+ *   variants: { floating: {}, wall: { prompt: { variant: 'wall' } } },
+ *   weights: { floating: 90, wall: 10 },
+ * });
+ * ```
+ */
+export const defineExperiment = function defineExperiment<Arm extends string>(
+	experiment: ConsentExperiment<Arm>
+): ConsentExperiment<Arm> {
+	return experiment;
+};
 
 /** The arm a visitor runs, recorded with impressions and choices. */
 export interface ExperimentAssignment {
@@ -103,129 +137,6 @@ export interface ExperimentAssignment {
 	/** Whether the host acknowledged presentation diagnostics for this experiment. */
 	acknowledgedDiagnostics: boolean;
 }
-
-/** Diagnostics per arm name; only arms with at least one diagnostic appear. */
-export type ExperimentDiagnostics = Record<string, PresentationDiagnostic[]>;
-
-/**
- * FNV-1a 32-bit hash over UTF-16 code units. Stable across runtimes and
- * cheap; this is bucketing, not security.
- */
-const fnv1a = function fnv1a(input: string): number {
-	let hash = 0x81_1c_9d_c5;
-	for (let index = 0; index < input.length; index += 1) {
-		// oxlint-disable-next-line no-bitwise -- XOR-then-multiply is the algorithm.
-		hash ^= input.charCodeAt(index);
-		// oxlint-disable-next-line no-bitwise -- Keep the product unsigned.
-		hash = Math.imul(hash, 0x01_00_01_93) >>> 0;
-	}
-	// oxlint-disable-next-line no-bitwise -- Unsigned result.
-	return hash >>> 0;
-};
-
-/** The prefix every experiment error starts with. */
-const label = function label(experiment: ConsentExperiment): string {
-	return `c15t experiment "${experiment.id}"`;
-};
-
-const variantNames = function variantNames(
-	experiment: ConsentExperiment
-): string[] {
-	const names = Object.keys(experiment.variants);
-	if (names.length === 0) {
-		throw new Error(`${label(experiment)}: declare at least one variant.`);
-	}
-	return names;
-};
-
-/**
- * The weight of each arm in declaration order and their total: `1` each
- * when `weights` is omitted, else the host's own-property value clamped at
- * `0`. A supplied map that leaves no arm reachable is a misconfiguration,
- * not a request for equal weights.
- */
-const resolveWeights = function resolveWeights(
-	experiment: ConsentExperiment,
-	names: readonly string[]
-): [weighted: number[], total: number] {
-	const { weights } = experiment;
-	if (!weights) {
-		return [names.map(() => 1), names.length];
-	}
-	const weighted = names.map((name) =>
-		Object.hasOwn(weights, name) ? Math.max(0, weights[name] ?? 0) : 0
-	);
-	const total = weighted.reduce((sum, weight) => sum + weight, 0);
-	if (!(total > 0) || !Number.isFinite(total)) {
-		throw new Error(
-			`${label(experiment)}: weights must give at least one arm a finite positive weight.`
-		);
-	}
-	return [weighted, total];
-};
-
-/**
- * Pick the arm a subject runs.
- *
- * A host-supplied `variant` wins and is reported as `assignedBy: 'host'`.
- * Otherwise `${experiment.id}:${subjectId}` is hashed and bucketed by the
- * cumulative `weights` over the variants in declaration order, so the same
- * subject lands in the same arm on every call.
- *
- * @param experiment - The experiment definition.
- * @param subjectId - A stable identifier for the subject.
- * @returns The assignment.
- * @throws {Error} When `experiment.variant` names an arm that is not declared
- * in `variants`, when `variants` is empty, or when a supplied `weights` map
- * has no finite positive total.
- *
- * @example
- * ```ts
- * assignExperimentVariant(
- *   { id: 'banner-shape', variants: { bar: {}, floating: {} }, weights: { bar: 9, floating: 1 } },
- *   'sub_123'
- * );
- * // { id: 'banner-shape', variant: 'bar', assignedBy: 'c15t', acknowledgedDiagnostics: false }
- * ```
- */
-export const assignExperimentVariant = function assignExperimentVariant(
-	experiment: ConsentExperiment,
-	subjectId: string
-): ExperimentAssignment {
-	const names = variantNames(experiment);
-	const acknowledgedDiagnostics = experiment.acknowledgeDiagnostics === true;
-	if (experiment.variant !== undefined) {
-		if (!names.includes(experiment.variant)) {
-			throw new Error(
-				`${label(experiment)}: variant "${experiment.variant}" is not one of ${names.map((name) => `"${name}"`).join(', ')}.`
-			);
-		}
-		return {
-			acknowledgedDiagnostics,
-			assignedBy: 'host',
-			id: experiment.id,
-			variant: experiment.variant,
-		};
-	}
-	const [weighted, total] = resolveWeights(experiment, names);
-	const point =
-		(fnv1a(`${experiment.id}:${subjectId}`) / 0x1_00_00_00_00) * total;
-	let cumulative = 0;
-	let variant = names.at(-1) as string;
-	for (let index = 0; index < names.length; index += 1) {
-		cumulative += weighted[index] ?? 0;
-		if (point < cumulative) {
-			variant = names[index] as string;
-			break;
-		}
-	}
-	return {
-		acknowledgedDiagnostics,
-		assignedBy: 'c15t',
-		id: experiment.id,
-		variant,
-	};
-};
 
 const mergeSurface = function mergeSurface<
 	Surface extends PromptPresentation | PreferencesPresentation,
@@ -408,89 +319,126 @@ export const actionAppearanceFromTheme = function actionAppearanceFromTheme(
 	};
 };
 
-/** Inputs {@link validateExperiment} resolves each arm with. */
-export interface ValidateExperimentOptions {
+/**
+ * Whether the policy a snapshot resolved lets the visitor run their arm.
+ * The kernel asks it in the same commit that resolves a new policy, so the
+ * impression that commit stamps already carries the arm the visitor sees.
+ */
+export type ExperimentGate = (snapshot: ConsentSnapshot) => boolean;
+
+/**
+ * The kernel seed for an experiment, known before any render.
+ *
+ * - A server prefetch that already rendered an arm of this experiment
+ *   (the Astro middleware, a server seed) keeps it: the visitor saw it.
+ * - Otherwise a host `variant` is the arm.
+ * - Otherwise built-in assignment picks the arm in the browser.
+ *
+ * The prompt is held until the controller has checked the arm against the
+ * visitor's policy, so the banner never swaps from one presentation to
+ * another in front of the visitor. The one exception is a known arm the
+ * server already rendered (`rendered`): that banner is on screen, and
+ * hiding it to check it would be the swap this avoids.
+ *
+ * An undeclared host `variant` logs an error and runs no experiment
+ * rather than failing the page.
+ *
+ * @param experiment - The `experiment` option, if any.
+ * @param prefetched - `initialExperiment` from a server prefetch, if any.
+ * @param rendered - The server resolved the policy and rendered the prompt
+ * from this snapshot.
+ * @returns Kernel config fields to spread into `createConsentKernel`.
+ * @internal
+ */
+export const seedExperiment = function seedExperiment(
+	experiment: ConsentExperiment | undefined,
+	prefetched?: ExperimentAssignment | null,
+	rendered = false
+): {
+	initialExperiment?: ExperimentAssignment;
+	initialExperimentPending?: true;
+} {
+	if (!experiment) {
+		return {};
+	}
+	const acknowledgedDiagnostics = experiment.acknowledgeDiagnostics === true;
+	let initialExperiment: ExperimentAssignment | undefined;
+	if (
+		prefetched?.id === experiment.id &&
+		Object.hasOwn(experiment.variants, prefetched.variant)
+	) {
+		initialExperiment = { ...prefetched, acknowledgedDiagnostics };
+	} else if (experiment.variant !== undefined) {
+		if (!Object.hasOwn(experiment.variants, experiment.variant)) {
+			console.error(
+				`c15t experiment "${experiment.id}": variant "${experiment.variant}" is not one of its arms, so no experiment runs.`
+			);
+			return {};
+		}
+		initialExperiment = {
+			acknowledgedDiagnostics,
+			assignedBy: 'host',
+			id: experiment.id,
+			variant: experiment.variant,
+		};
+	}
+	if (initialExperiment && rendered) {
+		return { initialExperiment };
+	}
+	return initialExperiment
+		? { initialExperiment, initialExperimentPending: true }
+		: { initialExperimentPending: true };
+};
+
+/** Inputs of {@link startExperiment}. */
+export interface StartExperimentOptions {
+	experiment: ConsentExperiment;
+	kernel: ConsentKernel;
 	/** The host's base presentation each arm is merged over. */
 	presentation?: ConsentPresentation;
-	/**
-	 * The host theme each arm's `theme` is merged over, so an arm that
-	 * restyles accept and reject through `consentActions` is checked with
-	 * the tokens it will render with.
-	 */
+	/** The host theme each arm's `theme` is merged over for validation. */
 	theme?: ExperimentArmTheme;
-	/**
-	 * Host appearance tokens already derived from the host theme. Used for
-	 * arms without a `theme`; prefer passing `theme` so themed arms are
-	 * derived the same way.
-	 */
-	actionAppearance?: ActionAppearance;
+	storageConfig?: StorageConfig;
 }
 
 /**
- * Resolve every arm under `policy` and collect presentation diagnostics.
+ * Load the experiment controller and attach it to `kernel`: validation,
+ * built-in assignment and the stored arm. The controller is its own chunk,
+ * so a site pays for it only when it runs an experiment. Call it once the
+ * kernel is hydrated, so a returning visitor's subject id can seed the arm.
  *
- * An arm that trips a diagnostic (a forbidden action, unequal prominence for
- * equivalent actions, an invalid variant or position) is a misconfiguration
- * unless the host set `acknowledgeDiagnostics`. The host owns that review;
- * c15t records the acknowledgement with the arm.
+ * A failed load runs no experiment: the prompt is released with the base
+ * presentation, so a visitor is never left without a banner.
  *
- * @param experiment - The experiment definition.
- * @param policy - The resolved policy rule the arms will render under.
- * @param options - Base presentation and appearance tokens.
- * @returns Diagnostics keyed by arm name. Empty when every arm is clean.
- * @throws {Error} When an arm has diagnostics and
- * `experiment.acknowledgeDiagnostics` is not `true`, or when built-in
- * assignment would run with a `weights` map that reaches no arm.
+ * @param options - The experiment, kernel and host presentation.
+ * @returns Detach the controller.
+ * @internal
  */
-export const validateExperiment = function validateExperiment(
-	experiment: ConsentExperiment,
-	policy: ResolvedPolicyRule,
-	options: ValidateExperimentOptions = {}
-): ExperimentDiagnostics {
-	const diagnostics: ExperimentDiagnostics = {};
-	const names = variantNames(experiment);
-	if (experiment.variant === undefined) {
-		// Fail where the arms are validated, at construction, rather than
-		// when built-in assignment first runs in the visitor's browser.
-		resolveWeights(experiment, names);
-	}
-	for (const name of names) {
-		const presentation = resolveExperimentPresentation(
-			options.presentation,
-			experiment,
-			{ variant: name }
-		);
-		const actionAppearance = experiment.variants[name]?.theme
-			? actionAppearanceFromTheme(
-					resolveExperimentTheme(options.theme, experiment, { variant: name })
-				)
-			: (options.actionAppearance ?? actionAppearanceFromTheme(options.theme));
-		const found = (['prompt', 'preferences'] as const).flatMap(
-			(surface) =>
-				resolveConsentPresentation({
-					actionAppearance,
-					policy,
-					presentation,
-					surface,
-				}).diagnostics
-		);
-		if (found.length > 0) {
-			diagnostics[name] = found;
+export const startExperiment = function startExperiment(
+	options: StartExperimentOptions
+): () => void {
+	let detach: (() => void) | null = null;
+	let stopped = false;
+	const attach = async (): Promise<void> => {
+		try {
+			const { createExperimentController } =
+				await import('./experiment-assignment');
+			if (!stopped) {
+				detach = createExperimentController(options).dispose;
+			}
+		} catch (failure) {
+			console.error(
+				`c15t experiment "${options.experiment.id}": the experiment module failed to load, so no experiment runs.`,
+				failure
+			);
+			if (!stopped) {
+				options.kernel.set.experiment(null);
+			}
 		}
-	}
-	const failing = Object.keys(diagnostics);
-	if (failing.length > 0 && experiment.acknowledgeDiagnostics !== true) {
-		const detail = failing
-			.map(
-				(name) =>
-					`"${name}": ${(diagnostics[name] ?? [])
-						.map((diagnostic) => `${diagnostic.code} (${diagnostic.message})`)
-						.join('; ')}`
-			)
-			.join('\n');
-		throw new Error(
-			`${label(experiment)}: these arms trip presentation diagnostics under policy "${policy.id}". Fix them or set acknowledgeDiagnostics: true.\n${detail}`
-		);
-	}
-	return diagnostics;
+	};
+	void attach();
+	return () => {
+		stopped = true;
+		detach?.();
+	};
 };

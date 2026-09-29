@@ -373,6 +373,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		activeUI: externalPermissions
 			? 'none'
 			: deriveActiveUI({
+					experimentPending: config.initialExperimentPending === true,
 					policyPending,
 					promptRequirement: evaluation.promptRequirement,
 					resolution,
@@ -385,6 +386,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		experiment: config.initialExperiment
 			? { ...config.initialExperiment }
 			: null,
+		experimentPending: config.initialExperimentPending === true,
 		explicitChoice,
 		externalPermissions,
 		iab,

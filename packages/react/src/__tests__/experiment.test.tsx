@@ -4,6 +4,7 @@ import { createConsentRuntime } from '@c15t/core/runtime';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import type { Theme } from '@c15t/ui/theme';
 import { createRoot } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, expect, expectTypeOf, test, vi } from 'vitest';
 
 import { ConsentBanner } from '../components/prompt';
@@ -402,4 +403,65 @@ test('a disabled provider builds no experiment controller', async () => {
 
 test('a @c15t/ui Theme is a valid experiment arm theme', () => {
 	expectTypeOf<Theme>().toMatchTypeOf<ExperimentArmTheme>();
+});
+
+test('a server render whose policy rejects the arm does not throw', () => {
+	const notice = resolvePolicyRules({
+		countryCode: null,
+		regionCode: null,
+		rules: [
+			{
+				categories: ['marketing'],
+				id: 'react-notice',
+				match: { isDefault: true },
+				model: 'opt-out',
+				prompt: 'notice',
+				scopeMode: 'strict',
+			},
+		],
+	});
+	let html = '';
+	expect(() => {
+		html = renderToString(
+			<ConsentProvider
+				options={{
+					enabled: true,
+					experiment: {
+						id: 'banner-shape',
+						variant: 'wall',
+						variants: { control: {}, wall: { prompt: { variant: 'wall' } } },
+					},
+					mode: Object.assign(() => ({ save: vi.fn() }), {
+						kind: 'custom' as const,
+					}),
+					persistence: false,
+					prefetch: { initialPolicyResolution: notice },
+				}}
+			>
+				<ConsentBanner />
+			</ConsentProvider>
+		);
+	}).not.toThrow();
+	expect(html).toContain('consent-banner-root');
+});
+
+test('built-in assignment keeps the banner out of the server render', () => {
+	const html = renderToString(
+		<ConsentProvider
+			options={{
+				enabled: true,
+				experiment,
+				mode: Object.assign(() => ({ save: vi.fn() }), {
+					kind: 'custom' as const,
+				}),
+				persistence: false,
+				prefetch: { initialPolicyResolution: resolution },
+			}}
+		>
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	// The arm is picked in the browser; rendering the base banner here would
+	// show the visitor one banner and then swap it for another.
+	expect(html).not.toContain('consent-banner-root');
 });

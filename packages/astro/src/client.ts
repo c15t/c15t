@@ -429,7 +429,10 @@ const createClient = function createClient(
 		consentCategories: options.consentCategories,
 		consentSource: extension.consentSource,
 		createIAB: lazyCreateIAB,
-		experiment: options.experiment,
+		// The server resolved this request's arm into the prefetch. Without
+		// one, no experiment runs: browser assignment would hold a banner
+		// the server already rendered.
+		experiment: config.initialExperiment ? options.experiment : undefined,
 		i18n: options.i18n as ConsentRuntimeOptions['i18n'],
 		// `RuntimeIABOptions` is the runtime's open-ended shape; the
 		// integration option is the closed, documented subset of it.

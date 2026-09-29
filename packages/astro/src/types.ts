@@ -166,11 +166,13 @@ export interface C15tAstroOptions {
 	/**
 	 * A/B experiment on prompt/preferences presentation. The assigned arm is
 	 * merged over `presentation`, exposed as `snapshot.experiment`, and
-	 * recorded with every impression and choice. `variant` is required: the
-	 * banner is server-rendered, so the arm must be resolved on the server.
+	 * recorded with the impressions and choices of visitors the banner
+	 * showed it to. The banner is server-rendered, so the arm is resolved on
+	 * the server: per request through `consentMiddleware({ experimentVariant })`
+	 * with `middleware: false`, or one fixed `variant` for every visitor.
 	 * Built-in assignment is not available on Astro.
 	 */
-	experiment?: Omit<ConsentExperiment, 'variant'> & { variant: string };
+	experiment?: ConsentExperiment;
 	/**
 	 * Transport selection. Build it with `hosted()`, `offline()` or
 	 * `manifest()` so the descriptor stays well-formed.

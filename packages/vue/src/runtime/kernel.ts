@@ -1,11 +1,12 @@
 import {
-	assignExperimentVariant,
 	extractConsentNamesFromCondition,
 	c15tProtocolHeaders,
 	createConsentKernel,
 	createHostedTransport,
 	initOutputToKernelConfig,
 	resolveVendors,
+	seedExperiment,
+	startExperiment,
 	watchRevocationReload,
 } from '@c15t/core';
 import type {
@@ -36,13 +37,11 @@ import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import {
 	wireRuntimeCallbacks,
 	connectConsentSource,
-	createExperimentController,
 	createLazyIABFactory,
 } from '@c15t/core/runtime';
 import type {
 	ConsentRuntime,
 	ConsentRuntimeIABHandle,
-	ExperimentController,
 } from '@c15t/core/runtime';
 import type { ConsentActiveUI } from '@c15t/schema/config';
 import {
@@ -90,11 +89,6 @@ export interface VueConsentKernelContext {
 	storedConsent: Readonly<Ref<ConsentSnapshot['explicitChoice']>>;
 	initialRecords?: HydrationRecords;
 	ownsKernel: boolean;
-	/**
-	 * Owns the configured experiment. Absent for a borrowed runtime or when
-	 * no experiment is configured.
-	 */
-	experiment?: ExperimentController;
 	/**
 	 * The experiment definition the kernel was created with. Validation,
 	 * assignment and attribution all derive from it, so presentation and
@@ -642,37 +636,6 @@ const claimHold = function claimHold(
 	return hold;
 };
 
-/**
- * Kernel config carrying a host-resolved arm. Known before any render, so
- * the server snapshot renders the same variant hydration will.
- */
-const hostExperimentSeed = (
-	config: RuntimeConsentConfig
-): Pick<KernelConfig, 'initialExperiment'> => {
-	const seed: Pick<KernelConfig, 'initialExperiment'> = {};
-	if (config.experiment?.variant !== undefined) {
-		seed.initialExperiment = assignExperimentVariant(config.experiment, '');
-	}
-	return seed;
-};
-
-/**
- * Validates every arm now, so a misconfigured experiment throws at plugin
- * install rather than on the visitor's first paint.
- */
-const createOwnedExperiment = (
-	kernel: ConsentKernel,
-	config: RuntimeConsentConfig
-): ExperimentController | undefined =>
-	config.experiment
-		? createExperimentController({
-				experiment: config.experiment,
-				kernel,
-				presentation: config.presentation,
-				storageConfig: config.storageConfig,
-			})
-		: undefined;
-
 export const createVueConsentKernelContext =
 	// oxlint-disable-next-line complexity -- Resolves hosted, prefetched, borrowed and external-authority kernels.
 	function createVueConsentKernelContext(options: {
@@ -735,18 +698,27 @@ export const createVueConsentKernelContext =
 				options.initialRecords?.now ??
 				options.config.initialRecords?.now,
 			transport,
-			...hostExperimentSeed(options.config),
 			...options.kernelConfig,
 		};
+		// A prefetched or host-resolved arm renders on the server; built-in
+		// assignment holds the prompt until the browser picked the arm.
+		if (ownsKernel) {
+			Object.assign(
+				kernelConfig,
+				seedExperiment(
+					options.config.experiment,
+					options.kernelConfig?.initialExperiment ??
+						initialConfig.initialExperiment,
+					!resolveInitialPolicyPending(initialConfig, options.kernelConfig)
+				)
+			);
+		}
 		if (options.config.consentSource) {
 			kernelConfig.initialExternalPermissions = {};
 			kernelConfig.initialRecords = undefined;
 			kernelConfig.initialPolicyPending = false;
 		}
 		const kernel = options.runtime?.kernel ?? createConsentKernel(kernelConfig);
-		const experiment = ownsKernel
-			? createOwnedExperiment(kernel, options.config)
-			: undefined;
 		const hold = holdBlockedRequests(options.config, ownsKernel);
 
 		const snapshot = shallowRef(kernel.getSnapshot());
@@ -814,7 +786,6 @@ export const createVueConsentKernelContext =
 				unsubscribeCallbacks();
 				unsubscribeVendorCategories();
 				unsubscribeRevocationReload();
-				experiment?.dispose();
 				if (ownsKernel) {
 					kernel.dispose();
 				}
@@ -824,7 +795,6 @@ export const createVueConsentKernelContext =
 				// blocked rather than wait for the rest of the page.
 				claimHold(context).block();
 			},
-			experiment,
 			experimentDefinition: options.config.experiment,
 			iab: options.runtime?.iab ?? undefined,
 			init,
@@ -932,10 +902,7 @@ const mountClearOnRevocation = (
  * @returns A disposer that undoes everything this call mounted.
  */
 /**
- * Hydrate stored records into the kernel, then assign the experiment arm:
- * after hydration so a returning visitor's subject id seeds the arm, and
- * before init so the first impression already carries it. No-op without
- * browser storage.
+ * Hydrate stored records into the kernel. No-op without browser storage.
  */
 const mountVuePersistence = (
 	context: VueConsentKernelContext,
@@ -950,7 +917,6 @@ const mountVuePersistence = (
 		storageConfig: config.storageConfig,
 	});
 	hydrateVuePersistence(context, persistence);
-	context.experiment?.assign();
 	const clearMemory = context.clearRecords;
 	context.clearRecords = persistence.clear;
 	return () => {
@@ -987,6 +953,23 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 
 	if (!config.consentSource) {
 		disposers.push(mountVuePersistence(context, config));
+	}
+	// After hydration, so a returning visitor's subject id seeds the arm.
+	// The controller loads as its own chunk; a held prompt waits for it.
+	if (
+		context.ownsKernel &&
+		context.experimentDefinition &&
+		!config.consentSource &&
+		typeof document !== 'undefined'
+	) {
+		disposers.push(
+			startExperiment({
+				experiment: context.experimentDefinition,
+				kernel: context.kernel,
+				presentation: config.presentation,
+				storageConfig: config.storageConfig,
+			})
+		);
 	}
 
 	if (typeof document !== 'undefined' && config.consentSource) {

@@ -86,7 +86,12 @@ describe('mountConsentUI', () => {
 			},
 		};
 		const { client, root } = await mount({}, { experiment });
-		expect(query(root, 'consent-banner-root').dataset.variant).toBe('floating');
+		// The banner waits for the lazily loaded experiment controller.
+		await vi.waitFor(() =>
+			expect(query(root, 'consent-banner-root').dataset.variant).toBe(
+				'floating'
+			)
+		);
 		client.kernel.set.experiment({
 			acknowledgedDiagnostics: false,
 			assignedBy: 'c15t',

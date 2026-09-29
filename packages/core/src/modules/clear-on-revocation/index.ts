@@ -1,7 +1,7 @@
 import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
 import type { OptionalConsentCategory } from '../../consent-record/types';
-import { EXPERIMENT_STORAGE_KEY } from '../../libs/experiment-assignment';
 import {
+	EXPERIMENT_STORAGE_KEY,
 	PENDING_SAVES_STORAGE_KEY,
 	STORAGE_KEY,
 	STORAGE_KEY_V2,

@@ -14,6 +14,7 @@
  * - The deadline timer, the visibility listener and browser GPC detection
  *   are installed only after a lifecycle command ran, never at construction.
  */
+import type { ExperimentAssignment, ExperimentGate } from '../libs/experiment';
 import type { PresentedSelection } from '../policy';
 import type {
 	ConsentSnapshot,
@@ -72,6 +73,14 @@ export interface KernelRuntime {
 	 * applies records records no impression.
 	 */
 	markLive: (at?: number) => void;
+	/**
+	 * Set the arm this visitor runs and the gate that decides, per policy,
+	 * whether it is shown. Releases a held prompt.
+	 */
+	setExperiment: (
+		assignment: ExperimentAssignment | null,
+		gate: ExperimentGate | null
+	) => void;
 	hydrate: (records: HydrationRecords) => HydrationResult;
 	/**
 	 * Apply server-mapped records, keeping the newest receipt per category
@@ -153,6 +162,14 @@ export const createRuntime = function createRuntime(
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let visibilityInstalled = false;
 	let listeners: ListenerSet<ConsentSnapshot> | undefined;
+	/**
+	 * The arm the visitor runs whenever the policy accepts it.
+	 * `snapshot.experiment` is this arm or `null`, decided by `experimentGate`
+	 * in the commit that resolves each policy.
+	 */
+	let wantedExperiment: ExperimentAssignment | null =
+		options.initialSnapshot.experiment;
+	let experimentGate: ExperimentGate | null = null;
 
 	const getSnapshot = () => snapshot;
 	const now = () => Date.now();
@@ -212,6 +229,45 @@ export const createRuntime = function createRuntime(
 	};
 
 	/**
+	 * `candidate` with the arm its policy allows. Asked only when the policy
+	 * or the arm changes, so a commit that stamps an impression under a new
+	 * policy already carries the arm that policy shows.
+	 */
+	const gateExperiment = function gateExperiment(
+		current: ConsentSnapshot,
+		candidate: ConsentSnapshot,
+		patch: SnapshotPatch
+	): ConsentSnapshot {
+		if (
+			patch.experiment === undefined &&
+			candidate.policyRule === current.policyRule
+		) {
+			return candidate;
+		}
+		const allowed =
+			wantedExperiment && (!experimentGate || experimentGate(candidate))
+				? wantedExperiment
+				: null;
+		return allowed === candidate.experiment
+			? candidate
+			: { ...candidate, experiment: allowed };
+	};
+
+	/**
+	 * The arm an event records: the visitor's arm once the banner has shown
+	 * it in this page. A returning visitor who reopens the dialog from a
+	 * footer link never saw the arm's banner, so their choice is not the
+	 * arm's outcome.
+	 */
+	const exposedExperiment = function exposedExperiment(
+		candidate: ConsentSnapshot
+	): ExperimentAssignment | undefined {
+		return candidate.experiment && candidate.surfaceShownAt.banner !== null
+			? candidate.experiment
+			: undefined;
+	};
+
+	/**
 	 * Deliver an adopted snapshot to subscribers, then its events. Runs as
 	 * one batch so a listener that commits again queues behind this
 	 * transition instead of overtaking it.
@@ -239,8 +295,9 @@ export const createRuntime = function createRuntime(
 					surface: shown,
 					type: 'surface:shown',
 				};
-				if (adopted.experiment) {
-					event.experiment = adopted.experiment;
+				const experiment = exposedExperiment(adopted);
+				if (experiment) {
+					event.experiment = experiment;
 				}
 				emit(event);
 			}
@@ -248,6 +305,9 @@ export const createRuntime = function createRuntime(
 	};
 
 	const commit = function commit(patch: SnapshotPatch): boolean {
+		if (patch.experiment !== undefined) {
+			wantedExperiment = patch.experiment;
+		}
 		const current = snapshot;
 		let adopted: ConsentSnapshot;
 		if (isUnchangedPatch(current, patch)) {
@@ -256,7 +316,11 @@ export const createRuntime = function createRuntime(
 			}
 			adopted = stampCurrent(current, patch.now ?? current.evaluatedAt);
 		} else {
-			let next = buildNextSnapshot(current, patch);
+			let next = gateExperiment(
+				current,
+				buildNextSnapshot(current, patch),
+				patch
+			);
 			if (impressionDue(next)) {
 				next = stampImpression(next);
 			}
@@ -377,6 +441,28 @@ export const createRuntime = function createRuntime(
 		}
 	};
 
+	const setExperiment = function setExperiment(
+		assignment: ExperimentAssignment | null,
+		gate: ExperimentGate | null
+	): void {
+		if (
+			gate === experimentGate &&
+			!snapshot.experimentPending &&
+			assignment?.id === wantedExperiment?.id &&
+			assignment?.variant === wantedExperiment?.variant &&
+			assignment?.assignedBy === wantedExperiment?.assignedBy &&
+			assignment?.acknowledgedDiagnostics ===
+				wantedExperiment?.acknowledgedDiagnostics
+		) {
+			return;
+		}
+		experimentGate = gate;
+		commit({
+			experiment: assignment ? Object.freeze({ ...assignment }) : null,
+			experimentPending: false,
+		});
+	};
+
 	const markLive = function markLive(at: number = now()): void {
 		if (live) {
 			return;
@@ -486,6 +572,7 @@ export const createRuntime = function createRuntime(
 					}
 				: null;
 		},
+		setExperiment,
 		setVendorDraft(next) {
 			vendorDraft = next
 				? {

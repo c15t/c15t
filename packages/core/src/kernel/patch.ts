@@ -73,6 +73,7 @@ export interface SnapshotPatch {
 	vendors?: KernelVendorsState | null;
 	vendorChoice?: VendorChoice | null;
 	experiment?: ExperimentAssignment | null;
+	experimentPending?: boolean;
 	/** Evaluation time. Defaults to the current `evaluatedAt`. */
 	now?: number;
 }
@@ -131,7 +132,9 @@ export const isUnchangedPatch = function isUnchangedPatch(
 		pick(patch.iab, current.iab) === current.iab &&
 		pick(patch.vendors, current.vendors) === current.vendors &&
 		pick(patch.vendorChoice, current.vendorChoice) === current.vendorChoice &&
-		pick(patch.experiment, current.experiment) === current.experiment
+		pick(patch.experiment, current.experiment) === current.experiment &&
+		pick(patch.experimentPending, current.experimentPending) ===
+			current.experimentPending
 	);
 };
 
@@ -225,6 +228,7 @@ const deriveNextActiveUI = function deriveNextActiveUI(input: {
 	derive: boolean;
 	policyRule: ConsentSnapshot['policyRule'];
 	policyPending: boolean;
+	experimentPending: boolean;
 	promptRequirement: PromptRequirement;
 	resolution: PolicyResolution;
 }): KernelActiveUI {
@@ -233,6 +237,7 @@ const deriveNextActiveUI = function deriveNextActiveUI(input: {
 	}
 	if (input.derive) {
 		return deriveActiveUI({
+			experimentPending: input.experimentPending,
 			policyPending: input.policyPending,
 			promptRequirement: input.promptRequirement,
 			resolution: input.resolution,
@@ -350,14 +355,21 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		: evaluation.restrictions;
 
 	const policyPending = pick(patch.policyPending, current.policyPending);
+	const experimentPending = pick(
+		patch.experimentPending,
+		current.experimentPending
+	);
 	const promptChanged = promptRequirement !== current.promptRequirement;
 	const visibilityChanged =
-		resolutionChanged || policyPending !== current.policyPending;
+		resolutionChanged ||
+		policyPending !== current.policyPending ||
+		experimentPending !== current.experimentPending;
 	const activeUI = externalPermissions
 		? 'none'
 		: deriveNextActiveUI({
 				current,
 				derive: promptChanged || visibilityChanged,
+				experimentPending,
 				patch,
 				policyPending,
 				policyRule,
@@ -375,6 +387,7 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		evaluatedAt: now,
 		evaluationPolicy,
 		experiment: pick(patch.experiment, current.experiment),
+		experimentPending,
 		explicitChoice,
 		externalPermissions,
 		iab,

@@ -6,7 +6,7 @@
  * tests and advanced setups bind it to their own.
  */
 
-import type { MiddlewareHandler } from 'astro';
+import type { APIContext, MiddlewareHandler } from 'astro';
 
 import { waitUntilFromLocals } from './api/handlers';
 import { resolveConsentContext } from './server';
@@ -16,6 +16,15 @@ import type { C15tResolvedOptions } from './types';
 export interface ConsentMiddlewareOptions {
 	/** Override fetch, mainly for tests. */
 	fetch?: typeof globalThis.fetch;
+	/**
+	 * Resolve this request's banner-experiment arm, for example from a
+	 * feature flag or a cookie. Overrides a static `experiment.variant`.
+	 * Return `undefined` to run no experiment for the request. Not called
+	 * for prerendered routes, which render once for every visitor.
+	 */
+	experimentVariant?: (
+		context: APIContext
+	) => string | undefined | Promise<string | undefined>;
 }
 
 /**
@@ -91,7 +100,12 @@ export const createConsentMiddleware = function createConsentMiddleware(
 		}
 
 		const prerendered = context.isPrerendered === true;
+		const experimentVariant =
+			options.experiment && !prerendered
+				? await middlewareOptions.experimentVariant?.(context)
+				: undefined;
 		context.locals.c15t = await resolveConsentContext({
+			experimentVariant,
 			fetch: middlewareOptions.fetch,
 			// Astro warns on any read of a prerendered request's headers, and
 			// at build time they hold nothing about a visitor anyway.

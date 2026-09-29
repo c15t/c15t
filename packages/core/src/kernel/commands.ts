@@ -936,8 +936,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		const uiSource = requested ?? current.activeUI;
 		const attribution: ReturnType<typeof saveAttribution> = { uiSource };
 		// The arm the visitor acted under, captured with the action so a
-		// later reassignment cannot relabel this choice.
-		if (current.experiment) {
+		// later reassignment cannot relabel this choice. Only once the banner
+		// has shown it in this page: a returning visitor who changes their
+		// choice from a footer link never saw the arm's banner.
+		if (current.experiment && current.surfaceShownAt.banner !== null) {
 			attribution.experiment = current.experiment;
 		}
 		if (!isPromptSurface(uiSource)) {

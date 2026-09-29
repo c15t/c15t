@@ -1,5 +1,5 @@
 import {
-	assignExperimentVariant,
+	seedExperiment,
 	deferInitGvl,
 	deferInitGvlToRoute,
 	c15tProtocolHeaders,
@@ -68,6 +68,11 @@ export interface ResolveConsentContextOptions {
 	url?: string;
 	/** The integration options, already normalized. */
 	options: C15tResolvedOptions;
+	/**
+	 * This request's experiment arm, resolved by the middleware's
+	 * `experimentVariant`. Overrides a static `experiment.variant`.
+	 */
+	experimentVariant?: string;
 	/** Override fetch, mainly for tests. */
 	fetch?: typeof globalThis.fetch;
 	/**
@@ -209,7 +214,8 @@ export const resolveTranslations = function resolveTranslations(
  */
 const readConsentRequest = function readConsentRequest(
 	headers: Headers,
-	options: C15tResolvedOptions
+	options: C15tResolvedOptions,
+	experimentVariant?: string
 ): { config: KernelConfig; inputs: ConsentRequestHeaderInputs } {
 	const now = Date.now();
 	const initialRecords = readStoredRecordsFromCookieHeader(
@@ -229,10 +235,17 @@ const readConsentRequest = function readConsentRequest(
 		now,
 	};
 	// The arm is known on the server, so the inlined config and the first
-	// HTML already carry it. `resolveOptions()` rejects an experiment
-	// without a `variant`; the guard keeps a hand-built options object safe.
-	if (options.experiment?.variant !== undefined) {
-		config.initialExperiment = assignExperimentVariant(options.experiment, '');
+	// HTML already carry it. The banner is server-rendered, so without an
+	// arm for this request no experiment runs rather than holding the prompt.
+	const variant = experimentVariant ?? options.experiment?.variant;
+	if (options.experiment && variant !== undefined) {
+		const { initialExperiment } = seedExperiment({
+			...options.experiment,
+			variant,
+		});
+		if (initialExperiment) {
+			config.initialExperiment = initialExperiment;
+		}
 	}
 	const overrides = consentInputsToOverrides({
 		country: inputs.country,
@@ -666,7 +679,11 @@ export const resolveConsentContext = async function resolveConsentContext(
 	const { options } = input;
 	const prerendered = input.prerendered === true;
 	const headers = prerendered ? new Headers() : input.headers;
-	const { config: base, inputs } = readConsentRequest(headers, options);
+	const { config: base, inputs } = readConsentRequest(
+		headers,
+		options,
+		prerendered ? undefined : input.experimentVariant
+	);
 	const translations = resolveTranslations(options, inputs);
 	// Hosted and manifest mode resolve against the visitor's geo, which a
 	// build has none of. Offline mode resolves without it in the browser as

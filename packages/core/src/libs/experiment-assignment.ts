@@ -1,49 +1,39 @@
 /**
- * Sticky experiment assignment for a browser.
+ * Validation and sticky assignment for one experiment in one browser.
  *
- * The kernel is pure, so the arm a visitor runs is decided here, in the
- * runtime layer, and stored under {@link EXPERIMENT_STORAGE_KEY} so the
- * same browser lands in the same arm on every visit. A host-resolved
- * `variant` always wins and overwrites the stored arm; built-in assignment
- * reuses the stored arm for the same experiment id and otherwise hashes a
- * stable key: the hydrated subject id when one exists, else a random key.
- * Only the random key is kept in the record; the subject id is never
- * written a second time.
+ * Loaded on demand by {@link startExperiment}, so a site without an
+ * experiment never ships it. The controller decides the arm, hands the
+ * kernel a gate that checks the arm against each policy, and remembers
+ * the arm under {@link EXPERIMENT_STORAGE_KEY} once the banner has shown
+ * it. Nothing is written for a visitor who is never prompted, and nothing
+ * is written for a host-resolved arm: the host decides that one again on
+ * every visit.
  */
-import type { ConsentKernel, ConsentSnapshot } from '../types';
+import type { ConsentSnapshot } from '../types';
 import { deleteCookie, getRawCookieValue, setCookie } from './cookie';
 import type { StorageConfig } from './cookie';
-import { assignExperimentVariant, validateExperiment } from './experiment';
 import type {
 	ConsentExperiment,
 	ExperimentAssignment,
-	ExperimentDiagnostics,
-	ValidateExperimentOptions,
+	ExperimentGate,
+	StartExperimentOptions,
 } from './experiment';
-import { isExperimentAssignment } from './experiment-record';
+import {
+	assignExperimentVariant,
+	collectExperimentDiagnostics,
+	describeRejectedArms,
+	experimentConfigError,
+} from './experiment-engine';
+import type { ExperimentDiagnostics } from './experiment-engine';
+import { EXPERIMENT_STORAGE_KEY } from './storage-keys';
 
-/** localStorage key (and cookie name fallback) of the stored assignment. */
-export const EXPERIMENT_STORAGE_KEY = 'c15t-experiment-v1';
-
-/** What the browser keeps between visits. */
-export interface StoredExperimentAssignment extends ExperimentAssignment {
-	/**
-	 * The random key built-in assignment hashed, kept so a removed arm
-	 * re-assigns the same way. Absent for a host-resolved arm and when the
-	 * subject id was the key: that id lives in the consent record already.
-	 */
-	key?: string;
+/** What the browser keeps between visits: the arm the banner showed. */
+export interface StoredExperimentAssignment {
+	/** {@link ConsentExperiment.id}. */
+	id: string;
+	/** The arm the banner rendered. */
+	variant: string;
 }
-
-const isStoredAssignment = function isStoredAssignment(
-	value: unknown
-): value is StoredExperimentAssignment {
-	if (!isExperimentAssignment(value)) {
-		return false;
-	}
-	const { key } = value as StoredExperimentAssignment;
-	return key === undefined || typeof key === 'string';
-};
 
 const parseStored = function parseStored(
 	raw: string | null | undefined
@@ -53,7 +43,20 @@ const parseStored = function parseStored(
 	}
 	try {
 		const parsed: unknown = JSON.parse(raw);
-		return isStoredAssignment(parsed) ? parsed : null;
+		if (typeof parsed !== 'object' || parsed === null) {
+			return null;
+		}
+		const record = parsed as Record<string, unknown>;
+		// A record from an earlier build may carry `assignedBy: 'host'`; that
+		// arm was the host's call, so built-in assignment does not inherit it.
+		if (
+			typeof record.id !== 'string' ||
+			typeof record.variant !== 'string' ||
+			record.assignedBy === 'host'
+		) {
+			return null;
+		}
+		return { id: record.id, variant: record.variant };
 	} catch {
 		return null;
 	}
@@ -68,8 +71,10 @@ const localStorageAvailable = function localStorageAvailable(): boolean {
 };
 
 /**
- * Read the stored assignment, from localStorage first and the cookie
- * fallback second. Never throws; unreadable storage reads as no record.
+ * Read the stored arm, from localStorage first and the cookie fallback
+ * second. Never throws; unreadable storage reads as no record.
+ *
+ * @returns The stored arm, or `null`.
  */
 export const readStoredExperimentAssignment =
 	function readStoredExperimentAssignment(): StoredExperimentAssignment | null {
@@ -97,17 +102,23 @@ export const readStoredExperimentAssignment =
 	};
 
 /**
- * Persist an assignment. Writes localStorage when available and falls back
- * to a cookie otherwise. A successful localStorage write also drops any
- * fallback cookie a previous visit left, so a later read that has to fall
- * back to the cookie cannot restore an older arm. Never throws.
+ * Persist the arm the banner showed. Writes localStorage when available and
+ * falls back to a cookie otherwise. A successful localStorage write also
+ * drops any fallback cookie a previous visit left, so a later read that has
+ * to fall back to the cookie cannot restore an older arm. Never throws.
+ *
+ * @param record - The experiment id and arm.
+ * @param storageConfig - Cookie domain and path for the fallback.
  */
 export const writeStoredExperimentAssignment =
 	function writeStoredExperimentAssignment(
 		record: StoredExperimentAssignment,
 		storageConfig?: StorageConfig
 	): void {
-		const serialized = JSON.stringify(record);
+		const serialized = JSON.stringify({
+			id: record.id,
+			variant: record.variant,
+		});
 		if (localStorageAvailable()) {
 			try {
 				localStorage.setItem(EXPERIMENT_STORAGE_KEY, serialized);
@@ -136,14 +147,13 @@ const randomKey = function randomKey(): string {
 /** Inputs of {@link resolveExperimentAssignment}. */
 export interface ResolveExperimentAssignmentInput {
 	experiment: ConsentExperiment;
-	/** The assignment this browser already stored, if any. */
+	/** The arm this browser stored after a previous banner showed it. */
 	stored: StoredExperimentAssignment | null;
 	/** The hydrated subject id, when the visitor already has one. */
 	subjectId?: string | null;
 	/**
 	 * An arm already on the kernel for this experiment: a server prefetch
-	 * that rendered it. Kept over the stored arm so the impression is
-	 * attributed to what the visitor saw.
+	 * that rendered it. Kept over the stored arm, because the visitor saw it.
 	 */
 	seeded?: ExperimentAssignment | null;
 	/** Random key factory; injectable for tests. */
@@ -153,88 +163,68 @@ export interface ResolveExperimentAssignmentInput {
 /**
  * Decide the arm for this browser without touching storage.
  *
- * - A host `variant` wins and replaces whatever was stored.
- * - A `seeded` arm the kernel already carries is kept when it still exists
- *   in `variants`: the server rendered it.
- * - A stored arm for the same experiment id is reused when it still exists
- *   in `variants`, so an arm is sticky across sessions.
- * - Otherwise the arm is hashed from the subject id, or from a fresh random
- *   key that the returned record carries for the next visit.
+ * - A host `variant` wins.
+ * - A `seeded` arm the kernel already carries is kept when it still exists.
+ * - A stored arm for the same experiment id is reused when it still exists,
+ *   so the banner a visitor saw stays the banner they see.
+ * - Otherwise the arm is hashed from the subject id, or from a random key
+ *   that is not kept: a visitor who never sees the banner is not tracked.
  *
- * @param input - The experiment, the stored record, the seeded arm and the
- * subject id.
- * @returns The assignment plus the record to store.
+ * @param input - The experiment, the stored arm, the seed and the subject id.
+ * @returns The assignment.
  * @throws {Error} When `experiment.variant` names an undeclared arm, or a
  * supplied `weights` map reaches no arm.
  */
 export const resolveExperimentAssignment = function resolveExperimentAssignment(
 	input: ResolveExperimentAssignmentInput
-): { assignment: ExperimentAssignment; record: StoredExperimentAssignment } {
+): ExperimentAssignment {
 	const { experiment, stored, seeded } = input;
 	const acknowledgedDiagnostics = experiment.acknowledgeDiagnostics === true;
-	const storedKey = stored?.id === experiment.id ? stored.key : undefined;
-	const withKey = function withKey(
-		assignment: ExperimentAssignment,
-		key: string | undefined
-	): StoredExperimentAssignment {
-		return key === undefined ? { ...assignment } : { ...assignment, key };
-	};
 	if (experiment.variant !== undefined) {
-		const assignment = assignExperimentVariant(experiment, '');
-		return { assignment, record: withKey(assignment, storedKey) };
+		return assignExperimentVariant(experiment, '');
 	}
 	if (
 		seeded?.id === experiment.id &&
 		Object.hasOwn(experiment.variants, seeded.variant)
 	) {
-		const assignment: ExperimentAssignment = { ...seeded };
-		return { assignment, record: withKey(assignment, storedKey) };
+		return { ...seeded, acknowledgedDiagnostics };
 	}
 	if (
 		stored?.id === experiment.id &&
 		Object.hasOwn(experiment.variants, stored.variant)
 	) {
-		const assignment: ExperimentAssignment = {
+		return {
 			acknowledgedDiagnostics,
-			assignedBy: stored.assignedBy,
+			assignedBy: 'c15t',
 			id: stored.id,
 			variant: stored.variant,
 		};
-		return { assignment, record: withKey(assignment, storedKey) };
 	}
-	if (input.subjectId) {
-		const assignment = assignExperimentVariant(experiment, input.subjectId);
-		return { assignment, record: withKey(assignment, storedKey) };
-	}
-	const key = storedKey || (input.createKey ?? randomKey)();
-	const assignment = assignExperimentVariant(experiment, key);
-	return { assignment, record: { ...assignment, key } };
+	return assignExperimentVariant(
+		experiment,
+		input.subjectId || (input.createKey ?? randomKey)()
+	);
 };
 
 /** Options of {@link createExperimentController}. */
-export interface ExperimentControllerOptions extends ValidateExperimentOptions {
-	experiment: ConsentExperiment;
-	kernel: ConsentKernel;
-	storageConfig?: StorageConfig;
+export interface ExperimentControllerOptions extends StartExperimentOptions {
 	/**
-	 * Receives acknowledged diagnostics, once per policy, and an experiment
-	 * rejected by a policy that arrived after construction. Defaults to
-	 * `console.warn` / `console.error`.
+	 * Receives acknowledged diagnostics and rejections, once per policy.
+	 * Defaults to `console.warn` / `console.error`.
 	 */
 	report?: {
 		warn?: (message: string, diagnostics: ExperimentDiagnostics) => void;
 		error?: (error: Error) => void;
 	};
+	/** Random key factory; injectable for tests. */
+	createKey?: () => string;
 }
 
-/** Owns one experiment's validation and assignment for one kernel. */
+/** Owns one experiment's validation, assignment and storage for one kernel. */
 export interface ExperimentController {
-	/**
-	 * Assign the arm for this browser and record it on the kernel. Reads
-	 * and writes storage, so call it from a mount hook. Idempotent.
-	 */
-	assign: () => ExperimentAssignment;
-	/** Stop watching the policy. */
+	/** The arm this browser runs, or `null` when the experiment is invalid. */
+	assignment: ExperimentAssignment | null;
+	/** Stop watching impressions. The arm stays on the kernel. */
 	dispose: () => void;
 }
 
@@ -248,24 +238,18 @@ const policyKey = function policyKey(snapshot: ConsentSnapshot): string {
 };
 
 /**
- * Validate an experiment and prepare its assignment.
+ * Validate an experiment, assign this browser's arm and attach both to the
+ * kernel.
  *
- * Construction validates every arm under the kernel's current policy rule
- * — the safe fallback while nothing is resolved — and throws for an
- * unacknowledged arm with diagnostics, so a misconfiguration fails at
- * provider construction. Every later policy is validated once, from the
- * kernel's snapshot subscription, which runs before the commit that
- * changed the policy emits `surface:shown`: an impression is never stamped
- * with an arm the policy rejects. A rejection is reported and the arm is
- * cleared so the base presentation renders; it is remembered per policy,
- * so a policy that accepted the arm restores it when it returns. A
- * host-resolved `variant` is recorded on the kernel at once; built-in
- * assignment waits for {@link ExperimentController.assign}.
+ * Nothing here throws into the page. An invalid definition logs an error
+ * and runs no experiment. An arm a policy rejects is not shown under that
+ * policy: the gate answers per policy, once, and the visitor sees the base
+ * presentation and is left out of the experiment's records. The arm is
+ * stored the first time the banner shows it, and only for built-in
+ * assignment.
  *
- * @param options - Experiment, kernel and reporting configuration.
+ * @param options - Experiment, kernel, host presentation and reporting.
  * @returns The controller.
- * @throws {Error} When `experiment.variant` names an undeclared arm, or an
- * unacknowledged arm trips diagnostics under the current policy.
  */
 export const createExperimentController = function createExperimentController(
 	options: ExperimentControllerOptions
@@ -281,96 +265,77 @@ export const createExperimentController = function createExperimentController(
 		((failure: Error) => {
 			console.error(failure);
 		});
-	/** Whether each policy seen so far rejected the experiment. */
-	const rejectedByPolicy = new Map<string, boolean>();
-	let lastPolicy: ConsentSnapshot['policyRule'] | null = null;
-	let rejected = false;
-	/**
-	 * An arm the kernel already carries for this experiment: a server
-	 * prefetch that rendered it. The visitor saw that arm, so the browser
-	 * keeps it rather than re-assigning.
-	 */
-	const seeded = kernel.getSnapshot().experiment;
-	/** The arm this browser runs whenever the policy accepts it. */
-	let current: ExperimentAssignment | null = null;
-	if (experiment.variant !== undefined) {
-		current = assignExperimentVariant(experiment, '');
-	} else if (
-		seeded?.id === experiment.id &&
-		Object.hasOwn(experiment.variants, seeded.variant)
-	) {
-		current = { ...seeded };
+
+	const configError = experimentConfigError(experiment);
+	if (configError) {
+		error(new Error(`${configError} No experiment runs.`));
+		kernel.set.experiment(null);
+		return { assignment: null, dispose: () => undefined };
 	}
 
-	const apply = function apply(): void {
-		kernel.set.experiment(rejected ? null : current);
-	};
-
-	const validateOnce = function validateOnce(
-		snapshot: ConsentSnapshot,
-		throwing: boolean
-	): boolean {
+	/** Whether each policy seen so far accepts the experiment. */
+	const acceptedByPolicy = new Map<string, boolean>();
+	const gate: ExperimentGate = (snapshot) => {
+		const key = policyKey(snapshot);
+		const known = acceptedByPolicy.get(key);
+		if (known !== undefined) {
+			return known;
+		}
 		const { policyRule } = snapshot;
-		try {
-			const diagnostics = validateExperiment(experiment, policyRule, options);
-			if (Object.keys(diagnostics).length > 0) {
+		const diagnostics = collectExperimentDiagnostics(
+			experiment,
+			policyRule,
+			options
+		);
+		let accepted = true;
+		if (Object.keys(diagnostics).length > 0) {
+			if (experiment.acknowledgeDiagnostics === true) {
 				warn(
 					`c15t experiment "${experiment.id}": running with acknowledged presentation diagnostics under policy "${policyRule.id}".`,
 					diagnostics
 				);
+			} else {
+				accepted = false;
+				error(
+					new Error(
+						`${describeRejectedArms(experiment, policyRule, diagnostics)}\nVisitors under this policy see the base presentation and are not counted.`
+					)
+				);
 			}
-			return false;
-		} catch (failure) {
-			if (throwing) {
-				throw failure;
-			}
-			error(failure instanceof Error ? failure : new Error(String(failure)));
-			return true;
 		}
+		acceptedByPolicy.set(key, accepted);
+		return accepted;
 	};
 
-	const validate = function validate(
-		snapshot: ConsentSnapshot,
-		throwing: boolean
-	): void {
-		if (snapshot.policyRule === lastPolicy) {
-			return;
-		}
-		lastPolicy = snapshot.policyRule;
-		const key = policyKey(snapshot);
-		let outcome = rejectedByPolicy.get(key);
-		if (outcome === undefined) {
-			outcome = validateOnce(snapshot, throwing);
-			rejectedByPolicy.set(key, outcome);
-		}
-		rejected = outcome;
-		apply();
-	};
-
-	validate(kernel.getSnapshot(), true);
-	const unsubscribe = kernel.subscribe((snapshot) => {
-		validate(snapshot, false);
+	const snapshot = kernel.getSnapshot();
+	const assignment = resolveExperimentAssignment({
+		createKey: options.createKey,
+		experiment,
+		seeded: snapshot.experiment,
+		stored: readStoredExperimentAssignment(),
+		subjectId: snapshot.subject?.subjectId ?? null,
 	});
-	let assigned: ExperimentAssignment | null = null;
-	return {
-		assign() {
-			if (assigned) {
-				return assigned;
-			}
-			const { assignment, record } = resolveExperimentAssignment({
-				experiment,
-				seeded,
-				stored: readStoredExperimentAssignment(),
-				subjectId: kernel.getSnapshot().subject?.subjectId ?? null,
-			});
-			writeStoredExperimentAssignment(record, options.storageConfig);
-			assigned = assignment;
-			current = assignment;
-			apply();
-			return assignment;
-		},
-		dispose() {
-			unsubscribe();
-		},
-	};
+
+	// Remember the arm once the banner has rendered it, so the visitor keeps
+	// seeing the banner they saw. A host arm is the host's to repeat.
+	let stored = false;
+	const unsubscribe =
+		assignment.assignedBy === 'c15t'
+			? kernel.events.on('surface:shown', (event) => {
+					if (stored || event.surface !== 'banner' || !event.experiment) {
+						return;
+					}
+					stored = true;
+					writeStoredExperimentAssignment(
+						{ id: event.experiment.id, variant: event.experiment.variant },
+						options.storageConfig
+					);
+				})
+			: () => undefined;
+
+	// After the listener: releasing a held prompt shows the banner in this
+	// very commit, and that impression is the one to remember.
+	kernel.set.experiment(assignment, gate);
+
+	return { assignment, dispose: unsubscribe };
 };

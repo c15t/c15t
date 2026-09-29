@@ -4,12 +4,14 @@ import { describe, expect, it } from 'vitest';
 import {
 	actionAppearanceFromTheme,
 	applyExperimentTheme,
-	assignExperimentVariant,
 	resolveExperimentPresentation,
 	resolveExperimentTheme,
-	validateExperiment,
 } from '../experiment';
 import type { ConsentExperiment } from '../experiment';
+import {
+	assignExperimentVariant,
+	validateExperiment,
+} from '../experiment-engine';
 
 const choice = normalizePolicyRule({
 	id: 'choice',

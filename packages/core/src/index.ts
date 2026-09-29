@@ -302,10 +302,11 @@ export {
 	actionAppearanceFromTheme,
 	applyExperimentAssignment,
 	applyExperimentTheme,
-	assignExperimentVariant,
+	defineExperiment,
 	resolveExperimentPresentation,
 	resolveExperimentTheme,
-	validateExperiment,
+	seedExperiment,
+	startExperiment,
 } from './libs/experiment';
 export type {
 	ActionAppearance,
@@ -314,21 +315,10 @@ export type {
 	ExperimentArm,
 	ExperimentArmTheme,
 	ExperimentAssignment,
-	ExperimentDiagnostics,
-	ValidateExperimentOptions,
+	ExperimentGate,
+	StartExperimentOptions,
 } from './libs/experiment';
-export {
-	createExperimentController,
-	EXPERIMENT_STORAGE_KEY,
-	readStoredExperimentAssignment,
-	resolveExperimentAssignment,
-	writeStoredExperimentAssignment,
-} from './libs/experiment-assignment';
-export type {
-	ExperimentController,
-	ExperimentControllerOptions,
-	StoredExperimentAssignment,
-} from './libs/experiment-assignment';
+export { EXPERIMENT_STORAGE_KEY } from './libs/storage-keys';
 export type {
 	ConsentPresentation,
 	PromptPresentation,

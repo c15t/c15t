@@ -12,6 +12,7 @@
  * yet, so a site with a banner in every layout does not need this
  * explicitly — but `<head>` is where the colour-scheme script belongs.
  */
+import { applyExperimentTheme } from '@c15t/core';
 import {
 	buildColorSchemeScript,
 	buildThemeCSS,
@@ -24,7 +25,16 @@ const shouldEmit = c15t !== undefined && markConfigEmitted(Astro.locals);
 const colorSchemeScript = shouldEmit
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
-const themeCSS = shouldEmit ? buildThemeCSS(c15t.options.theme) : '';
+// An arm's theme overrides ride on the host theme, like its presentation.
+const themeCSS = shouldEmit
+	? buildThemeCSS(
+			applyExperimentTheme(
+				c15t.options.theme,
+				c15t.options.experiment,
+				c15t.snapshot.experiment
+			)
+		)
+	: '';
 ---
 
 {colorSchemeScript && <script is:inline set:html={colorSchemeScript} />}

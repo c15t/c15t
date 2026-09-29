@@ -5,7 +5,7 @@ import {
 	normalizePolicyRule,
 } from '@c15t/schema/types';
 import type { PolicyResolution } from '@c15t/schema/types';
-import { afterEach, beforeEach, expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createApp, defineComponent, h, nextTick, shallowRef } from 'vue';
 
 import { consentConfigKey } from '../runtime/composables/config';
@@ -61,18 +61,25 @@ afterEach(() => {
 	localStorage.clear();
 });
 
-test('built-in assignment lands in the snapshot on start and is stored', () => {
+test('built-in assignment holds the banner until the arm is picked, then stores it', async () => {
 	const { context, dispose } = start();
 	try {
+		// The server render and the first client render show no banner, so
+		// the visitor never sees the base banner swap for their arm.
+		expect(context.kernel.getServerSnapshot().activeUI).toBe('none');
+		await vi.waitFor(() =>
+			expect(context.snapshot.value.experimentPending).toBe(false)
+		);
 		const assignment = context.snapshot.value.experiment;
 		expect(assignment).toMatchObject({
 			assignedBy: 'c15t',
 			id: 'banner-shape',
 		});
 		expect(['bar', 'floating']).toContain(assignment?.variant);
+		expect(context.snapshot.value.activeUI).toBe('banner');
 		expect(
 			JSON.parse(localStorage.getItem(EXPERIMENT_STORAGE_KEY) ?? 'null')
-		).toMatchObject({ id: 'banner-shape', variant: assignment?.variant });
+		).toEqual({ id: 'banner-shape', variant: assignment?.variant });
 	} finally {
 		dispose();
 	}
@@ -110,6 +117,9 @@ test('an untouched draft reseeds from the assigned arm; an edited one is kept', 
 		expect(draft.values.value.marketing).toBe(false);
 		draft.values.value.measurement = true;
 		dispose = startVueConsentRuntime(context, config, { runInit: false });
+		await vi.waitFor(() =>
+			expect(context.snapshot.value.experimentPending).toBe(false)
+		);
 		await nextTick();
 		// The visitor edited the draft, so the arm's defaults do not replace it.
 		expect(draft.values.value.marketing).toBe(false);
@@ -153,6 +163,9 @@ test('an untouched draft picks up the assigned arm defaults', async () => {
 	try {
 		expect(draft.values.value.marketing).toBe(false);
 		dispose = startVueConsentRuntime(context, config, { runInit: false });
+		await vi.waitFor(() =>
+			expect(context.snapshot.value.experimentPending).toBe(false)
+		);
 		await nextTick();
 		expect(draft.values.value.marketing).toBe(true);
 	} finally {

@@ -122,7 +122,7 @@ describe('resolveOptions', () => {
 		).toMatchObject({ backendURL: 'https://consent.example.com' });
 	});
 
-	it('rejects an experiment without a host-resolved variant', () => {
+	it('rejects an experiment with no way to resolve its arm on the server', () => {
 		// The banner is server HTML the browser only shows or hides, so an
 		// arm assigned in the browser would be recorded for a banner the
 		// visitor never saw.
@@ -132,12 +132,18 @@ describe('resolveOptions', () => {
 		};
 		expect(() =>
 			resolveOptions({
-				// The option type requires `variant`; a hand-built object can
-				// still omit it, and the guard has to catch that.
-				experiment: { id: 'banner-shape', variants } as never,
+				experiment: { id: 'banner-shape', variants },
 				mode: offlineMode(),
 			})
-		).toThrowError(/Built-in assignment is not supported on Astro/u);
+		).toThrowError(/consentMiddleware\(\{ experimentVariant \}\)/u);
+		// A site that composes the middleware resolves the arm per request.
+		expect(
+			resolveOptions({
+				experiment: { id: 'banner-shape', variants },
+				middleware: false,
+				mode: offlineMode(),
+			}).experiment
+		).toMatchObject({ id: 'banner-shape' });
 		expect(
 			resolveOptions({
 				experiment: { id: 'banner-shape', variant: 'bar', variants },
