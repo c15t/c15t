@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ForceBannerShow from '$lib/components/ForceBannerShow.svelte';
 	import { minimalTheme, darkTheme } from '$lib/consent-manager/theme-presets';
+	import ThemeTokens from '$lib/consent-manager/ThemeTokens.svelte';
 	import { ConsentBanner, ConsentManagerProvider, offline } from '@c15t/svelte';
 	import type { Theme } from '@c15t/svelte';
 
@@ -516,6 +517,8 @@
 		return () => clearInterval(interval);
 	});
 </script>
+
+<ThemeTokens theme={activeTheme} />
 
 <div class="flex min-h-screen flex-col">
 	<header class="p-8 text-center">
