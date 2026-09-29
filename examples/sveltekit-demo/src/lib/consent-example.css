@@ -1,8 +1,3 @@
-html[data-consent-example-theme='branded'] * {
-	--c15t-primary: #146b56 !important;
-	--c15t-primary-hover: #105442 !important;
-	--c15t-radius-lg: 1.25rem !important;
-}
 .consent-example {
 	max-width: 48rem;
 	margin: 3rem auto;
@@ -18,6 +13,10 @@ html[data-consent-example-theme='branded'] * {
 	padding: 0.75rem 1rem;
 	margin: 0.25rem;
 	cursor: pointer;
+}
+.consent-example nav a {
+	display: inline-block;
+	margin: 0.25rem 1rem 0.25rem 0;
 }
 .consent-example footer {
 	margin-top: 2rem;
