@@ -13,6 +13,7 @@
 		"./src/modules/persistence/index.ts",
 		"./src/modules/window-debug/index.ts",
 		"./src/server/index.ts",
+		"./src/static.ts",
 		"./src/runtime/index.ts",
 		"./src/libs/manifest-cache.ts",
 		"./src/transports/manifest-cache.ts"

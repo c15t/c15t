@@ -140,6 +140,11 @@
 			"import": "./shims/server.js",
 			"default": "./shims/server.js"
 		},
+		"./static": {
+			"types": "./shims/static.d.ts",
+			"import": "./shims/static.js",
+			"default": "./shims/static.js"
+		},
 		"./modules/window-debug": {
 			"types": "./shims/modules/window-debug.d.ts",
 			"import": "./shims/modules/window-debug.js",
