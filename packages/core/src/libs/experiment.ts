@@ -112,10 +112,12 @@ export interface ConsentExperiment<Arm extends string = string> {
 	 */
 	acknowledgeDiagnostics?: boolean;
 	/**
-	 * Where to send impression and choice events. `'dataLayer'` pushes to
-	 * `window.dataLayer` (GTM / gtag), `'posthog'` calls `window.posthog.capture`,
-	 * a function receives every event. Omit to report nothing; the events are
-	 * still available through `callbacks.onSurfaceShown` / `onChoiceRecorded`.
+	 * Where to send `c15t_surface_shown`, `c15t_choice_recorded` and
+	 * `c15t_notice_dismissed`. `'dataLayer'` pushes to `window.dataLayer`
+	 * (GTM / gtag), `'posthog'` calls `window.posthog.capture`, and a function
+	 * receives every event. Only visitors the banner showed the arm to are
+	 * reported. Omit to report nothing; the events are still available
+	 * through `callbacks.onSurfaceShown` and `onChoiceRecorded`.
 	 */
 	reportTo?:
 		| ExperimentReporter
