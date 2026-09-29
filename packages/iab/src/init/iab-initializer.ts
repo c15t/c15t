@@ -140,12 +140,15 @@ export async function initializeIABMode(
 			}
 		});
 
-		// Merge persisted custom vendor consents (string IDs) if available
+		// Merge persisted custom vendor consents (string IDs) if available.
+		// A material policy change invalidates earlier grants, so keep the
+		// defaults while re-consent is pending.
+		const requiresReconsent = get().consentInfo?.requiresReconsent === true;
 		const storedConsent = getConsentFromStorage<{
 			iabCustomVendorConsents?: Record<string, boolean>;
 			iabCustomVendorLegitimateInterests?: Record<string, boolean>;
 		}>(get().storageConfig);
-		if (storedConsent?.iabCustomVendorConsents) {
+		if (storedConsent?.iabCustomVendorConsents && !requiresReconsent) {
 			Object.assign(
 				initialVendorConsents,
 				storedConsent.iabCustomVendorConsents
@@ -187,8 +190,12 @@ export async function initializeIABMode(
 
 		updateIABState(storeAccess, { cmpApi });
 
-		// Load existing TC String from storage if available
-		const existingTcString = cmpApi.loadFromStorage();
+		// Load existing TC String from storage if available. Skip it while a
+		// material policy change requires re-consent: restoring it would re-enable
+		// invalidated grants and hide the prompt.
+		const existingTcString = requiresReconsent
+			? null
+			: cmpApi.loadFromStorage();
 
 		if (existingTcString) {
 			await restoreConsentFromTCString(existingTcString, storeAccess);

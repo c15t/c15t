@@ -9,7 +9,7 @@ group: reference
 <section id="overview">
   c15t supports three client modes that determine how consent data is stored and synchronized. Choose the mode that matches your infrastructure:
 
-  - **Hosted mode** - Recommended for production. Backend-backed consent with geolocation, centralized policy resolution, audit history, and offline fallback.
+  - **Hosted mode** - Recommended for production. Backend-backed consent with geolocation, centralized policy resolution, audit history, and a temporary fallback when the backend is unreachable.
   - **Offline mode** - Browser-only storage with no network requests. Best for local development, demos, static deployments, or controlled fallback scenarios.
   - **Custom mode** - Bring your own backend with custom endpoint handlers
 
@@ -33,7 +33,9 @@ group: reference
 
   1. On page load, the client calls `/init` to fetch geolocation, jurisdiction, localized translation strings
   2. When the user grants or changes consent, it is saved locally before being synced to the backend.
-  3. If the backend is unreachable, it falls back to Offline mode and re-syncs with the backend when it's available
+  3. If `/init` fails after retries, c15t uses a temporary opt-in fallback. Optional categories are denied during fallback, while the saved choice and its hosted policy fingerprint remain in browser storage.
+
+  A saved rejection survives an outage and recovery, including recovery to an opt-out or no-banner policy. A rejection saved during fallback also survives recovery. Grants saved during fallback are not sent to the backend and need fresh confirmation under the hosted policy. Previously valid grants can resume on a later load if the original hosted policy returns and the user has not changed their choice.
 
   **Configuration:**
 
@@ -44,7 +46,7 @@ group: reference
   - The backend stays the source of truth for policy, translations, and jurisdiction logic
   - Consent decisions can be stored beyond the current browser session for audit and support workflows
   - Server-side systems can preload consent-aware behavior instead of waiting for client-only storage
-  - If the backend is temporarily unavailable, c15t can fall back locally and re-sync later
+  - If the backend is temporarily unavailable, c15t falls back locally and re-syncs rejections later. Grants made during the outage wait for fresh confirmation.
 
   **Best for:** Production apps that need geolocation-based jurisdiction detection, consent record storage, and compliance audit trails.
 </section>
