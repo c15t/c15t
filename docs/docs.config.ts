@@ -534,12 +534,47 @@ export default defineDocsConfig({
 					base: 'javascript',
 					children: [
 						{
-							pages: ['scripts', 'troubleshooting'],
+							pages: [
+								'scripts',
+								'transports',
+								'callbacks',
+								'content-security-policy',
+								'dev-tools',
+								'troubleshooting',
+							],
 							title: 'Integration',
 						},
 						{
-							pages: ['headless', 'api/overview', 'dev-tools', 'iab/overview'],
-							title: 'API and UI',
+							pages: ['customize', 'translations'],
+							title: 'Customize',
+						},
+						{
+							pages: ['headless'],
+							title: 'Headless',
+						},
+						{
+							pages: [
+								'modules/script-loader',
+								'modules/network-blocker',
+								'modules/iframe-blocker',
+								'modules/persistence',
+								'modules/clear-on-revocation',
+							],
+							title: 'Modules',
+						},
+						{
+							pages: ['iab/overview'],
+							title: 'IAB TCF',
+						},
+						{
+							pages: [
+								'api/browser',
+								'api/browser-options',
+								'api/runtime',
+								'api/overview',
+								'api/snapshot',
+							],
+							title: 'Reference',
 						},
 					],
 					pages: ['quickstart'],

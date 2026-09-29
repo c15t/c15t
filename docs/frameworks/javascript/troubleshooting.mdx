@@ -29,6 +29,28 @@ you subscribed before calling `runtime.start()`, that you wait for
 [Headless](/docs/frameworks/javascript/headless#what-your-ui-must-handle) lists
 what a custom UI must cover.
 
+## Why does /init fail with a CORS or CSP error?
+
+A CORS error means the backend does not trust your app's origin. Add the
+exact origin, including the port in development, to your Inth project's
+trusted origins. A CSP error means your policy's `connect-src` lacks the
+backend's origin. See [Content Security Policy](/docs/frameworks/javascript/content-security-policy).
+
+## Why is the stock banner unstyled?
+
+A Content Security Policy without `'unsafe-inline'` in `style-src` blocks the
+`<style>` element the stock UI adds. Allow it, or import
+`@c15t/browser/styles.css` with `ui: { shadow: false, styles: false }` as
+[Content Security Policy](/docs/frameworks/javascript/content-security-policy#allow-the-stock-uis-styles)
+describes.
+
+## Why does a fetch return status 451?
+
+A [network blocker](/docs/frameworks/javascript/modules/network-blocker) rule
+matched the request and its category is not allowed. The console logs
+`[c15t] blocked` with the rule's ID. Check the rule's `domain` and
+`pathIncludes` if the request should not match.
+
 <include src="../../guides/troubleshooting.mdx" />
 
 ## Inspect the active policy

@@ -1,0 +1,158 @@
+---
+title: "@c15t/browser API"
+description: Reference for the @c15t/browser ES module in a bundled JavaScript app, covering its entry points, init and createConsentClient, the client's methods and properties, events, page hooks and helper exports.
+group: frameworks
+---
+
+## Entry points
+
+| Import | What it gives you |
+| --- | --- |
+| `@c15t/browser` | `init`, `createConsentClient` and `mountConsentUI`, with the stock banner, dialog and trigger. |
+| `@c15t/browser/headless` | The same client with no UI and no CSS. `mountUI()` throws. |
+| `@c15t/browser/iab` | The client with the IAB TCF CMP and the IAB banner and dialog. See [IAB TCF](/docs/frameworks/javascript/iab/overview). |
+| `@c15t/browser/devtools` | `mountDevTools(client, options)`. See [DevTools](/docs/frameworks/javascript/dev-tools). |
+| `@c15t/browser/styles.css`, `@c15t/browser/iab/styles.css` | The stylesheets, for `ui: { shadow: false, styles: false }`. |
+
+Install it with:
+
+<CommandTabs command="@c15t/browser@alpha" mode="install" />
+
+`@c15t/browser` is not part of the `c15t` package. Use one entry per page.
+Each creates its own client, and two clients on one page would each run the
+script loader and blockers.
+
+## Start the client
+
+`init(options)` creates the client and starts it:
+
+<include src="../../../shared/examples/javascript/init.mdx" />
+
+`createConsentClient(options)` creates the client without starting it.
+Construction reads no storage, sends no request and touches no DOM, so a
+module can create it at import time and call `client.start()` later:
+
+{/* example: fragment */}
+
+```ts
+import { createConsentClient } from '@c15t/browser';
+
+export const consent = createConsentClient({ backendURL, scripts });
+```
+
+`start()` reads stored choices, requests the policy, starts the script loader,
+the iframe blocker and any network blocker, listens for page hooks and mounts
+the UI. It mounts on `DOMContentLoaded` when `<body>` does not exist yet. A
+second `start()` does nothing. [Options](/docs/frameworks/javascript/api/browser-options)
+lists everything `init` and `createConsentClient` accept.
+
+## Read state
+
+| Member | Returns | Use it for |
+| --- | --- | --- |
+| `ready()` | `Promise<ConsentSnapshot>` | Wait until the policy has resolved. For a returning visitor, `hasConsented()` is reliable after it. |
+| `has(condition)` | `boolean` | Whether a category, or a condition such as `{ or: ['measurement', 'marketing'] }`, is allowed right now. |
+| `hasConsented()` | `boolean` | Whether the visitor has answered the choice prompt. |
+| `getSnapshot()` | `ConsentSnapshot` | The full state. See the [snapshot reference](/docs/frameworks/javascript/api/snapshot). |
+| `subscribe(listener)` | `() => void` | Call `listener` with each new snapshot. Returns an unsubscribe function. |
+| `on(event, listener)` | `() => void` | Listen for `ready`, `consent`, `ui` or `error`. |
+| `consentCategories` | `AllConsentNames[]` | The categories the dialog offers, `necessary` first. |
+
+`has()` reads a permission, which says whether code may run now. Under an opt-out policy
+it is `true` before the visitor does anything. `hasConsented()` and
+`getSnapshot().explicitChoice` read the recorded choice, which says what the
+visitor decided. Gate code on permissions; report on recorded choices.
+[How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+explains the difference.
+
+## Record a choice
+
+Call these only from a visitor's click or key press.
+
+| Method | Returns | What it records |
+| --- | --- | --- |
+| `acceptAll()` | `Promise<SaveResult>` | Allows every category the dialog offers. Under an IAB policy it confirms through the CMP. |
+| `rejectAll()` | `Promise<SaveResult>` | Denies every optional category the dialog offers. |
+| `save(consents)` | `Promise<SaveResult>` | The categories you name, such as `{ measurement: true }`. Categories the dialog does not offer are dropped. Under an IAB policy it resolves `{ ok: false }` and emits `error`; use `saveIAB()`. |
+| `saveIAB()` | `Promise<SaveResult>` | The IAB purpose and vendor choices on `runtime.iab`. IAB entry only. |
+| `dismissNotice()` | `Promise<NoticeDismissResult>` | Acknowledges a notice. Grants nothing. `{ ok: false, reason: 'not-required' }` when no notice is due. |
+| `identify(user)` | `Promise<void>` | Links the consent record to `{ externalId, identityProvider? }`. Failures surface through `error`. |
+
+Each save applies in the browser and closes the banner or dialog before the
+backend request finishes. `SaveResult.ok` is `false` when the request failed;
+the choice stays in effect and c15t retries the request later.
+
+## Control the UI
+
+| Method | What it does |
+| --- | --- |
+| `showBanner()`, `openDialog()`, `closeDialog()` | Change the surface c15t wants shown. Records nothing. |
+| `setLanguage(code)` | Sets the language and resolves the policy again, which fetches that language's copy from the backend. |
+| `setOverrides(overrides)` | Replaces the country, region, language and GPC inputs to policy matching. |
+| `mountUI(options?)` | Removes the stock UI and mounts it again with new UI options. Throws in the headless entry. |
+| `ui` | The mounted UI handle, with `host`, `root`, `update()` and `destroy()`, or `null`. |
+
+## Lifecycle and internals
+
+| Member | What it is |
+| --- | --- |
+| `start()` | Starts the client. `init()` calls it for you. |
+| `started` | Whether `start()` has run and the client is not disposed. |
+| `dispose()` | Removes the UI, page listeners, blockers and the scripts c15t added, then disposes the runtime. Code that already ran keeps running. |
+| `options` | The options the client was created with. |
+| `mode` | `hosted`, `offline`, `manifest` or `custom`. |
+| `runtime` | The [consent runtime](/docs/frameworks/javascript/api/runtime) that owns the kernel and modules. `runtime.iab` is the CMP handle under IAB. |
+| `kernel` | The [consent kernel](/docs/frameworks/javascript/api/overview): snapshot, commands and events. |
+
+Do not attach a second script loader, network blocker or iframe blocker to
+`client.kernel`. The client already runs one of each.
+
+## Events
+
+`on(event, listener)` returns an unsubscribe function:
+
+<import src="../../../shared/browser/client-options.mdx#events" />
+
+Each event is also dispatched on `document` as `c15t:ready`, `c15t:consent`,
+`c15t:ui` and `c15t:error`, with the payload in `event.detail`.
+[Callbacks](/docs/frameworks/javascript/callbacks) compares events with the
+`callbacks` option.
+
+## Page hooks
+
+A started client also wires markup on the page, with no code:
+
+| Markup | What it does |
+| --- | --- |
+| `<button data-c15t-action="…">` | Runs the action on click. Values below. |
+| A link whose `href` ends in `#c15t-preferences` | Opens the preference dialog. |
+| `<script type="text/plain" data-c15t-category="…">` | Runs the script once that category is allowed, in page order. |
+| `<iframe data-src="…" data-category="…">` | Sets `src` once that category is allowed. |
+
+<import src="../../../shared/browser/client-options.mdx#page-actions" />
+
+## Helper exports
+
+| Export | What it does |
+| --- | --- |
+| `hosted`, `offline`, `manifest`, `custom` | Transport factories for the `mode` option. See [transports](/docs/frameworks/javascript/transports). |
+| `manifestNeedsLocation(manifest)` | Whether a manifest's policy depends on the visitor's country, so a page knows it must supply one. |
+| `resolveRules(rules)` | Turns preset names such as `'europeOptIn'` into policy rules. Throws on an unknown name. |
+| `activateGatedScripts(snapshot, root?)` | Runs allowed `text/plain` scripts under `root` yourself, for a setup without a client. Returns how many ran. |
+| `mountConsentUI(client, options?)` | Mounts the stock UI for a client. `mountUI()` calls it. |
+| `ACTION_ATTRIBUTE`, `PREFERENCES_HASH`, `CATEGORY_ATTRIBUTE`, `ACTIVATED_ATTRIBUTE` | `'data-c15t-action'`, `'#c15t-preferences'`, `'data-c15t-category'` and `'data-c15t-activated'`. |
+| `version` | The package version. |
+
+The package also exports the `ConsentClient`, `ConsentClientOptions`,
+`ConsentUIOptions`, `ConsentBannerOptions`, `ConsentDialogOptions`,
+`ConsentTriggerOptions`, `ConsentClientEventMap`, `ConsentSnapshot` and
+`ConsentState` types.
+
+## Check it works
+
+1. Start the app and run `await consent.ready()` from code or a breakpoint.
+   It resolves with a snapshot whose `resolution.status` is `matched`.
+2. Click **Reject All**. `consent.hasConsented()` is `true` and
+   `consent.has('measurement')` is `false`.
+3. Call `consent.openDialog()`. The preference dialog opens with Measurement
+   off.

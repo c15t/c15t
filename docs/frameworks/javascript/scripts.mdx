@@ -13,112 +13,83 @@ each case, built from `@c15t/scripts` helpers or your own script objects:
 | --- | --- |
 | `@c15t/browser` | `init({ backendURL, scripts })`, as in the [quickstart](/docs/frameworks/javascript/quickstart#start-c15t). |
 | `c15t/runtime` | `createConsentRuntime({ mode, scripts })`, as in [headless](/docs/frameworks/javascript/headless#create-the-runtime). |
-| Your own kernel | `createScriptLoader({ kernel, scripts })`, below. |
+| Your own kernel | `createScriptLoader({ kernel, scripts })`. See [script loader](/docs/frameworks/javascript/modules/script-loader#attach-the-loader-to-your-own-kernel). |
 
-The quickstart's `src/scripts.ts` shows PostHog and X Pixel. Each
-[integration guide](/docs/integrations/overview) gives the helper and options
-for one vendor.
+The quickstart's `src/scripts.ts` shows PostHog and X Pixel:
+
+<include src="../../shared/examples/javascript/scripts.mdx" />
+
+Each [integration guide](/docs/integrations/overview) gives the helper and
+options for one vendor. For a vendor without a helper, write the object
+yourself:
+
+{/* example: fragment */}
+
+```ts
+const scripts = [
+  {
+    id: 'analytics',
+    src: 'https://analytics.example/sdk.js',
+    category: 'measurement',
+    onLoad: () => window.analytics?.track('page_view'),
+  },
+];
+```
+
+`window.analytics` stands for your vendor's global. The
+[script loader](/docs/frameworks/javascript/modules/script-loader) page lists
+every field and callback.
+
+## Gate a snippet in your HTML
+
+`@c15t/browser` also runs `<script type="text/plain" data-c15t-category>`
+tags in your `index.html` once their category is allowed, in page order. Use
+it for a vendor snippet you would rather keep in HTML. `createConsentRuntime`
+and a plain kernel do not scan the page for these tags;
+`activateGatedScripts(snapshot)` from `@c15t/browser` runs them for you.
 
 ## When a visitor withdraws permission
 
 A script that has run cannot be unloaded. `@c15t/browser` and
 `createConsentRuntime` reload the page after a visitor turns off a category
-they had allowed, so the new page starts without that vendor. Set
-`reloadOnConsentRevoked: false` to handle withdrawal yourself, for example
-with the vendor's opt-out call in `onConsentChange`. Until the next page load,
-code that already ran keeps running.
+they had allowed, so the new page starts without that vendor. Allowing a
+category never reloads.
 
-## Attach the loader to your own kernel
-
-A kernel you create with `createConsentKernel` has no script loader. Create one
-before initialization and dispose it with the kernel. This browser example
-adds a marketing integration to a hosted kernel:
-
-```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
-import { createPersistence } from 'c15t/modules/persistence';
-import { createScriptLoader } from 'c15t/modules/script-loader';
-import { metaPixel } from '@c15t/scripts/meta-pixel';
-
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-const kernel = createConsentKernel({
-  transport: createHostedTransport({ backendURL }),
-});
-const persistence = createPersistence({ kernel });
-const loader = createScriptLoader({ kernel, scripts: [metaPixel({ pixelId: '123456789012345' })] });
-await kernel.commands.init();
-
-function dispose() {
-  loader.dispose();
-  persistence.dispose();
-  kernel.dispose();
-}
-```
-
-Replace the pixel ID. Call `dispose()` when your application tears down. Do
-not attach a second loader to a kernel that `@c15t/browser` or
-`createConsentRuntime` owns; they already have one.
+Set `reloadOnConsentRevoked: false` to handle withdrawal yourself, for
+example with the vendor's opt-out call in the script's `onConsentChange`.
+Until the next page load, code that already ran keeps running.
+`callbacks.onBeforeConsentRevocationReload` runs right before the reload, for
+work that must finish first. A kernel you create yourself does not reload;
+add `watchRevocationReload` from `c15t` if you want it.
 
 ## Keep one owner per vendor
 
-Use stable script IDs and remove the vendor's original snippet. Ordinary scripts
-wait for effective permission. Helpers with `alwaysLoad` instead load and signal
-permission through the vendor API. Read the individual integration guide before
+Use stable script IDs and remove the vendor's original snippet, so each
+vendor loads once and only through c15t. Ordinary scripts wait for
+permission. Helpers with `alwaysLoad` load at once and pass consent to the
+vendor's own API instead. Read the individual integration guide before
 assuming all helpers have the same network behavior.
 
-The loader exposes `updateScripts`, `getLoadedScriptIds` and `dispose`.
-Unloading an element cannot reverse requests or code that already ran. Test
-revocation and vendor cleanup with [verification](/docs/guides/verify-consent).
-
-## Dispose integration resources
-
-Ordinary scripts keep their mounted resource when `updateScripts` receives a
-fresh object with the same ID and unchanged element configuration. New callback
-functions alone do not reload the vendor or send a temporary denial. Changing
-the source, inline code or element attributes starts a new loading lifecycle.
-Consent conditions are reevaluated on every configuration update. Pending
-load and error events use the latest registered callbacks and consent state.
-Setting `persistAfterConsentRevoked` to `false` removes an owned retained element
-when the script no longer has consent.
-
-Custom script configurations can use `onDispose(info)` to release event
-listeners or other resources. Adding this hook opts the configuration into an
-object-owned lifecycle: replacing the object disposes its resources and starts
-again, even with the same ID. Keep these objects stable across framework
-rerenders. The loader also calls the hook when the configuration is removed or
-the loader is disposed, including configurations that never loaded.
-`info.element` contains the last loaded or retained element when available,
-even when configuration removal has already detached it.
-
-Duplicate references receive one cleanup per registration. Re-registering a
-removed object starts a new lifecycle. Updates requested from lifecycle
-callbacks run after the current pass; if several are requested, the latest
-configuration wins. Disposal stops further reconciliation. A callback feedback
-loop exceeding 100 consecutive passes disposes the loader and reports an
-`error` debug event. Avoid callbacks that keep changing consent or replacing
-their own configuration.
-
-`onBeforeLoad` prepares a loading attempt. If a callback changes consent or
-replaces configurations, the loader cancels that attempt before loading and
-reevaluates the latest state. A still-eligible script can retry preparation
-with a new element and updated consent. Make `onBeforeLoad` safe to repeat;
-use `onLoad` for initialization that requires a completed load. This also
-applies to callback-only scripts, whose `onLoad` is skipped when preparation
-invalidates the current pass.
-
-Consent revocation alone does not call `onDispose`. Use `onConsentChange` for
-vendor opt-out commands. Cleanup errors are reported through the loader's debug
-events and do not prevent other configurations from being cleaned up.
+Create `init()` or the runtime once per page. A second client, or a second
+loader on a kernel that `@c15t/browser` or `createConsentRuntime` owns, loads
+vendors twice.
 
 ## Clear stored tracking data
 
 Script gating does not remove cookies or Web Storage entries that a script
-already wrote. Configure [clear on revocation](/docs/integrations/clear-on-revocation)
-on your runtime, or attach its module to your existing kernel, to remove
-declared data when its category is denied.
+already wrote. Configure [clear on revocation](/docs/frameworks/javascript/modules/clear-on-revocation)
+to delete them when their category is denied.
 
 ## Shared lifecycle controls
 
-See [use c15t with an existing CMP](/docs/integrations/existing-cmp) for external CMPs,
-preference delegation, withdrawal reloads, and application events. These controls
-use the same core runtime across frameworks.
+See [use c15t with an existing CMP](/docs/integrations/existing-cmp) for
+external CMPs, preference delegation, withdrawal reloads and application
+events. These controls use the same core runtime across frameworks.
+
+## Check it works
+
+Run the app in a private window with the Network tab open.
+
+1. Filter for each vendor's host. Nothing loads before a choice.
+2. Allow one category. Only that category's vendors load.
+3. Withdraw it. The page reloads and the vendor stays absent.

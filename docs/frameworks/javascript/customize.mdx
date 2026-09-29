@@ -1,0 +1,166 @@
+---
+title: Customize
+description: Change the stock @c15t/browser banner, preference dialog and floating trigger in a bundled JavaScript app with theme tokens, CSS, layout, copy, legal links and UI options.
+group: frameworks
+---
+
+## Pick the right option
+
+The stock UI from `init()` in `@c15t/browser` is a banner, a preference
+dialog and an optional floating trigger. Each change has one place to go:
+
+| Change | Option |
+| --- | --- |
+| Colors, radius, fonts, spacing | `ui.theme` |
+| One part's CSS | `ui.css`, inside the shadow root |
+| Your own stylesheet | `ui: { shadow: false }` |
+| Banner shape, position, button layout, blocking | `presentation.prompt` |
+| Banner text | `ui.banner` |
+| Wording and languages everywhere | `i18n`; see [translations](/docs/frameworks/javascript/translations) |
+| Legal links | `legalLinks` with `ui.banner.legalLinks` and `ui.dialog.legalLinks` |
+| A reopen button | `ui.trigger` |
+| Entirely different markup | [Headless](/docs/frameworks/javascript/headless) |
+
+The [design gallery](/docs/customization/recipes) shows banner designs built
+from these options.
+
+## Change colors, radius and fonts
+
+Pass tokens in `ui.theme`. This version of `init()` turns the buttons purple
+and rounds the cards:
+
+<include src="../../shared/examples/javascript/theme.mdx" />
+
+`theme` takes the same token object as every c15t package; see
+[tokens and CSS](/docs/customization/tokens). The banner, the dialog and the
+trigger all read it. `ui.colorScheme` picks `'light'`, `'dark'` or
+`'system'`, which follows the visitor's setting.
+
+## Add CSS inside the shadow root
+
+The UI renders in a shadow root with its own copy of the stylesheet, so your
+app's CSS does not reach it and its CSS does not reach your app. To target
+one part, pass CSS in `ui.css`. c15t adds it after the bundled stylesheet:
+
+{/* example: fragment */}
+
+```ts
+ui: {
+  css: '[data-testid="consent-banner-card"] { border: 3px solid #6943a3; }',
+},
+```
+
+Every part has a `data-testid`, such as `consent-banner-card`,
+`consent-banner-accept-button`, `consent-dialog-root`,
+`consent-widget-switch-measurement` and `consent-dialog-trigger`. Inspect the
+UI in the browser's element panel to find one.
+
+## Use your own stylesheet
+
+`ui: { shadow: false }` renders into the page, so your stylesheet applies.
+c15t still adds its own stylesheet. To load it from your bundle instead,
+import it and turn the inline copy off:
+
+{/* example: fragment */}
+
+```ts
+import '@c15t/browser/styles.css';
+
+const consent = init({ backendURL, ui: { shadow: false, styles: false } });
+```
+
+`ui: { shadow: false, noStyle: true }` renders markup with no c15t classes,
+for a design written from scratch. Parts keep their `data-testid`. Your app's
+global rules reach the UI in either mode, so check buttons and headings after
+you switch.
+
+## Change the banner's layout
+
+`presentation.prompt` sets the banner's shape, position and button layout:
+
+{/* example: fragment */}
+
+```ts
+presentation: {
+  prompt: { variant: 'bar', position: 'bottom', uiProfile: 'balanced' },
+},
+```
+
+| `variant` | Positions |
+| --- | --- |
+| `floating` (default) | `bottom-left` (default), `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` |
+| `bar` | `bottom` (default), `top` |
+| `widget` | `bottom-right` (default), `bottom-left`, `top-left`, `top-right` |
+| `wall` | `center` |
+
+`layout`, `primaryActions`, `direction`, `uiProfile` and `blocking` arrange
+the buttons and decide whether the banner blocks the page.
+`presentation.preferences` does the same for the dialog and adds `defaults`,
+the starting state of switches the visitor has not set. The policy still
+wins. A notice never blocks, a wall always does, and required buttons come
+back if a layout drops them.
+
+## Change the banner text
+
+<import src="../../shared/browser/client-options.mdx#banner" />
+
+The dialog's copy comes from translations only.
+
+## Show legal links
+
+Set the links once and list them per surface:
+
+{/* example: fragment */}
+
+```ts
+legalLinks: {
+  privacyPolicy: { href: '/privacy' },
+  cookiePolicy: { href: '/cookies' },
+},
+ui: {
+  banner: { legalLinks: ['privacyPolicy', 'cookiePolicy'] },
+  dialog: { legalLinks: ['privacyPolicy'] },
+},
+```
+
+Each link opens in a new tab unless its `target` says otherwise. `label`
+replaces the translated link text.
+
+## Add the floating trigger
+
+`ui: { trigger: true }` shows a corner button that opens the dialog while no
+other surface is open. Visitors can drag it to another corner, and c15t
+remembers that corner.
+
+<import src="../../shared/browser/client-options.mdx#trigger" />
+
+## Mount the UI somewhere else
+
+`ui.container` takes an element or a selector for the UI host, instead of
+`<body>`. `consent.mountUI(options)` removes the UI and mounts it again with
+new options, for example after your app changes theme:
+
+{/* example: fragment */}
+
+```ts
+consent.mountUI({ colorScheme: 'dark', theme });
+```
+
+The options you pass replace the configured `ui` options, so include every
+option you still want, such as `theme` here.
+
+## Keyboard and screen readers
+
+The stock UI handles focus for you. A blocking banner and the dialog keep
+Tab inside themselves and stop the page scrolling. Escape closes the dialog
+without saving. Surfaces set `lang` and `dir` from the resolved language.
+Transitions follow the visitor's reduced motion setting, and
+`ui.disableAnimation` turns them off.
+
+## Check it works
+
+1. Run the app and open it in a private window. The banner uses your
+   tokens and layout.
+2. Open the dialog. It uses the same tokens and shows your legal links.
+3. Switch your system between light and dark mode. With `colorScheme:
+   'system'`, the UI follows.

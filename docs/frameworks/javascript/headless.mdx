@@ -15,6 +15,9 @@ lifecycle they handle for you.
 | `init` from `@c15t/browser/headless` | You want the `@c15t/browser` client without its UI: `data-c15t-action` buttons, `on('ui', ...)` and `acceptAll()` work as with the stock UI. |
 | `createConsentKernel` from `c15t` | You assemble every module yourself. See the [consent kernel API](/docs/frameworks/javascript/api/overview#create-a-kernel-yourself). |
 
+The [createConsentRuntime reference](/docs/frameworks/javascript/api/runtime)
+lists every option and method of the runtime.
+
 `createConsentRuntime` builds the kernel and connects stored choices, script
 loading, iframe gating and the reload after a visitor withdraws permission. It
 also adds the network blocker, data clearing and IAB when you configure them.
@@ -43,7 +46,8 @@ request until you call `start()`, so the module can also load on a server.
 
 `runtime.kernel.getSnapshot()` returns the current consent state, and
 `runtime.kernel.subscribe(listener)` calls the listener with each new one.
-Your UI renders from these fields:
+Your UI renders from these fields; the [snapshot reference](/docs/frameworks/javascript/api/snapshot)
+lists the rest:
 
 | Field | What it tells your UI |
 | --- | --- |
@@ -99,6 +103,9 @@ A custom UI takes on everything the stock banner does:
   click or key press, never on load or during rendering.
 - **Accessibility.** Focus, keyboard use, labels, error states and narrow
   screens are yours. The example uses a native `<dialog>` for focus handling.
+- **Copy.** `snapshot.translations` carries the resolved language's copy,
+  if you want the same text as the stock UI. See
+  [translations](/docs/frameworks/javascript/translations).
 
 Read [how consent works](/docs/concepts/how-consent-works) for the difference
 between a permission and a recorded choice, then run the
@@ -148,3 +155,15 @@ consent.on('ui', (surface) => {
 `backendURL` and `scripts` are the values from the
 [quickstart](/docs/frameworks/javascript/quickstart), and `banner` is your
 banner element. Install `@c15t/browser@alpha` for this path.
+
+## Check it works
+
+Run the example or your app in a private window with the Network tab open.
+
+1. Your banner appears once the policy resolves, with the actions
+   `resolveConsentPresentation` returned. Vendor requests are absent.
+2. Reject and reload. Your banner stays hidden and vendors stay blocked.
+3. Open your preferences, allow Measurement only and save. Measurement
+   vendors load and marketing vendors do not.
+4. Tab through your banner and dialog. Every control is reachable, and
+   Escape closes the dialog.

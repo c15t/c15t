@@ -1,0 +1,21 @@
+// Reference code for the clear-on-revocation page. No page in this example
+// imports it; `bun run check-types` compiles it with the rest of the app.
+// #region docs:clear-on-revocation title="src/clear-on-revocation.ts"
+import type { ConsentKernel } from 'c15t';
+import { createClearOnRevocation } from 'c15t/modules/clear-on-revocation';
+
+export const clearTrackingData = function clearTrackingData(
+	kernel: ConsentKernel
+) {
+	return createClearOnRevocation({
+		config: {
+			marketing: { cookies: ['_fbp', '_gcl_au'] },
+			measurement: {
+				cookies: ['_ga', '_ga_*'],
+				localStorage: ['analytics:*'],
+			},
+		},
+		kernel,
+	});
+};
+// #endregion docs:clear-on-revocation

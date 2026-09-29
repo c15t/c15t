@@ -1,0 +1,87 @@
+---
+title: Iframe blocker
+description: Hold YouTube videos, maps and other embeds in a JavaScript app until their consent category is allowed, with data-src iframes and the c15t iframe blocker in @c15t/browser, createConsentRuntime or your own kernel.
+group: frameworks
+---
+
+## Gate an embed
+
+Put the embed's URL in `data-src` instead of `src`, and name its category in
+`data-category`:
+
+<include src="../../../shared/examples/javascript/embed.mdx" />
+
+The iframe blocker gives the iframe its `src` once the category is allowed,
+and takes it away again when the visitor withdraws it. An iframe without
+`src` loads nothing, so the vendor gets no request before consent.
+`@c15t/browser` and `createConsentRuntime` run the blocker by default.
+
+## Attributes
+
+| Attribute | What it does |
+| --- | --- |
+| `data-src` | The embed's URL. Only `http:` and `https:` URLs load. Relative URLs resolve against the page. |
+| `data-category` | One category name. An unknown name logs a warning and keeps the iframe blocked. |
+| `data-vendor` | Optional vendor slug. The iframe also stays blocked while the visitor has turned that vendor off. |
+| `data-c15t-paused` | Set by c15t when it removed a `src` the iframe already had. |
+
+Iframes without `data-category` or `data-vendor` are left alone. An iframe
+written with `src` and `data-category` starts loading before the blocker
+runs, so always use `data-src`.
+
+## Iframes your code adds
+
+The blocker watches `<body>` for new iframes and for changes to
+`data-category` and `data-vendor`. An iframe your app renders after load is
+gated as soon as it is inserted, before the browser fetches it, as long as it
+is inserted with `data-src` and no `src`.
+
+To render the embed yourself instead, skip the attributes and create the
+iframe when `snapshot.effectivePermissions.measurement` becomes `true`. The
+[headless example](/docs/frameworks/javascript/headless) does this for its
+YouTube video.
+
+## Show a placeholder
+
+c15t draws nothing in place of a blocked iframe. Show your own message beside
+it and hide it once the iframe has a `src`:
+
+{/* example: fragment */}
+
+```css
+iframe[data-category]:not([src]) { display: none; }
+iframe[src] + .placeholder { display: none; }
+```
+
+Give the placeholder a button that calls `consent.openDialog()`, so the
+visitor can allow the category.
+
+## Configure it
+
+| `iframeBlocker` value | Effect |
+| --- | --- |
+| omitted or `{}` | Gate every iframe with `data-category` or `data-vendor`. |
+| `{ disableAutomaticBlocking: true }` | Do not scan or watch the page. `data-src` iframes stay unloaded until you call `processAllIframes()` on a blocker you own. |
+| `false` | No blocker. `data-src` iframes never load. |
+
+The categories of gated iframes are added to the categories the preference
+dialog offers.
+
+## Attach it to your own kernel
+
+A kernel from `createConsentKernel` has no iframe blocker. Create one after
+the page's `<body>` exists:
+
+<include src="../../../shared/examples/javascript/iframe-blocker.mdx" />
+
+`createIframeBlocker` returns `{ dispose, processAllIframes }`.
+`processAllIframes()` scans the page again and applies the current consent.
+`dispose()` stops watching and leaves the iframes as they are.
+
+## Check it works
+
+1. Before a choice, the iframe has no `src` and the Network tab shows no
+   request to the embed's host.
+2. Allow the category. The iframe gets its `src` and loads.
+3. Add an iframe with `data-src` from the console after the page loaded. It
+   loads only while its category is allowed.
