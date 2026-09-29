@@ -954,7 +954,7 @@ describe('a CSP nonce on the page', () => {
 		renderBanner();
 		document.body.insertAdjacentHTML(
 			'beforeend',
-			'<script type="text/plain" data-c15t-category="measurement">1</script>'
+			`<script type="text/plain" data-c15t-category="measurement" nonce="${NONCE}">1</script>`
 		);
 		client = boot(resolveOptions(OPTIONS));
 		await client.acceptAll();
@@ -968,12 +968,16 @@ describe('a CSP nonce on the page', () => {
 		});
 	});
 
-	it('goes on a gated inline script it activates', async () => {
+	it('activates only the gated tags that carry it', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		renderConfigScript();
 		renderBanner();
 		document.body.insertAdjacentHTML(
 			'beforeend',
-			'<script type="text/plain" data-c15t-category="measurement">1</script>'
+			[
+				`<script type="text/plain" data-c15t-category="measurement" nonce="${NONCE}">1</script>`,
+				'<script type="text/plain" data-c15t-category="measurement" id="injected">2</script>',
+			].join('')
 		);
 		const booted = start();
 		await booted.acceptAll();
@@ -985,6 +989,15 @@ describe('a CSP nonce on the page', () => {
 				)?.nonce
 			).toBe(NONCE);
 		});
+		expect(
+			document.querySelector('#injected')?.getAttribute('data-c15t-activated')
+		).toBe('untrusted');
+		expect(
+			document.querySelectorAll(
+				'script[data-c15t-activated="true"]:not([type])'
+			)
+		).toHaveLength(1);
+		warn.mockRestore();
 	});
 
 	it('goes on the dialog stylesheets it links', async () => {
