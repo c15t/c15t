@@ -1,6 +1,10 @@
 <script lang="ts">
-	import { ConsentGate, ConsentDialogLink } from '@c15t/svelte';
-	import { getConsentManager } from '@c15t/svelte/headless';
+	import {
+		ConsentGate,
+		ConsentDialogLink,
+		getConsentManager,
+	} from '@c15t/svelte';
+	import { DevTools } from '@c15t/svelte/devtools';
 
 	import { experimentEvents } from './experiment.svelte';
 
@@ -74,5 +78,5 @@
 			></iframe>
 		</ConsentGate>
 	</section>
-	<footer><ConsentDialogLink>Privacy settings</ConsentDialogLink></footer>
 </main>
+<DevTools />

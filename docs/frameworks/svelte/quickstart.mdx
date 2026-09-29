@@ -1,118 +1,119 @@
 ---
 title: Quickstart
-description: Mount c15t components and a persistent preferences link in a Svelte 5 application.
+description: Add a c15t cookie banner, preference dialog and consent-gated scripts to a Svelte 5 app built with Vite, using Inth for policies and consent records.
 group: frameworks
 ---
 
-[Create an Inth project](https://inth.com) and use its backend endpoint in
-this guide. Configure the project's policy rules and allowed app origins first.
+## Before you start
+
+This guide is for a Svelte 5 app without SvelteKit, such as a Vite
+single-page app. The browser resolves consent after the page loads, so the
+banner appears after the first paint. For a banner in the server HTML, use
+SvelteKit; [choose your setup](/docs/concepts/choose-your-setup) compares the
+options.
+
+The guide uses [Inth](https://inth.com) for policies and consent records.
+Create an Inth project, then:
+
+1. Set its policy rules, including the `measurement` and `marketing`
+   categories for the vendors below.
+2. Add your app's origin, such as `http://localhost:5173`, to its trusted
+   origins.
+3. Copy the project's backend URL. It is public configuration, not a secret.
+
+A self-hosted backend or offline mode works too; see
+[other setups](#other-setups).
 
 ## Install
 
 <CommandTabs command="@c15t/svelte@alpha @c15t/integrations@alpha" mode="install" />
 
-## Register consent-gated scripts
+Svelte uses its own package, `@c15t/svelte`. The `c15t` package has no Svelte
+entry point. `@c15t/scripts` holds the vendor helpers.
 
-Include measurement and marketing categories in your policy for these vendors.
-Remove any existing loaders for them so each script loads once.
+## Set the backend URL
 
-This setup uses Vite's public environment variables. Set the Inth endpoint and
-add your PostHog project key, PostHog API host and X Pixel ID in `.env.local`:
+Add the backend URL and your vendor IDs to `.env.local`:
 
-```dotenv title=".env.local"
-VITE_C15T_BACKEND_URL=
-VITE_POSTHOG_KEY=
-VITE_POSTHOG_HOST=
-VITE_X_PIXEL_ID=
-```
+<include src="../../shared/examples/svelte/env.mdx" />
 
-Copy the exact backend endpoint from Inth. The vendor IDs are optional: leaving
-an ID empty disables that integration. When enabling PostHog, fill in both its project key and the API host
-shown in your PostHog project. Restart Vite after editing these values and
-rebuild for deployment. Other bundlers need their own configuration mechanism.
+Paste the backend URL from your Inth project. Leave a vendor ID empty to skip
+that vendor. `VITE_POSTHOG_HOST` is the API host shown in your PostHog
+project. Restart Vite after you edit the file; Vite reads it at startup and
+build.
 
-Create `src/scripts.ts`. PostHog waits for measurement permission with
-`loadMode: 'after-consent'` and disables cookieless capture with
-`cookieless_mode: 'never'`. X Pixel waits for marketing permission.
+## Register vendor scripts
+
+Create `src/scripts.ts`. PostHog waits for measurement permission, and X Pixel
+waits for marketing permission:
 
 <include src="../../shared/examples/svelte/scripts.mdx" />
 
-## Mount the provider and UI
+Remove any `<script>` tags or SDK imports that already load these vendors, so
+c15t is the only thing that loads them.
 
-```svelte title="src/App.svelte"
-<script lang="ts">
-  import {
-    ConsentBanner,
-    ConsentDialog,
-    ConsentDialogLink,
-    ConsentManagerProvider,
-    hosted,
-  } from '@c15t/svelte';
-  import '@c15t/svelte/styles.css';
-  import { scripts } from './scripts';
+## Mount the provider
 
-  const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-  if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
-  const mode = hosted({ url: backendURL });
-</script>
+Render `ConsentManagerProvider` around your app in `src/App.svelte`:
 
-<ConsentManagerProvider {mode} {scripts}>
-  <main>Your application</main>
-  <ConsentBanner />
-  <ConsentDialog />
-  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-</ConsentManagerProvider>
-```
+<include src="../../shared/examples/svelte/app.mdx" />
 
-This example uses Svelte 5 and Vite. Set `VITE_C15T_BACKEND_URL` to your backend's
-absolute URL. Configure the backend's policy rules and allowed app origin.
-Svelte's provider is `ConsentManagerProvider` and accepts `mode` as a top-level
-prop. Do not copy React's `ConsentProvider` name into a Svelte component.
+`ExamplePage` stands in for your app's content. `hosted()` points the provider
+at your Inth project for both the policy and saved choices. The provider
+starts consent when it mounts and stops it when it unmounts, so keep it at the
+root of the app.
 
-The provider owns initialization and cleanup. Keep it mounted around the app
-rather than creating a new provider for each page. The stylesheet supplies the
-stock appearance. Use [customization](/docs/customization/overview) before
-rebuilding the UI with headless APIs.
+`ConsentBanner` shows the banner when the visitor's policy asks for one.
+`ConsentDialog` is the preference dialog; it loads in its own chunk after the
+page, before anyone opens it. `ConsentDialogLink` is the persistent way back to
+preferences. Put it where visitors look for privacy settings, such as the
+footer.
 
-`ConsentDialog` is not part of the page's first load. It loads in its own
-chunk: in browser idle time after the page loads while a button that opens it
-is mounted (the banner's Customize button, `ConsentDialogLink` or
-`ConsentDialogTrigger`), when that button is hovered or focused, and at the
-latest when the dialog opens. Pass `preloadDialog: 'intent'` in the provider
-options to load it only on hover, focus or open. Idle loading is skipped with
-Save-Data, on 2G connections and offline. With `showTrigger`, the dialog loads
-at mount, so its trigger appears right after hydration instead of in the server
-HTML; render `ConsentDialogTrigger` next to the dialog to keep it in the server
-HTML.
+`@c15t/svelte/styles.css` holds the stock styles for all three. Import it
+once.
 
-## Use local policies when no backend is needed
+## Verify consent
 
-Install `@c15t/schema` and replace the hosted mode in the example with this
-configuration:
+Start the dev server, open the app in a private window with DevTools open,
+and check the Network panel:
+
+1. The banner appears. No requests go to PostHog or X yet.
+2. Select **Reject All**. Reload. The banner stays closed and the vendor
+   requests stay absent.
+3. Select **Privacy settings**, turn on **Analytics** (the `measurement`
+   category) and save. PostHog loads; X Pixel does not.
+4. Turn on **Marketing** too. X Pixel loads.
+5. Turn both off and save. The page reloads and neither vendor loads.
+
+If the banner does not appear, see [troubleshooting](/docs/frameworks/svelte/troubleshooting).
+[Verify consent](/docs/guides/verify-consent) has the release checklist.
+
+## Other setups
+
+**Offline mode** resolves policies in the browser and keeps choices in the
+browser's cookie and local storage, with no backend and no consent records. Use it for local development
+and tests. Not recommended for production environments.
+
+{/* example: fragment */}
 
 ```ts
 import { offline } from '@c15t/svelte';
-import { policyRulePresets } from '@c15t/schema';
 
-const mode = offline({ policyRules: [policyRulePresets.europeOptIn()] });
+const mode = offline();
 ```
 
-Not recommended for production environments.
+With no arguments, `offline()` uses the recommended rules. They ask for
+opt-in in Europe and unknown locations, use opt-out in US privacy states, and
+show no banner where no consent law applies. Pass `offline({ policyRules })` to use your own.
+[Data fetching](/docs/concepts/data-fetching#when-should-i-use-offline-mode)
+explains the trade-offs.
 
-This resolves policy locally and stores choices in the browser. It does not
-provide a backend audit history. Review the preset's scope and fallback rather
-than treating it as a complete compliance configuration.
+**A self-hosted backend** uses the same `hosted({ url })` call with your own
+URL. See [self-hosting](/docs/self-host/overview).
 
-## Verify the lifecycle
+**Astro** can render these Svelte components as islands. Its integration uses
+Svelte for the dialog by default. Pick the Astro row in
+[choose your setup](/docs/concepts/choose-your-setup).
 
-Under a choice policy, reject optional categories and reload. Reopen preferences
-and save a different choice. Check vendor requests using
-[verification](/docs/guides/verify-consent). A missing banner can also mean the
-resolved rule needs no prompt, so inspect policy resolution before changing CSS.
-
-For request-specific initial HTML, use the SvelteKit server integration.
-
-## Run the complete example
-
-Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
-YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.
+Next, [customize](/docs/frameworks/svelte/customize) the banner or read
+consent in your own components with [context getters](/docs/frameworks/svelte/getters).

@@ -127,10 +127,17 @@ export const targets: ExampleTarget[] = [
 		start: vitePreview,
 	},
 	{
+		// Server-rendered with loadConsent, a prerendered page under the same
+		// layout, manifest-mode route handlers, and a headless banner.
 		directory: 'sveltekit-demo',
 		failureRoute: '/consent-example',
 		id: 'sveltekit',
-		routes: ['/consent-example'],
+		routes: [
+			'/consent-example',
+			'/consent-example/static',
+			'/manifest-example',
+			'/headless-example',
+		],
 		start: vitePreview,
 	},
 ];

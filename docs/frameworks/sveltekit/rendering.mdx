@@ -1,0 +1,171 @@
+---
+title: Rendering and deployment
+description: Choose how a SvelteKit app resolves consent, on each request, from a cached manifest, or in the browser for prerendered pages, static sites and SPA mode, and deploy it to Node or edge adapters.
+group: frameworks
+---
+
+## Pick a rendering path
+
+| Your app | Where consent resolves | Setup |
+| --- | --- | --- |
+| Server-rendered pages | Root layout load calls the backend's `/init` on each request | [Quickstart](/docs/frameworks/sveltekit/quickstart) |
+| Server-rendered pages, fewer backend calls | Root layout load resolves from a cached policy manifest | [Serve the manifest route](#serve-the-manifest-route) |
+| A server app with some prerendered pages | Server for most pages, the browser on prerendered ones | [Prerender some pages](#prerender-some-pages) |
+| A fully static site with `adapter-static` | The browser | [Build a static site](#build-a-static-site) |
+| SPA mode, `ssr = false` | The browser | [Use SPA mode](#use-spa-mode) |
+
+Each path uses the same provider and components. Only the root layout's
+server load changes. The code on this page comes from the
+`examples/sveltekit-demo` app in the c15t repository. A static site and SPA
+mode resolve consent in the browser the same way a prerendered page does.
+[Data fetching](/docs/concepts/data-fetching) compares `/init`, the manifest
+and browser resolution in general.
+
+## Serve the manifest route
+
+In the quickstart, every page load asks the backend's `/init` for the
+visitor's policy. In manifest mode your server downloads the project's public
+policy manifest once, caches it, and resolves each visitor locally. Consent
+saves still go to the backend.
+
+Add a catch-all route at `src/routes/api/c15t/[...path]/+server.ts`:
+
+<include src="../../shared/examples/sveltekit-demo/route-handlers.mdx" />
+
+`createSvelteKitConsentRouteHandlers` returns `GET`, which serves two paths:
+
+| Request | Response |
+| --- | --- |
+| `GET /api/c15t` | The visitor's resolved policy, like the backend's `/init`. `Cache-Control: private, no-store`. |
+| `GET /api/c15t/manifest` | The manifest, with the backend's `Cache-Control` and `ETag`. Answers `If-None-Match` with `304`. |
+
+It also returns `init` and `manifest` handlers separately, if you prefer one
+file per route. Point the root layout load at the route with `initRoute`:
+
+<include src="../../shared/examples/sveltekit-demo/manifest-layout-server.mdx" />
+
+`loadConsent` calls the route through `event.fetch`, inside the same process,
+with the visitor's location, language and GPC. Keep the root
+`+layout.svelte` from the quickstart unchanged. The browser's `hosted()` mode
+still uses the backend URL.
+
+The handlers answer `GET` only. A `POST` or `PATCH` to `/api/c15t` gets a
+`405`, so do not point the browser's `hosted()` mode at `/api/c15t`, or saving
+a choice fails. Keep `hosted({ url })` on the backend URL, as the
+quickstart layout does.
+
+Keep `backendURL` absolute. A relative URL resolves against the request's
+origin, and one that points back at `/api/c15t` makes the route fetch itself.
+Without `backendURL`, the handlers read the `C15T_BACKEND_URL` or
+`C15T_MANIFEST_URL` environment variable.
+
+The route caches the manifest in memory for as long as its `s-maxage` allows,
+then serves it stale while it refreshes in the background. It also reports
+each resolved visit to the backend so Inth still counts visitors it never
+served `/init` to; pass `reportSessions: false` to turn that off.
+
+### Deploy to an edge adapter
+
+The handlers use only `fetch`, so they run on Node and edge adapters alike.
+Cloudflare and Vercel edge stop work once a response is sent. There the
+handlers hand the background refresh and the visit report to
+`event.platform.context.waitUntil` automatically. On another runtime with its own lifetime API, pass
+`onBackgroundRevalidate(promise, event)` and register the promise there.
+
+## Resolve request context once with c15tHandle
+
+`loadConsent` reads the consent cookie and headers itself. If several loads
+or endpoints need consent, install `c15tHandle` in `src/hooks.server.ts` to do
+that work once per request:
+
+<include src="../../shared/examples/sveltekit-demo/hooks.mdx" />
+
+It stores the result on `event.locals.c15t`, which `loadConsent` reuses, and
+rewrites the location headers into one normalized form. Compose it with your
+own handles through `sequence(c15tHandle(), yourHandle)` from
+`@sveltejs/kit/hooks`. Pass `country`, `region` or `language` to force them,
+and `cookieName` if you changed `storageConfig.storageKey`.
+
+Type `event.locals.c15t` in `src/app.d.ts`:
+
+<include src="../../shared/examples/sveltekit-demo/app-locals.mdx" />
+
+If you have no `App.Locals` block of your own, add
+`/// <reference types="@c15t/svelte/kit/locals" />` to `src/app.d.ts` instead.
+
+Options passed to one `loadConsent` call, such as `country`, override the
+handle's values for that call.
+
+## Prerender some pages
+
+A prerendered page is built once and sent to every visitor, so it cannot
+contain one visitor's consent. SvelteKit runs the root layout load while it
+builds those pages, and `building` from `$app/environment` is `true` then.
+The quickstart's load returns no prefetch in that case, so prerendering a page
+needs only the page option:
+
+<include src="../../shared/examples/sveltekit-demo/prerender.mdx" />
+
+On a prerendered page the HTML has no banner. After hydration the browser asks
+the backend for the policy, then shows the banner or applies the stored
+choice. Optional categories stay denied until then. Server-rendered pages in
+the same app keep the banner in their HTML.
+
+The layout reads `$env/dynamic/public` while the page prerenders, so set
+`PUBLIC_C15T_BACKEND_URL` in the build environment too. Without it the layout
+throws and the build fails on that page.
+
+## Build a static site
+
+With `adapter-static`, every page is prerendered and no server runs after the
+build. Set the option in the root layout:
+
+{/* example: fragment */}
+
+```ts title="src/routes/+layout.ts"
+export const prerender = true;
+```
+
+Keep the quickstart's `+layout.server.ts` or delete it; while building it
+returns nothing either way. The browser resolves consent on every page, as
+described in [prerender some pages](#prerender-some-pages).
+
+Two things change on a static host:
+
+- The backend URL must be the absolute Inth URL. Server routes such as
+  `/api/c15t` do not exist after a static build, so do not use manifest mode.
+- `PUBLIC_C15T_BACKEND_URL` must be set when you build. `adapter-static`
+  writes the public values into the build.
+
+## Use SPA mode
+
+With `export const ssr = false` in the root `+layout.ts`, SvelteKit renders
+every page in the browser. The provider and components from the quickstart
+work unchanged; there is no server HTML, so the banner appears after the
+browser resolves the policy.
+
+With a static SPA fallback page and no server, delete `+layout.server.ts`.
+`data.prefetch` is then `undefined`, and the provider resolves consent in the
+browser.
+
+## Resolve consent in other server code
+
+`resolveConsent` from `@c15t/svelte/server` does what `loadConsent` does
+without a SvelteKit event, for endpoints or code outside a load:
+
+{/* example: fragment */}
+
+```ts
+import { resolveConsent } from '@c15t/svelte/server';
+
+const state = await resolveConsent({
+  backendURL: env.PUBLIC_C15T_BACKEND_URL,
+  headers: request.headers,
+});
+```
+
+It never throws. When the backend fails, it returns the stored choice without
+a policy. It has no time limit, so prefer `loadConsent` in a layout load.
+Import `@c15t/svelte/kit` and `@c15t/svelte/server` only from server files
+such as `+layout.server.ts`, `+server.ts` and `hooks.server.ts`; imported into
+a component they add server code to the browser bundle.

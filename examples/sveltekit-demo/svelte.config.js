@@ -13,6 +13,12 @@ const config = {
 		alias: {
 			'~/*': resolve(root, '../../packages/core/src/*'),
 		},
+		prerender: {
+			// `/consent-example/static` reads PUBLIC_C15T_BACKEND_URL when it is
+			// prerendered. Builds without it, such as type checks and unrelated
+			// CI jobs, skip that page instead of failing.
+			handleHttpError: process.env.PUBLIC_C15T_BACKEND_URL ? 'fail' : 'warn',
+		},
 	},
 	preprocess: vitePreprocess(),
 };

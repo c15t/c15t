@@ -1,0 +1,9 @@
+{/* Generated from examples/sveltekit-demo/src/hooks.server.ts (docs:hooks) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/hooks.server.ts"
+import { c15tHandle } from '@c15t/svelte/kit';
+
+// Reads the consent cookie, location headers and GPC once per request and
+// stores them on `event.locals.c15t` for `loadConsent` to reuse.
+export const handle = c15tHandle();
+```
