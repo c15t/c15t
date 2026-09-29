@@ -22,6 +22,7 @@ import ConsentBanner from './prompt.vue';
 const props = defineProps<{
 	region?: string;
 	country?: string;
+	language?: string;
 }>();
 
 const config = useConsentConfig();
@@ -30,12 +31,12 @@ const activeUI = useConsentActiveUI();
 const kernel = useConsentKernel();
 
 watch(
-	() => [props.country, props.region] as const,
-	([country, region]) => {
-		if (!(country || region)) {
+	() => [props.country, props.region, props.language] as const,
+	([country, region, language]) => {
+		if (!(country || region || language)) {
 			return;
 		}
-		kernel.set.overrides({ country, region });
+		kernel.set.overrides({ country, language, region });
 		void kernel.commands.init();
 	},
 	{ immediate: true }
