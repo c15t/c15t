@@ -6,7 +6,7 @@ metadata:
 ---
 # @c15t/scripts documentation
 
-Consent-aware vendor integrations and Consent Mode loading contracts.
+Deprecated v3 compatibility package for @c15t/integrations. Migrate before v4.
 
 To work with @c15t/scripts, read its bundled docs — they ship with the package and are version-matched to the installed code:
 

@@ -50,7 +50,7 @@ import {
 	validateStoredConsentEnvelope,
 } from '../../../core/src/modules/persistence/record-codec';
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
-import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
+import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
 import type { ConsentProviderCallbacks } from '../lib/types';
 import PolicyFixture from './fixtures/policy-fixture.svelte';
 import { renderSsr } from './server-render';

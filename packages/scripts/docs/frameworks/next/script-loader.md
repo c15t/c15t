@@ -13,12 +13,12 @@ in a client wrapper. Keep that wrapper and add vendors to `lib/scripts.ts`.
 If you are adding scripts to an existing c15t setup, install the helpers and
 use the same registration pattern below.
 
-| Package manager | Command                     |
-| :-------------- | :-------------------------- |
-| npm             | `npm install @c15t/scripts` |
-| pnpm            | `pnpm add @c15t/scripts`    |
-| yarn            | `yarn add @c15t/scripts`    |
-| bun             | `bun add @c15t/scripts`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 Keep `c15t.config.ts` and the manifest route from your router setup. These shared
 URLs connect initialization and consent submissions to the same backend.
@@ -36,8 +36,8 @@ measurement and marketing categories in your policy for these two vendors.
 Create `lib/scripts.ts` with the example's script configuration:
 
 ```ts title="lib/scripts.ts"
-import { posthog } from '@c15t/scripts/posthog';
-import { xPixel } from '@c15t/scripts/x-pixel';
+import { posthog } from '@c15t/integrations/posthog';
+import { xPixel } from '@c15t/integrations/x-pixel';
 import type { Script } from 'c15t';
 
 export const posthogConfigured = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
@@ -195,7 +195,7 @@ import { scripts, vendors } from '../lib/scripts';
 ```
 
 The preference center lists each vendor under its category with a switch.
-Integrations from `@c15t/scripts` set `vendor` to their manifest slug, so
+Integrations from `@c15t/integrations` set `vendor` to their manifest slug, so
 `xPixel()` needs no extra wiring; give a hand-written script the same slug
 in its `vendor` field. A backend manifest can declare vendors too. See
 [granular consent](../../integrations/granular-consent.md) for storage,

@@ -16,7 +16,7 @@ export const generateSolidBoilerplate = (
 	return {
 		dependencies: [
 			'@c15t/core',
-			...(options.scripts.length ? ['@c15t/scripts'] : []),
+			...(options.scripts.length ? ['@c15t/integrations'] : []),
 		],
 		files: {
 			'Consent.tsx': `import { createContext, createSignal, For, onCleanup, onMount, Show, useContext } from 'solid-js';

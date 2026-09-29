@@ -8,10 +8,10 @@ group: integrations
 
 Use the Heap environment ID for the application you want to track. The helper loads the environment-specific config script, which can load the rest of the Heap SDK.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { heap } from '@c15t/scripts/heap';
+import { heap } from '@c15t/integrations/heap';
 
 export const scripts = [heap({ envId: 'YOUR_ENVIRONMENT_ID' })];
 ```

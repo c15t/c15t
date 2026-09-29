@@ -16,7 +16,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Static export setup](./docs/frameworks/next/static-export.md)
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
-- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.
 
 ## More documentation
 
@@ -120,4 +120,4 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Reference
 
-- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.

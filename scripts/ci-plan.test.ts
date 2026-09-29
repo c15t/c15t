@@ -44,7 +44,7 @@ describe('CI selection', () => {
 			'packages/react/AGENTS.md',
 			'packages/nextjs/AGENTS.md',
 			'packages/c15t/AGENTS.md',
-			'packages/scripts/docs/frameworks/next/script-loader.md',
+			'packages/integrations/docs/frameworks/next/script-loader.md',
 		]);
 		expect(result).toMatchObject({
 			backend: false,

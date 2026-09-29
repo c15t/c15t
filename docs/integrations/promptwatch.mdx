@@ -8,10 +8,10 @@ group: integrations
 
 Use the project ID from your Promptwatch dashboard. The helper installs the browser attribution client with `data-project-id`.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { promptwatch } from '@c15t/scripts/promptwatch';
+import { promptwatch } from '@c15t/integrations/promptwatch';
 
 export const scripts = [promptwatch({ projectId: 'YOUR_PROJECT_ID' })];
 ```

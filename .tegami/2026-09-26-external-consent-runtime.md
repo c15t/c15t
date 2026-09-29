@@ -9,9 +9,9 @@ packages:
   "@c15t/astro":
     replay:
       - exit-prerelease(npm:@c15t/astro)
-  "@c15t/scripts":
+  "@c15t/integrations":
     replay:
-      - exit-prerelease(npm:@c15t/scripts)
+      - exit-prerelease(npm:@c15t/integrations)
   "@c15t/react":
     replay:
       - exit-prerelease(npm:@c15t/react)

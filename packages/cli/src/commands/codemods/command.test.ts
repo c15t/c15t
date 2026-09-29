@@ -13,7 +13,7 @@ const fixture = async (declaredVersion = '3.0.0') => {
 	await writeFile(
 		join(cwd, 'package.json'),
 		JSON.stringify({
-			dependencies: { '@c15t/scripts': '^1.0.0', c15t: declaredVersion },
+			dependencies: { '@c15t/integrations': '^1.0.0', c15t: declaredVersion },
 			name: 'fixture',
 			version: '9.9.9',
 		})
@@ -39,6 +39,41 @@ afterEach(async () => {
 });
 
 describe('legacy migration command', () => {
+	it('runs the integrations rename only when explicitly selected', async () => {
+		const { cwd, filePath } = await fixture();
+		const source = "import { posthog } from '@c15t/scripts/posthog';\n";
+		await writeFile(filePath, source);
+		const automatic = await runCli(['codemods', '--all', '--json'], { cwd });
+		expect(automatic.success).toBe(true);
+		expect(await readFile(filePath, 'utf8')).toBe(source);
+		const preview = await runCli(
+			['codemods', 'scripts-to-integrations', '--dry-run', '--json'],
+			{ cwd }
+		);
+		expect(preview.success).toBe(true);
+		expect(preview.data).toHaveProperty('results', [
+			expect.objectContaining({
+				id: 'scripts-to-integrations',
+				result: expect.objectContaining({
+					changedFiles: [
+						expect.objectContaining({
+							after: source.replace('@c15t/scripts', '@c15t/integrations'),
+						}),
+					],
+				}),
+			}),
+		]);
+		expect(await readFile(filePath, 'utf8')).toBe(source);
+		const applied = await runCli(
+			['codemods', 'scripts-to-integrations', '--json'],
+			{ cwd }
+		);
+		expect(applied.success).toBe(true);
+		expect(await readFile(filePath, 'utf8')).toBe(
+			source.replace('@c15t/scripts', '@c15t/integrations')
+		);
+	});
+
 	it.each(['2.0.0-rc.4', '2.0.0-canary-20260731105620', '2.0.0-alpha.1'])(
 		'does not automatically apply legacy transforms to %s',
 		async (declaredVersion) => {

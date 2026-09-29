@@ -9,10 +9,10 @@ group: integrations
 Copy your Pixel ID from the conversions tab in OpenAI Ads Manager. The helper
 initializes `oaiq` and loads the SDK when marketing permission allows it.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { openaiPixel } from '@c15t/scripts/openai-pixel';
+import { openaiPixel } from '@c15t/integrations/openai-pixel';
 
 export const scripts = [openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 ```
@@ -95,7 +95,7 @@ This partial example belongs in an order-completion handler after that
 permission check. It sends an order value of $25.99:
 
 ```ts
-import { openaiPixelEvent } from '@c15t/scripts/openai-pixel';
+import { openaiPixelEvent } from '@c15t/integrations/openai-pixel';
 
 openaiPixelEvent(
   'order_created',
@@ -136,7 +136,7 @@ Custom events require `custom_event_name`. After checking marketing permission,
 you can verify a custom event with a clearly named payload:
 
 ```ts
-import { openaiPixelEvent } from '@c15t/scripts/openai-pixel';
+import { openaiPixelEvent } from '@c15t/integrations/openai-pixel';
 
 openaiPixelEvent(
   'custom',

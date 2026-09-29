@@ -10,7 +10,7 @@ group: integrations
 This helper connects c15t to an existing Zaraz installation. It does not insert a
 script, configure Cloudflare tools, or turn a standalone SDK into a server-side
 integration. Configure each tool in Zaraz and remove its previous standalone
-loader, including any duplicate `@c15t/scripts` helper.
+loader, including any duplicate `@c15t/integrations` helper.
 
 In the Zaraz dashboard:
 
@@ -36,15 +36,15 @@ and [automatic pageview settings](https://developers.cloudflare.com/zaraz/refere
 
 ## Register the consent bridge
 
-| Package manager | Command                     |
-| :-------------- | :-------------------------- |
-| npm             | `npm install @c15t/scripts` |
-| pnpm            | `pnpm add @c15t/scripts`    |
-| yarn            | `yarn add @c15t/scripts`    |
-| bun             | `bun add @c15t/scripts`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 ```ts title="src/consent-scripts.ts"
-import { cloudflareZaraz } from '@c15t/scripts/cloudflare-zaraz';
+import { cloudflareZaraz } from '@c15t/integrations/cloudflare-zaraz';
 
 // Zaraz provides this global after its loader runs.
 declare const zaraz: { track: (event: string) => void };
@@ -327,7 +327,7 @@ already has a loader; do not attach a second one. See
 
 **React Native**
 
-There is no script loader to register. `@c15t/scripts` loads browser
+There is no script loader to register. `@c15t/integrations` loads browser
 documents, and a React Native app has none: the consent kernel runs natively
 and the vendor ships as a native or JavaScript module you start yourself.
 

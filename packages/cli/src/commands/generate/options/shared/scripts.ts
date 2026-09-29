@@ -12,12 +12,12 @@ export const getScriptsToAdd = async function getScriptsToAdd({
 	handleCancel,
 }: GetScriptsToAddOptions) {
 	context.logger.info(
-		'@c15t/scripts has various prebuilt scripts for you to use. Learn more: https://c15t.com/docs/integrations'
+		'@c15t/integrations has various prebuilt scripts for you to use. Learn more: https://c15t.com/docs/integrations'
 	);
 
 	const addScriptsSelection = await p.confirm({
 		initialValue: true,
-		message: 'Do you want to add @c15t/scripts to your project?',
+		message: 'Do you want to add @c15t/integrations to your project?',
 	});
 
 	if (handleCancel?.(addScriptsSelection)) {

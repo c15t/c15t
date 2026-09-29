@@ -9,10 +9,10 @@ group: integrations
 Copy the source write key and HTTPS data plane URL from your RudderStack source.
 The default helper waits for measurement permission before loading the SDK.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { rudderstack } from '@c15t/scripts/rudderstack';
+import { rudderstack } from '@c15t/integrations/rudderstack';
 
 export const scripts = [
   rudderstack({
@@ -34,7 +34,7 @@ receives pre-consent configuration, and stays loaded after revocation. c15t
 sends consent updates through `rudderanalytics.consent()`.
 
 ```ts title="src/consent-scripts.ts"
-import { rudderstack } from '@c15t/scripts/rudderstack';
+import { rudderstack } from '@c15t/integrations/rudderstack';
 
 export const scripts = [
   rudderstack({

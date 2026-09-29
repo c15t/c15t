@@ -70,7 +70,7 @@ For example, a React client boundary can use the source directly:
 
 import type { ReactNode } from 'react';
 import { ConsentProvider, offline, useSetActiveUI } from 'c15t/react';
-import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { googleTagManager } from '@c15t/integrations/google-tag-manager';
 import { consentSource } from './consent-source';
 
 const mode = offline();
@@ -126,10 +126,10 @@ persistence: store the new decision before notifying c15t, or the reloaded page
 reads the old one. Set `reloadOnConsentRevoked: false` to handle withdrawal
 yourself. c15t still updates gates and calls script consent callbacks.
 
-`createEventDispatcher` from `@c15t/scripts/events` also has no framework dependency:
+`createEventDispatcher` from `@c15t/integrations/events` also has no framework dependency:
 
 ```ts title="src/events.ts — attach to an existing runtime"
-import { createEventDispatcher } from '@c15t/scripts/events';
+import { createEventDispatcher } from '@c15t/integrations/events';
 
 const events = createEventDispatcher({
   scripts,

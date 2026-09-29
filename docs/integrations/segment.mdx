@@ -8,10 +8,10 @@ group: integrations
 
 Copy the browser source write key. The helper prepares the Analytics.js queue and requests the loader for that source.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { segment } from '@c15t/scripts/segment';
+import { segment } from '@c15t/integrations/segment';
 
 export const scripts = [segment({ writeKey: 'YOUR_SOURCE_WRITE_KEY' })];
 ```

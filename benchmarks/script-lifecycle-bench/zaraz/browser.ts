@@ -1,7 +1,7 @@
 import { createConsentKernel } from '../../../packages/core/src/index';
 import type { Script } from '../../../packages/core/src/index';
 import { createScriptLoader } from '../../../packages/core/src/modules/script-loader/index';
-import { cloudflareZaraz } from '../../../packages/scripts/src/vendors/tag-managers/cloudflare-zaraz';
+import { cloudflareZaraz } from '../../../packages/integrations/src/vendors/tag-managers/cloudflare-zaraz';
 
 const denied = {
 	experience: false,

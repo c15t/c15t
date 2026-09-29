@@ -11,7 +11,7 @@ import { expect, test } from 'vitest';
 
 import docsConfig from '../docs/docs.config';
 import umbrellaPackage from '../packages/c15t/package.json';
-import scriptsPackage from '../packages/scripts/package.json';
+import scriptsPackage from '../packages/integrations/package.json';
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
 
@@ -127,7 +127,7 @@ test('vendor registration tabs survive package Markdown conversion', async () =>
 		resolve(docsRoot, 'integrations/posthog.mdx'),
 		[remarkInclude, ...defaultRemarkPlugins]
 	);
-	expect(markdown).toContain('npm install @c15t/scripts');
+	expect(markdown).toContain('npm install @c15t/integrations');
 	expect(markdown).toContain('c15t/react');
 	expect(markdown).toContain('c15t/next');
 	expect(markdown).toContain('c15t/modules/script-loader');

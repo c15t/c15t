@@ -1,5 +1,5 @@
-import { posthog } from '@c15t/scripts/posthog';
-import { xPixel } from '@c15t/scripts/x-pixel';
+import { posthog } from '@c15t/integrations/posthog';
+import { xPixel } from '@c15t/integrations/x-pixel';
 
 export const createExampleScripts = (
 	posthogKey?: string,

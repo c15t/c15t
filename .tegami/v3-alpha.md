@@ -36,9 +36,9 @@ packages:
   "@c15t/schema":
     replay:
       - exit-prerelease(@c15t/schema)
-  "@c15t/scripts":
+  "@c15t/integrations":
     replay:
-      - exit-prerelease(@c15t/scripts)
+      - exit-prerelease(@c15t/integrations)
   "@c15t/svelte":
     replay:
       - exit-prerelease(@c15t/svelte)

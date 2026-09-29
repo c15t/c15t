@@ -8,10 +8,10 @@ group: integrations
 
 Use your Reddit Pixel ID. The helper initializes `rdt` and queues `PageVisit` by default.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { redditPixel } from '@c15t/scripts/reddit-pixel';
+import { redditPixel } from '@c15t/integrations/reddit-pixel';
 
 export const scripts = [redditPixel({ pixelId: 't2_YOUR_PIXEL_ID' })];
 ```

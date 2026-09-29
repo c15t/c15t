@@ -79,6 +79,9 @@ Keep publishing in `release.yml`; moving it to another top-level workflow change
 the identity npm trusts. New package names still need npm trusted publishing set
 up for `c15t/c15t`, workflow `release.yml`, before their first release.
 
+The v3 rename to `@c15t/integrations` needs its own npm trusted publisher.
+The publisher configured for `@c15t/scripts` does not transfer to the new name.
+
 To inspect a release, use a disposable checkout:
 
 ```sh

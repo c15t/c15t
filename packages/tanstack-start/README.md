@@ -30,7 +30,7 @@ TanStack Start cookie banner and consent management platform with SSR-hydrated f
 - Prebuilt and customizable cookie banner, consent dialog, and preference center UI
 - Headless hooks for custom consent flows
 - IAB TCF 2.4 UI and hooks through the @c15t/react/iab subpath
-- Google Tag Manager, Google Consent Mode v2, Meta Pixel, and analytics integrations through @c15t/scripts
+- Google Tag Manager, Google Consent Mode v2, Meta Pixel, and analytics integrations through @c15t/integrations
 - Built-in internationalization support
 
 ## Prerequisites

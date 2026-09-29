@@ -8,10 +8,10 @@ group: integrations
 
 Copy the write key from the Hightouch Event Source. The helper initializes `htevents` and queues an initial page call by default.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { hightouch } from '@c15t/scripts/hightouch';
+import { hightouch } from '@c15t/integrations/hightouch';
 
 export const scripts = [hightouch({ writeKey: 'YOUR_EVENT_SOURCE_WRITE_KEY' })];
 ```

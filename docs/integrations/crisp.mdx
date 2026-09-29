@@ -8,10 +8,10 @@ group: integrations
 
 Use the Crisp website ID. The helper prepares `$crisp` and the runtime configuration before loading the chat widget.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { crisp } from '@c15t/scripts/crisp';
+import { crisp } from '@c15t/integrations/crisp';
 
 export const scripts = [crisp({ websiteId: 'YOUR_WEBSITE_ID', locale: 'en' })];
 ```

@@ -7,19 +7,19 @@ group: integrations
 
 ## Choose an integration
 
-Use the vendor helper from `@c15t/scripts` with your existing c15t provider or
+Use the vendor helper from `@c15t/integrations` with your existing c15t provider or
 script loader. Every helper returns a script configuration; importing one does
 not install the vendor. Start with your [framework quickstart](https://c15t.com/docs/frameworks)
 to connect Inth and render consent UI, then follow the vendor guide.
 
-| Package manager | Command                     |
-| :-------------- | :-------------------------- |
-| npm             | `npm install @c15t/scripts` |
-| pnpm            | `pnpm add @c15t/scripts`    |
-| yarn            | `yarn add @c15t/scripts`    |
-| bun             | `bun add @c15t/scripts`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
-`@c15t/scripts` is a separate add-on. Keep the main `c15t` package for imports
+`@c15t/integrations` is a separate add-on. Keep the main `c15t` package for imports
 such as `c15t/react` and `c15t/next`.
 
 Browse integrations by service type below. The tables distinguish helpers that
@@ -36,7 +36,7 @@ behavior before choosing either approach.
 
 Both guides include all nine framework examples. React and Svelte use `ConsentGate`;
 Vue conditionally renders the iframe, and Astro and JavaScript use the existing
-kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
+kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Tag managers
 

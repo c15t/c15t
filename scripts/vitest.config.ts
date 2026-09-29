@@ -22,7 +22,7 @@ export default defineConfig({
 				// Resolve that real implementation without requiring a core build.
 				if (
 					source === '@c15t/core' &&
-					importer?.endsWith('/packages/scripts/src/engine/runtime.ts')
+					importer?.endsWith('/packages/integrations/src/engine/runtime.ts')
 				) {
 					return fileURLToPath(
 						new URL(
@@ -47,10 +47,10 @@ export default defineConfig({
 				['microsoft-clarity', 'analytics/microsoft-clarity'],
 				['tiktok-pixel', 'ads-and-pixels/tiktok-pixel'],
 			].map(([entry, source]) => [
-				`@c15t/scripts/${entry}`,
+				`@c15t/integrations/${entry}`,
 				fileURLToPath(
 					new URL(
-						`../packages/scripts/src/vendors/${source}.ts`,
+						`../packages/integrations/src/vendors/${source}.ts`,
 						import.meta.url
 					)
 				),

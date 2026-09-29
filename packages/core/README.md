@@ -25,7 +25,7 @@ Headless JavaScript consent management platform for cookie banners, privacy pref
 - Cookie consent: Build consent flows for banners, dialogs, and preference centers
 - Headless APIs: Own the UI while c15t manages consent state and persistence
 - Framework agnostic: Works across JavaScript and TypeScript applications
-- Script gating: Connect to @c15t/scripts for Google Tag Manager, Consent Mode v2, Meta Pixel, and more
+- Script gating: Connect to @c15t/integrations for Google Tag Manager, Consent Mode v2, Meta Pixel, and more
 - Server-side rendering support: Compatible with SSR frameworks
 - Internationalization: Built-in translation support
 
@@ -94,7 +94,7 @@ For further information, guides, and examples visit the [reference documentation
 
 - [@c15t/react](https://www.npmjs.com/package/@c15t/react): React cookie banner, consent dialog, preference center, and headless hooks
 - [@c15t/nextjs](https://www.npmjs.com/package/@c15t/nextjs): Next.js App Router and Pages Router integration
-- [@c15t/scripts](https://www.npmjs.com/package/@c15t/scripts): Consent-aware analytics, tag manager, pixel, and widget loaders
+- [@c15t/integrations](https://www.npmjs.com/package/@c15t/integrations): Consent-aware analytics, tag manager, pixel, and widget loaders
 - [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): Self-hostable consent backend
 
 ## Support

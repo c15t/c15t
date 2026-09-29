@@ -8,10 +8,10 @@ group: integrations
 
 Copy the full HTTPS embed URL for your Adobe Data Collection property environment. Replace the example URL; Adobe does not have a shared Analytics loader that only needs an account ID.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { adobeAnalytics } from '@c15t/scripts/adobe-analytics';
+import { adobeAnalytics } from '@c15t/integrations/adobe-analytics';
 
 export const scripts = [adobeAnalytics({
     scriptUrl: 'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js',
