@@ -17,7 +17,7 @@ The Markdown under `./docs` matches the installed version. Read it before writin
 
 - Install with the `alpha` tag: a `<script>` tag for `@c15t/browser@alpha` from jsDelivr, or `npm install @c15t/browser@alpha`. npm `latest` is still v2. Keep every c15t package on the same release.
 - The backend URL comes from the user's Inth project or self-hosted backend. It is public configuration. Never invent one; ask for it or read it from the environment.
-- Register analytics, pixels and embeds through c15t (`@c15t/scripts` helpers or `ConsentGate`) and remove the vendor's own `<script>` tag or plugin. A banner does not block code loaded elsewhere.
+- Register analytics, pixels and embeds through c15t and remove the vendor's own loader or plugin. With a bundler, use `@c15t/scripts` helpers and `ConsentGate`. On a plain HTML page, change the vendor's `<script>` to `type="text/plain"` with `data-c15t-category`. A banner does not block code loaded elsewhere.
 - Gate features on the current permission. Never save a consent choice on page load or from code; only a visitor action records one.
 - Offline mode keeps policies in code and choices in the browser, with no consent records. Not recommended for production environments.
 - Keep one consent provider or root for the whole app, mounted outside route-level components.
@@ -25,6 +25,7 @@ The Markdown under `./docs` matches the installed version. Read it before writin
 ## Customize with the smallest change
 
 Copy and languages use i18n configuration. Position and layout use component props. Colors, type, radius and spacing use theme tokens. One part of a component uses slots. Different markup uses compound or headless components.
+Start at [HTML script tag customization](./docs/frameworks/html/customize.md).
 
 ## Finish with a check
 

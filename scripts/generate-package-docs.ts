@@ -67,6 +67,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			install: '`npm install c15t@alpha`',
 			topic:
 				'the project uses the headless c15t engine, `createConsentRuntime` or custom consent UI',
+			umbrella: true,
 		},
 		summary:
 			'Headless v3 consent, Inth setup, runtime ownership and script loading.',
@@ -85,6 +86,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		skill: {
 			install: '`npm install c15t@alpha` and import `c15t/react`',
 			topic: 'the project is a React app, such as Vite or React Router',
+			umbrella: true,
 		},
 		summary:
 			'React v3 consent components, hooks, Inth setup and customization.',
@@ -104,6 +106,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			install: '`npm install c15t@alpha` and import `c15t/next`',
 			topic:
 				'the project is a Next.js app with the App Router, Pages Router or static export',
+			umbrella: true,
 		},
 		summary:
 			'Next.js v3 App Router, Pages Router, static export and hydration with Inth.',
@@ -123,6 +126,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		skill: {
 			install: '`npm install c15t@alpha` and import `c15t/vue`',
 			topic: 'the project is a Vue or Nuxt app',
+			umbrella: true,
 		},
 		summary:
 			'Vue and Nuxt v3 integration, Vite setup, SSR and static hosting with Inth.',
@@ -160,6 +164,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		skill: {
 			install: '`npm install c15t@alpha` and import `c15t/astro`',
 			topic: 'the project is an Astro site',
+			umbrella: true,
 		},
 		summary:
 			'Astro v3 static and server integration, dialog adapters and runtime ownership.',
@@ -178,6 +183,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		skill: {
 			install: '`npm install c15t@alpha` and import `c15t/tanstack-start`',
 			topic: 'the project is a TanStack Start app',
+			umbrella: true,
 		},
 		summary:
 			'TanStack Start v3 server functions, request middleware and consent boundaries.',

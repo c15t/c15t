@@ -19,6 +19,8 @@ const frameworkGuides = [
 export interface PackageSkill {
 	topic: string;
 	install: string;
+	/** True when the `c15t` umbrella package re-exports this package. */
+	umbrella?: boolean;
 }
 
 const link = (
@@ -75,9 +77,9 @@ export const renderPackageSkill = function renderPackageSkill(
 		'',
 		'## Rules',
 		'',
-		`- Install with the \`alpha\` tag: ${skill.install}. npm \`latest\` is still v2. Keep every c15t package on the same release.`,
+		`- Install with the \`alpha\` tag: ${skill.install}. npm \`latest\` is still v2. Keep every c15t package on the same release.${skill.umbrella ? ' New apps install `c15t` and import its framework subpath. An app that already depends on this scoped package can keep importing from it, but should not install both.' : ''}`,
 		"- The backend URL comes from the user's Inth project or self-hosted backend. It is public configuration. Never invent one; ask for it or read it from the environment.",
-		"- Register analytics, pixels and embeds through c15t (`@c15t/scripts` helpers or `ConsentGate`) and remove the vendor's own `<script>` tag or plugin. A banner does not block code loaded elsewhere.",
+		'- Register analytics, pixels and embeds through c15t and remove the vendor\'s own loader or plugin. With a bundler, use `@c15t/scripts` helpers and `ConsentGate`. On a plain HTML page, change the vendor\'s `<script>` to `type="text/plain"` with `data-c15t-category`. A banner does not block code loaded elsewhere.',
 		'- Gate features on the current permission. Never save a consent choice on page load or from code; only a visitor action records one.',
 		'- Offline mode keeps policies in code and choices in the browser, with no consent records. Not recommended for production environments.',
 		'- Keep one consent provider or root for the whole app, mounted outside route-level components.',
@@ -86,11 +88,17 @@ export const renderPackageSkill = function renderPackageSkill(
 		'',
 		'Copy and languages use i18n configuration. Position and layout use component props. Colors, type, radius and spacing use theme tokens. One part of a component uses slots. Different markup uses compound or headless components.'
 	);
-	const customize = link(
-		bundledFiles,
-		'customization/overview.md',
-		'Customization overview'
-	);
+	const customize =
+		link(bundledFiles, 'customization/overview.md', 'Customization overview') ??
+		frameworkGuides
+			.map(([dir, label]) =>
+				link(
+					bundledFiles,
+					`frameworks/${dir}/customize.md`,
+					`${label} customization`
+				)
+			)
+			.find(Boolean);
 	if (customize) {
 		lines.push(`Start at ${customize}.`);
 	}
