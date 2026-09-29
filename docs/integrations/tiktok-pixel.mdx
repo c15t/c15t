@@ -22,15 +22,15 @@ export const scripts = [tiktokPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `pixelId` | Required | Pixel ID sent in the loader URL. |
-| `scriptSrc` | `https://analytics.tiktok.com/i18n/pixel/events.js` | Loader base URL override. The helper appends `?sdkid=<pixelId>&lib=ttq`. |
+| `pixelId` | Required | Pixel ID sent in the loader URL. The helper trims it. Empty or whitespace-only values throw. |
+| `scriptSrc` | `https://analytics.tiktok.com/i18n/pixel/events.js` | Loader base URL override. The helper appends `?sdkid=<pixelId>&lib=ttq`. A blank value falls back to the default. |
 
 ## Loading and revocation
 
 `tiktokPixel` uses the `marketing` category. Before marketing is allowed, c15t
 defines no `ttq` queue and loads nothing from TikTok. When marketing becomes
-allowed, the helper queues `ttq.grantConsent()` and `ttq.page()`, loads
-`events.js`, then calls `ttq.grantConsent()` again once the script has loaded.
+allowed, the helper sets up `ttq` the way TikTok's base code does, queues one
+`ttq.grantConsent()` and `ttq.page()`, then loads `events.js`.
 
 On revocation the helper keeps the pixel and calls `ttq.revokeConsent()`. If
 the visitor allows marketing again before the page reloads, it calls

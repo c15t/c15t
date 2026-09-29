@@ -32,10 +32,12 @@ unchanged; rebuilding it from booleans loses the policy and the stored record.
 
 ## Saving fails with 405 from /api/c15t
 
-The manifest route handlers answer `GET` only. If the provider's `hosted()`
-mode points at `/api/c15t`, saving a choice sends a `POST` there and fails.
-Point `hosted({ url })` at the backend URL, as the quickstart layout does.
-See [serve the manifest route](/docs/frameworks/sveltekit/rendering#serve-the-manifest-route).
+The provider's `hosted()` mode points at `/api/c15t`, but the route does not
+forward writes. Pass `proxy: true` to `createSvelteKitConsentRouteHandlers`
+and export `POST`, `PATCH`, `PUT`, `DELETE` and `OPTIONS` next to `GET` from
+the catch-all route. A route file that exports only `GET` still answers a
+save with `405`. See
+[save consent through your own origin](/docs/frameworks/sveltekit/rendering#save-consent-through-your-own-origin).
 
 ## The manifest route times out or calls itself
 

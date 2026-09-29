@@ -22,11 +22,11 @@ export const scripts = [redditPixel({ pixelId: 't2_YOUR_PIXEL_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `pixelId` | Required | Pixel ID passed to `rdt('init', ...)`. |
+| `pixelId` | Required | Pixel ID passed to `rdt('init', ...)`. The helper trims it. Empty or whitespace-only values throw. |
 | `trackPageVisit` | `true` | Queues `rdt('track', 'PageVisit')` after `init`. Set `false` to send page visits yourself. |
 | `initOptions` | None | Object passed as the third argument to `rdt('init', ...)`. It accepts Reddit's matching fields, such as `email` and `externalId`, `aam` for automatic advanced matching, `optOut`, and the Limited Data Use fields `dpm`, `dpcc` and `dprc`. |
 | `disableFirstPartyCookies` | None | When set, overrides `initOptions.disableFirstPartyCookies`. |
-| `scriptUrl` | `https://www.redditstatic.com/ads/pixel.js` | Loader URL override. |
+| `scriptUrl` | `https://www.redditstatic.com/ads/pixel.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation
 

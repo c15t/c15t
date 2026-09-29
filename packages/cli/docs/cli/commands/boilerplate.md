@@ -41,8 +41,9 @@ app without a router layout.
 ## Install the packages and connect the files
 
 Generation never installs packages. The result lists them under
-`data.dependencies`. Install each c15t package from the `alpha` dist-tag, for
-example for Vue:
+`data.dependencies`, with each c15t package pinned to the CLI's release line,
+and the first instruction gives the install command. From `@c15t/cli@alpha`,
+that is the `alpha` dist-tag, for example for Vue:
 
 | Package manager | Command                                                       |
 | :-------------- | :------------------------------------------------------------ |

@@ -22,7 +22,9 @@ to the alternatives it rules out.
 | React with Vite, or another single-page app | Browser resolves consent | [React](/docs/frameworks/react/quickstart) |
 | React Router framework mode, Remix, or another server-rendered React app | Browser resolves consent after hydration | [React rendering](/docs/frameworks/react/rendering#react-router-remix-and-other-server-rendered-apps) |
 | Nuxt with a Nuxt server | Nuxt module resolves consent on the server from a cached manifest | [Nuxt](/docs/frameworks/nuxt/quickstart) |
-| Nuxt on static hosting, or with `ssr: false` | Nuxt module, browser resolves consent from the manifest | [Nuxt static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting) |
+| Nuxt with prerendered or cached routes | Nuxt server for most pages, the browser on prerendered and cached routes | [Nuxt prerendered and cached routes](/docs/frameworks/nuxt/rendering#prerendered-and-cached-routes) |
+| Nuxt with `nuxt generate` on static hosting | Nuxt module, browser resolves consent from the manifest or `/init` | [Nuxt static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting) |
+| Nuxt with `ssr: false` | Nuxt module, browser resolves consent from the manifest | [Nuxt single-page app](/docs/frameworks/nuxt/rendering#build-a-single-page-app-with-ssr-false) |
 | Vue with Vite | Vue plugin, browser resolves consent | [Vue](/docs/frameworks/vue/quickstart) |
 | Vue rendered on the server without Nuxt | Not supported. Use Nuxt. | [Vue rendering](/docs/frameworks/vue/rendering#server-rendering-without-nuxt) |
 | Astro with static output | Browser resolves consent through the hosted backend | [Astro static output](/docs/frameworks/astro/rendering#static-output-with-hosted) |

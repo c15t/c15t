@@ -75,9 +75,9 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Headless](./docs/frameworks/nuxt/headless.md): Build your own consent banner and preference form in Nuxt with the auto-imported c15t composables instead of ConsentRoot.
 - [IAB TCF](./docs/frameworks/nuxt/iab.md): Show the IAB TCF banner and preference centre in Nuxt with the c15t Nuxt module when your Inth policy uses the IAB model.
 - [Quickstart](./docs/frameworks/nuxt/quickstart.md): Add c15t to a server-rendered Nuxt app with the Nuxt module, Inth, consent-gated scripts and a preferences link.
-- [Rendering and deployment](./docs/frameworks/nuxt/rendering.md): Choose the c15t Nuxt module setup for server rendering, static hosting, ssr false, prerendered pages and cached routes.
+- [Rendering and deployment](./docs/frameworks/nuxt/rendering.md): Choose the c15t Nuxt module setup for server rendering, prerendered and cached routes, nuxt generate on static hosting, and ssr false.
 - [Scripts and embeds](./docs/frameworks/nuxt/scripts.md): Load vendor scripts, gate iframes and block tracking requests by consent category in a Nuxt app with the c15t Nuxt module.
-- [Troubleshooting](./docs/frameworks/nuxt/troubleshooting.md): Fix common c15t Nuxt module problems, from a missing banner and scripts that never load to prerendered pages and static hosting.
+- [Troubleshooting](./docs/frameworks/nuxt/troubleshooting.md): Fix common c15t Nuxt module problems, from a missing banner and scripts that never load to returning banners and static hosting.
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): Render the c15t consent banner in a React app, choose its variant and position, and compose its parts.
 - [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
 - [ConsentDialogLink](./docs/frameworks/react/components/consent-dialog-link.md): Add a ConsentDialogLink to a React footer so visitors reopen the c15t preference center from your own text link, with asChild and rights data.
@@ -163,7 +163,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 - [Adobe Analytics](./docs/integrations/adobe-analytics.md): Load an Adobe Data Collection Tags property only after measurement consent with the c15t adobeAnalytics helper, and check its extensions in DevTools.
 - [Ahrefs Analytics](./docs/integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
-- [Amplitude](./docs/integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation.
+- [Amplitude](./docs/integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
 - [Custom integrations](./docs/integrations/building-integrations.md): Gate a vendor that has no @c15t/scripts helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
 - [Clear on revocation](./docs/integrations/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns when that category is denied, and check the deletion in DevTools.
 - [Clearbit](./docs/integrations/clearbit.md): Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.

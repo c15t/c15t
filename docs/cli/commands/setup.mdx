@@ -15,8 +15,10 @@ npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --apply --ski
 flag makes setup non-interactive and returns a read-only plan, even in a
 terminal. Add `--apply` or `--yes` to write files.
 
-Install `c15t@alpha` before applying. Setup adds missing packages without a
-version, which installs v2 from npm's default tag.
+Setup installs missing c15t packages from the CLI's release line. A prerelease
+CLI uses its dist-tag, so `@c15t/cli@alpha` installs `c15t@alpha`. A stable CLI
+uses its major version, such as `c15t@3`. Packages already in `package.json`
+stay as they are.
 
 For TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid and Astro, pass
 `--framework`. That selects [framework boilerplate](/docs/cli/commands/boilerplate),

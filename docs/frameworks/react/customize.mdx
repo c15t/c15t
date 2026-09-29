@@ -81,6 +81,11 @@ In a server-rendered app, such as React Router framework mode, render
 `ConsentTheme` in the root component so the `<style>` element is part of the
 server HTML. [Tokens and CSS](/docs/customization/tokens) lists every variable.
 
+`ConsentTheme` outranks a plain `:root` rule, wherever each one loads. If you
+use both, a variable set in both places takes the `ConsentTheme` value. Write
+your CSS overrides on `:root:root` to beat it, or move the values into the
+theme.
+
 ## Style the action buttons
 
 `consentActions` decides how each action looks. `default` applies to every

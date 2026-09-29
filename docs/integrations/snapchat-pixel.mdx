@@ -23,10 +23,10 @@ export const scripts = [snapchatPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `pixelId` | Required | Pixel ID passed to `snaptr('init', ...)`. |
+| `pixelId` | Required | Pixel ID passed to `snaptr('init', ...)`. The helper trims it. Empty or whitespace-only values throw. |
 | `initOptions` | None | Object passed as the third argument to `snaptr('init', ...)`, such as `user_email`. Pass user data only when your app has the permission it needs. |
 | `trackPageView` | `true` | Queues `snaptr('track', 'PAGE_VIEW')` after `init`. Set `false` to send page views yourself. |
-| `scriptUrl` | `https://sc-static.net/scevent.min.js` | Loader URL override. |
+| `scriptUrl` | `https://sc-static.net/scevent.min.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation
 

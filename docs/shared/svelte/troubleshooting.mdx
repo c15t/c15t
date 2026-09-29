@@ -30,10 +30,13 @@ of `@c15t/svelte`; two copies create two separate contexts.
 
 The provider's `theme` prop applies slot styles and `consentActions` only.
 Colors, radius, typography and other tokens in `theme` are not turned into CSS
-in the browser. Set the `--c15t-*` variables in a stylesheet that loads after
-`@c15t/svelte/styles.css`, or render `generateThemeCSS()` output on the
-server. The customize page shows both. If your values still lose, inspect the
-element: a rule with the same selector that loads later wins.
+in the browser, and in development the provider logs a warning about it. Set
+the `--c15t-*` variables in a stylesheet that loads after
+`@c15t/svelte/styles.css`, or render `generateThemeCSS()` output as
+`<style id="c15t-theme">`. The customize page shows both. If your values still
+lose, inspect the element. A generated theme uses `:root:root`, so it beats
+your own `:root` rule; write yours on `:root:root` too, or move the value into
+the theme.
 
 ## The dialog or banner has no styles
 

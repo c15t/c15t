@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Fix common c15t Nuxt module problems, from a missing banner and scripts that never load to prerendered pages and static hosting.
+description: Fix common c15t Nuxt module problems, from a missing banner and scripts that never load to returning banners and static hosting.
 group: frameworks
 ---
 
@@ -23,8 +23,10 @@ Check, in order:
 ## The banner is not in the server HTML
 
 Only request-time rendering with `manifest: 'server'`, or with `manifest`
-unset, puts the banner in the HTML. With `ssr: false` it appears after the
-manifest loads.
+unset, puts the banner in the HTML. Prerendered routes, routes with a
+`prerender`, `swr`, `isr` or `cache` rule, `nuxt generate` output and
+`ssr: false` send the same HTML to every visitor, so the banner appears after
+the browser resolves the policy.
 
 With server rendering, the render waits at most `timeoutMs` for the policy,
 500 milliseconds by default. A slower backend renders the page without consent
@@ -34,12 +36,17 @@ slow.
 
 ## The banner comes back after a visitor rejects
 
-The page was prerendered or served from a cache. The Nuxt payload then carries
-the choice from build time or from another request, and the browser uses it
-instead of the visitor's cookie. Check `routeRules` for `prerender`, `swr`,
-`isr` or `cache`, and whether you build with `nuxt generate` while `ssr` is
-on. Render those pages per request, or build with `ssr: false`. See
-[rendering and deployment](/docs/frameworks/nuxt/rendering#why-prerendered-and-cached-pages-are-not-supported).
+- The save failed. Filter the Network tab by `subjects` and check that the
+  `POST` to your backend returns 2xx. A CORS error means the site's origin is
+  missing from your Inth project's trusted origins.
+- `storageConfig.storageKey` differs between the module options and
+  `app.config.ts`, so the choice is written under one name and read under
+  another.
+- A cache in front of Nuxt, such as a CDN, stores pages that Nitro renders per
+  request. The module only recognizes Nuxt's own prerendering and `prerender`,
+  `swr`, `isr` or `cache` route rules. Use a route rule for those pages, or
+  have the CDN skip HTML. See
+  [prerendered and cached routes](/docs/frameworks/nuxt/rendering#prerendered-and-cached-routes).
 
 ## Scripts never load, or load before consent
 
@@ -53,7 +60,7 @@ on. Render those pages per request, or build with `ssr: false`. See
 ## Static hosting returns 404 for /api/c15t/manifest
 
 A static host has no Nuxt server routes. Use `manifest: 'client'` with an
-absolute `manifestURL` and `ssr: false`, as in
+absolute `manifestURL`, or leave `manifest` unset, as in
 [deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting).
 If the browser reports a CORS error for the manifest, add your site's origin
 to the Inth project's trusted origins.
@@ -63,23 +70,6 @@ to the Inth project's trusted origins.
 In `manifest: 'client'` mode the browser has no request location, so it
 resolves the policy for an unknown location. Set `geoURL` to an endpoint that
 returns the visitor's `country` and `region`.
-
-## The server throws "does not provide an export named 'default'"
-
-If the built server fails on its first render with this error for
-`estree-walker`, bundle that package into the server build:
-
-{/* example: fragment */}
-
-```ts title="nuxt.config.ts"
-export default defineNuxtConfig({
-  vite: { ssr: { noExternal: ['estree-walker'] } },
-});
-```
-
-The CommonJS build of Vue's server renderer requires `estree-walker`. When the
-server build leaves that package external, Node loads its ES module build,
-which has no default export.
 
 ## A composable throws "Kernel not found"
 

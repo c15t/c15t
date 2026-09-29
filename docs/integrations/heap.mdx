@@ -37,7 +37,9 @@ replays the queued calls once it is ready.
 
 On revocation the helper removes the config script element and calls no Heap
 API. It does not call `heap.stopTracking`, so heap.js keeps capturing until the
-page unloads. If you set `reloadOnConsentRevoked: false`, call
+page unloads. If the visitor allows measurement again before the page reloads,
+the helper keeps the methods of the running heap.js instead of replacing them
+with queue stubs. If you set `reloadOnConsentRevoked: false`, call
 `window.heap.stopTracking()` from the `onConsentChange` callback of a
 callback-only script. See
 [custom integrations](/docs/integrations/building-integrations).

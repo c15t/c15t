@@ -8,9 +8,11 @@ group: frameworks
 
 This guide is for a Nuxt app that runs a Nuxt server, built with `nuxt build`
 and deployed to Node or a serverless preset. The server resolves each
-visitor's policy, so the banner is part of the first HTML. For static hosting
-or `ssr: false`, follow
-[static and SPA output](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting)
+visitor's policy, so the banner is part of the first HTML. Prerendered routes
+and routes cached with `swr`, `isr` or `cache` rules work with the same setup;
+the browser resolves the visitor on those routes after hydration. For
+`nuxt generate` on a static host, or `ssr: false`, follow
+[deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting)
 instead. [Choose your setup](/docs/concepts/choose-your-setup) compares every
 option.
 
@@ -125,8 +127,8 @@ browser's DevTools on the Network tab, under a policy that asks for consent.
 
 ## Next steps
 
-- [Rendering and deployment](/docs/frameworks/nuxt/rendering) covers static
-  hosting, `ssr: false`, prerendering and cached routes.
+- [Rendering and deployment](/docs/frameworks/nuxt/rendering) covers
+  prerendered and cached routes, `nuxt generate` and `ssr: false`.
 - [Scripts and embeds](/docs/frameworks/nuxt/scripts) covers the iframe
   blocker, the network blocker and revocation.
 - [Customize](/docs/frameworks/nuxt/customize) changes colors, layout and copy.

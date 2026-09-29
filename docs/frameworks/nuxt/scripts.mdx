@@ -59,7 +59,8 @@ category is allowed and removes it when it is withdrawn.
 ```
 
 The iframe element stays on the page while blocked, empty. Use `ConsentGate`
-when you want a placeholder with a way to open preferences.
+when you want a placeholder with a way to open preferences. To turn the
+blocker off, set `iframeBlocker: false` in the module options.
 
 ## Block tracking requests
 
@@ -80,8 +81,24 @@ export default defineNuxtConfig({
 ```
 
 A rule's `domain` also matches its subdomains. Add `pathIncludes` or `methods`
-to narrow it. The Nuxt module does not accept the `onRequestBlocked` callback,
-because module options are serialized.
+to narrow it.
+
+Module options reach the browser as JSON, so the `onRequestBlocked` callback
+goes under the `c15t` key of `app/app.config.ts`. Rules you set there are
+added to the rules from `nuxt.config.ts`:
+
+{/* example: fragment */}
+
+```ts title="app/app.config.ts"
+export default defineAppConfig({
+  c15t: {
+    networkBlocker: {
+      rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
+      onRequestBlocked: (info) => console.info('Blocked', info.url),
+    },
+  },
+});
+```
 
 ## When a visitor withdraws consent
 
@@ -96,9 +113,13 @@ a category when it is withdrawn. It is plain data, so it can go in
 
 ## Content Security Policy
 
-The Nuxt module's options have no `nonce`. Allow each vendor's script origin
-in your `script-src` directive, and your backend or `manifestURL` origin in
-`connect-src`.
+Allow each vendor's script origin in your `script-src` directive, and your
+backend or `manifestURL` origin in `connect-src`.
+
+The module's `nonce` option adds a nonce to every script the loader creates.
+Module options and `app.config.ts` are fixed when the app builds, so every
+response gets the same value. A nonce only protects a page when it changes on
+each response, so prefer the origin allowlist.
 
 ## Verify gating
 

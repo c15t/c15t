@@ -395,9 +395,11 @@ awaiting or streaming prefetch results.
 
 ## Static manifest helpers
 
-`c15t/next/static` exports `loadStaticManifest`, `createStaticManifestModule`
-and `createStaticConsentResolver` for resolving consent from a manifest
-bundled at build time, for example in an `output: 'export'` site.
+`c15t/next/static` exports `loadStaticManifest`, `createStaticManifestModule`,
+`createStaticConsentResolver` and `resolveUnknownLocationInit` for resolving
+consent from a manifest bundled at build time, for example in an
+`output: 'export'` site. The two resolvers come from `c15t/static`, which
+`c15t/tanstack-start/static` re-exports too.
 
 - `createStaticManifestModule({ manifestURL })` fetches a manifest and returns
   TypeScript source for a module you write to disk and import.
@@ -406,7 +408,16 @@ bundled at build time, for example in an `output: 'export'` site.
   `initial` result and a `resolved` promise. Without `geo`, or when a `geoURL`
   returns no location, it uses the manifest's unknown-location policy: its
   fallback rule, else its default rule. That is the same policy the server
-  helpers apply when a request has no location headers.
+  helpers apply when a request has no location headers. Rules scoped to a
+  country or region never apply to an unknown location.
+- `resolveUnknownLocationInit(manifest, { language, gpc })` returns that
+  unknown-location result on its own. The deprecated
+  `resolveStrictestDefaultInit` is the same function under its old name.
+
+A manifest with neither a fallback rule nor a default rule cannot resolve an
+unknown location. The resolvers then return a failed result with the reason
+`insufficient-inputs`, and the client applies its safe fallback. Give your
+policy a fallback rule before you bundle it.
 
 A generated manifest contains public policy, not a visitor's choice. The
 helpers do not mount a provider, persist choices or send consent to the

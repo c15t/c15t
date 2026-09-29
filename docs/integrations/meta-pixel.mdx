@@ -24,11 +24,11 @@ export const scripts = [metaPixel({ pixelId: '123456789012345' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `pixelId` | Required | Pixel ID passed to `fbq('init', ...)`. |
+| `pixelId` | Required | Pixel ID passed to `fbq('init', ...)`. The helper trims it. Empty or whitespace-only values throw. |
 | `initOptions` | None | Object passed as the third argument to `fbq('init', ...)`. |
 | `trackPageView` | `true` | Queues `fbq('track', 'PageView')` after `init`. Set `false` to send page views yourself. |
 | `dataProcessingOptions` | None | `{ options, country?, state? }`. Queues `fbq('dataProcessingOptions', ...)` before `init`, for example `{ options: ['LDU'], country: 1, state: 1000 }` for Limited Data Use in California. |
-| `scriptSrc` | `https://connect.facebook.net/en_US/fbevents.js` | Loader URL override. |
+| `scriptSrc` | `https://connect.facebook.net/en_US/fbevents.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation
 
@@ -58,8 +58,10 @@ export function trackPurchase(marketingAllowed: boolean, value: number) {
 Pass the current marketing permission from your framework, for example
 `useConsent('marketing')` in React. `@c15t/scripts/meta-pixel` also exports
 typed wrappers: `metaPixelEvent`, `metaPixelCustomEvent`,
-`metaPixelSingleEvent` and `metaPixelSingleCustomEvent`. They call
-`window.fbq` without either check, so apply the same guard before calling them.
+`metaPixelSingleEvent` and `metaPixelSingleCustomEvent`. They do nothing while
+`window.fbq` is undefined, before the pixel's first setup. They do not check
+permission, and after revocation `window.fbq` still exists, so apply the
+permission check before calling them.
 Their last argument accepts an event ID string for Conversions API
 deduplication.
 

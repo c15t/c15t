@@ -99,10 +99,11 @@ c15t({
 The server picks the visitor's language from `Accept-Language`. Set
 `i18n.locale` to force one, or `detectLanguage: false` to use the default.
 
-A group you pass, such as `cookieBanner` or `common`, replaces the stock group
-for that language rather than merging with it. Include every key of each group
-you change. [Copy and translations](/docs/customization/translations) covers
-the message groups.
+`i18n.messages` merges key by key with the stock translations for that
+language, so pass only the keys you change. Setting `common.acceptAll` keeps
+every other label in `common`.
+[Copy and translations](/docs/customization/translations) covers the message
+groups.
 
 For one banner, pass the `title`, `description`, `acceptButtonText`,
 `rejectButtonText`, `customizeButtonText` or `dismissButtonText` props
@@ -180,14 +181,14 @@ padding and borders. Without Tailwind the extra layers stay empty.
 To control the order yourself, for example from a global stylesheet that names
 its own layers, set `styles: false` and import the files after your layer
 order statement. With `styles: false`, c15t links no dialog stylesheet either,
-so import the dialog rules too. They are in `@c15t/ui`, which the `c15t` package
-does not export, so install `@c15t/ui@alpha` as well:
+so import the dialog rules too. The Svelte dialog, the default `ui`, also needs
+the primitives stylesheet:
 
 ```css title="src/styles/global.css"
 @import 'c15t/astro/styles.css';
-@import '@c15t/ui/styles/dialog.css';
+@import 'c15t/astro/dialog.css';
 /* Only with ui: 'svelte'. */
-@import '@c15t/ui/styles/primitives.css';
+@import 'c15t/astro/primitives.css';
 /* Only when the integration sets iab. */
 @import 'c15t/astro/iab/styles.css';
 ```

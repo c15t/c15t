@@ -24,10 +24,10 @@ export const scripts = [pinterestTag({ tagId: '2613654212508' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `tagId` | Required | Tag ID passed to `pintrk('load', ...)`. |
+| `tagId` | Required | Tag ID passed to `pintrk('load', ...)`. The helper trims it. Empty or whitespace-only values throw. |
 | `loadOptions` | None | Object passed as the third argument to `pintrk('load', ...)`, such as `em` or `external_id` for enhanced match. Pass user data only when your app has the permission it needs. |
 | `trackPageVisit` | `true` | Queues `pintrk('page')` after `load`. Set `false` to send page visits yourself. |
-| `scriptUrl` | `https://s.pinimg.com/ct/core.js` | Loader URL override. |
+| `scriptUrl` | `https://s.pinimg.com/ct/core.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation
 

@@ -31,11 +31,11 @@ export const scripts = [
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `clientId` | Required | Set as `data-client-id`. The helper does not validate it. |
+| `clientId` | Required | Set as `data-client-id`. The helper trims it. Empty or whitespace-only values throw. |
 | `configWhenGranted` | Required | Object set as `window.databuddyConfig` while measurement is allowed. |
 | `configWhenDenied` | Required | Object set as `window.databuddyConfig` while measurement is denied. |
 | `apiUrl` | `https://basket.databuddy.cc` | Collection endpoint, set as `data-api-url`. |
-| `scriptUrl` | `https://cdn.databuddy.cc/databuddy.js` | Loader URL override. |
+| `scriptUrl` | `https://cdn.databuddy.cc/databuddy.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation
 

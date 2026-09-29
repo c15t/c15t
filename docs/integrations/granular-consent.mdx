@@ -43,8 +43,8 @@ export const vendors: Vendor[] = [
 ```
 
 The `id` must match the `vendor` slug on the script. Every `@c15t/scripts`
-helper except `cloudflareZaraz` sets `vendor` to its script ID, so `metaPixel()` is `meta-pixel` and
-`gtag()` is `gtag`. Each vendor guide names its slug.
+helper sets `vendor` to its script ID, so `metaPixel()` is `meta-pixel`,
+`gtag()` is `gtag` and `cloudflareZaraz()` is `cloudflare-zaraz`. Each vendor guide names its slug.
 
 | Field | Required | Behavior |
 | --- | --- | --- |
@@ -82,8 +82,8 @@ Put the vendor slug on each target:
 An iframe with `data-vendor` and no `data-category` is gated on the vendor
 alone. A script with `alwaysLoad` still loads when its vendor is off; its
 callbacks receive `info.vendor.granted` so the SDK can stop itself. The Google
-Consent Mode and RudderStack helpers do this for you. While their vendor is
-off, they send every optional category as denied.
+Consent Mode, RudderStack and Cloudflare Zaraz helpers do this for you. While
+their vendor is off, they send every optional category as denied.
 
 ## What the preference dialog shows
 

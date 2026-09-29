@@ -265,7 +265,7 @@ check it there too. See
 
 | Option           | Default         | Behavior                                                                                                                                               |
 | ---------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`             | Required        | Tag ID passed to `gtag('config', ...)` and the loader URL.                                                                                             |
+| `id`             | Required        | Tag ID passed to `gtag('config', ...)` and the loader URL. The helper trims it. Empty or whitespace-only values throw.                                 |
 | `category`       | Required        | `measurement` for Analytics, `marketing` for Ads and Floodlight. It sets the script's permission, which callbacks receive, but does not delay loading. |
 | `config`         | None            | Parameters passed as the third argument to `gtag('config', id, config)`.                                                                               |
 | `consentMapping` | The table below | Replaces the category-to-Google mapping.                                                                                                               |

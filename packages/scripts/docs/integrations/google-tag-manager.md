@@ -266,7 +266,7 @@ check it there too. See
 
 | Option            | Default            | Behavior                                                                                                                 |
 | ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `id`              | Required           | Container ID, for example `GTM-1234XXX`.                                                                                 |
+| `id`              | Required           | Container ID, for example `GTM-1234XXX`. The helper trims it. Empty or whitespace-only values throw.                     |
 | `dataLayer`       | `'dataLayer'`      | Queue name. A custom name adds `&l=<name>` to the container URL and renames the helper's queue function to `<name>Gtag`. |
 | `updateEventName` | `'consent-update'` | `dataLayer` event pushed after every consent update. Use it as a GTM trigger.                                            |
 | `consentMapping`  | The table below    | Replaces the category-to-Google mapping.                                                                                 |

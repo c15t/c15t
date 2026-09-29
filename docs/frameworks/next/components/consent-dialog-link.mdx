@@ -41,6 +41,10 @@ In the Pages Router, render it from `pages/_app.tsx` inside `Consent`, next to
 renders a `button`, so the CSS for `.footer-link` should reset button chrome
 if your footer styles target anchors only.
 
+`c15t/next/components/consent-dialog-link` exports `ConsentDialogLink` and
+nothing else. Import from that path when a module needs only the link, so it
+does not load the rest of the adapter.
+
 To reuse an existing link component, pass `asChild`:
 
 ```tsx

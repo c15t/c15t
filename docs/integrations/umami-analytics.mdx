@@ -27,7 +27,7 @@ export const scripts = [umamiAnalytics({ websiteId: 'YOUR_WEBSITE_ID' })];
 | `websiteId` | Required | Set as `data-website-id`. Empty or whitespace-only values throw. |
 | `hostUrl` | None | Host that receives events, set as `data-host-url`. |
 | `autoTrack` | None | `false` sets `data-auto-track="false"` and stops automatic tracking. |
-| `domains` | None | Domains to track, set as `data-domains`. Pass a comma-separated string. The helper writes an array as a JSON array, not a comma-separated list. |
+| `domains` | None | Domains to track, set as `data-domains`. Pass a comma-separated string or an array; the helper joins an array with commas. |
 | `tag` | None | Tag attached to events, set as `data-tag`. |
 | `beforeSend` | None | Name of a global function, set as `data-before-send`. Function values are not supported. |
 | `scriptUrl` | `https://cloud.umami.is/script.js` | Loader URL override. |

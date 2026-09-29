@@ -71,8 +71,13 @@ once.
 
 `cloudflareZaraz` returns a callback-only script with the `necessary` category
 and `alwaysLoad`, so the bridge runs for every visitor. That does not make the
-tools behind it necessary. The bridge declares no c15t vendor; control each
-tool through its Zaraz purpose.
+tools behind it necessary. Control each tool through its Zaraz purpose.
+
+The bridge's vendor slug is `cloudflare-zaraz`. Declare a vendor with that
+`id` to give visitors a switch for Zaraz in the preference dialog. While a
+visitor has it switched off, the bridge denies every purpose mapped to an
+optional category, whatever the categories allow. See
+[let visitors turn off one vendor](/docs/integrations/granular-consent).
 
 When the Zaraz consent API is ready, the bridge reads `zaraz.consent.getAll()`
 and sets each returned purpose to `true` only if its mapped category is

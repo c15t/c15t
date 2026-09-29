@@ -65,8 +65,25 @@ replaces it with the API and replays the calls in order. Always push onto the
 existing array. `window.c15t = [[...]]` throws away calls that other scripts
 queued earlier, including the DevTools tag's.
 
-Queue only `config`, `on` and `onInit`. Other methods need a running client
-and throw during the replay, which stops the calls queued after them.
+### Which calls you can queue
+
+The bundle runs each queued call at the point it can work:
+
+| Queued method | When it runs |
+| --- | --- |
+| `config`, `init`, `on`, `onInit` | In place, in queue order, as the bundle loads. |
+| `subscribe` | Once the client exists. |
+| `acceptAll`, `rejectAll`, `save`, `dismissNotice`, `saveIAB`, `showBanner`, `openDialog`, `closeDialog`, `setLanguage`, `identify`, `mountUI` | In queue order, once the policy has resolved. A queued `openDialog` therefore stays open instead of being replaced by the banner. |
+| Any other method, such as `getSnapshot`, `has`, `hasConsented`, `ready` or `dispose`, and names c15t does not know | Skipped, with a console warning. Call them from `onInit` or after `ready()`. |
+
+A queued call that throws is reported with `console.error`, and the calls
+after it still run. With `data-manual`, the client and policy wait for
+`c15t.init()`, and so do the calls that need them.
+
+`c15t.push([...])` keeps working after the bundle has loaded. It runs each
+call by the same rules as a call queued before load, so a snippet written as
+`window.c15t = window.c15t || []; c15t.push([...])` works whether it runs
+before or after the tag.
 
 Options merge in this order, with later ones winning:
 
@@ -142,6 +159,7 @@ so wait for `c15t.ready()` or a `ready` listener before you read them.
 | `ready()` | A promise that resolves with the snapshot once the policy has resolved. |
 | `on(event, listener)` | Listen for an event. Returns a function that removes the listener. |
 | `onInit(listener)` | Run a function with the client once it exists. |
+| `push(...calls)` | Run `[method, ...args]` calls by the [queue rules](#which-calls-you-can-queue). Returns the number of calls. |
 | `has(category)` | Whether a category is allowed right now. Use this to gate code. |
 | `hasConsented()` | Whether the visitor has recorded a choice. |
 | `getSnapshot()`, `subscribe(listener)` | Read the full consent state, or follow every change. |
