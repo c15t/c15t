@@ -69,6 +69,19 @@ const config: StorybookConfig = {
 						find: /^@c15t\/vue$/u,
 						replacement: vuePackage('index.ts'),
 					},
+					// Docs recipes import the umbrella paths readers install.
+					{
+						find: /^c15t\/vue\/vue-plugin$/u,
+						replacement: vuePackage('index.ts'),
+					},
+					{
+						find: /^c15t\/vue\/runtime\/components\/consent-banner\.vue$/u,
+						replacement: vuePackage('runtime', 'components', 'prompt.vue'),
+					},
+					{
+						find: /^c15t\/vue\/runtime\/components\/consent-manager\.vue$/u,
+						replacement: vuePackage('runtime', 'components', 'manager.vue'),
+					},
 					// @c15t/ui — resolve all subpath imports to source
 					{
 						find: /^@c15t\/ui\/primitives\/data-state$/u,
