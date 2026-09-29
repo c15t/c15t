@@ -1,0 +1,105 @@
+{/* Shared by docs/frameworks/svelte/getters.mdx and docs/frameworks/sveltekit/getters.mdx. */}
+
+## Read consent in a component
+
+Svelte has no consent hooks or stores. Call a context getter from
+`@c15t/svelte` at the top level of a component's `<script>`, inside
+`ConsentManagerProvider`, and read its properties in markup or in `$derived`.
+The properties read the provider's `$state`, so the component updates when
+consent changes.
+
+{/* example: fragment */}
+
+```svelte
+<script lang="ts">
+  import { getConsentManager } from '@c15t/svelte';
+
+  const consent = getConsentManager();
+  const measurementAllowed = $derived(consent.has('measurement'));
+</script>
+
+{#if measurementAllowed}
+  <p>Analytics is on.</p>
+{/if}
+```
+
+Like any Svelte `getContext` call, a getter throws when you call it inside an
+event handler, an effect, or a component outside the provider.
+
+| Getter | Returns |
+| --- | --- |
+| `getConsentManager()` | The reactive consent state and the actions on this page. Start here. |
+| `getHeadlessConsent()` | Banner and dialog visibility, the actions the policy allows, and `performAction()`. See the headless page. |
+| `getConsentKernel()` | The underlying kernel, for `subscribe()` and low-level commands. |
+| `getSnapshot()` | The kernel snapshot at the moment you call it. It does not update; read `getConsentManager()` properties for live values. |
+| `getIAB()` | IAB TCF state and actions at the moment you call it, or `null`. Read `getConsentManager().iab` for live values. |
+
+The same getters are exported from `@c15t/svelte/headless`.
+
+## Permission or recorded choice
+
+A permission answers "may this run now?" A recorded choice answers "what did
+the visitor decide?" Under an opt-out policy a category can be allowed before
+the visitor has chosen anything, so never treat a permission as consent the
+visitor gave. [How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+explains the difference.
+
+| Property | Answers |
+| --- | --- |
+| `consent.effectivePermissions.measurement` | Whether measurement may run now. |
+| `consent.has('measurement')` | The same, and it accepts conditions such as `{ and: ['measurement', 'marketing'] }` or `{ or: [...] }`. |
+| `consent.explicitChoice` | The visitor's recorded choice, or `null` before they choose. `explicitChoice.categories.measurement.value` is their answer for one category. |
+| `consent.noticeDismissal` | Whether a notice was dismissed. Dismissing a notice is not consent. |
+| `consent.privacySignals.gpc.detected` | Whether the browser sent Global Privacy Control. |
+| `consent.policyRule` | The resolved policy: `model`, `prompt`, `scope` and `rights`. |
+| `consent.hasPolicy` | Whether a policy has resolved. Optional categories stay denied until it does. |
+| `consent.activeUI` | `'banner'`, `'dialog'` or `'none'`. |
+| `consent.location` | The country and region the policy was resolved for. |
+
+Load scripts and render optional features from permissions. Use the recorded
+choice only to show what the visitor decided or to report on it.
+
+## Open preferences and save choices
+
+{/* example: fragment */}
+
+```svelte
+<script lang="ts">
+  import { getConsentManager } from '@c15t/svelte';
+
+  const consent = getConsentManager();
+
+  const allowAnalytics = async () => {
+    consent.setConsent('measurement', true);
+    await consent.saveConsents('custom');
+  };
+</script>
+
+<button type="button" onclick={() => consent.setActiveUI('dialog')}>
+  Privacy settings
+</button>
+<button type="button" onclick={allowAnalytics}>Allow analytics</button>
+```
+
+| Method | Effect |
+| --- | --- |
+| `setActiveUI('dialog')` | Opens the preference dialog. `'banner'` shows the banner, `'none'` closes both. |
+| `setConsent(category, value)` | Changes the value in the unsaved draft the dialog shows. Nothing is recorded yet. |
+| `saveConsents('custom')` | Records the draft. |
+| `saveConsents('all')` | Records every category in scope as allowed. |
+| `saveConsents('necessary')` | Records only `necessary`, rejecting the rest. |
+| `dismissNotice()` | Records that the visitor dismissed a notice. |
+| `setLanguage(code)` | Switches the UI language and fetches translations again. |
+| `subscribeToConsentChanges(listener)` | Calls `listener` with the permissions after each change. Returns an unsubscribe function. |
+
+A save updates permissions in the same task, so gated scripts and
+`ConsentGate` react before the backend request finishes. A failed request is
+kept and retried; it does not undo the choice. If a save withdraws a category
+that was granted, the provider reloads the page by default so code that
+already ran is gone. Set `reloadOnConsentRevoked: false` on the provider to
+handle that yourself.
+
+To clear a stored choice while testing, use the DevTools panel. In code,
+`getConsentKernel()` gives access to the kernel's commands and `subscribe()`;
+see [consent state](/docs/concepts/consent-state) for what each command
+changes.

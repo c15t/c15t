@@ -26,7 +26,8 @@ to the alternatives it rules out.
 | Astro with static output | Browser resolves consent through the hosted backend | [Astro static output](/docs/frameworks/astro/rendering#static-output-with-hosted) |
 | Astro with server output and an adapter | Middleware resolves consent from a cached manifest | [Astro server output](/docs/frameworks/astro/rendering#server-output-with-manifest) |
 | Svelte with Vite | Svelte provider, browser resolves consent | [Svelte](/docs/frameworks/svelte/quickstart) |
-| SvelteKit | Root layout load resolves consent on the server | [SvelteKit](/docs/frameworks/sveltekit/quickstart) |
+| SvelteKit with a server | Root layout load resolves consent on the server | [SvelteKit](/docs/frameworks/sveltekit/quickstart) |
+| SvelteKit with `adapter-static`, prerendered pages or SPA mode | Browser resolves consent | [SvelteKit rendering](/docs/frameworks/sveltekit/rendering#build-a-static-site) |
 | Plain HTML, a CMS, a page builder, or a static site generator such as Hugo or Eleventy | One script tag, stock banner included | [HTML](/docs/frameworks/html/quickstart) |
 | JavaScript with a bundler and no UI framework | `@c15t/browser` module, stock banner included | [JavaScript](/docs/frameworks/javascript/quickstart) |
 | Your own UI, or a framework without an adapter such as Solid | Headless runtime | [JavaScript headless](/docs/frameworks/javascript/headless) |

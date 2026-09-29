@@ -201,11 +201,12 @@ provider.
 
     ```svelte title="src/routes/+layout.svelte"
     <script lang="ts">
+      import { env } from '$env/dynamic/public';
       import { ConsentManagerProvider, hosted } from '@c15t/svelte';
       import { scripts } from '../consent-scripts';
 
       let { children, data } = $props();
-      const mode = hosted({ url: data.backendURL });
+      const mode = hosted({ url: env.PUBLIC_C15T_BACKEND_URL });
     </script>
 
     <ConsentManagerProvider {mode} {scripts} prefetch={data.prefetch}>
@@ -214,9 +215,9 @@ provider.
     </ConsentManagerProvider>
     ```
 
-    Import vendor helpers in the layout component, not in `+layout.server.ts`.
-    For static hosting, keep your browser-only `mode` setup and omit request
-    prefetch; the `scripts` prop stays the same. If you pass an externally owned
+    Import vendor helpers in the layout component, not in `+layout.server.ts`:
+    a server load cannot send functions to the browser. Prerendered, static and
+    SPA-mode pages use the same `scripts` prop. If you pass an externally owned
     `runtime` to the provider, register scripts when creating that runtime instead.
   </Tab>
 

@@ -35,5 +35,7 @@ runs these examples with a fixture backend and intercepted vendor requests:
 EXAMPLE_TARGET=svelte bun run --cwd examples/shared test
 ```
 
-`src/scripts.ts` contains the vendor configuration. Framework setup stays in
-this example's source files so documentation can use the same code.
+The Svelte docs publish marked regions of `src/App.svelte`, `src/scripts.ts`,
+`src/consent-theme.css` and `.env.example`, so keep those files copyable.
+`src/ExamplePage.svelte` and `src/main.ts` hold the demo content, DevTools and
+the Branded switch, which loads `src/consent-theme.css`.

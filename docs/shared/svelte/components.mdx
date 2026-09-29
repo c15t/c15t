@@ -1,0 +1,170 @@
+{/* Shared by docs/frameworks/svelte/components.mdx and docs/frameworks/sveltekit/components.mdx. */}
+
+## Where the components come from
+
+Every component on this page is exported from `@c15t/svelte`. Render them
+inside `ConsentManagerProvider`; a component outside it throws
+`c15t: no v3 consent context`. Load `@c15t/svelte/styles.css` once for the
+stock appearance. It already contains the dialog and primitive rules, so you
+do not import any other c15t stylesheet unless you use IAB TCF.
+
+Every consent surface stays hidden until a policy resolves for the visitor,
+and again when the resolved policy asks for no prompt and grants no
+preference rights. A missing banner is usually a policy result, not a
+rendering bug. See [policies](/docs/concepts/policies#why-the-banner-may-be-absent).
+
+## ConsentManagerProvider
+
+`ConsentManagerProvider` creates the consent runtime, starts it when the
+component mounts in the browser, and disposes it when the component unmounts.
+It renders no markup of its own. Mount one provider around the part of the app
+that shows consent UI and keep it mounted across navigation.
+
+Pass options as top-level props or inside `options`. When both set the same
+option, the top-level prop wins.
+
+| Prop | Type | Purpose |
+| --- | --- | --- |
+| `mode` | `hosted()`, `offline()` or `custom()` result | Required. Where policies come from and where consent is saved. Set once; remount the provider to change it. |
+| `prefetch` | `ConsentState` | Server-resolved state from `loadConsent` or `resolveConsent`. SvelteKit only. |
+| `scripts` | `Script[]` | Vendor scripts that load when their category is allowed. See the scripts page. |
+| `theme` | `Theme` | Slot styles and `consentActions`. Design tokens in `theme` are not applied in the browser. |
+| `presentation` | `ConsentPresentation` | Banner and dialog shape, position, action layout and blocking. |
+| `i18n` | `Partial<I18nConfig>` | Copy and locales merged over the bundled translations. |
+| `legalLinks` | `LegalLinks` | Privacy policy and terms links in the banner and dialog footers. |
+| `consentCategories` | `AllConsentNames[]` | Categories to show, within the policy's scope. |
+| `networkBlocker` | options or `false` | Blocks matching `fetch` and XHR requests until their category is allowed. |
+| `iframeBlocker` | options or `false` | Gates iframes that carry `data-category`. On by default. |
+| `iab` | `ProviderIABOptions` or `false` | IAB TCF settings. See the IAB TCF page. |
+| `reloadOnConsentRevoked` | `boolean` | Reload the page after a visitor withdraws a granted category. Default `true`. |
+| `preloadDialog` | `'idle'` or `'intent'` | When `ConsentDialog` starts loading before its first open. Default `'idle'`. |
+| `colorScheme` | `'light'`, `'dark'`, `'system'` or `null` | Toggles the dark token set on `<html>`. |
+| `noStyle`, `disableAnimation`, `scrollLock`, `trapFocus` | `boolean` | Defaults for every component under the provider. |
+| `user`, `overrides`, `callbacks`, `storageConfig`, `enabled` | see types | Identity, forced location or language, lifecycle callbacks, storage names, and a switch that grants everything and hides all UI. |
+| `runtime` | `ConsentRuntime` | A runtime you created with `createConsentRuntime()`. The provider neither starts nor disposes it. |
+
+The provider accepts every `ConsentRuntimeOptions` field from
+`@c15t/core/runtime` except `pkg` and `createIAB`. The `ConsentManagerOptions`
+type lists them.
+
+## ConsentBanner
+
+`ConsentBanner` shows the first-layer prompt when the policy asks for one. It
+takes flat props; there are no child components to compose.
+
+| Prop | Purpose |
+| --- | --- |
+| `title`, `description` | Replace the translated heading and body. |
+| `acceptButtonText`, `rejectButtonText`, `customizeButtonText`, `dismissButtonText` | Replace one button label. Use `i18n` for site-wide copy. |
+| `variant` | `floating`, `bar`, `widget` or `wall`. A notice defaults to `bar`, a choice prompt to `floating`. |
+| `position` | Where the banner sits. An invalid position for the variant falls back to its default. |
+| `blocking` | Backdrop, scroll lock, focus trap and no dismissal from outside, as one setting. |
+| `layout` | Button order and grouping, such as `[['reject', 'accept'], 'customize']`. The policy can still require or reorder actions. |
+| `primaryButton` | Which action gets the primary style. |
+| `legalLinks` | Which configured legal links to show, or `null` for none. |
+| `hideBranding` | Hide the "Secured by" tag. |
+| `models` | Policy models this banner renders for. Default `['opt-in', 'opt-out', 'iab']`. |
+| `noStyle`, `disableAnimation`, `scrollLock`, `trapFocus`, `class` | Per-banner overrides of the provider defaults. |
+
+The root element carries `data-testid="consent-banner-root"` and the
+`data-prompt`, `data-model`, `data-variant`, `data-position` and
+`data-blocking` attributes for CSS.
+
+## ConsentDialog
+
+`ConsentDialog` is the preference dialog. It is not part of the first page
+load: it loads in its own chunk in browser idle time while a button that opens
+it is mounted, when that button is hovered or focused, and at the latest when
+the dialog opens. Set the provider's `preloadDialog` to `'intent'` to skip the
+idle load. Idle loading is also skipped with Save-Data, on 2G connections and
+offline. Its CSS is already in `@c15t/svelte/styles.css`.
+
+| Prop | Purpose |
+| --- | --- |
+| `open` | Control visibility yourself instead of following the consent state. |
+| `showTrigger` | `true` or `ConsentDialogTrigger` props to render a floating trigger with the dialog. |
+| `legalLinks`, `hideBranding`, `models`, `noStyle`, `class` | Same meaning as on `ConsentBanner`. |
+
+With `showTrigger`, the dialog loads when it mounts and its trigger appears
+right after hydration, not in server HTML. To keep a trigger in server HTML,
+render `ConsentDialogTrigger` next to the dialog instead.
+
+## ConsentDialogLink
+
+`ConsentDialogLink` is an unstyled button that opens the preference dialog.
+Put it in your footer so visitors can change their choice later. It renders
+only when the policy offers preferences, and accepts any button attribute.
+
+{/* example: fragment */}
+
+```svelte
+<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+```
+
+## ConsentDialogTrigger
+
+`ConsentDialogTrigger` is a floating button that opens the dialog. Visitors can
+drag it to another corner.
+
+| Prop | Default | Purpose |
+| --- | --- | --- |
+| `defaultPosition` | `'bottom-right'` | Starting corner. |
+| `persistPosition` | `true` | Remember the corner a visitor drags it to. |
+| `showWhen` | `'always'` | `'never'` hides it. It is also hidden while the dialog is open. |
+| `size` | `'md'` | `'sm'`, `'md'` or `'lg'`. |
+| `ariaLabel` | `'Open privacy settings'` | Accessible name. |
+| `onclick`, `onPositionChange` | none | Event callbacks. |
+
+## ConsentWidget
+
+`ConsentWidget` renders the preference controls inline, without a dialog, for
+a privacy settings page. It takes `hideBranding`, `noStyle` and `class`.
+
+## ConsentGate
+
+`ConsentGate` renders its children only while a category is allowed, and a
+placeholder otherwise. Use it for embeds such as videos and maps.
+
+| Prop | Purpose |
+| --- | --- |
+| `category` | Required. The category the content needs. |
+| `placeholder` | Snippet shown while the category is denied. The default placeholder has a button that opens preferences. |
+| `noStyle`, `class` | Styling overrides. |
+
+`ConsentGate` renders nothing on the server and nothing until the browser has
+mounted, so the gated content never appears in server HTML. When the visitor
+withdraws the category, the children unmount. `Frame` is a deprecated alias
+for `ConsentGate`.
+
+## ConsentButton
+
+`ConsentButton` is a styled button that performs one consent action. Use it to
+put consent actions on your own pages.
+
+| Prop | Purpose |
+| --- | --- |
+| `action` | `accept-consent`, `reject-consent`, `custom-consent`, `dismiss-notice`, `open-consent-dialog` or `set-consent`. |
+| `category` | The category `set-consent` changes. |
+| `closeConsentBanner`, `closeConsentDialog` | Close a surface after the action. |
+| `variant`, `mode`, `size` | `primary` or `neutral`; `filled`, `stroke`, `lighter` or `ghost`; `medium` to `xxsmall`. |
+
+## IABConsentBanner and IABConsentDialog
+
+These render the IAB TCF banner and preference center when the resolved policy
+uses the `iab` model. They need `@c15t/svelte/iab/styles.css`. See the IAB TCF
+page for setup.
+
+## Primitives and actions
+
+`@c15t/svelte` also exports the building blocks the stock components use:
+`Accordion`, `Collapsible`, `Dialog`, `Portal`, `PreferenceItem`, `Switch` and
+`Tabs` as compound components, and the `focusTrap`, `portal` and `scrollLock`
+Svelte actions. Their rules are already in `@c15t/svelte/styles.css`. Reach for
+them when you build a custom dialog; the headless page shows the consent side.
+
+## DevTools
+
+`@c15t/svelte/devtools` exports `ConsentDevTools`, also available as `DevTools`
+and `C15TDevTools`. It shows the resolved policy, consent state, scripts and
+events. Render it inside the provider in development only; it accepts
+`position`, `defaultOpen`, `defaultTab` and `shadow`.

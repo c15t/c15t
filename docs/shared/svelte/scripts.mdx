@@ -1,0 +1,126 @@
+{/* Shared by docs/frameworks/svelte/scripts.mdx and docs/frameworks/sveltekit/scripts.mdx. */}
+
+## How registered scripts load
+
+The provider's `scripts` prop takes an array of script configurations. Each
+has a category. The loader adds a script to the page when its category becomes
+allowed and removes it when the category is withdrawn. Nothing optional loads
+while the policy is still resolving, or when it fails.
+
+Helpers in `@c15t/scripts`, such as `posthog()` from `@c15t/scripts/posthog`,
+return a configuration with the right category and the vendor's own consent
+calls. [Integrations](/docs/integrations/overview) lists every helper. For an
+SDK without a helper, write a configuration with an `id`, `category` and `src`
+as shown in [building integrations](/docs/integrations/building-integrations).
+
+Remove the vendor's original `<script>` tag, `app.html` snippet or SDK import
+before you register it. A banner does not block code that loads some other
+way, and a vendor loaded twice sends events twice.
+
+The `scripts` array is read when the provider is created. Build it once, at
+the top level of the component, not inside an effect.
+
+## Gate an embed with ConsentGate
+
+`ConsentGate` renders an iframe or any other content only while its category
+is allowed. The default placeholder explains what is blocked and opens
+preferences; pass a `placeholder` snippet to replace it.
+
+{/* example: fragment */}
+
+```svelte
+<script lang="ts">
+  import { ConsentDialogLink, ConsentGate } from '@c15t/svelte';
+</script>
+
+<ConsentGate category="measurement">
+  {#snippet placeholder()}
+    <p>Allow measurement to load this video.</p>
+    <ConsentDialogLink>Choose video permissions</ConsentDialogLink>
+  {/snippet}
+  <iframe
+    title="YouTube video"
+    src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y"
+    allowfullscreen
+  ></iframe>
+</ConsentGate>
+```
+
+The gated content never renders on the server, so it is absent from the first
+HTML for every visitor. When the visitor withdraws the category, the iframe
+unmounts. The [YouTube](/docs/integrations/youtube) and
+[Google Maps](/docs/integrations/google-maps) guides have ready configurations.
+
+## Gate iframes you do not render
+
+The provider's iframe blocker is on by default. It watches the page for
+iframes with a `data-category` attribute and a `data-src` instead of `src`,
+sets `src` from `data-src` once the category is allowed, and removes it again
+when the category is withdrawn. Use it for iframes that come from a CMS or
+Markdown, where you cannot wrap the markup in `ConsentGate`.
+
+{/* example: fragment */}
+
+```html
+<iframe
+  title="Store locations"
+  data-category="functionality"
+  data-src="https://www.google.com/maps/embed?pb=..."
+></iframe>
+```
+
+Iframes without `data-category` or `data-vendor` are never touched. Pass
+`iframeBlocker={false}` to turn the blocker off.
+
+## Block network requests
+
+The `networkBlocker` provider option stops `fetch` and `XMLHttpRequest` calls
+to the domains you list until their category is allowed. Use it as a backstop
+for beacons from code that is already on the page.
+
+{/* example: fragment */}
+
+```ts
+const networkBlocker = {
+  rules: [
+    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
+  ],
+};
+```
+
+Pass it as `networkBlocker={networkBlocker}` on `ConsentManagerProvider`.
+Blocking starts when the provider is created in the browser, before its
+children run their own code, and matching requests wait until the policy
+resolves. It cannot see requests made before the provider is created, such as
+tags in `app.html` or `index.html`, or `navigator.sendBeacon`, image, script
+and iframe requests. Load vendor SDKs through `scripts` so they wait for
+consent before they run at all.
+
+<import src="../react/network-blocker.mdx#rules" />
+
+## What happens when consent is withdrawn
+
+Removing a script tag cannot stop code that already ran. So when a save
+withdraws a category that was granted, the provider reloads the page after the
+save request, and the new page starts with only the permitted code. Set
+`reloadOnConsentRevoked: false` on the provider if you handle withdrawal
+yourself, for example through a vendor's own opt-out call in
+`onConsentChange`.
+
+`ConsentGate` content unmounts without a reload. To delete first-party cookies
+a vendor set, configure `clearOnRevocation`; see
+[clearing data on revocation](/docs/integrations/clear-on-revocation).
+
+## Verify vendor loading
+
+Open DevTools, clear site data for your origin and reload:
+
+1. With the banner showing, the Network panel has no requests to your vendors,
+   and gated iframes are absent from the Elements panel.
+2. Allow one category in preferences. Only that category's vendors load, and
+   its iframes appear.
+3. Reject, reload, and confirm the vendor requests stay absent.
+4. Withdraw a category you allowed. The page reloads and its vendors no longer
+   load.
+
+[Verify consent](/docs/guides/verify-consent) covers automated checks.

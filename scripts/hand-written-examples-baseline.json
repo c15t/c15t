@@ -38,8 +38,6 @@
 	"docs/frameworks/react/headless.mdx": 1,
 	"docs/frameworks/react/hooks/overview.mdx": 2,
 	"docs/frameworks/react/iab/overview.mdx": 2,
-	"docs/frameworks/svelte/quickstart.mdx": 2,
-	"docs/frameworks/sveltekit/quickstart.mdx": 3,
 	"docs/frameworks/vue/quickstart.mdx": 5,
 	"docs/integrations/adobe-analytics.mdx": 1,
 	"docs/integrations/ahrefs-analytics.mdx": 1,

@@ -8,11 +8,13 @@ import type { LayoutServerLoad } from './$types';
  *
  * `initRoute` points at this app's own consent endpoint, which resolves the
  * policy from the cached tenant manifest — no third-party round trip on the
- * SSR path.
+ * SSR path. The geo pin matches the provider's `overrides` in
+ * `+layout.svelte`, so the server and the client resolve the same policy.
  */
 export const load: LayoutServerLoad = async (event) => ({
-	prefetch:
-		event.url.pathname === '/consent-example'
-			? undefined
-			: await loadConsent(event, { initRoute: '/api/c15t' }),
+	prefetch: await loadConsent(event, {
+		country: 'CA',
+		initRoute: '/api/showcase',
+		region: 'QC',
+	}),
 });

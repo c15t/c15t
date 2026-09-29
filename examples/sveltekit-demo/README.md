@@ -38,13 +38,27 @@ backend persistence test. Real SDKs still require the explicit test IDs above.
 
 ## Consent example
 
-Open `/consent-example` for the shared integration scenario. The existing home
-and showcase routes remain available.
+These routes are the SvelteKit docs recipes. The acceptance suite in
+`examples/shared` builds the app and runs every one of them:
 
-For hosted operation, create an [Inth](https://inth.com) project, configure an
-opt-in policy covering `measurement` and `marketing`, and allow this app's
-origin. Set `PUBLIC_C15T_BACKEND_URL` to the exact public backend URL supplied by Inth.
-Then run from the repository root:
+| Route | Recipe |
+| --- | --- |
+| `/consent-example` | Root layout load calls `loadConsent` with the backend URL; banner in the server HTML |
+| `/consent-example/static` | A prerendered page under the same layout; the browser resolves consent |
+| `/consent-example/branded` | Theme tokens from `generateThemeCSS()` in a server load |
+| `/manifest-example` | `loadConsent` through the manifest route in `src/routes/api/c15t` |
+| `/headless-example` | A custom banner from `getHeadlessConsent()` with the stock dialog |
+
+Docs publish marked regions from these routes' layouts, `src/hooks.server.ts`,
+`src/app.d.ts`, `src/lib/example-scripts.ts`, `src/lib/server/consent-theme.ts`,
+`src/lib/custom-consent-banner.svelte` and `.env.example`. Keep demo-only code
+out of those regions; the shared page content is in `src/lib/consent-example`.
+
+Create an [Inth](https://inth.com) project, configure an opt-in policy covering
+`measurement` and `marketing`, and allow this app's origin. Set
+`PUBLIC_C15T_BACKEND_URL` to the exact public backend URL supplied by Inth. The
+routes throw until it is set, and the build skips `/consent-example/static`
+without it. Then run from the repository root:
 
 ```sh
 bun run --cwd examples/sveltekit-demo dev
@@ -57,23 +71,16 @@ Public vendor settings are optional:
 - `PUBLIC_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
 
 An unset vendor setting omits that loader. PostHog uses `loadMode: 'after-consent'`
-and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. Remove
-other initializers for these vendors before reusing the example.
+and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. The
+YouTube nocookie iframe only mounts with measurement permission and is removed
+on revocation. Use the footer's Privacy settings control to reopen the dialog.
 
-The YouTube nocookie iframe only mounts with measurement permission and is
-removed on revocation. The placeholder opens preferences. Use the footer's
-Privacy settings control to reopen the dialog. The Default theme and Branded
-theme links switch design tokens: `+page.server.ts` renders the Branded theme
-with `generateThemeCSS` and the page puts it in `<svelte:head>`, so the first
-paint already uses it.
+Test a fresh rejection, grant, reload and withdrawal:
 
-Test a fresh rejection, grant, reload and withdrawal. Confirm PostHog and X
-requests are absent before their respective permissions, and the iframe is
-absent before measurement permission. The example emits no custom conversion
-events. Script removal cannot undo SDK code that already ran; application event
-calls must also stop after withdrawal.
+```sh
+EXAMPLE_TARGET=sveltekit bun run --cwd examples/shared test
+```
 
-This route owns a separate standard provider and skips the root IAB showcase
-provider and its server load. Without the public backend URL it uses `/api/c15t`.
-The existing showcase and benchmark routes retain their original modes.
-DevTools is available during development.
+The showcase at `/` and its routes live in `src/routes/(showcase)` with their
+own provider and the `/api/showcase` endpoint. Benchmarks under `/bench` render
+without a provider.

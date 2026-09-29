@@ -1,0 +1,15 @@
+---
+title: IAB TCF
+description: Turn on the IAB TCF 2.4 banner and preference center in a SvelteKit app with IABConsentBanner, IABConsentDialog and the provider's iab option.
+group: frameworks
+---
+
+<include src="../../shared/svelte/iab.mdx" />
+
+## IAB on the server
+
+`loadConsent` and the manifest route handlers know about IAB policies. With a
+server-resolved IAB policy, the IAB banner can render in the server HTML, and
+the browser fetches the Global Vendor List from the route the server names.
+Pass `fetchGvl` to `createSvelteKitConsentRouteHandlers` to change how the
+manifest route fetches the vendor list.

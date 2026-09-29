@@ -1,0 +1,98 @@
+{/* Shared by docs/frameworks/svelte/headless.mdx and docs/frameworks/sveltekit/headless.mdx. */}
+
+## Choose how much to replace
+
+Try [customization](/docs/customization/overview) first: tokens, slots,
+`presentation` and translations change most banners without new markup. Go
+headless when you need markup the stock components cannot produce.
+
+| Goal | Approach |
+| --- | --- |
+| Keep the markup, drop c15t's styles | Set `noStyle` on the provider or on one component, and style the `data-*` attributes and slot classes. |
+| Your own banner, stock dialog | `getHeadlessConsent()` for the banner, `ConsentDialog` for preferences. This page's example. |
+| Your own dialog too | Add `getConsentManager()` for the category list and the draft. |
+
+The provider, scripts, `ConsentGate` and the stored choice work the same with
+any of them. You only replace the markup.
+
+## Build a banner with getHeadlessConsent
+
+`getHeadlessConsent()` returns the banner and dialog state and one method per
+action. Call it at the top level of a component inside
+`ConsentManagerProvider`.
+
+This banner renders the actions the policy allows, grouped and ordered the way
+the policy asks, and hides itself when no banner is due:
+
+<include src="../examples/sveltekit-demo/custom-banner.mdx" />
+
+Render it where the stock `ConsentBanner` would go. The stock dialog still
+handles Customize and the preferences link, so keep `ConsentDialog` and the
+stylesheet:
+
+<include src="../examples/sveltekit-demo/headless-layout.mdx" />
+
+In a Svelte app without SvelteKit, the same markup goes in the component that
+renders the provider, and the backend URL comes from `import.meta.env`.
+
+| Member | Purpose |
+| --- | --- |
+| `banner.isVisible`, `dialog.isVisible` | Whether that surface is due now. |
+| `banner.actionGroups`, `banner.orderedActions` | The allowed actions, grouped or flat, in the order the policy asks for. |
+| `banner.requiredActions`, `banner.primaryActions` | Actions you must show, and those to emphasize. |
+| `banner.variant`, `banner.position`, `banner.blocking` | The resolved shape, position and blocking behavior, if you want to follow them. |
+| `activeUI` | `'banner'`, `'dialog'` or `'none'`. |
+| `performAction(action)` | `accept`, `reject`, `dismiss`, `save` or `customize`. Customize opens the dialog. |
+| `openBanner()`, `openDialog()`, `closeUI()` | Show or hide a surface. |
+| `saveCustomPreferences()` | Record the dialog's draft. |
+
+Render from `actionGroups` or `orderedActions` rather than a fixed list. A
+policy can require a reject button next to accept, or offer only a dismiss
+button for a notice, and a hard-coded pair of buttons breaks those rules.
+
+## Build your own preferences
+
+For a custom dialog or settings page, read the category list and the unsaved
+draft from `getConsentManager()`:
+
+{/* example: fragment */}
+
+```svelte
+<script lang="ts">
+  import { getConsentManager } from '@c15t/svelte';
+
+  const consent = getConsentManager();
+</script>
+
+{#each consent.getDisplayedConsents() as category (category.name)}
+  <label>
+    <input
+      type="checkbox"
+      checked={consent.selectedConsents[category.name] ?? false}
+      disabled={category.name === 'necessary'}
+      onchange={(event) =>
+        consent.setConsent(category.name, event.currentTarget.checked)}
+    />
+    {category.name}
+  </label>
+{/each}
+<button type="button" onclick={() => consent.saveConsents('custom')}>Save</button>
+```
+
+`setConsent` changes the draft only. `saveConsents('custom')` records it. If
+the policy changes while the draft is open, `consent.draft.isStale` becomes
+`true` and saving throws; show the new categories and let the visitor review
+them. Translated titles and descriptions are in
+`consent.translationConfig`.
+
+`@c15t/svelte` exports `Dialog`, `Switch`, `Accordion`, `PreferenceItem` and
+the `focusTrap`, `scrollLock` and `portal` actions if you want accessible
+building blocks for the dialog itself.
+
+## Verify a custom UI
+
+Run the same checks as the stock components: reject, reload and confirm no
+optional vendor requests; allow one category and confirm only its vendors
+load; reopen preferences from your footer link. Test keyboard focus and a
+screen reader on your markup, because c15t no longer owns it.
+[Verify consent](/docs/guides/verify-consent) has the full list.

@@ -25,7 +25,7 @@ import { selectedTargets } from './targets';
 /** The `--c15t-primary` each example's Branded design sets, where checked. */
 const BRANDED_PRIMARY: Record<string, string> = {
 	svelte: '#6943a3',
-	sveltekit: '#146b56',
+	sveltekit: '#6943a3',
 };
 
 for (const target of selectedTargets()) {
@@ -469,7 +469,7 @@ for (const target of selectedTargets()) {
 
 		if (target.id === 'sveltekit') {
 			test('a theme rendered in svelte:head overrides the stylesheet defaults', async () => {
-				await visit('/consent-example?theme=branded');
+				await visit('/consent-example/branded');
 				// SvelteKit writes `<svelte:head>` before its stylesheet links, so
 				// the package defaults load after the theme and must still lose.
 				const firstStyle = await page.evaluate(
@@ -485,8 +485,8 @@ for (const target of selectedTargets()) {
 								.trim(),
 						name
 					);
-				expect(await token('--c15t-primary')).toBe('#146b56');
-				expect(await token('--c15t-radius-lg')).toBe('1.25rem');
+				expect(await token('--c15t-primary')).toBe('#6943a3');
+				expect(await token('--c15t-radius-lg')).toBe('18px');
 				expect(requests.unexpected).toEqual([]);
 			});
 		}

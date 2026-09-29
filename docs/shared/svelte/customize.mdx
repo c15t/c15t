@@ -1,0 +1,115 @@
+{/* Shared by docs/frameworks/svelte/customize.mdx and docs/frameworks/sveltekit/customize.mdx, after each page's token section. */}
+
+## Switch to dark tokens
+
+The provider's `colorScheme` prop switches on the dark token set: `'dark'`
+always, `'system'` when the operating system prefers dark, `'light'` never. It
+toggles a `c15t-dark` class on `<html>`. The stylesheet also uses the dark
+tokens when `<html>` has a `dark` class, so an app with its own dark mode
+toggle gets them without the prop. Override dark values under `:root.dark` and
+`:root.c15t-dark` in your stylesheet.
+
+## Style one part with theme slots
+
+The provider's `theme` prop still applies slot styles in the browser. A slot
+takes a class name, or `{ className, style, noStyle }`:
+
+{/* example: fragment */}
+
+```ts
+const theme = {
+  slots: {
+    consentBannerCard: 'brand-banner-card',
+    consentBannerTitle: { style: { fontWeight: '600' } },
+  },
+};
+```
+
+Pass it as `theme={theme}` on `ConsentManagerProvider`. Define the class in a
+global stylesheet, or with `:global(.brand-banner-card)` in a component,
+because Svelte scopes component styles. The Svelte components read these
+slots:
+
+| Component | Slots |
+| --- | --- |
+| `ConsentBanner` | `consentBanner`, `consentBannerCard`, `consentBannerHeader`, `consentBannerTitle`, `consentBannerDescription`, `consentBannerFooter`, `consentBannerFooterSubGroup`, `consentBannerRights`, `consentBannerRightLink` |
+| `ConsentDialog` | `consentDialog`, `consentDialogCard`, `consentDialogHeader`, `consentDialogTitle`, `consentDialogDescription`, `consentDialogContent`, `consentDialogTag` |
+| `ConsentWidget` | `consentWidget`, `consentWidgetFooter` |
+| `IABConsentBanner` | `iabConsentBanner` |
+
+Slot names are not React's `components.banner.card` keys; do not copy a React
+configuration. Use slots when one part should change and tokens when a value
+should change everywhere. [Slots](/docs/customization/slots) explains the
+attributes each element carries.
+
+## Change button styles by action
+
+`theme.consentActions` picks each button's style by what it does, whichever
+order the policy puts the buttons in:
+
+{/* example: fragment */}
+
+```ts
+const theme = {
+  consentActions: {
+    default: { variant: 'neutral', mode: 'stroke' },
+    primary: { variant: 'primary', mode: 'filled' },
+    reject: { variant: 'neutral', mode: 'filled' },
+  },
+};
+```
+
+A per-action entry overrides `primary`, which overrides `default`. The policy
+decides which action is primary.
+
+## Change the banner shape and position
+
+Set the shape on the banner itself, or for every surface with the provider's
+`presentation` prop:
+
+{/* example: fragment */}
+
+```svelte
+<ConsentBanner variant="bar" position="bottom" />
+```
+
+| `variant` | Positions |
+| --- | --- |
+| `floating` | `bottom-left` (default), `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` |
+| `bar` | `bottom` (default), `top` |
+| `widget` | `bottom-right` (default), `bottom-left`, `top-left`, `top-right` |
+| `wall` | `center` |
+
+`blocking` adds a backdrop, locks scrolling, traps focus and stops outside
+clicks from closing the banner. `layout` and `primaryButton` change the button
+order and emphasis. The policy wins where they conflict. A policy that requires
+a reject button keeps it, whatever the layout says.
+
+## Change the copy
+
+For wording used across the site, pass `i18n` to the provider. Messages merge
+over the bundled translations, per language:
+
+{/* example: fragment */}
+
+```ts
+const i18n = {
+  messages: {
+    en: {
+      common: { rejectAll: 'Reject optional', customize: 'Choose cookies' },
+      cookieBanner: { title: 'Your privacy' },
+    },
+  },
+};
+```
+
+Pass it as `i18n={i18n}`. For one banner, the text props such as `title` and
+`rejectButtonText` on `ConsentBanner` are enough.
+[Copy and translations](/docs/customization/translations) covers the message
+keys and languages.
+
+## Remove c15t's styles
+
+Set `noStyle` on one component or on the provider to render the same markup
+and behavior without c15t's classes. Style the `data-*` attributes and your
+slot classes instead. For different markup, see the headless page.
