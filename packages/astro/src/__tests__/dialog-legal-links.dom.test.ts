@@ -3,24 +3,17 @@
  *
  * The dialog is an island mounted on first open, so the list the page's
  * `<ConsentDialog />` asked for travels on its host element and each
- * adapter hands it to its framework's dialog. The React case renders the
- * real surface. The Vue surface needs its compiler, so that case checks the
- * config the Vue dialog reads. Svelte has no case here: Vitest resolves
- * `svelte` to its server build, where `mount()` throws.
+ * adapter hands it to its framework's dialog. The React and Vue cases boot
+ * the page client and open the real island. Svelte has no case here:
+ * Vitest resolves `svelte` to its server build, where `mount()` throws.
  */
 
-import { hosted } from '@c15t/core';
-import { createConsentRuntime } from '@c15t/core/runtime';
-import type { ConsentRuntime } from '@c15t/core/runtime';
-import { consentConfigKey } from '@c15t/vue/vue-plugin';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { h, inject, toValue } from 'vue';
 
 import { boot } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
-import type { C15tResolvedOptions } from '../types';
 import { registerDialogAdapter, registerDialogSurface } from '../ui/adapter';
 import { reactDialogAdapter } from '../ui/react';
 import { vueDialogAdapter } from '../ui/vue';
@@ -121,53 +114,38 @@ describe('the React preferences dialog', () => {
 	});
 });
 
-const OPTIONS = {
-	consentCategories: ['necessary', 'marketing'],
-	endpoints: { enabled: false, initPath: '/i', manifestPath: '/m' },
-	legalLinks: { privacyPolicy: { href: '/privacy' } },
-	mode: { type: 'hosted', url: 'https://consent.example.test' },
-	ui: 'vue',
-} as unknown as C15tResolvedOptions;
-
-const createRuntime = function createRuntime(): ConsentRuntime {
-	const runtime = createConsentRuntime({
-		mode: hosted({ url: 'https://consent.example.test' }),
-		pkg: '@c15t/astro-test',
-	});
-	cleanup.push(() => runtime.dispose());
-	return runtime;
-};
-
-const createTarget = function createTarget(): HTMLElement {
-	const target = document.createElement('div');
-	document.body.append(target);
-	cleanup.push(() => target.remove());
-	return target;
-};
-
-describe('the Vue dialog adapter', () => {
-	it('sets the list as the dialog links the Vue dialog reads', async () => {
-		let seen: unknown;
-		registerDialogSurface('vue', () =>
-			Promise.resolve({
-				default: {
-					render: () => h('div'),
-					setup() {
-						seen = toValue(inject(consentConfigKey))?.dialogLegalLinks;
-					},
+describe('the Vue preferences dialog', () => {
+	it('shows the legal links <ConsentDialog legalLinks> names', async () => {
+		registerDialogAdapter('vue', () => Promise.resolve(vueDialogAdapter));
+		registerDialogSurface(
+			'vue',
+			() => import('../components/islands/panel-surface.vue')
+		);
+		renderDialogHost('privacyPolicy cookiePolicy');
+		const client: AstroConsentClient = boot(
+			resolveOptions({
+				legalLinks: {
+					cookiePolicy: { href: '/cookies' },
+					privacyPolicy: { href: '/privacy', label: 'Privacy' },
 				},
+				mode: offlineMode({ policyRules: [testRule] }),
+				ui: 'vue',
 			})
 		);
-
-		const handle = await vueDialogAdapter.mount({
-			kind: 'preferences',
-			legalLinks: ['privacyPolicy'],
-			options: OPTIONS,
-			runtime: createRuntime(),
-			target: createTarget(),
+		cleanup.push(() => {
+			client.dispose();
+			document.getElementById('c15t-dialog-host')?.remove();
 		});
-		cleanup.push(() => handle.destroy());
+		await client.openDialog();
 
-		expect(seen).toEqual(['privacyPolicy']);
+		// The Vue dialog teleports to `<body>`, out of the island's host.
+		const vueLink = (type: string) =>
+			document.querySelector<HTMLAnchorElement>(
+				`[data-testid="consent-dialog-description"] a[href="/${type}"]`
+			);
+		await vi.waitFor(() => expect(vueLink('privacy')).not.toBeNull());
+		expect(vueLink('privacy')?.textContent).toContain('Privacy');
+		// No label of its own, so the translated name for the type.
+		expect(vueLink('cookies')?.textContent).toContain('Cookie Policy');
 	});
 });
