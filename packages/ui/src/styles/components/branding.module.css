@@ -16,7 +16,7 @@
 	--consent-dialog-card-padding-mobile: var(--c15t-space-md);
 
 	/* Branding */
-	--consent-dialog-branding-gap: 0.5rem;
+	--consent-dialog-branding-gap: var(--c15t-space-sm);
 	--consent-dialog-branding-icon-height: 1.25rem;
 	--consent-dialog-branding-icon-width: auto;
 	--consent-dialog-branding-label-size: 0.6875rem;

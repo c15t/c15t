@@ -5,7 +5,7 @@
 	   tokens, which the dark palette redefines under .c15t-dark. */
 	--frame-font-family: var(--c15t-font-family);
 	--frame-line-height: var(--c15t-line-height-normal);
-	--frame-placeholder-gap: 1rem;
+	--frame-placeholder-gap: var(--c15t-space-md);
 
 	/* Border */
 	/* 1.25rem with the default radius scale. */

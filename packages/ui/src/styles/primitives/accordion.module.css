@@ -217,10 +217,10 @@
 		transition:
 			opacity
 				calc(var(--accordion-duration, var(--c15t-duration-normal)) * 0.35)
-				ease-out,
+				var(--c15t-easing-out),
 			transform
 				calc(var(--accordion-duration, var(--c15t-duration-normal)) * 0.35)
-				ease-out;
+				var(--c15t-easing-out);
 		will-change: opacity, transform;
 	}
 

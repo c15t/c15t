@@ -11,7 +11,7 @@
 	--consent-dialog-description-font-weight: var(--c15t-font-weight-normal);
 	--consent-dialog-description-line-height: var(--c15t-line-height-normal);
 	--consent-dialog-footer-gap: var(--c15t-space-sm);
-	--consent-dialog-footer-font-size: 14px;
+	--consent-dialog-footer-font-size: var(--c15t-font-size-sm);
 
 	/* Colors */
 	--consent-dialog-stroke-color: var(--c15t-border);
@@ -59,7 +59,7 @@
 
 	/* Animation */
 	--consent-dialog-animation-duration: var(--c15t-duration-normal);
-	--consent-dialog-animation-timing: ease-out;
+	--consent-dialog-animation-timing: var(--c15t-easing-out);
 }
 
 /* Hairline borders for retina displays */
@@ -153,7 +153,7 @@
 
 	.root[data-state='open'] .container:not(:global(.headless)) {
 		animation: enter var(--consent-dialog-animation-duration)
-			cubic-bezier(0.34, 1.56, 0.64, 1);
+			var(--c15t-easing-spring);
 	}
 
 	.root[data-state='closed'] .container:not(:global(.headless)) {
@@ -285,7 +285,7 @@
 			opacity var(--consent-dialog-animation-duration)
 				var(--consent-dialog-animation-timing),
 			transform var(--consent-dialog-animation-duration)
-				cubic-bezier(0.34, 1.56, 0.64, 1);
+				var(--c15t-easing-spring);
 	}
 
 	.contentHidden:not(:global(.headless)) {
