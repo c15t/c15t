@@ -6,15 +6,17 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 ## Using these docs
 
-These docs describe v3. Start with Inth hosted setup, identify the framework, router and deployment, then read its quickstart. Static sites can use Inth directly. Use page Markdown and package-bundled docs for targeted context. Verify scripts, rejection, reload and preferences; banner visibility alone is insufficient.
+These docs describe c15t v3. Find the app in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
 
 ## Start here
 
 - [Svelte quickstart](./frameworks/svelte/quickstart.md)
 - [SvelteKit quickstart](./frameworks/sveltekit/quickstart.md)
+- [Choose your setup](./concepts/choose-your-setup.md): Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
+- [How consent works](./concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
 - [Customize your consent interface](./customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
-- [Verify consent before shipping](./guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
-- [Upgrade to v3 policies](./upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.
+- [Verify consent before shipping](./guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
+- [Migrate from v2 to v3](./upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
 
 ## More documentation
 
@@ -22,17 +24,37 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Frameworks
 
-- [Quickstart](./frameworks/svelte/quickstart.md): Mount c15t components and a persistent preferences link in a Svelte 5 application.
-- [Quickstart](./frameworks/sveltekit/quickstart.md): Resolve consent in a SvelteKit server load and hydrate the provider, or initialize in the browser on static hosting.
+- [Components](./frameworks/svelte/components.md): Props and behavior of every @c15t/svelte component in a Svelte app, from ConsentManagerProvider and ConsentBanner to ConsentGate and DevTools.
+- [Customize](./frameworks/svelte/customize.md): Change c15t's colors, shape, button styles and copy in a Svelte app with a token stylesheet, theme slots, presentation props and translations.
+- [Context getters](./frameworks/svelte/getters.md): Read permissions and recorded choices, open preferences and save consent from your own Svelte components with getConsentManager and the other context getters.
+- [Headless](./frameworks/svelte/headless.md): Replace the c15t banner or preference dialog with your own Svelte markup while the provider keeps policy, storage and script loading.
+- [IAB TCF](./frameworks/svelte/iab.md): Turn on the IAB TCF 2.4 banner and preference center in a Svelte app with IABConsentBanner, IABConsentDialog and the provider's iab option.
+- [Quickstart](./frameworks/svelte/quickstart.md): Add a c15t cookie banner, preference dialog and consent-gated scripts to a Svelte 5 app built with Vite, using Inth for policies and consent records.
+- [Scripts and embeds](./frameworks/svelte/scripts.md): Load vendor scripts, iframes and network requests in a Svelte app only after the visitor allows their consent category, and stop them when consent is withdrawn.
+- [Troubleshooting](./frameworks/svelte/troubleshooting.md): Fix a missing banner, an unset backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
+- [Components](./frameworks/sveltekit/components.md): Props and behavior of every @c15t/svelte component in a SvelteKit app, from ConsentManagerProvider and ConsentBanner to ConsentGate and DevTools.
+- [Customize](./frameworks/sveltekit/customize.md): Render c15t brand colors on the SvelteKit server with generateThemeCSS, and change slots, button styles, banner shape and copy.
+- [Context getters](./frameworks/sveltekit/getters.md): Read permissions and recorded choices, open preferences and save consent from SvelteKit components with getConsentManager and the other context getters.
+- [Headless](./frameworks/sveltekit/headless.md): Replace the c15t banner or preference dialog with your own markup in a SvelteKit app while the provider keeps policy, storage and script loading.
+- [IAB TCF](./frameworks/sveltekit/iab.md): Turn on the IAB TCF 2.4 banner and preference center in a SvelteKit app with IABConsentBanner, IABConsentDialog and the provider's iab option.
+- [Quickstart](./frameworks/sveltekit/quickstart.md): Resolve consent in a SvelteKit root layout load so the c15t banner is in the server HTML, then hydrate the provider with consent-gated scripts and a preferences link.
+- [Rendering and deployment](./frameworks/sveltekit/rendering.md): Choose how a SvelteKit app resolves consent, on each request, from a cached manifest, or in the browser for prerendered pages, static sites and SPA mode, and deploy it to Node or edge adapters.
+- [Scripts and embeds](./frameworks/sveltekit/scripts.md): Load vendor scripts, iframes and network requests in a SvelteKit app only after the visitor allows their consent category, and stop them when consent is withdrawn.
+- [Troubleshooting](./frameworks/sveltekit/troubleshooting.md): Fix a banner missing from SvelteKit server HTML, failed saves through the manifest route, prerender build errors and ignored theme colors.
+
+## Concepts
+
+- [Choose your setup](./concepts/choose-your-setup.md): Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
+- [Consent categories](./concepts/consent-categories.md): Assign scripts, embeds and features to c15t consent categories, and understand which categories the preference dialog shows.
+- [Consent state reference](./concepts/consent-state.md): How c15t saves choices, gates IAB vendors, hydrates server records and keeps browser tabs and storage in step.
+- [Data fetching](./concepts/data-fetching.md): How c15t gets policy data through a cached manifest, backend /init, the browser or offline rules, and where consent choices are saved.
+- [How consent works](./concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
+- [Policies](./concepts/policies.md): How policy models, prompts and scope decide what c15t asks visitors, where to change the rules, and why a banner may not appear.
 
 ## Guides
 
-- [Understand consent state](./guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
-- [Data fetching and transports](./guides/data-fetching.md): Choose cached manifests, backend init or offline policy resolution, and understand where consent records are saved.
-- [Choose a deployment mode](./guides/deployment-modes.md): Choose who runs your consent backend, then select manifest, init or offline resolution for your deployment.
-- [Share consent controls across frameworks](./guides/shared-consent-controls.md): Use the same c15t script lifecycle, external consent source, and event controls in every framework.
-- [Troubleshoot consent](./guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
-- [Verify consent before shipping](./guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
+- [Troubleshooting](./guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
+- [Verify consent before shipping](./guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
 
 ## Customization
 
@@ -44,52 +66,53 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Integrations
 
-- [Adobe Analytics](./integrations/adobe-analytics.md): Configure Adobe Analytics with c15t v3, understand measurement permission and verify loading and revocation.
-- [Ahrefs Analytics](./integrations/ahrefs-analytics.md): Configure Ahrefs Analytics with c15t v3, understand measurement permission and verify loading and revocation.
-- [Amplitude](./integrations/amplitude.md): Configure Amplitude with c15t v3, understand measurement permission and verify loading and revocation.
-- [Custom integrations](./integrations/building-integrations.md): Define loading, initialization and consent-change behavior for a vendor without a helper.
-- [Clear on revocation](./integrations/clear-on-revocation.md): Remove configured first-party cookies and Web Storage keys when their consent category is denied.
-- [Clearbit](./integrations/clearbit.md): Configure Clearbit with c15t v3, understand marketing permission and verify loading and revocation.
-- [Cloudflare Web Analytics](./integrations/cloudflare-web-analytics.md): Configure Cloudflare Web Analytics with c15t v3, understand measurement permission and verify loading and revocation.
-- [Cloudflare Zaraz](./integrations/cloudflare-zaraz.md): Synchronize c15t permissions with Zaraz purposes while Cloudflare manages your tools.
-- [Crisp](./integrations/crisp.md): Configure Crisp with c15t v3, understand functionality permission and verify loading and revocation.
-- [Databuddy](./integrations/databuddy.md): Configure Databuddy's initial and updated consent state with c15t v3.
-- [Fathom Analytics](./integrations/fathom-analytics.md): Configure Fathom Analytics with c15t v3, understand measurement permission and verify loading and revocation.
-- [Front Chat](./integrations/front-chat.md): Load the Front Chat widget with functionality permission, forward CSP nonces and clear the session on revocation.
+- [Adobe Analytics](./integrations/adobe-analytics.md): Load an Adobe Data Collection Tags property only after measurement consent with the c15t adobeAnalytics helper, and check its extensions in DevTools.
+- [Ahrefs Analytics](./integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
+- [Amplitude](./integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation.
+- [Custom integrations](./integrations/building-integrations.md): Gate a vendor that has no @c15t/scripts helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
+- [Clear on revocation](./integrations/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns when that category is denied, and check the deletion in DevTools.
+- [Clearbit](./integrations/clearbit.md): Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.
+- [Cloudflare Web Analytics](./integrations/cloudflare-web-analytics.md): Load the Cloudflare Web Analytics beacon only after measurement consent with the c15t cloudflareWebAnalytics helper, and check it in DevTools.
+- [Cloudflare Zaraz](./integrations/cloudflare-zaraz.md): Sync c15t permissions to Cloudflare Zaraz purposes with the c15t cloudflareZaraz bridge, which runs on every page without loading a script, and check the tools it controls.
+- [Crisp](./integrations/crisp.md): Load the Crisp chat widget only after functionality consent with the c15t crisp helper, pass its runtime settings and check it in DevTools.
+- [Databuddy](./integrations/databuddy.md): Load the Databuddy SDK on every page with the c15t databuddy helper, switch its disabled flag and config from measurement consent, and check both in DevTools.
+- [Use c15t with an existing CMP](./integrations/existing-cmp.md): Keep your current consent platform for the banner and records, and let c15t load scripts from its decisions with a consentSource adapter.
+- [Fathom Analytics](./integrations/fathom-analytics.md): Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
+- [Front Chat](./integrations/front-chat.md): Load the Front Chat widget only after functionality consent with the c15t frontChat helper, forward CSP nonces, clear the session on revocation and check it in DevTools.
 - [Google Maps](./integrations/google-maps.md): Prevent a map iframe from mounting before the required permission.
-- [Google Tag](./integrations/google-tag.md): Configure gtag with c15t Consent Mode signals and understand its loading behavior.
-- [Google Tag Manager](./integrations/google-tag-manager.md): Load GTM with c15t consent signals and verify the tags inside your container.
-- [Granular consent](./integrations/granular-consent.md): Let visitors grant a category and still turn one vendor off, without adopting IAB TCF.
-- [Heap](./integrations/heap.md): Configure Heap with c15t v3, understand measurement permission and verify loading and revocation.
-- [Hightouch](./integrations/hightouch.md): Configure Hightouch with c15t v3, understand measurement permission and verify loading and revocation.
-- [Hotjar](./integrations/hotjar.md): Configure Hotjar with c15t v3, understand measurement permission and verify loading and revocation.
-- [Intercom](./integrations/intercom.md): Load the Intercom messenger with functionality permission and configure its region.
-- [LinkedIn Insight Tag](./integrations/linkedin-insights.md): Configure LinkedIn Insight Tag with c15t v3, understand marketing permission and verify loading and revocation.
-- [LogRocket](./integrations/logrocket.md): Configure LogRocket with c15t v3, understand measurement permission and verify loading and revocation.
-- [Matomo Analytics](./integrations/matomo-analytics.md): Choose gated loading or Matomo consent signaling and configure the correct tracker endpoints.
-- [Meta Pixel](./integrations/meta-pixel.md): Register the Meta Pixel under marketing permission and verify event calls after revocation.
-- [Microsoft Clarity](./integrations/microsoft-clarity.md): Configure Microsoft Clarity with c15t v3, understand measurement permission and verify loading and revocation.
-- [Microsoft UET](./integrations/microsoft-uet.md): Configure Microsoft UET with c15t v3, understand marketing permission and verify loading and revocation.
-- [Mixpanel](./integrations/mixpanel-analytics.md): Configure Mixpanel with c15t v3, understand measurement permission and verify loading and revocation.
-- [OneDollarStats](./integrations/one-dollar-stats.md): Load the OneDollarStats tracker with measurement permission, forward its settings and verify loading and revocation.
-- [OpenAI Pixel](./integrations/openai-pixel.md): Configure the OpenAI Measurement Pixel for ChatGPT Ads with c15t v3, manage marketing permission and verify conversion delivery.
+- [Google Tag](./integrations/google-tag.md): Load gtag.js for Google Analytics or Google Ads with c15t Consent Mode v2 signals, and verify the consent commands in DevTools.
+- [Google Tag Manager](./integrations/google-tag-manager.md): Load a Google Tag Manager container with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
+- [Let visitors turn off one vendor](./integrations/granular-consent.md): Declare vendors so a visitor can allow a category such as marketing and still switch off one vendor in it, without adopting IAB TCF.
+- [Heap](./integrations/heap.md): Load the Heap config script and heap.js only after measurement consent with the c15t heap helper, and check it in DevTools.
+- [Hightouch](./integrations/hightouch.md): Load the Hightouch Events browser SDK only after measurement consent with the c15t hightouch helper, and check page events in DevTools.
+- [Hotjar](./integrations/hotjar.md): Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.
+- [Intercom](./integrations/intercom.md): Load the Intercom messenger only after functionality consent with the c15t intercom helper, set its region and check it in DevTools.
+- [LinkedIn Insight Tag](./integrations/linkedin-insights.md): Load the LinkedIn Insight Tag only after marketing consent with the c15t linkedinInsights helper, guard lintrk conversion calls, and check it in DevTools.
+- [LogRocket](./integrations/logrocket.md): Load LogRocket session replay only after measurement consent with the c15t logRocket helper, including proxied setups, and check it in DevTools.
+- [Matomo Analytics](./integrations/matomo-analytics.md): Load Matomo after measurement consent with the c15t matomoAnalytics helper, or use Matomo's own consent mode, and check each mode in DevTools.
+- [Meta Pixel](./integrations/meta-pixel.md): Load the Meta Pixel only after marketing consent with the c15t metaPixel helper, guard fbq event calls, and check it in DevTools.
+- [Microsoft Clarity](./integrations/microsoft-clarity.md): Load Microsoft Clarity only after measurement consent with the c15t clarity helper, send Consent V2 storage signals and check them in DevTools.
+- [Microsoft UET](./integrations/microsoft-uet.md): Load Microsoft Advertising UET on every page with the c15t microsoftUet helper, send ad_storage consent defaults and updates, and verify both in DevTools.
+- [Mixpanel](./integrations/mixpanel-analytics.md): Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
+- [OneDollarStats](./integrations/one-dollar-stats.md): Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
+- [OpenAI Pixel](./integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
 - [Overview](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
-- [Pinterest Tag](./integrations/pinterest-tag.md): Configure the Pinterest Tag with c15t v3, track typed events and verify marketing permission, revocation and reload.
-- [Pirsch](./integrations/pirsch.md): Configure Pirsch with c15t v3, understand measurement permission and verify loading and revocation.
-- [Plausible Analytics](./integrations/plausible-analytics.md): Configure Plausible Analytics with c15t v3, understand measurement permission and verify loading and revocation.
-- [PostHog](./integrations/posthog.md): Choose PostHog loading and cookieless behavior, configure the region, and synchronize v3 permissions.
-- [Promptwatch](./integrations/promptwatch.md): Configure Promptwatch with c15t v3, understand measurement permission and verify loading and revocation.
-- [Reddit Pixel](./integrations/reddit-pixel.md): Configure Reddit Pixel with c15t v3, understand marketing permission and verify loading and revocation.
-- [RudderStack](./integrations/rudderstack.md): Gate the RudderStack browser SDK or map c15t categories to destination consent IDs.
-- [Rybbit Analytics](./integrations/rybbit-analytics.md): Configure Rybbit Analytics with c15t v3, understand measurement permission and verify loading and revocation.
-- [Segment](./integrations/segment.md): Configure Segment with c15t v3, understand measurement permission and verify loading and revocation.
-- [Snapchat Pixel](./integrations/snapchat-pixel.md): Configure Snapchat Pixel with c15t v3, understand marketing permission and verify loading and revocation.
-- [TikTok Pixel](./integrations/tiktok-pixel.md): Configure TikTok Pixel with c15t v3, understand marketing permission and verify loading and revocation.
-- [Umami Analytics](./integrations/umami-analytics.md): Configure Umami Analytics with c15t v3, understand measurement permission and verify loading and revocation.
-- [Vercel Analytics](./integrations/vercel-analytics.md): Configure Vercel Analytics with c15t v3, understand measurement permission and verify loading and revocation.
-- [X Pixel](./integrations/x-pixel.md): Configure X Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+- [Pinterest Tag](./integrations/pinterest-tag.md): Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
+- [Pirsch](./integrations/pirsch.md): Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
+- [Plausible Analytics](./integrations/plausible-analytics.md): Load the Plausible Analytics tracker only after measurement consent with the c15t plausibleAnalytics helper, and check it in DevTools.
+- [PostHog](./integrations/posthog.md): Load PostHog before or after measurement consent with the c15t posthog helper, choose its cookieless behavior, and sync consent with an SDK you already initialize.
+- [Promptwatch](./integrations/promptwatch.md): Load the Promptwatch attribution client only after measurement consent with the c15t promptwatch helper, and check it in DevTools.
+- [Reddit Pixel](./integrations/reddit-pixel.md): Load the Reddit Pixel only after marketing consent with the c15t redditPixel helper, guard rdt conversion calls, and check it in DevTools.
+- [RudderStack](./integrations/rudderstack.md): Load the RudderStack JavaScript SDK after measurement consent with the c15t rudderstack helper, or map c15t categories to destination consent IDs, and check each mode.
+- [Rybbit Analytics](./integrations/rybbit-analytics.md): Load Rybbit Analytics only after measurement consent with the c15t rybbitAnalytics helper, map its tracking options to data attributes, and check it in DevTools.
+- [Segment](./integrations/segment.md): Load Segment Analytics.js only after measurement consent with the c15t segment helper, guard your own track and identify calls, and check it in DevTools.
+- [Snapchat Pixel](./integrations/snapchat-pixel.md): Load the Snapchat Pixel only after marketing consent with the c15t snapchatPixel helper, guard snaptr event calls, and check it in DevTools.
+- [TikTok Pixel](./integrations/tiktok-pixel.md): Load the TikTok Pixel only after marketing consent with the c15t tiktokPixel helper, guard ttq event calls, and check it in DevTools.
+- [Umami Analytics](./integrations/umami-analytics.md): Load the Umami Analytics tracker only after measurement consent with the c15t umamiAnalytics helper, point it at a self-hosted instance, and check it in DevTools.
+- [Vercel Analytics](./integrations/vercel-analytics.md): Load the Vercel Web Analytics script only after measurement consent with the c15t vercelAnalytics helper, choose the debug script, and check it in DevTools.
+- [X Pixel](./integrations/x-pixel.md): Load the X Pixel only after marketing consent with the c15t xPixel helper, guard twq conversion events, and check it in DevTools.
 - [YouTube](./integrations/youtube.md): Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
 
 ## Reference
 
-- [Upgrade to v3 policies](./upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.
+- [Migrate from v2 to v3](./upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.

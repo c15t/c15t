@@ -107,64 +107,66 @@ on revocation. Keep your existing consent styles and preferences dialog.
 
 **Nuxt**
 
-Use the reactive snapshot from the existing consent runtime. The Nuxt module auto-imports the consent composables.
+The Nuxt module registers `ConsentGate` and `ConsentPreferencesLink`, so
+this component imports only the embed configuration.
 
 ```vue title="app/components/ConsentEmbed.vue"
 <script setup lang="ts">
 import { embedCategory, embedURL, embedTitle, embedAspectRatio } from '../../src/embed-config';
-
-const snapshot = useConsentSnapshot();
-const activeUI = useConsentActiveUI();
 </script>
 
 <template>
-  <iframe
-    v-if="snapshot.effectivePermissions[embedCategory]"
-    :src="embedURL"
-    :title="embedTitle"
-    loading="lazy"
-    allowfullscreen
-    :style="{ width: '100%', aspectRatio: embedAspectRatio, minHeight: '200px', border: 0 }"
-  />
-  <button v-else type="button" @click="activeUI = 'manager'">
-    Open privacy settings to view this content
-  </button>
+  <ConsentGate :category="embedCategory">
+    <iframe
+      :src="embedURL"
+      :title="embedTitle"
+      loading="lazy"
+      allowfullscreen
+      :style="{ width: '100%', aspectRatio: embedAspectRatio, minHeight: '200px', border: 0 }"
+    />
+    <template #placeholder>
+      <p>Allow {{ embedCategory }} to load this content.</p>
+      <ConsentPreferencesLink>Open privacy settings</ConsentPreferencesLink>
+    </template>
+  </ConsentGate>
 </template>
 ```
 
-Use `v-if` so a denied iframe is removed from the DOM. Hiding an existing
-iframe with `v-show` or CSS does not prevent its requests.
+`ConsentGate` keeps the iframe out of the server HTML and the DOM while
+permission is denied, and removes it on revocation. See
+[Nuxt scripts and embeds](../frameworks/nuxt/scripts.md).
 
 **Vue**
 
-Use the reactive snapshot from the existing consent runtime. The c15t Vue plugin must already be installed on this app.
+Render this component inside the app that installed the c15t Vue plugin.
 
 ```vue title="src/ConsentEmbed.vue"
 <script setup lang="ts">
-import { useConsentSnapshot, useConsentActiveUI } from 'c15t/vue/vue-plugin';
+import ConsentGate from 'c15t/vue/runtime/components/consent-gate.vue';
+import ConsentPreferencesLink from 'c15t/vue/runtime/components/consent-preferences-link.vue';
 import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
-
-const snapshot = useConsentSnapshot();
-const activeUI = useConsentActiveUI();
 </script>
 
 <template>
-  <iframe
-    v-if="snapshot.effectivePermissions[embedCategory]"
-    :src="embedURL"
-    :title="embedTitle"
-    loading="lazy"
-    allowfullscreen
-    :style="{ width: '100%', aspectRatio: embedAspectRatio, minHeight: '200px', border: 0 }"
-  />
-  <button v-else type="button" @click="activeUI = 'manager'">
-    Open privacy settings to view this content
-  </button>
+  <ConsentGate :category="embedCategory">
+    <iframe
+      :src="embedURL"
+      :title="embedTitle"
+      loading="lazy"
+      allowfullscreen
+      :style="{ width: '100%', aspectRatio: embedAspectRatio, minHeight: '200px', border: 0 }"
+    />
+    <template #placeholder>
+      <p>Allow {{ embedCategory }} to load this content.</p>
+      <ConsentPreferencesLink>Open privacy settings</ConsentPreferencesLink>
+    </template>
+  </ConsentGate>
 </template>
 ```
 
-Use `v-if` so a denied iframe is removed from the DOM. Hiding an existing
-iframe with `v-show` or CSS does not prevent its requests.
+`ConsentGate` keeps the iframe out of the DOM while permission is denied,
+and removes it on revocation. See
+[Vue scripts and embeds](../frameworks/vue/scripts.md).
 
 **Astro**
 
@@ -273,16 +275,37 @@ The Svelte `ConsentGate` waits until the browser is mounted and the category is
 allowed. Its default placeholder opens preferences. Revocation removes the
 iframe.
 
+**HTML**
+
+The c15t script tag gates iframes that name a category. Put the embed's URL
+in `data-src` instead of `src`, using the values from the configuration on
+this page:
+
+```html
+<iframe
+  data-src="https://www.youtube-nocookie.com/embed/VIDEO_ID?playsinline=1"
+  data-category="measurement"
+  title="Product video"
+  loading="lazy"
+  allowfullscreen
+></iframe>
+```
+
+c15t sets `src` once the category is allowed and removes it on revocation.
+Without `src` the iframe loads nothing, so hide it with CSS and show a link
+to `#c15t-preferences` in its place. See
+[HTML scripts and embeds](../frameworks/html/scripts.md#gate-iframes).
+
 **JavaScript**
 
-Use the shared browser helper below with your existing kernel. Put an
+Use the shared browser helper below with your existing client. Put an
 empty container where the embed should appear:
 
 ```html
 <div id="consent-embed"></div>
 ```
 
-In your browser entry point, after creating the kernel:
+In your browser entry point, after `init()`:
 
 ```ts
 import { mountConsentEmbed } from './consent-embed';
@@ -290,13 +313,16 @@ import { mountConsentEmbed } from './consent-embed';
 const container = document.querySelector<HTMLElement>('#consent-embed');
 if (!container) throw new Error('Missing consent embed container');
 
-const disposeEmbed = mountConsentEmbed(container, kernel, openPreferences);
+const disposeEmbed = mountConsentEmbed(container, consent.kernel, () =>
+  consent.openDialog(),
+);
 ```
 
-`kernel` is the instance from your quickstart. `openPreferences` is your
-application's function for showing its consent preferences UI. Call
-`disposeEmbed()` when the page or component is destroyed. The helper observes
-both the current snapshot and later changes.
+`consent` is the client from `init()` in your quickstart. With
+`createConsentRuntime`, pass `runtime.kernel` and your own function that
+opens preferences. Call `disposeEmbed()` when the page or component is
+destroyed. Iframe markup with `data-src` and `data-category` also works
+without the helper, because both setups gate iframes by default.
 
 **React Native**
 

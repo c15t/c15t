@@ -1,38 +1,39 @@
 ---
 title: Meta Pixel
-description: Register the Meta Pixel under marketing permission and verify event
-  calls after revocation.
+description: Load the Meta Pixel only after marketing consent with the c15t
+  metaPixel helper, guard fbq event calls, and check it in DevTools.
 group: integrations
 ---
 
-## Register the pixel
+## Configure the Meta Pixel
 
-| Package manager | Command                          |
-| :-------------- | :------------------------------- |
-| npm             | `npm install @c15t/integrations` |
-| pnpm            | `pnpm add @c15t/integrations`    |
-| yarn            | `yarn add @c15t/integrations`    |
-| bun             | `bun add @c15t/integrations`     |
+Copy the pixel ID from Meta Events Manager. Remove the original pixel snippet,
+its `<noscript>` tracking image and any tag-manager entry that loads the same
+pixel.
+
+| Package manager | Command                           |
+| :-------------- | :-------------------------------- |
+| npm             | `npm install @c15t/scripts@alpha` |
+| pnpm            | `pnpm add @c15t/scripts@alpha`    |
+| yarn            | `yarn add @c15t/scripts@alpha`    |
+| bun             | `bun add @c15t/scripts@alpha`     |
 
 ```ts title="src/consent-scripts.ts"
-import { metaPixel } from '@c15t/integrations/meta-pixel';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
 
 export const scripts = [metaPixel({ pixelId: '123456789012345' })];
 ```
-
-Replace the pixel ID and pass `scripts` to your existing provider or core script
-loader. The helper uses the `marketing` category. Remove the original pixel
-snippet, including a separately installed tracking image or tag-manager entry.
 
 ## Register the scripts
 
 Complete your [framework quickstart](https://c15t.com/docs/frameworks) first. Keep its Inth
 endpoint, policy, styles and consent UI. Remove the vendor's original script,
-SDK initializer or tag-manager entry so c15t owns loading once.
+SDK initializer or tag-manager entry, so the vendor loads only through c15t.
 
 The `scripts` export in `src/consent-scripts.ts` is a configuration, not an
-initializer. Add it to your existing consent owner using the registration point
-below. These are partial edits to that owner, not additional providers.
+initializer. Add it to the c15t provider you already have, at the registration
+point for your framework below. These are edits to that provider, not a second
+provider.
 
 **Next.js**
 
@@ -53,158 +54,104 @@ router guide. Its manifest, init and save URLs stay in effect. Add
 </ConsentRoot>
 ```
 
-For a Pages Router or static-export setup using `ConsentProvider`, add
-`scripts` to its existing `options` instead. Keep the router-specific setup
-from [Next.js script loading](../frameworks/next/script-loader.md).
+App Router, Pages Router and static export all use this `ConsentRoot` in
+the `'use client'` wrapper `components/consent.tsx`. Keep `scripts` there,
+because a Server Component cannot pass script callbacks to it. See
+[Next.js scripts and embeds](../frameworks/next/scripts.md).
 
 **TanStack Start**
 
-In your existing root route component, import the scripts alongside
-`ConsentRoot`. Keep the server loader from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart).
+Import the configuration into your root route and pass it to the existing
+`ConsentRoot` as a top-level prop. Keep the loader, `backendURL` and
+`initRoute` from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart):
 
-```tsx
-import { Outlet } from '@tanstack/react-router';
-import { ConsentRoot } from 'c15t/tanstack-start';
+```tsx title="src/routes/__root.tsx"
 import { scripts } from '../consent-scripts';
 
-function Root() {
-  const state = Route.useLoaderData();
-  return (
-    <ConsentRoot state={state} backendURL={backendURL} initRoute={false} scripts={scripts}>
-      <Outlet />
-      {/* Keep your consent banner, dialog and preferences link here. */}
-    </ConsentRoot>
-  );
-}
+<ConsentRoot
+  state={consent}
+  backendURL={backendURL}
+  initRoute={false}
+  scripts={scripts}
+>
 ```
 
-This edits the existing route. `Route` and `backendURL` come from its setup;
-keep the document shell and head components if they are part of your root.
-`initRoute={false}` keeps the quickstart's direct-backend initialization.
-If your app mounts a consent server route, retain its existing `initRoute`
-instead. Do not return script callbacks from a server function or route loader.
+Import vendor helpers in the root route module, not in a server function.
+A server function's return value must be serializable, and script
+configurations carry callbacks. See
+[TanStack Start scripts](../frameworks/tanstack-start/scripts.md).
 
 **React**
 
-Import the scripts into your existing provider component:
+Add the configuration to the existing `ConsentProvider` options, next to
+`mode`:
 
-```ts
-import { ConsentProvider } from 'c15t/react';
+```tsx title="src/consent.tsx"
 import { scripts } from './consent-scripts';
+
+<ConsentProvider options={{ mode, scripts }}>
 ```
 
-Keep the existing options and add `scripts`:
-
-```tsx
-<ConsentProvider options={{ ...consentOptions, scripts }}>
-  {children}
-</ConsentProvider>
-```
-
-Here `consentOptions` is your existing configuration, including
-`mode: hosted({ url: backendURL })`. Keep the banner, dialog and preferences
-link inside the provider. See [React script loading](../frameworks/react/script-loader.md).
+`mode` is the `hosted({ url: backendURL })` value from the
+[React quickstart](https://c15t.com/docs/frameworks/react/quickstart). Keep the banner,
+dialog and preferences link inside the provider. See
+[React scripts and embeds](../frameworks/react/scripts.md).
 
 **Nuxt**
 
-Attach one loader from the root `app.vue`, after the Nuxt module has
-started its browser runtime. This keeps vendor callbacks in application code rather
-than serialized `nuxt.config.ts` runtime configuration.
+Register the scripts under the `c15t` key in `app/app.config.ts`. Adjust the
+relative import to where you created `consent-scripts.ts`:
 
-```vue title="app/app.vue"
-<script setup lang="ts">
-import { onUnmounted } from 'vue';
-import { createScriptLoader } from 'c15t/modules/script-loader';
+```ts title="app/app.config.ts"
 import { scripts } from '../src/consent-scripts';
 
-const nuxtApp = useNuxtApp();
-const kernel = useConsentKernel();
-let loader: ReturnType<typeof createScriptLoader> | undefined;
-
-const removeMountedHook = nuxtApp.hook('app:mounted', () => {
-  loader = createScriptLoader({ kernel, scripts });
+export default defineAppConfig({
+  c15t: { scripts },
 });
-onUnmounted(() => {
-  removeMountedHook();
-  loader?.dispose();
-});
-</script>
-
-<template>
-  <ConsentRoot />
-  <NuxtPage />
-</template>
 ```
 
-Merge the setup code into your root and retain its footer and preferences
-link. `useConsentKernel` is auto-imported by the c15t Nuxt module. Adjust the
-relative script import if your `app.vue` is at the project root. This loader
-waits until the module has applied browser persistence and privacy signals,
-then reads the current snapshot and observes future changes. Do not also register these scripts
-in another loader. See the [Nuxt quickstart](https://c15t.com/docs/frameworks/nuxt/quickstart).
+The Nuxt module merges this over its options in `nuxt.config.ts` and starts
+one script loader in the browser after hydration, once it has applied the
+visitor's stored choice and privacy signals. Keep `scripts` out of
+`nuxt.config.ts`, which reaches the browser as JSON and drops the vendor
+callbacks. `app.config.ts` cannot read `runtimeConfig`, so write the vendor
+IDs into `consent-scripts.ts` or read them from `VITE_` variables. See
+[Nuxt scripts and embeds](../frameworks/nuxt/scripts.md).
 
 **Vue**
 
-Use the kernel already provided by the Vue plugin. Merge this setup into
-`App.vue`, whose lifetime covers the application:
+Pass the scripts to the existing `c15tVue` plugin call in `src/main.ts`:
 
-```vue title="src/App.vue"
-<script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
-import { createScriptLoader } from 'c15t/modules/script-loader';
-import { useConsentKernel } from 'c15t/vue/vue-plugin';
-import ConsentRoot from 'c15t/vue/consent-root';
+```ts title="src/main.ts"
 import { scripts } from './consent-scripts';
 
-const kernel = useConsentKernel();
-let loader: ReturnType<typeof createScriptLoader> | undefined;
-
-onMounted(() => {
-  loader = createScriptLoader({ kernel, scripts });
-});
-onUnmounted(() => loader?.dispose());
-</script>
-
-<template>
-  <ConsentRoot />
-  <main>Your application</main>
-</template>
+app.use(c15tVue, { backendURL, scripts });
 ```
 
-Keep your existing page content and preferences link. The plugin still owns
-the kernel and persistence; this component owns only the vendor loader.
-Do not register the same scripts in plugin configuration as well. See the
-[Vue quickstart](https://c15t.com/docs/frameworks/vue/quickstart).
+Keep your existing backend URL and other options. The plugin starts one
+script loader when the app mounts, after it has applied the visitor's stored
+choice. Do not also call `createScriptLoader` from a component. See
+[Vue scripts and embeds](../frameworks/vue/scripts.md).
 
 **Astro**
 
-Point the existing Astro integration at a client module. Keep its `mode`,
-`ui` and framework integration from the [Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart).
-Import `fileURLToPath` in your Astro configuration:
+Add the scripts to the client entrypoint from the
+[Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart), the module that the
+integration's `clientEntrypoint` option names. Keep `mode`, `ui` and the
+framework integration in `astro.config.mjs` as they are. If the module
+already exports scripts, combine the two arrays.
 
-```js title="astro.config.mjs"
-import { fileURLToPath } from 'node:url';
-```
-
-Add this option to the existing `c15t({ ... })` call. Resolve the path from
-the configuration file because Astro injects the import into a virtual module:
-
-```js
-clientEntrypoint: fileURLToPath(new URL('./src/c15t.client.ts', import.meta.url)),
-```
-
-Export the scripts from that module:
-
-```ts title="src/c15t.client.ts"
+```ts title="src/consent-client.ts"
 import type { C15tClientOptionsExtension } from 'c15t/astro';
 import { scripts } from './consent-scripts';
 
 export default { scripts } satisfies C15tClientOptionsExtension;
 ```
 
-The integration passes this extension to its shared browser runtime. Vendor
-helpers contain callbacks, so do not put them in the serialized `scripts`
-option in `astro.config.mjs`. Keep one runtime across consent islands and
+Vendor helpers contain callbacks, and the integration options in
+`astro.config.mjs` are serialized into the page, so do not put helpers in
+the integration's `scripts` option. The integration passes the client
+entrypoint to the one runtime every page shares, including across
 `ClientRouter` navigation.
 
 **Svelte**
@@ -237,11 +184,12 @@ and its serializable prefetch data from the [SvelteKit quickstart](https://c15t.
 
 ```svelte title="src/routes/+layout.svelte"
 <script lang="ts">
+  import { env } from '$env/dynamic/public';
   import { ConsentManagerProvider, hosted } from '@c15t/svelte';
   import { scripts } from '../consent-scripts';
 
   let { children, data } = $props();
-  const mode = hosted({ url: data.backendURL });
+  const mode = hosted({ url: env.PUBLIC_C15T_BACKEND_URL });
 </script>
 
 <ConsentManagerProvider {mode} {scripts} prefetch={data.prefetch}>
@@ -250,31 +198,49 @@ and its serializable prefetch data from the [SvelteKit quickstart](https://c15t.
 </ConsentManagerProvider>
 ```
 
-Import vendor helpers in the layout component, not in `+layout.server.ts`.
-For static hosting, keep your browser-only `mode` setup and omit request
-prefetch; the `scripts` prop stays the same. If you pass an externally owned
+Import vendor helpers in the layout component, not in `+layout.server.ts`:
+a server load cannot send functions to the browser. Prerendered, static and
+SPA-mode pages use the same `scripts` prop. If you pass an externally owned
 `runtime` to the provider, register scripts when creating that runtime instead.
+
+**HTML**
+
+The helpers in `@c15t/scripts` are ES modules that need a bundler. On a
+page that loads the c15t script tag, paste the vendor's own snippet instead
+and keep it inert until its category is allowed:
+
+```html
+<script type="text/plain" data-c15t-category="measurement">
+  // The vendor's snippet, unchanged
+</script>
+```
+
+Use the category this guide names for the vendor. c15t runs the snippet
+once that category is allowed, and reloads the page when the visitor
+withdraws it. Helper options on this page, such as `loadMode`, do not apply
+to a pasted snippet. See [HTML scripts and embeds](../frameworks/html/scripts.md).
 
 **JavaScript**
 
-Attach the loader to your existing kernel before calling
-`kernel.commands.init()`:
+Pass the scripts to `init()` from `@c15t/browser`, next to your backend
+URL:
 
 ```ts
-import { createScriptLoader } from 'c15t/modules/script-loader';
+import { init } from '@c15t/browser';
 import { scripts } from './consent-scripts';
 
-const loader = createScriptLoader({ kernel, scripts });
+const consent = init({ backendURL, scripts });
 ```
 
-Call `loader.dispose()` when that application instance is destroyed.
-`kernel` is the hosted kernel from your quickstart. A provider-owned kernel
-already has a loader; do not attach a second one. See
-[JavaScript script loading](../frameworks/javascript/script-loader.md).
+`backendURL` is the Inth URL from your quickstart. With
+`createConsentRuntime` from `c15t/runtime`, pass `scripts` to it instead.
+A kernel you create yourself needs a loader from
+`c15t/modules/script-loader`. Attach one loader per kernel. See
+[JavaScript scripts](../frameworks/javascript/scripts.md).
 
 **React Native**
 
-There is no script loader to register. `@c15t/integrations` loads browser
+There is no script loader to register. `@c15t/scripts` loads browser
 documents, and a React Native app has none: the consent kernel runs natively
 and the vendor ships as a native or JavaScript module you start yourself.
 
@@ -293,14 +259,79 @@ An SDK you start outside React reads the same snapshot natively and has to
 check it there too. See
 [React Native setup](https://c15t.com/docs/frameworks/react-native/quickstart).
 
-## Keep event calls behind permission
+## Options
 
-Initialization and later application events are separate responsibilities. If
-application code calls `fbq` directly, check effective marketing permission
-before each optional event and ensure the API is available. Do not assume a
-function still present on `window` means the visitor still permits tracking.
+| Option                  | Default                                          | Behavior                                                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pixelId`               | Required                                         | Pixel ID passed to `fbq('init', ...)`.                                                                                                                                                     |
+| `initOptions`           | None                                             | Object passed as the third argument to `fbq('init', ...)`.                                                                                                                                 |
+| `trackPageView`         | `true`                                           | Queues `fbq('track', 'PageView')` after `init`. Set `false` to send page views yourself.                                                                                                   |
+| `dataProcessingOptions` | None                                             | `{ options, country?, state? }`. Queues `fbq('dataProcessingOptions', ...)` before `init`, for example `{ options: ['LDU'], country: 1, state: 1000 }` for Limited Data Use in California. |
+| `scriptSrc`             | `https://connect.facebook.net/en_US/fbevents.js` | Loader URL override.                                                                                                                                                                       |
 
-For an opt-in policy, verify no pixel script or collection request occurs before
-permission or after rejection. Grant permission, send a test event, revoke and
-confirm future application events stop. Check navigation for duplicate page
-views. See [verification](../guides/verify-consent.md).
+## Loading and revocation
+
+`metaPixel` uses the `marketing` category. Before marketing is allowed, c15t
+defines no `fbq` function and loads nothing from Meta. When marketing becomes
+allowed, the helper queues `fbq('consent', 'grant')`, the optional data
+processing options, `init` and `PageView`, then loads `fbevents.js`.
+
+On revocation the helper keeps the pixel script and calls
+`fbq('consent', 'revoke')`. If the visitor allows marketing again before the
+page reloads, it calls `fbq('consent', 'grant')`.
+
+## Guard your own fbq calls
+
+The helper sends the pixel's page view. Events your code sends, such as
+`Purchase` or `Lead`, need their own check. After revocation `window.fbq` still
+exists, so its presence does not mean marketing is allowed. Check the
+permission first, then that the pixel has loaded:
+
+```ts title="src/track-purchase.ts"
+export function trackPurchase(marketingAllowed: boolean, value: number) {
+  if (!marketingAllowed || typeof window.fbq !== 'function') return;
+  window.fbq('track', 'Purchase', { currency: 'USD', value });
+}
+```
+
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. `@c15t/scripts/meta-pixel` also exports
+typed wrappers: `metaPixelEvent`, `metaPixelCustomEvent`,
+`metaPixelSingleEvent` and `metaPixelSingleCustomEvent`. They call
+`window.fbq` without either check, so apply the same guard before calling them.
+Their last argument accepts an event ID string for Conversions API
+deduplication.
+
+## Verify the Meta Pixel
+
+After you allow marketing, `fbevents.js` loads and a request to
+`facebook.com/tr` carries `ev=PageView`. Trigger one guarded event and check
+that its `tr` request appears. Then revoke marketing. Before the reload,
+calling `trackPurchase` sends nothing. With client-side navigation, check that
+each route change sends one page view, not two.
+
+Test in a private window with an opt-in policy. Open DevTools Network, disable
+the cache and filter by the vendor's domain:
+
+1. Load the page. No request goes to the vendor before you choose.
+2. Click Reject, then reload. There is still no vendor request.
+3. Open Privacy settings and allow the helper's category. The vendor script
+   loads without a page reload.
+4. Turn the category off again and save. c15t reloads the page, and the new
+   page makes no vendor request.
+
+c15t reloads on revocation because removing a script element does not stop
+code that already ran. The vendor's listeners, timers and queued events stay
+alive until the page unloads. If you set `reloadOnConsentRevoked: false`, stop
+the vendor yourself. Register a callback-only script whose `onConsentChange`
+calls the vendor's opt-out API, as shown in
+[custom integrations](./building-integrations.md), and check the
+permission before each of your own event calls. The reload does not delete
+cookies the vendor already set; see
+[clear on revocation](./clear-on-revocation.md).
+
+The helper sets `vendor` to its script ID, so once you declare that vendor a
+visitor can turn it off inside an allowed category. See
+[let visitors turn off one vendor](./granular-consent.md). The
+[consent verification guide](../guides/verify-consent.md) covers navigation,
+expiry and hosting checks.

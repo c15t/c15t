@@ -43,6 +43,7 @@
 		"dist",
 		"dist-types",
 		"AGENTS.md",
+		"SKILL.md",
 		"docs"
 	],
 	"type": "module",

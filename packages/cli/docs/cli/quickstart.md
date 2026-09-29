@@ -1,43 +1,76 @@
 ---
 title: Quickstart
-description: Review the proposed integration before applying it to your application.
+description: Use the c15t CLI to plan, review and apply c15t setup in an
+  existing Next.js or React app, connected to an Inth backend.
 group: cli
 ---
 
-For unpublished v3 development, start with [local boilerplate generation](./commands/boilerplate.md). It creates framework files without fetching a published package version. The automatic setup commands below require compatible application dependencies; use `--skip-install` when working with local packages.
+## Install the v3 package first
+
+Install `c15t` from the `alpha` dist-tag before you run setup:
+
+| Package manager | Command                  |
+| :-------------- | :----------------------- |
+| npm             | `npm install c15t@alpha` |
+| pnpm            | `pnpm add c15t@alpha`    |
+| yarn            | `yarn add c15t@alpha`    |
+| bun             | `bun add c15t@alpha`     |
+
+Setup installs the packages that are missing from `package.json` without a
+version, and npm's default version of `c15t` is still v2. With `c15t@alpha`
+already installed, setup keeps it.
+
+## Plan the setup
+
+Run setup from the app directory with your Inth backend URL. Copy the URL from
+your Inth project and export it first:
 
 ```bash
-c15t setup hosted --backend-url https://your-project.inth.app --plan --json
+export C15T_BACKEND_URL="<paste the backend URL from your Inth project>"
+npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --plan --json
 ```
 
-Run this from the application directory, or pass `--cwd path/to/app`. Replace the example URL with your provisioned consent backend URL.
+`--plan` writes nothing and installs nothing. The JSON result lists each file
+the CLI would create or change under `data.edits`, with its current and
+proposed contents, and the packages it would install under
+`data.dependencies`. Pass `--cwd path/to/app` to run from another directory.
 
-## Apply setup
+## Apply the setup
 
-Review the returned `data.edits`. Each edit includes its path, original contents, and proposed contents. Planning does not install dependencies or write application files.
+When the plan looks right, apply it:
 
 ```bash
-c15t setup hosted --backend-url https://your-project.inth.app --apply
+npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --apply
 ```
 
-Use `--skip-install` when your workspace tooling owns dependency installation. The result lists the required dependencies.
+For a Next.js App Router app, setup adds a client provider component under
+`components/consent-manager/` and wraps `{children}` in your root layout with it.
+The provider renders the stock banner and preferences dialog. Add
+`--skip-install` when your workspace tooling installs dependencies.
 
-For local-only consent storage, explicitly select `offline`:
+Setup refuses to overwrite a generated component that you have edited. To
+change an existing integration, edit its files rather than running setup again.
+
+## Answer prompts instead
 
 ```bash
-c15t setup offline --plan --json
+npx @c15t/cli@alpha setup
 ```
 
-## Interactive setup
+In a terminal, setup asks for the backend mode, UI style, theme and scripts.
+Without a terminal, pass the mode and inputs as flags; the CLI does not guess
+missing values. See [setup](./commands/setup.md) for every flag.
 
-```bash
-c15t setup
-```
+## Check the result
 
-With a terminal, setup asks for the storage mode and supported integration choices. Without a terminal, provide the mode and required inputs. The CLI does not open an interactive prompt to guess missing values.
+1. Run your app's typecheck and build.
+2. Open the app in a private window. The banner appears for a visitor your Inth
+   policy asks to choose.
+3. Replace any integration ID placeholders the CLI left in the provider, then
+   check in DevTools Network that those vendor requests wait until you accept.
+4. Reject, reload, and confirm the banner stays closed and the vendor requests
+   stay absent.
 
-## Verify the application
-
-Review the generated provider or client configuration, app stylesheet, and any environment or Next.js configuration edits. Replace integration ID placeholders before deploying. Run your application's typecheck and build, then check the banner and consent-gated scripts in the browser.
-
-Setup refuses to replace an existing generated component with different contents. Edit an existing integration using its installed documentation instead of rerunning setup to overwrite customizations.
+The [verification guide](../guides/verify-consent.md) covers the full release
+checklist. For server rendering and other recipes, continue with your
+[framework quickstart](https://c15t.com/docs/frameworks).

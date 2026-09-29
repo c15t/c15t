@@ -1,51 +1,81 @@
 ---
 title: setup
-description: Plan and apply c15t integration files from terminal prompts or explicit inputs.
+description: Flags and file handling for c15t setup, which plans and applies
+  c15t integration files in Next.js, React and JavaScript apps.
 group: cli
 ---
 
-Use `generate offline --framework <target>` for standalone v3 boilerplate. See [boilerplate generation](./boilerplate.md) for supported frameworks, local unpublished packages, and file wiring instructions. The options below describe the existing automatic setup workflow.
+## Plan and apply
 
 ```bash
-c15t setup hosted --backend-url https://your-project.inth.app --plan --json
-c15t setup hosted --backend-url https://your-project.inth.app --apply --skip-install
+npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --plan --json
+npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --apply --skip-install
 ```
 
-Explicit configuration flags select a read-only plan even in an interactive terminal. Add `--apply` or `--yes` to write files.
+`C15T_BACKEND_URL` holds the backend URL from your Inth project. Any explicit
+flag makes setup non-interactive and returns a read-only plan, even in a
+terminal. Add `--apply` or `--yes` to write files.
 
-## Mode and backend
+Install `c15t@alpha` before applying. Setup adds missing packages without a
+version, which installs v2 from npm's default tag.
 
-Use a positional mode or `--mode`: `hosted`, `offline`, or `custom`. The legacy `c15t` and `self-hosted` mode names map to hosted transport. Hosted setup requires `--backend-url` or an authenticated project selected through `--project`. Without either flag, it can use the account default from `projects select`.
+For TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid and Astro, pass
+`--framework`. That selects [framework boilerplate](./boilerplate.md),
+which has its own options.
 
-Pending projects do not have a usable backend. Wait for provisioning before generating their integration. A dashboard URL is never substituted for a backend URL.
+## Choose the mode and backend
+
+Pass the mode as the first argument or with `--mode`:
+
+| Mode      | Backend                                                                                                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `hosted`  | Inth or a [self-hosted backend](https://c15t.com/docs/self-host/overview). Requires `--backend-url`, or an Inth project through `--project` or the default set by `projects select`. |
+| `offline` | No backend. Choices stay in the browser. Not recommended for production environments.                                                                                                |
+| `custom`  | Your own transport.                                                                                                                                                                  |
+
+The older mode names `c15t` and `self-hosted` map to `hosted`. Setup refuses an
+Inth project that is still provisioning, because it has no backend URL yet.
 
 ## Options
 
-| Option                                     | Purpose                                                                                                                                                                                                                                  |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--plan`, `--dry-run`                      | Return proposed file edits without writing them or installing dependencies.                                                                                                                                                              |
-| `--apply`                                  | Apply the generated file edits and install required dependencies.                                                                                                                                                                        |
-| `--skip-install`                           | Apply files without running a package manager.                                                                                                                                                                                           |
-| `--backend-url <url>`                      | Use an explicit HTTP or HTTPS consent endpoint.                                                                                                                                                                                          |
-| `--project <id or organization/name>`      | Resolve an authenticated hosted project's backend.                                                                                                                                                                                       |
-| `--env`                                    | Put the backend URL in an environment file using supported bundler conventions.                                                                                                                                                          |
-| `--proxy`                                  | Configure a Next.js rewrite for a hosted backend.                                                                                                                                                                                        |
-| `--ssr`                                    | Start consent resolution on the server in hosted Next.js App Router applications. The generated wrapper passes the pending state to the provider, so pages render without waiting for the backend and the banner mounts after hydration. |
-| `--devtools`                               | Include development tools.                                                                                                                                                                                                               |
-| `--ui-style prebuilt or expanded`          | Choose prebuilt or compound React components.                                                                                                                                                                                            |
-| `--theme none, minimal, dark, or tailwind` | Select a UI theme.                                                                                                                                                                                                                       |
-| `--scripts <comma-separated IDs>`          | Include consent-aware integration snippets. Unknown IDs report the available choices.                                                                                                                                                    |
-| `--resume`                                 | Recover an interrupted interactive setup.                                                                                                                                                                                                |
-| `--debug`                                  | Show setup state transitions.                                                                                                                                                                                                            |
+| Option                                          | Purpose                                                                                                                                                                                                                  |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--plan`, `--dry-run`                           | Return the proposed file edits without writing files or installing packages.                                                                                                                                             |
+| `--apply`                                       | Write the file edits and install missing packages.                                                                                                                                                                       |
+| `--skip-install`                                | Write the file edits without running a package manager.                                                                                                                                                                  |
+| `--backend-url <url>`                           | Use this HTTP or HTTPS backend URL.                                                                                                                                                                                      |
+| `--project <id or organization/name>`           | Use the backend URL of a signed-in Inth project.                                                                                                                                                                         |
+| `--env`                                         | Put the backend URL in an environment file, using the bundler's naming convention.                                                                                                                                       |
+| `--proxy`                                       | Add a Next.js rewrite to the hosted backend. Hosted Next.js only.                                                                                                                                                        |
+| `--ssr`                                         | Start consent resolution on the server in a hosted Next.js App Router app. The wrapper passes the pending result to the provider, so pages render without waiting for the backend and the banner mounts after hydration. |
+| `--devtools`                                    | Include c15t DevTools.                                                                                                                                                                                                   |
+| `--ui-style prebuilt` or `expanded`             | Use the stock components or their compound parts. React and Next.js only.                                                                                                                                                |
+| `--theme none`, `minimal`, `dark` or `tailwind` | Apply a theme preset. React and Next.js only.                                                                                                                                                                            |
+| `--scripts <ids>`                               | Add consent-aware vendor scripts, as a comma-separated list. An unknown ID returns the list of valid IDs.                                                                                                                |
+| `--resume`                                      | Recover an interrupted setup.                                                                                                                                                                                            |
+| `--debug`                                       | Log setup state transitions.                                                                                                                                                                                             |
 
-Explicit-input setup uses prebuilt UI, no theme preset, no scripts, and no optional environment/proxy/SSR/devtools configuration unless requested. Review script option placeholders before use.
+Without flags for them, non-interactive setup uses the stock components, no
+theme, no scripts, and no environment file, proxy, server resolution or
+DevTools. Replace the placeholder IDs in generated script configuration before
+you deploy.
 
-## File handling
+## How setup changes files
 
-The generation plan contains each file's original and proposed text. Application checks that the original text still matches before writing. If applying the file plan fails, it restores applied edits and reports any recovery failure. Recovery refuses to overwrite edits made by another process after generation.
+The plan holds each file's current and proposed text. When applying, setup
+checks that each file still matches the current text before writing it. If
+writing fails, setup restores the files it already changed and reports any file
+it could not restore. It never overwrites a change another process made after
+the plan.
 
-Setup and recovery allow symlinks whose targets stay inside the project. Planning rejects dangling links and links outside the project before reading file contents. Apply and recovery validate paths again before writing.
+Symlinks are allowed when their targets stay inside the project. Planning
+rejects dangling symlinks and symlinks that point outside the project.
 
-Dependency installation is a separate operation. Review the result and any package-manager error before retrying. The file plan is not a transaction over your package manager's cache, lockfile, or install scripts.
+Installing packages is a separate step from writing files. If the install
+fails, setup restores the generated files, but changes the package manager made
+to `package.json`, the lockfile or `node_modules` can remain.
 
-Interrupted file application leaves a private `.c15t-generation.json` recovery record. `--resume` restores those edits before restarting setup, so it can generate a fresh plan. If a file has changed since the interruption, recovery stops for manual review. Noninteractive resume requires `--apply` or `--yes` and cannot be combined with `--plan` or `--dry-run`.
+An interrupted apply leaves a `.c15t-generation.json` recovery file. `--resume`
+restores the files from it and plans again. If a file changed since the
+interruption, recovery stops so you can review it. A non-interactive resume
+needs `--apply` or `--yes`, and cannot be combined with `--plan` or `--dry-run`.

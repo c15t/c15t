@@ -6,39 +6,46 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 ## Using these docs
 
-These docs describe v3. Start with Inth hosted setup, identify the framework, router and deployment, then read its quickstart. Static sites can use Inth directly. Use page Markdown and package-bundled docs for targeted context. Verify scripts, rejection, reload and preferences; banner visibility alone is insufficient.
+These docs describe c15t v3. Find the app in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
 
 ## Start here
 
 - [CLI quickstart](./docs/cli/quickstart.md)
-- [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
-- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.
+- [Choose your setup](./docs/concepts/choose-your-setup.md): Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
+- [How consent works](./docs/concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
+- [Verify consent before shipping](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
+- [Migrate from v2 to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
 
 ## More documentation
 
 [Documentation index](https://c15t.com/docs/llms.txt) · [Full Markdown context](https://c15t.com/llms-full.txt). Prefer the index and individual pages for focused tasks.
 
+## Concepts
+
+- [Choose your setup](./docs/concepts/choose-your-setup.md): Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
+- [Consent categories](./docs/concepts/consent-categories.md): Assign scripts, embeds and features to c15t consent categories, and understand which categories the preference dialog shows.
+- [Consent state reference](./docs/concepts/consent-state.md): How c15t saves choices, gates IAB vendors, hydrates server records and keeps browser tabs and storage in step.
+- [Data fetching](./docs/concepts/data-fetching.md): How c15t gets policy data through a cached manifest, backend /init, the browser or offline rules, and where consent choices are saved.
+- [How consent works](./docs/concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
+- [Policies](./docs/concepts/policies.md): How policy models, prompts and scope decide what c15t asks visitors, where to change the rules, and why a banner may not appear.
+
 ## Guides
 
-- [Understand consent state](./docs/guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
-- [Data fetching and transports](./docs/guides/data-fetching.md): Choose cached manifests, backend init or offline policy resolution, and understand where consent records are saved.
-- [Choose a deployment mode](./docs/guides/deployment-modes.md): Choose who runs your consent backend, then select manifest, init or offline resolution for your deployment.
-- [Share consent controls across frameworks](./docs/guides/shared-consent-controls.md): Use the same c15t script lifecycle, external consent source, and event controls in every framework.
-- [Troubleshoot consent](./docs/guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
-- [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
+- [Troubleshooting](./docs/guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
+- [Verify consent before shipping](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
 
 ## CLI
 
-- [Agents and automation](./docs/cli/automation.md): Use structured CLI results and version-matched documentation from agents, scripts, and other CLIs.
-- [V3 boilerplate](./docs/cli/commands/boilerplate.md): Generate framework integration files using unpublished local v3 packages.
-- [Legacy codemods](./docs/cli/commands/codemods.md): Preview and run explicit v1 to v2 source transforms.
-- [Hosted projects and authentication](./docs/cli/commands/hosted.md): Authenticate with Inth and select or create a hosted consent project.
-- [Self-hosted migrations](./docs/cli/commands/self-host.md): Plan and apply the database migrations for an existing backend configuration.
-- [setup](./docs/cli/commands/setup.md): Plan and apply c15t integration files from terminal prompts or explicit inputs.
-- [Global flags](./docs/cli/global-flags.md): Control CLI output, project location, prompts, and telemetry.
-- [Overview](./docs/cli/overview.md): Inspect and configure c15t projects, manage hosted access, and migrate self-hosted databases.
-- [Quickstart](./docs/cli/quickstart.md): Review the proposed integration before applying it to your application.
+- [Agents and automation](./docs/cli/automation.md): Read JSON results from the c15t CLI, call it from another program with runCli, and give a coding agent a v3 setup or migration task.
+- [Framework boilerplate](./docs/cli/commands/boilerplate.md): Generate c15t integration files and wiring instructions for TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid, Astro, React, Next.js or JavaScript with the c15t CLI.
+- [Codemods](./docs/cli/commands/codemods.md): Rewrite useConsentManager() calls to the c15t v3 hooks, and run the v1 to v2 source transforms, with the c15t CLI codemods command.
+- [Hosted projects and authentication](./docs/cli/commands/hosted.md): Sign in to Inth from the c15t CLI, then list, select or create the Inth project that setup uses.
+- [Self-hosted migrations](./docs/cli/commands/self-host.md): Plan and apply database migrations for a self-hosted c15t backend with the c15t CLI self-host migrate command.
+- [setup](./docs/cli/commands/setup.md): Flags and file handling for c15t setup, which plans and applies c15t integration files in Next.js, React and JavaScript apps.
+- [Global flags](./docs/cli/global-flags.md): Flags every c15t CLI command accepts, for JSON output, the project directory, prompts and telemetry, plus exit codes.
+- [Overview](./docs/cli/overview.md): Run the c15t CLI from @c15t/cli to add c15t to an app, migrate v2 code, manage Inth projects and migrate a self-hosted database.
+- [Quickstart](./docs/cli/quickstart.md): Use the c15t CLI to plan, review and apply c15t setup in an existing Next.js or React app, connected to an Inth backend.
 
 ## Reference
 
-- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.
+- [Migrate from v2 to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
