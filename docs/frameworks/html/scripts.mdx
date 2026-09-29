@@ -1,0 +1,168 @@
+---
+title: Scripts and embeds
+description: Hold vendor scripts, iframes and network requests on a plain HTML page until the visitor allows their category, with the c15t script tag and no build step.
+group: frameworks
+---
+
+## Make a vendor script wait for consent
+
+Change the vendor's `<script>` to `type="text/plain"` and add
+`data-c15t-category` with the category it needs. The browser does not run a
+`text/plain` script. Once the category is allowed, c15t replaces the tag with a
+normal script, which runs it.
+
+{/* example: fragment */}
+
+```html
+<script type="text/plain" data-c15t-category="measurement">
+  // The vendor's snippet, unchanged
+</script>
+<script type="text/plain" data-c15t-category="marketing" src="https://vendor.example/tag.js"></script>
+```
+
+The [quickstart](/docs/frameworks/html/quickstart#gate-your-vendor-scripts)
+shows this with PostHog and X Pixel. Things to know:
+
+- The value must be one category name: `necessary`, `functionality`,
+  `experience`, `measurement` or `marketing`. An unknown name logs a warning and
+  the script never runs.
+- c15t runs allowed scripts in page order. An external script without `async`
+  finishes loading before the next one runs, so an inline snippet that uses a
+  library still finds it. Scripts with `async` load on their own.
+- c15t copies `src`, `async`, `defer`, `crossorigin`, `integrity`,
+  `referrerpolicy`, `id`, `nonce` and every `data-*` attribute to the new tag.
+  A nonce-based Content Security Policy keeps working.
+- Tags added to the page later, for example by a page builder widget, are
+  gated too.
+- Each script runs at most once per page load.
+
+c15t adds the categories used on these tags to the preference dialog, so a
+visitor can allow them.
+
+## What happens when a visitor withdraws permission
+
+A script that has run cannot be stopped. When a visitor turns off a category
+they had allowed, c15t saves the choice and reloads the page. The new page
+starts with the vendor tag inert again.
+
+To handle withdrawal yourself, for example by calling a vendor's opt-out
+function, set `reloadOnConsentRevoked: false` in `config`. Then c15t does not
+reload and the vendor code that already ran keeps running until the next page
+load. `callbacks.onBeforeConsentRevocationReload` runs right before the reload,
+if you need to flush something first.
+
+## Load a script with callbacks
+
+When you need to run code after a vendor loads, or react to consent changes
+without a reload, list the script under `scripts` in a queued `config` call:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    scripts: [
+      {
+        id: 'analytics',
+        src: 'https://analytics.example/sdk.js',
+        category: 'measurement',
+        onLoad: () => window.analytics.track('page_view'),
+      },
+    ],
+  }]);
+</script>
+```
+
+Each entry needs a unique `id`, a `category`, and `src` or `textContent`.
+`onLoad`, `onError`, `onConsentChange` and `onDispose` receive details about
+the script. Use this form only when you need those callbacks. For a plain
+vendor snippet, the `text/plain` tag is simpler and works in any CMS field
+that accepts HTML.
+
+The vendor helpers in `@c15t/scripts`, such as the PostHog and Google tag
+helpers, are ES modules that need a bundler. On a plain HTML page, paste the
+vendor's own snippet into a `text/plain` tag instead.
+
+## Gate iframes
+
+Move the iframe's URL into `data-src` and add `data-category`. c15t gives the
+iframe its `src` once the category is allowed, and removes it again if the
+visitor withdraws permission.
+
+{/* example: fragment */}
+
+```html
+<iframe
+  data-src="https://www.youtube-nocookie.com/embed/VIDEO_ID"
+  data-category="measurement"
+  title="Product video"
+></iframe>
+```
+
+Only `http:` and `https:` URLs load. Relative URLs resolve against the page.
+Iframes without `data-category` are left alone. Iframe gating is on by
+default; set `iframeBlocker: false` in `config` to turn it off. [Embed content](/docs/integrations/youtube)
+shows vendor-specific embeds.
+
+## Block requests by URL
+
+Some code sends data with `fetch` or `XMLHttpRequest` that you cannot move
+behind a `text/plain` tag. A network blocker rule holds those requests until
+the category is allowed:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    networkBlocker: {
+      rules: [
+        { domain: 'collect.example.com', category: 'measurement' },
+        { domain: 'example.com', pathIncludes: '/api/track', methods: ['POST'], category: 'measurement' },
+      ],
+    },
+  }]);
+</script>
+```
+
+A blocked `fetch` resolves with status 451, and a blocked XHR fires an `error`
+event. Requests sent before the policy resolves wait for it. The blocker does
+not cover `navigator.sendBeacon`, WebSockets, `EventSource`, or requests made
+by `<img>` and `<script>` tags. Pass `onRequestBlocked` to see what it stopped.
+
+## Clear cookies when permission is withdrawn
+
+Gating stops new requests but does not delete what a vendor already stored.
+`clearOnRevocation` deletes named cookies and storage keys when their category
+is denied:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    clearOnRevocation: {
+      measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
+    },
+  }]);
+</script>
+```
+
+The configuration is read once, at startup. [Clear on revocation](/docs/integrations/clear-on-revocation)
+covers patterns, cookie domains and browser limits.
+
+## Google Consent Mode and tag managers
+
+The script tag does not send Google Consent Mode signals. The Google tag and
+Google Tag Manager helpers in `@c15t/scripts` do, but they need a bundler. On
+a plain HTML page, put the Google tag or the Tag Manager container in a
+`text/plain` tag with the category it needs. Google then loads only after
+consent, so it sends no cookieless pings before a choice. If you need Consent
+Mode signals on a plain page, write the `gtag('consent', ...)` calls yourself
+and update them from a `c15t.on('consent', ...)` listener.
+
+The vendor guides under [integrations](/docs/integrations/overview) have an
+HTML tab with the no-build setup.

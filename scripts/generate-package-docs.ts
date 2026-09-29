@@ -165,7 +165,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
-			'frameworks/javascript/script-loader.mdx',
+			'frameworks/javascript/scripts.mdx',
 			'frameworks/react/script-loader.mdx',
 			'frameworks/next/scripts.mdx',
 			'customization/**/*.mdx',
@@ -178,14 +178,19 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'frameworks/javascript/script-tag.mdx',
-			'frameworks/javascript/script-loader.mdx',
+			'frameworks/html/**/*.mdx',
+			'frameworks/javascript/quickstart.mdx',
+			'frameworks/javascript/headless.mdx',
+			'frameworks/javascript/scripts.mdx',
+			'frameworks/javascript/dev-tools.mdx',
+			'frameworks/javascript/iab/overview.mdx',
+			'frameworks/javascript/troubleshooting.mdx',
 			'integrations/**/*.mdx',
 		],
 		name: '@c15t/browser',
 		outDir: 'packages/browser',
 		summary:
-			'Script-tag consent docs for c15t on Framer, Webflow, WordPress, and plain HTML: the data attributes, the window.c15t API, headless use, styling, manifest mode, and integrations.',
+			'c15t for plain HTML sites from one script tag, and for bundled JavaScript apps with the stock UI: data attributes, the window.c15t API, customization, script and iframe gating, IAB and integrations.',
 	},
 	{
 		include: [

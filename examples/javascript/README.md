@@ -1,8 +1,14 @@
 # JavaScript consent example
 
-A runnable Inth setup with PostHog, X Pixel, a consent-gated YouTube video,
-a persistent preferences control and DevTools. Choose **Default** or **Branded**
-to compare the same consent flow with different styling.
+Two pages built with Vite, no framework:
+
+- `/` starts the stock banner and preferences from `@c15t/browser` with
+  `init()`. `/branded/` is the same page with theme tokens.
+- `/headless/` renders its own HTML on `createConsentRuntime` from
+  `c15t/runtime`. `/headless/?design=branded` restyles it with CSS.
+
+Both register PostHog and X Pixel with `@c15t/scripts`, gate a YouTube video
+on measurement and keep a Privacy settings control on the page.
 
 From the repository root, install and build workspace packages first:
 
@@ -22,22 +28,18 @@ bun run --cwd examples/javascript dev
 ```
 
 PostHog uses `loadMode: 'after-consent'`, so its SDK waits for measurement
-permission. X Pixel waits for marketing permission. Revoking permission removes
-the YouTube iframe. Removing a vendor script cannot undo code it has already
-executed.
+permission. X Pixel waits for marketing permission. Revoking a permission
+reloads the page, so code that already ran is gone.
 
 Reject, reload, reopen preferences and allow measurement only. The video and
 PostHog should load while X Pixel stays blocked. Then allow marketing. Test
 revocation and a failed backend request as well. The shared acceptance suite
-runs these examples with a fixture backend and intercepted vendor requests:
+runs both pages with a fixture backend and intercepted vendor requests:
 
 ```sh
 EXAMPLE_TARGET=javascript bun run --cwd examples/shared test
 ```
 
-`src/scripts.ts` contains the vendor configuration. Framework setup stays in
-this example's source files so documentation can use the same code.
-
-The JavaScript package is headless, so both designs use application-owned HTML.
-The example renders actions from the resolved policy and uses a native dialog
-for focus management. It demonstrates category-based policies, not IAB TCF UI.
+The docs publish marked regions from `src/main.ts`, `src/branded.ts`,
+`src/consent-runtime.ts`, `src/headless.ts`, `src/scripts.ts` and
+`src/kernel.ts`. DevTools mounts only in development.

@@ -1,16 +1,41 @@
 ---
-title: Troubleshoot JavaScript consent
-description: Diagnose policy resolution, early scripts, storage and rendering problems.
+title: Troubleshooting
+description: Diagnose a missing banner, vendor scripts that run early, duplicate consent owners and policy resolution in a JavaScript app that uses @c15t/browser or c15t/runtime.
 group: frameworks
 ---
+
+## Why do scripts load twice or before consent?
+
+Check that each vendor has one owner. A snippet left in `index.html`, a second
+`init()` call, or a script loader attached to a kernel that `@c15t/browser` or
+`createConsentRuntime` already owns each load vendors outside the consent gate
+or twice. Call `init()` or create the runtime once per page, in the browser
+entry point, and pass every vendor through its `scripts` list.
+
+## Why does the page reload when a visitor saves?
+
+`@c15t/browser` and `createConsentRuntime` reload the page after a visitor
+turns off a category they had allowed, because code that already ran cannot
+be unloaded. Allowing categories never reloads. To handle withdrawal yourself,
+pass `reloadOnConsentRevoked: false`, and stop each vendor with its own
+opt-out call. See [scripts](/docs/frameworks/javascript/scripts#when-a-visitor-withdraws-permission).
+
+## Why is my custom banner empty?
+
+A headless UI must render from the snapshot, not from assumptions. Check that
+you subscribed before calling `runtime.start()`, that you wait for
+`resolution.status` to be `'matched'`, and that you render
+`promptRequirement.kind` `'notice'` as well as `'choice'`.
+[Headless](/docs/frameworks/javascript/headless#what-your-ui-must-handle) lists
+what a custom UI must cover.
 
 <include src="../../guides/troubleshooting.mdx" />
 
 ## Inspect the active policy
 
-Call this helper with the kernel from your existing
-[JavaScript setup](/docs/frameworks/javascript/quickstart). It logs the current
-state and later changes without recording a choice.
+Call this helper with your kernel: `consent.kernel` from `@c15t/browser`,
+`runtime.kernel` from `createConsentRuntime`, or one you created. It logs the
+current state and later changes without recording a choice.
 
 ```ts title="src/observe-consent-policy.ts"
 import type { ConsentKernel } from 'c15t';

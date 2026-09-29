@@ -1,0 +1,132 @@
+---
+title: Quickstart
+description: Add the c15t banner, preferences and script gating to a plain HTML site, CMS theme, page builder or static site generator with one script tag and no build step.
+group: frameworks
+---
+
+## Connect Inth
+
+[Create an Inth project](https://inth.com), set its policy rules, add your
+site's origin to its trusted origins, and copy the project's backend URL. The
+URL is public configuration. It ends up in your page's HTML, which is expected.
+
+This guide loads `@c15t/browser` from a CDN with a `<script>` tag. The tag
+brings the banner, the preference dialog, stored choices and script gating.
+There is nothing to install or build. If your site has a bundler, the same
+package is available as an ES module; [choose your setup](/docs/concepts/choose-your-setup)
+lists both paths.
+
+## Add the script tag
+
+Paste this tag into the `<head>` of every page.
+Replace `YOUR_INTH_BACKEND_URL` with the URL from your Inth project.
+
+<include src="../../shared/examples/script-tag/script-tag.mdx" />
+
+`defer` lets the page keep parsing while the script downloads. The tag reads
+its `data-*` attributes when it runs, resolves the visitor's policy with Inth,
+then shows the banner if the policy asks for one. A returning visitor who
+already chose sees no banner.
+
+`@alpha` loads the newest v3 prerelease, so a new release can change your
+banner without a deploy. For production, replace `@alpha` with the exact
+version number listed on [npm](https://www.npmjs.com/package/@c15t/browser?activeTab=versions).
+
+### Where to paste it
+
+The tag belongs in the shared `<head>` that every page renders. Where that
+lives depends on the platform:
+
+| Platform | Where the tag goes |
+| --- | --- |
+| WordPress | Your child theme's `header.php`, before `</head>`. Edits to a parent theme are lost when it updates. |
+| Webflow | Site settings, Custom code, Head code. Publish the site afterwards. |
+| Shopify theme | Online Store, Themes, Edit code, `layout/theme.liquid`, before `</head>`. |
+| Hugo | The template that renders `<head>`, usually `layouts/_default/baseof.html` or a head partial. Copy a theme's file into your own `layouts/` directory before editing it. |
+| Eleventy | The base layout in your `_includes` directory that every page extends. |
+| Jekyll | `_includes/head.html` or `_layouts/default.html`. Copy a theme's file into your site before editing it. |
+| Plain HTML | Each page's `<head>`, or the shared header include your server uses. |
+
+A page without the tag has no consent state, and its vendor scripts follow
+their own rules. Check a few pages from different templates after you publish.
+
+## Gate your vendor scripts
+
+The tag only controls scripts it knows about. Change each vendor tag's `type`
+to `text/plain` and name its category in `data-c15t-category`. The browser
+ignores a `text/plain` script, so the vendor stays off until c15t sees
+permission for that category and runs the script.
+
+<include src="../../shared/examples/script-tag/vendor-scripts.mdx" />
+
+Both forms work. The PostHog tag loads the vendor's snippet from a file on your
+site, and the X Pixel tag holds its snippet inline. Replace `YOUR_X_PIXEL_ID`
+with your pixel ID, and use the snippet from your PostHog project settings.
+
+Remove the original, active copy of each vendor tag, including copies a theme
+setting or another plugin adds. Use `measurement` for analytics and
+`marketing` for ads and pixels. [Consent categories](/docs/concepts/consent-categories)
+lists all five. [Scripts and embeds](/docs/frameworks/html/scripts) covers
+load order, callbacks and what happens when a visitor withdraws permission.
+
+## Gate embeds
+
+Move an iframe's URL from `src` to `data-src` and add `data-category`. c15t
+sets `src` once the category is allowed and removes it again if the visitor
+withdraws permission.
+
+<include src="../../shared/examples/script-tag/embed.mdx" />
+
+Without a `src`, the iframe loads nothing. Show a placeholder next to it with
+CSS, such as `iframe:not([src]) { display: none; }` and a message that links to
+privacy settings.
+
+## Add a privacy settings link
+
+Visitors need a way to change their choice after the banner closes. A link to
+`#c15t-preferences` opens the preference dialog, with no JavaScript on your
+page:
+
+<include src="../../shared/examples/script-tag/preferences-link.mdx" />
+
+Put it in the footer of every page. A button with
+`data-c15t-action="customize"` does the same, and `data-trigger` on the script
+tag adds a floating button instead.
+
+## Other ways to run the tag
+
+- **Offline mode.** Leave out `data-backend-url` and c15t resolves the policy
+  in the browser, from `data-policy-rules` or its recommended rules. The
+  browser does not know the visitor's country, so without `data-country` every
+  visitor gets the strict opt-in fallback. Choices stay in that browser and
+  there are no consent records. Not recommended for production environments.
+- **A self-hosted backend.** A [self-hosted c15t backend](/docs/self-host/overview)
+  serves the same bundle at `/c15t.js` with its backend URL and policy
+  manifest already inside, so the tag needs only a `src`:
+  `<script src="https://consent.example.com/c15t.js" defer></script>`, with
+  your backend's origin in place of `consent.example.com`. This route belongs to
+  `@c15t/backend`.
+- **Manifest mode.** Fetch or inline the backend's cacheable policy manifest so
+  the banner can render without a per-visit request. See
+  [modes](/docs/frameworks/html/attributes-and-api#choose-a-mode).
+
+Next, [customize the banner](/docs/frameworks/html/customize) or read the full
+list of [attributes and methods](/docs/frameworks/html/attributes-and-api).
+
+## Check it works
+
+Open the site in a private window with the browser's developer tools open on
+the Network tab.
+
+1. Before you choose, filter for `posthog` and `ads-twitter`. There are no
+   requests, and the YouTube iframe has no `src`.
+2. Click **Reject all** and reload. The banner stays closed and the vendor
+   requests stay absent.
+3. Open **Privacy settings**, allow Measurement only and save. PostHog's
+   `array.js` and the YouTube player load. X Pixel's `uwt.js` does not.
+4. Open **Privacy settings** again and turn Measurement off. The page reloads,
+   and PostHog and YouTube do not load again.
+
+If no banner appears, the policy for your location may not ask for one. See
+[troubleshooting](/docs/frameworks/html/troubleshooting). Run the full
+[verification checklist](/docs/guides/verify-consent) before you ship.

@@ -138,3 +138,9 @@ footer {
 [data-design='branded'] #consent-prompt button {
 	border-color: #6943a3;
 }
+.embed iframe:not([src]) {
+	display: none;
+}
+.embed iframe[src] + .placeholder {
+	display: none;
+}

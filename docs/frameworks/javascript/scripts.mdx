@@ -1,13 +1,38 @@
 ---
-title: JavaScript script loading
-description: Attach a script loader to the consent kernel and dispose it with the application.
+title: Scripts
+description: Register vendor scripts with @c15t/browser, createConsentRuntime or a consent kernel in JavaScript, and control what happens when a visitor withdraws permission.
 group: frameworks
 ---
 
-## Attach the loader before initialization
+## Register scripts where you start c15t
 
-Install `@c15t/scripts` alongside `c15t`. This browser example adds a
-marketing integration to a hosted kernel:
+Pass the `scripts` list to whichever API starts c15t. The list is the same in
+each case, built from `@c15t/scripts` helpers or your own script objects:
+
+| Setup | Where `scripts` goes |
+| --- | --- |
+| `@c15t/browser` | `init({ backendURL, scripts })`, as in the [quickstart](/docs/frameworks/javascript/quickstart#start-c15t). |
+| `c15t/runtime` | `createConsentRuntime({ mode, scripts })`, as in [headless](/docs/frameworks/javascript/headless#create-the-runtime). |
+| Your own kernel | `createScriptLoader({ kernel, scripts })`, below. |
+
+The quickstart's `src/scripts.ts` shows PostHog and X Pixel. Each
+[integration guide](/docs/integrations/overview) gives the helper and options
+for one vendor.
+
+## When a visitor withdraws permission
+
+A script that has run cannot be unloaded. `@c15t/browser` and
+`createConsentRuntime` reload the page after a visitor turns off a category
+they had allowed, so the new page starts without that vendor. Set
+`reloadOnConsentRevoked: false` to handle withdrawal yourself, for example
+with the vendor's opt-out call in `onConsentChange`. Until the next page load,
+code that already ran keeps running.
+
+## Attach the loader to your own kernel
+
+A kernel you create with `createConsentKernel` has no script loader. Create one
+before initialization and dispose it with the kernel. This browser example
+adds a marketing integration to a hosted kernel:
 
 ```ts
 import { createConsentKernel, createHostedTransport } from 'c15t';
@@ -15,8 +40,9 @@ import { createPersistence } from 'c15t/modules/persistence';
 import { createScriptLoader } from 'c15t/modules/script-loader';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
 const kernel = createConsentKernel({
-  transport: createHostedTransport({ backendURL: 'https://your-project.inth.app' }),
+  transport: createHostedTransport({ backendURL }),
 });
 const persistence = createPersistence({ kernel });
 const loader = createScriptLoader({ kernel, scripts: [metaPixel({ pixelId: '123456789012345' })] });
@@ -29,10 +55,9 @@ function dispose() {
 }
 ```
 
-Replace the URL and pixel ID. Call `dispose()` when your application tears down.
-The headless kernel does not render a banner; connect a policy-aware UI before
-shipping this integration. A framework provider already manages these modules,
-so do not attach a second loader to a provider-owned kernel.
+Replace the pixel ID. Call `dispose()` when your application tears down. Do
+not attach a second loader to a kernel that `@c15t/browser` or
+`createConsentRuntime` owns; they already have one.
 
 ## Keep one owner per vendor
 

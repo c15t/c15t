@@ -1,58 +1,47 @@
 ---
 title: DevTools
-description: Inspect a JavaScript consent kernel with the imperative DevTools API.
+description: Mount the c15t DevTools panel in a JavaScript app to inspect consent, scripts, policy and events for @c15t/browser, a consent runtime or a kernel.
 group: frameworks
 ---
 
-## Install
+## Mount the panel with @c15t/browser
+
+`@c15t/browser` includes the panel. Mount it against the client from `init()`,
+behind your bundler's development flag:
+
+<include src="../../shared/examples/javascript/devtools.mdx" />
+
+The panel reads the client's kernel and the categories its dialog offers.
+`defaultTab` picks the first tab: `consents`, `scripts`, `location`, `policy`,
+`iab`, `events` or `actions`. The Location tab changes the country, region,
+language and GPC signal and runs the policy again, so you can check what a
+visitor elsewhere gets.
+
+## Mount the panel with a runtime or kernel
+
+For [`createConsentRuntime`](/docs/frameworks/javascript/headless) or a kernel
+you created yourself, install the panel on its own:
 
 <CommandTabs command="c15t@alpha @c15t/dev-tools@alpha" mode="install" />
 
-## Connect your kernel
+Pass the same kernel your consent UI and script loader use:
 
-Pass the same kernel used by your consent UI and script loaders. No React
-provider or framework adapter is needed.
+<include src="../../shared/examples/javascript/runtime-devtools.mdx" />
 
-This browser example uses Vite's build-time development flag. For webpack,
-use its configured `process.env.NODE_ENV === 'development'` replacement.
-Other build tools need their own development flag; neither `process` nor
-`import.meta.env` is a standard browser global.
+`kernel` is `runtime.kernel`. Pass `getConsentCategories` with the categories
+your UI displays if they differ from the policy's. Call `tools.destroy()` from
+your app's teardown; the example uses Vite's hot-module disposal. Destroying
+the panel does not dispose the kernel or change consent.
 
-```ts
-import { createConsentKernel, createOfflineTransport } from 'c15t';
+## Keep it out of production
 
-const kernel = createConsentKernel({ transport: createOfflineTransport() });
-await kernel.commands.init();
+`import.meta.env.DEV` is Vite's development flag. Webpack and other bundlers
+replace `process.env.NODE_ENV` instead; neither is a standard browser global.
+The dynamic import behind the flag keeps the panel out of your production
+bundle. The panel shows internal state, so never ship it to visitors.
 
-if (import.meta.env.DEV) {
-  const { createDevTools } = await import('@c15t/dev-tools');
-  const tools = createDevTools({
-    kernel,
-    defaultOpen: true,
-    defaultTab: 'scripts',
-    getConsentCategories: () => ['necessary', 'measurement'],
-  });
-
-  // Remove the panel and subscriptions when this app instance is disposed.
-  import.meta.hot?.dispose(() => tools.destroy());
-}
-```
-
-For an existing app, keep its transport and initialization code. Replace the
-example's category list with the categories your consent UI actually displays,
-or omit `getConsentCategories` to use the current policy categories. Accept and
-reject leave hidden category values unchanged.
-
-Call `tools.destroy()` from your app's teardown hook. The Vite example uses HMR
-disposal; other hosts should use their own lifecycle. Destroying DevTools does
-not destroy the kernel or change consent.
-
-<Callout type="warn">
-  Keep the dynamic import behind a build-time development flag. The CLI's plain
-  JavaScript scaffold adds an unconditional `createDevTools` call when you opt in;
-  move it into your development entry point or add your bundler's guard before
-  shipping. Hiding the panel does not remove the engine from production assets.
-</Callout>
+The CLI's plain JavaScript scaffold adds an unconditional `createDevTools` call
+when you opt in. Move it behind your development flag before you ship.
 
 ## Inspect scripts and IAB
 

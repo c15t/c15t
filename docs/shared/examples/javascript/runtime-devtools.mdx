@@ -1,0 +1,9 @@
+{/* Generated from examples/javascript/src/headless.ts (docs:runtime-devtools) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-ui.ts"
+if (import.meta.env.DEV) {
+	const { createDevTools } = await import('@c15t/dev-tools');
+	const tools = createDevTools({ kernel });
+	import.meta.hot?.dispose(() => tools.destroy());
+}
+```

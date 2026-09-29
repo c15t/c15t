@@ -1,0 +1,150 @@
+---
+title: Headless
+description: Render your own consent banner and preferences in JavaScript, or connect a framework without a c15t adapter such as Solid, with createConsentRuntime from c15t/runtime.
+group: frameworks
+---
+
+## Choose a headless API
+
+All three run the same consent engine. They differ in how much of the page
+lifecycle they handle for you.
+
+| API | Use it when |
+| --- | --- |
+| `createConsentRuntime` from `c15t/runtime` | You render the UI yourself, connect a UI framework, or share one consent state between several parts of the page. This page covers it. |
+| `init` from `@c15t/browser/headless` | You want the `@c15t/browser` client without its UI: `data-c15t-action` buttons, `on('ui', ...)` and `acceptAll()` work as with the stock UI. |
+| `createConsentKernel` from `c15t` | You assemble every module yourself. See the [consent kernel API](/docs/frameworks/javascript/api/overview#create-a-kernel-yourself). |
+
+`createConsentRuntime` builds the kernel and connects stored choices, script
+loading, iframe gating and the reload after a visitor withdraws permission. It
+also adds the network blocker, data clearing and IAB when you configure them.
+A kernel you create yourself has none of these until you add them.
+
+## Install
+
+<CommandTabs command="c15t@alpha @c15t/scripts@alpha" mode="install" />
+
+`@c15t/scripts` supplies vendor helpers. Leave it out if you gate no vendor
+scripts.
+
+## Create the runtime
+
+Create one runtime for the page, in its own module, so every part of your UI
+imports the same instance:
+
+<include src="../../shared/examples/javascript/runtime.mdx" />
+
+`scripts` is the list from `src/scripts.ts` in the
+[quickstart](/docs/frameworks/javascript/quickstart#register-consent-gated-scripts).
+Creating the runtime has no side effects. It reads no storage and sends no
+request until you call `start()`, so the module can also load on a server.
+
+## Render the banner from the snapshot
+
+`runtime.kernel.getSnapshot()` returns the current consent state, and
+`runtime.kernel.subscribe(listener)` calls the listener with each new one.
+Your UI renders from these fields:
+
+| Field | What it tells your UI |
+| --- | --- |
+| `policyPending`, `resolution.status` | Whether the policy has resolved. Render nothing optional until `resolution.status` is `'matched'`. |
+| `activeUI` | Which surface to show: `'banner'`, `'dialog'` or `'none'`. |
+| `promptRequirement.kind` | `'choice'` needs a decision, `'notice'` needs only a dismissal, `'none'` needs no prompt. |
+| `policyRule.scope` | The categories to offer in preferences. |
+| `effectivePermissions` | Whether each category is allowed right now. Use it to gate features. |
+| `explicitChoice` | What the visitor recorded, if anything. |
+
+`resolveConsentPresentation` from `c15t` turns the policy into the buttons each
+surface must show, in order. This module renders them and turns each click into
+a kernel command:
+
+<include src="../../shared/examples/javascript/actions.mdx" />
+
+In this file, `kernel` is `runtime.kernel`, `fields` is the element holding the
+preference checkboxes, `latest` is the last snapshot the UI rendered, and
+`status` is a live region for messages. `kernel.set.activeUI()` opens and closes
+surfaces without recording anything. `kernel.commands.save()` records a choice:
+`'all'` accepts, `'none'` rejects, and an object such as
+`{ measurement: true }` saves those categories. `dismissNotice()` records that
+the visitor saw a notice, not that they consented.
+
+## Start and stop the runtime
+
+Subscribe before you start, so the UI renders the resolved policy the moment
+it arrives:
+
+<include src="../../shared/examples/javascript/lifecycle.mdx" />
+
+`runtime.start()` reads stored choices, requests the policy and starts script
+loading. Call it once, in the browser. `runtime.dispose()` removes everything
+`start()` set up. The `pagehide` check keeps the runtime alive when the
+browser stores the page for Back and Forward navigation.
+
+The complete example, with the dialog, the YouTube placeholder and styles, is
+`examples/javascript/src/headless.ts` in the c15t repository.
+
+## What your UI must handle
+
+A custom UI takes on everything the stock banner does:
+
+- **Every prompt kind.** Show a decision for `choice`, a dismissable notice for
+  `notice`, and nothing for `none`. Do not assume every prompt is accept or
+  reject, or that no prompt means consent.
+- **The policy's required actions and rights.** Render every action
+  `resolveConsentPresentation` returns, including rights such as an opt-out
+  link.
+- **A way back.** Keep a privacy settings control on every page after the
+  banner closes.
+- **Visitor actions only.** Call `save()` and `dismissNotice()` only from a
+  click or key press, never on load or during rendering.
+- **Accessibility.** Focus, keyboard use, labels, error states and narrow
+  screens are yours. The example uses a native `<dialog>` for focus handling.
+
+Read [how consent works](/docs/concepts/how-consent-works) for the difference
+between a permission and a recorded choice, then run the
+[verification checklist](/docs/guides/verify-consent).
+
+## Use c15t with Solid
+
+There is no published Solid adapter. Create the runtime as above and read it
+through a signal:
+
+{/* example: fragment */}
+
+```ts title="src/use-consent.ts"
+import { createSignal, onCleanup } from 'solid-js';
+import { runtime } from './consent-runtime';
+
+export function useConsentSnapshot() {
+  const [snapshot, setSnapshot] = createSignal(runtime.kernel.getSnapshot());
+  onCleanup(runtime.kernel.subscribe((next) => setSnapshot(() => next)));
+  return snapshot;
+}
+```
+
+Call `runtime.start()` once in your entry file, after `render()`. Components
+read `snapshot().effectivePermissions` and call `runtime.kernel.commands` from
+event handlers, as in the example above. Other frameworks without an adapter
+follow the same shape, with one runtime and one subscription per component
+tree.
+
+## Use the browser client without its UI
+
+`@c15t/browser/headless` gives you the `@c15t/browser` client with no banner or
+stylesheet. Page hooks such as `data-c15t-action="accept"` still work, and the
+`ui` event says which surface to show:
+
+{/* example: fragment */}
+
+```ts
+import { init } from '@c15t/browser/headless';
+
+const consent = init({ backendURL, scripts });
+consent.on('ui', (surface) => {
+  banner.hidden = surface !== 'banner';
+});
+```
+
+`backendURL` and `scripts` are the values from the
+[quickstart](/docs/frameworks/javascript/quickstart), and `banner` is your
+banner element. Install `@c15t/browser@alpha` for this path.

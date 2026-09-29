@@ -1,0 +1,192 @@
+---
+title: Attributes and API
+description: Reference for the c15t script tag on plain HTML pages, covering the bundle files, data attributes, queued configuration, page hooks, window.c15t methods and events.
+group: frameworks
+---
+
+## Script files
+
+`@c15t/browser` publishes four browser bundles. Load them from
+`https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/<file>` or the same
+path on unpkg.
+
+| File | What it contains |
+| --- | --- |
+| `c15t.js` | The consent runtime, the stock banner, the preference dialog and their stylesheet. Starts from the tag's attributes. |
+| `c15t.headless.js` | The same runtime and `window.c15t` API with no banner, dialog or CSS. Your page renders the UI. |
+| `c15t.iab.js` | Replaces `c15t.js` when your policy uses IAB TCF. See [IAB TCF](/docs/frameworks/html/iab). |
+| `c15t.devtools.js` | The DevTools panel, loaded as a second tag. See [troubleshooting](/docs/frameworks/html/troubleshooting#inspect-consent-with-devtools). |
+
+Load one of `c15t.js`, `c15t.headless.js` or `c15t.iab.js` on a page, never
+two. `c15t.iab.js` throws an error if another one loaded first.
+
+## Script tag attributes
+
+Every attribute is optional. The tag reads them once, when the script runs.
+
+| Attribute | What it does |
+| --- | --- |
+| `data-backend-url` | Your Inth or self-hosted backend URL. Selects hosted mode. |
+| `data-mode` | `hosted`, `offline` or `manifest`. Without it, c15t picks `manifest` when a manifest URL is set, `hosted` when a backend URL is set, and `offline` otherwise. |
+| `data-manifest-url` | Where to fetch the policy manifest in manifest mode. See [choose a mode](#choose-a-mode). |
+| `data-policy-rules` | Comma-separated policy presets for offline mode, such as `europeOptIn,usPrivacyStatesOptOut,worldNone`. Any name exported by `policyRulePresets` works; an unknown name throws. [Policies](/docs/concepts/policies) describes the presets. |
+| `data-categories` | Comma-separated categories to offer in the preference dialog, such as `measurement,marketing`. Without it, the dialog offers the categories your gated scripts and iframes use. This changes the dialog, not the policy. |
+| `data-country`, `data-region` | The visitor's location, when your host can print it into the page. |
+| `data-language` | Use this language instead of the browser's. |
+| `data-privacy-policy-url`, `data-cookie-policy-url`, `data-terms-url` | Show these legal links in the banner and the preference dialog. |
+| `data-color-scheme` | `light`, `dark` or `system`. Defaults to `system`. |
+| `data-trigger` | Show a floating button that reopens the preference dialog. |
+| `data-hide-branding` | Hide the "Secured by c15t" tag. The IAB banner always keeps it. |
+| `data-shadow="false"` | Render the UI into the page instead of a shadow root, so your stylesheet applies. See [customize](/docs/frameworks/html/customize#style-it-with-your-own-stylesheet). |
+| `data-no-ui` | Start the runtime without the stock UI. `c15t.js` still downloads the UI code and CSS; load `c15t.headless.js` to skip them. Other UI attributes are ignored. |
+| `data-manual` | Do not start. Your page calls `c15t.init()` later. |
+
+Flag attributes such as `data-trigger` are on when present, unless their value
+is `false`. `data-backend` is accepted as an older spelling of
+`data-backend-url`.
+
+## Configure with window.c15t
+
+Attributes cover the common options. For everything else, such as scripts with
+callbacks, a network blocker or theme tokens, queue a `config` call on
+`window.c15t` in an inline script before the tag:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', { legalLinks: { privacyPolicy: { href: '/privacy' } } }]);
+</script>
+```
+
+Before the bundle loads, `window.c15t` is an array of calls. The bundle
+replaces it with the API and replays the calls in order. Always push onto the
+existing array. `window.c15t = [[...]]` throws away calls that other scripts
+queued earlier, including the DevTools tag's.
+
+Queue only `config`, `on` and `onInit`. Other methods need a running client
+and throw during the replay, which stops the calls queued after them.
+
+Options merge in this order, with later ones winning:
+
+1. The tag's `data-*` attributes.
+2. Each queued `config` call, in order.
+3. Options passed to `c15t.init()`, when the tag has `data-manual`.
+
+`config` after the client has started logs a warning and does nothing. With
+`data-manual`, `c15t.init()` still reads the original tag's attributes, even if
+the tag has since been removed. After `c15t.dispose()`, a new `c15t.init()`
+reuses the same attributes and queued `config` calls.
+
+### Options only available through config
+
+| Option | Use it for |
+| --- | --- |
+| `scripts` | Scripts with `onLoad` or consent callbacks. See [scripts and embeds](/docs/frameworks/html/scripts#load-a-script-with-callbacks). |
+| `networkBlocker` | Block `fetch` and `XMLHttpRequest` calls by URL until consent. |
+| `iframeBlocker` | Options for iframe gating, or `false` to turn it off. On by default. |
+| `clearOnRevocation` | Cookies and storage keys to delete when a category is denied. |
+| `reloadOnConsentRevoked` | Set `false` to stop the reload after a visitor withdraws a permission. Defaults to `true`. |
+| `ui` | Theme tokens, extra CSS, banner and dialog copy, the trigger button, or `false` for no UI. See [customize](/docs/frameworks/html/customize). |
+| `presentation` | Banner layout and position. |
+| `i18n` | Translations and the default language. |
+| `callbacks` | `onChoiceRecorded`, `onPermissionsChanged`, `onError` and `onBeforeConsentRevocationReload`. |
+| `storageConfig` | The name and lifetime of the consent cookie and storage key. |
+| `user` | An identified visitor, sent with consent records. |
+| `iab` | CMP settings. Only with `c15t.iab.js`. |
+
+## Choose a mode
+
+| Mode | Set it with | What happens |
+| --- | --- | --- |
+| Hosted | `data-backend-url` | Each fresh visit asks the backend's `/init` endpoint for the visitor's policy. Choices are saved to the backend. |
+| Manifest | `data-manifest-url`, or `mode: 'manifest'` with an inline `manifest` in `config` | The browser resolves the policy from the backend's public, cacheable `/manifest`. Choices still go to the backend. |
+| Offline | No backend URL | Policy rules come from `data-policy-rules` or c15t's recommended rules. Choices stay in the browser. Not recommended for production environments. |
+
+In manifest mode, c15t can take the backend URL from a manifest URL that ends
+in `/manifest`. A manifest on another host, or an inline manifest, also needs
+`data-backend-url` so saves have somewhere to go. When a policy depends on the
+visitor's location and the page does not supply it, c15t falls back to the
+backend's `/init`. [Data fetching](/docs/concepts/data-fetching) compares the
+modes.
+
+## Page hooks
+
+These attributes and links work anywhere on the page, including markup added
+after load. They need no JavaScript of your own.
+
+| Hook | What it does |
+| --- | --- |
+| `data-c15t-action="accept"` | Accept all categories. |
+| `data-c15t-action="reject"` | Reject optional categories. |
+| `data-c15t-action="customize"` | Open the preference dialog. |
+| `data-c15t-action="dismiss"` | Dismiss a notice. This records an acknowledgement, not consent. |
+| `data-c15t-action="banner"` | Show the banner again. |
+| `data-c15t-action="close"` | Close whatever is open. |
+| A link to `#c15t-preferences` | Open the preference dialog. |
+| `<script type="text/plain" data-c15t-category="…">` | Run the script once that category is allowed. |
+| `<iframe data-src="…" data-category="…">` | Set the iframe's `src` once that category is allowed. |
+
+## window.c15t methods
+
+After the bundle loads, `window.c15t` is the API. The client starts as soon as
+the bundle runs, unless the tag has `data-manual`. Until then, methods that
+read or change consent throw. Answers can also change once the policy resolves,
+so wait for `c15t.ready()` or a `ready` listener before you read them.
+
+| Method | What it does |
+| --- | --- |
+| `config(options)` | Add options before the client starts. |
+| `init(options?)` | Start the client. Only needed with `data-manual`. |
+| `ready()` | A promise that resolves with the snapshot once the policy has resolved. |
+| `on(event, listener)` | Listen for an event. Returns a function that removes the listener. |
+| `onInit(listener)` | Run a function with the client once it exists. |
+| `has(category)` | Whether a category is allowed right now. Use this to gate code. |
+| `hasConsented()` | Whether the visitor has recorded a choice. |
+| `getSnapshot()`, `subscribe(listener)` | Read the full consent state, or follow every change. |
+| `acceptAll()`, `rejectAll()` | Record a choice for every optional category. |
+| `save(choices)` | Record choices for named categories, such as `{ measurement: true }`. |
+| `dismissNotice()` | Dismiss a notice without recording category choices. |
+| `saveIAB()` | Confirm IAB choices. Only with `c15t.iab.js`. |
+| `showBanner()`, `openDialog()`, `closeDialog()` | Show or hide the stock UI. |
+| `setLanguage(code)` | Switch language and load its translations. |
+| `identify(user)` | Link the consent record to a signed-in user. |
+| `mountUI(options?)` | Mount the stock UI again, for example into another container. |
+| `dispose()` | Remove the UI, listeners and blockers. |
+
+`acceptAll()`, `rejectAll()` and `save()` resolve to a result with an `ok`
+flag. When the backend request fails, the choice still applies in the browser
+and c15t retries the request later. Read [how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+before choosing between `has()` and `hasConsented()`.
+
+## Events
+
+| Event | Payload | When |
+| --- | --- | --- |
+| `ready` | Snapshot | The policy has resolved. |
+| `consent` | Snapshot | A permission or recorded choice changed, including when a stored choice is restored at startup. |
+| `ui` | `'banner'`, `'dialog'` or `'none'` | The surface c15t wants shown changed. |
+| `error` | The error | A backend request or an IAB step failed. |
+
+A `ready` or `ui` listener added after the policy resolved runs at once with
+the current value. Each event also fires on `document` as `c15t:ready`,
+`c15t:consent`, `c15t:ui` and `c15t:error`, with the payload in
+`event.detail`.
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['on', 'consent', () => {
+    if (c15t.has('measurement')) {
+      startAnalytics();
+    }
+  }]);
+</script>
+```
+
+`startAnalytics` stands for your own code. Prefer gating a vendor with
+`type="text/plain"` where you can, because that also works before your own
+script runs.

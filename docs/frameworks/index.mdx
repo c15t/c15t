@@ -1,6 +1,6 @@
 ---
 title: Frameworks
-description: c15t setup guides for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, plain JavaScript and React Native.
+description: c15t setup guides for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, plain HTML, JavaScript and React Native.
 group: frameworks
 ---
 
@@ -16,8 +16,8 @@ group: frameworks
 | Astro | `c15t` (`c15t/astro`) | [Astro quickstart](/docs/frameworks/astro/quickstart) |
 | Svelte | `@c15t/svelte` | [Svelte quickstart](/docs/frameworks/svelte/quickstart) |
 | SvelteKit | `@c15t/svelte` | [SvelteKit quickstart](/docs/frameworks/sveltekit/quickstart) |
-| Plain HTML or a CMS | `@c15t/browser`, or a script tag | [Script tag](/docs/frameworks/javascript/script-tag) |
-| JavaScript and custom UI | `c15t` | [JavaScript quickstart](/docs/frameworks/javascript/quickstart) |
+| HTML, a CMS, a page builder or a static site generator | `@c15t/browser` from a script tag | [HTML quickstart](/docs/frameworks/html/quickstart) |
+| JavaScript with a bundler, or your own UI | `@c15t/browser`, or `c15t` (`c15t/runtime`) | [JavaScript quickstart](/docs/frameworks/javascript/quickstart) |
 | React Native or Expo | `@c15t/react-native` | [React Native quickstart](/docs/frameworks/react-native/quickstart) |
 
 Not sure which setup your rendering mode needs? [Choose your setup](/docs/concepts/choose-your-setup)
@@ -32,8 +32,8 @@ You do not need `@c15t/nextjs` or `@c15t/react` as well; `c15t` depends on
 them.
 
 Three frameworks use their own package: Svelte and SvelteKit use
-`@c15t/svelte`, plain HTML uses `@c15t/browser`, and React Native uses
-`@c15t/react-native`. Vendor script helpers are a separate install,
+`@c15t/svelte`, HTML and the stock UI in JavaScript use `@c15t/browser`, and
+React Native uses `@c15t/react-native`. Vendor script helpers are a separate install,
 `@c15t/scripts`, in every framework.
 
 v3 is published under the `alpha` tag. Install `c15t@alpha`; a plain

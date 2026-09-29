@@ -61,6 +61,7 @@ test('framework quickstarts resolve inside the host framework group', async () =
 		'astro',
 		'svelte',
 		'sveltekit',
+		'html',
 		'javascript',
 		'react-native',
 	]);

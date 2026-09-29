@@ -10,8 +10,8 @@ const frameworkEntryPoints = [
 	['frameworks/astro/quickstart.md', 'Astro quickstart'],
 	['frameworks/svelte/quickstart.md', 'Svelte quickstart'],
 	['frameworks/sveltekit/quickstart.md', 'SvelteKit quickstart'],
+	['frameworks/html/quickstart.md', 'HTML quickstart'],
 	['frameworks/javascript/quickstart.md', 'JavaScript quickstart'],
-	['frameworks/javascript/script-tag.md', 'Script tag setup'],
 ] as const;
 
 /** Add setup links that survive each package's filtered documentation bundle. */

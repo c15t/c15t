@@ -7,96 +7,59 @@
 			content="width=device-width, initial-scale=1"
 		/>
 		<title>c15t JavaScript example</title>
+		<link
+			rel="stylesheet"
+			href="/src/style.css"
+		/>
 	</head>
 	<body>
 		<main>
 			<p>c15t / JavaScript</p>
 			<h1>Consent example</h1>
 			<p>
-				A headless consent engine with your own HTML controls, analytics and
-				video embeds.
+				The stock banner and preferences from <code>@c15t/browser</code>,
+				started from a bundled module. The
+				<a href="/headless/">headless example</a> renders its own HTML instead.
 			</p>
 			<nav aria-label="Banner design">
-				<a href="/">Default</a><a href="/?design=branded">Branded</a>
+				<a href="/">Default</a><a href="/branded/">Branded</a>
 			</nav>
 			<section class="card">
 				<h2>Scripts follow your choices</h2>
 				<ul class="statuses">
-					<li>
-						PostHog: <span id="posthog-status">waiting for measurement</span>
-					</li>
-					<li>X Pixel: <span id="x-status">waiting for marketing</span></li>
+					<li>PostHog loads once measurement is allowed.</li>
+					<li>X Pixel loads once marketing is allowed.</li>
 				</ul>
-				<p>
-					Set your project IDs in .env.local to enable vendor scripts. DevTools
-					shows their loading status.
-				</p>
-				<p
-					id="consent-status"
-					role="status"
-				></p>
+				<p>Set your project IDs in .env.local to enable the vendor scripts.</p>
 			</section>
 			<section class="card">
 				<h2>YouTube embed</h2>
-				<div id="video"></div>
-				<div
-					id="video-placeholder"
-					class="placeholder"
-				>
-					<p>Allow measurement to load this YouTube video.</p>
-					<button
-						type="button"
-						data-open-preferences
-					>
-						Choose video permissions
-					</button>
+				<div class="embed">
+					<!-- #region docs:embed title="index.html" -->
+					<iframe
+						data-src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y?playsinline=1"
+						data-category="measurement"
+						title="YouTube video"
+						allow="encrypted-media; picture-in-picture"
+						allowfullscreen
+					></iframe>
+					<!-- #endregion docs:embed -->
+					<p class="placeholder">
+						Allow measurement to load this YouTube video.
+					</p>
 				</div>
 			</section>
 			<footer>
+				<!-- #region docs:preferences-button title="index.html" -->
 				<button
+					id="privacy-settings"
 					type="button"
-					data-open-preferences
 				>
 					Privacy settings
 				</button>
+				<!-- #endregion docs:preferences-button -->
 			</footer>
 		</main>
-		<section
-			id="consent-prompt"
-			aria-labelledby="prompt-title"
-			hidden
-		>
-			<h2 id="prompt-title">Choose your cookies</h2>
-			<p>
-				This example uses PostHog for measurement, X Pixel for marketing and a
-				YouTube video. Choose which optional services may load.
-			</p>
-			<div
-				id="prompt-actions"
-				class="actions"
-			></div>
-		</section>
-		<dialog
-			id="preferences"
-			aria-labelledby="preferences-title"
-		>
-			<h2 id="preferences-title">Privacy settings</h2>
-			<p>
-				Necessary storage keeps your preferences. Choose optional services
-				below.
-			</p>
-			<div id="categories"></div>
-			<div
-				id="preferences-actions"
-				class="actions"
-			></div>
-			<button
-				id="close-preferences"
-				type="button"
-			>
-				Close preferences
-			</button>
-		</dialog>
 		<script
 			type="module"
 			src="/src/main.ts"

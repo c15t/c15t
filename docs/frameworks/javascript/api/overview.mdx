@@ -4,21 +4,26 @@ description: Use the kernel for policy resolution, state subscriptions and expli
 group: frameworks
 ---
 
-## Create and initialize the kernel
+## Get a kernel
 
-Follow the [JavaScript quickstart](/docs/frameworks/javascript/quickstart) to
-create a kernel and attach browser persistence. The kernel alone supplies state
-and commands, not a rendered interface or automatic script scanning.
+The kernel holds consent state and runs commands. Every JavaScript setup has
+one:
+
+- `consent.kernel`, from `init()` in `@c15t/browser`.
+- `runtime.kernel`, from `createConsentRuntime` in `c15t/runtime`.
+- A kernel you create yourself, as shown [below](#create-a-kernel-yourself).
+
+The kernel alone supplies state and commands, not a rendered interface or
+automatic script scanning.
 
 ```ts
 const unsubscribe = kernel.subscribe((snapshot) => {
   console.log(snapshot.resolution, snapshot.effectivePermissions);
 });
-await kernel.commands.init();
 ```
 
-This fragment assumes the initialized kernel setup from the quickstart. Retain
-`unsubscribe` and call it during teardown.
+This fragment assumes one of the kernels above. Retain `unsubscribe` and call
+it during teardown.
 
 ## How listeners are notified
 
@@ -56,6 +61,20 @@ change produced.
 Use `set` operations for runtime inputs and UI state according to their types.
 They do not replace explicit save actions. Read [how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
 for permission, receipt and callback semantics.
+
+## Create a kernel yourself
+
+Most apps should use `createConsentRuntime` or `@c15t/browser`, which connect
+the modules for you. Create the kernel directly only when you need to choose
+every module:
+
+<include src="../../../shared/examples/javascript/kernel.mdx" />
+
+This kernel stores choices and loads scripts. It has no iframe blocker,
+network blocker or data clearing, and it does not reload the page when a
+visitor withdraws permission, so a vendor that already ran keeps running.
+Add each one you need from its `c15t/modules/*` entry point, and dispose it
+before the kernel.
 
 ## Own optional modules explicitly
 

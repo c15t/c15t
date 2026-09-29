@@ -26,13 +26,31 @@ export const targets: ExampleTarget[] = [
 		routes: ['/app-router', '/awaited', '/pages-router', '/client-init'],
 		start: preview,
 	},
-	...['react', 'vue', 'svelte', 'javascript'].map((id) => ({
+	...['react', 'vue', 'svelte'].map((id) => ({
 		directory: id,
 		failureRoute: '/',
 		id,
 		routes: ['/'],
 		start: preview,
 	})),
+	{
+		// Stock UI from `@c15t/browser` on `/`, and custom HTML on the
+		// headless runtime at `/headless/`.
+		directory: 'javascript',
+		failureRoute: '/',
+		id: 'javascript',
+		routes: ['/', '/headless/'],
+		start: preview,
+	},
+	{
+		// The `@c15t/browser` script tag on a plain HTML page. The server swaps
+		// the page's jsDelivr URL for this checkout's build.
+		directory: 'script-tag',
+		failureRoute: '/consent-example',
+		id: 'html',
+		routes: ['/consent-example'],
+		start: () => ['serve.ts'],
+	},
 	{
 		// Server manifest mode. The prerendered and cached copies of the
 		// page share their HTML between visitors; the browser resolves each

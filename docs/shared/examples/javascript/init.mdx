@@ -1,0 +1,18 @@
+{/* Generated from examples/javascript/src/main.ts (docs:init) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/main.ts"
+import { init } from '@c15t/browser';
+
+import { scripts } from './scripts';
+
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) {
+	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth endpoint');
+}
+
+const consent = init({ backendURL, scripts });
+
+document
+	.querySelector('#privacy-settings')
+	?.addEventListener('click', () => consent.openDialog());
+```

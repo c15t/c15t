@@ -1,3 +1,17 @@
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'vite';
 
-export default defineConfig({ plugins: [] });
+const page = (path: string) => fileURLToPath(new URL(path, import.meta.url));
+
+export default defineConfig({
+	build: {
+		rollupOptions: {
+			input: {
+				branded: page('./branded/index.html'),
+				headless: page('./headless/index.html'),
+				main: page('./index.html'),
+			},
+		},
+	},
+});
