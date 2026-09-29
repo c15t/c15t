@@ -7,7 +7,13 @@
  */
 import { describe, expect, test } from 'vitest';
 
-import { createConsentKernel, createOfflineTransport } from '../index';
+import {
+	createConsentKernel,
+	createOfflineTransport,
+	offline,
+	resolveLocalTranslations,
+} from '../index';
+import { createConsentRuntime } from '../runtime';
 
 describe('createOfflineTransport: basic behavior', () => {
 	test('no rules resolve the recommended pack', async () => {
@@ -196,5 +202,80 @@ describe('createOfflineTransport: kernel integration', () => {
 		expect(
 			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
 		).not.toHaveLength(0);
+	});
+});
+
+describe('offline(): language changes', () => {
+	const messages = {
+		de: { cookieBanner: { title: 'Wir schätzen Ihre Privatsphäre' } },
+	};
+	const english = 'We value your privacy';
+
+	test('createOfflineTransport resolves copy for a requested language', async () => {
+		const transport = createOfflineTransport({
+			translations: resolveLocalTranslations('en', messages),
+			translationsFor: (language) =>
+				resolveLocalTranslations(language, messages),
+		} as never);
+		const german = await transport.init({
+			overrides: { language: 'de' },
+			user: null,
+		});
+		expect(german.translations?.language).toBe('de');
+		expect(german.translations?.translations.cookieBanner.title).toBe(
+			'Wir schätzen Ihre Privatsphäre'
+		);
+		// Without copy for French, English stays English rather than being
+		// labelled French.
+		const french = await transport.init({
+			overrides: { language: 'fr' },
+			user: null,
+		});
+		expect(french.translations?.language).toBe('en');
+	});
+
+	test('a language set through the kernel switches the copy', async () => {
+		const runtime = createConsentRuntime({
+			i18n: { messages } as never,
+			mode: offline(),
+			persistence: false,
+			windowDebug: false,
+		});
+		const { kernel } = runtime;
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().translations?.language).toBe('en');
+
+		kernel.set.language('de');
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().translations?.language).toBe('de');
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe('Wir schätzen Ihre Privatsphäre');
+
+		// No copy for French: the default copy returns, labelled as English.
+		kernel.set.language('fr');
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().translations?.language).toBe('en');
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe(english);
+		runtime.dispose();
+	});
+
+	test('a language a server prefetch detected does not switch the copy', async () => {
+		const runtime = createConsentRuntime({
+			i18n: { locale: 'en', messages } as never,
+			mode: offline(),
+			persistence: false,
+			prefetch: { initialOverrides: { language: 'de' } },
+			windowDebug: false,
+		});
+		const { kernel } = runtime;
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().translations?.language).toBe('en');
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe(english);
+		runtime.dispose();
 	});
 });
