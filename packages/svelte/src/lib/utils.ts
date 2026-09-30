@@ -35,9 +35,10 @@ export const themeToVars = function themeToVars(
  * Generates a CSS string for the theme variables.
  */
 export const generateThemeCSS = function generateThemeCSS(
-	theme: Theme
+	theme: Theme,
+	colorScheme?: Parameters<typeof baseGenerateThemeCSS>[1]
 ): string {
-	return baseGenerateThemeCSS(theme);
+	return baseGenerateThemeCSS(theme, colorScheme);
 };
 
 /**
