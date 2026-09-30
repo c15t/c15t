@@ -425,8 +425,8 @@ const writeReassignments = function writeReassignments(
 
 /**
  * The same save under another subject id. Keys keep their positions, so a
- * queued entry rewritten by {@link createPendingSaveQueue}'s `rekey` still
- * serializes identically to one rebuilt from the original payload.
+ * queued entry moved by the queue's `claimReassignment` still serializes
+ * identically to one rebuilt from the original payload.
  *
  * @internal
  */
@@ -575,6 +575,26 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 	};
 
 	/**
+	 * The id this browser already moved `from` to, if one is recorded. Read
+	 * without recording anything, so a save for a subject this browser never
+	 * reassigned cannot start a new reassignment.
+	 */
+	const recordedReassignment = function recordedReassignment(
+		from: string
+	): Promise<string | undefined> {
+		const storage = getLocalStorage();
+		if (!storage) {
+			return Promise.resolve(undefined);
+		}
+		return withQueueLock(
+			() =>
+				readReassignments(storage, Date.now()).find(
+					(item) => item.from === from
+				)?.to
+		);
+	};
+
+	/**
 	 * Replay one entry. Returns `null` when another tab already replayed or
 	 * dropped it, otherwise the replay outcome. A save the backend refused
 	 * for good (a `ConsentSaveRejectedError`) leaves the queue at once
@@ -686,5 +706,11 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 		}
 	};
 
-	return { claimReassignment, discard, enqueue, replay };
+	return {
+		claimReassignment,
+		discard,
+		enqueue,
+		recordedReassignment,
+		replay,
+	};
 };

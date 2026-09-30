@@ -858,8 +858,13 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	// Subject ids this kernel replaced after the backend refused them as
 	// another tenant's, old to the claim for the new one. A live save and a
 	// replay can both hit the same refusal; this sends both to one new id
-	// instead of minting two.
-	const reassignedSubjects = new Map<string, Promise<string>>();
+	// instead of minting two. Each claim belongs to the records generation it
+	// was made in: after a clear, reusing it would tie the visitor's new
+	// history to the subject they reset away from.
+	const reassignedSubjects = new Map<
+		string,
+		{ claim: Promise<string>; generation: number }
+	>();
 	let disposed = false;
 	// Bumped by every explicit `init()`. An attempt that resolves after a newer
 	// init started is stale: it must not apply its response, touch retry
@@ -1197,6 +1202,26 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	};
 
 	/**
+	 * A save queued under `from` after this browser had already moved the
+	 * visitor off it: another tab was still on `from`, or the page reloaded
+	 * onto the new subject before the replay. The recorded reassignment says
+	 * where it belongs; the save follows it only when that is the visitor's
+	 * subject now. A clear removes the record, so a save from before a reset
+	 * is dropped rather than tied to the new history.
+	 */
+	const followRecordedReassignment = async function followRecordedReassignment(
+		from: string
+	): Promise<string | null> {
+		const to = await pendingSaves?.recordedReassignment(from);
+		if (to === undefined || getSnapshot().subject?.subjectId !== to) {
+			return null;
+		}
+		// Moves the queued saves; the record already names `to`.
+		await pendingSaves?.claimReassignment(from, to);
+		return to;
+	};
+
+	/**
 	 * Give the visitor a new subject id after the backend refused `from`
 	 * with `SUBJECT_CONFLICT`: on a database several tenants share, another
 	 * tenant already owns it. Resending under the same id is refused every
@@ -1206,25 +1231,30 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	 * the refusal moves to the same one, and queued saves for `from` move
 	 * with it. It is committed like a subject the server resolved, so
 	 * persistence writes it over the stored one. A visitor set back to
-	 * `from` later moves to the same id again.
+	 * `from` later moves to the same id again, unless the stored consent
+	 * records were cleared in between.
 	 *
 	 * Resolves to `null` when `from` is no longer this visitor's subject and
-	 * was not moved by this kernel: a save for a subject since replaced or
-	 * cleared is not moved onto whoever holds the snapshot now.
+	 * no reassignment of it leads to the current one: a save for a subject
+	 * since replaced or cleared is not moved onto whoever holds the snapshot
+	 * now.
 	 */
 	const reassignSubject = async function reassignSubject(
 		from: string
 	): Promise<string | null> {
-		const earlier = reassignedSubjects.get(from);
+		const generation = runtime.getGeneration();
+		const cached = reassignedSubjects.get(from);
+		const earlier =
+			cached?.generation === generation ? cached.claim : undefined;
 		if (earlier === undefined && getSnapshot().subject?.subjectId !== from) {
-			return null;
+			return followRecordedReassignment(from);
 		}
 		let claim = earlier;
 		if (claim === undefined) {
 			claim = pendingSaves
 				? pendingSaves.claimReassignment(from, generateSubjectId())
 				: Promise.resolve(generateSubjectId());
-			reassignedSubjects.set(from, claim);
+			reassignedSubjects.set(from, { claim, generation });
 		}
 		const to = await claim;
 		if (earlier !== undefined) {

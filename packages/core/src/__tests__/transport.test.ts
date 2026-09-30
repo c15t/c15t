@@ -2028,6 +2028,86 @@ describe('kernel transport: failed save replay', () => {
 		kernel.dispose();
 	});
 
+	test('a visitor refused again after a reset gets a new id, not the old replacement', async () => {
+		// Reusing the pre-reset replacement would tie the visitor's new history
+		// to the subject they reset away from.
+		const saveSpy = vi.fn(({ subjectId }: { subjectId: string }) =>
+			subjectId === 'sub_taken'
+				? Promise.reject(refused('SUBJECT_CONFLICT'))
+				: accepted({ subjectId })
+		);
+		const kernel = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_taken' } },
+			transport: { save: saveSpy },
+		});
+
+		await kernel.commands.save({ marketing: true });
+		const firstReplacement = kernel.getSnapshot().subject?.subjectId;
+
+		// What a consent reset leaves behind: no stored reassignment, and a new
+		// records generation.
+		window.localStorage.removeItem(SUBJECT_REASSIGNMENTS_STORAGE_KEY);
+		kernel.set.subjectId('sub_taken');
+		await expect(
+			kernel.commands.save({ measurement: false })
+		).resolves.toMatchObject({ ok: true });
+
+		const secondReplacement = kernel.getSnapshot().subject?.subjectId;
+		expect(secondReplacement).not.toBe('sub_taken');
+		expect(secondReplacement).not.toBe(firstReplacement);
+		kernel.dispose();
+	});
+
+	test('a save queued under an id another tab already replaced follows it after a reload', async () => {
+		// Tab A moves the visitor off `sub_s1`. Tab B, still on it, queues a
+		// save while offline, then reloads onto the new subject. The replay is
+		// refused for `sub_s1`; dropping it would lose a choice the recorded
+		// reassignment says belongs to the current subject.
+		const conflictUnlessMoved = vi.fn(({ subjectId }: { subjectId: string }) =>
+			subjectId === 'sub_s1'
+				? Promise.reject(refused('SUBJECT_CONFLICT'))
+				: accepted({ subjectId })
+		);
+		const tabA = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_s1' } },
+			transport: { save: conflictUnlessMoved },
+		});
+		await tabA.commands.save({ marketing: true });
+		const movedTo = tabA.getSnapshot().subject?.subjectId as string;
+		tabA.dispose();
+
+		const tabB = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_s1' } },
+			transport: { save: vi.fn().mockRejectedValue(new Error('offline')) },
+		});
+		await tabB.commands.save({ measurement: false });
+		tabB.dispose();
+		expect(
+			JSON.parse(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]')
+		).toMatchObject([{ payload: { subjectId: 'sub_s1' } }]);
+
+		const reloaded = createConsentKernel({
+			initialRecords: { subject: { subjectId: movedTo } },
+			transport: {
+				init: vi.fn().mockResolvedValue({}),
+				save: conflictUnlessMoved,
+			},
+		});
+		const replayed: { ok: boolean; subjectId: string }[] = [];
+		reloaded.events.on('save:replayed', ({ ok, subjectId }) => {
+			replayed.push({ ok, subjectId });
+		});
+		await reloaded.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toHaveLength(1);
+		});
+
+		expect(replayed).toEqual([{ ok: true, subjectId: movedTo }]);
+		expect(reloaded.getSnapshot().subject?.subjectId).toBe(movedTo);
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		reloaded.dispose();
+	});
+
 	test('two tabs refused for the same subject move to one new id', async () => {
 		// Each tab picking its own id would leave one of them persisting a
 		// subject the backend holds no consent for.
