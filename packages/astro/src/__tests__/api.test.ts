@@ -114,7 +114,38 @@ describe('resolveManifestSourceURL', () => {
 				...options({ mode: hostedMode({ url: '/api/consent' }) }),
 				mode: { type: 'manifest' },
 			})
-		).toThrowError(/backendURL. or .manifestURL/u);
+		).toThrowError('@c15t/astro: pass backendURL or manifestURL.');
+	});
+
+	it('ignores C15T_BACKEND_URL, PUBLIC_C15T_BACKEND_URL, and C15T_MANIFEST_URL', () => {
+		vi.stubEnv('C15T_BACKEND_URL', 'https://env.example.com');
+		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://env.example.com');
+		vi.stubEnv('C15T_MANIFEST_URL', 'https://env.example.com/manifest');
+		try {
+			expect(() =>
+				resolveManifestSourceURL(makeRequest(), {
+					...options(),
+					mode: { type: 'manifest' },
+				})
+			).toThrowError('@c15t/astro: pass backendURL or manifestURL.');
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
+	it('rejects an invalid backend or manifest URL', () => {
+		expect(() =>
+			resolveManifestSourceURL(makeRequest(), {
+				...options(),
+				mode: { backendURL: 'consent', type: 'manifest' },
+			})
+		).toThrowError('@c15t/astro: invalid backend URL.');
+		expect(() =>
+			resolveManifestSourceURL(makeRequest(), {
+				...options(),
+				mode: { manifestURL: 'consent/manifest', type: 'manifest' },
+			})
+		).toThrowError('@c15t/astro: invalid manifest URL.');
 	});
 });
 
@@ -372,33 +403,23 @@ describe('route handlers', () => {
 		).toBe(false);
 	});
 
-	it('reports when the backend comes from PUBLIC_C15T_BACKEND_URL', async () => {
+	it('sends no report to a backend named only in the environment', async () => {
+		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
 		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://consent.example.com');
 		try {
-			const fetchImpl = vi.fn((input: string) =>
-				Promise.resolve(
-					input.endsWith('/sessions')
-						? new Response(null, { status: 204 })
-						: jsonResponse(MANIFEST, {
-								'cache-control': 'public, s-maxage=300',
-							})
-				)
-			);
+			const fetchImpl = vi.fn(() => jsonResponse(MANIFEST));
 			const registered: Promise<void>[] = [];
 			const handlers = createConsentRouteHandlers({
 				fetch: fetchImpl as never,
 				onBackgroundRevalidate: (task) => {
 					registered.push(task);
 				},
-				options: options({ mode: manifestMode() }),
+				options: options({ mode: manifestMode({ manifest: MANIFEST }) }),
 			});
-			await handlers.init(makeRequest());
+			const response = await handlers.init(makeRequest());
 			await Promise.all(registered);
-			expect(
-				fetchImpl.mock.calls.some(
-					([url]) => url === 'https://consent.example.com/sessions'
-				)
-			).toBe(true);
+			expect(response.status).toBe(200);
+			expect(fetchImpl).not.toHaveBeenCalled();
 		} finally {
 			vi.unstubAllEnvs();
 		}

@@ -117,7 +117,7 @@ export interface ConsentRouteHandlerOptions {
 /**
  * Work out where `GET /manifest` lives for this request.
  *
- * Explicit options win, then `C15T_MANIFEST_URL` / `C15T_BACKEND_URL`.
+ * `manifestURL` when set, otherwise `${backendURL}/manifest`.
  *
  * @param request - The incoming request, used to resolve relative URLs.
  * @param options - The resolved integration options.

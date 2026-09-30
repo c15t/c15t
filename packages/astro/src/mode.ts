@@ -68,7 +68,7 @@ export const offlineMode = function offlineMode(
  * @returns A serializable manifest-mode descriptor.
  * @example
  * ```ts
- * c15t({ mode: manifest({ backendURL: process.env.C15T_BACKEND_URL }) })
+ * c15t({ mode: manifest({ backendURL: 'https://your-project.inth.app' }) })
  * ```
  */
 export const manifestMode = function manifestMode(
