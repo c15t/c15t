@@ -1,0 +1,469 @@
+---
+title: Tailwind CSS
+description: Load c15t's styles next to Tailwind CSS 4 or 3 in every framework, put utilities on c15t component parts, and use Tailwind's dark variant with c15t.
+group: customization
+---
+
+## How c15t's styles meet Tailwind
+
+c15t's component rules live in the CSS cascade layer `components`. Each c15t
+stylesheet starts with Tailwind CSS 4's layer order,
+`@layer properties, theme, base, components, utilities;`, and cascade layers
+rank by the order they are first named. On Tailwind 4, c15t's rules stay above
+Tailwind's preflight in `base` and below your utilities in `utilities`,
+whichever stylesheet loads first. A plain utility such as `p-2` on a c15t part
+wins without `!important`.
+
+Tailwind CSS 3 has no cascade layers. It treats `@layer components` as its own
+directive and fails the build on a stylesheet that uses it without a matching
+`@tailwind components`. The `c15t/postcss-tailwind3` PostCSS plugin removes the
+layer wrappers from c15t's stylesheets before Tailwind 3 runs. c15t's rules then
+win by specificity, as they did in c15t v2, so a utility on a c15t part needs
+Tailwind's important modifier, such as `!p-2`.
+
+The setups below come from fixtures that CI builds for each framework and
+checks in Chromium. Next.js has its own Tailwind 3 and 4 fixtures, so its
+snippets are shown as fragments. The check confirms that c15t's banner and dialog keep their
+styles under Tailwind's preflight, that a padding utility on the banner root
+beats c15t's own padding, and that the `dark:` variant applies. The fixtures run
+without a backend, so they use `offline()` mode or a local `backendURL`. Keep the
+`mode` or `backendURL` from your quickstart.
+
+## Set up Tailwind CSS 4
+
+Install Tailwind's plugin for your build tool, add it to the build, and load
+c15t's stylesheet in the same CSS entry as Tailwind. Vue, Nuxt and Astro load
+c15t's styles for you, so their CSS entry holds only Tailwind.
+
+<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
+  <Tab value="Next.js">
+    Next.js runs Tailwind 4 through `@tailwindcss/postcss`. Import c15t after
+    Tailwind in the global stylesheet that `app/layout.tsx` or
+    `pages/_app.tsx` loads:
+
+    {/* example: fragment */}
+
+    ```js title="postcss.config.mjs"
+    export default {
+      plugins: ['@tailwindcss/postcss'],
+    };
+    ```
+
+    {/* example: fragment */}
+
+    ```css title="app/globals.css"
+    @import 'tailwindcss';
+    @import 'c15t/next/styles.css';
+
+    @custom-variant dark (&:where(.dark, .dark *));
+    ```
+  </Tab>
+
+  <Tab value="TanStack Start">
+    Add `@tailwindcss/vite` before the TanStack Start plugin, then import
+    Tailwind and c15t from the stylesheet your root route links:
+
+    <include src="../shared/examples/tailwind-v4/tanstack-start/vite-config.mdx" />
+
+    Import Tailwind and c15t from the stylesheet your root route links:
+
+    <include src="../shared/examples/tailwind-v4/tanstack-start/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="React">
+    <include src="../shared/examples/tailwind-v4/react/vite-config.mdx" />
+
+    Import this stylesheet from your entry module in place of a separate
+    `c15t/react/styles.css` import:
+
+    <include src="../shared/examples/tailwind-v4/react/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="Nuxt">
+    Add `@tailwindcss/vite` under `vite.plugins` and list your CSS entry in
+    `css`. The Vue components load c15t's styles themselves:
+
+    <include src="../shared/examples/tailwind-v4/nuxt/nuxt-config.mdx" />
+
+    Your CSS entry imports Tailwind and declares the dark variant:
+
+    <include src="../shared/examples/tailwind-v4/nuxt/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="Vue">
+    The Vue components load their own stylesheets, so the CSS entry holds only
+    Tailwind:
+
+    <include src="../shared/examples/tailwind-v4/vue/vite-config.mdx" />
+
+    Import this stylesheet from `src/main.ts`:
+
+    <include src="../shared/examples/tailwind-v4/vue/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="Astro">
+    The integration adds `c15t/astro/styles.css` to every page, so the CSS
+    entry holds only Tailwind. Add `@tailwindcss/vite` under `vite.plugins`:
+
+    <include src="../shared/examples/tailwind-v4/astro/astro-config.mdx" />
+
+    Import this stylesheet from your layout:
+
+    <include src="../shared/examples/tailwind-v4/astro/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="Svelte">
+    <include src="../shared/examples/tailwind-v4/svelte/vite-config.mdx" />
+
+    Import this stylesheet from `src/main.ts` in place of a separate
+    `@c15t/svelte/styles.css` import:
+
+    <include src="../shared/examples/tailwind-v4/svelte/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="SvelteKit">
+    <include src="../shared/examples/tailwind-v4/sveltekit/vite-config.mdx" />
+
+    Import this stylesheet from your root `+layout.svelte`:
+
+    <include src="../shared/examples/tailwind-v4/sveltekit/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="HTML">
+    The script tag renders its UI in a shadow root with its own copy of c15t's
+    stylesheet. Build your Tailwind CSS as usual and link it from the page:
+
+    <include src="../shared/examples/tailwind-v4/html/tailwind-css.mdx" />
+
+    To put utilities on c15t's parts, link the same build into the shadow root
+    with `ui.stylesheetURLs`, as in
+    [put utilities on c15t parts](#put-utilities-on-c15t-parts).
+  </Tab>
+
+  <Tab value="JavaScript">
+    `init()` from `@c15t/browser` renders into a shadow root, the same way as
+    the script tag. Build Tailwind as usual for your page. To put utilities on
+    c15t's parts, pass the URL of your built stylesheet in
+    `ui.stylesheetURLs`, as in
+    [put utilities on c15t parts](#put-utilities-on-c15t-parts).
+  </Tab>
+</Tabs>
+
+## Set up Tailwind CSS 3
+
+Tailwind 3 needs three changes:
+
+1. Add `c15t/postcss-tailwind3` to your PostCSS plugins, before `tailwindcss`.
+   It is the same plugin as `@c15t/ui/postcss-tailwind3`. Apps that installed
+   `@c15t/svelte` or `@c15t/browser` rather than `c15t` use the `@c15t/ui`
+   name, and need `@c15t/ui@alpha` installed.
+2. Where you import c15t's stylesheet yourself, put the import where your build
+   tool keeps it. Vite drops an `@import` that follows another rule, with the
+   warning `@import must precede all other statements`, and the banner renders
+   unstyled. On Vite stacks, including React with Vite, TanStack Start, Svelte
+   and SvelteKit, import c15t above the `@tailwind` directives.
+3. Set `darkMode: 'class'` so Tailwind's `dark:` variant follows the same
+   `dark` class c15t reads.
+
+The plugin also processes the stylesheets c15t loads for you, such as the
+dialog's lazy stylesheet and Astro's injected one. Without it, Tailwind 3 stops
+the build with "`@layer components` is used but no matching
+`@tailwind components` directive is present", or purges c15t's rules, because
+c15t's class names never appear in your source.
+
+<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
+  <Tab value="Next.js">
+    Next.js loads `postcss.config.mjs` itself. Import the Tailwind 3 build of
+    c15t's stylesheet, `c15t/next/styles.tw3.css`, from your Tailwind entry.
+    c15t's Next.js 15 fixture imports it between the `components` and
+    `utilities` directives. Unlike Vite, the Next.js build keeps an `@import`
+    in that position:
+
+    {/* example: fragment */}
+
+    ```js title="postcss.config.mjs"
+    export default {
+      plugins: ['c15t/postcss-tailwind3', 'tailwindcss', 'autoprefixer'],
+    };
+    ```
+
+    {/* example: fragment */}
+
+    ```css title="app/globals.css"
+    @tailwind base;
+    @tailwind components;
+    @import 'c15t/next/styles.tw3.css';
+    @tailwind utilities;
+    ```
+
+    Set `darkMode: 'class'` and your `content` globs in `tailwind.config.ts`.
+  </Tab>
+
+  <Tab value="TanStack Start">
+    <include src="../shared/examples/tailwind-v3/tanstack-start/postcss-config.mdx" />
+
+    Scan your source and turn on the class-based dark variant:
+
+    <include src="../shared/examples/tailwind-v3/tanstack-start/tailwind-config.mdx" />
+
+    Import the Tailwind 3 build of c15t's stylesheet above the directives:
+
+    <include src="../shared/examples/tailwind-v3/tanstack-start/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="React">
+    <include src="../shared/examples/tailwind-v3/react/postcss-config.mdx" />
+
+    Scan your source and turn on the class-based dark variant:
+
+    <include src="../shared/examples/tailwind-v3/react/tailwind-config.mdx" />
+
+    Import the Tailwind 3 build of c15t's stylesheet above the directives, in
+    place of `c15t/react/styles.css`:
+
+    <include src="../shared/examples/tailwind-v3/react/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="Nuxt">
+    Nuxt reads PostCSS plugins from `postcss.plugins` in `nuxt.config.ts`, in
+    the order listed:
+
+    <include src="../shared/examples/tailwind-v3/nuxt/nuxt-config.mdx" />
+
+    Scan `app/` and turn on the class-based dark variant:
+
+    <include src="../shared/examples/tailwind-v3/nuxt/tailwind-config.mdx" />
+
+    The Vue components load c15t's styles themselves, and the plugin processes
+    them too, so the CSS entry holds only the directives:
+
+    <include src="../shared/examples/tailwind-v3/nuxt/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="Vue">
+    <include src="../shared/examples/tailwind-v3/vue/postcss-config.mdx" />
+
+    Scan your source and turn on the class-based dark variant:
+
+    <include src="../shared/examples/tailwind-v3/vue/tailwind-config.mdx" />
+
+    The Vue components load their own stylesheets, and the plugin processes
+    them too, so the CSS entry holds only the directives:
+
+    <include src="../shared/examples/tailwind-v3/vue/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="Astro">
+    <include src="../shared/examples/tailwind-v3/astro/postcss-config.mdx" />
+
+    Scan your source and turn on the class-based dark variant:
+
+    <include src="../shared/examples/tailwind-v3/astro/tailwind-config.mdx" />
+
+    The plugin processes the stylesheet the integration injects, so the CSS
+    entry holds only the directives:
+
+    <include src="../shared/examples/tailwind-v3/astro/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="Svelte">
+    Install `@c15t/ui@alpha` for the plugin:
+
+    <include src="../shared/examples/tailwind-v3/svelte/postcss-config.mdx" />
+
+    Scan your source and turn on the class-based dark variant:
+
+    <include src="../shared/examples/tailwind-v3/svelte/tailwind-config.mdx" />
+
+    Svelte has one stylesheet for Tailwind 3 and 4. Import it above the
+    directives:
+
+    <include src="../shared/examples/tailwind-v3/svelte/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="SvelteKit">
+    Install `@c15t/ui@alpha` for the plugin:
+
+    <include src="../shared/examples/tailwind-v3/sveltekit/postcss-config.mdx" />
+
+    Scan your source and turn on the class-based dark variant:
+
+    <include src="../shared/examples/tailwind-v3/sveltekit/tailwind-config.mdx" />
+
+    Import c15t's stylesheet above the directives, and import this file from
+    your root `+layout.svelte`:
+
+    <include src="../shared/examples/tailwind-v3/sveltekit/tailwind-css.mdx" />
+  </Tab>
+
+  <Tab value="HTML">
+    In the default shadow root, c15t's stylesheet never meets Tailwind, so the
+    page's Tailwind 3 setup needs nothing from c15t:
+
+    <include src="../shared/examples/tailwind-v3/html/tailwind-css.mdx" />
+
+    To render the UI in the page instead, see
+    [render the UI in the light DOM](#render-the-ui-in-the-light-dom).
+  </Tab>
+
+  <Tab value="JavaScript">
+    `init()` renders into a shadow root by default, where c15t's stylesheet
+    never meets Tailwind. To render the UI in the page and build c15t's rules
+    into your Tailwind CSS, see
+    [render the UI in the light DOM](#render-the-ui-in-the-light-dom).
+  </Tab>
+</Tabs>
+
+## Put utilities on c15t parts
+
+Pass utilities to a component part through your framework's part API. The
+fixtures put padding on the banner root, which c15t also pads, with a different
+value in dark mode. On Tailwind 4 a plain utility wins. On Tailwind 3, add `!`,
+as in `!p-[7px] dark:!p-[11px]`, because c15t's unlayered rules outrank a plain
+utility. [Component parts](/docs/customization/slots) lists the parts each
+framework exposes.
+
+Tailwind only generates classes it finds in the files its `content` globs or
+`@source` rules scan. Keep part classes in a scanned file.
+
+<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
+  <Tab value="Next.js">
+    Add the classes to `options.components` on `ConsentRoot`, in the
+    `'use client'` wrapper from your quickstart:
+
+    {/* example: fragment */}
+
+    ```tsx title="components/consent.tsx (partial)"
+    options={{
+      components: {
+        banner: {
+          root: { className: 'p-[7px] dark:p-[11px]' },
+        },
+      },
+    }}
+    ```
+  </Tab>
+
+  <Tab value="TanStack Start">
+    <include src="../shared/examples/tailwind-v4/tanstack-start/slot.mdx" />
+  </Tab>
+
+  <Tab value="React">
+    <include src="../shared/examples/tailwind-v4/react/slot.mdx" />
+  </Tab>
+
+  <Tab value="Nuxt">
+    Tailwind scans `app/`, not `nuxt.config.ts`, so put part classes in
+    `app/app.config.ts` under the `c15t` key. The module merges it with the
+    `c15t` options in `nuxt.config.ts`. Vue takes `class`, not `className`:
+
+    <include src="../shared/examples/tailwind-v4/nuxt/slot.mdx" />
+  </Tab>
+
+  <Tab value="Vue">
+    Add the classes to `components` in the `c15tVue` options. Vue takes
+    `class`, not `className`:
+
+    <include src="../shared/examples/tailwind-v4/vue/slot.mdx" />
+  </Tab>
+
+  <Tab value="Astro">
+    `class` on `ConsentBanner` goes on the banner root:
+
+    <include src="../shared/examples/tailwind-v4/astro/slot.mdx" />
+  </Tab>
+
+  <Tab value="Svelte">
+    `class` on `ConsentBanner` goes on the banner root:
+
+    <include src="../shared/examples/tailwind-v4/svelte/slot.mdx" />
+  </Tab>
+
+  <Tab value="SvelteKit">
+    <include src="../shared/examples/tailwind-v4/sveltekit/slot.mdx" />
+  </Tab>
+
+  <Tab value="HTML">
+    Put the classes on parts with `ui.theme.slots`, and link your Tailwind
+    build into the shadow root with `ui.stylesheetURLs`. Keep the page's own
+    link too. Tailwind 4 registers some of its variables with `@property`,
+    which only takes effect in the page's stylesheets, not a shadow root's:
+
+    <include src="../shared/examples/script-tag/tailwind-classes.mdx" />
+
+    Tailwind must scan the file that holds the slot classes.
+  </Tab>
+
+  <Tab value="JavaScript">
+    Pass `ui.stylesheetURLs` and `ui.theme.slots` to `init()`. Keep a link to
+    the same stylesheet on the page, because Tailwind 4's `@property` rules
+    only take effect there:
+
+    {/* example: fragment */}
+
+    ```ts title="src/consent.ts (partial)"
+    ui: {
+      stylesheetURLs: ['/tailwind.css'],
+      theme: {
+        slots: {
+          consentBannerCard: 'rounded-none border-4 border-sky-600',
+        },
+      },
+    },
+    ```
+  </Tab>
+</Tabs>
+
+## Use the dark variant
+
+The fixtures make Tailwind's `dark:` variant follow a `dark` class on `<html>`:
+`@custom-variant dark (&:where(.dark, .dark *));` on Tailwind 4 and
+`darkMode: 'class'` on Tailwind 3. c15t's stylesheet reads the same class, and
+in React, Next.js, TanStack Start, Svelte and SvelteKit an unset `colorScheme`
+also copies it into `c15t-dark`. One toggle then switches your utilities and
+c15t's dark tokens together.
+
+Vue and Nuxt copy the class too, but include c15t's dark colors only when you
+set `colorScheme` or `theme.dark`. Astro and the script tag follow the system
+setting by default. [Dark mode](/docs/customization/dark-mode) covers each
+case.
+
+## Render the UI in the light DOM
+
+The script tag and `init()` render into a shadow root, so your page's CSS does
+not reach c15t and c15t's CSS does not reach your page. To style the UI with
+your page's Tailwind build directly, render it in the page with
+`data-shadow="false"` or `ui: { shadow: false }`.
+
+On Tailwind 4, that is the whole change. c15t still injects its layered
+stylesheet, and the layer order keeps it above preflight:
+
+<include src="../shared/examples/tailwind-v4/html/script-tag-light-dom.mdx" />
+
+On Tailwind 3, preflight is unlayered and would beat c15t's layered sheet. Turn
+the injected sheet off with `styles: false`, and build c15t's rules into your
+Tailwind CSS with the plugin instead:
+
+<include src="../shared/examples/tailwind-v3/html/script-tag-light-dom.mdx" />
+
+Import `@c15t/browser/styles.css` above the directives in your Tailwind entry.
+Install `@c15t/browser@alpha` and `@c15t/ui@alpha` so your build can resolve
+the stylesheet and the plugin:
+
+<include src="../shared/examples/tailwind-v3/html/tailwind-css-light-dom.mdx" />
+
+<include src="../shared/examples/tailwind-v3/html/postcss-config.mdx" />
+
+In the light DOM your page's global rules reach the banner too, so check
+buttons and headings after the switch.
+
+## Check the result
+
+1. Build the app and open it in a private window. The banner has its card
+   background, border and button padding, so preflight did not reset it.
+2. Inspect the part you gave a utility. In the Styles panel, your utility is
+   applied and c15t's rule for the same property is struck out.
+3. Add the `dark` class to `<html>`. Your `dark:` utility applies and, where
+   c15t follows the class, the banner switches to dark colors.
+4. Open the preference dialog. Its rules come from a separate stylesheet in
+   most frameworks, so check that it is styled too.
