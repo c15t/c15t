@@ -1,5 +1,31 @@
 # @c15t/iab
 
+## 2.3.0-canary-20260930161603
+
+### Minor Changes
+
+- 808ece2: Support IAB TCF 2.4 and TCF Policies v5.0.b.
+
+  - `IABConsentDialog` shows Features in their own section with the IAB standard text and no controls. Special Purposes stay locked.
+  - `__tcfapi` TC data includes `vendor.disclosedVendors`.
+  - `isServiceSpecific` is deprecated. TC strings always set IsServiceSpecific=1.
+  - Vendors that declare only Special Purposes no longer get a legitimate interest bit.
+  - Decoding a TC string keeps vendor IDs above 1000.
+
+  No migration needed. Existing TC strings stay valid.
+
+### Patch Changes
+
+- 6e3e3ff: Handle blocked localStorage getters during hosted client startup without throwing. Preserve saved rejections across hosted initialization outages and recovery, including choices saved during fallback. Keep temporary fallback permissions separate from the saved hosted policy, and require fresh consent for invalid grants without forgetting prior denials. Grants saved during an outage are not sent to the backend until confirmed, and IAB mode no longer restores a stored TC string while re-consent is pending.
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+- Updated dependencies [9c613d4]
+- Updated dependencies [6e3e3ff]
+- Updated dependencies [9c613d4]
+- Updated dependencies [808ece2]
+- Updated dependencies [df62294]
+  - c15t@2.3.0-canary-20260930161603
+  - @c15t/schema@2.3.0-canary-20260930161603
+
 ## 2.2.1
 
 ### Patch Changes
