@@ -294,7 +294,7 @@ this page:
 c15t sets `src` once the category is allowed and removes it on revocation.
 Without `src` the iframe loads nothing, so hide it with CSS and show a link
 to `#c15t-preferences` in its place. See
-[HTML embeds](https://c15t.com/docs/frameworks/html/embeds).
+[HTML embeds](../frameworks/html/embeds.md).
 
 **JavaScript**
 

@@ -14,8 +14,8 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Choose your setup](./docs/concepts/choose-your-setup.md): Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
 - [How consent works](./docs/concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
-- [Verify consent before shipping](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
-- [Migrate from v2 to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
+- [Verify consent](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
+- [Migrate to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
 
 ## More documentation
 
@@ -25,7 +25,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 - [@c15t/browser API](./docs/frameworks/javascript/api/browser.md): Reference for the @c15t/browser ES module in a bundled JavaScript app, covering its entry points, init and createConsentClient, the client's methods and properties, events, page hooks and helper exports.
 - [@c15t/browser options](./docs/frameworks/javascript/api/browser-options.md): Every option init() and createConsentClient() from @c15t/browser accept in a bundled JavaScript app, from the backend URL and mode to scripts, blockers, callbacks, storage, presentation and the stock UI.
-- [Consent kernel API](./docs/frameworks/javascript/api/overview.md): Reference for the c15t consent kernel in JavaScript, covering how to get or create one, its snapshot and subscriptions, commands, setters, hydration, events and listener ordering.
+- [Kernel API](./docs/frameworks/javascript/api/kernel.md): Reference for the c15t consent kernel in JavaScript, covering how to get or create one, its snapshot and subscriptions, commands, setters, hydration, events and listener ordering.
 - [createConsentRuntime](./docs/frameworks/javascript/api/runtime.md): Reference for createConsentRuntime from c15t/runtime, the framework-agnostic consent runtime behind every c15t adapter, with every option, what start and dispose do, and the runtime handle's methods.
 - [Consent snapshot](./docs/frameworks/javascript/api/snapshot.md): Reference for every field of the c15t consent snapshot a JavaScript app reads from the kernel, @c15t/browser or createConsentRuntime, grouped by the question each field answers.
 - [Callbacks](./docs/frameworks/javascript/callbacks.md): Run code in a JavaScript app when a visitor records a consent choice, when permissions change, when a request fails or before the withdrawal reload, with c15t callbacks, client events and kernel events.
@@ -33,7 +33,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Customize](./docs/frameworks/javascript/customize.md): Change the stock @c15t/browser banner, preference dialog and floating trigger in a bundled JavaScript app with theme tokens, CSS, layout, copy, legal links and UI options.
 - [DevTools](./docs/frameworks/javascript/dev-tools.md): Mount the c15t DevTools panel in a JavaScript app to inspect consent, scripts, policy and events for @c15t/browser, a consent runtime or a kernel.
 - [Headless](./docs/frameworks/javascript/headless.md): Render your own consent banner and preferences in JavaScript, or connect a framework without a c15t adapter such as Solid, with createConsentRuntime from c15t/runtime.
-- [IAB TCF](./docs/frameworks/javascript/iab/overview.md): Add IAB TCF to a JavaScript app with the @c15t/browser IAB build, or attach the IAB module to a consent runtime or kernel you own.
+- [IAB TCF](./docs/frameworks/javascript/iab.md): Add IAB TCF to a JavaScript app with the @c15t/browser IAB build, or attach the IAB module to a consent runtime or kernel you own.
 - [Clear on revocation](./docs/frameworks/javascript/modules/clear-on-revocation.md): Delete vendor cookies and storage keys in a JavaScript app when a visitor denies or withdraws their consent category, with clearOnRevocation or createClearOnRevocation on your own kernel.
 - [Iframe blocker](./docs/frameworks/javascript/modules/iframe-blocker.md): Hold YouTube videos, maps and other embeds in a JavaScript app until their consent category is allowed, with data-src iframes and the c15t iframe blocker in @c15t/browser, createConsentRuntime or your own kernel.
 - [Network blocker](./docs/frameworks/javascript/modules/network-blocker.md): Hold fetch and XMLHttpRequest calls in a JavaScript app until their consent category is allowed, with networkBlocker rules in @c15t/browser or createConsentRuntime, or createNetworkBlocker on your own kernel.
@@ -57,14 +57,14 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 ## Guides
 
 - [Troubleshooting](./docs/guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
-- [Verify consent before shipping](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
+- [Verify consent](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
 
 ## Customization
 
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Banner designs](./docs/customization/recipes.md): Five consent banner designs built with c15t, from one prop to your own markup, with tested code for React, Vue, Svelte, Astro and plain HTML.
-- [Style component slots](./docs/customization/slots.md): Target a specific c15t component part without replacing its markup or behavior.
-- [Theme tokens and CSS](./docs/customization/tokens.md): Style c15t with semantic tokens and use the stylesheet that matches your CSS tooling.
+- [Component parts](./docs/customization/slots.md): Target a specific c15t component part without replacing its markup or behavior.
+- [Theme tokens](./docs/customization/tokens.md): Style c15t with semantic tokens and use the stylesheet that matches your CSS tooling.
 - [Copy and translations](./docs/customization/translations.md): Change consent wording through i18n and test the complete prompt and preferences flow.
 
 ## Integrations
@@ -118,4 +118,4 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 ## Reference
 
-- [Migrate from v2 to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
+- [Migrate to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.

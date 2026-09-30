@@ -17,8 +17,8 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Choose your setup](./docs/concepts/choose-your-setup.md): Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
 - [How consent works](./docs/concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
-- [Verify consent before shipping](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
-- [Migrate from v2 to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
+- [Verify consent](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
+- [Migrate to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
 
 ## More documentation
 
@@ -26,30 +26,36 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 ## Frameworks
 
-- [Fetching reference](./docs/frameworks/next/api-reference/data-fetching.md): Reference for Next.js consent URLs, manifest resolution, request geography and offline configuration.
 - [App Router](./docs/frameworks/next/app-router.md): Set up c15t in the Next.js App Router with Inth, a cached policy manifest, consent-gated scripts and a streamed or awaited root layout.
+- [Callbacks](./docs/frameworks/next/callbacks.md): Run code in a Next.js app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, from the Client Component that renders ConsentRoot.
 - [Client-side initialization](./docs/frameworks/next/client-side.md): Initialize c15t in the browser in a Next.js app with one backend URL, without server prefetch, a manifest route or API handlers.
+- [Components](./docs/frameworks/next/components.md): Every c15t component a Next.js app imports from c15t/next, what each renders, which ones are Client Components, and where to start.
 - [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Render the pre-built ConsentBanner inside a Next.js ConsentRoot and configure its variants, per-policy buttons and compound parts.
 - [ConsentDialog](./docs/frameworks/next/components/consent-dialog.md): Mount ConsentDialog as a Client Component inside a Next.js ConsentRoot to open the preference center from the banner, links and triggers.
 - [ConsentDialogLink](./docs/frameworks/next/components/consent-dialog-link.md): Open the preference center from a Next.js footer with ConsentDialogLink, a Client Component that renders an unstyled button inside ConsentRoot.
 - [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Add the floating ConsentDialogTrigger button or toolbar to a Next.js ConsentRoot so visitors can reopen the preference center.
 - [ConsentGate](./docs/frameworks/next/components/consent-gate.md): Consent-gate an iframe in Next.js with ConsentGate inside ConsentRoot; with server prefetch the server HTML carries the placeholder for a denied category, and a granted embed mounts after hydration.
-- [ConsentRoot](./docs/frameworks/next/components/consent-manager-provider.md): Pass server-resolved consent state and shared configuration to the Next.js ConsentRoot.
+- [ConsentRoot](./docs/frameworks/next/components/consent-root.md): Pass server-resolved consent state and shared configuration to the Next.js ConsentRoot.
 - [ConsentWidget](./docs/frameworks/next/components/consent-widget.md): Render ConsentWidget on a Next.js privacy page inside ConsentRoot as an inline preference center, server-rendered when the route resolves consent.
 - [DevTools](./docs/frameworks/next/components/dev-tools.md): Load the c15t DevTools panel only in Next.js development builds to inspect consent state, scripts, policy and events inside ConsentRoot.
+- [Compose your own banner](./docs/frameworks/next/compose.md): Build a Next.js consent banner as a Client Component from the ConsentBanner parts in c15t/next, with your own markup and buttons, rendered inside ConsentRoot.
 - [Content Security Policy](./docs/frameworks/next/content-security-policy.md): Pass a per-request CSP nonce to ConsentRoot in Next.js and allow the consent backend in connect-src.
 - [Customize](./docs/frameworks/next/customize.md): Load the c15t stylesheet in Next.js and change colors, radius, button roles, slots and banner shape with ConsentTheme and ConsentRoot options.
-- [Forward geography headers](./docs/frameworks/next/geography-headers.md): Use c15tProxy in Next.js proxy.ts or middleware.ts so Server Components and Route Handlers receive the visitor's country and region.
+- [Data fetching reference](./docs/frameworks/next/data-fetching-reference.md): Reference for Next.js consent URLs, manifest resolution, request geography and offline configuration.
+- [Embeds](./docs/frameworks/next/embeds.md): Keep YouTube videos, maps and other iframes out of a Next.js page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
+- [Geography headers](./docs/frameworks/next/geography-headers.md): Use c15tProxy in Next.js proxy.ts or middleware.ts so Server Components and Route Handlers receive the visitor's country and region.
 - [Headless](./docs/frameworks/next/headless.md): Build a custom consent banner in Next.js with the c15t/next/headless hooks inside your existing ConsentRoot.
-- [Hooks](./docs/frameworks/next/hooks/overview.md): Gate features and save consent choices in Next.js Client Components with the focused hooks exported from c15t/next.
-- [IAB TCF](./docs/frameworks/next/iab/overview.md): Mount the IAB TCF banner and dialog inside a Next.js ConsentRoot and configure the CMP ID, policy and vendor data.
-- [Optimization](./docs/frameworks/next/optimization.md): Reuse cached policy data and optionally reduce browser connection overhead without changing consent behavior.
+- [Hooks](./docs/frameworks/next/hooks.md): Gate features and save consent choices in Next.js Client Components with the focused hooks exported from c15t/next.
+- [IAB TCF](./docs/frameworks/next/iab.md): Mount the IAB TCF banner and dialog inside a Next.js ConsentRoot and configure the CMP ID, policy and vendor data.
+- [Network blocker](./docs/frameworks/next/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Next.js app until their consent category is allowed, with networkBlocker rules on ConsentRoot.
+- [Performance](./docs/frameworks/next/optimization.md): Reuse cached policy data and optionally reduce browser connection overhead without changing consent behavior.
 - [Pages Router](./docs/frameworks/next/pages-router.md): Set up c15t in the Next.js Pages Router with Inth, a cached policy manifest, getServerSideProps and consent-gated scripts.
 - [Quickstart](./docs/frameworks/next/quickstart.md): Add c15t consent management to Next.js with Inth. Pick the guide for the App Router, the Pages Router or a static export.
 - [Rendering and deployment](./docs/frameworks/next/rendering.md): Choose how Next.js resolves consent for your router, rendering mode and hosting, from streamed App Router layouts to static export, ISR and Cache Components.
-- [Scripts and embeds](./docs/frameworks/next/scripts.md): Register vendor scripts, gate embeds, block network requests and handle revocation in a Next.js ConsentRoot.
+- [Scripts](./docs/frameworks/next/scripts.md): Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor and clear stored data after revocation.
 - [Static export](./docs/frameworks/next/static-export.md): Add c15t to a Next.js site built with output export, where the browser resolves consent through Inth without request helpers or API routes.
-- [Troubleshoot Next.js consent](./docs/frameworks/next/troubleshooting.md): Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
+- [Translations](./docs/frameworks/next/translations.md): Where c15t banner and dialog copy comes from in Next.js, how the server and browser pick the visitor's language, and how to override copy and switch languages from a Client Component.
+- [Troubleshooting](./docs/frameworks/next/troubleshooting.md): Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
 
 ## Concepts
 
@@ -63,14 +69,14 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 ## Guides
 
 - [Troubleshooting](./docs/guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
-- [Verify consent before shipping](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
+- [Verify consent](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
 
 ## Customization
 
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Banner designs](./docs/customization/recipes.md): Five consent banner designs built with c15t, from one prop to your own markup, with tested code for React, Vue, Svelte, Astro and plain HTML.
-- [Style component slots](./docs/customization/slots.md): Target a specific c15t component part without replacing its markup or behavior.
-- [Theme tokens and CSS](./docs/customization/tokens.md): Style c15t with semantic tokens and use the stylesheet that matches your CSS tooling.
+- [Component parts](./docs/customization/slots.md): Target a specific c15t component part without replacing its markup or behavior.
+- [Theme tokens](./docs/customization/tokens.md): Style c15t with semantic tokens and use the stylesheet that matches your CSS tooling.
 - [Copy and translations](./docs/customization/translations.md): Change consent wording through i18n and test the complete prompt and preferences flow.
 
 ## Integrations
@@ -124,4 +130,4 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 ## Reference
 
-- [Migrate from v2 to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
+- [Migrate to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.

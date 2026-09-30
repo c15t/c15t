@@ -14,8 +14,8 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Choose your setup](./docs/concepts/choose-your-setup.md): Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
 - [How consent works](./docs/concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
-- [Verify consent before shipping](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
-- [Migrate from v2 to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
+- [Verify consent](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
+- [Migrate to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
 
 ## More documentation
 
@@ -40,7 +40,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Geography headers](./docs/frameworks/astro/geography-headers.md): Which request headers the c15t Astro middleware reads for the visitor's country, region, language and Global Privacy Control, how to check your host sends them, and how to test a region locally.
 - [IAB TCF](./docs/frameworks/astro/iab.md): Render the IAB TCF 2.4 banner and preference center on an Astro site with the c15t integration, and configure the CMP ID, vendor list source and publisher restrictions.
 - [Integration options](./docs/frameworks/astro/integration.md): Reference for every option of the c15t() Astro integration, the Astro equivalent of a consent provider, from mode and scripts to ui, theme, i18n, middleware, endpoints and the client entrypoint.
-- [Dialog islands and your own islands](./docs/frameworks/astro/islands.md): Choose whether React, Vue or Svelte renders the c15t preference dialog on an Astro site, and read consent from your own framework islands through the page's shared consent runtime.
+- [Islands](./docs/frameworks/astro/islands.md): Choose whether React, Vue or Svelte renders the c15t preference dialog on an Astro site, and read consent from your own framework islands through the page's shared consent runtime.
 - [Network blocker](./docs/frameworks/astro/network-blocker.md): Block fetch and XMLHttpRequest calls to tracking hosts on an Astro site until the visitor allows their consent category, with c15t's network blocker rules and an onRequestBlocked handler.
 - [Quickstart](./docs/frameworks/astro/quickstart.md): Add a c15t consent banner, preference dialog and consent-gated scripts to an Astro 5, 6 or 7 site with the c15t integration and Inth, on static or server output.
 - [Rendering and deployment](./docs/frameworks/astro/rendering.md): Choose how c15t resolves consent on an Astro site, from static output with hosted mode to server output with manifest mode, prerendered pages, server islands, ClientRouter and offline development.
@@ -49,8 +49,8 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Translations](./docs/frameworks/astro/translations.md): Set the language and wording of the c15t banner and preference dialog on an Astro site with the integration's i18n option, from Accept-Language negotiation to per-language message overrides and banner props.
 - [Troubleshooting](./docs/frameworks/astro/troubleshooting.md): Fix common c15t problems on Astro sites, from build errors about adapters and UI integrations to a missing banner, scripts that run too early, unstyled dialogs and saves that fail.
 - [window.c15t API](./docs/frameworks/html/api.md): Reference for window.c15t on a plain HTML page, covering the call queue, manual start, reading permissions and recorded choices, saving choices, opening the banner and dialog, and properties.
-- [Attributes and API](./docs/frameworks/html/attributes-and-api.md): Reference for the c15t script tag on plain HTML pages, covering the bundle files, every data attribute on the script tag, the DevTools tag and your own markup, and the modes the attributes select.
-- [Events and callbacks](./docs/frameworks/html/callbacks.md): Run code on a plain HTML page when c15t resolves the policy, when a visitor records a choice, when permissions change or when a request fails, with window.c15t events, DOM events and config callbacks.
+- [Script tag attributes](./docs/frameworks/html/attributes-and-api.md): Reference for the c15t script tag on plain HTML pages, covering the bundle files, every data attribute on the script tag, the DevTools tag and your own markup, and the modes the attributes select.
+- [Callbacks](./docs/frameworks/html/callbacks.md): Run code on a plain HTML page when c15t resolves the policy, when a visitor records a choice, when permissions change or when a request fails, with window.c15t events, DOM events and config callbacks.
 - [Components](./docs/frameworks/html/components.md): Every consent surface and page hook the c15t script tag gives a plain HTML site, from the stock banner and preference dialog to data-c15t-action buttons and gated scripts and iframes.
 - [Action buttons](./docs/frameworks/html/components/action-buttons.md): Make your own HTML buttons accept, reject, open preferences, dismiss a notice or reopen the banner with the data-c15t-action attribute and the c15t script tag, with no JavaScript.
 - [Banner](./docs/frameworks/html/components/banner.md): The stock consent banner the c15t script tag shows on a plain HTML site, with its options, layouts, policy-driven buttons, keyboard behavior and data-testid styling hooks.
@@ -73,7 +73,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Troubleshooting](./docs/frameworks/html/troubleshooting.md): Fix a missing banner, vendor scripts that run before consent, script tag errors and blocked requests on a plain HTML site that uses the c15t script tag.
 - [@c15t/browser API](./docs/frameworks/javascript/api/browser.md): Reference for the @c15t/browser ES module in a bundled JavaScript app, covering its entry points, init and createConsentClient, the client's methods and properties, events, page hooks and helper exports.
 - [@c15t/browser options](./docs/frameworks/javascript/api/browser-options.md): Every option init() and createConsentClient() from @c15t/browser accept in a bundled JavaScript app, from the backend URL and mode to scripts, blockers, callbacks, storage, presentation and the stock UI.
-- [Consent kernel API](./docs/frameworks/javascript/api/overview.md): Reference for the c15t consent kernel in JavaScript, covering how to get or create one, its snapshot and subscriptions, commands, setters, hydration, events and listener ordering.
+- [Kernel API](./docs/frameworks/javascript/api/kernel.md): Reference for the c15t consent kernel in JavaScript, covering how to get or create one, its snapshot and subscriptions, commands, setters, hydration, events and listener ordering.
 - [createConsentRuntime](./docs/frameworks/javascript/api/runtime.md): Reference for createConsentRuntime from c15t/runtime, the framework-agnostic consent runtime behind every c15t adapter, with every option, what start and dispose do, and the runtime handle's methods.
 - [Consent snapshot](./docs/frameworks/javascript/api/snapshot.md): Reference for every field of the c15t consent snapshot a JavaScript app reads from the kernel, @c15t/browser or createConsentRuntime, grouped by the question each field answers.
 - [Callbacks](./docs/frameworks/javascript/callbacks.md): Run code in a JavaScript app when a visitor records a consent choice, when permissions change, when a request fails or before the withdrawal reload, with c15t callbacks, client events and kernel events.
@@ -81,7 +81,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Customize](./docs/frameworks/javascript/customize.md): Change the stock @c15t/browser banner, preference dialog and floating trigger in a bundled JavaScript app with theme tokens, CSS, layout, copy, legal links and UI options.
 - [DevTools](./docs/frameworks/javascript/dev-tools.md): Mount the c15t DevTools panel in a JavaScript app to inspect consent, scripts, policy and events for @c15t/browser, a consent runtime or a kernel.
 - [Headless](./docs/frameworks/javascript/headless.md): Render your own consent banner and preferences in JavaScript, or connect a framework without a c15t adapter such as Solid, with createConsentRuntime from c15t/runtime.
-- [IAB TCF](./docs/frameworks/javascript/iab/overview.md): Add IAB TCF to a JavaScript app with the @c15t/browser IAB build, or attach the IAB module to a consent runtime or kernel you own.
+- [IAB TCF](./docs/frameworks/javascript/iab.md): Add IAB TCF to a JavaScript app with the @c15t/browser IAB build, or attach the IAB module to a consent runtime or kernel you own.
 - [Clear on revocation](./docs/frameworks/javascript/modules/clear-on-revocation.md): Delete vendor cookies and storage keys in a JavaScript app when a visitor denies or withdraws their consent category, with clearOnRevocation or createClearOnRevocation on your own kernel.
 - [Iframe blocker](./docs/frameworks/javascript/modules/iframe-blocker.md): Hold YouTube videos, maps and other embeds in a JavaScript app until their consent category is allowed, with data-src iframes and the c15t iframe blocker in @c15t/browser, createConsentRuntime or your own kernel.
 - [Network blocker](./docs/frameworks/javascript/modules/network-blocker.md): Hold fetch and XMLHttpRequest calls in a JavaScript app until their consent category is allowed, with networkBlocker rules in @c15t/browser or createConsentRuntime, or createNetworkBlocker on your own kernel.
@@ -92,30 +92,36 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Translations](./docs/frameworks/javascript/translations.md): Choose the language of the c15t banner and preference dialog in a JavaScript app, change its wording with i18n, and add languages with @c15t/browser or createConsentRuntime.
 - [Transports](./docs/frameworks/javascript/transports.md): Choose where a JavaScript app's c15t policy comes from and where choices go, with the hosted, manifest, offline and custom transports for @c15t/browser, createConsentRuntime and your own kernel.
 - [Troubleshooting](./docs/frameworks/javascript/troubleshooting.md): Diagnose a missing banner, vendor scripts that run early, duplicate consent owners and policy resolution in a JavaScript app that uses @c15t/browser or c15t/runtime.
-- [Fetching reference](./docs/frameworks/next/api-reference/data-fetching.md): Reference for Next.js consent URLs, manifest resolution, request geography and offline configuration.
 - [App Router](./docs/frameworks/next/app-router.md): Set up c15t in the Next.js App Router with Inth, a cached policy manifest, consent-gated scripts and a streamed or awaited root layout.
+- [Callbacks](./docs/frameworks/next/callbacks.md): Run code in a Next.js app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, from the Client Component that renders ConsentRoot.
 - [Client-side initialization](./docs/frameworks/next/client-side.md): Initialize c15t in the browser in a Next.js app with one backend URL, without server prefetch, a manifest route or API handlers.
+- [Components](./docs/frameworks/next/components.md): Every c15t component a Next.js app imports from c15t/next, what each renders, which ones are Client Components, and where to start.
 - [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): Render the pre-built ConsentBanner inside a Next.js ConsentRoot and configure its variants, per-policy buttons and compound parts.
 - [ConsentDialog](./docs/frameworks/next/components/consent-dialog.md): Mount ConsentDialog as a Client Component inside a Next.js ConsentRoot to open the preference center from the banner, links and triggers.
 - [ConsentDialogLink](./docs/frameworks/next/components/consent-dialog-link.md): Open the preference center from a Next.js footer with ConsentDialogLink, a Client Component that renders an unstyled button inside ConsentRoot.
 - [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Add the floating ConsentDialogTrigger button or toolbar to a Next.js ConsentRoot so visitors can reopen the preference center.
 - [ConsentGate](./docs/frameworks/next/components/consent-gate.md): Consent-gate an iframe in Next.js with ConsentGate inside ConsentRoot; with server prefetch the server HTML carries the placeholder for a denied category, and a granted embed mounts after hydration.
-- [ConsentRoot](./docs/frameworks/next/components/consent-manager-provider.md): Pass server-resolved consent state and shared configuration to the Next.js ConsentRoot.
+- [ConsentRoot](./docs/frameworks/next/components/consent-root.md): Pass server-resolved consent state and shared configuration to the Next.js ConsentRoot.
 - [ConsentWidget](./docs/frameworks/next/components/consent-widget.md): Render ConsentWidget on a Next.js privacy page inside ConsentRoot as an inline preference center, server-rendered when the route resolves consent.
 - [DevTools](./docs/frameworks/next/components/dev-tools.md): Load the c15t DevTools panel only in Next.js development builds to inspect consent state, scripts, policy and events inside ConsentRoot.
+- [Compose your own banner](./docs/frameworks/next/compose.md): Build a Next.js consent banner as a Client Component from the ConsentBanner parts in c15t/next, with your own markup and buttons, rendered inside ConsentRoot.
 - [Content Security Policy](./docs/frameworks/next/content-security-policy.md): Pass a per-request CSP nonce to ConsentRoot in Next.js and allow the consent backend in connect-src.
 - [Customize](./docs/frameworks/next/customize.md): Load the c15t stylesheet in Next.js and change colors, radius, button roles, slots and banner shape with ConsentTheme and ConsentRoot options.
-- [Forward geography headers](./docs/frameworks/next/geography-headers.md): Use c15tProxy in Next.js proxy.ts or middleware.ts so Server Components and Route Handlers receive the visitor's country and region.
+- [Data fetching reference](./docs/frameworks/next/data-fetching-reference.md): Reference for Next.js consent URLs, manifest resolution, request geography and offline configuration.
+- [Embeds](./docs/frameworks/next/embeds.md): Keep YouTube videos, maps and other iframes out of a Next.js page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
+- [Geography headers](./docs/frameworks/next/geography-headers.md): Use c15tProxy in Next.js proxy.ts or middleware.ts so Server Components and Route Handlers receive the visitor's country and region.
 - [Headless](./docs/frameworks/next/headless.md): Build a custom consent banner in Next.js with the c15t/next/headless hooks inside your existing ConsentRoot.
-- [Hooks](./docs/frameworks/next/hooks/overview.md): Gate features and save consent choices in Next.js Client Components with the focused hooks exported from c15t/next.
-- [IAB TCF](./docs/frameworks/next/iab/overview.md): Mount the IAB TCF banner and dialog inside a Next.js ConsentRoot and configure the CMP ID, policy and vendor data.
-- [Optimization](./docs/frameworks/next/optimization.md): Reuse cached policy data and optionally reduce browser connection overhead without changing consent behavior.
+- [Hooks](./docs/frameworks/next/hooks.md): Gate features and save consent choices in Next.js Client Components with the focused hooks exported from c15t/next.
+- [IAB TCF](./docs/frameworks/next/iab.md): Mount the IAB TCF banner and dialog inside a Next.js ConsentRoot and configure the CMP ID, policy and vendor data.
+- [Network blocker](./docs/frameworks/next/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Next.js app until their consent category is allowed, with networkBlocker rules on ConsentRoot.
+- [Performance](./docs/frameworks/next/optimization.md): Reuse cached policy data and optionally reduce browser connection overhead without changing consent behavior.
 - [Pages Router](./docs/frameworks/next/pages-router.md): Set up c15t in the Next.js Pages Router with Inth, a cached policy manifest, getServerSideProps and consent-gated scripts.
 - [Quickstart](./docs/frameworks/next/quickstart.md): Add c15t consent management to Next.js with Inth. Pick the guide for the App Router, the Pages Router or a static export.
 - [Rendering and deployment](./docs/frameworks/next/rendering.md): Choose how Next.js resolves consent for your router, rendering mode and hosting, from streamed App Router layouts to static export, ISR and Cache Components.
-- [Scripts and embeds](./docs/frameworks/next/scripts.md): Register vendor scripts, gate embeds, block network requests and handle revocation in a Next.js ConsentRoot.
+- [Scripts](./docs/frameworks/next/scripts.md): Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor and clear stored data after revocation.
 - [Static export](./docs/frameworks/next/static-export.md): Add c15t to a Next.js site built with output export, where the browser resolves consent through Inth without request helpers or API routes.
-- [Troubleshoot Next.js consent](./docs/frameworks/next/troubleshooting.md): Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
+- [Translations](./docs/frameworks/next/translations.md): Where c15t banner and dialog copy comes from in Next.js, how the server and browser pick the visitor's language, and how to override copy and switch languages from a Client Component.
+- [Troubleshooting](./docs/frameworks/next/troubleshooting.md): Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
 - [Callbacks](./docs/frameworks/nuxt/callbacks.md): Run code in a Nuxt app when a visitor records a consent choice, when permissions change, before a revocation reload, and when c15t reports an error.
 - [Components](./docs/frameworks/nuxt/components.md): Every c15t component in Nuxt, which ones the Nuxt module registers globally, which you import, and a page for each one's props and behavior.
 - [ConsentBanner](./docs/frameworks/nuxt/components/consent-banner.md): Render the c15t consent banner in Nuxt, choose its variant and position, and understand what it shows for each policy.
@@ -142,21 +148,28 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Scripts](./docs/frameworks/nuxt/scripts.md): Load vendor scripts by consent category in a Nuxt app with the c15t Nuxt module, and what happens when a visitor withdraws consent.
 - [Translations](./docs/frameworks/nuxt/translations.md): Where the c15t banner and dialog text comes from in Nuxt, how the server picks the visitor's language, and how to switch it at runtime.
 - [Troubleshooting](./docs/frameworks/nuxt/troubleshooting.md): Fix common c15t Nuxt module problems, from a missing banner and scripts that never load to returning banners and static hosting.
+- [Callbacks](./docs/frameworks/react/callbacks.md): Run code in a React app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, with the ConsentProvider callbacks option.
+- [Components](./docs/frameworks/react/components.md): Every c15t component a React app imports from c15t/react, what each renders, where each one mounts, and which to start with.
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): Render the c15t consent banner in a React app, choose its variant and position, and compose its parts.
 - [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
 - [ConsentDialogLink](./docs/frameworks/react/components/consent-dialog-link.md): Add a ConsentDialogLink to a React footer so visitors reopen the c15t preference center from your own text link, with asChild and rights data.
 - [ConsentDialogTrigger](./docs/frameworks/react/components/consent-dialog-trigger.md): Floating button and toolbar that reopen the preference center after the first prompt.
 - [ConsentGate](./docs/frameworks/react/components/consent-gate.md): Gate a YouTube or map iframe behind consent with ConsentGate in React, showing a placeholder that opens the preference center until the category is allowed.
-- [ConsentProvider](./docs/frameworks/react/components/consent-manager-provider.md): Mount ConsentProvider in a React app and configure its backend, scripts, storage, blocking and presentation options.
+- [ConsentProvider](./docs/frameworks/react/components/consent-provider.md): Mount ConsentProvider in a React app and configure its backend, scripts, storage, blocking and presentation options.
 - [ConsentWidget](./docs/frameworks/react/components/consent-widget.md): Embed the c15t preference center inline with ConsentWidget on a React privacy page, with draft toggles that record a choice only on Save.
 - [DevTools](./docs/frameworks/react/components/dev-tools.md): Inspect consent state, location, loaded scripts and consent events in a React app during development with the c15t DevTools panel.
+- [Compose your own banner](./docs/frameworks/react/compose.md): Build a React consent banner from the ConsentBanner parts in c15t/react, with your own markup and buttons, while the policy still decides which actions appear.
+- [Content Security Policy](./docs/frameworks/react/content-security-policy.md): Run c15t in a React app under a Content Security Policy, allow the consent backend and vendor hosts, and pass a nonce to ConsentProvider and ConsentTheme.
 - [Customize](./docs/frameworks/react/customize.md): Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a React app with the stylesheet, theme tokens, provider options and slots.
+- [Embeds](./docs/frameworks/react/embeds.md): Keep YouTube videos, maps and other iframes out of a React page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentProvider.
 - [Headless](./docs/frameworks/react/headless.md): Build a custom consent banner in React with the c15t/react/headless hooks inside your ConsentProvider.
-- [Hooks](./docs/frameworks/react/hooks/overview.md): Gate features and save consent choices in React components with the focused hooks exported from c15t/react.
-- [IAB TCF](./docs/frameworks/react/iab/overview.md): Mount the IAB TCF banner and dialog inside a React ConsentProvider and configure the CMP ID, policy and vendor data.
+- [Hooks](./docs/frameworks/react/hooks.md): Gate features and save consent choices in React components with the focused hooks exported from c15t/react.
+- [IAB TCF](./docs/frameworks/react/iab.md): Mount the IAB TCF banner and dialog inside a React ConsentProvider and configure the CMP ID, policy and vendor data.
+- [Network blocker](./docs/frameworks/react/network-blocker.md): Hold fetch and XMLHttpRequest calls in a React app until their consent category is allowed, with networkBlocker rules in the ConsentProvider options.
 - [Quickstart](./docs/frameworks/react/quickstart.md): Add a consent banner, preferences dialog and consent-gated scripts to a React single-page app built with Vite, using Inth as the consent backend.
-- [Rendering](./docs/frameworks/react/rendering.md): How c15t resolves consent in client-rendered React apps, React Router framework mode, Remix and other server-rendered React apps without a c15t adapter.
-- [Scripts and embeds](./docs/frameworks/react/scripts.md): Load vendor scripts, gate iframes, block network requests and clear stored data by consent category in a React app with ConsentProvider.
+- [Rendering and deployment](./docs/frameworks/react/rendering.md): How c15t resolves consent in client-rendered React apps, React Router framework mode, Remix and other server-rendered React apps without a c15t adapter.
+- [Scripts](./docs/frameworks/react/scripts.md): Load vendor scripts by consent category in a React app with ConsentProvider, and clear stored data or reload the page when a visitor withdraws consent.
+- [Translations](./docs/frameworks/react/translations.md): Where c15t banner and dialog copy comes from in a React app, how the browser picks the visitor's language, and how to override copy and switch languages with the provider's i18n option and hooks.
 - [Troubleshooting](./docs/frameworks/react/troubleshooting.md): Fix a missing banner, early vendor requests, unstyled components and theme warnings in a React app that uses c15t/react.
 - [Callbacks](./docs/frameworks/svelte/callbacks.md): Run your own code in a Svelte app when a visitor records a choice or permissions change, with onChoiceRecorded, onPermissionsChanged and script callbacks.
 - [Components](./docs/frameworks/svelte/components.md): Props and behavior of every @c15t/svelte component in a Svelte app, from ConsentManagerProvider and ConsentBanner to ConsentGate and DevTools.
@@ -168,7 +181,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [ConsentGate](./docs/frameworks/svelte/components/consent-gate.md): Keep a YouTube video or map out of a Svelte page until its consent category is allowed with ConsentGate, and replace its placeholder.
 - [ConsentManagerProvider](./docs/frameworks/svelte/components/consent-manager-provider.md): Mount ConsentManagerProvider at the root of a Svelte app to start c15t, with every prop, its default, and which options update after mount.
 - [ConsentWidget](./docs/frameworks/svelte/components/consent-widget.md): Put c15t's category switches inline on a Svelte privacy settings page with ConsentWidget, and how its draft, vendors and stale-policy alert behave.
-- [Dev tools](./docs/frameworks/svelte/components/dev-tools.md): Inspect consent, scripts, location and events in a Svelte app with ConsentDevTools from @c15t/svelte/devtools, loaded only in development.
+- [DevTools](./docs/frameworks/svelte/components/dev-tools.md): Inspect consent, scripts, location and events in a Svelte app with ConsentDevTools from @c15t/svelte/devtools, loaded only in development.
 - [IABConsentBanner](./docs/frameworks/svelte/components/iab-consent-banner.md): Show the IAB TCF 2.4 first-layer banner to visitors under an IAB policy in a Svelte app with IABConsentBanner, its props and behavior.
 - [IABConsentDialog](./docs/frameworks/svelte/components/iab-consent-dialog.md): Show the IAB TCF 2.4 preference center with purposes, features and vendors in a Svelte app with IABConsentDialog.
 - [Primitives](./docs/frameworks/svelte/components/primitives.md): Build your own accessible consent dialog in Svelte with the Dialog, Switch, Tabs, Accordion and PreferenceItem primitives and the focusTrap, scrollLock and portal actions.
@@ -180,7 +193,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [IAB TCF](./docs/frameworks/svelte/iab.md): Turn on the IAB TCF 2.4 banner and preference center in a Svelte app with IABConsentBanner, IABConsentDialog and the provider's iab option.
 - [Network blocker](./docs/frameworks/svelte/network-blocker.md): Hold fetch and XMLHttpRequest calls to tracking domains in a Svelte app until their consent category is allowed, with the provider's networkBlocker option.
 - [Quickstart](./docs/frameworks/svelte/quickstart.md): Add a c15t cookie banner, preference dialog and consent-gated scripts to a Svelte 5 app built with Vite, using Inth for policies and consent records.
-- [Scripts and embeds](./docs/frameworks/svelte/scripts.md): Load vendor scripts, iframes and network requests in a Svelte app only after the visitor allows their consent category, and stop them when consent is withdrawn.
+- [Scripts](./docs/frameworks/svelte/scripts.md): Load vendor scripts, iframes and network requests in a Svelte app only after the visitor allows their consent category, and stop them when consent is withdrawn.
 - [Translations](./docs/frameworks/svelte/translations.md): Change c15t banner and dialog copy in a Svelte app with component text props or the provider's i18n option, and switch languages at runtime.
 - [Troubleshooting](./docs/frameworks/svelte/troubleshooting.md): Fix a missing banner, an unset backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
 - [Callbacks](./docs/frameworks/sveltekit/callbacks.md): Run your own code in a SvelteKit app when a visitor records a choice or permissions change, with onChoiceRecorded, onPermissionsChanged and script callbacks.
@@ -193,7 +206,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [ConsentGate](./docs/frameworks/sveltekit/components/consent-gate.md): Keep a YouTube video or map out of SvelteKit server HTML until its consent category is allowed with ConsentGate, and replace its placeholder.
 - [ConsentManagerProvider](./docs/frameworks/sveltekit/components/consent-manager-provider.md): Mount ConsentManagerProvider in a SvelteKit root layout with a server prefetch so the banner is in the first HTML, with every prop and its default.
 - [ConsentWidget](./docs/frameworks/sveltekit/components/consent-widget.md): Put c15t's category switches inline on a SvelteKit privacy settings route with ConsentWidget, and how its draft, vendors and stale-policy alert behave.
-- [Dev tools](./docs/frameworks/sveltekit/components/dev-tools.md): Inspect consent, scripts, location and events in a SvelteKit app with ConsentDevTools, imported only when $app/environment reports development.
+- [DevTools](./docs/frameworks/sveltekit/components/dev-tools.md): Inspect consent, scripts, location and events in a SvelteKit app with ConsentDevTools, imported only when $app/environment reports development.
 - [IABConsentBanner](./docs/frameworks/sveltekit/components/iab-consent-banner.md): Show the IAB TCF 2.4 first-layer banner to visitors under an IAB policy in a SvelteKit app with IABConsentBanner, its props and behavior.
 - [IABConsentDialog](./docs/frameworks/sveltekit/components/iab-consent-dialog.md): Show the IAB TCF 2.4 preference center with purposes, features and vendors in a SvelteKit app with IABConsentDialog.
 - [Primitives](./docs/frameworks/sveltekit/components/primitives.md): Build your own accessible consent dialog in SvelteKit with the Dialog, Switch, Tabs, Accordion and PreferenceItem primitives and the focusTrap, scrollLock and portal actions.
@@ -207,10 +220,11 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Network blocker](./docs/frameworks/sveltekit/network-blocker.md): Hold browser fetch and XMLHttpRequest calls to tracking domains in a SvelteKit app until their consent category is allowed, with the networkBlocker option.
 - [Quickstart](./docs/frameworks/sveltekit/quickstart.md): Resolve consent in a SvelteKit root layout load so the c15t banner is in the server HTML, then hydrate the provider with consent-gated scripts and a preferences link.
 - [Rendering and deployment](./docs/frameworks/sveltekit/rendering.md): Choose how a SvelteKit app resolves consent, on each request, from a cached manifest, or in the browser for prerendered pages, static sites and SPA mode, and deploy it to Node or edge adapters.
-- [Scripts and embeds](./docs/frameworks/sveltekit/scripts.md): Load vendor scripts, iframes and network requests in a SvelteKit app only after the visitor allows their consent category, and stop them when consent is withdrawn.
+- [Scripts](./docs/frameworks/sveltekit/scripts.md): Load vendor scripts, iframes and network requests in a SvelteKit app only after the visitor allows their consent category, and stop them when consent is withdrawn.
 - [Server API](./docs/frameworks/sveltekit/server-api.md): Reference for loadConsent, c15tHandle, createSvelteKitConsentRouteHandlers and resolveConsent from @c15t/svelte/kit and @c15t/svelte/server, with every option and default.
 - [Translations](./docs/frameworks/sveltekit/translations.md): Change c15t banner and dialog copy in a SvelteKit app, where the server prefetch carries the backend's translations for the request's language.
 - [Troubleshooting](./docs/frameworks/sveltekit/troubleshooting.md): Fix a banner missing from SvelteKit server HTML, failed saves through the manifest route, prerender build errors and ignored theme colors.
+- [Callbacks](./docs/frameworks/tanstack-start/callbacks.md): Run code in a TanStack Start app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, from ConsentRoot in the root route.
 - [Components](./docs/frameworks/tanstack-start/components.md): ConsentRoot and the consent banner, dialog, widget, links, gate and DevTools components a TanStack Start app imports from c15t/tanstack-start.
 - [ConsentBanner](./docs/frameworks/tanstack-start/components/consent-banner.md): Render the c15t consent banner in a TanStack Start app, set its variant and position, and override its labels.
 - [ConsentDialog](./docs/frameworks/tanstack-start/components/consent-dialog.md): Open the c15t preference dialog in a TanStack Start app, reopen it from your own controls, and control blocking, focus and policy gating.
@@ -219,13 +233,19 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [ConsentGate](./docs/frameworks/tanstack-start/components/consent-gate.md): Gate a YouTube video, map or other iframe behind consent in a TanStack Start app with ConsentGate, showing a placeholder until the category is allowed.
 - [ConsentWidget](./docs/frameworks/tanstack-start/components/consent-widget.md): Embed the c15t preference controls inline on a TanStack Start privacy page with ConsentWidget, recording a choice only when the visitor saves.
 - [DevTools](./docs/frameworks/tanstack-start/components/dev-tools.md): Inspect consent state, location, loaded scripts and consent events in a TanStack Start app during development, on its own or inside TanStack Devtools.
+- [Compose your own banner](./docs/frameworks/tanstack-start/compose.md): Build a TanStack Start consent banner from the ConsentBanner parts in c15t/tanstack-start, with your own markup and buttons, rendered inside ConsentRoot in the root route.
+- [Content Security Policy](./docs/frameworks/tanstack-start/content-security-policy.md): Run c15t in a TanStack Start app under a Content Security Policy, pass the router's per-request nonce to ConsentRoot, and allow the consent backend and vendor hosts.
 - [Customize](./docs/frameworks/tanstack-start/customize.md): Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a TanStack Start app with the stylesheet, theme tokens, ConsentRoot options and slots.
+- [Embeds](./docs/frameworks/tanstack-start/embeds.md): Keep YouTube videos, maps and other iframes out of a TanStack Start page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
+- [Geography headers](./docs/frameworks/tanstack-start/geography-headers.md): Which request headers c15t reads for country, region, language and Global Privacy Control in TanStack Start, where the server functions and consent route send them, and how to test another location.
 - [Headless](./docs/frameworks/tanstack-start/headless.md): Build your own consent banner markup in a TanStack Start app with the c15t/tanstack-start/headless hooks inside ConsentRoot.
 - [Hooks](./docs/frameworks/tanstack-start/hooks.md): Read consent permissions, open the preference dialog and save choices in TanStack Start components with the hooks exported from c15t/tanstack-start.
 - [IAB TCF](./docs/frameworks/tanstack-start/iab.md): Show the IAB TCF banner and dialog in a TanStack Start app for visitors whose policy uses the IAB model, with c15t/react/iab inside ConsentRoot.
+- [Network blocker](./docs/frameworks/tanstack-start/network-blocker.md): Hold fetch and XMLHttpRequest calls in a TanStack Start app until their consent category is allowed, with networkBlocker rules on ConsentRoot.
 - [Quickstart](./docs/frameworks/tanstack-start/quickstart.md): Resolve consent on the server in a TanStack Start root loader, render the banner in the first HTML, and gate vendor scripts, using Inth as the consent backend.
-- [Rendering](./docs/frameworks/tanstack-start/rendering.md): Choose how a TanStack Start app resolves consent, with an awaited or streamed root loader, a same-origin consent route, or SPA mode, prerendered pages and static hosting.
-- [Scripts and embeds](./docs/frameworks/tanstack-start/scripts.md): Load vendor scripts, gate iframes, block network requests and clear stored data by consent category in a TanStack Start app with ConsentRoot.
+- [Rendering and deployment](./docs/frameworks/tanstack-start/rendering.md): Choose how a TanStack Start app resolves consent, with an awaited or streamed root loader, a same-origin consent route, or SPA mode, prerendered pages and static hosting.
+- [Scripts](./docs/frameworks/tanstack-start/scripts.md): Load vendor scripts by consent category in a TanStack Start app with ConsentRoot, and clear stored data or reload the page when a visitor withdraws consent.
+- [Translations](./docs/frameworks/tanstack-start/translations.md): Where c15t banner and dialog copy comes from in TanStack Start, how the server and browser pick the visitor's language, and how to override copy and switch languages from the root route.
 - [Troubleshooting](./docs/frameworks/tanstack-start/troubleshooting.md): Fix a missing server-rendered banner, server function errors, proxy and firewall failures, and early vendor requests in a TanStack Start app that uses c15t.
 - [Callbacks](./docs/frameworks/vue/callbacks.md): Run code in a Vue app when a visitor records a consent choice, when permissions change, before a revocation reload, and when c15t reports an error.
 - [Components](./docs/frameworks/vue/components.md): Every c15t Vue component, its import path and what it renders, with a page for each one's props, behavior, accessibility and styling.
@@ -265,14 +285,14 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 ## Guides
 
 - [Troubleshooting](./docs/guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
-- [Verify consent before shipping](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
+- [Verify consent](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
 
 ## Customization
 
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Banner designs](./docs/customization/recipes.md): Five consent banner designs built with c15t, from one prop to your own markup, with tested code for React, Vue, Svelte, Astro and plain HTML.
-- [Style component slots](./docs/customization/slots.md): Target a specific c15t component part without replacing its markup or behavior.
-- [Theme tokens and CSS](./docs/customization/tokens.md): Style c15t with semantic tokens and use the stylesheet that matches your CSS tooling.
+- [Component parts](./docs/customization/slots.md): Target a specific c15t component part without replacing its markup or behavior.
+- [Theme tokens](./docs/customization/tokens.md): Style c15t with semantic tokens and use the stylesheet that matches your CSS tooling.
 - [Copy and translations](./docs/customization/translations.md): Change consent wording through i18n and test the complete prompt and preferences flow.
 
 ## Integrations
@@ -326,4 +346,4 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 ## Reference
 
-- [Migrate from v2 to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
+- [Migrate to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.

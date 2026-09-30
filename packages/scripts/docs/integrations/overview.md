@@ -75,7 +75,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
 | [Umami Analytics](./umami-analytics.md)                   | `umamiAnalytics`         | `measurement`                | Waits for effective permission                                               |
 | [Vercel Analytics](./vercel-analytics.md)                 | `vercelAnalytics`        | `measurement`                | Waits for effective permission                                               |
 
-## Functionality
+## Chat and support
 
 | Integration                   | Helper      | Category        | Loading behavior               |
 | ----------------------------- | ----------- | --------------- | ------------------------------ |
