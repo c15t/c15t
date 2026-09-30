@@ -17,10 +17,7 @@
 </script>
 
 {#if consent.banner.isVisible}
-	<section
-		class="custom-consent-banner"
-		aria-label="Cookie consent"
-	>
+	<section class="custom-consent-banner" aria-label="Cookie consent">
 		<p>
 			We use cookies to measure traffic and show ads. Choose which ones can run.
 		</p>
@@ -28,10 +25,7 @@
 		{#each consent.banner.actionGroups as group, index (index)}
 			<div>
 				{#each group as action (action)}
-					<button
-						type="button"
-						onclick={() => consent.performAction(action)}
-					>
+					<button type="button" onclick={() => consent.performAction(action)}>
 						{labels[action]}
 					</button>
 				{/each}

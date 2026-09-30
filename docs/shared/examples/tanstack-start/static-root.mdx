@@ -56,9 +56,7 @@ export const Route = createRootRoute({
 			{ content: 'width=device-width, initial-scale=1', name: 'viewport' },
 		],
 		// Optional: start the /init request while the browser parses <head>.
-		...consentPrefetchHead({
-			backendURL,
-		}),
+		...consentPrefetchHead({ backendURL }),
 	}),
 });
 ```

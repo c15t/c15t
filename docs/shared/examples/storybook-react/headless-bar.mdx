@@ -28,20 +28,13 @@ export const CookieBar = () => {
 	);
 
 	return (
-		<section
-			className="cookie-bar"
-			aria-label="Cookie consent"
-		>
+		<section className="cookie-bar" aria-label="Cookie consent">
 			<p className="cookie-bar__text">
 				We use cookies to measure traffic and improve this site. Choose which
 				ones can run.
 			</p>
 			<div className="cookie-bar__actions">
-				<button
-					type="button"
-					className="cookie-bar__link"
-					onClick={openDialog}
-				>
+				<button type="button" className="cookie-bar__link" onClick={openDialog}>
 					Preferences
 				</button>
 				{actions.map((action) => (

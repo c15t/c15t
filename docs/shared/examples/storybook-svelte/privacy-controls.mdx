@@ -14,17 +14,9 @@
 	};
 </script>
 
-<button
-	type="button"
-	onclick={() => consent.setActiveUI('dialog')}
->
+<button type="button" onclick={() => consent.setActiveUI('dialog')}>
 	Privacy settings
 </button>
-<button
-	type="button"
-	onclick={allowAnalytics}
->
-	Allow analytics
-</button>
+<button type="button" onclick={allowAnalytics}> Allow analytics </button>
 <ConsentDialog />
 ```

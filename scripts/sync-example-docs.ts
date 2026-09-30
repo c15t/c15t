@@ -24,9 +24,13 @@ const regions = collectExampleRegions(root);
 const expected = new Set(regions.map((region) => region.destination));
 const problems: string[] = [];
 
-for (const region of regions) {
+const rendered = await Promise.all(
+	regions.map((region) => renderExampleRegion(root, region))
+);
+
+for (const [index, region] of regions.entries()) {
 	const destination = resolve(root, region.destination);
-	const content = renderExampleRegion(root, region);
+	const content = rendered[index] ?? '';
 	if (check) {
 		let current = '';
 		try {

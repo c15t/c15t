@@ -27,10 +27,7 @@ export const LanguageSwitcher = () => {
 			}}
 		>
 			{languages.map(({ code, label }) => (
-				<option
-					key={code}
-					value={code}
-				>
+				<option key={code} value={code}>
 					{label}
 				</option>
 			))}

@@ -27,9 +27,9 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const regions = collectExampleRegions(root);
 
 describe('generated example snippets', () => {
-	test.each(regions)('$destination matches $source', (region) => {
+	test.each(regions)('$destination matches $source', async (region) => {
 		expect(readFileSync(resolve(root, region.destination), 'utf8')).toBe(
-			renderExampleRegion(root, region)
+			await renderExampleRegion(root, region)
 		);
 	});
 

@@ -16,9 +16,7 @@ export default defineConfig({
 			clientEntrypoint: fileURLToPath(
 				new URL('./src/consent-client.ts', import.meta.url)
 			),
-			mode: manifest({
-				backendURL: 'https://your-project.inth.app',
-			}),
+			mode: manifest({ backendURL: 'https://your-project.inth.app' }),
 			ui: 'svelte',
 		}),
 	],

@@ -10,12 +10,8 @@ import { scripts } from './scripts';
 createApp(App)
 	.use(c15tVue, {
 		backendURL: 'https://your-project.inth.app',
-		components: {
-			banner: { card: { class: 'brand-consent-card' } },
-		},
-		presentation: {
-			prompt: { position: 'bottom', variant: 'bar' },
-		},
+		components: { banner: { card: { class: 'brand-consent-card' } } },
+		presentation: { prompt: { position: 'bottom', variant: 'bar' } },
 		scripts,
 		tokens: {
 			'c15t-primary': '#6943a3',

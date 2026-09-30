@@ -14,9 +14,7 @@ export default defineConfig({
 			clientEntrypoint: fileURLToPath(
 				new URL('./src/consent-client.ts', import.meta.url)
 			),
-			mode: hosted({
-				url: 'https://your-project.inth.app',
-			}),
+			mode: hosted({ url: 'https://your-project.inth.app' }),
 			ui: 'svelte',
 		}),
 	],

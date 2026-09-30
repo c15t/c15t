@@ -10,10 +10,7 @@ export const clearTrackingData = function clearTrackingData(
 	return createClearOnRevocation({
 		config: {
 			marketing: { cookies: ['_fbp', '_gcl_au'] },
-			measurement: {
-				cookies: ['_ga', '_ga_*'],
-				localStorage: ['analytics:*'],
-			},
+			measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
 		},
 		kernel,
 	});

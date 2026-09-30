@@ -21,11 +21,7 @@ interface ConsentProps {
 }
 
 export const Consent = ({ children, state }: ConsentProps) => (
-	<ConsentRoot
-		state={state}
-		config={consentConfig}
-		scripts={scripts}
-	>
+	<ConsentRoot state={state} config={consentConfig} scripts={scripts}>
 		{children}
 		<ConsentBanner />
 		<ConsentDialog />

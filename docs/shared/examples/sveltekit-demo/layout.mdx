@@ -15,16 +15,10 @@
 
 	let { children, data } = $props();
 
-	const mode = hosted({
-		url: 'https://your-project.inth.app',
-	});
+	const mode = hosted({ url: 'https://your-project.inth.app' });
 </script>
 
-<ConsentManagerProvider
-	{mode}
-	prefetch={data.prefetch}
-	{scripts}
->
+<ConsentManagerProvider {mode} prefetch={data.prefetch} {scripts}>
 	{@render children()}
 	<footer>
 		<ConsentDialogLink>Privacy settings</ConsentDialogLink>
