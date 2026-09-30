@@ -382,8 +382,11 @@ const isSubjectReassignment = function isSubjectReassignment(
 };
 
 /**
- * Stored reassignments, dropping malformed ones and any older than a queued
- * save may live: past that, no save for the old id can still be waiting.
+ * Stored reassignments, dropping malformed ones and those no queued save can
+ * still need: older than a queued save may live, and with no save left
+ * queued under the old id. A tab still on the old id can queue a save days
+ * after the reassignment, and that save needs the record for as long as it
+ * waits.
  */
 const readReassignments = function readReassignments(
 	storage: Storage,
@@ -393,13 +396,18 @@ const readReassignments = function readReassignments(
 		const parsed: unknown = JSON.parse(
 			storage.getItem(SUBJECT_REASSIGNMENTS_STORAGE_KEY) ?? '[]'
 		);
+		if (!Array.isArray(parsed)) {
+			return [];
+		}
 		const cutoff = now - MAX_PENDING_SAVE_AGE_MS;
-		return Array.isArray(parsed)
-			? parsed.filter(
-					(item): item is SubjectReassignment =>
-						isSubjectReassignment(item) && item.at >= cutoff
-				)
-			: [];
+		const queued = new Set(
+			readPendingSaves(storage).map((entry) => entry.payload.subjectId)
+		);
+		return parsed.filter(
+			(item): item is SubjectReassignment =>
+				isSubjectReassignment(item) &&
+				(item.at >= cutoff || queued.has(item.from))
+		);
 	} catch {
 		return [];
 	}

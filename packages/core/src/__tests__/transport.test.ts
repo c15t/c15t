@@ -2162,6 +2162,55 @@ describe('kernel transport: failed save replay', () => {
 		}
 	});
 
+	test('a reassignment outlives its age limit while a save for the old id still waits', async () => {
+		// Recorded on day 0; a stale tab queues a save under the old id on day
+		// 6, and that save may wait until day 13. Expiring the record on day 7
+		// would leave the replay nothing to follow, and the save would drop.
+		const DAY = 24 * 60 * 60 * 1000;
+		const start = 1_800_000_000_000;
+		vi.useFakeTimers({ now: start, toFake: ['Date'] });
+		const conflictUnlessMoved = vi.fn(({ subjectId }: { subjectId: string }) =>
+			subjectId === 'sub_old'
+				? Promise.reject(refused('SUBJECT_CONFLICT'))
+				: accepted({ subjectId })
+		);
+		const first = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_old' } },
+			transport: { save: conflictUnlessMoved },
+		});
+		await first.commands.save({ marketing: true });
+		const movedTo = first.getSnapshot().subject?.subjectId as string;
+		first.dispose();
+
+		vi.setSystemTime(start + 6 * DAY);
+		const staleTab = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_old' } },
+			transport: { save: vi.fn().mockRejectedValue(new Error('offline')) },
+		});
+		await staleTab.commands.save({ measurement: false });
+		staleTab.dispose();
+
+		vi.setSystemTime(start + 8 * DAY);
+		const reloaded = createConsentKernel({
+			initialRecords: { subject: { subjectId: movedTo } },
+			transport: {
+				init: vi.fn().mockResolvedValue({}),
+				save: conflictUnlessMoved,
+			},
+		});
+		const replayed: { ok: boolean; subjectId: string }[] = [];
+		reloaded.events.on('save:replayed', ({ ok, subjectId }) => {
+			replayed.push({ ok, subjectId });
+		});
+		await reloaded.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toHaveLength(1);
+		});
+
+		expect(replayed).toEqual([{ ok: true, subjectId: movedTo }]);
+		reloaded.dispose();
+	});
+
 	test('two tabs refused for the same subject move to one new id', async () => {
 		// Each tab picking its own id would leave one of them persisting a
 		// subject the backend holds no consent for.
