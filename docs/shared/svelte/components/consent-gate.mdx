@@ -32,7 +32,7 @@ privacy signal such as Global Privacy Control.
 The built-in placeholder shows "Accept {category} consent to view this
 content." and a button labelled "Enable {category} consent", with the
 category's translated title in place of `{category}`. The copy comes from the
-`frame.title` and `frame.actionButton` translations. The button opens the
+`consentGate.title` and `consentGate.actionButton` translations. The button opens the
 preference dialog; it does not grant the category, so mount `ConsentDialog`
 in the same provider.
 
@@ -52,7 +52,24 @@ from preferences.
 
 Set `class` on `ConsentGate` to size the wrapper to the embed, for example an
 `aspect-ratio` for a video, so the page does not shift when the embed
-replaces the placeholder. The built-in placeholder carries
-`data-testid="frame-placeholder"` and its button
-`data-testid="frame-open-dialog"`. For a different design, pass your own
+replaces the placeholder.
+
+To restyle the built-in placeholder, set the `consentGate` slot for the card,
+`consentGateTitle` and `consentGateButton` in the provider's `theme.slots`.
+`consentGateButton` applies on top of `buttonPrimary`:
+
+{/* example: fragment */}
+
+```ts
+const theme = {
+  slots: {
+    consentGate: 'brand-gate',
+    consentGateButton: { className: 'brand-gate-button' },
+  },
+};
+```
+
+The built-in placeholder carries `data-testid="consent-gate-placeholder"`,
+its title `data-testid="consent-gate-title"` and its button
+`data-testid="consent-gate-button"`. For a different design, pass your own
 `placeholder` snippet.

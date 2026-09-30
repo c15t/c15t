@@ -21,15 +21,25 @@ group: reference
   and a privacy signal such as Global Privacy Control can deny a category the
   visitor granted.
 
-  Without a `placeholder` slot, the gate renders the same frame placeholder as
-  the React and Svelte gates. It shows the `frame.title` text with the
-  category name, and a button labelled with `frame.actionButton` that opens
-  the preference dialog. Under a strict policy that leaves the category out,
-  no choice can allow the content, so the placeholder shows
-  `frame.policyBlocked` and no button. The text is in the visitor's language
-  once init has delivered copy, and in English until then. The placeholder is
-  a card styled by your theme tokens and the `--frame-placeholder-*`
-  variables. A `placeholder` slot replaces it entirely.
+  Without a `placeholder` slot, the gate renders the same placeholder as the
+  React and Svelte gates. It shows the `consentGate.title` text with the
+  category name, and a button labelled with `consentGate.actionButton` that
+  opens the preference dialog. Under a strict policy that leaves the category
+  out, no choice can allow the content, so the placeholder shows
+  `consentGate.policyBlocked` and no button. The text is in the visitor's
+  language once init has delivered copy, and in English until then. The
+  placeholder is a card styled by your theme tokens and the
+  `--consent-gate-placeholder-*` variables. A `placeholder` slot replaces it
+  entirely.
+
+  To restyle the built-in placeholder instead, set its parts under
+  `components['consent-gate']` in the options. `root` is the card, and
+  `title` and `button` are its text and button. Use Vue attribute names such as `class` and `style`. The
+  `consentGate`, `consentGateTitle` and `consentGateButton` theme slots reach
+  the same parts. The placeholder carries
+  `data-testid="consent-gate-placeholder"`, its title
+  `data-testid="consent-gate-title"` and its button
+  `data-testid="consent-gate-button"`.
 
   `ConsentGate` also adds its `category` to the categories the preference
   dialog lists, so the button opens a dialog where the visitor can allow it.

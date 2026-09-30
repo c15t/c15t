@@ -1,6 +1,6 @@
 ---
 title: Component parts
-description: Find every part of c15t's banner, dialog, widget and trigger, its key in your framework's part API, and the data attributes to select on.
+description: Find every part of c15t's banner, dialog, widget, trigger and ConsentGate placeholder, its key in your framework's part API, and the data attributes to select on.
 group: customization
 ---
 
@@ -144,9 +144,24 @@ reach Astro's React dialog.
 | IAB purpose, stack and vendor rows | `iab-purpose-item.*`, `iab-stack-item.*`, `iab-vendor-list.*` | None |
 
 Legal links take no `theme.slots` key. They keep their stock link class, and
-a description slot's classes stay on the description around them. `ConsentGate`
-has no slot either, and there is no `frame` key for it. Style it through the
-class props on `ConsentGate` itself.
+a description slot's classes stay on the description around them.
+
+## ConsentGate placeholder parts
+
+`ConsentGate` shows a placeholder card while its category is denied. React,
+Next.js, TanStack Start, Vue, Nuxt, Svelte and SvelteKit render the same
+three parts:
+
+| Part | `components` key | `theme.slots` key | `data-testid` |
+| --- | --- | --- | --- |
+| Placeholder card | `consent-gate.root` | `consentGate` | `consent-gate-placeholder` |
+| Title | `consent-gate.title` | `consentGateTitle` | `consent-gate-title` |
+| Button that opens preferences | `consent-gate.button` | `consentGateButton` | `consent-gate-button` |
+
+The button part applies on top of `button.primary`, or `buttonPrimary`. The
+parts only reach the built-in placeholder. A placeholder you pass yourself
+takes your own classes, and the wrapper around the gate takes `className` in
+React or `class` in Svelte. Astro, HTML and JavaScript have no `ConsentGate`.
 
 ## Style parts from outside the script tag's shadow root
 

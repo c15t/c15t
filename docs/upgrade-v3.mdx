@@ -377,6 +377,9 @@ between a permission and a recorded choice.
 | `ssrData` (Next.js) | `ConsentRoot` with `state` from `resolveConsent()` |
 | `iframeBlockerConfig` | `iframeBlocker`, or `false` to turn it off |
 | `Frame` | `ConsentGate`. `Frame` still works as a deprecated alias. |
+| `frame` translations, such as `frame.title` | `consentGate`, such as `consentGate.title`. Copy under `frame` still applies and logs a warning outside production. |
+| `FrameTranslations` | `ConsentGateTranslations`. `FrameTranslations` still works as a deprecated alias. |
+| `--frame-*` CSS variables | `--consent-gate-*`, with the same suffixes, such as `--consent-gate-placeholder-background-color`. The old names no longer apply. |
 | `YouTubeEmbed`, `GoogleMap` | Removed. Wrap your own embed in `ConsentGate`. |
 | `useConsentScript()` | Removed. Register the script in `scripts` with a `@c15t/integrations` helper. |
 | `useSSRStatus()` | Removed |

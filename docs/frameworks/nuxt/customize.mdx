@@ -96,7 +96,9 @@ export default defineNuxtConfig({
 ```
 
 Vue binds these objects with `v-bind`, so use Vue attribute names such as
-`class` and `style`. React's `className` does not apply.
+`class` and `style`. React's `className` does not apply. The `ConsentGate`
+placeholder's parts are `components['consent-gate'].root`, `.title` and
+`.button`.
 
 With Tailwind CSS, put part classes in `app/app.config.ts` under the same
 `c15t` key rather than in `nuxt.config.ts`, because Tailwind scans `app/`. The
