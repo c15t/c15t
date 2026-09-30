@@ -15,6 +15,11 @@ import {
 } from '@c15t/react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+// The provider imports this module the first time clearOnRevocation is set.
+// Vite compiles it on that first request, which can outlast the test's 1 s
+// vi.waitFor while other packages' tests run. Importing it here compiles it
+// while the file loads.
+import '@c15t/core/modules/clear-on-revocation';
 
 import { ConsentRoot, DEFAULT_INIT_ROUTE } from '../root';
 import { policyFixture } from './policy-fixture';
