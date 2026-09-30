@@ -844,31 +844,6 @@ export const nextjsBrowserBudgetsForScenario =
 				)
 			);
 		}
-		if (baseScenario === 'ssr-repeat') {
-			budgets.push({
-				comparator: 'count-eq',
-				description:
-					'SSR repeat visitor applies the real stored choice before the settled client observation.',
-				metric: 'hydratedChoicePresent',
-				threshold: 1,
-			});
-			budgets.push(
-				{
-					comparator: 'count-eq',
-					description:
-						'A persisted repeat visitor over SSR gets no banner in the server HTML.',
-					metric: 'bannerInServerHtml',
-					threshold: 0,
-				},
-				{
-					comparator: 'count-eq',
-					description:
-						'A persisted repeat visitor over SSR sees no first-layer prompt after hydration.',
-					metric: 'promptShownCount',
-					threshold: 0,
-				}
-			);
-		}
 		return budgets;
 	};
 

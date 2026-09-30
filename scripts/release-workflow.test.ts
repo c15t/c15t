@@ -151,7 +151,7 @@ describe('release validation', () => {
 					steps: expect.arrayContaining([
 						expect.objectContaining({
 							with: expect.objectContaining({
-								ref: `\${{ github.event_name == 'schedule' && 'v3' || github.event_name == 'workflow_dispatch' && (inputs.branch == 'main' && 'main' || inputs.branch == 'canary' && 'canary' || 'v3') || github.sha }}`,
+								ref: `\${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'v3' || github.sha }}`,
 							}),
 						}),
 					]),
@@ -162,11 +162,6 @@ describe('release validation', () => {
 				schedule: [{ cron: '43 2 * * *' }],
 				workflow_dispatch: {
 					inputs: {
-						branch: {
-							default: 'v3',
-							options: ['v3', 'main', 'canary'],
-							type: 'choice',
-						},
 						mode: { default: 'full' },
 					},
 				},
@@ -175,6 +170,11 @@ describe('release validation', () => {
 		expect(readWorkflow('benchmark-regression')).not.toHaveProperty(
 			'on.workflow_call.inputs.advisory'
 		);
+		for (const input of ['head_ref', 'branch']) {
+			expect(readWorkflow('benchmark-regression')).not.toHaveProperty(
+				`on.workflow_dispatch.inputs.${input}`
+			);
+		}
 		expect(readWorkflow('benchmark-regression')).not.toMatchObject({
 			jobs: {
 				benchmark: {
