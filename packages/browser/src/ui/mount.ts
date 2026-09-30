@@ -78,12 +78,15 @@ const appendStylesheetLinks = function appendStylesheetLinks(
  *
  * The stylesheet keys dark tokens off a `.c15t-dark` ancestor of
  * `.c15t-theme-root`; inside a shadow root nothing on `<html>` reaches
- * it, so the wrapper carries the class itself.
+ * it, so the wrapper carries the class itself. For the same reason `null`
+ * cannot simply leave the class alone, as it does in the framework
+ * providers: the page's class would never reach the UI. It copies it
+ * instead, from either `dark` or `c15t-dark` on `<html>`.
  */
 const applyColorScheme = function applyColorScheme(
 	wrapper: HTMLElement,
 	host: HTMLElement,
-	scheme: NonNullable<ConsentUIOptions['colorScheme']>
+	scheme: Exclude<ConsentUIOptions['colorScheme'], undefined>
 ): () => void {
 	const set = function set(dark: boolean): void {
 		// The wrapper serves `.c15t-dark .c15t-theme-root`; the host serves the
@@ -92,6 +95,20 @@ const applyColorScheme = function applyColorScheme(
 		host.classList.toggle('c15t-dark', dark);
 		host.style.colorScheme = dark ? 'dark' : 'light';
 	};
+	if (scheme === null) {
+		const html = document.documentElement;
+		const follow = function follow(): void {
+			set(
+				html.classList.contains('dark') || html.classList.contains('c15t-dark')
+			);
+		};
+		follow();
+		const observer = new MutationObserver(follow);
+		observer.observe(html, { attributeFilter: ['class'] });
+		return () => {
+			observer.disconnect();
+		};
+	}
 	if (scheme !== 'system' || typeof window.matchMedia !== 'function') {
 		set(scheme === 'dark');
 		return () => {
@@ -193,7 +210,10 @@ export const mountConsentUI = function mountConsentUI(
 	const releaseScheme = applyColorScheme(
 		wrapper,
 		host,
-		options.colorScheme ?? 'system'
+		// `'system'` rather than the React provider's `.dark` mirroring: a
+		// plain HTML page has no `.dark` convention, and a page that has
+		// one opts in with `null`.
+		options.colorScheme === undefined ? 'system' : options.colorScheme
 	);
 
 	const ctx: SurfaceContext = {

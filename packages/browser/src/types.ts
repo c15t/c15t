@@ -127,8 +127,15 @@ export interface ConsentUIOptions {
 	 * as a part, as in `[data-c15t-ui]::part(consentBannerCard)`.
 	 */
 	shadow?: boolean;
-	/** Colour scheme. Defaults to `system`. */
-	colorScheme?: 'light' | 'dark' | 'system';
+	/**
+	 * Colour scheme. `'system'` follows `prefers-color-scheme`. `null`
+	 * leaves the scheme to the page: the UI is dark while `<html>` has a
+	 * `dark` or `c15t-dark` class, and follows it as it changes. The script
+	 * tag reads `data-color-scheme`, with `none` for `null`.
+	 *
+	 * @default 'system'
+	 */
+	colorScheme?: 'light' | 'dark' | 'system' | null;
 	/**
 	 * Theme tokens, consent action styles and per-part `slots`, the
 	 * `@c15t/ui` theme shape `@c15t/svelte` also accepts.

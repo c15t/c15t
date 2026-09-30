@@ -509,6 +509,39 @@ describe('mountConsentUI', () => {
 		expect(handle.host.style.colorScheme).toBe('dark');
 	});
 
+	it('follows the document with a null scheme', async () => {
+		// The system is dark; null must not follow it.
+		vi.stubGlobal(
+			'matchMedia',
+			vi.fn(() => ({
+				addEventListener: () => undefined,
+				matches: true,
+				removeEventListener: () => undefined,
+			}))
+		);
+		const html = document.documentElement;
+		try {
+			const { root, handle } = await mount({ colorScheme: null });
+			const dark = () =>
+				root.querySelector('.c15t-host')?.classList.contains('c15t-dark') &&
+				handle.host.classList.contains('c15t-dark');
+			expect(dark()).toBe(false);
+
+			// The site's own class, either spelling, reaches the shadow root.
+			html.classList.add('dark');
+			await vi.waitFor(() => expect(dark()).toBe(true));
+			html.classList.replace('dark', 'c15t-dark');
+			await Promise.resolve();
+			expect(dark()).toBe(true);
+			html.classList.remove('c15t-dark');
+			await vi.waitFor(() => expect(dark()).toBe(false));
+			expect(html.classList.length).toBe(0);
+		} finally {
+			vi.unstubAllGlobals();
+			html.className = '';
+		}
+	});
+
 	it('tears everything down on destroy', async () => {
 		const { handle } = await mount();
 
