@@ -1,17 +1,11 @@
 /**
- * Built `@c15t/ui` stylesheets: the entrypoints (`styles.css`,
- * `iab/styles.css` and their `.tw3.css` twins) and everything under
- * `styles/` (`dialog.css`, `primitives.css`, per-component files).
+ * A built stylesheet published by c15t: anything under `dist/` of `c15t` or
+ * an `@c15t/*` package in `node_modules` (pnpm and Bun store paths
+ * included), or of a c15t package in this monorepo. Vite may append a query
+ * such as `?transform-only` to the file name.
  */
-const C15T_UI_DIST_STYLES_PATH =
-	/(?:^|[\\/])(?:node_modules[\\/]@c15t[\\/]ui|packages[\\/]ui)[\\/]dist[\\/](?:(?:iab[\\/])?styles(?:\.tw3)?\.css|styles[\\/](?:components[\\/])?[^\\/]+\.css)$/u;
-
-/**
- * `@c15t/browser`'s light-DOM stylesheets (`@c15t/browser/styles.css` and
- * `iab/styles.css`), which carry the `@c15t/ui` rules with their layers.
- */
-const C15T_BROWSER_DIST_STYLES_PATH =
-	/(?:^|[\\/])(?:node_modules[\\/]@c15t[\\/]browser|packages[\\/]browser)[\\/]dist[\\/]c15t(?:\.iab)?\.css$/u;
+const C15T_DIST_STYLESHEET_PATH =
+	/(?:^|[\\/])(?:node_modules[\\/](?:@c15t[\\/][^\\/]+|c15t)|packages[\\/](?:astro|browser|c15t|nextjs|react|svelte|tanstack-start|ui|vue))[\\/]dist[\\/](?:[^\\/]+[\\/])*[^\\/]+\.css(?:\?[^\\/]*)?$/u;
 
 interface PostcssSource {
 	input?: {
@@ -42,18 +36,16 @@ export interface PostcssTailwind3PluginCreator {
 }
 
 /**
- * Whether a file is a built c15t stylesheet the plugin flattens.
+ * Whether a file is a built stylesheet from a c15t package, the files whose
+ * `@layer` blocks `@c15t/ui/postcss-tailwind3` unwraps.
  *
- * @param filePath - Absolute path of the stylesheet
- * @returns True for `@c15t/ui` and `@c15t/browser` dist stylesheets
+ * @param filePath - Absolute path of a CSS file.
+ * @returns `true` for `dist/` stylesheets of `c15t` and `@c15t/*` packages.
  */
 export const isC15tUiStylesheetPath = function isC15tUiStylesheetPath(
 	filePath: string
 ): boolean {
-	return (
-		C15T_UI_DIST_STYLES_PATH.test(filePath) ||
-		C15T_BROWSER_DIST_STYLES_PATH.test(filePath)
-	);
+	return C15T_DIST_STYLESHEET_PATH.test(filePath);
 };
 
 /**
@@ -65,15 +57,16 @@ export const isC15tUiStylesheetPath = function isC15tUiStylesheetPath(
  * tree-shakes layer contents against the Tailwind content scan. c15t's hashed
  * CSS Module classes (`c15t-ui-*`) are generated into dist class maps and never
  * appear verbatim in application source, so Tailwind 3 can purge the component
- * rules. This plugin unwraps `@layer` blocks only inside built `@c15t/ui`
- * stylesheet files before Tailwind runs, restoring Tailwind 3's v2-era
- * semantics: c15t base styles win by specificity, and overrides use
- * important-modifier utilities such as `!bg-blue-600` or c15t theme slots.
+ * rules. This plugin unwraps `@layer` blocks that come from a built c15t
+ * stylesheet before Tailwind runs, restoring Tailwind 3's v2-era semantics:
+ * c15t base styles win by specificity, and overrides use important-modifier
+ * utilities such as `!bg-blue-600` or c15t theme slots.
  *
- * Each `@layer` rule is checked against its own source file, not the root's.
- * Vite and `postcss-import` inline `@import`ed files into the importing
- * stylesheet before other plugins run, so c15t's rules can arrive inside the
- * app's Tailwind entry. The app's own layers are left alone.
+ * Each block is judged by the file it was written in, not the file being
+ * processed. Vite and `postcss-import` inline an app's
+ * `@import '@c15t/svelte/styles.css'` into the app's stylesheet, and Astro
+ * processes `@c15t/astro/styles.css`, which imports `@c15t/ui/styles.css`;
+ * in both, the root is not a c15t file but the layered rules are.
  */
 const c15tTailwind3: PostcssTailwind3PluginCreator = Object.assign(
 	(): PostcssTailwind3Plugin => ({

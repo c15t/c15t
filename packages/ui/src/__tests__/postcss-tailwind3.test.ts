@@ -158,7 +158,76 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 		expect(css).not.toMatch(/@layer\b/u);
 	});
 
+	test('unwraps c15t layers that an @import inlined into an app stylesheet', async () => {
+		// Vite and postcss-import inline `@import '@c15t/svelte/styles.css'`
+		// before Tailwind runs, so the root is the app's file and only the
+		// inlined nodes remember that they came from c15t. Left layered,
+		// Tailwind 3 adopts them as its own components layer and purges them.
+		const root = parse(
+			'@tailwind components;\n@layer components { .app-card { color: red; } }',
+			{ from: '/app/src/app.css' }
+		);
+		root.prepend(
+			parse(layeredCss, {
+				from: '/app/node_modules/@c15t/ui/dist/styles.css',
+			}).nodes
+		);
+
+		const { css } = await postcss([tailwind3Plugin]).process(root, {
+			from: '/app/src/app.css',
+		});
+
+		expect(css).toContain('.c15t-ui-button-a1b2c');
+		expect(css).not.toContain('@layer theme, base, components, utilities');
+		expect(css.match(/@layer components/gu)).toHaveLength(1);
+		expect(css).toMatch(/@layer components \{ \.app-card/u);
+	});
+
+	test('unwraps c15t layers inside an adapter stylesheet that imports @c15t/ui', async () => {
+		// Astro injects `@c15t/astro/styles.css`, which opens with the layer
+		// order and then imports `@c15t/ui/styles.css`.
+		const from = '/app/node_modules/@c15t/astro/dist/styles.css';
+		const root = parse(
+			'@layer properties, theme, base, components, utilities;',
+			{ from }
+		);
+		root.append(
+			parse(layeredCss, {
+				from: '/app/node_modules/@c15t/ui/dist/styles.css',
+			}).nodes
+		);
+
+		const { css } = await postcss([tailwind3Plugin]).process(root, { from });
+
+		expect(css).toContain('.c15t-ui-button-a1b2c');
+		expect(css).not.toMatch(/@layer\b/u);
+	});
+
 	test('matches realistic package paths only', () => {
+		for (const path of [
+			'/app/node_modules/@c15t/ui/dist/styles.css',
+			'/app/node_modules/.pnpm/@c15t+ui@3.0.0/node_modules/@c15t/ui/dist/styles/dialog.css',
+			'/app/node_modules/@c15t/svelte/dist/styles.css',
+			'/app/node_modules/@c15t/astro/dist/styles.css',
+			'/app/node_modules/@c15t/browser/dist/c15t.css',
+			'/app/node_modules/c15t/dist/react/styles.css',
+			'/repo/packages/svelte/dist/styles.css',
+			// Astro's Vite pipeline processes the dialog sheet with a query.
+			'/app/node_modules/@c15t/ui/dist/styles/dialog.css?transform-only',
+		]) {
+			expect(isC15tUiStylesheetPath(path)).toBe(true);
+		}
+		for (const path of [
+			'/app/node_modules/@other/ui/dist/styles.css',
+			'/app/node_modules/c15t-theme/dist/styles.css',
+			'/repo/packages/web/dist/styles.css',
+			'/app/src/styles.css',
+		]) {
+			expect(isC15tUiStylesheetPath(path)).toBe(false);
+		}
+	});
+
+	test('matches realistic @c15t/ui paths', () => {
 		expect(
 			isC15tUiStylesheetPath(
 				'/app/node_modules/@c15t/ui/dist/styles/components/button.css'
