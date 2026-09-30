@@ -144,6 +144,50 @@ export const setCategory = async function setCategory(
 	await expect.poll(() => control.isChecked()).toBe(checked);
 };
 
+/** One vendor's switch under a category in the preference dialog. */
+export const vendorSwitch = (page: Page, category: string, vendor: string) =>
+	page.getByTestId(`consent-widget-vendor-switch-${category}-${vendor}`);
+
+/**
+ * Open one category's row in the preference dialog, where its vendor
+ * switches sit.
+ */
+export const expandCategory = async function expandCategory(
+	page: Page,
+	category: string
+): Promise<void> {
+	const trigger = page.getByTestId(
+		`consent-widget-accordion-trigger-${category}`
+	);
+	await expect.poll(() => trigger.isVisible()).toBe(true);
+	if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
+		await trigger.click();
+	}
+	await expect
+		.poll(() =>
+			page.getByTestId(`consent-widget-vendor-list-${category}`).isVisible()
+		)
+		.toBe(true);
+};
+
+/** Turn one vendor on or off in the preference dialog's draft. */
+export const setVendor = async function setVendor(
+	page: Page,
+	category: string,
+	vendor: string,
+	checked: boolean
+): Promise<void> {
+	await expandCategory(page, category);
+	const control = vendorSwitch(page, category, vendor);
+	await expect.poll(() => control.isEnabled()).toBe(true);
+	if ((await control.getAttribute('aria-checked')) !== String(checked)) {
+		await control.click();
+	}
+	await expect
+		.poll(() => control.getAttribute('aria-checked'))
+		.toBe(String(checked));
+};
+
 export const expectNoTracking = async function expectNoTracking(
 	page: Page,
 	requests: Requests

@@ -10,6 +10,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
 import {
 	acceptButton,
 	categoryControl,
+	expandCategory,
 	expectNoTracking,
 	openBrowserContext,
 	openPreferences,
@@ -18,6 +19,8 @@ import {
 	rejectButton,
 	saveButton,
 	setCategory,
+	setVendor,
+	vendorSwitch,
 	video,
 } from './browser';
 import type { Requests } from './browser';
@@ -374,6 +377,59 @@ for (const target of selectedTargets()) {
 				await page.reload();
 				await expect.poll(() => video(page).count()).toBe(1);
 				await openPreferences(page);
+				expect(requests.unexpected).toEqual([]);
+			});
+		}
+
+		// These examples declare PostHog and YouTube under measurement and
+		// X Pixel under marketing, and name each vendor on its script or
+		// iframe.
+		if (['astro', 'astro-static', 'html'].includes(target.id)) {
+			test('a vendor turned off stays blocked across reload until Accept all', async () => {
+				const route = target.routes[0] ?? '/';
+				await visit(route);
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				await rejectButton(page).click();
+				await openPreferences(page);
+				await setCategory(page, 'Measurement', true);
+				await setVendor(page, 'measurement', 'posthog', false);
+				await saveButton(page).click();
+				// YouTube shares the category and loads; PostHog stays blocked.
+				await expect.poll(() => video(page).count()).toBe(1);
+				await page.waitForTimeout(300);
+				expect(requests.posthog).toBe(0);
+				expect(requests.xPixel).toBe(0);
+
+				await page.reload();
+				await expect.poll(() => video(page).count()).toBe(1);
+				await page.waitForTimeout(300);
+				expect(requests.posthog).toBe(0);
+				await openPreferences(page);
+				await expandCategory(page, 'measurement');
+				expect(
+					await vendorSwitch(page, 'measurement', 'posthog').getAttribute(
+						'aria-checked'
+					)
+				).toBe('false');
+				expect(
+					await vendorSwitch(page, 'measurement', 'youtube').getAttribute(
+						'aria-checked'
+					)
+				).toBe('true');
+
+				// Accept all clears the vendor denial.
+				await page
+					.getByTestId('consent-widget-footer-accept-all-button')
+					.click();
+				await expect.poll(() => requests.posthog).toBe(1);
+				await expect.poll(() => requests.xPixel).toBe(1);
+				await openPreferences(page);
+				await expandCategory(page, 'measurement');
+				expect(
+					await vendorSwitch(page, 'measurement', 'posthog').getAttribute(
+						'aria-checked'
+					)
+				).toBe('true');
 				expect(requests.unexpected).toEqual([]);
 			});
 		}

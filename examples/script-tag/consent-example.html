@@ -23,12 +23,14 @@
 		<script
 			type="text/plain"
 			data-c15t-category="measurement"
+			data-c15t-vendor="posthog"
 			src="/vendor/posthog.js"
 		></script>
 		<!-- X Pixel's base code, pasted inline -->
 		<script
 			type="text/plain"
 			data-c15t-category="marketing"
+			data-c15t-vendor="x-pixel"
 		>
 			!function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments);
 			},s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,u.src='https://static.ads-twitter.com/uwt.js',
@@ -36,6 +38,40 @@
 			twq('config','YOUR_X_PIXEL_ID');
 		</script>
 		<!-- #endregion docs:vendor-scripts -->
+		<!-- #region docs:vendors title="index.html" -->
+		<!-- Runs before the deferred c15t.js tag, so init() picks it up -->
+		<script>
+			window.c15t = window.c15t || [];
+			c15t.push([
+				'config',
+				{
+					vendors: [
+						{
+							id: 'posthog',
+							name: 'PostHog',
+							category: 'measurement',
+							description: 'Product analytics and session insights.',
+							privacyPolicyUrl: 'https://posthog.com/privacy',
+						},
+						{
+							id: 'youtube',
+							name: 'YouTube',
+							category: 'measurement',
+							description: 'Embedded videos.',
+							privacyPolicyUrl: 'https://policies.google.com/privacy',
+						},
+						{
+							id: 'x-pixel',
+							name: 'X Pixel',
+							category: 'marketing',
+							description: 'Ad conversion tracking.',
+							privacyPolicyUrl: 'https://x.com/en/privacy',
+						},
+					],
+				},
+			]);
+		</script>
+		<!-- #endregion docs:vendors -->
 	</head>
 	<body>
 		<main>
@@ -54,6 +90,7 @@
 				<ul class="statuses">
 					<li>PostHog loads once measurement is allowed.</li>
 					<li>X Pixel loads once marketing is allowed.</li>
+					<li>Turn one vendor off in Privacy settings and it stays blocked.</li>
 				</ul>
 			</section>
 			<section class="card">
@@ -63,6 +100,7 @@
 					<iframe
 						data-src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y?playsinline=1"
 						data-category="measurement"
+						data-vendor="youtube"
 						title="YouTube video"
 						allow="encrypted-media; picture-in-picture"
 						allowfullscreen
