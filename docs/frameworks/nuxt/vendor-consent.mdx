@@ -1,0 +1,93 @@
+---
+title: Vendor consent
+description: Let visitors allow a category such as marketing in a Nuxt app and still turn off one vendor in it, with the vendors option of the c15t Nuxt module and useConsentDraft.
+group: frameworks
+---
+
+<import src="../../shared/scripts/vendor-consent.mdx#how" />
+
+## Declare the vendors
+
+Declare the vendors next to the scripts in `app/consent-scripts.ts`, using the
+`vendor` slug each script already carries:
+
+{/* example: fragment */}
+
+```ts title="app/consent-scripts.ts (partial)"
+import type { Vendor } from 'c15t';
+
+export const vendors: Vendor[] = [
+  {
+    id: 'x-pixel',
+    name: 'X Pixel',
+    category: 'marketing',
+    privacyPolicyUrl: 'https://x.com/privacy',
+  },
+];
+```
+
+Then register them under the `c15t` key in `app/app.config.ts`:
+
+{/* example: fragment */}
+
+```ts title="app/app.config.ts (partial)"
+import { scripts, vendors } from './consent-scripts';
+
+export default defineAppConfig({
+  c15t: { scripts, vendors },
+});
+```
+
+Vendors are plain data, so the `c15t` key in `nuxt.config.ts` accepts them too.
+The module combines the arrays from both files.
+
+<import src="../../shared/scripts/vendor-consent.mdx#fields" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#targets" />
+
+`ConsentGate` checks a category only. For an iframe, add `data-vendor` and use
+the iframe blocker; see [embeds](/docs/frameworks/nuxt/embeds).
+
+## What the preference dialog shows
+
+`ConsentManager`, which `ConsentRoot` renders, and `ConsentWidget` list each
+declared vendor under its category, with its own switch.
+
+<import src="../../shared/scripts/vendor-consent.mdx#dialog" />
+
+## Build your own vendor switch
+
+`useConsentDraft()`, which the module auto-imports, holds the category and vendor
+switches of a preference form. `vendors` has one value per declared vendor,
+`setVendor(id, granted)` changes one, and `save()` records the categories and
+the vendors that changed:
+
+{/* example: fragment */}
+
+```vue title="app/components/x-pixel-switch.vue (partial)"
+<script setup lang="ts">
+const { vendors, setVendor, save } = useConsentDraft();
+</script>
+
+<template>
+  <input
+    type="checkbox"
+    :checked="vendors['x-pixel'] ?? true"
+    @change="setVendor('x-pixel', ($event.target as HTMLInputElement).checked)"
+  />
+  <button type="button" @click="save()">Save</button>
+</template>
+```
+
+`save()` resolves `{ ok: false }` without recording anything while `isStale`
+is `true`. To check whether the visitor switched a vendor off, pass the
+snapshot from `useConsentSnapshot()` to `isVendorDenied(snapshot, 'x-pixel')`
+from `c15t`. The vendor may run only when that returns `false` and
+`useConsent()` allows its category. [Composables](/docs/frameworks/nuxt/composables)
+covers the draft.
+
+<import src="../../shared/scripts/vendor-consent.mdx#storage" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#limits" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#verify" />

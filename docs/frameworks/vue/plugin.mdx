@@ -51,7 +51,7 @@ Every option is optional. Options that hold functions, such as `scripts` and
 | `manifestURL` | `/api/c15t/manifest` | Where client mode downloads the manifest. Set it to an absolute URL, such as `${backendURL}/manifest`. Setting it with `manifest` unset selects client mode. |
 | `geoURL` | Unset | Client mode only. An endpoint you run that returns `{ country, region }` for the visitor. |
 | `consentCategories` | The policy's categories | Limits the categories the dialog and widget show, within the policy's scope. |
-| `vendors` | Unset | Vendors listed under their category with their own switch. See [granular consent](/docs/integrations/granular-consent). |
+| `vendors` | Unset | Vendors listed under their category with their own switch. See [vendor consent](/docs/frameworks/vue/vendor-consent). |
 | `storageConfig` | `{ storageKey: 'c15t' }` | Cookie and localStorage name, `crossSubdomain`, `defaultDomain` and `defaultExpiryDays`, 365 by default. |
 | `customFetch` | `fetch` | The fetch function for backend requests. |
 

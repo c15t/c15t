@@ -1,0 +1,89 @@
+---
+title: Vendor consent
+description: Let visitors allow a category such as marketing in a TanStack Start app and still turn off one vendor in it, with the vendors prop on ConsentRoot and useVendorAllowed.
+group: frameworks
+---
+
+<import src="../../shared/scripts/vendor-consent.mdx#how" />
+
+## Declare the vendors
+
+Declare the vendors next to the scripts in `src/scripts.ts`, using the `vendor`
+slug each script already carries:
+
+{/* example: fragment */}
+
+```ts title="src/scripts.ts (partial)"
+import type { Vendor } from 'c15t';
+
+export const vendors: Vendor[] = [
+  {
+    id: 'x-pixel',
+    name: 'X Pixel',
+    category: 'marketing',
+    privacyPolicyUrl: 'https://x.com/privacy',
+  },
+];
+```
+
+Then pass them to the `ConsentRoot` in `src/routes/__root.tsx`:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx (partial)"
+import { scripts, vendors } from '../scripts';
+
+<ConsentRoot state={consent} backendURL={backendURL} scripts={scripts} vendors={vendors}>
+```
+
+`ConsentRoot` takes `vendors` as a top-level prop, not inside `options`.
+
+<import src="../../shared/scripts/vendor-consent.mdx#fields" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#targets" />
+
+`ConsentGate` checks a category only. To render a component only while one
+vendor is allowed, read `useVendorAllowed('youtube')` and render it when the
+hook returns `true`. [Embeds](/docs/frameworks/tanstack-start/embeds) covers the iframe
+blocker's `data-vendor` attribute.
+
+## What the preference dialog shows
+
+`ConsentDialog` and `ConsentWidget` list each declared vendor under its
+category, with its own switch.
+
+<import src="../../shared/scripts/vendor-consent.mdx#dialog" />
+
+## Build your own vendor switch
+
+`useVendorDraft()` from `c15t/tanstack-start` reads and stages vendor switches on the
+same draft the category switches use, so one save records both.
+`useVendorAllowed(id)` returns whether a vendor may run now: its category is
+allowed and the visitor has not switched it off.
+
+{/* example: fragment */}
+
+```tsx title="src/components/x-pixel-switch.tsx (partial)"
+import { useVendorAllowed, useVendorDraft } from 'c15t/tanstack-start';
+
+const { vendors, setVendor, save } = useVendorDraft();
+const xPixelAllowed = useVendorAllowed('x-pixel');
+
+<input
+  type="checkbox"
+  checked={vendors['x-pixel'] ?? true}
+  onChange={(event) => setVendor('x-pixel', event.target.checked)}
+/>
+<button type="button" onClick={() => save()}>Save</button>
+```
+
+`save()` resolves `{ ok: false }` without recording anything when the policy
+or the vendor list changed under the edit. Call `reset()` to start again.
+`useDeclaredVendors()` returns the declared vendors, and `useVendorChoice()`
+returns the recorded vendor decision, or `null` before the visitor made one.
+
+<import src="../../shared/scripts/vendor-consent.mdx#storage" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#limits" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#verify" />

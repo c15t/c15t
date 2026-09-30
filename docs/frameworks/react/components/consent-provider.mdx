@@ -30,7 +30,7 @@ when it mounts. Remount the provider to change them.
 | `mode` | Required. `hosted({ url })` for a backend, `offline()` for local policies, or `custom()` for your own transport |
 | `prefetch` | Server-resolved state, or a promise of it, from a framework adapter's server helper |
 | `scripts` | Consent-gated vendor scripts. See [scripts and embeds](/docs/frameworks/react/scripts) |
-| `vendors` | Vendors listed under their category with their own switch. See [granular consent](/docs/integrations/granular-consent) |
+| `vendors` | Vendors listed under their category with their own switch. See [vendor consent](/docs/frameworks/react/vendor-consent) |
 | `scriptLoader` | Options for the script loader module |
 | `networkBlocker` | Rules that hold `fetch` and `XMLHttpRequest` calls until their category is allowed, or `false` |
 | `iframeBlocker` | Gates DOM iframes that carry `data-category`. On by default; `false` turns it off |

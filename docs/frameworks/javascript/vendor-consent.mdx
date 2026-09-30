@@ -1,0 +1,77 @@
+---
+title: Vendor consent
+description: Let visitors allow a category such as marketing in a JavaScript app and still turn off one vendor in it, with the vendors option on createConsentRuntime and a vendor switch you render yourself.
+group: frameworks
+---
+
+<import src="../../shared/scripts/vendor-consent.mdx#how" />
+
+## Declare the vendors and record a switch
+
+The stock `@c15t/browser` banner and preference dialog show no vendor
+switches. Declare the vendors, then render the switch in your own UI with the
+[headless runtime](/docs/frameworks/javascript/headless). This module declares
+X Pixel, reads whether the visitor switched it off, and records a new switch:
+
+<include src="../../shared/examples/javascript/vendor-consent.mdx" />
+
+Pass `vendors` to the runtime next to `scripts`:
+
+{/* example: fragment */}
+
+```ts title="src/consent-runtime.ts (partial)"
+import { vendors } from './vendor-consent';
+
+export const runtime = createConsentRuntime({
+  mode: hosted({ url: backendURL }),
+  scripts,
+  vendors,
+});
+```
+
+`init()` from `@c15t/browser` accepts the same `vendors` option. Its client
+exposes the runtime as `client.runtime`, so the functions above work with it
+too.
+
+Call `saveVendorSwitch(runtime, 'x-pixel', false)` from your switch's change
+handler. To confirm categories and vendors in one action, pass both to the
+kernel's save:
+
+{/* example: fragment */}
+
+```ts
+await runtime.kernel.commands.save({
+  marketing: true,
+  measurement: true,
+  vendors: { 'x-pixel': false },
+});
+```
+
+`runtime.resetVendorDraft()` drops staged vendor switches without saving.
+`runtime.kernel.getSnapshot().vendors?.declared` lists the declared vendors,
+and `vendorChoice` holds the recorded decision.
+
+<import src="../../shared/scripts/vendor-consent.mdx#fields" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#targets" />
+
+[Iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker) and
+[network blocker](/docs/frameworks/javascript/modules/network-blocker) cover
+those targets.
+
+<import src="../../shared/scripts/vendor-consent.mdx#storage" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#limits" />
+
+## Verify vendor consent
+
+Test the production build in a private window with DevTools Network open and
+filtered to `ads-twitter.com`:
+
+1. Register `xPixel()` and declare `x-pixel`. Allow marketing. `uwt.js`
+   loads.
+2. Switch X Pixel off in your control. c15t reloads the page. After the reload
+   there is no `uwt.js` request, and other marketing scripts still load.
+3. Reload again. `isVendorOff(runtime, 'x-pixel')` still returns `true`.
+4. Record Accept all with `runtime.kernel.commands.save('all')`. `uwt.js`
+   loads again.

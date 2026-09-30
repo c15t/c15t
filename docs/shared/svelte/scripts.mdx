@@ -70,6 +70,12 @@ yourself, for example through a vendor's own opt-out call in
 a vendor set, configure `clearOnRevocation`; see
 [clearing data on revocation](/docs/integrations/clear-on-revocation).
 
+## Let visitors turn off one vendor
+
+A visitor can allow marketing and still switch off one vendor in it. Pass
+`vendors` to the provider; helpers from `@c15t/scripts` already carry their
+vendor slug. See [vendor consent](./vendor-consent).
+
 ## Verify vendor loading
 
 Open DevTools, clear site data for your origin and reload:

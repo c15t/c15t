@@ -65,12 +65,11 @@ category when it is denied. `ConsentRoot` reads it once, when it mounts.
 [Clear on revocation](/docs/integrations/clear-on-revocation) covers
 configuration and browser limits.
 
-## Vendors with their own switch
+## Let visitors turn off one vendor
 
-To let a visitor allow a category but turn off one vendor, pass `vendors` to
-`ConsentRoot`. The preference dialog then lists each vendor under its category.
-Helpers from `@c15t/integrations` already carry their vendor slug.
-[Granular consent](/docs/integrations/granular-consent) explains the setup.
+A visitor can allow marketing and still switch off one vendor in it. Pass
+`vendors` to `ConsentRoot`. Helpers from `@c15t/integrations` already carry
+their vendor slug. See [vendor consent](/docs/frameworks/tanstack-start/vendor-consent).
 
 ## Check the scripts
 

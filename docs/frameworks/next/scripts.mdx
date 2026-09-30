@@ -81,41 +81,10 @@ Scripts cover vendor code c15t loads for you. For the rest:
 
 ## Let visitors turn off one vendor
 
-A visitor can grant marketing and still turn one vendor off. Declare the
-vendors next to the scripts in `lib/scripts.ts`, using the `vendor` slug each
-script already carries:
-
-{/* example: fragment */}
-
-```ts title="lib/scripts.ts (partial)"
-import type { Vendor } from 'c15t';
-
-export const vendors: Vendor[] = [
-  {
-    id: 'x-pixel',
-    name: 'X Pixel',
-    category: 'marketing',
-    privacyPolicyUrl: 'https://x.com/privacy',
-  },
-];
-```
-
-Then pass them to the `ConsentRoot` in `components/consent.tsx`:
-
-{/* example: fragment */}
-
-```tsx title="components/consent.tsx (partial)"
-import { scripts, vendors } from '@/lib/scripts';
-
-<ConsentRoot state={state} config={consentConfig} scripts={scripts} vendors={vendors}>
-```
-
-The preference center lists each vendor under its category with a switch.
-Helpers from `@c15t/integrations` set `vendor` to their manifest slug, so `xPixel()`
-needs no extra wiring. Give a hand-written script the same slug in its `vendor`
-field. A backend manifest can declare vendors too. See
-[granular consent](/docs/integrations/granular-consent) for storage, bulk
-actions and the hooks a custom control uses.
+A visitor can allow marketing and still switch off one vendor in it. Declare
+the vendors and pass them to `ConsentRoot` as `vendors`; helpers from
+`@c15t/integrations` already carry their vendor slug. See
+[vendor consent](/docs/frameworks/next/vendor-consent).
 
 ## Clear stored tracking data
 

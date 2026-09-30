@@ -119,7 +119,7 @@ export default defineDocsConfig({
 					base: 'next',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -192,7 +192,7 @@ export default defineDocsConfig({
 					base: 'tanstack-start',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -251,7 +251,7 @@ export default defineDocsConfig({
 					base: 'react',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -311,7 +311,7 @@ export default defineDocsConfig({
 					base: 'nuxt',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -372,7 +372,7 @@ export default defineDocsConfig({
 					base: 'vue',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -497,7 +497,7 @@ export default defineDocsConfig({
 					base: 'svelte',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -560,7 +560,7 @@ export default defineDocsConfig({
 					base: 'sveltekit',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -691,6 +691,7 @@ export default defineDocsConfig({
 								'scripts',
 								'modules/iframe-blocker',
 								'modules/network-blocker',
+								'vendor-consent',
 							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
@@ -768,7 +769,7 @@ export default defineDocsConfig({
 			base: 'integrations',
 			children: [
 				{
-					pages: ['granular-consent', 'clear-on-revocation'],
+					pages: ['clear-on-revocation'],
 					slug: 'vendor-controls',
 					title: 'Vendor controls',
 				},

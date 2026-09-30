@@ -1,0 +1,91 @@
+---
+title: Vendor consent
+description: Let visitors allow a category such as marketing in a Svelte app and still turn off one vendor in it, with the vendors prop on ConsentManagerProvider and getConsentManager.
+group: frameworks
+---
+
+<import src="../../shared/scripts/vendor-consent.mdx#how" />
+
+## Declare the vendors
+
+Declare the vendors next to the scripts in `src/scripts.ts`, using the `vendor`
+slug each script already carries:
+
+{/* example: fragment */}
+
+```ts title="src/scripts.ts (partial)"
+import type { ConsentManagerOptions } from '@c15t/svelte';
+
+export const vendors: NonNullable<ConsentManagerOptions['vendors']> = [
+  {
+    id: 'x-pixel',
+    name: 'X Pixel',
+    category: 'marketing',
+    privacyPolicyUrl: 'https://x.com/privacy',
+  },
+];
+```
+
+Then pass them to `ConsentManagerProvider` in `src/App.svelte`:
+
+{/* example: fragment */}
+
+```svelte title="src/App.svelte (partial)"
+<script lang="ts">
+  import { scripts, vendors } from './scripts';
+</script>
+
+<ConsentManagerProvider {mode} {scripts} {vendors}>
+```
+
+The provider reads `vendors` once, when it is created.
+
+<import src="../../shared/scripts/vendor-consent.mdx#fields" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#targets" />
+
+`ConsentGate` checks a category only. For an iframe, add `data-vendor` and use
+the iframe blocker; see [embeds](/docs/frameworks/svelte/embeds).
+
+## What the preference dialog shows
+
+`ConsentDialog` and `ConsentWidget` list each declared vendor under its
+category, with its own switch.
+
+<import src="../../shared/scripts/vendor-consent.mdx#dialog" />
+
+## Build your own vendor switch
+
+`getConsentManager()` stages vendor switches on the same draft as the category
+switches. `selectedVendors` has one value per declared vendor,
+`setSelectedVendor(id, granted)` changes one, and `saveConsents('custom')`
+records the draft:
+
+{/* example: fragment */}
+
+```svelte title="src/XPixelSwitch.svelte (partial)"
+<script lang="ts">
+  import { getConsentManager } from '@c15t/svelte';
+
+  const consent = getConsentManager();
+</script>
+
+<input
+  type="checkbox"
+  checked={consent.selectedVendors['x-pixel'] ?? true}
+  onchange={(event) =>
+    consent.setSelectedVendor('x-pixel', event.currentTarget.checked)}
+/>
+<button type="button" onclick={() => consent.saveConsents('custom')}>Save</button>
+```
+
+`saveConsents('custom')` throws when the policy changed since the draft
+started. `vendorChoice.denied` lists the vendors the visitor recorded as off,
+and `getDisplayedVendors(category)` returns the vendors to list under one
+category. [Context getters](/docs/frameworks/svelte/getters) covers the draft.
+
+<import src="../../shared/scripts/vendor-consent.mdx#storage" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#limits" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#verify" />
