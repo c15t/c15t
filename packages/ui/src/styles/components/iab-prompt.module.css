@@ -15,12 +15,6 @@
 	/* Animation variables */
 	--iab-consent-banner-animation-duration: var(--c15t-duration-fast);
 	--iab-consent-banner-animation-timing: var(--c15t-easing);
-	--iab-consent-banner-entry-animation: var(
-		--c15t-iab-consent-banner-enter-animation
-	);
-	--iab-consent-banner-exit-animation: var(
-		--c15t-iab-consent-banner-exit-animation
-	);
 
 	/* Border */
 	--iab-consent-banner-border-width: 1px;
@@ -136,15 +130,6 @@
 		background-color: var(--iab-consent-banner-background-color-dark);
 		border-color: var(--iab-consent-banner-border-color-dark);
 		box-shadow: var(--iab-consent-banner-shadow-dark);
-	}
-
-	/* Animation states */
-	.card[data-state='open'] {
-		animation: var(--iab-consent-banner-entry-animation);
-	}
-
-	.card[data-state='closed'] {
-		animation: var(--iab-consent-banner-exit-animation);
 	}
 
 	/* Divider between sections */
@@ -338,11 +323,6 @@
 		.overlayVisible,
 		.overlayHidden {
 			transition: none;
-		}
-
-		.card[data-state='open'],
-		.card[data-state='closed'] {
-			animation: none;
 		}
 	}
 }

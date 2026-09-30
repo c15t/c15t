@@ -185,11 +185,11 @@ export interface MotionTokens {
 	 * Duration presets for transitions.
 	 */
 	duration?: {
-		/** @default '100ms' */
+		/** @default '80ms' */
 		fast?: string;
-		/** @default '200ms' */
+		/** @default '150ms' */
 		normal?: string;
-		/** @default '300ms' */
+		/** @default '200ms' */
 		slow?: string;
 	};
 	/**
@@ -306,11 +306,11 @@ export interface ThemeCSSVariables {
 	/** `shadows.lg` (default: `0 8px 24px hsla(0, 0%, 0%, 0.12)`) */
 	'--c15t-shadow-lg'?: string;
 
-	/** `motion.duration.fast` (default: `100ms`) */
+	/** `motion.duration.fast` (default: `80ms`) */
 	'--c15t-duration-fast'?: string;
-	/** `motion.duration.normal` (default: `200ms`) */
+	/** `motion.duration.normal` (default: `150ms`) */
 	'--c15t-duration-normal'?: string;
-	/** `motion.duration.slow` (default: `300ms`) */
+	/** `motion.duration.slow` (default: `200ms`) */
 	'--c15t-duration-slow'?: string;
 	/** `motion.easing` (default: `cubic-bezier(0.4, 0, 0.2, 1)`) */
 	'--c15t-easing'?: string;

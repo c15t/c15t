@@ -6,16 +6,23 @@
 /**
  * Manages color scheme preferences.
  *
- * @param colorScheme - 'light' | 'dark' | 'system'
+ * Where `matchMedia` is missing, as in jsdom and a few embedded webviews,
+ * `'system'` is light.
+ *
+ * @param colorScheme - 'light' | 'dark' | 'system'. Unset mirrors a `dark`
+ * class on `<html>` into `c15t-dark` as it changes.
  * @returns Cleanup function
  */
 export const setupColorScheme = function setupColorScheme(
 	colorScheme?: 'light' | 'dark' | 'system'
 ) {
-	const systemDarkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+	const systemDarkQuery =
+		typeof window.matchMedia === 'function'
+			? window.matchMedia('(prefers-color-scheme: dark)')
+			: undefined;
 	const defaultDarkQuery = document.documentElement.classList.contains('dark');
 
-	const updateSystemColorScheme = (e: MediaQueryListEvent | MediaQueryList) => {
+	const updateSystemColorScheme = (e: { matches: boolean }) => {
 		document.documentElement.classList.toggle('c15t-dark', e.matches);
 	};
 
@@ -44,8 +51,8 @@ export const setupColorScheme = function setupColorScheme(
 				break;
 			}
 			case 'system': {
-				updateSystemColorScheme(systemDarkQuery);
-				systemDarkQuery.addEventListener('change', updateSystemColorScheme);
+				updateSystemColorScheme(systemDarkQuery ?? { matches: false });
+				systemDarkQuery?.addEventListener('change', updateSystemColorScheme);
 				break;
 			}
 			default: {
@@ -62,7 +69,7 @@ export const setupColorScheme = function setupColorScheme(
 	apply();
 
 	return () => {
-		systemDarkQuery.removeEventListener('change', updateSystemColorScheme);
+		systemDarkQuery?.removeEventListener('change', updateSystemColorScheme);
 		observer.disconnect();
 	};
 };
