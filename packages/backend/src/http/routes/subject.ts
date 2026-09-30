@@ -244,6 +244,7 @@ export const register = function register({
 
 					const submission = yield* submit({
 						choice: prepared.choice ?? null,
+						...prepared.attribution,
 						consentAction: prepared.consentAction ?? null,
 						decision: prepared.decision?.input,
 						domainId: domain.id,

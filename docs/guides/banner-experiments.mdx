@@ -494,6 +494,75 @@ Time to decision is the median `timeToDecisionMs` per arm over the choices.
 Use the median, not the mean: a visitor who leaves the tab open skews the
 mean without saying anything about the arm.
 
+## Read the summary from your backend
+
+The self-hosted backend copies `experiment.id`, `experiment.arm` and
+`timeToDecisionMs` out of `metadata` onto their own columns (migration
+`6-experiment-attribution`), so `GET /experiments/:id/summary` can group
+choices per arm without a JSON query. It needs an API key.
+
+```bash
+curl 'http://localhost:3000/api/c15t/experiments/banner-shape/summary?from=2026-09-01&to=2026-09-30' \
+  -H "Authorization: Bearer $C15T_API_KEY"
+```
+
+```json
+{
+	"experimentId": "banner-shape",
+	"from": "2026-09-01T00:00:00.000Z",
+	"to": "2026-09-30T23:59:59.999Z",
+	"arms": [
+		{
+			"arm": "wall",
+			"choices": 120,
+			"byAction": {
+				"accept_all": 80,
+				"custom": 10,
+				"opt_out": 0,
+				"reject_all": 30,
+				"unknown": 0
+			},
+			"bySurface": { "banner": 100, "dialog": 20 },
+			"medianTimeToDecisionMs": 4200
+		},
+		{
+			"arm": "control",
+			"choices": 95,
+			"byAction": {
+				"accept_all": 50,
+				"custom": 5,
+				"opt_out": 0,
+				"reject_all": 40,
+				"unknown": 0
+			},
+			"bySurface": { "banner": 90, "dialog": 5 },
+			"medianTimeToDecisionMs": 5100
+		}
+	]
+}
+```
+
+`byAction` always has all five keys. They are the action the backend
+stored, not the client's `consent_action`: `accept_all` for accept,
+`reject_all` for reject, `opt_out` for a reject under an opt-out policy,
+`custom` for a saved selection, and `unknown` for a record without one.
+`choices` counts consent records, so a visitor who changes their mind under
+the same arm counts twice.
+
+`from` and `to` accept an ISO 8601 date or timestamp and filter on the
+consent's `givenAt`, both ends inclusive. A date without a time is the whole
+of that day in UTC: `from=2026-09-01` starts at midnight and `to=2026-09-30`
+runs to the end of the 30th, so the example above covers all of September. A
+`from` later than `to` is a 400. `domain` narrows to one domain name. An
+experiment id no consent carries returns `arms: []`. The
+`@c15t/node-sdk` client exposes the same call as
+`client.experiments.summary(id, { from, to, domain })`.
+
+The summary counts choices. The other half of an opt-in rate, the visitors
+each arm's banner was owed to, is on the session reports `/init` produces
+(see [Measure the results](#measure-the-results)). Divide `accept_all` per
+arm by the visitors whose reports carry that arm.
+
 ## Try it
 
 Every example app under `examples/` runs this experiment. Open
