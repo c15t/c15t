@@ -31,6 +31,7 @@ import type { Plugin, ViteDevServer } from 'vite';
 // parity gate compares the rendered rows, so a different fixture would
 // compare different content and tell us nothing.
 import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state.ts';
+import { recipePageHtml } from '../src/docs-recipe-page.ts';
 import type { AstroStoryVariant } from '../src/story-variants.ts';
 
 const storybookDir = path.dirname(fileURLToPath(import.meta.url));
@@ -176,15 +177,45 @@ const renderVariants = async function renderVariants(
 				headers: new Headers(),
 				options: resolved,
 			});
+			const renderPart = async (
+				partFile: string,
+				props: Record<string, unknown>,
+				slots?: Record<string, string>
+			) => {
+				const part = await server?.ssrLoadModule(path.join(astroSrc, partFile));
+				return container.renderToString(part?.default, {
+					locals: { c15t: locals },
+					props,
+					slots,
+				});
+			};
 			// oxlint-disable-next-line no-await-in-loop -- See above.
 			const raw = await container.renderToString(component.default, {
 				locals: { c15t: locals },
 				props: variant.props ?? {},
 				slots: variant.slots,
 			});
+			const clean = (html: string) =>
+				stripDevAttributes(html.replace(SCRIPT_TAG, '')).trim();
+			let html = clean(raw);
+			if (variant.recipePage) {
+				// oxlint-disable-next-line no-await-in-loop -- See above.
+				const [trigger, dialog] = await Promise.all([
+					renderPart(
+						COMPONENT_FILES['consent-dialog-trigger'] as string,
+						{},
+						{ default: 'Privacy settings' }
+					),
+					renderPart(COMPONENT_FILES['consent-dialog'] as string, {}),
+				]);
+				html = recipePageHtml({
+					preferencesControl: clean(trigger),
+					recipe: `${html}${clean(dialog)}`,
+				});
+			}
 			out[variant.id] = {
 				config: extractConfig(raw),
-				html: stripDevAttributes(raw.replace(SCRIPT_TAG, '')).trim(),
+				html,
 				options: resolved,
 			};
 		}

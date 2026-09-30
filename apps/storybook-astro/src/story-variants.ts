@@ -63,6 +63,12 @@ export interface AstroStoryVariant {
 	 * so a story that wants the dialog visible has to ask for it.
 	 */
 	openDialog?: 'preferences' | 'iab';
+	/**
+	 * Render the component as a docs design recipe: over the demo page, with
+	 * a "Privacy settings" `<ConsentDialogTrigger>` in its footer and a
+	 * `<ConsentDialog />`, the scene every framework's recipe stories share.
+	 */
+	recipePage?: boolean;
 }
 
 const CATEGORIES = [
@@ -98,6 +104,7 @@ export const astroStoryVariants: readonly AstroStoryVariant[] = [
 			...bottomBarOptions,
 		},
 		props: { force: true },
+		recipePage: true,
 	},
 	{
 		component: 'consent-banner',
