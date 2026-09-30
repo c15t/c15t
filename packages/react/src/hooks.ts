@@ -46,7 +46,9 @@ import {
 	isVendorDenied,
 } from '@c15t/core';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useContext, useSyncExternalStore } from 'react';
 
+import { ProviderServicesContext } from './context';
 import {
 	useGateSelector,
 	useKernel,
@@ -314,13 +316,41 @@ export const useSetOverrides = function useSetOverrides(): (
 };
 
 /**
- * Sync mutation: switch active language.
+ * Switch the consent language and load its copy.
+ *
+ * Stores the language override and runs init again, so the banner and
+ * dialog show copy in that language: a hosted backend returns it, and
+ * offline mode takes it from the bundled translations and `i18n.messages`.
+ * Setting the current language does nothing. A disabled provider stores
+ * the language without running init.
+ *
+ * @returns A setter that takes a language code such as `'de'`.
+ *
+ * @example
+ * ```tsx
+ * const setLanguage = useSetLanguage();
+ * <button onClick={() => setLanguage('de')}>Deutsch</button>
+ * ```
  */
 export const useSetLanguage = function useSetLanguage(): (
 	code: string
 ) => void {
 	const kernel = useKernel();
-	return kernel.set.language;
+	const services = useContext(ProviderServicesContext);
+	return useCallback(
+		(code: string) => {
+			if (services) {
+				services.setLanguage(code);
+				return;
+			}
+			if (code === kernel.getSnapshot().overrides.language) {
+				return;
+			}
+			kernel.set.language(code);
+			void kernel.commands.init();
+		},
+		[kernel, services]
+	);
 };
 
 /**

@@ -489,7 +489,8 @@ const createPrefetchSource = function createPrefetchSource(
 	prefetch: Promise<ConsentProviderPrefetch>,
 	providerOverrides: KernelOverrides | undefined,
 	getKernel: () => ConsentKernel | null,
-	runsExperiment: boolean
+	runsExperiment: boolean,
+	onResolved: (config: KernelConfig) => void
 ): FirstInitSource {
 	return async (ctx) => {
 		const recordsGeneration = getKernel()?.getRecordsGeneration();
@@ -503,6 +504,7 @@ const createPrefetchSource = function createPrefetchSource(
 		if (config.experiment && !runsExperiment) {
 			warnStreamedExperiment();
 		}
+		onResolved(config);
 
 		const response = kernelConfigToInitResponse(config);
 		if (response) {
@@ -541,7 +543,8 @@ const createPrefetchSource = function createPrefetchSource(
 const withPrefetchPromise = function withPrefetchPromise(
 	transport: KernelTransport,
 	options: ConsentProviderOptions,
-	getKernel: () => ConsentKernel | null
+	getKernel: () => ConsentKernel | null,
+	onResolved: (config: KernelConfig) => void
 ): KernelTransport {
 	const { prefetch } = options;
 	if (!isPromiseLike(prefetch)) {
@@ -553,7 +556,8 @@ const withPrefetchPromise = function withPrefetchPromise(
 			Promise.resolve(prefetch),
 			options.overrides,
 			getKernel,
-			options.experiment !== undefined
+			options.experiment !== undefined,
+			onResolved
 		)
 	);
 };
@@ -620,9 +624,16 @@ const createProviderKernel = function createProviderKernel(
 	const i18nTranslations =
 		resolveI18nTranslations(options.i18n) ?? DEFAULT_TRANSLATIONS;
 
+	// A pending prefetch resolves after the transport exists. The context
+	// reads the resolved config from then on, so a transport that checks it
+	// at init time (offline's detected `Accept-Language`) sees the server's
+	// values rather than the empty placeholder.
+	let transportPrefetch: KernelConfig = prefetch;
 	const transportContext: ProviderTransportContext = {
 		consentCategories: options.consentCategories,
-		prefetch,
+		get prefetch() {
+			return transportPrefetch;
+		},
 		translations: i18nTranslations,
 		translationsFor: (language) =>
 			resolveLocalTranslations(language, options.i18n?.messages),
@@ -636,7 +647,10 @@ const createProviderKernel = function createProviderKernel(
 	const transport = withPrefetchPromise(
 		baseTransport,
 		options,
-		() => kernelRef.current
+		() => kernelRef.current,
+		(resolved) => {
+			transportPrefetch = resolved;
+		}
 	);
 
 	const integrations = [
@@ -1261,15 +1275,22 @@ const ExperimentMount = ({
 	return null;
 };
 
-/** The services context: record clearing and the resolved presentation. */
+/**
+ * The services context: record clearing, the resolved presentation and
+ * language changes.
+ */
 const useProviderServices = function useProviderServices({
 	clearRef,
+	consentSource,
+	enabled,
 	experiment,
 	externalRuntime,
 	kernel,
 	presentation,
 }: {
 	clearRef: { current: (() => void) | null };
+	consentSource: ConsentProviderOptions['consentSource'];
+	enabled: boolean;
 	experiment: ConsentExperiment | undefined;
 	externalRuntime: ConsentRuntime | undefined;
 	kernel: ConsentKernel;
@@ -1308,8 +1329,31 @@ const useProviderServices = function useProviderServices({
 					experiment,
 					kernel.getSnapshot().experiment
 				),
+			setLanguage: (code: string) => {
+				if (code === kernel.getSnapshot().overrides.language) {
+					return;
+				}
+				kernel.set.language(code);
+				if (externalRuntime) {
+					void externalRuntime.reinit();
+					return;
+				}
+				// A disabled provider renders a permissive kernel with no policy
+				// to fetch, and an external authority replaces init entirely.
+				if (enabled && !consentSource) {
+					void kernel.commands.init();
+				}
+			},
 		}),
-		[clearRef, kernel, presentation, experiment, externalRuntime]
+		[
+			clearRef,
+			kernel,
+			presentation,
+			experiment,
+			externalRuntime,
+			enabled,
+			consentSource,
+		]
 	);
 };
 
@@ -1472,6 +1516,8 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	const clearRef = useRef<(() => void) | null>(null);
 	const services = useProviderServices({
 		clearRef,
+		consentSource: owned.consentSource,
+		enabled,
 		experiment,
 		externalRuntime,
 		kernel,
