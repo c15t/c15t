@@ -6,12 +6,15 @@ import { basename, extname, resolve, sep } from 'node:path';
  * Directories whose apps are built and tested in CI. Documentation code that
  * wires c15t into an application comes from marked regions in these files.
  * `apps` is scanned for its Storybook apps, whose design recipes CI runs
- * through `test-storybook`.
+ * through `test-storybook`. `benchmarks/tailwind-matrix` holds one fixture per
+ * framework and Tailwind version, which `scripts/verify-tailwind-matrix.ts`
+ * builds and checks in Chromium.
  */
 export const exampleRoots = [
 	'examples',
 	'internals/next-compat',
 	'apps',
+	'benchmarks/tailwind-matrix',
 ] as const;
 
 /** Where generated snippets are written, relative to the repository root. */
@@ -92,6 +95,12 @@ export const appFor = (source: string): string => {
 	if (storybook?.groups?.name) {
 		return `apps/${storybook.groups.name}`;
 	}
+	const tailwind = source.match(
+		/^benchmarks\/tailwind-matrix\/(?<version>v[34])\/(?<name>[^/]+)\//u
+	);
+	if (tailwind?.groups?.version && tailwind.groups.name) {
+		return `benchmarks/tailwind-matrix/${tailwind.groups.version}/${tailwind.groups.name}`;
+	}
 	throw new Error(`${source} is not inside an example app.`);
 };
 
@@ -101,6 +110,11 @@ const destinationFor = (app: string, name: string): string => {
 		prefix = app.slice('examples/'.length);
 	} else if (app.startsWith('apps/')) {
 		prefix = app.slice('apps/'.length);
+	} else if (app.startsWith('benchmarks/tailwind-matrix/')) {
+		const [version, framework] = app
+			.slice('benchmarks/tailwind-matrix/'.length)
+			.split('/');
+		prefix = `tailwind-${version}/${framework}`;
 	}
 	return `${generatedExamplesDir}/${prefix}/${name}.mdx`;
 };

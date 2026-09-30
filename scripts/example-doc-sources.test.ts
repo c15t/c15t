@@ -126,6 +126,18 @@ describe('region extraction', () => {
 		});
 	});
 
+	test('publishes Tailwind matrix fixtures by version and framework', () => {
+		const [region] = findRegions(
+			'benchmarks/tailwind-matrix/v3/react/src/app.css',
+			'/* #region docs:tailwind-css */\nx\n/* #endregion docs:tailwind-css */'
+		);
+		expect(region).toMatchObject({
+			app: 'benchmarks/tailwind-matrix/v3/react',
+			destination: `${generatedExamplesDir}/tailwind-v3/react/tailwind-css.mdx`,
+			title: 'src/app.css',
+		});
+	});
+
 	test('rejects files outside an example app', () => {
 		expect(() =>
 			findRegions(

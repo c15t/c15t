@@ -28,7 +28,6 @@ const options = {
 		},
 	},
 	mode,
-	persistence: false,
 };
 // #endregion docs:slot
 
@@ -39,7 +38,7 @@ if (!root) {
 
 createRoot(root).render(
 	<StrictMode>
-		<ConsentProvider options={options}>
+		<ConsentProvider options={{ ...options, persistence: false }}>
 			<p
 				className="bg-emerald-600 text-white"
 				data-testid="tailwind-probe"
