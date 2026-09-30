@@ -117,6 +117,9 @@ const fixture = function fixture() {
 	};
 };
 
+// Each case runs the normalize script and then tsc in child processes. That
+// takes under a second alone and over eight on a busy machine, past the
+// default five.
 test.each([
 	['Node16', 'Node16', false],
 	['NodeNext', 'NodeNext', false],
@@ -124,12 +127,17 @@ test.each([
 	['bundler', 'preserve', false],
 ])(
 	'normalized declarations retain consumer types with %s / %s, skipLibCheck = %s',
+	{ timeout: 30_000 },
 	(moduleResolution, module, skipLibCheck) => {
 		const project = fixture();
 		project.write(
 			'tsconfig.json',
 			JSON.stringify({
 				compilerOptions: {
+					// Without a lib, skipLibCheck = false also checks the DOM
+					// declarations, which is most of tsc's work and none of
+					// this test's.
+					lib: ['es2022'],
 					module,
 					moduleResolution,
 					noEmit: true,

@@ -456,11 +456,12 @@ describe('vendored native sources', () => {
 		expect(scanPackedVendoredSources(packageDir, packed)).toStrictEqual([]);
 	});
 
-	// npm walks the package's whole tree to answer, and on a CI runner that
-	// takes longer than the default five seconds.
+	// npm walks the package's whole tree to answer. That takes 6 to 10 s
+	// alone and reached 48 s while the rest of the suite ran on a busy
+	// machine, too close to a 60 s limit.
 	it(
 		'publishes the copy, because a pod cannot depend on a path',
-		{ timeout: 60_000 },
+		{ timeout: 120_000 },
 		() => {
 			// The reason the copy exists. An npm-installed app has no `C15tCore` pod to resolve, so
 			// the kernel reaches it only inside this package, and the podspec must compile from there
