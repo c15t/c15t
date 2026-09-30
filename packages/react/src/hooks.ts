@@ -46,6 +46,7 @@ import {
 	isVendorDenied,
 } from '@c15t/core';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { isVendorAllowed } from '@c15t/core';
 import { useCallback, useContext, useSyncExternalStore } from 'react';
 
 import { ProviderServicesContext } from './context';
@@ -262,39 +263,18 @@ export const useVendorChoice =
 	};
 
 /**
- * Whether one vendor is allowed: its category condition passes and the
- * visitor has not turned it off.
+ * Whether one vendor may load: it is declared, its category condition
+ * passes, and outside IAB the visitor has not turned it off.
  *
- * @param vendorId - Vendor slug as declared in `vendors` or on a script.
- * @returns `false` while the vendor is denied outside `iab`, otherwise the
- * result of its declared category condition. An undeclared id is `true`:
- * nothing is known about its category, and a denial only exists for a vendor
- * the visitor saw.
+ * @param vendorId - Vendor id as declared in `vendors`, on a script or by
+ * the backend.
+ * @returns `true` while the vendor may load. An id nothing declares, such
+ * as a typo, returns `false` and logs a development warning.
  */
 export const useVendorAllowed = function useVendorAllowed(
 	vendorId: string
 ): boolean {
-	return useGateSelector((snap, now) => {
-		const vendor = snap.vendors?.declared.find(
-			(entry) => entry.id === vendorId
-		);
-		// An explicit short-circuit, not load-bearing: the kernel's denial set
-		// already skips an undeclared id, so this only makes the answer for an
-		// unknown vendor plain to read.
-		if (!vendor) {
-			return true;
-		}
-		// The kernel's own gate semantics: inert under `iab`, and a stale denial
-		// for a vendor now declared `disabled` no longer counts.
-		if (snap.model !== 'iab' && isVendorDenied(snap, vendorId)) {
-			return false;
-		}
-		try {
-			return evaluateConsent({ category: vendor.category }, snap, now);
-		} catch {
-			return false;
-		}
-	});
+	return useGateSelector((snap, now) => isVendorAllowed(snap, vendorId, now));
 };
 
 /** Register categories used by scripts, frames, or other integrations. */

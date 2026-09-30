@@ -6,7 +6,7 @@ import {
 	hosted,
 	declareOwnedVendors,
 	forgetOwnedVendors,
-	isVendorDenied,
+	isVendorAllowed,
 	policyRulePresets,
 } from '@c15t/core';
 import type {
@@ -213,37 +213,6 @@ const callListener = function callListener<PayloadType>(
 };
 
 const NO_VENDORS: readonly ResolvedVendor[] = [];
-
-/**
- * Whether one vendor may load, with the kernel's gate semantics: its
- * category condition passes and, outside IAB, the visitor has not turned
- * it off. A stale denial for a vendor now declared `disabled` no longer
- * counts. An undeclared id is allowed: nothing is known about its category,
- * and a denial only exists for a vendor the visitor saw.
- *
- * @param snapshot - The kernel snapshot.
- * @param vendorId - Vendor id.
- * @returns Whether the vendor is allowed.
- */
-const isVendorAllowedIn = function isVendorAllowedIn(
-	snapshot: ConsentSnapshot,
-	vendorId: string
-): boolean {
-	const vendor = snapshot.vendors?.declared.find(
-		(entry) => entry.id === vendorId
-	);
-	if (!vendor) {
-		return true;
-	}
-	if (snapshot.model !== 'iab' && isVendorDenied(snapshot, vendorId)) {
-		return false;
-	}
-	try {
-		return evaluateConsent({ category: vendor.category }, snapshot);
-	} catch {
-		return false;
-	}
-};
 
 const resolvePageAction = function resolvePageAction(
 	target: EventTarget | null
@@ -635,7 +604,7 @@ export const createConsentClient = function createConsentClient(
 			await runtime.identify(user);
 		},
 		isVendorAllowed(vendorId: string) {
-			return isVendorAllowedIn(kernel.getSnapshot(), vendorId);
+			return isVendorAllowed(kernel.getSnapshot(), vendorId);
 		},
 		kernel,
 		mode: mode.name,

@@ -12,7 +12,7 @@ import type { Vendor } from '@c15t/core';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
 import switchStyles from '@c15t/ui/styles/components/switch';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
-import { beforeEach, describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
 import { policyFixture } from '../../__tests__/policy-fixture';
@@ -557,5 +557,28 @@ describe('Svelte consent widget vendor rows', () => {
 		await waitFor(() => {
 			expect(state()?.draft.isStale).toBe(true);
 		});
+	});
+
+	test('isVendorAllowed follows a declared vendor and reads an undeclared one as not allowed', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const { kernel, state } = renderWidget({
+			marketing: true,
+			measurement: true,
+		});
+		await waitFor(() => {
+			expect(state()?.isVendorAllowed('meta-pixel')).toBe(true);
+		});
+		// The category is granted, but nothing declares the misspelled id.
+		expect(state()?.isVendorAllowed('meta-pixle')).toBe(false);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('"meta-pixle" is not declared')
+		);
+		await kernel().commands.save(
+			{ marketing: true, measurement: true },
+			{ vendors: { 'meta-pixel': false } }
+		);
+		expect(state()?.isVendorAllowed('meta-pixel')).toBe(false);
+		expect(state()?.isVendorAllowed('google-ads')).toBe(true);
+		warn.mockRestore();
 	});
 });

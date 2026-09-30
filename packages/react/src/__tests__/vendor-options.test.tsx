@@ -1,7 +1,8 @@
 /**
  * Provider-level vendor behaviour outside the widget: a `vendors` option
  * supplied after the first render reaches the kernel, and the allowed-vendor
- * hook follows the kernel's gate semantics for a vendor declared `disabled`.
+ * hook follows the kernel's gate semantics for a vendor declared `disabled`
+ * and reads an undeclared vendor as not allowed.
  */
 import type { Script, Vendor } from '@c15t/core';
 import { useContext, useEffect, useState } from 'react';
@@ -752,7 +753,7 @@ describe('provider vendor options', () => {
 		expect(read()?.allowed).toBe(true);
 	});
 
-	test('useVendorAllowed grants a vendor removed from the declarations despite a stored denial', async () => {
+	test('useVendorAllowed reads a vendor removed from the declarations as not allowed', async () => {
 		const fixture = policyFixture(
 			{ marketing: true },
 			{ categories: ['marketing'], id: 'removed-denied-vendor' }
@@ -795,10 +796,47 @@ describe('provider vendor options', () => {
 			expect(readProbe()?.meta).toBe(false);
 		});
 		await page.getByTestId('remove').click();
-		// No switch is left to grant it again, so the denial no longer counts.
+		// Nothing declares it any more, so nothing says it may load.
+		await vi.waitFor(() => {
+			expect(readProbe()?.declared).toEqual([]);
+		});
+		expect(readProbe()?.meta).toBe(false);
+	});
+
+	test('useVendorAllowed reads an undeclared vendor as not allowed while its category is granted', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const fixture = policyFixture(
+			{ marketing: true },
+			{ categories: ['marketing'], id: 'undeclared-vendor' }
+		);
+		const Typo = () => {
+			const allowed = useVendorAllowed('meta-pixle');
+			return <output data-testid="typo">{String(allowed)}</output>;
+		};
+		render(
+			<ConsentProvider
+				options={{
+					consentCategories: ['necessary', 'marketing'],
+					mode: offline(),
+					persistence: false,
+					prefetch: fixture,
+					vendors: [META],
+				}}
+			>
+				<Typo />
+				<Probe />
+			</ConsentProvider>
+		);
 		await vi.waitFor(() => {
 			expect(readProbe()?.meta).toBe(true);
 		});
+		expect(document.querySelector('[data-testid="typo"]')?.textContent).toBe(
+			'false'
+		);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('"meta-pixle" is not declared')
+		);
+		warn.mockRestore();
 	});
 
 	test('useVendorAllowed ignores a stored denial for a vendor declared disabled', async () => {

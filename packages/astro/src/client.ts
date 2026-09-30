@@ -19,7 +19,7 @@
  * ```
  */
 
-import { evaluateConsent, isVendorDenied } from '@c15t/core';
+import { isVendorAllowed } from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -174,13 +174,13 @@ export interface AstroConsentClient {
 	 */
 	getVendorChoice: () => Readonly<VendorChoice> | null;
 	/**
-	 * Whether a vendor may load: its category condition passes and the
-	 * visitor has not turned it off.
+	 * Whether a vendor may load: it is declared, its category condition
+	 * passes, and outside an IAB policy the visitor has not turned it off.
 	 *
-	 * @param vendorId - Vendor id as declared in `vendors` or on a script.
-	 * @returns `false` while the vendor is off outside an IAB policy,
-	 * otherwise the result of its category condition. `true` for an id that
-	 * is not declared.
+	 * @param vendorId - Vendor id as declared in `vendors`, on a script or by
+	 * the backend.
+	 * @returns `true` while the vendor may load. An id nothing declares, such
+	 * as a typo, returns `false` and logs a development warning.
 	 * @example
 	 * ```ts
 	 * const client = getConsentClient();
@@ -649,37 +649,6 @@ const resolveAction = function resolveAction(
 
 const NO_VENDORS: readonly ResolvedVendor[] = [];
 
-/**
- * Whether one vendor may load, with the kernel's gate semantics: its
- * category condition passes and, outside IAB, the visitor has not turned it
- * off. A stale denial for a vendor now declared `disabled` no longer
- * counts. An undeclared id is allowed: nothing is known about its category,
- * and a denial only exists for a vendor the visitor saw.
- *
- * @param snapshot - The kernel snapshot.
- * @param vendorId - Vendor id.
- * @returns Whether the vendor is allowed.
- */
-const isVendorAllowedIn = function isVendorAllowedIn(
-	snapshot: ConsentSnapshot,
-	vendorId: string
-): boolean {
-	const vendor = snapshot.vendors?.declared.find(
-		(entry) => entry.id === vendorId
-	);
-	if (!vendor) {
-		return true;
-	}
-	if (snapshot.model !== 'iab' && isVendorDenied(snapshot, vendorId)) {
-		return false;
-	}
-	try {
-		return evaluateConsent({ category: vendor.category }, snapshot);
-	} catch {
-		return false;
-	}
-};
-
 const createClient = function createClient(
 	options: C15tResolvedOptions,
 	extension: C15tClientOptionsExtension = {}
@@ -809,7 +778,7 @@ const createClient = function createClient(
 			await runtime.identify(user);
 		},
 		isVendorAllowed(vendorId: string) {
-			return isVendorAllowedIn(runtime.kernel.getSnapshot(), vendorId);
+			return isVendorAllowed(runtime.kernel.getSnapshot(), vendorId);
 		},
 		async openDialog(
 			kind: ConsentDialogKind = 'preferences',

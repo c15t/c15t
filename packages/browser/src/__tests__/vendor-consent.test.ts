@@ -283,11 +283,12 @@ describe('reading vendor consent', () => {
 				.toSorted()
 		).toEqual(['posthog', 'x-pixel', 'youtube']);
 		expect(client.isVendorAllowed('posthog')).toBe(false);
-		// Nothing is known about an undeclared vendor, so nothing denies it.
-		expect(client.isVendorAllowed('unknown-vendor')).toBe(true);
+		// An undeclared vendor, such as a typo, never reads as allowed.
+		expect(client.isVendorAllowed('unknown-vendor')).toBe(false);
 		await client.acceptAll();
 		expect(client.isVendorAllowed('posthog')).toBe(true);
 		expect(client.isVendorAllowed('x-pixel')).toBe(true);
+		expect(client.isVendorAllowed('unknown-vendor')).toBe(false);
 	});
 
 	it('emits consent when only a vendor changes', async () => {

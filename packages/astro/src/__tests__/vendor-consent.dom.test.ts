@@ -129,8 +129,8 @@ describe('reading vendor consent from the page client', () => {
 		expect(client.getVendorChoice()?.denied).toEqual(['posthog']);
 		expect(client.isVendorAllowed('posthog')).toBe(false);
 		expect(client.isVendorAllowed('youtube')).toBe(true);
-		// Nothing is known about an undeclared vendor, so nothing denies it.
-		expect(client.isVendorAllowed('unknown-vendor')).toBe(true);
+		// An undeclared vendor, such as a typo, never reads as allowed.
+		expect(client.isVendorAllowed('unknown-vendor')).toBe(false);
 
 		await client.acceptAll();
 		expect(client.getVendorChoice()?.denied).toEqual([]);

@@ -290,6 +290,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				'useConsentRestrictions',
 				'useDismissNotice',
 				'useConsentDraft',
+				'useVendorAllowed',
 				'useConsentPolicyActions',
 				'useExperiment',
 				'useResolvedPresentation',
