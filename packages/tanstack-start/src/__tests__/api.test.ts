@@ -306,30 +306,46 @@ describe('createConsentServerRoute: backend resolution', () => {
 		);
 	});
 
-	test('reads C15T_BACKEND_URL then VITE_C15T_BACKEND_URL', async () => {
+	test('ignores C15T_BACKEND_URL, VITE_C15T_BACKEND_URL, and C15T_MANIFEST_URL', async () => {
+		vi.stubEnv('C15T_BACKEND_URL', 'https://env.example.com');
 		vi.stubEnv('VITE_C15T_BACKEND_URL', 'https://vite.example.com');
+		vi.stubEnv('C15T_MANIFEST_URL', 'https://env.example.com/manifest');
 		const fetchSpy = createManifestFetch();
-		const { manifestGET } = createRoute({
+		const { initGET, manifestGET } = createRoute({
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
-		await manifestGET({ request: request('/api/c15t/manifest') });
-		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
-			'https://vite.example.com/manifest'
+		await expect(
+			manifestGET({ request: request('/api/c15t/manifest') })
+		).rejects.toThrow(
+			'@c15t/tanstack-start/api: pass backendURL or manifestURL.'
 		);
-
-		vi.stubEnv('C15T_BACKEND_URL', 'https://env.example.com');
-		await manifestGET({ request: request('/api/c15t/manifest') });
-		expect(fetchSpy.mock.calls[1]?.[0]).toBe(
-			'https://env.example.com/manifest'
-		);
-	});
-
-	test('rejects requests without any backend configuration', async () => {
-		const { initGET } = createRoute();
 		await expect(
 			initGET({ request: request('/api/c15t/init') })
-		).rejects.toThrow(/configure backendURL/u);
+		).rejects.toThrow(
+			'@c15t/tanstack-start/api: pass backendURL or manifestURL.'
+		);
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test('rejects an invalid backendURL or manifestURL', async () => {
+		await expect(
+			createRoute({ backendURL: 'consent' }).manifestGET({
+				request: request('/api/c15t/manifest'),
+			})
+		).rejects.toThrow('@c15t/tanstack-start/api: invalid backendURL.');
+		await expect(
+			createRoute({ manifestURL: 'consent/manifest' }).manifestGET({
+				request: request('/api/c15t/manifest'),
+			})
+		).rejects.toThrow('@c15t/tanstack-start/api: invalid manifestURL.');
+	});
+
+	test('exports no handlers preconfigured from the environment', async () => {
+		const api = await import('../api');
+		expect(Object.keys(api)).not.toContain('GET');
+		expect(Object.keys(api)).not.toContain('manifestGET');
+		expect(Object.keys(api)).not.toContain('initGET');
 	});
 });
 

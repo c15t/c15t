@@ -63,8 +63,8 @@ export interface ConsentRootProps {
 	 * prefix instead, `"/api/c15t"`, so saves stay same-origin and reach the
 	 * backend through the proxy. The server-side `resolveConsent()`
 	 * (`createConsentStateHandler({ backendURL })`) must still receive the
-	 * absolute backend URL, usually from `C15T_BACKEND_URL`: its self-route
-	 * guard skips a relative `/api/c15t` and returns the cookie-only state.
+	 * absolute backend URL: its self-route guard skips a relative
+	 * `/api/c15t` and returns the cookie-only state.
 	 */
 	backendURL?: string;
 
