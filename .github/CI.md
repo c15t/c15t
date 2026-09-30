@@ -43,8 +43,8 @@ DOM), each once with Tailwind 3 (`v3/`) and once with Tailwind 4 (`v4/`).
 `scripts/verify-tailwind-matrix.ts` serves each static build and checks that
 c15t survives preflight, that a utility on the banner root beats c15t's own
 padding (important on Tailwind 3, bare on Tailwind 4), that `dark` on `<html>`
-turns on Tailwind's `dark:` variant and, outside Vue and the shadow root,
-c15t's dark tokens, and that the dialog is styled. The fixtures keep their setup in `#region docs:` blocks for the docs.
+turns on Tailwind's `dark:` variant and, outside the shadow root, c15t's
+dark tokens, and that the dialog is styled. The fixtures keep their setup in `#region docs:` blocks for the docs.
 
 ```sh
 bun run --cwd benchmarks/mobile bench:ci

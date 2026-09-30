@@ -10,6 +10,7 @@ import type { C15tVuePluginOptions } from '../index';
 const nuxt = vi.hoisted(() => ({
 	appConfig: {} as Record<string, unknown>,
 	head: [] as unknown[],
+	runtimeConfig: {} as Record<string, unknown>,
 	state: new Map<string, unknown>(),
 }));
 // oxlint-disable-next-line anti-slop/no-module-mocking -- Nuxt supplies this virtual module; the test records what the plugin hands to useHead.
@@ -25,7 +26,12 @@ vi.mock('#imports', async () => {
 		useRequestEvent: () => undefined,
 		useRequestHeaders: () => ({}),
 		useRuntimeConfig: () => ({
-			public: { c15t: { backendURL: 'https://consent.example.test' } },
+			public: {
+				c15t: {
+					backendURL: 'https://consent.example.test',
+					...nuxt.runtimeConfig,
+				},
+			},
 		}),
 		useState: (key: string, init: () => unknown) => {
 			if (!nuxt.state.has(key)) {
@@ -117,6 +123,7 @@ afterEach(() => {
 	mounted.clear();
 	vi.unstubAllGlobals();
 	nuxt.appConfig = {};
+	nuxt.runtimeConfig = {};
 	nuxt.head.length = 0;
 	nuxt.state.clear();
 	root().className = '';
@@ -148,10 +155,30 @@ describe('generateTokensCSS with dark tokens', () => {
 		expect(css).not.toContain('@media');
 	});
 
-	test('adds nothing without a theme or color scheme', () => {
-		expect(generateTokensCSS()).not.toContain('c15t-dark');
-		expect(generateTokensCSS(undefined, { colorScheme: null })).not.toContain(
-			'c15t-dark'
+	test.each([undefined, null] as const)(
+		'ships the stock dark palette under the dark selectors when colorScheme is %s',
+		(colorScheme) => {
+			const css = generateTokensCSS(undefined, { colorScheme });
+			// The selectors React and Svelte get from the package stylesheet.
+			expect(css).toMatch(
+				/:root\.c15t-dark[^{]*\{[^}]*--c15t-surface: hsl\(0, 0%, 7%\);/u
+			);
+			expect(css).toMatch(
+				/:root\.dark[^{]*\{[^}]*--c15t-text: hsl\(0, 0%, 93%\);/u
+			);
+			expect(css).not.toContain('@media');
+		}
+	);
+
+	test('lets theme colors beat the stock dark palette', () => {
+		const css = generateTokensCSS(undefined, {
+			theme: { dark: { surface: '#101512' } },
+		});
+		expect(css.indexOf('--c15t-surface: hsl(0, 0%, 7%);')).toBeLessThan(
+			css.indexOf('--c15t-surface: #101512;')
+		);
+		expect(css).toMatch(
+			/:root:root\.c15t-dark[^{]*\{[^}]*--c15t-surface: #101512;/u
 		);
 	});
 });
@@ -278,6 +305,28 @@ describe('the Nuxt plugin applies colorScheme', () => {
 		};
 		const head = await renderNuxtHead();
 		expect(head.style?.[0]?.innerHTML).toContain('--c15t-primary: #40e0d0;');
+	});
+
+	test('null in app config leaves a .dark class alone', async () => {
+		stubSystemScheme(false);
+		root().classList.add('dark');
+		nuxt.appConfig = { colorScheme: null };
+		failingFetch();
+		const app = createSSRApp(defineComponent({ setup: () => () => h('main') }));
+		apps.add(app);
+		await plugin({ hook: () => undefined, payload: {}, vueApp: app });
+		expect(isDark()).toBe(false);
+	});
+
+	test('null in the module options survives the app config merge', async () => {
+		stubSystemScheme(false);
+		root().classList.add('dark');
+		nuxt.runtimeConfig = { colorScheme: null };
+		failingFetch();
+		const app = createSSRApp(defineComponent({ setup: () => () => h('main') }));
+		apps.add(app);
+		await plugin({ hook: () => undefined, payload: {}, vueApp: app });
+		expect(isDark()).toBe(false);
 	});
 
 	test('applies the class in the browser', async () => {

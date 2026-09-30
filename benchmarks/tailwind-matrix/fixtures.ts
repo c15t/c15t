@@ -23,8 +23,8 @@ export interface TailwindMatrixPage {
 	slots: boolean;
 	/**
 	 * c15t switches to its dark tokens when `<html>` gets a `dark` class.
-	 * The Vue components ship light tokens only, and the script tag's shadow
-	 * root follows its `colorScheme` option instead of the page.
+	 * The script tag's shadow root follows its `colorScheme` option instead
+	 * of the page.
 	 */
 	darkTokens: boolean;
 }
@@ -35,8 +35,6 @@ const page: TailwindMatrixPage = {
 	path: '/',
 	slots: true,
 };
-
-const vuePage: TailwindMatrixPage = { ...page, darkTokens: false };
 
 export const TAILWIND_MATRIX_FIXTURES: readonly TailwindMatrixFixture[] = [
 	{
@@ -58,14 +56,14 @@ export const TAILWIND_MATRIX_FIXTURES: readonly TailwindMatrixFixture[] = [
 		id: 'vue',
 		label: 'Vue',
 		outDir: 'dist',
-		pages: [vuePage],
+		pages: [page],
 	},
 	{
 		build: ['nuxt', 'generate'],
 		id: 'nuxt',
 		label: 'Nuxt',
 		outDir: '.output/public',
-		pages: [vuePage],
+		pages: [page],
 	},
 	{
 		build: ['vite', 'build'],

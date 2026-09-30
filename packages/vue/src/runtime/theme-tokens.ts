@@ -1,5 +1,9 @@
 import { defaultConsentConfig } from '@c15t/schema/config';
-import { generateThemeCSS } from '@c15t/ui/theme';
+import {
+	defaultDarkColors,
+	generateDefaultThemeCSS,
+	generateThemeCSS,
+} from '@c15t/ui/theme';
 
 import type { ConsentConfig } from './config';
 
@@ -10,6 +14,16 @@ export type TokensCSSOptions = Pick<ConsentConfig, 'colorScheme' | 'theme'>;
 export const TOKENS_STYLE_ID = 'c15t-css-vars';
 
 /**
+ * The stock dark palette under the `.dark` and `.c15t-dark` selectors.
+ *
+ * React and Svelte get it from `@c15t/ui/styles.css`. The Vue components
+ * import per-component stylesheets that carry no tokens, so it ships here,
+ * on the same selectors: one class above the `tokens` rule, and one below a
+ * `theme`.
+ */
+const DEFAULT_DARK_CSS = generateDefaultThemeCSS({ dark: defaultDarkColors });
+
+/**
  * The CSS that applies `tokens` as `--{key}` custom properties, over the
  * default token values the Vue components read.
  *
@@ -18,11 +32,12 @@ export const TOKENS_STYLE_ID = 'c15t-css-vars';
  * in a `<style id="c15t-css-vars">` element, so the first paint is styled
  * before the app hydrates.
  *
- * With a `theme` or a `colorScheme`, the CSS also carries the theme's
- * tokens and the dark tokens: under the `.c15t-dark` and `.dark` selectors,
- * in a `prefers-color-scheme: dark` media query for `'system'`, and on the
- * root for `'dark'`. The dark tokens then apply on the first paint, before
- * any script has set a class.
+ * The stock dark palette always comes with it, under the `.c15t-dark` and
+ * `.dark` selectors, as in the React and Svelte stylesheet. With a `theme`
+ * or a `colorScheme`, the CSS also carries the theme's tokens and the dark
+ * tokens: under the same selectors, in a `prefers-color-scheme: dark` media
+ * query for `'system'`, and on the root for `'dark'`. The dark tokens then
+ * apply on the first paint, before any script has set a class.
  *
  * @param tokens - Token values from the consent config. Omitted keys keep
  * their defaults.
@@ -53,7 +68,10 @@ export const generateTokensCSS = function generateTokensCSS(
 		.join('');
 	// Escaped the way `generateThemeCSS` escapes it, so a token value cannot
 	// close the surrounding `<style>` element.
-	const base = `:root,:host{${declarations}}`.replace(/</gu, '\\3c ');
+	const base = `:root,:host{${declarations}}\n${DEFAULT_DARK_CSS}`.replace(
+		/</gu,
+		'\\3c '
+	);
 	const { colorScheme, theme } = options;
 	if (!theme && (colorScheme === undefined || colorScheme === null)) {
 		return base;

@@ -57,13 +57,18 @@ import {
 export default defineNuxtPlugin(async (nuxtApp) => {
 	const appConfig = useAppConfig();
 	const runtimeConfig = useRuntimeConfig();
-	const config = computed(
-		() =>
-			defu(
-				appConfig.c15t,
-				runtimeConfig.public.c15t
-			) as Partial<RuntimeConsentConfig>
-	);
+	const config = computed(() => {
+		const merged = defu(
+			appConfig.c15t,
+			runtimeConfig.public.c15t
+		) as Partial<RuntimeConsentConfig>;
+		// `defu` skips `null`, so an app config `colorScheme: null` would fall
+		// back to the module options. `null` leaves `c15t-dark` to the site.
+		if (appConfig.c15t?.colorScheme === null) {
+			merged.colorScheme = null;
+		}
+		return merged;
+	});
 	// Tokens go in the head from the plugin, so the server HTML carries them
 	// for the first paint and composed surfaces without ConsentRoot get
 	// them too. The color scheme script sets `c15t-dark` in `<head>`, before

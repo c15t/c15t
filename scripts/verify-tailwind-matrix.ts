@@ -14,8 +14,7 @@
  *   also sets, so the check fails if the utility loses.
  * - A `dark` class on `<html>` turns on Tailwind's `dark:` variant for that
  *   utility and, where the fixture says c15t follows it, c15t's dark tokens.
- *   Vue components ship light tokens only, and the script tag's shadow root
- *   follows its own `colorScheme` option.
+ *   The script tag's shadow root follows its own `colorScheme` option.
  * - Opening the dialog loads its stylesheet, which is styled too.
  *
  * Build first: `bun run compat:styles:build`.
