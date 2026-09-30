@@ -304,6 +304,8 @@ export {
 	applyExperimentTheme,
 	CONTROL_ARM,
 	defineExperiment,
+	experimentArmRef,
+	hostExperiment,
 	resolveExperimentPresentation,
 	resolveExperimentTheme,
 	seedExperiment,
@@ -317,6 +319,8 @@ export type {
 	ExperimentArmTheme,
 	ExperimentAssignment,
 	ExperimentGate,
+	ExperimentState,
+	ServerExperiment,
 	StartExperimentOptions,
 } from './libs/experiment';
 export { EXPERIMENT_STORAGE_KEY } from './libs/storage-keys';

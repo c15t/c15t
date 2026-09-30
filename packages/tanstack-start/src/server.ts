@@ -51,10 +51,15 @@
  */
 
 import {
+	experimentArmRef,
 	mergeInitResponseIntoKernelConfig,
 	mergeInitOutputIntoKernelConfig,
 } from '@c15t/core';
-import type { KernelConfig } from '@c15t/core';
+import type {
+	ExperimentState,
+	KernelConfig,
+	ServerExperiment,
+} from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import {
@@ -231,7 +236,7 @@ export type { KernelConfig } from '@c15t/core';
  * narrower type is what lets `createServerFn().handler(...)` accept the
  * helpers directly. `ConsentRoot` accepts it as-is.
  */
-export type ConsentState = Omit<KernelConfig, 'transport'>;
+export type ConsentState = Omit<KernelConfig, 'transport'> & ExperimentState;
 
 // -- Resolving the visitor's state ------------------------------------------
 
@@ -342,12 +347,19 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	reportSessions?: boolean;
 
 	/**
-	 * The banner-experiment arm this request runs, from your feature flag.
-	 * Pass the same `id` and arm to the client's `experiment` option. While
-	 * the visitor has no stored choice, the render's session report carries
-	 * it, so the backend counts the visitors each arm's banner was owed to.
+	 * The banner experiment with the arm this request runs, from your
+	 * feature flag. While the visitor has no stored choice, the render's
+	 * session report carries the arm, so the backend counts the visitors
+	 * each arm's banner was owed to. The returned state carries the
+	 * experiment to `ConsentRoot`, so the client needs no `experiment`
+	 * option of its own.
+	 *
+	 * @example
+	 * ```ts
+	 * resolveConsent({ backendURL, experiment: { ...bannerShape, arm } });
+	 * ```
 	 */
-	experiment?: { id: string; arm: string };
+	experiment?: ServerExperiment;
 
 	/**
 	 * Same-origin prefix where you mounted `createConsentServerRoute()`.
@@ -427,31 +439,9 @@ const loadManifest = async function loadManifest(
 	return { backendURL, manifest: cached.manifest };
 };
 
-/**
- * Resolves the visitor's consent state from the current TanStack Start
- * request.
- *
- * 1. Reads the consent cookie, the CDN geo headers (plus the `x-c15t-*`
- *    overrides `consentRequestMiddleware()` wrote), `accept-language`, and
- *    `sec-gpc`. Without a `backendURL` this is the whole result: the client
- *    then runs init through the same-origin route on mount.
- * 2. With a `backendURL`, loads the consent manifest through the
- *    in-process cache (or uses the inline `manifest`) and resolves init
- *    locally for this request's country, region, language, and GPC signal.
- * 3. Folds the result into the state so first paint is correct without
- *    waiting for a client roundtrip.
- *
- * Never calls the app's own `/api/c15t` route. If anything fails, or the
- * manifest does not arrive within `timeoutMs` (500 ms by default), returns
- * the cookie-and-headers state: no consent UI in the server HTML, optional
- * categories denied, and the client root runs init on mount.
- *
- * @param options - Request source and overrides, plus the backend location
- * and manifest source for the prefetch.
- * @returns A serializable state for `ConsentRoot`.
- */
-export const resolveConsent = async function resolveConsent(
-	options: ResolveConsentOptions = {}
+/** {@link resolveConsent} without the experiment it carries back. */
+const resolveConsentState = async function resolveConsentState(
+	options: ResolveConsentOptions
 ): Promise<ConsentState> {
 	const request = await readCurrentRequest(options.request);
 	const base = readRequestState(request, options);
@@ -509,9 +499,10 @@ export const resolveConsent = async function resolveConsent(
 		});
 		// A visitor who already chose is not shown the banner, so is not
 		// counted toward the arm.
-		const experiment = base.initialRecords?.choice
-			? undefined
-			: options.experiment;
+		const experiment =
+			options.experiment && !base.initialRecords?.choice
+				? experimentArmRef(options.experiment)
+				: undefined;
 		const response = await withResolutionBudget(
 			transport.init({
 				...(experiment && { experiment }),
@@ -530,6 +521,40 @@ export const resolveConsent = async function resolveConsent(
 		// Silent degradation. Client-side init will retry.
 		return base;
 	}
+};
+
+/**
+ * Resolves the visitor's consent state from the current TanStack Start
+ * request.
+ *
+ * 1. Reads the consent cookie, the CDN geo headers (plus the `x-c15t-*`
+ *    overrides `consentRequestMiddleware()` wrote), `accept-language`, and
+ *    `sec-gpc`. Without a `backendURL` this is the whole result: the client
+ *    then runs init through the same-origin route on mount.
+ * 2. With a `backendURL`, loads the consent manifest through the
+ *    in-process cache (or uses the inline `manifest`) and resolves init
+ *    locally for this request's country, region, language, and GPC signal.
+ * 3. Folds the result into the state so first paint is correct without
+ *    waiting for a client roundtrip.
+ *
+ * Never calls the app's own `/api/c15t` route. If anything fails, or the
+ * manifest does not arrive within `timeoutMs` (500 ms by default), returns
+ * the cookie-and-headers state: no consent UI in the server HTML, optional
+ * categories denied, and the client root runs init on mount.
+ *
+ * @param options - Request source and overrides, plus the backend location
+ * and manifest source for the prefetch.
+ * @returns A serializable state for `ConsentRoot`.
+ */
+export const resolveConsent = async function resolveConsent(
+	options: ResolveConsentOptions = {}
+): Promise<ConsentState> {
+	const state = await resolveConsentState(options);
+	// Every path carries the experiment, so the client runs the arm this
+	// request counted even when the backend call failed.
+	return options.experiment
+		? { ...state, experiment: options.experiment }
+		: state;
 };
 
 /**

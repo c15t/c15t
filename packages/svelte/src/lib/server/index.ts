@@ -1,6 +1,7 @@
 import {
 	deferInitGvl,
 	createHostedTransport,
+	experimentArmRef,
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core';
 import type { InitContext } from '@c15t/core';
@@ -100,38 +101,13 @@ const initContext = function initContext(
 		user: base.initialUser ?? null,
 	};
 	if (options.experiment && !base.initialRecords?.choice) {
-		context.experiment = options.experiment;
+		context.experiment = experimentArmRef(options.experiment);
 	}
 	return context;
 };
 
-/**
- * Resolves the visitor's consent state from a SvelteKit request.
- *
- * 1. Reads the consent cookie, the CDN geo headers, `accept-language`, and
- *    `sec-gpc`. Without a `backendURL` this is the whole result, and no
- *    network call is made.
- * 2. With a `backendURL`, calls `${backendURL}/init` with the request
- *    context and folds the response into the state, so first paint is
- *    correct without waiting for a client roundtrip.
- *
- * Never throws: if the backend URL cannot be resolved or the call fails,
- * the request-only state is returned and the client runs init on mount.
- *
- * @param options - Request headers, cookie name, geo/language overrides,
- * and the backend location.
- * @returns A serializable state for the provider's `prefetch` prop.
- * @example
- * ```ts
- * import { resolveConsent } from '@c15t/svelte/server';
- *
- * const state = await resolveConsent({
- *   backendURL: 'https://consent.example.com',
- *   headers: request.headers,
- * });
- * ```
- */
-export const resolveConsent = async function resolveConsent(
+/** {@link resolveConsent} without the experiment it carries back. */
+const resolveConsentState = async function resolveConsentState(
 	options: ResolveConsentOptions
 ): Promise<ConsentState> {
 	const base = readConsentRequest(options);
@@ -201,6 +177,43 @@ export const resolveConsent = async function resolveConsent(
 	} catch {
 		return base;
 	}
+};
+
+/**
+ * Resolves the visitor's consent state from a SvelteKit request.
+ *
+ * 1. Reads the consent cookie, the CDN geo headers, `accept-language`, and
+ *    `sec-gpc`. Without a `backendURL` this is the whole result, and no
+ *    network call is made.
+ * 2. With a `backendURL`, calls `${backendURL}/init` with the request
+ *    context and folds the response into the state, so first paint is
+ *    correct without waiting for a client roundtrip.
+ *
+ * Never throws: if the backend URL cannot be resolved or the call fails,
+ * the request-only state is returned and the client runs init on mount.
+ *
+ * @param options - Request headers, cookie name, geo/language overrides,
+ * and the backend location.
+ * @returns A serializable state for the provider's `prefetch` prop.
+ * @example
+ * ```ts
+ * import { resolveConsent } from '@c15t/svelte/server';
+ *
+ * const state = await resolveConsent({
+ *   backendURL: 'https://consent.example.com',
+ *   headers: request.headers,
+ * });
+ * ```
+ */
+export const resolveConsent = async function resolveConsent(
+	options: ResolveConsentOptions
+): Promise<ConsentState> {
+	const state = await resolveConsentState(options);
+	// Every path carries the experiment, so the client runs the arm this
+	// request counted even when the backend call failed.
+	return options.experiment
+		? { ...state, experiment: options.experiment }
+		: state;
 };
 
 export type { KernelConfig } from '@c15t/core';

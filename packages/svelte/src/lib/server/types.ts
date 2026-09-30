@@ -1,4 +1,8 @@
-import type { KernelConfig } from '@c15t/core';
+import type {
+	ExperimentState,
+	KernelConfig,
+	ServerExperiment,
+} from '@c15t/core';
 
 /**
  * How the request is read: the consent cookie name and explicit
@@ -26,7 +30,7 @@ export interface ConsentRequestOptions {
  * prop accepts. `transport` is omitted because it holds functions, which a
  * SvelteKit `load` cannot serialize.
  */
-export type ConsentState = Omit<KernelConfig, 'transport'>;
+export type ConsentState = Omit<KernelConfig, 'transport'> & ExperimentState;
 
 /** Options for `resolveConsent`. */
 export interface ResolveConsentOptions extends ConsentRequestOptions {
@@ -52,10 +56,16 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	/** Extra request headers to forward to the backend. */
 	forwardHeaders?: string[];
 	/**
-	 * The banner-experiment arm this request runs, from your feature flag.
-	 * Pass the same `id` and arm to the client's `experiment` option. While
-	 * the visitor has no stored choice, the server's `/init` carries it, so
-	 * the backend counts the visitors each arm's banner was owed to.
+	 * The banner experiment with the arm this request runs, from your
+	 * feature flag. While the visitor has no stored choice, the server's
+	 * `/init` carries the arm, so the backend counts the visitors each arm's
+	 * banner was owed to. The returned state carries the experiment to the
+	 * provider, so the client needs no `experiment` option of its own.
+	 *
+	 * @example
+	 * ```ts
+	 * resolveConsent({ ...request, experiment: { ...bannerShape, arm } });
+	 * ```
 	 */
-	experiment?: { id: string; arm: string };
+	experiment?: ServerExperiment;
 }

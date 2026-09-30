@@ -31,13 +31,14 @@ export const Providers = ({
 	arm,
 }: {
 	children: React.ReactNode;
-	arm: 'control' | 'invasive';
+	arm?: 'control' | 'invasive';
 }) => (
 	<ConsentProvider
 		options={{
 			mode: hosted({ url: 'https://your-project.inth.app' }),
 			presentation: { prompt: { variant: 'floating', position: 'bottom-left' } },
-			experiment: { ...bannerShape, arm },
+			// No arm: this visitor is not in the experiment.
+			experiment: arm ? { ...bannerShape, arm } : undefined,
 		}}
 	>
 		{children}
@@ -64,7 +65,10 @@ sends it with `/init`, and records it on the choices of visitors the banner
 showed it to, so you can compare opt-in rate and time to decision per arm.
 
 The same option exists on `c15t/next` (`ConsentRoot` options), `c15t/vue`,
-`@c15t/svelte`, `@c15t/astro` and `@c15t/browser`.
+`@c15t/svelte`, `@c15t/astro` and `@c15t/browser`. On a server-rendered page
+in Next.js, TanStack Start or SvelteKit, pass it to `resolveConsent` instead,
+which counts the arm and hands it to the client; see
+[Vercel Flags SDK](#vercel-flags-sdk).
 
 `experiment` is read once, when the provider mounts. Changing it later has
 no effect; remount the provider (a `key` in React) to switch experiments.
@@ -72,7 +76,7 @@ no effect; remount the provider (a `key` in React) to switch experiments.
 Build the experiment with `defineExperiment()` to have TypeScript check the
 arm names in `arm` and `split`:
 
-```ts
+```ts title="src/experiments.ts"
 import { defineExperiment } from 'c15t';
 
 export const bannerShape = defineExperiment({
@@ -158,49 +162,72 @@ records `assignedBy: 'host'` and never re-assigns a visitor you assigned.
 
 ### Vercel Flags SDK
 
-Use the `identify` you already have and split however you like; c15t only
-needs the result.
+Give the flag three values. `off` keeps a visitor out of the test; `control`
+and `invasive` split the rest. Set the weights in the Vercel dashboard, so
+you can roll out and widen the test without a deploy: start at 90% `off`,
+check that both arms arrive, then move to 0% `off` for the real run.
 
 ```ts title="src/flags.ts"
+import { vercelAdapter } from '@flags-sdk/vercel';
 import { flag } from 'flags/next';
 
-export const bannerShape = flag<'control' | 'invasive'>({
+export const bannerShapeFlag = flag<'off' | 'control' | 'invasive'>({
 	key: 'banner-shape',
+	adapter: vercelAdapter(),
 	identify, // your existing identify
-	decide: ({ entities }) =>
-		toPercent(entities.user.id) < 60 ? 'control' : 'invasive',
+	defaultValue: 'off',
 });
 ```
 
-```tsx title="src/app/layout.tsx"
-import { bannerShape } from '../flags';
-import { Providers } from './providers';
+Keep `identify` returning a stable id. Vercel splits on it, so a visitor
+keeps their arm when you change the weights.
 
-export default async function RootLayout({
+Resolve the flag where consent resolves and pass the experiment to
+`resolveConsent`. The server reports the arm with `/init`, and the returned
+state carries the experiment to `ConsentRoot`, so the client needs no
+`experiment` option of its own:
+
+```tsx title="src/app/resolved-consent.tsx"
+import { resolveConsent } from 'c15t/next/server';
+
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
+import { bannerShape } from '../experiments';
+import { bannerShapeFlag } from '../flags';
+
+export async function ResolvedConsent({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	const arm = await bannerShape();
-	return (
-		<html lang="en">
-			<body>
-				<Providers arm={arm}>{children}</Providers>
-			</body>
-		</html>
-	);
+	const arm = await bannerShapeFlag();
+	const state = await resolveConsent({
+		config: consentConfig,
+		experiment: arm === 'off' ? undefined : { ...bannerShape, arm },
+	});
+	return <Consent state={state}>{children}</Consent>;
 }
 ```
 
-To keep some visitors out of the experiment entirely, have the flag return a
-value such as `'off'` and pass no `experiment` for it. Those visitors see
-`presentation` and are not counted.
+Render it inside `<Suspense>`, as in
+[Await consent inside Suspense](/docs/frameworks/next/server-side#await-consent-inside-suspense).
+The banner is then in the server HTML already showing the visitor's arm.
+`resolveConsent` in `@c15t/tanstack-start` and `@c15t/svelte` takes the same
+`experiment`.
+
+If you pass `resolveConsent()` to `ConsentRoot` without awaiting it (the
+streaming layout), the client mounts before the state arrives. Pass the
+same experiment to the client options as well; c15t warns in development
+when the streamed state carries an experiment the client did not get.
 
 ### PostHog
 
 PostHog resolves flags asynchronously in the browser. Because `experiment`
 is read once at mount, wait for the flags, then mount the provider with the
-resolved arm.
+resolved arm. Do not wait forever: a blocked or slow flags request would
+leave the visitor with no banner and you with no consent. After a second,
+mount without the experiment. Those visitors see `presentation` and are not
+counted in either arm.
 
 ```tsx title="src/app/flagged-providers.tsx"
 'use client';
@@ -215,20 +242,26 @@ export const FlaggedProviders = ({
 }: {
 	children: React.ReactNode;
 }) => {
-	const [arm, setArm] = useState<'control' | 'invasive' | null>(null);
-	useEffect(
-		() =>
-			posthog.onFeatureFlags(() => {
-				const flag = posthog.getFeatureFlag('banner-shape');
-				setArm(flag === 'invasive' ? 'invasive' : 'control');
-			}),
-		[]
-	);
+	const [arm, setArm] = useState<'control' | 'invasive' | 'off' | null>(null);
+	useEffect(() => {
+		// The first answer wins: the provider reads the arm once.
+		const fallback = setTimeout(() => setArm((current) => current ?? 'off'), 1000);
+		const unsubscribe = posthog.onFeatureFlags(() => {
+			const flag = posthog.getFeatureFlag('banner-shape');
+			setArm((current) => current ?? (flag === 'invasive' ? 'invasive' : 'control'));
+		});
+		return () => {
+			clearTimeout(fallback);
+			unsubscribe();
+		};
+	}, []);
 	if (arm === null) {
 		// Flags not loaded yet: no provider, no banner.
 		return children;
 	}
-	return <Providers arm={arm}>{children}</Providers>;
+	return (
+		<Providers arm={arm === 'off' ? undefined : arm}>{children}</Providers>
+	);
 };
 ```
 
@@ -387,17 +420,10 @@ its own; you do not wire anything up.
 - **Choices.** Every choice saved through `POST /subjects` carries the arm
   in `metadata.experiment`, as above.
 
-On a server-rendered page the server calls `/init`, not the browser, so tell
-it the arm. Pass the same one you give the client:
-
-```ts title="src/app/layout.tsx"
-const arm = await bannerShape();
-const state = resolveConsent({
-	config,
-	experiment: { id: 'banner-shape', arm },
-});
-```
-
+On a server-rendered page the server calls `/init`, not the browser, so the
+server has to know the arm. Pass the experiment to `resolveConsent`, as in
+[Vercel Flags SDK](#vercel-flags-sdk): it sends only `{ id, arm }` to the
+backend and hands the full experiment to the client in its state.
 `resolveConsent` takes `experiment` in `c15t/next`, `@c15t/tanstack-start`
 and `@c15t/svelte`; Astro and Nuxt pass the arm they rendered on their own.
 When c15t picks the arm in the browser, the browser's own `/init` carries

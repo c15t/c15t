@@ -174,6 +174,49 @@ export interface ExperimentAssignment {
 	acknowledgedDiagnostics: boolean;
 }
 
+/**
+ * An experiment with the arm a server resolved for one request, for a server
+ * helper such as `resolveConsent`. The helper counts the arm through `/init`
+ * and returns the whole experiment in its state, so the client runs the
+ * same definition and arm without configuring it again.
+ */
+export type ServerExperiment = ConsentExperiment & { arm: string };
+
+/** State a server helper returns, carrying the experiment it resolved. */
+export interface ExperimentState {
+	/** The experiment and arm the server resolved for this request. */
+	experiment?: ServerExperiment;
+}
+
+/**
+ * The experiment a client runs: the one the server resolved into its state,
+ * otherwise the one configured on the client. The server's wins because it
+ * is the arm the backend already counted for this visitor.
+ *
+ * @param configured - The client's `experiment` option.
+ * @param state - The server state (`prefetch`), if any.
+ * @returns The experiment to run, or `undefined` for none.
+ */
+export const hostExperiment = function hostExperiment(
+	configured: ConsentExperiment | undefined,
+	state: ExperimentState | null | undefined
+): ConsentExperiment | undefined {
+	return state?.experiment ?? configured;
+};
+
+/**
+ * The `{ id, arm }` a server sends with `/init`: the arm alone, never the
+ * presentation each arm carries.
+ *
+ * @param experiment - The experiment the server resolved.
+ * @returns The id and arm.
+ */
+export const experimentArmRef = function experimentArmRef(
+	experiment: ServerExperiment
+): { id: string; arm: string } {
+	return { arm: experiment.arm, id: experiment.id };
+};
+
 const mergeSurface = function mergeSurface<
 	Surface extends PromptPresentation | PreferencesPresentation,
 >(base: Surface | undefined, arm: Surface | undefined): Surface | undefined {

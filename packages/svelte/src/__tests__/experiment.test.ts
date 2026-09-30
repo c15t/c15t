@@ -92,6 +92,34 @@ test('the arm resolves against the experiment the runtime was created with', asy
 	}
 });
 
+test('a server-resolved experiment in the prefetch runs without the option', () => {
+	let kernel: ConsentKernel | undefined;
+	let manager: ConsentManagerState | undefined;
+	const { unmount } = render(ProviderOnlyFixture, {
+		onKernel: (value: ConsentKernel) => {
+			kernel = value;
+		},
+		onManager: (value: ConsentManagerState) => {
+			manager = value;
+		},
+		options: {
+			mode: testOffline(),
+			persistence: false,
+			prefetch: { experiment: { ...experiment, arm: 'bar' } },
+		},
+	});
+	try {
+		expect(kernel?.getSnapshot().experiment).toMatchObject({
+			arm: 'bar',
+			assignedBy: 'host',
+			id: 'banner-shape',
+		});
+		expect(manager?.presentation?.prompt?.variant).toBe('bar');
+	} finally {
+		unmount();
+	}
+});
+
 test('a host variant is known from the first snapshot', async () => {
 	const { kernel, unmount } = mount({ arm: 'bar' });
 	try {

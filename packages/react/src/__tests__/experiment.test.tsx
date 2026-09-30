@@ -170,6 +170,85 @@ test('useExperiment() reports the host arm and the banner renders it', async () 
 	}
 });
 
+test('a server-resolved experiment in the state runs without a client option', async () => {
+	const mounted = mount(
+		{
+			prefetch: {
+				experiment: { ...experiment, arm: 'bar' },
+				initialPolicyResolution: resolution,
+			},
+		},
+		<>
+			<Probe />
+			<ConsentBanner />
+		</>
+	);
+	try {
+		await vi.waitFor(() =>
+			expect(mounted.read()).toEqual({
+				acknowledgedDiagnostics: false,
+				arm: 'bar',
+				assignedBy: 'host',
+				id: 'banner-shape',
+			})
+		);
+		await vi.waitFor(() =>
+			expect(document.querySelector('[data-variant="bar"]')).not.toBeNull()
+		);
+	} finally {
+		mounted.unmount();
+	}
+});
+
+test('the server-resolved arm wins over a client built-in split', () => {
+	const html = renderToString(
+		<ConsentProvider
+			options={{
+				enabled: true,
+				experiment,
+				mode: Object.assign(() => ({ save: vi.fn() }), {
+					kind: 'custom' as const,
+				}),
+				persistence: false,
+				prefetch: {
+					experiment: { ...experiment, arm: 'floating' },
+					initialPolicyResolution: resolution,
+				},
+			}}
+		>
+			<PresentationProbe />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	// Known on the server, so the banner renders the arm straight away.
+	expect(html).toContain('consent-banner-root');
+	expect(html).toContain('data-variant="floating"');
+});
+
+test('a streamed state with an experiment warns when the client has none', async () => {
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+	const mounted = mount(
+		{
+			prefetch: Promise.resolve({
+				experiment: { ...experiment, arm: 'bar' },
+				initialPolicyResolution: resolution,
+			}),
+		},
+		<Probe />
+	);
+	try {
+		await vi.waitFor(() =>
+			expect(warn).toHaveBeenCalledWith(
+				expect.stringContaining('streamed consent state carries an experiment')
+			)
+		);
+		expect(mounted.read()).toBeNull();
+	} finally {
+		mounted.unmount();
+		warn.mockRestore();
+	}
+});
+
 test('built-in assignment lands after mount and is stored for the next visit', async () => {
 	const mounted = mount({ experiment }, <Probe />);
 	try {

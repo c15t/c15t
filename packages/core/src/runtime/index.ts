@@ -31,7 +31,11 @@ import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import { createConsentKernel } from '../kernel';
-import { seedExperiment, startExperiment } from '../libs/experiment';
+import {
+	hostExperiment,
+	seedExperiment,
+	startExperiment,
+} from '../libs/experiment';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import { resolveVendors } from '../libs/vendors';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
@@ -282,7 +286,8 @@ export const createRuntimeKernel = function createRuntimeKernel(
 	options: ConsentRuntimeOptions
 ): ConsentKernel {
 	const enabled = options.enabled ?? true;
-	const prefetch = options.prefetch ?? {};
+	// The server's experiment is a runtime input, not kernel configuration.
+	const { experiment: serverExperiment, ...prefetch } = options.prefetch ?? {};
 	const i18nTranslations =
 		resolveRuntimeTranslations(options.i18n) ?? DEFAULT_TRANSLATIONS;
 
@@ -313,7 +318,7 @@ export const createRuntimeKernel = function createRuntimeKernel(
 	// assignment holds the prompt until the browser has picked the arm.
 	const experimentSeed = enabled
 		? seedExperiment(
-				options.experiment,
+				hostExperiment(options.experiment, { experiment: serverExperiment }),
 				prefetch.initialExperiment,
 				hasResolvedPrefetch(options.prefetch)
 			)
@@ -666,10 +671,11 @@ export const createConsentRuntime = function createConsentRuntime(
 			}
 			// After hydration, so a returning visitor's subject id seeds the
 			// arm. The controller loads as its own chunk; a held prompt waits.
-			if (enabled && options.experiment && !options.consentSource) {
+			const experiment = hostExperiment(options.experiment, options.prefetch);
+			if (enabled && experiment && !options.consentSource) {
 				disposers.push(
 					startExperiment({
-						experiment: options.experiment,
+						experiment,
 						kernel,
 						presentation: options.presentation,
 						storageConfig: options.storageConfig,
