@@ -201,6 +201,68 @@ describe('<ConsentBanner />', () => {
 		expect(button('customize')).toContain('data-variant="neutral"');
 	});
 
+	it('adds `theme.slots` classes and styles to the parts they name', async () => {
+		const html = await render(
+			await buildLocals({
+				mode: offlineMode({ policyRules: [testRule] }),
+				presentation: { prompt: { primaryActions: ['accept'] } },
+				theme: {
+					slots: {
+						buttonPrimary: 'brand-primary',
+						buttonSecondary: 'brand-secondary',
+						consentBanner: 'brand-banner',
+						consentBannerCard: {
+							className: 'brand-card',
+							style: { '--brand-accent': '#0a66ff', borderTopWidth: '4px' },
+						},
+						consentBannerDescription: 'brand-description',
+						consentBannerFooter: 'brand-footer',
+						consentBannerFooterSubGroup: 'brand-group',
+						consentBannerHeader: 'brand-header',
+						consentBannerTag: 'brand-tag',
+						consentBannerTitle: {
+							className: 'brand-title',
+							noStyle: true,
+						},
+					},
+				},
+			})
+		);
+		const tag = (testId: string) =>
+			new RegExp(`<[^>]*data-testid="${testId}"[^>]*>`, 'u').exec(html)?.[0];
+
+		expect(tag('consent-banner-card')).toMatch(
+			new RegExp(`class="${bannerStyles.card} brand-card"`, 'u')
+		);
+		expect(tag('consent-banner-card')).toContain(
+			'style="--brand-accent:#0a66ff;border-top-width:4px"'
+		);
+		expect(tag('consent-banner-root')).toContain('brand-banner');
+		expect(tag('consent-banner-header')).toContain('brand-header');
+		expect(tag('consent-banner-description')).toContain('brand-description');
+		expect(tag('consent-banner-footer')).toContain('brand-footer');
+		expect(tag('consent-banner-footer-sub-group')).toContain('brand-group');
+		expect(tag('consent-banner-branding')).toContain('brand-tag');
+		expect(tag('consent-banner-accept-button')).toContain('brand-primary');
+		expect(tag('consent-banner-reject-button')).toContain('brand-secondary');
+		// A slot with `noStyle` replaces that part's stock classes.
+		expect(tag('consent-banner-title')).toContain('class="brand-title"');
+	});
+
+	it('keeps `theme.slots` classes with `noStyle`', async () => {
+		const html = await render(
+			await buildLocals({
+				mode: offlineMode({ policyRules: [testRule] }),
+				theme: { slots: { consentBannerCard: 'brand-card' } },
+			}),
+			{ noStyle: true }
+		);
+
+		expect(
+			/<[^>]*data-testid="consent-banner-card"[^>]*>/u.exec(html)?.[0]
+		).toContain('class="brand-card"');
+	});
+
 	it('renders the branding tag with the shared markup', async () => {
 		const html = await render(await buildLocals());
 		// Matched as one element: separate `toContain` checks would pass

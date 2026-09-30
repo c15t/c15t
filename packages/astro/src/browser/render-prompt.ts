@@ -26,7 +26,7 @@ import { element, hiddenBanner, readSpot, renderBrandingTag } from './dom';
 export interface RenderPromptOptions {
 	presentation?: ConsentPresentation;
 	legalLinks?: LegalLinks;
-	/** The integration's `theme`, for `consentActions`. */
+	/** The integration's `theme`, for `consentActions` and `slots`. */
 	theme?: Theme;
 }
 
@@ -63,7 +63,11 @@ const renderFooter = function renderFooter(
 		children.push(
 			element(
 				'div',
-				{ class: model.classes.rights, 'data-testid': 'consent-banner-rights' },
+				{
+					class: model.classes.rights,
+					'data-testid': 'consent-banner-rights',
+					style: model.styles.rights,
+				},
 				model.rights.map(({ right, label }) =>
 					element(
 						'button',
@@ -73,6 +77,7 @@ const renderFooter = function renderFooter(
 							'data-c15t-action': 'customize',
 							'data-right': right,
 							'data-testid': `consent-banner-right-link-${right}`,
+							style: model.styles.rightLink,
 							type: 'button',
 						},
 						[label]
@@ -90,18 +95,20 @@ const renderFooter = function renderFooter(
 					'data-direction': model.direction,
 					'data-fill': model.shouldFill ? 'true' : undefined,
 					'data-testid': 'consent-banner-footer-sub-group',
+					style: model.styles.actionGroup,
 				},
-				group.map(({ action, label, mode, variant }) =>
+				group.map(({ action, className, label, mode, style, variant }) =>
 					element(
 						'button',
 						{
-							class: model.classes.button,
+							class: className,
 							'data-action': action,
 							'data-c15t-action': action,
 							'data-mode': mode,
 							'data-size': props.noStyle ? undefined : 'small',
 							'data-testid': `consent-banner-${action}-button`,
 							'data-variant': variant,
+							style,
 							type: 'button',
 						},
 						[label]
@@ -118,6 +125,7 @@ const renderFooter = function renderFooter(
 			'data-fill': model.shouldFill ? 'true' : undefined,
 			'data-split': model.split ? 'true' : undefined,
 			'data-testid': 'consent-banner-footer',
+			style: model.styles.footer,
 		},
 		children
 	);
@@ -151,6 +159,7 @@ export const buildPrompt = function buildPrompt(
 			class: model.classes.description,
 			'data-context': 'banner',
 			'data-testid': 'consent-banner-description',
+			style: model.styles.description,
 		},
 		[
 			model.copy.description,
@@ -176,18 +185,24 @@ export const buildPrompt = function buildPrompt(
 			class: model.classes.card,
 			'data-testid': 'consent-banner-card',
 			role: model.blocking ? 'dialog' : 'region',
+			style: model.styles.card,
 			tabindex: '-1',
 		},
 		[
 			element(
 				'div',
-				{ class: model.classes.header, 'data-testid': 'consent-banner-header' },
+				{
+					class: model.classes.header,
+					'data-testid': 'consent-banner-header',
+					style: model.styles.header,
+				},
 				[
 					element(
 						'h2',
 						{
 							class: model.classes.title,
 							'data-testid': 'consent-banner-title',
+							style: model.styles.title,
 						},
 						[model.copy.title]
 					),
@@ -204,6 +219,8 @@ export const buildPrompt = function buildPrompt(
 		snapshot,
 		styles: slot.classNames.branding,
 		testId: 'consent-banner-branding',
+		theme: options.theme,
+		themeSlot: 'consentBannerTag',
 	});
 	const root = element(
 		'div',
@@ -217,6 +234,7 @@ export const buildPrompt = function buildPrompt(
 			'data-variant': model.variant,
 			dir: model.textDirection,
 			lang: model.language,
+			style: model.styles.root,
 		},
 		[
 			element(
@@ -233,6 +251,7 @@ export const buildPrompt = function buildPrompt(
 					'aria-hidden': 'true',
 					class: model.classes.overlay,
 					'data-testid': 'consent-banner-overlay',
+					style: model.styles.overlay,
 				})
 			: null
 	);
