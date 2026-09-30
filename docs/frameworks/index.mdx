@@ -1,6 +1,6 @@
 ---
 title: Frameworks
-description: c15t setup guides for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, plain HTML, JavaScript and React Native.
+description: c15t setup guides for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, plain HTML and JavaScript.
 group: frameworks
 ---
 
@@ -18,7 +18,6 @@ group: frameworks
 | SvelteKit | `@c15t/svelte` | [SvelteKit quickstart](/docs/frameworks/sveltekit/quickstart) |
 | HTML, a CMS, a page builder or a static site generator | `@c15t/browser` from a script tag | [HTML quickstart](/docs/frameworks/html/quickstart) |
 | JavaScript with a bundler, or your own UI | `@c15t/browser`, or `c15t` (`c15t/runtime`) | [JavaScript quickstart](/docs/frameworks/javascript/quickstart) |
-| React Native or Expo | `@c15t/react-native` | [React Native quickstart](/docs/frameworks/react-native/quickstart) |
 
 Not sure which setup your rendering mode needs? [Choose your setup](/docs/concepts/choose-your-setup)
 maps each app shape, such as a Next.js static export or a prerendered SvelteKit
@@ -32,10 +31,9 @@ Most frameworks use one package, `c15t`, and import the framework entry point:
 You do not need `@c15t/nextjs` or `@c15t/react` as well; `c15t` depends on
 them.
 
-Three frameworks use their own package: Svelte and SvelteKit use
-`@c15t/svelte`, HTML and the stock UI in JavaScript use `@c15t/browser`, and
-React Native uses `@c15t/react-native`. Vendor script helpers are a separate install,
-`@c15t/integrations`, in every framework.
+Svelte and SvelteKit use their own package, `@c15t/svelte`. HTML pages and the
+stock UI in JavaScript use `@c15t/browser`. Vendor script helpers are a separate
+install, `@c15t/integrations`, in every framework.
 
 v3 is published under the `alpha` tag. Install `c15t@alpha`; a plain
 `c15t` install still gets v2.

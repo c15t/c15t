@@ -130,7 +130,7 @@ and embeds group:
 | JavaScript     | [Vendor consent](https://c15t.com/docs/frameworks/javascript/vendor-consent)     | [Clear on revocation](https://c15t.com/docs/frameworks/javascript/clear-on-revocation)     |
 
 The Astro integration has no `vendors` option, and the HTML script tag's
-preference dialog shows no vendor switches. React Native has neither option.
+preference dialog shows no vendor switches.
 
 ## Send events only to allowed integrations
 

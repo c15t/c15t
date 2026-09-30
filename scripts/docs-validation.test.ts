@@ -63,7 +63,6 @@ test('framework quickstarts resolve inside the host framework group', async () =
 		'sveltekit',
 		'html',
 		'javascript',
-		'react-native',
 	]);
 	for (const framework of frameworks?.children ?? []) {
 		expect(framework.pages[0]).toMatchObject({
@@ -141,11 +140,7 @@ test('c15t install commands select the documented release', async () => {
 		)) {
 			for (const name of (match.groups?.command ?? '').split(' ')) {
 				const bare = name.replace(/(?<=.)@[^/]*$/u, '');
-				// React Native is released separately and has no alpha tag.
-				if (
-					!/^(?:c15t|@c15t\/.+)$/u.test(bare) ||
-					bare === '@c15t/react-native'
-				) {
+				if (!/^(?:c15t|@c15t\/.+)$/u.test(bare)) {
 					continue;
 				}
 				const expected = installTag ? `${bare}@${installTag}` : bare;
@@ -156,6 +151,17 @@ test('c15t install commands select the documented release', async () => {
 		}
 	}
 	expect(wrong).toEqual([]);
+});
+
+// React Native is not published with v3. Drop this check when it ships.
+test('published docs do not mention React Native', async () => {
+	const files = await fg(['**/*.mdx', 'docs.config.ts'], { cwd: docsRoot });
+	const mentions = files.filter((file) =>
+		/react[- ]native|\bExpo\b/iu.test(
+			readFileSync(resolve(docsRoot, file), 'utf8')
+		)
+	);
+	expect(mentions).toEqual([]);
 });
 
 test('installation tabs flatten to usable umbrella-package commands', async () => {
@@ -212,7 +218,7 @@ test('vendor registration tabs survive package Markdown conversion', async () =>
 		[remarkInclude, ...defaultRemarkPlugins]
 	);
 	expect(markdown).toContain('npm install @c15t/integrations');
-	expect(markdown).toContain('c15t/react');
+	expect(markdown).toContain('<ConsentProvider options={{ mode, scripts }}>');
 	expect(markdown).toContain('c15t/next');
 	expect(markdown).toContain('c15t/modules/script-loader');
 	expect(markdown).toContain("loadMode: 'after-consent'");

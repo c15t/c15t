@@ -40,7 +40,7 @@ export interface PackageDocsConfig {
 	skill: PackageSkill;
 }
 
-/** Every c15t framework directory except React Native, which ships alone. */
+/** Every framework directory under `docs/frameworks`. */
 const umbrellaFrameworks = [
 	'next',
 	'tanstack-start',

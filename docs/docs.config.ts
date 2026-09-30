@@ -794,24 +794,6 @@ export default defineDocsConfig({
 					slug: 'javascript',
 					title: 'JavaScript',
 				},
-				{
-					base: 'react-native',
-					children: [
-						{
-							pages: ['native-behaviour', 'platform-support'],
-							slug: 'advanced',
-							title: 'Advanced',
-						},
-						{
-							pages: ['troubleshooting', '/guides/verify-consent'],
-							slug: 'verify-and-troubleshoot',
-							title: 'Verify and troubleshoot',
-						},
-					],
-					pages: ['quickstart', 'usage', 'configuration'],
-					slug: 'react-native',
-					title: 'React Native',
-				},
 			],
 			pages: ['index'],
 			slug: 'frameworks',

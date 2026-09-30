@@ -23,7 +23,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 ## Frameworks
 
-- [Frameworks](./docs/frameworks/index.md): c15t setup guides for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, plain HTML, JavaScript and React Native.
+- [Frameworks](./docs/frameworks/index.md): c15t setup guides for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, plain HTML and JavaScript.
 - [Callbacks](./docs/frameworks/astro/callbacks.md): Run your own code on an Astro site when a visitor records a consent choice, when permissions change, before a revocation reload and on errors, with c15t callbacks in the client entrypoint.
 - [Clear on revocation](./docs/frameworks/astro/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns on an Astro site when that category is denied, with the clearOnRevocation option of the c15t integration.
 - [Client API](./docs/frameworks/astro/client-api.md): Reference for c15t/astro/client on an Astro site, grouped by task, from reading permissions and recorded choices to opening dialogs, saving consent, gated scripts, the page runtime and analytics events.

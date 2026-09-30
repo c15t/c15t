@@ -60,5 +60,22 @@ the old page's task.
 | `/docs/frameworks/javascript/iframe-blocking` | `/docs/frameworks/javascript/modules/iframe-blocker` | v2 route |
 | `/docs/frameworks/javascript/network-blocker` | `/docs/frameworks/javascript/modules/network-blocker` | v2 route |
 | `/docs/integrations/granular-consent` | `/docs/frameworks/next/vendor-consent` | Became a framework page. Every framework that lists vendors has one: `next`, `tanstack-start`, `react`, `nuxt`, `vue`, `svelte`, `sveltekit` and `javascript` |
-| `/docs/integrations/clear-on-revocation` | `/docs/frameworks/next/clear-on-revocation` | Became a framework page. Every framework except React Native has one at `/docs/frameworks/<framework>/clear-on-revocation` |
+| `/docs/integrations/clear-on-revocation` | `/docs/frameworks/next/clear-on-revocation` | Became a framework page. Every framework has one at `/docs/frameworks/<framework>/clear-on-revocation` |
 | `/docs/frameworks/javascript/modules/clear-on-revocation` | `/docs/frameworks/javascript/clear-on-revocation` | Merged with the option guide so JavaScript has one clear on revocation page, at the same slug as every other framework |
+
+## Removed routes
+
+React Native is not published with v3, so its pages were removed, not moved.
+No page covers their task. Redirect each route to `/docs/frameworks` so old
+links land on the framework list. Do not mention React Native, Expo or
+`@c15t/react-native` in the published docs until the package ships.
+
+| Old route | Redirect to | Reason |
+| --- | --- | --- |
+| `/docs/frameworks/react-native` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/quickstart` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/usage` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/configuration` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/native-behaviour` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/platform-support` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/troubleshooting` | `/docs/frameworks` | Removed, not published in v3 |

@@ -178,7 +178,7 @@ revocation behavior, and verification. Reuse the shared registration include for
 all supported frameworks; keep adapter-specific differences explicit.
 Shared integration and embed tabs must match the framework selector order:
 Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML,
-JavaScript, React Native.
+JavaScript.
 Keep `docs/docs.config.ts` and the framework index in that order too. Give each
 framework its own usable example, including server/browser ownership and
 cleanup where needed. Do not send Nuxt readers to a plain Vue snippet or

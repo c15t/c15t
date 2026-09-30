@@ -23,10 +23,6 @@
 	"docs/frameworks/next/pages-router.mdx": 1,
 	"docs/frameworks/next/static-export.mdx": 1,
 	"docs/frameworks/next/troubleshooting.mdx": 1,
-	"docs/frameworks/react-native/configuration.mdx": 1,
-	"docs/frameworks/react-native/quickstart.mdx": 2,
-	"docs/frameworks/react-native/troubleshooting.mdx": 1,
-	"docs/frameworks/react-native/usage.mdx": 16,
 	"docs/frameworks/react/components/consent-banner.mdx": 2,
 	"docs/frameworks/react/components/consent-dialog-link.mdx": 1,
 	"docs/frameworks/react/components/consent-dialog-trigger.mdx": 1,
@@ -84,8 +80,8 @@
 	"docs/self-host/guides/observability.mdx": 1,
 	"docs/self-host/guides/policy-packs.mdx": 2,
 	"docs/self-host/quickstart.mdx": 2,
-	"docs/shared/integrations/consent-embed.mdx": 8,
-	"docs/shared/integrations/register-scripts.mdx": 6,
+	"docs/shared/integrations/consent-embed.mdx": 7,
+	"docs/shared/integrations/register-scripts.mdx": 5,
 	"docs/shared/react/components/dev-tools.mdx": 1,
 	"docs/upgrade-v3.mdx": 1
 }
