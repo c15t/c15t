@@ -365,9 +365,11 @@ language taken from the first segment of the resolved translations language
 A fetched list becomes a `gvlReference` and a small banner summary in the
 serialized payload. A `null` result keeps IAB unavailable. With
 `config.initURL`, the browser reads the list from that same-origin handler;
-otherwise it uses the manifest's public list URL. See
-[server-rendered vendor data](../../javascript/iab/overview#server-rendered-vendor-data)
-for loading and caching behavior.
+otherwise it uses the manifest's public list URL. The banner shows the same
+purpose names and vendor count on the server and during hydration. A
+client-only `vendors` allowlist on the IAB config makes that server summary
+unusable, so the banner waits for the full list. Filter vendors on the server
+when the banner must render immediately.
 
 `createPagesApiHandlers(options)` from `c15t/next/pages` accepts the same
 options or a `defineConsentConfig` result and returns `{ init, manifest }`:

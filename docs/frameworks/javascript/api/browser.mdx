@@ -10,7 +10,7 @@ group: frameworks
 | --- | --- |
 | `@c15t/browser` | `init`, `createConsentClient` and `mountConsentUI`, with the stock banner, dialog and trigger. |
 | `@c15t/browser/headless` | The same client with no UI and no CSS. `mountUI()` throws. |
-| `@c15t/browser/iab` | The client with the IAB TCF CMP and the IAB banner and dialog. See [IAB TCF](/docs/frameworks/javascript/iab/overview). |
+| `@c15t/browser/iab` | The client with the IAB TCF CMP and the IAB banner and dialog. See [IAB TCF](/docs/frameworks/javascript/iab). |
 | `@c15t/browser/devtools` | `mountDevTools(client, options)`. See [DevTools](/docs/frameworks/javascript/dev-tools). |
 | `@c15t/browser/styles.css`, `@c15t/browser/iab/styles.css` | The stylesheets, for `ui: { shadow: false, styles: false }`. |
 
@@ -103,7 +103,7 @@ the choice stays in effect and c15t retries the request later.
 | `options` | The options the client was created with. |
 | `mode` | `hosted`, `offline`, `manifest` or `custom`. |
 | `runtime` | The [consent runtime](/docs/frameworks/javascript/api/runtime) that owns the kernel and modules. `runtime.iab` is the CMP handle under IAB. |
-| `kernel` | The [consent kernel](/docs/frameworks/javascript/api/overview): snapshot, commands and events. |
+| `kernel` | The [consent kernel](/docs/frameworks/javascript/api/kernel): snapshot, commands and events. |
 
 Do not attach a second script loader, network blocker or iframe blocker to
 `client.kernel`. The client already runs one of each.

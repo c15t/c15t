@@ -52,7 +52,7 @@ export interface CommonInlineStoreOptions {
 	/**
 	 * Event callbacks for consent actions.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/components/consent-manager-provider
+	 * @see https://c15t.com/docs/frameworks/react/components/consent-provider
 	 * @see {@link Callbacks} for available options
 	 */
 	callbacks?: Callbacks;
@@ -75,7 +75,7 @@ export interface CommonInlineStoreOptions {
 	 *
 	 * A per-script `nonce` still takes precedence over this value.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/components/consent-manager-provider
+	 * @see https://c15t.com/docs/frameworks/react/components/consent-provider
 	 */
 	nonce?: string;
 
@@ -130,7 +130,7 @@ export interface CommonInlineStoreOptions {
 	 * Most users don't need this — only enable if you work with
 	 * IAB-registered programmatic advertising vendors.
 	 *
-	 * @see https://c15t.com/docs/frameworks/react/iab/overview
+	 * @see https://c15t.com/docs/frameworks/react/iab
 	 * @see {@link IABConfig} for available options
 	 */
 	iab?: IABConfig;

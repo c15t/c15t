@@ -77,7 +77,7 @@ const stop = runtime.kernel.events.on('choice:recorded', ({ confirmed }) => {
 ```
 
 The four callbacks are built on `choice:recorded`, `permissions:changed` and
-`command:error`. The [kernel reference](/docs/frameworks/javascript/api/overview#events)
+`command:error`. The [kernel reference](/docs/frameworks/javascript/api/kernel#events)
 lists every event. To attach the callbacks to a kernel you created yourself,
 call `wireRuntimeCallbacks({ kernel, callbacks })` from `c15t/runtime`.
 

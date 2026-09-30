@@ -54,7 +54,7 @@ Without `options.mode`, `ConsentRoot` picks the transport from its URLs:
 The last case also applies when a `backendURL` prop is `undefined` because an
 environment variable was missing at build time. The `c15t.config.ts` in the
 router guides throws instead, so a misconfigured build fails. See
-[offline configuration](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
+[offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).
 
 ## Provider options
 
@@ -72,7 +72,7 @@ switch visitors or backends after mounting.
 | `callbacks` | Choice, permission and error events |
 | `theme`, `components` | Consent-action styles, theme slots and component slot attributes. Tokens render through `ConsentTheme` |
 | `presentation` | Prompt and preferences layout behavior |
-| `preloadDialog` | When the deferred `ConsentDialog` starts loading: `'idle'` (default) or `'intent'`; see [ConsentDialog](./consent-dialog#behavior) |
+| `preloadDialog` | When the deferred `ConsentDialog` starts loading: `'idle'` (default) or `'intent'`; see [ConsentDialog](/docs/frameworks/next/components/consent-dialog#behavior) |
 | `i18n` | Languages and message overrides |
 | `storageConfig` | Browser record storage configuration |
 | `enabled` | Set false only when intentionally bypassing consent enforcement |

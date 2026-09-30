@@ -106,7 +106,7 @@ localStorage.
 Browser resolution from the manifest has no location input, so the visitor's
 policy follows your unknown-location rule. To resolve location on the server
 for these pages, add the
-[optional local init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
+[optional local init route](/docs/frameworks/next/data-fetching-reference#do-i-need-the-local-init-route).
 
 ## Choose how the server gets the policy
 
@@ -127,10 +127,10 @@ asks the backend to resolve the visitor. Consent saves go to
 
 Offline mode keeps policy in your code and choices in the browser, with no
 consent records. `ConsentRoot` runs offline when it has no backend URL. See
-[offline configuration](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
+[offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).
 
 A backend URL without `manifestURL` does not turn on manifest mode. The
-[fetching reference](/docs/frameworks/next/api-reference/data-fetching#transport-combinations)
+[fetching reference](/docs/frameworks/next/data-fetching-reference#transport-combinations)
 lists what each combination does on the server and in the browser, and
 [data fetching](/docs/concepts/data-fetching) compares the transports across
 frameworks.

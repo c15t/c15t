@@ -97,7 +97,7 @@ export default defineDocsConfig({
 						},
 						{
 							pages: [
-								'components/consent-manager-provider',
+								'components/consent-root',
 								'components/consent-banner',
 								'components/consent-dialog',
 								'components/consent-widget',
@@ -113,7 +113,7 @@ export default defineDocsConfig({
 							title: 'Customize',
 						},
 						{
-							pages: ['hooks/overview'],
+							pages: ['hooks'],
 							title: 'Hooks',
 						},
 						{
@@ -121,11 +121,11 @@ export default defineDocsConfig({
 							title: 'Headless',
 						},
 						{
-							pages: ['iab/overview'],
+							pages: ['iab'],
 							title: 'IAB TCF',
 						},
 						{
-							pages: ['api-reference/data-fetching'],
+							pages: ['data-fetching-reference'],
 							title: 'Reference',
 						},
 					],
@@ -190,7 +190,7 @@ export default defineDocsConfig({
 						},
 						{
 							pages: [
-								'components/consent-manager-provider',
+								'components/consent-provider',
 								'components/consent-banner',
 								'components/consent-dialog',
 								'components/consent-widget',
@@ -206,7 +206,7 @@ export default defineDocsConfig({
 							title: 'Customize',
 						},
 						{
-							pages: ['hooks/overview'],
+							pages: ['hooks'],
 							title: 'Hooks',
 						},
 						{
@@ -214,7 +214,7 @@ export default defineDocsConfig({
 							title: 'Headless',
 						},
 						{
-							pages: ['iab/overview'],
+							pages: ['iab'],
 							title: 'IAB TCF',
 						},
 					],
@@ -563,7 +563,7 @@ export default defineDocsConfig({
 							title: 'Modules',
 						},
 						{
-							pages: ['iab/overview'],
+							pages: ['iab'],
 							title: 'IAB TCF',
 						},
 						{
@@ -571,7 +571,7 @@ export default defineDocsConfig({
 								'api/browser',
 								'api/browser-options',
 								'api/runtime',
-								'api/overview',
+								'api/kernel',
 								'api/snapshot',
 							],
 							title: 'Reference',
