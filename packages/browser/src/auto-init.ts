@@ -164,6 +164,9 @@ export const readScriptOptions = function readScriptOptions(
 	if (readFlag(element, 'data-trigger')) {
 		ui.trigger = true;
 	}
+	if (readFlag(element, 'data-disable-animation')) {
+		ui.disableAnimation = true;
+	}
 	if (readFlag(element, 'data-hide-branding')) {
 		surfaceOptions.hideBranding = true;
 	}

@@ -28,6 +28,7 @@ export const createBanner = function createBanner(
 ): Surface {
 	const styles = classes.banner;
 	const { noStyle, slot } = ctx;
+	const disableAnimation = options.disableAnimation ?? ctx.disableAnimation;
 	let trapFocus = false;
 	let scrollLock = false;
 
@@ -253,7 +254,7 @@ export const createBanner = function createBanner(
 		// The state classes go on before insertion so the first style the
 		// browser computes already includes them; the scroll lock reads
 		// layout, which would otherwise fix the bare state as the start.
-		const flip = !(noStyle || ctx.disableAnimation || supportsStartingStyle());
+		const flip = !(noStyle || disableAnimation || supportsStartingStyle());
 		if (!noStyle) {
 			if (flip) {
 				element.classList.add(styles.bannerHidden);
@@ -262,7 +263,7 @@ export const createBanner = function createBanner(
 				element.classList.add(styles.bannerVisible);
 				overlay?.classList.add(styles.overlayVisible);
 			}
-			if (!(flip || ctx.disableAnimation)) {
+			if (!(flip || disableAnimation)) {
 				// `@starting-style` transitions from the entering state on the
 				// first frame; nothing here has to wait for layout.
 				element.classList.add(styles.bannerEntering);
@@ -298,7 +299,7 @@ export const createBanner = function createBanner(
 			cleanup();
 		}
 		cleanups = [];
-		if (noStyle || ctx.disableAnimation) {
+		if (noStyle || disableAnimation) {
 			removeNow();
 			return;
 		}

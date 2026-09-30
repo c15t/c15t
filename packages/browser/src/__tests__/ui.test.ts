@@ -280,6 +280,26 @@ describe('mountConsentUI', () => {
 			expect(layout).toHaveBeenCalledTimes(2);
 		});
 
+		it('lets the banner and dialog options override disableAnimation', async () => {
+			declareStartingStyle();
+			const { root } = await mount({
+				banner: { disableAnimation: true },
+				dialog: { disableAnimation: false },
+				disableAnimation: false,
+			});
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				false
+			);
+
+			query(root, 'consent-banner-customize-button').click();
+			const dialog = query(root, 'consent-dialog-root');
+			expect(dialog.classList.contains(classes.dialog.contentEntering)).toBe(
+				true
+			);
+		});
+
 		it('skips the entering state when animation is disabled', async () => {
 			declareStartingStyle();
 			const layout = spyOnLayout();

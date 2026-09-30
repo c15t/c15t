@@ -67,6 +67,15 @@ describe('readScriptOptions', () => {
 		});
 	});
 
+	it('skips animations with data-disable-animation', () => {
+		expect(
+			readScriptOptions(scriptWith({ 'data-disable-animation': '' }))
+		).toEqual({ ui: { disableAnimation: true } });
+		expect(
+			readScriptOptions(scriptWith({ 'data-disable-animation': 'false' }))
+		).toEqual({});
+	});
+
 	it('turns the UI off with data-no-ui', () => {
 		expect(
 			readScriptOptions(

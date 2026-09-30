@@ -73,6 +73,8 @@ export interface ConsentBannerOptions {
 	scrollLock?: boolean;
 	/** Legacy blocking override. Prefer `presentation.prompt.blocking`. */
 	trapFocus?: boolean;
+	/** Skip the enter and exit transitions. Defaults to the UI option. */
+	disableAnimation?: boolean;
 }
 
 /** Overrides for the preference centre dialog. */
@@ -81,6 +83,8 @@ export interface ConsentDialogOptions {
 	hideBranding?: boolean;
 	/** Which legal links to render inline. `null` renders none. */
 	legalLinks?: (keyof LegalLinks)[] | null;
+	/** Skip the enter and exit transitions. Defaults to the UI option. */
+	disableAnimation?: boolean;
 }
 
 /** The floating button that reopens the preference centre. */
@@ -161,7 +165,12 @@ export interface ConsentUIOptions {
 	styles?: boolean;
 	/** Ship the DOM without any class names, for fully custom CSS. */
 	noStyle?: boolean;
-	/** Skip enter and exit transitions. */
+	/**
+	 * Skip enter and exit transitions. Defaults to whether the visitor asks
+	 * for reduced motion when the UI mounts. `banner` and `dialog` take the
+	 * same option for one surface. The script tag reads
+	 * `data-disable-animation`.
+	 */
 	disableAnimation?: boolean;
 	/** Render the banner. Defaults to `true`. */
 	banner?: boolean | ConsentBannerOptions;

@@ -33,6 +33,7 @@ export const createDialog = function createDialog(
 ): Surface {
 	const styles = classes.dialog;
 	const { noStyle, slot } = ctx;
+	const disableAnimation = options.disableAnimation ?? ctx.disableAnimation;
 
 	let overlay: HTMLElement | null = null;
 	let positioner: HTMLElement | null = null;
@@ -227,9 +228,9 @@ export const createDialog = function createDialog(
 		// The state classes go on before insertion so the first style the
 		// browser computes already includes them; the scroll lock reads
 		// layout, which would otherwise fix the bare state as the start.
-		const flip = !(noStyle || ctx.disableAnimation || supportsStartingStyle());
+		const flip = !(noStyle || disableAnimation || supportsStartingStyle());
 		setVisible(!flip);
-		if (!(noStyle || flip || ctx.disableAnimation)) {
+		if (!(noStyle || flip || disableAnimation)) {
 			// `@starting-style` transitions from the entering state on the
 			// first frame; nothing here has to wait for layout.
 			overlay.classList.add(styles.overlayEntering);
@@ -272,7 +273,7 @@ export const createDialog = function createDialog(
 		}
 		cleanups = [];
 		widget?.resetDraft();
-		if (noStyle || ctx.disableAnimation) {
+		if (noStyle || disableAnimation) {
 			removeNow();
 			return;
 		}
