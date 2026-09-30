@@ -63,6 +63,13 @@ export const TAILWIND_MATRIX_FIXTURES: readonly TailwindMatrixFixture[] = [
 		pages: [page],
 	},
 	{
+		build: ['next', 'build', '--turbopack'],
+		id: 'next-15-turbopack',
+		label: 'Next.js 15 (Turbopack)',
+		outDir: 'out',
+		pages: [page],
+	},
+	{
 		build: ['vite', 'build'],
 		id: 'react',
 		label: 'React (Vite)',
