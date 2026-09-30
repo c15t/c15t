@@ -12,11 +12,21 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { boot } from '../client';
 import type { AstroConsentClient } from '../client';
+// Vite compiles each island's whole component tree on first import. That
+// takes seconds on a busy machine. Static imports do it while this file
+// loads, so no test timeout covers the compile.
+import * as reactPanelSurface from '../components/islands/panel-surface';
+import * as vuePanelSurface from '../components/islands/panel-surface.vue';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import { registerDialogAdapter, registerDialogSurface } from '../ui/adapter';
 import { reactDialogAdapter } from '../ui/react';
 import { vueDialogAdapter } from '../ui/vue';
+// The Vue adapter imports its plugin on first mount. Importing it here
+// compiles it while this file loads, outside any test timeout.
+import '@c15t/vue/vue-plugin';
+
+import { ISLAND_RENDER_TIMEOUT } from './island-render-timeout';
 import { testRule } from './policy-fixture';
 
 const cleanup: (() => Promise<void> | void)[] = [];
@@ -64,10 +74,7 @@ const renderDialogHost = function renderDialogHost(
 
 const openReactDialog = async function openReactDialog(): Promise<void> {
 	registerDialogAdapter('react', () => Promise.resolve(reactDialogAdapter));
-	registerDialogSurface(
-		'react',
-		() => import('../components/islands/panel-surface')
-	);
+	registerDialogSurface('react', () => Promise.resolve(reactPanelSurface));
 	const client: AstroConsentClient = boot(
 		resolveOptions({
 			legalLinks: {
@@ -83,10 +90,12 @@ const openReactDialog = async function openReactDialog(): Promise<void> {
 		document.getElementById('c15t-dialog-host')?.remove();
 	});
 	await client.openDialog();
-	await vi.waitFor(() =>
-		expect(
-			document.querySelector('[data-testid="consent-dialog-description"]')
-		).not.toBeNull()
+	await vi.waitFor(
+		() =>
+			expect(
+				document.querySelector('[data-testid="consent-dialog-description"]')
+			).not.toBeNull(),
+		ISLAND_RENDER_TIMEOUT
 	);
 };
 
@@ -117,10 +126,7 @@ describe('the React preferences dialog', () => {
 describe('the Vue preferences dialog', () => {
 	it('shows the legal links <ConsentDialog legalLinks> names', async () => {
 		registerDialogAdapter('vue', () => Promise.resolve(vueDialogAdapter));
-		registerDialogSurface(
-			'vue',
-			() => import('../components/islands/panel-surface.vue')
-		);
+		registerDialogSurface('vue', () => Promise.resolve(vuePanelSurface));
 		renderDialogHost('privacyPolicy cookiePolicy');
 		const client: AstroConsentClient = boot(
 			resolveOptions({

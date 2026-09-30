@@ -11,11 +11,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { boot } from '../client';
 import type { AstroConsentClient } from '../client';
+// Vite compiles the island's whole component tree on first import. That
+// takes seconds on a busy machine. A static import does it while this file
+// loads, so no test timeout covers the compile.
+import * as reactPanelSurface from '../components/islands/panel-surface';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import type { C15tAstroOptions, C15tColorScheme } from '../types';
 import { registerDialogAdapter, registerDialogSurface } from '../ui/adapter';
 import { reactDialogAdapter } from '../ui/react';
+import { ISLAND_RENDER_TIMEOUT } from './island-render-timeout';
 import { testRule } from './policy-fixture';
 
 interface MediaQueryStub {
@@ -203,21 +208,20 @@ describe('opening the React dialog', () => {
 		colorScheme: C15tColorScheme
 	): Promise<void> {
 		registerDialogAdapter('react', () => Promise.resolve(reactDialogAdapter));
-		registerDialogSurface(
-			'react',
-			() => import('../components/islands/panel-surface')
-		);
+		registerDialogSurface('react', () => Promise.resolve(reactPanelSurface));
 		const opened = start(colorScheme, {
 			mode: offlineMode({ policyRules: [testRule] }),
 			ui: 'react',
 		});
 		await opened.openDialog();
-		await vi.waitFor(() =>
-			expect(
-				document.querySelector(
-					'[data-testid="consent-widget-footer-save-button"]'
-				)
-			).not.toBeNull()
+		await vi.waitFor(
+			() =>
+				expect(
+					document.querySelector(
+						'[data-testid="consent-widget-footer-save-button"]'
+					)
+				).not.toBeNull(),
+			ISLAND_RENDER_TIMEOUT
 		);
 	};
 

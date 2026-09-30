@@ -11,6 +11,10 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { boot } from '../client';
 import type { AstroConsentClient } from '../client';
+// Vite compiles the island's whole component tree on first import. That
+// takes seconds on a busy machine. A static import does it while this file
+// loads, so no test timeout covers the compile.
+import * as vuePanelSurface from '../components/islands/panel-surface.vue';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
@@ -22,6 +26,10 @@ import {
 import type { ConsentDialogContext } from '../ui/adapter';
 import { buildProviderProps } from '../ui/provider-props';
 import { vueDialogAdapter } from '../ui/vue';
+// The Vue adapter imports its plugin on first mount. Importing it here
+// compiles it while this file loads, outside any test timeout.
+import '@c15t/vue/vue-plugin';
+
 import { testRule } from './policy-fixture';
 
 const cleanup: (() => Promise<void> | void)[] = [];
@@ -127,10 +135,7 @@ describe('disableAnimation on the dialog island', () => {
 
 	it('stops the Vue dialog animation', async () => {
 		registerDialogAdapter('vue', () => Promise.resolve(vueDialogAdapter));
-		registerDialogSurface(
-			'vue',
-			() => import('../components/islands/panel-surface.vue')
-		);
+		registerDialogSurface('vue', () => Promise.resolve(vuePanelSurface));
 		renderDialogHost('true');
 		await bootClient({ ui: 'vue' }).openDialog();
 

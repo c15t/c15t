@@ -9,10 +9,15 @@ import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntime } from '@c15t/core/runtime';
 import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 
+// Vite compiles the island's whole component tree on first import. That
+// takes seconds on a busy machine. A static import does it while this file
+// loads, so no test timeout covers the compile.
+import * as reactPanelSurface from '../components/islands/panel-surface';
 import type { C15tResolvedOptions } from '../types';
 import { registerDialogSurface } from '../ui/adapter';
 import type { ConsentDialogHandle } from '../ui/adapter';
 import { reactDialogAdapter } from '../ui/react';
+import { ISLAND_RENDER_TIMEOUT } from './island-render-timeout';
 import { testResolution } from './policy-fixture';
 
 const OPTIONS = {
@@ -63,10 +68,7 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 				prefetch: { initialPolicyResolution: testResolution() },
 			});
 			cleanup.push(() => runtime.dispose());
-			registerDialogSurface(
-				'react',
-				() => import('../components/islands/panel-surface')
-			);
+			registerDialogSurface('react', () => Promise.resolve(reactPanelSurface));
 			const target = document.createElement('div');
 			document.body.append(target);
 			cleanup.push(() => target.remove());
@@ -88,7 +90,10 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 						}[action]
 					}"]`
 				);
-			await vi.waitFor(() => expect(button()).not.toBeNull());
+			await vi.waitFor(
+				() => expect(button()).not.toBeNull(),
+				ISLAND_RENDER_TIMEOUT
+			);
 			button()?.click();
 			// Closed in the click task, before the request starts.
 			expect(runtime.kernel.getSnapshot().activeUI).toBe('none');
