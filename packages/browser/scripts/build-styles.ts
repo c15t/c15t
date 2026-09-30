@@ -17,7 +17,11 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { collectClassNames, pruneStylesheet } from './prune-stylesheet';
+import {
+	collectClassNames,
+	pruneStylesheet,
+	withoutTailwind3Hints,
+} from './prune-stylesheet';
 
 const uiDist = dirname(
 	fileURLToPath(import.meta.resolve('@c15t/ui/styles.css'))
@@ -85,12 +89,14 @@ const main = async function main(): Promise<void> {
 	// The sheet already pairs every `:root` with `:host`, so it applies
 	// inside the shadow root as published. This package renders the dialog
 	// eagerly, so it carries the dialog rules too.
-	const stylesheet = pruneStylesheet(
-		[
-			await readFile(join(uiDist, 'styles.css'), 'utf8'),
-			await readFile(join(uiDist, 'styles/dialog.css'), 'utf8'),
-		].join('\n'),
-		rendered
+	const stylesheet = withoutTailwind3Hints(
+		pruneStylesheet(
+			[
+				await readFile(join(uiDist, 'styles.css'), 'utf8'),
+				await readFile(join(uiDist, 'styles/dialog.css'), 'utf8'),
+			].join('\n'),
+			rendered
+		)
 	);
 
 	const banner = [
@@ -107,9 +113,11 @@ const main = async function main(): Promise<void> {
 
 	await mkdir(outputDir, { recursive: true });
 	await writeFile(join(outputDir, 'styles.ts'), `${banner}\n${body}`);
-	const iabStylesheet = pruneStylesheet(
-		await readFile(join(uiDist, 'iab/styles.css'), 'utf8'),
-		rendered
+	const iabStylesheet = withoutTailwind3Hints(
+		pruneStylesheet(
+			await readFile(join(uiDist, 'iab/styles.css'), 'utf8'),
+			rendered
+		)
 	);
 	await writeFile(
 		join(outputDir, 'iab-styles.ts'),

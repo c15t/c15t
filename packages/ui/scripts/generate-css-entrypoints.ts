@@ -14,8 +14,10 @@
  *      for Tailwind 4 and native CSS layer consumers; every layered file opens
  *      with Tailwind 4's layer order statement so `components` never ranks
  *      below `base`
- *    - `styles.tw3.css` / `iab/styles.tw3.css` emit the same component rules flat
- *      for Tailwind 3, which cannot import a standalone layered stylesheet from JS
+ *    - `styles.tw3.css` / `iab/styles.tw3.css` emit the same component rules
+ *      flat. They predate `@c15t/ui/postcss-tailwind3` covering the
+ *      entrypoints and stay for apps that already import them; new Tailwind 3
+ *      setups import `styles.css` and run the plugin
  *
  * The stylesheets are split by when a page needs them:
  *
@@ -350,14 +352,23 @@ const DEFAULT_THEME_CSS = [
 const LAYER_ORDER = '@layer properties, theme, base, components, utilities;';
 
 /**
+ * Sits directly above each layer block. Tailwind 3 without
+ * `@c15t/ui/postcss-tailwind3` fails on that block, and bundlers print the
+ * lines above the failing one, so the fix shows up in the build error.
+ * Avoids the word "layer" after an at-sign so layer scans skip it.
+ */
+const TAILWIND3_HINT =
+	"/* Tailwind 3 cannot build the next block on its own. Add '@c15t/ui/postcss-tailwind3' before 'tailwindcss' in your PostCSS plugins. */";
+
+/**
  * Wrap component rules in `@layer components`. Tailwind 4 declares that layer
  * before its utilities, so bare utilities override c15t without
- * `!important`. Tailwind 3 hosts either import the flat `.tw3.css` variant or
- * run `@c15t/ui/postcss-tailwind3`, which unwraps the layer in every
- * `dist/styles/*.css` file, including `styles/dialog.css`.
+ * `!important`. Tailwind 3 hosts run `@c15t/ui/postcss-tailwind3`, which
+ * unwraps the layer in every built stylesheet, including `styles.css` and
+ * `styles/dialog.css`.
  */
 const layered = function layered(ruleParts: string[]): string {
-	return `@layer components {\n${ruleParts.map((r) => `  ${r}`).join('\n\n')}\n}`;
+	return `${TAILWIND3_HINT}\n@layer components {\n${ruleParts.map((r) => `  ${r}`).join('\n\n')}\n}`;
 };
 
 const joinParts = function joinParts(parts: (string | undefined)[]): string {
@@ -411,7 +422,7 @@ writeDist(
 	joinParts([LAYER_ORDER, DEFAULT_THEME_CSS, rootCss, layered(firstPaintRules)])
 );
 
-// dist/styles.tw3.css — the same, flat (Tailwind 3 entry imports)
+// dist/styles.tw3.css — the same, flat (kept for existing Tailwind 3 imports)
 writeDist(
 	'styles.tw3.css',
 	joinParts([DEFAULT_THEME_CSS, rootCss, firstPaintRules.join('\n\n')])
@@ -477,7 +488,7 @@ if (IAB_COMPONENTS.length > 0) {
 		joinParts([LAYER_ORDER, iabBanner, iabRoot, layered(iabRules)])
 	);
 
-	// dist/iab/styles.tw3.css — flat rules (for Tailwind 3 layout imports)
+	// dist/iab/styles.tw3.css — flat rules (kept for existing Tailwind 3 imports)
 	writeDist(
 		'iab/styles.tw3.css',
 		joinParts([iabBanner, iabRoot, iabRules.join('\n\n')])

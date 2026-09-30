@@ -113,3 +113,24 @@ export const pruneStylesheet = function pruneStylesheet(
 	});
 	return root.toString();
 };
+
+/**
+ * `@c15t/ui` puts a comment above each layer block naming
+ * `@c15t/ui/postcss-tailwind3`, so Tailwind 3's build error shows the fix.
+ * The shadow root never runs through Tailwind, and Tailwind 3 drops the
+ * light-DOM sheet's layer rules without an error, so here the comment would
+ * only add bytes to `c15t.js`.
+ */
+const TAILWIND3_HINT = /\/\*[^*]*postcss-tailwind3[^*]*\*\/\n?/gu;
+
+/**
+ * Remove the Tailwind 3 hint comments from a stylesheet.
+ *
+ * @param css - The stylesheet.
+ * @returns The stylesheet without the hints.
+ */
+export const withoutTailwind3Hints = function withoutTailwind3Hints(
+	css: string
+): string {
+	return css.replace(TAILWIND3_HINT, '');
+};

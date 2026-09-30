@@ -337,9 +337,9 @@ export const runAddStylesheetImportsCodemod =
 				entrypointPath: entrypoint,
 				includeBase: detection.usesStyledUi || detection.usesIabUi,
 				includeIab: detection.usesIabUi,
+				legacyTailwindVersion: tailwindVersion,
 				packageName: pkg,
 				projectRoot: options.projectRoot,
-				tailwindVersion,
 			});
 
 			if (!stylesheetResult.filePath) {

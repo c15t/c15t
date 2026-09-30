@@ -15,9 +15,41 @@ group: reference
   preflight in `base` even when the c15t stylesheet loads before Tailwind's.
   Without Tailwind the other layers stay empty. If your CSS declares its own
   layer order, load that statement before the c15t stylesheet.
-  Tailwind v3 treats `@layer components` as its own directive, so import the
-  Tailwind 3 build from your Tailwind entry instead, between the `components`
-  and `utilities` directives:
+
+  With Tailwind 3, import the same stylesheet and add one PostCSS plugin.
+  Tailwind 3 treats `@layer components` as its own directive. Without the
+  plugin the build fails with this error, or Tailwind drops c15t's rules
+  because their class names never appear in your source files:
+
+  ```txt
+  `@layer components` is used but no matching `@tailwind components` directive is present.
+  ```
+
+  `@c15t/ui/postcss-tailwind3` removes the layer wrappers from c15t's
+  stylesheets before Tailwind runs, including the dialog stylesheet the
+  bundler loads. List it before `tailwindcss`:
+
+  ```js title="postcss.config.mjs"
+  export default {
+  	plugins: {
+  		'@c15t/ui/postcss-tailwind3': {},
+  		tailwindcss: {},
+  		autoprefixer: {},
+  	},
+  };
+  ```
+
+  PostCSS runs the plugins in the order the keys are written. Use this object
+  form rather than an array of names: Next.js accepts both, but the loader
+  Vite uses rejects plugin names in an array. With pnpm, add `@c15t/ui` to your dependencies so PostCSS can load the
+  plugin. `c15t setup` makes both changes when it finds Tailwind 3. The
+  `styles.tw3.css` entry from earlier setups still works with the plugin, but
+  new setups do not need it.
+
+  Tailwind 3 has no cascade layers, so c15t's selectors outrank a single
+  utility class. Add the important modifier to utilities you pass to slots:
+  `!bg-red-500`, `hover:!bg-red-500`. A bare `bg-red-500` has no effect.
+  Tailwind 4 utilities win without it. Theme tokens work the same on both.
 </section>
 
 <section id="tokens-intro">

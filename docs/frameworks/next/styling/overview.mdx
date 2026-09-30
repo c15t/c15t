@@ -16,16 +16,18 @@ it after the Tailwind import so the component layers keep their order:
 ```
 
 Without Tailwind, omit its import. Keep the existing global CSS import in the
-layout or `_app.tsx`. Tailwind CSS 3 uses the separate build shown below.
+layout or `_app.tsx`. With Tailwind CSS 3, put the import above the
+directives. `postcss-import`, which Vite and some PostCSS setups use, ignores an
+`@import` that follows other rules:
 
-<import src="../../../shared/react/styling/overview.mdx#tailwind-layers" />
-
-```css
+```css title="app/globals.css"
+@import 'c15t/next/styles.css';
 @tailwind base;
 @tailwind components;
-@import 'c15t/next/styles.tw3.css';
 @tailwind utilities;
 ```
+
+<import src="../../../shared/react/styling/overview.mdx#tailwind-layers" />
 
 ## Tokens
 
