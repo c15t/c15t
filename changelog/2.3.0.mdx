@@ -1,0 +1,89 @@
+---
+title: "v2.3.0 - IAB TCF 2.4, New Integrations, and Netlify Geolocation"
+version: "2.3.0"
+date: 2026-09-30
+description: "Minor release adding IAB TCF 2.4 and Policies v5.0.b support, Front Chat, OneDollarStats, and Pinterest Tag integrations, and Netlify geolocation for the self-hosted backend."
+group: changelog
+tags:
+  - release
+  - stable
+  - iab
+  - integrations
+  - scripts
+  - react
+  - nextjs
+  - backend
+  - i18n
+type: release
+breaking: false
+draft: false
+authors: [KayleeWilliams]
+---
+
+c15t 2.3 brings IAB TCF support up to version 2.4 ahead of IAB Europe's deadline, adds three script integrations, and lets the self-hosted backend read Netlify's geolocation header.
+
+This is a minor release with no breaking changes.
+
+## Highlights
+
+- IAB TCF 2.4 and TCF Policies v5.0.b support, with a new Features section in `IABConsentDialog`
+- New integrations for Front Chat, OneDollarStats, and Pinterest Tag
+- Netlify geolocation support in `@c15t/backend`
+
+## IAB TCF 2.4
+
+IAB Europe requires web CMPs to meet TCF 2.4 and TCF Policies v5.0.b by 23 October 2026. If you use `@c15t/iab`, upgrading to 2.3 covers the c15t side of that requirement. Existing TC strings stay valid and no migration is needed.
+
+The biggest visible change is in `IABConsentDialog`. Features used to sit in the locked "Essential Functions" section, each next to a checked, disabled switch. The new policies forbid showing a Feature next to a control that can't be turned off, so Features now have their own section after Special Purposes. The section shows the IAB standard text for Features, each Feature's name, description, and illustrations, and the vendors that use it. It has no switches. Special Purposes stay locked as before.
+
+The standard text comes from the GVL's new `standardTexts.features` field. When the GVL doesn't include it, c15t falls back to the `iab.preferenceCenter.features` translation, which ships in all 35 locales. It uses IAB's official translation where one exists and English for the four locales IAB doesn't translate.
+
+Other changes:
+
+- `__tcfapi` TC data now includes `vendor.disclosedVendors`.
+- `isServiceSpecific` is deprecated. TCF 2.4 requires IsServiceSpecific to always be `1`, so c15t now always encodes `1` and logs a one-time warning if you pass `false`.
+- Vendors that declare only Special Purposes no longer get a legitimate interest bit, including when c15t re-saves consent restored from an older TC string.
+- Decoding a TC string no longer drops vendor IDs above 1000. The current GVL goes past 1000, so consents and disclosures for those vendors were lost on restore.
+- `useGVLData()` returns `featuresStandardText`, and `IABConsentDialog.PurposeItem` has an `informational` mode for custom layouts.
+- The schema accepts `standardTexts`, and the `GVLStandardTexts` type is exported.
+
+→ [React IAB](/docs/frameworks/react/iab/overview) · [Next.js IAB](/docs/frameworks/next/iab/overview) · [IAB Consent Dialog](/docs/frameworks/react/iab/consent-dialog)
+
+## Three new script integrations
+
+`@c15t/scripts` adds three built-in helpers. Each one has an integration guide, a CLI `generate` option, and a daily live-vendor check.
+
+**Front Chat.** `frontChat()` from `@c15t/scripts/front-chat` loads Front's chat widget after functionality consent and forwards your CSP nonce to the scripts Front injects. It also exports `shutdownFrontChat()`, which asks Front to clear the chat session before the revocation reload. That call is best effort, so c15t still reloads the page.
+
+**OneDollarStats.** `oneDollarStats()` from `@c15t/scripts/one-dollar-stats` loads the tracker after measurement consent. It needs no API key. Optional settings are forwarded as `data-*` attributes. `oneDollarStats()` throws if `hostname` includes a scheme, path, or query instead of a bare host.
+
+**Pinterest Tag.** `pinterestTag()` from `@c15t/scripts/pinterest-tag` recreates Pinterest's v3 base code and loads `core.js` after marketing consent. The script stays loaded after revocation so c15t can call `pintrk('setconsent', false)`, which stops tracking and clears Pinterest's first-party cookies. Re-granting consent calls `setconsent(true)`. `pinterestTagEvent()` gives you typed tracking for Pinterest's 20 event types, and also accepts your own event names.
+
+```ts
+import { pinterestTag, pinterestTagEvent } from '@c15t/scripts/pinterest-tag';
+
+const scripts = [pinterestTag({ tagId: '2613654212508' })];
+
+pinterestTagEvent('checkout', {
+  value: 49.99,
+  currency: 'EUR',
+  order_quantity: 1,
+});
+```
+
+→ [Front Chat](/docs/integrations/front-chat) · [OneDollarStats](/docs/integrations/one-dollar-stats) · [Pinterest Tag](/docs/integrations/pinterest-tag)
+
+## Netlify geolocation
+
+`@c15t/backend` now reads Netlify's `x-country` header, so geolocation works on Netlify Functions without extra setup. c15t treats it the same way as `cf-ipcountry` and `x-vercel-ip-country`. Header precedence is unchanged, and `x-c15t-country` still overrides everything.
+
+→ [Framework integration](/docs/self-host/guides/framework-integration)
+
+## Other improvements
+
+- Hosted mode keeps a visitor's saved rejection through backend outages, and no longer throws when the browser blocks `localStorage`. → [Client modes](/docs/frameworks/react/concepts/client-modes)
+- A choice saved while the consent store is starting up is kept.
+- The iframe blocker skips nodes it can't read instead of stopping. An iframe with an invalid or empty `data-category` now stays blocked and logs a console warning, so check the console for a mistyped category after upgrading. → [Iframe blocking](/docs/frameworks/react/iframe-blocking)
+- Exported types resolve under `Node16` and `NodeNext` module resolution without `skipLibCheck`.
+
+<ContributorBlock usernames={["BurnedChris", "bennajah", "prashantbhudwal", "KayleeWilliams"]} title="Thank you to our contributors" />
