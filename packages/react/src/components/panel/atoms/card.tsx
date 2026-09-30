@@ -7,7 +7,7 @@ import brandingStyles from '@c15t/ui/styles/components/branding';
  * Built with accessibility and customization in mind, following GDPR and other privacy regulation requirements.
  */
 import styles from '@c15t/ui/styles/components/consent-dialog';
-import { forwardRef as createForwardRef } from 'react';
+import { forwardRef as createForwardRef, isValidElement } from 'react';
 import type { ReactNode, Ref } from 'react';
 
 import { useTranslations } from '~/component-hooks/use-translations';
@@ -87,11 +87,12 @@ ConsentDialogHeader.displayName = 'ConsentDialogHeader';
  * - Uses proper heading semantics for accessibility
  * - Should be used within ConsentDialogHeader
  * - Supports theme customization
+ * - Renders an `h2`; with `asChild` the child element takes its place
  */
 const ConsentDialogHeaderTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
->(({ children, ...props }, ref) => {
+>(({ children, asChild, ...props }, ref) => {
 	const { consentManagerDialog: consentDialog } = useTranslations();
 	return (
 		<Box
@@ -103,7 +104,11 @@ const ConsentDialogHeaderTitle = createForwardRef<
 			data-testid="consent-dialog-title"
 			asChild
 		>
-			<h2>{children ?? consentDialog.title}</h2>
+			{asChild && isValidElement(children) ? (
+				children
+			) : (
+				<h2>{children ?? consentDialog.title}</h2>
+			)}
 		</Box>
 	);
 });
@@ -147,15 +152,14 @@ const ConsentDialogHeaderDescription = createForwardRef<
 			}
 		);
 
-		if (asChild) {
-			const Comp = Slot;
+		if (asChild && isValidElement(children)) {
 			return (
-				<Comp
+				<Slot
 					ref={ref as Ref<HTMLDivElement>}
 					{...descriptionProps}
 				>
-					{children ?? consentDialog.description}
-				</Comp>
+					{children}
+				</Slot>
 			);
 		}
 		return (

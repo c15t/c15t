@@ -4,9 +4,10 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-banner';
-import { forwardRef as createForwardRef } from 'react';
+import { forwardRef as createForwardRef, isValidElement } from 'react';
 import type { HTMLAttributes } from 'react';
 
+import { Slot } from '~/components/shared/libs/slot';
 import { useActiveUI } from '~/hooks';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTheme } from '~/hooks/use-theme';
@@ -53,7 +54,7 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
  * @public
  */
 const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
-	({ className, style, noStyle, asChild: _asChild, ...props }, ref) => {
+	({ className, style, noStyle, asChild, children, ...props }, ref) => {
 		const activeUI = useActiveUI();
 		const {
 			disableAnimation,
@@ -87,15 +88,30 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 
 		useScrollLock(!!(showBanner && scrollLock));
 
-		return showBanner && scrollLock ? (
+		if (!(showBanner && scrollLock)) {
+			return null;
+		}
+		const overlayProps = {
+			...theme,
+			'aria-hidden': true,
+			className: finalClassName,
+			'data-testid': 'consent-banner-overlay',
+		};
+		return asChild && isValidElement(children) ? (
+			<Slot
+				ref={ref}
+				{...overlayProps}
+			>
+				{children}
+			</Slot>
+		) : (
 			<div
 				ref={ref}
-				{...theme}
-				aria-hidden="true"
-				className={finalClassName}
-				data-testid="consent-banner-overlay"
-			/>
-		) : null;
+				{...overlayProps}
+			>
+				{children}
+			</div>
+		);
 	}
 );
 
