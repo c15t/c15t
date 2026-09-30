@@ -1,0 +1,60 @@
+// #region docs:compose-banner title="components/cookie-banner.tsx"
+'use client';
+
+import { ConsentBanner, useTranslations } from 'c15t/next';
+
+import { BrandButton } from './brand-button';
+
+const actionParts = {
+	accept: ConsentBanner.AcceptButton,
+	customize: ConsentBanner.CustomizeButton,
+	dismiss: ConsentBanner.DismissButton,
+	reject: ConsentBanner.RejectButton,
+} as const;
+
+/**
+ * The stock card, title and copy, with each action the policy asks for
+ * rendered as your own button. `PolicyActions` decides which actions appear
+ * and in what order, so a notice still gets its acknowledgement.
+ */
+export const CookieBanner = () => {
+	const { common } = useTranslations();
+	const labels = {
+		accept: common.acceptAll,
+		customize: common.customize,
+		dismiss: common.acknowledge,
+		reject: common.rejectAll,
+	};
+
+	return (
+		<ConsentBanner.Root>
+			<ConsentBanner.Card>
+				<ConsentBanner.Header>
+					<ConsentBanner.Title />
+					<ConsentBanner.Description />
+				</ConsentBanner.Header>
+				<ConsentBanner.PolicyActions
+					renderAction={(action, { key, isPrimary, ...props }) => {
+						if (action === 'save') {
+							return null;
+						}
+						const Action = actionParts[action];
+						return (
+							<Action
+								key={key}
+								{...props}
+								asChild
+								noStyle
+							>
+								<BrandButton tone={isPrimary ? 'solid' : 'outline'}>
+									{labels[action]}
+								</BrandButton>
+							</Action>
+						);
+					}}
+				/>
+			</ConsentBanner.Card>
+		</ConsentBanner.Root>
+	);
+};
+// #endregion docs:compose-banner

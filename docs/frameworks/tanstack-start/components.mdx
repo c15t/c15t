@@ -18,7 +18,7 @@ server with the state the root loader resolved.
 | `ConsentDialog` | The preference dialog | [ConsentDialog](/docs/frameworks/tanstack-start/components/consent-dialog) |
 | `ConsentWidget` | The preference controls inline in a page | [ConsentWidget](/docs/frameworks/tanstack-start/components/consent-widget) |
 | `ConsentDialogLink` | A button that opens the dialog, for your footer | [ConsentDialogLink](/docs/frameworks/tanstack-start/components/consent-dialog-link) |
-| `ConsentDialogTrigger` | A floating button that opens the dialog | [ConsentDialogTrigger](/docs/frameworks/tanstack-start/components/consent-dialog-trigger) |
+| `ConsentDialogTrigger` | A floating, draggable button that opens the dialog. `ConsentDialogTriggerToolbar` adds your own actions beside it | [ConsentDialogTrigger](/docs/frameworks/tanstack-start/components/consent-dialog-trigger) |
 | `ConsentGate` | Its children only while a category is allowed | [ConsentGate](/docs/frameworks/tanstack-start/components/consent-gate) |
 | `ConsentTheme` | A `<style>` element with your theme tokens | [Customize](/docs/frameworks/tanstack-start/customize) |
 | `DevTools` from `c15t/react/devtools` | A development panel for consent state and scripts | [DevTools](/docs/frameworks/tanstack-start/components/dev-tools) |
@@ -55,20 +55,27 @@ The root entry also exports `DEFAULT_INIT_ROUTE` (`'/api/c15t/init'`),
 `consentPrefetchHead` for pages without a server render, and
 `buildPrefetchScript`, the script builder behind it.
 
-## Server entry points
+## Server and other entry points
 
 | Import | Exports | Use |
 | --- | --- | --- |
 | `c15t/tanstack-start/server` | `createConsentStateHandler`, `resolveConsent`, `consentLoaderOptions`, `mergeInitIntoConsentState` | Resolve the visitor's state in a server function |
-| `c15t/tanstack-start/middleware` | `consentRequestMiddleware` | Read location, language and privacy headers on every request |
+| `c15t/tanstack-start/middleware` | `consentRequestMiddleware` | Read location, language and privacy headers on every request. See [geography headers](/docs/frameworks/tanstack-start/geography-headers) |
 | `c15t/tanstack-start/api` | `createConsentServerRoute`, `GET`, `manifestGET`, `initGET` | Serve `/api/c15t/*` from your app |
+| `c15t/tanstack-start/static` | `createStaticConsentResolver`, `loadStaticManifest`, `createStaticManifestModule`, `resolveUnknownLocationInit` | Bundle the manifest at build time. See [rendering](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts) |
 | `c15t/tanstack-start/headless` | Headless hooks | [Custom markup](/docs/frameworks/tanstack-start/headless) |
+| `c15t/tanstack-start/components/consent-dialog-link` | `ConsentDialogLink` only | A module that needs the link without loading the rest of the adapter |
 
 `resolveConsent` is the function behind `createConsentStateHandler`. Call it
 directly from a server route or middleware that already holds the `Request`,
-and pass it as `request`. Import server entry points only from server code.
+and pass it as `request`. Import `server`, `middleware` and `api` only from
+server code.
 
 ## IAB TCF components
 
-The IAB banner and dialog come from `c15t/react/iab`. See
+Import `IABProvider`, `IABConsentBanner` and `IABConsentDialog` from
+`c15t/react/iab`, render them inside `ConsentRoot` next to
+`ConsentBanner` and `ConsentDialog`, and load
+`c15t/tanstack-start/iab/styles.css`. The stock banner and dialog stay closed
+under an IAB policy. See
 [IAB TCF](/docs/frameworks/tanstack-start/iab).

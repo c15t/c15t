@@ -1,0 +1,145 @@
+---
+title: Geography headers
+description: Which request headers c15t reads for country, region, language and Global Privacy Control in TanStack Start, where the server functions and consent route send them, and how to test another location.
+group: frameworks
+---
+
+## Where the location comes from
+
+Your consent policy picks a rule by the visitor's country and region, such as
+opt-in in Europe, opt-out in US states with privacy laws, and no banner where
+no law applies. In TanStack Start, the c15t server helpers read that location from
+request headers your host or CDN adds. They never look up an IP address. With
+no location header, the policy resolves with its rule for an unknown location.
+
+## Which headers are read
+
+`consentRequestMiddleware`, `createConsentStateHandler`, `resolveConsent` and
+the `/api/c15t/init` route read the same headers, in this order. The first one
+with a value wins.
+
+| Input | Headers, highest priority first | Set by |
+| --- | --- | --- |
+| Country | `x-c15t-country`, `cf-ipcountry`, `x-vercel-ip-country`, `x-amz-cf-ipcountry`, `x-country-code`, `x-country` | c15t override, Cloudflare, Vercel, CloudFront, generic proxies |
+| Region | `x-c15t-region`, `cf-region-code`, `x-vercel-ip-country-region`, `x-region-code` | c15t override, Cloudflare, Vercel, generic proxies |
+| Language | `accept-language`, negotiated by quality value to a primary tag such as `de` | The browser |
+| Global Privacy Control | `x-c15t-gpc`, `sec-gpc`. Only `1` and `0` count | c15t override, the browser |
+
+Vercel adds its country and region headers to every request. Cloudflare adds
+`cf-ipcountry`; for `cf-region-code`, turn on Cloudflare's visitor location
+headers. On another host, or a Node server without a CDN, set `x-c15t-country`
+and `x-c15t-region` at your edge from whatever location data it has.
+
+## Read the headers once per request
+
+Register `consentRequestMiddleware` in `src/start.ts`, as the
+[quickstart](/docs/frameworks/tanstack-start/quickstart#read-location-headers-on-every-request)
+does:
+
+<include src="../../shared/examples/tanstack-start/start.mdx" />
+
+On every request, including server function calls and server routes, the
+middleware:
+
+- reads the headers in the table above,
+- writes the result back onto the request as `x-c15t-country`,
+  `x-c15t-region` and `sec-gpc`, so later code sees one format whichever CDN
+  sent the value,
+- and exposes the same values as `context.consent` to server routes and server
+  functions.
+
+Some runtimes hand middleware a request whose headers cannot change. The
+middleware also keeps the values for that request, and the c15t helpers read
+them from there first, so they still see the location. Pass
+`normalizeHeaders: false` to leave the request headers untouched.
+
+## Where the location goes
+
+What happens next depends on your
+[rendering setup](/docs/frameworks/tanstack-start/rendering):
+
+| Code | What it does with the location |
+| --- | --- |
+| `createConsentStateHandler` and `resolveConsent` | Resolve the visitor's policy in the Start server, from the cached manifest. The manifest request to your backend carries no visitor location, only headers you name in `forwardHeaders` |
+| `/api/c15t/init` from `createConsentServerRoute` | Resolves the policy in the Start server from the same inputs, for the browser's init request |
+| `createConsentServerRoute({ proxy: true })` | Forwards the location headers, `accept-language`, `sec-gpc`, `user-agent`, `origin` and `referer` to your backend on proxied requests such as `POST /subjects` |
+| `ConsentRoot` with `initRoute={false}` | The browser calls your backend's `/init` directly, and the backend reads the location its own host adds |
+
+The server render in the quickstart always uses the Start server's headers,
+even when `initRoute={false}` sends the browser to your backend.
+
+## Forwarding headers are ignored by default
+
+A relative `backendURL` or `manifestURL`, such as `/api/c15t`, resolves
+against the URL the Start server received the request under. c15t does not
+read `x-forwarded-host`, `x-forwarded-proto` or `forwarded` for this, because
+any client can send them. If it did, a visitor could point the server's
+manifest fetch, or the proxied consent save, at a host of their choosing.
+
+The consent proxy follows the same rule. It never copies those headers from the
+browser. It sets `x-forwarded-host` and `x-forwarded-proto` from the request
+URL, and sends the client IP chain in `x-forwarded-for` only when you opt in.
+
+Set `trustForwardedHeaders: true` on `createConsentStateHandler` and
+`createConsentServerRoute` only when your app runs behind a proxy that sets
+those headers and drops any the client sent. Check your host's documentation.
+Some hosts overwrite `x-forwarded-for`, and others append to the value the
+client sent.
+
+## Trust the location headers
+
+The `x-c15t-*` headers always win, and a browser can send them.
+`consentRequestMiddleware` does not remove them. A visitor who sends
+`x-c15t-country: US` gets the policy for the United States. That changes only
+their own banner, but if you need the policy to follow your CDN's location,
+delete incoming `x-c15t-*` headers at your edge before the request reaches the
+Start server. The provider's `overrides` option sends the same headers on the
+browser's init request, so stripping them also turns off that testing path
+through your edge.
+
+The generic `x-country-code`, `x-country` and `x-region-code` headers carry
+whatever the client sent unless your proxy overwrites them. Behind your own
+proxy, overwrite or delete them. `cf-ipcountry` and the Vercel headers come
+from the platform, as long as visitors cannot reach your origin directly.
+
+## Force a location
+
+Pass `country`, `region` or `language` to force an input:
+
+- On `consentRequestMiddleware({ country: 'DE' })`, for every request, such as
+  a site that serves one country or a local test.
+- On `createConsentStateHandler({ backendURL, country: 'DE' })`, for that
+  server function. It accepts `country` and `language`, not `region`.
+
+An option on the server function wins over the middleware. In the browser,
+`ConsentRoot` takes `options={{ overrides: { country, region, language } }}`
+for the same purpose after hydration.
+
+## Test another location
+
+Send the override header with a request and look for the banner in the HTML.
+With the awaited loader from the quickstart:
+
+{/* example: fragment */}
+
+```sh
+curl -s -H 'x-c15t-country: DE' http://localhost:3000/ | grep -c consent-banner-root
+curl -s -H 'x-c15t-country: US' -H 'x-c15t-region: CA' http://localhost:3000/ | grep -c consent-banner-root
+```
+
+Use the port your server listens on. The first request prints `1` under a
+policy that asks Europe for opt-in. What the second prints depends on your
+policy's rule for California. With the consent server route mounted, request
+`/api/c15t/init` with the same headers. Its JSON has `location` and
+`policyResolution` for that location.
+
+## Verify
+
+1. On your deployed site, log `context.consent` once from a server route or
+   server function. It shows the country and region your CDN sent. An empty
+   country means no location header reaches the Start server.
+2. View the page source from two locations with different policy rules, for
+   example through a VPN. The banner is in the HTML where the rule asks for a
+   choice, and absent where it does not.
+3. Send `x-c15t-country` from outside your edge. If you strip the header, the
+   response still follows your real location.

@@ -116,6 +116,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'translations',
+								'compose',
 								'headless',
 							],
 							slug: 'customization',
@@ -123,6 +125,7 @@ export default defineDocsConfig({
 						},
 						{
 							pages: [
+								'components',
 								'components/consent-root',
 								'components/consent-banner',
 								'components/consent-dialog',
@@ -135,7 +138,7 @@ export default defineDocsConfig({
 							title: 'Components',
 						},
 						{
-							pages: ['hooks'],
+							pages: ['hooks', 'callbacks'],
 							slug: 'consent-api',
 							title: 'Consent API',
 						},
@@ -184,6 +187,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'translations',
+								'compose',
 								'headless',
 							],
 							slug: 'customization',
@@ -203,12 +208,12 @@ export default defineDocsConfig({
 							title: 'Components',
 						},
 						{
-							pages: ['hooks'],
+							pages: ['hooks', 'callbacks'],
 							slug: 'consent-api',
 							title: 'Consent API',
 						},
 						{
-							pages: ['iab'],
+							pages: ['iab', 'geography-headers', 'content-security-policy'],
 							slug: 'advanced',
 							title: 'Advanced',
 						},
@@ -239,6 +244,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'translations',
+								'compose',
 								'headless',
 							],
 							slug: 'customization',
@@ -246,6 +253,7 @@ export default defineDocsConfig({
 						},
 						{
 							pages: [
+								'components',
 								'components/consent-provider',
 								'components/consent-banner',
 								'components/consent-dialog',
@@ -258,12 +266,12 @@ export default defineDocsConfig({
 							title: 'Components',
 						},
 						{
-							pages: ['hooks'],
+							pages: ['hooks', 'callbacks'],
 							slug: 'consent-api',
 							title: 'Consent API',
 						},
 						{
-							pages: ['iab'],
+							pages: ['iab', 'content-security-policy'],
 							slug: 'advanced',
 							title: 'Advanced',
 						},

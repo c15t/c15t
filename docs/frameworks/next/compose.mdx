@@ -1,0 +1,80 @@
+---
+title: Compose your own banner
+description: Build a Next.js consent banner as a Client Component from the ConsentBanner parts in c15t/next, with your own markup and buttons, rendered inside ConsentRoot.
+group: frameworks
+---
+
+## When to compose
+
+<import src="../../shared/react/compose.mdx#when-to-compose" />
+
+For a banner that shares nothing with the stock markup, use the
+[headless hooks](/docs/frameworks/next/headless). For one changed class,
+token or prop, see [customize](/docs/frameworks/next/customize).
+
+## Compose the banner
+
+`CookieBanner` keeps the stock card, title and copy, and renders each action
+the policy asks for as your design system's button. `BrandButton` stands in
+for that button:
+
+<include src="../../shared/examples/nextjs/compose-button.mdx" />
+
+<include src="../../shared/examples/nextjs/compose-banner.mdx" />
+
+`c15t/next` re-exports every `c15t/react` component, so `ConsentBanner` and
+its parts come from the same import as `ConsentRoot`. The file starts with
+`'use client'` because a Server Component can neither read a property of a
+client component, such as `ConsentBanner.Root`, nor pass a function, such as
+`renderAction`.
+
+The parts read the provider inside
+[ConsentRoot](/docs/frameworks/next/components/consent-root). Each router
+guide in the [quickstart](/docs/frameworks/next/quickstart) creates a
+`components/consent.tsx` client wrapper. Import `CookieBanner` there from
+`./cookie-banner` and render it in place of `ConsentBanner`, next to
+`ConsentDialog`:
+
+{/* example: fragment */}
+
+```tsx title="components/consent.tsx (partial)"
+<ConsentRoot state={state} config={consentConfig} scripts={scripts}>
+	{children}
+	<CookieBanner />
+	<ConsentDialog />
+	<footer>
+		<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+	</footer>
+</ConsentRoot>
+```
+
+The App Router and the Pages Router use the same wrapper, so the composed
+banner works in both.
+
+<import src="../../shared/react/compose.mdx#how-it-works" />
+
+<import src="../../shared/react/compose.mdx#banner-parts" />
+
+[ConsentBanner](/docs/frameworks/next/components/consent-banner) lists the
+stock banner's props, variants and data attributes.
+
+<import src="../../shared/react/compose.mdx#as-child" />
+
+<import src="../../shared/react/compose.mdx#dialog" />
+
+`c15t/next` exports `ConsentDialog` and `ConsentWidget` with their parts.
+It has no `components/consent-dialog` subpath, so import the parts without
+the deferral from `c15t/react/components/consent-dialog`, in a Client
+Component. [ConsentDialog](/docs/frameworks/next/components/consent-dialog)
+and [ConsentWidget](/docs/frameworks/next/components/consent-widget) list
+every part and its slots.
+
+<import src="../../shared/react/compose.mdx#accessibility" />
+
+<import src="../../shared/react/compose.mdx#theming" />
+
+[Customize](/docs/frameworks/next/customize) shows where to set tokens with
+`ConsentTheme`, and slots and `consentActions` through `ConsentRoot`'s
+`options`.
+
+<import src="../../shared/react/compose.mdx#verify" />

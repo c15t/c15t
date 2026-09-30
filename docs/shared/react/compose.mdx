@@ -1,0 +1,244 @@
+---
+title: "Compose your own banner"
+description: "Shared compound-component content for the React, Next.js and TanStack Start compose pages."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by the React, Next.js and TanStack Start compose pages, which add their own framework links. */}
+
+<section id="when-to-compose">
+  Compose the banner from its parts when you need its elements in a different
+  order, an element it does not have, or your design system's button in place
+  of c15t's. The parts keep the stock
+  behavior. They read the same policy, record the same choices and render the
+  same class names, so theme tokens and slots still apply.
+
+  Try the lighter tools first:
+
+  | Change | Use |
+  | --- | --- |
+  | Colors, type, radius, spacing | [Theme tokens](/docs/customization/tokens) |
+  | Classes or attributes on one part | [Slots](/docs/customization/slots) |
+  | Labels and languages | [Copy and translations](/docs/customization/translations) |
+  | Shape, position, button order | `ConsentBanner` props such as `variant`, `position`, `layout` and `primaryButton` |
+  | Different markup or order | Compound parts, on this page |
+  | Entirely custom UI and behavior | Headless hooks |
+</section>
+
+<section id="how-it-works">
+  `ConsentBanner.Root` renders only while the banner is the active surface,
+  the same condition the stock `ConsentBanner` uses, so `CookieBanner` needs
+  no visibility logic. It renders nothing before a policy resolves and closes
+  once the visitor chooses.
+
+  `ConsentBanner.PolicyActions` renders the actions the policy asks for, in
+  the policy's order and groups, with any rights links, such as "Do not sell
+  or share my data", before them. For each action it calls `renderAction`
+  with the action name and the props c15t would give the stock button:
+  `key`, `consentAction`, `isPrimary`, and a `style` that stretches the
+  buttons when the layout fills the row. Return an element to replace that
+  button, or `null` to keep the stock one. The banner never renders `save`,
+  so the example skips it.
+
+  Each action part gets those props plus `asChild` and `noStyle`. `asChild`
+  renders `BrandButton` in place of c15t's `button`, and `noStyle` drops
+  c15t's button classes so they do not compete with yours. The part keeps its
+  behavior. Accept saves every category and Reject saves only necessary, and
+  both close the banner. Customize opens the preference dialog. Dismiss
+  records that the visitor saw a notice, without recording a choice.
+
+  With `asChild`, the part's default label does not render, because your
+  element keeps its own children. `useTranslations()` returns the labels the
+  stock buttons use, in the visitor's language.
+
+  Under a notice, the policy asks only for an acknowledgement, so
+  `PolicyActions` passes `dismiss` and `CookieBanner` renders one button. If
+  you place `ConsentBanner.AcceptButton` and `ConsentBanner.RejectButton`
+  yourself instead, they render under every policy, including one that owes
+  only a notice.
+</section>
+
+<section id="banner-parts">
+  ## Banner parts
+
+  Every part is a property of `ConsentBanner`. All parts except `Root` and
+  `PolicyActions` forward their ref, and they accept the attributes of the
+  element they render plus `noStyle`.
+
+  | Part | Renders | Props |
+  | --- | --- | --- |
+  | `Root` | The `div` that positions the banner, only while the banner shows. Renders the backdrop itself when blocking. | `variant`, `position`, `blocking`, `models` (default `['opt-in', 'opt-out']`), `uiSource` (default `'banner'`), `noStyle`, `disableAnimation` |
+  | `Card` | The visible `div`, labelled with the title. `role="region"`, or `role="dialog"` with `aria-modal="true"` and a focus trap when blocking. | `asChild` |
+  | `Header` | A `div` for the title and copy. | `asChild` |
+  | `Title` | An `h2` with the translated title, or the notice title under a notice. | children replace the text |
+  | `Description` | A `div` with the translated copy and the configured legal links. | `legalLinks`, `asChild` |
+  | `PolicyActions` | `Footer`, the rights links and the policy's action groups. | `renderAction`, children replace the rights links |
+  | `Footer` | A `div` for the actions. | `asChild` |
+  | `FooterSubGroup` | A `div` for one group of actions. `Actions` is an alias. | `asChild` |
+  | `AcceptButton` | A `button` that saves every category and closes the banner. | action button props |
+  | `RejectButton` | A `button` that saves only necessary and closes the banner. | action button props |
+  | `CustomizeButton` | A `button` that opens the preference dialog. | action button props |
+  | `DismissButton` | A `button` that acknowledges a notice. | action button props |
+  | `Rights` | A `div` with one `RightLink` per right the policy recommends, or nothing. | `rights`, `asChild` |
+  | `RightLink` | A `button` styled as underlined text that opens the preference dialog. | `right` (`'opt-out'` or `'preferences'`), `asChild` |
+  | `Overlay` | The backdrop of a blocking banner. `Root` already renders it, so do not add it. | none |
+
+  `Content` is an alias of `Card`.
+
+  The action buttons take `asChild`, `noStyle`, `consentAction`, `isPrimary`,
+  `variant` (`'primary'` or `'neutral'`), `mode` (`'filled'`, `'stroke'`,
+  `'lighter'` or `'ghost'`), `onClick` and any `button` attribute. Your
+  `onClick` runs before the action, and calling `event.preventDefault()` in
+  it skips the action. `consentAction` sets `data-action` and selects the
+  `theme.consentActions` entry. `PolicyActions` passes it for you, and
+  `DismissButton` sets it itself. A button you place yourself has no
+  `data-action` and no per-action theme until you pass `consentAction`.
+
+  `useConsentBannerSurface()` returns the `variant`, `position`,
+  `positionSource` and `blocking` that `Root` resolved, for your own elements
+  that depend on the banner's shape.
+</section>
+
+<section id="as-child">
+  ## Render a part as your own element
+
+  `asChild` swaps the part's element for the one element you pass as its
+  child. `Card`, `Header`, `Description`, `Footer`, `FooterSubGroup`,
+  `Rights`, `RightLink` and the action buttons support it. `Root` and
+  `Overlay` ignore it, and `Title` always renders an `h2`, so a child you pass
+  to `Title` ends up inside that `h2`. `Description` with `asChild` drops the
+  inline legal links.
+
+  The part merges its props onto your element:
+
+  - The part's props apply first, and props you set on the child win.
+  - `className` keeps both, the part's classes first.
+  - `style` merges, and your values win per property.
+  - Event handlers both run, yours first. On an action button, calling
+    `event.preventDefault()` in yours skips c15t's action.
+  - The part's ref and your child's ref both receive the DOM node.
+  - Your child keeps its own children. The part's default content, such as a
+    button label, does not render.
+
+  Your component has to pass its ref and every prop it does not use to its
+  DOM element. Otherwise c15t's click handler, `data-action` and focus
+  handling never reach the page. The `BrandButton` in the example does both.
+  Pass exactly one element. Text, a fragment or several children render
+  nothing.
+
+  Action buttons pass no `type` under `asChild`, so give your button a
+  default of `type="button"`. Without it, the button submits a surrounding
+  form.
+</section>
+
+<section id="dialog">
+  ## Compose the preference dialog
+
+  `ConsentDialog` has parts too. Compose it when the dialog needs a different
+  header or footer, and keep `ConsentWidget` inside `Content`. The widget
+  owns the category switches, the draft and the policy's Save, Accept and
+  Reject buttons.
+
+  | Part | Renders | Props |
+  | --- | --- | --- |
+  | `Root` | The dialog in a portal on `document.body`, with its open state, backdrop, focus trap, scroll lock and Escape to close. | `open`, `models` (default `['opt-in', 'opt-out', 'none']`), `overlay` (a node, or `false` for none), `noStyle`, `disableAnimation`, `scrollLock`, `trapFocus`, `uiSource` (default `'dialog'`) |
+  | `Card` | The panel `div`. | `className`, `style`, `noStyle` |
+  | `Header` | A `div` for the title and copy. | `asChild` |
+  | `HeaderTitle` | An `h2` with `id="consent-dialog-title"`. | children replace the text |
+  | `HeaderDescription` | A `div` with `id="consent-dialog-description"` and the legal links. | `legalLinks`, `asChild` |
+  | `Content` | A `div` for `ConsentWidget`. | `asChild` |
+  | `Footer` | A `div` with the branding tag, unless you pass children or `hideBranding`. | `hideBranding`, `asChild` |
+  | `ConsentCustomizationCard` | The stock card with all of the above. | `legalLinks`, `hideBranding`, `noStyle` |
+  | `Overlay` | The backdrop. `Root` already renders it. | none |
+
+  {/* example: fragment */}
+
+  ```tsx
+  <ConsentDialog.Root>
+    <ConsentDialog.Card>
+      <ConsentDialog.Header>
+        <ConsentDialog.HeaderTitle>Your privacy choices</ConsentDialog.HeaderTitle>
+        <ConsentDialog.HeaderDescription />
+      </ConsentDialog.Header>
+      <ConsentDialog.Content>
+        <ConsentWidget />
+      </ConsentDialog.Content>
+      <ConsentDialog.Footer hideBranding />
+    </ConsentDialog.Card>
+  </ConsentDialog.Root>
+  ```
+
+  Render the composed dialog in place of `ConsentDialog`, next to your
+  banner. The stock `ConsentDialog` downloads its code when the dialog first
+  opens. The parts load that same code when they first render, and a
+  composed `ConsentDialog.Root` renders on every page, so the code downloads
+  with the page. `c15t/react/components/consent-dialog` exports the same
+  parts without the deferral.
+
+  `ConsentWidget` has parts as well, such as `ConsentWidget.Root`,
+  `ConsentWidget.Accordion`, `ConsentWidget.AccordionItems` and
+  `ConsentWidget.PolicyActions`, for a preference list with your own layout.
+</section>
+
+<section id="accessibility">
+  ## Keep the banner accessible
+
+  The stock parts carry the roles, labels and focus handling. A composed
+  banner keeps them as long as you keep the parts that own them:
+
+  - `Card` owns the banner's role, label and focus trap. With `asChild`, your
+    element receives them, so do not set `role` or `aria-modal` on it.
+  - `Card` takes its `aria-label` from the translated title, not from text you
+    pass to `Title`. If you change the title text, pass the same text as
+    `aria-label` on `Card`.
+  - To attach your own ref to `Card`, pass a ref object from `useRef`. A
+    callback ref turns off the focus trap on a blocking banner.
+  - Render each action as a real `button`. Its text is the accessible name,
+    so keep the label inside your button.
+  - Keep a way to reopen preferences after the banner closes, such as the
+    `ConsentDialogLink` in your footer.
+  - The dialog's `Root` names the panel with the ids on `HeaderTitle` and
+    `HeaderDescription`. Keep both parts, or put `id="consent-dialog-title"`
+    and `id="consent-dialog-description"` on your own heading and copy.
+</section>
+
+<section id="theming">
+  ## Keep theme tokens and slots working
+
+  The parts render the stock class names, so the c15t stylesheet and its
+  `--c15t-*` tokens style a composed banner the way they style the stock one.
+  Keep the stylesheet import.
+
+  Slots in the provider's `options.components` reach each part by key:
+  `banner.root`, `banner.card`, `banner.header`, `banner.title`,
+  `description.banner`, `banner.footer` and `banner.actions`,
+  `banner.actionGroup`, `banner.rights` and `banner.rightLink`. A class you
+  pass to a part joins its stock and slot classes. The stock `ConsentBanner`
+  also renders the `banner.cardShell` wrapper and the "Secured by" tag, and a
+  composed banner renders neither.
+
+  Action buttons read the `button.primary` or `button.secondary` slot and the
+  `theme.consentActions` entry for their `consentAction`. `noStyle` on a
+  button drops c15t's button classes and keeps slot classes. `noStyle` on
+  `Root` removes the built-in styling from every part inside it.
+</section>
+
+<section id="verify">
+  ## Check the result
+
+  1. Clear site data and reload. The composed banner appears with your
+     buttons. In DevTools Elements, each action is your element with a
+     `data-action` attribute. In DevTools Network, no optional vendor request
+     has fired.
+  2. Tab through the banner. Every action is reachable in the policy's order
+     and shows a focus ring. Press Enter on Customize, and the preference
+     dialog opens.
+  3. Click Reject all. The banner closes. Reload, and it stays closed with
+     the vendors still blocked.
+  4. Reopen preferences from your footer link. The optional categories are
+     off. Allow one, save, and only that category's vendors load.
+  5. If your policies include a notice region, test it too. The banner shows
+     your acknowledgement button and no Accept or Reject.
+
+  [Verify consent](/docs/guides/verify-consent) has the full checklist.
+</section>

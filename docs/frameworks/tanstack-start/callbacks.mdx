@@ -1,34 +1,39 @@
 ---
 title: Callbacks
-description: Run code in a React app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, with the ConsentProvider callbacks option.
+description: Run code in a TanStack Start app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, from ConsentRoot in the root route.
 group: frameworks
 ---
 
-## Pass callbacks to the provider
+## Pass callbacks to ConsentRoot
 
 Keep the callbacks in their own module:
 
-<include src="../../shared/examples/react/callbacks.mdx" />
+<include src="../../shared/examples/tanstack-start/callbacks.mdx" />
 
-Pass them in the `ConsentProvider` options, in the file that renders the
-provider, such as `src/consent.tsx` from the
-[quickstart](/docs/frameworks/react/quickstart):
+Import it in `src/routes/__root.tsx` and pass it under `options` on
+`ConsentRoot`:
 
 {/* example: fragment */}
 
-```tsx title="src/consent.tsx"
-<ConsentProvider options={{ mode, scripts, callbacks }}>
+```tsx title="src/routes/__root.tsx"
+<ConsentRoot
+  state={consent}
+  backendURL={backendURL}
+  initRoute={false}
+  scripts={scripts}
+  options={{ callbacks }}
+>
 ```
 
-The provider subscribes the callbacks after it mounts, so they run in the
-browser. If you render on the server, server rendering never calls them. The
-provider calls the latest `callbacks` object it received, so a new object on
-a later render takes effect without a remount. Defining the object at module
-level, as above, keeps it the same across renders.
+The root route component renders on the server and again in the browser, and
+each side imports the module itself. Do not return callbacks from the root
+loader or a server function. Loader data is serialized for the browser, and
+functions cannot be serialized, so it should carry only the consent state.
 
-When you pass your own `runtime` to `ConsentProvider`, the provider does not
-wire `callbacks` or `reloadOnConsentRevoked` from its options. Pass them to
-`createConsentRuntime` instead.
+`ConsentRoot` subscribes the callbacks after it mounts in the browser. Server
+rendering never calls them. The provider calls the latest `callbacks` object
+it received, so a new object on a later render takes effect without a
+remount.
 
 ## Available callbacks
 
@@ -36,12 +41,17 @@ wire `callbacks` or `reloadOnConsentRevoked` from its options. Pass them to
 | --- | --- | --- |
 | `onChoiceRecorded` | The visitor clicks Accept all, Reject all or Save, in the stock UI or through `useSaveConsents()`. | `snapshot`, the state after the choice; `confirmed`, the categories this action recorded; `actionAt`, the time as a millisecond timestamp |
 | `onPermissionsChanged` | Any effective permission changes value. | `snapshot`, the state after the change; `previous`, the permissions before it |
-| `onError` | A consent command fails, such as a failed `/init` request or a save the backend rejects. | `error`, a message string |
+| `onError` | A consent command fails in the browser, such as a failed `/init` request or a save the backend rejects. | `error`, a message string |
 | `onBeforeConsentRevocationReload` | A save withdrew a granted category or vendor, right before c15t reloads the page. | `preferences`, the permissions after the save |
 
-The type for the whole object is `ConsentProviderCallbacks` from `c15t/react`.
-Callbacks run after c15t updates its state, so `snapshot` and hooks such as
-`useConsent()` already hold the new values.
+The type for the whole object is `ConsentProviderCallbacks` from
+`c15t/tanstack-start`. Callbacks run after c15t updates its state, so
+`snapshot` and hooks such as `useConsent()` already hold the new values.
+
+`resolveConsent` on the server has no error callback. When the manifest
+request fails or runs out of `timeoutMs`, the loader returns the request-only
+state, and the browser resolves consent after hydration. A failure there
+reaches `onError`.
 
 ## onChoiceRecorded or onPermissionsChanged
 
@@ -51,7 +61,7 @@ runs whenever effective permissions change, whatever the cause:
 | Event | `onChoiceRecorded` | `onPermissionsChanged` |
 | --- | --- | --- |
 | Visitor accepts, rejects or saves | Yes | Yes, if a permission changed |
-| A policy resolves and allows categories before any choice | No | Yes |
+| A policy resolves in the browser and allows categories before any choice | No | Yes |
 | Global Privacy Control turns off a grant | No | Yes |
 | A recorded choice expires | No | Yes |
 | Visitor dismisses a notice | No | No |
@@ -65,8 +75,8 @@ explains the difference.
 
 Dismissing a notice records no choice and changes no permission. Read it with
 `useNoticeDismissal()` instead. For consent inside one component, use the
-[hooks](/docs/frameworks/react/hooks), which re-render the component when
-consent changes.
+[hooks](/docs/frameworks/tanstack-start/hooks), which re-render the component
+when consent changes.
 
 ## Before a revocation reload
 
@@ -80,9 +90,10 @@ reload does not wait for promises.
 A choice that expires, a new policy and a privacy signal change permissions
 without a visitor action, so they do not reload the page.
 
-To handle revocation yourself, set `reloadOnConsentRevoked: false` in the
-provider options. Code the visitor turned off then keeps running until the
-next full page load, and `onBeforeConsentRevocationReload` never runs.
+To handle revocation yourself, set `reloadOnConsentRevoked: false` in
+`options` on `ConsentRoot`. Code the visitor turned off then keeps running
+until the next full page load, and `onBeforeConsentRevocationReload` never
+runs.
 
 ## Verify
 
