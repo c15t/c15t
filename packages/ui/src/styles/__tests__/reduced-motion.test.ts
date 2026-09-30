@@ -43,10 +43,10 @@ const normalize = (selector: string): string =>
 
 const ancestors = function ancestors(rule: Rule): Container[] {
 	const list: Container[] = [];
-	let parent = rule.parent;
+	let { parent } = rule;
 	while (parent) {
 		list.push(parent);
-		parent = parent.parent;
+		({ parent } = parent);
 	}
 	return list;
 };

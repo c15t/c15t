@@ -93,19 +93,21 @@ const mergeSlot = function mergeSlot(
 	const themeClass = fromTheme[classAttribute];
 	const explicitClass = explicit[classAttribute];
 	if (themeClass && explicitClass) {
+		// Vue binds arrays and objects as classes too, so a non-string class
+		// keeps both values in an array.
 		merged[classAttribute] =
 			typeof explicitClass === 'string'
 				? `${String(themeClass)} ${explicitClass}`
-				: // Vue binds arrays and objects as classes too.
-					[themeClass, explicitClass];
+				: [themeClass, explicitClass];
 	}
 	const themeStyle = fromTheme.style;
 	const explicitStyle = explicit.style;
 	if (themeStyle && explicitStyle) {
+		// Vue binds style strings and arrays too, so a style that is not a
+		// plain object keeps both values in an array.
 		merged.style = isPlainObject(explicitStyle)
 			? { ...(themeStyle as Record<string, unknown>), ...explicitStyle }
-			: // Vue binds style strings and arrays too.
-				[themeStyle, explicitStyle];
+			: [themeStyle, explicitStyle];
 	}
 	return merged;
 };
