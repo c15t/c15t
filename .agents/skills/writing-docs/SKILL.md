@@ -160,11 +160,14 @@ contains the useful information without raw preview JSX.
 
 Update `docs/docs.config.ts` for every public page. Keep framework variants nested
 under the `frameworks` navigation group, because
-the docs host uses that group for its framework selector and sidebar. Confirm
+the docs host uses that group for its framework selector and sidebar. Every
+framework sidebar uses the same group order; see the framework sidebar table in
+the information architecture reference. Confirm
 the host's framework list includes every variant. Do not flatten frameworks
 into separate root groups to shorten the config.
-Keep integrations under one `integrations` navigation group with service-type
-children: embeds, tag managers, analytics, functionality, and ads and pixels.
+Keep integrations under one `integrations` navigation group. Its children are
+Vendor controls, then the service types: Embeds, Tag managers, Analytics, Chat
+and support, and Ads and pixels.
 Every exported vendor helper needs a discoverable guide. Preserve old vendor
 routes during rewrites and compare against the existing integration inventory.
 Vendor guides need configuration, registration, options, actual loading and

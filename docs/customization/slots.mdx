@@ -4,10 +4,27 @@ description: Target a specific c15t component part without replacing its markup 
 group: customization
 ---
 
+## Which part API your framework uses
+
+Each framework has one way to target a single component part. Use the one in
+its row; the key names differ between rows, so a configuration from one row
+does not work in another.
+
+| Framework | Part API | Keys look like |
+| --- | --- | --- |
+| Next.js, TanStack Start, React | `components` in the provider or root options | `components.banner.card` |
+| Nuxt, Vue | `components` in the Nuxt module options or the `c15tVue` plugin options | `components.banner.card` |
+| Svelte, SvelteKit | `theme.slots` on the provider | `slots.consentBannerCard` |
+| HTML, JavaScript | `ui.css`, with selectors on each part's `data-testid` | `[data-testid="consent-banner-card"]` |
+| Astro | No per-part API. Use theme tokens, `theme.consentActions` or `noStyle` | |
+
+The rest of this page uses the `components` keys shared by React and Vue.
+Each framework's customize page shows its own form.
+
 ## Use slots for local changes
 
-In React and Next.js, put per-part attributes in `options.components`. This
-fragment belongs in an existing provider's options:
+In Next.js, TanStack Start and React, put per-part attributes in
+`options.components`. This fragment belongs in an existing provider's options:
 
 ```tsx
 components: {
@@ -35,7 +52,7 @@ attributes. In Tailwind, give the root `className: 'group'` and use
 | `root` | Position wrapper and state attributes |
 | `cardShell` | Card sizing and branding container |
 | `card` | Visible card |
-| `header`, `title`, `description` | Heading and explanatory copy |
+| `header`, `title` | Heading and its container |
 | `footer`, `actions`, `actionGroup` | Action layout |
 | `rights`, `rightLink` | Preferences access controls |
 | `overlay` | Backdrop for blocking presentation |
@@ -51,5 +68,4 @@ to own all of that work, not as the first response to a token that appears to do
 nothing.
 
 If the markup itself must change, use the adapter's compound components or
-headless API. The slot objects above are the React contract; check Vue and Svelte
-slot types before reusing them.
+headless API.

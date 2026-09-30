@@ -231,6 +231,8 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/*/scripts.mdx',
+			'frameworks/*/embeds.mdx',
+			'frameworks/*/network-blocker.mdx',
 			'customization/**/*.mdx',
 			'integrations/**/*.mdx',
 		],
