@@ -5,4 +5,4 @@ packages:
 
 ### Apply every `theme.slots` style in Svelte
 
-Every stock banner, dialog and preference widget part now takes both the classes and the `style` of its slot. Svelte used to drop `style` on most parts, write camelCase keys such as `backgroundColor` as invalid CSS, ignore `consentDialogOverlay`, and give legal links the classes of the description slot around them. Legal links now keep only their stock class, as in React and Vue.
+Every stock banner, dialog and preference widget part now takes both the classes and the `style` of its slot. Svelte used to drop `style` on most parts, write camelCase keys such as `backgroundColor` as invalid CSS, ignore `consentDialogOverlay`, and give legal links the classes of the description slot around them. `consentWidgetAccordion` and `toggle` now reach the category list and the category switches. Legal links now keep only their stock class, as in React and Vue.
