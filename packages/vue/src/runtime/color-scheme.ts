@@ -16,7 +16,7 @@ const noop = (): void => undefined;
  * `<html>` as it changes. `null` does nothing.
  *
  * Does nothing on the server. Where `matchMedia` is missing, as in a few
- * embedded webviews, the class is set once, and `'system'` is light.
+ * embedded webviews, `'system'` is light.
  *
  * @param colorScheme - The config's `colorScheme`.
  * @returns A function that stops following the system or the `dark` class.
@@ -26,16 +26,6 @@ export const applyColorScheme = function applyColorScheme(
 	colorScheme: ConsentConfig['colorScheme']
 ): () => void {
 	if (colorScheme === null || typeof document === 'undefined') {
-		return noop;
-	}
-	if (typeof window.matchMedia !== 'function') {
-		const root = document.documentElement;
-		root.classList.toggle(
-			'c15t-dark',
-			colorScheme === undefined
-				? root.classList.contains('dark')
-				: colorScheme === 'dark'
-		);
 		return noop;
 	}
 	return setupColorScheme(colorScheme);

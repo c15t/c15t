@@ -605,8 +605,11 @@
 		},
 	});
 
+	// Unset mirrors a `dark` class on `<html>`, as in React and Vue. `null`
+	// leaves `c15t-dark` to the site, or to a host that owns the class, such
+	// as the Astro page runtime behind a dialog island.
 	$effect(() => {
-		if (options.colorScheme === null || options.colorScheme === undefined) {
+		if (options.colorScheme === null) {
 			return;
 		}
 		return setupColorScheme(options.colorScheme);
