@@ -24,6 +24,7 @@
 	import { resolveIABDialogDisplayModel } from '../iab-types';
 	import type { VendorId } from '../iab-types';
 	import { Tabs } from '../primitives';
+	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import Branding from './branding.svelte';
 	import IABFeatureItem from './iab-feature-item.svelte';
 	import IABPurposeItem from './iab-purpose-item.svelte';
@@ -67,6 +68,44 @@
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 	const disableAnimation = $derived(
 		localDisableAnimation ?? theme.disableAnimation ?? false
+	);
+
+	// Per-part theme slots, as on the stock consent dialog.
+	const rootStyle = $derived(
+		resolveComponentStyles(
+			'iabConsentDialog',
+			theme.theme,
+			{ baseClassName: [styles.root, styles.dialogVisible], noStyle },
+			noStyle
+		)
+	);
+	const cardStyle = $derived(
+		resolveComponentStyles(
+			'iabConsentDialogCard',
+			theme.theme,
+			{
+				baseClassName: [styles.card, styles.contentVisible],
+				className,
+				noStyle,
+			},
+			noStyle
+		)
+	);
+	const headerStyle = $derived(
+		resolveComponentStyles(
+			'iabConsentDialogHeader',
+			theme.theme,
+			{ baseClassName: styles.header, noStyle },
+			noStyle
+		)
+	);
+	const footerStyle = $derived(
+		resolveComponentStyles(
+			'iabConsentDialogFooter',
+			theme.theme,
+			{ baseClassName: [styles.footer, actionStyles.actionRoot], noStyle },
+			noStyle
+		)
 	);
 
 	const preferences = $derived(
@@ -267,18 +306,16 @@
 			/>
 		{/if}
 		<div
-			class={noStyle
-				? ''
-				: `${styles.root || ''} ${styles.dialogVisible || ''}`}
+			class={rootStyle.className || ''}
+			style={toStyleAttribute(rootStyle.style)}
 			data-testid="iab-consent-dialog-root"
 			dir={textDirection}
 		>
 			<!-- A `div`, not a `dialog`: the user agent's dialog padding is
 			     1em, which the card sets for itself. -->
 			<div
-				class={noStyle
-					? className || ''
-					: `${styles.card || ''} ${className || ''} ${styles.contentVisible || ''}`}
+				class={cardStyle.className || ''}
+				style={toStyleAttribute(cardStyle.style)}
 				data-testid="iab-consent-dialog-card"
 				role="dialog"
 				aria-modal={preferences.blocking ? 'true' : undefined}
@@ -293,7 +330,10 @@
 				onkeydown={handleDialogKeydown}
 			>
 				<!-- Header -->
-				<div class={noStyle ? '' : styles.header || ''}>
+				<div
+					class={headerStyle.className || ''}
+					style={toStyleAttribute(headerStyle.style)}
+				>
 					<div class={noStyle ? '' : styles.headerContent || ''}>
 						<h2 class={noStyle ? '' : styles.title || ''}>
 							{iabT.preferenceCenter.title}
@@ -554,7 +594,8 @@
 
 				<!-- Footer -->
 				<div
-					class={noStyle ? '' : `${styles.footer} ${actionStyles.actionRoot}`}
+					class={footerStyle.className || ''}
+					style={toStyleAttribute(footerStyle.style)}
 					data-direction="row"
 					data-split
 				>

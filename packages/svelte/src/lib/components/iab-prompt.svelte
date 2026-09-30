@@ -166,6 +166,33 @@
 		)
 	);
 
+	const cardStyle = $derived(
+		resolveComponentStyles(
+			'iabConsentBannerCard',
+			theme.theme,
+			{ baseClassName: styles.card, noStyle },
+			noStyle
+		)
+	);
+
+	const headerStyle = $derived(
+		resolveComponentStyles(
+			'iabConsentBannerHeader',
+			theme.theme,
+			{ baseClassName: styles.header, noStyle },
+			noStyle
+		)
+	);
+
+	const footerStyle = $derived(
+		resolveComponentStyles(
+			'iabConsentBannerFooter',
+			theme.theme,
+			{ baseClassName: [styles.footer, actionStyles.actionRoot], noStyle },
+			noStyle
+		)
+	);
+
 	const finalClassName = $derived(
 		noStyle
 			? rootStyle.className || ''
@@ -214,7 +241,8 @@
 					data-testid="iab-consent-banner-branding"
 				/>
 				<div
-					class={noStyle ? '' : styles.card}
+					class={cardStyle.className || ''}
+					style={toStyleAttribute(cardStyle.style)}
 					data-testid="iab-consent-banner-card"
 					role={shouldTrapFocus ? 'dialog' : 'region'}
 					aria-modal={shouldTrapFocus ? 'true' : undefined}
@@ -223,7 +251,8 @@
 				>
 					<!-- Header -->
 					<div
-						class={noStyle ? '' : styles.header}
+						class={headerStyle.className || ''}
+						style={toStyleAttribute(headerStyle.style)}
 						data-testid="iab-consent-banner-header"
 					>
 						<h2 class={noStyle ? '' : styles.title}>{iabT.banner.title}</h2>
@@ -259,7 +288,8 @@
 
 					<!-- Footer with buttons -->
 					<div
-						class={noStyle ? '' : `${styles.footer} ${actionStyles.actionRoot}`}
+						class={footerStyle.className || ''}
+						style={toStyleAttribute(footerStyle.style)}
 						data-testid="iab-consent-banner-footer"
 						data-direction="row"
 						data-split="true"
