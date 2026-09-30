@@ -374,7 +374,7 @@ describe('tenant configuration', () => {
 		);
 	});
 
-	it('applies the same check to createApp', () => {
+	it('applies the same check to createApp', async () => {
 		// `createApp` is the other public way in; it must not be the one that
 		// skips the check.
 		const runtime = ManagedRuntime.make(
@@ -383,9 +383,13 @@ describe('tenant configuration', () => {
 				never
 			>
 		);
-		assert.throws(
-			() => createApp(runtime, { requireTenantId: true }),
-			/requireTenantId/u
-		);
+		try {
+			assert.throws(
+				() => createApp(runtime, { requireTenantId: true }),
+				/requireTenantId/u
+			);
+		} finally {
+			await runtime.dispose();
+		}
 	});
 });

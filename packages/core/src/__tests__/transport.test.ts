@@ -16,7 +16,10 @@ import {
 	isConsentSaveRejection,
 } from '../index';
 import type { InitResponse, KernelTransport, SaveResult } from '../index';
-import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
+import {
+	PENDING_SAVES_STORAGE_KEY,
+	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
+} from '../libs/storage-keys';
 import { buildDecisionAssertion } from '../transports/decision-inputs';
 import { createManifestTransport } from '../transports/manifest';
 import {
@@ -63,6 +66,7 @@ beforeEach(() => {
 	}
 	if (typeof window !== 'undefined') {
 		window.localStorage.removeItem(PENDING_SAVES_STORAGE_KEY);
+		window.localStorage.removeItem(SUBJECT_REASSIGNMENTS_STORAGE_KEY);
 	}
 });
 
@@ -71,6 +75,7 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	if (typeof window !== 'undefined') {
 		window.localStorage.removeItem(PENDING_SAVES_STORAGE_KEY);
+		window.localStorage.removeItem(SUBJECT_REASSIGNMENTS_STORAGE_KEY);
 	}
 });
 
@@ -1946,6 +1951,114 @@ describe('kernel transport: failed save replay', () => {
 			subjectId: newId,
 		});
 		kernel.dispose();
+	});
+
+	test('every queued save for a reassigned subject replays in the same run', async () => {
+		// The queue moves all of them at once. Skipping the rest until the next
+		// page load would leave an online visitor's choices unrecorded.
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockRejectedValueOnce(refused('SUBJECT_CONFLICT'))
+			.mockImplementation(accepted);
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+		const replayed: { ok: boolean; subjectId: string }[] = [];
+		kernel.events.on('save:replayed', ({ ok, subjectId }) => {
+			replayed.push({ ok, subjectId });
+		});
+
+		await kernel.commands.save({ marketing: true });
+		await kernel.commands.save({ measurement: false });
+		const queuedId = kernel.getSnapshot().subject?.subjectId;
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toHaveLength(2);
+		});
+
+		const newId = kernel.getSnapshot().subject?.subjectId;
+		expect(newId).not.toBe(queuedId);
+		expect(replayed).toEqual([
+			{ ok: true, subjectId: newId },
+			{ ok: true, subjectId: newId },
+		]);
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		kernel.dispose();
+	});
+
+	test('a canonical subject id returned by the resend is adopted', async () => {
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(refused('SUBJECT_CONFLICT'))
+			.mockResolvedValue({ ok: true, subjectId: 'sub_canonical' });
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+
+		const result = await kernel.commands.save('all');
+
+		expect(result).toMatchObject({ ok: true, subjectId: 'sub_canonical' });
+		expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_canonical');
+		kernel.dispose();
+	});
+
+	test('a visitor set back to the refused id moves to the same new one', async () => {
+		// Returning null here would drop a choice the kernel knows how to save.
+		const saveSpy = vi.fn(({ subjectId }: { subjectId: string }) =>
+			subjectId === 'sub_taken'
+				? Promise.reject(refused('SUBJECT_CONFLICT'))
+				: accepted({ subjectId })
+		);
+		const kernel = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_taken' } },
+			transport: { save: saveSpy },
+		});
+
+		await expect(
+			kernel.commands.save({ marketing: true })
+		).resolves.toMatchObject({ ok: true });
+		const newId = kernel.getSnapshot().subject?.subjectId;
+		expect(newId).not.toBe('sub_taken');
+
+		kernel.set.subjectId('sub_taken');
+		await expect(
+			kernel.commands.save({ measurement: false })
+		).resolves.toMatchObject({ ok: true, subjectId: newId });
+		expect(kernel.getSnapshot().subject?.subjectId).toBe(newId);
+		kernel.dispose();
+	});
+
+	test('two tabs refused for the same subject move to one new id', async () => {
+		// Each tab picking its own id would leave one of them persisting a
+		// subject the backend holds no consent for.
+		const saveSpy = vi.fn(({ subjectId }: { subjectId: string }) =>
+			subjectId === 'sub_shared_tab'
+				? Promise.reject(refused('SUBJECT_CONFLICT'))
+				: accepted({ subjectId })
+		);
+		const tabA = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_shared_tab' } },
+			transport: { save: saveSpy },
+		});
+		const tabB = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_shared_tab' } },
+			transport: { save: saveSpy },
+		});
+
+		await Promise.all([
+			tabA.commands.save({ marketing: true }),
+			tabB.commands.save({ measurement: false }),
+		]);
+
+		const idA = tabA.getSnapshot().subject?.subjectId;
+		expect(idA).not.toBe('sub_shared_tab');
+		expect(tabB.getSnapshot().subject?.subjectId).toBe(idA);
+		const sentUnderNewId = saveSpy.mock.calls
+			.map(([payload]) => payload.subjectId)
+			.filter((id) => id !== 'sub_shared_tab');
+		expect(new Set(sentUnderNewId)).toEqual(new Set([idA]));
+		tabA.dispose();
+		tabB.dispose();
 	});
 });
 

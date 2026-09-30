@@ -22,6 +22,7 @@ import { createConsentKernel } from '../../../index';
 import {
 	PENDING_SAVES_STORAGE_KEY,
 	STORAGE_KEY_V2,
+	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 } from '../../../libs/storage-keys';
 import { createPersistence } from '../index';
 import { clearStoredConsentRecords } from '../record-storage';
@@ -258,6 +259,9 @@ describe('persistence: clear', () => {
 		await kernel.commands.dismissNotice();
 		kernel.set.privacySignals({ gpc: true });
 		localStorage.setItem(PENDING_SAVES_STORAGE_KEY, '[]');
+		// A subject reassignment would otherwise tie the next subject to the
+		// cleared one.
+		localStorage.setItem(SUBJECT_REASSIGNMENTS_STORAGE_KEY, '[]');
 		// A standing directive an earlier v3 alpha stored. Clearing still
 		// removes it so the old value does not linger.
 		localStorage.setItem(
@@ -277,6 +281,7 @@ describe('persistence: clear', () => {
 		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
 		expect(localStorage.getItem(`${STORAGE_KEY_V2}-notice`)).toBeNull();
 		expect(localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		expect(localStorage.getItem(SUBJECT_REASSIGNMENTS_STORAGE_KEY)).toBeNull();
 		const snap = kernel.getSnapshot();
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.noticeDismissal).toBeNull();

@@ -5,6 +5,7 @@ import {
 	PENDING_SAVES_STORAGE_KEY,
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
+	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 } from '../../libs/storage-keys';
 import { getEffectiveGateState } from '../has';
 import { clearTargets } from './targets';
@@ -51,6 +52,7 @@ export const createClearOnRevocation = (
 	const protectedKeys = new Set([
 		STORAGE_KEY,
 		PENDING_SAVES_STORAGE_KEY,
+		SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 		// Keep the optional IAB addon's receipts without importing its runtime.
 		'c15t-iab-authority-v1',
 		EXPERIMENT_STORAGE_KEY,

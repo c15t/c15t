@@ -52,6 +52,7 @@ import type {
 } from '../../libs/cookie';
 import {
 	PENDING_SAVES_STORAGE_KEY,
+	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
 } from '../../libs/storage-keys';
@@ -1241,7 +1242,7 @@ export const writeStoredClearEpoch = function writeStoredClearEpoch(
  * Removes explicit choices (configured and legacy keys, cookie and
  * localStorage), the notice dismissal and the vendor denials with their
  * cookie projections, the legacy `<key>-privacy` record an alpha may have
- * left, and the queued backend replays. Cookie deletion uses the same
+ * left, and the queued backend replays with their subject reassignments. Cookie deletion uses the same
  * domain handling as writes so a cross-subdomain cookie is actually
  * removed.
  */
@@ -1255,6 +1256,7 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 	clearLegacyPrivacyRecord(config, cookie);
 	clearStoredVendorChoice(config, cookie);
 	removeLocalStorageKey(PENDING_SAVES_STORAGE_KEY);
+	removeLocalStorageKey(SUBJECT_REASSIGNMENTS_STORAGE_KEY);
 	// Addon bytes must be removed even when the addon is not mounted.
 	removeLocalStorageKey('c15t-iab-authority-v1');
 	removeLocalStorageKey('euconsent-v2');

@@ -10,6 +10,14 @@ export const STORAGE_KEY = 'privacy-consent-storage';
 export const PENDING_SAVES_STORAGE_KEY = 'c15t-v3-pending-consent-saves:v1';
 
 /**
+ * Subject ids the backend refused as another tenant's, each with the id this
+ * browser moved to, so every tab moves to the same one. Cleared with the
+ * queued saves.
+ */
+export const SUBJECT_REASSIGNMENTS_STORAGE_KEY =
+	'c15t-v3-subject-reassignments:v1';
+
+/**
  * The banner-experiment arm this browser was shown, as `{ id, variant }`.
  * Written only once the banner has rendered that arm.
  */

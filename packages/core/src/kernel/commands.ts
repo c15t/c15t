@@ -856,9 +856,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			})
 		: null;
 	// Subject ids this kernel replaced after the backend refused them as
-	// another tenant's, old to new. A live save and a replay can both hit the
-	// same refusal; this sends both to one new id instead of minting two.
-	const reassignedSubjects = new Map<string, string>();
+	// another tenant's, old to the claim for the new one. A live save and a
+	// replay can both hit the same refusal; this sends both to one new id
+	// instead of minting two.
+	const reassignedSubjects = new Map<string, Promise<string>>();
 	let disposed = false;
 	// Bumped by every explicit `init()`. An attempt that resolves after a newer
 	// init started is stale: it must not apply its response, touch retry
@@ -1201,35 +1202,49 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	 * tenant already owns it. Resending under the same id is refused every
 	 * time, so without this the visitor's choices would never be recorded.
 	 *
-	 * Committed like a subject the server resolved, so persistence writes
-	 * the new id over the stored one, and queued saves for `from` move with
-	 * it. Resolves to `null` when `from` is no longer this visitor's subject:
-	 * a save for a subject since replaced or cleared is not moved onto
-	 * whoever holds the snapshot now.
+	 * The new id is claimed through the save queue, so every tab that hits
+	 * the refusal moves to the same one, and queued saves for `from` move
+	 * with it. It is committed like a subject the server resolved, so
+	 * persistence writes it over the stored one. A visitor set back to
+	 * `from` later moves to the same id again.
+	 *
+	 * Resolves to `null` when `from` is no longer this visitor's subject and
+	 * was not moved by this kernel: a save for a subject since replaced or
+	 * cleared is not moved onto whoever holds the snapshot now.
 	 */
 	const reassignSubject = async function reassignSubject(
 		from: string
 	): Promise<string | null> {
-		const current = getSnapshot().subject;
-		let next = reassignedSubjects.get(from);
-		if (next === undefined) {
-			if (current?.subjectId !== from) {
-				return null;
-			}
-			next = generateSubjectId();
-			reassignedSubjects.set(from, next);
-			const subject: ConsentSubject = { ...current, subjectId: next };
-			batch(() => {
-				commit({ subject });
-				emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
-			});
-		} else if (current?.subjectId !== next) {
+		const earlier = reassignedSubjects.get(from);
+		if (earlier === undefined && getSnapshot().subject?.subjectId !== from) {
 			return null;
 		}
-		// Every time, not only on the first reassignment: a save still in
-		// flight under `from` may have been queued since.
-		await pendingSaves?.rekey(from, next);
-		return next;
+		let claim = earlier;
+		if (claim === undefined) {
+			claim = pendingSaves
+				? pendingSaves.claimReassignment(from, generateSubjectId())
+				: Promise.resolve(generateSubjectId());
+			reassignedSubjects.set(from, claim);
+		}
+		const to = await claim;
+		if (earlier !== undefined) {
+			// Moves saves queued under `from` since the first claim.
+			await pendingSaves?.claimReassignment(from, to);
+		}
+
+		const current = getSnapshot().subject;
+		if (current?.subjectId === to) {
+			return to;
+		}
+		if (current?.subjectId !== from) {
+			return null;
+		}
+		const subject: ConsentSubject = { ...current, subjectId: to };
+		batch(() => {
+			commit({ subject });
+			emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
+		});
+		return to;
 	};
 
 	/**
@@ -1365,11 +1380,16 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const remaining = currentPayload();
 			const subjectId = await reassignAfterConflict(error, remaining, reassign);
 			if (subjectId !== null) {
+				// The action's snapshot under the new subject, so a canonical id
+				// the resend returns is adopted like any other save's.
 				return sendSave(
 					withSubjectId(payload, subjectId),
 					generation,
 					confirmed,
-					actionSnapshot,
+					{
+						...actionSnapshot,
+						subject: { ...actionSnapshot.subject, subjectId },
+					},
 					false
 				);
 			}
