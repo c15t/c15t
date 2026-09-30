@@ -8,7 +8,7 @@ Real Next.js apps that build and smoke-test `@c15t/nextjs` in every combination 
 | --- | --- | --- | --- | --- |
 | `next-15-app` | 15 | App | webpack | client, ssr, ssr-stream, isr, manifest, manifest-geo, manifest-ssr |
 | `next-16-app` | 16 | App | Turbopack | client, ssr, ssr-stream, isr, manifest, manifest-geo, manifest-ssr |
-| `next-16-cache-components` | 16 | App, `cacheComponents: true` | Turbopack | client, ssr, ssr-stream, cached, manifest, manifest-geo, manifest-ssr |
+| `next-16-cache-components` | 16 | App, `cacheComponents: true`, `partialPrefetching: true` | Turbopack | client, ssr, ssr-stream, cached, manifest, manifest-geo, manifest-ssr; dev prerender regression |
 | `next-15-pages` | 15 | Pages | webpack | client, ssr, manifest, manifest-geo, manifest-ssr |
 | `next-16-pages` | 16 | Pages | Turbopack | client, ssr, manifest, manifest-geo, manifest-ssr |
 | `next-16-static-export` | 16 | App, `output: 'export'` | Turbopack | client, static-manifest |
@@ -38,6 +38,8 @@ For every scenario the suite (`shared/src/suite/index.ts`) checks:
 
 The backend stub lives in `shared/src/fixture` and is mounted at `/api/c15t` in each app. `GET /api/c15t/__compat/requests` lists what `/init` received; the suite clears it before each test. The static export cell has no app server to mount it in, so its global setup runs the same handlers as a standalone Node server (`shared/src/fixture/standalone.ts`) and provides its origin as `compatBackendURL`; the suite reads the diagnostics from there when that value is present.
 
+The Cache Components cell also starts `next dev` in `tests/dev-prerender.test.ts`. It requests the awaited `/ssr` and streaming `/ssr-stream` routes, plus `/ssr-fallback`, which resolves consent from a manifest endpoint that returns 503. The fallback route must retain the request's country and report the manifest failure. The probe checks the rendered responses and captures server output through shutdown to catch sync IO and prerender errors that Next can report after sending a response. This covers the `Date.now()` failure from #1107 with real Next request APIs; removing `connection()` from the default request context must fail the probe.
+
 ## Running locally
 
 ```bash
@@ -45,6 +47,7 @@ bun install
 bun turbo run test:compat --filter=@c15t/next-compat-16-app        # one cell, builds deps first
 bun turbo run test:compat --filter='./internals/next-compat/*'    # every cell
 bun run --cwd internals/next-compat/next-16-app test:compat       # skip turbo; builds the app if .next is missing
+bun run --cwd internals/next-compat/next-16-cache-components test:compat tests/dev-prerender.test.ts
 ```
 
 The global setup (`shared/src/suite/global-setup.ts`) runs the cell's `build` script when `.next/BUILD_ID` is absent, starts `next start` on a free port, and stops it afterwards. `COMPAT_FORCE_BUILD=1` rebuilds; `COMPAT_SKIP_BUILD=1` never builds; `COMPAT_PRINT_SERVER_LOGS=1` prints the server output at teardown.
