@@ -411,8 +411,8 @@ for (const target of selectedTargets()) {
 				// The same page without its own <link> to the Tailwind build, so
 				// the build loads only inside the shadow root. The observer sees
 				// the document, not the shadow root, so c15t's link stays.
-				await visit('/consent-example/tailwind', false, (fresh) =>
-					fresh.addInitScript(() => {
+				await visit('/consent-example/tailwind', false, async (fresh) => {
+					await fresh.addInitScript(() => {
 						new MutationObserver((records) => {
 							for (const record of records) {
 								for (const node of record.addedNodes) {
@@ -425,8 +425,8 @@ for (const target of selectedTargets()) {
 								}
 							}
 						}).observe(document, { childList: true, subtree: true });
-					})
-				);
+					});
+				});
 				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
 				expect(
 					await page.evaluate(() =>
