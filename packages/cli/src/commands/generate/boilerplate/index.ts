@@ -156,7 +156,6 @@ const readOptions = (
 	}
 	validateWriteFlags(flags);
 	for (const flag of [
-		'env',
 		'proxy',
 		'ssr',
 		'devtools',

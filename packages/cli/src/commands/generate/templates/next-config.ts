@@ -13,7 +13,6 @@ import { resolvePlannedPath, writeFile } from './shared/file-plan';
 interface UpdateNextConfigOptions {
 	projectRoot: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 }
 
 /**
@@ -52,51 +51,27 @@ const findNextConfigFile = async function findNextConfigFile(
 };
 
 /**
- * Generates the destination URL for the rewrite rule
+ * Generates the rewrite destination as a quoted string literal
  *
- * @param mode - The storage mode
  * @param backendURL - The backend URL
- * @param useEnvFile - Whether to use environment variables
- * @returns The formatted destination URL and whether it should be treated as a template literal
+ * @returns The destination, for example `'https://your-project.inth.app/:path*'`
  */
 const generateRewriteDestination = function generateRewriteDestination(
-	backendURL?: string,
-	useEnvFile?: boolean
-): { destination: string; isTemplateLiteral: boolean } {
-	if (useEnvFile) {
-		return {
-			// oxlint-disable-next-line no-template-curly-in-string -- This will be transformed into a template literal later
-			destination: '${process.env.NEXT_PUBLIC_C15T_URL}/:path*',
-			isTemplateLiteral: true,
-		};
-	}
-
-	return {
-		destination: `${backendURL || 'https://your-project.inth.app'}/:path*`,
-		isTemplateLiteral: false,
-	};
+	backendURL?: string
+): string {
+	return `'${backendURL || 'https://your-project.inth.app'}/:path*'`;
 };
 
 /**
  * Creates a new Next.js config file with c15t rewrite rule
  *
- * @param mode - The storage mode
  * @param backendURL - The backend URL
- * @param useEnvFile - Whether to use environment variables
  * @returns The complete config file content
  */
 const createNewNextConfig = function createNewNextConfig(
-	backendURL?: string,
-	useEnvFile?: boolean
+	backendURL?: string
 ): string {
-	const { destination, isTemplateLiteral } = generateRewriteDestination(
-		backendURL,
-		useEnvFile
-	);
-	// Format destination based on whether it's a template literal
-	const destinationValue = isTemplateLiteral
-		? `\`${destination}\``
-		: `'${destination}'`;
+	const destinationValue = generateRewriteDestination(backendURL);
 
 	return `import type { NextConfig } from 'next';
 
@@ -225,24 +200,11 @@ const findConfigObject = function findConfigObject(configFile: SourceFile) {
 };
 
 /**
- * Updates an existing Next.js config file with c15t rewrite rule
- *
- * @param configFile - The existing config source file
- * @param mode - The storage mode
- * @param backendURL - The backend URL
- * @param useEnvFile - Whether to use environment variables
- * @returns True if the config was successfully updated
- */
-/**
- * Creates the rewrite rule object string with proper template literal handling
+ * Creates the rewrite rule object string
  */
 const createRewriteRule = function createRewriteRule(
-	destination: string,
-	isTemplateLiteral: boolean
+	destinationValue: string
 ): string {
-	const destinationValue = isTemplateLiteral
-		? `\`${destination}\``
-		: `'${destination}'`;
 	return `{
 		source: '/api/c15t/:path*',
 		destination: ${destinationValue},
@@ -253,14 +215,12 @@ const createRewriteRule = function createRewriteRule(
  * Updates an existing rewrites method by adding the c15t rewrite rule
  *
  * @param rewritesMethod - The existing rewrites method declaration
- * @param destination - The destination URL for the rewrite
- * @param isTemplateLiteral - Whether the destination should be a template literal
+ * @param destinationValue - The quoted destination for the rewrite
  * @returns True if successfully updated
  */
 const updateExistingRewrites = function updateExistingRewrites(
 	rewritesMethod: MethodDeclaration,
-	destination: string,
-	isTemplateLiteral: boolean
+	destinationValue: string
 ): boolean {
 	const body = rewritesMethod.getBody();
 	if (!Node.isBlock(body)) {
@@ -280,7 +240,7 @@ const updateExistingRewrites = function updateExistingRewrites(
 	}
 
 	// Add the c15t rewrite rule at the beginning of the array
-	const newRewrite = createRewriteRule(destination, isTemplateLiteral);
+	const newRewrite = createRewriteRule(destinationValue);
 
 	const elements = expression.getElements();
 	if (elements.length > 0) {
@@ -296,20 +256,18 @@ const updateExistingRewrites = function updateExistingRewrites(
  * Updates a property assignment style rewrites configuration
  *
  * @param rewritesProperty - The rewrites property assignment
- * @param destination - The destination URL for the rewrite
- * @param isTemplateLiteral - Whether the destination should be a template literal
+ * @param destinationValue - The quoted destination for the rewrite
  * @returns True if successfully updated
  */
 const updatePropertyAssignmentRewrites =
 	function updatePropertyAssignmentRewrites(
 		rewritesProperty: PropertyAssignment,
-		destination: string,
-		isTemplateLiteral: boolean
+		destinationValue: string
 	): boolean {
 		// This is less common but we should handle it
 		const initializer = rewritesProperty.getInitializer();
 		if (Node.isArrayLiteralExpression(initializer)) {
-			const newRewrite = createRewriteRule(destination, isTemplateLiteral);
+			const newRewrite = createRewriteRule(destinationValue);
 			initializer.insertElement(0, newRewrite);
 			return true;
 		}
@@ -321,19 +279,13 @@ const updatePropertyAssignmentRewrites =
  * Adds a new rewrites method to the config object
  *
  * @param configObject - The config object literal
- * @param destination - The destination URL for the rewrite
- * @param isTemplateLiteral - Whether the destination should be a template literal
+ * @param destinationValue - The quoted destination for the rewrite
  * @returns True if successfully added
  */
 const addNewRewritesMethod = function addNewRewritesMethod(
 	configObject: ObjectLiteralExpression,
-	destination: string,
-	isTemplateLiteral: boolean
+	destinationValue: string
 ): boolean {
-	const destinationValue = isTemplateLiteral
-		? `\`${destination}\``
-		: `'${destination}'`;
-
 	const rewritesMethod = `async rewrites() {
 		return [
 			{
@@ -347,15 +299,18 @@ const addNewRewritesMethod = function addNewRewritesMethod(
 	return true;
 };
 
+/**
+ * Updates an existing Next.js config file with c15t rewrite rule
+ *
+ * @param configFile - The existing config source file
+ * @param backendURL - The backend URL
+ * @returns True if the config was successfully updated
+ */
 const updateExistingConfig = function updateExistingConfig(
 	configFile: SourceFile,
-	backendURL?: string,
-	useEnvFile?: boolean
+	backendURL?: string
 ): boolean {
-	const { destination, isTemplateLiteral } = generateRewriteDestination(
-		backendURL,
-		useEnvFile
-	);
+	const destinationValue = generateRewriteDestination(backendURL);
 
 	// Find the config object
 	const configObject = findConfigObject(configFile);
@@ -368,24 +323,16 @@ const updateExistingConfig = function updateExistingConfig(
 
 	if (rewritesProperty && Node.isMethodDeclaration(rewritesProperty)) {
 		// Update existing rewrites method
-		return updateExistingRewrites(
-			rewritesProperty,
-			destination,
-			isTemplateLiteral
-		);
+		return updateExistingRewrites(rewritesProperty, destinationValue);
 	}
 
 	if (rewritesProperty && Node.isPropertyAssignment(rewritesProperty)) {
 		// Handle property assignment case (less common)
-		return updatePropertyAssignmentRewrites(
-			rewritesProperty,
-			destination,
-			isTemplateLiteral
-		);
+		return updatePropertyAssignmentRewrites(rewritesProperty, destinationValue);
 	}
 
 	// Add new rewrites method
-	return addNewRewritesMethod(configObject, destination, isTemplateLiteral);
+	return addNewRewritesMethod(configObject, destinationValue);
 };
 
 /**
@@ -402,14 +349,12 @@ const updateExistingConfig = function updateExistingConfig(
  * const result = await updateNextConfig({
  *   projectRoot: '/path/to/project',
  *   backendURL: 'https://api.example.com',
- *   useEnvFile: true
  * });
  * ```
  */
 export const updateNextConfig = async function updateNextConfig({
 	projectRoot,
 	backendURL,
-	useEnvFile,
 }: UpdateNextConfigOptions): Promise<{
 	updated: boolean;
 	filePath: string | null;
@@ -422,7 +367,7 @@ export const updateNextConfig = async function updateNextConfig({
 	if (!configFile) {
 		// Create a new config file if none exists
 		const newConfigPath = `${projectRoot}/next.config.ts`;
-		const newConfig = createNewNextConfig(backendURL, useEnvFile);
+		const newConfig = createNewNextConfig(backendURL);
 
 		const newConfigFile = project.createSourceFile(newConfigPath, newConfig);
 		await writeFile(newConfigPath, newConfigFile.getFullText(), 'utf-8');
@@ -445,11 +390,7 @@ export const updateNextConfig = async function updateNextConfig({
 		};
 	}
 
-	const updated = await updateExistingConfig(
-		configFile,
-		backendURL,
-		useEnvFile
-	);
+	const updated = await updateExistingConfig(configFile, backendURL);
 
 	if (updated) {
 		await writeFile(

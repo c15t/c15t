@@ -19,7 +19,6 @@ interface UpdatePagesLayoutOptions {
 	projectRoot: string;
 	mode: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableDevTools?: boolean;
@@ -145,7 +144,6 @@ export function updatePagesLayout({
 	projectRoot,
 	mode,
 	backendURL,
-	useEnvFile,
 	proxyNextjs,
 	enableDevTools = false,
 	selectedScripts,
@@ -166,7 +164,6 @@ export function updatePagesLayout({
 				pagesDir,
 				mode as StorageMode,
 				proxyNextjs ? '/api/c15t' : backendURL,
-				proxyNextjs ? false : useEnvFile,
 				selectedScripts,
 				enableDevTools,
 				expandedTheme,

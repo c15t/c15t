@@ -52,7 +52,6 @@ export const setupFlags: CliFlag[] = [
 	stringFlag(['--mode'], 'Consent storage mode.'),
 	stringFlag(['--backend-url'], 'Hosted or self-hosted backend URL.'),
 	stringFlag(['--project'], 'Hosted project ID or name.'),
-	booleanFlag(['--env'], 'Generate an environment file for the backend URL.'),
 	booleanFlag(['--proxy'], 'Use the framework backend proxy.'),
 	booleanFlag(['--ssr'], 'Enable server rendering integration.'),
 	booleanFlag(['--devtools'], 'Include consent development tools.'),

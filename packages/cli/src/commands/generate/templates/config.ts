@@ -1,7 +1,4 @@
-import type { DevelopmentEnvironment } from '~/context/framework-detection';
-
 import { STORAGE_MODES } from '../../../constants';
-import { getEnvVarPrefix } from './env';
 /**
  * Configuration file templates
  */
@@ -59,12 +56,9 @@ ${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
  */
 const generateHostedConfig = function generateHostedConfig(
 	backendURL?: string,
-	useEnvFile?: boolean,
 	enableDevTools = false
 ): string {
-	const url = useEnvFile
-		? 'process.env.NEXT_PUBLIC_C15T_URL'
-		: JSON.stringify(backendURL || 'https://your-project.inth.app');
+	const url = JSON.stringify(backendURL || 'https://your-project.inth.app');
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
@@ -94,12 +88,9 @@ ${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
  */
 const generateCustomConfig = function generateCustomConfig(
 	backendURL?: string,
-	useEnvFile?: boolean,
 	enableDevTools = false
 ): string {
-	const url = useEnvFile
-		? 'process.env.NEXT_PUBLIC_CONSENT_API_URL'
-		: JSON.stringify(backendURL || '/api/consent');
+	const url = JSON.stringify(backendURL || '/api/consent');
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
@@ -144,12 +135,9 @@ ${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
  */
 const generateSelfHostedConfig = function generateSelfHostedConfig(
 	backendURL?: string,
-	useEnvFile?: boolean,
 	enableDevTools = false
 ): string {
-	const url = useEnvFile
-		? 'process.env.NEXT_PUBLIC_C15T_URL'
-		: JSON.stringify(backendURL || 'http://localhost:3001');
+	const url = JSON.stringify(backendURL || 'http://localhost:3001');
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
@@ -202,25 +190,23 @@ export const getClientConfigDependencies = function getClientConfigDependencies(
  *
  * @param mode - The storage mode
  * @param backendURL - URL for the c15t backend/API
- * @param useEnvFile - Whether to use environment variable for backendURL
  * @returns The generated configuration file content
  */
 const generateBaseConfig = function generateBaseConfig(
 	mode: string,
 	backendURL?: string,
-	useEnvFile?: boolean,
 	enableDevTools = false
 ): string {
 	switch (mode) {
 		case STORAGE_MODES.HOSTED:
 		case STORAGE_MODES.C15T:
-			return generateHostedConfig(backendURL, useEnvFile, enableDevTools);
+			return generateHostedConfig(backendURL, enableDevTools);
 		case STORAGE_MODES.OFFLINE:
 			return generateOfflineConfig(enableDevTools);
 		case STORAGE_MODES.SELF_HOSTED:
-			return generateSelfHostedConfig(backendURL, useEnvFile, enableDevTools);
+			return generateSelfHostedConfig(backendURL, enableDevTools);
 		case STORAGE_MODES.CUSTOM:
-			return generateCustomConfig(backendURL, useEnvFile, enableDevTools);
+			return generateCustomConfig(backendURL, enableDevTools);
 		default:
 			return generateOfflineConfig(enableDevTools);
 	}
@@ -230,22 +216,10 @@ const generateBaseConfig = function generateBaseConfig(
 export const generateClientConfigContent = function generateClientConfigContent(
 	mode: string,
 	backendURL?: string,
-	useEnvFile?: boolean,
 	enableDevTools = false,
-	environment?: DevelopmentEnvironment,
 	selectedScripts: string[] = []
 ): string {
-	let content = generateBaseConfig(
-		mode,
-		backendURL,
-		useEnvFile,
-		enableDevTools
-	);
-	const prefix = getEnvVarPrefix('c15t', environment);
-	content = content.replaceAll(
-		'process.env.NEXT_PUBLIC_',
-		environment === 'vite' ? 'import.meta.env.VITE_' : `process.env.${prefix}_`
-	);
+	let content = generateBaseConfig(mode, backendURL, enableDevTools);
 	if (selectedScripts.length) {
 		content = `import { createScriptLoader } from 'c15t/modules/script-loader';\n${generateScriptsImport(selectedScripts)}\n${content}`;
 		content = content.replace(

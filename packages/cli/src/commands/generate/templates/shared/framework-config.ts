@@ -13,7 +13,6 @@ export interface FrameworkConfig {
 	frameworkName: string;
 	ssrMechanism: string;
 	docsSlug: string;
-	envVarPrefix: string;
 	hasSSRProps: boolean;
 }
 
@@ -22,7 +21,6 @@ export const NEXTJS_CONFIG: FrameworkConfig = {
 	consentDialogImport: 'c15t/next',
 	devToolsImportSource: 'c15t/next/devtools',
 	docsSlug: 'next',
-	envVarPrefix: 'NEXT_PUBLIC',
 	frameworkName: 'Next.js App Router',
 	hasSSRProps: true,
 	importSource: 'c15t/next',
@@ -35,7 +33,6 @@ export const REACT_CONFIG: FrameworkConfig = {
 	consentDialogImport: 'c15t/react',
 	devToolsImportSource: 'c15t/react/devtools',
 	docsSlug: 'react',
-	envVarPrefix: '',
 	frameworkName: 'React',
 	hasSSRProps: false,
 	importSource: 'c15t/react',

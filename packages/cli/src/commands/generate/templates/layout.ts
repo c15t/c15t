@@ -30,7 +30,6 @@ interface UpdateReactLayoutOptions {
 	projectRoot: string;
 	mode: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
@@ -70,7 +69,6 @@ function updateGenericReactJsx(layoutFile: SourceFile): boolean {
  * @param sourceDir - Source directory path (either 'src' or '')
  * @param mode - Storage mode for consent management
  * @param backendURL - Backend URL for hosted/self-hosted modes
- * @param useEnvFile - Whether to use environment variables
  * @param selectedScripts - Selected scripts to include
  * @param enableDevTools - Whether to add DevTools component
  * @param expandedTheme - Theme preset selection
@@ -99,7 +97,6 @@ async function updateGenericReactLayout({
 	projectRoot,
 	mode,
 	backendURL,
-	useEnvFile,
 	selectedScripts,
 	enableDevTools,
 	expandedTheme,
@@ -170,7 +167,6 @@ async function updateGenericReactLayout({
 			sourceDir,
 			mode as StorageMode,
 			backendURL,
-			useEnvFile,
 			selectedScripts,
 			enableDevTools,
 			expandedTheme,

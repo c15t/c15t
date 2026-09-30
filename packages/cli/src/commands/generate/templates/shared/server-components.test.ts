@@ -6,7 +6,7 @@ import { generateServerComponent } from './server-components';
 describe('generateServerComponent', () => {
 	test('resolves backend consent state when SSR is enabled', () => {
 		const output = generateServerComponent({
-			backendURLValue: 'process.env.NEXT_PUBLIC_C15T_URL!',
+			backendURLValue: '"https://your-project.inth.app"',
 			enableSSR: true,
 			framework: NEXTJS_CONFIG,
 		});
@@ -14,13 +14,13 @@ describe('generateServerComponent', () => {
 		expect(output).toContain(
 			"import { resolveConsent } from 'c15t/next/server';"
 		);
-		expect(output).toContain('backendURL: process.env.NEXT_PUBLIC_C15T_URL!,');
+		expect(output).toContain('backendURL: "https://your-project.inth.app",');
 		expect(output).toContain('<ConsentManagerClient state={state}>');
 	});
 
 	test('passes the pending consent state instead of awaiting it', () => {
 		const output = generateServerComponent({
-			backendURLValue: 'process.env.NEXT_PUBLIC_C15T_URL!',
+			backendURLValue: '"https://your-project.inth.app"',
 			enableSSR: true,
 			framework: NEXTJS_CONFIG,
 		});

@@ -33,10 +33,6 @@ export const PATHS = {
 	CONFIG_DIR: '.c15t',
 	/** Config file name */
 	CONFIG_FILE: 'config.json',
-	/** Environment file */
-	ENV_FILE: '.env',
-	/** Local environment file */
-	ENV_LOCAL: '.env.local',
 	/** Project config file name */
 	PROJECT_CONFIG: 'c15t.config.ts',
 	/** Alternative project config file name */
