@@ -13,6 +13,10 @@
  * placeholder for `C15T_BACKEND_URL`, so the page runs the code the docs
  * show against this checkout.
  *
+ * `/consent-example/tailwind` adds `tailwind-classes.html`, which puts
+ * Tailwind utilities on banner parts through `theme.slots`. `/tailwind.css`
+ * is `tailwind.css` compiled at startup, standing in for the site's build.
+ *
  * Cookies need an http origin, so `file://` is not enough to try a full
  * accept/reload cycle.
  *
@@ -23,6 +27,9 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+
+import tailwind from '@tailwindcss/postcss';
+import postcss from 'postcss';
 
 const port = Number(process.env.PORT ?? 4173);
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
@@ -55,9 +62,21 @@ if (process.argv.includes('--check')) {
 	process.exit(0);
 }
 
+/** The site's Tailwind build, compiled once from `tailwind.css`. */
+const buildTailwind = async function buildTailwind(): Promise<string> {
+	const from = here('./tailwind.css');
+	const result = await postcss([tailwind({ base: here('.') })]).process(
+		readFileSync(from, 'utf8'),
+		{ from }
+	);
+	return result.css;
+};
+
+const tailwindCSS = await buildTailwind();
+
 /** The published page, with its CDN tag and backend URL made local. */
 const renderConsentExample = function renderConsentExample(
-	design: 'default' | 'branded' | 'headless'
+	design: 'default' | 'branded' | 'headless' | 'tailwind'
 ): Response {
 	if (!backendURL) {
 		return new Response(
@@ -70,6 +89,12 @@ const renderConsentExample = function renderConsentExample(
 		html = html.replace(
 			'</head>',
 			`${readFileSync(here('./branded-theme.html'), 'utf8')}</head>`
+		);
+	}
+	if (design === 'tailwind') {
+		html = html.replace(
+			'</head>',
+			`${readFileSync(here('./tailwind-classes.html'), 'utf8')}</head>`
 		);
 	}
 	if (design === 'headless') {
@@ -132,6 +157,17 @@ Bun.serve({
 		}
 		if (pathname === '/consent-example/headless') {
 			return renderConsentExample('headless');
+		}
+		if (pathname === '/consent-example/tailwind') {
+			return renderConsentExample('tailwind');
+		}
+		if (pathname === '/tailwind.css') {
+			return new Response(tailwindCSS, {
+				headers: {
+					'cache-control': 'no-store',
+					'content-type': 'text/css; charset=utf-8',
+				},
+			});
 		}
 		const file = bundles[pathname] ?? pages[pathname];
 		if (!file) {

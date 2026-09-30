@@ -1,0 +1,18 @@
+{/* Generated from apps/storybook-react/src/docs-recipes/class-names/emotion.ts (docs:class-names-emotion) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-components.ts"
+import { css } from '@emotion/css';
+import type { ConsentProviderOptions } from 'c15t/react';
+
+const card = css({
+	border: '3px solid rgb(234 88 12)',
+	borderRadius: 4,
+});
+
+/** Pass as `components` in your ConsentProvider options. */
+export const components: ConsentProviderOptions['components'] = {
+	banner: {
+		card: { className: card },
+	},
+};
+```

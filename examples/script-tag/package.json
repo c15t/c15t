@@ -11,5 +11,10 @@
 	},
 	"dependencies": {
 		"@c15t/browser": "workspace:*"
+	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "4.3.3",
+		"postcss": "8.5.16",
+		"tailwindcss": "4.3.3"
 	}
 }

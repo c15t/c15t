@@ -1,0 +1,6 @@
+/*
+ * The site's Tailwind entry. serve.ts builds it and serves the result at
+ * /tailwind.css, the way a static site would after `tailwindcss -i`.
+ */
+@import 'tailwindcss' source(none);
+@source './tailwind-classes.html';

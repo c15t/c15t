@@ -352,6 +352,36 @@ for (const target of selectedTargets()) {
 			});
 		}
 
+		if (target.id === 'html') {
+			test('Tailwind classes from theme.slots style the banner in its shadow root', async () => {
+				await visit('/consent-example/tailwind');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				const card = page.getByTestId('consent-banner-card');
+				expect(
+					await card.evaluate(
+						(element) => element.getRootNode() instanceof ShadowRoot
+					)
+				).toBe(true);
+				expect(await card.getAttribute('class')).toContain('border-sky-600');
+				// `border-sky-600` from the site's Tailwind build, linked into the
+				// shadow root, wins over the stock card border.
+				await expect
+					.poll(() =>
+						card.evaluate((element) => {
+							const style = getComputedStyle(element);
+							return [style.borderTopWidth, style.borderTopLeftRadius];
+						})
+					)
+					.toEqual(['4px', '0px']);
+				await expect
+					.poll(() =>
+						card.evaluate((element) => getComputedStyle(element).borderTopColor)
+					)
+					.toMatch(/^oklch\(0\.588 0\.158 241\.966\)$|^rgb\(0, 132, 209\)$/u);
+				expect(requests.unexpected).toEqual([]);
+			});
+		}
+
 		if (target.id.startsWith('tanstack-start')) {
 			// Awaited server rendering puts the banner in the HTML. A streamed
 			// loader and prerendered pages mount it after hydration.
