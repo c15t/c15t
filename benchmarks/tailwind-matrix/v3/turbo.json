@@ -8,7 +8,7 @@
 				"$TURBO_ROOT$/benchmarks/tailwind-matrix/build-fixtures.ts",
 				"$TURBO_ROOT$/benchmarks/tailwind-matrix/fixtures.ts"
 			],
-			"outputs": ["*/dist/**", "*/build/**", "*/.output/public/**"]
+			"outputs": ["*/dist/**", "*/build/**", "*/.output/public/**", "*/out/**"]
 		}
 	}
 }

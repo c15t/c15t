@@ -37,9 +37,12 @@ TAILWIND_MATRIX_VERSIONS=v3 TAILWIND_MATRIX_FIXTURES=vue,nuxt bun run compat:sty
 ```
 
 The styles group builds the Next.js Tailwind fixtures and the framework
-matrix in `benchmarks/tailwind-matrix`: React on Vite, TanStack Start, Vue,
-Nuxt, Svelte, SvelteKit, Astro and the script tag (shadow root and light
-DOM), each once with Tailwind 3 (`v3/`) and once with Tailwind 4 (`v4/`).
+matrix in `benchmarks/tailwind-matrix`: Next.js 16 (Turbopack and webpack),
+Next.js 15, React on Vite, TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Astro
+and the script tag (shadow root and light DOM), each once with Tailwind 3
+(`v3/`) and once with Tailwind 4 (`v4/`). The Next.js fixtures build static
+exports. `next-15/` in each workspace is its own package, so it can pin
+Next.js 15 next to the workspace's Next.js 16.
 `scripts/verify-tailwind-matrix.ts` serves each static build and checks that
 c15t survives preflight, that a utility on the banner root beats c15t's own
 padding (important on Tailwind 3, bare on Tailwind 4), that `dark` on `<html>`

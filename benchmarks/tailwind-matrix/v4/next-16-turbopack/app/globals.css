@@ -1,0 +1,6 @@
+/* #region docs:tailwind-css title="app/globals.css" */
+@import 'tailwindcss';
+@import 'c15t/next/styles.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+/* #endregion docs:tailwind-css */

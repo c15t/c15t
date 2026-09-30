@@ -8,7 +8,11 @@ export interface TailwindMatrixFixture {
 	/** Directory under `v3/` and `v4/`. */
 	id: string;
 	label: string;
-	/** Binary from the workspace's `node_modules/.bin` and its arguments. */
+	/**
+	 * Binary and its arguments. The binary comes from the fixture's own
+	 * `node_modules/.bin` when it has one (a fixture that pins a different
+	 * framework version is its own package), else from the workspace's.
+	 */
 	build: readonly [string, ...string[]];
 	/** Static output, relative to the fixture directory. */
 	outDir: string;
@@ -37,6 +41,27 @@ const page: TailwindMatrixPage = {
 };
 
 export const TAILWIND_MATRIX_FIXTURES: readonly TailwindMatrixFixture[] = [
+	{
+		build: ['next', 'build'],
+		id: 'next-16-turbopack',
+		label: 'Next.js 16 (Turbopack)',
+		outDir: 'out',
+		pages: [page],
+	},
+	{
+		build: ['next', 'build', '--webpack'],
+		id: 'next-16-webpack',
+		label: 'Next.js 16 (webpack)',
+		outDir: 'out',
+		pages: [page],
+	},
+	{
+		build: ['next', 'build'],
+		id: 'next-15',
+		label: 'Next.js 15 (webpack)',
+		outDir: 'out',
+		pages: [page],
+	},
 	{
 		build: ['vite', 'build'],
 		id: 'react',

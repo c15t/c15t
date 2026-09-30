@@ -1,0 +1,8 @@
+/* #region docs:tailwind-css title="app/globals.css" */
+/* Turbopack rejects an @import below the directives, so it goes first. */
+@import 'c15t/next/styles.tw3.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* #endregion docs:tailwind-css */

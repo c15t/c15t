@@ -8,6 +8,7 @@
  * ```
  */
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { TAILWIND_MATRIX_FIXTURES } from './fixtures';
@@ -21,12 +22,18 @@ for (const fixture of TAILWIND_MATRIX_FIXTURES) {
 		continue;
 	}
 	const [bin, ...args] = fixture.build;
+	const cwd = join(workspace, fixture.id);
+	const own = join(cwd, 'node_modules', '.bin', bin);
 	console.log(`\n> ${fixture.label}: ${bin} ${args.join(' ')}`);
-	const result = spawnSync(join(workspace, 'node_modules', '.bin', bin), args, {
-		cwd: join(workspace, fixture.id),
-		env: { ...process.env, NODE_ENV: 'production' },
-		stdio: 'inherit',
-	});
+	const result = spawnSync(
+		existsSync(own) ? own : join(workspace, 'node_modules', '.bin', bin),
+		args,
+		{
+			cwd,
+			env: { ...process.env, NODE_ENV: 'production' },
+			stdio: 'inherit',
+		}
+	);
 	if (result.status !== 0) {
 		failed.push(fixture.label);
 	}

@@ -1,0 +1,20 @@
+{
+	"name": "@c15t/tailwind-matrix-v3-next-15",
+	"private": true,
+	"description": "Next.js 15 for the Tailwind 3 matrix fixture. The v3 workspace builds it; the package only pins its dependencies apart from the Next.js 16 fixtures.",
+	"type": "module",
+	"dependencies": {
+		"c15t": "workspace:*",
+		"next": "15.5.25",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
+	},
+	"devDependencies": {
+		"@types/react": "19.2.17",
+		"@types/react-dom": "19.2.3",
+		"autoprefixer": "10.4.21",
+		"postcss": "8.5.16",
+		"tailwindcss": "3.4.17",
+		"typescript": "6.0.3"
+	}
+}
