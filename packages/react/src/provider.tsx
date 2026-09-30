@@ -268,7 +268,7 @@ export interface ConsentProviderOptions
  */
 export type ExternalRuntimeProviderOptions = Omit<
 	ConsentProviderOptions,
-	'mode' | 'vendors'
+	'callbacks' | 'mode' | 'vendors'
 > & {
 	mode?: ConsentProviderOptions['mode'];
 	/**
@@ -276,6 +276,12 @@ export type ExternalRuntimeProviderOptions = Omit<
 	 * `createConsentRuntime({ vendors })`, and the kernel carries them.
 	 */
 	vendors?: never;
+	/**
+	 * Not accepted here: the runtime owner passes callbacks to
+	 * `createConsentRuntime({ callbacks })`, and the runtime runs them.
+	 * Passing them anyway logs a warning in development.
+	 */
+	callbacks?: never;
 };
 
 /** The provider builds and owns its own kernel. */
@@ -1557,6 +1563,19 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			});
 		};
 	}, [owned, ownsRuntime]);
+
+	// Development only. A borrowed runtime already runs the callbacks its
+	// owner passed to `createConsentRuntime()`; attaching the provider's as
+	// well would split one app's handlers across two places.
+	const hasBorrowedCallbacks = !ownsRuntime && options.callbacks !== undefined;
+	useEffect(() => {
+		if (process.env.NODE_ENV === 'production' || !hasBorrowedCallbacks) {
+			return;
+		}
+		console.warn(
+			'c15t ConsentProvider: `options.callbacks` is ignored when you pass `runtime`. Pass them to createConsentRuntime({ callbacks }) instead.'
+		);
+	}, [hasBorrowedCallbacks]);
 
 	// The arm's theme overrides ride on the host theme, so the theme context
 	// follows the assignment.
