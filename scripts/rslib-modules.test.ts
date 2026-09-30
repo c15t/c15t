@@ -159,6 +159,12 @@ export const state = /*#__PURE__*/ Object.freeze({ value: namedFunction() });
 `;
 };
 
+// Each poll waits for the watcher to notice an edit and recompile, then
+// reads the output in a new Node process. That takes a few hundred
+// milliseconds alone and over a second under load, past expect.poll's 1 s
+// default.
+const REBUILD = { timeout: 10_000 } as const;
+
 test('watch emits aliases and preserves identity through edits and compiler recovery', async () => {
 	const { config, cwd, source } = fixture();
 	writeFileSync(source, fixtureSource(1));
@@ -174,26 +180,27 @@ test('watch emits aliases and preserves identity through edits and compiler reco
 	config.plugins?.push(observeCompilation);
 	const rslib = await createRslib({ config, cwd });
 	builds.push(await rslib.build({ watch: true }));
-	await expect.poll(() => outcomes.length).toBeGreaterThanOrEqual(1);
+	await expect.poll(() => outcomes.length, REBUILD).toBeGreaterThanOrEqual(1);
 	expect(readFixture(cwd)).toEqual({ value: 1 });
 	const emitted = readFileSync(join(cwd, 'dist/nested/state.js'), 'utf8');
 	expect(emitted).toContain('/*! Fixture license */');
 	expect(emitted).toContain('#__PURE__');
 
 	writeFileSync(source, fixtureSource(2));
-	await expect.poll(() => readFixture(cwd)).toEqual({ value: 2 });
+	await expect.poll(() => readFixture(cwd), REBUILD).toEqual({ value: 2 });
 
 	writeFileSync(source, 'export const broken = ;');
-	await expect.poll(() => outcomes.includes(true)).toBe(true);
+	await expect.poll(() => outcomes.includes(true), REBUILD).toBe(true);
 	const failedAt = outcomes.lastIndexOf(true);
 
 	writeFileSync(source, fixtureSource(3));
-	await expect.poll(() => readFixture(cwd)).toEqual({ value: 3 });
+	await expect.poll(() => readFixture(cwd), REBUILD).toEqual({ value: 3 });
 	// Assets land on disk before `onAfterBuild` records the outcome, so wait
 	// for a compilation after the failure to report success rather than
 	// reading the tail right after the file poll.
 	await expect
 		.poll(() => outcomes.slice(failedAt + 1).at(-1), {
+			...REBUILD,
 			message: 'the compilation after the syntax error should recover',
 		})
 		.toBe(false);
