@@ -136,8 +136,9 @@ export interface ConsentConfig
 	/**
 	 * Design tokens, including `dark` colors, written as CSS custom
 	 * properties into the same `<style id="c15t-css-vars">` element as
-	 * `tokens`. Where both set a variable, `theme` wins. Vue reads slot
-	 * overrides from `components`, not `theme.slots`.
+	 * `tokens`. Where both set a variable, `theme` wins. `theme.slots`
+	 * style the same parts as `components`, which win where both set the
+	 * same attribute.
 	 *
 	 * @example
 	 * ```ts

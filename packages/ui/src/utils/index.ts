@@ -5,5 +5,6 @@ export * from './merge-styles';
 export * from './policy-actions';
 export * from './resolve-styles';
 export * from './sanitize-dom-style-props';
+export * from './theme-slots';
 export * from './translations';
 export * from './trigger-utils';

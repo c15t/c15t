@@ -35,7 +35,7 @@ export const reactDialogAdapter: ConsentDialogAdapter = {
 		const root = createRoot(context.target);
 		root.render(
 			createElement(surface.default as never, {
-				...buildProviderProps(context.runtime, context.options, 'react'),
+				...buildProviderProps(context.runtime, context.options),
 				kind: context.kind,
 				legalLinks: context.legalLinks,
 				tab: context.tab,

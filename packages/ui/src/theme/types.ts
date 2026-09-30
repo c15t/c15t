@@ -330,6 +330,12 @@ export type SlotStyle = string | ClassNameStyle;
 
 /**
  * Component slots for specific styling overrides.
+ *
+ * Every adapter reads these: the script tag, Svelte and Astro directly, and
+ * React and Vue through the same parts of their `components` option. The
+ * dialog footer and the `ConsentGate` placeholder have no slot: the stock
+ * dialog's footer is the widget's (`consentWidgetFooter`), and
+ * `ConsentGate` takes its classes as props.
  * @public
  */
 export interface ComponentSlots {
@@ -370,8 +376,6 @@ export interface ComponentSlots {
 	consentDialogDescription?: SlotStyle;
 	/** Dialog content region (typically holds ConsentWidget). */
 	consentDialogContent?: SlotStyle;
-	/** Footer container used by compound dialog layouts. */
-	consentDialogFooter?: SlotStyle;
 	/** Branding tag rendered below the stock consent dialog card. */
 	consentDialogTag?: SlotStyle;
 	/** Backdrop overlay rendered behind the dialog. */
@@ -408,10 +412,6 @@ export interface ComponentSlots {
 	consentWidgetFooterSubGroup?: SlotStyle;
 	/** Branding tag rendered below the standalone consent widget. */
 	consentWidgetTag?: SlotStyle;
-
-	// --- FRAME SLOTS ---
-	/** Frame wrapper used by blocking placeholders (e.g., iframe blocking). */
-	frame?: SlotStyle;
 
 	// --- IAB CONSENT BANNER SLOTS ---
 	/** Root wrapper for the IAB consent banner. */

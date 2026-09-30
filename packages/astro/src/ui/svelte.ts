@@ -35,7 +35,7 @@ export const svelteDialogAdapter: ConsentDialogAdapter = {
 
 		const component = mount(surface.default as never, {
 			props: {
-				...buildProviderProps(context.runtime, context.options, 'svelte'),
+				...buildProviderProps(context.runtime, context.options),
 				kind: context.kind,
 				legalLinks: context.legalLinks,
 				tab: context.tab,

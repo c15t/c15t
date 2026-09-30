@@ -57,7 +57,8 @@ const minimalTheme: Theme = {
 		consentBannerFooter: {
 			style: { backgroundColor: 'transparent', paddingTop: 0 },
 		},
-		consentDialogFooter: {
+		// The stock dialog's footer is the preference widget's.
+		consentWidgetFooter: {
 			style: { backgroundColor: 'transparent' },
 		},
 		iabConsentBannerFooter: {

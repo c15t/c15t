@@ -53,6 +53,7 @@ import type { ConsentControlOptions, ConsentRuntime } from '@c15t/core/runtime';
 import { connectConsentSource } from '@c15t/core/runtime/controls';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
+import { applyThemeSlots } from '@c15t/ui/utils';
 import type { ReactNode } from 'react';
 import {
 	useContext,
@@ -1636,7 +1637,13 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 
 	const uiConfigValue = useMemo<V3UIConfigValue>(
 		() => ({
-			components: options.components,
+			// `theme.slots` style the same parts as `components`, which win
+			// where both set the same attribute.
+			components: applyThemeSlots(
+				userTheme?.slots,
+				options.components,
+				'className'
+			),
 			experiment,
 			legalLinks: options.legalLinks,
 			preloadDialog: options.preloadDialog,
@@ -1644,6 +1651,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			theme: options.theme,
 		}),
 		[
+			userTheme?.slots,
 			options.components,
 			experiment,
 			options.legalLinks,

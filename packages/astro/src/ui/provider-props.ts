@@ -10,9 +10,7 @@
 import { applyExperimentTheme } from '@c15t/core';
 import type { ConsentRuntime } from '@c15t/core/runtime';
 
-import type { C15tResolvedOptions, C15tUIAdapterName } from '../types';
-import { themeSlotsToComponents } from './theme-slot-components';
-import type { ComponentSlotMap } from './theme-slot-components';
+import type { C15tResolvedOptions } from '../types';
 
 /**
  * The slice of the integration options a dialog island renders with.
@@ -44,12 +42,12 @@ export interface DialogPresentationOptions {
 	experiment?: C15tResolvedOptions['experiment'];
 	legalLinks?: C15tResolvedOptions['legalLinks'];
 	presentation?: C15tResolvedOptions['presentation'];
-	theme?: C15tResolvedOptions['theme'];
 	/**
-	 * `theme.slots` as the `components` map the React and Vue providers
-	 * read. The Svelte provider reads `theme.slots` itself and gets none.
+	 * Tokens and `theme.slots`. Every island's provider applies the slots
+	 * itself: Svelte reads them directly, React and Vue through their
+	 * `components` parts.
 	 */
-	components?: ComponentSlotMap;
+	theme?: C15tResolvedOptions['theme'];
 }
 
 /** Props handed to `ConsentManagerProvider` by the Svelte dialog surface. */
@@ -65,14 +63,11 @@ export interface DialogProviderProps {
  *
  * @param runtime - The page runtime that owns the kernel.
  * @param options - The resolved integration options.
- * @param framework - The island's framework. React and Vue get
- * `theme.slots` translated into `components`.
  * @returns Props for `ConsentManagerProvider`.
  */
 export const buildProviderProps = function buildProviderProps(
 	runtime: ConsentRuntime,
-	options: C15tResolvedOptions,
-	framework: C15tUIAdapterName = 'svelte'
+	options: C15tResolvedOptions
 ): DialogProviderProps {
 	// The arm's theme overrides ride on the host theme. The island mounts
 	// after `start()`, so the assignment is already known.
@@ -90,14 +85,5 @@ export const buildProviderProps = function buildProviderProps(
 		presentation: options.presentation,
 		theme,
 	};
-	if (framework !== 'svelte') {
-		const components = themeSlotsToComponents(
-			theme,
-			framework === 'react' ? 'className' : 'class'
-		);
-		if (components) {
-			presentationOptions.components = components;
-		}
-	}
 	return { options: presentationOptions, runtime };
 };

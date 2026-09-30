@@ -1,9 +1,8 @@
 /**
  * `theme.slots` reaches the preference dialog whichever framework renders
- * the island. React and Vue read per-part attributes from `components`
- * rather than `theme.slots`, so the adapters translate. The Svelte island
- * reads `theme.slots` itself; Vitest resolves `svelte` to its server
- * build, so its case checks the props the adapter hands it.
+ * the island. Every provider applies the slots itself: React and Vue map
+ * them onto their `components` parts. Vitest resolves `svelte` to its
+ * server build, so the Svelte case checks the props the adapter hands it.
  */
 
 import type { Theme } from '@c15t/ui/theme';
@@ -129,7 +128,7 @@ describe('the svelte dialog island', () => {
 			theme: THEME,
 			ui: 'svelte' satisfies C15tUIAdapterName,
 		});
-		const props = buildProviderProps({} as never, options, 'svelte');
+		const props = buildProviderProps({} as never, options);
 
 		expect(props.options.theme?.slots).toEqual(THEME.slots);
 	});
