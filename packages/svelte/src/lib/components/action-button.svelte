@@ -7,7 +7,7 @@
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { holdIdleDialogWarming, warmDialog } from '../dialog-warming';
-	import { resolveComponentStyles } from '../utils';
+	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 
 	let {
 		action,
@@ -146,11 +146,7 @@
 	data-variant={noStyle ? undefined : variant}
 	data-mode={noStyle ? undefined : mode}
 	data-size={noStyle ? undefined : size}
-	style={buttonStyle.style
-		? Object.entries(buttonStyle.style)
-				.map(([k, v]) => `${k}:${v}`)
-				.join(';')
-		: undefined}
+	style={toStyleAttribute(buttonStyle.style)}
 	{...restProps}
 	onclick={handleClick}
 	onfocus={handleFocus}

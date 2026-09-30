@@ -2,19 +2,17 @@
 	import type { LegalLinks as LegalLinksType } from '@c15t/core';
 	import { defaultTranslationConfig } from '@c15t/core';
 	import legalLinkStyles from '@c15t/ui/styles/components/legal-links';
-	import type { AllThemeKeys } from '@c15t/ui/theme';
 	import { resolveTranslations } from '@c15t/ui/utils';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
-	import { resolveComponentStyles } from '../utils';
 
+	// No theme slot: the React and Vue legal links take only the stock link
+	// class, and the description's slot belongs to the description.
 	let {
 		links,
-		themeKey = 'consentBannerDescription' as AllThemeKeys,
 		testIdPrefix,
 	}: {
 		links?: (keyof LegalLinksType)[] | null;
-		themeKey?: AllThemeKeys;
 		testIdPrefix?: string;
 	} = $props();
 
@@ -46,14 +44,7 @@
 			: null;
 	});
 
-	const linkStyle = $derived(
-		resolveComponentStyles(
-			themeKey,
-			theme.theme,
-			{ baseClassName: legalLinkStyles.legalLink },
-			noStyle
-		)
-	);
+	const linkClassName = $derived(noStyle ? '' : legalLinkStyles.legalLink);
 
 	const linkEntries = $derived(
 		filteredLinks
@@ -76,7 +67,7 @@
 						target={link.target || '_blank'}
 						rel={link.rel ||
 							(link.target === '_blank' ? 'noopener noreferrer' : undefined)}
-						class={linkStyle.className || ''}
+						class={linkClassName || undefined}
 						data-testid={testIdPrefix ? `${testIdPrefix}-${type}` : undefined}
 					>
 						{link.label ??

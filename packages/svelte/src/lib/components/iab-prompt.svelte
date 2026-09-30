@@ -19,7 +19,7 @@
 	} from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
 	import { useBannerVisibility } from '../use-banner-visibility.svelte';
-	import { resolveComponentStyles } from '../utils';
+	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import Branding from './branding.svelte';
 	import Overlay from './overlay.svelte';
 
@@ -198,6 +198,7 @@
 		<div
 			bind:this={visibility.bannerEl}
 			class={finalClassName}
+			style={toStyleAttribute(rootStyle.style)}
 			dir={textDirection}
 			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
 			data-testid="iab-consent-banner-root"

@@ -36,4 +36,29 @@ describe('ConsentDialog disableAnimation prop', () => {
 			);
 		}
 	);
+
+	test('marks the overlay and positioner so the open keyframes do not run', async () => {
+		render(Fixture, {
+			disableAnimation: true,
+			options: optionsWith(false),
+		});
+		await waitFor(() => expect(document.querySelector(ROOT)).not.toBeNull());
+		const positioner = document.querySelector(ROOT)?.parentElement;
+		const overlay = document.querySelector(
+			'[data-testid="consent-dialog-overlay"]'
+		);
+		// The stylesheet animates both on `data-state` and stops them on
+		// `data-disable-animation`, as the Vue and script-tag dialogs set it.
+		expect(positioner?.getAttribute('data-state')).toBe('open');
+		expect(positioner?.hasAttribute('data-disable-animation')).toBe(true);
+		expect(overlay?.getAttribute('data-state')).toBe('open');
+		expect(overlay?.hasAttribute('data-disable-animation')).toBe(true);
+	});
+
+	test('leaves the open keyframes on by default', async () => {
+		render(Fixture, { options: optionsWith(false) });
+		await waitFor(() => expect(document.querySelector(ROOT)).not.toBeNull());
+		const positioner = document.querySelector(ROOT)?.parentElement;
+		expect(positioner?.hasAttribute('data-disable-animation')).toBe(false);
+	});
 });

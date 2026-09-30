@@ -12,7 +12,7 @@
 	import { portal } from '../actions/portal';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { holdIdleDialogWarming, warmDialog } from '../dialog-warming';
-	import { resolveComponentStyles } from '../utils';
+	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import C15TIconOnly from './icons/c15-t-icon-only.svelte';
 	import ConsentIconOnly from './icons/consent-icon-only.svelte';
 
@@ -227,15 +227,10 @@
 			noStyle
 		)
 	);
-	const toInlineStyle = (style: Record<string, unknown> | undefined) =>
-		style
-			? Object.entries(style)
-					.map(([key, value]) => `${key}:${value}`)
-					.join(';')
-			: '';
 	const buttonStyle = $derived(
-		[toInlineStyle(triggerStyle.style), dragStyle].filter(Boolean).join(';') ||
-			undefined
+		[toStyleAttribute(triggerStyle.style), dragStyle]
+			.filter(Boolean)
+			.join(';') || undefined
 	);
 </script>
 
@@ -259,7 +254,7 @@
 		>
 			<span
 				class={iconStyle.className || ''}
-				style={toInlineStyle(iconStyle.style) || undefined}
+				style={toStyleAttribute(iconStyle.style)}
 				aria-hidden="true"
 			>
 				{#if branding === 'consent'}

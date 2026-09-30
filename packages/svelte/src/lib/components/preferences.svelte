@@ -11,7 +11,11 @@
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { PreferenceItem, Switch } from '../primitives';
-	import { resolveComponentStyles, resolveConsentActionStyle } from '../utils';
+	import {
+		resolveComponentStyles,
+		resolveConsentActionStyle,
+		toStyleAttribute,
+	} from '../utils';
 	import ConsentButton from './action-button.svelte';
 	import Branding from './branding.svelte';
 	import PolicyActionsRenderer from './policy-actions-renderer.svelte';
@@ -126,6 +130,7 @@
 {#if consent.state.hasConsentUi}
 	<div
 		class={widgetRootStyle.className || ''}
+		style={toStyleAttribute(widgetRootStyle.style)}
 		dir={textDirection}
 		data-testid="consent-widget-root"
 	>
@@ -263,7 +268,9 @@
 			{direction}
 			{noStyle}
 			footerClassName={footerStyle.className || ''}
+			footerStyle={toStyleAttribute(footerStyle.style)}
 			footerSubGroupClassName={footerGroupStyle.className || ''}
+			footerSubGroupStyle={toStyleAttribute(footerGroupStyle.style)}
 			footerTestId="consent-widget-footer"
 			footerSubGroupTestId="consent-widget-footer-sub-group"
 		>

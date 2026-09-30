@@ -162,15 +162,22 @@ export const createDialog = function createDialog(
 			),
 			'consentDialog'
 		);
+		// `data-disable-animation` switches off the keyframes the stylesheet
+		// runs on `data-state`, as in the Vue dialog.
 		positioner = h(
 			'div',
-			{ class: noStyle ? '' : styles.root, 'data-state': 'open' },
+			{
+				class: noStyle ? '' : styles.root,
+				'data-disable-animation': disableAnimation,
+				'data-state': 'open',
+			},
 			content
 		);
 		overlay = slot(
 			h('div', {
 				'aria-hidden': 'true',
 				class: noStyle ? '' : styles.overlay,
+				'data-disable-animation': disableAnimation,
 				'data-state': 'open',
 				'data-testid': 'consent-dialog-overlay',
 				role: 'presentation',

@@ -24,7 +24,11 @@
 	import { scrollLock } from '../actions/scroll-lock';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { useBannerVisibility } from '../use-banner-visibility.svelte';
-	import { resolveComponentStyles, resolveConsentActionStyle } from '../utils';
+	import {
+		resolveComponentStyles,
+		resolveConsentActionStyle,
+		toStyleAttribute,
+	} from '../utils';
 	import ConsentButton from './action-button.svelte';
 	import Branding from './branding.svelte';
 	import InlineLegalLinks from './inline-legal-links.svelte';
@@ -364,6 +368,7 @@
 		<div
 			bind:this={visibility.bannerEl}
 			class={finalClassName}
+			style={toStyleAttribute(rootStyle.style)}
 			dir={textDirection}
 			data-variant={resolvedVariant}
 			data-position={resolvedPosition}
@@ -384,6 +389,7 @@
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<div
 					class={cardStyle.className || ''}
+					style={toStyleAttribute(cardStyle.style)}
 					data-testid="consent-banner-card"
 					tabindex="-1"
 					role={isBlocking ? 'dialog' : 'region'}
@@ -393,23 +399,25 @@
 				>
 					<div
 						class={headerStyle.className || ''}
+						style={toStyleAttribute(headerStyle.style)}
 						data-testid="consent-banner-header"
 					>
 						<h2
 							class={titleStyle.className || ''}
+							style={toStyleAttribute(titleStyle.style)}
 							data-testid="consent-banner-title"
 						>
 							{resolvedTitle}
 						</h2>
 						<div
 							class={descriptionStyle.className || ''}
+							style={toStyleAttribute(descriptionStyle.style)}
 							data-context="banner"
 							data-testid="consent-banner-description"
 						>
 							{resolvedDescription}
 							<InlineLegalLinks
 								links={legalLinks}
-								themeKey="consentBannerDescription"
 								testIdPrefix="consent-banner-legal-link"
 							/>
 						</div>
@@ -421,7 +429,9 @@
 						{direction}
 						{noStyle}
 						footerClassName={footerStyle.className || ''}
+						footerStyle={toStyleAttribute(footerStyle.style)}
 						footerSubGroupClassName={footerSubGroupStyle.className || ''}
+						footerSubGroupStyle={toStyleAttribute(footerSubGroupStyle.style)}
 						footerTestId="consent-banner-footer"
 						footerSubGroupTestId="consent-banner-footer-sub-group"
 					>
@@ -429,22 +439,14 @@
 							{#if preferenceControls.length > 0}
 								<div
 									class={rightsStyle.className || ''}
-									style={rightsStyle.style
-										? Object.entries(rightsStyle.style)
-												.map(([key, value]) => `${key}:${value}`)
-												.join(';')
-										: undefined}
+									style={toStyleAttribute(rightsStyle.style)}
 									data-testid="consent-banner-rights"
 								>
 									{#each preferenceControls as right (right)}
 										<button
 											type="button"
 											class={rightLinkStyle.className || ''}
-											style={rightLinkStyle.style
-												? Object.entries(rightLinkStyle.style)
-														.map(([key, value]) => `${key}:${value}`)
-														.join(';')
-												: undefined}
+											style={toStyleAttribute(rightLinkStyle.style)}
 											data-action="right"
 											data-right={right}
 											data-c15t-rights={consent.snapshot.policyRule.rights.join(

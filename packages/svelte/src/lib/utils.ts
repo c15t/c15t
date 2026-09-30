@@ -58,6 +58,40 @@ export const resolveComponentStyles = function resolveComponentStyles(
 	) as ClassNameStyle;
 };
 
+/**
+ * Serialize a slot's `style` object for a `style` attribute.
+ *
+ * Svelte writes the attribute as text, so the keys have to be CSS property
+ * names. camelCase keys, the form React and Vue slot styles use, become
+ * kebab-case (`backgroundColor` to `background-color`, `WebkitMask` to
+ * `-webkit-mask`, `msFlex` to `-ms-flex`). Custom properties (`--brand`)
+ * are kept as written, and empty values are dropped.
+ *
+ * @param style - The resolved slot style.
+ * @returns The attribute value, or `undefined` when there is nothing to set.
+ * @internal
+ */
+export const toStyleAttribute = function toStyleAttribute(
+	style: ClassNameStyle['style'] | undefined
+): string | undefined {
+	if (!style) {
+		return undefined;
+	}
+	const declarations = Object.entries(style)
+		.filter(
+			([, value]) => value !== undefined && value !== null && value !== ''
+		)
+		.map(([key, value]) => {
+			const property = key.startsWith('--')
+				? key
+				: key
+						.replace(/^ms(?=[A-Z])/u, '-ms')
+						.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`);
+			return `${property}:${String(value)}`;
+		});
+	return declarations.length > 0 ? declarations.join(';') : undefined;
+};
+
 /** Resolve only host appearance; policy action constraints remain in core. */
 export const resolveConsentActionStyle = (
 	theme: Theme | undefined,
