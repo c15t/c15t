@@ -65,6 +65,9 @@ const MUST_BE_REACHABLE_SLOTS = [
 	'iab-vendor-list.root',
 	'iab-vendor-list.row',
 	'iab-stack-item.root',
+	'consent-gate.root',
+	'consent-gate.title',
+	'consent-gate.button',
 ] as const;
 
 const getVueComponentSources = function getVueComponentSources() {

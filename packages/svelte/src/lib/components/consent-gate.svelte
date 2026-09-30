@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import ConsentButton from './action-button.svelte';
 
 	let {
@@ -55,6 +56,45 @@
 		)
 	);
 
+	const placeholderStyle = $derived(
+		resolveComponentStyles(
+			'consentGate',
+			theme.theme,
+			{ baseClassName: styles.placeholder, noStyle },
+			noStyle
+		)
+	);
+	const titleStyle = $derived(
+		resolveComponentStyles(
+			'consentGateTitle',
+			theme.theme,
+			{ baseClassName: styles.title, noStyle },
+			noStyle
+		)
+	);
+	// Goes on top of `buttonPrimary`. The button applies that slot's class
+	// itself, but a `style` passed here replaces its style attribute, so the
+	// two slot styles are merged first.
+	const buttonStyle = $derived(
+		resolveComponentStyles(
+			'consentGateButton',
+			theme.theme,
+			{ noStyle },
+			noStyle
+		)
+	);
+	const buttonStyleAttribute = $derived(
+		toStyleAttribute({
+			...resolveComponentStyles(
+				'buttonPrimary',
+				theme.theme,
+				{ noStyle },
+				noStyle
+			).style,
+			...buttonStyle.style,
+		})
+	);
+
 	let isMounted = $state(false);
 	let isReady = $state(false);
 
@@ -78,11 +118,13 @@
 	{:else}
 		<!-- Default placeholder -->
 		<div
-			class={noStyle ? '' : styles.placeholder || ''}
+			class={placeholderStyle.className || ''}
+			style={toStyleAttribute(placeholderStyle.style)}
 			data-testid="consent-gate-placeholder"
 		>
 			<div
-				class={noStyle ? '' : styles.title || ''}
+				class={titleStyle.className || ''}
+				style={toStyleAttribute(titleStyle.style)}
 				data-testid="consent-gate-title"
 			>
 				{gateTitle}
@@ -93,6 +135,8 @@
 				mode="stroke"
 				size="small"
 				{noStyle}
+				class={buttonStyle.className}
+				style={buttonStyleAttribute}
 				data-testid="consent-gate-button"
 			>
 				{gateActionButton}

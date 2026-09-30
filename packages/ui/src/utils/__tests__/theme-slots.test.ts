@@ -52,6 +52,26 @@ describe('applyThemeSlots', () => {
 		});
 	});
 
+	test('maps the consentGate slots onto the consent-gate parts', () => {
+		expect(
+			applyThemeSlots(
+				{
+					consentGate: 'gate-card',
+					consentGateButton: 'gate-button',
+					consentGateTitle: 'gate-title',
+				},
+				undefined,
+				'class'
+			)
+		).toEqual({
+			'consent-gate': {
+				button: { class: 'gate-button' },
+				root: { class: 'gate-card' },
+				title: { class: 'gate-title' },
+			},
+		});
+	});
+
 	test('returns the components unchanged without slots', () => {
 		const components = { banner: { card: { className: 'app-card' } } };
 		expect(applyThemeSlots(undefined, components, 'className')).toBe(

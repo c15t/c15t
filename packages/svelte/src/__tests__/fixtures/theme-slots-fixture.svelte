@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ConsentGate from '../../lib/components/consent-gate.svelte';
 	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
 	import ConsentDialog from '../../lib/components/panel.svelte';
 	import ConsentBanner from '../../lib/components/prompt.svelte';
@@ -13,4 +14,5 @@
 		legalLinks={['privacyPolicy']}
 		open
 	/>
+	<ConsentGate category="marketing" />
 </ConsentManagerProvider>

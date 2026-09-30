@@ -81,6 +81,46 @@ describe('theme.slots in Svelte', () => {
 		expect(element.style.getPropertyValue('--slot-mark')).toBe('rgb(1, 2, 3)');
 	});
 
+	test.each([
+		['consentGate', 'consent-gate-placeholder'],
+		['consentGateTitle', 'consent-gate-title'],
+		['consentGateButton', 'consent-gate-button'],
+	] as const)('%s puts its class and style on %s', async (slot, testId) => {
+		await renderWithSlots({ [slot]: SLOT });
+		await waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="consent-gate-placeholder"]')
+			).not.toBeNull();
+		});
+
+		const element = part(testId);
+		expect(element.classList).toContain('brand-slot');
+		expect(element.style.getPropertyValue('background-color')).toBe(
+			'rgb(1, 2, 3)'
+		);
+		expect(element.style.getPropertyValue('--slot-mark')).toBe('rgb(1, 2, 3)');
+	});
+
+	test('consentGateButton styles merge over buttonPrimary', async () => {
+		await renderWithSlots({
+			buttonPrimary: { className: 'primary-slot', style: { color: 'red' } },
+			consentGateButton: SLOT,
+		});
+		await waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="consent-gate-button"]')
+			).not.toBeNull();
+		});
+
+		const button = part('consent-gate-button');
+		expect(button.classList).toContain('primary-slot');
+		expect(button.classList).toContain('brand-slot');
+		expect(button.style.getPropertyValue('color')).toBe('red');
+		expect(button.style.getPropertyValue('background-color')).toBe(
+			'rgb(1, 2, 3)'
+		);
+	});
+
 	test('legal links keep only the stock link class', async () => {
 		await renderWithSlots({
 			consentBannerDescription: 'banner-description-slot',

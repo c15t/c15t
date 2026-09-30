@@ -31,6 +31,7 @@ let mounted: {
 /** Mount a gate for `category` under an opt-in rule. */
 const renderGate = async function renderGate(options: {
 	category: AllConsentNames;
+	config?: Partial<ConsentConfig>;
 	language?: 'de';
 	slots?: Record<string, () => VNode>;
 	strict?: boolean;
@@ -43,7 +44,10 @@ const renderGate = async function renderGate(options: {
 		prompt: 'choice',
 		scopeMode: options.strict ? 'strict' : 'permissive',
 	};
-	const config = { consentCategories: ['necessary'] } as ConsentConfig;
+	const config = {
+		consentCategories: ['necessary'],
+		...options.config,
+	} as ConsentConfig;
 	const context = createVueConsentKernelContext({
 		config,
 		kernelConfig: {
@@ -156,5 +160,43 @@ describe('ConsentGate default placeholder', () => {
 		expect(
 			wrapper.find('[data-testid="consent-gate-placeholder"]').exists()
 		).toBe(false);
+	});
+
+	test('the consentGate slots style the placeholder parts', async () => {
+		const { wrapper } = await renderGate({
+			category: 'marketing',
+			config: {
+				components: {
+					'consent-gate': {
+						button: { class: 'app-button' },
+						root: { style: { color: 'rgb(4, 5, 6)' } },
+					},
+				},
+				theme: {
+					slots: {
+						consentGate: {
+							className: 'theme-gate',
+							style: { backgroundColor: 'rgb(1, 2, 3)', color: 'rgb(7, 8, 9)' },
+						},
+						consentGateButton: 'theme-gate-button',
+						consentGateTitle: 'theme-gate-title',
+					},
+				},
+			},
+		});
+		const placeholder = wrapper.get<HTMLElement>(
+			'[data-testid="consent-gate-placeholder"]'
+		);
+		expect(placeholder.classes()).toContain('theme-gate');
+		expect(placeholder.classes()).toContain(gateStyles.placeholder);
+		// `components` wins where both set a property.
+		expect(placeholder.element.style.backgroundColor).toBe('rgb(1, 2, 3)');
+		expect(placeholder.element.style.color).toBe('rgb(4, 5, 6)');
+		expect(
+			wrapper.get('[data-testid="consent-gate-title"]').classes()
+		).toContain('theme-gate-title');
+		const button = wrapper.get('[data-testid="consent-gate-button"]');
+		expect(button.classes()).toContain('theme-gate-button');
+		expect(button.classes()).toContain('app-button');
 	});
 });

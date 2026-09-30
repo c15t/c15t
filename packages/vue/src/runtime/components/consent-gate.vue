@@ -11,6 +11,7 @@ import {
 	useConsentKernel,
 	useConsentSnapshot,
 } from '../composables';
+import { useConsentConfig } from '../composables/config';
 import { useSurfaceTranslations } from '../composables/use-surface-translations';
 import ConsentButton from './button.vue';
 
@@ -19,6 +20,7 @@ const snapshot = useConsentSnapshot();
 const kernel = useConsentKernel();
 const activeUI = useConsentActiveUI();
 const translations = useSurfaceTranslations();
+const config = useConsentConfig();
 const allowed = computed(() =>
 	evaluateConsent(
 		{ category: props.category },
@@ -93,10 +95,12 @@ const openPreferences = function openPreferences() {
 		name="placeholder"
 	>
 		<div
+			v-bind="config.components?.['consent-gate']?.root"
 			data-testid="consent-gate-placeholder"
 			:class="gateStyles.placeholder"
 		>
 			<div
+				v-bind="config.components?.['consent-gate']?.title"
 				data-testid="consent-gate-title"
 				:class="gateStyles.title"
 			>
@@ -104,6 +108,7 @@ const openPreferences = function openPreferences() {
 			</div>
 			<ConsentButton
 				v-if="!policyBlocked"
+				v-bind="config.components?.['consent-gate']?.button"
 				variant="primary"
 				mode="stroke"
 				size="small"
