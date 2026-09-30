@@ -16,12 +16,23 @@
 interface Props {
 	/** Warm the island's chunk once the browser is idle. */
 	preload?: boolean;
+	/**
+	 * Skip the dialog's enter and exit animations. Defaults to the
+	 * integration's `disableAnimation`.
+	 */
+	disableAnimation?: boolean;
 }
 
-const { preload = false } = Astro.props;
+const { preload = false, disableAnimation } = Astro.props;
 ---
 
-<div data-c15t-dialog-host="iab" data-preload={preload ? 'true' : undefined}></div>
+<div
+	data-c15t-dialog-host="iab"
+	data-disable-animation={disableAnimation === undefined
+		? undefined
+		: String(disableAnimation)}
+	data-preload={preload ? 'true' : undefined}
+></div>
 
 <script>
 	import { preloadDialog } from '@c15t/astro/client';

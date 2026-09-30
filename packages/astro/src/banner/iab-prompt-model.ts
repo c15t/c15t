@@ -34,6 +34,11 @@ export interface IABPromptProps {
 	models?: string[];
 	/** Ship the DOM without the bundled stylesheet's class names. */
 	noStyle?: boolean;
+	/**
+	 * Skip the entry animation. Defaults to the integration's
+	 * `disableAnimation`.
+	 */
+	disableAnimation?: boolean;
 	/** Extra class on the banner root. */
 	class?: string;
 	/** Drop the "Secured by c15t" tag. */
@@ -48,6 +53,8 @@ export interface IABPromptModelInput {
 	props: IABPromptProps;
 	/** The integration's `presentation` option. */
 	presentation?: ConsentPresentation;
+	/** The integration's `disableAnimation` option. */
+	disableAnimation?: boolean;
 	/** The stylesheet class names the markup uses. */
 	classNames: IABPromptClassNames;
 	/** The integration's `theme`, for `slots`. */
@@ -205,17 +212,22 @@ const IAB_PROMPT_SLOTS = {
 
 /**
  * Class names and inline styles for every element: the stock classes, or
- * none with `noStyle`, then the element's `theme.slots` entry.
+ * none with `noStyle`, then the element's `theme.slots` entry. With
+ * `disableAnimation` the entering classes, the `@starting-style` state the
+ * entry animation starts from, are left out before the slots apply.
  */
 const resolveIABClasses = function resolveIABClasses(
 	classNames: IABPromptClassNames,
 	props: IABPromptProps,
-	theme: Theme | undefined
+	theme: Theme | undefined,
+	disableAnimation: boolean
 ): Pick<IABPromptModel, 'classes' | 'styles'> {
 	const { actions, button, iabBanner } = classNames;
 	const noStyle = props.noStyle === true;
 	const cls = (...names: (string | undefined)[]): string =>
 		noStyle ? '' : joinClasses(...names);
+	const entering = (name: string | undefined) =>
+		disableAnimation ? undefined : name;
 	const classes: IABPromptModel['classes'] = {
 		actionGroup: cls(actions.actionGroup),
 		button: cls(button.button),
@@ -228,7 +240,7 @@ const resolveIABClasses = function resolveIABClasses(
 		overlay: cls(
 			iabBanner.overlay,
 			iabBanner.overlayVisible,
-			iabBanner.overlayEntering
+			entering(iabBanner.overlayEntering)
 		),
 		partnersLink: cls(iabBanner.partnersLink),
 		purposeList: cls(iabBanner.purposeList),
@@ -236,7 +248,7 @@ const resolveIABClasses = function resolveIABClasses(
 		root: cls(
 			iabBanner.root,
 			iabBanner.bannerVisible,
-			iabBanner.bannerEntering
+			entering(iabBanner.bannerEntering)
 		),
 		title: cls(iabBanner.title),
 	};
@@ -339,7 +351,8 @@ export const resolveIABPromptModel = function resolveIABPromptModel(
 	const classesAndStyles = resolveIABClasses(
 		input.classNames,
 		props,
-		input.theme
+		input.theme,
+		props.disableAnimation ?? input.disableAnimation ?? false
 	);
 	const button = (action: IABAction) =>
 		resolveIABButton(

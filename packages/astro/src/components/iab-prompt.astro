@@ -65,6 +65,7 @@ if (!c15t) {
 const { snapshot } = c15t;
 const model = resolveIABPromptModel({
 	classNames: iabPromptClassNames,
+	disableAnimation: c15t.options.disableAnimation,
 	// The arm is the host-resolved `variant`, already on the server snapshot.
 	presentation: applyExperimentAssignment(
 		c15t.options.presentation,

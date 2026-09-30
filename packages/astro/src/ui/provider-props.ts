@@ -32,6 +32,11 @@ export interface DialogPresentationOptions {
 	colorScheme: null;
 	consentCategories?: C15tResolvedOptions['consentCategories'];
 	/**
+	 * `<ConsentDialog disableAnimation>`, else the integration option.
+	 * Unset, the island's provider follows `prefers-reduced-motion`.
+	 */
+	disableAnimation?: boolean;
+	/**
 	 * The configured experiment. The island reads the assigned arm from the
 	 * runtime snapshot and merges that arm over `presentation`; `theme`
 	 * below already carries the arm's theme overrides.
@@ -79,6 +84,7 @@ export const buildProviderProps = function buildProviderProps(
 	const presentationOptions: DialogPresentationOptions = {
 		colorScheme: null,
 		consentCategories: options.consentCategories,
+		disableAnimation: options.disableAnimation,
 		experiment: options.experiment,
 		legalLinks: options.legalLinks,
 		presentation: options.presentation,

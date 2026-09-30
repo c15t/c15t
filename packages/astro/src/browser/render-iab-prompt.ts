@@ -27,6 +27,8 @@ export interface RenderIABPromptOptions {
 	presentation?: ConsentPresentation;
 	/** The integration's `theme`, for `slots`. */
 	theme?: Theme;
+	/** The integration's `disableAnimation`. */
+	disableAnimation?: boolean;
 }
 
 /** What `<IABConsentBanner />` leaves in its spot. */
@@ -134,6 +136,7 @@ export const buildIABPrompt = function buildIABPrompt(
 	const { props } = slot;
 	const model = resolveIABPromptModel({
 		classNames: slot.classNames,
+		disableAnimation: options.disableAnimation,
 		presentation: options.presentation,
 		props,
 		snapshot,

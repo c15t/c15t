@@ -93,6 +93,7 @@ const themeCSS = emitConfig
 
 const model = resolvePromptModel({
 	classNames: promptClassNames,
+	disableAnimation: c15t.options.disableAnimation,
 	legalLinks: c15t.options.legalLinks,
 	// The arm is the host-resolved `variant`, already on the server snapshot.
 	presentation: applyExperimentAssignment(

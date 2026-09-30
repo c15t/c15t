@@ -148,6 +148,71 @@ describe('<ConsentBanner />', () => {
 		expect(german).not.toBe(english);
 	});
 
+	describe('entry animation', () => {
+		const rootClass = (html: string) =>
+			/<div[^>]*class="(?<classes>[^"]*)"[^>]*data-testid="consent-banner-root"/u.exec(
+				html
+			)?.groups?.classes ?? '';
+		const entering = bannerStyles.bannerEntering ?? 'bannerEntering';
+
+		it('plays by default', async () => {
+			expect(rootClass(await render(await buildLocals()))).toContain(entering);
+		});
+
+		it('is skipped with the `disableAnimation` prop', async () => {
+			const html = await render(await buildLocals(), {
+				disableAnimation: true,
+			});
+			expect(rootClass(html)).toContain(bannerStyles.bannerVisible);
+			expect(rootClass(html)).not.toContain(entering);
+		});
+
+		it('is skipped with the integration option, unless the prop is false', async () => {
+			const locals = await buildLocals({
+				disableAnimation: true,
+				mode: offlineMode({ policyRules: [testRule] }),
+			});
+			expect(rootClass(await render(locals))).not.toContain(entering);
+			expect(
+				rootClass(await render(locals, { disableAnimation: false }))
+			).toContain(entering);
+		});
+
+		it('is skipped with `theme.slots` applied to the same parts', async () => {
+			const html = await render(
+				await buildLocals({
+					mode: offlineMode({ policyRules: [testRule] }),
+					presentation: { prompt: { blocking: true } },
+					theme: {
+						slots: {
+							consentBanner: 'brand-banner',
+							consentBannerOverlay: {
+								className: 'brand-overlay',
+								style: { opacity: '0.5' },
+							},
+						},
+					},
+				}),
+				{ class: 'page-banner', disableAnimation: true }
+			);
+			const overlay =
+				/<[^>]*data-testid="consent-banner-overlay"[^>]*>/u.exec(html)?.[0] ??
+				'';
+
+			expect(rootClass(html)).toBe(
+				`${bannerStyles.root} ${bannerStyles.bannerVisible} brand-banner page-banner`
+			);
+			expect(overlay).toContain(
+				`class="${bannerStyles.overlay} ${bannerStyles.overlayVisible} brand-overlay"`
+			);
+			expect(overlay).toContain('style="opacity:0.5"');
+			expect(html).not.toContain(entering);
+			expect(html).not.toContain(
+				bannerStyles.overlayEntering ?? 'overlayEntering'
+			);
+		});
+	});
+
 	it('drops the styling class names with `noStyle`', async () => {
 		const html = await render(await buildLocals(), { noStyle: true });
 		expect(html).not.toContain('c15t-ui-root');

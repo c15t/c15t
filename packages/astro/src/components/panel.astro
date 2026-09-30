@@ -35,13 +35,21 @@ interface Props {
 	 * ```
 	 */
 	legalLinks?: (keyof LegalLinks)[] | null;
+	/**
+	 * Skip the dialog's enter and exit animations. Defaults to the
+	 * integration's `disableAnimation`.
+	 */
+	disableAnimation?: boolean;
 }
 
-const { preload = false, legalLinks } = Astro.props;
+const { preload = false, legalLinks, disableAnimation } = Astro.props;
 ---
 
 <div
 	data-c15t-dialog-host="preferences"
+	data-disable-animation={disableAnimation === undefined
+		? undefined
+		: String(disableAnimation)}
 	data-legal-links={legalLinks ? legalLinks.join(' ') : undefined}
 	data-preload={preload ? 'true' : undefined}
 >

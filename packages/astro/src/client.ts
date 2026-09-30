@@ -379,6 +379,28 @@ const readDialogLegalLinks = function readDialogLegalLinks():
 };
 
 /**
+ * The `disableAnimation` prop of the `<ConsentDialog />` or
+ * `<IABConsentDialog />` on the page.
+ *
+ * Read when the island mounts, like the legal links, so it follows the
+ * page a ClientRouter navigation swapped in.
+ *
+ * @param kind - Which dialog is opening.
+ * @returns The prop, or `undefined` when the page left it unset.
+ */
+const readDialogDisableAnimation = function readDialogDisableAnimation(
+	kind: ConsentDialogKind
+): boolean | undefined {
+	const value = document
+		.querySelector(`[data-c15t-dialog-host="${kind}"]`)
+		?.getAttribute('data-disable-animation');
+	if (value === 'true' || value === 'false') {
+		return value === 'true';
+	}
+	return undefined;
+};
+
+/**
  * Undo the scroll lock and focus trap of a blocking banner, if one is
  * active. Module-level because the banner element can be replaced by a
  * ClientRouter swap while the lock is still held.
@@ -748,7 +770,11 @@ const createClient = function createClient(
 						kind,
 						legalLinks:
 							kind === 'preferences' ? readDialogLegalLinks() : undefined,
-						options,
+						options: {
+							...options,
+							disableAnimation:
+								readDialogDisableAnimation(kind) ?? options.disableAnimation,
+						},
 						runtime,
 						tab,
 						target,

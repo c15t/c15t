@@ -244,6 +244,17 @@ export interface C15tAstroOptions {
 	 */
 	colorScheme?: C15tColorScheme;
 
+	/**
+	 * Skip the banner's entry animation and the dialogs' enter and exit
+	 * animations. `<ConsentBanner disableAnimation>` and the other consent
+	 * components take the same prop to override it for one surface.
+	 *
+	 * Left unset, animations play, and visitors who ask for reduced motion
+	 * get none: the stylesheet stops them under `prefers-reduced-motion`,
+	 * and the dialog islands follow the same setting.
+	 */
+	disableAnimation?: boolean;
+
 	/** Legal links rendered inline in the banner and dialog. */
 	legalLinks?: LegalLinks;
 

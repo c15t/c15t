@@ -28,6 +28,8 @@ export interface RenderPromptOptions {
 	legalLinks?: LegalLinks;
 	/** The integration's `theme`, for `consentActions` and `slots`. */
 	theme?: Theme;
+	/** The integration's `disableAnimation`. */
+	disableAnimation?: boolean;
 }
 
 /** What `<ConsentBanner />` leaves in its spot. */
@@ -147,6 +149,7 @@ export const buildPrompt = function buildPrompt(
 	const { props } = slot;
 	const model = resolvePromptModel({
 		classNames: slot.classNames,
+		disableAnimation: options.disableAnimation,
 		legalLinks: options.legalLinks,
 		presentation: options.presentation,
 		props,

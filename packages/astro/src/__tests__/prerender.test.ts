@@ -164,6 +164,8 @@ describe('browser-rendered banner', () => {
 			},
 		],
 		['no stylesheet', { props: { noStyle: true } }],
+		['no entry animation', { props: { disableAnimation: true } }],
+		['no entry animation site-wide', { options: { disableAnimation: true } }],
 		['no branding tag', { props: { hideBranding: true } }],
 		['INTH branding', { branding: 'inth' }],
 	])('matches the server markup for %s', async (_name, parityCase) => {

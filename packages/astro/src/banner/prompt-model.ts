@@ -40,6 +40,11 @@ export interface PromptProps {
 	customizeButtonText?: string;
 	/** Ship the DOM without the bundled stylesheet's class names. */
 	noStyle?: boolean;
+	/**
+	 * Skip the entry animation. Defaults to the integration's
+	 * `disableAnimation`.
+	 */
+	disableAnimation?: boolean;
 	/** Extra class on the banner root. */
 	class?: string;
 	/** Drop the "Secured by c15t" tag. */
@@ -58,6 +63,8 @@ export interface PromptModelInput {
 	legalLinks?: LegalLinks;
 	/** The integration's `theme` option, for `consentActions` and `slots`. */
 	theme?: Theme;
+	/** The integration's `disableAnimation` option. */
+	disableAnimation?: boolean;
 	/** The stylesheet class names the markup uses. */
 	classNames: PromptClassNames;
 }
@@ -262,22 +269,29 @@ const PROMPT_SLOTS = {
 
 /**
  * Class names and inline styles for every element: the stock classes, or
- * none with `noStyle`, then the element's `theme.slots` entry.
+ * none with `noStyle`, then the element's `theme.slots` entry. With
+ * `disableAnimation` the entering classes are left out before the slots
+ * apply.
  *
  * @param classNames - The stylesheet class maps.
  * @param props - The component props.
  * @param theme - The integration's `theme`.
+ * @param disableAnimation - Leave out the entering classes, which are the
+ * `@starting-style` state the entry animation starts from.
  * @returns The class list and style for each element.
  */
 const resolveClasses = function resolveClasses(
 	classNames: PromptClassNames,
 	props: PromptProps,
-	theme: Theme | undefined
+	theme: Theme | undefined,
+	disableAnimation: boolean
 ): Pick<PromptModel, 'classes' | 'styles'> {
 	const { actions, banner, button } = classNames;
 	const noStyle = props.noStyle === true;
 	const cls = (...names: (string | undefined)[]): string =>
 		noStyle ? '' : joinClasses(...names);
+	const entering = (name: string | undefined) =>
+		disableAnimation ? undefined : name;
 	const stock: PromptModel['classes'] = {
 		actionGroup: cls(actions.actionGroup),
 		button: cls(button.button),
@@ -286,10 +300,18 @@ const resolveClasses = function resolveClasses(
 		description: cls(banner.description),
 		footer: cls(actions.actionRoot, banner.footer),
 		header: cls(banner.header),
-		overlay: cls(banner.overlay, banner.overlayVisible, banner.overlayEntering),
+		overlay: cls(
+			banner.overlay,
+			banner.overlayVisible,
+			entering(banner.overlayEntering)
+		),
 		rightLink: cls(banner.rightLink),
 		rights: cls(banner.rights),
-		root: cls(banner.root, banner.bannerVisible, banner.bannerEntering),
+		root: cls(
+			banner.root,
+			banner.bannerVisible,
+			entering(banner.bannerEntering)
+		),
 		title: cls(banner.title),
 	};
 	const classes = { ...stock };
@@ -396,7 +418,12 @@ export const resolvePromptModel = function resolvePromptModel(
 			? orderedActions
 			: primaryActions;
 
-	const classesAndStyles = resolveClasses(input.classNames, props, input.theme);
+	const classesAndStyles = resolveClasses(
+		input.classNames,
+		props,
+		input.theme,
+		props.disableAnimation ?? input.disableAnimation ?? false
+	);
 	return {
 		actionGroups: actionGroups.map((group) =>
 			group.map((action) => {
