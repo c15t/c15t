@@ -30,7 +30,7 @@ your site and let c15t follow it.
 | --- | --- | --- |
 | Next.js, TanStack Start | `options.colorScheme` on `ConsentRoot`, and `colorScheme` on `ConsentTheme` | Unset: copies `dark` |
 | React | `colorScheme` in the `ConsentProvider` options, and on `ConsentTheme` | Unset: copies `dark` |
-| Nuxt | `colorScheme` in the `c15t` module options | Unset: copies `dark` |
+| Nuxt | `colorScheme` under the `c15t` key in `nuxt.config.ts`, or in `app/app.config.ts` | Unset: copies `dark` |
 | Vue | `colorScheme` in the `c15tVue` options | Unset: copies `dark` |
 | Astro | `colorScheme` in the `c15t()` integration options | `'system'` |
 | Svelte, SvelteKit | `colorScheme` on `ConsentManagerProvider` | Unset: copies `dark` |
@@ -47,22 +47,17 @@ script runs, and Astro sites share no `dark` class convention, so following the
 operating system is the one choice its inline script can make correctly. A plain
 HTML page has no convention either. A site that has one opts in with `null`.
 
-### Nuxt and Vue have two gaps
+### Set colorScheme null in Nuxt
 
-- **Nuxt drops `colorScheme: null`.** The module discards `null` when it
-  merges its options, so `null` behaves like an unset `colorScheme` and c15t
-  copies your `dark` class. Leave `colorScheme` unset and toggle a `dark` class
-  instead.
-- **Vue and Nuxt ship dark colors only with a scheme or a theme.** With
-  `colorScheme` unset and no `theme`, c15t copies `dark` into `c15t-dark`, but
-  the token stylesheet holds light values only, so the banner stays light. Set
-  `colorScheme` to `'light'`, `'dark'` or `'system'` to include c15t's dark
-  palette, or give every color you need in `theme.dark`.
+In Nuxt, set `colorScheme: null` under the `c15t` key in `nuxt.config.ts` or
+in `app/app.config.ts`. Nuxt drops a `null` in inline module options, such as
+`modules: [['@c15t/vue', { colorScheme: null }]]`, before the module reads it,
+so c15t would copy your `dark` class as if `colorScheme` were unset.
 
 ## Follow your site's theme switch
 
-In React, Next.js, TanStack Start, Svelte and SvelteKit, leave `colorScheme`
-unset and toggle `dark` on `<html>`. c15t watches the class and switches with
+In React, Next.js, TanStack Start, Vue, Nuxt, Svelte and SvelteKit, leave
+`colorScheme` unset and toggle `dark` on `<html>`. c15t watches the class and switches with
 it. Include the class in the server HTML when your site renders dark, so the
 first paint matches.
 
@@ -77,7 +72,7 @@ root that the page's class cannot reach, so c15t copies the class onto the
 shadow host.
 
 If your site sets `c15t-dark` itself in React, Next.js, TanStack Start, Vue,
-Svelte or SvelteKit, pass `colorScheme: null` so c15t leaves it alone.
+Nuxt, Svelte or SvelteKit, pass `colorScheme: null` so c15t leaves it alone.
 
 ## Set your own dark colors
 
@@ -104,7 +99,10 @@ export const theme = {
 
 Where the theme goes depends on the framework:
 
-- **React, Next.js, TanStack Start.** Pass it to `ConsentTheme`.
+- **React, Next.js, TanStack Start.** Pass it to `ConsentTheme`. To write the
+  CSS outside a component, call `generateThemeCSS(theme, colorScheme)` from
+  `c15t/react/utils`, or `@c15t/react/utils` if you installed the scoped
+  package. It writes the same CSS as `ConsentTheme`.
 - **Vue, Nuxt.** Pass it as `theme` in the plugin or module options. It goes
   into the `<style id="c15t-css-vars">` element with `tokens`.
 - **Astro.** Pass it as `theme` in the integration options.

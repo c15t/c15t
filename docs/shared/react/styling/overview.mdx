@@ -16,8 +16,8 @@ group: reference
   order and when the dialog's rules load.
 
   Tailwind CSS 3 has no cascade layers. It needs the `c15t/postcss-tailwind3`
-  PostCSS plugin and the `styles.tw3.css` build, and the import position
-  depends on your build tool. [Tailwind CSS](/docs/customization/tailwind)
+  PostCSS plugin and the `styles.tw3.css` build, imported above the
+  `@tailwind` directives. [Tailwind CSS](/docs/customization/tailwind)
   shows the tested setup for each framework.
 </section>
 
@@ -51,8 +51,10 @@ group: reference
   To switch between different token sets at runtime, render `ConsentTheme`
   from a client component and change its props, which ships the generator.
 
-  Outside React, call `generateThemeCSS(theme, colorScheme)` from
-  `@c15t/ui/theme` on the server or at build time and put the result in a
+  Outside a component, call `generateThemeCSS(theme, colorScheme)` from
+  `c15t/react/utils`, or `@c15t/react/utils` with the scoped package. It
+  writes the same CSS as `ConsentTheme`. Outside React, import it from
+  `@c15t/ui/theme`. Call it on the server or at build time and put the result in a
   `<style>` element or your stylesheet. It escapes `<`, so the result is safe
   inside `<style>`.
 </section>

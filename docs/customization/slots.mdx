@@ -20,8 +20,12 @@ vocabularies, so a configuration from one does not work in the other.
 | Svelte, SvelteKit | `theme.slots` on `ConsentManagerProvider` | `slots.consentBannerCard` | A string, or `className` |
 | HTML, JavaScript | `ui.theme.slots` | `slots.consentBannerCard` | A string, or `className` |
 
-React and Vue accept a `theme.slots` object without a type error but ignore
-it. Use `components` there. In Vue and Nuxt, each part object is bound with
+React and Vue also read `theme.slots` from the theme in their options, and
+apply each slot to the matching `components` part, such as
+`consentDialogCard` to `dialog.card` and `toggle` to `switch.root`. Where both
+set the same part, classes from both apply, inline styles merge with
+`components` winning per property, and any other attribute in `components`
+replaces the theme's. In Vue and Nuxt, each part object is bound with
 `v-bind`, so write `class` and `style` rather than React's `className`.
 
 Svelte's stock components, and Astro's `ConsentBanner`, `IABConsentBanner`
@@ -41,7 +45,7 @@ components: {
 },
 ```
 
-The same parts with `theme.slots`, for Svelte, Astro and the script tag:
+The same parts with `theme.slots`, which every framework reads:
 
 {/* example: fragment */}
 
@@ -54,9 +58,8 @@ theme: {
 },
 ```
 
-A slot can also be `{ className, style }`. Svelte applies a slot's `style` only
-to right links, action buttons, overlays and the floating trigger, and needs
-kebab-case keys there, so prefer classes in Svelte.
+A slot can also be `{ className, style }`. Svelte applies both on every part,
+including the IAB banner and dialog.
 
 [Class names and CSS-in-JS](/docs/customization/class-names) covers CSS
 Modules, vanilla-extract, StyleX and Emotion, and
@@ -99,8 +102,8 @@ the dialog. The script tag's banner has no rights group, so
 | Backdrop | `dialog.overlay` | `consentDialogOverlay` | |
 | "Secured by" tag | `tag.dialog` | `consentDialogTag` | |
 
-Svelte does not apply `consentDialogOverlay`. `theme.slots` also types
-`consentDialogFooter`, but no framework applies it yet.
+The stock dialog's footer is the preference widget's footer. Style it with
+`consentWidgetFooter`. There is no `consentDialogFooter` slot.
 
 ## Preference widget parts
 
@@ -118,9 +121,6 @@ The widget is the list of categories inside the dialog. React and Vue call it
 | Category switch | `switch.root`, `switch.track`, `switch.thumb` | `toggle` |
 | Vendor list | `vendor-list.root`, `vendor-list.trigger`, `vendor-list.content`, `vendor-list.item`, `vendor-list.header`, `vendor-list.name`, `vendor-list.description`, `vendor-list.link`, `vendor-list.control` | None |
 | "Secured by" tag | `tag.manager` in React, `tag.dialog` in Vue | `consentWidgetTag` |
-
-Svelte does not apply `consentWidgetAccordion` or `toggle`. The script tag
-applies both, and Astro passes them to its React and Vue dialogs.
 
 ## Floating trigger parts
 
@@ -143,9 +143,10 @@ reach Astro's React dialog.
 | IAB dialog | `iab-dialog.root`, `card`, `header`, `headerContent`, `title`, `description`, `closeButton`, `body`, `content`, `loading`, `footer`, `tabs`, `tabsList`, `tabTrigger`, `tabIndicator`, `tabPanel`, `specialPurposes`, `consentNotice`, `actions`, `actionGroup`, `overlay` | `iabConsentDialog`, `iabConsentDialogCard`, `iabConsentDialogHeader`, `iabConsentDialogFooter`, `iabConsentDialogTag`, `iabConsentDialogOverlay` |
 | IAB purpose, stack and vendor rows | `iab-purpose-item.*`, `iab-stack-item.*`, `iab-vendor-list.*` | None |
 
-Svelte applies `iabConsentBanner`, `iabConsentBannerTag`,
-`iabConsentBannerOverlay`, `iabConsentDialogTag` and `iabConsentDialogOverlay`
-only.
+Legal links take no `theme.slots` key. They keep their stock link class, and
+a description slot's classes stay on the description around them. `ConsentGate`
+has no slot either, and there is no `frame` key for it. Style it through the
+class props on `ConsentGate` itself.
 
 ## Style parts from outside the script tag's shadow root
 
@@ -220,5 +221,7 @@ so use it when you intend to write all of that yourself.
 | Vue, Nuxt | Not available on the stock components |
 
 In `theme.slots`, `{ noStyle: true }` on one slot replaces that part's stock
-classes. If the markup itself must change, use your framework's compound
+classes in Svelte, Astro's banner and the script tag. React and Vue, including
+Astro's React and Vue dialog islands, ignore a slot's `noStyle`, so its classes
+apply on top of the stock ones. If the markup itself must change, use your framework's compound
 components or headless API.

@@ -20,9 +20,9 @@ tests.
 
 | Framework | Part API | Class key | Inline `style` | Where the class's CSS must load |
 | --- | --- | --- | --- | --- |
-| Next.js, TanStack Start, React | `components.<component>.<part>` | `className` | Yes | Anywhere on the page |
-| Nuxt, Vue | `components.<component>.<part>` | `class` | Yes | Anywhere on the page |
-| Svelte, SvelteKit | `theme.slots`, or `class` on a component | A string, or `className` in a slot object | On some parts, with kebab-case keys | A global stylesheet, or `:global()` |
+| Next.js, TanStack Start, React | `components.<component>.<part>`, or `theme.slots` | `className` | Yes | Anywhere on the page |
+| Nuxt, Vue | `components.<component>.<part>`, or `theme.slots` | `class` | Yes | Anywhere on the page |
+| Svelte, SvelteKit | `theme.slots`, or `class` on a component | A string, or `className` in a slot object | Yes | A global stylesheet, or `:global()` |
 | Astro | `theme.slots` in the integration options, or `class` on `ConsentBanner` | A string, or `className` in a slot object | Yes | A global stylesheet |
 | HTML, JavaScript | `ui.theme.slots` | A string, or `className` in a slot object | Yes | Inside the shadow root through `ui.stylesheetURLs`, or anywhere with `shadow: false` |
 
@@ -83,9 +83,6 @@ Svelte scopes component styles, so a class defined in a component's `<style>`
 block does not reach a c15t part. Define it in a global stylesheet or with
 `:global(.your-class)`. `theme.slots` accepts a string or
 `{ className, style }`, and `class` on `ConsentBanner` goes on the banner root.
-Svelte applies a slot's `style` only to the right links, action buttons,
-overlays and the floating trigger, and writes its keys as given, so use
-kebab-case keys such as `'border-radius'`. Prefer classes.
 
 Astro serializes its integration options, so `theme.slots` in
 `astro.config.mjs` takes plain strings and objects. Use class names from a

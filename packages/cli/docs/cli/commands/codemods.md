@@ -67,17 +67,17 @@ npx @c15t/cli@alpha codemods --list --json
 npx @c15t/cli@alpha codemods --all --from 1.9.0 --to 2.0.0 --dry-run --json
 ```
 
-| ID                                    | Change                                                                            |
-| ------------------------------------- | --------------------------------------------------------------------------------- |
-| `active-ui-api`                       | `showPopup` and `isPrivacyDialogOpen` to `activeUI`                               |
-| `component-renames`                   | `CookieBanner`, `ConsentManagerDialog` and `ConsentManagerWidget` to the v2 names |
-| `gdpr-types-to-consent-categories`    | `gdprTypes` and `initialGDPRTypes` to `consentCategories`                         |
-| `ignore-geo-location-to-overrides`    | `ignoreGeoLocation` to `overrides` with `country: 'DE'`                           |
-| `mode-c15t-to-hosted`                 | `mode: 'c15t'` to `mode: 'hosted'`                                                |
-| `react-options-to-top-level`          | `react.theme`, `colorScheme` and `disableAnimation` to top-level options          |
-| `tracking-blocker-to-network-blocker` | Tracking blocker configuration to network blocker rules                           |
-| `translations-to-i18n`                | `translations` to the v2 `i18n` shape                                             |
-| `add-stylesheet-imports`              | Styled c15t imports moved into the app's CSS entry point                          |
+| ID                                    | Change                                                                                                                                                                                                                                             |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `active-ui-api`                       | `showPopup` and `isPrivacyDialogOpen` to `activeUI`                                                                                                                                                                                                |
+| `component-renames`                   | `CookieBanner`, `ConsentManagerDialog` and `ConsentManagerWidget` to the v2 names                                                                                                                                                                  |
+| `gdpr-types-to-consent-categories`    | `gdprTypes` and `initialGDPRTypes` to `consentCategories`                                                                                                                                                                                          |
+| `ignore-geo-location-to-overrides`    | `ignoreGeoLocation` to `overrides` with `country: 'DE'`                                                                                                                                                                                            |
+| `mode-c15t-to-hosted`                 | `mode: 'c15t'` to `mode: 'hosted'`                                                                                                                                                                                                                 |
+| `react-options-to-top-level`          | `react.theme`, `colorScheme` and `disableAnimation` to top-level options                                                                                                                                                                           |
+| `tracking-blocker-to-network-blocker` | Tracking blocker configuration to network blocker rules                                                                                                                                                                                            |
+| `translations-to-i18n`                | `translations` to the v2 `i18n` shape                                                                                                                                                                                                              |
+| `add-stylesheet-imports`              | Styled c15t imports moved into the app's CSS entry point. With Tailwind 3, the import goes above the `@tailwind` directives and `c15t/postcss-tailwind3`, or `@c15t/ui/postcss-tailwind3` without the `c15t` package, goes into the PostCSS config |
 
 `--all` picks the transforms that apply to the version you start from. Without
 `--from`, it reads the `c15t` or framework package version declared in

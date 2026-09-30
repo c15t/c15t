@@ -22,9 +22,10 @@ win by specificity, as they did in c15t v2, so a utility on a c15t part needs
 Tailwind's important modifier, such as `!p-2`.
 
 The setups below come from fixtures that CI builds for each framework and
-checks in Chromium. Next.js has its own Tailwind 3 and 4 fixtures, so its
-snippets are shown as fragments. The check confirms that c15t's banner and dialog keep their
-styles under Tailwind's preflight, that a padding utility on the banner root
+checks in Chromium. The Next.js snippets come from the Next.js 16 Turbopack
+fixture. The Next.js 15 and webpack fixtures use the same files. The check
+confirms that c15t's banner and dialog keep their styles under Tailwind's
+preflight, that a padding utility on the banner root
 beats c15t's own padding, and that the `dark:` variant applies. The fixtures run
 without a backend, so they use `offline()` mode or a local `backendURL`. Keep the
 `mode` or `backendURL` from your quickstart.
@@ -37,26 +38,14 @@ c15t's styles for you, so their CSS entry holds only Tailwind.
 
 <Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
   <Tab value="Next.js">
-    Next.js runs Tailwind 4 through `@tailwindcss/postcss`. Import c15t after
-    Tailwind in the global stylesheet that `app/layout.tsx` or
-    `pages/_app.tsx` loads:
+    Next.js runs Tailwind 4 through `@tailwindcss/postcss`:
 
-    {/* example: fragment */}
+    <include src="../shared/examples/tailwind-v4/next-16-turbopack/postcss-config.mdx" />
 
-    ```js title="postcss.config.mjs"
-    export default {
-      plugins: ['@tailwindcss/postcss'],
-    };
-    ```
+    Import c15t after Tailwind in the global stylesheet that `app/layout.tsx`
+    or `pages/_app.tsx` loads:
 
-    {/* example: fragment */}
-
-    ```css title="app/globals.css"
-    @import 'tailwindcss';
-    @import 'c15t/next/styles.css';
-
-    @custom-variant dark (&:where(.dark, .dark *));
-    ```
+    <include src="../shared/examples/tailwind-v4/next-16-turbopack/tailwind-css.mdx" />
   </Tab>
 
   <Tab value="TanStack Start">
@@ -157,11 +146,11 @@ Tailwind 3 needs three changes:
    It is the same plugin as `@c15t/ui/postcss-tailwind3`. Apps that installed
    `@c15t/svelte` or `@c15t/browser` rather than `c15t` use the `@c15t/ui`
    name, and need `@c15t/ui@alpha` installed.
-2. Where you import c15t's stylesheet yourself, put the import where your build
-   tool keeps it. Vite drops an `@import` that follows another rule, with the
-   warning `@import must precede all other statements`, and the banner renders
-   unstyled. On Vite stacks, including React with Vite, TanStack Start, Svelte
-   and SvelteKit, import c15t above the `@tailwind` directives.
+2. Where you import c15t's stylesheet yourself, put the import above the
+   `@tailwind` directives, whatever your build tool. Vite drops an `@import`
+   that follows another rule, with the warning
+   `@import must precede all other statements`, and the banner renders
+   unstyled. Next.js 16 with Turbopack fails the build.
 3. Set `darkMode: 'class'` so Tailwind's `dark:` variant follows the same
    `dark` class c15t reads.
 
@@ -171,32 +160,32 @@ the build with "`@layer components` is used but no matching
 `@tailwind components` directive is present", or purges c15t's rules, because
 c15t's class names never appear in your source.
 
+In React and Next.js apps, the CLI's `setup` command makes the first two
+changes for you. It adds the plugin to `postcss.config.*`, `.postcssrc*` or the `postcss` key of
+`package.json`, and prints the manual step when it cannot edit the config. See
+[setup](/docs/cli/commands/setup#set-up-styles-and-tailwind-css).
+
+Create React App runs Tailwind 3 without reading `postcss.config.js`, so it
+cannot load the plugin and the build fails on c15t's dialog stylesheet. Add
+`c15t/postcss-tailwind3` before `tailwindcss` through CRACO or after ejecting,
+or move to Tailwind 4 or Vite.
+
 <Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
   <Tab value="Next.js">
-    Next.js loads `postcss.config.mjs` itself. Import the Tailwind 3 build of
-    c15t's stylesheet, `c15t/next/styles.tw3.css`, from your Tailwind entry.
-    c15t's Next.js 15 fixture imports it between the `components` and
-    `utilities` directives. Unlike Vite, the Next.js build keeps an `@import`
-    in that position:
+    Next.js loads `postcss.config.mjs` itself:
 
-    {/* example: fragment */}
+    <include src="../shared/examples/tailwind-v3/next-16-turbopack/postcss-config.mdx" />
 
-    ```js title="postcss.config.mjs"
-    export default {
-      plugins: ['c15t/postcss-tailwind3', 'tailwindcss', 'autoprefixer'],
-    };
-    ```
+    Scan `app/` and turn on the class-based dark variant:
 
-    {/* example: fragment */}
+    <include src="../shared/examples/tailwind-v3/next-16-turbopack/tailwind-config.mdx" />
 
-    ```css title="app/globals.css"
-    @tailwind base;
-    @tailwind components;
-    @import 'c15t/next/styles.tw3.css';
-    @tailwind utilities;
-    ```
+    Import the Tailwind 3 build of c15t's stylesheet,
+    `c15t/next/styles.tw3.css`, above the directives. Turbopack fails the
+    build when the import sits between them. The same order works with
+    webpack:
 
-    Set `darkMode: 'class'` and your `content` globs in `tailwind.config.ts`.
+    <include src="../shared/examples/tailwind-v3/next-16-turbopack/tailwind-css.mdx" />
   </Tab>
 
   <Tab value="TanStack Start">
@@ -331,17 +320,7 @@ Tailwind only generates classes it finds in the files its `content` globs or
     Add the classes to `options.components` on `ConsentRoot`, in the
     `'use client'` wrapper from your quickstart:
 
-    {/* example: fragment */}
-
-    ```tsx title="components/consent.tsx (partial)"
-    options={{
-      components: {
-        banner: {
-          root: { className: 'p-[7px] dark:p-[11px]' },
-        },
-      },
-    }}
-    ```
+    <include src="../shared/examples/tailwind-v4/next-16-turbopack/slot.mdx" />
   </Tab>
 
   <Tab value="TanStack Start">
@@ -419,13 +398,11 @@ Tailwind only generates classes it finds in the files its `content` globs or
 The fixtures make Tailwind's `dark:` variant follow a `dark` class on `<html>`:
 `@custom-variant dark (&:where(.dark, .dark *));` on Tailwind 4 and
 `darkMode: 'class'` on Tailwind 3. c15t's stylesheet reads the same class, and
-in React, Next.js, TanStack Start, Svelte and SvelteKit an unset `colorScheme`
-also copies it into `c15t-dark`. One toggle then switches your utilities and
-c15t's dark tokens together.
+in React, Next.js, TanStack Start, Vue, Nuxt, Svelte and SvelteKit an unset
+`colorScheme` also copies it into `c15t-dark`. One toggle then switches your
+utilities and c15t's dark tokens together.
 
-Vue and Nuxt copy the class too, but include c15t's dark colors only when you
-set `colorScheme` or `theme.dark`. Astro and the script tag follow the system
-setting by default. [Dark mode](/docs/customization/dark-mode) covers each
+Astro and the script tag follow the system setting by default. [Dark mode](/docs/customization/dark-mode) covers each
 case.
 
 ## Render the UI in the light DOM

@@ -202,9 +202,8 @@ for Tailwind 4 and 3.
 `disableAnimation` in the integration options skips the banner's entry
 animation and the dialogs' enter and exit animations. The same prop on
 `ConsentBanner`, `ConsentDialog`, `IABConsentBanner` or `IABConsentDialog`
-overrides it for one surface. Astro's banner does not follow the visitor's
-reduced motion setting on its own, so set `disableAnimation` if you need it
-still. [Motion and animation](/docs/customization/motion) covers the duration
+overrides it for one surface. c15t's stylesheet already stops these
+animations for visitors who ask for reduced motion. [Motion and animation](/docs/customization/motion) covers the duration
 and easing tokens.
 
 ## Load the stylesheet yourself

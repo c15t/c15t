@@ -14,9 +14,9 @@ covers a dark first paint.
 ## Style one part with theme slots
 
 The provider's `theme` prop still applies slot styles in the browser. A slot
-takes a class name, or `{ className, style, noStyle }`. Svelte applies a slot's
-`style` only to right links, action buttons, overlays and the floating trigger,
-with kebab-case keys, so prefer classes:
+takes a class name, or `{ className, style, noStyle }`. Svelte applies a
+slot's class and `style` on every stock part, including the IAB banner and
+dialog:
 
 {/* example: fragment */}
 

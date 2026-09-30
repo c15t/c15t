@@ -13,10 +13,10 @@ them in the theme's `motion` object, or as CSS variables:
 | --- | --- | --- | --- |
 | `--c15t-duration-fast` | `motion.duration.fast` | `80ms` | Banner, buttons, tabs |
 | `--c15t-duration-normal` | `motion.duration.normal` | `150ms` | Preference dialog, switches, accordions |
-| `--c15t-duration-slow` | `motion.duration.slow` | `200ms` | Legal links |
+| `--c15t-duration-slow` | `motion.duration.slow` | `200ms` | Legal links, floating trigger |
 | `--c15t-easing` | `motion.easing` | `cubic-bezier(0.4, 0, 0.2, 1)` | Banner fade, switches, accordions |
-| `--c15t-easing-out` | `motion.easingOut` | `cubic-bezier(0.215, 0.61, 0.355, 1)` | Preference dialog |
-| `--c15t-easing-in-out` | `motion.easingInOut` | `cubic-bezier(0.645, 0.045, 0.355, 1)` | Not used by c15t's components. Available for your own rules |
+| `--c15t-easing-out` | `motion.easingOut` | `cubic-bezier(0.215, 0.61, 0.355, 1)` | Preference dialog, floating trigger hover |
+| `--c15t-easing-in-out` | `motion.easingInOut` | `cubic-bezier(0.645, 0.045, 0.355, 1)` | Floating trigger snapping to a corner |
 | `--c15t-easing-spring` | `motion.easingSpring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | The banner's slide in and the dialog's scale in |
 
 This theme slows the dialog down and removes the banner's overshoot:
@@ -37,13 +37,12 @@ The theme goes where your framework's other tokens go. See
 In Vue and Nuxt, set `tokens` with the variable name without the leading
 `--`, such as `'c15t-duration-normal': '220ms'`.
 
-The floating `ConsentDialogTrigger` does not read these tokens. It uses its
-own 200ms timing.
-
 ## Turn animations off
 
-`disableAnimation` removes the enter and exit transitions. Set it once for
-every surface, then override it for one surface where your framework allows:
+`disableAnimation` removes the enter and exit transitions of the banner and
+dialogs, and the hover and snap transitions of the floating
+`ConsentDialogTrigger`. Set it once for every surface, then override it for one
+surface where your framework allows:
 
 | Framework | For every surface | For one surface |
 | --- | --- | --- |
@@ -56,9 +55,7 @@ every surface, then override it for one surface where your framework allows:
 | HTML | `data-disable-animation` on the script tag, or `ui.disableAnimation` in `config` | `ui.banner.disableAnimation`, `ui.dialog.disableAnimation` |
 | JavaScript | `ui.disableAnimation` in `init()` | `ui.banner.disableAnimation`, `ui.dialog.disableAnimation` |
 
-A value on one surface wins over the value for every surface. In Svelte,
-SvelteKit, HTML and JavaScript, the preference dialog still plays a short fade
-when it opens with `disableAnimation` set.
+A value on one surface wins over the value for every surface.
 
 Vue's `ConsentRoot` renders the banner and dialog without props, so in Vue and
 Nuxt a per-surface value only applies when you render the surface components
@@ -66,16 +63,13 @@ yourself.
 
 ## Follow the visitor's reduced motion setting
 
-| Framework | With `disableAnimation` unset |
-| --- | --- |
-| Next.js, TanStack Start, React | The banner and dialogs skip their animations while the visitor asks for reduced motion |
-| Svelte, SvelteKit | Same, and follows the setting as it changes |
-| HTML, JavaScript | Reads the setting when the UI mounts |
-| Nuxt, Vue, Astro | The banner and dialog still animate. Set `disableAnimation` if you need them still |
+c15t's stylesheet stops the banner, dialog, floating trigger, switches, tabs
+and accordions from animating while the visitor asks for reduced motion. The
+rules sit in a `prefers-reduced-motion: reduce` media query, so they apply in
+every framework and follow the setting as it changes, with no option to set.
 
-Set `disableAnimation: false` explicitly to animate even for visitors who ask
-for reduced motion. The switches in the preference dialog stop animating under
-reduced motion in every framework, through the stylesheet.
+`disableAnimation: false` does not bring the animations back for these
+visitors, because the stylesheet rule applies whatever the option says.
 
 ## Animate your own rules on dialog state
 
@@ -114,8 +108,7 @@ requestAnimationFrame(() => {
 
 1. In DevTools, open the Rendering panel and emulate
    `prefers-reduced-motion: reduce`. Reload with site data cleared.
-2. The banner appears without sliding in, where the table above says your
-   framework follows the setting.
+2. The banner appears without sliding in.
 3. Open the preference dialog and toggle a switch. The switch changes without
    animating.
 4. Turn the emulation off, set a slower `motion.duration.normal`, and open the

@@ -109,12 +109,14 @@ class sources.
 
 `colorScheme` in the `c15t` key in `nuxt.config.ts` decides when the banner and dialog turn dark:
 `'light'`, `'dark'`, `'system'`, or unset to copy a `dark` class on `<html>`.
-Set `colorScheme` or `theme.dark` to get dark colors. With both unset, c15t
-copies the class but the tokens stay light. `theme` takes the same token
+The module ships c15t's stock dark palette, so a `dark` class alone turns the
+banner dark. `theme` takes the same token
 object as the other frameworks, including `theme.dark`, and wins over `tokens`
 where both set a variable. For `'dark'` and `'system'`, the module adds an
 inline script to `<head>` that sets the class before the banner paints.
-`colorScheme: null` currently behaves like an unset value in Nuxt.
+`colorScheme: null` leaves `c15t-dark` to your site when you set it under the
+`c15t` key or in `app/app.config.ts`. Nuxt drops a `null` in inline module
+options before the module reads it.
 [Dark mode](/docs/customization/dark-mode) covers each value and a dark first
 paint.
 

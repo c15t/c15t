@@ -64,6 +64,24 @@ theme, no scripts, and no environment file, proxy, server resolution or
 DevTools. Replace the placeholder IDs in generated script configuration before
 you deploy.
 
+## Set up styles and Tailwind CSS
+
+In React and Next.js apps, setup adds c15t's stylesheet import to your global
+CSS entry. With Tailwind CSS 3 it imports the Tailwind 3 build, such as
+`c15t/react/styles.tw3.css`, above the `@tailwind` directives, and adds
+`c15t/postcss-tailwind3` before `tailwindcss` in your PostCSS config. It edits
+`postcss.config.*`, `.postcssrc*` or the `postcss` key of `package.json`.
+
+When setup cannot edit the PostCSS config, it prints the step to do by hand.
+A non-interactive run logs these warnings and lists them in `warnings` in its
+result. [Tailwind CSS](https://c15t.com/docs/customization/tailwind#set-up-tailwind-css-3)
+shows the finished setup.
+
+Create React App runs Tailwind 3 without reading `postcss.config.js`, so it
+cannot load the plugin and the build fails on c15t's dialog stylesheet. Setup
+warns about this. Add the plugin through CRACO or after ejecting, or move to
+Tailwind 4 or Vite.
+
 ## How setup changes files
 
 The plan holds each file's current and proposed text. When applying, setup
