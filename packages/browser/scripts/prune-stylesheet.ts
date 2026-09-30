@@ -2,8 +2,8 @@
  * Drops the `@c15t/ui` rules this package's surfaces can never match.
  *
  * `@c15t/ui/styles.css` styles every framework's surfaces: the headless
- * primitives, the vendor list, the tabbed and collapsible parts, the
- * ConsentGate placeholder. The vanilla banner, dialog and trigger render a
+ * primitives, the tabbed and collapsible parts, the ConsentGate
+ * placeholder. The vanilla banner, dialog and trigger render a
  * fixed set of class maps, so a rule that needs a class outside them only
  * costs bytes in `c15t.js` and selector matching in the shadow root.
  *

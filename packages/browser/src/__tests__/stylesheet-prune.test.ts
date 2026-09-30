@@ -2,9 +2,9 @@
  * The script-tag build inlines only the `@c15t/ui` rules its surfaces can
  * match.
  *
- * `@c15t/ui/styles.css` also styles the headless primitives, the vendor list,
- * tabs, collapsibles and the ConsentGate placeholder, which the vanilla and
- * IAB surfaces never render. `scripts/build-styles.ts` prunes them; these
+ * `@c15t/ui/styles.css` also styles the headless primitives, tabs,
+ * collapsibles and the ConsentGate placeholder, which the vanilla and IAB
+ * surfaces never render. `scripts/build-styles.ts` prunes them; these
  * tests read what it generated (`bun prebuild` runs before the suite).
  */
 import { readFileSync } from 'node:fs';
@@ -74,9 +74,9 @@ describe('inlined stylesheet', () => {
 
 	it('is smaller than the full @c15t/ui stylesheet', () => {
 		// The stylesheet split already keeps the primitive rules out of both
-		// source files, so pruning removes the vendor-list, preference-item,
-		// collapsible, tabs and ConsentGate rules: about a tenth of the bytes.
-		expect(stylesheet.length).toBeLessThan(uiMainStylesheet().length * 0.95);
+		// source files, and the preference centre renders the vendor list, so
+		// pruning removes the collapsible, tabs and ConsentGate rules.
+		expect(stylesheet.length).toBeLessThan(uiMainStylesheet().length * 0.98);
 	});
 });
 

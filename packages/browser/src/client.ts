@@ -4,13 +4,15 @@ import {
 	custom,
 	evaluateConsent,
 	hosted,
+	declareOwnedVendors,
+	forgetOwnedVendors,
+	isVendorDenied,
 	policyRulePresets,
 } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentPresentation,
 	ConsentSnapshot,
-	ConsentState,
 	HasCondition,
 	KernelActiveUI,
 	KernelOverrides,
@@ -19,6 +21,7 @@ import type {
 	SaveResult,
 	SaveInput,
 	ProviderTransportFactory,
+	ResolvedVendor,
 	Unsubscribe,
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
@@ -35,6 +38,7 @@ import type {
 	ConsentClientEventMap,
 	ConsentClientOptions,
 	ConsentModeName,
+	ConsentSaveInput,
 	ConsentUIHandle,
 	ConsentUIMounter,
 	ConsentUIOptions,
@@ -208,6 +212,39 @@ const callListener = function callListener<PayloadType>(
 	}
 };
 
+const NO_VENDORS: readonly ResolvedVendor[] = [];
+
+/**
+ * Whether one vendor may load, with the kernel's gate semantics: its
+ * category condition passes and, outside IAB, the visitor has not turned
+ * it off. A stale denial for a vendor now declared `disabled` no longer
+ * counts. An undeclared id is allowed: nothing is known about its category,
+ * and a denial only exists for a vendor the visitor saw.
+ *
+ * @param snapshot - The kernel snapshot.
+ * @param vendorId - Vendor id.
+ * @returns Whether the vendor is allowed.
+ */
+const isVendorAllowedIn = function isVendorAllowedIn(
+	snapshot: ConsentSnapshot,
+	vendorId: string
+): boolean {
+	const vendor = snapshot.vendors?.declared.find(
+		(entry) => entry.id === vendorId
+	);
+	if (!vendor) {
+		return true;
+	}
+	if (snapshot.model !== 'iab' && isVendorDenied(snapshot, vendorId)) {
+		return false;
+	}
+	try {
+		return evaluateConsent({ category: vendor.category }, snapshot);
+	} catch {
+		return false;
+	}
+};
+
 const resolvePageAction = function resolvePageAction(
 	target: EventTarget | null
 ): PageAction | null {
@@ -275,12 +312,15 @@ export const createConsentClient = function createConsentClient(
 		windowDebug: false,
 	});
 	const { kernel } = runtime;
-	const gatedScripts = createGatedScriptActivator(
-		() => kernel.getSnapshot(),
-		undefined,
-		kernel.set.registerConsentCategories,
-		options.nonce
-	);
+	// Inert tags own the vendor slugs they name, the way scripts, rules and
+	// iframes do, so a stored denial holds before a backend declares them.
+	const gatedVendorSource = Symbol('gated-scripts');
+	const gatedScripts = createGatedScriptActivator(() => kernel.getSnapshot(), {
+		declareVendors: (owners) =>
+			declareOwnedVendors(kernel, owners, gatedVendorSource),
+		nonce: options.nonce,
+		registerCategories: kernel.set.registerConsentCategories,
+	});
 	let startingRuntime = false;
 	let drainingRuntimeEvents = false;
 	const pendingRuntimeEvents: (() => void)[] = [];
@@ -346,8 +386,11 @@ export const createConsentClient = function createConsentClient(
 	let lastActiveUI: KernelActiveUI = initial.activeUI;
 	let lastConsents = initial.effectivePermissions;
 	let lastHasConsented = initial.explicitChoice;
+	let lastVendorChoice = initial.vendorChoice;
+	let lastVendors = initial.vendors;
 	const disposers: (() => void)[] = [
 		gatedScripts.dispose,
+		() => forgetOwnedVendors(kernel, gatedVendorSource),
 		kernel.events.on('init:applied', ({ snapshot }) => {
 			markReady(snapshot);
 		}),
@@ -360,12 +403,18 @@ export const createConsentClient = function createConsentClient(
 		// Saves and hydration can change permissions or explicit receipts;
 		// one subscription observes both paths.
 		kernel.subscribe((snapshot) => {
+			// A vendor-only save changes neither permissions nor the category
+			// receipt, and a declaration can make a stored denial count.
 			if (
 				snapshot.effectivePermissions !== lastConsents ||
-				snapshot.explicitChoice !== lastHasConsented
+				snapshot.explicitChoice !== lastHasConsented ||
+				snapshot.vendorChoice !== lastVendorChoice ||
+				snapshot.vendors !== lastVendors
 			) {
 				lastConsents = snapshot.effectivePermissions;
 				lastHasConsented = snapshot.explicitChoice;
+				lastVendorChoice = snapshot.vendorChoice;
+				lastVendors = snapshot.vendors;
 				if (started && !startingRuntime) {
 					gatedScripts.scan();
 				}
@@ -563,8 +612,17 @@ export const createConsentClient = function createConsentClient(
 			disposers.length = 0;
 			runtime.dispose();
 		},
+		getDeclaredVendors() {
+			const snapshot = kernel.getSnapshot();
+			return snapshot.model === 'iab'
+				? NO_VENDORS
+				: (snapshot.vendors?.declared ?? NO_VENDORS);
+		},
 		getSnapshot() {
 			return kernel.getSnapshot();
+		},
+		getVendorChoice() {
+			return kernel.getSnapshot().vendorChoice;
 		},
 		has(condition: HasCondition<AllConsentNames>) {
 			const snapshot = kernel.getSnapshot();
@@ -575,6 +633,9 @@ export const createConsentClient = function createConsentClient(
 		},
 		async identify(user: KernelUser) {
 			await runtime.identify(user);
+		},
+		isVendorAllowed(vendorId: string) {
+			return isVendorAllowedIn(kernel.getSnapshot(), vendorId);
 		},
 		kernel,
 		mode: mode.name,
@@ -633,17 +694,20 @@ export const createConsentClient = function createConsentClient(
 		},
 		rejectAll,
 		runtime,
-		save(consents: Partial<ConsentState>) {
+		save(consents: ConsentSaveInput) {
 			if (kernel.getSnapshot().policyRule.model === 'iab') {
 				emit('error', new Error('Use saveIAB() to confirm IAB preferences.'));
 				return Promise.resolve({ ok: false });
 			}
+			const { vendors, ...rest } = consents;
 			const allowed = new Set<string>(categories());
-			return saveSelection(
-				Object.fromEntries(
-					Object.entries(consents).filter(([name]) => allowed.has(name))
-				)
+			const selection: Exclude<SaveInput, string> = Object.fromEntries(
+				Object.entries(rest).filter(([name]) => allowed.has(name))
 			);
+			if (vendors) {
+				selection.vendors = { ...vendors };
+			}
+			return saveSelection(selection);
 		},
 		saveIAB: () => saveIAB(),
 		setLanguage(code: string) {

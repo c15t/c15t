@@ -62,7 +62,14 @@ export type {
 	ConsentClientEventMap,
 	ConsentClientOptions,
 	ConsentModeName,
+	ConsentSaveInput,
 	PolicyPresetName,
 } from './types';
 export { version } from './version';
-export type { ConsentSnapshot, ConsentState } from '@c15t/core';
+export type {
+	ConsentSnapshot,
+	ConsentState,
+	ResolvedVendor,
+	Vendor,
+	VendorChoice,
+} from '@c15t/core';

@@ -1,8 +1,15 @@
 import { allConsentNames, evaluateConsent } from '@c15t/core';
-import type { AllConsentNames, ConsentSnapshot } from '@c15t/core';
+import type { AllConsentNames, ConsentSnapshot, VendorOwner } from '@c15t/core';
 
 /** Attribute that names the category an inert `<script>` waits on. */
 export const CATEGORY_ATTRIBUTE = 'data-c15t-category';
+
+/**
+ * Attribute that names the vendor an inert `<script>` belongs to. The tag
+ * runs once its category is allowed and the visitor has not turned that
+ * vendor off. Only read alongside {@link CATEGORY_ATTRIBUTE}.
+ */
+export const VENDOR_ATTRIBUTE = 'data-c15t-vendor';
 
 /**
  * Set once a gated script has been activated (`true`), rejected for an
@@ -93,7 +100,13 @@ const isAllowed = function isAllowed(
 		element.setAttribute(ACTIVATED_ATTRIBUTE, 'invalid');
 		return false;
 	}
-	return evaluateConsent({ category: category as AllConsentNames }, snapshot);
+	return evaluateConsent(
+		{
+			category: category as AllConsentNames,
+			vendor: element.getAttribute(VENDOR_ATTRIBUTE) || undefined,
+		},
+		snapshot
+	);
 };
 
 interface PendingScript {
@@ -129,22 +142,37 @@ interface GatedScriptActivator {
 	dispose: () => void;
 }
 
+/** Options for {@link createGatedScriptActivator}. */
+interface GatedScriptActivatorOptions {
+	/** Where to look. Defaults to the document when scanning. */
+	root?: ParentNode;
+	/** Add discovered categories before evaluating gates. */
+	registerCategories?: (categories: AllConsentNames[]) => void;
+	/**
+	 * Declare every vendor slug a tag has named, with its category. Called
+	 * with the whole list whenever a scan finds a new one.
+	 */
+	declareVendors?: (owners: VendorOwner[]) => void;
+	/** When set, only tags carrying this nonce are activated. */
+	nonce?: string;
+}
+
 /**
  * Own activation ordering without retaining a client outside its lifecycle.
  *
  * @param getSnapshot - Read current consent before each activation.
- * @param root - Where to look. Defaults to the document when scanning.
- * @param registerCategories - Add discovered categories before evaluating gates.
- * @param nonce - When set, only tags carrying this nonce are activated.
+ * @param options - Scan root, discovery callbacks and the page nonce.
  * @returns A scanner and its disposal function.
  * @internal
  */
 export const createGatedScriptActivator = function createGatedScriptActivator(
 	getSnapshot: () => ConsentSnapshot,
-	root?: ParentNode,
-	registerCategories?: (categories: AllConsentNames[]) => void,
-	nonce?: string
+	options: GatedScriptActivatorOptions = {}
 ): GatedScriptActivator {
+	const { root, registerCategories, declareVendors, nonce } = options;
+	// Every slug a tag named, kept after the tag runs: the declaration is
+	// what lets a denial recorded for it count at every other gate too.
+	const vendorOwners = new Map<string, VendorOwner>();
 	let disposed = false;
 	let scanning = false;
 	let waiting: PendingScript | null = null;
@@ -188,6 +216,25 @@ export const createGatedScriptActivator = function createGatedScriptActivator(
 					return allConsentNames.includes(category) ? [category] : [];
 				})
 			);
+			let namedNewVendor = false;
+			for (const element of elements) {
+				const category = element.getAttribute(
+					CATEGORY_ATTRIBUTE
+				) as AllConsentNames;
+				const vendor = element.getAttribute(VENDOR_ATTRIBUTE);
+				const key = `${vendor}\u0000${category}`;
+				if (
+					vendor &&
+					allConsentNames.includes(category) &&
+					!vendorOwners.has(key)
+				) {
+					vendorOwners.set(key, { category, vendor });
+					namedNewVendor = true;
+				}
+			}
+			if (namedNewVendor) {
+				declareVendors?.([...vendorOwners.values()]);
+			}
 			for (const element of elements) {
 				if (disposed) {
 					break;
@@ -241,7 +288,8 @@ const standaloneActivators = new WeakMap<
 
 /**
  * Run inert `<script type="text/plain" data-c15t-category="…">` tags whose
- * categories the snapshot grants. Non-async scripts run in document order,
+ * categories the snapshot grants. A tag that also carries
+ * `data-c15t-vendor="…"` waits until that vendor is allowed as well. Non-async scripts run in document order,
  * waiting for each external script to load or fail before continuing.
  *
  * Call again when consent changes so waiting scripts use the latest snapshot.
@@ -276,12 +324,10 @@ export const activateGatedScripts = function activateGatedScripts(
 			activator: GatedScriptActivator;
 			nonce: string | undefined;
 		} = {
-			activator: createGatedScriptActivator(
-				() => current.snapshot,
+			activator: createGatedScriptActivator(() => current.snapshot, {
+				nonce,
 				root,
-				undefined,
-				nonce
-			),
+			}),
 			nonce,
 			snapshot,
 		};

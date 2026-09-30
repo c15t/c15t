@@ -1,4 +1,4 @@
-import { consentTypes } from '@c15t/core';
+import { consentTypes, deniedVendorIds, vendorsListedUnder } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentSnapshot,
@@ -13,6 +13,8 @@ import { renderBranding } from './branding';
 import { formatCategoryName, resolveCopy } from './copy';
 import { cx, h, svg } from './dom';
 import type { SurfaceContext } from './surface';
+import { createVendorList } from './vendor-list';
+import type { VendorList } from './vendor-list';
 
 /** The preference list plus its footer. */
 export interface Widget {
@@ -42,6 +44,7 @@ interface Row {
 	arrow: SVGSVGElement;
 	content: HTMLElement;
 	switchButton: HTMLButtonElement;
+	vendorList: VendorList | null;
 }
 
 interface RowCopy {
@@ -115,7 +118,8 @@ const buildSwitch = function buildSwitch(
 const buildContent = function buildContent(
 	copy: RowCopy,
 	ids: { trigger: string; content: string },
-	noStyle: boolean
+	noStyle: boolean,
+	vendorList: VendorList | null
 ): HTMLElement {
 	return h(
 		'div',
@@ -138,7 +142,8 @@ const buildContent = function buildContent(
 					class: noStyle ? '' : accordion.contentInner,
 					'data-slot': 'preference-item-content-inner',
 				},
-				copy.description
+				copy.description,
+				vendorList?.element
 			)
 		)
 	);
@@ -171,7 +176,10 @@ const patchOpen = function patchOpen(row: Row, open: boolean): void {
  * The category list the preference centre renders.
  *
  * Toggles are a draft until the visitor saves, the way every other adapter
- * treats them; "Accept all" and "Reject all" bypass the draft.
+ * treats them; "Accept all" and "Reject all" bypass the draft. Each
+ * category lists its declared vendors with a switch per vendor: vendor
+ * switches stage into the same draft, are disabled while their category is
+ * off in it, and Save records only the vendors the visitor moved.
  *
  * @param ctx - The mount context.
  * @param options - Widget options.
@@ -186,6 +194,10 @@ export const createWidget = function createWidget(
 	const hideBranding = options.hideBranding ?? true;
 
 	let draft: Partial<ConsentState> = {};
+	// A map, not an object: a vendor id is any slug, and `constructor` would
+	// read an inherited member off a plain object.
+	const vendorDraft = new Map<string, boolean>();
+	const openVendorCards = new Set<string>();
 	let { fingerprint } = ctx.client.getSnapshot().evaluationPolicy.choice;
 	let openItem: AllConsentNames | null = null;
 	let rows: Row[] = [];
@@ -194,6 +206,7 @@ export const createWidget = function createWidget(
 		translations: ConsentSnapshot['translations'];
 		policyRule: ConsentSnapshot['policyRule'];
 		experiment: ConsentSnapshot['experiment'];
+		vendors: ConsentSnapshot['vendors'];
 	} | null = null;
 
 	const element = slot(
@@ -220,6 +233,29 @@ export const createWidget = function createWidget(
 		);
 	};
 
+	/** A vendor's grant as recorded: on unless the gate honors a denial. */
+	const recordedVendor = function recordedVendor(
+		snapshot: ConsentSnapshot,
+		vendorId: string
+	): boolean {
+		return !(deniedVendorIds(snapshot)?.has(vendorId) ?? false);
+	};
+
+	const isVendorChecked = function isVendorChecked(
+		snapshot: ConsentSnapshot,
+		vendorId: string
+	): boolean {
+		return vendorDraft.get(vendorId) ?? recordedVendor(snapshot, vendorId);
+	};
+
+	const patchVendors = function patchVendors(snapshot: ConsentSnapshot): void {
+		for (const row of rows) {
+			row.vendorList?.patch(isChecked(snapshot, row.name), (vendorId) =>
+				isVendorChecked(snapshot, vendorId)
+			);
+		}
+	};
+
 	const setOpen = function setOpen(name: AllConsentNames): void {
 		openItem = openItem === name ? null : name;
 		for (const row of rows) {
@@ -234,11 +270,22 @@ export const createWidget = function createWidget(
 		if (row) {
 			patchSwitch(row, next);
 		}
+		patchVendors(ctx.client.getSnapshot());
+	};
+
+	const toggleVendor = function toggleVendor(
+		vendorId: string,
+		granted: boolean
+	): void {
+		vendorDraft.set(vendorId, granted);
+		// One vendor can sit under several categories; every row follows.
+		patchVendors(ctx.client.getSnapshot());
 	};
 
 	const buildRow = function buildRow(
 		snapshot: ConsentSnapshot,
-		copy: RowCopy
+		copy: RowCopy,
+		t: CompleteTranslations
 	): Row {
 		const { name } = copy;
 		const ids = {
@@ -286,7 +333,19 @@ export const createWidget = function createWidget(
 				toggle(name);
 			}
 		});
-		const content = buildContent(copy, ids, noStyle);
+		const vendorList = createVendorList({
+			category: name,
+			copy: t.consentManagerDialog.vendors,
+			noStyle,
+			onToggle: toggleVendor,
+			openCards: openVendorCards,
+			slot,
+			vendors:
+				snapshot.model === 'iab'
+					? []
+					: vendorsListedUnder(snapshot.vendors?.declared ?? [], name),
+		});
+		const content = buildContent(copy, ids, noStyle, vendorList);
 		const item = h(
 			'div',
 			{
@@ -310,7 +369,15 @@ export const createWidget = function createWidget(
 			),
 			content
 		);
-		const row: Row = { arrow, content, item, name, switchButton, trigger };
+		const row: Row = {
+			arrow,
+			content,
+			item,
+			name,
+			switchButton,
+			trigger,
+			vendorList,
+		};
 		patchOpen(row, openItem === name);
 		patchSwitch(row, isChecked(snapshot, name));
 		return row;
@@ -350,10 +417,22 @@ export const createWidget = function createWidget(
 						pending[category] = isChecked(current, category);
 					}
 				}
+				// Only the vendors the visitor moved travel with the save, so an
+				// untouched vendor never renews its recorded confirmation time.
+				const vendors: Record<string, boolean> = {};
+				for (const [vendorId, granted] of vendorDraft) {
+					if (granted !== recordedVendor(current, vendorId)) {
+						vendors[vendorId] = granted;
+					}
+				}
+				// Accept all and Reject all clear every vendor denial, so the
+				// staged vendor switches do not travel with them.
 				if (action === 'accept') {
 					void ctx.client.acceptAll();
 				} else if (action === 'reject') {
 					void ctx.client.rejectAll();
+				} else if (Object.keys(vendors).length > 0) {
+					void ctx.client.save({ ...pending, vendors });
 				} else {
 					void ctx.client.save(pending);
 				}
@@ -370,8 +449,9 @@ export const createWidget = function createWidget(
 		element.replaceChildren();
 		element.setAttribute('dir', dir);
 		rows = categories.map((name) =>
-			buildRow(snapshot, resolveRowCopy(t, name))
+			buildRow(snapshot, resolveRowCopy(t, name), t)
 		);
+		patchVendors(snapshot);
 
 		const list = slot(
 			h('div', {
@@ -403,6 +483,7 @@ export const createWidget = function createWidget(
 			experiment: snapshot.experiment,
 			policyRule: snapshot.policyRule,
 			translations: snapshot.translations,
+			vendors: snapshot.vendors,
 		};
 	};
 
@@ -410,10 +491,12 @@ export const createWidget = function createWidget(
 		element,
 		resetDraft() {
 			draft = {};
+			vendorDraft.clear();
 		},
 		sync(snapshot) {
 			if (fingerprint !== snapshot.evaluationPolicy.choice.fingerprint) {
 				draft = {};
+				vendorDraft.clear();
 				({ fingerprint } = snapshot.evaluationPolicy.choice);
 			}
 			const categories = ctx.client.consentCategories.join(',');
@@ -422,7 +505,8 @@ export const createWidget = function createWidget(
 				renderedFrom.categories !== categories ||
 				renderedFrom.translations !== snapshot.translations ||
 				renderedFrom.policyRule !== snapshot.policyRule ||
-				renderedFrom.experiment !== snapshot.experiment
+				renderedFrom.experiment !== snapshot.experiment ||
+				renderedFrom.vendors !== snapshot.vendors
 			) {
 				rebuild(snapshot);
 				return;
@@ -430,6 +514,7 @@ export const createWidget = function createWidget(
 			for (const row of rows) {
 				patchSwitch(row, isChecked(snapshot, row.name));
 			}
+			patchVendors(snapshot);
 		},
 	};
 };

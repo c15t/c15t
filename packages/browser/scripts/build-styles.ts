@@ -38,8 +38,10 @@ const COMPONENTS = {
 	dialog: 'consent-dialog',
 	legalLinks: 'legal-links',
 	manager: 'consent-manager',
+	preferenceItem: 'preference-item',
 	switch: 'switch',
 	trigger: 'consent-dialog-trigger',
+	vendorList: 'vendor-list',
 } as const;
 
 const readClassMap = async function readClassMap(

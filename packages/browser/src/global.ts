@@ -110,6 +110,12 @@ export interface C15tGlobal {
 	subscribe: (listener: (snapshot: ConsentSnapshot) => void) => Unsubscribe;
 	has: (condition: HasCondition<AllConsentNames>) => boolean;
 	hasConsented: () => boolean;
+	/** See {@link ConsentClient.getDeclaredVendors}. */
+	getDeclaredVendors: ConsentClient['getDeclaredVendors'];
+	/** See {@link ConsentClient.getVendorChoice}. */
+	getVendorChoice: ConsentClient['getVendorChoice'];
+	/** See {@link ConsentClient.isVendorAllowed}. */
+	isVendorAllowed: ConsentClient['isVendorAllowed'];
 	acceptAll: ConsentClient['acceptAll'];
 	rejectAll: ConsentClient['rejectAll'];
 	save: ConsentClient['save'];
@@ -419,7 +425,9 @@ export const createGlobal = function createGlobal(
 			clientReady = createDeferred<ConsentClient>();
 			pendingListeners.clear();
 		},
+		getDeclaredVendors: () => require().getDeclaredVendors(),
 		getSnapshot: () => require().getSnapshot(),
+		getVendorChoice: () => require().getVendorChoice(),
 		has: (condition) => require().has(condition),
 		hasConsented: () => require().hasConsented(),
 		hosted,
@@ -442,6 +450,7 @@ export const createGlobal = function createGlobal(
 			initializingClientReady.resolve(created);
 			return created;
 		},
+		isVendorAllowed: (vendorId) => require().isVendorAllowed(vendorId),
 		manifest,
 		get mode() {
 			return client?.mode ?? null;

@@ -20,9 +20,11 @@ import type {
 	PolicyRule,
 	policyRulePresets,
 	ProviderTransportFactory,
+	ResolvedVendor,
 	Script,
 	StorageConfig,
 	Unsubscribe,
+	VendorChoice,
 } from '@c15t/core';
 import type {
 	ConsentRuntime,
@@ -186,6 +188,24 @@ export interface ConsentUIOptions {
 	/** Render the floating reopen button. Defaults to `false`. */
 	trigger?: boolean | ConsentTriggerOptions;
 }
+
+/**
+ * What {@link ConsentClient.save} records: categories to grant or deny, and
+ * optionally per-vendor grants keyed by vendor id.
+ *
+ * @example
+ * ```ts
+ * client.save({ measurement: true, vendors: { posthog: false } });
+ * ```
+ */
+export type ConsentSaveInput = Partial<ConsentState> & {
+	/**
+	 * Per-vendor grants, keyed by the ids declared in `vendors`. `false`
+	 * turns a vendor off inside a granted category. Vendors left out keep
+	 * their recorded state. Ignored under an IAB policy.
+	 */
+	vendors?: Record<string, boolean>;
+};
 
 /**
  * Everything `init()` accepts. Queue serializable options, transport
@@ -386,9 +406,33 @@ export interface ConsentClient {
 	/**
 	 * Persist a specific set of consents and close the UI.
 	 *
-	 * @param consents - Categories to grant or deny.
+	 * @param consents - Categories to grant or deny, and optionally
+	 * per-vendor grants under `vendors`.
 	 */
-	save: (consents: Partial<ConsentState>) => Promise<SaveResult>;
+	save: (consents: ConsentSaveInput) => Promise<SaveResult>;
+	/**
+	 * Vendors declared for vendor-level consent: from the `vendors` option,
+	 * the backend, and the slugs on scripts, gated tags and iframes. Empty
+	 * under an IAB policy, where the TC string decides.
+	 */
+	getDeclaredVendors: () => readonly ResolvedVendor[];
+	/**
+	 * The visitor's recorded vendor decision: the ids they turned off.
+	 *
+	 * @returns The decision, whose `denied` list is empty after a bulk action
+	 * lifted every denial, or `null` when no vendor decision was recorded.
+	 */
+	getVendorChoice: () => Readonly<VendorChoice> | null;
+	/**
+	 * Whether a vendor may load: its category condition passes and the
+	 * visitor has not turned it off.
+	 *
+	 * @param vendorId - Vendor id as declared in `vendors` or on a script.
+	 * @returns `false` while the vendor is off outside an IAB policy,
+	 * otherwise the result of its category condition. `true` for an id that
+	 * is not declared.
+	 */
+	isVendorAllowed: (vendorId: string) => boolean;
 	/** Confirm the current IAB vendor/purpose draft through the CMP. */
 	saveIAB: () => Promise<SaveResult>;
 	/** Acknowledge a notice without recording category choices. */
