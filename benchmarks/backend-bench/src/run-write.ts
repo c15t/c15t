@@ -122,7 +122,7 @@ process.stdout.write(
 
 // Manifest: both packages call the same shared builder, so this measures
 // whether that shared work is expensive at all, not a difference between them.
-const config = { appName: 'Example', tenantId: 'tenant_1' };
+const config = { appName: 'Example' };
 const manifestDurations: number[] = [];
 {
 	let index = 0;

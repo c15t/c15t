@@ -361,22 +361,17 @@ describe('tenant configuration', () => {
 		).rejects.toThrow(/received null/u);
 	});
 
-	it('refuses a manifest tenant the instance does not serve', async () => {
-		// The manifest's tenant scopes policy snapshot tokens and the
-		// instance's scopes the rows, so a mismatch mints tokens for one tenant
-		// and writes records for another.
-		await expect(
-			build({ manifest: { tenantId: 'tenant_b' }, tenantId: 'tenant_a' })
-		).rejects.toThrow(/manifest\.tenantId/u);
-		await expect(build({ manifest: { tenantId: 'tenant_b' } })).rejects.toThrow(
-			/not set/u
+	it('refuses the removed manifest.tenantId instead of ignoring it', async () => {
+		// It never scoped a query. A config that named its tenant only there
+		// would, if the field were silently dropped, write every row with a
+		// null tenant.
+		const manifest = { tenantId: 'tenant_a' } as ConsentManifestConfig;
+		await expect(build({ manifest })).rejects.toThrow(
+			/manifest\.tenantId is no longer supported/u
 		);
-	});
-
-	it('accepts a manifest tenant that matches the instance', async () => {
-		await expect(
-			build({ manifest: { tenantId: 'tenant_a' }, tenantId: 'tenant_a' })
-		).resolves.toBeUndefined();
+		await expect(build({ manifest, tenantId: 'tenant_a' })).rejects.toThrow(
+			/already "tenant_a"/u
+		);
 	});
 
 	it('applies the same check to createApp', () => {

@@ -83,8 +83,6 @@ const createInstance = async function createInstance() {
 				policyRulePresets.californiaOptOut(),
 				policyRulePresets.worldOptOutNoPrompt(),
 			],
-
-			tenantId: 'ins_1',
 		},
 		manifestCache: {
 			sMaxAge: 120,

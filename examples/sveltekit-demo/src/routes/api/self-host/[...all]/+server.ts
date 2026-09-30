@@ -40,7 +40,6 @@ const handler = c15tInstance({
 			policyRulePresets.californiaOptOut(),
 			policyRulePresets.worldOptOutNoPrompt(),
 		],
-		tenantId: 'ins_1',
 	},
 	openapi: {
 		enabled: true,

@@ -90,7 +90,6 @@ const manifest: ConsentManifestConfig = {
 	appName: 'c15t-self-host',
 	iab: { cmpId: 53, enabled: true },
 	policyRules: [policyRulePresets.europeIab()],
-	tenantId: 'ins_1',
 };
 
 /** A Berlin visitor: covered by the preset, German-language. */
@@ -183,8 +182,6 @@ describe('the /init route carries the list end to end', () => {
 	beforeEach(async () => {
 		harness = await createHttpHarness(engine, {
 			manifest,
-			// The instance serves the manifest's tenant; a mismatch is refused.
-			tenantId: manifest.tenantId,
 			// The demo's shape: a scope, no `enabled`.
 			trustedOrigins: ['https://app.example.com'],
 		});
@@ -199,7 +196,6 @@ describe('the /init route carries the list end to end', () => {
 		const app = harness.appWith({
 			gvl: { fetch, vendorIds: [7, 41, 672] },
 			manifest,
-			tenantId: manifest.tenantId,
 			trustedOrigins: ['https://app.example.com'],
 		});
 
@@ -375,7 +371,6 @@ describe('the /init route carries the declared scope', () => {
 	beforeEach(async () => {
 		harness = await createHttpHarness(engine, {
 			manifest,
-			tenantId: manifest.tenantId,
 			trustedOrigins: ['https://app.example.com'],
 		});
 	});
@@ -393,7 +388,6 @@ describe('the /init route carries the declared scope', () => {
 		const app = harness.appWith({
 			gvl: { cache: sharedCache(), fetch, vendorIds: [7, 41, 672, 999] },
 			manifest,
-			tenantId: manifest.tenantId,
 			trustedOrigins: ['https://app.example.com'],
 		});
 

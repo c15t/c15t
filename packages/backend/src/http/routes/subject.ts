@@ -232,7 +232,6 @@ export const register = function register({
 						now,
 						policySnapshot: options.policySnapshot,
 						// The same tenant the init route scoped the token audience to.
-						// `manifest.tenantId` is checked against it at startup.
 						tenantId: options.tenantId,
 					});
 					const { input } = prepared;

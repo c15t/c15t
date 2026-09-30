@@ -69,7 +69,6 @@ export const createDemoInstance = function createDemoInstance(
 				enabled: true,
 			},
 			policyRules: getScenarioPolicyRules(scenario),
-			tenantId: 'ins_1',
 		},
 		policySnapshot: {
 			signingKey: DEMO_POLICY_SNAPSHOT_KEY,

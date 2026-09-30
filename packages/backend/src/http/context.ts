@@ -93,9 +93,9 @@ export interface AppOptions {
 	 * still a scope — queries filter on `is null` — so there is no unscoped
 	 * mode to fall into.
 	 *
-	 * Checked when the instance is built: an empty or padded string, a
-	 * non-string, or a value that disagrees with `manifest.tenantId` throws
-	 * rather than scoping queries to a tenant nobody meant.
+	 * The only place a self-hosted instance names its tenant. Checked when
+	 * the instance is built: an empty or padded string, or a non-string,
+	 * throws rather than scoping queries to a tenant nobody meant.
 	 */
 	readonly tenantId?: string;
 	/**
@@ -186,8 +186,8 @@ export interface AppOptions {
  *
  * @param options - The instance's options.
  * @throws {Error} When `tenantId` is not a non-empty, unpadded string, when
- * `requireTenantId` is set without one, or when `manifest.tenantId` names a
- * different tenant from the instance.
+ * `requireTenantId` is set without one, or when the config still sets the
+ * removed `manifest.tenantId`.
  * @internal
  */
 export const assertTenantOptions = function assertTenantOptions(
@@ -215,13 +215,13 @@ export const assertTenantOptions = function assertTenantOptions(
 		);
 	}
 
-	// The manifest's tenant scopes the policy snapshot audience; the instance's
-	// scopes every query. Two different values mean tokens minted for one
-	// tenant and records written for another.
-	const manifestTenantId = options.manifest?.tenantId;
-	if (manifestTenantId !== undefined && manifestTenantId !== tenantId) {
+	// `manifest.tenantId` was a second place to name the tenant, and it never
+	// scoped a query. Ignoring it now would leave a config that set only that
+	// one writing every row with a null tenant, so it is refused by name.
+	const manifest = options.manifest as { tenantId?: unknown } | undefined;
+	if (manifest?.tenantId !== undefined) {
 		throw new Error(
-			`[c15t] manifest.tenantId is ${JSON.stringify(manifestTenantId)} but the instance tenantId is ${tenantId === undefined ? 'not set' : JSON.stringify(tenantId)}. Set tenantId on the instance to the same value.`
+			`[c15t] manifest.tenantId is no longer supported. Set tenantId on the instance instead${tenantId === undefined ? '' : ` (it is already ${JSON.stringify(tenantId)})`} and remove it from manifest.`
 		);
 	}
 };

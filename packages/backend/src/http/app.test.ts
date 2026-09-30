@@ -544,8 +544,6 @@ for (const engine of ENGINES) {
 		});
 
 		it('stamps a /init session with the configured tenant', async () => {
-			// A manifest naming a different tenant no longer gets this far:
-			// `createApp` refuses it at construction.
 			const onReport = vi.fn();
 			const reporting = createApp(runtime, {
 				manifest: { appName: 'Example' },
@@ -631,7 +629,7 @@ for (const engine of ENGINES) {
 			// counting sessions needs no second path for the old route.
 			const onReport = vi.fn();
 			const reporting = createApp(runtime, {
-				manifest: { appName: 'Example', tenantId: 'tenant_1' },
+				manifest: { appName: 'Example' },
 				sessions: { onReport },
 				tenantId: 'tenant_1',
 			});

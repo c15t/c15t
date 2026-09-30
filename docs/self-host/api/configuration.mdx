@@ -38,7 +38,7 @@ fallback. Add reviewed rules for other locations in
 | `database` | Required PostgreSQL, MySQL or SQLite connection, or an Effect SQL client layer. |
 | `basePath` | Mount prefix to strip before routing. Set it when the handler receives paths such as `/api/c15t/init`. |
 | `trustedOrigins` | Browser origins receiving CORS permission. Empty or absent allows no cross-origin browser access. |
-| `tenantId` | Fixed tenant for this instance's database queries. Omitted uses the single-tenant scope with null tenant IDs. An empty or padded string, or a non-string such as `null`, throws when the instance is built. |
+| `tenantId` | Fixed tenant for this instance's database queries. Omitted uses the single-tenant scope with null tenant IDs. An empty or padded string, or a non-string such as `null`, throws when the instance is built. This is the only tenant setting; `manifest.tenantId` is no longer accepted and throws. |
 | `requireTenantId` | Set to `true` when several tenants share one database. The instance throws at construction if `tenantId` is missing, instead of running in the single-tenant scope. Defaults to `false`. |
 | `manifest` | Policy rules, translations, branding and IAB configuration published by `/manifest` and resolved by `/init`. |
 | `manifestCache` | Public manifest cache durations in seconds. Defaults to `sMaxAge: 300`, `staleWhileRevalidate: 86400`. |
@@ -61,7 +61,6 @@ pass logging callbacks when constructing the instance instead.
 | Option | What it changes |
 | --- | --- |
 | `policyRules` | Ordered canonical policy rules. Author this field, not the generated manifest's `policyPacks`. |
-| `tenantId` | Tenant metadata in the manifest. When set, it must equal the instance's `tenantId`, or the instance throws when it is built. |
 | `appName` | Application name included in configuration. |
 | `branding` | Branding setting, defaulting to `c15t`. |
 | `disableGeoLocation` | Disables location-based resolution. Review the resulting default and fallback behavior. |
