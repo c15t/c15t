@@ -73,7 +73,7 @@ const IabSurfaces = ({ cmpId }: { cmpId: number }) => {
 
 const RootComponent = () => {
 	// oxlint-disable-next-line no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
-	const { experiment: experimentSwitch, ...state } = Route.useLoaderData();
+	const { experimentSwitch, ...state } = Route.useLoaderData();
 	// `?experiment=1` runs the banner-shape experiment; the loader resolved
 	// `arm` on the server, which is where a flag provider's answer would
 	// come from. Without the param the root gets no `experiment` option.
@@ -141,10 +141,11 @@ export const Route = createRootRoute({
 		location,
 	}): Promise<
 		Awaited<ReturnType<typeof getConsentState>> & {
-			experiment: ExperimentSearch;
+			experimentSwitch: ExperimentSearch;
 		}
 	> => ({
 		...(await getConsentState()),
-		experiment: experimentSearch(location.searchStr),
+		// Not `experiment`: the consent state carries that key itself.
+		experimentSwitch: experimentSearch(location.searchStr),
 	}),
 });
