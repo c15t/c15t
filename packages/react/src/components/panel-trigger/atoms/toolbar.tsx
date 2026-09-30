@@ -35,6 +35,22 @@ const cornerClassMap = {
 	'top-right': styles.topRight,
 } as const satisfies Record<CornerPosition, string | undefined>;
 
+/** Stock classes for the toolbar in its layout and drag state. */
+const getToolbarBaseClassName = function getToolbarBaseClassName(
+	orientation: TriggerOrientation,
+	corner: CornerPosition,
+	isDragging: boolean,
+	isSnapping: boolean
+) {
+	return [
+		styles.toolbar,
+		orientation === 'vertical' && styles.toolbarVertical,
+		cornerClassMap[corner],
+		isDragging && styles.dragging,
+		isSnapping && styles.snapping,
+	];
+};
+
 const sizeClassMap = {
 	lg: styles.lg,
 	md: styles.md,
@@ -246,13 +262,12 @@ export const TriggerToolbar = ({
 
 	const finalNoStyle = noStyle || contextNoStyle;
 	const toolbarDOMStyle = mergeSlotProps(components?.trigger?.toolbar, {
-		baseClassName: [
-			styles.toolbar,
-			orientation === 'vertical' && styles.toolbarVertical,
-			cornerClassMap[corner],
-			isDragging && styles.dragging,
-			isSnapping && styles.snapping,
-		],
+		baseClassName: getToolbarBaseClassName(
+			orientation,
+			corner,
+			isDragging,
+			isSnapping
+		),
 		className,
 		noStyle: finalNoStyle,
 		style,

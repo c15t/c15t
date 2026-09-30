@@ -59,12 +59,17 @@ const renderIAB = async function renderIAB(
 const byClass = (className: string | undefined): HTMLElement | null =>
 	className ? document.querySelector<HTMLElement>(`.${className}`) : null;
 
-const expectSlot = (element: HTMLElement | null) => {
-	expect(element?.classList).toContain('brand-slot');
-	expect(element?.style.getPropertyValue('background-color')).toBe(
-		'rgb(1, 2, 3)'
-	);
-	expect(element?.style.getPropertyValue('--slot-mark')).toBe('rgb(1, 2, 3)');
+/** What a part took from `SLOT`: its class and both inline styles. */
+const slotOn = (element: HTMLElement | null) => ({
+	backgroundColor: element?.style.getPropertyValue('background-color'),
+	hasClass: element?.classList.contains('brand-slot'),
+	mark: element?.style.getPropertyValue('--slot-mark'),
+});
+
+const APPLIED = {
+	backgroundColor: 'rgb(1, 2, 3)',
+	hasClass: true,
+	mark: 'rgb(1, 2, 3)',
 };
 
 describe('theme.slots on the Svelte IAB surfaces', () => {
@@ -99,7 +104,7 @@ describe('theme.slots on the Svelte IAB surfaces', () => {
 		],
 	] as const)('%s styles its banner part', async (slot, find) => {
 		await renderIAB('iab-consent-banner', { [slot]: SLOT });
-		expectSlot(find());
+		expect(slotOn(find())).toEqual(APPLIED);
 	});
 
 	test.each([
@@ -121,7 +126,7 @@ describe('theme.slots on the Svelte IAB surfaces', () => {
 		['iabConsentDialogFooter', () => byClass(dialogStyles.footer)],
 	] as const)('%s styles its dialog part', async (slot, find) => {
 		await renderIAB('iab-consent-dialog', { [slot]: SLOT });
-		expectSlot(find());
+		expect(slotOn(find())).toEqual(APPLIED);
 	});
 
 	test('the banner keeps its stock classes under a slot', async () => {

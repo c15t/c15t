@@ -44,12 +44,10 @@ describe.each([false, true])('disableAnimation %s', (disableAnimation) => {
 			);
 		}
 		const item = toolbar()?.querySelector('[data-c15t-trigger-item]') ?? null;
-		if (disableAnimation) {
-			expect(longestTransition(trigger())).toBe(0);
-			expect(longestTransition(item)).toBe(0);
-		} else {
-			expect(longestTransition(trigger())).toBeGreaterThan(0);
-		}
+		// The stock trigger animates hover and snap; the flag stops both it
+		// and the toolbar items.
+		expect(longestTransition(trigger()) > 0).toBe(!disableAnimation);
+		expect(longestTransition(item) > 0).toBe(!disableAnimation);
 		unmount();
 	});
 });
