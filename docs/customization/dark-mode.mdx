@@ -49,10 +49,10 @@ HTML page has no convention either. A site that has one opts in with `null`.
 
 ### Nuxt and Vue have two gaps
 
-- **Nuxt drops `colorScheme: null`.** The module merges its options with
-  `defu`, which skips `null`, so `null` behaves like an unset `colorScheme`
-  and c15t copies your `dark` class. Leave `colorScheme` unset and toggle a
-  `dark` class instead.
+- **Nuxt drops `colorScheme: null`.** The module discards `null` when it
+  merges its options, so `null` behaves like an unset `colorScheme` and c15t
+  copies your `dark` class. Leave `colorScheme` unset and toggle a `dark` class
+  instead.
 - **Vue and Nuxt ship dark colors only with a scheme or a theme.** With
   `colorScheme` unset and no `theme`, c15t copies `dark` into `c15t-dark`, but
   the token stylesheet holds light values only, so the banner stays light. Set
