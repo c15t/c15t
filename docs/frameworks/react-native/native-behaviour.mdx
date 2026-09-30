@@ -1,5 +1,5 @@
 ---
-title: Native behaviour
+title: Native behavior
 description: The native consent core boots before JavaScript, hydrates stored consent first, fails closed on an unreadable store, and keeps Apple's tracking arm apart from consent.
 group: frameworks
 ---
@@ -256,7 +256,7 @@ call would only report the same arm back.
 Apple is equally quiet about an answer the subject changes in the Settings app, so
 `C15tProvider` re-reads the platform arm when the app returns to the foreground. That is
 the moment the gap matters: someone turns tracking off under `Privacy & Security`, comes
-straight back, and a cached `authorized` would otherwise keep tracking behaviour running
+straight back, and a cached `authorized` would otherwise keep tracking behavior running
 until the next launch. Outside that, a read still only moves after a request or on the next
 launch.
 

@@ -300,7 +300,7 @@ replace its `open` and leave a card only the journey can close.
 | `preferences` | `{ open, onRequestClose }` | props that spread straight onto `<ConsentPreferences />`, merged with whatever you passed as `options.preferences` |
 | `request()` | `() => Promise<TrackingRequestPayload>` | the press handler. It resolves with the outcome that ended the journey |
 
-Gate behaviour on `useIsTrackingAllowed` rather than on `authorization`. The arm says what
+Gate behavior on `useIsTrackingAllowed` rather than on `authorization`. The arm says what
 Apple permits; the subject's own choice still lives in c15t, and one button press writes
 no consent.
 
@@ -342,7 +342,7 @@ Read `stage` before you read `status`. `not-determined` with `stage: 'final'` sa
 has been asked yet, and `not-determined` with `stage: 'additional-information'` says the
 subject stopped to read more. Those are opposite instructions, and the arm alone cannot
 tell them apart. `presentation` names the call the SDK made and not the sheet Apple drew:
-see [native behaviour](/docs/frameworks/react-native/native-behaviour) for what it does
+see [native behavior](/docs/frameworks/react-native/native-behaviour) for what it does
 and does not prove.
 
 Nothing calls the system prompt for you, and that is deliberate. Apple's dialog is the
@@ -387,7 +387,7 @@ read the snapshot alone, so `marketing` refused on a device with ATT authorized 
 `denied`, and a policy that has not resolved is still `pending` however Apple answered.
 The two answers meet in one exported function,
 `isTrackingPermitted(decision, authorization)`, and both native cores are held to the
-same rule by [native behaviour](/docs/frameworks/react-native/native-behaviour).
+same rule by [native behavior](/docs/frameworks/react-native/native-behaviour).
 
 The boundary runs the other way as well. Nothing in this package edits the words inside
 Apple's sheet, and nothing decides when that sheet appears. What c15t does control is the
@@ -633,7 +633,7 @@ export function Attribution() {
 A JavaScript gate only covers what React Native renders. An analytics SDK you start
 from `AppDelegate`, an `Application` class or a native module reads the same snapshot
 natively and has to check it there too. See
-[native behaviour](/docs/frameworks/react-native/native-behaviour).
+[native behavior](/docs/frameworks/react-native/native-behaviour).
 
 For your own preference UI, read the categories from the snapshot and save exactly what
 the subject saw:

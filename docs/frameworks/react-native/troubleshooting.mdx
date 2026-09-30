@@ -1,5 +1,5 @@
 ---
-title: Troubleshoot React Native consent
+title: Troubleshooting
 description: Diagnose not-bootstrapped reads, protocol mismatches, retired configuration keys, and banner or gating symptoms in a React Native app.
 group: frameworks
 ---
@@ -28,7 +28,7 @@ That is the deny-by-default contract, not a fault, as long as it clears. If
 
 - Read `snapshot.effectivePermissions` directly. If it says `true` and your gate says
   `false`, the gate is running in a process or a native module that has its own core
-  instance. See [native behaviour](/docs/frameworks/react-native/native-behaviour).
+  instance. See [native behavior](/docs/frameworks/react-native/native-behaviour).
 - Check `snapshot.restrictions`. A category restricted with `gpc` is denied regardless of
   the grant, and clearing the grant is not the fix.
 - Check whether an override pins a region whose policy denies the category. Overrides
@@ -190,7 +190,7 @@ declaration is honoured. `useC15tBootstrap()` is how you confirm what the core s
 
 Nothing in this package decides how often Apple shows its dialog. A request goes to Apple
 every time rather than being answered from the arm the device holds, so what follows is
-Apple's behaviour and not a stuck cache. Work through them in order.
+Apple's behavior and not a stuck cache. Work through them in order.
 
 1. It rejects. `C15T_TRACKING_NOT_CONFIGURED` is the missing prompt string above, and
    `C15T_TRACKING_UNSUPPORTED` is Android, where the platform has no such question. Both

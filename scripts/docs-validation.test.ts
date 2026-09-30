@@ -73,6 +73,58 @@ test('framework quickstarts resolve inside the host framework group', async () =
 	}
 });
 
+/** Sidebar groups every framework uses, in this order, when it has the pages. */
+const frameworkGroupOrder = [
+	'Scripts and embeds',
+	'Customization',
+	'Components',
+	'Consent API',
+	'Advanced',
+	'Reference',
+	'Verify and troubleshoot',
+];
+
+test('framework sidebars follow the shared group template', async () => {
+	const navigation = await resolveDocsNavigation({
+		groups: docsConfig.groups,
+		nav: docsConfig.navigation,
+		srcDir: resolve(docsRoot, '..'),
+	});
+	const frameworks = navigation.groups.find(
+		(group) => group.slug === 'frameworks'
+	);
+	const files = await fg('frameworks/*/**/*.mdx', { cwd: docsRoot });
+	const listed = new Set<string>();
+	for (const framework of frameworks?.children ?? []) {
+		const titles = framework.children.map((group) => group.title);
+		expect(titles).toEqual(
+			frameworkGroupOrder.filter((title) => titles.includes(title))
+		);
+		for (const group of framework.children) {
+			expect(
+				group.pages.length,
+				`${framework.title} / ${group.title} needs two or more pages`
+			).toBeGreaterThanOrEqual(2);
+		}
+		for (const page of [
+			...framework.pages,
+			...framework.children.flatMap((group) => group.pages),
+		]) {
+			listed.add(page.urlPath);
+		}
+		// Shared pages are linked in with a leading slash and keep their route.
+		const verify = framework.children
+			.find((group) => group.title === 'Verify and troubleshoot')
+			?.pages.map((page) => page.urlPath);
+		expect(verify).toContain('/docs/guides/verify-consent');
+	}
+	// Every framework page is reachable from its sidebar.
+	const unlisted = files
+		.map((file) => `/docs/${file.slice(0, -4)}`)
+		.filter((route) => !listed.has(route));
+	expect(unlisted).toEqual([]);
+});
+
 /**
  * v3 is published under the `alpha` dist-tag while `latest` is still v2.
  * Set this to `undefined` when v3 becomes `latest`, then drop the tags.
@@ -129,10 +181,11 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		(group) => group.slug === 'integrations'
 	);
 	expect(integrations?.children.map((group) => group.slug)).toEqual([
+		'vendor-controls',
 		'embeds',
 		'tag-managers',
 		'analytics',
-		'functionality',
+		'chat-and-support',
 		'ads-and-pixels',
 	]);
 	const vendors = Object.entries(scriptsPackage.exports)

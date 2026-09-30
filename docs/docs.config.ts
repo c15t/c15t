@@ -76,535 +76,8 @@ export default defineDocsConfig({
 	},
 	navigation: [
 		{
-			pages: ['index', 'concepts/choose-your-setup', 'examples'],
+			pages: ['index', 'concepts/choose-your-setup', 'examples', 'upgrade-v3'],
 			title: 'Getting started',
-		},
-		{
-			base: 'frameworks',
-			children: [
-				{
-					base: 'next',
-					children: [
-						{
-							pages: [
-								'scripts',
-								'geography-headers',
-								'content-security-policy',
-								'optimization',
-								'troubleshooting',
-							],
-							title: 'Integration',
-						},
-						{
-							pages: [
-								'components/consent-root',
-								'components/consent-banner',
-								'components/consent-dialog',
-								'components/consent-widget',
-								'components/consent-dialog-link',
-								'components/consent-dialog-trigger',
-								'components/consent-gate',
-								'components/dev-tools',
-							],
-							title: 'Components',
-						},
-						{
-							pages: ['customize'],
-							title: 'Customize',
-						},
-						{
-							pages: ['hooks'],
-							title: 'Hooks',
-						},
-						{
-							pages: ['headless'],
-							title: 'Headless',
-						},
-						{
-							pages: ['iab'],
-							title: 'IAB TCF',
-						},
-						{
-							pages: ['data-fetching-reference'],
-							title: 'Reference',
-						},
-					],
-					pages: [
-						'quickstart',
-						'rendering',
-						'app-router',
-						'pages-router',
-						'static-export',
-						'client-side',
-					],
-					slug: 'next',
-					title: 'Next.js',
-				},
-				{
-					base: 'tanstack-start',
-					children: [
-						{
-							pages: ['scripts', 'troubleshooting'],
-							title: 'Integration',
-						},
-						{
-							pages: [
-								'components',
-								'components/consent-banner',
-								'components/consent-dialog',
-								'components/consent-widget',
-								'components/consent-dialog-link',
-								'components/consent-dialog-trigger',
-								'components/consent-gate',
-								'components/dev-tools',
-							],
-							title: 'Components',
-						},
-						{
-							pages: ['customize'],
-							title: 'Customize',
-						},
-						{
-							pages: ['hooks'],
-							title: 'Hooks',
-						},
-						{
-							pages: ['headless'],
-							title: 'Headless',
-						},
-						{
-							pages: ['iab'],
-							title: 'IAB TCF',
-						},
-					],
-					pages: ['quickstart', 'rendering'],
-					slug: 'tanstack-start',
-					title: 'TanStack Start',
-				},
-				{
-					base: 'react',
-					children: [
-						{
-							pages: ['scripts', 'troubleshooting'],
-							title: 'Integration',
-						},
-						{
-							pages: [
-								'components/consent-provider',
-								'components/consent-banner',
-								'components/consent-dialog',
-								'components/consent-widget',
-								'components/consent-dialog-link',
-								'components/consent-dialog-trigger',
-								'components/consent-gate',
-								'components/dev-tools',
-							],
-							title: 'Components',
-						},
-						{
-							pages: ['customize'],
-							title: 'Customize',
-						},
-						{
-							pages: ['hooks'],
-							title: 'Hooks',
-						},
-						{
-							pages: ['headless'],
-							title: 'Headless',
-						},
-						{
-							pages: ['iab'],
-							title: 'IAB TCF',
-						},
-					],
-					pages: ['quickstart', 'rendering'],
-					slug: 'react',
-					title: 'React',
-				},
-				{
-					base: 'nuxt',
-					children: [
-						{
-							pages: [
-								'module',
-								'scripts',
-								'embeds',
-								'network-blocker',
-								'callbacks',
-								'geography-headers',
-								'content-security-policy',
-								'troubleshooting',
-							],
-							title: 'Integration',
-						},
-						{
-							pages: [
-								'components',
-								'components/consent-root',
-								'components/consent-banner',
-								'components/consent-manager',
-								'components/consent-widget',
-								'components/consent-preferences-link',
-								'components/consent-dialog-trigger',
-								'components/consent-gate',
-								'components/iab-consent-banner',
-								'components/iab-consent-dialog',
-								'components/dev-tools',
-							],
-							title: 'Components',
-						},
-						{
-							pages: ['customize', 'translations'],
-							title: 'Customize',
-						},
-						{
-							pages: ['composables'],
-							title: 'Composables',
-						},
-						{
-							pages: ['headless'],
-							title: 'Headless',
-						},
-						{
-							pages: ['iab'],
-							title: 'IAB TCF',
-						},
-					],
-					pages: ['quickstart', 'rendering'],
-					slug: 'nuxt',
-					title: 'Nuxt',
-				},
-				{
-					base: 'vue',
-					children: [
-						{
-							pages: [
-								'plugin',
-								'scripts',
-								'embeds',
-								'network-blocker',
-								'callbacks',
-								'content-security-policy',
-								'troubleshooting',
-							],
-							title: 'Integration',
-						},
-						{
-							pages: [
-								'components',
-								'components/consent-root',
-								'components/consent-banner',
-								'components/consent-manager',
-								'components/consent-widget',
-								'components/consent-preferences-link',
-								'components/consent-dialog-trigger',
-								'components/consent-gate',
-								'components/iab-consent-banner',
-								'components/iab-consent-dialog',
-								'components/dev-tools',
-							],
-							title: 'Components',
-						},
-						{
-							pages: ['customize', 'translations'],
-							title: 'Customize',
-						},
-						{
-							pages: ['composables'],
-							title: 'Composables',
-						},
-						{
-							pages: ['headless'],
-							title: 'Headless',
-						},
-						{
-							pages: ['iab'],
-							title: 'IAB TCF',
-						},
-					],
-					pages: ['quickstart', 'rendering'],
-					slug: 'vue',
-					title: 'Vue',
-				},
-				{
-					base: 'astro',
-					children: [
-						{
-							pages: [
-								'components',
-								'components/consent-script',
-								'components/consent-banner',
-								'components/consent-banner-deferred',
-								'components/consent-dialog',
-								'components/consent-dialog-trigger',
-								'components/iab-consent-banner',
-								'components/iab-consent-dialog',
-							],
-							title: 'Components',
-						},
-						{
-							pages: ['integration', 'client-api', 'server', 'islands'],
-							title: 'Reference',
-						},
-						{
-							pages: ['customize', 'translations'],
-							title: 'Customize',
-						},
-						{
-							pages: [
-								'scripts',
-								'embeds',
-								'network-blocker',
-								'callbacks',
-								'troubleshooting',
-							],
-							title: 'Integration',
-						},
-						{
-							pages: ['geography-headers', 'content-security-policy'],
-							title: 'Deployment',
-						},
-						{
-							pages: ['iab'],
-							title: 'IAB TCF',
-						},
-					],
-					pages: ['quickstart', 'rendering'],
-					slug: 'astro',
-					title: 'Astro',
-				},
-				{
-					base: 'svelte',
-					children: [
-						{
-							pages: [
-								'scripts',
-								'embeds',
-								'network-blocker',
-								'callbacks',
-								'content-security-policy',
-								'troubleshooting',
-							],
-							title: 'Integration',
-						},
-						{
-							pages: [
-								'components',
-								'components/consent-manager-provider',
-								'components/consent-banner',
-								'components/consent-dialog',
-								'components/consent-widget',
-								'components/consent-dialog-link',
-								'components/consent-dialog-trigger',
-								'components/consent-gate',
-								'components/consent-button',
-								'components/iab-consent-banner',
-								'components/iab-consent-dialog',
-								'components/dev-tools',
-								'components/primitives',
-							],
-							title: 'Components',
-						},
-						{
-							pages: ['customize', 'translations'],
-							title: 'Customize',
-						},
-						{
-							pages: ['getters'],
-							title: 'Getters',
-						},
-						{
-							pages: ['headless'],
-							title: 'Headless',
-						},
-						{
-							pages: ['iab'],
-							title: 'IAB TCF',
-						},
-					],
-					pages: ['quickstart'],
-					slug: 'svelte',
-					title: 'Svelte',
-				},
-				{
-					base: 'sveltekit',
-					children: [
-						{
-							pages: [
-								'scripts',
-								'embeds',
-								'network-blocker',
-								'callbacks',
-								'geography-headers',
-								'content-security-policy',
-								'server-api',
-								'troubleshooting',
-							],
-							title: 'Integration',
-						},
-						{
-							pages: [
-								'components',
-								'components/consent-manager-provider',
-								'components/consent-banner',
-								'components/consent-dialog',
-								'components/consent-widget',
-								'components/consent-dialog-link',
-								'components/consent-dialog-trigger',
-								'components/consent-gate',
-								'components/consent-button',
-								'components/iab-consent-banner',
-								'components/iab-consent-dialog',
-								'components/dev-tools',
-								'components/primitives',
-							],
-							title: 'Components',
-						},
-						{
-							pages: ['customize', 'translations'],
-							title: 'Customize',
-						},
-						{
-							pages: ['getters'],
-							title: 'Getters',
-						},
-						{
-							pages: ['headless'],
-							title: 'Headless',
-						},
-						{
-							pages: ['iab'],
-							title: 'IAB TCF',
-						},
-					],
-					pages: ['quickstart', 'rendering'],
-					slug: 'sveltekit',
-					title: 'SvelteKit',
-				},
-				{
-					base: 'html',
-					children: [
-						{
-							pages: [
-								'scripts',
-								'embeds',
-								'network-blocker',
-								'callbacks',
-								'content-security-policy',
-								'dev-tools',
-								'troubleshooting',
-							],
-							title: 'Integration',
-						},
-						{
-							pages: [
-								'components',
-								'components/banner',
-								'components/dialog',
-								'components/trigger',
-								'components/action-buttons',
-								'components/preferences-link',
-								'components/gated-script',
-							],
-							title: 'Components',
-						},
-						{
-							pages: ['customize', 'translations'],
-							title: 'Customize',
-						},
-						{
-							pages: ['headless'],
-							title: 'Headless',
-						},
-						{
-							pages: ['iab'],
-							title: 'IAB TCF',
-						},
-						{
-							pages: ['attributes-and-api', 'api', 'configuration'],
-							title: 'Reference',
-						},
-					],
-					pages: ['quickstart', 'platforms'],
-					slug: 'html',
-					title: 'HTML',
-				},
-				{
-					base: 'javascript',
-					children: [
-						{
-							pages: [
-								'scripts',
-								'transports',
-								'callbacks',
-								'content-security-policy',
-								'dev-tools',
-								'troubleshooting',
-							],
-							title: 'Integration',
-						},
-						{
-							pages: ['customize', 'translations'],
-							title: 'Customize',
-						},
-						{
-							pages: ['headless'],
-							title: 'Headless',
-						},
-						{
-							pages: [
-								'modules/script-loader',
-								'modules/network-blocker',
-								'modules/iframe-blocker',
-								'modules/persistence',
-								'modules/clear-on-revocation',
-							],
-							title: 'Modules',
-						},
-						{
-							pages: ['iab'],
-							title: 'IAB TCF',
-						},
-						{
-							pages: [
-								'api/browser',
-								'api/browser-options',
-								'api/runtime',
-								'api/kernel',
-								'api/snapshot',
-							],
-							title: 'Reference',
-						},
-					],
-					pages: ['quickstart'],
-					slug: 'javascript',
-					title: 'JavaScript',
-				},
-				{
-					base: 'react-native',
-					children: [
-						{
-							pages: ['configuration'],
-							title: 'Configuration',
-						},
-						{
-							pages: ['native-behaviour', 'platform-support'],
-							title: 'Native runtime',
-						},
-						{
-							pages: ['troubleshooting'],
-							title: 'Integration',
-						},
-					],
-					pages: ['quickstart', 'usage'],
-					slug: 'react-native',
-					title: 'React Native',
-				},
-			],
-			pages: ['index'],
-			slug: 'frameworks',
-			title: 'Frameworks',
 		},
 		{
 			base: 'concepts',
@@ -618,18 +91,647 @@ export default defineDocsConfig({
 			title: 'Concepts',
 		},
 		{
+			base: 'customization',
+			pages: ['overview', 'recipes', 'tokens', 'slots', 'translations'],
+			title: 'Customization',
+		},
+		{
 			base: 'guides',
 			pages: ['verify-consent', 'troubleshooting'],
 			title: 'Verify and troubleshoot',
 		},
 		{
-			base: 'customization',
-			pages: ['overview', 'recipes', 'tokens', 'slots', 'translations'],
-			title: 'Customize',
+			base: 'frameworks',
+			children: [
+				{
+					base: 'next',
+					children: [
+						{
+							pages: ['scripts'],
+							slug: 'scripts-and-embeds',
+							title: 'Scripts and embeds',
+						},
+						{
+							pages: [
+								'customize',
+								'/customization/recipes',
+								'/customization/tokens',
+								'headless',
+							],
+							slug: 'customization',
+							title: 'Customization',
+						},
+						{
+							pages: [
+								'components/consent-root',
+								'components/consent-banner',
+								'components/consent-dialog',
+								'components/consent-widget',
+								'components/consent-dialog-link',
+								'components/consent-dialog-trigger',
+								'components/consent-gate',
+							],
+							slug: 'components',
+							title: 'Components',
+						},
+						{
+							pages: ['hooks'],
+							slug: 'consent-api',
+							title: 'Consent API',
+						},
+						{
+							pages: [
+								'iab',
+								'geography-headers',
+								'content-security-policy',
+								'optimization',
+								'data-fetching-reference',
+							],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: [
+								'components/dev-tools',
+								'troubleshooting',
+								'/guides/verify-consent',
+							],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: [
+						'quickstart',
+						'app-router',
+						'pages-router',
+						'static-export',
+						'client-side',
+						'rendering',
+					],
+					slug: 'next',
+					title: 'Next.js',
+				},
+				{
+					base: 'tanstack-start',
+					children: [
+						{
+							pages: ['scripts'],
+							slug: 'scripts-and-embeds',
+							title: 'Scripts and embeds',
+						},
+						{
+							pages: [
+								'customize',
+								'/customization/recipes',
+								'/customization/tokens',
+								'headless',
+							],
+							slug: 'customization',
+							title: 'Customization',
+						},
+						{
+							pages: [
+								'components',
+								'components/consent-banner',
+								'components/consent-dialog',
+								'components/consent-widget',
+								'components/consent-dialog-link',
+								'components/consent-dialog-trigger',
+								'components/consent-gate',
+							],
+							slug: 'components',
+							title: 'Components',
+						},
+						{
+							pages: ['hooks'],
+							slug: 'consent-api',
+							title: 'Consent API',
+						},
+						{
+							pages: ['iab'],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: [
+								'components/dev-tools',
+								'troubleshooting',
+								'/guides/verify-consent',
+							],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: ['quickstart', 'rendering'],
+					slug: 'tanstack-start',
+					title: 'TanStack Start',
+				},
+				{
+					base: 'react',
+					children: [
+						{
+							pages: ['scripts'],
+							slug: 'scripts-and-embeds',
+							title: 'Scripts and embeds',
+						},
+						{
+							pages: [
+								'customize',
+								'/customization/recipes',
+								'/customization/tokens',
+								'headless',
+							],
+							slug: 'customization',
+							title: 'Customization',
+						},
+						{
+							pages: [
+								'components/consent-provider',
+								'components/consent-banner',
+								'components/consent-dialog',
+								'components/consent-widget',
+								'components/consent-dialog-link',
+								'components/consent-dialog-trigger',
+								'components/consent-gate',
+							],
+							slug: 'components',
+							title: 'Components',
+						},
+						{
+							pages: ['hooks'],
+							slug: 'consent-api',
+							title: 'Consent API',
+						},
+						{
+							pages: ['iab'],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: [
+								'components/dev-tools',
+								'troubleshooting',
+								'/guides/verify-consent',
+							],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: ['quickstart', 'rendering'],
+					slug: 'react',
+					title: 'React',
+				},
+				{
+					base: 'nuxt',
+					children: [
+						{
+							pages: ['scripts', 'embeds', 'network-blocker'],
+							slug: 'scripts-and-embeds',
+							title: 'Scripts and embeds',
+						},
+						{
+							pages: [
+								'customize',
+								'/customization/recipes',
+								'/customization/tokens',
+								'translations',
+								'headless',
+							],
+							slug: 'customization',
+							title: 'Customization',
+						},
+						{
+							pages: [
+								'components',
+								'components/consent-root',
+								'components/consent-banner',
+								'components/consent-manager',
+								'components/consent-widget',
+								'components/consent-preferences-link',
+								'components/consent-dialog-trigger',
+								'components/consent-gate',
+								'components/iab-consent-banner',
+								'components/iab-consent-dialog',
+							],
+							slug: 'components',
+							title: 'Components',
+						},
+						{
+							pages: ['composables', 'callbacks'],
+							slug: 'consent-api',
+							title: 'Consent API',
+						},
+						{
+							pages: ['iab', 'geography-headers', 'content-security-policy'],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: [
+								'components/dev-tools',
+								'troubleshooting',
+								'/guides/verify-consent',
+							],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: ['quickstart', 'module', 'rendering'],
+					slug: 'nuxt',
+					title: 'Nuxt',
+				},
+				{
+					base: 'vue',
+					children: [
+						{
+							pages: ['scripts', 'embeds', 'network-blocker'],
+							slug: 'scripts-and-embeds',
+							title: 'Scripts and embeds',
+						},
+						{
+							pages: [
+								'customize',
+								'/customization/recipes',
+								'/customization/tokens',
+								'translations',
+								'headless',
+							],
+							slug: 'customization',
+							title: 'Customization',
+						},
+						{
+							pages: [
+								'components',
+								'components/consent-root',
+								'components/consent-banner',
+								'components/consent-manager',
+								'components/consent-widget',
+								'components/consent-preferences-link',
+								'components/consent-dialog-trigger',
+								'components/consent-gate',
+								'components/iab-consent-banner',
+								'components/iab-consent-dialog',
+							],
+							slug: 'components',
+							title: 'Components',
+						},
+						{
+							pages: ['composables', 'callbacks'],
+							slug: 'consent-api',
+							title: 'Consent API',
+						},
+						{
+							pages: ['iab', 'content-security-policy'],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: [
+								'components/dev-tools',
+								'troubleshooting',
+								'/guides/verify-consent',
+							],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: ['quickstart', 'plugin', 'rendering'],
+					slug: 'vue',
+					title: 'Vue',
+				},
+				{
+					base: 'astro',
+					children: [
+						{
+							pages: ['scripts', 'embeds', 'network-blocker'],
+							slug: 'scripts-and-embeds',
+							title: 'Scripts and embeds',
+						},
+						{
+							pages: [
+								'customize',
+								'/customization/recipes',
+								'/customization/tokens',
+								'translations',
+							],
+							slug: 'customization',
+							title: 'Customization',
+						},
+						{
+							pages: [
+								'components',
+								'components/consent-script',
+								'components/consent-banner',
+								'components/consent-banner-deferred',
+								'components/consent-dialog',
+								'components/consent-dialog-trigger',
+								'components/iab-consent-banner',
+								'components/iab-consent-dialog',
+							],
+							slug: 'components',
+							title: 'Components',
+						},
+						{
+							pages: ['client-api', 'callbacks'],
+							slug: 'consent-api',
+							title: 'Consent API',
+						},
+						{
+							pages: [
+								'iab',
+								'geography-headers',
+								'content-security-policy',
+								'islands',
+							],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: ['integration', 'server'],
+							slug: 'reference',
+							title: 'Reference',
+						},
+						{
+							pages: ['troubleshooting', '/guides/verify-consent'],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: ['quickstart', 'rendering'],
+					slug: 'astro',
+					title: 'Astro',
+				},
+				{
+					base: 'svelte',
+					children: [
+						{
+							pages: ['scripts', 'embeds', 'network-blocker'],
+							slug: 'scripts-and-embeds',
+							title: 'Scripts and embeds',
+						},
+						{
+							pages: [
+								'customize',
+								'/customization/recipes',
+								'/customization/tokens',
+								'translations',
+								'components/primitives',
+								'headless',
+							],
+							slug: 'customization',
+							title: 'Customization',
+						},
+						{
+							pages: [
+								'components',
+								'components/consent-manager-provider',
+								'components/consent-banner',
+								'components/consent-dialog',
+								'components/consent-widget',
+								'components/consent-dialog-link',
+								'components/consent-dialog-trigger',
+								'components/consent-gate',
+								'components/consent-button',
+								'components/iab-consent-banner',
+								'components/iab-consent-dialog',
+							],
+							slug: 'components',
+							title: 'Components',
+						},
+						{
+							pages: ['getters', 'callbacks'],
+							slug: 'consent-api',
+							title: 'Consent API',
+						},
+						{
+							pages: ['iab', 'content-security-policy'],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: [
+								'components/dev-tools',
+								'troubleshooting',
+								'/guides/verify-consent',
+							],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: ['quickstart'],
+					slug: 'svelte',
+					title: 'Svelte',
+				},
+				{
+					base: 'sveltekit',
+					children: [
+						{
+							pages: ['scripts', 'embeds', 'network-blocker'],
+							slug: 'scripts-and-embeds',
+							title: 'Scripts and embeds',
+						},
+						{
+							pages: [
+								'customize',
+								'/customization/recipes',
+								'/customization/tokens',
+								'translations',
+								'components/primitives',
+								'headless',
+							],
+							slug: 'customization',
+							title: 'Customization',
+						},
+						{
+							pages: [
+								'components',
+								'components/consent-manager-provider',
+								'components/consent-banner',
+								'components/consent-dialog',
+								'components/consent-widget',
+								'components/consent-dialog-link',
+								'components/consent-dialog-trigger',
+								'components/consent-gate',
+								'components/consent-button',
+								'components/iab-consent-banner',
+								'components/iab-consent-dialog',
+							],
+							slug: 'components',
+							title: 'Components',
+						},
+						{
+							pages: ['getters', 'callbacks'],
+							slug: 'consent-api',
+							title: 'Consent API',
+						},
+						{
+							pages: [
+								'iab',
+								'geography-headers',
+								'content-security-policy',
+								'server-api',
+							],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: [
+								'components/dev-tools',
+								'troubleshooting',
+								'/guides/verify-consent',
+							],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: ['quickstart', 'rendering'],
+					slug: 'sveltekit',
+					title: 'SvelteKit',
+				},
+				{
+					base: 'html',
+					children: [
+						{
+							pages: ['scripts', 'embeds', 'network-blocker'],
+							slug: 'scripts-and-embeds',
+							title: 'Scripts and embeds',
+						},
+						{
+							pages: [
+								'customize',
+								'/customization/recipes',
+								'/customization/tokens',
+								'translations',
+								'headless',
+							],
+							slug: 'customization',
+							title: 'Customization',
+						},
+						{
+							pages: [
+								'components',
+								'components/banner',
+								'components/dialog',
+								'components/trigger',
+								'components/action-buttons',
+								'components/preferences-link',
+								'components/gated-script',
+							],
+							slug: 'components',
+							title: 'Components',
+						},
+						{
+							pages: ['api', 'callbacks'],
+							slug: 'consent-api',
+							title: 'Consent API',
+						},
+						{
+							pages: ['iab', 'content-security-policy'],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: ['attributes-and-api', 'configuration'],
+							slug: 'reference',
+							title: 'Reference',
+						},
+						{
+							pages: ['dev-tools', 'troubleshooting', '/guides/verify-consent'],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: ['quickstart', 'platforms'],
+					slug: 'html',
+					title: 'HTML',
+				},
+				{
+					base: 'javascript',
+					children: [
+						{
+							pages: [
+								'scripts',
+								'modules/iframe-blocker',
+								'modules/network-blocker',
+							],
+							slug: 'scripts-and-embeds',
+							title: 'Scripts and embeds',
+						},
+						{
+							pages: [
+								'customize',
+								'/customization/recipes',
+								'/customization/tokens',
+								'translations',
+								'headless',
+							],
+							slug: 'customization',
+							title: 'Customization',
+						},
+						{
+							pages: ['api/browser', 'callbacks'],
+							slug: 'consent-api',
+							title: 'Consent API',
+						},
+						{
+							pages: ['iab', 'transports', 'content-security-policy'],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: [
+								'api/browser-options',
+								'api/runtime',
+								'api/kernel',
+								'api/snapshot',
+								'modules/script-loader',
+								'modules/persistence',
+								'modules/clear-on-revocation',
+							],
+							slug: 'reference',
+							title: 'Reference',
+						},
+						{
+							pages: ['dev-tools', 'troubleshooting', '/guides/verify-consent'],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: ['quickstart'],
+					slug: 'javascript',
+					title: 'JavaScript',
+				},
+				{
+					base: 'react-native',
+					children: [
+						{
+							pages: ['native-behaviour', 'platform-support'],
+							slug: 'advanced',
+							title: 'Advanced',
+						},
+						{
+							pages: ['troubleshooting', '/guides/verify-consent'],
+							slug: 'verify-and-troubleshoot',
+							title: 'Verify and troubleshoot',
+						},
+					],
+					pages: ['quickstart', 'usage', 'configuration'],
+					slug: 'react-native',
+					title: 'React Native',
+				},
+			],
+			pages: ['index'],
+			slug: 'frameworks',
+			title: 'Frameworks',
 		},
 		{
 			base: 'integrations',
 			children: [
+				{
+					pages: ['granular-consent', 'clear-on-revocation', 'existing-cmp'],
+					slug: 'vendor-controls',
+					title: 'Vendor controls',
+				},
 				{
 					pages: ['google-maps', 'youtube'],
 					slug: 'embeds',
@@ -673,8 +775,8 @@ export default defineDocsConfig({
 				},
 				{
 					pages: ['crisp', 'front-chat', 'intercom'],
-					slug: 'functionality',
-					title: 'Functionality',
+					slug: 'chat-and-support',
+					title: 'Chat and support',
 				},
 				{
 					pages: [
@@ -692,34 +794,9 @@ export default defineDocsConfig({
 					title: 'Ads and pixels',
 				},
 			],
-			pages: [
-				'overview',
-				'building-integrations',
-				'granular-consent',
-				'clear-on-revocation',
-				'existing-cmp',
-			],
+			pages: ['overview', 'building-integrations'],
 			slug: 'integrations',
 			title: 'Integrations',
-		},
-		{
-			pages: ['upgrade-v3'],
-			title: 'Migrate to v3',
-		},
-		{
-			base: 'cli',
-			pages: [
-				'overview',
-				'quickstart',
-				'commands/setup',
-				'commands/boilerplate',
-				'commands/codemods',
-				'commands/hosted',
-				'commands/self-host',
-				'global-flags',
-				'automation',
-			],
-			title: 'CLI',
 		},
 		{
 			base: 'self-host',
@@ -734,16 +811,42 @@ export default defineDocsConfig({
 						'guides/legal-document-snapshot-integration',
 						'guides/observability',
 					],
+					slug: 'guides',
 					title: 'Guides',
 				},
 				{
 					pages: ['api/configuration', 'api/endpoints'],
-					title: 'API',
+					slug: 'reference',
+					title: 'Reference',
 				},
 			],
 			pages: ['overview', 'quickstart'],
 			slug: 'self-host',
 			title: 'Backend',
+		},
+		{
+			base: 'cli',
+			children: [
+				{
+					pages: [
+						'commands/setup',
+						'commands/boilerplate',
+						'commands/codemods',
+						'commands/hosted',
+						'commands/self-host',
+					],
+					slug: 'commands',
+					title: 'Commands',
+				},
+				{
+					pages: ['global-flags'],
+					slug: 'reference',
+					title: 'Reference',
+				},
+			],
+			pages: ['overview', 'quickstart', 'automation'],
+			slug: 'cli',
+			title: 'CLI',
 		},
 		{
 			base: 'comparisons',
