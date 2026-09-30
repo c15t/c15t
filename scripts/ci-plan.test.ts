@@ -10,6 +10,13 @@ const workspaces = readWorkspaces(repository);
 const plan = (files: string[]) => createCiPlan(files, workspaces);
 
 describe('CI selection', () => {
+	it('tests the compatibility package without requiring vendor-runtime coverage', () => {
+		const result = plan(['bun.lock']);
+		expect(result.tests).toContain('@c15t/scripts');
+		expect(result.coverage).not.toContain('packages/scripts');
+		expect(result.coverage).toContain('packages/integrations');
+	});
+
 	it('runs the device builds for whichever autolink config the package has', () => {
 		// The device group is the only job that asks Expo whether the library was linked,
 		// and it selects on paths alone. The config was renamed from `.cjs` to `.js` and the

@@ -44,8 +44,6 @@
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@c15t/vitest-config": "workspace:*",
 		"typescript": "7.0.2"
-	},
-	"deprecated": "Use @c15t/integrations instead. @c15t/scripts remains supported throughout v3; compatibility ends in v4."
+	}
 }

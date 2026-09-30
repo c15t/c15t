@@ -23,7 +23,9 @@ Fields with no one-hook equivalent stay on a `useConsentManager()` call under a 
 
 `scripts-to-integrations` renames `@c15t/scripts` imports and re-exports to
 `@c15t/integrations` in JavaScript and TypeScript files, including literal
-dynamic imports, `require()` calls, and import types:
+dynamic imports, `require()` calls, and import types.
+It also recognizes `require` functions created by Node's imported
+`createRequire()` and scans `.mts`, `.cts`, `.mjs`, and `.cjs` files:
 
 ```bash
 c15t codemods scripts-to-integrations --dry-run --json

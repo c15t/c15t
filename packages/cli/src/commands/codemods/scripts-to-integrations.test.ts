@@ -24,6 +24,59 @@ afterEach(async () => {
 });
 
 describe('scripts-to-integrations', () => {
+	it.each(['node:module', 'module'])(
+		'migrates createRequire bindings imported from %s without changing shadowed calls',
+		async (moduleName) => {
+			const source = `import { createRequire as makeRequire } from '${moduleName}';
+const require = makeRequire(import.meta.url);
+const posthog = require('@c15t/scripts/posthog');
+function custom(require: (value: string) => string) {
+  return require('@c15t/scripts/events');
+}
+`;
+			const { filePath, projectRoot } = await fixture(source);
+			const result = await runScriptsToIntegrationsCodemod({
+				dryRun: false,
+				projectRoot,
+			});
+			expect(result.errors).toEqual([]);
+			expect(await readFile(filePath, 'utf8')).toBe(
+				source.replace('@c15t/scripts/posthog', '@c15t/integrations/posthog')
+			);
+		}
+	);
+
+	it.each(['mts', 'cts', 'mjs', 'cjs'])(
+		'migrates .%s files',
+		async (extension) => {
+			const source = "const events = require('@c15t/scripts/events');\n";
+			const { filePath, projectRoot } = await fixture(source, extension);
+			const result = await runScriptsToIntegrationsCodemod({
+				dryRun: false,
+				projectRoot,
+			});
+			expect(result.errors).toEqual([]);
+			expect(await readFile(filePath, 'utf8')).toBe(
+				source.replace('@c15t/scripts', '@c15t/integrations')
+			);
+		}
+	);
+
+	it('leaves a custom createRequire function untouched', async () => {
+		const source = `const createRequire = (_url: string) => (value: string) => value;
+const require = createRequire(import.meta.url);
+const value = require('@c15t/scripts/events');
+`;
+		const { filePath, projectRoot } = await fixture(source);
+		const result = await runScriptsToIntegrationsCodemod({
+			dryRun: false,
+			projectRoot,
+		});
+		expect(result.errors).toEqual([]);
+		expect(result.changedFiles).toEqual([]);
+		expect(await readFile(filePath, 'utf8')).toBe(source);
+	});
+
 	it('rewrites imports, re-exports, dynamic imports, require calls and import types', async () => {
 		const source = `import { posthog as analytics } from '@c15t/scripts/posthog';
 import type { VendorManifest } from '@c15t/scripts/types';

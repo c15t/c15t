@@ -1,11 +1,48 @@
 import { Node, SyntaxKind } from 'ts-morph';
-import type { SourceFile, StringLiteral } from 'ts-morph';
+import type { Identifier, SourceFile, StringLiteral } from 'ts-morph';
 
 import { runTransform } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
 
 const OLD_PACKAGE = '@c15t/scripts';
 const NEW_PACKAGE = '@c15t/integrations';
+
+const isNodeRequire = (identifier: Identifier, sourceFile: SourceFile) => {
+	const declarations = identifier.getSymbol()?.getDeclarations() ?? [];
+	const localDeclarations = declarations.filter(
+		(declaration) => declaration.getSourceFile() === sourceFile
+	);
+	if (localDeclarations.length === 0) {
+		return identifier.getText() === 'require';
+	}
+	return localDeclarations.some((declaration) => {
+		if (!Node.isVariableDeclaration(declaration)) {
+			return false;
+		}
+		const initializer = declaration.getInitializer();
+		if (!initializer || !Node.isCallExpression(initializer)) {
+			return false;
+		}
+		const factory = initializer.getExpression();
+		return (
+			factory
+				.getSymbol()
+				?.getDeclarations()
+				.some((imported) => {
+					if (
+						!Node.isImportSpecifier(imported) ||
+						imported.getName() !== 'createRequire'
+					) {
+						return false;
+					}
+					const moduleName = imported
+						.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
+						?.getModuleSpecifierValue();
+					return moduleName === 'node:module' || moduleName === 'module';
+				}) ?? false
+		);
+	});
+};
 
 const transformSourceFile = (sourceFile: SourceFile) => {
 	let operations = 0;
@@ -34,12 +71,7 @@ const transformSourceFile = (sourceFile: SourceFile) => {
 		const expression = call.getExpression();
 		const isImport = expression.getKind() === SyntaxKind.ImportKeyword;
 		const isRequire =
-			Node.isIdentifier(expression) &&
-			expression.getText() === 'require' &&
-			!expression
-				.getSymbol()
-				?.getDeclarations()
-				.some((declaration) => declaration.getSourceFile() === sourceFile);
+			Node.isIdentifier(expression) && isNodeRequire(expression, sourceFile);
 		const [argument] = call.getArguments();
 		if ((isImport || isRequire) && argument && Node.isStringLiteral(argument)) {
 			rename(argument);
