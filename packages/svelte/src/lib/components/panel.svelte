@@ -20,6 +20,7 @@
 	const {
 		open: openProp,
 		noStyle: localNoStyle,
+		disableAnimation: localDisableAnimation,
 		hideBranding,
 		legalLinks,
 		showTrigger = false,
@@ -46,7 +47,9 @@
 	);
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
-	const disableAnimation = $derived(theme.disableAnimation ?? false);
+	const disableAnimation = $derived(
+		localDisableAnimation ?? theme.disableAnimation ?? false
+	);
 
 	// Translations
 	const translations = $derived(

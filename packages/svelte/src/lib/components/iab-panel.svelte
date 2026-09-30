@@ -38,6 +38,7 @@
 	let {
 		open: openProp,
 		noStyle: localNoStyle,
+		disableAnimation: localDisableAnimation,
 		hideBranding,
 		initialTab,
 		models = ['iab'] as Model[],
@@ -45,6 +46,11 @@
 	}: {
 		open?: boolean;
 		noStyle?: boolean;
+		/**
+		 * Skip the backdrop's fade-in. Defaults to the provider's
+		 * `disableAnimation`, which follows `prefers-reduced-motion`.
+		 */
+		disableAnimation?: boolean;
 		hideBranding?: boolean;
 		/**
 		 * Which tab the preference centre opens on. Lets a "N partners"
@@ -59,6 +65,9 @@
 	const theme = getThemeContext();
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
+	const disableAnimation = $derived(
+		localDisableAnimation ?? theme.disableAnimation ?? false
+	);
 
 	const preferences = $derived(
 		resolveConsentPresentation({
@@ -251,6 +260,7 @@
 	<div use:portal>
 		{#if preferences.blocking}
 			<Overlay
+				entering={!disableAnimation}
 				{styles}
 				variant="iab-dialog"
 				visible={isOpen}
