@@ -228,9 +228,7 @@
 		transform: translateX(var(--switch-thumb-translate));
 	}
 
-	.root:not(:global(.headless)):dir(
-			rtl
-		)[data-state='checked'][data-disabled]
+	.root:not(:global(.headless)):dir(rtl)[data-state='checked'][data-disabled]
 		.thumb {
 		transform: translateX(calc(-1 * var(--switch-thumb-translate)));
 	}
