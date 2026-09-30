@@ -31,6 +31,7 @@ import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import { createConsentKernel } from '../kernel';
+import { seedExperiment, startExperiment } from '../libs/experiment';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import { resolveVendors } from '../libs/vendors';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
@@ -307,6 +308,16 @@ export const createRuntimeKernel = function createRuntimeKernel(
 		owners: integrations,
 	});
 	const vendorListVersion = prefetch.initialVendors?.listVersion ?? null;
+	// A prefetched or host-resolved arm is known before any render, so the
+	// server snapshot and the first paint already use it. Built-in
+	// assignment holds the prompt until the browser has picked the arm.
+	const experimentSeed = enabled
+		? seedExperiment(
+				options.experiment,
+				prefetch.initialExperiment,
+				hasResolvedPrefetch(options.prefetch)
+			)
+		: {};
 
 	return createConsentKernel({
 		...prefetch,
@@ -315,6 +326,8 @@ export const createRuntimeKernel = function createRuntimeKernel(
 		// category selectable at construction, so the server snapshot and the
 		// hydrated one evaluate the same scope.
 		inferredConsentCategories: inferConsentCategories(options, declaredVendors),
+		initialExperiment: experimentSeed.initialExperiment,
+		initialExperimentPending: experimentSeed.initialExperimentPending,
 		initialExternalPermissions:
 			enabled && options.consentSource ? {} : undefined,
 		initialIab:
@@ -650,6 +663,19 @@ export const createConsentRuntime = function createConsentRuntime(
 					snapshot: kernel.getSnapshot(),
 					type: 'init:applied',
 				});
+			}
+			// After hydration, so a returning visitor's subject id seeds the
+			// arm. The controller loads as its own chunk; a held prompt waits.
+			if (enabled && options.experiment && !options.consentSource) {
+				disposers.push(
+					startExperiment({
+						experiment: options.experiment,
+						kernel,
+						presentation: options.presentation,
+						storageConfig: options.storageConfig,
+						theme: options.theme,
+					})
+				);
 			}
 
 			// A server-resolved prefetch already holds the init answer; asking

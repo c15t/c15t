@@ -21,6 +21,8 @@
 import type {
 	AllConsentNames,
 	ConsentKernel,
+	ConsentPresentation,
+	ExperimentAssignment,
 	PromptPresentation,
 	PreferencesPresentation,
 	ConsentSnapshot,
@@ -37,14 +39,20 @@ import type {
 	ResolvedVendor,
 	VendorChoice,
 } from '@c15t/core';
-import { evaluateConsent, isVendorDenied } from '@c15t/core';
-import { useCallback, useSyncExternalStore } from 'react';
+import {
+	applyExperimentAssignment,
+	applyExperimentTheme,
+	evaluateConsent,
+	isVendorDenied,
+} from '@c15t/core';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 import {
 	useGateSelector,
 	useKernel,
 	useKernelSelector,
 } from './kernel-selector';
+import type { Theme } from './types/theme';
 import { useUIConfig } from './ui-config-context';
 import { invalidateConsentUIAction } from './ui-save';
 
@@ -431,15 +439,66 @@ export const useDismissNotice =
 		return useKernel().commands.dismissNotice;
 	};
 
+/**
+ * The presentation experiment arm this visitor runs. Built-in assignment
+ * lands after mount; a host-resolved `variant` is known at once.
+ *
+ * @returns The assignment, or `null` while no experiment is configured, the
+ * arm is not assigned yet, or the visitor's policy rejects it.
+ *
+ * @example
+ * ```tsx
+ * const arm = useExperiment();
+ * return arm ? <p>{arm.id}: {arm.variant}</p> : null;
+ * ```
+ */
+export const useExperiment =
+	function useExperiment(): Readonly<ExperimentAssignment> | null {
+		return useKernelSelector((snapshot) => snapshot.experiment);
+	};
+
+/**
+ * The host presentation with the assigned experiment arm merged over it.
+ *
+ * @returns The presentation to render: `options.presentation` itself while
+ * no arm is assigned.
+ */
+export const useResolvedPresentation = function useResolvedPresentation():
+	| ConsentPresentation
+	| undefined {
+	const { experiment, presentation } = useUIConfig();
+	const assignment = useExperiment();
+	return useMemo(
+		() => applyExperimentAssignment(presentation, experiment, assignment),
+		[presentation, experiment, assignment]
+	);
+};
+
+/**
+ * The host theme with the assigned experiment arm's `theme` merged over it.
+ * Render its tokens with `<ConsentTheme theme={useResolvedTheme()} />`.
+ *
+ * @returns The theme to render: `options.theme` itself while no arm is
+ * assigned or the arm has no theme.
+ */
+export const useResolvedTheme = function useResolvedTheme(): Theme | undefined {
+	const { experiment, theme } = useUIConfig();
+	const assignment = useExperiment();
+	return useMemo(
+		() => applyExperimentTheme(theme, experiment, assignment),
+		[theme, experiment, assignment]
+	);
+};
+
 const EMPTY_PROMPT: PromptPresentation = {};
 const EMPTY_PREFERENCES: PreferencesPresentation = {};
-/** Host first-layer presentation. */
+/** Host first-layer presentation, with the experiment arm applied. */
 export const usePromptPresentation =
 	function usePromptPresentation(): PromptPresentation {
-		return useUIConfig().presentation?.prompt ?? EMPTY_PROMPT;
+		return useResolvedPresentation()?.prompt ?? EMPTY_PROMPT;
 	};
-/** Host persistent preferences presentation. */
+/** Host persistent preferences presentation, with the experiment arm applied. */
 export const usePreferencesPresentation =
 	function usePreferencesPresentation(): PreferencesPresentation {
-		return useUIConfig().presentation?.preferences ?? EMPTY_PREFERENCES;
+		return useResolvedPresentation()?.preferences ?? EMPTY_PREFERENCES;
 	};

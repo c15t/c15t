@@ -3,6 +3,7 @@ import { deniedVendorIds, vendorRenders } from '@c15t/core';
 import { computed, ref, shallowRef, watch } from 'vue';
 
 import { useConsentConfig } from './config';
+import { useResolvedPresentation } from './experiment';
 import { useConsentKernelContext } from './kernel';
 
 /** Set an own property without going through the prototype for `__proto__`. */
@@ -82,6 +83,7 @@ export const useConsentDraft = function useConsentDraft(
 ) {
 	const { kernel, snapshot } = useConsentKernelContext();
 	const config = useConsentConfig();
+	const presentation = useResolvedPresentation();
 	const fingerprint = ref('');
 	const surface = ref('');
 	const displayedCategories = shallowRef<(keyof ConsentState)[]>([]);
@@ -92,6 +94,10 @@ export const useConsentDraft = function useConsentDraft(
 	const baseVendors = shallowRef<Record<string, boolean>>({});
 	/** The category values as seeded, so a clean draft can be told apart. */
 	const seededValues = shallowRef<Partial<ConsentState>>({});
+	const untouched = () =>
+		displayedCategories.value.every(
+			(category) => values.value[category] === seededValues.value[category]
+		);
 	const categoriesFor = (current: ConsentSnapshot): (keyof ConsentState)[] => {
 		const scope =
 			current.evaluationPolicy.choiceScope ?? current.policyRule.scope;
@@ -122,7 +128,7 @@ export const useConsentDraft = function useConsentDraft(
 				category,
 				category === 'necessary' ||
 					(current.explicitChoice?.categories[category]?.value ??
-						config.value.presentation?.preferences?.defaults?.[category] ??
+						presentation.value?.preferences?.defaults?.[category] ??
 						(current.policyRule.model === 'opt-out' ||
 							current.policyRule.preselectedCategories.includes(category))),
 			])
@@ -174,6 +180,16 @@ export const useConsentDraft = function useConsentDraft(
 		baseVendors.value = nextVendors;
 	};
 	reset();
+	// Built-in assignment lands after mount, so an arm's `preferences.defaults`
+	// arrive after the first seed. Reseed a draft the visitor has not edited.
+	watch(
+		() => presentation.value?.preferences?.defaults,
+		() => {
+			if (shouldSyncChanges() && untouched()) {
+				reset();
+			}
+		}
+	);
 	const isStale = computed(
 		() =>
 			fingerprint.value !==

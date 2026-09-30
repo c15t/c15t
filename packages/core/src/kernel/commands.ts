@@ -19,6 +19,7 @@ import type {
 	OptionalConsentCategory,
 } from '../consent-record/types';
 import type { AllConsentNames } from '../consent/consent-types';
+import type { ExperimentAssignment } from '../libs/experiment';
 import { generateSubjectId } from '../libs/generate-subject-id';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
@@ -927,16 +928,29 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		current: ConsentSnapshot,
 		requested: SaveUISource | undefined,
 		actionAt: number
-	): { uiSource: SaveUISource; timeToDecisionMs?: number } {
+	): {
+		uiSource: SaveUISource;
+		timeToDecisionMs?: number;
+		experiment?: ExperimentAssignment;
+	} {
 		const uiSource = requested ?? current.activeUI;
+		const attribution: ReturnType<typeof saveAttribution> = { uiSource };
+		// The arm the visitor acted under, captured with the action so a
+		// later reassignment cannot relabel this choice. Only once the banner
+		// has shown it in this page: a returning visitor who changes their
+		// choice from a footer link never saw the arm's banner.
+		if (current.experiment && current.surfaceShownAt.banner !== null) {
+			attribution.experiment = current.experiment;
+		}
 		if (!isPromptSurface(uiSource)) {
-			return { uiSource };
+			return attribution;
 		}
 		const shownAt = current.surfaceShownAt[uiSource];
 		if (shownAt === null || actionAt < shownAt) {
-			return { uiSource };
+			return attribution;
 		}
-		return { timeToDecisionMs: actionAt - shownAt, uiSource };
+		attribution.timeToDecisionMs = actionAt - shownAt;
+		return attribution;
 	};
 
 	/** Finalize local init while preserving its precomputed resolution. */

@@ -5,9 +5,12 @@ import {
 	createHostedTransport,
 	initOutputToKernelConfig,
 	resolveVendors,
+	seedExperiment,
+	startExperiment,
 	watchRevocationReload,
 } from '@c15t/core';
 import type {
+	ConsentExperiment,
 	ConsentKernel,
 	ConsentSnapshot,
 	InitResponse,
@@ -86,6 +89,12 @@ export interface VueConsentKernelContext {
 	storedConsent: Readonly<Ref<ConsentSnapshot['explicitChoice']>>;
 	initialRecords?: HydrationRecords;
 	ownsKernel: boolean;
+	/**
+	 * The experiment definition the kernel was created with. Validation,
+	 * assignment and attribution all derive from it, so presentation and
+	 * theme resolve against it too; a later config change is ignored.
+	 */
+	experimentDefinition?: ConsentExperiment;
 	dispose: () => void;
 }
 
@@ -691,6 +700,19 @@ export const createVueConsentKernelContext =
 			transport,
 			...options.kernelConfig,
 		};
+		// A prefetched or host-resolved arm renders on the server; built-in
+		// assignment holds the prompt until the browser picked the arm.
+		if (ownsKernel) {
+			Object.assign(
+				kernelConfig,
+				seedExperiment(
+					options.config.experiment,
+					options.kernelConfig?.initialExperiment ??
+						initialConfig.initialExperiment,
+					!resolveInitialPolicyPending(initialConfig, options.kernelConfig)
+				)
+			);
+		}
 		if (options.config.consentSource) {
 			kernelConfig.initialExternalPermissions = {};
 			kernelConfig.initialRecords = undefined;
@@ -773,6 +795,7 @@ export const createVueConsentKernelContext =
 				// blocked rather than wait for the rest of the page.
 				claimHold(context).block();
 			},
+			experimentDefinition: options.config.experiment,
 			iab: options.runtime?.iab ?? undefined,
 			init,
 			initialRecords: records.hydrationRecords,
@@ -878,6 +901,30 @@ const mountClearOnRevocation = (
  * @param options - Set `runInit: false` to skip the initial `init()`.
  * @returns A disposer that undoes everything this call mounted.
  */
+/**
+ * Hydrate stored records into the kernel. No-op without browser storage.
+ */
+const mountVuePersistence = (
+	context: VueConsentKernelContext,
+	config: RuntimeConsentConfig
+): (() => void) => {
+	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
+		return () => undefined;
+	}
+	const persistence = createPersistence({
+		kernel: context.kernel,
+		skipHydration: true,
+		storageConfig: config.storageConfig,
+	});
+	hydrateVuePersistence(context, persistence);
+	const clearMemory = context.clearRecords;
+	context.clearRecords = persistence.clear;
+	return () => {
+		context.clearRecords = clearMemory;
+		persistence.dispose();
+	};
+};
+
 // oxlint-disable-next-line complexity -- Mounts consent modules in lifecycle order with one external authority.
 export const startVueConsentRuntime = function startVueConsentRuntime(
 	context: VueConsentKernelContext,
@@ -904,23 +951,25 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		disposers.push(() => windowDebug.dispose());
 	}
 
+	if (!config.consentSource) {
+		disposers.push(mountVuePersistence(context, config));
+	}
+	// After hydration, so a returning visitor's subject id seeds the arm.
+	// The controller loads as its own chunk; a held prompt waits for it.
 	if (
+		context.ownsKernel &&
+		context.experimentDefinition &&
 		!config.consentSource &&
-		typeof document !== 'undefined' &&
-		typeof localStorage !== 'undefined'
+		typeof document !== 'undefined'
 	) {
-		const persistence = createPersistence({
-			kernel: context.kernel,
-			skipHydration: true,
-			storageConfig: config.storageConfig,
-		});
-		hydrateVuePersistence(context, persistence);
-		const clearMemory = context.clearRecords;
-		context.clearRecords = persistence.clear;
-		disposers.push(() => {
-			context.clearRecords = clearMemory;
-			persistence.dispose();
-		});
+		disposers.push(
+			startExperiment({
+				experiment: context.experimentDefinition,
+				kernel: context.kernel,
+				presentation: config.presentation,
+				storageConfig: config.storageConfig,
+			})
+		);
 	}
 
 	if (typeof document !== 'undefined' && config.consentSource) {

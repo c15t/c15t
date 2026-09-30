@@ -122,6 +122,35 @@ describe('resolveOptions', () => {
 		).toMatchObject({ backendURL: 'https://consent.example.com' });
 	});
 
+	it('rejects an experiment with no way to resolve its arm on the server', () => {
+		// The banner is server HTML the browser only shows or hides, so an
+		// arm assigned in the browser would be recorded for a banner the
+		// visitor never saw.
+		const variants = {
+			bar: { prompt: { variant: 'bar' as const } },
+		};
+		expect(() =>
+			resolveOptions({
+				experiment: { arms: variants, id: 'banner-shape' },
+				mode: offlineMode(),
+			})
+		).toThrowError(/consentMiddleware\(\{ experimentArm \}\)/u);
+		// A site that composes the middleware resolves the arm per request.
+		expect(
+			resolveOptions({
+				experiment: { arms: variants, id: 'banner-shape' },
+				middleware: false,
+				mode: offlineMode(),
+			}).experiment
+		).toMatchObject({ id: 'banner-shape' });
+		expect(
+			resolveOptions({
+				experiment: { arm: 'bar', arms: variants, id: 'banner-shape' },
+				mode: offlineMode(),
+			}).experiment
+		).toMatchObject({ arm: 'bar' });
+	});
+
 	it('keeps custom route paths', () => {
 		const resolved = resolveOptions({
 			endpoints: { enabled: true, initPath: '/consent/init' },

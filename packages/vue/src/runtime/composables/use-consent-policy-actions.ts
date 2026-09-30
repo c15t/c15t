@@ -5,6 +5,7 @@ import { computed, toValue, watch } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
 
 import { useConsentConfig } from './config';
+import { useResolvedPresentation } from './experiment';
 import { useConsentSnapshot } from './kernel';
 
 /** Resolve the shared policy constraints and application presentation. */
@@ -20,6 +21,7 @@ export const useConsentPolicyActions = function useConsentPolicyActions(
 	// recomputing on kernel changes that leave the rule alone.
 	const policyRule = computed(() => snapshot.value.policyRule);
 	const config = useConsentConfig();
+	const hostPresentation = useResolvedPresentation();
 	/**
 	 * `bannerPosition` predates the presentation API and is merged in with
 	 * the schema defaults, so only a non-default value counts as a host
@@ -37,15 +39,15 @@ export const useConsentPolicyActions = function useConsentPolicyActions(
 			override: toValue(override),
 			policy: policyRule.value,
 			presentation: {
-				...config.value.presentation,
+				...hostPresentation.value,
 				preferences: {
 					trapFocus: config.value.trapFocus,
-					...config.value.presentation?.preferences,
+					...hostPresentation.value?.preferences,
 				},
 				prompt: {
 					position: legacyPosition.value,
 					trapFocus: config.value.trapFocus,
-					...config.value.presentation?.prompt,
+					...hostPresentation.value?.prompt,
 				},
 			},
 			surface,

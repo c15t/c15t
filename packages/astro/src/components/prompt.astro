@@ -26,6 +26,7 @@
  * <ConsentBanner />
  * ```
  */
+import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
 import {
 	buildBannerRevealScript,
 	buildColorSchemeScript,
@@ -70,12 +71,25 @@ const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
-const themeCSS = emitConfig ? buildThemeCSS(c15t.options.theme) : '';
+const themeCSS = emitConfig
+	? buildThemeCSS(
+			applyExperimentTheme(
+				c15t.options.theme,
+				c15t.options.experiment,
+				snapshot.experiment
+			)
+		)
+	: '';
 
 const model = resolvePromptModel({
 	classNames: promptClassNames,
 	legalLinks: c15t.options.legalLinks,
-	presentation: c15t.options.presentation,
+	// The arm is the host-resolved `variant`, already on the server snapshot.
+	presentation: applyExperimentAssignment(
+		c15t.options.presentation,
+		c15t.options.experiment,
+		snapshot.experiment
+	),
 	props,
 	snapshot,
 	theme: c15t.options.theme,

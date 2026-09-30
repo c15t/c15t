@@ -298,6 +298,28 @@ export {
 	PROMPT_VARIANT_POSITIONS,
 	resolveConsentPresentation,
 } from './libs/policy-actions';
+export {
+	actionAppearanceFromTheme,
+	applyExperimentAssignment,
+	applyExperimentTheme,
+	CONTROL_ARM,
+	defineExperiment,
+	resolveExperimentPresentation,
+	resolveExperimentTheme,
+	seedExperiment,
+	startExperiment,
+} from './libs/experiment';
+export type {
+	ActionAppearance,
+	ConsentExperiment,
+	ExperimentActionStyle,
+	ExperimentArm,
+	ExperimentArmTheme,
+	ExperimentAssignment,
+	ExperimentGate,
+	StartExperimentOptions,
+} from './libs/experiment';
+export { EXPERIMENT_STORAGE_KEY } from './libs/storage-keys';
 export type {
 	ConsentPresentation,
 	PromptPresentation,

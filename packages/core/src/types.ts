@@ -35,6 +35,7 @@ import type {
 } from './consent-record/types';
 import type { RecordIssue } from './consent-record/validation';
 import type { AllConsentNames } from './consent/consent-types';
+import type { ExperimentAssignment, ExperimentGate } from './libs/experiment';
 import type { HasCondition } from './libs/has';
 import type { PublisherRestriction } from './options/iab-tcf';
 
@@ -382,6 +383,19 @@ export interface ConsentSnapshot {
 	 * this to learn about an impression that happened before subscribing.
 	 */
 	readonly surfaceShownAt: Readonly<Record<PromptSurface, number | null>>;
+	/**
+	 * The presentation experiment arm this visitor runs, or `null` when no
+	 * experiment is configured, the arm is not assigned yet, or the policy
+	 * rejects it. Impressions and choices carry it once the banner has shown
+	 * it in this page, and the backend saves it as `metadata.experiment`.
+	 */
+	readonly experiment: Readonly<ExperimentAssignment> | null;
+	/**
+	 * Built-in experiment assignment has not run yet. The prompt stays
+	 * hidden until it has, so the visitor never sees the base banner swap
+	 * for their arm.
+	 */
+	readonly experimentPending: boolean;
 
 	// -- IAB passthrough (null when IAB not enabled) -------------------------
 	readonly iab: Readonly<KernelIABState> | null;
@@ -429,6 +443,13 @@ export interface KernelConfig {
 	initialOverrides?: KernelOverrides;
 	/** Initial identified user, if known at construction. */
 	initialUser?: KernelUser;
+	/** Presentation experiment arm already assigned (a host-resolved variant). */
+	initialExperiment?: ExperimentAssignment;
+	/**
+	 * Hold the prompt until `set.experiment()` assigns the arm. Set for
+	 * built-in assignment, which only runs in the browser.
+	 */
+	initialExperimentPending?: boolean;
 	/** Initial translation bundle (e.g. from prefetch). */
 	initialTranslations?: KernelTranslations;
 	/** Initial location (e.g. from prefetch). */
@@ -562,6 +583,8 @@ export interface SavePayload {
 	 * a prompt surface or was never shown to this kernel.
 	 */
 	timeToDecisionMs?: number;
+	/** The presentation experiment arm the visitor ran when acting, when any. */
+	experiment?: ExperimentAssignment;
 	/**
 	 * Resolved policy inputs captured with the action. The backend
 	 * recomputes them before accepting a choice; retries keep the
@@ -624,6 +647,8 @@ export type KernelEvent =
 			actionAt: number;
 			/** Milliseconds from the surface's first impression to this action, when known. */
 			timeToDecisionMs?: number;
+			/** The experiment arm the visitor ran, when an experiment is assigned. */
+			experiment?: ExperimentAssignment;
 	  }
 	| {
 			/** A prompt surface became visible. */
@@ -632,6 +657,8 @@ export type KernelEvent =
 			/** Epoch milliseconds of this impression. */
 			shownAt: number;
 			snapshot: ConsentSnapshot;
+			/** The experiment arm the surface rendered with, when an experiment is assigned. */
+			experiment?: ExperimentAssignment;
 	  }
 	| {
 			/** Effective permissions changed by value (choice, policy, expiry, privacy). */
@@ -826,6 +853,17 @@ export interface ConsentKernel {
 		privacySignals: (input: { gpc?: boolean }) => void;
 		/** Set the active UI surface. */
 		activeUI: (ui: KernelActiveUI) => void;
+		/**
+		 * Record the presentation experiment arm this visitor runs; `null`
+		 * runs no experiment. `gate` decides per policy whether the arm is
+		 * shown, and a rejected arm is withheld until a policy accepts it. A
+		 * held prompt stays held until a gate is set or the experiment is
+		 * cleared.
+		 */
+		experiment: (
+			assignment: ExperimentAssignment | null,
+			gate?: ExperimentGate
+		) => void;
 		/** Patch the IAB slice. Creates the slice if currently null. */
 		iab: (patch: Partial<KernelIABState>) => void;
 		/**

@@ -71,6 +71,8 @@ export interface IABPromptModel {
 	textDirection: 'ltr' | 'rtl';
 	language: string | undefined;
 	position: string;
+	/** The resolved banner shape, the arm's when an experiment runs. */
+	variant: string;
 	copy: {
 		title: string;
 		descriptionBefore: string;
@@ -242,6 +244,16 @@ const resolveIABButton = function resolveIABButton(
 	};
 };
 
+const mirrorCorner = function mirrorCorner(corner: string): string {
+	if (corner.endsWith('-left')) {
+		return corner.replace(/-left$/u, '-right');
+	}
+	if (corner.endsWith('-right')) {
+		return corner.replace(/-right$/u, '-left');
+	}
+	return corner;
+};
+
 /**
  * Resolve the IAB banner's copy, summary, buttons and class names.
  *
@@ -253,7 +265,7 @@ export const resolveIABPromptModel = function resolveIABPromptModel(
 ): IABPromptModel {
 	const { snapshot, props } = input;
 	const models = props.models ?? ['iab'];
-	const { blocking } = resolveConsentPresentation({
+	const presentation = resolveConsentPresentation({
 		override: { scrollLock: props.scrollLock },
 		policy: snapshot.policyRule,
 		presentation: input.presentation,
@@ -264,9 +276,15 @@ export const resolveIABPromptModel = function resolveIABPromptModel(
 	);
 	const translations = resolveIABTranslations(snapshot);
 	const textDirection = getTextDirection(snapshot.translations?.language);
+	// A default corner mirrors for RTL, as in the React and Svelte IAB
+	// banners; a position the host or an experiment arm set is kept.
+	const position =
+		textDirection === 'rtl' && presentation.positionSource === 'default'
+			? mirrorCorner(presentation.position)
+			: presentation.position;
 
 	return {
-		blocking,
+		blocking: presentation.blocking,
 		canRender: summary.isReady && models.includes(snapshot.policyRule.model),
 		choiceButtons: (['reject', 'accept'] as const).map((action) =>
 			resolveIABButton(action, translations, props)
@@ -276,8 +294,9 @@ export const resolveIABPromptModel = function resolveIABPromptModel(
 		customizeButton: resolveIABButton('customize', translations, props),
 		displayItems: [...summary.displayItems],
 		language: snapshot.translations?.language,
-		position: textDirection === 'ltr' ? 'bottom-left' : 'bottom-right',
+		position,
 		textDirection,
+		variant: presentation.variant,
 		vendorListReady: summary.isReady,
 	};
 };

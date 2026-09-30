@@ -7,6 +7,7 @@
  * and theme tokens the banner and dialog both read.
  */
 
+import { applyExperimentTheme } from '@c15t/core';
 import type { ConsentRuntime } from '@c15t/core/runtime';
 
 import type { C15tResolvedOptions } from '../types';
@@ -28,6 +29,12 @@ export interface DialogPresentationOptions {
 	 */
 	colorScheme: null;
 	consentCategories?: C15tResolvedOptions['consentCategories'];
+	/**
+	 * The configured experiment. The island reads the assigned arm from the
+	 * runtime snapshot and merges that arm over `presentation`; `theme`
+	 * below already carries the arm's theme overrides.
+	 */
+	experiment?: C15tResolvedOptions['experiment'];
 	legalLinks?: C15tResolvedOptions['legalLinks'];
 	presentation?: C15tResolvedOptions['presentation'];
 	theme?: C15tResolvedOptions['theme'];
@@ -56,9 +63,16 @@ export const buildProviderProps = function buildProviderProps(
 		options: {
 			colorScheme: null,
 			consentCategories: options.consentCategories,
+			experiment: options.experiment,
 			legalLinks: options.legalLinks,
 			presentation: options.presentation,
-			theme: options.theme,
+			// The arm's theme overrides ride on the host theme. The island
+			// mounts after `start()`, so the assignment is already known.
+			theme: applyExperimentTheme(
+				options.theme,
+				options.experiment,
+				runtime.kernel.getSnapshot().experiment
+			),
 		},
 		runtime,
 	};

@@ -102,6 +102,27 @@ describe('<ConsentBanner />', () => {
 		expect(html).toContain('data-testid="consent-banner-root"');
 	});
 
+	it('renders the host-resolved experiment arm and inlines it', async () => {
+		const locals = await buildLocals({
+			experiment: {
+				arm: 'bar',
+				arms: { bar: { prompt: { variant: 'bar' } } },
+				id: 'banner-shape',
+			},
+			mode: offlineMode({ policyRules: [testRule] }),
+		});
+		expect(locals.snapshot.experiment).toEqual({
+			acknowledgedDiagnostics: false,
+			arm: 'bar',
+			assignedBy: 'host',
+			id: 'banner-shape',
+		});
+		const html = await render(locals);
+		expect(html).toContain('data-variant="bar"');
+		expect(html).toContain('window.__c15tAstroConfig=');
+		expect(html).toContain('"initialExperiment"');
+	});
+
 	it('honours copy overrides', async () => {
 		const html = await render(await buildLocals(), {
 			acceptButtonText: 'Yes please',

@@ -177,8 +177,9 @@ const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
  *
  * @param options - The options passed to `c15t()`.
  * @returns Options with defaults applied.
- * @throws {Error} When `mode` is missing, is not a mode descriptor, or is a
- * manifest mode with nowhere to save consent.
+ * @throws {Error} When `mode` is missing, is not a mode descriptor, is a
+ * manifest mode with nowhere to save consent, or `experiment` has neither
+ * an `arm` nor a site-composed middleware to resolve one.
  */
 export const resolveOptions = function resolveOptions(
 	options: C15tAstroOptions
@@ -210,6 +211,22 @@ export const resolveOptions = function resolveOptions(
 	if (options.ui !== undefined && !Object.hasOwn(UI_ADAPTERS, options.ui)) {
 		throw new Error(
 			`@c15t/astro: unknown \`ui\` ${JSON.stringify(options.ui)}. Supported adapters: ${UI_ADAPTER_NAMES.join(', ')}.`
+		);
+	}
+	// The banner is server-rendered HTML that the browser only shows or
+	// hides, so the arm has to be known on the server: a static `arm`,
+	// or `experimentArm` on a middleware the site composes itself.
+	if (
+		options.experiment &&
+		typeof options.experiment.arm !== 'string' &&
+		options.middleware !== false &&
+		(typeof options.middleware !== 'object' ||
+			options.middleware.enabled !== false)
+	) {
+		throw new Error(
+			'@c15t/astro: `experiment` needs an arm resolved on the server. ' +
+				'Set `middleware: false` and export `consentMiddleware({ experimentArm })` ' +
+				'from src/middleware.ts to pick one per request, or pass a fixed `experiment.arm`.'
 		);
 	}
 	const {

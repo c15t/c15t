@@ -63,6 +63,11 @@
 			"import": "./dist/consent-record.js",
 			"default": "./dist/consent-record.js"
 		},
+		"./experiment": {
+			"types": "./dist-types/experiment.d.ts",
+			"import": "./dist/experiment.js",
+			"default": "./dist/experiment.js"
+		},
 		"./consent-categories": {
 			"types": "./dist-types/consent-record/types.d.ts",
 			"import": "./dist/consent-categories.js",

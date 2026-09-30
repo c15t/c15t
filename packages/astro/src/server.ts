@@ -1,4 +1,5 @@
 import {
+	seedExperiment,
 	deferInitGvl,
 	deferInitGvlToRoute,
 	c15tProtocolHeaders,
@@ -67,6 +68,11 @@ export interface ResolveConsentContextOptions {
 	url?: string;
 	/** The integration options, already normalized. */
 	options: C15tResolvedOptions;
+	/**
+	 * This request's experiment arm, resolved by the middleware's
+	 * `experimentArm`. Overrides a static `experiment.arm`.
+	 */
+	experimentArm?: string;
 	/** Override fetch, mainly for tests. */
 	fetch?: typeof globalThis.fetch;
 	/**
@@ -208,7 +214,8 @@ export const resolveTranslations = function resolveTranslations(
  */
 const readConsentRequest = function readConsentRequest(
 	headers: Headers,
-	options: C15tResolvedOptions
+	options: C15tResolvedOptions,
+	experimentArm?: string
 ): { config: KernelConfig; inputs: ConsentRequestHeaderInputs } {
 	const now = Date.now();
 	const initialRecords = readStoredRecordsFromCookieHeader(
@@ -227,6 +234,19 @@ const readConsentRequest = function readConsentRequest(
 		initialRecords,
 		now,
 	};
+	// The arm is known on the server, so the inlined config and the first
+	// HTML already carry it. The banner is server-rendered, so without an
+	// arm for this request no experiment runs rather than holding the prompt.
+	const arm = experimentArm ?? options.experiment?.arm;
+	if (options.experiment && arm !== undefined) {
+		const { initialExperiment } = seedExperiment({
+			...options.experiment,
+			arm,
+		});
+		if (initialExperiment) {
+			config.initialExperiment = initialExperiment;
+		}
+	}
 	const overrides = consentInputsToOverrides({
 		country: inputs.country,
 		language: inputs.language,
@@ -659,7 +679,11 @@ export const resolveConsentContext = async function resolveConsentContext(
 	const { options } = input;
 	const prerendered = input.prerendered === true;
 	const headers = prerendered ? new Headers() : input.headers;
-	const { config: base, inputs } = readConsentRequest(headers, options);
+	const { config: base, inputs } = readConsentRequest(
+		headers,
+		options,
+		prerendered ? undefined : input.experimentArm
+	);
 	const translations = resolveTranslations(options, inputs);
 	// Hosted and manifest mode resolve against the visitor's geo, which a
 	// build has none of. Offline mode resolves without it in the browser as

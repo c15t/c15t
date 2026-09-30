@@ -73,10 +73,10 @@ const renderBanner = function renderBanner(): void {
 };
 
 const start = function start(
-	options: C15tAstroOptions = OPTIONS
+	options: C15tAstroOptions = OPTIONS,
+	config: Record<string, unknown> = INLINE_CONFIG
 ): AstroConsentClient {
-	(window as unknown as Record<string, unknown>).__c15tAstroConfig =
-		INLINE_CONFIG;
+	(window as unknown as Record<string, unknown>).__c15tAstroConfig = config;
 	client = boot(resolveOptions(options));
 	return client;
 };
@@ -104,6 +104,44 @@ describe('boot', () => {
 		const second = boot(resolveOptions(OPTIONS));
 		expect(second).toBe(first);
 		expect(getConsentClient()).toBe(first);
+	});
+
+	it('runs the arm the server resolved for this request from the first snapshot', () => {
+		renderBanner();
+		const arm = {
+			acknowledgedDiagnostics: false,
+			arm: 'bar',
+			assignedBy: 'host',
+			id: 'banner-shape',
+		};
+		const booted = start(
+			{
+				...OPTIONS,
+				experiment: {
+					arms: { bar: { prompt: { variant: 'bar' } } },
+					id: 'banner-shape',
+				},
+				middleware: false,
+			},
+			{ ...INLINE_CONFIG, initialExperiment: arm }
+		);
+		expect(booted.getConsent().experiment).toEqual(arm);
+		expect(booted.getConsent().experimentPending).toBe(false);
+	});
+
+	it('runs no experiment, and holds nothing, when the server resolved no arm', () => {
+		renderBanner();
+		const booted = start({
+			...OPTIONS,
+			experiment: {
+				arms: { bar: { prompt: { variant: 'bar' } } },
+				id: 'banner-shape',
+			},
+			middleware: false,
+		});
+		expect(booted.getConsent().experiment).toBeNull();
+		expect(booted.getConsent().experimentPending).toBe(false);
+		expect(booted.getConsent().activeUI).toBe('banner');
 	});
 
 	it('boots from the inlined config instead of the network', () => {

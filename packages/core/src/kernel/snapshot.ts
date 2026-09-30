@@ -283,6 +283,7 @@ export const freezeSnapshot = function freezeSnapshot(
 
 		snapshot.iab,
 		snapshot.location,
+		snapshot.experiment,
 	]) {
 		if (nested) {
 			Object.freeze(nested);
@@ -372,6 +373,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		activeUI: externalPermissions
 			? 'none'
 			: deriveActiveUI({
+					experimentPending: config.initialExperimentPending === true,
 					policyPending,
 					promptRequirement: evaluation.promptRequirement,
 					resolution,
@@ -381,6 +383,10 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		effectivePermissions: evaluation.permissions,
 		evaluatedAt: now,
 		evaluationPolicy,
+		experiment: config.initialExperiment
+			? { ...config.initialExperiment }
+			: null,
+		experimentPending: config.initialExperimentPending === true,
 		explicitChoice,
 		externalPermissions,
 		iab,

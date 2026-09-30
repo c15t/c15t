@@ -6,6 +6,7 @@
  * anything.
  */
 import type { AllConsentNames } from '../consent/consent-types';
+import type { ExperimentAssignment, ExperimentGate } from '../libs/experiment';
 import {
 	mergeDeclaredVendors,
 	sameDeclaredVendors,
@@ -211,6 +212,12 @@ export const buildSetters = function buildSetters(
 		},
 		draft(input: Partial<ConsentState>): void {
 			runtime.setDraft(mergeDraft(runtime.getDraft(), input));
+		},
+		experiment(
+			assignment: ExperimentAssignment | null,
+			gate?: ExperimentGate
+		): void {
+			runtime.setExperiment(assignment, gate ?? null);
 		},
 		externalPermissions(permissions: Partial<ConsentState>): void {
 			if (config.initialExternalPermissions === undefined) {

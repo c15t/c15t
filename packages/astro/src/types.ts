@@ -12,6 +12,7 @@ import type {
 	AllConsentNames,
 	ClearOnRevocationConfig,
 	ConsentSnapshot,
+	ConsentExperiment,
 	ConsentPresentation,
 	KernelConfig,
 	LegalLinks,
@@ -162,6 +163,16 @@ export interface C15tMiddlewareOptions {
 export interface C15tAstroOptions {
 	/** Host layout and styling constrained by the active policy. */
 	presentation?: ConsentPresentation;
+	/**
+	 * A/B experiment on prompt/preferences presentation. The assigned arm is
+	 * merged over `presentation`, exposed as `snapshot.experiment`, and
+	 * recorded with the impressions and choices of visitors the banner
+	 * showed it to. The banner is server-rendered, so the arm is resolved on
+	 * the server: per request through `consentMiddleware({ experimentArm })`
+	 * with `middleware: false`, or one fixed `arm` for every visitor.
+	 * Built-in assignment is not available on Astro.
+	 */
+	experiment?: ConsentExperiment;
 	/**
 	 * Transport selection. Build it with `hosted()`, `offline()` or
 	 * `manifest()` so the descriptor stays well-formed.

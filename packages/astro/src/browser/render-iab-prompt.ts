@@ -184,6 +184,7 @@ export const buildIABPrompt = function buildIABPrompt(
 			'data-blocking': model.blocking ? 'true' : undefined,
 			'data-position': model.position,
 			'data-testid': 'iab-consent-banner-root',
+			'data-variant': model.variant,
 			dir: model.textDirection,
 			lang: model.language,
 			tabindex: '-1',

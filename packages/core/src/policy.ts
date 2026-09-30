@@ -190,8 +190,14 @@ export const deriveActiveUI = function deriveActiveUI(input: {
 	promptRequirement: PromptRequirement;
 	policyPending: boolean;
 	resolution: PolicyResolution;
+	/** A banner experiment is still assigning this visitor's arm. */
+	experimentPending?: boolean;
 }): KernelActiveUI {
-	if (input.policyPending || input.resolution.status === 'failed') {
+	if (
+		input.policyPending ||
+		input.experimentPending ||
+		input.resolution.status === 'failed'
+	) {
 		return 'none';
 	}
 	if (input.promptRequirement.kind === 'none') {

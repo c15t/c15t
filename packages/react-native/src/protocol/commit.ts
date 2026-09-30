@@ -174,6 +174,17 @@ export interface SavePayload {
 	 */
 	timeToDecisionMs?: number;
 	/**
+	 * The banner-experiment arm the visitor saw. The native cores run no
+	 * experiments, so they never write it; it is carried so the body stays
+	 * the one the kernel describes.
+	 */
+	experiment?: {
+		id: string;
+		arm: string;
+		assignedBy: 'host' | 'c15t';
+		acknowledgedDiagnostics: boolean;
+	};
+	/**
 	 * Granted flag for every declared vendor after this action. Present only
 	 * when vendors are declared; a narrowed replay drops it. The native cores
 	 * declare no vendors yet, so they never write it; it is carried so the body
