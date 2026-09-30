@@ -2336,15 +2336,55 @@ describe('hosted transport: save refusals', () => {
 		ReturnType<typeof createHostedTransport>['save']
 	>[0];
 
+	const respond = (status: number, cause?: Record<string, string>) =>
+		(() =>
+			Promise.resolve(
+				Response.json({ cause, message: 'refused' }, { status })
+			)) as unknown as typeof globalThis.fetch;
+
 	const answer = (status: number, cause?: Record<string, string>) =>
 		createHostedTransport({
 			backendURL: 'https://backend.test',
 			domain: 'example.com',
-			fetch: () =>
-				Promise.resolve(
-					Response.json({ cause, message: 'refused' }, { status })
-				),
+			fetch: respond(status, cause),
 		});
+
+	test.each([
+		[409, 'CONFLICT'],
+		[409, 'SUBJECT_CONFLICT'],
+		[409, 'POLICY_SNAPSHOT_EXPIRED'],
+	])(
+		'the manifest transport also refuses %i %s for good',
+		async (status, code) => {
+			// Both transports throw through `saveFailure`; this keeps the manifest
+			// one from drifting to a retryable error the kernel would replay.
+			const transport = createManifestTransport({
+				backendURL: 'https://backend.test',
+				domain: 'example.com',
+				fetch: respond(status, { code }),
+				manifest: MANIFEST_FIXTURE,
+			});
+			const error = await transport
+				.save(payload)
+				.catch((caught: unknown) => caught);
+			expect(isConsentSaveRejection(error)).toBe(true);
+			expect(error).toMatchObject({ code, status });
+		}
+	);
+
+	test('the manifest transport keeps a 500 retryable', async () => {
+		const transport = createManifestTransport({
+			backendURL: 'https://backend.test',
+			domain: 'example.com',
+			fetch: respond(500, { code: 'DATABASE_ERROR' }),
+			manifest: MANIFEST_FIXTURE,
+		});
+		const error = await transport
+			.save(payload)
+			.catch((caught: unknown) => caught);
+		expect(error).toBeInstanceOf(Error);
+		expect(isConsentSaveRejection(error)).toBe(false);
+	});
 
 	test.each([
 		[409, 'POLICY_SNAPSHOT_EXPIRED', undefined],

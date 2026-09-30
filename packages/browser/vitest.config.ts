@@ -53,6 +53,29 @@ export default mergeConfig(
 				},
 				name: 'storage-sync-fixture',
 			},
+			{
+				configureServer(server) {
+					server.middlewares.use((request, response, next) => {
+						// The query carries fixture flags such as `?hold`.
+						if (
+							request.url?.split('?')[0] !== '/__c15t-test__/subject-conflict'
+						) {
+							next();
+							return;
+						}
+						response.setHeader('Content-Type', 'text/html');
+						response.end(
+							readFileSync(
+								resolve(
+									__dirname,
+									'src/__tests__/fixtures/subject-conflict.html'
+								)
+							)
+						);
+					});
+				},
+				name: 'subject-conflict-fixture',
+			},
 		],
 		resolve: {
 			alias: [{ find: '~', replacement: resolve(__dirname, './src') }],
