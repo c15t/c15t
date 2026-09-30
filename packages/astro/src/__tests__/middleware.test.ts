@@ -3,6 +3,7 @@ import {
 	policyRulePresets,
 } from '@c15t/schema/types';
 import { enTranslations } from '@c15t/translations';
+import { baseTranslations } from '@c15t/translations/all';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
@@ -273,6 +274,33 @@ describe('consent middleware', () => {
 		expect(
 			c15t.config.initialTranslations?.translations.cookieBanner.title
 		).toBe('App title');
+	});
+
+	it('shows a backend edit when i18n passes the stock bundle for that language', async () => {
+		const stock = baseTranslations.de;
+		const fetchImpl = vi.fn(() =>
+			Response.json({
+				location: { countryCode: 'DE', regionCode: null },
+				policyResolution: testWire({ id: 'gdpr' }),
+				translations: {
+					language: 'de',
+					translations: {
+						...stock,
+						cookieBanner: { ...stock.cookieBanner, title: 'Vom Backend' },
+					},
+				},
+			})
+		);
+		const c15t = await run({
+			fetch: fetchImpl as never,
+			options: {
+				i18n: { locale: 'de', messages: { de: { ...stock } } },
+				mode: hostedMode({ url: 'https://consent.example.com' }),
+			},
+		});
+		expect(c15t.snapshot.translations?.translations.cookieBanner.title).toBe(
+			'Vom Backend'
+		);
 	});
 
 	it('deep-merges a partial i18n section over the bundled copy', async () => {
