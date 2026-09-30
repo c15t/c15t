@@ -36,7 +36,7 @@ IAB Europe requires web CMPs to meet TCF 2.4 and TCF Policies v5.0.b by 23 Octob
 
 The biggest visible change is in `IABConsentDialog`. Features used to sit in the locked "Essential Functions" section, each next to a checked, disabled switch. The new policies forbid showing a Feature next to a control that can't be turned off, so Features now have their own section after Special Purposes. The section shows the IAB standard text for Features, each Feature's name, description, and illustrations, and the vendors that use it. It has no switches. Special Purposes stay locked as before.
 
-The standard text comes from the GVL's new `standardTexts.features` field. When the GVL doesn't include it, c15t falls back to the `iab.preferenceCenter.features` translation, which ships with IAB's official wording in all 35 locales.
+The standard text comes from the GVL's new `standardTexts.features` field. When the GVL doesn't include it, c15t falls back to the `iab.preferenceCenter.features` translation, which ships in all 35 locales. It uses IAB's official translation where one exists and English for the four locales IAB doesn't translate.
 
 Other changes:
 
@@ -57,7 +57,7 @@ Other changes:
 
 **OneDollarStats.** `oneDollarStats()` from `@c15t/scripts/one-dollar-stats` loads the tracker after measurement consent. It needs no API key. Optional settings are forwarded as `data-*` attributes. `oneDollarStats()` throws if `hostname` includes a scheme, path, or query instead of a bare host.
 
-**Pinterest Tag.** `pinterestTag()` from `@c15t/scripts/pinterest-tag` recreates Pinterest's v3 base code and loads `core.js` after marketing consent. The script stays loaded after revocation so c15t can call `pintrk('setconsent', false)`, which stops tracking and clears Pinterest's first-party cookies. Re-granting consent calls `setconsent(true)`. `pinterestTagEvent()` gives you typed tracking for all 20 standard Pinterest events and custom event names.
+**Pinterest Tag.** `pinterestTag()` from `@c15t/scripts/pinterest-tag` recreates Pinterest's v3 base code and loads `core.js` after marketing consent. The script stays loaded after revocation so c15t can call `pintrk('setconsent', false)`, which stops tracking and clears Pinterest's first-party cookies. Re-granting consent calls `setconsent(true)`. `pinterestTagEvent()` gives you typed tracking for Pinterest's 20 event types, and also accepts your own event names.
 
 ```ts
 import { pinterestTag, pinterestTagEvent } from '@c15t/scripts/pinterest-tag';
@@ -81,7 +81,7 @@ pinterestTagEvent('checkout', {
 
 ## Other improvements
 
-- Hosted mode keeps a visitor's saved rejection through backend outages and starts normally when the browser blocks `localStorage`. → [Client modes](/docs/frameworks/react/concepts/client-modes)
+- Hosted mode keeps a visitor's saved rejection through backend outages, and no longer throws when the browser blocks `localStorage`. → [Client modes](/docs/frameworks/react/concepts/client-modes)
 - A choice saved while the consent store is starting up is kept.
 - The iframe blocker skips nodes it can't read instead of stopping. An iframe with an invalid or empty `data-category` now stays blocked and logs a console warning, so check the console for a mistyped category after upgrading. → [Iframe blocking](/docs/frameworks/react/iframe-blocking)
 - Exported types resolve under `Node16` and `NodeNext` module resolution without `skipLibCheck`.
