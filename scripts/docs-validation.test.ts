@@ -282,8 +282,9 @@ test('shared framework tabs match the selector and survive Markdown conversion',
 	);
 });
 
-// leadtype lints the whole docs tree; under the full parallel suite this can
-// take well over 15 seconds.
+// leadtype lints the whole docs tree. That takes 11 to 13 s alone and
+// reached 54 s while the rest of the suite ran on a busy machine, too close
+// to a 60 s limit.
 test('documentation links, includes and metadata are valid', async () => {
 	const result = await lintDocs({ srcDir: docsRoot });
 	const errors = result.violations.filter((violation) => {
@@ -307,7 +308,7 @@ test('documentation links, includes and metadata are valid', async () => {
 		return true;
 	});
 	expect(errors).toEqual([]);
-}, 60_000);
+}, 120_000);
 
 test('every include resolves to a file', async () => {
 	// leadtype 0.2.1 lint and conversion only warn when an include is missing,
