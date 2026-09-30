@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { dev } from '$app/environment';
+	import { page } from '$app/state';
 	import { env } from '$env/dynamic/public';
 	import { createDemoScripts } from '$lib/consent-manager/demo-scripts';
 	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
 	import ThemeTokens from '$lib/consent-manager/ThemeTokens.svelte';
-	import { page } from '$app/state';
 	import {
 		ConsentBanner,
 		ConsentDialog,
