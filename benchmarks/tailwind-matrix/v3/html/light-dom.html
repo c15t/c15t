@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>c15t + Tailwind: script tag in the light DOM</title>
+		<link
+			rel="stylesheet"
+			href="/src/light-dom.css"
+		/>
+		<!-- #region docs:script-tag-light-dom -->
+		<script>
+			window.c15t = [['config', { ui: { shadow: false, styles: false } }]];
+		</script>
+		<script
+			src="/c15t.js"
+			data-mode="offline"
+			data-country="DE"
+			defer
+		></script>
+		<!-- #endregion docs:script-tag-light-dom -->
+	</head>
+	<body>
+		<p
+			class="bg-emerald-600 text-white"
+			data-testid="tailwind-probe"
+		>
+			Tailwind utilities are active on this page.
+		</p>
+	</body>
+</html>

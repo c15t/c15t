@@ -118,6 +118,11 @@ try {
 	} else if (kind === 'styles') {
 		await runCommand(['bun', 'run', 'compat:styles:build', '--concurrency=2']);
 		await check('CSS compatibility', ['bun', 'run', 'compat:styles:verify']);
+		await check('Tailwind framework matrix', [
+			'bun',
+			'run',
+			'compat:styles:matrix',
+		]);
 	} else {
 		throw new Error(`Unknown integration: ${kind}`);
 	}
