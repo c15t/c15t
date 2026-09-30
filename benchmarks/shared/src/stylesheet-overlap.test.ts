@@ -6,6 +6,19 @@ import {
 } from './stylesheet-overlap';
 
 describe('extractClassSelectors', () => {
+	it('ignores an unfinished comment with repeated comment openers', () => {
+		expect([
+			...extractClassSelectors(
+				`.visible {} /*${'a/*'.repeat(20_000)}.hidden {}`
+			),
+		]).toEqual(['visible']);
+	});
+
+	it('ignores a long trailing declaration without an opening brace', () => {
+		expect([
+			...extractClassSelectors(`.visible {} ${'a'.repeat(60_000)}.hidden`),
+		]).toEqual(['visible']);
+	});
 	it('reads selector classes and ignores values, strings, urls, and at-rules', () => {
 		const classes = extractClassSelectors(`
 			/* .commented { color: red } */

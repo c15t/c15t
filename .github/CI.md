@@ -157,7 +157,11 @@ and a JS-only regression should not wait on a native toolchain.
 
 `benchmark-regression.yml` also runs full comparisons independently on pushes
 to `v3`, nightly at 02:43 UTC, and manually. Scheduled runs check out `v3`;
-manual runs default to `v3` and accept a different `head_ref` or `base_ref`.
+manual runs also check out `v3` and accept a different `base_ref`.
+Both use the measurement tooling on `v3`; other published branches do not
+contain it. Manual runs cannot execute an arbitrary head revision with
+default-branch cache access.
+The base must belong to the selected head's commit history.
 Runtime comparisons use one runner per package: two jobs for quick runs and
 eight for full runs. Both revisions resolve once before the matrix starts.
 Each job measures base then head on the same runner and enforces that package's

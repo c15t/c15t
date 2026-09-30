@@ -166,7 +166,11 @@ const c15tPluginProps: C15tPluginProps = {
 	enableAppTrackingTransparency: true,
 	// Self-hosted and hosted speak the same wire; the mode only decides where the
 	// core starts looking.
-	mode: backendURL.includes('c15t.com') ? 'hosted' : 'selfHosted',
+	mode:
+		new URL(backendURL).hostname === 'c15t.com' ||
+		new URL(backendURL).hostname.endsWith('.c15t.com')
+			? 'hosted'
+			: 'selfHosted',
 	trackingMarkdownUsageDescription,
 	trackingMarkdownUsageDescriptionLocalizations,
 	trackingUsageDescription,

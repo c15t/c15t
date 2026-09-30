@@ -22,7 +22,7 @@ import 'c15t/react/styles.css';
 
 | File | Holds | Loaded by |
 | --- | --- | --- |
-| `styles.css` or `styles.tw3.css` | Default tokens, all variables, banner, trigger and `ConsentGate` rules | Your app, once |
+| `styles.css` | Default tokens, all variables, banner, trigger and `ConsentGate` rules | Your app, once |
 | `@c15t/ui/styles/dialog.css` | Dialog and preference widget rules | The dialog component, with its lazy chunk |
 | `@c15t/ui/styles/primitives.css` | Rules for the `@c15t/ui/styles/primitives` class maps | Svelte's `styles.css`, or your app if it renders those class maps |
 | `iab/styles.css` | IAB TCF banner and dialog rules and variables | Your app, after `styles.css` |
@@ -57,30 +57,28 @@ layer(c15t)`, the dialog rules still join the top-level `components` layer.
 List `components` in your layer order statement, for example
 `@layer c15t, components, app;`, so it does not land after your own layers.
 
-The standard stylesheet places rules in `@layer components`. For Tailwind 3,
-use the `styles.tw3.css` entry instead of the standard stylesheet, between the
-components and utilities directives in your Tailwind entry:
-
-```css
-@tailwind base;
-@tailwind components;
-@import 'c15t/react/styles.tw3.css';
-@tailwind utilities;
-```
-
-Tailwind 3 also processes the dialog stylesheet the bundler loads, and it
-rejects a stylesheet that uses `@layer components` without its own
-`@tailwind components` directive. Add the c15t plugin before `tailwindcss` in
-your PostCSS config. It removes the layer wrapper from c15t's stylesheets so
-Tailwind 3 accepts them and its preflight does not override them:
+The stylesheets place rules in `@layer components`. Tailwind 3 rejects a
+stylesheet that uses `@layer components` without its own `@tailwind
+components` directive, and drops layer rules whose class names are not in your
+source. Keep importing `styles.css` and add the c15t plugin before
+`tailwindcss` in your PostCSS config. It removes the layer wrappers from
+`styles.css`, `iab/styles.css` and the dialog stylesheet the bundler loads, so
+Tailwind 3 keeps the rules and its preflight does not override them:
 
 ```js title="postcss.config.mjs"
 export default {
-  plugins: ['@c15t/ui/postcss-tailwind3', 'tailwindcss', 'autoprefixer'],
+  plugins: {
+    '@c15t/ui/postcss-tailwind3': {},
+    tailwindcss: {},
+    autoprefixer: {},
+  },
 };
 ```
 
-Do not load both c15t stylesheet variants. For Tailwind 4 or unlayered CSS,
+Import `styles.css` above your `@tailwind` directives; `postcss-import`
+ignores an `@import` that follows other rules. Earlier setups that import
+`styles.tw3.css` keep working with the plugin. Do not load both
+`styles.css` and `styles.tw3.css`. For Tailwind 4 or unlayered CSS,
 inspect layer order before reaching for `!important`.
 
 ## Set semantic values together

@@ -7,6 +7,11 @@ import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
 
+import {
+	ensureTailwind3PostcssPlugin,
+	isTailwindV3,
+	TAILWIND3_POSTCSS_INSTRUCTION,
+} from '../../../shared/postcss-config';
 import { formatSearchedCssPaths } from '../../../shared/stylesheets';
 import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { generateClientConfigContent } from '../../templates/config';
@@ -61,6 +66,8 @@ export interface GenerateFilesResult {
 	nextConfigCreated?: boolean;
 	tailwindCssUpdated?: boolean;
 	tailwindCssPath?: string | null;
+	postcssConfigUpdated?: boolean;
+	postcssConfigPath?: string | null;
 }
 
 interface LayoutUpdateResult {
@@ -327,6 +334,48 @@ const handleEnvFiles = async function handleEnvFiles(options: {
 };
 
 /**
+ * Add `@c15t/ui/postcss-tailwind3` to a Tailwind 3 app's PostCSS config, or
+ * tell the user how when the config can't be edited.
+ */
+const configureTailwind3Postcss = async function configureTailwind3Postcss({
+	cwd,
+	projectRoot,
+	spinner,
+}: {
+	cwd: string;
+	projectRoot: string;
+	spinner: ReturnType<typeof p.spinner>;
+}): Promise<
+	Pick<GenerateFilesResult, 'postcssConfigPath' | 'postcssConfigUpdated'>
+> {
+	spinner.start('Configuring PostCSS for Tailwind 3...');
+	const postcssResult = await ensureTailwind3PostcssPlugin({ projectRoot });
+
+	if (postcssResult.status === 'added') {
+		spinner.stop(
+			formatLogMessage(
+				'info',
+				`PostCSS config updated: ${color.cyan(path.relative(cwd, postcssResult.filePath))}`
+			)
+		);
+	} else if (postcssResult.status === 'present') {
+		spinner.stop(
+			formatLogMessage(
+				'debug',
+				'PostCSS config already runs the c15t Tailwind 3 plugin.'
+			)
+		);
+	} else {
+		spinner.stop(formatLogMessage('warn', TAILWIND3_POSTCSS_INSTRUCTION));
+	}
+
+	return {
+		postcssConfigPath: postcssResult.filePath,
+		postcssConfigUpdated: postcssResult.status === 'added',
+	};
+};
+
+/**
  * Generates appropriate files based on the package type and mode
  *
  * @param options - Configuration options for file generation
@@ -439,7 +488,6 @@ const generateFilesContent = async function generateFilesContent({
 			entrypointPath: result.layoutPath,
 			packageName: pkg,
 			projectRoot,
-			tailwindVersion: context.framework.tailwindVersion,
 		});
 		if (stylesheetResult.updated) {
 			result.tailwindCssUpdated = true;
@@ -463,6 +511,17 @@ const generateFilesContent = async function generateFilesContent({
 					'warn',
 					`Could not find a global CSS entrypoint. Checked: ${formatSearchedCssPaths(projectRoot, stylesheetResult.searchedPaths)}`
 				)
+			);
+		}
+
+		if (isTailwindV3(context.framework.tailwindVersion)) {
+			Object.assign(
+				result,
+				await configureTailwind3Postcss({
+					cwd: context.cwd,
+					projectRoot,
+					spinner,
+				})
 			);
 		}
 	}

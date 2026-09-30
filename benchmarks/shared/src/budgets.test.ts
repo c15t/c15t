@@ -46,11 +46,13 @@ const metricsOf = (budgets: { metric: string }[]) =>
 it.each([
 	['react', reactBrowserBudgetsForScenario('saved-consent-accept')],
 	['nextjs', nextjsBrowserBudgetsForScenario('saved-consent-reject')],
+	['nextjs SSR repeat', nextjsBrowserBudgetsForScenario('ssr-repeat')],
 	['tanstack', tanstackBrowserBudgetsForScenario('saved-consent-accept')],
 ])(
 	'gates %s saved-consent visits on a hidden banner and a restored choice',
 	(_framework, budgets) => {
 		const metrics = metricsOf(budgets);
+		expect(new Set(metrics).size).toBe(metrics.length);
 		expect(metrics).not.toContain('bannerReadyMs');
 		expect(metrics).toEqual(
 			expect.arrayContaining(['promptShownCount', 'hydratedChoicePresent'])

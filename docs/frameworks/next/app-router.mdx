@@ -56,9 +56,11 @@ Tailwind so its component layer follows Tailwind's:
 @import 'c15t/next/styles.css';
 ```
 
-For Tailwind CSS 3, use the [Tailwind 3 stylesheet recipe](/docs/frameworks/next/styling/overview#stylesheet)
-instead. It loads `c15t/next/styles.tw3.css` between the `components` and
-`utilities` directives to prevent Tailwind from purging c15t selectors.
+With Tailwind CSS 3, put the same import above the `@tailwind` directives
+and add `@c15t/ui/postcss-tailwind3` to your PostCSS config, as the
+[Tailwind 3 setup](/docs/frameworks/next/styling/overview#stylesheet) shows.
+Without the plugin, Tailwind 3 fails the build on c15t's `@layer components`
+rules.
 
 The layouts on this page import `./globals.css`; without Tailwind the same
 `@import` line goes at the top of whatever global stylesheet the layout loads.

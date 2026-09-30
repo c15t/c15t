@@ -13,14 +13,12 @@ renders `ConsentProvider`:
 import 'c15t/react/styles.css';
 ```
 
-<import src="../../../shared/react/styling/overview.mdx#tailwind-layers" />
+The import is the same with or without Tailwind. To import it from CSS
+instead, put `@import 'c15t/react/styles.css';` at the top of your global
+stylesheet, above any `@tailwind` directives. `postcss-import`, which Vite
+uses, ignores an `@import` that follows other rules.
 
-```css
-@tailwind base;
-@tailwind components;
-@import 'c15t/react/styles.tw3.css';
-@tailwind utilities;
-```
+<import src="../../../shared/react/styling/overview.mdx#tailwind-layers" />
 
 ## Tokens
 

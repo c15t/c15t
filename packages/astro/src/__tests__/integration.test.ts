@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 
+import { parse } from '@babel/parser';
 import { describe, expect, it, vi } from 'vitest';
 
 import { c15t, createOwnEntryResolver, resolveOptions } from '../integration';
@@ -91,14 +92,19 @@ describe('resolveOptions', () => {
 		);
 	});
 
-	it('names the supported adapters for an unknown ui', () => {
-		// A JavaScript astro.config.mjs has no type checking, so this used to
-		// surface as a TypeError on an undefined adapter entry.
-		expect(() =>
-			resolveOptions({ mode: offlineMode(), ui: 'solid' as never })
-		).toThrowError(/unknown `ui` "solid". Supported adapters: /u);
-		expect(resolveOptions({ mode: offlineMode(), ui: 'vue' }).ui).toBe('vue');
-	});
+	it.each(['solid', 'constructor', '__proto__'])(
+		'rejects unsupported adapter %s',
+		(ui) => {
+			// A JavaScript astro.config.mjs has no type checking, so this used to
+			// surface as a TypeError on an undefined adapter entry.
+			const options = { mode: offlineMode() };
+			Reflect.set(options, 'ui', ui);
+			expect(() => resolveOptions(options)).toThrowError(
+				/unknown `ui`.*Supported adapters: /u
+			);
+			expect(resolveOptions({ mode: offlineMode(), ui: 'vue' }).ui).toBe('vue');
+		}
+	);
 
 	it('rejects a manifestURL with nowhere to save consent', () => {
 		// The injected routes serve init and manifest; `POST /subjects` is
@@ -287,7 +293,7 @@ describe('astro:config:setup', () => {
 			const { calls } = await runSetup({ mode: offlineMode(), ui });
 			const [, code] = calls.injectScript.mock.calls[0] as [string, string];
 
-			expect(code).toContain(`registerDialogAdapter('${ui}'`);
+			expect(code).toContain(`registerDialogAdapter(${JSON.stringify(ui)}`);
 			expect(code).toContain(`import(${specifier(adapterModule)})`);
 			expect(code).toContain(
 				`import(${specifier(`@c15t/astro/islands/${surfaceFile}`)})`
@@ -315,8 +321,29 @@ describe('astro:config:setup', () => {
 			mode: offlineMode(),
 		});
 		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
-		expect(code).toContain("import clientOptions from './src/c15t.client.ts'");
+		expect(code).toContain('import clientOptions from "./src/c15t.client.ts"');
 		expect(code).toContain('boot(options, clientOptions);');
+	});
+
+	it('quotes client entrypoints without letting them add statements', async () => {
+		const clientEntrypoint = "./client'\\file.ts';globalThis.injected=true;//";
+		const { calls } = await runSetup({
+			clientEntrypoint,
+			mode: offlineMode(),
+		});
+		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+		const module = parse(code, { sourceType: 'module' });
+		const entrypointImports = module.program.body.filter(
+			(statement) =>
+				statement.type === 'ImportDeclaration' &&
+				statement.specifiers.some(
+					(imported) => imported.local.name === 'clientOptions'
+				)
+		);
+		expect(entrypointImports).toHaveLength(1);
+		expect(entrypointImports[0]).toMatchObject({
+			source: { value: clientEntrypoint },
+		});
 	});
 
 	it('serves the serialized options from the virtual module', async () => {
@@ -521,7 +548,7 @@ describe('astro:config:done', () => {
 		// Svelte island until someone sets `ui` themselves.
 		const { calls } = await runSetup(options);
 		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
-		expect(code).toContain("registerDialogAdapter('svelte'");
+		expect(code).toContain('registerDialogAdapter("svelte"');
 		expect(code).not.toContain(resolveOwnEntry('@c15t/astro/ui/react'));
 	});
 

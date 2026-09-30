@@ -816,9 +816,10 @@ const nextjsInitRequestBudget = function nextjsInitRequestBudget(
 export const nextjsBrowserBudgetsForScenario =
 	function nextjsBrowserBudgetsForScenario(scenario: string): MetricBudget[] {
 		const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
-		const budgets = SAVED_CONSENT_SCENARIOS.has(baseScenario)
-			? savedConsentBrowserBudgets({ serverRendered: true })
-			: [...sharedBrowserBudgets];
+		const budgets =
+			SAVED_CONSENT_SCENARIOS.has(baseScenario) || baseScenario === 'ssr-repeat'
+				? savedConsentBrowserBudgets({ serverRendered: true })
+				: [...sharedBrowserBudgets];
 		const initRequest = nextjsInitRequestBudget(baseScenario);
 		if (initRequest) {
 			budgets.push(initRequest);
@@ -841,31 +842,6 @@ export const nextjsBrowserBudgetsForScenario =
 				...ssrConsistencyBudgets.filter(
 					(budget) => budget.metric === 'promptTransitionCount'
 				)
-			);
-		}
-		if (baseScenario === 'ssr-repeat') {
-			budgets.push({
-				comparator: 'count-eq',
-				description:
-					'SSR repeat visitor applies the real stored choice before the settled client observation.',
-				metric: 'hydratedChoicePresent',
-				threshold: 1,
-			});
-			budgets.push(
-				{
-					comparator: 'count-eq',
-					description:
-						'A persisted repeat visitor over SSR gets no banner in the server HTML.',
-					metric: 'bannerInServerHtml',
-					threshold: 0,
-				},
-				{
-					comparator: 'count-eq',
-					description:
-						'A persisted repeat visitor over SSR sees no first-layer prompt after hydration.',
-					metric: 'promptShownCount',
-					threshold: 0,
-				}
 			);
 		}
 		return budgets;

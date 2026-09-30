@@ -23,7 +23,7 @@ describe('attributeChunk', () => {
 			await mkdir(dependencyDir, { recursive: true });
 			await writeFile(
 				dependency,
-				`export const big = () => ${JSON.stringify('x'.repeat(2000))};`
+				`export const big = () => '${'x'.repeat(2000)}';`
 			);
 			await writeFile(
 				join(directory, 'entry.js'),

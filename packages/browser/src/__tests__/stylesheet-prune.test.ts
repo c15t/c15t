@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	collectClassNames,
 	pruneStylesheet,
+	withoutTailwind3Hints,
 } from '../../scripts/prune-stylesheet';
 import {
 	classes as iabClasses,
@@ -56,10 +57,16 @@ describe('inlined stylesheet', () => {
 	});
 
 	it('keeps every rule the surfaces can match', () => {
-		expect(stylesheet).toBe(pruneStylesheet(uiMainStylesheet(), rendered));
-		expect(iabStylesheet).toBe(
-			pruneStylesheet(uiStylesheet('@c15t/ui/iab/styles.css'), rendered)
+		expect(stylesheet).toBe(
+			withoutTailwind3Hints(pruneStylesheet(uiMainStylesheet(), rendered))
 		);
+		expect(iabStylesheet).toBe(
+			withoutTailwind3Hints(
+				pruneStylesheet(uiStylesheet('@c15t/ui/iab/styles.css'), rendered)
+			)
+		);
+		expect(stylesheet).not.toContain('postcss-tailwind3');
+		expect(iabStylesheet).not.toContain('postcss-tailwind3');
 		// The tokens and the class-map rules the banner starts from are there.
 		expect(stylesheet).toContain('--c15t-surface');
 		expect(stylesheet).toContain(`.${classes.banner.card?.split(' ')[0]}`);
