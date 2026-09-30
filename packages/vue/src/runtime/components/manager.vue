@@ -29,6 +29,14 @@ import { consentWidgetManagerKey } from './preferences-manager-context';
 import ConsentWidget from './preferences.vue';
 import ConsentTag from './tag.vue';
 
+const props = withDefaults(
+	defineProps<{
+		/** Skip the enter and exit animations. Defaults to the config's. */
+		disableAnimation?: boolean;
+	}>(),
+	{ disableAnimation: undefined }
+);
+
 const init = useConsentInit();
 const textDirection = computed(() =>
 	getTextDirection(init.value?.translations?.language)
@@ -53,7 +61,9 @@ const {
 	save: saveDraft,
 } = draftState;
 
-const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
+const disableAnimation = computed(() =>
+	Boolean(props.disableAnimation ?? config.value.disableAnimation)
+);
 const isOverlayVisible = computed(() => activeUI.value === 'manager');
 const overlayFallbackStyle = ref<Record<string, string> | undefined>();
 

@@ -44,8 +44,11 @@ const IAB_BANNER_ACTION_TEST_IDS: Partial<Record<PresentationAction, string>> =
 const props = withDefaults(
 	defineProps<{
 		primaryButton?: 'reject' | 'accept' | 'customize';
+		/** Skip the enter and exit animations. Defaults to the config's. */
+		disableAnimation?: boolean;
 	}>(),
 	{
+		disableAnimation: undefined,
 		primaryButton: 'customize',
 	}
 );
@@ -86,7 +89,7 @@ const isOpen = computed(() => {
 	);
 });
 const disableAnimation = computed(() =>
-	Boolean(toValue(config).disableAnimation)
+	Boolean(props.disableAnimation ?? toValue(config).disableAnimation)
 );
 
 const iabT = useIabTranslations();

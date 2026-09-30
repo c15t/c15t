@@ -115,9 +115,6 @@ const isOpen = computed(() => {
 		matchesModel
 	);
 });
-const disableAnimation = computed(() =>
-	Boolean(toValue(config).disableAnimation)
-);
 
 const showDialog = isOpen;
 
@@ -128,8 +125,14 @@ const props = withDefaults(
 		 * link land on the vendor list instead of purposes.
 		 */
 		initialTab?: 'purposes' | 'vendors';
+		/** Skip the enter and exit animations. Defaults to the config's. */
+		disableAnimation?: boolean;
 	}>(),
-	{ initialTab: undefined }
+	{ disableAnimation: undefined, initialTab: undefined }
+);
+
+const disableAnimation = computed(() =>
+	Boolean(props.disableAnimation ?? toValue(config).disableAnimation)
 );
 
 const activeTab = ref<'purposes' | 'vendors'>(props.initialTab ?? 'purposes');

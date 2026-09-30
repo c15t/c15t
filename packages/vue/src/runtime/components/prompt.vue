@@ -45,8 +45,15 @@ const props = withDefaults(
 		position?: PromptPosition;
 		/** Backdrop, scroll lock, focus trap and no outside dismissal. */
 		blocking?: boolean;
+		/** Skip the enter and exit animations. Defaults to the config's. */
+		disableAnimation?: boolean;
 	}>(),
-	{ blocking: undefined, position: undefined, variant: undefined }
+	{
+		blocking: undefined,
+		disableAnimation: undefined,
+		position: undefined,
+		variant: undefined,
+	}
 );
 
 const mounted = useMounted();
@@ -124,7 +131,9 @@ const isOpen = computed(() => {
 	);
 });
 
-const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
+const disableAnimation = computed(() =>
+	Boolean(props.disableAnimation ?? config.value.disableAnimation)
+);
 
 const scrollLock = computed(() => surface.value.scrollLock);
 useConsentScrollLock(computed(() => isOpen.value && scrollLock.value));
