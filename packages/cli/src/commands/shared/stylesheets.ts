@@ -29,8 +29,6 @@ const LOCAL_CSS_IMPORT_RE =
 
 const CSS_IMPORT_RE = /^\s*@import\b.+;\s*(?:(?:\/\*.*\*\/|\/\/.*)\s*)?$/u;
 const TAILWIND_V4_IMPORT_RE = /^\s*@import\s+['"]tailwindcss['"];\s*$/u;
-const TAILWIND_COMPONENTS_RE = /^\s*@tailwind\s+components\s*;\s*$/u;
-const TAILWIND_UTILITIES_RE = /^\s*@tailwind\s+utilities\s*;\s*$/u;
 
 export type StyledPackageName =
 	| 'c15t/react'
@@ -42,7 +40,6 @@ export type StyledPackageName =
 export interface EnsureGlobalCssStylesheetImportsOptions {
 	projectRoot: string;
 	packageName: StyledPackageName;
-	tailwindVersion: string | null;
 	entrypointPath?: string | null;
 	includeBase: boolean;
 	includeIab: boolean;
@@ -102,41 +99,33 @@ const getStylesheetKind = function getStylesheetKind(
 	return importPath.includes('/iab/') ? 'iab' : 'base';
 };
 
-export const isTailwindV3 = function isTailwindV3(
-	version: string | null
-): boolean {
-	return (
-		version !== null && version !== undefined && /^(?:\^|~)?3/u.test(version)
-	);
-};
-
+/**
+ * Every setup imports `styles.css`. Tailwind 3 apps run
+ * `@c15t/ui/postcss-tailwind3` to flatten its layers (see
+ * `postcss-config.ts`); an existing `styles.tw3.css` import is replaced.
+ */
 const getDesiredImportPath = function getDesiredImportPath(
 	packageName: StyledPackageName,
-	kind: StylesheetKind,
-	tailwindVersion: string | null
+	kind: StylesheetKind
 ): string {
-	const suffix = isTailwindV3(tailwindVersion)
-		? 'styles.tw3.css'
-		: 'styles.css';
 	return kind === 'base'
-		? `${packageName}/${suffix}`
-		: `${packageName}/iab/${suffix}`;
+		? `${packageName}/styles.css`
+		: `${packageName}/iab/styles.css`;
 };
 
 const getDesiredImports = function getDesiredImports(
 	packageName: StyledPackageName,
-	tailwindVersion: string | null,
 	includeBase: boolean,
 	includeIab: boolean
 ): string[] {
 	const imports: string[] = [];
 
 	if (includeBase) {
-		imports.push(getDesiredImportPath(packageName, 'base', tailwindVersion));
+		imports.push(getDesiredImportPath(packageName, 'base'));
 	}
 
 	if (includeIab) {
-		imports.push(getDesiredImportPath(packageName, 'iab', tailwindVersion));
+		imports.push(getDesiredImportPath(packageName, 'iab'));
 	}
 
 	return imports;
@@ -234,7 +223,6 @@ const findTailwindV4InsertionLineIndex =
 const insertImportsIntoCssContent = function insertImportsIntoCssContent(
 	content: string,
 	desiredImports: string[],
-	tailwindVersion: string | null,
 	managedPackages: StyledPackageName[]
 ): string {
 	const normalizedContent = content.replace(/\r\n/gu, '\n');
@@ -249,32 +237,19 @@ const insertImportsIntoCssContent = function insertImportsIntoCssContent(
 		(importPath) => `@import "${importPath}";`
 	);
 
+	// Top of the file, or after Tailwind 4's import. With Tailwind 3 the
+	// import also goes above the `@tailwind` directives: postcss-import (and
+	// Vite, which inlines imports with it) drops an `@import` that follows
+	// other statements.
 	let insertionIndex = findTopInsertionLineIndex(filteredLines);
-
-	if (isTailwindV3(tailwindVersion)) {
-		const componentsIndex = filteredLines.findIndex((line) =>
-			TAILWIND_COMPONENTS_RE.test(line)
+	const tailwindImportIndex = filteredLines.findIndex((line) =>
+		TAILWIND_V4_IMPORT_RE.test(line)
+	);
+	if (tailwindImportIndex >= 0) {
+		insertionIndex = findTailwindV4InsertionLineIndex(
+			filteredLines,
+			tailwindImportIndex
 		);
-		if (componentsIndex >= 0) {
-			insertionIndex = componentsIndex + 1;
-		} else {
-			const utilitiesIndex = filteredLines.findIndex((line) =>
-				TAILWIND_UTILITIES_RE.test(line)
-			);
-			if (utilitiesIndex >= 0) {
-				insertionIndex = utilitiesIndex;
-			}
-		}
-	} else {
-		const tailwindImportIndex = filteredLines.findIndex((line) =>
-			TAILWIND_V4_IMPORT_RE.test(line)
-		);
-		if (tailwindImportIndex >= 0) {
-			insertionIndex = findTailwindV4InsertionLineIndex(
-				filteredLines,
-				tailwindImportIndex
-			);
-		}
 	}
 
 	const nextLines = [
@@ -391,7 +366,6 @@ export const ensureGlobalCssStylesheetImports =
 	): Promise<EnsureGlobalCssStylesheetImportsResult> {
 		const desiredImports = getDesiredImports(
 			options.packageName,
-			options.tailwindVersion,
 			options.includeBase,
 			options.includeIab
 		);
@@ -420,7 +394,6 @@ export const ensureGlobalCssStylesheetImports =
 		const nextContent = insertImportsIntoCssContent(
 			content,
 			desiredImports,
-			options.tailwindVersion,
 			managedPackages
 		);
 

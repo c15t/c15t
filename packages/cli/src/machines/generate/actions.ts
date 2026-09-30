@@ -4,6 +4,7 @@
  * Actions are side-effect functions executed during state transitions.
  */
 
+import { needsTailwind3PostcssPlugin } from '~/commands/shared/postcss-config';
 import { UMBRELLA_PACKAGE } from '~/constants';
 
 import type {
@@ -206,6 +207,12 @@ export const addDependencies = function addDependencies({
 	// Add dev tools package if selected
 	if (context.enableDevTools && context.framework?.pkg === 'c15t') {
 		deps.push('@c15t/dev-tools');
+	}
+
+	// Tailwind 3 apps load `@c15t/ui/postcss-tailwind3` by name, which pnpm
+	// only resolves for direct dependencies.
+	if (needsTailwind3PostcssPlugin(context.framework)) {
+		deps.push('@c15t/ui');
 	}
 
 	return {

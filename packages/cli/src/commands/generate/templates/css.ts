@@ -12,7 +12,6 @@ import { readFile } from './shared/file-plan';
 export interface UpdateAppStylesheetImportsOptions {
 	projectRoot: string;
 	packageName: Exclude<StyledPackageName, '@c15t/ui'>;
-	tailwindVersion: string | null;
 	entrypointPath?: string | null;
 	dryRun?: boolean;
 	includeIab?: boolean;
@@ -86,6 +85,5 @@ export const updateAppStylesheetImports =
 			includeIab: options.includeIab ?? false,
 			packageName,
 			projectRoot: options.projectRoot,
-			tailwindVersion: options.tailwindVersion,
 		});
 	};

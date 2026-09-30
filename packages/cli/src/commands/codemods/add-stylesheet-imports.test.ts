@@ -76,7 +76,7 @@ describe('add-stylesheet-imports codemod', () => {
 		expect(mainTsx).not.toContain('@c15t/react/styles.css');
 	});
 
-	it('moves Next.js Tailwind 3 imports into app/globals.css and removes the JS import', async () => {
+	it('moves Next.js Tailwind 3 imports into app/globals.css and adds the PostCSS plugin', async () => {
 		const { root } = await createProject({
 			'app/globals.css': [
 				'@tailwind base;',
@@ -105,6 +105,14 @@ describe('add-stylesheet-imports codemod', () => {
 
 				name: 'tw3-next-app',
 			}),
+			'postcss.config.mjs': [
+				'export default {',
+				'\tplugins: {',
+				'\t\ttailwindcss: {},',
+				'\t\tautoprefixer: {},',
+				'\t},',
+				'};',
+			].join('\n'),
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
@@ -113,11 +121,20 @@ describe('add-stylesheet-imports codemod', () => {
 		});
 		const globalsCss = await readProjectFile(root, 'app/globals.css');
 		const layout = await readProjectFile(root, 'app/layout.tsx');
+		const postcssConfig = await readProjectFile(root, 'postcss.config.mjs');
 
 		expect(result.errors).toHaveLength(0);
-		expect(result.changedFiles).toHaveLength(2);
-		expect(globalsCss).toContain(
-			'@tailwind components;\n@import "@c15t/nextjs/styles.tw3.css";\n@tailwind utilities;'
+		expect(result.changedFiles).toHaveLength(3);
+		expect(globalsCss).toBe(
+			[
+				'@import "@c15t/nextjs/styles.css";',
+				'@tailwind base;',
+				'@tailwind components;',
+				'@tailwind utilities;',
+			].join('\n')
+		);
+		expect(postcssConfig).toContain(
+			"\t\t'@c15t/ui/postcss-tailwind3': {},\n\t\ttailwindcss: {},"
 		);
 		expect(layout).not.toContain('@c15t/nextjs/styles.css');
 		expect(
@@ -125,6 +142,58 @@ describe('add-stylesheet-imports codemod', () => {
 				file.summaries.includes("removed JS import '@c15t/nextjs/styles.css'")
 			)
 		).toBe(true);
+	});
+
+	it('replaces a Tailwind 3 stylesheet import and reports a missing PostCSS config', async () => {
+		const { root } = await createProject({
+			'app/globals.css': [
+				'@tailwind base;',
+				'@tailwind components;',
+				'@import "@c15t/nextjs/styles.tw3.css";',
+				'@tailwind utilities;',
+			].join('\n'),
+			'app/layout.tsx': [
+				"import './globals.css';",
+				'',
+				'export default function RootLayout({ children }: { children: React.ReactNode }) {',
+				'  return <html><body>{children}</body></html>;',
+				'}',
+			].join('\n'),
+			'app/provider.tsx': [
+				"import { ConsentBanner } from '@c15t/nextjs';",
+				'',
+				'export function Provider() {',
+				'  return <ConsentBanner />;',
+				'}',
+			].join('\n'),
+			'package.json': JSON.stringify({
+				devDependencies: { tailwindcss: '3.4.17' },
+				name: 'tw3-next-app',
+			}),
+		});
+
+		const result = await runAddStylesheetImportsCodemod({
+			dryRun: false,
+			projectRoot: root,
+		});
+		const globalsCss = await readProjectFile(root, 'app/globals.css');
+
+		expect(globalsCss).toBe(
+			[
+				'@import "@c15t/nextjs/styles.css";',
+				'@tailwind base;',
+				'@tailwind components;',
+				'@tailwind utilities;',
+			].join('\n')
+		);
+		expect(result.errors).toEqual([
+			{
+				error: expect.stringContaining(
+					"'@c15t/ui/postcss-tailwind3' before 'tailwindcss'"
+				),
+				filePath: root,
+			},
+		]);
 	});
 
 	it('adds both base and IAB imports in order to the CSS entrypoint', async () => {

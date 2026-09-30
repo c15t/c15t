@@ -5,6 +5,12 @@ import { join } from 'node:path';
 import type { Project } from 'ts-morph';
 
 import {
+	ensureTailwind3PostcssPlugin,
+	isTailwindV3,
+	TAILWIND3_POSTCSS_INSTRUCTION,
+	TAILWIND3_POSTCSS_PLUGIN,
+} from '../shared/postcss-config';
+import {
 	ensureGlobalCssStylesheetImports,
 	formatSearchedCssPaths,
 } from '../shared/stylesheets';
@@ -90,6 +96,34 @@ const detectTailwindVersion = async function detectTailwindVersion(
 		);
 	} catch {
 		return null;
+	}
+};
+
+/**
+ * Add `@c15t/ui/postcss-tailwind3` to a Tailwind 3 app's PostCSS config,
+ * or report the manual step when the config can't be edited.
+ */
+const addTailwind3PostcssPlugin = async function addTailwind3PostcssPlugin(
+	options: CodemodRunOptions,
+	changedFiles: CodemodRunResult['changedFiles'],
+	errors: CodemodRunResult['errors']
+): Promise<void> {
+	const postcssResult = await ensureTailwind3PostcssPlugin({
+		dryRun: options.dryRun,
+		projectRoot: options.projectRoot,
+	});
+
+	if (postcssResult.status === 'added') {
+		changedFiles.push({
+			filePath: postcssResult.filePath,
+			operations: 1,
+			summaries: [`added '${TAILWIND3_POSTCSS_PLUGIN}' before 'tailwindcss'`],
+		});
+	} else if (postcssResult.status === 'manual') {
+		errors.push({
+			error: TAILWIND3_POSTCSS_INSTRUCTION,
+			filePath: postcssResult.filePath ?? options.projectRoot,
+		});
 	}
 };
 
@@ -339,7 +373,6 @@ export const runAddStylesheetImportsCodemod =
 				includeIab: detection.usesIabUi,
 				packageName: pkg,
 				projectRoot: options.projectRoot,
-				tailwindVersion,
 			});
 
 			if (!stylesheetResult.filePath) {
@@ -363,6 +396,10 @@ export const runAddStylesheetImportsCodemod =
 					operations: stylesheetResult.changes.length,
 					summaries: stylesheetResult.changes,
 				});
+			}
+
+			if (isTailwindV3(tailwindVersion)) {
+				await addTailwind3PostcssPlugin(options, changedFiles, errors);
 			}
 
 			for (const filePath of filePaths) {
