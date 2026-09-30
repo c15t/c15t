@@ -377,6 +377,18 @@ export interface ComponentSlots {
 	/** Backdrop overlay rendered behind the dialog. */
 	consentDialogOverlay?: SlotStyle;
 
+	// --- CONSENT DIALOG TRIGGER SLOTS ---
+	/**
+	 * Floating button that reopens the preference center. The same part
+	 * React and Vue style through `components.trigger.root`.
+	 */
+	consentDialogTrigger?: SlotStyle;
+	/**
+	 * Icon wrapper inside the floating trigger, `components.trigger.icon`
+	 * in React and Vue.
+	 */
+	consentDialogTriggerIcon?: SlotStyle;
+
 	// --- CONSENT DIALOG TRIGGER TOOLBAR SLOTS ---
 	/** Floating consent dialog trigger toolbar. */
 	consentDialogTriggerToolbar?: SlotStyle;

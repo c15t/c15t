@@ -96,6 +96,32 @@ describe('resolveStyles', () => {
 			expect(result.noStyle).toBe(true);
 		});
 
+		test.each([
+			['the context', { baseClassName: 'base-class' }, true],
+			['the component', { baseClassName: 'base-class', noStyle: true }, false],
+		])(
+			'noStyle from %s keeps theme and component overrides and drops base classes',
+			(_source, componentStyle, contextNoStyle) => {
+				const result = resolveStyles(
+					'consentBannerCard',
+					{
+						slots: {
+							consentBannerCard: {
+								className: 'theme-class',
+								style: { color: 'blue' },
+							},
+						},
+					},
+					{ ...componentStyle, className: 'component-class' },
+					contextNoStyle
+				);
+
+				expect(result.className).toBe('theme-class component-class');
+				expect(result.style).toEqual({ color: 'blue' });
+				expect(result.noStyle).toBe(true);
+			}
+		);
+
 		test('component noStyle is respected', () => {
 			const result = resolveStyles('dialogCard', mockTheme, {
 				className: 'component-class',

@@ -95,7 +95,7 @@
 
 	const footerGroupStyle = $derived(
 		resolveComponentStyles(
-			'consentWidgetFooter',
+			'consentWidgetFooterSubGroup',
 			theme.theme,
 			{ noStyle },
 			noStyle
@@ -125,7 +125,7 @@
 
 {#if consent.state.hasConsentUi}
 	<div
-		class={noStyle ? className : widgetRootStyle.className || ''}
+		class={widgetRootStyle.className || ''}
 		dir={textDirection}
 		data-testid="consent-widget-root"
 	>
@@ -262,8 +262,8 @@
 			{shouldFillActions}
 			{direction}
 			{noStyle}
-			footerClassName={noStyle ? '' : footerStyle.className || ''}
-			footerSubGroupClassName={noStyle ? '' : footerGroupStyle.className || ''}
+			footerClassName={footerStyle.className || ''}
+			footerSubGroupClassName={footerGroupStyle.className || ''}
 			footerTestId="consent-widget-footer"
 			footerSubGroupTestId="consent-widget-footer-sub-group"
 		>

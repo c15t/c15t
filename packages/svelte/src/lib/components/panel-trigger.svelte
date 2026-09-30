@@ -12,6 +12,7 @@
 	import { portal } from '../actions/portal';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { holdIdleDialogWarming, warmDialog } from '../dialog-warming';
+	import { resolveComponentStyles } from '../utils';
 	import C15TIconOnly from './icons/c15-t-icon-only.svelte';
 	import ConsentIconOnly from './icons/consent-icon-only.svelte';
 
@@ -200,19 +201,41 @@
 		}
 	};
 
-	const buttonClasses = $derived(
-		noStyle
-			? className
-			: [
+	const triggerStyle = $derived(
+		resolveComponentStyles(
+			'consentDialogTrigger',
+			theme.theme,
+			{
+				baseClassName: [
 					styles.trigger,
 					positionClass,
 					sizeClassMap[size],
 					dragState.isDragging && styles.dragging,
 					isSnapping && styles.snapping,
-					className,
-				]
-					.filter(Boolean)
-					.join(' ')
+				],
+				className,
+				noStyle,
+			},
+			noStyle
+		)
+	);
+	const iconStyle = $derived(
+		resolveComponentStyles(
+			'consentDialogTriggerIcon',
+			theme.theme,
+			{ baseClassName: styles.icon, noStyle },
+			noStyle
+		)
+	);
+	const toInlineStyle = (style: Record<string, unknown> | undefined) =>
+		style
+			? Object.entries(style)
+					.map(([key, value]) => `${key}:${value}`)
+					.join(';')
+			: '';
+	const buttonStyle = $derived(
+		[toInlineStyle(triggerStyle.style), dragStyle].filter(Boolean).join(';') ||
+			undefined
 	);
 </script>
 
@@ -220,8 +243,8 @@
 	<div use:portal>
 		<button
 			type="button"
-			class={buttonClasses}
-			style={dragStyle}
+			class={triggerStyle.className || ''}
+			style={buttonStyle}
 			data-c15t-trigger="true"
 			data-c15t-rights={consent.snapshot.policyRule.rights.join(' ')}
 			aria-label={ariaLabel}
@@ -235,7 +258,8 @@
 			data-testid="consent-dialog-trigger"
 		>
 			<span
-				class={noStyle ? '' : styles.icon || ''}
+				class={iconStyle.className || ''}
+				style={toInlineStyle(iconStyle.style) || undefined}
 				aria-hidden="true"
 			>
 				{#if branding === 'consent'}

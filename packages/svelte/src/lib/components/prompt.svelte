@@ -383,7 +383,7 @@
 				/>
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<div
-					class={noStyle ? '' : cardStyle.className || ''}
+					class={cardStyle.className || ''}
 					data-testid="consent-banner-card"
 					tabindex="-1"
 					role={isBlocking ? 'dialog' : 'region'}
@@ -392,17 +392,17 @@
 					use:focusTrap={shouldTrapFocus}
 				>
 					<div
-						class={noStyle ? '' : headerStyle.className || ''}
+						class={headerStyle.className || ''}
 						data-testid="consent-banner-header"
 					>
 						<h2
-							class={noStyle ? '' : titleStyle.className || ''}
+							class={titleStyle.className || ''}
 							data-testid="consent-banner-title"
 						>
 							{resolvedTitle}
 						</h2>
 						<div
-							class={noStyle ? '' : descriptionStyle.className || ''}
+							class={descriptionStyle.className || ''}
 							data-context="banner"
 							data-testid="consent-banner-description"
 						>
@@ -420,17 +420,15 @@
 						{shouldFillActions}
 						{direction}
 						{noStyle}
-						footerClassName={noStyle ? '' : footerStyle.className || ''}
-						footerSubGroupClassName={noStyle
-							? ''
-							: footerSubGroupStyle.className || ''}
+						footerClassName={footerStyle.className || ''}
+						footerSubGroupClassName={footerSubGroupStyle.className || ''}
 						footerTestId="consent-banner-footer"
 						footerSubGroupTestId="consent-banner-footer-sub-group"
 					>
 						{#snippet leading()}
 							{#if preferenceControls.length > 0}
 								<div
-									class={noStyle ? '' : rightsStyle.className || ''}
+									class={rightsStyle.className || ''}
 									style={rightsStyle.style
 										? Object.entries(rightsStyle.style)
 												.map(([key, value]) => `${key}:${value}`)
@@ -441,7 +439,7 @@
 									{#each preferenceControls as right (right)}
 										<button
 											type="button"
-											class={noStyle ? '' : rightLinkStyle.className || ''}
+											class={rightLinkStyle.className || ''}
 											style={rightLinkStyle.style
 												? Object.entries(rightLinkStyle.style)
 														.map(([key, value]) => `${key}:${value}`)

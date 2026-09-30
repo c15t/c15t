@@ -199,24 +199,24 @@
 				<!-- Card -->
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<div
-					class={noStyle ? '' : cardStyle.className || ''}
+					class={cardStyle.className || ''}
 					data-testid="consent-dialog-card"
 					tabindex={-1}
 				>
 					<!-- Header -->
 					<div
-						class={noStyle ? '' : headerStyle.className || ''}
+						class={headerStyle.className || ''}
 						data-testid="consent-dialog-header"
 					>
 						<h2
-							class={noStyle ? '' : titleStyle.className || ''}
+							class={titleStyle.className || ''}
 							data-testid="consent-dialog-title"
 							id="consent-dialog-title"
 						>
 							{translations.consentManagerDialog.title}
 						</h2>
 						<div
-							class={noStyle ? '' : descriptionStyle.className || ''}
+							class={descriptionStyle.className || ''}
 							data-context="dialog"
 							data-testid="consent-dialog-description"
 							id="consent-dialog-description"
@@ -232,7 +232,7 @@
 
 					<!-- Content: ConsentWidget -->
 					<div
-						class={noStyle ? '' : contentStyle.className || ''}
+						class={contentStyle.className || ''}
 						data-testid="consent-dialog-content"
 					>
 						<ConsentWidget
