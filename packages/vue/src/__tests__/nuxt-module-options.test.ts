@@ -3,10 +3,22 @@
  * runtime config.
  */
 import { runWithNuxtContext } from '@nuxt/kit';
-import type { Nuxt } from '@nuxt/schema';
-import { describe, expect, test } from 'vitest';
+import { beforeAll, describe, expect, test, vi } from 'vitest';
 
-import module from '../module';
+type Nuxt = Parameters<typeof runWithNuxtContext>[0];
+type NuxtModule = (
+	inlineOptions: Record<string, unknown>,
+	nuxt: Nuxt
+) => Promise<unknown>;
+
+// Loaded by path: the module's `@nuxt/schema` types only resolve in the
+// Nuxt type check, not in the Vue one that covers these tests.
+let module: NuxtModule;
+beforeAll(async () => {
+	({ default: module } = await vi.importActual<{ default: NuxtModule }>(
+		'../module'
+	));
+}, 30_000);
 
 /** The parts of a Nuxt instance the module's setup touches. */
 const createNuxt = function createNuxt(c15t: Record<string, unknown>): Nuxt {
