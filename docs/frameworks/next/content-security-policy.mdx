@@ -30,32 +30,31 @@ Add a `nonce` prop to the `Consent` wrapper from the
 ```tsx title="components/consent.tsx (partial)"
 'use client';
 
-import type { ReactNode } from 'react';
 import { ConsentRoot } from 'c15t/next';
 import type { ConsentRootProps } from 'c15t/next';
+import type { ReactNode } from 'react';
+
 import { consentConfig } from '@/c15t.config';
 import { scripts } from '@/lib/scripts';
 
-export function Consent({
-  children,
-  state,
-  nonce,
-}: {
-  children: ReactNode;
-  state: ConsentRootProps['state'];
-  nonce?: string;
-}) {
-  return (
-    <ConsentRoot
-      state={state}
-      config={consentConfig}
-      options={{ nonce }}
-      scripts={scripts}
-    >
-      {children}
-      {/* banner, dialog and footer as in the App Router guide */}
-    </ConsentRoot>
-  );
+interface ConsentProps {
+	children: ReactNode;
+	state: ConsentRootProps['state'];
+	nonce?: string;
+}
+
+export function Consent({ children, state, nonce }: ConsentProps) {
+	return (
+		<ConsentRoot
+			state={state}
+			config={consentConfig}
+			options={{ nonce }}
+			scripts={scripts}
+		>
+			{children}
+			{/* banner, dialog and footer as in the App Router guide */}
+		</ConsentRoot>
+	);
 }
 ```
 
@@ -63,35 +62,37 @@ Then read the header in the async consent component from the App Router guide
 and pass it through:
 
 ```tsx title="app/layout.tsx"
+import { resolveConsent } from 'c15t/next/server';
+import { headers } from 'next/headers';
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
-import { headers } from 'next/headers';
-import { resolveConsent } from 'c15t/next/server';
+
 import { consentConfig } from '@/c15t.config';
 import { Consent } from '@/components/consent';
+
 import '@/styles/globals.css';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
-  const state = await resolveConsent({ config: consentConfig });
+	const nonce = (await headers()).get('x-nonce') ?? undefined;
+	const state = await resolveConsent({ config: consentConfig });
 
-  return (
-    <Consent state={state} nonce={nonce}>
-      {children}
-    </Consent>
-  );
+	return (
+		<Consent state={state} nonce={nonce}>
+			{children}
+		</Consent>
+	);
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <body>
-        <Suspense fallback={null}>
-          <ResolvedConsent>{children}</ResolvedConsent>
-        </Suspense>
-      </body>
-    </html>
-  );
+	return (
+		<html lang="en">
+			<body>
+				<Suspense fallback={null}>
+					<ResolvedConsent>{children}</ResolvedConsent>
+				</Suspense>
+			</body>
+		</html>
+	);
 }
 ```
 

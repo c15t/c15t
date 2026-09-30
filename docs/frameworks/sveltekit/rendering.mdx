@@ -75,10 +75,10 @@ export the write handlers from the same catch-all route:
 
 ```ts title="src/routes/api/c15t/[...path]/+server.ts"
 export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } =
-  createSvelteKitConsentRouteHandlers({
-    backendURL: 'https://your-project.inth.app',
-    proxy: true,
-  });
+	createSvelteKitConsentRouteHandlers({
+		backendURL: 'https://your-project.inth.app',
+		proxy: true,
+	});
 ```
 
 Then point the provider at the route with `hosted({ url: '/api/c15t' })`.
@@ -182,8 +182,8 @@ without a SvelteKit event, for endpoints or code outside a load:
 import { resolveConsent } from '@c15t/svelte/server';
 
 const state = await resolveConsent({
-  backendURL: 'https://your-project.inth.app',
-  headers: request.headers,
+	backendURL: 'https://your-project.inth.app',
+	headers: request.headers,
 });
 ```
 

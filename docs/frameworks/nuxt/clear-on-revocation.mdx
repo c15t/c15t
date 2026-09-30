@@ -14,12 +14,12 @@ in `nuxt.config.ts`. When that category is denied, c15t deletes them:
 
 ```ts title="nuxt.config.ts (partial)"
 export default defineNuxtConfig({
-  c15t: {
-    clearOnRevocation: {
-      measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
-      marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
-    },
-  },
+	c15t: {
+		clearOnRevocation: {
+			measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
+			marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
+		},
+	},
 });
 ```
 

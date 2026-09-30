@@ -50,8 +50,8 @@ permission first, then that the pixel has loaded:
 
 ```ts title="src/track-purchase.ts"
 export function trackPurchase(marketingAllowed: boolean, value: number) {
-  if (!marketingAllowed || typeof window.fbq !== 'function') return;
-  window.fbq('track', 'Purchase', { currency: 'USD', value });
+	if (!marketingAllowed || typeof window.fbq !== 'function') return;
+	window.fbq('track', 'Purchase', { currency: 'USD', value });
 }
 ```
 

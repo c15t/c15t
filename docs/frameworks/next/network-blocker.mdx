@@ -22,14 +22,28 @@ Component.
 import type { ConsentRootProps } from 'c15t/next';
 
 const networkBlocker: NonNullable<ConsentRootProps['networkBlocker']> = {
-  rules: [
-    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
-    { id: 'meta-pixel', domain: 'facebook.com', pathIncludes: '/tr', category: 'marketing' },
-  ],
+	rules: [
+		{
+			id: 'google-analytics',
+			domain: 'google-analytics.com',
+			category: 'measurement',
+		},
+		{
+			id: 'meta-pixel',
+			domain: 'facebook.com',
+			pathIncludes: '/tr',
+			category: 'marketing',
+		},
+	],
 };
 
 // On the existing root:
-<ConsentRoot state={state} config={consentConfig} scripts={scripts} networkBlocker={networkBlocker}>
+<ConsentRoot
+	state={state}
+	config={consentConfig}
+	scripts={scripts}
+	networkBlocker={networkBlocker}
+>
 ```
 
 Keep the page content inside `ConsentRoot`. Blocking starts when it renders, so

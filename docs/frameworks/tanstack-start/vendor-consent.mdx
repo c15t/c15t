@@ -17,12 +17,12 @@ slug each script already carries:
 import type { Vendor } from 'c15t';
 
 export const vendors: Vendor[] = [
-  {
-    id: 'x-pixel',
-    name: 'X Pixel',
-    category: 'marketing',
-    privacyPolicyUrl: 'https://x.com/privacy',
-  },
+	{
+		id: 'x-pixel',
+		name: 'X Pixel',
+		category: 'marketing',
+		privacyPolicyUrl: 'https://x.com/privacy',
+	},
 ];
 ```
 
@@ -33,7 +33,12 @@ Then pass them to the `ConsentRoot` in `src/routes/__root.tsx`:
 ```tsx title="src/routes/__root.tsx (partial)"
 import { scripts, vendors } from '../scripts';
 
-<ConsentRoot state={consent} backendURL={backendURL} scripts={scripts} vendors={vendors}>
+<ConsentRoot
+	state={consent}
+	backendURL={backendURL}
+	scripts={scripts}
+	vendors={vendors}
+>
 ```
 
 `ConsentRoot` takes `vendors` as a top-level prop, not inside `options`.

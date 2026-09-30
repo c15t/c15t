@@ -17,13 +17,11 @@ const url = process.env.DATABASE_URL;
 if (!url) throw new Error('Set DATABASE_URL');
 
 export default defineConfig({
-  database: { dialect: 'postgres', url, schema: 'c15t' },
-  basePath: '/api/c15t',
-  trustedOrigins: ['https://app.example.com'],
-  manifest: {
-    policyRules: [policyRulePresets.europeOptIn()],
-  },
-  ipAddress: { tracking: false },
+	database: { dialect: 'postgres', url, schema: 'c15t' },
+	basePath: '/api/c15t',
+	trustedOrigins: ['https://app.example.com'],
+	manifest: { policyRules: [policyRulePresets.europeOptIn()] },
+	ipAddress: { tracking: false },
 });
 ```
 

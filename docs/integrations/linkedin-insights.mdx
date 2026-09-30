@@ -47,8 +47,8 @@ up:
 
 ```ts title="src/track-signup.ts"
 export function trackSignup(marketingAllowed: boolean) {
-  if (!marketingAllowed || typeof window.lintrk !== 'function') return;
-  window.lintrk('track', { conversion_id: 1234567 });
+	if (!marketingAllowed || typeof window.lintrk !== 'function') return;
+	window.lintrk('track', { conversion_id: 1234567 });
 }
 ```
 

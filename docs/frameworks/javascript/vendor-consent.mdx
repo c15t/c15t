@@ -24,9 +24,9 @@ Pass `vendors` to the runtime next to `scripts`:
 import { vendors } from './vendor-consent';
 
 export const runtime = createConsentRuntime({
-  mode: hosted({ url: 'https://your-project.inth.app' }),
-  scripts,
-  vendors,
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	scripts,
+	vendors,
 });
 ```
 
@@ -46,9 +46,9 @@ kernel's save:
 
 ```ts
 await runtime.kernel.commands.save({
-  marketing: true,
-  measurement: true,
-  vendors: { 'x-pixel': false },
+	marketing: true,
+	measurement: true,
+	vendors: { 'x-pixel': false },
 });
 ```
 

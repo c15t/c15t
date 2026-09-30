@@ -39,25 +39,25 @@ choice:
 import { useSnapshot } from 'c15t/react';
 
 export function ConsentPolicyDebug() {
-  const snapshot = useSnapshot();
-  const resolution = snapshot.resolution;
+	const snapshot = useSnapshot();
+	const resolution = snapshot.resolution;
 
-  return (
-    <pre>
-      {JSON.stringify(
-        {
-          status: resolution.status,
-          policy: resolution.status === 'matched' ? resolution.policy.id : null,
-          prompt: snapshot.promptRequirement,
-          permissions: snapshot.effectivePermissions,
-          location: snapshot.location,
-          privacySignals: snapshot.privacySignals,
-        },
-        null,
-        2,
-      )}
-    </pre>
-  );
+	return (
+		<pre>
+			{JSON.stringify(
+				{
+					status: resolution.status,
+					policy: resolution.status === 'matched' ? resolution.policy.id : null,
+					prompt: snapshot.promptRequirement,
+					permissions: snapshot.effectivePermissions,
+					location: snapshot.location,
+					privacySignals: snapshot.privacySignals,
+				},
+				null,
+				2
+			)}
+		</pre>
+	);
 }
 ```
 

@@ -21,16 +21,16 @@ button and preference links still have a dialog to open.
 import { CookiePreferences } from '../../components/cookie-preferences';
 
 export default function PrivacyPage() {
-  return (
-    <main>
-      <h1>Privacy</h1>
-      <p>Choose which optional categories this site may use.</p>
-      <section aria-labelledby="cookie-preferences">
-        <h2 id="cookie-preferences">Cookie preferences</h2>
-        <CookiePreferences />
-      </section>
-    </main>
-  );
+	return (
+		<main>
+			<h1>Privacy</h1>
+			<p>Choose which optional categories this site may use.</p>
+			<section aria-labelledby="cookie-preferences">
+				<h2 id="cookie-preferences">Cookie preferences</h2>
+				<CookiePreferences />
+			</section>
+		</main>
+	);
 }
 ```
 
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
 import { ConsentWidget } from 'c15t/next';
 
 export function CookiePreferences() {
-  return <ConsentWidget />;
+	return <ConsentWidget />;
 }
 ```
 

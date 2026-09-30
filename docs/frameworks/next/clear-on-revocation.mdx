@@ -17,11 +17,16 @@ deletes them:
 import type { ClearOnRevocationConfig } from 'c15t';
 
 const clearOnRevocation: ClearOnRevocationConfig = {
-  measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
-  marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
+	measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
+	marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
 };
 
-<ConsentRoot state={state} config={consentConfig} scripts={scripts} clearOnRevocation={clearOnRevocation}>
+<ConsentRoot
+	state={state}
+	config={consentConfig}
+	scripts={scripts}
+	clearOnRevocation={clearOnRevocation}
+>
 ```
 
 `ConsentRoot` takes `clearOnRevocation` as a top-level prop, not inside

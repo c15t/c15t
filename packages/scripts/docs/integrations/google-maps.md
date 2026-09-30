@@ -13,7 +13,8 @@ application; this example uses functionality permission.
 
 ```ts title="src/embed-config.ts"
 export const embedCategory = 'functionality' as const;
-export const embedURL = 'https://www.google.com/maps/embed?pb=YOUR_EMBED_PARAMETERS';
+export const embedURL =
+	'https://www.google.com/maps/embed?pb=YOUR_EMBED_PARAMETERS';
 export const embedTitle = 'Map showing our office location';
 export const embedAspectRatio = '4 / 3';
 ```
@@ -333,51 +334,56 @@ when permission allows it, keeps an existing player mounted across unrelated
 snapshot updates, and removes it on revocation.
 
 ```ts title="src/consent-embed.ts"
-import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
+import {
+	embedCategory,
+	embedURL,
+	embedTitle,
+	embedAspectRatio,
+} from './embed-config';
 
 type EmbedKernel = {
-  getSnapshot: () => {
-    effectivePermissions: Record<typeof embedCategory, boolean>;
-  };
-  subscribe: (listener: () => void) => () => void;
+	getSnapshot: () => {
+		effectivePermissions: Record<typeof embedCategory, boolean>;
+	};
+	subscribe: (listener: () => void) => () => void;
 };
 
 export function mountConsentEmbed(
-  container: HTMLElement,
-  kernel: EmbedKernel,
-  openPreferences: () => void,
+	container: HTMLElement,
+	kernel: EmbedKernel,
+	openPreferences: () => void
 ) {
-  const render = () => {
-    if (kernel.getSnapshot().effectivePermissions[embedCategory]) {
-      if (container.querySelector('iframe')) return;
-      const frame = document.createElement('iframe');
-      frame.src = embedURL;
-      frame.title = embedTitle;
-      frame.loading = 'lazy';
-      frame.allowFullscreen = true;
-      Object.assign(frame.style, {
-        width: '100%',
-        aspectRatio: embedAspectRatio,
-        minHeight: '200px',
-        border: '0',
-      });
-      container.replaceChildren(frame);
-    } else {
-      if (container.querySelector('button')) return;
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.textContent = 'Open privacy settings to view this content';
-      button.onclick = openPreferences;
-      container.replaceChildren(button);
-    }
-  };
+	const render = () => {
+		if (kernel.getSnapshot().effectivePermissions[embedCategory]) {
+			if (container.querySelector('iframe')) return;
+			const frame = document.createElement('iframe');
+			frame.src = embedURL;
+			frame.title = embedTitle;
+			frame.loading = 'lazy';
+			frame.allowFullscreen = true;
+			Object.assign(frame.style, {
+				width: '100%',
+				aspectRatio: embedAspectRatio,
+				minHeight: '200px',
+				border: '0',
+			});
+			container.replaceChildren(frame);
+		} else {
+			if (container.querySelector('button')) return;
+			const button = document.createElement('button');
+			button.type = 'button';
+			button.textContent = 'Open privacy settings to view this content';
+			button.onclick = openPreferences;
+			container.replaceChildren(button);
+		}
+	};
 
-  render();
-  const unsubscribe = kernel.subscribe(render);
-  return () => {
-    unsubscribe();
-    container.replaceChildren();
-  };
+	render();
+	const unsubscribe = kernel.subscribe(render);
+	return () => {
+		unsubscribe();
+		container.replaceChildren();
+	};
 }
 ```
 

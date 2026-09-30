@@ -84,8 +84,8 @@ Without the option, `resolveConsent` logs a warning outside production.
 
 ```tsx title="app/layout.tsx"
 const state = resolveConsent({
-  config: consentConfig,
-  onError: (error) => reportToMonitoring(error),
+	config: consentConfig,
+	onError: (error) => reportToMonitoring(error),
 });
 ```
 

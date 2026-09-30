@@ -86,8 +86,8 @@ form. This records marketing as allowed and X Pixel as off:
 import { getConsentClient } from 'c15t/astro/client';
 
 await getConsentClient()?.save({
-  marketing: true,
-  vendors: { 'x-pixel': false },
+	marketing: true,
+	vendors: { 'x-pixel': false },
 });
 ```
 

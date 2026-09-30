@@ -81,7 +81,7 @@ Read a category's permission with `useConsent` inside the provider:
 import { useConsent } from 'c15t/react';
 
 export function MarketingBanner() {
-  return useConsent('marketing') ? <aside>Spring sale</aside> : null;
+	return useConsent('marketing') ? <aside>Spring sale</aside> : null;
 }
 ```
 

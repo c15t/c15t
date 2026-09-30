@@ -121,12 +121,13 @@ through a signal:
 
 ```ts title="src/use-consent.ts"
 import { createSignal, onCleanup } from 'solid-js';
+
 import { runtime } from './consent-runtime';
 
 export function useConsentSnapshot() {
-  const [snapshot, setSnapshot] = createSignal(runtime.kernel.getSnapshot());
-  onCleanup(runtime.kernel.subscribe((next) => setSnapshot(() => next)));
-  return snapshot;
+	const [snapshot, setSnapshot] = createSignal(runtime.kernel.getSnapshot());
+	onCleanup(runtime.kernel.subscribe((next) => setSnapshot(() => next)));
+	return snapshot;
 }
 ```
 
@@ -147,12 +148,9 @@ stylesheet. Page hooks such as `data-c15t-action="accept"` still work, and the
 ```ts
 import { init } from '@c15t/browser/headless';
 
-const consent = init({
-  backendURL: 'https://your-project.inth.app',
-  scripts,
-});
+const consent = init({ backendURL: 'https://your-project.inth.app', scripts });
 consent.on('ui', (surface) => {
-  banner.hidden = surface !== 'banner';
+	banner.hidden = surface !== 'banner';
 });
 ```
 

@@ -14,15 +14,13 @@ development. Vite sets `import.meta.env.DEV` to `true` in `vite dev` and to
 
 ```svelte title="src/lib/ConsentDevTools.svelte"
 <script lang="ts">
-  const devTools = import.meta.env.DEV
-    ? import('@c15t/svelte/devtools')
-    : null;
+	const devTools = import.meta.env.DEV ? import('@c15t/svelte/devtools') : null;
 </script>
 
 {#if devTools}
-  {#await devTools then { ConsentDevTools }}
-    <ConsentDevTools />
-  {/await}
+	{#await devTools then { ConsentDevTools }}
+		<ConsentDevTools />
+	{/await}
 {/if}
 ```
 

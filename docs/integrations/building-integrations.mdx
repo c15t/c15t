@@ -14,15 +14,15 @@ and the source URL, then register it like any helper:
 import type { Script } from 'c15t';
 
 const exampleAnalytics: Script = {
-  id: 'example-analytics',
-  category: 'measurement',
-  src: 'https://analytics.example.com/sdk.js',
-  onLoad() {
-    // Initialize the vendor here with its documented API.
-  },
-  onError({ error }) {
-    console.error('Analytics SDK failed to load', error);
-  },
+	id: 'example-analytics',
+	category: 'measurement',
+	src: 'https://analytics.example.com/sdk.js',
+	onLoad() {
+		// Initialize the vendor here with its documented API.
+	},
+	onError({ error }) {
+		console.error('Analytics SDK failed to load', error);
+	},
 };
 
 export const scripts = [exampleAnalytics];
@@ -65,17 +65,17 @@ permission, so pass it to the SDK:
 
 ```ts
 const consentModeTag = {
-  id: 'example-consent-mode',
-  category: 'marketing',
-  src: 'https://tags.example.com/tag.js',
-  alwaysLoad: true,
-  onBeforeLoad({ hasConsent }) {
-    window.exampleTag = window.exampleTag ?? [];
-    window.exampleTag.push(['consent', hasConsent ? 'grant' : 'deny']);
-  },
-  onConsentChange({ hasConsent }) {
-    window.exampleTag?.push(['consent', hasConsent ? 'grant' : 'deny']);
-  },
+	id: 'example-consent-mode',
+	category: 'marketing',
+	src: 'https://tags.example.com/tag.js',
+	alwaysLoad: true,
+	onBeforeLoad({ hasConsent }) {
+		window.exampleTag = window.exampleTag ?? [];
+		window.exampleTag.push(['consent', hasConsent ? 'grant' : 'deny']);
+	},
+	onConsentChange({ hasConsent }) {
+		window.exampleTag?.push(['consent', hasConsent ? 'grant' : 'deny']);
+	},
 };
 ```
 
@@ -93,13 +93,13 @@ page, c15t reuses the element and calls `onConsentChange` again with
 
 ```ts
 const examplePixel = {
-  id: 'example-pixel',
-  category: 'marketing',
-  src: 'https://pixel.example.com/pixel.js',
-  persistAfterConsentRevoked: true,
-  onConsentChange({ hasConsent }) {
-    window.examplePixel?.(hasConsent ? 'optIn' : 'optOut');
-  },
+	id: 'example-pixel',
+	category: 'marketing',
+	src: 'https://pixel.example.com/pixel.js',
+	persistAfterConsentRevoked: true,
+	onConsentChange({ hasConsent }) {
+		window.examplePixel?.(hasConsent ? 'optIn' : 'optOut');
+	},
 };
 ```
 
@@ -117,16 +117,16 @@ permission is denied:
 
 ```ts
 const existingSdkConsent = {
-  id: 'existing-sdk-consent',
-  category: 'measurement',
-  callbackOnly: true,
-  alwaysLoad: true,
-  onBeforeLoad({ hasConsent }) {
-    existingSdk.setTracking(hasConsent);
-  },
-  onConsentChange({ hasConsent }) {
-    existingSdk.setTracking(hasConsent);
-  },
+	id: 'existing-sdk-consent',
+	category: 'measurement',
+	callbackOnly: true,
+	alwaysLoad: true,
+	onBeforeLoad({ hasConsent }) {
+		existingSdk.setTracking(hasConsent);
+	},
+	onConsentChange({ hasConsent }) {
+		existingSdk.setTracking(hasConsent);
+	},
 };
 ```
 

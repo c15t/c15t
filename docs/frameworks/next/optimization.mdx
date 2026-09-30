@@ -68,16 +68,16 @@ Merge this fallback into your existing Next.js configuration:
 import type { NextConfig } from 'next';
 
 export default {
-  async rewrites() {
-    return {
-      fallback: [
-        {
-          source: '/api/c15t/:path*',
-          destination: 'https://your-project.inth.app/:path*',
-        },
-      ],
-    };
-  },
+	async rewrites() {
+		return {
+			fallback: [
+				{
+					source: '/api/c15t/:path*',
+					destination: 'https://your-project.inth.app/:path*',
+				},
+			],
+		};
+	},
 } satisfies NextConfig;
 ```
 
@@ -97,8 +97,8 @@ In the manifest setup from your router guide, change only `backendURL` to
 import { defineConsentConfig } from 'c15t/next';
 
 export const consentConfig = defineConsentConfig({
-  backendURL: '/api/c15t',
-  manifestURL: '/api/c15t/manifest',
+	backendURL: '/api/c15t',
+	manifestURL: '/api/c15t/manifest',
 });
 ```
 
@@ -120,7 +120,7 @@ absolute upstream URL to the handler instead:
 
 ```ts title="app/api/c15t/manifest/route.ts"
 export const { manifestGET: GET } = createNextConsentRouteHandlers({
-  backendURL: 'https://your-project.inth.app',
+	backendURL: 'https://your-project.inth.app',
 });
 ```
 
@@ -174,8 +174,8 @@ import { after } from 'next/server';
 import { consentConfig } from '@/c15t.config';
 
 export const { manifestGET: GET } = createNextConsentRouteHandlers({
-  ...consentConfig,
-  onBackgroundRevalidate: (refresh) => after(() => refresh),
+	...consentConfig,
+	onBackgroundRevalidate: (refresh) => after(() => refresh),
 });
 ```
 

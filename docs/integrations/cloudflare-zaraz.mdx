@@ -36,15 +36,15 @@ import { cloudflareZaraz } from '@c15t/integrations/cloudflare-zaraz';
 declare const zaraz: { track: (event: string) => void };
 
 export const scripts = [
-  cloudflareZaraz({
-    purposes: {
-      measurement: ['your-measurement-purpose-id'],
-      marketing: ['your-marketing-purpose-id'],
-    },
-    onReady: () => {
-      zaraz.track('Pageview');
-    },
-  }),
+	cloudflareZaraz({
+		purposes: {
+			measurement: ['your-measurement-purpose-id'],
+			marketing: ['your-marketing-purpose-id'],
+		},
+		onReady: () => {
+			zaraz.track('Pageview');
+		},
+	}),
 ];
 ```
 

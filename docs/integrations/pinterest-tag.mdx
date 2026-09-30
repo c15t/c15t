@@ -50,14 +50,14 @@ then that the tag has loaded:
 
 ```ts title="src/track-checkout.ts"
 export function trackCheckout(marketingAllowed: boolean, orderId: string) {
-  if (!marketingAllowed || typeof window.pintrk !== 'function') return;
-  window.pintrk('track', 'checkout', {
-    currency: 'USD',
-    event_id: orderId,
-    order_id: orderId,
-    value: 99.99,
-    line_items: [{ product_id: '1414', product_quantity: 1 }],
-  });
+	if (!marketingAllowed || typeof window.pintrk !== 'function') return;
+	window.pintrk('track', 'checkout', {
+		currency: 'USD',
+		event_id: orderId,
+		order_id: orderId,
+		value: 99.99,
+		line_items: [{ product_id: '1414', product_quantity: 1 }],
+	});
 }
 ```
 

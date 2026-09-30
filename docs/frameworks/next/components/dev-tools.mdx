@@ -18,14 +18,15 @@ runtime, including its prefetch result and configured transport.
 import dynamic from 'next/dynamic';
 
 const DevTools =
-  process.env.NODE_ENV === 'development'
-    ? dynamic(() => import('c15t/next/devtools').then(({ DevTools }) => DevTools), {
-        ssr: false,
-      })
-    : () => null;
+	process.env.NODE_ENV === 'development'
+		? dynamic(
+				() => import('c15t/next/devtools').then(({ DevTools }) => DevTools),
+				{ ssr: false }
+			)
+		: () => null;
 
 export function ConsentDevTools() {
-  return <DevTools />;
+	return <DevTools />;
 }
 ```
 

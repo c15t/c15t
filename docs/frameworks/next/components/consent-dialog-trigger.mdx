@@ -18,7 +18,7 @@ of the existing boundary, alongside its banner and dialog:
 import { ConsentDialogTrigger } from 'c15t/next';
 
 export function PrivacyTrigger() {
-  return <ConsentDialogTrigger showWhen="after-prompt" />;
+	return <ConsentDialogTrigger showWhen="after-prompt" />;
 }
 ```
 
@@ -41,27 +41,24 @@ Define the theme state, icons and callbacks in that component.
 import { ConsentDialogTriggerToolbar } from 'c15t/next';
 
 <ConsentDialogTriggerToolbar
-  ariaLabel="Site controls"
-  actions={[
-    {
-      id: 'theme',
-      label: isDark ? 'Switch to light theme' : 'Switch to dark theme',
-      icon: isDark ? <SunIcon /> : <MoonIcon />,
-      pressed: isDark,
-      onSelect: toggleColorScheme,
-    },
-    {
-      id: 'support',
-      label: 'Open support chat',
-      icon: <ChatIcon />,
-      onSelect: openSupportChat,
-    },
-  ]}
-  preferences={{
-    icon: 'fingerprint',
-    label: 'Manage privacy settings',
-  }}
-/>
+	ariaLabel="Site controls"
+	actions={[
+		{
+			id: 'theme',
+			label: isDark ? 'Switch to light theme' : 'Switch to dark theme',
+			icon: isDark ? <SunIcon /> : <MoonIcon />,
+			pressed: isDark,
+			onSelect: toggleColorScheme,
+		},
+		{
+			id: 'support',
+			label: 'Open support chat',
+			icon: <ChatIcon />,
+			onSelect: openSupportChat,
+		},
+	]}
+	preferences={{ icon: 'fingerprint', label: 'Manage privacy settings' }}
+/>;
 ```
 
 Each custom action needs a stable `id`, an accessible `label`, an `icon`, and an `onSelect` callback. Use `pressed` for toggle actions and `disabled` for unavailable ones. Your app owns the state behind each action. The preferences action moves to the edge nearest the toolbar's snapped corner while custom actions keep their configured order.
@@ -75,7 +72,7 @@ The built-in action names the strongest right the active rule guarantees. Under 
 Toolbars are horizontal by default. Set `orientation="vertical"` to stack the actions and switch arrow-key navigation to up and down:
 
 ```tsx
-<ConsentDialogTriggerToolbar orientation="vertical" actions={toolbarActions} />
+<ConsentDialogTriggerToolbar orientation="vertical" actions={toolbarActions} />;
 ```
 
 ### Toolbar props
@@ -92,9 +89,9 @@ slots and retain the configured transport:
 
 ```ts
 const triggerSlots = {
-  toolbar: { className: 'my-toolbar' },
-  toolbarItem: { className: 'my-toolbar-item' },
-  toolbarIcon: { className: 'my-toolbar-icon' },
+	toolbar: { className: 'my-toolbar' },
+	toolbarItem: { className: 'my-toolbar-item' },
+	toolbarIcon: { className: 'my-toolbar-icon' },
 };
 
 // In the existing options.components object:

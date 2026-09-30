@@ -17,12 +17,12 @@ Declare the vendors next to the scripts in `app/consent-scripts.ts`, using the
 import type { Vendor } from 'c15t';
 
 export const vendors: Vendor[] = [
-  {
-    id: 'x-pixel',
-    name: 'X Pixel',
-    category: 'marketing',
-    privacyPolicyUrl: 'https://x.com/privacy',
-  },
+	{
+		id: 'x-pixel',
+		name: 'X Pixel',
+		category: 'marketing',
+		privacyPolicyUrl: 'https://x.com/privacy',
+	},
 ];
 ```
 
@@ -33,9 +33,7 @@ Then register them under the `c15t` key in `app/app.config.ts`:
 ```ts title="app/app.config.ts (partial)"
 import { scripts, vendors } from './consent-scripts';
 
-export default defineAppConfig({
-  c15t: { scripts, vendors },
-});
+export default defineAppConfig({ c15t: { scripts, vendors } });
 ```
 
 Vendors are plain data, so the `c15t` key in `nuxt.config.ts` accepts them too.
@@ -70,12 +68,12 @@ const { vendors, setVendor, save } = useConsentDraft();
 </script>
 
 <template>
-  <input
-    type="checkbox"
-    :checked="vendors['x-pixel'] ?? true"
-    @change="setVendor('x-pixel', ($event.target as HTMLInputElement).checked)"
-  />
-  <button type="button" @click="save()">Save</button>
+	<input
+		type="checkbox"
+		:checked="vendors['x-pixel'] ?? true"
+		@change="setVendor('x-pixel', ($event.target as HTMLInputElement).checked)"
+	/>
+	<button type="button" @click="save()">Save</button>
 </template>
 ```
 

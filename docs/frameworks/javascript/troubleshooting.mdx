@@ -88,22 +88,22 @@ current state and later changes without recording a choice.
 import type { ConsentKernel } from 'c15t';
 
 export function observeConsentPolicy(kernel: ConsentKernel) {
-  const report = () => {
-    const snapshot = kernel.getSnapshot();
-    const resolution = snapshot.resolution;
+	const report = () => {
+		const snapshot = kernel.getSnapshot();
+		const resolution = snapshot.resolution;
 
-    console.log({
-      status: resolution.status,
-      policy: resolution.status === 'matched' ? resolution.policy.id : null,
-      prompt: snapshot.promptRequirement,
-      permissions: snapshot.effectivePermissions,
-      location: snapshot.location,
-      privacySignals: snapshot.privacySignals,
-    });
-  };
+		console.log({
+			status: resolution.status,
+			policy: resolution.status === 'matched' ? resolution.policy.id : null,
+			prompt: snapshot.promptRequirement,
+			permissions: snapshot.effectivePermissions,
+			location: snapshot.location,
+			privacySignals: snapshot.privacySignals,
+		});
+	};
 
-  report();
-  return kernel.subscribe(report);
+	report();
+	return kernel.subscribe(report);
 }
 ```
 

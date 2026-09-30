@@ -18,13 +18,13 @@ import { createFileRoute } from '@tanstack/react-router';
 import { ConsentWidget } from 'c15t/tanstack-start';
 
 const PrivacyPage = () => (
-  <main>
-    <h1>Privacy</h1>
-    <section aria-labelledby="cookie-preferences">
-      <h2 id="cookie-preferences">Cookie preferences</h2>
-      <ConsentWidget />
-    </section>
-  </main>
+	<main>
+		<h1>Privacy</h1>
+		<section aria-labelledby="cookie-preferences">
+			<h2 id="cookie-preferences">Cookie preferences</h2>
+			<ConsentWidget />
+		</section>
+	</main>
 );
 
 export const Route = createFileRoute('/privacy')({ component: PrivacyPage });

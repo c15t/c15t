@@ -30,8 +30,8 @@ does not add an HTTP endpoint that issues or consumes these tokens.
 
 ```ts title="src/legal-document-snapshot.ts"
 import {
-  createLegalDocumentSnapshotToken,
-  verifyLegalDocumentSnapshotToken,
+	createLegalDocumentSnapshotToken,
+	verifyLegalDocumentSnapshotToken,
 } from '@c15t/backend';
 
 const signingKey = process.env.LEGAL_DOCUMENT_SIGNING_KEY;
@@ -39,20 +39,20 @@ if (!signingKey) throw new Error('Set LEGAL_DOCUMENT_SIGNING_KEY');
 const options = { signingKey, ttlSeconds: 86400 };
 
 export async function signTermsSnapshot() {
-  return createLegalDocumentSnapshotToken(
-    {
-      type: 'terms_and_conditions',
-      version: '3.0',
-      hash: 'YOUR_DOCUMENT_CONTENT_HASH',
-      effectiveDate: '2026-09-10T00:00:00.000Z',
-      tenantId: 'your-tenant',
-    },
-    options,
-  );
+	return createLegalDocumentSnapshotToken(
+		{
+			type: 'terms_and_conditions',
+			version: '3.0',
+			hash: 'YOUR_DOCUMENT_CONTENT_HASH',
+			effectiveDate: '2026-09-10T00:00:00.000Z',
+			tenantId: 'your-tenant',
+		},
+		options
+	);
 }
 
 export async function verifyTermsSnapshot(token: string) {
-  return verifyLegalDocumentSnapshotToken(token, options, 'your-tenant');
+	return verifyLegalDocumentSnapshotToken(token, options, 'your-tenant');
 }
 ```
 

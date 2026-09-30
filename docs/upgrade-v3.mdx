@@ -130,9 +130,13 @@ component:
 import { useConsentManager } from '@c15t/react';
 
 export function AcceptButton() {
-  const { activeUI, has, saveConsents } = useConsentManager();
-  if (activeUI !== 'banner' || has('marketing')) return null;
-  return <button type="button" onClick={() => void saveConsents('all')}>Accept</button>;
+	const { activeUI, has, saveConsents } = useConsentManager();
+	if (activeUI !== 'banner' || has('marketing')) return null;
+	return (
+		<button type="button" onClick={() => void saveConsents('all')}>
+			Accept
+		</button>
+	);
 }
 ```
 
@@ -143,11 +147,15 @@ import { useActiveUI, useConsent } from '@c15t/react';
 import { useHeadlessConsentUI } from '@c15t/react/headless';
 
 export function AcceptButton() {
-  const activeUI = useActiveUI() ?? 'none';
-  const hasMarketing = useConsent('marketing');
-  const { saveCustomPreferences: saveConsents } = useHeadlessConsentUI();
-  if (activeUI !== 'banner' || hasMarketing) return null;
-  return <button type="button" onClick={() => void saveConsents('all')}>Accept</button>;
+	const activeUI = useActiveUI() ?? 'none';
+	const hasMarketing = useConsent('marketing');
+	const { saveCustomPreferences: saveConsents } = useHeadlessConsentUI();
+	if (activeUI !== 'banner' || hasMarketing) return null;
+	return (
+		<button type="button" onClick={() => void saveConsents('all')}>
+			Accept
+		</button>
+	);
 }
 ```
 
@@ -209,18 +217,22 @@ A typical v2 App Router app wrapped the layout in a client component:
 ```tsx title="Before (v2): components/consent-manager/provider.tsx"
 'use client';
 
-import { ConsentBanner, ConsentDialog, ConsentManagerProvider } from '@c15t/nextjs';
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentManagerProvider,
+} from '@c15t/nextjs';
 
 export default function ConsentManagerClient({ children }) {
-  return (
-    <ConsentManagerProvider
-      options={{ mode: 'hosted', backendURL: 'https://your-project.c15t.dev' }}
-    >
-      <ConsentBanner />
-      <ConsentDialog />
-      {children}
-    </ConsentManagerProvider>
-  );
+	return (
+		<ConsentManagerProvider
+			options={{ mode: 'hosted', backendURL: 'https://your-project.c15t.dev' }}
+		>
+			<ConsentBanner />
+			<ConsentDialog />
+			{children}
+		</ConsentManagerProvider>
+	);
 }
 ```
 
@@ -350,7 +362,7 @@ import { policyRulePresets } from 'c15t';
 import { offline } from 'c15t/react';
 
 const mode = offline({
-  policyRules: [policyRulePresets.europeOptIn(), policyRulePresets.worldNone()],
+	policyRules: [policyRulePresets.europeOptIn(), policyRulePresets.worldNone()],
 });
 ```
 

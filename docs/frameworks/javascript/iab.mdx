@@ -15,18 +15,18 @@ dialog. The plain entry leaves them out.
 import { init } from '@c15t/browser/iab';
 
 const consent = init({
-  backendURL: 'https://your-project.inth.app',
-  iab: { cmpId: YOUR_CMP_ID, vendors: [1, 2, 755] },
+	backendURL: 'https://your-project.inth.app',
+	iab: { cmpId: YOUR_CMP_ID, vendors: [1, 2, 755] },
 });
 
 await consent.ready();
 const cmp = consent.runtime.iab;
 if (cmp) {
-  await cmp.whenReady?.();
-  cmp.setPurposeConsent(1, true);
-  cmp.setVendorConsent(755, true);
-  const result = await consent.saveIAB();
-  if (!result.ok) consent.openDialog();
+	await cmp.whenReady?.();
+	cmp.setPurposeConsent(1, true);
+	cmp.setVendorConsent(755, true);
+	const result = await consent.saveIAB();
+	if (!result.ok) consent.openDialog();
 }
 ```
 
@@ -51,8 +51,11 @@ policy:
 ```ts
 import { createIAB } from '@c15t/iab';
 
-function attachIAB(kernel: Parameters<typeof createIAB>[0]['kernel'], cmpId: number) {
-  return createIAB({ kernel, cmpId });
+function attachIAB(
+	kernel: Parameters<typeof createIAB>[0]['kernel'],
+	cmpId: number
+) {
+	return createIAB({ kernel, cmpId });
 }
 ```
 
@@ -77,17 +80,20 @@ each restriction.
 ```ts
 import { createIAB } from '@c15t/iab';
 
-function attachIAB(kernel: Parameters<typeof createIAB>[0]['kernel'], cmpId: number) {
-  return createIAB({
-    kernel,
-    cmpId,
-    publisherRestrictions: [
-      // Vendors 10 and 755 may not use purpose 4.
-      { purposeId: 4, restrictionType: 0, vendorIds: [10, 755] },
-      // Vendor 755 must use legitimate interest for purpose 7.
-      { purposeId: 7, restrictionType: 2, vendorIds: [755] },
-    ],
-  });
+function attachIAB(
+	kernel: Parameters<typeof createIAB>[0]['kernel'],
+	cmpId: number
+) {
+	return createIAB({
+		kernel,
+		cmpId,
+		publisherRestrictions: [
+			// Vendors 10 and 755 may not use purpose 4.
+			{ purposeId: 4, restrictionType: 0, vendorIds: [10, 755] },
+			// Vendor 755 must use legitimate interest for purpose 7.
+			{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+		],
+	});
 }
 ```
 

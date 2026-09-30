@@ -15,10 +15,10 @@ source. Keep control-plane credentials out of the browser.
 import { rudderstack } from '@c15t/integrations/rudderstack';
 
 export const scripts = [
-  rudderstack({
-    writeKey: 'YOUR_SOURCE_WRITE_KEY',
-    dataPlaneUrl: 'https://your-data-plane.example.com',
-  }),
+	rudderstack({
+		writeKey: 'YOUR_SOURCE_WRITE_KEY',
+		dataPlaneUrl: 'https://your-data-plane.example.com',
+	}),
 ];
 ```
 
@@ -54,14 +54,14 @@ mapping to the helper call:
 
 ```ts
 rudderstack({
-  writeKey: 'YOUR_SOURCE_WRITE_KEY',
-  dataPlaneUrl: 'https://your-data-plane.example.com',
-  consentManagement: {
-    mapping: {
-      measurement: ['YOUR_ANALYTICS_CONSENT_ID'],
-      marketing: ['YOUR_ADVERTISING_CONSENT_ID'],
-    },
-  },
+	writeKey: 'YOUR_SOURCE_WRITE_KEY',
+	dataPlaneUrl: 'https://your-data-plane.example.com',
+	consentManagement: {
+		mapping: {
+			measurement: ['YOUR_ANALYTICS_CONSENT_ID'],
+			marketing: ['YOUR_ADVERTISING_CONSENT_ID'],
+		},
+	},
 });
 ```
 

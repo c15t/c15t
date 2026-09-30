@@ -87,23 +87,23 @@ choice:
 import { useSnapshot } from 'c15t/tanstack-start';
 
 export function ConsentPolicyDebug() {
-  const snapshot = useSnapshot();
-  const resolution = snapshot.resolution;
+	const snapshot = useSnapshot();
+	const resolution = snapshot.resolution;
 
-  return (
-    <pre>
-      {JSON.stringify(
-        {
-          status: resolution.status,
-          policy: resolution.status === 'matched' ? resolution.policy.id : null,
-          prompt: snapshot.promptRequirement,
-          location: snapshot.location,
-        },
-        null,
-        2,
-      )}
-    </pre>
-  );
+	return (
+		<pre>
+			{JSON.stringify(
+				{
+					status: resolution.status,
+					policy: resolution.status === 'matched' ? resolution.policy.id : null,
+					prompt: snapshot.promptRequirement,
+					location: snapshot.location,
+				},
+				null,
+				2
+			)}
+		</pre>
+	);
 }
 ```
 

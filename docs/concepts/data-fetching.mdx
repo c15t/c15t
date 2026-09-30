@@ -57,7 +57,7 @@ can belong to Inth or your own c15t backend.
 import { hosted } from 'c15t';
 
 export function createConsentMode(backendURL: string) {
-  return hosted({ url: backendURL });
+	return hosted({ url: backendURL });
 }
 ```
 
@@ -84,9 +84,9 @@ separate policy reads and record writes. With a backend rewrite mounted at
 import { hosted } from 'c15t';
 
 export const mode = hosted({
-  url: '/api/c15t',
-  initURL: '/api/c15t/init',
-  assertDecisionInputs: true,
+	url: '/api/c15t',
+	initURL: '/api/c15t/init',
+	assertDecisionInputs: true,
 });
 ```
 

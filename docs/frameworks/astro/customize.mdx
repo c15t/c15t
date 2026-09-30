@@ -35,15 +35,15 @@ Put tokens in the integration's `theme` option:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: 'https://your-project.inth.app' }),
-  theme: {
-    colors: {
-      primary: '#146b56',
-      primaryHover: '#105442',
-      textOnPrimary: '#ffffff',
-    },
-    radius: { lg: '1.25rem' },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	theme: {
+		colors: {
+			primary: '#146b56',
+			primaryHover: '#105442',
+			textOnPrimary: '#ffffff',
+		},
+		radius: { lg: '1.25rem' },
+	},
 });
 ```
 
@@ -65,13 +65,13 @@ primary, then `default`:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: 'https://your-project.inth.app' }),
-  theme: {
-    consentActions: {
-      primary: { mode: 'filled' },
-      customize: { mode: 'ghost', variant: 'neutral' },
-    },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	theme: {
+		consentActions: {
+			primary: { mode: 'filled' },
+			customize: { mode: 'ghost', variant: 'neutral' },
+		},
+	},
 });
 ```
 
@@ -84,17 +84,18 @@ language:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: 'https://your-project.inth.app' }),
-  i18n: {
-    messages: {
-      en: {
-        cookieBanner: {
-          title: 'Cookies on this site',
-          description: 'We use cookies to measure traffic and show relevant ads.',
-        },
-      },
-    },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	i18n: {
+		messages: {
+			en: {
+				cookieBanner: {
+					title: 'Cookies on this site',
+					description:
+						'We use cookies to measure traffic and show relevant ads.',
+				},
+			},
+		},
+	},
 });
 ```
 
@@ -119,10 +120,8 @@ and the message keys the banner reads.
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: 'https://your-project.inth.app' }),
-  presentation: {
-    prompt: { variant: 'bar', position: 'bottom' },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	presentation: { prompt: { variant: 'bar', position: 'bottom' } },
 });
 ```
 
@@ -159,11 +158,11 @@ Define the links once in the integration options:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: 'https://your-project.inth.app' }),
-  legalLinks: {
-    privacyPolicy: { href: '/privacy', label: 'Privacy policy' },
-    cookiePolicy: { href: '/cookies', label: 'Cookie policy' },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	legalLinks: {
+		privacyPolicy: { href: '/privacy', label: 'Privacy policy' },
+		cookiePolicy: { href: '/cookies', label: 'Cookie policy' },
+	},
 });
 ```
 
@@ -182,13 +181,10 @@ named part of the banner, the IAB banner and the dialogs:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: 'https://your-project.inth.app' }),
-  theme: {
-    slots: {
-      consentBannerCard: 'brand-card',
-      buttonPrimary: 'brand-button',
-    },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	theme: {
+		slots: { consentBannerCard: 'brand-card', buttonPrimary: 'brand-button' },
+	},
 });
 ```
 

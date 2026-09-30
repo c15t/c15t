@@ -25,10 +25,10 @@ This theme slows the dialog down and removes the banner's overshoot:
 
 ```ts title="consent-theme.ts"
 export const theme = {
-  motion: {
-    duration: { fast: '120ms', normal: '220ms' },
-    easingSpring: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
-  },
+	motion: {
+		duration: { fast: '120ms', normal: '220ms' },
+		easingSpring: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
+	},
 };
 ```
 
@@ -100,7 +100,7 @@ remove it on the next frame:
 document.documentElement.classList.add('c15t-no-transitions');
 applyYourTheme();
 requestAnimationFrame(() => {
-  document.documentElement.classList.remove('c15t-no-transitions');
+	document.documentElement.classList.remove('c15t-no-transitions');
 });
 ```
 

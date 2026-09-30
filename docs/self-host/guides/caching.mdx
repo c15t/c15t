@@ -62,11 +62,12 @@ but persistent reuse requires the configured cache.
 ```ts title="src/consent-backend.ts"
 import { c15tInstance } from '@c15t/backend';
 import { createMemoryCacheAdapter } from '@c15t/backend/cache';
+
 import config from '../c15t-backend.config';
 
 export const backend = c15tInstance({
-  ...config,
-  gvl: { cache: createMemoryCacheAdapter(), ttlMs: 86400000 },
+	...config,
+	gvl: { cache: createMemoryCacheAdapter(), ttlMs: 86400000 },
 });
 ```
 

@@ -15,15 +15,20 @@ c15t deletes them:
 
 ```svelte title="src/routes/+layout.svelte (partial)"
 <script lang="ts">
-  import type { ConsentManagerOptions } from '@c15t/svelte';
+	import type { ConsentManagerOptions } from '@c15t/svelte';
 
-  const clearOnRevocation: ConsentManagerOptions['clearOnRevocation'] = {
-    measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
-    marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
-  };
+	const clearOnRevocation: ConsentManagerOptions['clearOnRevocation'] = {
+		measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
+		marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
+	};
 </script>
 
-<ConsentManagerProvider {mode} prefetch={data.prefetch} {scripts} {clearOnRevocation}>
+<ConsentManagerProvider
+	{mode}
+	prefetch={data.prefetch}
+	{scripts}
+	{clearOnRevocation}
+>
 ```
 
 The provider reads `clearOnRevocation` once, when it is created. Cleanup runs

@@ -19,7 +19,7 @@ To hide the "Secured by" tag in the dialog card, pass `hideBranding`:
 {/* example: fragment */}
 
 ```tsx
-<ConsentDialog hideBranding />
+<ConsentDialog hideBranding />;
 ```
 
 To open it from your own component, set the active surface:
@@ -28,12 +28,12 @@ To open it from your own component, set the active surface:
 import { useSetActiveUI } from 'c15t/react';
 
 export function PrivacyMenuItem() {
-  const setActiveUI = useSetActiveUI();
-  return (
-    <button type="button" onClick={() => setActiveUI('dialog')}>
-      Cookie preferences
-    </button>
-  );
+	const setActiveUI = useSetActiveUI();
+	return (
+		<button type="button" onClick={() => setActiveUI('dialog')}>
+			Cookie preferences
+		</button>
+	);
 }
 ```
 

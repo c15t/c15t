@@ -16,13 +16,28 @@ at all before consent.
 
 ```tsx title="src/routes/__root.tsx"
 const networkBlocker = {
-  rules: [
-    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
-    { id: 'meta-pixel', domain: 'facebook.com', pathIncludes: '/tr', category: 'marketing' },
-  ],
+	rules: [
+		{
+			id: 'google-analytics',
+			domain: 'google-analytics.com',
+			category: 'measurement',
+		},
+		{
+			id: 'meta-pixel',
+			domain: 'facebook.com',
+			pathIncludes: '/tr',
+			category: 'marketing',
+		},
+	],
 };
 
-<ConsentRoot state={consent} backendURL={backendURL} initRoute={false} scripts={scripts} networkBlocker={networkBlocker}>
+<ConsentRoot
+	state={consent}
+	backendURL={backendURL}
+	initRoute={false}
+	scripts={scripts}
+	networkBlocker={networkBlocker}
+>
 ```
 
 The blocker runs in the browser only. It does not see requests your server

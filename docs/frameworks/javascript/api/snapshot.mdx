@@ -19,10 +19,10 @@ A field keeps the same object when its value did not change, so compare with
 ```ts
 let previous = kernel.getSnapshot();
 kernel.subscribe((next) => {
-  if (next.effectivePermissions !== previous.effectivePermissions) {
-    updateGates(next.effectivePermissions);
-  }
-  previous = next;
+	if (next.effectivePermissions !== previous.effectivePermissions) {
+		updateGates(next.effectivePermissions);
+	}
+	previous = next;
 });
 ```
 

@@ -19,28 +19,28 @@ component does not need a database configuration to consume hosted policy.
 
 ```ts title="c15t-backend.config.ts"
 import {
-  defineConfig,
-  inspectPolicyRules,
-  policyRulePresets,
+	defineConfig,
+	inspectPolicyRules,
+	policyRulePresets,
 } from '@c15t/backend';
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('Set DATABASE_URL');
 
 const policyRules = [
-  policyRulePresets.europeOptIn(),
-  policyRulePresets.quebecOptIn(),
-  policyRulePresets.usPrivacyStatesOptOut(),
-  policyRulePresets.worldOptOutNoPrompt(),
+	policyRulePresets.europeOptIn(),
+	policyRulePresets.quebecOptIn(),
+	policyRulePresets.usPrivacyStatesOptOut(),
+	policyRulePresets.worldOptOutNoPrompt(),
 ];
 
 const { errors } = inspectPolicyRules(policyRules);
 if (errors.length) throw new Error(errors.join('\n'));
 
 export default defineConfig({
-  database: { dialect: 'postgres', url },
-  trustedOrigins: ['https://app.example.com'],
-  manifest: { policyRules },
+	database: { dialect: 'postgres', url },
+	trustedOrigins: ['https://app.example.com'],
+	manifest: { policyRules },
 });
 ```
 
@@ -70,8 +70,8 @@ import { policyMatchers, policyRulePresets } from '@c15t/backend';
 
 const us = policyRulePresets.usPrivacyStatesOptOut();
 export const usWithMissingState = {
-  ...us,
-  match: policyMatchers.merge(us.match, policyMatchers.regionFallback(['US'])),
+	...us,
+	match: policyMatchers.merge(us.match, policyMatchers.regionFallback(['US'])),
 };
 ```
 

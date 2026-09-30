@@ -76,8 +76,8 @@ Change the budget in the integration options:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: manifest({ backendURL: 'https://your-project.inth.app' }),
-  middleware: { timeoutMs: 800 },
+	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
+	middleware: { timeoutMs: 800 },
 });
 ```
 
@@ -93,8 +93,8 @@ on a skipped route:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: manifest({ backendURL: 'https://your-project.inth.app' }),
-  middleware: { skip: ['/api/webhooks', '/healthz'] },
+	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
+	middleware: { skip: ['/api/webhooks', '/healthz'] },
 });
 ```
 
@@ -154,10 +154,7 @@ swap, listen for `astro:page-load`. See the
 backend. Not recommended for production environments.
 
 ```js title="astro.config.mjs (partial)"
-c15t({
-  mode: offline(),
-  ui: 'svelte',
-});
+c15t({ mode: offline(), ui: 'svelte' });
 ```
 
 Import `offline` from `c15t/astro`. Choices persist in the visitor's cookie and

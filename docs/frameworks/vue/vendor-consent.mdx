@@ -17,12 +17,12 @@ slug each script already carries:
 import type { Vendor } from 'c15t';
 
 export const vendors: Vendor[] = [
-  {
-    id: 'x-pixel',
-    name: 'X Pixel',
-    category: 'marketing',
-    privacyPolicyUrl: 'https://x.com/privacy',
-  },
+	{
+		id: 'x-pixel',
+		name: 'X Pixel',
+		category: 'marketing',
+		privacyPolicyUrl: 'https://x.com/privacy',
+	},
 ];
 ```
 
@@ -34,12 +34,12 @@ Then pass them to the plugin in `src/main.ts`:
 import { scripts, vendors } from './scripts';
 
 createApp(App)
-  .use(c15tVue, {
-    backendURL: 'https://your-project.inth.app',
-    scripts,
-    vendors,
-  })
-  .mount('#app');
+	.use(c15tVue, {
+		backendURL: 'https://your-project.inth.app',
+		scripts,
+		vendors,
+	})
+	.mount('#app');
 ```
 
 <import src="../../shared/scripts/vendor-consent.mdx#fields" />
@@ -73,12 +73,12 @@ const { vendors, setVendor, save } = useConsentDraft();
 </script>
 
 <template>
-  <input
-    type="checkbox"
-    :checked="vendors['x-pixel'] ?? true"
-    @change="setVendor('x-pixel', ($event.target as HTMLInputElement).checked)"
-  />
-  <button type="button" @click="save()">Save</button>
+	<input
+		type="checkbox"
+		:checked="vendors['x-pixel'] ?? true"
+		@change="setVendor('x-pixel', ($event.target as HTMLInputElement).checked)"
+	/>
+	<button type="button" @click="save()">Save</button>
 </template>
 ```
 

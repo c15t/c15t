@@ -15,15 +15,17 @@ same `ConsentProvider`; the [quickstart](../quickstart) mounts both.
 import { ConsentDialogLink } from 'c15t/react';
 
 export function SiteFooter() {
-  return (
-    <footer>
-      <nav aria-label="Legal">
-        <a href="/privacy">Privacy policy</a>
-        <a href="/terms">Terms</a>
-        <ConsentDialogLink className="footer-link">Privacy settings</ConsentDialogLink>
-      </nav>
-    </footer>
-  );
+	return (
+		<footer>
+			<nav aria-label="Legal">
+				<a href="/privacy">Privacy policy</a>
+				<a href="/terms">Terms</a>
+				<ConsentDialogLink className="footer-link">
+					Privacy settings
+				</ConsentDialogLink>
+			</nav>
+		</footer>
+	);
 }
 ```
 
@@ -36,8 +38,8 @@ To reuse an existing link component, pass `asChild`:
 
 ```tsx
 <ConsentDialogLink asChild>
-  <a href="#cookie-preferences">Manage cookies</a>
-</ConsentDialogLink>
+	<a href="#cookie-preferences">Manage cookies</a>
+</ConsentDialogLink>;
 ```
 
 <import src="../../../shared/react/components/consent-dialog-link.mdx#props" />

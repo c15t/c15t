@@ -124,8 +124,10 @@ card for choices:
 import { ConsentBanner, usePolicyRule } from 'c15t/react';
 
 export function RegionalBanner() {
-  const policy = usePolicyRule();
-  return <ConsentBanner variant={policy?.prompt === 'notice' ? 'bar' : 'floating'} />;
+	const policy = usePolicyRule();
+	return (
+		<ConsentBanner variant={policy?.prompt === 'notice' ? 'bar' : 'floating'} />
+	);
 }
 ```
 

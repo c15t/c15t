@@ -300,16 +300,18 @@ Use it when calling the `c15t/next/server` helper from a custom server or
 test harness where `next/headers` is unavailable:
 
 ```ts title="server/consent.ts"
-import { resolveConsent } from 'c15t/next/server';
-import { createPagesRequestContext } from 'c15t/next/pages';
-import { consentConfig } from '@/c15t.config';
 import type { IncomingMessage } from 'node:http';
 
+import { createPagesRequestContext } from 'c15t/next/pages';
+import { resolveConsent } from 'c15t/next/server';
+
+import { consentConfig } from '@/c15t.config';
+
 export function resolveRequestConsent(req: IncomingMessage) {
-  return resolveConsent({
-    config: consentConfig,
-    request: createPagesRequestContext(req),
-  });
+	return resolveConsent({
+		config: consentConfig,
+		request: createPagesRequestContext(req),
+	});
 }
 ```
 
@@ -486,17 +488,17 @@ root:
 ```tsx title="app/offline-consent.tsx"
 'use client';
 
-import type { ReactNode } from 'react';
 import { ConsentRoot, offline } from 'c15t/next';
+import type { ReactNode } from 'react';
 
 const mode = offline();
 
 export function OfflineConsent({ children }: { children: ReactNode }) {
-  return (
-    <ConsentRoot state={{}} options={{ mode }}>
-      {children}
-    </ConsentRoot>
-  );
+	return (
+		<ConsentRoot state={{}} options={{ mode }}>
+			{children}
+		</ConsentRoot>
+	);
 }
 ```
 

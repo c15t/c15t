@@ -18,15 +18,15 @@ const url = process.env.DATABASE_URL;
 if (!url) throw new Error('Set DATABASE_URL');
 
 export default defineConfig({
-  database: { dialect: 'postgres', url },
-  trustedOrigins: ['https://app.example.com'],
-  manifest: {
-    policyRules: [policyRulePresets.europeIab()],
-    iab: { enabled: true },
-  },
-  // The matched IAB rule asks for a list; this says where it comes from and
-  // which vendors it may name.
-  gvl: { cache: createMemoryCacheAdapter(), vendorIds: [3, 7, 41] },
+	database: { dialect: 'postgres', url },
+	trustedOrigins: ['https://app.example.com'],
+	manifest: {
+		policyRules: [policyRulePresets.europeIab()],
+		iab: { enabled: true },
+	},
+	// The matched IAB rule asks for a list; this says where it comes from and
+	// which vendors it may name.
+	gvl: { cache: createMemoryCacheAdapter(), vendorIds: [3, 7, 41] },
 });
 ```
 

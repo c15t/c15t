@@ -32,13 +32,12 @@ Commands return their own data under `data`, such as generated edits, hosted pro
 ```ts
 import { runCli } from '@c15t/cli';
 
-const result = await runCli(
-  ['setup', 'offline', '--plan', '--json'],
-  { cwd: projectDirectory }
-);
+const result = await runCli(['setup', 'offline', '--plan', '--json'], {
+	cwd: projectDirectory,
+});
 
 if (!result.success) {
-  throw new Error(result.error?.message);
+	throw new Error(result.error?.message);
 }
 ```
 

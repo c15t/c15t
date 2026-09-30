@@ -21,17 +21,19 @@ browser global.
 import { lazy, Suspense } from 'react';
 
 const DevTools = import.meta.env.DEV
-  ? lazy(() =>
-      import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })),
-    )
-  : null;
+	? lazy(() =>
+			import('c15t/react/devtools').then(({ DevTools }) => ({
+				default: DevTools,
+			}))
+		)
+	: null;
 
 export function ConsentDevTools() {
-  return DevTools ? (
-    <Suspense fallback={null}>
-      <DevTools />
-    </Suspense>
-  ) : null;
+	return DevTools ? (
+		<Suspense fallback={null}>
+			<DevTools />
+		</Suspense>
+	) : null;
 }
 ```
 

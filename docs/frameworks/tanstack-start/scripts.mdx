@@ -20,7 +20,12 @@ The root route imports that module and passes it on:
 ```tsx title="src/routes/__root.tsx"
 import { scripts } from '../scripts';
 
-<ConsentRoot state={consent} backendURL={backendURL} initRoute={false} scripts={scripts}>
+<ConsentRoot
+	state={consent}
+	backendURL={backendURL}
+	initRoute={false}
+	scripts={scripts}
+>
 ```
 
 Import vendor helpers in route modules, not in a server function. A server

@@ -14,12 +14,12 @@ already wrote. List the ones each optional category owns in
 
 ```ts title="src/main.ts (partial)"
 init({
-  backendURL: 'https://your-project.inth.app',
-  scripts,
-  clearOnRevocation: {
-    measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
-    marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
-  },
+	backendURL: 'https://your-project.inth.app',
+	scripts,
+	clearOnRevocation: {
+		measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
+		marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
+	},
 });
 ```
 

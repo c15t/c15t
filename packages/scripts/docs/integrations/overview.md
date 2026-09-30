@@ -140,9 +140,9 @@ stop delivery to the others:
 import { createEventDispatcher } from '@c15t/integrations/events';
 
 const events = createEventDispatcher({
-  scripts,
-  getSnapshot: () => runtime.kernel.getSnapshot(),
-  pageviews: ['segment'],
+	scripts,
+	getSnapshot: () => runtime.kernel.getSnapshot(),
+	pageviews: ['segment'],
 });
 
 events.track('docs_search', { resultCount: 4 });

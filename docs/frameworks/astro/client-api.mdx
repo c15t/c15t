@@ -100,7 +100,7 @@ call `openDialog()` from its click handler:
 import { openDialog } from 'c15t/astro/client';
 
 document.querySelector('#privacy-link')?.addEventListener('click', () => {
-  void openDialog();
+	void openDialog();
 });
 ```
 
@@ -143,7 +143,7 @@ import { activateGatedScripts, getConsent } from 'c15t/astro/client';
 
 const snapshot = getConsent();
 if (snapshot) {
-  activateGatedScripts(snapshot, container);
+	activateGatedScripts(snapshot, container);
 }
 ```
 
@@ -181,10 +181,10 @@ Markup your script changed is replaced on a swap. Render it again on
 import { getConsent, subscribe } from 'c15t/astro/client';
 
 const render = () => {
-  const allowed = getConsent()?.effectivePermissions.measurement ?? false;
-  document.querySelector('#analytics-state')?.replaceChildren(
-    allowed ? 'Analytics on' : 'Analytics off'
-  );
+	const allowed = getConsent()?.effectivePermissions.measurement ?? false;
+	document
+		.querySelector('#analytics-state')
+		?.replaceChildren(allowed ? 'Analytics on' : 'Analytics off');
 };
 
 subscribe(render);

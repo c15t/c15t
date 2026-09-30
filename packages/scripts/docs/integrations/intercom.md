@@ -94,8 +94,8 @@ import { scripts } from './consent-scripts';
 <ConsentProvider options={{ mode, scripts }}>
 ```
 
-`mode` is the `hosted({ url: backendURL })` value from the
-[React quickstart](https://c15t.com/docs/frameworks/react/quickstart). Keep the banner,
+`mode` is the `hosted({ url: 'https://your-project.inth.app' })` value
+from the [React quickstart](https://c15t.com/docs/frameworks/react/quickstart). Keep the banner,
 dialog and preferences link inside the provider. See
 [React scripts and embeds](../frameworks/react/scripts.md).
 
@@ -116,8 +116,7 @@ The Nuxt module merges this over its options in `nuxt.config.ts` and starts
 one script loader in the browser after hydration, once it has applied the
 visitor's stored choice and privacy signals. Keep `scripts` out of
 `nuxt.config.ts`, which reaches the browser as JSON and drops the vendor
-callbacks. `app.config.ts` cannot read `runtimeConfig`, so write the vendor
-IDs into `consent-scripts.ts` or read them from `VITE_` variables. See
+callbacks. Write the vendor IDs into `consent-scripts.ts`. See
 [Nuxt scripts and embeds](../frameworks/nuxt/scripts.md).
 
 **Vue**
@@ -127,7 +126,10 @@ Pass the scripts to the existing `c15tVue` plugin call in `src/main.ts`:
 ```ts title="src/main.ts"
 import { scripts } from './consent-scripts';
 
-app.use(c15tVue, { backendURL, scripts });
+app.use(c15tVue, {
+  backendURL: 'https://your-project.inth.app',
+  scripts,
+});
 ```
 
 Keep your existing backend URL and other options. The plugin starts one
@@ -166,9 +168,7 @@ pass them as a top-level prop:
   import { ConsentManagerProvider, hosted } from '@c15t/svelte';
   import { scripts } from './consent-scripts';
 
-  const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-  if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
-  const mode = hosted({ url: backendURL });
+  const mode = hosted({ url: 'https://your-project.inth.app' });
 </script>
 
 <ConsentManagerProvider {mode} {scripts}>
@@ -186,12 +186,11 @@ and its serializable prefetch data from the [SvelteKit quickstart](https://c15t.
 
 ```svelte title="src/routes/+layout.svelte"
 <script lang="ts">
-  import { env } from '$env/dynamic/public';
   import { ConsentManagerProvider, hosted } from '@c15t/svelte';
   import { scripts } from '../consent-scripts';
 
   let { children, data } = $props();
-  const mode = hosted({ url: env.PUBLIC_C15T_BACKEND_URL });
+  const mode = hosted({ url: 'https://your-project.inth.app' });
 </script>
 
 <ConsentManagerProvider {mode} {scripts} prefetch={data.prefetch}>
@@ -231,10 +230,13 @@ URL:
 import { init } from '@c15t/browser';
 import { scripts } from './consent-scripts';
 
-const consent = init({ backendURL, scripts });
+const consent = init({
+  backendURL: 'https://your-project.inth.app',
+  scripts,
+});
 ```
 
-`backendURL` is the Inth URL from your quickstart. With
+Keep the backend URL from your quickstart. With
 `createConsentRuntime` from `c15t/runtime`, pass `scripts` to it instead.
 A kernel you create yourself needs a loader from
 `c15t/modules/script-loader`. Attach one loader per kernel. See
@@ -267,11 +269,11 @@ permission first:
 
 ```ts title="src/intercom-user.ts"
 export function updateIntercomUser(
-  functionalityAllowed: boolean,
-  userId: string
+	functionalityAllowed: boolean,
+	userId: string
 ) {
-  if (!functionalityAllowed || typeof window.Intercom !== 'function') return;
-  window.Intercom('update', { user_id: userId });
+	if (!functionalityAllowed || typeof window.Intercom !== 'function') return;
+	window.Intercom('update', { user_id: userId });
 }
 ```
 

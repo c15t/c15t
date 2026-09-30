@@ -69,7 +69,12 @@ export const actionTheme = defineTheme({
 {/* example: fragment */}
 
 ```tsx title="components/consent.tsx (partial)"
-<ConsentRoot state={state} config={consentConfig} scripts={scripts} options={{ theme: actionTheme }}>
+<ConsentRoot
+	state={state}
+	config={consentConfig}
+	scripts={scripts}
+	options={{ theme: actionTheme }}
+>
 ```
 
 The theme is plain data, but keep this import in the client wrapper next to
@@ -86,8 +91,10 @@ the existing root, replace the stock banner with:
 import { ConsentBanner, usePolicyRule } from 'c15t/next';
 
 export function RegionalBanner() {
-  const policy = usePolicyRule();
-  return <ConsentBanner variant={policy?.prompt === 'notice' ? 'bar' : 'floating'} />;
+	const policy = usePolicyRule();
+	return (
+		<ConsentBanner variant={policy?.prompt === 'notice' ? 'bar' : 'floating'} />
+	);
 }
 ```
 
@@ -100,11 +107,11 @@ uses Tailwind's `group` selector to read it:
 
 ```ts
 const bannerSlots = {
-  root: { className: 'group' },
-  card: { className: 'group-data-[prompt=notice]:rounded-none' },
-  rightLink: {
-    className: 'underline-offset-4 data-[right=opt-out]:text-red-700',
-  },
+	root: { className: 'group' },
+	card: { className: 'group-data-[prompt=notice]:rounded-none' },
+	rightLink: {
+		className: 'underline-offset-4 data-[right=opt-out]:text-red-700',
+	},
 };
 
 // In the existing options.components object:

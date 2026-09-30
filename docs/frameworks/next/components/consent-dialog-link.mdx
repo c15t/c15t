@@ -17,19 +17,21 @@ the `ConsentDialog` it opens.
 ```tsx title="components/site-footer.tsx"
 'use client';
 
-import Link from 'next/link';
 import { ConsentDialogLink } from 'c15t/next';
+import Link from 'next/link';
 
 export function SiteFooter() {
-  return (
-    <footer>
-      <nav aria-label="Legal">
-        <Link href="/privacy">Privacy policy</Link>
-        <Link href="/terms">Terms</Link>
-        <ConsentDialogLink className="footer-link">Privacy settings</ConsentDialogLink>
-      </nav>
-    </footer>
-  );
+	return (
+		<footer>
+			<nav aria-label="Legal">
+				<Link href="/privacy">Privacy policy</Link>
+				<Link href="/terms">Terms</Link>
+				<ConsentDialogLink className="footer-link">
+					Privacy settings
+				</ConsentDialogLink>
+			</nav>
+		</footer>
+	);
 }
 ```
 
@@ -49,8 +51,8 @@ To reuse an existing link component, pass `asChild`:
 
 ```tsx
 <ConsentDialogLink asChild>
-  <a href="#cookie-preferences">Manage cookies</a>
-</ConsentDialogLink>
+	<a href="#cookie-preferences">Manage cookies</a>
+</ConsentDialogLink>;
 ```
 
 <import src="../../../shared/react/components/consent-dialog-link.mdx#props" />

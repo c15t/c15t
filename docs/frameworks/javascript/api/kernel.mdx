@@ -20,7 +20,7 @@ script and reads no storage; the modules around it do that.
 
 ```ts
 const unsubscribe = kernel.subscribe((snapshot) => {
-  console.log(snapshot.resolution.status, snapshot.effectivePermissions);
+	console.log(snapshot.resolution.status, snapshot.effectivePermissions);
 });
 ```
 

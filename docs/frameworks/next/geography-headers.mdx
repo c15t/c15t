@@ -42,11 +42,11 @@ import { c15tProxy } from 'c15t/next/proxy';
 import type { NextRequest } from 'next/server';
 
 export function proxy(request: NextRequest) {
-  return c15tProxy(request);
+	return c15tProxy(request);
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+	matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
 ```
 
@@ -70,11 +70,11 @@ import { c15tMiddleware } from 'c15t/next/middleware';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  return c15tMiddleware(request);
+	return c15tMiddleware(request);
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+	matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
 ```
 
@@ -98,7 +98,7 @@ import { c15tProxy } from 'c15t/next/proxy';
 import type { NextRequest } from 'next/server';
 
 export function proxy(request: NextRequest) {
-  return c15tProxy(request, { cookie: true });
+	return c15tProxy(request, { cookie: true });
 }
 ```
 
@@ -108,7 +108,7 @@ cannot read them. Pass an object to rename them:
 
 ```ts title="proxy.ts (partial)"
 c15tProxy(request, {
-  cookie: { countryName: 'geo-country', regionName: 'geo-region' },
+	cookie: { countryName: 'geo-country', regionName: 'geo-region' },
 });
 ```
 
@@ -122,20 +122,21 @@ cookie, read it where you call `resolveConsent` and pass it as the
 `country` override:
 
 ```tsx title="app/layout.tsx (partial)"
-import { cookies } from 'next/headers';
 import { resolveConsent } from 'c15t/next/server';
+import { cookies } from 'next/headers';
+
 import { consentConfig } from '@/c15t.config';
 import { Consent } from '@/components/consent';
 
 async function resolveVisitorConsent() {
-  const country = (await cookies()).get('c15t-country')?.value;
-  return resolveConsent({ config: consentConfig, country });
+	const country = (await cookies()).get('c15t-country')?.value;
+	return resolveConsent({ config: consentConfig, country });
 }
 
 // Inside the existing synchronous root layout:
 const state = resolveVisitorConsent();
 
-<Consent state={state}>{children}</Consent>
+<Consent state={state}>{children}</Consent>;
 ```
 
 This replaces the `resolveConsent` call in the root layout from the
@@ -189,26 +190,26 @@ import { c15tProxy } from 'c15t/next/proxy';
 import { NextRequest } from 'next/server';
 
 export function proxy(request: NextRequest) {
-  const headers = new Headers(request.headers);
-  for (const name of [
-    'x-c15t-country',
-    'cf-ipcountry',
-    'x-vercel-ip-country',
-    'x-amz-cf-ipcountry',
-    'x-country-code',
-    'x-country',
-    'x-c15t-region',
-    'cf-region-code',
-    'x-vercel-ip-country-region',
-    'x-region-code',
-  ]) {
-    headers.delete(name);
-  }
-  const country = headers.get('cloudfront-viewer-country');
-  const region = headers.get('cloudfront-viewer-country-region');
-  if (country) headers.set('x-c15t-country', country);
-  if (region) headers.set('x-c15t-region', region);
-  return c15tProxy(new NextRequest(request, { headers }));
+	const headers = new Headers(request.headers);
+	for (const name of [
+		'x-c15t-country',
+		'cf-ipcountry',
+		'x-vercel-ip-country',
+		'x-amz-cf-ipcountry',
+		'x-country-code',
+		'x-country',
+		'x-c15t-region',
+		'cf-region-code',
+		'x-vercel-ip-country-region',
+		'x-region-code',
+	]) {
+		headers.delete(name);
+	}
+	const country = headers.get('cloudfront-viewer-country');
+	const region = headers.get('cloudfront-viewer-country-region');
+	if (country) headers.set('x-c15t-country', country);
+	if (region) headers.set('x-c15t-region', region);
+	return c15tProxy(new NextRequest(request, { headers }));
 }
 ```
 

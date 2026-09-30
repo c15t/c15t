@@ -14,15 +14,15 @@ plugin in `src/main.ts`. When that category is denied, c15t deletes them:
 
 ```ts title="src/main.ts (partial)"
 createApp(App)
-  .use(c15tVue, {
-    backendURL: 'https://your-project.inth.app',
-    scripts,
-    clearOnRevocation: {
-      measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
-      marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
-    },
-  })
-  .mount('#app');
+	.use(c15tVue, {
+		backendURL: 'https://your-project.inth.app',
+		scripts,
+		clearOnRevocation: {
+			measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
+			marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
+		},
+	})
+	.mount('#app');
 ```
 
 The plugin reads `clearOnRevocation` once, when the app mounts.

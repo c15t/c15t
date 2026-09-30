@@ -47,16 +47,16 @@ header with the same nonce:
 import { defineMiddleware } from 'astro:middleware';
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const nonce = crypto.randomUUID();
-  if (context.locals.c15t) {
-    context.locals.c15t.nonce = nonce;
-  }
-  const response = await next();
-  response.headers.set(
-    'content-security-policy',
-    `script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'`
-  );
-  return response;
+	const nonce = crypto.randomUUID();
+	if (context.locals.c15t) {
+		context.locals.c15t.nonce = nonce;
+	}
+	const response = await next();
+	response.headers.set(
+		'content-security-policy',
+		`script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'`
+	);
+	return response;
 });
 ```
 
@@ -130,10 +130,10 @@ Turn on Astro's CSP with `security.csp`, or `experimental.csp` in Astro 5:
 
 ```js title="astro.config.mjs (partial)"
 export default defineConfig({
-  security: { csp: true },
-  integrations: [
-    c15t({ mode: hosted({ url: 'https://your-project.inth.app' }) }),
-  ],
+	security: { csp: true },
+	integrations: [
+		c15t({ mode: hosted({ url: 'https://your-project.inth.app' }) }),
+	],
 });
 ```
 

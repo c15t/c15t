@@ -17,11 +17,11 @@ is absent, so an existing value overrides your initial state.
 import { databuddy } from '@c15t/integrations/databuddy';
 
 export const scripts = [
-  databuddy({
-    clientId: 'YOUR_CLIENT_ID',
-    configWhenGranted: { disabled: false },
-    configWhenDenied: { disabled: true },
-  }),
+	databuddy({
+		clientId: 'YOUR_CLIENT_ID',
+		configWhenGranted: { disabled: false },
+		configWhenDenied: { disabled: true },
+	}),
 ];
 ```
 
