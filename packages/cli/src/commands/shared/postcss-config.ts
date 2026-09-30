@@ -13,25 +13,34 @@ import {
 export const TAILWIND3_POSTCSS_PLUGIN = '@c15t/ui/postcss-tailwind3';
 
 /**
- * Config files `postcss-load-config` reads, in its search order. The
- * `package.json` `postcss` field and YAML configs are left to the user.
+ * PostCSS config files, in `postcss-load-config`'s search order (Vite),
+ * plus `postcss.config.json`, which Next.js also reads. Both loaders check a
+ * `postcss` field in `package.json` first.
  */
 const POSTCSS_CONFIG_CANDIDATES = [
 	'.postcssrc',
 	'.postcssrc.json',
-	'.postcssrc.js',
-	'.postcssrc.mjs',
-	'.postcssrc.cjs',
+	'.postcssrc.yaml',
+	'.postcssrc.yml',
 	'.postcssrc.ts',
-	'postcss.config.js',
-	'postcss.config.mjs',
-	'postcss.config.cjs',
+	'.postcssrc.cts',
+	'.postcssrc.js',
+	'.postcssrc.cjs',
+	'.postcssrc.mjs',
 	'postcss.config.ts',
-	'postcss.config.mts',
 	'postcss.config.cts',
+	'postcss.config.mts',
+	'postcss.config.js',
+	'postcss.config.cjs',
+	'postcss.config.mjs',
+	'postcss.config.json',
 ] as const;
 
-const JSON_CONFIGS = new Set(['.postcssrc', '.postcssrc.json']);
+const JSON_CONFIGS = new Set([
+	'.postcssrc',
+	'.postcssrc.json',
+	'postcss.config.json',
+]);
 
 export type EnsureTailwind3PostcssPluginResult =
 	| { status: 'present' | 'added'; filePath: string }
@@ -285,6 +294,31 @@ export const addTailwind3PluginToPostcssConfig =
 		};
 	};
 
+/** Whether package.json carries a `postcss` config object. */
+const hasPackageJsonPostcssConfig = async function hasPackageJsonPostcssConfig(
+	projectRoot: string
+): Promise<boolean> {
+	const packageJsonPath = join(projectRoot, 'package.json');
+	await resolvePlannedPath(packageJsonPath);
+	if (!existsSync(packageJsonPath)) {
+		return false;
+	}
+	try {
+		const packageJson: unknown = JSON.parse(
+			await readFile(packageJsonPath, 'utf-8')
+		);
+		return (
+			typeof packageJson === 'object' &&
+			packageJson !== null &&
+			'postcss' in packageJson &&
+			typeof packageJson.postcss === 'object' &&
+			packageJson.postcss !== null
+		);
+	} catch {
+		return false;
+	}
+};
+
 /**
  * Make sure a Tailwind 3 app runs `@c15t/ui/postcss-tailwind3` before
  * `tailwindcss`. Tailwind 3 rejects c15t's `@layer components` blocks and
@@ -293,33 +327,50 @@ export const addTailwind3PluginToPostcssConfig =
  * @param options.projectRoot - App root to search for a PostCSS config
  * @param options.dryRun - Report the change without writing it
  * @returns `present` or `added` with the config path, or `manual` when no
- *   config was found or its plugin list could not be edited
+ *   config was found, package.json holds the config, several config files
+ *   exist, or the plugin list could not be edited
  */
 export const ensureTailwind3PostcssPlugin =
 	async function ensureTailwind3PostcssPlugin(options: {
 		projectRoot: string;
 		dryRun?: boolean;
 	}): Promise<EnsureTailwind3PostcssPluginResult> {
+		const found: string[] = [];
 		for (const candidate of POSTCSS_CONFIG_CANDIDATES) {
 			const filePath = join(options.projectRoot, candidate);
-			// oxlint-disable-next-line no-await-in-loop -- Check each candidate before following it.
+			// oxlint-disable-next-line no-await-in-loop -- Check each candidate in order.
 			await resolvePlannedPath(filePath);
-			if (!existsSync(filePath)) {
-				continue;
+			if (existsSync(filePath)) {
+				found.push(candidate);
 			}
-
-			// oxlint-disable-next-line no-await-in-loop -- Stops at the first config found.
-			const content = await readFile(filePath, 'utf-8');
-			const edit = addTailwind3PluginToPostcssConfig(content, candidate);
-			if (edit.status === 'added' && !options.dryRun) {
-				// oxlint-disable-next-line no-await-in-loop -- Stops at the first config found.
-				await writeFile(filePath, edit.content, 'utf-8');
-			}
-
-			return { filePath, status: edit.status };
 		}
 
-		return { filePath: null, status: 'manual' };
+		// A `postcss` field in package.json wins over every file, and with
+		// several files the loaders disagree on which one runs. Editing a
+		// config the build ignores would report success and change nothing.
+		if (
+			(await hasPackageJsonPostcssConfig(options.projectRoot)) ||
+			found.length > 1
+		) {
+			return {
+				filePath: join(options.projectRoot, found[0] ?? 'package.json'),
+				status: 'manual',
+			};
+		}
+
+		const [candidate] = found;
+		if (!candidate) {
+			return { filePath: null, status: 'manual' };
+		}
+
+		const filePath = join(options.projectRoot, candidate);
+		const content = await readFile(filePath, 'utf-8');
+		const edit = addTailwind3PluginToPostcssConfig(content, candidate);
+		if (edit.status === 'added' && !options.dryRun) {
+			await writeFile(filePath, edit.content, 'utf-8');
+		}
+
+		return { filePath, status: edit.status };
 	};
 
 /** The manual step for configs this module cannot edit. */

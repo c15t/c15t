@@ -210,9 +210,13 @@ the page outside a layer beats them whatever its specificity, including a
 theme's global `button {}` rule and Tailwind 3's preflight, which removes the
 button padding and card borders. Keep the default shadow root on those sites.
 If you import `@c15t/browser/styles.css` through a bundler that runs Tailwind
-3, add `@c15t/ui/postcss-tailwind3` before `tailwindcss` in your PostCSS
-plugins. Without it, Tailwind 3 drops those rules without an error, and only
-the layered copy `c15t.js` injects remains, which preflight overrides.
+3, install `@c15t/ui` as a direct dependency and add
+`@c15t/ui/postcss-tailwind3` before `tailwindcss` in your PostCSS plugins,
+using the object form: `{ '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {} }`.
+PostCSS resolves the plugin from your app, so under pnpm the copy nested in
+`@c15t/browser` is not enough. Without the plugin, Tailwind 3 drops those
+rules without an error, and only the layered copy `c15t.js` injects remains,
+which preflight overrides.
 
 For layout, pass host presentation separately from the policy:
 

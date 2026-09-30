@@ -216,6 +216,39 @@ describe('ensureTailwind3PostcssPlugin', () => {
 		);
 	});
 
+	it('asks for a manual change when package.json holds the config', async () => {
+		const config = 'export default { plugins: { tailwindcss: {} } };\n';
+		const root = await createProject({
+			'package.json': JSON.stringify({ postcss: { plugins: {} } }),
+			'postcss.config.mjs': config,
+		});
+
+		const result = await ensureTailwind3PostcssPlugin({ projectRoot: root });
+
+		expect(result.status).toBe('manual');
+		expect(await readFile(join(root, 'postcss.config.mjs'), 'utf-8')).toBe(
+			config
+		);
+	});
+
+	it('asks for a manual change when several config files exist', async () => {
+		const config = 'export default { plugins: { tailwindcss: {} } };\n';
+		const root = await createProject({
+			'.postcssrc.yml': 'plugins:\n  tailwindcss: {}\n',
+			'postcss.config.mjs': config,
+		});
+
+		await expect(
+			ensureTailwind3PostcssPlugin({ projectRoot: root })
+		).resolves.toEqual({
+			filePath: join(root, '.postcssrc.yml'),
+			status: 'manual',
+		});
+		expect(await readFile(join(root, 'postcss.config.mjs'), 'utf-8')).toBe(
+			config
+		);
+	});
+
 	it('asks for a manual change without a config', async () => {
 		const root = await createProject({});
 
