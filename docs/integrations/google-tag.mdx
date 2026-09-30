@@ -6,10 +6,10 @@ group: integrations
 
 ## Register gtag
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { gtag } from '@c15t/scripts/google-tag';
+import { gtag } from '@c15t/integrations/google-tag';
 
 export const scripts = [gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })];
 ```

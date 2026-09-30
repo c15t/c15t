@@ -1,4 +1,4 @@
-import { builtInScriptIntegrations } from '@c15t/scripts/registry';
+import { builtInScriptIntegrations } from '@c15t/integrations/registry';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -48,10 +48,10 @@ describe('script snippets', () => {
 
 		expect(generateScriptsImport(selected)).toBe(
 			[
-				"import { clarity } from '@c15t/scripts/microsoft-clarity';",
-				"import { segment } from '@c15t/scripts/segment';",
-				"import { logRocket } from '@c15t/scripts/logrocket';",
-				"import { frontChat } from '@c15t/scripts/front-chat';",
+				"import { clarity } from '@c15t/integrations/microsoft-clarity';",
+				"import { segment } from '@c15t/integrations/segment';",
+				"import { logRocket } from '@c15t/integrations/logrocket';",
+				"import { frontChat } from '@c15t/integrations/front-chat';",
 			].join('\n')
 		);
 

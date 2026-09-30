@@ -8,10 +8,10 @@ group: integrations
 
 Copy the site ID from your Fathom snippet. Set SPA behavior deliberately when your application navigates without full page reloads.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
+import { fathomAnalytics } from '@c15t/integrations/fathom-analytics';
 
 export const scripts = [fathomAnalytics({ site: 'YOUR_SITE_ID', spa: 'auto' })];
 ```

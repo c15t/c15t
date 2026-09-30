@@ -7,7 +7,7 @@ group: integrations
 
 ## Start with a script configuration
 
-Check the installed `@c15t/scripts` exports first. For an unlisted SDK, define a
+Check the installed `@c15t/integrations` exports first. For an unlisted SDK, define a
 stable ID, category and source URL, then pass the configuration to the existing
 provider or loader:
 

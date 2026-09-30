@@ -36,9 +36,9 @@ packages:
   "@c15t/schema":
     replay:
       - exit-prerelease(npm:@c15t/schema)
-  "@c15t/scripts":
+  "@c15t/integrations":
     replay:
-      - exit-prerelease(npm:@c15t/scripts)
+      - exit-prerelease(npm:@c15t/integrations)
   "@c15t/tanstack-start":
     replay:
       - exit-prerelease(npm:@c15t/tanstack-start)

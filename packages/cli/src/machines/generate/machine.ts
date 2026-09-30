@@ -684,7 +684,7 @@ export const generateMachine = setup({
 							// (@c15t/react, @c15t/nextjs) as already satisfying it.
 							const deps: string[] = [UMBRELLA_PACKAGE];
 							if (event.output.addScripts) {
-								deps.push('@c15t/scripts');
+								deps.push('@c15t/integrations');
 							}
 							if (context.enableDevTools && context.framework?.pkg === 'c15t') {
 								deps.push('@c15t/dev-tools');

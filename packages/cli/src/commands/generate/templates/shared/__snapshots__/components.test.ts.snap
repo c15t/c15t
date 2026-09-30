@@ -24,7 +24,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 		<ConsentProvider options={{
 			mode: offline(),
 			// Add your scripts here:
-				// import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+				// import { googleTagManager } from '@c15t/integrations/google-tag-manager';
 				// scripts: [
 				//   googleTagManager({ id: 'GTM-XXXXXX' }),
 				// ],
@@ -55,7 +55,7 @@ import { lazy, Suspense } from 'react';
 const DevTools = process.env.NODE_ENV !== 'production'
 	? lazy(() => import('c15t/next/devtools').then(({ DevTools }) => ({ default: DevTools })))
 	: () => null;
-import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { googleTagManager } from '@c15t/integrations/google-tag-manager';
 /**
  * Client-side consent manager provider.
  * @see https://c15t.com/docs/frameworks/next/quickstart

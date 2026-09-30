@@ -49,7 +49,7 @@ import {
 	validateStoredConsentEnvelope,
 } from '../../../core/src/modules/persistence/record-codec';
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
-import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
+import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
 import { ConsentGate } from '../components/consent-gate';
 import { ConsentDialog } from '../components/panel';
 import { ConsentDialogLink } from '../components/panel-link';

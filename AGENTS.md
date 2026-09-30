@@ -14,7 +14,8 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 | `packages/tanstack-start` | `@c15t/tanstack-start` — TanStack Start integration (server routes, server functions, request middleware, SSR) |
 | `packages/ui` | `@c15t/ui` — framework-agnostic primitives, CSS, theme system |
 | `packages/vue`, `packages/svelte`, `packages/solid` | Thin framework re-exports of `@c15t/ui` |
-| `packages/scripts` | `@c15t/scripts` — consent-aware loaders for GTM, GA4, pixels, widgets |
+| `packages/scripts` | `@c15t/scripts` — deprecated v3 compatibility re-exports of `@c15t/integrations`; retire in v4 |
+| `packages/integrations` | `@c15t/integrations` — consent-aware loaders for GTM, GA4, pixels, widgets |
 | `packages/iab` | `@c15t/iab` — IAB TCF 2.4 addon (TC String, GVL, vendor consent) |
 | `packages/backend` | `@c15t/backend` — self-hostable consent backend (policies, audit, geo) |
 | `packages/cli` | `@c15t/cli` — scaffolding/setup CLI |

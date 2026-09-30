@@ -84,10 +84,12 @@ describe('setup routing in an interactive terminal', () => {
 		).toMatchObject({
 			data: {
 				applied: false,
-				dependencies: expect.arrayContaining(['@c15t/scripts']),
+				dependencies: expect.arrayContaining(['@c15t/integrations']),
 				edits: expect.arrayContaining([
 					expect.objectContaining({
-						after: expect.stringContaining("from '@c15t/scripts/google-tag'"),
+						after: expect.stringContaining(
+							"from '@c15t/integrations/google-tag'"
+						),
 					}),
 				]),
 			},

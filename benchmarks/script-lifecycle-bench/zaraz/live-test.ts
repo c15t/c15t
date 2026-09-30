@@ -4,7 +4,7 @@ import { resolve as resolvePath } from 'node:path';
 
 import { chromium } from 'playwright';
 
-import type { ZarazConsentApi } from '../../../packages/scripts/src/vendors/tag-managers/cloudflare-zaraz';
+import type { ZarazConsentApi } from '../../../packages/integrations/src/vendors/tag-managers/cloudflare-zaraz';
 
 declare global {
 	interface Window {

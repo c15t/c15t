@@ -200,7 +200,7 @@ export const addDependencies = function addDependencies({
 
 	// Add scripts package if selected
 	if (context.addScripts) {
-		deps.push('@c15t/scripts');
+		deps.push('@c15t/integrations');
 	}
 
 	// Add dev tools package if selected

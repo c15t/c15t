@@ -6,7 +6,7 @@ group: frameworks
 
 ## Register scripts on the provider
 
-Install `@c15t/scripts` for vendor helpers. This React-compatible client component
+Install `@c15t/integrations` for vendor helpers. This React-compatible client component
 uses Inth as the backend. Set the URL to the endpoint supplied by your Inth
 project and keep the component mounted around your application.
 
@@ -15,7 +15,7 @@ project and keep the component mounted around your application.
 
 import type { ReactNode } from 'react';
 import { ConsentProvider, ConsentBanner, ConsentDialog, ConsentDialogLink, hosted } from 'c15t/react';
-import { metaPixel } from '@c15t/scripts/meta-pixel';
+import { metaPixel } from '@c15t/integrations/meta-pixel';
 
 const mode = hosted({ url: 'https://your-project.inth.app' });
 const scripts = [metaPixel({ pixelId: '123456789012345' })];

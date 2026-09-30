@@ -15,8 +15,8 @@
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/iab": "workspace:*",
+		"@c15t/integrations": "workspace:*",
 		"@c15t/schema": "workspace:*",
-		"@c15t/scripts": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@libsql/client": "0.17.4",

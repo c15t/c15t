@@ -8,10 +8,10 @@ group: integrations
 
 Copy the project key from the Ahrefs installation snippet. The helper passes it as `data-key` to the analytics script.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { ahrefsAnalytics } from '@c15t/scripts/ahrefs-analytics';
+import { ahrefsAnalytics } from '@c15t/integrations/ahrefs-analytics';
 
 export const scripts = [ahrefsAnalytics({ key: 'YOUR_PROJECT_KEY' })];
 ```

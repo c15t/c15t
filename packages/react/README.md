@@ -29,7 +29,7 @@ React cookie banner, consent manager, preference center, and headless CMP compon
 - Minimal configuration with TypeScript-first design
 - Comprehensive Consent Management Platform (CMP)
 - IAB TCF 2.4 UI and hooks through the @c15t/react/iab subpath
-- Google Tag Manager, Google Consent Mode v2, Meta Pixel, and analytics integrations through @c15t/scripts
+- Google Tag Manager, Google Consent Mode v2, Meta Pixel, and analytics integrations through @c15t/integrations
 - Built-in internationalization support
 - Seamless consent storage and tracking
 

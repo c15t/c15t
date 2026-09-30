@@ -260,7 +260,7 @@
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",
 				"@c15t/schema#dev",
-				"@c15t/scripts#dev",
+				"@c15t/integrations#dev",
 				"@c15t/translations#dev",
 				"@c15t/ui#dev"
 			]
@@ -597,7 +597,7 @@
 			],
 			"outputs": []
 		},
-		"@c15t/scripts#test": {
+		"@c15t/integrations#test": {
 			"dependsOn": ["build", "^build", "transit"],
 			"outputs": [
 				"coverage/coverage-summary.json",
@@ -605,10 +605,14 @@
 				"coverage/html/**"
 			]
 		},
+		"@c15t/scripts#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": []
+		},
 		"transit": {
 			"dependsOn": ["^transit"]
 		},
-		"@c15t/scripts#build": {
+		"@c15t/integrations#build": {
 			"dependsOn": ["^build"],
 			"inputs": [
 				"$TURBO_DEFAULT$",

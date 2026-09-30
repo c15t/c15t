@@ -10,15 +10,15 @@ group: integrations
 Copy your Pixel ID from the conversions tab in OpenAI Ads Manager. The helper
 initializes `oaiq` and loads the SDK when marketing permission allows it.
 
-| Package manager | Command                     |
-| :-------------- | :-------------------------- |
-| npm             | `npm install @c15t/scripts` |
-| pnpm            | `pnpm add @c15t/scripts`    |
-| yarn            | `yarn add @c15t/scripts`    |
-| bun             | `bun add @c15t/scripts`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 ```ts title="src/consent-scripts.ts"
-import { openaiPixel } from '@c15t/scripts/openai-pixel';
+import { openaiPixel } from '@c15t/integrations/openai-pixel';
 
 export const scripts = [openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 ```
@@ -276,7 +276,7 @@ already has a loader; do not attach a second one. See
 
 **React Native**
 
-There is no script loader to register. `@c15t/scripts` loads browser
+There is no script loader to register. `@c15t/integrations` loads browser
 documents, and a React Native app has none: the consent kernel runs natively
 and the vendor ships as a native or JavaScript module you start yourself.
 
@@ -368,7 +368,7 @@ This partial example belongs in an order-completion handler after that
 permission check. It sends an order value of $25.99:
 
 ```ts
-import { openaiPixelEvent } from '@c15t/scripts/openai-pixel';
+import { openaiPixelEvent } from '@c15t/integrations/openai-pixel';
 
 openaiPixelEvent(
   'order_created',
@@ -409,7 +409,7 @@ Custom events require `custom_event_name`. After checking marketing permission,
 you can verify a custom event with a clearly named payload:
 
 ```ts
-import { openaiPixelEvent } from '@c15t/scripts/openai-pixel';
+import { openaiPixelEvent } from '@c15t/integrations/openai-pixel';
 
 openaiPixelEvent(
   'custom',

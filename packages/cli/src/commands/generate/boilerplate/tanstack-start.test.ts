@@ -29,10 +29,10 @@ describe('TanStack Start boilerplate', () => {
 					module: ts.ModuleKind.ESNext,
 					moduleResolution: ts.ModuleResolutionKind.Bundler,
 					paths: {
-						'@c15t/scripts/google-tag-manager': [
+						'@c15t/integrations/google-tag-manager': [
 							path.join(
 								packages,
-								'scripts/src/vendors/tag-managers/google-tag-manager.ts'
+								'integrations/src/vendors/tag-managers/google-tag-manager.ts'
 							),
 						],
 						'@c15t/tanstack-start': [

@@ -9,10 +9,10 @@ group: integrations
 Use the client ID for your Databuddy project. Supply both configuration objects
 so the initial script load has an explicit allowed and denied state.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { databuddy } from '@c15t/scripts/databuddy';
+import { databuddy } from '@c15t/integrations/databuddy';
 
 export const scripts = [
   databuddy({

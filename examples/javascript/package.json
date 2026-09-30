@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"@c15t/dev-tools": "workspace:*",
-		"@c15t/scripts": "workspace:*",
+		"@c15t/integrations": "workspace:*",
 		"c15t": "workspace:*"
 	},
 	"devDependencies": {

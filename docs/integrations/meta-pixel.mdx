@@ -6,10 +6,10 @@ group: integrations
 
 ## Register the pixel
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { metaPixel } from '@c15t/scripts/meta-pixel';
+import { metaPixel } from '@c15t/integrations/meta-pixel';
 
 export const scripts = [metaPixel({ pixelId: '123456789012345' })];
 ```

@@ -7,15 +7,15 @@ group: integrations
 
 ## Register the pixel
 
-| Package manager | Command                     |
-| :-------------- | :-------------------------- |
-| npm             | `npm install @c15t/scripts` |
-| pnpm            | `pnpm add @c15t/scripts`    |
-| yarn            | `yarn add @c15t/scripts`    |
-| bun             | `bun add @c15t/scripts`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 ```ts title="src/consent-scripts.ts"
-import { metaPixel } from '@c15t/scripts/meta-pixel';
+import { metaPixel } from '@c15t/integrations/meta-pixel';
 
 export const scripts = [metaPixel({ pixelId: '123456789012345' })];
 ```
@@ -274,7 +274,7 @@ already has a loader; do not attach a second one. See
 
 **React Native**
 
-There is no script loader to register. `@c15t/scripts` loads browser
+There is no script loader to register. `@c15t/integrations` loads browser
 documents, and a React Native app has none: the consent kernel runs natively
 and the vendor ships as a native or JavaScript module you start yourself.
 

@@ -8,10 +8,10 @@ group: integrations
 
 Copy the identification code from your Pirsch installation. The helper also initializes Pirsch event bindings when consent is granted after `DOMContentLoaded`.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { pirsch } from '@c15t/scripts/pirsch';
+import { pirsch } from '@c15t/integrations/pirsch';
 
 export const scripts = [pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' })];
 ```

@@ -1,8 +1,51 @@
 ---
 title: Upgrade to v3 policies
-description: Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
+description: Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.
 group: reference
 ---
+
+## Rename the integrations dependency
+
+v3 renames `@c15t/scripts` to `@c15t/integrations`. Remove `@c15t/scripts`
+from your dependencies and install `@c15t/integrations` using your package
+manager. During the v3 prerelease, use the `alpha` tag:
+
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+
+Replace the package name in each import. Vendor subpaths and helper names stay
+the same.
+
+Before, in v2 and earlier v3 alphas:
+
+```ts
+import { posthog } from '@c15t/scripts/posthog';
+import { createEventDispatcher } from '@c15t/scripts/events';
+```
+
+After:
+
+```ts
+import { posthog } from '@c15t/integrations/posthog';
+import { createEventDispatcher } from '@c15t/integrations/events';
+```
+
+The `scripts` configuration option and `Script` type keep their names.
+`@c15t/scripts` remains available as a deprecated compatibility package
+throughout v3. It re-exports the same implementation and types from
+`@c15t/integrations`, so you can migrate imports separately from upgrading
+to v3. Compatibility ends in v4. Previously published versions remain
+available on npm.
+
+To preview import changes in JavaScript and TypeScript files with the v3 CLI:
+
+```sh
+c15t codemods scripts-to-integrations --dry-run --json
+```
+
+Review the output, then repeat without `--dry-run`. This transform runs only
+when named. Update dependency declarations, lockfiles, and imports inside
+`.vue`, `.svelte`, or `.astro` files separately. Reinstall dependencies and run
+your application's build after migrating.
 
 ## React version requirement
 

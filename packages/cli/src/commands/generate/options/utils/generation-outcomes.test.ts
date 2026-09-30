@@ -74,7 +74,7 @@ describe('generated project outcomes', () => {
 			'utf8'
 		);
 		expect(content).toContain('createConsentKernel');
-		expect(content).toContain("from '@c15t/scripts/google-tag-manager'");
+		expect(content).toContain("from '@c15t/integrations/google-tag-manager'");
 		expect(content).toContain('createScriptLoader({ kernel, scripts:');
 	});
 

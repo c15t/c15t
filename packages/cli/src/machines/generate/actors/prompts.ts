@@ -7,7 +7,7 @@
 import {
 	BUILT_IN_INTEGRATION_CATEGORIES,
 	builtInScriptIntegrations,
-} from '@c15t/scripts/registry';
+} from '@c15t/integrations/registry';
 import * as p from '@clack/prompts';
 import { fromPromise } from 'xstate';
 
@@ -613,7 +613,7 @@ export const frontendOptionsActor = fromPromise<
 // --- Scripts Option Prompt ---
 
 /**
- * Available scripts from @c15t/scripts package
+ * Available scripts from @c15t/integrations package
  */
 export const AVAILABLE_SCRIPTS = BUILT_IN_INTEGRATION_CATEGORIES.flatMap(
 	(category) =>
@@ -647,7 +647,7 @@ export const scriptsOptionActor = fromPromise<
 	const { cliContext } = input;
 
 	cliContext.logger.info(
-		'The @c15t/scripts package provides pre-configured third-party scripts with consent management.'
+		'The @c15t/integrations package provides pre-configured third-party scripts with consent management.'
 	);
 
 	const addScripts =
@@ -655,7 +655,7 @@ export const scriptsOptionActor = fromPromise<
 			? true
 			: await p.confirm({
 					initialValue: true,
-					message: 'Add @c15t/scripts for third-party script management?',
+					message: 'Add @c15t/integrations for third-party script management?',
 				});
 
 	if (isCancel(addScripts)) {

@@ -10,10 +10,10 @@ Copy the `chatId` from the widget snippet in your Front Chat channel's
 **Installation** tab. The helper loads Front's SDK once functionality permission
 is granted, then calls `FrontChat('init')` with your chat ID.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { frontChat } from '@c15t/scripts/front-chat';
+import { frontChat } from '@c15t/integrations/front-chat';
 
 export const scripts = [frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })];
 ```
@@ -44,7 +44,7 @@ To also clear the visitor's Front session, call `shutdownFrontChat()` from
 `onBeforeConsentRevocationReload`:
 
 ```ts
-import { shutdownFrontChat } from '@c15t/scripts/front-chat';
+import { shutdownFrontChat } from '@c15t/integrations/front-chat';
 
 const callbacks = {
 	onBeforeConsentRevocationReload: ({ preferences }) => {

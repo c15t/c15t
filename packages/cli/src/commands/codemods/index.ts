@@ -13,6 +13,7 @@ import { runC15tModeToHostedCodemod } from './mode-c15t-to-hosted';
 import { runReactOptionsToTopLevelCodemod } from './react-options-to-top-level';
 import { createCodemodSession } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
+import { runScriptsToIntegrationsCodemod } from './scripts-to-integrations';
 import { runTrackingBlockerToNetworkBlockerCodemod } from './tracking-blocker-to-network-blocker';
 import { runTranslationsToI18nCodemod } from './translations-to-i18n';
 import { runUseConsentManagerToHooksCodemod } from './use-consent-manager-to-hooks';
@@ -197,6 +198,13 @@ const codemods: CodemodDefinition[] = [
 			fromRange: '<3.0.0-alpha.3',
 			toRange: '>=3.0.0-alpha.3',
 		},
+	},
+	{
+		hint: 'Renames @c15t/scripts imports to @c15t/integrations. Update the dependency separately.',
+		id: 'scripts-to-integrations',
+		label: '@c15t/scripts -> @c15t/integrations',
+		run: runScriptsToIntegrationsCodemod,
+		targetVersion: '3.0.0',
 	},
 ];
 

@@ -8,10 +8,10 @@ group: integrations
 
 Use your X Pixel ID. The helper configures `twq` and loads the pixel SDK. Event conversion IDs are separate from the pixel ID.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { xPixel } from '@c15t/scripts/x-pixel';
+import { xPixel } from '@c15t/integrations/x-pixel';
 
 export const scripts = [xPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 ```

@@ -57,7 +57,7 @@ import {
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { createIAB } from '../../../iab/src/index';
 import type { IABHandle } from '../../../iab/src/index';
-import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
+import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
 import type { FrameworkRoot } from './framework-root';
 
 // Theme styles load after mount; compare the consent markup and track hydration warnings separately.

@@ -157,10 +157,25 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'customization/**/*.mdx',
 			'integrations/**/*.mdx',
 		],
+		name: '@c15t/integrations',
+		outDir: 'packages/integrations',
+		summary:
+			'Consent-aware vendor integrations and Consent Mode loading contracts.',
+	},
+	{
+		include: [
+			'upgrade-v3.mdx',
+			'guides/**/*.mdx',
+			'frameworks/javascript/script-loader.mdx',
+			'frameworks/react/script-loader.mdx',
+			'frameworks/next/script-loader.mdx',
+			'customization/**/*.mdx',
+			'integrations/**/*.mdx',
+		],
 		name: '@c15t/scripts',
 		outDir: 'packages/scripts',
 		summary:
-			'Consent-aware vendor integrations and Consent Mode loading contracts.',
+			'Deprecated v3 compatibility package for @c15t/integrations. Migrate before v4.',
 	},
 	{
 		include: [

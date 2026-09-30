@@ -30,9 +30,9 @@ packages:
   "@c15t/backend":
     replay:
       - exit-prerelease(npm:@c15t/backend)
-  "@c15t/scripts":
+  "@c15t/integrations":
     replay:
-      - exit-prerelease(npm:@c15t/scripts)
+      - exit-prerelease(npm:@c15t/integrations)
   "@c15t/cli":
     replay:
       - exit-prerelease(npm:@c15t/cli)

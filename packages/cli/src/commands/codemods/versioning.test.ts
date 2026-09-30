@@ -62,7 +62,7 @@ describe('codemod versioning', () => {
 			detectInstalledC15tVersionFromPackageJson({
 				dependencies: {
 					'@c15t/cli': '^1.5.0',
-					'@c15t/scripts': '^1.0.0',
+					'@c15t/integrations': '^1.0.0',
 					c15t: '^3.0.0',
 				},
 			})

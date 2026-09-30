@@ -56,7 +56,7 @@ import {
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { createIAB } from '../../../iab/src/index';
 import type { IABHandle } from '../../../iab/src/index';
-import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
+import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
 import ConsentGate from '../runtime/components/consent-gate.vue';
 import ConsentManager from '../runtime/components/manager.vue';
 import ConsentDialogTrigger from '../runtime/components/panel-trigger.vue';

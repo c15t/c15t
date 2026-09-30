@@ -9,7 +9,7 @@ this guide. Configure the project's policy rules and allowed app origins first.
 
 ## Install
 
-<CommandTabs command="c15t @c15t/scripts" mode="install" />
+<CommandTabs command="c15t @c15t/integrations" mode="install" />
 
 Set `VITE_C15T_BACKEND_URL` to your consent backend's absolute base URL and allow
 your application origin on that backend. This direct-backend recipe uses the
@@ -267,7 +267,7 @@ import { vendors } from '../vendors';
 ```
 
 The preference center lists each vendor under its category with a switch.
-Integrations from `@c15t/scripts` set `vendor` to their manifest slug, so
+Integrations from `@c15t/integrations` set `vendor` to their manifest slug, so
 `xPixel()` needs no extra wiring; give a hand-written script the same slug
 in its `vendor` field. See
 [granular consent](/docs/integrations/granular-consent) for storage, bulk

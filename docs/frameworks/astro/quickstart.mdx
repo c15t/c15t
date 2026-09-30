@@ -23,7 +23,7 @@ warning; to make the first open instant for them too, add `preload` to
 `ConsentDialog`, which downloads the island once the browser is idle on every
 page that renders it.
 
-<CommandTabs command="c15t @astrojs/svelte svelte @c15t/scripts" mode="install" />
+<CommandTabs command="c15t @astrojs/svelte svelte @c15t/integrations" mode="install" />
 
 ## Register consent-gated scripts
 
@@ -341,7 +341,7 @@ An existing CMP can own consent decisions, UI, records, expiry, and privacy-sign
 ```ts title="src/consent-client.ts"
 import type { C15tClientOptionsExtension } from '@c15t/astro';
 import { provider } from './your-consent-provider';
-import { posthog } from '@c15t/scripts/posthog';
+import { posthog } from '@c15t/integrations/posthog';
 
 export default {
   scripts: [posthog({ id: 'ph_your_project_key' })],
@@ -359,11 +359,11 @@ When the source withdraws a category that was granted, c15t reloads the page so 
 
 ## Dispatch application events
 
-`createEventDispatcher` from `@c15t/scripts/events` sends custom analytics events to configured integrations with supported event APIs. Pass the same scripts registered with c15t and a live `getSnapshot` function. It checks measurement and each script's consent condition, isolates vendor failures, and discards denied events instead of replaying them later.
+`createEventDispatcher` from `@c15t/integrations/events` sends custom analytics events to configured integrations with supported event APIs. Pass the same scripts registered with c15t and a live `getSnapshot` function. It checks measurement and each script's consent condition, isolates vendor failures, and discards denied events instead of replaying them later.
 
 ```ts title="src/events.ts"
 import { getConsentClient } from '@c15t/astro/client';
-import { createEventDispatcher } from '@c15t/scripts/events';
+import { createEventDispatcher } from '@c15t/integrations/events';
 import options from './consent-client';
 
 export function trackSearch(resultCount: number) {

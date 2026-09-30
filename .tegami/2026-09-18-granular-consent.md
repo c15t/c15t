@@ -9,9 +9,9 @@ packages:
   "@c15t/schema":
     replay:
       - exit-prerelease(npm:@c15t/schema)
-  "@c15t/scripts":
+  "@c15t/integrations":
     replay:
-      - exit-prerelease(npm:@c15t/scripts)
+      - exit-prerelease(npm:@c15t/integrations)
   "@c15t/dev-tools":
     replay:
       - exit-prerelease(npm:@c15t/dev-tools)

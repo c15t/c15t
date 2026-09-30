@@ -21,7 +21,7 @@ export const generateAstroBoilerplate = (
 			'@c15t/astro',
 			'@astrojs/svelte',
 			'svelte',
-			...(options.scripts.length ? ['@c15t/scripts'] : []),
+			...(options.scripts.length ? ['@c15t/integrations'] : []),
 		],
 		files: {
 			'Consent.astro': `---

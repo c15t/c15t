@@ -46,7 +46,7 @@ node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to
 node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to/app --package-source "$PWD" --apply
 ```
 
-Preparation creates local package snapshots without publishing them. Add `@c15t/scripts` to the build and preparation commands when selecting script integrations. For other frameworks, prepare the `c15t` or `@c15t/*` dependencies returned by the generation plan. External requirements such as Astro's Svelte integration are reported separately; keep or install versions compatible with your application.
+Preparation creates local package snapshots without publishing them. Add `@c15t/integrations` to the build and preparation commands when selecting script integrations. For other frameworks, prepare the `c15t` or `@c15t/*` dependencies returned by the generation plan. External requirements such as Astro's Svelte integration are reported separately; keep or install versions compatible with your application.
 
 `--package-source` points to the checkout root. With prepared packages, the plan includes application `package.json` edits for local snapshots. Review those edits before applying them. Then run the install command printed by the CLI from your application directory. Installation is separate from file generation.
 

@@ -10,10 +10,10 @@ Use the numeric tag ID from Pinterest Ads Manager. The helper recreates
 Pinterest's base code: it defines the `pintrk` queue, queues `load`,
 `setconsent(true)` and a page visit, then loads `core.js`.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { pinterestTag } from '@c15t/scripts/pinterest-tag';
+import { pinterestTag } from '@c15t/integrations/pinterest-tag';
 
 export const scripts = [pinterestTag({ tagId: 'YOUR_TAG_ID' })];
 ```
@@ -39,7 +39,7 @@ JavaScript, so c15t cannot gate it.
 targeting only. Put product details in `line_items`.
 
 ```ts
-import { pinterestTagEvent } from '@c15t/scripts/pinterest-tag';
+import { pinterestTagEvent } from '@c15t/integrations/pinterest-tag';
 
 pinterestTagEvent('checkout', {
 	currency: 'USD',

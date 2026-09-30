@@ -23,7 +23,7 @@ export const generateSvelteBoilerplate = function generateSvelteBoilerplate(
 	return {
 		dependencies: [
 			'@c15t/svelte',
-			...(options.scripts.length ? ['@c15t/scripts'] : []),
+			...(options.scripts.length ? ['@c15t/integrations'] : []),
 		],
 		files: {
 			'consent-options.ts': `import { ${options.mode}, type ConsentManagerOptions } from '@c15t/svelte';
