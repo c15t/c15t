@@ -19,6 +19,7 @@ import type {
 	PublisherRestriction,
 	Script,
 	StorageConfig,
+	Vendor,
 } from '@c15t/core';
 import type {
 	ConsentRuntimeOptions,
@@ -184,6 +185,34 @@ export interface C15tAstroOptions {
 
 	/** Consent-gated scripts handed to the core script loader. */
 	scripts?: Script[];
+
+	/**
+	 * Vendors offered for vendor-level consent outside IAB TCF.
+	 *
+	 * Each vendor sits inside a category. A visitor can allow the category
+	 * and still turn one vendor off in the preference dialog, which lists a
+	 * switch per vendor under its category. Scripts with a matching
+	 * `vendor`, iframes with `data-vendor` and inert tags with
+	 * `data-c15t-vendor` then stay blocked. Declarations merge with vendors
+	 * the backend manifest returns; presentation declared here wins.
+	 * Unrelated to `iab.vendors`, which lists IAB vendor IDs.
+	 *
+	 * @example
+	 * ```js
+	 * c15t({
+	 *   mode: hosted({ url: backendURL }),
+	 *   vendors: [
+	 *     {
+	 *       id: 'posthog',
+	 *       name: 'PostHog',
+	 *       category: 'measurement',
+	 *       privacyPolicyUrl: 'https://posthog.com/privacy',
+	 *     },
+	 *   ],
+	 * });
+	 * ```
+	 */
+	vendors?: Vendor[];
 
 	/** Browser data to remove when its consent permission is revoked. */
 	clearOnRevocation?: ClearOnRevocationConfig;

@@ -19,6 +19,7 @@
  * ```
  */
 
+import { evaluateConsent, isVendorDenied } from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -26,7 +27,9 @@ import type {
 	KernelConfig,
 	KernelUser,
 	LegalLinks,
+	ResolvedVendor,
 	Unsubscribe,
+	VendorChoice,
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type {
@@ -98,6 +101,19 @@ export type ConsentAction =
 	| 'dismiss'
 	| 'close';
 
+/**
+ * What {@link AstroConsentClient.save} records: categories to grant or
+ * deny, and optionally per-vendor grants keyed by vendor id.
+ */
+export type AstroConsentSaveInput = Partial<ConsentState> & {
+	/**
+	 * Per-vendor grants keyed by the ids declared in `vendors`. `false` turns
+	 * a vendor off inside a granted category. Vendors left out keep their
+	 * recorded state. Ignored under an IAB policy.
+	 */
+	vendors?: Record<string, boolean>;
+};
+
 /** The page-level consent client. */
 export interface AstroConsentClient {
 	/** The runtime that owns this page's kernel. */
@@ -133,9 +149,49 @@ export interface AstroConsentClient {
 	/**
 	 * Save a specific set of consents.
 	 *
-	 * @param consents - The categories to persist.
+	 * @param consents - The categories to persist, and optionally per-vendor
+	 * grants under `vendors`.
+	 * @example
+	 * ```ts
+	 * await getConsentClient()?.save({
+	 *   measurement: true,
+	 *   vendors: { posthog: false },
+	 * });
+	 * ```
 	 */
-	save: (consents: Partial<ConsentState>) => Promise<void>;
+	save: (consents: AstroConsentSaveInput) => Promise<void>;
+	/**
+	 * Vendors declared for vendor-level consent: from the `vendors` option,
+	 * the backend manifest, and the slugs on scripts and iframes. Empty under
+	 * an IAB policy, where the TC string decides.
+	 */
+	getDeclaredVendors: () => readonly ResolvedVendor[];
+	/**
+	 * The visitor's recorded vendor decision: the ids they turned off.
+	 *
+	 * @returns The decision, whose `denied` list is empty after a bulk action
+	 * lifted every denial, or `null` when no vendor decision was recorded.
+	 */
+	getVendorChoice: () => Readonly<VendorChoice> | null;
+	/**
+	 * Whether a vendor may load: its category condition passes and the
+	 * visitor has not turned it off.
+	 *
+	 * @param vendorId - Vendor id as declared in `vendors` or on a script.
+	 * @returns `false` while the vendor is off outside an IAB policy,
+	 * otherwise the result of its category condition. `true` for an id that
+	 * is not declared.
+	 * @example
+	 * ```ts
+	 * const client = getConsentClient();
+	 * client?.subscribe(() => {
+	 *   if (client.isVendorAllowed('youtube')) {
+	 *     mountVideo();
+	 *   }
+	 * });
+	 * ```
+	 */
+	isVendorAllowed: (vendorId: string) => boolean;
 	/**
 	 * Associate this consent record with an external identity.
 	 *
@@ -591,6 +647,39 @@ const resolveAction = function resolveAction(
 	};
 };
 
+const NO_VENDORS: readonly ResolvedVendor[] = [];
+
+/**
+ * Whether one vendor may load, with the kernel's gate semantics: its
+ * category condition passes and, outside IAB, the visitor has not turned it
+ * off. A stale denial for a vendor now declared `disabled` no longer
+ * counts. An undeclared id is allowed: nothing is known about its category,
+ * and a denial only exists for a vendor the visitor saw.
+ *
+ * @param snapshot - The kernel snapshot.
+ * @param vendorId - Vendor id.
+ * @returns Whether the vendor is allowed.
+ */
+const isVendorAllowedIn = function isVendorAllowedIn(
+	snapshot: ConsentSnapshot,
+	vendorId: string
+): boolean {
+	const vendor = snapshot.vendors?.declared.find(
+		(entry) => entry.id === vendorId
+	);
+	if (!vendor) {
+		return true;
+	}
+	if (snapshot.model !== 'iab' && isVendorDenied(snapshot, vendorId)) {
+		return false;
+	}
+	try {
+		return evaluateConsent({ category: vendor.category }, snapshot);
+	} catch {
+		return false;
+	}
+};
+
 const createClient = function createClient(
 	options: C15tResolvedOptions,
 	extension: C15tClientOptionsExtension = {}
@@ -644,6 +733,7 @@ const createClient = function createClient(
 		scripts,
 		storageConfig: options.storageConfig,
 		theme: options.theme,
+		vendors: options.vendors,
 	});
 
 	let dialog: ConsentDialogHandle | null = null;
@@ -706,8 +796,20 @@ const createClient = function createClient(
 		getConsent() {
 			return runtime.kernel.getSnapshot();
 		},
+		getDeclaredVendors() {
+			const snapshot = runtime.kernel.getSnapshot();
+			return snapshot.model === 'iab'
+				? NO_VENDORS
+				: (snapshot.vendors?.declared ?? NO_VENDORS);
+		},
+		getVendorChoice() {
+			return runtime.kernel.getSnapshot().vendorChoice;
+		},
 		async identify(user: KernelUser) {
 			await runtime.identify(user);
+		},
+		isVendorAllowed(vendorId: string) {
+			return isVendorAllowedIn(runtime.kernel.getSnapshot(), vendorId);
 		},
 		async openDialog(
 			kind: ConsentDialogKind = 'preferences',
@@ -806,7 +908,7 @@ const createClient = function createClient(
 			await runtime.kernel.commands.save('none');
 		},
 		runtime,
-		async save(consents: Partial<ConsentState>) {
+		async save(consents: AstroConsentSaveInput) {
 			await runtime.kernel.commands.save(consents);
 		},
 		subscribe(listener) {
@@ -1268,6 +1370,7 @@ export const preloadDialog = async function preloadDialog(): Promise<void> {
 
 export { activateGatedScripts } from './browser/inline-scripts';
 export type { ConsentRuntime } from '@c15t/core/runtime';
+export type { ResolvedVendor, VendorChoice } from '@c15t/core';
 export type { ConsentDialogKind } from './ui/adapter';
 export { registerDialogAdapter, registerDialogSurface } from './ui/adapter';
 export { registerDialogStyles } from './browser/dialog-styles';

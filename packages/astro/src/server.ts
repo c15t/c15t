@@ -794,10 +794,12 @@ export const resolveConsentContext = async function resolveConsentContext(
 	const snapshot = snapshotFromConfig({
 		...config,
 		consentCategories: options.consentCategories,
-		inferredConsentCategories: inferConsentCategories(
-			options,
-			config.initialVendors?.declared
-		),
+		// Code-declared vendors make their categories selectable in the
+		// browser runtime, so the server asks about them too.
+		inferredConsentCategories: inferConsentCategories(options, [
+			...(options.vendors ?? []),
+			...(config.initialVendors?.declared ?? []),
+		]),
 	});
 	return {
 		// The snapshot above is the one a first-time visitor gets, which is
