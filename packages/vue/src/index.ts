@@ -3,6 +3,7 @@ import type { ConsentRuntime } from '@c15t/core/runtime';
 import { getCurrentInstance } from 'vue';
 import type { App, Plugin } from 'vue';
 
+import { applyColorScheme } from './runtime/color-scheme';
 import { consentConfigKey } from './runtime/composables/config';
 import {
 	createVueConsentKernelContext,
@@ -30,7 +31,10 @@ export type {
 	RuntimeConsentConfig,
 	UseNetworkBlockerOptions,
 } from './runtime/kernel';
-export { generateTokensCSS } from './runtime/theme-tokens';
+export {
+	generateTokensCSS,
+	type TokensCSSOptions,
+} from './runtime/theme-tokens';
 
 /**
  * Options accepted by the {@link c15tVue} plugin: the consent config plus
@@ -88,12 +92,16 @@ export const c15tVue: Plugin<[C15tVuePluginOptions?]> = {
 		app.provide(symbolInit, context.init);
 		app.provide(symbolActiveUI, context.activeUI);
 		app.provide(symbolConsent, context.storedConsent);
-		// Tokens apply from install, before the first render, so every
-		// surface is styled whether or not a ConsentRoot mounts. A borrowed
-		// runtime's host renders its own theme.
+		// Tokens and the color scheme apply from install, before the first
+		// render, so every surface is styled whether or not a ConsentRoot
+		// mounts. A borrowed runtime's host renders its own theme and owns
+		// the `c15t-dark` class.
 		const removeTokensStyle = runtime
 			? () => undefined
 			: mountTokensStyle(config);
+		const releaseColorScheme = runtime
+			? () => undefined
+			: applyColorScheme(config.colorScheme);
 		let disposeRuntime = () => context.dispose();
 		app.mixin({
 			mounted() {
@@ -111,6 +119,7 @@ export const c15tVue: Plugin<[C15tVuePluginOptions?]> = {
 			app.onUnmount(() => {
 				disposeRuntime();
 				removeTokensStyle();
+				releaseColorScheme();
 			});
 		}
 	},

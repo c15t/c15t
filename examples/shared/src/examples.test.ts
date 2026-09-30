@@ -497,6 +497,45 @@ for (const target of selectedTargets()) {
 			});
 		}
 
+		if (target.id === 'nuxt') {
+			test('a system-dark visitor gets the dark tokens from the server HTML', async () => {
+				const response = await fetch(`${server.baseURL}/consent-example`, {
+					headers: { 'x-vercel-ip-country': 'DE' },
+				});
+				const html = await response.text();
+				const head = html.slice(0, html.indexOf('</head>'));
+				// The class is set in <head>, before the banner paints.
+				expect(head).toContain('prefers-color-scheme:dark');
+				expect(head).toContain('--c15t-primary: #7fd1a8;');
+
+				({ context, page, requests } = await openBrowserContext(
+					browser,
+					server.baseURL,
+					server.backendURL
+				));
+				await page.emulateMedia({ colorScheme: 'dark' });
+				await page.goto('/consent-example');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				expect(
+					await page.evaluate(() => ({
+						dark: document.documentElement.classList.contains('c15t-dark'),
+						primary: getComputedStyle(document.documentElement)
+							.getPropertyValue('--c15t-primary')
+							.trim(),
+					}))
+				).toEqual({ dark: true, primary: '#7fd1a8' });
+
+				await page.emulateMedia({ colorScheme: 'light' });
+				await expect
+					.poll(() =>
+						page.evaluate(() =>
+							document.documentElement.classList.contains('c15t-dark')
+						)
+					)
+					.toBe(false);
+			});
+		}
+
 		if (['nextjs', 'react'].includes(target.id)) {
 			const route = target.id === 'nextjs' ? '/experiment' : '/experiment.html';
 			test('a host-resolved experiment arm reports the impression and the choice', async () => {
