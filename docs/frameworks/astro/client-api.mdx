@@ -73,10 +73,11 @@ the client also answers per vendor:
 | --- | --- |
 | `client.getDeclaredVendors()` | The vendors from `vendors`, the backend manifest and the slugs on scripts and iframes. Empty under an IAB policy |
 | `client.getVendorChoice()` | The recorded vendor decision, whose `denied` lists the vendors the visitor switched off, or `null` |
-| `client.isVendorAllowed(id)` | `true` when the vendor's category is allowed and the visitor has not switched it off |
+| `client.isVendorAllowed(id)` | `true` when the vendor is declared, its category is allowed and the visitor has not switched it off |
 
-`isVendorAllowed()` returns `true` for an id nothing declares. Check the
-category as well when the vendor might not be declared.
+`isVendorAllowed()` returns `false` for an id nothing declares, such as a
+typo or a vendor missing from `vendors`. In development it also logs a
+console warning that names the id.
 
 ## Open and close dialogs
 

@@ -91,7 +91,7 @@ same attributes and queued `config` calls.
 | `hasConsented()` | `boolean` | Whether the visitor has answered the choice prompt, by a recorded choice or an acknowledgement of a prompt with nothing to decide. |
 | `getSnapshot()` | the snapshot | The full consent state: permissions, recorded choice, policy, prompt and surface. |
 | `subscribe(listener)` | an unsubscribe function | Call `listener` with the snapshot after every change. |
-| `isVendorAllowed(id)` | `boolean` | Whether a vendor may run now: its category is allowed and the visitor has not switched it off. `true` for an id nothing declares. |
+| `isVendorAllowed(id)` | `boolean` | Whether a vendor may run now: it is declared, its category is allowed and the visitor has not switched it off. `false` for an id nothing declares, with a console warning in development. |
 | `getDeclaredVendors()` | an array of vendors | The vendors from `vendors`, the backend and the slugs on scripts, gated tags and iframes. Empty under an IAB policy. |
 | `getVendorChoice()` | the vendor decision, or `null` | Which vendors the visitor switched off, in `denied`. |
 | `on(event, listener)` | an unsubscribe function | Listen for `ready`, `consent`, `ui` or `error`. Safe to call before `init()`. See [events and callbacks](/docs/frameworks/html/callbacks). |

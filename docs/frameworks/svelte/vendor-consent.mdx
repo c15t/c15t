@@ -84,6 +84,15 @@ started. `vendorChoice.denied` lists the vendors the visitor recorded as off,
 and `getDisplayedVendors(category)` returns the vendors to list under one
 category. [Context getters](/docs/frameworks/svelte/getters) covers the draft.
 
+## Check whether a vendor may run
+
+`consent.isVendorAllowed(id)` on the object from `getConsentManager()` returns
+`true` while the vendor may run: it is declared, its category is allowed and
+the visitor has not switched it off. Read it in markup or a `$derived` so it
+updates when consent changes.
+
+<import src="../../shared/scripts/vendor-consent.mdx#undeclared" />
+
 <import src="../../shared/scripts/vendor-consent.mdx#storage" />
 
 <import src="../../shared/scripts/vendor-consent.mdx#limits" />

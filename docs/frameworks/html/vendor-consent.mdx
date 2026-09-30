@@ -65,11 +65,11 @@ switches from your own UI with `save()`.
 | --- | --- |
 | `getDeclaredVendors()` | The vendors from `vendors`, the backend and the slugs on scripts, gated tags and iframes. Empty under an IAB policy. |
 | `getVendorChoice()` | The recorded vendor decision, whose `denied` lists the vendors the visitor switched off, or `null` before any vendor decision. |
-| `isVendorAllowed(id)` | `true` when the vendor's category is allowed and the visitor has not switched it off. |
+| `isVendorAllowed(id)` | `true` when the vendor is declared, its category is allowed and the visitor has not switched it off. |
 
-`isVendorAllowed()` returns `true` for an id nothing declares, because c15t
-knows nothing about its category. Reads cannot be queued, so call them from
-`onInit` or after `c15t.ready()`.
+Reads cannot be queued, so call them from `onInit` or after `c15t.ready()`.
+
+<import src="../../shared/scripts/vendor-consent.mdx#undeclared" />
 
 `save()` accepts a `vendors` map next to the categories. Vendors you leave out
 keep their recorded state. `save` can be queued, so this works before and

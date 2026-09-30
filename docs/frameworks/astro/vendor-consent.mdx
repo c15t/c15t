@@ -69,14 +69,13 @@ records vendor consent:
 | --- | --- |
 | `client.getDeclaredVendors()` | The vendors from `vendors`, the backend manifest and the slugs on scripts and iframes. Empty under an IAB policy. |
 | `client.getVendorChoice()` | The recorded vendor decision, whose `denied` lists the vendors the visitor switched off, or `null` before any vendor decision. |
-| `client.isVendorAllowed(id)` | `true` when the vendor's category is allowed and the visitor has not switched it off. |
+| `client.isVendorAllowed(id)` | `true` when the vendor is declared, its category is allowed and the visitor has not switched it off. |
 | `client.save({ ...categories, vendors })` | Saves the categories you pass and the vendor grants in `vendors`. Vendors you leave out keep their recorded state. |
 
-`isVendorAllowed()` returns `true` for an id that no vendor list declares,
-because c15t knows nothing about its category. Check the category as well
-when the vendor might not be declared, as the
-[video component](/docs/frameworks/astro/embeds#gate-an-embed-with-a-custom-element)
-does.
+<import src="../../shared/scripts/vendor-consent.mdx#undeclared" />
+
+The [video component](/docs/frameworks/astro/embeds#gate-an-embed-with-a-custom-element)
+reads `client.isVendorAllowed('youtube')`, so it needs `youtube` in `vendors`.
 
 Call `save()` only from a visitor's action, such as a switch in your own
 form. This records marketing as allowed and X Pixel as off:

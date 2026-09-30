@@ -92,6 +92,7 @@ other categories as they were. **Privacy settings** opens the dialog.
 | `setLanguage(code)` | Switches the language and resolves the policy again for it. |
 | `getDisplayedConsents()` | The categories to render in your own preference UI. |
 | `getDisplayedVendors(category)` | The vendors to list under one category. Empty under an IAB policy. |
+| `isVendorAllowed(vendorId)` | `true` while a declared vendor's category is allowed and the visitor has not switched it off. `false` for an id nothing declares. |
 | `subscribeToConsentChanges(listener)` | Calls `listener` with the permissions after every snapshot change. Returns an unsubscribe function. |
 
 A save updates permissions in the same task, so registered scripts and

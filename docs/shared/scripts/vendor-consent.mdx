@@ -62,6 +62,14 @@ group: reference
   you. While their vendor is off, they send every optional category as denied.
 </section>
 
+<section id="undeclared">
+  A vendor reads as allowed only when it is declared, its category is allowed
+  and the visitor has not switched it off. An id that nothing declares, in
+  `vendors`, on a script or iframe, or from the backend, reads as not allowed.
+  A typo such as `x-pixle` or a vendor you forgot to declare never looks like
+  consent. In development, c15t logs a console warning that names the id.
+</section>
+
 <section id="dialog">
   The dialog lists only vendors that have a `name` and a `privacyPolicyUrl`.
   A vendor's switch is disabled while its category is off. Save records the

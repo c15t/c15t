@@ -60,8 +60,8 @@ category, with its own switch.
 
 `useVendorDraft()` from `c15t/react` reads and stages vendor switches on the
 same draft the category switches use, so one save records both.
-`useVendorAllowed(id)` returns whether a vendor may run now: its category is
-allowed and the visitor has not switched it off.
+`useVendorAllowed(id)` returns whether a vendor may run now: it is declared,
+its category is allowed and the visitor has not switched it off.
 
 {/* example: fragment */}
 
@@ -83,6 +83,8 @@ const xPixelAllowed = useVendorAllowed('x-pixel');
 or the vendor list changed under the edit. Call `reset()` to start again.
 `useDeclaredVendors()` returns the declared vendors, and `useVendorChoice()`
 returns the recorded vendor decision, or `null` before the visitor made one.
+
+<import src="../../shared/scripts/vendor-consent.mdx#undeclared" />
 
 <import src="../../shared/scripts/vendor-consent.mdx#storage" />
 

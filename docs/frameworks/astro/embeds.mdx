@@ -24,7 +24,11 @@ This component shows a placeholder with a preferences button until
 measurement is allowed. It adds the iframe once the visitor allows
 measurement, and removes it when permission is withdrawn. It also keeps the
 iframe out while the visitor has switched YouTube off in
-[vendor consent](/docs/frameworks/astro/vendor-consent):
+[vendor consent](/docs/frameworks/astro/vendor-consent).
+
+The component reads `client.isVendorAllowed('youtube')`, so declare `youtube`
+in the `vendors` option of `c15t()` with `category: 'measurement'`. An
+undeclared vendor reads as not allowed, and the video never loads:
 
 <include src="../../shared/examples/astro-demo/consent-video.mdx" />
 

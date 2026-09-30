@@ -11,8 +11,8 @@ group: frameworks
 With `createConsentRuntime`, declare the vendors, then render the switch in
 your own UI with the [headless runtime](/docs/frameworks/javascript/headless).
 The stock preference dialog that `init()` from `@c15t/browser` mounts lists
-vendor switches on its own. This module declares X Pixel, reads whether the
-visitor switched it off, and records a new switch:
+vendor switches on its own. This module declares X Pixel, reads whether it
+may run, and records a new switch:
 
 <include src="../../shared/examples/javascript/vendor-consent.mdx" />
 
@@ -33,6 +33,10 @@ export const runtime = createConsentRuntime({
 `init()` from `@c15t/browser` accepts the same `vendors` option. Its client
 exposes the runtime as `client.runtime`, so the functions above work with it
 too.
+
+`isVendorAllowed(snapshot, id)` from `c15t` backs `canVendorRun()`.
+
+<import src="../../shared/scripts/vendor-consent.mdx#undeclared" />
 
 Call `saveVendorSwitch(runtime, 'x-pixel', false)` from your switch's change
 handler. To confirm categories and vendors in one action, pass both to the
@@ -73,6 +77,6 @@ filtered to `ads-twitter.com`:
    loads.
 2. Switch X Pixel off in your control. c15t reloads the page. After the reload
    there is no `uwt.js` request, and other marketing scripts still load.
-3. Reload again. `isVendorOff(runtime, 'x-pixel')` still returns `true`.
+3. Reload again. `canVendorRun(runtime, 'x-pixel')` still returns `false`.
 4. Record Accept all with `runtime.kernel.commands.save('all')`. `uwt.js`
    loads again.

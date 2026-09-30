@@ -1,7 +1,7 @@
 // Reference code for the vendor consent page. No page in this example imports
 // it; `bun run check-types` compiles it with the rest of the app.
 // #region docs:vendor-consent title="src/vendor-consent.ts"
-import { isVendorDenied } from 'c15t';
+import { isVendorAllowed } from 'c15t';
 import type { SaveResult, Vendor } from 'c15t';
 import type { ConsentRuntime } from 'c15t/runtime';
 
@@ -14,13 +14,13 @@ export const vendors: Vendor[] = [
 	},
 ];
 
-// Whether the visitor switched the vendor off. The vendor also needs its
-// category, so check `effectivePermissions` before running its code.
-export const isVendorOff = function isVendorOff(
+// Whether the vendor may run now: it is declared, its category is allowed
+// and the visitor has not switched it off. An undeclared id returns false.
+export const canVendorRun = function canVendorRun(
 	runtime: ConsentRuntime,
 	vendorId: string
 ): boolean {
-	return isVendorDenied(runtime.kernel.getSnapshot(), vendorId);
+	return isVendorAllowed(runtime.kernel.getSnapshot(), vendorId);
 };
 
 // Record one vendor switch. `save({})` records only the staged vendor;

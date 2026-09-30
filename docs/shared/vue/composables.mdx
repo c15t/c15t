@@ -42,6 +42,7 @@ group: reference
   | `useConsent()` | Computed `Record<category, boolean>` | Read every category's current permission, such as `consent.value.marketing`. |
   | `useHasConsent()` | Computed array of allowed categories | List what may run now. The array keeps its identity until a category changes. |
   | `useEffectivePermissions()` | Computed permissions | The same values as `useConsent()`, read from the snapshot field. |
+  | `useVendorAllowed(id)` | Computed `boolean` | Check whether one vendor may run: it is declared, its category is allowed and the visitor has not switched it off. `false` for an id nothing declares. |
   | `useExplicitChoice()` | Computed recorded choice, or `null` | Read what the visitor decided. |
   | `useStoredConsent()` | Computed recorded choice, or `null` | The same value as `useExplicitChoice()`. |
   | `useNoticeDismissal()` | Computed dismissal record, or `null` | Check whether the visitor dismissed a notice. |

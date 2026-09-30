@@ -23,12 +23,9 @@ import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.a
 				return;
 			}
 			const render = () => {
-				// isVendorAllowed() is true for a vendor you have not declared, so
-				// check the category as well.
-				const allowed =
-					client.getConsent().effectivePermissions.measurement &&
-					client.isVendorAllowed('youtube');
-				if (!allowed) {
+				// Measurement is allowed and the visitor has not switched YouTube
+				// off. An undeclared vendor is never allowed, so declare youtube.
+				if (!client.isVendorAllowed('youtube')) {
 					container.textContent =
 						'Allow measurement to load this YouTube video. No video request is sent before permission.';
 					return;

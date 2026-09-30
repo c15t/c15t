@@ -80,11 +80,23 @@ const { vendors, setVendor, save } = useConsentDraft();
 ```
 
 `save()` resolves `{ ok: false }` without recording anything while `isStale`
-is `true`. To check whether the visitor switched a vendor off, pass the
-snapshot from `useConsentSnapshot()` to `isVendorDenied(snapshot, 'x-pixel')`
-from `c15t`. The vendor may run only when that returns `false` and
-`useConsent()` allows its category. [Composables](/docs/frameworks/nuxt/composables)
-covers the draft.
+is `true`. [Composables](/docs/frameworks/nuxt/composables) covers the draft.
+
+## Check whether a vendor may run
+
+`useVendorAllowed(id)`, which the module auto-imports, returns a computed that
+is `true` while the vendor may run: it is declared, its category is allowed
+and the visitor has not switched it off.
+
+{/* example: fragment */}
+
+```vue title="app/components/x-pixel-status.vue (partial)"
+<script setup lang="ts">
+const xPixelAllowed = useVendorAllowed('x-pixel');
+</script>
+```
+
+<import src="../../shared/scripts/vendor-consent.mdx#undeclared" />
 
 <import src="../../shared/scripts/vendor-consent.mdx#storage" />
 
