@@ -1,6 +1,8 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { ts } from 'ts-morph';
+
 import {
 	readFile,
 	resolvePlannedPath,
@@ -30,21 +32,6 @@ const POSTCSS_CONFIG_CANDIDATES = [
 ] as const;
 
 const JSON_CONFIGS = new Set(['.postcssrc', '.postcssrc.json']);
-
-/**
- * `tailwindcss` as an entry in a plugin list: an object key
- * (`{ tailwindcss: {} }`), a name string (`['tailwindcss']`) or a
- * `require('tailwindcss')` call (`[require('tailwindcss')]`). Each must
- * follow `{`, `[` or `,`, so `const tw = require('tailwindcss')` and
- * `import tw from 'tailwindcss'` don't match; a config that passes an
- * imported binding gets manual steps. The closing quote right after the
- * name excludes `tailwindcss/nesting`.
- */
-const TAILWIND_OBJECT_KEY_RE =
-	/(?<=[{,]\s*)(?<quote>['"]?)tailwindcss\k<quote>\s*:/u;
-const TAILWIND_REQUIRE_RE =
-	/(?<=[[,]\s*)require\(\s*(?<quote>['"])tailwindcss\k<quote>\s*\)/u;
-const TAILWIND_STRING_RE = /(?<=[[,]\s*)(?<quote>['"])tailwindcss\k<quote>/u;
 
 export type EnsureTailwind3PostcssPluginResult =
 	| { status: 'present' | 'added'; filePath: string }
@@ -98,54 +85,204 @@ const insertBefore = function insertBefore(
 	return `${content.slice(0, index)}${insertion}${content.slice(index)}`;
 };
 
+/** A plugin entry and the text that loads the c15t plugin the same way. */
+interface PluginEntry {
+	name: string;
+	node: ts.Node;
+	c15tEntry: string;
+}
+
+const stringText = function stringText(node: ts.Node): string | undefined {
+	return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
+		? node.text
+		: undefined;
+};
+
+/** The quote character a string literal node was written with. */
+const quoteOf = function quoteOf(
+	node: ts.Node,
+	sourceFile: ts.SourceFile
+): string {
+	return sourceFile.text[node.getStart(sourceFile)] === '"' ? '"' : "'";
+};
+
+/**
+ * The module a `plugins` array element loads: `'name'`, `['name', options]`,
+ * `require('name')` or `require('name')(options)`. Undefined for anything
+ * else, such as an imported binding.
+ */
+const arrayEntry = function arrayEntry(
+	element: ts.Expression,
+	sourceFile: ts.SourceFile
+): PluginEntry | undefined {
+	const name = stringText(element);
+	if (name !== undefined) {
+		const quote = quoteOf(element, sourceFile);
+		return {
+			c15tEntry: `${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote}`,
+			name,
+			node: element,
+		};
+	}
+
+	// A `[name, options]` tuple: the c15t plugin goes before the whole tuple.
+	if (ts.isArrayLiteralExpression(element)) {
+		const [head] = element.elements;
+		const tupleName = head ? stringText(head) : undefined;
+		if (head && tupleName !== undefined) {
+			const quote = quoteOf(head, sourceFile);
+			return {
+				c15tEntry: `${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote}`,
+				name: tupleName,
+				node: element,
+			};
+		}
+		return undefined;
+	}
+
+	if (!ts.isCallExpression(element)) {
+		return undefined;
+	}
+
+	// `require('name')(options)` loads the same module as `require('name')`.
+	if (ts.isCallExpression(element.expression)) {
+		const inner = arrayEntry(element.expression, sourceFile);
+		return inner && { ...inner, node: element };
+	}
+
+	const [argument] = element.arguments;
+	const requiredName = argument ? stringText(argument) : undefined;
+	if (
+		!ts.isIdentifier(element.expression) ||
+		element.expression.text !== 'require' ||
+		!argument ||
+		requiredName === undefined
+	) {
+		return undefined;
+	}
+	const quote = quoteOf(argument, sourceFile);
+	return {
+		c15tEntry: `require(${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote})`,
+		name: requiredName,
+		node: element,
+	};
+};
+
+/** The module a `plugins` object key loads, such as `tailwindcss: {}`. */
+const objectEntry = function objectEntry(
+	property: ts.ObjectLiteralElementLike,
+	sourceFile: ts.SourceFile,
+	isJson: boolean
+): PluginEntry | undefined {
+	if (!ts.isPropertyAssignment(property)) {
+		return undefined;
+	}
+	const { name } = property;
+	let quote = "'";
+	if (isJson) {
+		quote = '"';
+	} else if (ts.isStringLiteral(name)) {
+		quote = quoteOf(name, sourceFile);
+	}
+	const keyName =
+		ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : undefined;
+	return keyName === undefined
+		? undefined
+		: {
+				c15tEntry: `${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote}: {}`,
+				name: keyName,
+				node: property,
+			};
+};
+
+/**
+ * Every `plugins` array or object in the config. Walking the syntax tree
+ * skips comments and strings, so a commented-out example is never edited
+ * or taken for the active configuration.
+ */
+const findPluginLists = function findPluginLists(
+	sourceFile: ts.SourceFile
+): (ts.ArrayLiteralExpression | ts.ObjectLiteralExpression)[] {
+	const lists: (ts.ArrayLiteralExpression | ts.ObjectLiteralExpression)[] = [];
+	const visit = (node: ts.Node): void => {
+		if (
+			ts.isPropertyAssignment(node) &&
+			(ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) &&
+			node.name.text === 'plugins' &&
+			(ts.isArrayLiteralExpression(node.initializer) ||
+				ts.isObjectLiteralExpression(node.initializer))
+		) {
+			lists.push(node.initializer);
+			return;
+		}
+		ts.forEachChild(node, visit);
+	};
+	visit(sourceFile);
+	return lists;
+};
+
+const scriptKindFor = function scriptKindFor(fileName: string): ts.ScriptKind {
+	return /\.[mc]?ts$/u.test(fileName) ? ts.ScriptKind.TS : ts.ScriptKind.JS;
+};
+
+type PostcssConfigEdit =
+	| { status: 'present' }
+	| { status: 'added'; content: string }
+	| { status: 'manual' };
+
 /**
  * Add the c15t plugin in front of `tailwindcss` in a PostCSS config.
  *
  * @param content - The config file's source
- * @param isJson - Whether the file is JSON, which needs double quotes
- * @returns The updated source, or null when the plugin list has a shape
- *   this cannot edit safely
+ * @param fileName - The config's file name, which selects JSON, JavaScript
+ *   or TypeScript parsing
+ * @returns `present` when the active plugin list already loads the c15t
+ *   plugin, `added` with the updated source, or `manual` when the config has
+ *   no single plugin list with a `tailwindcss` entry this can edit
  */
 export const addTailwind3PluginToPostcssConfig =
 	function addTailwind3PluginToPostcssConfig(
 		content: string,
-		isJson: boolean
-	): string | null {
-		const objectKey = TAILWIND_OBJECT_KEY_RE.exec(content);
-		if (objectKey) {
-			const quote = isJson ? '"' : (objectKey.groups?.quote ?? '') || "'";
-			return insertBefore(
+		fileName: string
+	): PostcssConfigEdit {
+		const isJson = JSON_CONFIGS.has(fileName);
+		const sourceFile = isJson
+			? ts.parseJsonText(fileName, content)
+			: ts.createSourceFile(
+					fileName,
+					content,
+					ts.ScriptTarget.Latest,
+					true,
+					scriptKindFor(fileName)
+				);
+		const lists = findPluginLists(sourceFile);
+		const [list] = lists;
+		if (!list || lists.length > 1) {
+			return { status: 'manual' };
+		}
+
+		const entries = ts.isArrayLiteralExpression(list)
+			? list.elements.map((element) => arrayEntry(element, sourceFile))
+			: list.properties.map((property) =>
+					objectEntry(property, sourceFile, isJson)
+				);
+		if (entries.some((entry) => entry?.name === TAILWIND3_POSTCSS_PLUGIN)) {
+			return { status: 'present' };
+		}
+
+		const tailwind = entries.find((entry) => entry?.name === 'tailwindcss');
+		if (!tailwind) {
+			return { status: 'manual' };
+		}
+
+		return {
+			content: insertBefore(
 				content,
-				objectKey.index,
-				`${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote}: {}`
-			);
-		}
-
-		if (isJson) {
-			return null;
-		}
-
-		const requireCall = TAILWIND_REQUIRE_RE.exec(content);
-		if (requireCall) {
-			const quote = requireCall.groups?.quote ?? "'";
-			return insertBefore(
-				content,
-				requireCall.index,
-				`require(${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote})`
-			);
-		}
-
-		const pluginName = TAILWIND_STRING_RE.exec(content);
-		if (pluginName) {
-			const quote = pluginName.groups?.quote ?? "'";
-			return insertBefore(
-				content,
-				pluginName.index,
-				`${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote}`
-			);
-		}
-
-		return null;
+				tailwind.node.getStart(sourceFile),
+				tailwind.c15tEntry
+			),
+			status: 'added',
+		};
 	};
 
 /**
@@ -173,28 +310,17 @@ export const ensureTailwind3PostcssPlugin =
 
 			// oxlint-disable-next-line no-await-in-loop -- Stops at the first config found.
 			const content = await readFile(filePath, 'utf-8');
-			if (content.includes(TAILWIND3_POSTCSS_PLUGIN)) {
-				return { filePath, status: 'present' };
-			}
-
-			const nextContent = addTailwind3PluginToPostcssConfig(
-				content,
-				JSON_CONFIGS.has(candidate)
-			);
-			if (nextContent === null) {
-				return { filePath, status: 'manual' };
-			}
-
-			if (!options.dryRun) {
+			const edit = addTailwind3PluginToPostcssConfig(content, candidate);
+			if (edit.status === 'added' && !options.dryRun) {
 				// oxlint-disable-next-line no-await-in-loop -- Stops at the first config found.
-				await writeFile(filePath, nextContent, 'utf-8');
+				await writeFile(filePath, edit.content, 'utf-8');
 			}
 
-			return { filePath, status: 'added' };
+			return { filePath, status: edit.status };
 		}
 
 		return { filePath: null, status: 'manual' };
 	};
 
 /** The manual step for configs this module cannot edit. */
-export const TAILWIND3_POSTCSS_INSTRUCTION = `Tailwind 3 needs '${TAILWIND3_POSTCSS_PLUGIN}' before 'tailwindcss' in your PostCSS plugins, for example plugins: ['${TAILWIND3_POSTCSS_PLUGIN}', 'tailwindcss', 'autoprefixer'].`;
+export const TAILWIND3_POSTCSS_INSTRUCTION = `Tailwind 3 needs '${TAILWIND3_POSTCSS_PLUGIN}' before 'tailwindcss' in your PostCSS plugins, for example plugins: { '${TAILWIND3_POSTCSS_PLUGIN}': {}, tailwindcss: {}, autoprefixer: {} }. Install @c15t/ui as a direct dependency so PostCSS can load it.`;

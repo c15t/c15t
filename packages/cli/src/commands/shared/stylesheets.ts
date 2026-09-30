@@ -6,6 +6,7 @@ import {
 	resolvePlannedPath,
 	writeFile,
 } from '../generate/templates/shared/file-plan';
+import { isTailwindV3 } from './postcss-config';
 
 const CSS_ENTRYPOINT_CANDIDATES = [
 	'app/globals.css',
@@ -29,6 +30,8 @@ const LOCAL_CSS_IMPORT_RE =
 
 const CSS_IMPORT_RE = /^\s*@import\b.+;\s*(?:(?:\/\*.*\*\/|\/\/.*)\s*)?$/u;
 const TAILWIND_V4_IMPORT_RE = /^\s*@import\s+['"]tailwindcss['"];\s*$/u;
+const TAILWIND_COMPONENTS_RE = /^\s*@tailwind\s+components\s*;\s*$/u;
+const TAILWIND_UTILITIES_RE = /^\s*@tailwind\s+utilities\s*;\s*$/u;
 
 export type StyledPackageName =
 	| 'c15t/react'
@@ -40,6 +43,13 @@ export type StyledPackageName =
 export interface EnsureGlobalCssStylesheetImportsOptions {
 	projectRoot: string;
 	packageName: StyledPackageName;
+	/**
+	 * Set only by the v1 to v2 codemod. With Tailwind 3 it imports v2's
+	 * `styles.tw3.css` between `@tailwind components` and
+	 * `@tailwind utilities`, because `@c15t/ui/postcss-tailwind3` does not
+	 * exist in v2. v3 setup leaves it unset and imports `styles.css`.
+	 */
+	legacyTailwindVersion?: string | null;
 	entrypointPath?: string | null;
 	includeBase: boolean;
 	includeIab: boolean;
@@ -100,32 +110,36 @@ const getStylesheetKind = function getStylesheetKind(
 };
 
 /**
- * Every setup imports `styles.css`. Tailwind 3 apps run
+ * v3 setup imports `styles.css`; Tailwind 3 apps run
  * `@c15t/ui/postcss-tailwind3` to flatten its layers (see
- * `postcss-config.ts`); an existing `styles.tw3.css` import is replaced.
+ * `postcss-config.ts`), and an existing `styles.tw3.css` import is
+ * replaced. The v1 to v2 codemod keeps v2's `styles.tw3.css` for Tailwind 3.
  */
 const getDesiredImportPath = function getDesiredImportPath(
 	packageName: StyledPackageName,
-	kind: StylesheetKind
+	kind: StylesheetKind,
+	legacyTailwind3: boolean
 ): string {
+	const file = legacyTailwind3 ? 'styles.tw3.css' : 'styles.css';
 	return kind === 'base'
-		? `${packageName}/styles.css`
-		: `${packageName}/iab/styles.css`;
+		? `${packageName}/${file}`
+		: `${packageName}/iab/${file}`;
 };
 
 const getDesiredImports = function getDesiredImports(
 	packageName: StyledPackageName,
 	includeBase: boolean,
-	includeIab: boolean
+	includeIab: boolean,
+	legacyTailwind3: boolean
 ): string[] {
 	const imports: string[] = [];
 
 	if (includeBase) {
-		imports.push(getDesiredImportPath(packageName, 'base'));
+		imports.push(getDesiredImportPath(packageName, 'base', legacyTailwind3));
 	}
 
 	if (includeIab) {
-		imports.push(getDesiredImportPath(packageName, 'iab'));
+		imports.push(getDesiredImportPath(packageName, 'iab', legacyTailwind3));
 	}
 
 	return imports;
@@ -223,7 +237,8 @@ const findTailwindV4InsertionLineIndex =
 const insertImportsIntoCssContent = function insertImportsIntoCssContent(
 	content: string,
 	desiredImports: string[],
-	managedPackages: StyledPackageName[]
+	managedPackages: StyledPackageName[],
+	legacyTailwind3: boolean
 ): string {
 	const normalizedContent = content.replace(/\r\n/gu, '\n');
 	const hadTrailingNewline = normalizedContent.endsWith('\n');
@@ -245,7 +260,20 @@ const insertImportsIntoCssContent = function insertImportsIntoCssContent(
 	const tailwindImportIndex = filteredLines.findIndex((line) =>
 		TAILWIND_V4_IMPORT_RE.test(line)
 	);
-	if (tailwindImportIndex >= 0) {
+	if (legacyTailwind3) {
+		// v2's documented Tailwind 3 position.
+		const componentsIndex = filteredLines.findIndex((line) =>
+			TAILWIND_COMPONENTS_RE.test(line)
+		);
+		const utilitiesIndex = filteredLines.findIndex((line) =>
+			TAILWIND_UTILITIES_RE.test(line)
+		);
+		if (componentsIndex >= 0) {
+			insertionIndex = componentsIndex + 1;
+		} else if (utilitiesIndex >= 0) {
+			insertionIndex = utilitiesIndex;
+		}
+	} else if (tailwindImportIndex >= 0) {
 		insertionIndex = findTailwindV4InsertionLineIndex(
 			filteredLines,
 			tailwindImportIndex
@@ -364,10 +392,12 @@ export const ensureGlobalCssStylesheetImports =
 	async function ensureGlobalCssStylesheetImports(
 		options: EnsureGlobalCssStylesheetImportsOptions
 	): Promise<EnsureGlobalCssStylesheetImportsResult> {
+		const legacyTailwind3 = isTailwindV3(options.legacyTailwindVersion ?? null);
 		const desiredImports = getDesiredImports(
 			options.packageName,
 			options.includeBase,
-			options.includeIab
+			options.includeIab,
+			legacyTailwind3
 		);
 
 		if (desiredImports.length === 0) {
@@ -394,7 +424,8 @@ export const ensureGlobalCssStylesheetImports =
 		const nextContent = insertImportsIntoCssContent(
 			content,
 			desiredImports,
-			managedPackages
+			managedPackages,
+			legacyTailwind3
 		);
 
 		if (nextContent === content) {

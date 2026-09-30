@@ -32,6 +32,12 @@ afterEach(async () => {
 	);
 });
 
+/** The edited source, or the status when nothing was added. */
+const edit = function edit(content: string, fileName = 'postcss.config.mjs') {
+	const result = addTailwind3PluginToPostcssConfig(content, fileName);
+	return result.status === 'added' ? result.content : result.status;
+};
+
 describe('addTailwind3PluginToPostcssConfig', () => {
 	it('adds a key before tailwindcss in a multi-line plugins object', () => {
 		const config = [
@@ -43,7 +49,7 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 			'};',
 		].join('\n');
 
-		expect(addTailwind3PluginToPostcssConfig(config, false)).toBe(
+		expect(edit(config, 'postcss.config.js')).toBe(
 			[
 				'module.exports = {',
 				'  plugins: {',
@@ -58,31 +64,36 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 
 	it('adds an entry before tailwindcss in a one-line plugins array', () => {
 		expect(
-			addTailwind3PluginToPostcssConfig(
-				'export default { plugins: ["tailwindcss", "autoprefixer"] };',
-				false
-			)
+			edit('export default { plugins: ["tailwindcss", "autoprefixer"] };')
 		).toBe(
 			'export default { plugins: ["@c15t/ui/postcss-tailwind3", "tailwindcss", "autoprefixer"] };'
 		);
 	});
 
+	it('adds an entry before a [name, options] tuple, not inside it', () => {
+		expect(
+			edit("export default { plugins: [['tailwindcss', {}], 'autoprefixer'] };")
+		).toBe(
+			"export default { plugins: ['@c15t/ui/postcss-tailwind3', ['tailwindcss', {}], 'autoprefixer'] };"
+		);
+	});
+
 	it('adds a require() call before require("tailwindcss")', () => {
 		expect(
-			addTailwind3PluginToPostcssConfig(
-				"module.exports = { plugins: [require('tailwindcss'), require('autoprefixer')] };",
-				false
+			edit(
+				"module.exports = { plugins: [require('tailwindcss')({ config: './tw.js' }), require('autoprefixer')] };",
+				'postcss.config.cjs'
 			)
 		).toBe(
-			"module.exports = { plugins: [require('@c15t/ui/postcss-tailwind3'), require('tailwindcss'), require('autoprefixer')] };"
+			"module.exports = { plugins: [require('@c15t/ui/postcss-tailwind3'), require('tailwindcss')({ config: './tw.js' }), require('autoprefixer')] };"
 		);
 	});
 
 	it('uses double quotes in JSON configs', () => {
 		expect(
-			addTailwind3PluginToPostcssConfig(
+			edit(
 				'{ "plugins": { "tailwindcss": {}, "autoprefixer": {} } }',
-				true
+				'.postcssrc.json'
 			)
 		).toBe(
 			'{ "plugins": { "@c15t/ui/postcss-tailwind3": {}, "tailwindcss": {}, "autoprefixer": {} } }'
@@ -91,13 +102,44 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 
 	it('goes before tailwindcss, not tailwindcss/nesting', () => {
 		expect(
-			addTailwind3PluginToPostcssConfig(
-				"export default { plugins: { 'tailwindcss/nesting': {}, tailwindcss: {} } };",
-				false
+			edit(
+				"export default { plugins: { 'tailwindcss/nesting': {}, tailwindcss: {} } };"
 			)
 		).toBe(
 			"export default { plugins: { 'tailwindcss/nesting': {}, '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {} } };"
 		);
+	});
+
+	it('edits the active config, not a commented-out example', () => {
+		const config = [
+			"// previous: { plugins: { '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {} } }",
+			'/* plugins: { tailwindcss: {} } */',
+			'export default {',
+			'\tplugins: {',
+			'\t\ttailwindcss: {},',
+			'\t},',
+			'};',
+		].join('\n');
+
+		expect(edit(config)).toBe(
+			config.replace(
+				'\t\ttailwindcss: {},',
+				"\t\t'@c15t/ui/postcss-tailwind3': {},\n\t\ttailwindcss: {},"
+			)
+		);
+	});
+
+	it('reports a plugin that is already active', () => {
+		expect(
+			edit(
+				"export default { plugins: { '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {} } };"
+			)
+		).toBe('present');
+		expect(
+			edit(
+				"export default { plugins: [['@c15t/ui/postcss-tailwind3'], 'tailwindcss'] };"
+			)
+		).toBe('present');
 	});
 
 	it('leaves configs that pass an imported binding to the user', () => {
@@ -110,8 +152,21 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 			'module.exports = { plugins: [tailwindcss] };',
 		].join('\n');
 
-		expect(addTailwind3PluginToPostcssConfig(importConfig, false)).toBeNull();
-		expect(addTailwind3PluginToPostcssConfig(requireConfig, false)).toBeNull();
+		expect(edit(importConfig)).toBe('manual');
+		expect(edit(requireConfig, 'postcss.config.cjs')).toBe('manual');
+	});
+
+	it('leaves YAML and configs with several plugin lists to the user', () => {
+		expect(edit('plugins:\n  tailwindcss: {}\n', '.postcssrc')).toBe('manual');
+		expect(
+			edit(
+				[
+					'export default process.env.CI',
+					"\t? { plugins: ['tailwindcss'] }",
+					": { plugins: ['tailwindcss', 'autoprefixer'] };",
+				].join('\n')
+			)
+		).toBe('manual');
 	});
 });
 

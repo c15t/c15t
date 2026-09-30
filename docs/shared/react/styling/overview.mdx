@@ -31,11 +31,17 @@ group: reference
 
   ```js title="postcss.config.mjs"
   export default {
-  	plugins: ['@c15t/ui/postcss-tailwind3', 'tailwindcss', 'autoprefixer'],
+  	plugins: {
+  		'@c15t/ui/postcss-tailwind3': {},
+  		tailwindcss: {},
+  		autoprefixer: {},
+  	},
   };
   ```
 
-  With pnpm, add `@c15t/ui` to your dependencies so PostCSS can load the
+  PostCSS runs the plugins in the order the keys are written. Use this object
+  form rather than an array of names: Next.js accepts both, but the loader
+  Vite uses rejects plugin names in an array. With pnpm, add `@c15t/ui` to your dependencies so PostCSS can load the
   plugin. `c15t setup` makes both changes when it finds Tailwind 3. The
   `styles.tw3.css` entry from earlier setups still works with the plugin, but
   new setups do not need it.

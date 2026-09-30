@@ -67,7 +67,11 @@ Tailwind 3 keeps the rules and its preflight does not override them:
 
 ```js title="postcss.config.mjs"
 export default {
-  plugins: ['@c15t/ui/postcss-tailwind3', 'tailwindcss', 'autoprefixer'],
+  plugins: {
+    '@c15t/ui/postcss-tailwind3': {},
+    tailwindcss: {},
+    autoprefixer: {},
+  },
 };
 ```
 
