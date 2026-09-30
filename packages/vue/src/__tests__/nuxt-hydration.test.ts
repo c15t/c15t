@@ -343,6 +343,7 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
+			payload: { prerenderedAt?: number };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
 	const policy = normalizePolicyRule({
@@ -377,6 +378,7 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 	vi.stubGlobal('document', undefined);
 	await plugin({
 		hook: () => undefined,
+		payload: {},
 		vueApp: createSSRApp(defineComponent({ render: () => null })),
 	});
 	expect(nuxt.fetchHeaders[0]?.['x-c15t-experiment']).toBe('banner-shape=wall');
