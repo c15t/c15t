@@ -66,6 +66,7 @@ const interpolate = function interpolate(
 			>
 				<PreferenceItemLeading>
 					<ChevronRightIcon
+						aria-hidden="true"
 						:class="dialogStyles.purposeArrow"
 						:expanded="isExpanded"
 					/>
@@ -103,6 +104,7 @@ const interpolate = function interpolate(
 				>
 					<PreferenceItemTrigger :class="dialogStyles.examplesToggle">
 						<ChevronRightIcon
+							aria-hidden="true"
 							style="height: 0.75rem; width: 0.75rem"
 							:expanded="showExamples"
 						/>
@@ -134,6 +136,7 @@ const interpolate = function interpolate(
 				>
 					<PreferenceItemTrigger :class="dialogStyles.vendorsToggle">
 						<ChevronRightIcon
+							aria-hidden="true"
 							style="height: 0.75rem; width: 0.75rem"
 							:expanded="showVendors"
 						/>
