@@ -2211,6 +2211,71 @@ describe('kernel transport: failed save replay', () => {
 		reloaded.dispose();
 	});
 
+	test("the same visitor's choice changing while a replay's claim waits does not drop the save", async () => {
+		// A server merge or another tab's save advances the records generation
+		// without moving the subject. A queued save does not belong to a
+		// generation, so only a subject change should stop its claim.
+		let conflictSeen = false;
+		let openGate: () => void = () => {};
+		const gate = new Promise<void>((resolve) => {
+			openGate = resolve;
+		});
+		let claimWaiting = false;
+		vi.stubGlobal('navigator', {
+			locks: {
+				// Holds the first lock request after the refusal: the claim.
+				request: async (_name: string, run: () => unknown) => {
+					if (conflictSeen && !claimWaiting) {
+						claimWaiting = true;
+						await gate;
+					}
+					return run();
+				},
+			},
+		});
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockImplementation(({ subjectId }: { subjectId: string }) => {
+				if (subjectId !== 'sub_from') {
+					return accepted({ subjectId });
+				}
+				conflictSeen = true;
+				return Promise.reject(refused('SUBJECT_CONFLICT'));
+			});
+		const kernel = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_from' } },
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+		const replayed: { ok: boolean; subjectId: string }[] = [];
+		kernel.events.on('save:replayed', ({ ok, subjectId }) => {
+			replayed.push({ ok, subjectId });
+		});
+
+		try {
+			await kernel.commands.save({ measurement: false });
+			await kernel.commands.init();
+			await vi.waitFor(() => expect(claimWaiting).toBe(true));
+
+			kernel.hydrate(
+				choiceRecords(
+					{ marketing: true, measurement: false },
+					{ now: Date.now(), subjectId: 'sub_from' }
+				)
+			);
+			expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_from');
+			openGate();
+
+			await vi.waitFor(() => expect(replayed).toHaveLength(1));
+			const newId = kernel.getSnapshot().subject?.subjectId;
+			expect(newId).not.toBe('sub_from');
+			expect(replayed).toEqual([{ ok: true, subjectId: newId }]);
+		} finally {
+			kernel.dispose();
+			vi.unstubAllGlobals();
+		}
+	});
+
 	test('two tabs refused for the same subject move to one new id', async () => {
 		// Each tab picking its own id would leave one of them persisting a
 		// subject the backend holds no consent for.

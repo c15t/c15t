@@ -1253,14 +1253,14 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		if (earlier === undefined && getSnapshot().subject?.subjectId !== from) {
 			return followRecordedReassignment(from);
 		}
-		// Still the visitor this reassignment started for: same records
-		// generation, and on `from` or already moved to its replacement.
+		// Still the visitor this reassignment started for: on `from`, or
+		// already moved to its replacement. The subject alone decides. The
+		// records generation also advances when the same visitor's choice
+		// changes (a server merge, another tab's save), and a clear or a
+		// switch always moves the subject.
 		const unchanged = (to?: string) => () => {
 			const id = getSnapshot().subject?.subjectId;
-			return (
-				runtime.getGeneration() === generation &&
-				(id === from || (to !== undefined && id === to))
-			);
+			return id === from || (to !== undefined && id === to);
 		};
 		let claim = earlier;
 		if (claim === undefined) {
