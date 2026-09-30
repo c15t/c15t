@@ -21,8 +21,8 @@ and Changelog. Project and Legal pages belong in the footer.
 6. Integrations: Overview and Custom integrations, then the groups Vendor
    controls, Embeds, Tag managers, Analytics, Chat and support, Ads and pixels.
 7. Backend: Overview, Quickstart, then the groups Guides and Reference.
-8. CLI: Overview, Quickstart, Agents and automation, then the groups Commands
-   and Reference.
+8. CLI: Overview, Quickstart, Agents and automation, then the Commands group,
+   which ends with Global flags.
 9. Comparisons, Project and Legal.
 
 Groups 1 to 4 come before Frameworks on purpose. Framework sidebars link some
