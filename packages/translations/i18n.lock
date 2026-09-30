@@ -19,8 +19,8 @@ checksums:
     consentTypes/measurement/description: cba097cf77f659354bef6dff3fada8d7
     consentTypes/experience/title: c3e0d278cfa1c14e9477e3d5c8c39ce0
     consentTypes/experience/description: ab3fe5aee1c9d05d34cea7589787fdf0
-    frame/title: 2a3f95beec45121216ccac3f336775d0
-    frame/actionButton: e756aa612a5de07bd3d32f7b9e0cfdde
+    consentGate/title: 2a3f95beec45121216ccac3f336775d0
+    consentGate/actionButton: e756aa612a5de07bd3d32f7b9e0cfdde
   731688e6cfff79a716725f7a5d7dd274:
     common/acceptAll: a1cab3c70bbe456bf40aa1db342d05f8
     common/rejectAll: 75dbcc974e4267715641c2a030e08d65
@@ -40,8 +40,8 @@ checksums:
     consentTypes/measurement/description: cba097cf77f659354bef6dff3fada8d7
     consentTypes/experience/title: c3e0d278cfa1c14e9477e3d5c8c39ce0
     consentTypes/experience/description: ab3fe5aee1c9d05d34cea7589787fdf0
-    frame/title: 2a3f95beec45121216ccac3f336775d0
-    frame/actionButton: e756aa612a5de07bd3d32f7b9e0cfdde
+    consentGate/title: 2a3f95beec45121216ccac3f336775d0
+    consentGate/actionButton: e756aa612a5de07bd3d32f7b9e0cfdde
     legalLinks/privacyPolicy: 7459744a63ef8af4e517a09024bd7c08
     legalLinks/cookiePolicy: 3729dde157adf062b3f07301ae3cd596
     legalLinks/termsOfService: 5add91f519e39025708e54a7eb7a9fc5

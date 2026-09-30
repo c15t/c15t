@@ -309,13 +309,14 @@ export interface KernelCommonCopyPartial {
  */
 export interface KernelTranslationGroups {
 	common: KernelCommonCopy;
-	consentManagerDialog: KernelDialogCopy;
-	consentTypes: Record<AllConsentNames, KernelTranslationPair>;
-	cookieBanner: KernelCookieBannerCopy;
-	frame: {
+	/** Copy for the placeholder a gated embed shows while denied. */
+	consentGate: {
 		actionButton: string;
 		title: string;
 	};
+	consentManagerDialog: KernelDialogCopy;
+	consentTypes: Record<AllConsentNames, KernelTranslationPair>;
+	cookieBanner: KernelCookieBannerCopy;
 	legalLinks: {
 		cookiePolicy: string;
 		privacyPolicy: string;
@@ -336,9 +337,20 @@ export interface KernelTranslationGroups {
  */
 export interface KernelTranslationGroupsPartial {
 	common: KernelCommonCopyPartial;
+	/** Copy for the placeholder a gated embed shows while denied. */
+	consentGate?: {
+		actionButton?: string;
+		title?: string;
+	};
 	consentManagerDialog: KernelDialogCopyPartial;
 	consentTypes: Partial<Record<AllConsentNames, KernelTranslationPairPartial>>;
 	cookieBanner: KernelCookieBannerCopyPartial;
+	/**
+	 * `consentGate` under its name before the rename, as a backend from
+	 * before it serves the copy. The cores carry it through untouched.
+	 *
+	 * @deprecated Read `consentGate`; an older backend still sends `frame`.
+	 */
 	frame?: {
 		actionButton?: string;
 		title?: string;

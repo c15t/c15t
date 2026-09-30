@@ -3,6 +3,7 @@ import {
 	deepMergeTranslations,
 	enTranslations,
 	getStockTranslations,
+	migrateLegacyTranslationKeys,
 } from '@c15t/translations';
 
 import type { KernelTranslations } from '../types';
@@ -141,13 +142,29 @@ const findStockTranslations = function findStockTranslations(
  * ```
  */
 export const applyTranslationOverrides = function applyTranslationOverrides(
-	translations: KernelTranslations,
+	resolved: KernelTranslations,
 	overrides: TranslationOverrides | undefined
 ): KernelTranslations {
-	const selected = selectTranslationOverride(overrides, translations.language);
-	if (!selected) {
+	// Copy from an older backend, a stored prefetch or the app may still name
+	// the ConsentGate section `frame`.
+	const migrated = migrateLegacyTranslationKeys(
+		resolved.translations as Partial<Translations>
+	);
+	const translations: KernelTranslations =
+		migrated === resolved.translations
+			? resolved
+			: {
+					...resolved,
+					translations: migrated as KernelTranslations['translations'],
+				};
+	const legacySelected = selectTranslationOverride(
+		overrides,
+		translations.language
+	);
+	if (!legacySelected) {
 		return translations;
 	}
+	const selected = migrateLegacyTranslationKeys(legacySelected);
 	const effective = pickEffectiveOverride(
 		selected as TranslationTree,
 		findStockTranslations(translations.language) as TranslationTree | undefined,

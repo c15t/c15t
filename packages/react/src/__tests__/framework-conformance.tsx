@@ -95,6 +95,10 @@ export const runFrameworkConformance = ({
 			rejectAll: 'Reject all',
 			save: 'Save',
 		},
+		consentGate: {
+			actionButton: 'Manage',
+			title: 'Privacy',
+		},
 		consentManagerDialog: {
 			description: 'Manage your choices.',
 			title: 'Privacy preferences',
@@ -125,10 +129,6 @@ export const runFrameworkConformance = ({
 			description: 'We use cookies to enhance your experience.',
 			title: 'We value your privacy',
 		},
-		frame: {
-			actionButton: 'Manage',
-			title: 'Privacy',
-		},
 		legalLinks: {
 			cookiePolicy: 'Cookie policy',
 			privacyPolicy: 'Privacy policy',
@@ -147,6 +147,7 @@ export const runFrameworkConformance = ({
 			...base,
 			...override,
 			common: { ...base.common, ...override.common },
+			consentGate: { ...base.consentGate, ...override.consentGate },
 			consentManagerDialog: {
 				...base.consentManagerDialog,
 				...override.consentManagerDialog,
@@ -156,7 +157,6 @@ export const runFrameworkConformance = ({
 				...override.consentTypes,
 			},
 			cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
-			frame: { ...base.frame, ...override.frame },
 			legalLinks: { ...base.legalLinks, ...override.legalLinks },
 		};
 	};

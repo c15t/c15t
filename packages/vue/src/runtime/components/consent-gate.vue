@@ -61,23 +61,24 @@ const policyBlocked = computed(() => {
 	);
 });
 
-// The same `frame.*` copy the React and Svelte gates show.
+// The same `consentGate.*` copy the React and Svelte gates show.
 const title = computed(() => {
 	const { bundle, english } = translations.value;
 	if (policyBlocked.value) {
-		return bundle?.frame?.policyBlocked ?? english.frame.policyBlocked;
+		return (
+			bundle?.consentGate?.policyBlocked ?? english.consentGate.policyBlocked
+		);
 	}
-	return (bundle?.frame?.title ?? english.frame.title).replace(
+	return (bundle?.consentGate?.title ?? english.consentGate.title).replace(
 		'{category}',
 		categoryTitle.value
 	);
 });
 const actionLabel = computed(() => {
 	const { bundle, english } = translations.value;
-	return (bundle?.frame?.actionButton ?? english.frame.actionButton).replace(
-		'{category}',
-		categoryTitle.value
-	);
+	return (
+		bundle?.consentGate?.actionButton ?? english.consentGate.actionButton
+	).replace('{category}', categoryTitle.value);
 });
 
 const openPreferences = function openPreferences() {

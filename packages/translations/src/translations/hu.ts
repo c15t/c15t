@@ -11,6 +11,15 @@ export const translations: CompleteTranslations = {
 		save: 'Beállítások mentése',
 		securedBy: 'Védelmét biztosítja',
 	},
+	consentGate: {
+		actionButton: 'A(z) {category} hozzájárulás engedélyezése',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title:
+			'Fogadja el a(z) {category} hozzájárulást a tartalom megtekintéséhez.',
+	},
 	consentManagerDialog: {
 		description:
 			'Testreszabhatja adatvédelmi beállításait itt. Kiválaszthatja, hogy milyen típusú sütiket és nyomkövető technológiákat engedélyez.',
@@ -57,15 +66,6 @@ export const translations: CompleteTranslations = {
 			'Sütiket és hasonló technológiákat használunk a webhely működtetéséhez, a forgalom méréséhez, valamint a tartalom és a hirdetések személyre szabásához. Bármikor leiratkozhat, vagy kezelheti a beállításait.',
 		noticeTitle: 'Adatvédelmi tájékoztató',
 		title: 'Értékeljük az adatvédelmet',
-	},
-	frame: {
-		actionButton: 'A(z) {category} hozzájárulás engedélyezése',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title:
-			'Fogadja el a(z) {category} hozzájárulást a tartalom megtekintéséhez.',
 	},
 	iab: {
 		banner: {

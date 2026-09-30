@@ -54,7 +54,7 @@ const ConsentGateComponent = createForwardRef<HTMLDivElement, ConsentGateProps>(
 		const policyScope = usePolicyCategories();
 		const policyScopeMode = usePolicyScopeMode();
 		const updateConsentCategories = useRegisterConsentCategories();
-		const { frame } = useTranslations();
+		const { consentGate } = useTranslations();
 
 		// `necessary` is always in scope; a wildcard scope covers every category.
 		const isOutOfPolicyCategory =
@@ -85,7 +85,7 @@ const ConsentGateComponent = createForwardRef<HTMLDivElement, ConsentGateProps>(
 					<DefaultPlaceholder
 						category={category}
 						policyBlocked={isStrictPolicyBlocked}
-						policyBlockedMessage={frame?.policyBlocked}
+						policyBlockedMessage={consentGate?.policyBlocked}
 					/>
 				)
 			);

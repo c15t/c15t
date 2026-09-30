@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Salvesta seaded',
 		securedBy: 'Kaitse pakub',
 	},
+	consentGate: {
+		actionButton: 'Luba kategooria {category} nõusolek',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Selle sisu vaatamiseks nõustuge kategooria {category} nõusolekuga.',
+	},
 	consentManagerDialog: {
 		description:
 			'Kohandage siin oma privaatsusseadeid. Saate valida, milliseid küpsiseid ja jälgimistehnoloogiaid lubate.',
@@ -57,14 +65,6 @@ export const translations: CompleteTranslations = {
 			'Kasutame küpsiseid ja sarnaseid tehnoloogiaid selle saidi töös hoidmiseks, liikluse mõõtmiseks ning sisu ja reklaamide isikupärastamiseks. Saate igal ajal loobuda või oma eelistusi hallata.',
 		noticeTitle: 'Privaatsusteade',
 		title: 'Hindame teie privaatsust',
-	},
-	frame: {
-		actionButton: 'Luba kategooria {category} nõusolek',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Selle sisu vaatamiseks nõustuge kategooria {category} nõusolekuga.',
 	},
 	iab: {
 		banner: {

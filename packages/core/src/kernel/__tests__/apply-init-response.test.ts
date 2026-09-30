@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import {
 	choiceRecords,
@@ -215,6 +215,51 @@ describe('applyInitResponse', () => {
 		expect(patch.translations?.translations).toMatchObject({
 			common: { acceptAll: 'Yes', securedBy: 'Secured by' },
 		});
+	});
+
+	test("an older backend's frame copy reads as consentGate", () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const snap = buildInitialSnapshot({ now: NOW });
+		const { patch } = applyInitResponse(
+			snap,
+			{
+				translations: {
+					language: 'en',
+					translations: {
+						common: {},
+						consentManagerDialog: {},
+						consentTypes: {},
+						cookieBanner: {},
+						frame: { actionButton: 'Allow {category}', title: 'Blocked' },
+					},
+				},
+			},
+			NOW
+		);
+		expect(patch.translations?.translations).toMatchObject({
+			consentGate: { actionButton: 'Allow {category}', title: 'Blocked' },
+		});
+		expect(patch.translations?.translations).not.toHaveProperty('frame');
+		warn.mockRestore();
+	});
+
+	test('initial copy and app overrides under frame read as consentGate', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const snap = buildInitialSnapshot({
+			initialTranslations: {
+				language: 'en',
+				translations: { frame: { title: 'Stored title' } } as never,
+			},
+			now: NOW,
+			translationOverrides: {
+				en: { frame: { actionButton: 'App button' } },
+			},
+		});
+		expect(snap.translations?.translations).toMatchObject({
+			consentGate: { actionButton: 'App button', title: 'Stored title' },
+		});
+		expect(snap.translations?.translations).not.toHaveProperty('frame');
+		warn.mockRestore();
 	});
 
 	test('language switch replaces translations outright', () => {

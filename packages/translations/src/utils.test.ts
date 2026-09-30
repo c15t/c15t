@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { baseTranslations as bundledTranslations } from './translations';
 import type { I18nConfig, TranslationConfig, Translations } from './types';
@@ -6,6 +6,7 @@ import {
 	deepMergeTranslations,
 	detectBrowserLanguage,
 	mergeTranslationConfigs,
+	migrateLegacyTranslationKeys,
 	normalizeI18nConfig,
 	parseAcceptLanguage,
 	prepareTranslationConfig,
@@ -13,14 +14,14 @@ import {
 	toTranslationConfig,
 } from './utils';
 
-describe('bundled frame translations', () => {
+describe('bundled consentGate translations', () => {
 	it.each(Object.entries(bundledTranslations))(
 		'%s defines loading and error copy',
 		(_language, translations) => {
-			expect(translations.frame.loading).toEqual(expect.any(String));
-			expect(translations.frame.loading).not.toBe('');
-			expect(translations.frame.error).toEqual(expect.any(String));
-			expect(translations.frame.error).not.toBe('');
+			expect(translations.consentGate.loading).toEqual(expect.any(String));
+			expect(translations.consentGate.loading).not.toBe('');
+			expect(translations.consentGate.error).toEqual(expect.any(String));
+			expect(translations.consentGate.error).not.toBe('');
 		}
 	);
 });
@@ -112,6 +113,12 @@ describe('deepMergeTranslations', () => {
 			rejectAll: 'Default Reject All',
 			save: 'Default Save',
 		},
+		consentGate: {
+			actionButton: 'Gate Button',
+			error: 'Content failed',
+			loading: 'Loading content',
+			title: 'Gate Title',
+		},
 		consentManagerDialog: {
 			title: 'Dialog Title',
 		},
@@ -124,12 +131,6 @@ describe('deepMergeTranslations', () => {
 		cookieBanner: {
 			description: 'Base Description',
 			title: 'Base Title',
-		},
-		frame: {
-			actionButton: 'Frame Button',
-			error: 'Content failed',
-			loading: 'Loading content',
-			title: 'Frame Title',
 		},
 	};
 
@@ -152,6 +153,12 @@ describe('deepMergeTranslations', () => {
 				rejectAll: 'Default Reject All',
 				save: 'Default Save',
 			},
+			consentGate: {
+				actionButton: 'Gate Button',
+				error: 'Content failed',
+				loading: 'Loading content',
+				title: 'Gate Title',
+			},
 			consentManagerDialog: {
 				description: 'Custom Dialog Description',
 				title: 'Dialog Title',
@@ -166,18 +173,38 @@ describe('deepMergeTranslations', () => {
 				description: 'Base Description',
 				title: 'Custom Title',
 			},
-			frame: {
-				actionButton: 'Frame Button',
-				error: 'Content failed',
-				loading: 'Loading content',
-				title: 'Frame Title',
-			},
 		});
 	});
 
 	it('should handle empty override object', () => {
 		const result = deepMergeTranslations(baseTranslations, {});
 		expect(result).toEqual(baseTranslations);
+	});
+
+	it("reads an override's old frame key as consentGate", () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const result = deepMergeTranslations(baseTranslations, {
+			frame: { title: 'Legacy Title' },
+		});
+		expect(result.consentGate).toEqual({
+			actionButton: 'Gate Button',
+			error: 'Content failed',
+			loading: 'Loading content',
+			title: 'Legacy Title',
+		});
+		expect(result).not.toHaveProperty('frame');
+		warn.mockRestore();
+	});
+
+	it('lets consentGate win over frame key by key', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const result = deepMergeTranslations(baseTranslations, {
+			consentGate: { title: 'New Title' },
+			frame: { actionButton: 'Legacy Button', title: 'Legacy Title' },
+		});
+		expect(result.consentGate?.title).toBe('New Title');
+		expect(result.consentGate?.actionButton).toBe('Legacy Button');
+		warn.mockRestore();
 	});
 
 	it('should merge the rights section', () => {
@@ -267,7 +294,7 @@ describe('mergeTranslationConfigs', () => {
 			'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.'
 		);
 		expect(deTranslations?.consentTypes?.experience?.title).toBe('Experience');
-		expect(deTranslations?.frame?.title).toBe(
+		expect(deTranslations?.consentGate?.title).toBe(
 			'Accept {category} consent to view this content.'
 		);
 	});
@@ -282,7 +309,7 @@ describe('mergeTranslationConfigs', () => {
 		expect(result.translations.de?.consentTypes?.experience?.title).toBe(
 			'Experience'
 		);
-		expect(result.translations.de?.frame?.title).toBe(
+		expect(result.translations.de?.consentGate?.title).toBe(
 			'Accept {category} consent to view this content.'
 		);
 	});
@@ -523,5 +550,52 @@ describe('prepareTranslationConfig', () => {
 		const result = prepareTranslationConfig(defaultConfig, customConfig);
 		expect(result.defaultLanguage).toBe('en');
 		expect(result.translations.en?.cookieBanner?.title).toBe('Custom Title');
+	});
+});
+
+describe('migrateLegacyTranslationKeys', () => {
+	it('moves frame to consentGate', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		expect(
+			migrateLegacyTranslationKeys({ frame: { title: 'Blocked' } })
+		).toEqual({ consentGate: { title: 'Blocked' } });
+		warn.mockRestore();
+	});
+
+	it('warns once per page outside production', async () => {
+		vi.resetModules();
+		const { migrateLegacyTranslationKeys: migrate } = await import('./utils');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		migrate({ frame: { title: 'Blocked' } });
+		migrate({ frame: { title: 'Again' } });
+		expect(warn).toHaveBeenCalledTimes(1);
+		expect(warn.mock.calls[0]?.[0]).toContain('consentGate');
+		warn.mockRestore();
+	});
+
+	it('returns translations without frame unchanged', () => {
+		const translations = { consentGate: { title: 'Blocked' } };
+		expect(migrateLegacyTranslationKeys(translations)).toBe(translations);
+	});
+});
+
+describe('mergeTranslationConfigs with the old frame key', () => {
+	it('reads custom frame copy as consentGate', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const result = mergeTranslationConfigs(
+			{ defaultLanguage: 'en', translations: {} },
+			{
+				translations: {
+					en: { frame: { actionButton: 'Allow {category}' } },
+				},
+			}
+		);
+		expect(result.translations.en?.consentGate?.actionButton).toBe(
+			'Allow {category}'
+		);
+		expect(result.translations.en?.consentGate?.title).toBe(
+			'Accept {category} consent to view this content.'
+		);
+		warn.mockRestore();
 	});
 });

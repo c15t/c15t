@@ -76,6 +76,10 @@ const initFixture: InitOutput = {
 				rejectAll: 'Reject all',
 				save: 'Save',
 			},
+			consentGate: {
+				actionButton: 'Manage',
+				title: 'Privacy',
+			},
 			consentManagerDialog: {
 				description: 'Manage your choices.',
 				title: 'Privacy preferences',
@@ -105,10 +109,6 @@ const initFixture: InitOutput = {
 			cookieBanner: {
 				description: 'Pick how c15t may use cookies.',
 				title: 'Cookie choices',
-			},
-			frame: {
-				actionButton: 'Manage',
-				title: 'Privacy',
 			},
 			legalLinks: {
 				cookiePolicy: 'Cookie policy',

@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Cadw gosodiadau',
 		securedBy: "Wedi'i ddiogelu gan",
 	},
+	consentGate: {
+		actionButton: 'Galluogi caniatâd {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Derbyn caniatâd {category} i weld y cynnwys hwn.',
+	},
 	consentManagerDialog: {
 		description:
 			'Addaswch eich gosodiadau preifatrwydd yma. Gallwch ddewis pa fathau o gwcis a thechnolegau tracio rydych yn eu caniatáu.',
@@ -56,14 +64,6 @@ export const translations: CompleteTranslations = {
 			'Rydym yn defnyddio cwcis a thechnolegau tebyg i redeg y wefan hon, mesur traffig, a phersonoli cynnwys a hysbysebion. Gallwch optio allan neu reoli eich dewisiadau ar unrhyw adeg.',
 		noticeTitle: 'Hysbysiad preifatrwydd',
 		title: 'Rydym yn gwerthfawrogi eich preifatrwydd',
-	},
-	frame: {
-		actionButton: 'Galluogi caniatâd {category}',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Derbyn caniatâd {category} i weld y cynnwys hwn.',
 	},
 	iab: {
 		banner: {

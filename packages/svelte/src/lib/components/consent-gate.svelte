@@ -37,17 +37,19 @@
 			defaultTranslationConfig
 		)
 	);
-	const frameTitle = $derived(
+	const gateTitle = $derived(
 		(
-			translations.frame?.title ??
+			translations.consentGate?.title ??
 			'Accept {category} consent to view this content.'
 		).replace(
 			'{category}',
 			translations.consentTypes?.[category]?.title ?? (category as string)
 		)
 	);
-	const frameActionButton = $derived(
-		(translations.frame?.actionButton ?? 'Enable {category} consent').replace(
+	const gateActionButton = $derived(
+		(
+			translations.consentGate?.actionButton ?? 'Enable {category} consent'
+		).replace(
 			'{category}',
 			translations.consentTypes?.[category]?.title ?? (category as string)
 		)
@@ -79,7 +81,7 @@
 			class={noStyle ? '' : styles.placeholder || ''}
 			data-testid="frame-placeholder"
 		>
-			<div class={noStyle ? '' : styles.title || ''}>{frameTitle}</div>
+			<div class={noStyle ? '' : styles.title || ''}>{gateTitle}</div>
 			<ConsentButton
 				action="open-consent-dialog"
 				variant="primary"
@@ -88,7 +90,7 @@
 				{noStyle}
 				data-testid="frame-open-dialog"
 			>
-				{frameActionButton}
+				{gateActionButton}
 			</ConsentButton>
 		</div>
 	{/if}

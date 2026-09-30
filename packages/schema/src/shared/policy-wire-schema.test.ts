@@ -179,6 +179,7 @@ describe('initOutputSchema', () => {
 				rejectAll: 'Reject All',
 				save: 'Save Settings',
 			},
+			consentGate: { actionButton: 'a', title: 't' },
 			consentManagerDialog: { description: 'd', title: 't' },
 			consentTypes: {
 				experience: { description: 'd', title: 't' },
@@ -193,7 +194,6 @@ describe('initOutputSchema', () => {
 				noticeTitle: 'Privacy notice',
 				title: 't',
 			},
-			frame: { actionButton: 'a', title: 't' },
 			legalLinks: {
 				cookiePolicy: 'c',
 				privacyPolicy: 'p',
@@ -244,6 +244,7 @@ describe('initOutputSchema', () => {
 						rejectAll: 'r',
 						save: 's',
 					},
+					consentGate: { actionButton: 'a', title: 't' },
 					consentManagerDialog: { description: 'd', title: 't', vendors },
 					consentTypes: {
 						experience: { description: 'd', title: 't' },
@@ -253,7 +254,6 @@ describe('initOutputSchema', () => {
 						necessary: { description: 'd', title: 't' },
 					},
 					cookieBanner: { description: 'd', title: 't' },
-					frame: { actionButton: 'a', title: 't' },
 					legalLinks: {
 						cookiePolicy: 'c',
 						privacyPolicy: 'p',
@@ -306,5 +306,27 @@ describe('initOutputSchema', () => {
 		expect(parsed.common.dismiss).toBe('Dismiss');
 		expect(parsed.cookieBanner.noticeTitle).toBe('Privacy notice');
 		expect(parsed.rights?.optOut).toBe('Opt out');
+	});
+
+	test("keeps an older backend's frame copy for clients to read as consentGate", () => {
+		const output = v.parse(initOutputSchema, {
+			branding: 'c15t',
+			jurisdiction: 'GDPR',
+			location: { countryCode: 'DE', regionCode: null },
+			policyResolution: JSON.parse(JSON.stringify(matched)) as unknown,
+			translations: {
+				language: 'en',
+				translations: {
+					common: {},
+					consentManagerDialog: {},
+					consentTypes: {},
+					cookieBanner: {},
+					frame: { actionButton: 'Allow {category}', title: 'Blocked' },
+				},
+			},
+		});
+		expect(output.translations.translations).toMatchObject({
+			frame: { actionButton: 'Allow {category}', title: 'Blocked' },
+		});
 	});
 });

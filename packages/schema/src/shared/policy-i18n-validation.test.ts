@@ -58,3 +58,43 @@ describe('stock policy message profiles', () => {
 		).toEqual([]);
 	});
 });
+
+describe('ConsentGate copy in i18n messages', () => {
+	it('serves configured copy under consentGate', () => {
+		const result = getTranslationsData('en', undefined, {
+			i18n: {
+				messages: {
+					default: {
+						translations: { en: { consentGate: { title: 'Blocked' } } },
+					},
+				},
+			},
+		});
+		expect(result.translations.consentGate.title).toBe('Blocked');
+		expect(result.translations).not.toHaveProperty('frame');
+	});
+
+	it('reads copy configured under the old frame key as consentGate', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		try {
+			const result = getTranslationsData('en', undefined, {
+				i18n: {
+					messages: {
+						default: {
+							translations: {
+								en: { frame: { actionButton: 'Allow {category}' } },
+							},
+						},
+					},
+				},
+			});
+			expect(result.translations.consentGate.actionButton).toBe(
+				'Allow {category}'
+			);
+			expect(result.translations.consentGate.title).toBeTypeOf('string');
+			expect(result.translations).not.toHaveProperty('frame');
+		} finally {
+			warn.mockRestore();
+		}
+	});
+});

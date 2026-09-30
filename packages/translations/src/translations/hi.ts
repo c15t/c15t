@@ -11,6 +11,13 @@ export const translations: CompleteTranslations = {
 		save: 'सेटिंग्स सेव करें',
 		securedBy: 'सुरक्षित द्वारा',
 	},
+	consentGate: {
+		actionButton: '{category} सहमति सक्षम करें',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked: 'यह सामग्री आपके क्षेत्र की सहमति नीति के अंतर्गत उपलब्ध नहीं है।',
+		title: 'इस सामग्री को देखने के लिए {category} सहमति स्वीकार करें।',
+	},
 	consentManagerDialog: {
 		description:
 			'यहां अपनी गोपनीयता सेटिंग्स अनुकूलित करें। आप चुन सकते हैं कि किस प्रकार की कुकीज़ और ट्रैकिंग तकनीकों की अनुमति देनी है।',
@@ -56,13 +63,6 @@ export const translations: CompleteTranslations = {
 			'हम इस साइट को चलाने, ट्रैफ़िक मापने और सामग्री तथा विज्ञापनों को वैयक्तिकृत करने के लिए कुकीज़ और समान तकनीकों का उपयोग करते हैं। आप किसी भी समय ऑप्ट आउट कर सकते हैं या अपनी प्राथमिकताएँ प्रबंधित कर सकते हैं।',
 		noticeTitle: 'गोपनीयता सूचना',
 		title: 'हम आपकी गोपनीयता को महत्व देते हैं',
-	},
-	frame: {
-		actionButton: '{category} सहमति सक्षम करें',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked: 'यह सामग्री आपके क्षेत्र की सहमति नीति के अंतर्गत उपलब्ध नहीं है।',
-		title: 'इस सामग्री को देखने के लिए {category} सहमति स्वीकार करें।',
 	},
 	iab: {
 		banner: {

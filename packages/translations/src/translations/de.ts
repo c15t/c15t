@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Einstellungen speichern',
 		securedBy: 'Gesichert durch',
 	},
+	consentGate: {
+		actionButton: 'Zustimmung für {category} aktivieren',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Akzeptieren Sie {category}, um diesen Inhalt anzuzeigen.',
+	},
 	consentManagerDialog: {
 		description:
 			'Passe deine Datenschutz-Einstellungen hier an. Wähle aus, welche Arten von Cookies und Tracking-Technologien zugelassen werden.',
@@ -56,14 +64,6 @@ export const translations: CompleteTranslations = {
 			'Wir verwenden Cookies und ähnliche Technologien, um diese Website zu betreiben, den Traffic zu messen und Inhalte sowie Werbung zu personalisieren. Du kannst jederzeit widersprechen oder deine Einstellungen verwalten.',
 		noticeTitle: 'Datenschutzhinweis',
 		title: 'Wir respektieren deine Privatsphäre.',
-	},
-	frame: {
-		actionButton: 'Zustimmung für {category} aktivieren',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Akzeptieren Sie {category}, um diesen Inhalt anzuzeigen.',
 	},
 	iab: {
 		banner: {

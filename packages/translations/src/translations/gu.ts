@@ -11,6 +11,13 @@ export const translations: CompleteTranslations = {
 		save: 'સેટિંગ્સ સાચવો',
 		securedBy: 'સુરક્ષિત દ્વારા',
 	},
+	consentGate: {
+		actionButton: '{category} સંમતિ સક્ષમ કરો',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked: 'આ સામગ્રી તમારા પ્રદેશની સંમતિ નીતિ હેઠળ ઉપલબ્ધ નથી.',
+		title: 'આ સામગ્રી જોવા માટે {category} સંમતિ સ્વીકારો.',
+	},
 	consentManagerDialog: {
 		description:
 			'અહીં તમારી ગોપનીયતા સેટિંગ્સ કસ્ટમાઇઝ કરો. તમે પસંદ કરી શકો છો કે કયા પ્રકારની કૂકીઝ અને ટ્રેકિંગ ટેકનોલોજીની તમે મંજૂરી આપો છો.',
@@ -55,13 +62,6 @@ export const translations: CompleteTranslations = {
 			'અમે આ સાઇટ ચલાવવા, ટ્રાફિક માપવા અને સામગ્રી તથા જાહેરાતોને વ્યક્તિગત બનાવવા માટે કૂકીઝ અને સમાન તકનીકોનો ઉપયોગ કરીએ છીએ. તમે કોઈપણ સમયે નાપસંદ કરી શકો છો અથવા તમારી પસંદગીઓ મેનેજ કરી શકો છો.',
 		noticeTitle: 'ગોપનીયતા સૂચના',
 		title: 'અમે તમારી ગોપનીયતાનું મૂલ્ય રાખીએ છીએ',
-	},
-	frame: {
-		actionButton: '{category} સંમતિ સક્ષમ કરો',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked: 'આ સામગ્રી તમારા પ્રદેશની સંમતિ નીતિ હેઠળ ઉપલબ્ધ નથી.',
-		title: 'આ સામગ્રી જોવા માટે {category} સંમતિ સ્વીકારો.',
 	},
 	iab: {
 		banner: {

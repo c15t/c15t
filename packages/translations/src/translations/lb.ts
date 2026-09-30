@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Astellunge späicheren',
 		securedBy: 'Ofgeséchert vun',
 	},
+	consentGate: {
+		actionButton: '{category} Zoustëmmung aktivéieren',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Akzeptéiert {category} Zoustëmmung fir dësen Inhalt ze gesinn.',
+	},
 	consentManagerDialog: {
 		description:
 			'Passt Är Privatsphär Astellungen hei un. Dir kënnt wielen wéi eng Zorte vu Cookien an Tracking-Technologien Dir erlaabt.',
@@ -56,14 +64,6 @@ export const translations: CompleteTranslations = {
 			'Mir benotze Cookien an ähnlech Technologien fir dës Websäit ze bedreiwen, de Verkéier ze moossen an Inhalter a Reklammen ze personaliséieren. Dir kënnt Iech zu all Moment ofmellen oder Är Astellunge verwalten.',
 		noticeTitle: 'Dateschutzhiweis',
 		title: 'Mir schätzen Är Privatsphär',
-	},
-	frame: {
-		actionButton: '{category} Zoustëmmung aktivéieren',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Akzeptéiert {category} Zoustëmmung fir dësen Inhalt ze gesinn.',
 	},
 	iab: {
 		banner: {

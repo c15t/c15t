@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Simpan Pengaturan',
 		securedBy: 'Diamankan oleh',
 	},
+	consentGate: {
+		actionButton: 'Aktifkan persetujuan {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Setujui {category} untuk melihat konten ini.',
+	},
 	consentManagerDialog: {
 		description:
 			'Atur preferensi privasi Anda di sini. Anda dapat memilih jenis cookie dan teknologi pelacakan yang diizinkan.',
@@ -56,14 +64,6 @@ export const translations: CompleteTranslations = {
 			'Kami menggunakan cookie dan teknologi serupa untuk menjalankan situs ini, mengukur lalu lintas, serta mempersonalisasi konten dan iklan. Anda dapat memilih keluar atau mengelola preferensi Anda kapan saja.',
 		noticeTitle: 'Pemberitahuan privasi',
 		title: 'Kami menghargai privasi Anda',
-	},
-	frame: {
-		actionButton: 'Aktifkan persetujuan {category}',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Setujui {category} untuk melihat konten ini.',
 	},
 	iab: {
 		banner: {

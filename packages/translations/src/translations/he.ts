@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'שמור הגדרות',
 		securedBy: 'מאובטח על ידי',
 	},
+	consentGate: {
+		actionButton: 'הפעל {category} רשות',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'קבל {category} כדי להציג תוכן זה.',
+	},
 	consentManagerDialog: {
 		description:
 			'בחר את הגדרות הפרטיות שלך כאן. באפשרותך לבחור אילו סוגי עוגיות וטכנולוגיות מעקב תרצה לאפשר.',
@@ -53,14 +61,6 @@ export const translations: CompleteTranslations = {
 			'אנו משתמשים בעוגיות ובטכנולוגיות דומות כדי להפעיל אתר זה, למדוד תעבורה ולהתאים אישית תוכן ופרסומות. ניתן לבטל את ההסכמה או לנהל את ההעדפות שלך בכל עת.',
 		noticeTitle: 'הודעת פרטיות',
 		title: 'פרטיותך חשובה לנו',
-	},
-	frame: {
-		actionButton: 'הפעל {category} רשות',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'קבל {category} כדי להציג תוכן זה.',
 	},
 	iab: {
 		banner: {

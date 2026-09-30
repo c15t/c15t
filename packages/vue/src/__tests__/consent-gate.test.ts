@@ -116,10 +116,10 @@ describe('ConsentGate default placeholder', () => {
 		});
 		const marketing = de.consentTypes.marketing.title;
 		expect(wrapper.get(`.${frameStyles.title}`).text()).toBe(
-			de.frame.title.replace('{category}', marketing)
+			de.consentGate.title.replace('{category}', marketing)
 		);
 		expect(wrapper.get('[data-testid="frame-open-dialog"]').text()).toBe(
-			de.frame.actionButton.replace('{category}', marketing)
+			de.consentGate.actionButton.replace('{category}', marketing)
 		);
 	});
 

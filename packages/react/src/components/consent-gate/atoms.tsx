@@ -28,11 +28,11 @@ const ConsentGateTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'> & { category?: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
-	const { frame, consentTypes } = useTranslations();
+	const { consentGate, consentTypes } = useTranslations();
 
 	const defaultTitle =
-		category && frame?.title
-			? frame.title.replace(
+		category && consentGate?.title
+			? consentGate.title.replace(
 					'{category}',
 					consentTypes?.[category as keyof typeof consentTypes]?.title ??
 						category
@@ -54,11 +54,14 @@ const ConsentGateButton = createForwardRef<
 	HTMLButtonElement,
 	Omit<ConsentButtonProps, 'slotKey'> & { category: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
-	const { frame, consentTypes } = useTranslations();
+	const { consentGate, consentTypes } = useTranslations();
 
 	const categoryTitle =
 		consentTypes?.[category as keyof typeof consentTypes]?.title ?? category;
-	const defaultText = frame?.actionButton?.replace('{category}', categoryTitle);
+	const defaultText = consentGate?.actionButton?.replace(
+		'{category}',
+		categoryTitle
+	);
 
 	return (
 		<ConsentButton

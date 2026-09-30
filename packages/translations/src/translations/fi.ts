@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Tallenna asetukset',
 		securedBy: 'Suojauksen tarjoaa',
 	},
+	consentGate: {
+		actionButton: 'Ota {category} käyttöön',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Hyväksy {category}, jotta voit tarkastella tätä sisältöä.',
+	},
 	consentManagerDialog: {
 		description:
 			'Mukauta yksityisyysasetuksiasi täällä. Voit valita, minkä tyyppiset evästeet ja seurantatekniikat sallit.',
@@ -56,14 +64,6 @@ export const translations: CompleteTranslations = {
 			'Käytämme evästeitä ja vastaavia tekniikoita sivuston toimintaan, liikenteen mittaamiseen sekä sisällön ja mainosten yksilöimiseen. Voit kieltäytyä tai hallita asetuksiasi milloin tahansa.',
 		noticeTitle: 'Tietosuojailmoitus',
 		title: 'Arvostamme yksityisyyttäsi',
-	},
-	frame: {
-		actionButton: 'Ota {category} käyttöön',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Hyväksy {category}, jotta voit tarkastella tätä sisältöä.',
 	},
 	iab: {
 		banner: {
