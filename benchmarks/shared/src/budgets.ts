@@ -816,9 +816,10 @@ const nextjsInitRequestBudget = function nextjsInitRequestBudget(
 export const nextjsBrowserBudgetsForScenario =
 	function nextjsBrowserBudgetsForScenario(scenario: string): MetricBudget[] {
 		const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
-		const budgets = SAVED_CONSENT_SCENARIOS.has(baseScenario)
-			? savedConsentBrowserBudgets({ serverRendered: true })
-			: [...sharedBrowserBudgets];
+		const budgets =
+			SAVED_CONSENT_SCENARIOS.has(baseScenario) || baseScenario === 'ssr-repeat'
+				? savedConsentBrowserBudgets({ serverRendered: true })
+				: [...sharedBrowserBudgets];
 		const initRequest = nextjsInitRequestBudget(baseScenario);
 		if (initRequest) {
 			budgets.push(initRequest);

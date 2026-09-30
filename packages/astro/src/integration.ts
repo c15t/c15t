@@ -207,7 +207,7 @@ export const resolveOptions = function resolveOptions(
 	// A JavaScript `astro.config.mjs` has no type checking, so `ui: 'solid'`
 	// reaches `buildBootScript()` and throws a bare `TypeError` on an
 	// undefined adapter entry. Name the supported values instead.
-	if (options.ui !== undefined && !(options.ui in UI_ADAPTERS)) {
+	if (options.ui !== undefined && !Object.hasOwn(UI_ADAPTERS, options.ui)) {
 		throw new Error(
 			`@c15t/astro: unknown \`ui\` ${JSON.stringify(options.ui)}. Supported adapters: ${UI_ADAPTER_NAMES.join(', ')}.`
 		);
@@ -279,13 +279,14 @@ const buildBootScript = function buildBootScript(
 ): string {
 	const { ui } = resolved;
 	const adapter = UI_ADAPTERS[ui];
+	const serializedUI = JSON.stringify(ui);
 	const quote = (specifier: string): string =>
 		JSON.stringify(resolveEntry(specifier));
 	const lines = [
 		`import options from '${VIRTUAL_ID}';`,
 		`import { boot, registerDialogAdapter, registerDialogStyles, registerDialogSurface } from ${quote('@c15t/astro/client')};`,
-		`registerDialogAdapter('${ui}', async () => (await import(${quote(adapter.adapterModule)})).${adapter.adapterExport});`,
-		`registerDialogSurface('${ui}', () => import(${quote(adapter.surfaceModule)}));`,
+		`registerDialogAdapter(${serializedUI}, async () => (await import(${quote(adapter.adapterModule)})).${adapter.adapterExport});`,
+		`registerDialogSurface(${serializedUI}, () => import(${quote(adapter.surfaceModule)}));`,
 	];
 	// `?url` makes each stylesheet an emitted file and the import a string,
 	// so no dialog rule reaches the page until the client links it.
@@ -300,7 +301,7 @@ const buildBootScript = function buildBootScript(
 	}
 	if (options.clientEntrypoint) {
 		lines.push(
-			`import clientOptions from '${options.clientEntrypoint}';`,
+			`import clientOptions from ${JSON.stringify(options.clientEntrypoint)};`,
 			'boot(options, clientOptions);'
 		);
 	} else {

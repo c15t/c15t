@@ -27,12 +27,28 @@ export interface StylesheetOverlap {
 	sharedClassSample: string[];
 }
 
-const COMMENT_PATTERN = /\/\*[\s\S]*?\*\//gu;
 const STRING_PATTERN = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/gu;
 const URL_PATTERN = /url\([^)]*\)/giu;
 // No capture groups: the harness apps compile these files for ES2017.
-const PRELUDE_PATTERN = /[^{}]+(?=\{)/gu;
 const CLASS_PATTERN = /\.-?[_a-zA-Z][\w-]*/gu;
+
+/** Skip each comment once, including an unfinished comment at EOF. */
+const withoutComments = function withoutComments(source: string): string {
+	const parts: string[] = [];
+	let offset = 0;
+	let start = source.indexOf('/*', offset);
+	while (start !== -1) {
+		parts.push(source.slice(offset, start));
+		const end = source.indexOf('*/', start + 2);
+		if (end === -1) {
+			return parts.join('');
+		}
+		offset = end + 2;
+		start = source.indexOf('/*', offset);
+	}
+	parts.push(source.slice(offset));
+	return parts.join('');
+};
 
 /**
  * Class names used in selectors of a stylesheet. Comments, strings, and
@@ -44,15 +60,19 @@ const CLASS_PATTERN = /\.-?[_a-zA-Z][\w-]*/gu;
 export const extractClassSelectors = function extractClassSelectors(
 	cssText: string
 ): Set<string> {
-	const cleaned = cssText
-		.replace(COMMENT_PATTERN, '')
+	const cleaned = withoutComments(cssText)
 		.replace(STRING_PATTERN, '""')
 		.replace(URL_PATTERN, 'url()');
 	const classes = new Set<string>();
-	for (const [match] of cleaned.matchAll(PRELUDE_PATTERN)) {
+	// Splitting consumes each prelude once, even when no opening brace follows.
+	const preludes = cleaned.split('{');
+	preludes.pop();
+	for (const match of preludes) {
 		// Nested rules follow declarations: keep only the text after the
 		// last declaration terminator.
-		const prelude = match.split(';').at(-1)?.trim() ?? '';
+		const prelude = match
+			.slice(Math.max(match.lastIndexOf('}'), match.lastIndexOf(';')) + 1)
+			.trim();
 		if (prelude.length === 0 || prelude.startsWith('@')) {
 			continue;
 		}

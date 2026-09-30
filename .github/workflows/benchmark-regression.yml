@@ -18,8 +18,10 @@ on:
         default: false
   workflow_dispatch:
     inputs:
-      head_ref:
-        description: Revision to benchmark
+      branch:
+        description: Published branch to benchmark
+        type: choice
+        options: [v3, main, canary]
         default: v3
       base_ref:
         description: Revision to compare with
@@ -47,8 +49,9 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          # Resolve moving branch names once for every benchmark package.
-          ref: ${{ inputs.head_ref || (github.event_name == 'schedule' && 'v3') || github.sha }}
+          # Dispatch can select only these trusted branches. PR callers retain
+          # their event SHA and PR cache scope; scheduled runs always use v3.
+          ref: ${{ github.event_name == 'schedule' && 'v3' || github.event_name == 'workflow_dispatch' && (inputs.branch == 'main' && 'main' || inputs.branch == 'canary' && 'canary' || 'v3') || github.sha }}
           fetch-depth: 0
           persist-credentials: false
       - uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
@@ -61,11 +64,8 @@ jobs:
           BENCHMARK_MODE: ${{ inputs.mode || 'full' }}
         run: |
           matrix=$(bun scripts/benchmark-plan.ts "$BENCHMARK_MODE")
-          head_sha=$(git rev-parse HEAD)
-          base_sha=$(git rev-parse --verify "${BENCHMARK_BASE_REF}^{commit}")
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
-          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+          bun scripts/benchmark-revisions.ts >> "$GITHUB_OUTPUT"
 
   benchmark:
     name: Runtime regression budgets (${{ matrix.id }})

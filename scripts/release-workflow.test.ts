@@ -151,7 +151,7 @@ describe('release validation', () => {
 					steps: expect.arrayContaining([
 						expect.objectContaining({
 							with: expect.objectContaining({
-								ref: `\${{ inputs.head_ref || (github.event_name == 'schedule' && 'v3') || github.sha }}`,
+								ref: `\${{ github.event_name == 'schedule' && 'v3' || github.event_name == 'workflow_dispatch' && (inputs.branch == 'main' && 'main' || inputs.branch == 'canary' && 'canary' || 'v3') || github.sha }}`,
 							}),
 						}),
 					]),
@@ -161,7 +161,14 @@ describe('release validation', () => {
 				push: { branches: ['v3'] },
 				schedule: [{ cron: '43 2 * * *' }],
 				workflow_dispatch: {
-					inputs: { head_ref: { default: 'v3' }, mode: { default: 'full' } },
+					inputs: {
+						branch: {
+							default: 'v3',
+							options: ['v3', 'main', 'canary'],
+							type: 'choice',
+						},
+						mode: { default: 'full' },
+					},
 				},
 			},
 		});

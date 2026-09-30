@@ -315,6 +315,9 @@ routes. For a purely static host, use `hosted()` or `offline()`, or set
 `endpoints: false` and serve those routes elsewhere. Nonserializable extensions belong in
 the module selected by `clientEntrypoint`, not in `astro.config.mjs`.
 
+`clientEntrypoint` is a module path. The integration escapes it when generating
+the page script, including quotes and backslashes in file names.
+
 ## Verify navigation and loading
 
 Test the built output, including a full page load and any navigation through
