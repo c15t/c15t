@@ -1,5 +1,6 @@
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { enTranslations } from '@c15t/translations';
+import { baseTranslations } from '@c15t/translations/all';
 /**
  * @vitest-environment jsdom
  *
@@ -319,6 +320,81 @@ describe('app i18n over backend translations', () => {
 		expect(
 			kernel.getSnapshot().translations?.translations.cookieBanner.title
 		).toBe('Backend title');
+		kernel.dispose();
+	});
+});
+
+describe('stock bundles passed as i18n messages', () => {
+	const stockGerman = baseTranslations.de;
+	const hostedGerman = (translations: Record<string, unknown>) =>
+		custom(
+			createTransport({
+				init: vi.fn().mockResolvedValue({
+					...RESOLVED_PREFETCH,
+					translations: { language: 'de', translations },
+				}),
+			})
+		);
+
+	test('a backend edit shows when the app passes the stock bundle', async () => {
+		const kernel = createRuntimeKernel({
+			i18n: { locale: 'de', messages: { de: { ...stockGerman } } } as never,
+			mode: hostedGerman({
+				...stockGerman,
+				cookieBanner: { ...stockGerman.cookieBanner, title: 'Vom Backend' },
+			}),
+		});
+
+		await kernel.commands.init();
+
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe('Vom Backend');
+		kernel.dispose();
+	});
+
+	test('a customized key still wins over the backend', async () => {
+		const kernel = createRuntimeKernel({
+			i18n: {
+				locale: 'de',
+				messages: {
+					de: {
+						...stockGerman,
+						cookieBanner: {
+							...stockGerman.cookieBanner,
+							title: 'Eigener Titel',
+						},
+					},
+				},
+			} as never,
+			mode: hostedGerman({
+				...stockGerman,
+				cookieBanner: {
+					...stockGerman.cookieBanner,
+					description: 'Vom Backend',
+				},
+			}),
+		});
+
+		await kernel.commands.init();
+
+		const copy = kernel.getSnapshot().translations?.translations;
+		expect(copy?.cookieBanner.title).toBe('Eigener Titel');
+		expect(copy?.cookieBanner.description).toBe('Vom Backend');
+		kernel.dispose();
+	});
+
+	test('keys the backend does not supply keep the app copy in full', async () => {
+		const kernel = createRuntimeKernel({
+			i18n: { locale: 'de', messages: { de: { ...stockGerman } } } as never,
+			mode: hostedGerman({}),
+		});
+
+		await kernel.commands.init();
+
+		const copy = kernel.getSnapshot().translations?.translations;
+		expect(copy?.cookieBanner.title).toBe(stockGerman.cookieBanner.title);
+		expect(copy?.common.acceptAll).toBe(stockGerman.common.acceptAll);
 		kernel.dispose();
 	});
 });
