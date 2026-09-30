@@ -123,14 +123,11 @@ and embeds group:
 | React          | [Vendor consent](https://c15t.com/docs/frameworks/react/vendor-consent)          | [Clear on revocation](https://c15t.com/docs/frameworks/react/clear-on-revocation)          |
 | Nuxt           | [Vendor consent](https://c15t.com/docs/frameworks/nuxt/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/nuxt/clear-on-revocation)           |
 | Vue            | [Vendor consent](https://c15t.com/docs/frameworks/vue/vendor-consent)            | [Clear on revocation](https://c15t.com/docs/frameworks/vue/clear-on-revocation)            |
-| Astro          | Not available                                                                    | [Clear on revocation](https://c15t.com/docs/frameworks/astro/clear-on-revocation)          |
+| Astro          | [Vendor consent](https://c15t.com/docs/frameworks/astro/vendor-consent)          | [Clear on revocation](https://c15t.com/docs/frameworks/astro/clear-on-revocation)          |
 | Svelte         | [Vendor consent](https://c15t.com/docs/frameworks/svelte/vendor-consent)         | [Clear on revocation](https://c15t.com/docs/frameworks/svelte/clear-on-revocation)         |
 | SvelteKit      | [Vendor consent](https://c15t.com/docs/frameworks/sveltekit/vendor-consent)      | [Clear on revocation](https://c15t.com/docs/frameworks/sveltekit/clear-on-revocation)      |
-| HTML           | Not available                                                                    | [Clear on revocation](https://c15t.com/docs/frameworks/html/clear-on-revocation)           |
+| HTML           | [Vendor consent](https://c15t.com/docs/frameworks/html/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/html/clear-on-revocation)           |
 | JavaScript     | [Vendor consent](https://c15t.com/docs/frameworks/javascript/vendor-consent)     | [Clear on revocation](https://c15t.com/docs/frameworks/javascript/clear-on-revocation)     |
-
-The Astro integration has no `vendors` option, and the HTML script tag's
-preference dialog shows no vendor switches.
 
 ## Send events only to allowed integrations
 
