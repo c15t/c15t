@@ -107,7 +107,7 @@ export default defineDocsConfig({
 					base: 'next',
 					children: [
 						{
-							pages: ['scripts'],
+							pages: ['scripts', 'embeds', 'network-blocker'],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -175,7 +175,7 @@ export default defineDocsConfig({
 					base: 'tanstack-start',
 					children: [
 						{
-							pages: ['scripts'],
+							pages: ['scripts', 'embeds', 'network-blocker'],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -230,7 +230,7 @@ export default defineDocsConfig({
 					base: 'react',
 					children: [
 						{
-							pages: ['scripts'],
+							pages: ['scripts', 'embeds', 'network-blocker'],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},

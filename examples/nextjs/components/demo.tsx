@@ -1,12 +1,13 @@
 'use client';
 
-import { ConsentDialogTrigger, ConsentGate, useConsent } from 'c15t/next';
+import { ConsentDialogTrigger, useConsent } from 'c15t/next';
 import { ConsentDevTools } from 'c15t/next/devtools';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { VideoEmbed } from '@/components/video-embed';
 import { posthogConfigured, xPixelConfigured } from '@/lib/scripts';
 
 const routes = [
@@ -129,18 +130,7 @@ export const Demo = ({ children }: { children: ReactNode }) => {
 							<h2 id="video-heading">A video, when you allow it</h2>
 							<span className="category">Measurement</span>
 						</div>
-						<ConsentGate category="measurement">
-							{/* oxlint-disable react/iframe-missing-sandbox -- This fixed cross-origin YouTube player needs its own origin for storage and playback. */}
-							<iframe
-								className="video-frame"
-								sandbox="allow-scripts allow-same-origin allow-presentation"
-								src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y"
-								title="YouTube video"
-								allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-								allowFullScreen
-							/>
-							{/* oxlint-enable react/iframe-missing-sandbox */}
-						</ConsentGate>
+						<VideoEmbed />
 						<p className="caption">
 							Revoking measurement removes the iframe. Requests already sent
 							cannot be undone.

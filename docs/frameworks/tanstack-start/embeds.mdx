@@ -1,0 +1,72 @@
+---
+title: Embeds
+description: Keep YouTube videos, maps and other iframes out of a TanStack Start page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
+group: frameworks
+---
+
+## Pick a method
+
+| Method | Use it when |
+| --- | --- |
+| `ConsentGate` | You render the iframe in a React component and want a placeholder until the visitor allows its category. |
+| The iframe blocker | The iframe comes from HTML you do not render with React, such as CMS or Markdown content. |
+
+Both keep the iframe's `src` out of the page until the category is allowed, so
+the embed's host receives no request before consent.
+
+## Gate an embed with ConsentGate
+
+Wrap the iframe in `ConsentGate` in any route under the root route that
+mounts `ConsentRoot`:
+
+<include src="../../shared/examples/tanstack-start/video-embed.mdx" />
+
+The server HTML contains the placeholder, never the iframe, unless the root
+loader resolved measurement as allowed. The placeholder shows a message and a
+[`ConsentDialogLink`](/docs/frameworks/tanstack-start/components/consent-dialog-link)
+until then. When the visitor withdraws measurement, React removes the iframe.
+
+Pick the category that matches what the embed does. The example uses
+measurement for YouTube because its player measures views. A map or chat
+widget usually belongs under functionality or experience.
+[ConsentGate](/docs/frameworks/tanstack-start/components/consent-gate)
+documents the built-in placeholder and every prop.
+
+## Gate an iframe with the iframe blocker
+
+`ConsentRoot` runs the iframe blocker in the browser by default. Give an
+iframe `data-src` instead of `src`, and a `data-category`:
+
+{/* example: fragment */}
+
+```html title="Markup from your CMS"
+<iframe
+  data-src="https://www.google.com/maps/embed?pb=YOUR_EMBED_ID"
+  data-category="functionality"
+  title="Store map"
+></iframe>
+```
+
+The server HTML has no `src`, so nothing loads before hydration. After
+hydration, c15t sets `src` from `data-src` when the category is allowed and
+removes `src` when the category is withdrawn. It watches the page, so iframes
+added by client-side navigation are handled too. Add `data-vendor` with a
+vendor ID to also block the iframe while the visitor has turned that vendor
+off.
+
+To turn the blocker off, set `iframeBlocker: false` in `ConsentRoot`'s
+`options`.
+
+## Verify the embeds
+
+Open the production build in a private window with DevTools open, under a
+policy that asks for consent.
+
+1. View the page source. No iframe has a `src` pointing at
+   `youtube-nocookie.com` or `google.com/maps`, and the Network panel shows no
+   request to them.
+2. Allow the embed's category and save. The iframe loads.
+3. Withdraw the category and save. The page reloads without the embed.
+
+The [YouTube](/docs/integrations/youtube) and
+[Google Maps](/docs/integrations/google-maps) guides cover sizing and titles.

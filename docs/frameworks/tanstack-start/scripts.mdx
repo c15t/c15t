@@ -1,6 +1,6 @@
 ---
 title: Scripts
-description: Load vendor scripts, gate iframes, block network requests and clear stored data by consent category in a TanStack Start app with ConsentRoot.
+description: Load vendor scripts by consent category in a TanStack Start app with ConsentRoot, and clear stored data or reload the page when a visitor withdraws consent.
 group: frameworks
 ---
 
@@ -48,62 +48,14 @@ covers a vendor without one.
   load before consent and pass the visitor's choice to the vendor. Read the
   vendor's guide; a category on a script does not always mean zero requests.
 
-## Gate an iframe or widget
+## Embeds and other requests
 
-Wrap embeds in `ConsentGate`. It renders its children only while the category
-is allowed and shows a placeholder otherwise:
+Scripts cover vendor code c15t loads for you. For the rest:
 
-{/* example: fragment */}
-
-```tsx title="src/components/product-video.tsx"
-import { ConsentGate } from 'c15t/tanstack-start';
-
-export function ProductVideo() {
-  return (
-    <ConsentGate category="marketing">
-      <iframe
-        src="https://www.youtube-nocookie.com/embed/VIDEO_ID"
-        title="Product tour"
-        allowFullScreen
-      />
-    </ConsentGate>
-  );
-}
-```
-
-Replace `VIDEO_ID` with your video. The server HTML contains the placeholder,
-never the iframe, unless the root loader resolved the category as allowed.
-[ConsentGate](/docs/frameworks/tanstack-start/components/consent-gate) documents the
-placeholder and its props. For iframes in HTML you do not render with React,
-set `data-category` and `data-src` instead of `src`; `ConsentRoot` sets `src`
-once the category is allowed.
-
-## Block requests an SDK sends itself
-
-Pass `networkBlocker` rules to `ConsentRoot` to stop `fetch` and
-`XMLHttpRequest` calls to a domain until its category is allowed:
-
-{/* example: fragment */}
-
-```tsx title="src/routes/__root.tsx"
-const networkBlocker = {
-  rules: [
-    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
-    { id: 'meta-pixel', domain: 'facebook.com', pathIncludes: '/tr', category: 'marketing' },
-  ],
-};
-
-<ConsentRoot state={consent} backendURL={backendURL} initRoute={false} scripts={scripts} networkBlocker={networkBlocker}>
-```
-
-The blocker runs in the browser only. It does not see requests your server
-functions or server routes make.
-
-<import src="../../shared/react/network-blocker.mdx#rules" />
-
-<import src="../../shared/react/network-blocker.mdx#behavior" />
-
-<import src="../../shared/react/network-blocker.mdx#limits" />
+- [Embeds](/docs/frameworks/tanstack-start/embeds) keeps iframes out of the
+  page with `ConsentGate` or the iframe blocker.
+- [Network blocker](/docs/frameworks/tanstack-start/network-blocker) holds
+  `fetch` and XHR calls that match a rule until their category is allowed.
 
 ## Clear stored data after revocation
 
@@ -125,8 +77,8 @@ Helpers from `@c15t/scripts` already carry their vendor slug.
 Open DevTools Network in a private window, filter by each vendor's domain and
 reload.
 
-1. Before a choice under an opt-in policy, no vendor script, iframe or blocked
-   domain appears. The page source has no vendor `<script>` tags.
+1. Before a choice under an opt-in policy, no vendor script loads. The page
+   source has no vendor `<script>` tags.
 2. Allow one category. Only that category's vendors load.
 3. Turn the category off. The page reloads and the vendor stays absent.
 4. Reload again. The rejection holds, and the server HTML shows no banner.

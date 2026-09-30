@@ -1,0 +1,54 @@
+---
+title: Network blocker
+description: Hold fetch and XMLHttpRequest calls in a Next.js app until their consent category is allowed, with networkBlocker rules on ConsentRoot.
+group: frameworks
+---
+
+## Add rules
+
+The network blocker stops `fetch` and `XMLHttpRequest` calls to domains you
+list until the visitor grants their category. Use it for beacons and API calls
+that bypass script loading, such as a pixel fired by an SDK already on the
+page. Load vendor SDKs through [`scripts`](/docs/frameworks/next/scripts)
+first, so they do not run at all before consent.
+
+Define the rules in `components/consent.tsx` and pass them to `ConsentRoot`.
+`onRequestBlocked` is a function, so the rules cannot come from a Server
+Component.
+
+{/* example: fragment */}
+
+```tsx title="components/consent.tsx (partial)"
+import type { ConsentRootProps } from 'c15t/next';
+
+const networkBlocker: NonNullable<ConsentRootProps['networkBlocker']> = {
+  rules: [
+    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
+    { id: 'meta-pixel', domain: 'facebook.com', pathIncludes: '/tr', category: 'marketing' },
+  ],
+};
+
+// On the existing root:
+<ConsentRoot state={state} config={consentConfig} scripts={scripts} networkBlocker={networkBlocker}>
+```
+
+Keep the page content inside `ConsentRoot`. Blocking starts when it renders, so
+components outside it that send requests while rendering, and modules evaluated
+before it, are not covered. Requests your server makes, in Server Components,
+route handlers or `getServerSideProps`, are not blocked either.
+
+<import src="../../shared/react/network-blocker.mdx#rules" />
+
+<import src="../../shared/react/network-blocker.mdx#behavior" />
+
+<import src="../../shared/react/network-blocker.mdx#limits" />
+
+## Verify the blocked requests
+
+Open the production build in a private window with the DevTools Network panel
+open, under a policy that asks for consent.
+
+1. Before a choice, requests matching a rule are absent from the Network panel,
+   and the console logs each blocked request.
+2. Allow the rule's category and save. Matching requests go out.
+3. Reject, reload, and check that they stay absent.

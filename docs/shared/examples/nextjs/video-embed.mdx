@@ -1,0 +1,20 @@
+{/* Generated from examples/nextjs/components/video-embed.tsx (docs:video-embed) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```tsx title="components/video-embed.tsx"
+'use client';
+
+import { ConsentGate } from 'c15t/next';
+
+export const VideoEmbed = () => (
+	<ConsentGate category="measurement">
+		<iframe
+			className="video-frame"
+			sandbox="allow-scripts allow-same-origin allow-presentation"
+			src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y"
+			title="YouTube video"
+			allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+			allowFullScreen
+		/>
+	</ConsentGate>
+);
+```

@@ -1,6 +1,6 @@
 ---
 title: Scripts
-description: Load vendor scripts, gate iframes, block network requests and clear stored data by consent category in a React app with ConsentProvider.
+description: Load vendor scripts by consent category in a React app with ConsentProvider, and clear stored data or reload the page when a visitor withdraws consent.
 group: frameworks
 ---
 
@@ -36,61 +36,14 @@ covers a vendor without one.
   load before consent and pass the visitor's choice to the vendor. Read the
   vendor's guide; a category on a script does not always mean zero requests.
 
-## Gate an iframe or widget
+## Embeds and other requests
 
-Wrap embeds in `ConsentGate`. It renders its children only while the category
-is allowed and shows a placeholder otherwise:
+Scripts cover vendor code c15t loads for you. For the rest:
 
-{/* example: fragment */}
-
-```tsx title="src/product-video.tsx"
-import { ConsentGate } from 'c15t/react';
-
-export function ProductVideo() {
-  return (
-    <ConsentGate category="marketing">
-      <iframe
-        src="https://www.youtube-nocookie.com/embed/VIDEO_ID"
-        title="Product tour"
-        allowFullScreen
-      />
-    </ConsentGate>
-  );
-}
-```
-
-Replace `VIDEO_ID` with your video. The iframe is absent from the page until
-the visitor allows `marketing`, and it is removed if they revoke it.
-[ConsentGate](/docs/frameworks/react/components/consent-gate) documents the
-placeholder and its props. For iframes rendered outside React, such as CMS
-content, give the iframe `data-category` and `data-src` instead of `src`; the
-provider's iframe blocker sets `src` once the category is allowed.
-
-## Block requests an SDK sends itself
-
-Some SDKs are already on the page and send beacons or API calls of their own.
-Add `networkBlocker` rules to the provider options to stop `fetch` and
-`XMLHttpRequest` calls to those domains until the category is allowed. This
-partial example adds the option next to the existing `mode` and `scripts`:
-
-{/* example: fragment */}
-
-```tsx title="src/consent.tsx"
-const networkBlocker = {
-  rules: [
-    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
-    { id: 'meta-pixel', domain: 'facebook.com', pathIncludes: '/tr', category: 'marketing' },
-  ],
-};
-
-<ConsentProvider options={{ mode, scripts, networkBlocker }}>
-```
-
-<import src="../../shared/react/network-blocker.mdx#rules" />
-
-<import src="../../shared/react/network-blocker.mdx#behavior" />
-
-<import src="../../shared/react/network-blocker.mdx#limits" />
+- [Embeds](/docs/frameworks/react/embeds) keeps iframes out of the page with
+  `ConsentGate` or the iframe blocker.
+- [Network blocker](/docs/frameworks/react/network-blocker) holds `fetch` and
+  XHR calls that match a rule until their category is allowed.
 
 ## Clear stored data after revocation
 
@@ -115,8 +68,7 @@ own events only to allowed integrations, see
 Open DevTools Network in a private window, filter by each vendor's domain and
 reload.
 
-1. Before a choice under an opt-in policy, no vendor script, iframe or blocked
-   domain appears. With `networkBlocker`, the console logs each blocked request.
+1. Before a choice under an opt-in policy, no vendor script loads.
 2. Allow one category. Only that category's vendors load.
 3. Turn the category off. The page reloads and the vendor stays absent.
 4. Reload again. The rejection holds.

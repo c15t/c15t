@@ -1,6 +1,6 @@
 ---
 title: Scripts
-description: Register vendor scripts, gate embeds, block network requests and handle revocation in a Next.js ConsentRoot.
+description: Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor and clear stored data after revocation.
 group: frameworks
 ---
 
@@ -70,12 +70,14 @@ Use [custom integrations](/docs/integrations/building-integrations) for a
 vendor without a helper. Google helpers follow the
 [Consent Mode contract](/docs/integrations/google-tag-manager).
 
-## Gate an iframe or widget
+## Embeds and other requests
 
-Wrap an embed in `ConsentGate` in a Client Component. The iframe stays out of
-the page until its category is allowed, and leaves the page when the visitor
-revokes it. [ConsentGate](/docs/frameworks/next/components/consent-gate) shows
-the component and what the server HTML contains for each layout.
+Scripts cover vendor code c15t loads for you. For the rest:
+
+- [Embeds](/docs/frameworks/next/embeds) keeps iframes out of the page with
+  `ConsentGate` or the iframe blocker.
+- [Network blocker](/docs/frameworks/next/network-blocker) holds `fetch` and
+  XHR calls that match a rule until their category is allowed.
 
 ## Let visitors turn off one vendor
 
@@ -115,41 +117,6 @@ field. A backend manifest can declare vendors too. See
 [granular consent](/docs/integrations/granular-consent) for storage, bulk
 actions and the hooks a custom control uses.
 
-## Block network requests
-
-The network blocker stops `fetch` and `XMLHttpRequest` calls to domains you
-list until the visitor grants their category. Use it for beacons and API calls
-that bypass script loading, such as a pixel fired by an SDK already on the
-page. Define the rules in `components/consent.tsx` and pass them to
-`ConsentRoot`. `onRequestBlocked` is a function, so the rules cannot come from
-a Server Component.
-
-{/* example: fragment */}
-
-```tsx title="components/consent.tsx (partial)"
-import type { ConsentRootProps } from 'c15t/next';
-
-const networkBlocker: NonNullable<ConsentRootProps['networkBlocker']> = {
-  rules: [
-    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
-    { id: 'meta-pixel', domain: 'facebook.com', pathIncludes: '/tr', category: 'marketing' },
-  ],
-};
-
-// On the existing root:
-<ConsentRoot state={state} config={consentConfig} scripts={scripts} networkBlocker={networkBlocker}>
-```
-
-Keep the page content inside `ConsentRoot`. Blocking starts when it renders, so
-components outside it that send requests while rendering, and modules evaluated
-before it, are not covered.
-
-<import src="../../shared/react/network-blocker.mdx#rules" />
-
-<import src="../../shared/react/network-blocker.mdx#behavior" />
-
-<import src="../../shared/react/network-blocker.mdx#limits" />
-
 ## Clear stored tracking data
 
 Script gating does not remove cookies or Web Storage entries a script already
@@ -175,8 +142,6 @@ Open the production build in a fresh browser session with DevTools open.
    selected and neither vendor loads.
 4. Turn a granted category off. The page reloads and that vendor does not load
    again.
-5. If you added network-blocker rules, requests matching them stay absent from
-   the Network panel until you grant their category.
 
 The [runnable example](/docs/examples) has the same script definitions, and
 [the consent checks](/docs/guides/verify-consent) cover the release checklist.

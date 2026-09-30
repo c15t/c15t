@@ -1,13 +1,13 @@
-/* oxlint-disable react/iframe-missing-sandbox -- The fixed cross-origin YouTube player needs scripts and its own origin for playback. */
 /**
  * Demo page for the example. Everything a reader copies lives in
- * `consent.tsx`, `main.tsx` and `scripts.ts`; this file only shows the
+ * `consent.tsx`, `main.tsx`, `scripts.ts` and `video-embed.tsx`; this file only shows the
  * consent state, a gated video and the design switch.
  */
-import { ConsentDialogLink, ConsentGate, useConsent } from 'c15t/react';
+import { useConsent } from 'c15t/react';
 import { lazy, Suspense } from 'react';
 
 import './style.css';
+import { VideoEmbed } from './video-embed';
 
 // DevTools loads in development builds only.
 const DevTools = import.meta.env.DEV
@@ -52,23 +52,7 @@ export const App = () => {
 			</section>
 			<section className="card">
 				<h2>YouTube embed</h2>
-				<ConsentGate
-					category="measurement"
-					placeholder={
-						<div className="placeholder">
-							<p>Allow measurement to load this YouTube video.</p>
-							<ConsentDialogLink>Choose video permissions</ConsentDialogLink>
-						</div>
-					}
-				>
-					<iframe
-						title="YouTube video"
-						sandbox="allow-scripts allow-same-origin allow-presentation"
-						src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y?playsinline=1"
-						allow="encrypted-media; picture-in-picture"
-						allowFullScreen
-					/>
-				</ConsentGate>
+				<VideoEmbed />
 			</section>
 			{DevTools && (
 				<Suspense fallback={null}>

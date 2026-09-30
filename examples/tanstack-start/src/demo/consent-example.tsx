@@ -1,6 +1,6 @@
-/* oxlint-disable react/iframe-missing-sandbox -- The cross-origin YouTube player requires scripts and its own origin. */
-import { ConsentDialogLink, useConsent } from 'c15t/tanstack-start';
 import { lazy, Suspense, useEffect, useSyncExternalStore } from 'react';
+
+import { VideoEmbed } from '../components/video-embed';
 
 const subscribe = () => () => {
 	/* Hydration state has no external events. */
@@ -18,7 +18,6 @@ const DevTools = import.meta.env.DEV
  * route.
  */
 export const ConsentExample = () => {
-	const allowed = useConsent('measurement');
 	const mounted = useSyncExternalStore(
 		subscribe,
 		() => true,
@@ -58,22 +57,7 @@ export const ConsentExample = () => {
 				Branded theme
 			</button>
 			<h2>Watch the video</h2>
-			{allowed ? (
-				<iframe
-					src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y"
-					title="YouTube video"
-					sandbox="allow-scripts allow-same-origin allow-presentation"
-					allowFullScreen
-				/>
-			) : (
-				<div>
-					<p>
-						Allow measurement to load this YouTube video. No video request is
-						sent before permission.
-					</p>
-					<ConsentDialogLink>Open privacy settings</ConsentDialogLink>
-				</div>
-			)}
+			<VideoEmbed />
 		</main>
 	);
 };
