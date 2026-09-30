@@ -45,14 +45,14 @@ type NextFetchInit = RequestInit & {
 
 export interface NextConsentManifestHandlersOptions {
 	/**
-	 * Backend base URL that serves `/manifest`.
-	 * Defaults to `C15T_BACKEND_URL` or `NEXT_PUBLIC_C15T_BACKEND_URL`.
+	 * Backend base URL that serves `/manifest`, for example
+	 * `https://your-project.inth.app`. Pass this or `manifestURL`.
 	 */
 	backendURL?: string;
 
 	/**
-	 * Full manifest URL. Overrides `backendURL + "/manifest"`.
-	 * Defaults to `C15T_MANIFEST_URL`.
+	 * Full manifest URL. Overrides `backendURL + "/manifest"`. Pass this or
+	 * `backendURL`.
 	 */
 	manifestURL?: string;
 
@@ -67,8 +67,10 @@ export interface NextConsentManifestHandlersOptions {
 	trustForwardedHeaders?: boolean;
 
 	/**
-	 * Next.js Data Cache lifetime for the manifest fetch.
-	 * Defaults to the backend manifest route's default `s-maxage` of 300s.
+	 * Next.js Data Cache lifetime for the manifest fetch, in seconds, or
+	 * `false` to skip the Data Cache.
+	 *
+	 * @default 300
 	 */
 	manifestRevalidateSeconds?: number | false;
 
@@ -121,28 +123,6 @@ export interface ManifestFetchResult {
 	status: number;
 }
 
-const getEnv = function getEnv(name: string): string | undefined {
-	if (typeof process === 'undefined') {
-		return undefined;
-	}
-	return process.env?.[name];
-};
-
-const readManifestRevalidateFromEnv = function readManifestRevalidateFromEnv():
-	| number
-	| false
-	| undefined {
-	const raw = getEnv('C15T_MANIFEST_REVALIDATE_SECONDS');
-	if (raw === undefined) {
-		return undefined;
-	}
-	if (raw === 'false') {
-		return false;
-	}
-	const parsed = Number.parseInt(raw, 10);
-	return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
-};
-
 /**
  * Resolves a configured URL against the route request. A relative URL takes
  * the origin of `request.url`, which Next.js builds itself; `x-forwarded-*`
@@ -164,27 +144,22 @@ const resolveManifestURL = function resolveManifestURL(
 	request: Request,
 	options: NextConsentManifestHandlersOptions
 ): string {
-	const manifestURL = options.manifestURL ?? getEnv('C15T_MANIFEST_URL');
+	const { manifestURL } = options;
 	if (manifestURL) {
 		const resolved = resolveRequestURL(manifestURL, request, options);
 		if (!resolved) {
-			throw new Error('@c15t/nextjs/api: invalid C15T_MANIFEST_URL.');
+			throw new Error('@c15t/nextjs/api: invalid manifestURL.');
 		}
 		return resolved;
 	}
 
-	const backendURL =
-		options.backendURL ??
-		getEnv('C15T_BACKEND_URL') ??
-		getEnv('NEXT_PUBLIC_C15T_BACKEND_URL');
+	const { backendURL } = options;
 	if (!backendURL) {
-		throw new Error(
-			'@c15t/nextjs/api: configure C15T_BACKEND_URL or C15T_MANIFEST_URL.'
-		);
+		throw new Error('@c15t/nextjs/api: pass backendURL or manifestURL.');
 	}
 	const resolved = resolveRequestURL(backendURL, request, options);
 	if (!resolved) {
-		throw new Error('@c15t/nextjs/api: invalid C15T_BACKEND_URL.');
+		throw new Error('@c15t/nextjs/api: invalid backendURL.');
 	}
 	return `${resolved}/manifest`;
 };
@@ -198,12 +173,7 @@ const resolveManifestURL = function resolveManifestURL(
 const resolveReportBackendURL = function resolveReportBackendURL(
 	options: NextConsentManifestHandlersOptions
 ): string | undefined {
-	return resolveSessionReportBackendURL({
-		backendURL:
-			options.backendURL ??
-			getEnv('C15T_BACKEND_URL') ??
-			getEnv('NEXT_PUBLIC_C15T_BACKEND_URL'),
-	});
+	return resolveSessionReportBackendURL({ backendURL: options.backendURL });
 };
 
 const withLanguage = function withLanguage(
@@ -228,9 +198,7 @@ const getManifestRevalidate = function getManifestRevalidate(
 	options: NextConsentManifestHandlersOptions
 ): number | false {
 	return (
-		options.manifestRevalidateSeconds ??
-		readManifestRevalidateFromEnv() ??
-		DEFAULT_MANIFEST_REVALIDATE_SECONDS
+		options.manifestRevalidateSeconds ?? DEFAULT_MANIFEST_REVALIDATE_SECONDS
 	);
 };
 
@@ -247,7 +215,7 @@ export const createManifestFetchInit = function createManifestFetchInit(
 
 export const fetchCachedManifest = async function fetchCachedManifest(
 	request: Request,
-	options: NextConsentManifestHandlersOptions = {},
+	options: NextConsentManifestHandlersOptions,
 	language?: string | null
 ): Promise<ManifestFetchResult & { age: number }> {
 	const manifestURL = withLanguage(
@@ -334,10 +302,12 @@ const toHandlerOptions = function toHandlerOptions(
 /**
  * Build the App Router route handlers for the consent routes.
  *
- * @param options - Handler options, or a `defineConsentConfig` result. From a
- * config only `backendURL` is used: its `manifestURL` and `initURL` are the
- * routes these handlers serve.
+ * @param optionsOrConfig - Handler options with `backendURL` or
+ * `manifestURL`, or a `defineConsentConfig` result. From a config only
+ * `backendURL` is used: its `manifestURL` and `initURL` are the routes these
+ * handlers serve.
  * @returns `GET` for the init route and `manifestGET` for the manifest route.
+ * Each handler throws when neither `backendURL` nor `manifestURL` is set.
  * @example
  * ```ts
  * // app/api/consent/manifest/route.ts
@@ -350,7 +320,7 @@ const toHandlerOptions = function toHandlerOptions(
  */
 export const createNextConsentRouteHandlers =
 	function createNextConsentRouteHandlers(
-		optionsOrConfig: NextConsentManifestHandlersOptions | ConsentConfig = {}
+		optionsOrConfig: NextConsentManifestHandlersOptions | ConsentConfig
 	) {
 		const options = toHandlerOptions(optionsOrConfig);
 		return {
@@ -452,8 +422,3 @@ export const createNextConsentRouteHandlers =
 
 export type { ConsentConfig } from './config';
 export { defineConsentConfig } from './config';
-
-const defaultHandlers = createNextConsentRouteHandlers();
-
-export const { GET } = defaultHandlers;
-export const { manifestGET } = defaultHandlers;

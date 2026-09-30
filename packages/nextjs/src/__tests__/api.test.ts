@@ -315,6 +315,56 @@ describe('@c15t/nextjs/api', () => {
 		).toEqual({ revalidate: 15 });
 	});
 
+	describe('explicit configuration', () => {
+		afterEach(() => {
+			vi.unstubAllEnvs();
+		});
+
+		test('throws without backendURL or manifestURL, even when the old environment variables are set', async () => {
+			vi.stubEnv('C15T_BACKEND_URL', 'https://env.example.com');
+			vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', 'https://env.example.com');
+			vi.stubEnv('C15T_MANIFEST_URL', 'https://env.example.com/manifest');
+			const fetchSpy = vi.fn();
+			const { GET, manifestGET } = createNextConsentRouteHandlers({
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			});
+			const request = new Request('https://app.example.com/api/c15t/manifest');
+
+			await expect(manifestGET(request)).rejects.toThrow(
+				'@c15t/nextjs/api: pass backendURL or manifestURL.'
+			);
+			await expect(GET(request)).rejects.toThrow(
+				'@c15t/nextjs/api: pass backendURL or manifestURL.'
+			);
+			expect(fetchSpy).not.toHaveBeenCalled();
+		});
+
+		test('rejects an invalid backendURL or manifestURL', async () => {
+			const request = new Request('https://app.example.com/api/c15t/manifest');
+			await expect(
+				createNextConsentRouteHandlers({ backendURL: 'consent' }).manifestGET(
+					request
+				)
+			).rejects.toThrow('@c15t/nextjs/api: invalid backendURL.');
+			await expect(
+				createNextConsentRouteHandlers({
+					manifestURL: 'consent/manifest',
+				}).manifestGET(request)
+			).rejects.toThrow('@c15t/nextjs/api: invalid manifestURL.');
+		});
+
+		test('ignores C15T_MANIFEST_REVALIDATE_SECONDS', () => {
+			vi.stubEnv('C15T_MANIFEST_REVALIDATE_SECONDS', '15');
+			expect(createManifestFetchInit({}).next).toEqual({ revalidate: 300 });
+		});
+
+		test('exports no handlers preconfigured from the environment', async () => {
+			const api = await import('../api');
+			expect(Object.keys(api)).not.toContain('GET');
+			expect(Object.keys(api)).not.toContain('manifestGET');
+		});
+	});
+
 	test('manifestGET serves repeat requests from the in-process cache', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(MANIFEST_FIXTURE), {
