@@ -123,7 +123,7 @@ describe('<ConsentBanner />', () => {
 		});
 		const html = await render(locals);
 		expect(html).toContain('data-variant="bar"');
-		expect(html).toContain('window.__c15tAstroConfig=');
+		expect(html).toContain('data-c15t-config');
 		expect(html).toContain('"initialExperiment"');
 	});
 
