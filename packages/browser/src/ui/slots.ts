@@ -25,6 +25,8 @@ export type BrowserSlotKey = Extract<
 	| 'consentDialogContent'
 	| 'consentDialogTag'
 	| 'consentDialogOverlay'
+	| 'consentDialogTrigger'
+	| 'consentDialogTriggerIcon'
 	| 'consentWidget'
 	| 'consentWidgetAccordion'
 	| 'consentWidgetFooter'
@@ -84,8 +86,11 @@ export const createSlotApplier = function createSlotApplier(
 		if (!element) {
 			return element;
 		}
-		const part = element.getAttribute('part');
-		element.setAttribute('part', part ? `${part} ${key}` : key);
+		// `part` is a token list, like `class`; applying twice is a no-op.
+		const parts = element.getAttribute('part')?.split(/\s+/u) ?? [];
+		if (!parts.includes(key)) {
+			element.setAttribute('part', [...parts, key].filter(Boolean).join(' '));
+		}
 		const value = slots?.[key];
 		if (!value) {
 			return element;

@@ -5,7 +5,7 @@ packages:
 
 ### Style stock UI parts with `theme.slots`, `::part()` and `stylesheetURLs`
 
-The banner, preference centre and IAB surfaces now apply `ui.theme.slots`, the per-part class and style map `@c15t/ui` and `@c15t/svelte` already read. A slot such as `consentBannerCard`, `consentDialogCard`, `buttonPrimary` or `toggle` takes a class string or `{ className, style }`, and `noStyle: true` on a slot replaces that part's stock classes. Slot classes stay when `ui.noStyle` is set.
+The banner, preference centre, floating trigger and IAB surfaces now apply `ui.theme.slots`, the per-part class and style map `@c15t/ui` and `@c15t/svelte` already read. A slot such as `consentBannerCard`, `consentDialogCard`, `consentDialogTrigger`, `buttonPrimary` or `toggle` takes a class string or `{ className, style }`, and `noStyle: true` on a slot replaces that part's stock classes. Slot classes stay when `ui.noStyle` is set.
 
 Each of those parts also carries its slot key in a `part` attribute, so page CSS can style it inside the shadow root with `[data-c15t-ui]::part(consentBannerCard)`.
 

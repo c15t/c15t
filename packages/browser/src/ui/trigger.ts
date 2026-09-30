@@ -44,7 +44,7 @@ export const createTrigger = function createTrigger(
 	options: ConsentTriggerOptions
 ): Surface {
 	const styles = classes.trigger;
-	const { noStyle } = ctx;
+	const { noStyle, slot } = ctx;
 	const size = options.size ?? 'md';
 	const showWhen = options.showWhen ?? 'always';
 	const persist = options.persistPosition ?? true;
@@ -71,29 +71,33 @@ export const createTrigger = function createTrigger(
 			hidden: true,
 			type: 'button',
 		},
-		h(
-			'span',
-			{ 'aria-hidden': 'true', class: noStyle ? '' : styles.icon },
-			svg('0 0 140 97', CONSENT_MARK)
+		slot(
+			h(
+				'span',
+				{ 'aria-hidden': 'true', class: noStyle ? '' : styles.icon },
+				svg('0 0 140 97', CONSENT_MARK)
+			),
+			'consentDialogTriggerIcon'
 		)
 	);
 
 	const applyClasses = function applyClasses(snapping = false): void {
 		element.setAttribute('data-position', corner);
-		if (noStyle) {
-			return;
+		if (!noStyle) {
+			element.setAttribute(
+				'class',
+				cx(
+					styles.trigger,
+					styles[size],
+					styles[POSITION_CLASS[corner]],
+					dragging && styles.dragging,
+					snapping && styles.snapping,
+					!visible && styles.hidden
+				)
+			);
 		}
-		element.setAttribute(
-			'class',
-			cx(
-				styles.trigger,
-				styles[size],
-				styles[POSITION_CLASS[corner]],
-				dragging && styles.dragging,
-				snapping && styles.snapping,
-				!visible && styles.hidden
-			)
-		);
+		// Rewriting the state classes drops the slot's; put them back.
+		slot(element, 'consentDialogTrigger');
 	};
 
 	const moveTo = function moveTo(next: CornerPosition): void {

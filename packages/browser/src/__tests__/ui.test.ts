@@ -619,6 +619,36 @@ describe('mountConsentUI', () => {
 			).toBe('toggle');
 		});
 
+		it('keeps the trigger slot classes through position and visibility changes', async () => {
+			const { root, client } = await mount({
+				theme: {
+					slots: {
+						consentDialogTrigger: {
+							className: 'brand-trigger',
+							style: { '--brand-ring': '#0a66ff' },
+						},
+						consentDialogTriggerIcon: 'brand-trigger-icon',
+					},
+				},
+				trigger: true,
+			});
+
+			const trigger = query(root, 'consent-dialog-trigger');
+			expect(trigger.getAttribute('part')).toBe('consentDialogTrigger');
+			expect(trigger.classList).toContain('brand-trigger');
+			expect(trigger.classList).toContain(classes.trigger.trigger);
+			expect(trigger.style.getPropertyValue('--brand-ring')).toBe('#0a66ff');
+			const icon = trigger.querySelector('span');
+			expect(icon?.classList).toContain('brand-trigger-icon');
+			expect(icon?.getAttribute('part')).toBe('consentDialogTriggerIcon');
+
+			// Showing the trigger rewrites its state classes.
+			await client.acceptAll();
+			expect(trigger.hidden).toBe(false);
+			expect(trigger.classList).toContain('brand-trigger');
+			expect(trigger.getAttribute('part')).toBe('consentDialogTrigger');
+		});
+
 		it('keeps slot classes when noStyle drops the stock ones', async () => {
 			const { root } = await mount({
 				noStyle: true,
