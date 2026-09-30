@@ -41,10 +41,12 @@ const c15t: ModuleOptions = {
 	// This demo self-hosts @c15t/backend at `/api/self-host` (see
 	// `server/api/self-host/[...all].ts`) when no backend URL is set.
 	backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
+	// #region docs:color-scheme title="nuxt.config.ts (c15t options)"
 	// Follow the visitor's system setting, with a dark primary of our own.
 	colorScheme: 'system',
 	experiment,
 	theme: { dark: { primary: '#7fd1a8' } },
+	// #endregion docs:color-scheme
 };
 // Left unset otherwise, so the layer's `manifest` applies.
 if (process.env.C15T_NUXT_MANIFEST === 'client') {

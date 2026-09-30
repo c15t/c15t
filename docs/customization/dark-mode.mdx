@@ -1,0 +1,165 @@
+---
+title: Dark mode
+description: Switch c15t's banner and dialog to dark colors with colorScheme, set your own dark tokens, follow your site's theme switch, and paint dark on the first frame in every framework.
+group: customization
+---
+
+## How c15t turns dark
+
+c15t's stylesheet switches every `--c15t-*` color token to its dark value when
+`<html>` has a `dark` or a `c15t-dark` class. The `colorScheme` option decides
+whether c15t sets `c15t-dark` itself:
+
+| `colorScheme` | What c15t does with `c15t-dark` |
+| --- | --- |
+| `'light'` | Removes it once |
+| `'dark'` | Adds it once |
+| `'system'` | Follows `prefers-color-scheme`, including changes while the page is open |
+| Unset | Copies your `dark` class into `c15t-dark` and follows it as it changes |
+| `null` | Leaves it alone. Your site sets it |
+
+Astro also accepts `'none'`, which means the same as `null`.
+
+`'light'` only removes `c15t-dark`. If your site puts `dark` on `<html>`, the
+stylesheet still switches the tokens to dark. Pick one class convention for
+your site and let c15t follow it.
+
+## Defaults in each framework
+
+| Framework | Where to set it | Default |
+| --- | --- | --- |
+| Next.js, TanStack Start | `options.colorScheme` on `ConsentRoot`, and `colorScheme` on `ConsentTheme` | Unset: copies `dark` |
+| React | `colorScheme` in the `ConsentProvider` options, and on `ConsentTheme` | Unset: copies `dark` |
+| Nuxt | `colorScheme` in the `c15t` module options | Unset: copies `dark` |
+| Vue | `colorScheme` in the `c15tVue` options | Unset: copies `dark` |
+| Astro | `colorScheme` in the `c15t()` integration options | `'system'` |
+| Svelte, SvelteKit | `colorScheme` on `ConsentManagerProvider` | Unset: copies `dark` |
+| HTML | `data-color-scheme` on the script tag: `light`, `dark`, `system` or `none` | `system` |
+| JavaScript | `ui.colorScheme` in `init()` | `'system'` |
+
+React, Vue and Svelte apps usually already have a theme switch that toggles a
+`dark` class, such as next-themes. Copying that class keeps c15t in step with
+the site without extra code.
+
+Astro and the script tag default to `'system'` because neither can rely on a
+site convention. Astro paints the banner from server HTML before any site
+script runs, and Astro sites share no `dark` class convention, so following the
+operating system is the one choice its inline script can make correctly. A plain
+HTML page has no convention either. A site that has one opts in with `null`.
+
+### Nuxt and Vue have two gaps
+
+- **Nuxt drops `colorScheme: null`.** The module merges its options with
+  `defu`, which skips `null`, so `null` behaves like an unset `colorScheme`
+  and c15t copies your `dark` class. Leave `colorScheme` unset and toggle a
+  `dark` class instead.
+- **Vue and Nuxt ship dark colors only with a scheme or a theme.** With
+  `colorScheme` unset and no `theme`, c15t copies `dark` into `c15t-dark`, but
+  the token stylesheet holds light values only, so the banner stays light. Set
+  `colorScheme` to `'light'`, `'dark'` or `'system'` to include c15t's dark
+  palette, or give every color you need in `theme.dark`.
+
+## Follow your site's theme switch
+
+In React, Next.js, TanStack Start, Svelte and SvelteKit, leave `colorScheme`
+unset and toggle `dark` on `<html>`. c15t watches the class and switches with
+it. Include the class in the server HTML when your site renders dark, so the
+first paint matches.
+
+In Astro, set `colorScheme: 'none'` and toggle `c15t-dark` together with your
+own class. A `ClientRouter` navigation replaces the attributes of `<html>`, so
+set the class again on `astro:after-swap` if your theme script does not.
+
+With the script tag, add `data-color-scheme="none"`. With `init()`, pass
+`ui: { colorScheme: null }`. The UI is then dark while `<html>` has `dark` or
+`c15t-dark`, and follows the class as it changes. The UI renders in a shadow
+root that the page's class cannot reach, so c15t copies the class onto the
+shadow host.
+
+If your site sets `c15t-dark` itself in React, Next.js, TanStack Start, Vue,
+Svelte or SvelteKit, pass `colorScheme: null` so c15t leaves it alone.
+
+## Set your own dark colors
+
+Theme tokens take a `dark` object with the same color keys as `colors`. Every
+color you set in `colors` also applies in dark mode, unless `dark` sets it too,
+so give a dark value for each brand color:
+
+{/* example: fragment */}
+
+```ts title="consent-theme.ts"
+export const theme = {
+  colors: {
+    primary: '#2f6f4e',
+    primaryHover: '#24563c',
+    surface: '#fbf8f3',
+  },
+  dark: {
+    primary: '#7fd1a8',
+    primaryHover: '#9fdcbd',
+    surface: '#1b1f1d',
+  },
+};
+```
+
+Where the theme goes depends on the framework:
+
+- **React, Next.js, TanStack Start.** Pass it to `ConsentTheme`.
+- **Vue, Nuxt.** Pass it as `theme` in the plugin or module options. It goes
+  into the `<style id="c15t-css-vars">` element with `tokens`.
+- **Astro.** Pass it as `theme` in the integration options.
+- **SvelteKit, Svelte.** Pass it to `generateThemeCSS(theme, colorScheme)` from
+  `@c15t/ui/theme` on the server.
+- **HTML, JavaScript.** Pass it as `ui.theme`.
+
+This Nuxt example follows the system setting and uses its own dark primary
+color. Every other dark token keeps c15t's default:
+
+<include src="../shared/examples/nuxt/color-scheme.mdx" />
+
+To set dark values in plain CSS instead, write them for both classes:
+
+{/* example: fragment */}
+
+```css
+:root.dark,
+:root.c15t-dark {
+  --c15t-primary: #7fd1a8;
+  --c15t-surface: #1b1f1d;
+}
+```
+
+A generated theme, such as the output of `ConsentTheme` or
+`generateThemeCSS`, writes its dark values on `:root:root.dark` and
+`:root:root.c15t-dark`. Those selectors outrank the rule above. If you use both,
+put dark values in the theme, or repeat `:root` in your own selectors.
+
+## Paint dark on the first frame
+
+A banner that renders light and then turns dark flashes. How to avoid that
+depends on where the banner first renders:
+
+| Framework | What to do |
+| --- | --- |
+| Next.js, TanStack Start | Render `<ConsentTheme theme={theme} colorScheme="system" />` on the server, with the same value as `options.colorScheme`. `'dark'` writes dark tokens as the default and `'system'` adds a `prefers-color-scheme` media query, so the server HTML is dark before hydration. With `colorScheme` unset, put your `dark` class in the server HTML. |
+| React | Render `<ConsentTheme colorScheme="system" />` next to the provider, with the same value as the provider's `colorScheme`. Its CSS makes the tokens dark from the first frame, before the provider sets the class. In a server-rendered React app, render it on the server. |
+| Nuxt | For `'dark'` and `'system'`, the module adds an inline script to `<head>` that sets `c15t-dark` before the server-rendered banner paints. It carries the module's `nonce`. With `colorScheme` unset, put your `dark` class in the server HTML. |
+| Vue | The plugin applies `colorScheme` and writes the tokens when you install it, before the first render. |
+| Astro | `ConsentScript` in `<head>` sets the class from an inline script before the banner paints, and c15t sets it again after each `ClientRouter` navigation. Keep `ConsentScript` in your layout's `<head>`. |
+| Svelte | The provider sets the class as it mounts. With `colorScheme` unset, the stylesheet reads your `dark` class directly, so the tokens are dark from the first frame. |
+| SvelteKit | Pass the scheme to `generateThemeCSS(theme, 'system')` in your server load, so the CSS in `<svelte:head>` already has the media query. With `colorScheme` unset, put your `dark` class in the server HTML. |
+| HTML, JavaScript | c15t applies the scheme when it mounts the UI, before any surface renders. |
+
+[Theme tokens](/docs/customization/tokens) lists every color token, and your
+framework's customize page shows where its theme goes.
+
+## Check the result
+
+1. Open the page in a private window with your operating system in dark mode,
+   or add your `dark` class to `<html>`.
+2. The banner is dark on its first frame. Reload with the Network panel
+   throttled to see the first paint.
+3. Open the preference dialog. It uses the same dark tokens as the banner.
+4. Switch the scheme while the page is open. With `'system'` or an unset
+   `colorScheme`, the banner and dialog follow without a reload.
+5. Check the contrast of the primary button text in both schemes.
