@@ -10,7 +10,9 @@
 import { applyExperimentTheme } from '@c15t/core';
 import type { ConsentRuntime } from '@c15t/core/runtime';
 
-import type { C15tResolvedOptions } from '../types';
+import type { C15tResolvedOptions, C15tUIAdapterName } from '../types';
+import { themeSlotsToComponents } from './theme-slot-components';
+import type { ComponentSlotMap } from './theme-slot-components';
 
 /**
  * The slice of the integration options a dialog island renders with.
@@ -38,6 +40,11 @@ export interface DialogPresentationOptions {
 	legalLinks?: C15tResolvedOptions['legalLinks'];
 	presentation?: C15tResolvedOptions['presentation'];
 	theme?: C15tResolvedOptions['theme'];
+	/**
+	 * `theme.slots` as the `components` map the React and Vue providers
+	 * read. The Svelte provider reads `theme.slots` itself and gets none.
+	 */
+	components?: ComponentSlotMap;
 }
 
 /** Props handed to `ConsentManagerProvider` by the Svelte dialog surface. */
@@ -53,27 +60,38 @@ export interface DialogProviderProps {
  *
  * @param runtime - The page runtime that owns the kernel.
  * @param options - The resolved integration options.
+ * @param framework - The island's framework. React and Vue get
+ * `theme.slots` translated into `components`.
  * @returns Props for `ConsentManagerProvider`.
  */
 export const buildProviderProps = function buildProviderProps(
 	runtime: ConsentRuntime,
-	options: C15tResolvedOptions
+	options: C15tResolvedOptions,
+	framework: C15tUIAdapterName = 'svelte'
 ): DialogProviderProps {
-	return {
-		options: {
-			colorScheme: null,
-			consentCategories: options.consentCategories,
-			experiment: options.experiment,
-			legalLinks: options.legalLinks,
-			presentation: options.presentation,
-			// The arm's theme overrides ride on the host theme. The island
-			// mounts after `start()`, so the assignment is already known.
-			theme: applyExperimentTheme(
-				options.theme,
-				options.experiment,
-				runtime.kernel.getSnapshot().experiment
-			),
-		},
-		runtime,
+	// The arm's theme overrides ride on the host theme. The island mounts
+	// after `start()`, so the assignment is already known.
+	const theme = applyExperimentTheme(
+		options.theme,
+		options.experiment,
+		runtime.kernel.getSnapshot().experiment
+	);
+	const presentationOptions: DialogPresentationOptions = {
+		colorScheme: null,
+		consentCategories: options.consentCategories,
+		experiment: options.experiment,
+		legalLinks: options.legalLinks,
+		presentation: options.presentation,
+		theme,
 	};
+	if (framework !== 'svelte') {
+		const components = themeSlotsToComponents(
+			theme,
+			framework === 'react' ? 'className' : 'class'
+		);
+		if (components) {
+			presentationOptions.components = components;
+		}
+	}
+	return { options: presentationOptions, runtime };
 };

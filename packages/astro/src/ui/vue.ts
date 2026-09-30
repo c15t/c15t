@@ -34,7 +34,8 @@ export const vueDialogAdapter: ConsentDialogAdapter = {
 
 		const { options, runtime } = buildProviderProps(
 			context.runtime,
-			context.options
+			context.options,
+			'vue'
 		);
 		const app = createApp(surface.default as never, {
 			kind: context.kind,

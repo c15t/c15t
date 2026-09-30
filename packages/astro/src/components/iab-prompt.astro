@@ -73,6 +73,7 @@ const model = resolveIABPromptModel({
 	),
 	props,
 	snapshot,
+	theme: c15t.options.theme,
 });
 const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
@@ -150,6 +151,7 @@ const hidden = c15t.prerendered && !force;
 		<div
 			aria-hidden="true"
 			class={model.classes.overlay}
+			style={model.styles.overlay}
 			data-testid="iab-consent-banner-overlay"
 			hidden={hidden ? true : undefined}
 		/>
@@ -160,6 +162,7 @@ const hidden = c15t.prerendered && !force;
 	shouldRender && (
 		<div
 			class={model.classes.root}
+			style={model.styles.root}
 			data-c15t-visible={hidden ? 'false' : 'true'}
 			data-blocking={model.blocking ? 'true' : undefined}
 			data-position={model.position}
@@ -178,16 +181,23 @@ const hidden = c15t.prerendered && !force;
 					hostname={Astro.url.hostname}
 					noStyle={props.noStyle}
 					securedBy={model.copy.securedBy}
+					theme={c15t.options.theme}
+					themeSlot="iabConsentBannerTag"
 					variant="banner-tag"
 				/>
 				<div
 					aria-label={model.copy.title}
 					aria-modal={model.blocking ? 'true' : undefined}
 					class={model.classes.card}
+					style={model.styles.card}
 					data-testid="iab-consent-banner-card"
 					role={model.blocking ? 'dialog' : 'region'}
 				>
-					<div class={model.classes.header} data-testid="iab-consent-banner-header">
+					<div
+						class={model.classes.header}
+						style={model.styles.header}
+						data-testid="iab-consent-banner-header"
+					>
 						<h2 class={model.classes.title}>{model.copy.title}</h2>
 						<p class={model.classes.description}>
 							{model.copy.descriptionBefore}
@@ -215,6 +225,7 @@ const hidden = c15t.prerendered && !force;
 					</div>
 					<div
 						class={model.classes.footer}
+						style={model.styles.footer}
 						data-direction="row"
 						data-split="true"
 						data-testid="iab-consent-banner-footer"
@@ -222,7 +233,8 @@ const hidden = c15t.prerendered && !force;
 						<div class={model.classes.actionGroup} data-direction="row">
 							{model.choiceButtons.map((button) => (
 								<button
-									class={model.classes.button}
+									class={button.className}
+									style={button.style}
 									data-action={button.action}
 									data-c15t-action={button.action}
 									data-mode={button.mode}
@@ -237,7 +249,8 @@ const hidden = c15t.prerendered && !force;
 						</div>
 						<div class={model.classes.actionGroup} data-direction="row">
 							<button
-								class={model.classes.button}
+								class={model.customizeButton.className}
+								style={model.customizeButton.style}
 								data-action="customize"
 								data-c15t-action="customize"
 								data-c15t-dialog="iab"

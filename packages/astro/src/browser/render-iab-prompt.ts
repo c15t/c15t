@@ -10,6 +10,7 @@
  */
 
 import type { ConsentPresentation, ConsentSnapshot } from '@c15t/core';
+import type { Theme } from '@c15t/ui/theme';
 
 import type { IABPromptClassNames } from '../banner/class-names';
 import { resolveIABPromptModel } from '../banner/iab-prompt-model';
@@ -24,6 +25,8 @@ import { element, hiddenBanner, readSpot, renderBrandingTag } from './dom';
 /** Site options the IAB banner reads. */
 export interface RenderIABPromptOptions {
 	presentation?: ConsentPresentation;
+	/** The integration's `theme`, for `slots`. */
+	theme?: Theme;
 }
 
 /** What `<IABConsentBanner />` leaves in its spot. */
@@ -59,7 +62,7 @@ const renderButton = function renderButton(
 	return element(
 		'button',
 		{
-			class: model.classes.button,
+			class: button.className,
 			'data-action': button.action,
 			'data-c15t-action': button.action,
 			...extra,
@@ -67,6 +70,7 @@ const renderButton = function renderButton(
 			'data-size': props.noStyle ? undefined : 'small',
 			'data-testid': `iab-consent-banner-${button.action}-button`,
 			'data-variant': button.variant,
+			style: button.style,
 			type: 'button',
 		},
 		[button.label]
@@ -84,7 +88,11 @@ const renderHeader = function renderHeader(model: IABPromptModel): HTMLElement {
 	}
 	return element(
 		'div',
-		{ class: model.classes.header, 'data-testid': 'iab-consent-banner-header' },
+		{
+			class: model.classes.header,
+			'data-testid': 'iab-consent-banner-header',
+			style: model.styles.header,
+		},
 		[
 			element('h2', { class: model.classes.title }, [model.copy.title]),
 			element('p', { class: model.classes.description }, [
@@ -129,6 +137,7 @@ export const buildIABPrompt = function buildIABPrompt(
 		presentation: options.presentation,
 		props,
 		snapshot,
+		theme: options.theme,
 	});
 	if (!model.canRender) {
 		return [];
@@ -140,6 +149,7 @@ export const buildIABPrompt = function buildIABPrompt(
 			'data-direction': 'row',
 			'data-split': 'true',
 			'data-testid': 'iab-consent-banner-footer',
+			style: model.styles.footer,
 		},
 		[
 			element(
@@ -166,6 +176,7 @@ export const buildIABPrompt = function buildIABPrompt(
 			class: model.classes.card,
 			'data-testid': 'iab-consent-banner-card',
 			role: model.blocking ? 'dialog' : 'region',
+			style: model.styles.card,
 		},
 		[renderHeader(model), footer]
 	);
@@ -176,6 +187,8 @@ export const buildIABPrompt = function buildIABPrompt(
 		snapshot,
 		styles: slot.classNames.branding,
 		testId: 'iab-consent-banner-branding',
+		theme: options.theme,
+		themeSlot: 'iabConsentBannerTag',
 	});
 	const root = element(
 		'div',
@@ -187,6 +200,7 @@ export const buildIABPrompt = function buildIABPrompt(
 			'data-variant': model.variant,
 			dir: model.textDirection,
 			lang: model.language,
+			style: model.styles.root,
 			tabindex: '-1',
 		},
 		[
@@ -204,6 +218,7 @@ export const buildIABPrompt = function buildIABPrompt(
 					'aria-hidden': 'true',
 					class: model.classes.overlay,
 					'data-testid': 'iab-consent-banner-overlay',
+					style: model.styles.overlay,
 				})
 			: null
 	);
