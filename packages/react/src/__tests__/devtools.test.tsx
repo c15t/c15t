@@ -639,7 +639,10 @@ describe('v3 TanStack Devtools adapter', () => {
 			name: 'Consent',
 		});
 
-		const view = await render(<Provider>{plugin.render}</Provider>);
+		const element = plugin.render(document.createElement('div'), {
+			theme: 'dark',
+		});
+		const view = await render(<Provider>{element}</Provider>);
 		await vi.waitFor(() => {
 			expect(getMountedDevTools()).not.toBeNull();
 		});
@@ -652,7 +655,11 @@ describe('v3 TanStack Devtools adapter', () => {
 		const host = (devTools?.getRootNode() as ShadowRoot | undefined)?.host;
 		expect(container?.contains(host ?? null)).toBe(true);
 		expect(devTools?.classList.contains('c15t-dev-tools--embedded')).toBe(true);
-		expect(plugin.render.type).toBe(C15tTanStackDevtoolsPanel);
+		expect(element.type).toBe(C15tTanStackDevtoolsPanel);
+		// The panel follows TanStack's theme, not the operating system.
+		expect(devTools ? getComputedStyle(devTools).colorScheme : undefined).toBe(
+			'dark'
+		);
 
 		await view.unmount();
 		expect(getMountedDevTools()).toBeNull();

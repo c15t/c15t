@@ -22,7 +22,7 @@ export function createButton(
 	document: Document,
 	label: string,
 	onClick: () => void,
-	variant: 'primary' | 'secondary' | 'danger' = 'secondary'
+	variant: 'primary' | 'secondary' | 'ghost' | 'danger' = 'secondary'
 ): HTMLButtonElement {
 	const button = createElement(
 		document,
@@ -40,16 +40,54 @@ export function createButton(
 export function createSection(
 	document: Document,
 	title: string,
-	description?: string
+	description?: string,
+	action?: HTMLElement
 ): HTMLElement {
 	const section = createElement(document, 'section', 'c15t-dev-tools__section');
-	section.append(createElement(document, 'h3', undefined, title));
+	// Title and description sit closer to each other than to the content.
+	const heading = createElement(
+		document,
+		'div',
+		'c15t-dev-tools__section-heading'
+	);
+	heading.append(createElement(document, 'h3', undefined, title));
 	if (description) {
-		section.append(
+		heading.append(
 			createElement(document, 'p', 'c15t-dev-tools__muted', description)
 		);
 	}
+	if (action) {
+		const header = createElement(
+			document,
+			'div',
+			'c15t-dev-tools__section-header'
+		);
+		header.append(heading, action);
+		section.append(header);
+	} else {
+		section.append(heading);
+	}
 	return section;
+}
+
+/**
+ * Status pill with a visually hidden prefix, so a row reads
+ * "Effective: Allowed" to screen readers but shows "Allowed".
+ */
+// oxlint-disable-next-line func-style -- Hoisted DOM helpers keep render functions readable.
+export function createState(
+	document: Document,
+	prefix: string,
+	value: string,
+	state: string
+): HTMLElement {
+	const pill = createElement(document, 'span', 'c15t-dev-tools__state');
+	pill.dataset.state = state;
+	pill.append(
+		createElement(document, 'span', 'c15t-dev-tools__sr-only', `${prefix}: `),
+		createElement(document, 'span', undefined, value)
+	);
+	return pill;
 }
 
 // oxlint-disable-next-line func-style -- Hoisted DOM helpers keep render functions readable.

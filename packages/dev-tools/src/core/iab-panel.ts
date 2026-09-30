@@ -365,7 +365,11 @@ export const renderIABPanel = (
 		);
 	}
 	const raw = createElement(document, 'details', 'c15t-dev-tools__script');
-	const rawContent = createElement(document, 'div');
+	const rawContent = createElement(
+		document,
+		'div',
+		'c15t-dev-tools__script-body'
+	);
 	const updateRaw = (): void => {
 		rawContent.replaceChildren(
 			...(raw.open ? [createCodeBlock(document, iab)] : [])

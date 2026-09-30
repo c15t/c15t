@@ -23,6 +23,7 @@ import {
 	createElement,
 	createSection,
 	createStat,
+	createState,
 	createTextField,
 } from './elements';
 import { renderIABPanel } from './iab-panel';
@@ -49,6 +50,12 @@ const TABS: readonly { id: DevToolsTab; label: string }[] = [
 ];
 
 let nextViewId = 0;
+
+/** In a wide pane, these sections sit side by side instead of stacking. */
+const asColumn = (section: HTMLElement): HTMLElement => {
+	section.classList.add('c15t-dev-tools__section--column');
+	return section;
+};
 const LIGHT_DOM_STYLE_ID = 'c15t-dev-tools-styles';
 
 /** DOM view owned by a DevTools instance. */
@@ -75,6 +82,7 @@ interface ViewOptions {
 interface ViewState {
 	scriptSearch: string;
 	expandedScripts: Set<string>;
+	expandedEvents: Set<string>;
 	iab: IABPanelState;
 }
 
@@ -102,7 +110,9 @@ const renderVendors = function renderVendors(
 	const denied = deniedVendorIds(snapshot) ?? new Set<string>();
 	// What the gate answers for this vendor right now: its own denial first,
 	// then its category, so a row never reads as allowed while blocked.
-	const status = (vendor: ResolvedVendor): string => {
+	const status = (
+		vendor: ResolvedVendor
+	): 'Denied' | 'Allowed' | 'Blocked by category' => {
 		if (denied.has(vendor.id)) {
 			return 'Denied';
 		}
@@ -120,10 +130,16 @@ const renderVendors = function renderVendors(
 	const list = createElement(document, 'div', 'c15t-dev-tools__control-list');
 	for (const vendor of declared) {
 		const item = createElement(document, 'div', 'c15t-dev-tools__check');
+		const gate = status(vendor);
 		item.append(
 			createElement(document, 'span', undefined, vendor.name ?? vendor.id),
 			createElement(document, 'span', 'c15t-dev-tools__badge', vendor.source),
-			createElement(document, 'span', 'c15t-dev-tools__muted', status(vendor))
+			createState(
+				document,
+				'Access',
+				gate,
+				gate === 'Blocked by category' ? 'blocked' : gate.toLowerCase()
+			)
 		);
 		if (!vendor.presentable) {
 			item.append(
@@ -204,14 +220,15 @@ function renderConsents(
 				createElement(document, 'span', 'c15t-dev-tools__badge', 'Always on')
 			);
 		}
-		label.append(input);
+		const allowed = snapshot.effectivePermissions[name];
 		label.append(
-			createElement(
+			createState(
 				document,
-				'span',
-				'c15t-dev-tools__muted',
-				`Effective: ${snapshot.effectivePermissions[name] ? 'allowed' : 'blocked'}`
-			)
+				'Effective',
+				allowed ? 'Allowed' : 'Blocked',
+				allowed ? 'allowed' : 'blocked'
+			),
+			input
 		);
 		list.append(label);
 	}
@@ -261,7 +278,8 @@ function renderConsents(
 	const discard = createButton(
 		document,
 		'Discard draft',
-		actionsController.resetDraft
+		actionsController.resetDraft,
+		'ghost'
 	);
 	discard.disabled = Object.keys(draft).length === 0;
 	actions.append(discard);
@@ -344,7 +362,16 @@ const renderScripts = (
 				script.status[0]?.toUpperCase() + script.status.slice(1)
 			);
 			status.dataset.status = script.status;
-			summary.append(name, status);
+			const source = createElement(
+				document,
+				'span',
+				'c15t-dev-tools__script-meta',
+				script.src ??
+					(script.callbackOnly ? 'Callback-only integration' : 'Inline script')
+			);
+			// The body repeats the source; a wide pane shows it in the row too.
+			source.setAttribute('aria-hidden', 'true');
+			summary.append(name, source, status);
 			summary.dataset.focusKey = `script:${key}`;
 			const body = createElement(
 				document,
@@ -575,7 +602,7 @@ function renderLocation(
 
 	form.append(country.field, region.field, language.field, gpcField, actions);
 	overrides.append(form);
-	container.append(location, overrides);
+	container.append(asColumn(location), asColumn(overrides));
 }
 
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
@@ -635,7 +662,7 @@ function renderPolicy(
 		],
 		['Subject', snapshot.subject],
 	] as const) {
-		const section = createSection(document, title);
+		const section = asColumn(createSection(document, title));
 		section.append(createCodeBlock(document, value));
 		container.append(section);
 	}
@@ -662,7 +689,7 @@ function renderPolicy(
 			source: presentation ? 'host-options' : 'defaults',
 		})
 	);
-	container.append(resolved);
+	container.append(asColumn(resolved));
 }
 
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
@@ -670,10 +697,17 @@ function renderEvents(
 	document: Document,
 	container: HTMLElement,
 	state: DevToolsState,
-	clearEvents: () => void
+	clearEvents: () => void,
+	viewState: ViewState
 ): void {
-	const section = createSection(document, 'Consent events');
-	section.append(createButton(document, 'Clear events', clearEvents, 'danger'));
+	const clear = createButton(document, 'Clear events', clearEvents, 'ghost');
+	clear.disabled = state.events.length === 0;
+	const section = createSection(
+		document,
+		'Consent events',
+		'Newest first. Cleared when the page reloads.',
+		clear
+	);
 	if (state.events.length === 0) {
 		section.append(
 			createElement(
@@ -706,7 +740,27 @@ function renderEvents(
 		);
 		item.append(header, createElement(document, 'p', undefined, event.message));
 		if (event.data) {
-			item.append(createCodeBlock(document, event.data));
+			// Collapsed so the log stays one line per event.
+			const data = createElement(
+				document,
+				'details',
+				'c15t-dev-tools__event-data'
+			);
+			data.open = viewState.expandedEvents.has(event.id);
+			data.addEventListener('toggle', () => {
+				if (!data.isConnected) {
+					return;
+				}
+				if (data.open) {
+					viewState.expandedEvents.add(event.id);
+				} else {
+					viewState.expandedEvents.delete(event.id);
+				}
+			});
+			const summary = createElement(document, 'summary', undefined, 'Data');
+			summary.dataset.focusKey = `event:${event.id}`;
+			data.append(summary, createCodeBlock(document, event.data));
+			item.append(data);
 		}
 		list.append(item);
 	}
@@ -762,8 +816,16 @@ function renderActions(
 			})
 		);
 	}
+	section.append(actions);
+	container.append(asColumn(section));
+	// Destructive, so it sits apart from the everyday actions above.
 	if (controller.clearRecords) {
-		actions.append(
+		const reset = createSection(
+			document,
+			'Stored records',
+			'Delete the consent records saved in this browser.'
+		);
+		reset.append(
 			createButton(
 				document,
 				'Clear stored records',
@@ -777,9 +839,8 @@ function renderActions(
 				'danger'
 			)
 		);
+		container.append(asColumn(reset));
 	}
-	section.append(actions);
-	container.append(section);
 }
 
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
@@ -821,7 +882,7 @@ function renderTab(
 			renderIABPanel(document, container, kernel, viewState.iab, run);
 			break;
 		case 'events':
-			renderEvents(document, container, state, clearEvents);
+			renderEvents(document, container, state, clearEvents, viewState);
 			break;
 		case 'actions':
 			renderActions(document, container, kernel, controller, run);
@@ -874,6 +935,7 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 	let wasOpen = options.stateManager.getState().isOpen;
 	let renderedState: DevToolsState | undefined;
 	const viewState: ViewState = {
+		expandedEvents: new Set(),
 		expandedScripts: new Set(),
 		iab: { group: 'vendors', page: 0, rawOpen: false, search: '' },
 		scriptSearch: '',

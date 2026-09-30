@@ -19,6 +19,7 @@ import {
 	useRef,
 } from 'react';
 import type {
+	CSSProperties,
 	ForwardedRef,
 	HTMLAttributes,
 	ReactElement,
@@ -175,6 +176,19 @@ export interface C15tTanStackDevtoolsPanelProps
 		> {
 	/** Prevents the embedded DevTools engine from mounting. @default false */
 	disabled?: boolean;
+	/**
+	 * Color scheme of the surrounding devtools shell. Omit to follow the
+	 * operating system. {@link c15tDevtools} passes TanStack's theme.
+	 */
+	theme?: TanStackDevtoolsTheme;
+}
+
+/** Color scheme TanStack Devtools passes to plugin panels. */
+export type TanStackDevtoolsTheme = 'light' | 'dark';
+
+/** Props React TanStack Devtools passes to a plugin's render function. */
+export interface TanStackDevtoolsPluginProps {
+	theme?: TanStackDevtoolsTheme;
 }
 
 /** Plugin configuration accepted by React TanStack Devtools. */
@@ -182,7 +196,10 @@ export interface TanStackDevtoolsPlugin {
 	id?: string;
 	name: string;
 	defaultOpen?: boolean;
-	render: ReactElement;
+	render: (
+		element: HTMLElement,
+		props?: TanStackDevtoolsPluginProps | TanStackDevtoolsTheme
+	) => ReactElement;
 }
 
 /** Options for {@link c15tDevtools}. */
@@ -227,6 +244,7 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 			getConsentCategories,
 			maxEvents,
 			style,
+			theme,
 			...containerProps
 		},
 		forwardedRef
@@ -276,11 +294,16 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 			return () => devTools.destroy();
 		}, [defaultTab, getDisplayedCategories, stableServices, kernel, maxEvents]);
 
+		// Inherited through the shadow root; the panel reads it as its scheme.
+		const schemeStyle = theme
+			? ({ '--c15t-dev-tools-color-scheme': theme } as CSSProperties)
+			: undefined;
+
 		return (
 			<div
 				{...containerProps}
 				ref={setContainerRef}
-				style={{ ...EMBEDDED_PANEL_STYLE, ...style }}
+				style={{ ...EMBEDDED_PANEL_STYLE, ...schemeStyle, ...style }}
 			/>
 		);
 	}
@@ -305,7 +328,12 @@ export const c15tDevtools = (
 		defaultOpen,
 		id,
 		name,
-		render: createElement(C15tTanStackDevtoolsPanel, panelProps),
+		// Older TanStack releases pass the theme string instead of props.
+		render: (_element, props) =>
+			createElement(C15tTanStackDevtoolsPanel, {
+				...panelProps,
+				theme: typeof props === 'string' ? props : props?.theme,
+			}),
 	};
 };
 
