@@ -14,13 +14,13 @@ import {
 } from 'c15t/tanstack-start';
 
 import { scripts } from '../scripts';
+// #hide docs
+import { testBackend } from '../test-backend';
+// #endhide docs
 
 import consentCss from 'c15t/tanstack-start/styles.css?url';
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth backend URL');
-}
+const backendURL = 'https://your-project.inth.app';
 
 // No loader: the HTML is built ahead of time, so the browser resolves
 // consent after it loads.
@@ -33,6 +33,9 @@ const RootComponent = () => (
 			<ConsentRoot
 				state={{}}
 				backendURL={backendURL}
+				// #hide docs
+				{...testBackend('backendURL')}
+				// #endhide docs
 				initRoute={false}
 				scripts={scripts}
 			>
@@ -57,7 +60,12 @@ export const Route = createRootRoute({
 			{ content: 'width=device-width, initial-scale=1', name: 'viewport' },
 		],
 		// Optional: start the /init request while the browser parses <head>.
-		...consentPrefetchHead({ backendURL }),
+		...consentPrefetchHead({
+			backendURL,
+			// #hide docs
+			...testBackend('backendURL'),
+			// #endhide docs
+		}),
 	}),
 });
 // #endregion docs:static-root

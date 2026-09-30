@@ -31,17 +31,12 @@ module names. The Vite plugin resolves those names in a plain Vue app.
 
 ## Install the Vue plugin
 
-Paste the backend URL from your Inth project, such as
-`https://your-project.inth.app`, into `.env.local`. The URL is
-public; it ends up in browser code.
-
-```dotenv title=".env.local"
-VITE_C15T_BACKEND_URL=https://your-project.inth.app
-```
-
 Install the plugin from `c15t/vue/vue-plugin` in `src/main.ts`:
 
 <include src="../../shared/examples/vue/main.mdx" />
+
+Replace `https://your-project.inth.app` with your project's backend URL,
+including any path prefix.
 
 `c15t/vue` is the Nuxt module. Do not pass it to `app.use()`.
 
@@ -52,23 +47,17 @@ script loader for the `scripts` you pass. The next section creates
 
 ## Register consent-gated scripts
 
-Remove any existing PostHog or X Pixel snippet so each script loads once. Add
-measurement and marketing to your Inth policy, then add the vendor IDs to
-`.env.local`. An empty ID leaves that vendor out.
-
-```dotenv title=".env.local"
-VITE_POSTHOG_KEY=
-VITE_POSTHOG_HOST=
-VITE_X_PIXEL_ID=
-```
-
-Set `VITE_POSTHOG_HOST` to the API host shown in your PostHog project. Restart
-Vite after you change these values.
+Remove any existing PostHog or X Pixel snippet so each script loads once, and
+add measurement and marketing to your Inth policy.
 
 Create `src/scripts.ts`. PostHog waits for measurement permission. X Pixel
 waits for marketing permission.
 
 <include src="../../shared/examples/vue/scripts.mdx" />
+
+Replace `phc_your_project_key` with your PostHog project key and
+`your-pixel-id` with your X Pixel ID. PostHog defaults to its EU region; set
+`region: 'us'` for a US project.
 
 ## Mount the consent UI
 

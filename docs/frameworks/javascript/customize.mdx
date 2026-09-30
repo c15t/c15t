@@ -77,7 +77,10 @@ import it and turn the inline copy off:
 ```ts
 import '@c15t/browser/styles.css';
 
-const consent = init({ backendURL, ui: { shadow: false, styles: false } });
+const consent = init({
+  backendURL: 'https://your-project.inth.app',
+  ui: { shadow: false, styles: false },
+});
 ```
 
 If your bundler runs Tailwind 3, install `@c15t/ui` as a direct dependency

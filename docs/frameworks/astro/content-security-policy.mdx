@@ -131,7 +131,9 @@ Turn on Astro's CSP with `security.csp`, or `experimental.csp` in Astro 5:
 ```js title="astro.config.mjs (partial)"
 export default defineConfig({
   security: { csp: true },
-  integrations: [c15t({ mode: hosted({ url: backendURL }) })],
+  integrations: [
+    c15t({ mode: hosted({ url: 'https://your-project.inth.app' }) }),
+  ],
 });
 ```
 

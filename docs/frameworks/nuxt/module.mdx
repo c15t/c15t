@@ -43,8 +43,7 @@ keys, including when you register it as `c15t/vue`.
 
 Module options reach the browser as JSON through `runtimeConfig.public`,
 which drops functions. `app.config.ts` is part of the browser bundle, so it
-keeps functions but cannot read `runtimeConfig`. Read values there from
-`VITE_` variables at build time, or write them into the file.
+keeps functions.
 
 ## Options
 

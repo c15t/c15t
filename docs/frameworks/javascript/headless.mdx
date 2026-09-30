@@ -37,7 +37,8 @@ imports the same instance:
 
 <include src="../../shared/examples/javascript/runtime.mdx" />
 
-`scripts` is the list from `src/scripts.ts` in the
+Replace `https://your-project.inth.app` with your project's backend URL,
+including any path prefix. `scripts` is the list from `src/scripts.ts` in the
 [quickstart](/docs/frameworks/javascript/quickstart#register-consent-gated-scripts).
 Creating the runtime has no side effects. It reads no storage and sends no
 request until you call `start()`, so the module can also load on a server.
@@ -146,13 +147,16 @@ stylesheet. Page hooks such as `data-c15t-action="accept"` still work, and the
 ```ts
 import { init } from '@c15t/browser/headless';
 
-const consent = init({ backendURL, scripts });
+const consent = init({
+  backendURL: 'https://your-project.inth.app',
+  scripts,
+});
 consent.on('ui', (surface) => {
   banner.hidden = surface !== 'banner';
 });
 ```
 
-`backendURL` and `scripts` are the values from the
+`scripts` is the list from the
 [quickstart](/docs/frameworks/javascript/quickstart), and `banner` is your
 banner element. Install `@c15t/browser@alpha` for this path.
 

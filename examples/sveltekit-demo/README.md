@@ -52,29 +52,27 @@ These routes are the SvelteKit docs recipes. The acceptance suite in
 
 Docs publish marked regions from these routes' layouts, `src/hooks.server.ts`,
 `src/app.d.ts`, `src/lib/example-scripts.ts`, `src/lib/server/consent-theme.ts`,
-`src/lib/custom-consent-banner.svelte` and `.env.example`. Keep demo-only code
-out of those regions; the shared page content is in `src/lib/consent-example`.
+and `src/lib/custom-consent-banner.svelte`. Keep demo-only code out of those
+regions; the shared page content is in `src/lib/consent-example`.
 
 Create an [Inth](https://inth.com) project, configure an opt-in policy covering
-`measurement` and `marketing`, and allow this app's origin. Set
-`PUBLIC_C15T_BACKEND_URL` to the exact public backend URL supplied by Inth. The
-routes throw until it is set, and the build skips `/consent-example/static`
-without it. Then run from the repository root:
+`measurement` and `marketing`, and allow this app's origin. Replace each
+`https://your-project.inth.app` under `src/routes` with your project's backend
+URL. The acceptance suite overrides it with `PUBLIC_C15T_BACKEND_URL` through
+`src/lib/test-backend.ts`. Then run from the repository root:
 
 ```sh
 bun run --cwd examples/sveltekit-demo dev
 ```
 
-Public vendor settings are optional:
+Replace the placeholder vendor IDs in `src/lib/example-scripts.ts`: the PostHog
+browser project key and the X Pixel ID (not a conversion event ID). The example
+selects PostHog's EU region; change `region` for a US project.
 
-- `PUBLIC_POSTHOG_KEY`: PostHog browser project key. The example selects the EU region;
-  change `region` in `example-scripts.ts` for a US project.
-- `PUBLIC_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
-
-An unset vendor setting omits that loader. PostHog uses `loadMode: 'after-consent'`
-and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. The
-YouTube nocookie iframe only mounts with measurement permission and is removed
-on revocation. Use the footer's Privacy settings control to reopen the dialog.
+PostHog uses `loadMode: 'after-consent'` and `cookieless_mode: 'never'`. X Pixel
+waits for marketing permission. The YouTube nocookie iframe only mounts with
+measurement permission and is removed on revocation. Use the footer's Privacy
+settings control to reopen the dialog.
 
 Test a fresh rejection, grant, reload and withdrawal:
 

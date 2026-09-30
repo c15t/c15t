@@ -69,15 +69,16 @@ const regionPreview = (): Plugin => ({
 });
 
 export default defineConfig(({ command }) => {
-	// Development falls back to the self-hosted backend in
+	// Development uses the self-hosted backend in
 	// `src/routes/api/self-host/$.ts`, so `bun run dev` needs no setup.
-	// Production builds must set `VITE_C15T_BACKEND_URL`.
+	// `src/test-backend.ts` applies `VITE_C15T_BACKEND_URL` over the
+	// placeholder URL in the root routes; the acceptance suite sets it for
+	// production builds.
 	if (command === 'serve' && !process.env.VITE_C15T_BACKEND_URL) {
 		process.env.VITE_C15T_BACKEND_URL = '/api/self-host';
 	}
 	return {
-		// Only the default `VITE_` prefix reaches `import.meta.env`. The backend
-		// URL is deliberately public (`VITE_C15T_BACKEND_URL`); server-only
+		// Only the default `VITE_` prefix reaches `import.meta.env`. Server-only
 		// `C15T_*` secrets stay in `process.env` and never enter a bundle.
 		plugins: [
 			regionPreview(),

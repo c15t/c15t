@@ -4,14 +4,14 @@ description: Fix a missing banner, early vendor requests, unstyled components an
 group: frameworks
 ---
 
-## The app throws "Set VITE\_C15T\_BACKEND\_URL"
+## The /init request goes to your-project.inth.app
 
-**Check.** `import.meta.env.VITE_C15T_BACKEND_URL` is empty in the built bundle.
+**Check.** In DevTools Network, the `GET` request to `/init` goes to
+`your-project.inth.app` and fails.
 
-**Fix.** Put the Inth backend URL in `.env.local`, restart `vite`, and rebuild.
-Vite reads `VITE_` values at build time, so a value set only on the production
-server does not reach the browser. In another bundler, use its mechanism for
-public values.
+**Fix.** Replace the placeholder URL in `hosted({ url })` in `src/consent.tsx`
+with the backend URL from your Inth project, exactly as Inth shows it, then
+rebuild.
 
 ## There is no banner
 
@@ -20,7 +20,7 @@ backend URL.
 
 | What you see | Cause | Fix |
 | --- | --- | --- |
-| No `/init` request | `ConsentProvider` is not mounted, or `src/consent.tsx` threw before it rendered | Check the console for errors and render one provider at the app root, as in the [quickstart](/docs/frameworks/react/quickstart) |
+| No `/init` request | `ConsentProvider` is not mounted, or an error stopped `src/consent.tsx` from rendering | Check the console for errors and render one provider at the app root, as in the [quickstart](/docs/frameworks/react/quickstart) |
 | `/init` fails with a CORS error | Your site's origin is not trusted | Add the exact origin, including port in development, to the trusted origins in your Inth project |
 | `/init` returns 200 | The policy for this visitor asks for no banner, or a stored choice is still valid | Inspect the active policy with the component below, or clear site data |
 

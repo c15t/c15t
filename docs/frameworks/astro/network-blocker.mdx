@@ -24,7 +24,7 @@ Rules are plain data, so they can go in the integration options:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
+  mode: hosted({ url: 'https://your-project.inth.app' }),
   networkBlocker: {
     rules: [
       { category: 'measurement', domain: 'google-analytics.com' },

@@ -19,20 +19,25 @@ import {
 } from 'c15t/tanstack-start/server';
 
 import { scripts } from '../scripts';
+// #hide docs
+import { testBackend } from '../test-backend';
+// #endhide docs
 
 import consentCss from 'c15t/tanstack-start/styles.css?url';
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth backend URL');
-}
 // The consent server route in src/routes/api/c15t/$.ts.
 const consentRoute = '/api/c15t';
 
 // Declare the server function in your own module. Start's compiler splits
 // the server code out of the browser bundle at this call site.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
-	createConsentStateHandler({ backendURL, routePrefix: consentRoute })
+	createConsentStateHandler({
+		backendURL: 'https://your-project.inth.app',
+		// #hide docs
+		...testBackend('backendURL'),
+		// #endhide docs
+		routePrefix: consentRoute,
+	})
 );
 
 const RootComponent = () => {

@@ -48,8 +48,8 @@ runtime and create a new one.
 | `assertDecisionInputs` | Send the resolved policy inputs with each save, so the backend can reject a save made against a stale policy. |
 
 With `@c15t/browser`, `init({ backendURL })` builds `hosted({ url: backendURL })`
-for you. The URL is public configuration. Add your app's origin to the Inth
-project's trusted origins, or the browser blocks `/init` with a CORS error.
+for you. Add your app's origin to the Inth project's trusted origins, or the
+browser blocks `/init` with a CORS error.
 
 ## Manifest
 

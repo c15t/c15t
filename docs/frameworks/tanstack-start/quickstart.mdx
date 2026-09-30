@@ -18,7 +18,7 @@ host, or to stream the page before consent resolves, see
 
 You need an [Inth](https://inth.com) project. In the project, set the policy
 rules for your regions, add your site's origin to the trusted origins, and copy
-the backend URL. The URL is public configuration, not a secret.
+the backend URL.
 [Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
 covers self-hosting and offline mode.
 
@@ -28,21 +28,6 @@ covers self-hosting and offline mode.
 
 `c15t` contains the TanStack Start adapter at `c15t/tanstack-start`.
 `@c15t/integrations` holds the vendor loaders used below.
-
-## Set the backend URL
-
-Add the Inth backend URL and your vendor IDs to `.env`:
-
-```dotenv title=".env"
-VITE_C15T_BACKEND_URL=https://your-project.inth.app
-VITE_POSTHOG_KEY=
-VITE_X_PIXEL_ID=
-```
-
-Paste the backend URL exactly as Inth shows it. The server function and the
-browser both read `VITE_C15T_BACKEND_URL`, and Vite writes it into both bundles
-at build time, so rebuild after you change it. Leave a vendor ID empty to skip
-that vendor. Keep secrets out of `VITE_` variables.
 
 ## Read location headers on every request
 
@@ -66,11 +51,18 @@ other PostHog or X Pixel loader from your app so each vendor loads once.
 
 <include src="../../shared/examples/tanstack-start/scripts.mdx" />
 
+Replace `phc_your_project_key` with your PostHog project key and
+`your-pixel-id` with your X Pixel ID. Remove the loader for a vendor you don't
+use.
+
 ## Resolve consent in the root route
 
 Replace or merge `src/routes/__root.tsx`:
 
 <include src="../../shared/examples/tanstack-start/root.mdx" />
+
+Replace `https://your-project.inth.app` with your project's backend URL,
+exactly as Inth shows it, including any path prefix.
 
 What each part does:
 
@@ -85,7 +77,8 @@ What each part does:
   state does not change between routes.
 - **`ConsentRoot`** creates the consent runtime from that state, so the server
   HTML and the first browser render match. `initRoute={false}` sends the
-  browser's requests straight to your backend URL.
+  browser's requests straight to your backend URL. The server function and
+  `ConsentRoot` share the `backendURL` constant.
 - **`scripts`** stays in this module. A server function can only return
   serializable data, and vendor loaders contain functions.
 - **The stylesheet** loads through `head()` with Vite's `?url` import.

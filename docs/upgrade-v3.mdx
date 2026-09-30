@@ -243,11 +243,10 @@ v3 gives you two ways forward:
 ```tsx title="After (v3): components/consent-manager/provider.tsx, changed lines"
 import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/next';
 
-const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
-
 // In the component, replace ConsentManagerProvider:
-<ConsentProvider options={{ mode: hosted({ url: backendURL }) }}>
+<ConsentProvider
+  options={{ mode: hosted({ url: 'https://your-project.c15t.dev' }) }}
+>
 ```
 
 Static exports use browser initialization too. See

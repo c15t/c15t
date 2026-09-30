@@ -43,8 +43,9 @@ off, so a consent row referencing a policy that doesn't exist inserts happily
 locally and only fails once deployed. Running real Postgres in dev means
 constraint bugs surface here. Delete `.pgdata/` to reset the demo.
 
-Set `NUXT_PUBLIC_C15T_BACKEND_URL` to point at a hosted c15t instance instead
-of the self-hosted route.
+The demo shell in `nuxt.config.ts` sets `backendURL` to the self-hosted route,
+overriding the placeholder in the `config/` layers. The acceptance suite sets
+`NUXT_PUBLIC_C15T_BACKEND_URL` to point the demo at its mock backend instead.
 
 ## Consent example
 
@@ -60,22 +61,21 @@ mode.
 
 For hosted operation, create an [Inth](https://inth.com) project, configure an
 opt-in policy covering `measurement` and `marketing`, and allow this app's
-origin. Set `NUXT_PUBLIC_C15T_BACKEND_URL` to the exact public backend URL supplied by Inth.
-Then run from the repository root:
+origin. Set `NUXT_PUBLIC_C15T_BACKEND_URL` to the backend URL supplied by Inth,
+or copy the layer config into your own app and replace
+`https://your-project.inth.app` there. Then run from the repository root:
 
 ```sh
 bun run --cwd examples/nuxt dev
 ```
 
-Public vendor settings are optional. They are read at build time, because
-`app.config.ts` is part of the browser bundle and cannot read `runtimeConfig`:
+Replace the vendor placeholders in `app/consent-scripts.ts`:
 
-- `VITE_POSTHOG_KEY`: PostHog browser project key. The example selects the EU
-  region; change `region` in `app/consent-scripts.ts` for a US project.
-- `VITE_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
+- `phc_your_project_key`: PostHog browser project key. The example selects the
+  EU region; change `region` for a US project.
+- `your-pixel-id`: X Pixel ID, not a conversion event ID.
 
-An unset vendor setting omits that loader. PostHog uses `loadMode: 'after-consent'`
-and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. Remove
+PostHog uses `loadMode: 'after-consent'` and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. Remove
 other initializers for these vendors before reusing the example.
 
 The YouTube nocookie iframe in `app/components/VideoEmbed.vue` only mounts with

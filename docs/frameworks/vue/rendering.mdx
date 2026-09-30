@@ -37,9 +37,9 @@ manifest from `manifestURL` and resolves the policy itself, without calling
 
 ```ts title="src/main.ts"
 app.use(c15tVue, {
-  backendURL,
+  backendURL: 'https://your-project.inth.app',
   manifest: 'client',
-  manifestURL: `${backendURL}/manifest`,
+  manifestURL: 'https://your-project.inth.app/manifest',
   scripts,
 });
 ```

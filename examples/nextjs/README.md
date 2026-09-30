@@ -12,15 +12,15 @@ From the repository root, install and build the workspace dependencies. Then:
 
 ```sh
 cd examples/nextjs
-cp .env.example .env.local
 bun run dev
 ```
 
-Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the exact endpoint from your Inth project.
-Configure its policy with measurement and marketing categories, an
-unknown-location rule, and trusted origins for `http://localhost:3011` and your
-production host. Local requests carry no geography headers, so the example
-shows your unknown-location rule until you deploy to a host that sends them.
+In `c15t.config.ts`, replace `https://your-project.inth.app` with the backend
+URL from your Inth project, including any path prefix. Configure its policy
+with measurement and marketing categories, an unknown-location rule, and
+trusted origins for `http://localhost:3011` and your production host. Local
+requests carry no geography headers, so the example shows your
+unknown-location rule until you deploy to a host that sends them.
 
 Open `http://localhost:3011/app-router`. For a production build:
 
@@ -29,16 +29,15 @@ bun run build
 bun run start --port 3011
 ```
 
-Public environment values are included in the client build. Rebuild after
-changing them. Optional `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`
-and `NEXT_PUBLIC_X_PIXEL_ID` configure your test projects. Without an ID, that
-integration is disabled and labelled "Not configured".
+To send events to your own PostHog and X projects, replace
+`phc_your_project_key` and `your-pixel-id` in `lib/scripts.ts`.
 
 ## Follow the setup files
 
 - `c15t.config.ts` shares the backend and explicit manifest URL.
-- `app/api/c15t/manifest/route.ts` serves the cached public manifest for both
-  routers.
+- `app/api/c15t/manifest/route.ts` passes that config to
+  `createNextConsentRouteHandlers` and serves the cached public manifest for
+  both routers.
 - `components/consent.tsx` is the client wrapper: `ConsentRoot`, scripts,
   banner, dialog and the Privacy settings link. Layouts pass it only `state`.
 - Each App Router route group has its own root layout:
@@ -64,7 +63,7 @@ submitted to Inth.
 ## Try the behavior
 
 1. Start with an opt-in policy and no saved choice. The video shows its
-   placeholder, and configured PostHog and X Pixel integrations are blocked.
+   placeholder, and the PostHog and X Pixel integrations are blocked.
 2. Allow measurement only. YouTube and PostHog can load; X Pixel stays blocked.
 3. Open Privacy settings in the footer and revoke measurement. The page
    reloads and the iframe is gone. Already-sent vendor requests cannot be
@@ -97,6 +96,8 @@ The video is `https://www.youtube-nocookie.com/embed/czTksCF6X8Y`. The
 allowed. A nocookie URL is still a third-party request once loaded.
 
 Browser acceptance tests in `examples/shared` intercept vendor and YouTube
-requests with fixtures for deterministic results. Check actual playback
-separately with the live video. Backend initialization failures must not grant
-optional permissions.
+requests with fixtures for deterministic results. They point the app at a mock
+backend by setting `NEXT_PUBLIC_C15T_BACKEND_URL` at build time;
+`lib/test-backend.ts` applies it, and the published snippets leave those lines
+out. Check actual playback separately with the live video. Backend
+initialization failures must not grant optional permissions.

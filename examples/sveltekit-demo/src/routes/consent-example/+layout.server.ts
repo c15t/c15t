@@ -1,6 +1,8 @@
 // #region docs:layout-server title="src/routes/+layout.server.ts"
 import { building } from '$app/environment';
-import { env } from '$env/dynamic/public';
+// #hide docs
+import { testBackend } from '$lib/test-backend';
+// #endhide docs
 import { loadConsent } from '@c15t/svelte/kit';
 
 import type { LayoutServerLoad } from './$types';
@@ -10,6 +12,11 @@ export const load: LayoutServerLoad = async (event) => ({
 	// not carry one visitor's consent. The browser resolves it there instead.
 	prefetch: building
 		? undefined
-		: await loadConsent(event, { backendURL: env.PUBLIC_C15T_BACKEND_URL }),
+		: await loadConsent(event, {
+				backendURL: 'https://your-project.inth.app',
+				// #hide docs
+				...testBackend('backendURL'),
+				// #endhide docs
+			}),
 });
 // #endregion docs:layout-server

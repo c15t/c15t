@@ -1,13 +1,15 @@
 // #region docs:config
 import { defineConsentConfig } from 'c15t/next';
 
-const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL to your Inth backend URL');
-}
+// #hide docs
+import { testBackend } from './lib/test-backend';
 
+// #endhide docs
 export const consentConfig = defineConsentConfig({
-	backendURL,
+	backendURL: 'https://your-project.inth.app',
+	// #hide docs
+	...testBackend('backendURL'),
+	// #endhide docs
 	manifestURL: '/api/c15t/manifest',
 });
 // #endregion docs:config

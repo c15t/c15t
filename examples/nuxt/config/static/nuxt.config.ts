@@ -1,13 +1,11 @@
 import { defineNuxtConfig } from 'nuxt/config';
 
 // #region docs:static-config title="nuxt.config.ts"
-const backendURL = process.env.NUXT_PUBLIC_C15T_BACKEND_URL;
-
 export default defineNuxtConfig({
 	c15t: {
-		backendURL,
+		backendURL: 'https://your-project.inth.app',
 		manifest: 'client',
-		manifestURL: `${backendURL}/manifest`,
+		manifestURL: 'https://your-project.inth.app/manifest',
 	},
 	modules: ['c15t/vue'],
 	ssr: false,

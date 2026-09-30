@@ -31,17 +31,12 @@ Not recommended for production environments.
 
 ## Add the Nuxt module
 
-Paste the backend URL from your Inth project, such as
-`https://your-project.inth.app`, into `.env`. The URL is public;
-it ends up in browser code.
-
-```dotenv title=".env"
-NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
-```
-
 Register the module in `nuxt.config.ts`:
 
 <include src="../../shared/examples/nuxt/nuxt-config.mdx" />
+
+Replace `https://your-project.inth.app` with your project's backend URL,
+including any path prefix.
 
 `manifest: 'server'` adds two routes to your Nuxt server,
 `/api/c15t/manifest` and `/api/c15t/init`. The server downloads your project's
@@ -69,20 +64,17 @@ their own styles.
 
 ## Register consent-gated scripts
 
-Remove any existing PostHog or X Pixel snippet so each script loads once. Add
-measurement and marketing to your Inth policy, then put the vendor IDs in
-`.env`. An empty ID leaves that vendor out.
-
-```dotenv title=".env"
-VITE_POSTHOG_KEY=
-VITE_X_PIXEL_ID=
-```
+Remove any existing PostHog or X Pixel snippet so each script loads once, and
+add measurement and marketing to your Inth policy.
 
 Create `app/consent-scripts.ts`. PostHog waits for measurement permission and
 uses its EU region; change `region` to `'us'` for a US project. X Pixel waits
 for marketing permission.
 
 <include src="../../shared/examples/nuxt/scripts.mdx" />
+
+Replace `phc_your_project_key` with your PostHog project key and
+`your-pixel-id` with your X Pixel ID.
 
 Register the scripts in `app/app.config.ts`:
 
@@ -93,10 +85,6 @@ The module merges the `c15t` key of `app.config.ts` over its options in
 hydration. Put options that contain functions, such as `scripts` and
 `callbacks`, in `app.config.ts`. Module options in `nuxt.config.ts`
 reach the browser as JSON, which drops functions.
-
-`app.config.ts` is part of the browser bundle, so it cannot read
-`runtimeConfig`. The file above reads the IDs from Vite's `VITE_` variables at
-build time. Vendor IDs are public, so you can also write them into the file.
 
 ## Gate an embed
 

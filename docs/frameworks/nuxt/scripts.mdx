@@ -24,9 +24,6 @@ has applied the visitor's stored choice and privacy signals. Do not also call
 
 `scripts` must go in `app.config.ts`. Module options in `nuxt.config.ts`
 reach the browser as JSON, which drops the functions inside each script.
-`app.config.ts` is bundled into the browser, so it cannot read
-`runtimeConfig`. Read vendor IDs from `VITE_` variables at build time, as
-above, or write them into the file.
 
 Every vendor guide under [integrations](/docs/integrations/overview) gives the
 helper and options for that vendor.

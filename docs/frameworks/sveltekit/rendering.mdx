@@ -60,8 +60,6 @@ Pass the absolute Inth URL as `backendURL`. A relative URL, such as
 `event.fetch` inside the app and is never resolved against the request's
 `Host` header. One that points back at `/api/c15t` makes the route fetch
 itself.
-Without `backendURL`, the handlers read the `C15T_BACKEND_URL` or
-`C15T_MANIFEST_URL` environment variable.
 
 The route caches the manifest in memory for as long as its `s-maxage` allows,
 then serves it stale while it refreshes in the background. It also reports
@@ -77,7 +75,10 @@ export the write handlers from the same catch-all route:
 
 ```ts title="src/routes/api/c15t/[...path]/+server.ts"
 export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } =
-  createSvelteKitConsentRouteHandlers({ backendURL, proxy: true });
+  createSvelteKitConsentRouteHandlers({
+    backendURL: 'https://your-project.inth.app',
+    proxy: true,
+  });
 ```
 
 Then point the provider at the route with `hosted({ url: '/api/c15t' })`.
@@ -88,11 +89,10 @@ extra paths you list in `proxy: { paths }`, and answer anything else with
 `404`. Cookies go upstream only when `proxy: { cookieNames }` names them. The visitor's address comes from
 `event.getClientAddress()`, and `x-forwarded-host` and `x-forwarded-proto`
 come from `event.url`, so configure your adapter's address header if it runs
-behind a proxy. The proxy forwards to `backendURL` or `C15T_BACKEND_URL`,
-never to a `manifestURL`. An absolute URL is fetched over the network. A
-relative one, such as a route elsewhere in your app, is fetched with
-`event.fetch` inside the app and is never resolved against the request's
-`Host` header.
+behind a proxy. The proxy forwards to `backendURL`, never to a `manifestURL`.
+An absolute URL is fetched over the network. A relative one, such as a route
+elsewhere in your app, is fetched with `event.fetch` inside the app and is
+never resolved against the request's `Host` header.
 
 ### Deploy to an edge adapter
 
@@ -141,10 +141,6 @@ the backend for the policy, then shows the banner or applies the stored
 choice. Optional categories stay denied until then. Server-rendered pages in
 the same app keep the banner in their HTML.
 
-The layout reads `$env/dynamic/public` while the page prerenders, so set
-`PUBLIC_C15T_BACKEND_URL` in the build environment too. Without it the layout
-throws and the build fails on that page.
-
 ## Build a static site
 
 With `adapter-static`, every page is prerendered and no server runs after the
@@ -160,12 +156,9 @@ Keep the quickstart's `+layout.server.ts` or delete it; while building it
 returns nothing either way. The browser resolves consent on every page, as
 described in [prerender some pages](#prerender-some-pages).
 
-Two things change on a static host:
-
-- The backend URL must be the absolute Inth URL. Server routes such as
-  `/api/c15t` do not exist after a static build, so do not use manifest mode.
-- `PUBLIC_C15T_BACKEND_URL` must be set when you build. `adapter-static`
-  writes the public values into the build.
+On a static host, the backend URL must be the absolute Inth URL. Server
+routes such as `/api/c15t` do not exist after a static build, so do not use
+manifest mode.
 
 ## Use SPA mode
 
@@ -189,7 +182,7 @@ without a SvelteKit event, for endpoints or code outside a load:
 import { resolveConsent } from '@c15t/svelte/server';
 
 const state = await resolveConsent({
-  backendURL: env.PUBLIC_C15T_BACKEND_URL,
+  backendURL: 'https://your-project.inth.app',
   headers: request.headers,
 });
 ```

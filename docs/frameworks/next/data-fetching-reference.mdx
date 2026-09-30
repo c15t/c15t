@@ -62,11 +62,15 @@ cached manifest in your app instead of calling the backend's `/init`.
 
 Add `initURL: '/api/c15t/init'` to your existing `defineConsentConfig` value,
 keeping `backendURL` and `manifestURL`. Then add the handler for your router.
-It reads the same absolute upstream backend environment variable as your
-manifest handler.
+Like the manifest handler, it reads the upstream backend from the config's
+`backendURL`.
 
 ```ts title="app/api/c15t/init/route.ts"
-export { GET } from 'c15t/next/api';
+import { createNextConsentRouteHandlers } from 'c15t/next/api';
+
+import { consentConfig } from '@/c15t.config';
+
+export const { GET } = createNextConsentRouteHandlers(consentConfig);
 ```
 
 For Pages Router, use this file instead:
@@ -74,7 +78,9 @@ For Pages Router, use this file instead:
 ```ts title="pages/api/c15t/init.ts"
 import { createPagesApiHandlers } from 'c15t/next/pages';
 
-export default createPagesApiHandlers().init;
+import { consentConfig } from '@/c15t.config';
+
+export default createPagesApiHandlers(consentConfig).init;
 ```
 
 Without `initURL`, browser initialization resolves the manifest locally. It
@@ -502,11 +508,8 @@ setup has no backend record service. See
 
 `ConsentRoot` also runs offline when it gets no backend URL, from neither a
 `backendURL` prop nor `config.backendURL`, and no `options.mode`. A
-`backendURL={process.env.NEXT_PUBLIC_C15T_BACKEND_URL}` prop that is
-`undefined` at build time therefore gives you offline mode with no error. Not
-recommended for production environments. The `c15t.config.ts` in the router
-guides throws when the variable is missing, so a misconfigured build fails
-instead.
+`backendURL` value that is `undefined` at build time therefore gives you
+offline mode with no error. Not recommended for production environments.
 
 ### Authenticated hosted vendor lists
 

@@ -6,15 +6,9 @@ import svelte from '@astrojs/svelte';
 import { defineConfig } from 'astro/config';
 import c15t, { manifest } from 'c15t/astro';
 
-// Astro reads this file before it loads `.env`, so set the variable in the
-// shell or in your host's build settings.
-const backendURL = process.env.C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error(
-		'Set C15T_BACKEND_URL to the backend URL of your Inth project.'
-	);
-}
-
+// #hide docs
+import { testBackend } from './test-backend.mjs';
+// #endhide docs
 export default defineConfig({
 	adapter: node({ mode: 'standalone' }),
 	integrations: [
@@ -23,7 +17,12 @@ export default defineConfig({
 			clientEntrypoint: fileURLToPath(
 				new URL('./src/consent-client.ts', import.meta.url)
 			),
-			mode: manifest({ backendURL }),
+			mode: manifest({
+				backendURL: 'https://your-project.inth.app',
+				// #hide docs
+				...testBackend('backendURL'),
+				// #endhide docs
+			}),
 			ui: 'svelte',
 			// #hide docs
 			// Demo-only: the example suite's vendor scenario.

@@ -35,7 +35,7 @@ Put tokens in the integration's `theme` option:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
+  mode: hosted({ url: 'https://your-project.inth.app' }),
   theme: {
     colors: {
       primary: '#146b56',
@@ -65,7 +65,7 @@ primary, then `default`:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
+  mode: hosted({ url: 'https://your-project.inth.app' }),
   theme: {
     consentActions: {
       primary: { mode: 'filled' },
@@ -84,7 +84,7 @@ language:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
+  mode: hosted({ url: 'https://your-project.inth.app' }),
   i18n: {
     messages: {
       en: {
@@ -119,7 +119,7 @@ and the message keys the banner reads.
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
+  mode: hosted({ url: 'https://your-project.inth.app' }),
   presentation: {
     prompt: { variant: 'bar', position: 'bottom' },
   },
@@ -159,7 +159,7 @@ Define the links once in the integration options:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
+  mode: hosted({ url: 'https://your-project.inth.app' }),
   legalLinks: {
     privacyPolicy: { href: '/privacy', label: 'Privacy policy' },
     cookiePolicy: { href: '/cookies', label: 'Cookie policy' },
@@ -182,7 +182,7 @@ named part of the banner, the IAB banner and the dialogs:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
+  mode: hosted({ url: 'https://your-project.inth.app' }),
   theme: {
     slots: {
       consentBannerCard: 'brand-card',

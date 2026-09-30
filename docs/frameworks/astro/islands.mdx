@@ -33,7 +33,13 @@ Register the framework's Astro integration before `c15t()`:
 {/* example: fragment */}
 
 ```js title="astro.config.mjs (partial)"
-integrations: [react(), c15t({ mode: hosted({ url: backendURL }), ui: 'react' })],
+integrations: [
+  react(),
+  c15t({
+    mode: hosted({ url: 'https://your-project.inth.app' }),
+    ui: 'react',
+  }),
+],
 ```
 
 The build stops when that integration is missing, and names the packages to

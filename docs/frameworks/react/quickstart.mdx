@@ -21,7 +21,7 @@ the banner or runs the scripts the visitor allowed.
 
 You need an [Inth](https://inth.com) project. In the project, set the policy
 rules for your regions, add your site's origin to the trusted origins, and copy
-the backend URL. The URL is public configuration, not a secret.
+the backend URL.
 [Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
 covers self-hosting and offline mode.
 
@@ -32,23 +32,6 @@ covers self-hosting and offline mode.
 `c15t` contains the React adapter at `c15t/react`. `@c15t/integrations` holds the
 vendor loaders used below.
 
-## Set the backend URL
-
-Add the Inth backend URL and your vendor IDs to `.env.local`:
-
-```dotenv title=".env.local"
-VITE_C15T_BACKEND_URL=https://your-project.inth.app
-VITE_POSTHOG_KEY=
-VITE_POSTHOG_HOST=
-VITE_X_PIXEL_ID=
-```
-
-Paste the backend URL exactly as Inth shows it. Vite writes `VITE_` values into
-the bundle at build time, so restart the dev server after editing them and
-rebuild before you deploy. Set `VITE_POSTHOG_HOST` to the API host your
-PostHog project shows, such as `https://eu.i.posthog.com`. Leave a vendor ID
-empty to skip that vendor.
-
 ## Register your vendor scripts
 
 Create `src/scripts.ts`. PostHog waits for measurement permission and X Pixel
@@ -57,6 +40,10 @@ Remove any other PostHog or X Pixel loader from your app so each vendor loads
 once.
 
 <include src="../../shared/examples/react/scripts.mdx" />
+
+Replace `phc_your_project_key` with your PostHog project key and
+`your-pixel-id` with your X Pixel ID. PostHog uses its EU host; add
+`region: 'us'` for a US project. Remove the loader for a vendor you don't use.
 
 `loadMode: 'after-consent'` keeps the PostHog SDK off the page until the
 visitor allows measurement. `cookieless_mode: 'never'` turns off PostHog's
@@ -71,6 +58,9 @@ asks for them, and `ConsentDialogLink` keeps preferences reachable after the
 banner closes.
 
 <include src="../../shared/examples/react/consent.mdx" />
+
+Replace `https://your-project.inth.app` with your project's backend URL,
+exactly as Inth shows it, including any path prefix.
 
 Wrap your app with it in `src/main.tsx`:
 

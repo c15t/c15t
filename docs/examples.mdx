@@ -16,8 +16,8 @@ bun install
 bun run build:libs
 ```
 
-You need [Bun](https://bun.sh). Each example has a README with its environment
-variables. To add c15t to your own app, follow your
+You need [Bun](https://bun.sh). Each example has a README. To add c15t to your
+own app, follow your
 [framework quickstart](/docs/frameworks) instead; its setup code comes from
 these examples.
 
@@ -26,9 +26,10 @@ these examples.
 Each of these registers PostHog on measurement and X Pixel on marketing, gates a
 YouTube video on measurement, and keeps a privacy settings link after the banner
 closes. A Branded design switch shows the same consent flow with different
-styling. Set the backend URL variable from `.env.example` to the URL from your
-Inth project, and add the example's origin to the project's trusted origins.
-PostHog and X Pixel stay unregistered until you set their IDs.
+styling. Replace `https://your-project.inth.app` in the example's consent setup
+with your project's backend URL, including any path prefix, and add the
+example's origin to the project's trusted origins. Replace the placeholder
+PostHog and X Pixel IDs with your own, or remove those entries.
 
 | Framework | Directory | Run | Open |
 | --- | --- | --- | --- |

@@ -7,13 +7,13 @@ group: cli
 ## Plan and apply
 
 ```bash
-npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --plan --json
-npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --apply --skip-install
+npx @c15t/cli@alpha setup hosted --backend-url https://your-project.inth.app --plan --json
+npx @c15t/cli@alpha setup hosted --backend-url https://your-project.inth.app --apply --skip-install
 ```
 
-`C15T_BACKEND_URL` holds the backend URL from your Inth project, such as `https://your-project.inth.app`. Any explicit
-flag makes setup non-interactive and returns a read-only plan, even in a
-terminal. Add `--apply` or `--yes` to write files.
+Replace `https://your-project.inth.app` with the backend URL from your Inth
+project. Any explicit flag makes setup non-interactive and returns a read-only
+plan, even in a terminal. Add `--apply` or `--yes` to write files.
 
 Setup installs missing c15t packages from the CLI's release line. A prerelease
 CLI uses its dist-tag, so `@c15t/cli@alpha` installs `c15t@alpha`. A stable CLI

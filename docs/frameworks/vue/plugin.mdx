@@ -48,7 +48,7 @@ Every option is optional. Options that hold functions, such as `scripts` and
 | --- | --- | --- |
 | `backendURL` | `'/api/c15t'` | Your Inth or self-hosted backend. The browser requests `/init` from it and sends consent saves to it. |
 | `manifest` | Unset | `'client'` downloads the public policy manifest and resolves the policy in the browser instead of calling `/init`. See [rendering](/docs/frameworks/vue/rendering#resolve-from-the-manifest-in-the-browser). |
-| `manifestURL` | `/api/c15t/manifest` | Where client mode downloads the manifest. Set it to an absolute URL, such as `${backendURL}/manifest`. Setting it with `manifest` unset selects client mode. |
+| `manifestURL` | `/api/c15t/manifest` | Where client mode downloads the manifest. Set it to an absolute URL, such as `https://your-project.inth.app/manifest`. Setting it with `manifest` unset selects client mode. |
 | `geoURL` | Unset | Client mode only. An endpoint you run that returns `{ country, region }` for the visitor. |
 | `consentCategories` | The policy's categories | Limits the categories the dialog and widget show, within the policy's scope. |
 | `vendors` | Unset | Vendors listed under their category with their own switch. See [vendor consent](/docs/frameworks/vue/vendor-consent). |

@@ -37,7 +37,7 @@ Set `i18n.messages` in the integration options, keyed by language:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
+  mode: hosted({ url: 'https://your-project.inth.app' }),
   i18n: {
     messages: {
       en: {
@@ -101,7 +101,7 @@ asks for:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
+  mode: hosted({ url: 'https://your-project.inth.app' }),
   i18n: { locale: 'de' },
 });
 ```

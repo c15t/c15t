@@ -11,11 +11,9 @@ bun install
 bun run build:libs
 ```
 
-Copy `.env.example` to `.env.local` in this directory. Set
-`VITE_C15T_BACKEND_URL` to your Inth endpoint and allow this app's origin in
-Inth. The URL is public. Set the PostHog project key and X Pixel ID to enable
-the corresponding integration; unset IDs leave those scripts unregistered.
-Then run:
+Replace `https://your-project.inth.app` in `src/App.svelte` with your Inth
+backend URL and allow this app's origin in Inth. Replace the placeholder PostHog
+project key and X Pixel ID in `src/scripts.ts`. Then run:
 
 ```sh
 bun run --cwd examples/svelte dev
@@ -35,8 +33,10 @@ runs these examples with a fixture backend and intercepted vendor requests:
 EXAMPLE_TARGET=svelte bun run --cwd examples/shared test
 ```
 
-The Svelte docs publish marked regions of `src/App.svelte`, `src/scripts.ts`,
-`src/consent-theme.css` and `.env.example`, so keep those files copyable.
+The Svelte docs publish marked regions of `src/App.svelte`, `src/scripts.ts` and
+`src/consent-theme.css`, so keep those files copyable. The acceptance suite
+overrides the backend URL with `VITE_C15T_BACKEND_URL` through
+`src/test-backend.ts`; the lines that call it are hidden from the docs.
 `src/ExamplePage.svelte` and `src/main.ts` hold the demo content, DevTools and
 the Branded switch, which loads `src/consent-theme.css`.
 

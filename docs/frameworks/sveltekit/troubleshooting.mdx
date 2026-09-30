@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Fix a banner missing from SvelteKit server HTML, failed saves through the manifest route, prerender build errors and ignored theme colors.
+description: Fix a banner missing from SvelteKit server HTML, failed saves through the manifest route, a wrong backend URL and ignored theme colors.
 group: frameworks
 ---
 
@@ -54,16 +54,17 @@ catch-all route. See
 relative `backendURL` names a route in your own app, which the handlers call
 in-process; if it points at `/api/c15t`, the route requests itself.
 
-**Fix.** Pass the Inth URL, or set `C15T_BACKEND_URL` in the server
-environment.
+**Fix.** Pass the Inth URL as `backendURL`.
 
-## The build fails while prerendering a page
+## Consent requests go to the wrong backend
 
-**Check.** The root layout reads `PUBLIC_C15T_BACKEND_URL` while SvelteKit
-prerenders, and throws when it is empty.
+**Check.** Look at the backend URL in `src/routes/+layout.server.ts`, the
+`hosted()` call in `src/routes/+layout.svelte` and any
+`createSvelteKitConsentRouteHandlers` route. One still has the placeholder
+`https://your-project.inth.app`, or a URL from another project.
 
-**Fix.** Set the variable in the build environment, not only where the server
-runs.
+**Fix.** Replace it with your Inth project's backend URL, including any path
+prefix. The server and the browser need the same backend.
 
 ## Your own `:root` token rules are ignored
 

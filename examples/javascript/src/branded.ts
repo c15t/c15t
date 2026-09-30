@@ -1,15 +1,14 @@
 import { init } from '@c15t/browser';
 
 import { scripts } from './scripts';
-
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth endpoint');
-}
+import { testBackend } from './test-backend';
 
 // #region docs:theme title="src/main.ts"
 const consent = init({
-	backendURL,
+	backendURL: 'https://your-project.inth.app',
+	// #hide docs
+	...testBackend('backendURL'),
+	// #endhide docs
 	scripts,
 	ui: {
 		theme: {

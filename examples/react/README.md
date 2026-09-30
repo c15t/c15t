@@ -11,11 +11,9 @@ bun install
 bun run build:libs
 ```
 
-Copy `.env.example` to `.env.local` in this directory. Set
-`VITE_C15T_BACKEND_URL` to your Inth endpoint and allow this app's origin in
-Inth. The URL is public. Set the PostHog project key and X Pixel ID to enable
-the corresponding integration; unset IDs leave those scripts unregistered.
-Then run:
+Replace `https://your-project.inth.app` in `src/consent.tsx` with your Inth
+backend URL and allow this app's origin in Inth. Replace the PostHog project
+key and X Pixel ID placeholders in `src/scripts.ts` with your own. Then run:
 
 ```sh
 bun run --cwd examples/react dev
@@ -29,7 +27,9 @@ executed.
 Reject, reload, reopen preferences and allow measurement only. The video and
 PostHog should load while X Pixel stays blocked. Then allow marketing. Test
 revocation and a failed backend request as well. The shared acceptance suite
-runs these examples with a fixture backend and intercepted vendor requests:
+runs these examples with a fixture backend and intercepted vendor requests.
+It sets `VITE_C15T_BACKEND_URL`, which `src/test-backend.ts` applies over the
+placeholder URL:
 
 ```sh
 EXAMPLE_TARGET=react bun run --cwd examples/shared test

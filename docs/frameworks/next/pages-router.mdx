@@ -33,10 +33,6 @@ site's origin to its trusted origins. Copy the project's backend URL.
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the backend URL from your Inth project, such
-as `https://your-project.inth.app`,
-including any path prefix. The URL is public configuration, not a secret.
-
 ## Share the consent URLs
 
 Create `c15t.config.ts` at the project root, or in `src/` if your app uses a
@@ -45,18 +41,22 @@ resolution; a backend URL alone uses backend `/init`.
 
 <include src="../../shared/examples/nextjs/config.mdx" />
 
+Replace `https://your-project.inth.app` with your project's backend URL,
+including any path prefix.
+
 ## Add the manifest API route
 
 ```ts title="pages/api/c15t/manifest.ts"
 import { createPagesApiHandlers } from 'c15t/next/pages';
 
-export default createPagesApiHandlers().manifest;
+import { consentConfig } from '@/c15t.config';
+
+export default createPagesApiHandlers(consentConfig).manifest;
 ```
 
-The route fetches `/manifest` from the backend in `C15T_BACKEND_URL`, falling
-back to `NEXT_PUBLIC_C15T_BACKEND_URL`. If you set both, point them at the same
-backend. The route caches the public policy and answers methods other than
-`GET` and `HEAD` with `405`. An app that also has an `app/` directory can serve
+The route reads `backendURL` from the config and fetches
+`${backendURL}/manifest`. It caches the public policy and answers methods other
+than `GET` and `HEAD` with `405`. An app that also has an `app/` directory can serve
 the App Router route from the [App Router guide](/docs/frameworks/next/app-router#serve-the-manifest-route)
 instead; the runnable example does that.
 
