@@ -9,6 +9,8 @@
 
 import {
 	buildConsentSessionReport,
+	CONSENT_EXPERIMENT_HEADER,
+	parseExperimentHeader,
 	isSpeculativeRequest,
 } from '@c15t/schema/types';
 import { describeRoute } from 'hono-openapi';
@@ -56,6 +58,11 @@ export const register = function register({
 						options,
 						{
 							...buildConsentSessionReport({
+								// The arm an undecided visitor runs; the client sends it
+								// only while no choice is stored.
+								experiment: parseExperimentHeader(
+									c.req.header(CONSENT_EXPERIMENT_HEADER)
+								),
 								init: body,
 								inputs: signals,
 								manifest,

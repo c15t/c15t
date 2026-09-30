@@ -67,6 +67,7 @@ describe('kernel event mapping', () => {
 			{
 				dismissal: { dismissedAt: 1, fingerprint: 'notice', version: 1 },
 				snapshot,
+				surface: 'banner',
 				type: 'notice:dismissed',
 			},
 			{ snapshot, type: 'overrides:set' },

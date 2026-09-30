@@ -4,6 +4,10 @@ import {
 	c15tProtocolHeaders,
 } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
+import {
+	CONSENT_EXPERIMENT_HEADER,
+	formatExperimentHeader,
+} from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 import { defu } from 'defu';
 import { computed } from 'vue';
@@ -89,6 +93,15 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 			timeoutMs !== undefined && manifestMode === 'server'
 				? { [C15T_TIMEOUT_HEADER]: String(timeoutMs) }
 				: {};
+		// The render's `/init` is the only one this page makes, so it carries
+		// a fixed experiment arm while the visitor has no stored choice.
+		const { experiment } = config.value;
+		if (experiment?.arm !== undefined && !initialRecords.value?.choice) {
+			budgetHeaders[CONSENT_EXPERIMENT_HEADER] = formatExperimentHeader({
+				arm: experiment.arm,
+				id: experiment.id,
+			});
+		}
 		const { data } = await useFetch<InitOutput>(initFetchTarget.url, {
 			baseURL: initFetchTarget.baseURL,
 			cache: manifestMode === 'server' ? undefined : 'no-store',

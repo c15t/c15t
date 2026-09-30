@@ -35,8 +35,10 @@ import type { ManifestFetch } from '@c15t/core/server';
 import { readProducerPolicyContract } from '@c15t/core/transports';
 import {
 	consentInputsToOverrides,
+	CONSENT_EXPERIMENT_HEADER,
 	CONSENT_REQUEST_HEADER_NAMES,
 	extractConsentRequestInputs,
+	formatExperimentHeader,
 	resolveBackendURL,
 } from '@c15t/schema/types';
 import type {
@@ -429,6 +431,12 @@ const prefetchHosted = async function prefetchHosted(input: {
 		}),
 		...configuredInitHeaders(input.configuredHeaders),
 	};
+	// The arm an undecided visitor runs, so the backend's own `/init` counts
+	// them toward it; a visitor who already chose is not shown the banner.
+	const experiment = input.base.initialExperiment;
+	if (experiment && !input.base.initialRecords?.choice) {
+		forwarded[CONSENT_EXPERIMENT_HEADER] = formatExperimentHeader(experiment);
+	}
 	try {
 		const response = await fetchImpl(`${absolute}/init`, {
 			cache: 'no-store',
@@ -509,6 +517,15 @@ const prefetchManifest = async function prefetchManifest(
 			report: {
 				abandoned: input.abandoned,
 				backendURL: resolveSessionReportURL(input.options),
+				// A visitor who already chose is not shown the banner, so is not
+				// counted toward the arm.
+				experiment:
+					input.base.initialExperiment && !input.base.initialRecords?.choice
+						? {
+								arm: input.base.initialExperiment.arm,
+								id: input.base.initialExperiment.id,
+							}
+						: undefined,
 				headers: input.headers,
 				source: 'render',
 				waitUntil: input.onBackgroundRevalidate,

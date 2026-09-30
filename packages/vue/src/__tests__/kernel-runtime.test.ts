@@ -687,6 +687,44 @@ test.each(['opt-in', 'opt-out'] as const)(
 	}
 );
 
+test('the experiment callbacks carry the arm on the impression and the choice', async () => {
+	const { fetchMock } = createFetchMock();
+	const shown = vi.fn();
+	const recorded = vi.fn();
+	const config: RuntimeConsentConfig = {
+		backendURL: 'https://consent.example',
+		callbacks: { onChoiceRecorded: recorded, onSurfaceShown: shown },
+		customFetch: fetchMock as unknown as typeof fetch,
+		experiment: {
+			arms: { bar: { prompt: { variant: 'bar' } } },
+			id: 'banner-shape',
+			split: { bar: 1 },
+		},
+		iframeBlocker: false,
+	};
+	const context = createVueConsentKernelContext({
+		config,
+		prefetch: initFixture,
+	});
+	// start() picks the arm and loads the experiment chunk; the banner is
+	// held until the arm is checked, so the first impression already names it.
+	const stop = startVueConsentRuntime(context, config, { runInit: false });
+	try {
+		await vi.waitFor(() => expect(shown).toHaveBeenCalledOnce());
+		expect(shown.mock.calls[0]?.[0]).toMatchObject({
+			experiment: { arm: 'bar', assignedBy: 'c15t', id: 'banner-shape' },
+			surface: 'banner',
+		});
+		await context.kernel.commands.save('all');
+		expect(recorded.mock.calls[0]?.[0]).toMatchObject({
+			consentAction: 'all',
+			experiment: { arm: 'bar' },
+		});
+	} finally {
+		stop();
+	}
+});
+
 test('runtime clears configured storage when permission is revoked', async () => {
 	const config: RuntimeConsentConfig = {
 		clearOnRevocation: { measurement: { localStorage: ['analytics:visitor'] } },

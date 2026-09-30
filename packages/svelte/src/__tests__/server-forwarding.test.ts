@@ -141,3 +141,30 @@ test.each(['public', 'cookie', 'header', 'custom-fetch'] as const)(
 		}
 	}
 );
+test('Svelte server init carries the arm alone and returns the experiment', async () => {
+	const experiment = {
+		arm: 'invasive',
+		arms: { invasive: { prompt: { variant: 'wall' as const } } },
+		id: 'banner-shape',
+	};
+	const fetch = vi.fn().mockResolvedValue(
+		new Response(
+			JSON.stringify({
+				location: { countryCode: null, regionCode: null },
+				policyResolution: { policy: null, status: 'no-match', version: 1 },
+				translations: { language: 'en', translations: {} },
+			}),
+			{ headers: { 'x-c15t-policy-contract': '1' } }
+		)
+	);
+	const state = await resolveConsent({
+		backendURL: 'https://backend.test',
+		experiment,
+		fetch,
+		headers: new Headers(),
+		now,
+	});
+	const headers = new Headers(fetch.mock.calls[0]?.[1].headers);
+	expect(headers.get('x-c15t-experiment')).toBe('banner-shape=invasive');
+	expect(state.experiment).toEqual(experiment);
+});

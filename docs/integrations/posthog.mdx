@@ -143,3 +143,10 @@ and confirm later application calls stop. Repeat with persisted consent and
 client navigation. If you choose cookieless capture, verify that behavior
 explicitly in the project rather than expecting silence after denial. See
 [consent verification](/docs/guides/verify-consent).
+
+## Measure opt-in rate
+
+Running a banner experiment? The backend already counts visitors and choices
+per arm. To see the arm in PostHog as well, forward the `onSurfaceShown` and
+`onChoiceRecorded` callbacks, which carry `experiment: { id, arm }`. See
+[banner experiments](/docs/guides/banner-experiments#send-the-events-to-your-own-analytics-too).

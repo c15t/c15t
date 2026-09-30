@@ -12,7 +12,11 @@ import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import type { StorageConfig } from '../libs/cookie';
-import type { ConsentExperiment, ExperimentArmTheme } from '../libs/experiment';
+import type {
+	ConsentExperiment,
+	ExperimentArmTheme,
+	ExperimentState,
+} from '../libs/experiment';
 import type { ConsentPresentation } from '../libs/policy-actions';
 import type { ClearOnRevocationConfig } from '../modules/clear-on-revocation';
 import type { IframeBlockerOptions } from '../modules/iframe-blocker';
@@ -215,8 +219,12 @@ export interface ConsentRuntimeOptions {
 	user?: User | KernelUser;
 	/** Decision inputs (country, region, language, GPC) forced by the host. */
 	overrides?: KernelOverrides;
-	/** Server-prefetched kernel configuration, for SSR without a flash. */
-	prefetch?: Omit<KernelConfig, 'transport' | 'initialDraft'>;
+	/**
+	 * Server-prefetched kernel configuration, for SSR without a flash. An
+	 * `experiment` the server resolved runs instead of the `experiment`
+	 * option.
+	 */
+	prefetch?: Omit<KernelConfig, 'transport' | 'initialDraft'> & ExperimentState;
 	/** Host presentation, separate from policy semantics. */
 	presentation?: ConsentPresentation;
 	/**

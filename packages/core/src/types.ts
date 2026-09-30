@@ -505,6 +505,13 @@ export interface KernelConfig {
 export interface InitContext {
 	overrides: Readonly<KernelOverrides>;
 	user: Readonly<KernelUser> | null;
+	/**
+	 * The banner-experiment arm the visitor runs, set only while they have
+	 * no stored choice. Transports send it with the request (`x-c15t-experiment`)
+	 * or put it on the session report, so the backend can count the visitors
+	 * each arm's banner was owed to.
+	 */
+	experiment?: { id: string; arm: string };
 }
 
 /**
@@ -645,6 +652,10 @@ export type KernelEvent =
 			/** Categories whose receipt this action replaced. */
 			confirmed: readonly OptionalConsentCategory[];
 			actionAt: number;
+			/** Surface the action is attributed to. */
+			uiSource: SaveUISource;
+			/** Whether the action accepted all, only necessary, or a custom selection. */
+			consentAction: SavePayload['consentAction'];
 			/** Milliseconds from the surface's first impression to this action, when known. */
 			timeToDecisionMs?: number;
 			/** The experiment arm the visitor ran, when an experiment is assigned. */
@@ -671,6 +682,19 @@ export type KernelEvent =
 			type: 'notice:dismissed';
 			snapshot: ConsentSnapshot;
 			dismissal: NoticeDismissal;
+			/**
+			 * Surface the notice was dismissed from: the snapshot's `activeUI`,
+			 * so `none` for a programmatic dismissal with no prompt open.
+			 */
+			surface: SaveUISource;
+			/**
+			 * Milliseconds from the surface's first impression to the dismissal.
+			 * Omitted when no prompt surface was open, the surface was never
+			 * shown, or the clock moved backwards.
+			 */
+			timeToDecisionMs?: number;
+			/** Experiment arm active at the dismissal. */
+			experiment?: ExperimentAssignment;
 	  }
 	| { type: 'overrides:set'; snapshot: ConsentSnapshot }
 	| { type: 'user:identified'; snapshot: ConsentSnapshot }

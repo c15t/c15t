@@ -4,11 +4,13 @@ import {
 	ConsentDialogLink,
 	ConsentGate,
 	useConsent,
+	useExperiment,
 	usePersistence,
 } from 'c15t/next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import type { ExperimentLogEntry } from '../lib/experiment';
 import { posthogConfigured, xPixelConfigured } from '../lib/scripts';
 import type { BannerDesign } from './consent';
 
@@ -38,18 +40,58 @@ const IntegrationStatus = ({
 	);
 };
 
+/** The assigned arm and the experiment events logged so far. */
+const ExperimentReadout = ({
+	events,
+}: {
+	events: readonly ExperimentLogEntry[];
+}) => {
+	const assignment = useExperiment();
+	return (
+		<div
+			className="experiment-readout"
+			data-testid="experiment"
+		>
+			<p>
+				Experiment arm:{' '}
+				<code data-testid="experiment-arm">
+					{assignment
+						? `${assignment.id} · ${assignment.arm} · ${assignment.assignedBy}`
+						: 'assigning…'}
+				</code>
+			</p>
+			<ul>
+				{events.map((event, index) => (
+					<li
+						// oxlint-disable-next-line react/no-array-index-key -- append-only log
+						key={index}
+					>
+						<code>{event.name}</code> · {event.arm} · {event.detail}
+					</li>
+				))}
+			</ul>
+			<p className="caption">
+				The same events are pushed to <code>window.dataLayer</code>.
+			</p>
+		</div>
+	);
+};
+
 export const Demo = ({
 	children,
 	design,
 	onDesignChange,
 	showTrigger,
 	onTriggerChange,
+	experimentEvents,
 }: {
 	children: ReactNode;
 	design: BannerDesign;
 	onDesignChange: (design: BannerDesign) => void;
 	showTrigger: boolean;
 	onTriggerChange: (visible: boolean) => void;
+	/** Logged experiment events, or `null` when no experiment runs. */
+	experimentEvents: readonly ExperimentLogEntry[] | null;
 }) => {
 	const measurementAllowed = useConsent('measurement');
 	const marketingAllowed = useConsent('marketing');
@@ -123,6 +165,17 @@ export const Demo = ({
 							Reset demo
 						</button>
 					</div>
+					<nav
+						className="experiment-links"
+						aria-label="Banner experiment"
+					>
+						<a href="/app-router">Default</a>
+						<a href="/app-router?experiment=1">Experiment</a>
+						<a href="/app-router?experiment=1&arm=wall">
+							Experiment (wall arm)
+						</a>
+					</nav>
+					{experimentEvents && <ExperimentReadout events={experimentEvents} />}
 					<label className="trigger-option">
 						<input
 							type="checkbox"

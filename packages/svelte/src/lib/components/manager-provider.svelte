@@ -10,6 +10,7 @@
 		applyExperimentAssignment,
 		applyExperimentTheme,
 		deniedVendorIds,
+		hostExperiment,
 		vendorRenders,
 	} from '@c15t/core';
 	import {
@@ -103,9 +104,12 @@
 		);
 	const { kernel } = runtime;
 	// The runtime validated and assigned from the experiment it was created
-	// with, so presentation, theme and draft defaults resolve against that
-	// same definition; a later `options.experiment` is ignored.
-	const experiment = untrack(() => options.experiment);
+	// with (the server's, else `options.experiment`), so presentation, theme
+	// and draft defaults resolve against that same definition; a later
+	// `options.experiment` is ignored.
+	const experiment = untrack(() =>
+		hostExperiment(options.experiment, options.prefetch)
+	);
 
 	let snapshot = $state<ConsentSnapshot>(kernel.getSnapshot());
 	let draftScope = $state<string | null>(null);

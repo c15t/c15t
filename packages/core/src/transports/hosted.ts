@@ -229,6 +229,7 @@ export const createHostedTransport = function createHostedTransport(
 		const request = createHostedInitRequest({
 			backendURL: base,
 			credentials,
+			experiment: ctx.experiment,
 			headers: initHeaders,
 			initURL,
 			overrides: ctx.overrides,

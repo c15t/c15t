@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { dev } from '$app/environment';
+	import { page } from '$app/state';
 	import { env } from '$env/dynamic/public';
 	import { createExampleScripts } from '$lib/example-scripts';
+	import ExperimentReadout from '$lib/experiment-readout.svelte';
+	import {
+		experimentCallbacks,
+		experimentFromSearch,
+	} from '$lib/experiment.svelte';
 	import {
 		ConsentManagerProvider,
 		ConsentBanner,
@@ -20,6 +26,10 @@
 		env.PUBLIC_X_PIXEL_ID
 	);
 	const devTools = dev ? import('@c15t/svelte/devtools') : null;
+	// `?experiment=1` runs the banner-shape experiment; `&arm=wall` sets
+	// the arm. Read once: the provider takes its experiment at mount, so the
+	// links below reload the document instead of a client-side navigation.
+	const experiment = experimentFromSearch(page.url.searchParams);
 	const setTheme = (theme: string) => {
 		document.documentElement.dataset.consentExampleTheme = theme;
 	};
@@ -31,6 +41,8 @@
 </script>
 
 <ConsentManagerProvider
+	callbacks={experiment ? experimentCallbacks : undefined}
+	{experiment}
 	{mode}
 	{scripts}
 >
@@ -48,6 +60,21 @@
 			type="button"
 			onclick={() => setTheme('branded')}>Branded theme</button
 		>
+		<nav aria-label="Banner experiment">
+			<a
+				data-sveltekit-reload
+				href="/consent-example">Default</a
+			>
+			<a
+				data-sveltekit-reload
+				href="/consent-example?experiment=1">Experiment</a
+			>
+			<a
+				data-sveltekit-reload
+				href="/consent-example?experiment=1&arm=wall">Experiment (wall arm)</a
+			>
+		</nav>
+		{#if experiment}<ExperimentReadout />{/if}
 		<h2>Watch the video</h2>
 		<p>Allow measurement in privacy settings to load the video.</p>
 		<ConsentGate category="measurement"

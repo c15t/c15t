@@ -11,6 +11,7 @@ import {
 	declareOwnedVendors,
 	forgetOwnedVendors,
 	resolveVendors,
+	hostExperiment,
 	seedExperiment,
 	startExperiment,
 } from '@c15t/core';
@@ -18,6 +19,7 @@ import type {
 	AllConsentNames,
 	ClearOnRevocationConfig,
 	ConsentExperiment,
+	ExperimentState,
 	ConsentPresentation,
 	Callbacks,
 	StartExperimentOptions,
@@ -97,11 +99,16 @@ export type ConsentProviderCallbacks = Pick<
 	| 'onError'
 	| 'onBeforeConsentRevocationReload'
 >;
-/** Prepared policy and records; legacy consent projections are not provider inputs. */
+/**
+ * Prepared policy and records; legacy consent projections are not provider
+ * inputs. An `experiment` a server helper resolved runs instead of
+ * `options.experiment`.
+ */
 export type ConsentProviderPrefetch = Omit<
 	KernelConfig,
 	'initialDraft' | 'transport'
->;
+> &
+	ExperimentState;
 
 export interface ConsentProviderOptions
 	extends
@@ -399,6 +406,32 @@ const resolveSyncPrefetch = function resolveSyncPrefetch(
 	return prefetch;
 };
 
+/**
+ * The experiment this provider runs: the one a server helper resolved into
+ * a ready `prefetch`, otherwise `options.experiment`. A streamed `prefetch`
+ * arrives after mount, too late to choose the experiment.
+ */
+const providerExperiment = function providerExperiment(
+	options: ConsentProviderOptions
+): ConsentExperiment | undefined {
+	const { prefetch } = options;
+	return hostExperiment(
+		options.experiment,
+		isPromiseLike(prefetch) ? undefined : prefetch
+	);
+};
+
+const warnStreamedExperiment = function warnStreamedExperiment() {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (nodeEnv === 'production') {
+		return;
+	}
+	console.warn(
+		'c15t ConsentProvider: the streamed consent state carries an experiment, but the provider mounted before it arrived and runs none. Await resolveConsent(), or also pass `experiment` to the provider options.'
+	);
+};
+
 const hasKeys = function hasKeys(
 	value: KernelOverrides | undefined
 ): value is KernelOverrides {
@@ -452,18 +485,22 @@ const applyBaselinePrefetch = function applyBaselinePrefetch(
  * the synchronous prefetch merge.
  */
 const createPrefetchSource = function createPrefetchSource(
-	prefetch: Promise<KernelConfig>,
+	prefetch: Promise<ConsentProviderPrefetch>,
 	providerOverrides: KernelOverrides | undefined,
-	getKernel: () => ConsentKernel | null
+	getKernel: () => ConsentKernel | null,
+	runsExperiment: boolean
 ): FirstInitSource {
 	return async (ctx) => {
 		const recordsGeneration = getKernel()?.getRecordsGeneration();
-		let config: KernelConfig;
+		let config: ConsentProviderPrefetch;
 		try {
 			config = (await prefetch) ?? {};
 		} catch (error) {
 			warnPrefetchRejected(error);
 			return {};
+		}
+		if (config.experiment && !runsExperiment) {
+			warnStreamedExperiment();
 		}
 
 		const response = kernelConfigToInitResponse(config);
@@ -514,7 +551,8 @@ const withPrefetchPromise = function withPrefetchPromise(
 		createPrefetchSource(
 			Promise.resolve(prefetch),
 			options.overrides,
-			getKernel
+			getKernel,
+			options.experiment !== undefined
 		)
 	);
 };
@@ -612,7 +650,7 @@ const createProviderKernel = function createProviderKernel(
 	// Built-in assignment holds the prompt until the browser picked the arm.
 	const experimentSeed = enabled
 		? seedExperiment(
-				options.experiment,
+				providerExperiment(options),
 				prefetch.initialExperiment,
 				!!prefetch.initialPolicyResolution && !prefetch.initialPolicyPending
 			)
@@ -758,7 +796,7 @@ const serializeInitialOnlyOptions = function serializeInitialOnlyOptions(
 	options: ConsentProviderOptions
 ): string {
 	return JSON.stringify({
-		experiment: options.experiment,
+		experiment: providerExperiment(options),
 		i18n: options.i18n,
 		mode: options.mode?.kind,
 	});
@@ -1302,7 +1340,7 @@ const createOwnedProviderRuntime = function createOwnedProviderRuntime(
 		disabledKernel: props.runtime
 			? undefined
 			: createProviderKernel({ ...options, enabled: false }),
-		experiment: options.experiment,
+		experiment: providerExperiment(options),
 		experimentOptions: {
 			presentation: options.presentation,
 			storageConfig: options.storageConfig,

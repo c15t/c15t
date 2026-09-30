@@ -8,6 +8,10 @@
 	import { DevTools } from '@c15t/svelte/devtools';
 
 	import '@c15t/svelte/styles.css';
+	import {
+		experimentCallbacks,
+		experimentFromSearch,
+	} from './experiment.svelte';
 	import Gallery from './Gallery.svelte';
 	import { scripts } from './scripts';
 
@@ -28,12 +32,18 @@
 				radius: { lg: '18px' },
 			}
 		: undefined;
+	// `?experiment=1` runs the banner-shape experiment; `&arm=wall` sets
+	// the arm. Without the param the provider gets no `experiment` option.
+	const experiment = experimentFromSearch(location.search);
 </script>
 
 <ConsentManagerProvider
+	callbacks={experiment ? experimentCallbacks : undefined}
+	{experiment}
 	{mode}
 	{scripts}
 	{theme}
 >
-	<Gallery /><ConsentBanner /><ConsentDialog /><DevTools />
+	<Gallery experimentConfigured={Boolean(experiment)} /><ConsentBanner
+	/><ConsentDialog /><DevTools />
 </ConsentManagerProvider>

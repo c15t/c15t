@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { ConsentExperiment } from '../../libs/experiment';
 import { EXPERIMENT_STORAGE_KEY } from '../../libs/storage-keys';
+import { clearStoredConsentRecords } from '../../modules/persistence/record-storage';
 import { custom } from '../../transports/mode';
 import { createOfflineTransport } from '../../transports/offline';
 import type { KernelEvent, KernelTransport, SavePayload } from '../../types';
@@ -29,7 +30,9 @@ const experiment: ConsentExperiment = {
 	id: 'banner-shape',
 };
 
-const createTransport = function createTransport(): KernelTransport {
+const createTransport = function createTransport(): Required<
+	Pick<KernelTransport, 'init' | 'save'>
+> {
 	const offline = createOfflineTransport({ policyRules });
 	return {
 		init: vi.fn((context) => offline.init(context)),
@@ -50,6 +53,7 @@ const createRuntime = function createRuntime(
 
 beforeEach(() => {
 	localStorage.clear();
+	clearStoredConsentRecords();
 	// A save in an earlier test leaves a consent cookie, which would make the
 	// next runtime a returning visitor with no banner.
 	for (const cookie of document.cookie.split(';')) {
@@ -204,6 +208,64 @@ describe('runtime experiments', () => {
 			arm: 'bar',
 			assignedBy: 'host',
 			id: 'banner-shape',
+		});
+		runtime.dispose();
+	});
+
+	test('/init carries the arm while the visitor has no stored choice', async () => {
+		const first = createRuntime({ arm: 'bar' });
+		first.runtime.start();
+		await vi.waitFor(() => expect(first.transport.init).toHaveBeenCalled());
+		expect(vi.mocked(first.transport.init).mock.calls[0]?.[0]).toMatchObject({
+			experiment: { arm: 'bar', id: 'banner-shape' },
+		});
+		await vi.waitFor(() =>
+			expect(first.runtime.kernel.getSnapshot().activeUI).toBe('banner')
+		);
+		await first.runtime.kernel.commands.save('all');
+		first.runtime.dispose();
+
+		// The choice is stored: this visitor is not shown the banner, so the
+		// next page's `/init` does not count them toward the arm.
+		const second = createRuntime({ arm: 'bar' });
+		second.runtime.start();
+		await vi.waitFor(() => expect(second.transport.init).toHaveBeenCalled());
+		expect(
+			vi.mocked(second.transport.init).mock.calls[0]?.[0]
+		).not.toHaveProperty('experiment');
+		second.runtime.dispose();
+	});
+
+	test('a c15t-picked arm is on /init too', async () => {
+		const { runtime, transport } = createRuntime({
+			split: { bar: 1, control: 0, floating: 0 },
+		});
+		runtime.start();
+		await vi.waitFor(() => expect(transport.init).toHaveBeenCalled());
+		expect(vi.mocked(transport.init).mock.calls[0]?.[0]).toMatchObject({
+			experiment: { arm: 'bar', id: 'banner-shape' },
+		});
+		runtime.dispose();
+	});
+
+	test('callbacks carry the arm for any analytics tool', async () => {
+		const shown = vi.fn();
+		const recorded = vi.fn();
+		const runtime = createConsentRuntime({
+			callbacks: { onChoiceRecorded: recorded, onSurfaceShown: shown },
+			experiment: { ...experiment, arm: 'bar' },
+			mode: custom(createTransport()),
+		});
+		runtime.start();
+		await vi.waitFor(() => expect(shown).toHaveBeenCalledOnce());
+		expect(shown.mock.calls[0]?.[0]).toMatchObject({
+			experiment: { arm: 'bar', id: 'banner-shape' },
+			surface: 'banner',
+		});
+		await runtime.kernel.commands.save('all');
+		expect(recorded.mock.calls[0]?.[0]).toMatchObject({
+			consentAction: 'all',
+			experiment: { arm: 'bar' },
 		});
 		runtime.dispose();
 	});

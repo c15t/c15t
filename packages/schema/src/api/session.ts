@@ -47,6 +47,17 @@ export const consentSessionReportSchema = v.object({
 	/** Package that resolved init, for example `@c15t/nextjs`. */
 	adapter: v.optional(v.string()),
 	country: v.nullable(v.string()),
+	/**
+	 * The banner-experiment arm the visitor runs. Present only while the
+	 * visitor has no stored choice, so a session carrying it is one where
+	 * the banner was owed under that arm: the denominator of an opt-in rate.
+	 */
+	experiment: v.optional(
+		v.object({
+			arm: v.pipe(v.string(), v.minLength(1), v.maxLength(128)),
+			id: v.pipe(v.string(), v.minLength(1), v.maxLength(128)),
+		})
+	),
 	gpc: v.boolean(),
 	jurisdiction: jurisdictionCodeSchema,
 	/** The language the resolution served, not the raw `Accept-Language`. */

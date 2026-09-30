@@ -53,3 +53,10 @@ non-Google tags. Use Google Tag Assistant alongside the browser Network panel.
 
 If the requirement is no Google request before permission, do not deploy this
 always-loaded helper unchanged. Choose and verify an explicitly gated setup.
+
+## Measure opt-in rate
+
+Running a banner experiment? The backend already counts visitors and choices
+per arm. To see the arm in GTM as well, forward the `onSurfaceShown` and
+`onChoiceRecorded` callbacks, which carry `experiment: { id, arm }`. See
+[banner experiments](/docs/guides/banner-experiments#send-the-events-to-your-own-analytics-too).

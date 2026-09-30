@@ -21,8 +21,12 @@ export {
 export {
 	type BuildConsentSessionReportOptions,
 	buildConsentSessionReport,
+	CONSENT_EXPERIMENT_HEADER,
 	CONSENT_SESSION_CLIENT_IP_HEADER,
+	formatExperimentHeader,
 	isSpeculativeRequest,
+	parseExperimentHeader,
+	type SessionExperiment,
 	type SessionReportInputs,
 } from './session-report';
 // Export constants separately for runtime-safe usage

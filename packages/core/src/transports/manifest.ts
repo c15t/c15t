@@ -456,6 +456,7 @@ export const createManifestTransport = function createManifestTransport(
 					// manifest URL that is not `<backend>/manifest`, the derived
 					// value is the manifest asset itself.
 					backendURL: options.report.backendURL ?? options.backendURL,
+					experiment: ctx.experiment,
 					fetch: fetchImpl,
 					headers: options.report.headers ?? options.headers,
 					init: payload,

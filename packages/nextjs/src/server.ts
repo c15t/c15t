@@ -1,10 +1,11 @@
 import {
 	deferInitGvl,
+	experimentArmRef,
 	mergeInitResponseIntoKernelConfig,
 	c15tProtocolHeaders,
 	mapInitOutputToInitResponse,
 } from '@c15t/core';
-import type { KernelOverrides } from '@c15t/core';
+import type { KernelOverrides, ServerExperiment } from '@c15t/core';
 /**
  * `@c15t/nextjs/server` server-only helpers.
  *
@@ -28,7 +29,11 @@ import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistenc
 import { readProducerPolicyContract } from '@c15t/core/transports';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import type { InitOutput } from '@c15t/schema/types';
-import { resolveBackendURL } from '@c15t/schema/types';
+import {
+	CONSENT_EXPERIMENT_HEADER,
+	formatExperimentHeader,
+	resolveBackendURL,
+} from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
 import type { ConsentConfig } from './config';
@@ -274,6 +279,20 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * @default true
 	 */
 	reportSessions?: boolean;
+	/**
+	 * The banner experiment with the arm this request runs, from your
+	 * feature flag. While the visitor has no stored choice, the server's
+	 * `/init` carries the arm, or its session report does in manifest mode,
+	 * so the backend counts the visitors each arm's banner was owed to. The
+	 * returned state carries the experiment to `ConsentRoot`, so the client
+	 * needs no `experiment` option of its own.
+	 *
+	 * @example
+	 * ```ts
+	 * resolveConsent({ config, experiment: { ...bannerShape, arm } });
+	 * ```
+	 */
+	experiment?: ServerExperiment;
 
 	/**
 	 * Receives work that outlives the render (the session report, a manifest
@@ -438,6 +457,28 @@ const fetchHostedInit = async function fetchHostedInit(input: {
 	);
 };
 
+/**
+ * The request's experiment arm while the visitor has no stored choice: a
+ * visitor who already chose is not shown the banner, so is not counted.
+ */
+const undecidedExperiment = function undecidedExperiment(
+	options: ResolveConsentOptions,
+	base: ConsentState
+): { id: string; arm: string } | undefined {
+	return options.experiment && !base.initialRecords?.choice
+		? experimentArmRef(options.experiment)
+		: undefined;
+};
+
+/** The `/init` header for an arm, or none. */
+const experimentHeaders = function experimentHeaders(
+	experiment: { id: string; arm: string } | undefined
+): Record<string, string> {
+	return experiment
+		? { [CONSENT_EXPERIMENT_HEADER]: formatExperimentHeader(experiment) }
+		: {};
+};
+
 const resolveInitWithManifest = function resolveInitWithManifest(input: {
 	absoluteBackend: string;
 	base: ConsentState;
@@ -471,7 +512,9 @@ const resolveInitWithManifest = function resolveInitWithManifest(input: {
 						waitUntil: options.waitUntil,
 					},
 	});
+	const experiment = undecidedExperiment(options, base);
 	return transport.init({
+		...(experiment && { experiment }),
 		overrides: {
 			...(base.initialOverrides ?? {}),
 			...consentInputsToOverrides({ ...manifestInputs, gpc: undefined }),
@@ -532,41 +575,9 @@ const resolveFromManifest = async function resolveFromManifest(input: {
 	}
 };
 
-/**
- * Resolve the visitor's consent state for the current request.
- *
- * 1. Reads the consent cookie, geo headers, language, and GPC from the
- *    request.
- * 2. With a backend URL (`backendURL` or `config.backendURL`), calls
- *    `${backendURL}/init` server-side with the request context, or resolves
- *    init from the cached manifest when `manifest` or `manifestURL` is set.
- * 3. Folds the response into a `ConsentState` so first paint is correct
- *    without waiting for a client roundtrip.
- *
- * Without a backend URL, step 2 is skipped and the request-only state is
- * returned with no network call. If the backend call fails, or does not
- * answer within `timeoutMs` (500 ms by default), the request-only state is
- * returned too: no consent UI is rendered on the server, optional categories
- * stay denied, and `ConsentRoot` resolves the policy on mount. The failure
- * reaches `onError` when provided, and is otherwise logged outside
- * production.
- *
- * Each call reads fresh headers and never caches across requests, so
- * concurrent requests stay isolated.
- *
- * @param options - Backend URL or a `defineConsentConfig` result, the
- * manifest source, fetch overrides, and how to read the request
- * @returns The visitor's JSON-serializable state for `ConsentRoot`
- * @example
- * ```ts
- * import { resolveConsent } from '@c15t/nextjs/server';
- * import { consentConfig } from '@/consent.config';
- *
- * const state = await resolveConsent({ config: consentConfig });
- * ```
- */
-export const resolveConsent = async function resolveConsent(
-	options: ResolveConsentOptions = {}
+/** {@link resolveConsent} without the experiment it carries back. */
+const resolveConsentState = async function resolveConsentState(
+	options: ResolveConsentOptions
 ): Promise<ConsentState> {
 	const request = options.request ?? defaultNextRequestContext;
 	const requestHeaders = await request.headers();
@@ -635,6 +646,7 @@ export const resolveConsent = async function resolveConsent(
 				headers: {
 					...forward,
 					...createInitHeadersFromOverrides(base.initialOverrides ?? {}),
+					...experimentHeaders(undecidedExperiment(options, base)),
 					'sec-gpc': base.initialPrivacySignals?.gpc ? '1' : '0',
 				},
 				timeoutMs,
@@ -646,4 +658,48 @@ export const resolveConsent = async function resolveConsent(
 		reportPrefetchError(options, `${absoluteBackend}/init`, error);
 		return base;
 	}
+};
+
+/**
+ * Resolve the visitor's consent state for the current request.
+ *
+ * 1. Reads the consent cookie, geo headers, language, and GPC from the
+ *    request.
+ * 2. With a backend URL (`backendURL` or `config.backendURL`), calls
+ *    `${backendURL}/init` server-side with the request context, or resolves
+ *    init from the cached manifest when `manifest` or `manifestURL` is set.
+ * 3. Folds the response into a `ConsentState` so first paint is correct
+ *    without waiting for a client roundtrip.
+ *
+ * Without a backend URL, step 2 is skipped and the request-only state is
+ * returned with no network call. If the backend call fails, or does not
+ * answer within `timeoutMs` (500 ms by default), the request-only state is
+ * returned too: no consent UI is rendered on the server, optional categories
+ * stay denied, and `ConsentRoot` resolves the policy on mount. The failure
+ * reaches `onError` when provided, and is otherwise logged outside
+ * production.
+ *
+ * Each call reads fresh headers and never caches across requests, so
+ * concurrent requests stay isolated.
+ *
+ * @param options - Backend URL or a `defineConsentConfig` result, the
+ * manifest source, fetch overrides, and how to read the request
+ * @returns The visitor's JSON-serializable state for `ConsentRoot`
+ * @example
+ * ```ts
+ * import { resolveConsent } from '@c15t/nextjs/server';
+ * import { consentConfig } from '@/consent.config';
+ *
+ * const state = await resolveConsent({ config: consentConfig });
+ * ```
+ */
+export const resolveConsent = async function resolveConsent(
+	options: ResolveConsentOptions = {}
+): Promise<ConsentState> {
+	const state = await resolveConsentState(options);
+	// Every path carries the experiment, so the client runs the arm this
+	// request counted even when the backend call failed.
+	return options.experiment
+		? { ...state, experiment: options.experiment }
+		: state;
 };

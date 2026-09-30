@@ -205,6 +205,59 @@ describe('resolveConsent: backend call', () => {
 		});
 	});
 
+	describe('experiment', () => {
+		const wallExperiment = {
+			arm: 'invasive',
+			arms: { invasive: { prompt: { variant: 'wall' as const } } },
+			id: 'banner-shape',
+		};
+		const initFetch = () =>
+			vi
+				.fn()
+				.mockResolvedValue(
+					new Response(JSON.stringify(createInitOutput()), { status: 200 })
+				);
+		const sentArm = (fetchSpy: ReturnType<typeof initFetch>) => {
+			const init = fetchSpy.mock.calls[0]?.[1] as RequestInit | undefined;
+			return (init?.headers as Record<string, string> | undefined)?.[
+				'x-c15t-experiment'
+			];
+		};
+
+		test('/init carries the arm alone and the state carries the experiment', async () => {
+			const fetchSpy = initFetch();
+			const state = await resolveConsent({
+				backendURL: 'https://consent.example.com',
+				experiment: wallExperiment,
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			});
+			expect(sentArm(fetchSpy)).toBe('banner-shape=invasive');
+			expect(state.experiment).toEqual(wallExperiment);
+		});
+
+		test('a visitor who already chose is not counted but keeps the arm', async () => {
+			headerStore.set('cookie', 'c15t=c.necessary:1,c.marketing:1,i.t:1');
+			const fetchSpy = initFetch();
+			const state = await resolveConsent({
+				backendURL: 'https://consent.example.com',
+				experiment: wallExperiment,
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			});
+			expect(sentArm(fetchSpy)).toBeUndefined();
+			expect(state.experiment).toEqual(wallExperiment);
+		});
+
+		test('a failed backend call still returns the experiment', async () => {
+			const state = await resolveConsent({
+				backendURL: 'https://consent.example.com',
+				experiment: wallExperiment,
+				fetch: vi.fn().mockRejectedValue(new Error('network down')),
+				onError: () => undefined,
+			});
+			expect(state.experiment).toEqual(wallExperiment);
+		});
+	});
+
 	test('absolute backendURL bypasses host resolution', async () => {
 		const fetchSpy = vi
 			.fn()

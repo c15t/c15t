@@ -1,4 +1,8 @@
-import { EXPERIMENT_STORAGE_KEY, custom } from '@c15t/core';
+import {
+	createOfflineTransport,
+	custom,
+	EXPERIMENT_STORAGE_KEY,
+} from '@c15t/core';
 import type { ExperimentArmTheme, SavePayload } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import { resolvePolicyRules } from '@c15t/schema/types';
@@ -166,6 +170,85 @@ test('useExperiment() reports the host arm and the banner renders it', async () 
 	}
 });
 
+test('a server-resolved experiment in the state runs without a client option', async () => {
+	const mounted = mount(
+		{
+			prefetch: {
+				experiment: { ...experiment, arm: 'bar' },
+				initialPolicyResolution: resolution,
+			},
+		},
+		<>
+			<Probe />
+			<ConsentBanner />
+		</>
+	);
+	try {
+		await vi.waitFor(() =>
+			expect(mounted.read()).toEqual({
+				acknowledgedDiagnostics: false,
+				arm: 'bar',
+				assignedBy: 'host',
+				id: 'banner-shape',
+			})
+		);
+		await vi.waitFor(() =>
+			expect(document.querySelector('[data-variant="bar"]')).not.toBeNull()
+		);
+	} finally {
+		mounted.unmount();
+	}
+});
+
+test('the server-resolved arm wins over a client built-in split', () => {
+	const html = renderToString(
+		<ConsentProvider
+			options={{
+				enabled: true,
+				experiment,
+				mode: Object.assign(() => ({ save: vi.fn() }), {
+					kind: 'custom' as const,
+				}),
+				persistence: false,
+				prefetch: {
+					experiment: { ...experiment, arm: 'floating' },
+					initialPolicyResolution: resolution,
+				},
+			}}
+		>
+			<PresentationProbe />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	// Known on the server, so the banner renders the arm straight away.
+	expect(html).toContain('consent-banner-root');
+	expect(html).toContain('data-variant="floating"');
+});
+
+test('a streamed state with an experiment warns when the client has none', async () => {
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+	const mounted = mount(
+		{
+			prefetch: Promise.resolve({
+				experiment: { ...experiment, arm: 'bar' },
+				initialPolicyResolution: resolution,
+			}),
+		},
+		<Probe />
+	);
+	try {
+		await vi.waitFor(() =>
+			expect(warn).toHaveBeenCalledWith(
+				expect.stringContaining('streamed consent state carries an experiment')
+			)
+		);
+		expect(mounted.read()).toBeNull();
+	} finally {
+		mounted.unmount();
+		warn.mockRestore();
+	}
+});
+
 test('built-in assignment lands after mount and is stored for the next visit', async () => {
 	const mounted = mount({ experiment }, <Probe />);
 	try {
@@ -180,6 +263,60 @@ test('built-in assignment lands after mount and is stored for the next visit', a
 		expect(
 			JSON.parse(localStorage.getItem(EXPERIMENT_STORAGE_KEY) ?? 'null')
 		).toEqual({ arm, id: 'banner-shape' });
+	} finally {
+		mounted.unmount();
+	}
+});
+
+test('the arm goes out on /init and on the callbacks', async () => {
+	// Impressions are stamped once init marks the kernel live, so this
+	// transport answers init instead of relying on a prepared prefetch.
+	const offline = createOfflineTransport({
+		policyRules: [
+			{
+				categories: ['marketing', 'measurement'],
+				id: 'react-experiment',
+				match: { isDefault: true },
+				model: 'opt-in',
+				prompt: 'choice',
+				scopeMode: 'permissive',
+			},
+		],
+	});
+	const init = vi.fn(offline.init);
+	const save = vi.fn().mockResolvedValue({ ok: true });
+	const shown = vi.fn();
+	const recorded = vi.fn();
+	const mounted = mount(
+		{
+			callbacks: { onChoiceRecorded: recorded, onSurfaceShown: shown },
+			experiment: { ...experiment, arm: 'bar' },
+			mode: Object.assign(() => ({ init, save }), {
+				kind: 'custom' as const,
+			}),
+			prefetch: undefined,
+		},
+		<ConsentBanner />
+	);
+	try {
+		await vi.waitFor(() => expect(shown).toHaveBeenCalledOnce());
+		expect(init.mock.calls[0]?.[0]).toMatchObject({
+			experiment: { arm: 'bar', id: 'banner-shape' },
+		});
+		expect(shown.mock.calls[0]?.[0]).toMatchObject({
+			experiment: { arm: 'bar', assignedBy: 'host' },
+			surface: 'banner',
+		});
+		document
+			.querySelector<HTMLButtonElement>(
+				'[data-testid="consent-banner-accept-button"]'
+			)
+			?.click();
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		expect(recorded.mock.calls[0]?.[0]).toMatchObject({
+			consentAction: 'all',
+			experiment: { arm: 'bar' },
+		});
 	} finally {
 		mounted.unmount();
 	}
