@@ -261,7 +261,13 @@ export const resolveOptions = function resolveOptions(
 	} = options;
 	return {
 		...rest,
-		colorScheme: options.colorScheme ?? 'system',
+		// `null` is the other adapters' spelling of `'none'`. The default is
+		// `'system'`, not React's `.dark` mirroring: the banner is server
+		// HTML painted before any site script runs, and an Astro site has no
+		// shared `.dark` convention to mirror, so following the OS is the
+		// only scheme the pre-paint script can get right.
+		colorScheme:
+			options.colorScheme === null ? 'none' : (options.colorScheme ?? 'system'),
 		endpoints: resolveEndpoints(options),
 		middleware: resolveMiddleware(options),
 		mode,

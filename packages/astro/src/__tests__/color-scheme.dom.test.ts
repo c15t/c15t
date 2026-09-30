@@ -188,6 +188,16 @@ describe("colorScheme: 'none'", () => {
 	});
 });
 
+describe('colorScheme: null', () => {
+	it("leaves the site's class alone like 'none'", () => {
+		stubMatchMedia(true);
+		document.documentElement.classList.add('dark');
+		client = boot(resolveOptions({ colorScheme: null, mode: offlineMode() }));
+		expect(isDark()).toBe(false);
+		expect(media.listeners.size).toBe(0);
+	});
+});
+
 describe('opening the React dialog', () => {
 	const openReactDialog = async function openReactDialog(
 		colorScheme: C15tColorScheme

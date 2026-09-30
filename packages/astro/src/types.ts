@@ -239,10 +239,12 @@ export interface C15tAstroOptions {
 	 * `'none'` hands the `c15t-dark` class on `<html>` to the site: c15t
 	 * neither sets nor clears it, on boot, on ClientRouter navigation or when
 	 * a dialog opens. Use it when the site's own theme switch toggles it.
+	 * `null` means the same, as it does in the React, Vue and Svelte
+	 * providers.
 	 *
 	 * @default 'system'
 	 */
-	colorScheme?: C15tColorScheme;
+	colorScheme?: C15tColorScheme | null;
 
 	/**
 	 * Skip the banner's entry animation and the dialogs' enter and exit
