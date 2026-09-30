@@ -39,7 +39,7 @@ keys, including when you register it as `c15t/vue`.
 | Put it in | Options |
 | --- | --- |
 | `nuxt.config.ts` | Plain data: `backendURL`, `manifest`, `manifestURL`, `tokens`, `presentation`, `components`, `legalLinks`, trigger options, network blocker `rules`. |
-| `app/app.config.ts` | Anything with a function: `scripts`, `callbacks`, `consentSource`, `networkBlocker.onRequestBlocked`. |
+| `app/app.config.ts` | Anything with a function: `scripts`, `callbacks`, `networkBlocker.onRequestBlocked`. |
 
 Module options reach the browser as JSON through `runtimeConfig.public`,
 which drops functions. `app.config.ts` is part of the browser bundle, so it
@@ -74,7 +74,6 @@ mode fits which deployment.
 | `domain` | The browser's hostname | The domain the browser sends with each consent save to the backend's `/subjects`. |
 | `reloadOnConsentRevoked` | `true` | Reloads the page when a save withdraws a granted category or vendor. |
 | `clearOnRevocation` | Unset | Deletes first-party cookies and storage keys for a withdrawn category. |
-| `consentSource` | Unset | Hands the decision to an existing consent tool. `app.config.ts` only. See [use c15t with an existing CMP](/docs/integrations/existing-cmp). |
 
 ### Scripts, blocking and events
 

@@ -34,7 +34,6 @@ from `@c15t/svelte` lists every option.
 | `vendors` | `Vendor[]` | none | Vendors offered for vendor-level consent outside IAB. Read once. |
 | `nonce` | `string` | none | Content Security Policy nonce for the `<script>` elements the script loader adds. See [Content Security Policy](../content-security-policy). Read once. |
 | `enabled` | `boolean` | `true` | `false` grants every category, hides all consent UI and skips `/init`. Read once. |
-| `consentSource` | `ExternalConsentSource` | none | Takes permissions from another CMP. c15t then stores nothing and shows no choice UI. Read once. |
 | `runtime` | `ConsentRuntime` | none | A runtime you created with `createConsentRuntime()`. See [share one runtime](#share-one-runtime). |
 | `options` | `ConsentManagerOptions` | none | The same options as one object. |
 | `children` | `Snippet` | none | Your app. The provider renders no markup of its own. |

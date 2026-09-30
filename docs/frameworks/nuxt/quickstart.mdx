@@ -90,8 +90,8 @@ Register the scripts in `app/app.config.ts`:
 
 The module merges the `c15t` key of `app.config.ts` over its options in
 `nuxt.config.ts`, then starts one script loader in the browser after
-hydration. Put options that contain functions, such as `scripts`, `callbacks`
-and `consentSource`, in `app.config.ts`. Module options in `nuxt.config.ts`
+hydration. Put options that contain functions, such as `scripts` and
+`callbacks`, in `app.config.ts`. Module options in `nuxt.config.ts`
 reach the browser as JSON, which drops functions.
 
 `app.config.ts` is part of the browser bundle, so it cannot read

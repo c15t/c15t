@@ -1,6 +1,6 @@
 ---
 title: Client API
-description: Reference for c15t/astro/client on an Astro site, grouped by task, from reading permissions and recorded choices to opening dialogs, saving consent, gated scripts, the page runtime, external consent sources and analytics events.
+description: Reference for c15t/astro/client on an Astro site, grouped by task, from reading permissions and recorded choices to opening dialogs, saving consent, gated scripts, the page runtime and analytics events.
 group: frameworks
 ---
 
@@ -74,8 +74,7 @@ fields you need.
 
 `openDialog()` downloads and mounts the dialog island the first time. While
 the first `/init` answer is outstanding, it waits for it, then opens nothing
-if the policy owes no consent interface. With an external consent source, it
-opens the other platform's preferences.
+if the policy owes no consent interface.
 
 `ConsentDialogTrigger` needs no script. For a control you render yourself,
 call `openDialog()` from its click handler:
@@ -177,35 +176,6 @@ document.addEventListener('astro:page-load', render);
 
 A custom element, like the video component above, reconnects on its own when
 the new page contains it.
-
-## Use an external consent source
-
-An existing consent platform can own decisions, the banner and consent records
-while c15t loads the scripts. Add `consentSource` to the default export of your
-client entrypoint:
-
-```ts title="src/consent-client.ts (partial)"
-export default {
-  scripts,
-  consentSource: {
-    getPermissions: () => provider.currentPermissions(),
-    subscribe: (notify) => provider.subscribe(notify),
-    openPreferences: () => provider.openPreferences(),
-  },
-} satisfies C15tClientOptionsExtension;
-```
-
-`provider` is your own adapter for the other platform, not a c15t export.
-`getPermissions()` returns the complete current decision, and categories it
-leaves out are denied. Call `notify` when the platform initializes, when the
-decision changes, and when consent is withdrawn or expires.
-
-Remove `ConsentBanner` and `ConsentDialog` from your layout. While an external
-source is set, c15t does not store choices or record consent, its save methods
-reject, and `openDialog()` opens the provider's preferences. When the source
-withdraws a category that was granted, c15t reloads the page so code that
-already ran stops. Set `reloadOnConsentRevoked: false` in the integration to
-handle that yourself. See [use c15t with an existing CMP](/docs/integrations/existing-cmp).
 
 ## Send analytics events after consent
 

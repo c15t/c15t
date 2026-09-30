@@ -36,9 +36,7 @@ manage:
   interface.
 
 The browser removes `hidden` as soon as a later `/init` answer supplies a rule
-that owes one, and adds it back if the rule stops owing one. With an
-[external consent source](/docs/frameworks/astro/client-api#use-an-external-consent-source),
-the trigger stays visible and opens the other platform's preferences.
+that owes one, and adds it back if the rule stops owing one.
 
 If your own CSS sets `display` on the trigger, keep `[hidden]` hidden too, for
 example with `.footer-link[hidden] { display: none; }`.

@@ -171,7 +171,6 @@ The default export is a `C15tClientOptionsExtension` from `c15t/astro`:
 | `callbacks` | `onChoiceRecorded`, `onPermissionsChanged`, `onError` and `onBeforeConsentRevocationReload`. See [Callbacks](/docs/frameworks/astro/callbacks) |
 | `networkBlocker` | Replaces the integration's `networkBlocker`, so it can include `onRequestBlocked` |
 | `clearOnRevocation` | Replaces the integration's `clearOnRevocation` |
-| `consentSource` | Hands decisions to another consent platform. See [use an external consent source](/docs/frameworks/astro/client-api#use-an-external-consent-source) |
 | `theme` | Merged over the integration's theme for button styles. Tokens here have no effect |
 
 The browser imports this module into the page script, so every page shares

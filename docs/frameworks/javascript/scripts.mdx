@@ -85,11 +85,11 @@ Script gating does not remove cookies or Web Storage entries that a script
 already wrote. Configure [clear on revocation](/docs/frameworks/javascript/modules/clear-on-revocation)
 to delete them when their category is denied.
 
-## Shared lifecycle controls
+## Send your own events to allowed vendors
 
-See [use c15t with an existing CMP](/docs/integrations/existing-cmp) for
-external CMPs, preference delegation, withdrawal reloads and application
-events. These controls use the same core runtime across frameworks.
+To send your own analytics events only to the vendors a visitor allows, use
+the event dispatcher from `@c15t/scripts`. See
+[send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations).
 
 ## Check it works
 

@@ -42,7 +42,6 @@ when it mounts. Remount the provider to change them.
 | `overrides` | Force the country, region or language the policy is resolved for, for testing |
 | `user` | Link consent records to a signed-in user |
 | `callbacks` | Choice, permission and error events |
-| `consentSource` | Delegate decisions to another consent tool. See [use c15t with an existing CMP](/docs/integrations/existing-cmp) |
 | `i18n` | Languages and message overrides |
 | `legalLinks` | Privacy policy and other links shown in the banner and dialog |
 | `theme` | `consentActions` and slot styles. Tokens go through `ConsentTheme`; see [customize](/docs/frameworks/react/customize) |
@@ -84,9 +83,7 @@ Removing a script cannot stop code that already ran. A vendor's listeners,
 timers and widgets keep working until the page unloads. When an accept, reject
 or save turns off a category or vendor that was granted, the provider reloads
 the page once the save request settles, so the next page runs only permitted
-code. `onBeforeConsentRevocationReload` runs just before the reload. With a
-[`consentSource`](/docs/integrations/existing-cmp), any withdrawal the
-external CMP reports reloads the same way, including expiry.
+code. `onBeforeConsentRevocationReload` runs just before the reload.
 
 Otherwise, expiry, policy changes and privacy signals do not reload the page. Set
 `reloadOnConsentRevoked: false` only when every gated vendor stops itself on

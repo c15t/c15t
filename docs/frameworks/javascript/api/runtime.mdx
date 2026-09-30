@@ -46,7 +46,6 @@ Only `mode` is required.
 | `scriptLoader` | `{ onDebug? }` | none | Receive every script loader lifecycle event. |
 | `iab` | IAB options or `false` | none | CMP settings. Needs `createIAB`. |
 | `createIAB` | `createIAB` from `@c15t/iab` | none | The IAB module factory. Without it, `iab` is ignored. |
-| `consentSource` | external source | none | Follow another CMP. Turns off persistence, init, IAB and choice UI. See [use c15t with an existing CMP](/docs/integrations/existing-cmp). |
 | `enabled` | `boolean` | `true` | `false` grants every category, skips init and mounts no blocker, persistence or IAB. Scripts load at once. |
 | `windowDebug` | `boolean` | `true` | Install a small `window.c15t` object with `version`, `pkg` and `mode` on `start()`. |
 | `pkg` | `string` | `'@c15t/core'` | The package name `window.c15t` reports. |
@@ -99,7 +98,6 @@ A runtime disposed before it started blocks the requests it was holding.
 | --- | --- |
 | `createLazyIABFactory(loader)` | Wrap a dynamic `import('@c15t/iab')` so the IAB code loads as a separate chunk when the runtime mounts IAB. Pass its `create` as `createIAB`. |
 | `isIABConfigured(iab)` | Whether an `iab` option turns IAB on. |
-| `connectConsentSource(kernel, source)` | Drive a kernel you own from another CMP. |
 | `wireRuntimeCallbacks({ kernel, callbacks })` | Attach the four callbacks to a kernel you own. Returns a disposer. |
 
 ## Check it works

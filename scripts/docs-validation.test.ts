@@ -199,7 +199,6 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		'building-integrations',
 		'granular-consent',
 		'clear-on-revocation',
-		'existing-cmp',
 	].map((slug) => `/docs/integrations/${slug}`);
 	const pages = [
 		...(integrations?.pages ?? []),

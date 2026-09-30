@@ -18,7 +18,6 @@ group: reference
   | `policyRules` | array of policy rules or preset names | recommended rules | Offline mode only. A preset name such as `'europeOptIn'` stands for that preset in `policyRulePresets`. An unknown name throws. |
   | `overrides` | `{ country?, region?, language?, gpc? }` | none | The visitor's location, language or GPC signal, when the page knows it. Policy matching uses these instead of detection. |
   | `prefetch` | kernel configuration | none | A server-resolved init answer. When it carries a resolved policy, the client renders from it and does not call `/init`. |
-  | `consentSource` | external source | none | Follow another CMP instead of storing choices. See [use c15t with an existing CMP](/docs/integrations/existing-cmp). |
   | `enabled` | `boolean` | `true` | `false` grants every category, shows no UI and loads every configured script at once. |
 </section>
 

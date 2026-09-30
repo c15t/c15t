@@ -768,7 +768,7 @@ export default defineDocsConfig({
 			base: 'integrations',
 			children: [
 				{
-					pages: ['granular-consent', 'clear-on-revocation', 'existing-cmp'],
+					pages: ['granular-consent', 'clear-on-revocation'],
 					slug: 'vendor-controls',
 					title: 'Vendor controls',
 				},
