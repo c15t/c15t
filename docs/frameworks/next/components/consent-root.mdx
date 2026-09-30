@@ -51,9 +51,8 @@ Without `options.mode`, `ConsentRoot` picks the transport from its URLs:
   browser and nothing is recorded. Not recommended for production
   environments.
 
-The last case also applies when a `backendURL` prop is `undefined` because an
-environment variable was missing at build time. The `c15t.config.ts` in the
-router guides throws instead, so a misconfigured build fails. See
+The last case also applies when a `backendURL` prop is `undefined`, so check
+that the value you pass is set. See
 [offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).
 
 ## Provider options
