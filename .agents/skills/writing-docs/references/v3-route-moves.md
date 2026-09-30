@@ -56,3 +56,7 @@ the old page's task.
 | `/docs/frameworks/react/styling/tailwind` | `/docs/customization/tailwind` | v2 styling route; the destination page is still to be written |
 | `/docs/frameworks/react/styling/color-scheme` | `/docs/customization/dark-mode` | v2 styling route; the destination page is still to be written |
 | `/docs/frameworks/react/optimization` | `/docs/frameworks/react/rendering` | v2 route; rendering covers loading and performance choices |
+| `/docs/frameworks/next/iframe-blocking` | `/docs/frameworks/next/embeds` | v2 route; the embeds page covers the iframe blocker |
+| `/docs/frameworks/react/iframe-blocking` | `/docs/frameworks/react/embeds` | v2 route; the embeds page covers the iframe blocker |
+| `/docs/frameworks/javascript/iframe-blocking` | `/docs/frameworks/javascript/modules/iframe-blocker` | v2 route |
+| `/docs/frameworks/javascript/network-blocker` | `/docs/frameworks/javascript/modules/network-blocker` | v2 route |

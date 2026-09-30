@@ -34,9 +34,9 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/javascript/concepts/glossary` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/javascript/concepts/initialization-flow` | Compare with `/docs/guides/consent-state` before redirecting |
 | `/docs/frameworks/javascript/concepts/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
-| `/docs/frameworks/javascript/iframe-blocking` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/javascript/iframe-blocking` | Redirect to `/docs/frameworks/javascript/modules/iframe-blocker` |
 | `/docs/frameworks/javascript/internationalization` | Compare with `/docs/customization/translations` before redirecting |
-| `/docs/frameworks/javascript/network-blocker` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/javascript/network-blocker` | Redirect to `/docs/frameworks/javascript/modules/network-blocker` |
 | `/docs/frameworks/javascript/optimization` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/javascript/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/next/building-headless-components` | Compare with `/docs/frameworks/next/headless` before redirecting |
@@ -65,9 +65,9 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/next/iab/consent-banner` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/iab/consent-dialog` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/iab/use-gvl-data` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/next/iframe-blocking` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/next/iframe-blocking` | Redirect to `/docs/frameworks/next/embeds`, which covers the iframe blocker |
 | `/docs/frameworks/next/internationalization` | Compare with `/docs/customization/translations` before redirecting |
-| `/docs/frameworks/next/network-blocker` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/next/network-blocker` | Live again in v3; no redirect |
 | `/docs/frameworks/next/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/next/styling/classnames` | Compare with `/docs/customization/slots` before redirecting |
 | `/docs/frameworks/next/styling/color-scheme` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
@@ -101,9 +101,9 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/react/iab/consent-banner` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/iab/consent-dialog` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/iab/use-gvl-data` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/react/iframe-blocking` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/react/iframe-blocking` | Redirect to `/docs/frameworks/react/embeds`, which covers the iframe blocker |
 | `/docs/frameworks/react/internationalization` | Compare with `/docs/customization/translations` before redirecting |
-| `/docs/frameworks/react/network-blocker` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/react/network-blocker` | Live again in v3; no redirect |
 | `/docs/frameworks/react/optimization` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/react/server-side` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
