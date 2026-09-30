@@ -12,11 +12,11 @@
  * These read the built artifacts, so `bun run --cwd packages/ui build` (or
  * `turbo run build --filter=@c15t/ui`, which `test` depends on) must have run.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { parse } from 'postcss';
-import type { AtRule } from 'postcss';
+import type { AtRule, Rule } from 'postcss';
 import { describe, expect, test } from 'vitest';
 
 const DIST_DIR = join(__dirname, '..', '..', '..', 'dist');
@@ -73,5 +73,45 @@ describe.each(LAYERED_ENTRYPOINTS)('%s', (entrypoint) => {
 describe.each(FLAT_ENTRYPOINTS)('%s', (entrypoint) => {
 	test('stays free of @layer for Tailwind 3', () => {
 		expect(layerRules(readEntrypoint(entrypoint))).toEqual([]);
+	});
+});
+
+/**
+ * Vue components import these one by one, and Vite links a shared chunk's
+ * CSS ahead of the app's own. The Tailwind 4 stylesheet then comes after
+ * c15t's, so each file needs the order statement too, and every component
+ * rule has to sit in `components`, where a utility can override it.
+ */
+const COMPONENT_STYLESHEETS = readdirSync(
+	join(DIST_DIR, 'styles', 'components')
+)
+	.filter((file) => file.endsWith('.css'))
+	.map((file) => join('styles', 'components', file))
+	.sort();
+
+describe.each(COMPONENT_STYLESHEETS)('%s', (stylesheet) => {
+	const css = readEntrypoint(stylesheet);
+
+	test('mentions Tailwind 4 layer order before any layer block', () => {
+		const [first] = layerRules(css);
+
+		expect({
+			isBlock: first?.nodes !== undefined,
+			order: first?.params.split(/\s*,\s*/u),
+		}).toEqual({ isBlock: false, order: TAILWIND_4_LAYER_ORDER });
+	});
+
+	test('keeps component rules inside @layer components', () => {
+		const unlayered = parse(css)
+			.nodes.filter(
+				(node): node is Rule =>
+					node.type === 'rule' &&
+					!node.selectors.every((selector) =>
+						/^:(?:root|host)\b/u.test(selector)
+					)
+			)
+			.map((rule) => rule.selector);
+
+		expect(unlayered).toEqual([]);
 	});
 });
