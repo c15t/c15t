@@ -496,4 +496,176 @@ describe('mountConsentUI', () => {
 
 		expect(document.querySelector('[data-c15t-ui]')).toBeNull();
 	});
+
+	describe('theme.slots', () => {
+		it('adds slot classes and inline styles to the parts they name', async () => {
+			const { root, client } = await mount({
+				banner: { legalLinks: [] },
+				theme: {
+					slots: {
+						buttonPrimary: 'brand-primary',
+						buttonSecondary: { className: 'brand-secondary' },
+						consentBanner: 'brand-banner',
+						consentBannerCard: {
+							className: 'brand-card  shadow-lg',
+							style: { '--brand-accent': '#0a66ff', borderTopWidth: '4px' },
+						},
+						consentBannerDescription: 'brand-description',
+						consentBannerFooter: 'brand-footer',
+						consentBannerFooterSubGroup: 'brand-group',
+						consentBannerHeader: 'brand-header',
+						consentBannerTag: 'brand-tag',
+						consentBannerTitle: 'brand-title',
+						consentDialog: 'brand-dialog',
+						consentDialogCard: 'brand-dialog-card',
+						consentDialogContent: 'brand-dialog-content',
+						consentDialogDescription: 'brand-dialog-description',
+						consentDialogHeader: 'brand-dialog-header',
+						consentDialogTag: 'brand-dialog-tag',
+						consentDialogTitle: 'brand-dialog-title',
+						consentWidget: 'brand-widget',
+						consentWidgetAccordion: 'brand-accordion',
+						consentWidgetFooter: 'brand-widget-footer',
+						consentWidgetFooterSubGroup: 'brand-widget-group',
+						toggle: 'brand-toggle',
+					},
+				},
+			});
+
+			const card = query(root, 'consent-banner-card');
+			expect(card.classList.contains(classes.banner.card)).toBe(true);
+			expect(card.classList.contains('brand-card')).toBe(true);
+			expect(card.classList.contains('shadow-lg')).toBe(true);
+			expect(card.style.getPropertyValue('--brand-accent')).toBe('#0a66ff');
+			expect(card.style.borderTopWidth).toBe('4px');
+			const bannerParts: [string, string][] = [
+				['consent-banner-root', 'brand-banner'],
+				['consent-banner-header', 'brand-header'],
+				['consent-banner-title', 'brand-title'],
+				['consent-banner-description', 'brand-description'],
+				['consent-banner-footer', 'brand-footer'],
+				['consent-banner-footer-sub-group', 'brand-group'],
+				['consent-banner-branding', 'brand-tag'],
+			];
+			for (const [testId, className] of bannerParts) {
+				expect(query(root, testId).classList, testId).toContain(className);
+			}
+			// Buttons take the slot for the variant the policy gives them.
+			const buttons = [
+				...query(root, 'consent-banner-footer').querySelectorAll('button'),
+			];
+			expect(
+				buttons.map((button) => [
+					button.dataset.variant,
+					button.classList.contains('brand-primary'),
+					button.classList.contains('brand-secondary'),
+				])
+			).toEqual(
+				buttons.map((button) => [
+					button.dataset.variant,
+					button.dataset.variant === 'primary',
+					button.dataset.variant !== 'primary',
+				])
+			);
+			expect(
+				buttons.some((button) => button.dataset.variant === 'primary')
+			).toBe(true);
+
+			client.openDialog();
+			const dialogParts: [string, string][] = [
+				['consent-dialog-root', 'brand-dialog'],
+				['consent-dialog-card', 'brand-dialog-card'],
+				['consent-dialog-header', 'brand-dialog-header'],
+				['consent-dialog-title', 'brand-dialog-title'],
+				['consent-dialog-description', 'brand-dialog-description'],
+				['consent-dialog-content', 'brand-dialog-content'],
+				['consent-dialog-branding', 'brand-dialog-tag'],
+				['consent-widget-root', 'brand-widget'],
+				['consent-widget-accordion', 'brand-accordion'],
+				['consent-widget-footer', 'brand-widget-footer'],
+				['consent-widget-footer-sub-group', 'brand-widget-group'],
+				['consent-widget-switch-measurement', 'brand-toggle'],
+			];
+			for (const [testId, className] of dialogParts) {
+				expect(query(root, testId).classList, testId).toContain(className);
+			}
+		});
+
+		it('names every slotted element as a CSS part with its slot key', async () => {
+			const { root, client } = await mount();
+
+			expect(query(root, 'consent-banner-card').getAttribute('part')).toBe(
+				'consentBannerCard'
+			);
+			expect(query(root, 'consent-banner-root').getAttribute('part')).toBe(
+				'consentBanner'
+			);
+			for (const button of query(
+				root,
+				'consent-banner-footer'
+			).querySelectorAll('button')) {
+				expect(button.getAttribute('part')).toBe(
+					button.dataset.variant === 'primary'
+						? 'buttonPrimary'
+						: 'buttonSecondary'
+				);
+			}
+			client.openDialog();
+			expect(query(root, 'consent-dialog-card').getAttribute('part')).toBe(
+				'consentDialogCard'
+			);
+			expect(
+				query(root, 'consent-widget-switch-measurement').getAttribute('part')
+			).toBe('toggle');
+		});
+
+		it('keeps slot classes when noStyle drops the stock ones', async () => {
+			const { root } = await mount({
+				noStyle: true,
+				theme: { slots: { consentBannerCard: 'brand-card' } },
+			});
+
+			expect(query(root, 'consent-banner-card').getAttribute('class')).toBe(
+				'brand-card'
+			);
+		});
+
+		it('drops the stock classes of one part when its slot sets noStyle', async () => {
+			const { root } = await mount({
+				theme: {
+					slots: {
+						consentBannerCard: { className: 'brand-card', noStyle: true },
+					},
+				},
+			});
+
+			expect(query(root, 'consent-banner-card').getAttribute('class')).toBe(
+				'brand-card'
+			);
+			expect(
+				query(root, 'consent-banner-header').classList.contains(
+					classes.banner.header
+				)
+			).toBe(true);
+		});
+
+		it('links stylesheetURLs inside the UI root with the configured nonce', async () => {
+			const { root } = await mount(
+				{ stylesheetURLs: ['/brand.css', 'https://cdn.example/brand.css'] },
+				{ nonce: 'page-nonce' }
+			);
+
+			const links = [
+				...root.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+			];
+			expect(links.map((link) => link.getAttribute('href'))).toEqual([
+				'/brand.css',
+				'https://cdn.example/brand.css',
+			]);
+			expect(links.map((link) => link.nonce)).toEqual([
+				'page-nonce',
+				'page-nonce',
+			]);
+		});
+	});
 });

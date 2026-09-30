@@ -117,14 +117,43 @@ export interface ConsentUIOptions {
 	 * Render inside a shadow root so the host page's CSS cannot restyle the
 	 * banner and vice versa. Defaults to `true`; set `false` when you want
 	 * to override the styles with your own stylesheet.
+	 *
+	 * In the shadow root, page CSS still reaches each part through
+	 * `::part()`: every element `theme.slots` can name carries its slot key
+	 * as a part, as in `[data-c15t-ui]::part(consentBannerCard)`.
 	 */
 	shadow?: boolean;
 	/** Colour scheme. Defaults to `system`. */
 	colorScheme?: 'light' | 'dark' | 'system';
-	/** Theme token overrides, the same shape `@c15t/react` accepts. */
+	/**
+	 * Theme tokens, consent action styles and per-part `slots`, the
+	 * `@c15t/ui` theme shape `@c15t/svelte` also accepts.
+	 *
+	 * A slot adds classes (a string, or `className`) and inline `style` to
+	 * one part, keyed like `consentBannerCard` or `buttonPrimary`. The
+	 * classes' rules must reach the part: with `shadow: false` the page's
+	 * stylesheets do; in the shadow root, link them with `stylesheetURLs` or
+	 * pass their text in `css`.
+	 */
 	theme?: Theme;
 	/** Extra CSS appended after the bundled stylesheet. */
 	css?: string;
+	/**
+	 * Stylesheets to link inside the UI root, after the bundled stylesheet,
+	 * with the client's `nonce`. Use it to bring the rules behind
+	 * `theme.slots` classes (a Tailwind build, a CSS Modules or
+	 * vanilla-extract bundle) into the shadow root. They load
+	 * asynchronously, so the first frame can render without them.
+	 *
+	 * Keep loading the same sheet in the page too: `@property` rules, which
+	 * Tailwind 4 uses for utilities such as `border-4` and `shadow-lg`, only
+	 * register at document level. Unlayered element rules in a linked sheet
+	 * reach the UI as well, which is what the shadow root otherwise
+	 * prevents.
+	 *
+	 * @example ['/assets/site.css']
+	 */
+	stylesheetURLs?: string[];
 	/**
 	 * Include the bundled stylesheet. Defaults to `true`. With `shadow: false`,
 	 * set `false` when the page loads `@c15t/browser/styles.css`.

@@ -146,6 +146,30 @@ describe('IAB browser entry', () => {
 		expect(authority?.vendorConsents['755']).toBe(true);
 		expect(authority?.specialFeatureOptIns[1]).toBe(true);
 	});
+	it('applies the IAB theme slots and part names to the IAB banner and dialog', async () => {
+		const client = await start({
+			ui: {
+				styles: false,
+				theme: {
+					slots: {
+						iabConsentBannerCard: 'brand-iab-card',
+						iabConsentDialogCard: 'brand-iab-dialog-card',
+					},
+				},
+			},
+		});
+		const card = query(client, 'iab-consent-banner-card');
+		expect(card.classList).toContain('brand-iab-card');
+		expect(card.getAttribute('part')).toBe('iabConsentBannerCard');
+		expect(query(client, 'iab-consent-banner-root').getAttribute('part')).toBe(
+			'iabConsentBanner'
+		);
+		query(client, 'iab-consent-banner-customize-button').click();
+		const dialogCard = query(client, 'iab-consent-dialog-card');
+		expect(dialogCard.classList).toContain('brand-iab-dialog-card');
+		expect(dialogCard.getAttribute('part')).toBe('iabConsentDialogCard');
+	});
+
 	it('renders the shared display rows and updates a switch without replacing focus', async () => {
 		const client = await start();
 		query(client, 'iab-consent-banner-customize-button').click();

@@ -27,7 +27,7 @@ export const createBanner = function createBanner(
 	options: ConsentBannerOptions
 ): Surface {
 	const styles = classes.banner;
-	const { noStyle } = ctx;
+	const { noStyle, slot } = ctx;
 	let trapFocus = false;
 	let scrollLock = false;
 
@@ -79,112 +79,136 @@ export const createBanner = function createBanner(
 			}
 		}
 
-		const card = h(
-			'div',
-			{
-				'aria-label': title,
-				'aria-modal': trapFocus ? 'true' : undefined,
-				class: noStyle ? '' : styles.card,
-				'data-testid': 'consent-banner-card',
-				role: trapFocus ? 'dialog' : 'region',
-				tabindex: trapFocus ? '-1' : undefined,
-			},
+		const card = slot(
 			h(
 				'div',
 				{
-					class: noStyle ? '' : styles.header,
-					'data-testid': 'consent-banner-header',
+					'aria-label': title,
+					'aria-modal': trapFocus ? 'true' : undefined,
+					class: noStyle ? '' : styles.card,
+					'data-testid': 'consent-banner-card',
+					role: trapFocus ? 'dialog' : 'region',
+					tabindex: trapFocus ? '-1' : undefined,
 				},
-				h(
-					'h2',
-					{
-						class: noStyle ? '' : styles.title,
-						'data-testid': 'consent-banner-title',
-					},
-					title
+				slot(
+					h(
+						'div',
+						{
+							class: noStyle ? '' : styles.header,
+							'data-testid': 'consent-banner-header',
+						},
+						slot(
+							h(
+								'h2',
+								{
+									class: noStyle ? '' : styles.title,
+									'data-testid': 'consent-banner-title',
+								},
+								title
+							),
+							'consentBannerTitle'
+						),
+						slot(
+							h(
+								'div',
+								{
+									class: noStyle ? '' : styles.description,
+									'data-context': 'banner',
+									'data-testid': 'consent-banner-description',
+								},
+								description,
+								...renderLegalLinks({
+									keys: options.legalLinks,
+									labels: t.legalLinks,
+									legalLinks: ctx.legalLinks,
+									noStyle,
+									testIdPrefix: 'consent-banner-legal-link',
+								})
+							),
+							'consentBannerDescription'
+						)
+					),
+					'consentBannerHeader'
 				),
-				h(
-					'div',
-					{
-						class: noStyle ? '' : styles.description,
-						'data-context': 'banner',
-						'data-testid': 'consent-banner-description',
+				renderActionFooter({
+					actions,
+					buttonTestId: (action) => `consent-banner-${action}-button`,
+					footerClassName: styles.footer,
+					footerSlot: 'consentBannerFooter',
+					groupSlot: 'consentBannerFooterSubGroup',
+					label: (action) => labels[action],
+					noStyle,
+					onAction: (action) => {
+						if (action === 'accept') {
+							void ctx.client.acceptAll();
+						} else if (action === 'reject') {
+							void ctx.client.rejectAll();
+						} else if (action === 'dismiss') {
+							void ctx.client.dismissNotice();
+						} else {
+							ctx.client.openDialog();
+						}
 					},
-					description,
-					...renderLegalLinks({
-						keys: options.legalLinks,
-						labels: t.legalLinks,
-						legalLinks: ctx.legalLinks,
-						noStyle,
-						testIdPrefix: 'consent-banner-legal-link',
-					})
-				)
+					slot,
+					subGroupTestId: 'consent-banner-footer-sub-group',
+					testId: 'consent-banner-footer',
+				})
 			),
-			renderActionFooter({
-				actions,
-				buttonTestId: (action) => `consent-banner-${action}-button`,
-				footerClassName: styles.footer,
-				label: (action) => labels[action],
-				noStyle,
-				onAction: (action) => {
-					if (action === 'accept') {
-						void ctx.client.acceptAll();
-					} else if (action === 'reject') {
-						void ctx.client.rejectAll();
-					} else if (action === 'dismiss') {
-						void ctx.client.dismissNotice();
-					} else {
-						ctx.client.openDialog();
-					}
-				},
-				subGroupTestId: 'consent-banner-footer-sub-group',
-				testId: 'consent-banner-footer',
-			})
+			'consentBannerCard'
 		);
 
 		for (const control of actions.preferenceControls) {
 			card.append(
-				h(
-					'button',
-					{
-						class: noStyle ? '' : classes.button.button,
-						'data-action': 'customize',
-						'data-mode': noStyle ? undefined : 'stroke',
-						'data-size': noStyle ? undefined : 'small',
-						'data-testid': `consent-banner-right-${control}-button`,
-						'data-variant': noStyle ? undefined : 'neutral',
-						onclick: () => ctx.client.openDialog(),
-						type: 'button',
-					},
-					control === 'opt-out' ? t.rights.optOut : t.rights.preferences
+				slot(
+					h(
+						'button',
+						{
+							class: noStyle ? '' : classes.button.button,
+							'data-action': 'customize',
+							'data-mode': noStyle ? undefined : 'stroke',
+							'data-size': noStyle ? undefined : 'small',
+							'data-testid': `consent-banner-right-${control}-button`,
+							'data-variant': noStyle ? undefined : 'neutral',
+							onclick: () => ctx.client.openDialog(),
+							type: 'button',
+						},
+						control === 'opt-out' ? t.rights.optOut : t.rights.preferences
+					),
+					'consentBannerRightLink'
 				)
 			);
 		}
 
-		const root = h(
-			'div',
-			{
-				class: noStyle ? '' : styles.root,
-				'data-blocking': String(actions.blocking),
-				'data-position': position,
-				'data-testid': 'consent-banner-root',
-				'data-variant': actions.variant,
-				dir: copy.dir,
-				lang: copy.language,
-			},
+		const root = slot(
 			h(
 				'div',
-				{ class: noStyle ? '' : styles.cardShell },
-				renderBranding({
-					branding: snapshot.branding,
-					hide: options.hideBranding ?? false,
-					noStyle,
-					securedBy: t.common.securedBy,
-					testId: 'consent-banner-branding',
-					variant: 'banner-tag',
-				}),
-				card
-			)
+				{
+					class: noStyle ? '' : styles.root,
+					'data-blocking': String(actions.blocking),
+					'data-position': position,
+					'data-testid': 'consent-banner-root',
+					'data-variant': actions.variant,
+					dir: copy.dir,
+					lang: copy.language,
+				},
+				h(
+					'div',
+					{ class: noStyle ? '' : styles.cardShell },
+					slot(
+						renderBranding({
+							branding: snapshot.branding,
+							hide: options.hideBranding ?? false,
+							noStyle,
+							securedBy: t.common.securedBy,
+							testId: 'consent-banner-branding',
+							variant: 'banner-tag',
+						}),
+						'consentBannerTag'
+					),
+					card
+				)
+			),
+			'consentBanner'
 		);
 
 		return root;
@@ -216,12 +240,15 @@ export const createBanner = function createBanner(
 			translations: snapshot.translations,
 		};
 		if (scrollLock) {
-			overlay = h('div', {
-				'aria-hidden': 'true',
-				class: noStyle ? '' : styles.overlay,
-				'data-testid': 'consent-banner-overlay',
-				role: 'presentation',
-			});
+			overlay = slot(
+				h('div', {
+					'aria-hidden': 'true',
+					class: noStyle ? '' : styles.overlay,
+					'data-testid': 'consent-banner-overlay',
+					role: 'presentation',
+				}),
+				'consentBannerOverlay'
+			);
 		}
 		// The state classes go on before insertion so the first style the
 		// browser computes already includes them; the scroll lock reads

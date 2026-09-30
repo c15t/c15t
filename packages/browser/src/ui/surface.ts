@@ -4,6 +4,7 @@ import type { LegalLinksTranslations } from '@c15t/translations';
 import { classes } from '../generated/styles';
 import type { ConsentClient } from '../types';
 import { h } from './dom';
+import type { SlotApplier } from './slots';
 
 /** What every surface renders against. */
 export interface SurfaceContext {
@@ -17,6 +18,8 @@ export interface SurfaceContext {
 	disableAnimation: boolean;
 	/** The site's legal links, if configured. */
 	legalLinks: LegalLinks | undefined;
+	/** Marks an element as a `theme.slots` part and applies its overrides. */
+	slot: SlotApplier;
 }
 
 /** A mounted surface. */

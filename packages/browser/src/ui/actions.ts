@@ -9,6 +9,7 @@ import type {
 
 import { classes } from '../generated/styles';
 import { cx, h } from './dom';
+import type { BrowserSlotKey, SlotApplier } from './slots';
 
 /** Resolve buttons and geometry with the same policy constraints as React. */
 export const resolveActions = function resolveActions(
@@ -43,6 +44,12 @@ export interface ActionFooterParams {
 	buttonTestId: (action: PresentationAction) => string;
 	/** Click handler. */
 	onAction: (action: PresentationAction) => void;
+	/** Applies `theme.slots`; buttons take `buttonPrimary` or `buttonSecondary`. */
+	slot: SlotApplier;
+	/** The footer's slot key. */
+	footerSlot: BrowserSlotKey;
+	/** Each button group's slot key. The IAB theme has none. */
+	groupSlot?: BrowserSlotKey;
 }
 
 /**
@@ -54,19 +61,22 @@ export interface ActionFooterParams {
 export const renderActionFooter = function renderActionFooter(
 	params: ActionFooterParams
 ): HTMLElement {
-	const { actions, noStyle } = params;
-	const footer = h('div', {
-		class: noStyle
-			? ''
-			: cx(classes.actions.actionRoot, params.footerClassName),
-		'data-direction': actions.direction,
-		'data-fill': actions.shouldFillActions ? 'true' : undefined,
-		'data-split':
-			actions.actionGroups.length > 1 && !actions.shouldFillActions
-				? 'true'
-				: undefined,
-		'data-testid': params.testId,
-	});
+	const { actions, noStyle, slot } = params;
+	const footer = slot(
+		h('div', {
+			class: noStyle
+				? ''
+				: cx(classes.actions.actionRoot, params.footerClassName),
+			'data-direction': actions.direction,
+			'data-fill': actions.shouldFillActions ? 'true' : undefined,
+			'data-split':
+				actions.actionGroups.length > 1 && !actions.shouldFillActions
+					? 'true'
+					: undefined,
+			'data-testid': params.testId,
+		}),
+		params.footerSlot
+	);
 	for (const group of actions.actionGroups) {
 		const groupElement = h('div', {
 			class: noStyle ? '' : classes.actions.actionGroup,
@@ -74,26 +84,32 @@ export const renderActionFooter = function renderActionFooter(
 			'data-fill': actions.shouldFillActions ? 'true' : undefined,
 			'data-testid': params.subGroupTestId,
 		});
+		if (params.groupSlot) {
+			slot(groupElement, params.groupSlot);
+		}
 		for (const action of group) {
 			const variant = actions.primaryActions.includes(action)
 				? 'primary'
 				: 'neutral';
 			groupElement.append(
-				h(
-					'button',
-					{
-						class: noStyle ? '' : classes.button.button,
-						'data-action': action,
-						'data-mode': noStyle ? undefined : 'stroke',
-						'data-size': noStyle ? undefined : 'small',
-						'data-testid': params.buttonTestId(action),
-						'data-variant': noStyle ? undefined : variant,
-						onclick: () => {
-							params.onAction(action);
+				slot(
+					h(
+						'button',
+						{
+							class: noStyle ? '' : classes.button.button,
+							'data-action': action,
+							'data-mode': noStyle ? undefined : 'stroke',
+							'data-size': noStyle ? undefined : 'small',
+							'data-testid': params.buttonTestId(action),
+							'data-variant': noStyle ? undefined : variant,
+							onclick: () => {
+								params.onAction(action);
+							},
+							type: 'button',
 						},
-						type: 'button',
-					},
-					params.label(action)
+						params.label(action)
+					),
+					variant === 'primary' ? 'buttonPrimary' : 'buttonSecondary'
 				)
 			);
 		}

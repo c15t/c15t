@@ -80,10 +80,11 @@ const buildArrow = function buildArrow(): SVGSVGElement {
 
 const buildSwitch = function buildSwitch(
 	copy: RowCopy,
-	noStyle: boolean,
+	ctx: Pick<SurfaceContext, 'noStyle' | 'slot'>,
 	onToggle: () => void
 ): HTMLButtonElement {
-	return h(
+	const { noStyle } = ctx;
+	const element = h(
 		'button',
 		{
 			'aria-label': copy.title,
@@ -108,6 +109,7 @@ const buildSwitch = function buildSwitch(
 			})
 		)
 	);
+	return ctx.slot(element, 'toggle');
 };
 
 const buildContent = function buildContent(
@@ -180,7 +182,7 @@ export const createWidget = function createWidget(
 	ctx: SurfaceContext,
 	options: WidgetOptions = {}
 ): Widget {
-	const { noStyle } = ctx;
+	const { noStyle, slot } = ctx;
 	const hideBranding = options.hideBranding ?? true;
 
 	let draft: Partial<ConsentState> = {};
@@ -194,10 +196,13 @@ export const createWidget = function createWidget(
 		experiment: ConsentSnapshot['experiment'];
 	} | null = null;
 
-	const element = h('div', {
-		class: noStyle ? '' : classes.manager.manager,
-		'data-testid': 'consent-widget-root',
-	});
+	const element = slot(
+		h('div', {
+			class: noStyle ? '' : classes.manager.manager,
+			'data-testid': 'consent-widget-root',
+		}),
+		'consentWidget'
+	);
 
 	const isChecked = function isChecked(
 		snapshot: ConsentSnapshot,
@@ -276,7 +281,7 @@ export const createWidget = function createWidget(
 				)
 			)
 		);
-		const switchButton = buildSwitch(copy, noStyle, () => {
+		const switchButton = buildSwitch(copy, ctx, () => {
 			if (!copy.disabled) {
 				toggle(name);
 			}
@@ -333,6 +338,8 @@ export const createWidget = function createWidget(
 			actions: resolveActions(snapshot, 'preferences', ctx.client.presentation),
 			buttonTestId: (action) => testIds[action],
 			footerClassName: classes.manager.footer,
+			footerSlot: 'consentWidgetFooter',
+			groupSlot: 'consentWidgetFooterSubGroup',
 			label: (action) => labels[action],
 			noStyle,
 			onAction: (action) => {
@@ -351,6 +358,7 @@ export const createWidget = function createWidget(
 					void ctx.client.save(pending);
 				}
 			},
+			slot,
 			subGroupTestId: 'consent-widget-footer-sub-group',
 			testId: 'consent-widget-footer',
 		});
@@ -365,22 +373,28 @@ export const createWidget = function createWidget(
 			buildRow(snapshot, resolveRowCopy(t, name))
 		);
 
-		const list = h('div', {
-			class: noStyle ? '' : accordion.list,
-			'data-testid': 'consent-widget-accordion',
-		});
+		const list = slot(
+			h('div', {
+				class: noStyle ? '' : accordion.list,
+				'data-testid': 'consent-widget-accordion',
+			}),
+			'consentWidgetAccordion'
+		);
 		for (const row of rows) {
 			list.append(row.item);
 		}
 		element.append(list, buildFooter(snapshot, t));
-		const branding = renderBranding({
-			branding: snapshot.branding,
-			hide: hideBranding,
-			noStyle,
-			securedBy: t.common.securedBy,
-			testId: 'consent-widget-branding',
-			variant: 'dialog-tag',
-		});
+		const branding = slot(
+			renderBranding({
+				branding: snapshot.branding,
+				hide: hideBranding,
+				noStyle,
+				securedBy: t.common.securedBy,
+				testId: 'consent-widget-branding',
+				variant: 'dialog-tag',
+			}),
+			'consentWidgetTag'
+		);
 		if (branding) {
 			element.append(branding);
 		}

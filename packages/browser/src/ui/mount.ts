@@ -11,6 +11,7 @@ import type {
 import { createBanner } from './banner';
 import { createDialog } from './dialog';
 import { h, prefersReducedMotion } from './dom';
+import { createSlotApplier } from './slots';
 import type { Surface, SurfaceContext } from './surface';
 import { createTrigger } from './trigger';
 
@@ -48,6 +49,28 @@ const buildStyleText = function buildStyleText(
 		parts.push(options.css);
 	}
 	return parts.join('\n');
+};
+
+/**
+ * Add the `stylesheetURLs` links to the UI root.
+ *
+ * A nonce-based `style-src` blocks an unnonced `<link>`, even in a shadow
+ * root, so each link carries the client's nonce. Call it after the stock
+ * `<style>` is in place, so that sheet's `@layer` order statement comes
+ * first: a Tailwind 4 sheet's utilities then outrank the stock components.
+ */
+const appendStylesheetLinks = function appendStylesheetLinks(
+	root: ShadowRoot | HTMLElement,
+	options: ConsentUIOptions,
+	nonce: string | undefined
+): void {
+	for (const href of options.stylesheetURLs ?? []) {
+		const link = h('link', { href, rel: 'stylesheet' });
+		if (nonce) {
+			link.nonce = nonce;
+		}
+		root.append(link);
+	}
 };
 
 /**
@@ -94,6 +117,12 @@ const applyColorScheme = function applyColorScheme(
  * stylesheet, so a Framer or WordPress theme's global `button {}` rules
  * cannot reach it. Pass `shadow: false` to render into the page and style
  * it yourself.
+ *
+ * Every part named in `theme.slots` carries its slot key as a CSS part, so
+ * page CSS reaches it through `[data-c15t-ui]::part(consentBannerCard)`
+ * even inside the shadow root. A slot's classes need their rules in the
+ * same root: in the page with `shadow: false`, or through `stylesheetURLs`
+ * or `css` in shadow mode.
  *
  * @param client - The client to render.
  * @param options - Where and how to mount.
@@ -153,6 +182,7 @@ export const mountConsentUI = function mountConsentUI(
 		styleEl = createStyle(styleText);
 		root.append(styleEl);
 	}
+	appendStylesheetLinks(root, options, client.options.nonce);
 
 	const wrapper = h('div', { class: 'c15t-host' });
 	const themeRoot = h('div', { class: 'c15t-theme-root' });
@@ -172,6 +202,7 @@ export const mountConsentUI = function mountConsentUI(
 		legalLinks: client.options.legalLinks,
 		noStyle: options.noStyle ?? false,
 		root: themeRoot,
+		slot: createSlotApplier(options.theme?.slots),
 	};
 
 	const surfaces: Surface[] = [];
