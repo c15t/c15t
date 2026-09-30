@@ -134,11 +134,11 @@ for (const target of selectedTargets()) {
 				await page.addInitScript(() => {
 					const style = document.createElement('style');
 					style.textContent =
-						'[data-testid="frame-placeholder"] { animation-play-state: paused !important; }';
+						'[data-testid="consent-gate-placeholder"] { animation-play-state: paused !important; }';
 					document.documentElement.append(style);
 				});
 				await page.goto('/app-router');
-				const placeholder = page.getByTestId('frame-placeholder');
+				const placeholder = page.getByTestId('consent-gate-placeholder');
 				await placeholder.waitFor();
 				expect(
 					await placeholder.evaluate(
@@ -183,7 +183,7 @@ for (const target of selectedTargets()) {
 					expect(html.includes('data-testid="consent-banner-root"')).toBe(
 						bannerInHTML
 					);
-					expect(html).toContain('data-testid="frame-placeholder"');
+					expect(html).toContain('data-testid="consent-gate-placeholder"');
 					expect(html).not.toContain('<iframe');
 				});
 			}

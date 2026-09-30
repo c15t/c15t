@@ -22,7 +22,7 @@
 >
 	<div style="width: 32rem;">
 		<ConsentGate category="marketing">
-			{#snippet placeholder()}<div data-testid="frame-placeholder">
+			{#snippet placeholder()}<div data-testid="consent-gate-placeholder">
 					Marketing content requires consent.
 				</div>{/snippet}
 			<div

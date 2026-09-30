@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { AllConsentNames } from '@c15t/core';
 	import { defaultTranslationConfig } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/frame';
+	import styles from '@c15t/ui/styles/components/consent-gate';
 	import { resolveTranslations } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
@@ -79,16 +79,21 @@
 		<!-- Default placeholder -->
 		<div
 			class={noStyle ? '' : styles.placeholder || ''}
-			data-testid="frame-placeholder"
+			data-testid="consent-gate-placeholder"
 		>
-			<div class={noStyle ? '' : styles.title || ''}>{gateTitle}</div>
+			<div
+				class={noStyle ? '' : styles.title || ''}
+				data-testid="consent-gate-title"
+			>
+				{gateTitle}
+			</div>
 			<ConsentButton
 				action="open-consent-dialog"
 				variant="primary"
 				mode="stroke"
 				size="small"
 				{noStyle}
-				data-testid="frame-open-dialog"
+				data-testid="consent-gate-button"
 			>
 				{gateActionButton}
 			</ConsentButton>

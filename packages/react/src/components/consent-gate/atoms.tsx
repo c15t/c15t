@@ -1,5 +1,5 @@
 import type { AllConsentNames } from '@c15t/core';
-import styles from '@c15t/ui/styles/components/frame';
+import styles from '@c15t/ui/styles/components/consent-gate';
 import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
@@ -17,7 +17,7 @@ const ConsentGateRoot = createForwardRef<
 	<Box
 		ref={ref as Ref<HTMLDivElement>}
 		baseClassName={styles.placeholder}
-		data-testid="frame-placeholder"
+		data-testid="consent-gate-placeholder"
 		{...props}
 	>
 		{children}
@@ -43,6 +43,7 @@ const ConsentGateTitle = createForwardRef<
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.title}
+			data-testid="consent-gate-title"
 			{...props}
 		>
 			{children ?? defaultTitle}
@@ -72,7 +73,7 @@ const ConsentGateButton = createForwardRef<
 			ref={ref}
 			action="open-consent-dialog"
 			category={category}
-			data-testid="frame-open-dialog"
+			data-testid="consent-gate-button"
 		>
 			{children ?? defaultText}
 		</ConsentButton>

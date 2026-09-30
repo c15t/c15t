@@ -1,0 +1,87 @@
+@import url('./animations/fade-in.css');
+
+:root {
+	/* Every default follows the theme. The -dark variables point at the same
+	   tokens, which the dark palette redefines under .c15t-dark. */
+	--consent-gate-font-family: var(--c15t-font-family);
+	--consent-gate-line-height: var(--c15t-line-height-normal);
+	--consent-gate-placeholder-gap: var(--c15t-space-md);
+
+	/* Border */
+	/* 1.25rem with the default radius scale. */
+	--consent-gate-placeholder-border-radius: calc(var(--c15t-radius-lg) * 5 / 3);
+	--consent-gate-placeholder-border-width: 1px;
+	--consent-gate-placeholder-border-color: var(--c15t-border);
+	--consent-gate-placeholder-border-color-dark: var(--c15t-border);
+
+	/* Colors */
+	--consent-gate-placeholder-background-color: var(--c15t-surface);
+	--consent-gate-placeholder-background-color-dark: var(--c15t-surface);
+	--consent-gate-placeholder-text-color: var(--c15t-text);
+	--consent-gate-placeholder-text-color-dark: var(--c15t-text);
+	--consent-gate-placeholder-title-color: var(--c15t-text);
+	--consent-gate-placeholder-title-color-dark: var(--c15t-text);
+
+	/* Shadow */
+	--consent-gate-placeholder-shadow: var(--c15t-shadow-lg);
+	--consent-gate-placeholder-shadow-dark: var(--c15t-shadow-lg);
+
+	--consent-gate-placeholder-opacity: 1;
+	/* Server-rendered placeholders are visible immediately; motion is opt-in. */
+	--consent-gate-placeholder-animation: none;
+}
+
+@layer components {
+	.placeholder {
+		font-family: var(--consent-gate-font-family);
+		line-height: var(--consent-gate-line-height);
+		-webkit-font-smoothing: antialiased;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
+		width: 100%;
+		padding: 1rem;
+		text-align: center;
+		border-radius: var(--consent-gate-placeholder-border-radius);
+		border-width: var(--consent-gate-placeholder-border-width);
+		/* Explicit style: never rely on Tailwind preflight's `border-style`. */
+		border-style: solid;
+		border-color: var(--consent-gate-placeholder-border-color);
+		background-color: var(--consent-gate-placeholder-background-color);
+		opacity: var(--consent-gate-placeholder-opacity);
+		transform: scale(1);
+		pointer-events: auto;
+		gap: var(--consent-gate-placeholder-gap);
+		animation: var(--consent-gate-placeholder-animation);
+	}
+
+	:global(.c15t-dark) .placeholder {
+		background-color: var(--consent-gate-placeholder-background-color-dark);
+		border-color: var(--consent-gate-placeholder-border-color-dark);
+		box-shadow: var(--consent-gate-placeholder-shadow-dark);
+	}
+
+	.title {
+		/* Reset in case a host renders the placeholder title as a heading. */
+		margin: 0;
+		font-size: var(--c15t-font-size-base);
+		line-height: var(--c15t-line-height-normal);
+		letter-spacing: -0.011em;
+		font-weight: var(--c15t-font-weight-medium);
+		color: var(--consent-gate-placeholder-title-color);
+	}
+
+	:global(.c15t-dark) .title {
+		color: var(--consent-gate-placeholder-title-color-dark);
+	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.placeholder {
+			animation: none;
+			opacity: 1;
+		}
+	}
+}

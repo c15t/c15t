@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { evaluateConsent } from '@c15t/core';
 import type { AllConsentNames } from '@c15t/core';
-import frameStyles from '@c15t/ui/styles/components/frame';
+import gateStyles from '@c15t/ui/styles/components/consent-gate';
 
-import '@c15t/ui/styles/components/frame.css';
+import '@c15t/ui/styles/components/consent-gate.css';
 import { computed, watch } from 'vue';
 
 import {
@@ -93,16 +93,21 @@ const openPreferences = function openPreferences() {
 		name="placeholder"
 	>
 		<div
-			data-testid="frame-placeholder"
-			:class="frameStyles.placeholder"
+			data-testid="consent-gate-placeholder"
+			:class="gateStyles.placeholder"
 		>
-			<div :class="frameStyles.title">{{ title }}</div>
+			<div
+				data-testid="consent-gate-title"
+				:class="gateStyles.title"
+			>
+				{{ title }}
+			</div>
 			<ConsentButton
 				v-if="!policyBlocked"
 				variant="primary"
 				mode="stroke"
 				size="small"
-				data-testid="frame-open-dialog"
+				data-testid="consent-gate-button"
 				@click="openPreferences"
 			>
 				{{ actionLabel }}

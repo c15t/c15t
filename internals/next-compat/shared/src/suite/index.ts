@@ -63,7 +63,7 @@ export interface CompatSuiteOptions {
 
 const TEST_COUNTRY = 'FR';
 const BANNER_MARKER = 'consent-banner-root';
-const GATE_PLACEHOLDER_MARKER = 'data-testid="frame-placeholder"';
+const GATE_PLACEHOLDER_MARKER = 'data-testid="consent-gate-placeholder"';
 const GATED_EMBED_PATH = '/api/c15t/__compat/embed';
 
 const fetchHTML = async function fetchHTML(

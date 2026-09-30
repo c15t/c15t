@@ -15,7 +15,7 @@ import * as reactEntry from '~/index';
 import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
-const frameApp = function frameApp(
+const gateApp = function gateApp(
 	ui: ReactElement,
 	consents: Record<string, boolean>,
 	strict = false
@@ -23,7 +23,7 @@ const frameApp = function frameApp(
 	const now = Date.now();
 	const policy = normalizePolicyRule({
 		categories: strict ? ['measurement'] : ['marketing'],
-		id: 'frame-test-policy',
+		id: 'consent-gate-test-policy',
 		match: { fallback: true },
 		model: 'opt-in',
 		prompt: 'choice',
@@ -74,44 +74,44 @@ const frameApp = function frameApp(
 	);
 };
 
-const renderFrame = (ui: ReactElement, consents: Record<string, boolean>) =>
-	render(frameApp(ui, consents));
+const renderGate = (ui: ReactElement, consents: Record<string, boolean>) =>
+	render(gateApp(ui, consents));
 
 describe('ConsentGate default placeholder', () => {
 	test('renders the shared placeholder slots when consent is missing', async () => {
-		const { container } = await renderFrame(
+		const { container } = await renderGate(
 			<ConsentGate category="marketing">
-				<div data-testid="frame-content">Marketing content</div>
+				<div data-testid="gate-content">Marketing content</div>
 			</ConsentGate>,
 			{ marketing: false, necessary: true }
 		);
 
 		await vi.waitFor(() => {
 			const placeholder = container.querySelector(
-				'[data-testid="frame-placeholder"]'
+				'[data-testid="consent-gate-placeholder"]'
 			);
 			expect(placeholder).toBeInTheDocument();
 
 			const button = placeholder?.querySelector(
-				'[data-testid="frame-open-dialog"]'
+				'[data-testid="consent-gate-button"]'
 			);
 			expect(button).toBeInTheDocument();
 			// The category title comes from the translation bundle, not the
 			// raw category key.
 			expect(placeholder).toHaveTextContent('Marketing');
 			expect(
-				container.querySelector('[data-testid="frame-content"]')
+				container.querySelector('[data-testid="gate-content"]')
 			).toBeNull();
 		});
 	});
 
 	test('a supplied placeholder replaces the default slots', async () => {
-		const { container } = await renderFrame(
+		const { container } = await renderGate(
 			<ConsentGate
 				category="marketing"
 				placeholder={<div data-testid="custom-placeholder">Blocked</div>}
 			>
-				<div data-testid="frame-content">Marketing content</div>
+				<div data-testid="gate-content">Marketing content</div>
 			</ConsentGate>,
 			{ marketing: false, necessary: true }
 		);
@@ -121,10 +121,10 @@ describe('ConsentGate default placeholder', () => {
 				container.querySelector('[data-testid="custom-placeholder"]')
 			).toBeInTheDocument();
 			expect(
-				container.querySelector('[data-testid="frame-placeholder"]')
+				container.querySelector('[data-testid="consent-gate-placeholder"]')
 			).toBeNull();
 			expect(
-				container.querySelector('[data-testid="frame-open-dialog"]')
+				container.querySelector('[data-testid="consent-gate-button"]')
 			).toBeNull();
 		});
 	});
@@ -133,31 +133,31 @@ describe('ConsentGate default placeholder', () => {
 describe('ConsentGate server rendering', () => {
 	const content = (
 		<ConsentGate category="marketing">
-			<div data-testid="frame-content">Marketing content</div>
+			<div data-testid="gate-content">Marketing content</div>
 		</ConsentGate>
 	);
 
 	test('includes the default placeholder in the first HTML when consent is missing', () => {
-		const html = renderToString(frameApp(content, { necessary: true }));
-		expect(html).toContain('data-testid="frame-placeholder"');
-		expect(html).toContain('data-testid="frame-open-dialog"');
-		expect(html).not.toContain('data-testid="frame-content"');
+		const html = renderToString(gateApp(content, { necessary: true }));
+		expect(html).toContain('data-testid="consent-gate-placeholder"');
+		expect(html).toContain('data-testid="consent-gate-button"');
+		expect(html).not.toContain('data-testid="gate-content"');
 	});
 
 	test('includes a supplied placeholder in the first HTML', () => {
 		const html = renderToString(
-			frameApp(
+			gateApp(
 				<ConsentGate
 					category="marketing"
 					placeholder={<p>Video requires consent</p>}
 				>
-					<div data-testid="frame-content">Marketing content</div>
+					<div data-testid="gate-content">Marketing content</div>
 				</ConsentGate>,
 				{ marketing: false, necessary: true }
 			)
 		);
 		expect(html).toContain('Video requires consent');
-		expect(html).not.toContain('data-testid="frame-content"');
+		expect(html).not.toContain('data-testid="gate-content"');
 	});
 
 	// Inside a streamed Suspense boundary React moves the server HTML into
@@ -165,19 +165,19 @@ describe('ConsentGate server rendering', () => {
 	// loading. Granted children therefore mount after hydration only.
 	test('leaves granted children out of the first HTML', () => {
 		const html = renderToString(
-			frameApp(content, { marketing: true, necessary: true })
+			gateApp(content, { marketing: true, necessary: true })
 		);
-		expect(html).not.toContain('data-testid="frame-content"');
-		expect(html).not.toContain('data-testid="frame-placeholder"');
+		expect(html).not.toContain('data-testid="gate-content"');
+		expect(html).not.toContain('data-testid="consent-gate-placeholder"');
 	});
 
 	test('keeps a stored grant blocked outside a strict policy scope', () => {
 		const html = renderToString(
-			frameApp(content, { marketing: true, necessary: true }, true)
+			gateApp(content, { marketing: true, necessary: true }, true)
 		);
-		expect(html).toContain('data-testid="frame-placeholder"');
-		expect(html).not.toContain('data-testid="frame-content"');
-		expect(html).not.toContain('data-testid="frame-open-dialog"');
+		expect(html).toContain('data-testid="consent-gate-placeholder"');
+		expect(html).not.toContain('data-testid="gate-content"');
+		expect(html).not.toContain('data-testid="consent-gate-button"');
 	});
 
 	// Next.js `cacheComponents` fails a prerender that reads the clock in a
@@ -185,13 +185,13 @@ describe('ConsentGate server rendering', () => {
 	test.each([false, true])(
 		'reads no clock while rendering on the server (granted: %s)',
 		(marketing) => {
-			const app = frameApp(content, { marketing, necessary: true });
+			const app = gateApp(content, { marketing, necessary: true });
 			const clock = vi.spyOn(Date, 'now').mockImplementation(() => {
 				throw new Error('Date.now() read during server rendering');
 			});
 			try {
 				const html = renderToString(app);
-				expect(html.includes('data-testid="frame-placeholder"')).toBe(
+				expect(html.includes('data-testid="consent-gate-placeholder"')).toBe(
 					!marketing
 				);
 			} finally {
@@ -208,7 +208,7 @@ describe('ConsentGate server rendering', () => {
 			}, []);
 			return null;
 		};
-		const app = frameApp(
+		const app = gateApp(
 			<>
 				{content}
 				<Hydrated />
@@ -220,7 +220,9 @@ describe('ConsentGate server rendering', () => {
 		document.body.append(host);
 		const onRecoverableError = vi.fn();
 		const before = {
-			placeholder: host.querySelector('[data-testid="frame-placeholder"]'),
+			placeholder: host.querySelector(
+				'[data-testid="consent-gate-placeholder"]'
+			),
 			wrapper: host.firstElementChild,
 		};
 		const root = hydrateRoot(host, app, { onRecoverableError });
@@ -240,9 +242,9 @@ describe('ConsentGate server rendering', () => {
 		const { before, cleanup, host, onRecoverableError } = await hydrate(false);
 		try {
 			expect(before.placeholder).not.toBeNull();
-			expect(host.querySelector('[data-testid="frame-placeholder"]')).toBe(
-				before.placeholder
-			);
+			expect(
+				host.querySelector('[data-testid="consent-gate-placeholder"]')
+			).toBe(before.placeholder);
 			expect(onRecoverableError).not.toHaveBeenCalled();
 		} finally {
 			cleanup();
@@ -254,7 +256,7 @@ describe('ConsentGate server rendering', () => {
 		try {
 			await vi.waitFor(() =>
 				expect(
-					host.querySelectorAll('[data-testid="frame-content"]')
+					host.querySelectorAll('[data-testid="gate-content"]')
 				).toHaveLength(1)
 			);
 			expect(host.firstElementChild).toBe(before.wrapper);

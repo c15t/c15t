@@ -1,7 +1,8 @@
 /**
  * Which stylesheet each component's rules go into. Names are the flat files
  * in `dist/styles/components` (`prompt` is the consent banner, `panel` the
- * consent dialog, `manager` the preference widget, `frame` ConsentGate).
+ * consent dialog, `manager` the preference widget, `consent-gate` the
+ * ConsentGate placeholder).
  *
  * `generate-css-entrypoints.ts` fails the build when a component is in
  * neither list, so a new component needs a deliberate choice.
@@ -17,7 +18,7 @@ export const FIRST_PAINT_COMPONENTS = [
 	'branding',
 	'button',
 	'consent-actions',
-	'frame',
+	'consent-gate',
 	'legal-links',
 	'panel-trigger',
 	'prompt',
