@@ -359,6 +359,8 @@ export const createPersistence = function createPersistence(
 			noteGeneratedSubject(snapshot, actionAt);
 			choiceRecorded = true;
 			choiceWrites.schedule();
+			// A choice under a notice prompt acknowledges the notice too.
+			noticeWrites.schedule();
 		}),
 		kernel.events.on('subject:resolved', ({ snapshot }) => {
 			choiceWrites.schedule();

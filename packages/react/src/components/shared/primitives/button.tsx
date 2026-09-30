@@ -3,6 +3,10 @@ import { forwardRef as createForwardRef, useCallback } from 'react';
 import type { FocusEvent, MouseEvent, PointerEvent } from 'react';
 
 import { useIdleDialogWarming, warmDialogChunk } from '~/chunk-warming';
+import {
+	toSaveUISource,
+	useConsentTracking,
+} from '~/context/consent-tracking-context';
 import { useConsentSaveAction } from '~/draft';
 import { useSetActiveUI, useDismissNotice } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
@@ -149,7 +153,14 @@ export const ConsentButton = createForwardRef<
 		},
 		ref
 	) => {
-		const saveConsents = useConsentSaveAction();
+		const saveKernelConsents = useConsentSaveAction();
+		// The nearest surface root declares which UI collected the consent.
+		const { uiSource: trackedUISource } = useConsentTracking();
+		const saveConsents = useCallback(
+			(input?: Parameters<typeof saveKernelConsents>[0]) =>
+				saveKernelConsents(input, toSaveUISource(trackedUISource)),
+			[saveKernelConsents, trackedUISource]
+		);
 		const setActiveUI = useSetActiveUI();
 		const dismissNotice = useDismissNotice();
 		const { noStyle: contextNoStyle, theme } = useTheme();

@@ -7,6 +7,7 @@ import type {
 	ConsentState,
 	SaveResult,
 	SaveInput,
+	SaveUISource,
 } from '@c15t/core';
 import { deniedVendorIds, vendorRenders } from '@c15t/core';
 import {
@@ -335,7 +336,8 @@ const createDraftStore = function createDraftStore(
 		async save(
 			input?: SaveInput,
 			categories?: readonly AllConsentNames[],
-			onSuccess?: () => void
+			onSuccess?: () => void,
+			uiSource?: SaveUISource
 		): Promise<SaveResult> {
 			// Guard against changes between the render and the click as well.
 			if (
@@ -370,6 +372,7 @@ const createDraftStore = function createDraftStore(
 			const pending = kernel.commands.save(input ?? patch, {
 				categories,
 				...(Object.keys(vendors).length > 0 && { vendors }),
+				...(uiSource !== undefined && { uiSource }),
 			});
 			// A clean draft can reseed synchronously from the local receipt.
 			const savedRevision = revision;
@@ -501,7 +504,7 @@ const useSaveAction = function useSaveAction(store: DraftStore) {
 	const services = useContext(ProviderServicesContext);
 	const isCurrent = useDraftGuard(store);
 	return useCallback(
-		(input?: SaveInput) => {
+		(input?: SaveInput, uiSource?: SaveUISource) => {
 			// Refuse before touching the previous runtime's UI state.
 			if (!isCurrent()) {
 				return Promise.resolve(REFUSED);
@@ -510,9 +513,14 @@ const useSaveAction = function useSaveAction(store: DraftStore) {
 			return saveConsentUI(
 				kernel,
 				() =>
-					store.save(input, services?.getConsentCategories(), () => {
-						current = true;
-					}),
+					store.save(
+						input,
+						services?.getConsentCategories(),
+						() => {
+							current = true;
+						},
+						uiSource
+					),
 				() => current
 			);
 		},

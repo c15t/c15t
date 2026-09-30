@@ -39,7 +39,7 @@ mechanism for switching visitors or backends.
 | --- | --- |
 | `mode` | Hosted, offline or custom transport factory |
 | `scripts` | Consent-managed script configurations |
-| `callbacks` | Choice, permission and error events |
+| `callbacks` | Impression, choice, permission and error events; see [callbacks](/docs/frameworks/react/callbacks) |
 | `theme`, `components` | Consent-action styles, theme slots and component slot attributes. Tokens render through `ConsentTheme` |
 | `presentation` | Prompt and preferences layout behavior |
 | `preloadDialog` | When the deferred `ConsentDialog` starts loading: `'idle'` (default) or `'intent'`; see [ConsentDialog](./consent-dialog#behavior) |
@@ -54,6 +54,7 @@ production.
 
 ## Observe changes without inventing choices
 
+`onSurfaceShown` reports the banner or the dialog becoming visible.
 `onChoiceRecorded` reports explicit accept, reject and save actions.
 `onPermissionsChanged` also covers changes caused by policy, expiry or privacy
 signals. Hydration and notice dismissal do not become explicit choices.

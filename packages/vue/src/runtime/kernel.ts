@@ -1012,7 +1012,13 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	let active = true;
 	const isActive = () => active;
 
-	if (!config.consentSource && options.runInit !== false) {
+	if (config.consentSource) {
+		// An external source owns permissions; there is nothing to initialise.
+	} else if (options.runInit === false) {
+		// No init call marks this kernel live, so do it here: the banner the
+		// server rendered is the visitor's first impression.
+		context.kernel.markLive();
+	} else {
 		void (async () => {
 			await context.kernel.commands.init();
 			if (!active) {

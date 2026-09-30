@@ -4,8 +4,10 @@
  *
  * - `commit()` merges a patch, re-derives dependent fields and adopts the
  *   result only when something changed, emitting `permissions:changed`
- *   when the effective permissions differ. Subscribers receive the snapshot
- *   that commit produced, through the dispatcher shared with the event bus.
+ *   when the effective permissions differ and, once `init` marked the
+ *   kernel live, `surface:shown` when a prompt surface becomes visible.
+ *   Subscribers receive the snapshot that commit produced, through the
+ *   dispatcher shared with the event bus.
  * - `hydrate()` is the validated read-only boundary for stored records.
  * - `refresh()` re-evaluates at a supplied time so an elapsed expiry cannot
  *   hide behind a delayed or background timer.
@@ -19,6 +21,7 @@ import type {
 	HydrationResult,
 	KernelEvent,
 	Listener,
+	PromptSurface,
 } from '../types';
 import { createListenerSet } from './dispatch';
 import type { Dispatcher, ListenerSet } from './dispatch';
@@ -26,7 +29,7 @@ import { buildNextSnapshot, isUnchangedPatch, snapshotChanged } from './patch';
 import type { SnapshotPatch } from './patch';
 import { mergeNewestChoice, validateHydrationRecords } from './records';
 import { mergeServerPatch } from './server-records';
-import { freezeSnapshot } from './snapshot';
+import { freezeSnapshot, isPromptSurface } from './snapshot';
 
 /** Longest delay `setTimeout` honors without overflowing to zero. */
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
@@ -61,6 +64,14 @@ export interface KernelRuntime {
 	isStarted: () => boolean;
 	/** Mark the lifecycle started: detect the browser signal, install listeners. */
 	start: () => void;
+	/**
+	 * Mark the kernel live in a visitor's browser: from here on, every commit
+	 * that leaves a prompt surface visible stamps its first impression. A
+	 * surface already visible is stamped at `at` (default: now). Hydration
+	 * alone never marks the kernel live, so a server or test kernel that only
+	 * applies records records no impression.
+	 */
+	markLive: (at?: number) => void;
 	hydrate: (records: HydrationRecords) => HydrationResult;
 	/**
 	 * Apply server-mapped records, keeping the newest receipt per category
@@ -124,6 +135,19 @@ export const createRuntime = function createRuntime(
 		: null;
 	let vendorDraft: BoundDraft<Record<string, boolean>> | null = null;
 	let started = false;
+	let live = false;
+	/**
+	 * The surface the kernel, not the adapter, hid in the last commit: a
+	 * derived `activeUI` change (a save clearing the prompt) rather than an
+	 * explicit `set.activeUI`, together with the snapshot that hide produced.
+	 * An adapter restoring that surface as the very next state change is not
+	 * a new impression. Any other commit clears it, so a later derived
+	 * re-show (an expired choice, a refresh, a re-init) counts again.
+	 */
+	let hiddenBySave: {
+		snapshot: ConsentSnapshot;
+		surface: PromptSurface;
+	} | null = null;
 	let disposed = false;
 	let generation = 0;
 	let timer: ReturnType<typeof setTimeout> | null = null;
@@ -133,32 +157,144 @@ export const createRuntime = function createRuntime(
 	const getSnapshot = () => snapshot;
 	const now = () => Date.now();
 
-	const commit = function commit(patch: SnapshotPatch): boolean {
-		const current = snapshot;
-		if (isUnchangedPatch(current, patch)) {
-			return false;
-		}
-		const next = buildNextSnapshot(current, patch);
-		if (!snapshotChanged(current, next)) {
-			return false;
-		}
-		const committed = freezeSnapshot(next);
-		snapshot = committed;
-		// Deliver the snapshot this commit produced, never the live cell: a
-		// listener may commit again, and later listeners must still observe
-		// this transition first.
+	/**
+	 * Whether the visible prompt surface still lacks its first impression
+	 * time. Only a live kernel stamps impressions: a server render, a
+	 * prerender seed or a hydrate-only kernel never records that a visitor
+	 * saw anything.
+	 */
+	const impressionDue = function impressionDue(
+		candidate: ConsentSnapshot
+	): candidate is ConsentSnapshot & { activeUI: PromptSurface } {
+		return (
+			live &&
+			isPromptSurface(candidate.activeUI) &&
+			candidate.surfaceShownAt[candidate.activeUI] === null
+		);
+	};
+
+	/**
+	 * Candidate with the visible surface's first impression stamped at its
+	 * evaluation time. `candidate` is an unfrozen copy owned by this commit.
+	 */
+	const stampImpression = function stampImpression(
+		candidate: ConsentSnapshot & { activeUI: PromptSurface }
+	): ConsentSnapshot {
+		return {
+			...candidate,
+			surfaceShownAt: {
+				...candidate.surfaceShownAt,
+				[candidate.activeUI]: candidate.evaluatedAt,
+			},
+		};
+	};
+
+	/**
+	 * `current` with only its first impression stamped, at `at`. An
+	 * unchanged patch keeps every evaluator input and stays inside the
+	 * current deadline, so the full derivation would hand back `current`
+	 * under a new clock and revision. Every nested value is shared with the
+	 * already-frozen `current`; only the two new objects need freezing.
+	 */
+	const stampCurrent = function stampCurrent(
+		current: ConsentSnapshot & { activeUI: PromptSurface },
+		at: number
+	): ConsentSnapshot {
+		return Object.freeze({
+			...current,
+			evaluatedAt: at,
+			revision: current.revision + 1,
+			surfaceShownAt: Object.freeze({
+				...current.surfaceShownAt,
+				[current.activeUI]: at,
+			}),
+		});
+	};
+
+	/**
+	 * Deliver an adopted snapshot to subscribers, then its events. Runs as
+	 * one batch so a listener that commits again queues behind this
+	 * transition instead of overtaking it.
+	 */
+	const publish = function publish(
+		current: ConsentSnapshot,
+		adopted: ConsentSnapshot,
+		shown: PromptSurface | null
+	): void {
 		dispatcher.batch(() => {
 			if (listeners) {
-				dispatcher.deliver(listeners, committed);
+				dispatcher.deliver(listeners, adopted);
 			}
-			if (committed.effectivePermissions !== current.effectivePermissions) {
+			if (adopted.effectivePermissions !== current.effectivePermissions) {
 				emit({
 					previous: current.effectivePermissions,
-					snapshot: committed,
+					snapshot: adopted,
 					type: 'permissions:changed',
 				});
 			}
+			if (shown !== null) {
+				emit({
+					shownAt: adopted.evaluatedAt,
+					snapshot: adopted,
+					surface: shown,
+					type: 'surface:shown',
+				});
+			}
 		});
+	};
+
+	const commit = function commit(patch: SnapshotPatch): boolean {
+		const current = snapshot;
+		let adopted: ConsentSnapshot;
+		if (isUnchangedPatch(current, patch)) {
+			if (!impressionDue(current)) {
+				return false;
+			}
+			adopted = stampCurrent(current, patch.now ?? current.evaluatedAt);
+		} else {
+			let next = buildNextSnapshot(current, patch);
+			if (impressionDue(next)) {
+				next = stampImpression(next);
+			}
+			if (!snapshotChanged(current, next)) {
+				return false;
+			}
+			adopted = freezeSnapshot(next);
+		}
+		snapshot = adopted;
+		const surface = adopted.activeUI;
+		// A save derives `activeUI` to `none` in the same commit that clears
+		// the prompt. An adapter that keeps its preference dialog open for the
+		// save then restores `dialog` with an explicit `set.activeUI` before
+		// anything else commits; the visitor never saw it close. That restore
+		// is not a new impression. A surface the visitor reopens after the
+		// kernel hid it for real is, and so is a surface the kernel derives
+		// back into view later (an expired choice, a refresh, a re-init).
+		const restoredAfterSave =
+			hiddenBySave !== null &&
+			hiddenBySave.snapshot === current &&
+			hiddenBySave.surface === surface &&
+			patch.activeUI === surface;
+		hiddenBySave =
+			isPromptSurface(current.activeUI) &&
+			current.activeUI !== surface &&
+			patch.activeUI === undefined
+				? { snapshot: adopted, surface: current.activeUI }
+				: null;
+		const shown: PromptSurface | null =
+			live &&
+			isPromptSurface(surface) &&
+			!restoredAfterSave &&
+			(surface !== current.activeUI || current.surfaceShownAt[surface] === null)
+				? surface
+				: null;
+		// Everything the events describe is settled before subscribers run: a
+		// listener may commit again synchronously (an adapter hiding or
+		// restoring a surface), and that nested commit must neither steal
+		// this commit's events nor see a stale `hiddenBySave`. Deliver the
+		// snapshot this commit produced, never the live cell, so later
+		// listeners still observe this transition first.
+		publish(current, adopted, shown);
 		return true;
 	};
 
@@ -237,6 +373,24 @@ export const createRuntime = function createRuntime(
 		}
 	};
 
+	const markLive = function markLive(at: number = now()): void {
+		if (live) {
+			return;
+		}
+		live = true;
+		// A surface visible before init ran is first shown now; the stamp
+		// records that impression once and emits `surface:shown` for it.
+		// Only the stamp changes, so skip the patch checks a commit runs:
+		// this sits on every first visit's init.
+		const current = snapshot;
+		if (!impressionDue(current)) {
+			return;
+		}
+		snapshot = stampCurrent(current, at);
+		hiddenBySave = null;
+		publish(current, snapshot, current.activeUI);
+	};
+
 	const applyRecords = function applyRecords(
 		records: HydrationRecords,
 		mergeNewest: boolean
@@ -313,6 +467,7 @@ export const createRuntime = function createRuntime(
 			generation += 1;
 		},
 		isStarted: () => started,
+		markLive,
 		mergeServerRecords,
 		now,
 		rearm() {

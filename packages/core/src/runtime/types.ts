@@ -223,6 +223,7 @@ export interface ConsentRuntimeOptions {
 		Callbacks,
 		| 'onChoiceRecorded'
 		| 'onPermissionsChanged'
+		| 'onSurfaceShown'
 		| 'onError'
 		| 'onBeforeConsentRevocationReload'
 	>;

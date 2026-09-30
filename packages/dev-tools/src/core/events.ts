@@ -7,6 +7,7 @@ const EVENT_TYPES = [
 	'records:cleared',
 	'preferences:requested',
 	'choice:recorded',
+	'surface:shown',
 	'permissions:changed',
 	'notice:dismissed',
 	'overrides:set',
@@ -46,6 +47,7 @@ function snapshotData(snapshot: ConsentSnapshot): Record<string, unknown> {
 		resolution: snapshot.resolution.status,
 		revision: snapshot.revision,
 		subject: snapshot.subject,
+		surfaceShownAt: snapshot.surfaceShownAt,
 	};
 }
 
@@ -125,9 +127,22 @@ export function kernelEventToDevToolsEvent(
 					...snapshotData(event.snapshot),
 					actionAt: event.actionAt,
 					confirmed: event.confirmed,
+					timeToDecisionMs: event.timeToDecisionMs,
 				},
 				id,
 				message: 'Explicit choice recorded',
+				timestamp,
+				type: event.type,
+			};
+		case 'surface:shown':
+			return {
+				data: {
+					...snapshotData(event.snapshot),
+					shownAt: event.shownAt,
+					surface: event.surface,
+				},
+				id,
+				message: `${event.surface === 'banner' ? 'Banner' : 'Dialog'} shown`,
 				timestamp,
 				type: event.type,
 			};

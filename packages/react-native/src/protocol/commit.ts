@@ -133,7 +133,8 @@ export interface SavePayload {
 	overrides: Readonly<KernelOverrides>;
 	user: Readonly<KernelUser> | null;
 	model: KernelModel;
-	uiSource: KernelActiveUI;
+	/** The surface the action came from; `widget` for an inline preference widget. */
+	uiSource: KernelActiveUI | 'widget';
 	consentAction: 'all' | 'necessary' | 'custom';
 	policySnapshotToken: string | null;
 	/**
@@ -166,6 +167,12 @@ export interface SavePayload {
 	tcString?: string | null;
 	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */
 	givenAt?: number;
+	/**
+	 * Milliseconds from the surface's first impression to this action. The
+	 * native cores do not stamp impressions yet, so they never write it; it
+	 * is carried so the body stays the one the kernel describes.
+	 */
+	timeToDecisionMs?: number;
 	/**
 	 * Granted flag for every declared vendor after this action. Present only
 	 * when vendors are declared; a narrowed replay drops it. The native cores

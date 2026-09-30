@@ -199,7 +199,9 @@ export const buildSetters = function buildSetters(
 				}
 				return;
 			}
-			commit({ activeUI: ui });
+			// The clock travels so a surface impression is stamped at the time
+			// it opened, not at the previous evaluation.
+			commit({ activeUI: ui, now: runtime.now() });
 		},
 		consentCategories(
 			categories: readonly AllConsentNames[] | undefined

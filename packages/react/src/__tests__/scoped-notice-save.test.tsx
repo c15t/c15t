@@ -94,12 +94,10 @@ for (const scenario of ['notice', 'scoped', 'necessary-only'] as const) {
 				);
 				expect(button).not.toBeNull();
 				button?.click();
-				// The dialog leaves in the click task, for the banner only while
-				// a notice is still owed, before the request is sent.
-				const prompt = scenario === 'notice' ? 'notice' : 'none';
-				expect(kernel.getSnapshot().activeUI).toBe(
-					prompt === 'none' ? 'none' : 'banner'
-				);
+				// The dialog leaves in the click task, before the request is
+				// sent. A choice under a notice acknowledges the notice in the
+				// same commit, so no banner is left behind in either scenario.
+				expect(kernel.getSnapshot().activeUI).toBe('none');
 				expect(save).not.toHaveBeenCalled();
 				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
 				expect(kernel.getSnapshot().explicitChoice).not.toBeNull();
@@ -114,12 +112,12 @@ for (const scenario of ['notice', 'scoped', 'necessary-only'] as const) {
 				}
 				/* oxlint-enable vitest/no-conditional-expect */
 				pending.resolve({ ok: true });
+				// Completing the displayed choice leaves nothing owed under a
+				// scoped rule, and the notice was acknowledged by the save.
 				await vi.waitFor(() =>
-					expect(kernel.getSnapshot().activeUI).toBe(
-						prompt === 'none' ? 'none' : 'banner'
-					)
+					expect(kernel.getSnapshot().activeUI).toBe('none')
 				);
-				expect(kernel.getSnapshot().promptRequirement.kind).toBe(prompt);
+				expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
 				/* oxlint-disable vitest/no-conditional-expect -- These assertions apply to the explicitly declared scoped-policy scenario. */
 				if (scenario !== 'notice') {
 					// Hidden marketing remains denied after completing the displayed choice.

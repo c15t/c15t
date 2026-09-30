@@ -101,7 +101,13 @@ export interface PolicyObservation {
 	events?: Partial<Record<ScenarioEvent, number>>;
 	consentCallbacks?: number;
 	consentRequests?: number;
-	storage?: 'unchanged' | 'choice-v3' | 'notice-only' | 'cleared';
+	storage?:
+		| 'unchanged'
+		| 'choice-v3'
+		/** A v3 choice envelope plus the notice dismissal the same save recorded. */
+		| 'choice-and-notice'
+		| 'notice-only'
+		| 'cleared';
 	noticeDismissal?: 'absent' | 'current';
 	firstLayer?: 'choice' | 'notice' | 'hidden';
 	persistentRights?: readonly ('disclosure' | 'preferences' | 'opt-out')[];

@@ -154,6 +154,14 @@ for (const source of ['scripts', 'frames', 'iframes'] as const) {
 
 test('a site that declares nothing shows only Strictly necessary, and any banner action dismisses it for good', async () => {
 	localStorage.clear();
+	// Persistence reads the consent cookie; another file's save must not
+	// make this a returning visitor.
+	for (const cookie of document.cookie.split(';')) {
+		const name = cookie.split('=')[0]?.trim();
+		if (name) {
+			document.cookie = `${name}=; max-age=0; path=/`;
+		}
+	}
 	const resolution = resolvePolicyRules({
 		countryCode: 'DE',
 		regionCode: null,

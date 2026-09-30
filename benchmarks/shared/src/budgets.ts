@@ -138,13 +138,16 @@ export const coreRuntimeBudgets: MetricBudget[] = [
 		secondaryThreshold: 20,
 		threshold: 1,
 	},
+	// 2µs, not 1µs: a first-visit init stamps the banner's first impression
+	// (#1146), one frozen snapshot copy that costs ~0.35µs locally and
+	// lands close to 1µs on hosted runners.
 	{
 		comparator: 'absolute-or-percent-lte',
 		description:
-			'Empty-kernel init must not regress by both more than 1µs and 15%.',
+			'Empty-kernel init must not regress by both more than 2µs and 15%.',
 		metric: 'initConsentManager',
 		secondaryThreshold: 15,
-		threshold: 1,
+		threshold: 2,
 	},
 ];
 
