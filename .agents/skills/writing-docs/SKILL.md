@@ -33,7 +33,9 @@ layout to `ConsentRoot`, which React cannot serialize.
 1. Find the example for the path you document. If none exists, add a route or
    app and cover it in `examples/shared` before writing the page.
 2. Keep demo-only code (galleries, reset buttons, location overrides) out of
-   the file, or outside the published region.
+   the file, or outside the published region. When it must sit inside one,
+   hide it with a trailing `docs:hide` comment or a `#hide docs` …
+   `#endhide docs` block; the app runs it and the snippet leaves it out.
 3. Mark the lines with `#region docs:<name>` and `#endregion docs:<name>`, then
    run `bun scripts/sync-example-docs.ts`.
 4. Include `docs/shared/examples/<app>/<name>.mdx` from the page.

@@ -7,10 +7,8 @@
  *   C15T_BACKEND_URL=https://your-project.inth.app bun run --cwd examples/astro-demo build
  *   C15T_BACKEND_URL=https://your-project.inth.app C15T_ASTRO_OUTPUT=static bun run --cwd examples/astro-demo build
  *
- * Both get the demo-only options in `demo-options.mjs`, such as the vendor
- * list. Without a backend URL, or with `C15T_IAB`, `C15T_UI` or
- * `C15T_EXPERIMENT` set, the showcase build runs instead. See
- * `astro.showcase.config.mjs`.
+ * Without a backend URL, or with `C15T_IAB`, `C15T_UI` or `C15T_EXPERIMENT`
+ * set, the showcase build runs instead. See `astro.showcase.config.mjs`.
  */
 const showcase =
 	!process.env.C15T_BACKEND_URL ||
@@ -22,15 +20,10 @@ const load = async function load() {
 	if (showcase) {
 		return (await import('./astro.showcase.config.mjs')).default;
 	}
-	// The example suite's vendor scenario needs `vendors`; the published
-	// configs stay minimal, so it is merged in here. See demo-options.mjs.
-	const { withDemoOptions } = await import('./demo-options.mjs');
 	if (process.env.C15T_ASTRO_OUTPUT === 'static') {
-		return withDemoOptions((await import('./astro.static.config.mjs')).default);
+		return (await import('./astro.static.config.mjs')).default;
 	}
-	const config = withDemoOptions(
-		(await import('./astro.server.config.mjs')).default
-	);
+	const config = (await import('./astro.server.config.mjs')).default;
 	// Server islands need an adapter, so only the server build gets the
 	// cached-page route.
 	config.integrations.push({

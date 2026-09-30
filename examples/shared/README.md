@@ -118,6 +118,24 @@ Keep demo-only code, such as the design gallery, reset buttons and location
 overrides, outside published regions or in separate files. A region should be
 something a reader can copy into their app unchanged.
 
+When demo-only code has to sit inside a region, hide it from the snippet. End
+one line with a `docs:hide` comment in the file's syntax (`// docs:hide`,
+`/* docs:hide */`, `<!-- docs:hide -->` or `{/* docs:hide */}`), or wrap
+several lines in `#hide docs` and `#endhide docs` markers:
+
+```js
+c15t({
+	mode: hosted({ url: backendURL }),
+	// #hide docs
+	vendors: exampleVendors,
+	// #endhide docs
+}),
+```
+
+The app still runs the hidden lines; only the published snippet leaves them
+out. A region nested inside a hide block still publishes on its own, so one
+file can keep a quickstart minimal and show the hidden option on another page.
+
 `scripts/example-doc-sources.test.ts` fails when a generated snippet is stale
 or orphaned. It also counts hand-written docs fences that import c15t against
 `scripts/hand-written-examples-baseline.json`; that count may only fall. Put
