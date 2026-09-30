@@ -542,17 +542,27 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 	 * Every queued save for `from` moves to the returned id in the same
 	 * locked step, so none is replayed under the refused one. Calling it again
 	 * moves saves queued under `from` since.
+	 *
+	 * `isCurrent` is asked once the lock is held, before anything is written.
+	 * Waiting for the lock can take long enough for the visitor to be cleared
+	 * or switched; then nothing is recorded or moved and this resolves to
+	 * `null`, so saves that no longer belong to the visitor stay where they
+	 * were.
 	 */
 	const claimReassignment = function claimReassignment(
 		from: string,
-		proposed: string
-	): Promise<string> {
+		proposed: string,
+		isCurrent: () => boolean
+	): Promise<string | null> {
 		const storage = getLocalStorage();
 		if (!storage) {
-			return Promise.resolve(proposed);
+			return Promise.resolve(isCurrent() ? proposed : null);
 		}
 
 		return withQueueLock(() => {
+			if (!isCurrent()) {
+				return null;
+			}
 			const now = Date.now();
 			const reassignments = readReassignments(storage, now);
 			const recorded = reassignments.find((item) => item.from === from);

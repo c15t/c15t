@@ -863,7 +863,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	// history to the subject they reset away from.
 	const reassignedSubjects = new Map<
 		string,
-		{ claim: Promise<string>; generation: number }
+		{ claim: Promise<string | null>; generation: number }
 	>();
 	let disposed = false;
 	// Bumped by every explicit `init()`. An attempt that resolves after a newer
@@ -1217,8 +1217,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			return null;
 		}
 		// Moves the queued saves; the record already names `to`.
-		await pendingSaves?.claimReassignment(from, to);
-		return to;
+		const moved = await pendingSaves?.claimReassignment(
+			from,
+			to,
+			() => getSnapshot().subject?.subjectId === to
+		);
+		return moved === null ? null : to;
 	};
 
 	/**
@@ -1249,17 +1253,37 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		if (earlier === undefined && getSnapshot().subject?.subjectId !== from) {
 			return followRecordedReassignment(from);
 		}
+		// Still the visitor this reassignment started for: same records
+		// generation, and on `from` or already moved to its replacement.
+		const unchanged = (to?: string) => () => {
+			const id = getSnapshot().subject?.subjectId;
+			return (
+				runtime.getGeneration() === generation &&
+				(id === from || (to !== undefined && id === to))
+			);
+		};
 		let claim = earlier;
 		if (claim === undefined) {
+			const proposed = generateSubjectId();
 			claim = pendingSaves
-				? pendingSaves.claimReassignment(from, generateSubjectId())
-				: Promise.resolve(generateSubjectId());
+				? pendingSaves.claimReassignment(from, proposed, unchanged())
+				: Promise.resolve(proposed);
 			reassignedSubjects.set(from, { claim, generation });
 		}
 		const to = await claim;
+		if (to === null) {
+			return null;
+		}
 		if (earlier !== undefined) {
 			// Moves saves queued under `from` since the first claim.
-			await pendingSaves?.claimReassignment(from, to);
+			const moved = await pendingSaves?.claimReassignment(
+				from,
+				to,
+				unchanged(to)
+			);
+			if (moved === null) {
+				return null;
+			}
 		}
 
 		const current = getSnapshot().subject;

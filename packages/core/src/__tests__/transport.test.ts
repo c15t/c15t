@@ -2108,6 +2108,60 @@ describe('kernel transport: failed save replay', () => {
 		reloaded.dispose();
 	});
 
+	test('a visitor switched while the claim waits for the lock keeps their queued saves', async () => {
+		// The claim runs under the cross-tab lock, and waiting for it can take
+		// long enough for the subject to change. Moving the queue then would
+		// hand the previous subject's saves to a replacement nobody holds.
+		let openGate: () => void = () => {};
+		let gate: Promise<void> = Promise.resolve();
+		vi.stubGlobal('navigator', {
+			locks: {
+				request: async (_name: string, run: () => unknown) => {
+					await gate;
+					return run();
+				},
+			},
+		});
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockRejectedValue(refused('SUBJECT_CONFLICT'));
+		const kernel = createConsentKernel({
+			initialRecords: { subject: { subjectId: 'sub_from' } },
+			transport: { save: saveSpy },
+		});
+
+		try {
+			await kernel.commands.save({ marketing: true });
+			gate = new Promise((resolve) => {
+				openGate = resolve;
+			});
+			const refusedSave = kernel.commands.save({ measurement: false });
+			await vi.waitFor(() => expect(saveSpy).toHaveBeenCalledTimes(2));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+
+			kernel.set.subjectId('sub_other');
+			openGate();
+			await refusedSave;
+
+			expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_other');
+			expect(
+				window.localStorage.getItem(SUBJECT_REASSIGNMENTS_STORAGE_KEY)
+			).toBeNull();
+			const stored = JSON.parse(
+				window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+			) as { payload: { subjectId: string } }[];
+			expect(stored.map((entry) => entry.payload.subjectId)).toEqual([
+				'sub_from',
+			]);
+		} finally {
+			kernel.dispose();
+			vi.unstubAllGlobals();
+		}
+	});
+
 	test('two tabs refused for the same subject move to one new id', async () => {
 		// Each tab picking its own id would leave one of them persisting a
 		// subject the backend holds no consent for.
