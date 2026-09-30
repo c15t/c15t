@@ -42,12 +42,9 @@ import type {
 import {
 	applyExperimentAssignment,
 	applyExperimentTheme,
-	evaluateConsent,
-	isVendorDenied,
+	isVendorAllowed,
 } from '@c15t/core';
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
-import { isVendorAllowed } from '@c15t/core';
-import { useCallback, useContext, useSyncExternalStore } from 'react';
+import { useCallback, useContext, useMemo, useSyncExternalStore } from 'react';
 
 import { ProviderServicesContext } from './context';
 import {
