@@ -168,8 +168,9 @@ the information architecture reference. Confirm
 the host's framework list includes every variant. Do not flatten frameworks
 into separate root groups to shorten the config.
 Keep integrations under one `integrations` navigation group. Its children are
-Vendor controls, then the service types: Embeds, Tag managers, Analytics, Chat
-and support, and Ads and pixels.
+the service types: Embeds, Tag managers, Analytics, Chat and support, and Ads
+and pixels. Vendor consent and clear on revocation are framework pages in each
+framework's Scripts and embeds group.
 Every exported vendor helper needs a discoverable guide. Preserve old vendor
 routes during rewrites and compare against the existing integration inventory.
 Vendor guides need configuration, registration, options, actual loading and

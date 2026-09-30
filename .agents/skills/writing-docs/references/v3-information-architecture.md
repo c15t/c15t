@@ -19,9 +19,10 @@ and Changelog. Project and Legal pages belong in the footer.
 4. Verify and troubleshoot: Verify consent, Troubleshooting.
 5. Frameworks, in selector order: Next.js, TanStack Start, React, Nuxt, Vue,
    Astro, Svelte, SvelteKit, HTML (script tag), JavaScript, React Native.
-6. Integrations: Integrations (the overview) and Custom integrations, then the groups Vendor
-   controls, Embeds, Tag managers, Analytics, Chat and support, Ads and pixels.
-7. Backend: Overview, Self-host the backend (the quickstart), then the groups Guides and Reference.
+6. Integrations: Integrations (the overview) and Custom integrations, then the
+   groups Embeds, Tag managers, Analytics, Chat and support, Ads and pixels.
+7. Backend: Overview, Self-host the backend (the quickstart), then the groups
+   Guides and Reference.
 8. CLI: CLI overview, CLI quickstart, Agents and automation, then the Commands group,
    which ends with Global flags.
 9. Comparisons, Project and Legal.
@@ -48,7 +49,7 @@ Link a shared page into a framework sidebar with a leading `/`, such as
 | Group | Pages, in order |
 | --- | --- |
 | No heading | Quickstart, setup variants (Next.js routers, HTML platforms), the install reference (Nuxt module, Vue plugin), Rendering and deployment |
-| Scripts and embeds | Scripts, Embeds, Network blocker |
+| Scripts and embeds | Scripts, Embeds, Network blocker, Vendor consent where the adapter lists vendors in its dialog or exposes a vendor draft, Clear on revocation |
 | Customization | Customize, Banner designs (`/customization/recipes`), Theme tokens (`/customization/tokens`), Translations, Compose your own banner where the adapter exports compound parts, Headless |
 | Components | Components overview first, then one page per component |
 | Consent API | The framework's term as the title (Hooks, Composables, Context getters, Client API, window.c15t API), then Callbacks |
@@ -65,9 +66,11 @@ minimum and that every framework page appears in its sidebar.
 | --- | --- | --- | --- |
 | Quickstart | `quickstart` | Yes | The recommended path only: install, backend URL, provider or module, stylesheet, scripts, preferences link, verification. Link to alternatives at the end. |
 | Rendering and deployment | `rendering` | When there is more than one path | Decision table covering every supported path, each with its setup and an example app. Unsupported paths say so and name the alternative. |
-| Scripts | `scripts` | Yes | Registering vendor scripts, what happens when consent changes, clearing stored data and per-vendor switches. |
+| Scripts | `scripts` | Yes | Registering vendor scripts and what happens when consent changes, with short links to vendor consent and clear on revocation. |
 | Embeds | `embeds` | Yes | Gating iframes with the adapter's gate component and the iframe blocker. |
 | Network blocker | `network-blocker` | Yes | Rules, what a blocked request looks like, when blocking starts and what it cannot stop. |
+| Vendor consent | `vendor-consent` | When the adapter accepts `vendors` and offers a way to switch one off | Declaring vendors, `vendor` on scripts and rules, `data-vendor` on iframes, what the preference dialog shows and the adapter's API for a custom switch. Shared explanation from `docs/shared/scripts/vendor-consent.mdx`. |
+| Clear on revocation | `clear-on-revocation` | When the adapter accepts `clearOnRevocation` | Where the option goes, name patterns, when cleanup runs and browser limits. Shared explanation from `docs/shared/scripts/clear-on-revocation.mdx`. |
 | Customize | `customize` | Yes | This framework's shape for tokens, slots, copy and presentation, with links to the shared customization pages. |
 | Translations | `translations` | Yes | Default language, custom copy, adding languages and how the language is picked. |
 | Compose your own banner | `compose` | When compound parts are exported | Compound parts and `asChild`. Svelte and SvelteKit use `components/primitives`. |

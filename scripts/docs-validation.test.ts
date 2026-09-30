@@ -181,7 +181,6 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		(group) => group.slug === 'integrations'
 	);
 	expect(integrations?.children.map((group) => group.slug)).toEqual([
-		'vendor-controls',
 		'embeds',
 		'tag-managers',
 		'analytics',
@@ -197,7 +196,6 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		'youtube',
 		'overview',
 		'building-integrations',
-		'clear-on-revocation',
 	].map((slug) => `/docs/integrations/${slug}`);
 	const pages = [
 		...(integrations?.pages ?? []),

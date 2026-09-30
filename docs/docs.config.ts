@@ -119,7 +119,13 @@ export default defineDocsConfig({
 					base: 'next',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -192,7 +198,13 @@ export default defineDocsConfig({
 					base: 'tanstack-start',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -251,7 +263,13 @@ export default defineDocsConfig({
 					base: 'react',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -311,7 +329,13 @@ export default defineDocsConfig({
 					base: 'nuxt',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -372,7 +396,13 @@ export default defineDocsConfig({
 					base: 'vue',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -433,7 +463,12 @@ export default defineDocsConfig({
 					base: 'astro',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -497,7 +532,13 @@ export default defineDocsConfig({
 					base: 'svelte',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -560,7 +601,13 @@ export default defineDocsConfig({
 					base: 'sveltekit',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker', 'vendor-consent'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -628,7 +675,12 @@ export default defineDocsConfig({
 					base: 'html',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -692,6 +744,7 @@ export default defineDocsConfig({
 								'modules/iframe-blocker',
 								'modules/network-blocker',
 								'vendor-consent',
+								'clear-on-revocation',
 							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
@@ -727,7 +780,6 @@ export default defineDocsConfig({
 								'api/snapshot',
 								'modules/script-loader',
 								'modules/persistence',
-								'modules/clear-on-revocation',
 							],
 							slug: 'reference',
 							title: 'Reference',
@@ -768,11 +820,6 @@ export default defineDocsConfig({
 		{
 			base: 'integrations',
 			children: [
-				{
-					pages: ['clear-on-revocation'],
-					slug: 'vendor-controls',
-					title: 'Vendor controls',
-				},
 				{
 					pages: ['google-maps', 'youtube'],
 					slug: 'embeds',

@@ -30,7 +30,7 @@ Only `mode` is required.
 | `consentCategories` | category names | inferred | Categories to offer alongside those your scripts, rules and vendors use, within the policy's scope. |
 | `networkBlocker` | `{ rules, enabled?, logBlockedRequests?, onRequestBlocked? }` or `false` | off | Hold matching `fetch` and XHR requests until their category is allowed. See [network blocker](/docs/frameworks/javascript/modules/network-blocker). |
 | `iframeBlocker` | `{ disableAutomaticBlocking? }` or `false` | on | Gate `<iframe data-src data-category>`. See [iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker). |
-| `clearOnRevocation` | cookies and storage keys per category | off | Delete named browser data when its category is denied. Read once. See [clear on revocation](/docs/frameworks/javascript/modules/clear-on-revocation). |
+| `clearOnRevocation` | cookies and storage keys per category | off | Delete named browser data when its category is denied. Read once. See [clear on revocation](/docs/frameworks/javascript/clear-on-revocation). |
 | `persistence` | `boolean` or `{ storageConfig?, skipHydration?, sync? }` | `true` | Read and write choices in the cookie and localStorage, and follow other tabs. `false` keeps choices in memory only. See [persistence](/docs/frameworks/javascript/modules/persistence). |
 | `storageConfig` | `{ storageKey?, crossSubdomain?, defaultDomain?, defaultExpiryDays? }` | key `c15t`, 365 days | Cookie and localStorage naming and lifetime. |
 | `reloadOnConsentRevoked` | `boolean` | `true` | Reload after an accept, reject or save turns off a category or vendor that was allowed, once the save request finishes. |
