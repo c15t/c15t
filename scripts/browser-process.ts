@@ -36,10 +36,15 @@ const processGroupAlive = async (pid: number): Promise<boolean> => {
 	try {
 		process.kill(-pid, 0);
 	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code === 'ESRCH') {
+		const { code } = error as NodeJS.ErrnoException;
+		if (code === 'ESRCH') {
 			return false;
 		}
-		throw error;
+		// macOS answers EPERM for a group whose members are all zombies, so
+		// let the process table decide.
+		if (code !== 'EPERM') {
+			throw error;
+		}
 	}
 	// Zombies retain a process-group ID but have already released their resources.
 	const { stdout } = await execFileAsync('ps', ['-A', '-o', 'pgid=,stat=']);

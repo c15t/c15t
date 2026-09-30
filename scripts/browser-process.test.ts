@@ -1,7 +1,7 @@
 import { once } from 'node:events';
 import { createServer } from 'node:net';
 
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 
 import {
 	runCommand,
@@ -73,5 +73,20 @@ it('terminates descendants and releases their listening port', async () => {
 		expect(rebound.listening).toBe(true);
 	} finally {
 		rebound.close();
+	}
+});
+
+it('checks the process table when the OS will not signal a finished group', async () => {
+	const server = startProcess(['node', '-e', '']);
+	await once(server.child, 'close');
+	// macOS answers EPERM rather than ESRCH while the group's last member is
+	// a zombie waiting to be reaped.
+	const kill = vi.spyOn(process, 'kill').mockImplementation(() => {
+		throw Object.assign(new Error('kill EPERM'), { code: 'EPERM' });
+	});
+	try {
+		await expect(stopProcess(server.child)).resolves.toBeUndefined();
+	} finally {
+		kill.mockRestore();
 	}
 });
