@@ -108,6 +108,30 @@ When a visitor turns off a category they had allowed, c15t reloads the page so
 that code which already ran stops. Each vendor guide lists what its helper does
 on revocation and how to check it.
 
+## Vendor switches and cookie cleanup
+
+Every helper sets a `vendor` slug, so once you declare that vendor a visitor
+can allow its category and still switch the vendor off. Gating also leaves
+behind the cookies a vendor already wrote; `clearOnRevocation` deletes them
+when their category is denied. Each framework documents both in its Scripts
+and embeds group:
+
+| Framework      | Vendor consent                                                                   | Clear on revocation                                                                        |
+| -------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Next.js        | [Vendor consent](https://c15t.com/docs/frameworks/next/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/next/clear-on-revocation)           |
+| TanStack Start | [Vendor consent](https://c15t.com/docs/frameworks/tanstack-start/vendor-consent) | [Clear on revocation](https://c15t.com/docs/frameworks/tanstack-start/clear-on-revocation) |
+| React          | [Vendor consent](https://c15t.com/docs/frameworks/react/vendor-consent)          | [Clear on revocation](https://c15t.com/docs/frameworks/react/clear-on-revocation)          |
+| Nuxt           | [Vendor consent](https://c15t.com/docs/frameworks/nuxt/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/nuxt/clear-on-revocation)           |
+| Vue            | [Vendor consent](https://c15t.com/docs/frameworks/vue/vendor-consent)            | [Clear on revocation](https://c15t.com/docs/frameworks/vue/clear-on-revocation)            |
+| Astro          | Not available                                                                    | [Clear on revocation](https://c15t.com/docs/frameworks/astro/clear-on-revocation)          |
+| Svelte         | [Vendor consent](https://c15t.com/docs/frameworks/svelte/vendor-consent)         | [Clear on revocation](https://c15t.com/docs/frameworks/svelte/clear-on-revocation)         |
+| SvelteKit      | [Vendor consent](https://c15t.com/docs/frameworks/sveltekit/vendor-consent)      | [Clear on revocation](https://c15t.com/docs/frameworks/sveltekit/clear-on-revocation)      |
+| HTML           | Not available                                                                    | [Clear on revocation](https://c15t.com/docs/frameworks/html/clear-on-revocation)           |
+| JavaScript     | [Vendor consent](https://c15t.com/docs/frameworks/javascript/vendor-consent)     | [Clear on revocation](https://c15t.com/docs/frameworks/javascript/clear-on-revocation)     |
+
+The Astro integration has no `vendors` option, and the HTML script tag's
+preference dialog shows no vendor switches. React Native has neither option.
+
 ## Send events only to allowed integrations
 
 `createEventDispatcher` from `@c15t/integrations/events` sends one named event to
@@ -141,7 +165,5 @@ paths or hash-only changes are skipped.
 ## Add a vendor without a helper
 
 Use [custom integrations](./building-integrations.md) for a
-vendor without a helper, or an SDK your app already loads. To keep another
-consent platform in charge, see
-[use c15t with an existing CMP](./existing-cmp.md). Test every
+vendor without a helper, or an SDK your app already loads. Test every
 integration with the [consent verification guide](../guides/verify-consent.md).

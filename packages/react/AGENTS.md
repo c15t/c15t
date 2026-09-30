@@ -24,6 +24,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 ## Frameworks
 
 - [Callbacks](./docs/frameworks/react/callbacks.md): Run code in a React app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, with the ConsentProvider callbacks option.
+- [Clear on revocation](./docs/frameworks/react/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns in a React app when that category is denied, with the clearOnRevocation option on ConsentProvider.
 - [Components](./docs/frameworks/react/components.md): Every c15t component a React app imports from c15t/react, what each renders, where each one mounts, and which to start with.
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): Render the c15t consent banner in a React app, choose its variant and position, and compose its parts.
 - [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): Open the c15t preference center as a modal ConsentDialog in a React app, wire its triggers and control blocking, focus and policy gating.
@@ -46,6 +47,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Scripts](./docs/frameworks/react/scripts.md): Load vendor scripts by consent category in a React app with ConsentProvider, and clear stored data or reload the page when a visitor withdraws consent.
 - [Translations](./docs/frameworks/react/translations.md): Where c15t banner and dialog copy comes from in a React app, how the browser picks the visitor's language, and how to override copy and switch languages with the provider's i18n option and hooks.
 - [Troubleshooting](./docs/frameworks/react/troubleshooting.md): Fix a missing banner, early vendor requests, unstyled components and theme warnings in a React app that uses c15t/react.
+- [Vendor consent](./docs/frameworks/react/vendor-consent.md): Let visitors allow a category such as marketing in a React app and still turn off one vendor in it, with the vendors option on ConsentProvider and useVendorAllowed.
 
 ## Concepts
 
@@ -81,19 +83,16 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Ahrefs Analytics](./docs/integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
 - [Amplitude](./docs/integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
 - [Custom integrations](./docs/integrations/building-integrations.md): Gate a vendor that has no @c15t/integrations helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
-- [Clear on revocation](./docs/integrations/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns when that category is denied, and check the deletion in DevTools.
 - [Clearbit](./docs/integrations/clearbit.md): Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.
 - [Cloudflare Web Analytics](./docs/integrations/cloudflare-web-analytics.md): Load the Cloudflare Web Analytics beacon only after measurement consent with the c15t cloudflareWebAnalytics helper, and check it in DevTools.
 - [Cloudflare Zaraz](./docs/integrations/cloudflare-zaraz.md): Sync c15t permissions to Cloudflare Zaraz purposes with the c15t cloudflareZaraz bridge, which runs on every page without loading a script, and check the tools it controls.
 - [Crisp](./docs/integrations/crisp.md): Load the Crisp chat widget only after functionality consent with the c15t crisp helper, pass its runtime settings and check it in DevTools.
 - [Databuddy](./docs/integrations/databuddy.md): Load the Databuddy SDK on every page with the c15t databuddy helper, switch its disabled flag and config from measurement consent, and check both in DevTools.
-- [Use c15t with an existing CMP](./docs/integrations/existing-cmp.md): Keep your current consent platform for the banner and records, and let c15t load scripts from its decisions with a consentSource adapter.
 - [Fathom Analytics](./docs/integrations/fathom-analytics.md): Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
 - [Front Chat](./docs/integrations/front-chat.md): Load the Front Chat widget only after functionality consent with the c15t frontChat helper, forward CSP nonces, clear the session on revocation and check it in DevTools.
 - [Google Maps](./docs/integrations/google-maps.md): Gate a Google Maps iframe embed with c15t v3 so the map loads only after the visitor allows its consent category, in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML or JavaScript.
 - [Google Tag](./docs/integrations/google-tag.md): Load gtag.js for Google Analytics or Google Ads with c15t Consent Mode v2 signals, and verify the consent commands in DevTools.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Load a Google Tag Manager container with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
-- [Let visitors turn off one vendor](./docs/integrations/granular-consent.md): Declare vendors so a visitor can allow a category such as marketing and still switch off one vendor in it, without adopting IAB TCF.
 - [Heap](./docs/integrations/heap.md): Load the Heap config script and heap.js only after measurement consent with the c15t heap helper, and check it in DevTools.
 - [Hightouch](./docs/integrations/hightouch.md): Load the Hightouch Events browser SDK only after measurement consent with the c15t hightouch helper, and check page events in DevTools.
 - [Hotjar](./docs/integrations/hotjar.md): Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.

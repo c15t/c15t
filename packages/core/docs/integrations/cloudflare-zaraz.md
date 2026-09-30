@@ -319,7 +319,7 @@ The bridge's vendor slug is `cloudflare-zaraz`. Declare a vendor with that
 `id` to give visitors a switch for Zaraz in the preference dialog. While a
 visitor has it switched off, the bridge denies every purpose mapped to an
 optional category, whatever the categories allow. See
-[let visitors turn off one vendor](./granular-consent.md).
+[vendor consent for your framework](./overview.md#vendor-switches-and-cookie-cleanup).
 
 When the Zaraz consent API is ready, the bridge reads `zaraz.consent.getAll()`
 and sets each returned purpose to `true` only if its mapped category is

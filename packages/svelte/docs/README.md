@@ -6,7 +6,7 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 ## Using these docs
 
-These docs describe c15t v3. Find your app's row in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
+These docs describe c15t v3. Find the app in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
 
 ## Start here
 
@@ -24,9 +24,8 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 ## Frameworks
 
-### Svelte
-
 - [Callbacks](./frameworks/svelte/callbacks.md): Run your own code in a Svelte app when a visitor records a choice or permissions change, with onChoiceRecorded, onPermissionsChanged and script callbacks.
+- [Clear on revocation](./frameworks/svelte/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns in a Svelte app when that category is denied, with the clearOnRevocation prop on ConsentManagerProvider.
 - [Components](./frameworks/svelte/components.md): Props and behavior of every @c15t/svelte component in a Svelte app, from ConsentManagerProvider and ConsentBanner to ConsentGate and DevTools.
 - [ConsentBanner](./frameworks/svelte/components/consent-banner.md): Show the c15t cookie banner in a Svelte app with ConsentBanner, and set its variant, position, button layout, copy, accessibility and styling hooks.
 - [ConsentButton](./frameworks/svelte/components/consent-button.md): Accept, reject, save or open preferences from your own Svelte markup with ConsentButton, and what each action records.
@@ -51,10 +50,9 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Scripts](./frameworks/svelte/scripts.md): Load vendor scripts, iframes and network requests in a Svelte app only after the visitor allows their consent category, and stop them when consent is withdrawn.
 - [Translations](./frameworks/svelte/translations.md): Change c15t banner and dialog copy in a Svelte app with component text props or the provider's i18n option, and switch languages at runtime.
 - [Troubleshooting](./frameworks/svelte/troubleshooting.md): Fix a missing banner, an unset backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
-
-### SvelteKit
-
+- [Vendor consent](./frameworks/svelte/vendor-consent.md): Let visitors allow a category such as marketing in a Svelte app and still turn off one vendor in it, with the vendors prop on ConsentManagerProvider and getConsentManager.
 - [Callbacks](./frameworks/sveltekit/callbacks.md): Run your own code in a SvelteKit app when a visitor records a choice or permissions change, with onChoiceRecorded, onPermissionsChanged and script callbacks.
+- [Clear on revocation](./frameworks/sveltekit/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns in a SvelteKit app when that category is denied, with the clearOnRevocation prop on ConsentManagerProvider.
 - [Components](./frameworks/sveltekit/components.md): Props and behavior of every @c15t/svelte component in a SvelteKit app, from ConsentManagerProvider and ConsentBanner to ConsentGate and DevTools.
 - [ConsentBanner](./frameworks/sveltekit/components/consent-banner.md): Show the c15t cookie banner in SvelteKit server HTML with ConsentBanner, and set its variant, position, button layout, copy, accessibility and styling hooks.
 - [ConsentButton](./frameworks/sveltekit/components/consent-button.md): Accept, reject, save or open preferences from SvelteKit pages with ConsentButton, and what each action records.
@@ -82,6 +80,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Server API](./frameworks/sveltekit/server-api.md): Reference for loadConsent, c15tHandle, createSvelteKitConsentRouteHandlers and resolveConsent from @c15t/svelte/kit and @c15t/svelte/server, with every option and default.
 - [Translations](./frameworks/sveltekit/translations.md): Change c15t banner and dialog copy in a SvelteKit app, where the server prefetch carries the backend's translations for the request's language.
 - [Troubleshooting](./frameworks/sveltekit/troubleshooting.md): Fix a banner missing from SvelteKit server HTML, failed saves through the manifest route, prerender build errors and ignored theme colors.
+- [Vendor consent](./frameworks/sveltekit/vendor-consent.md): Let visitors allow a category such as marketing in a SvelteKit app and still turn off one vendor in it, with the vendors prop on ConsentManagerProvider and getConsentManager.
 
 ## Concepts
 
@@ -117,19 +116,16 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Ahrefs Analytics](./integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
 - [Amplitude](./integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
 - [Custom integrations](./integrations/building-integrations.md): Gate a vendor that has no @c15t/integrations helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
-- [Clear on revocation](./integrations/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns when that category is denied, and check the deletion in DevTools.
 - [Clearbit](./integrations/clearbit.md): Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.
 - [Cloudflare Web Analytics](./integrations/cloudflare-web-analytics.md): Load the Cloudflare Web Analytics beacon only after measurement consent with the c15t cloudflareWebAnalytics helper, and check it in DevTools.
 - [Cloudflare Zaraz](./integrations/cloudflare-zaraz.md): Sync c15t permissions to Cloudflare Zaraz purposes with the c15t cloudflareZaraz bridge, which runs on every page without loading a script, and check the tools it controls.
 - [Crisp](./integrations/crisp.md): Load the Crisp chat widget only after functionality consent with the c15t crisp helper, pass its runtime settings and check it in DevTools.
 - [Databuddy](./integrations/databuddy.md): Load the Databuddy SDK on every page with the c15t databuddy helper, switch its disabled flag and config from measurement consent, and check both in DevTools.
-- [Use c15t with an existing CMP](./integrations/existing-cmp.md): Keep your current consent platform for the banner and records, and let c15t load scripts from its decisions with a consentSource adapter.
 - [Fathom Analytics](./integrations/fathom-analytics.md): Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
 - [Front Chat](./integrations/front-chat.md): Load the Front Chat widget only after functionality consent with the c15t frontChat helper, forward CSP nonces, clear the session on revocation and check it in DevTools.
-- [Google Maps](./integrations/google-maps.md): Gate a Google Maps iframe embed with c15t v3 so the map loads only after the visitor allows its consent category, in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML or JavaScript.
+- [Google Maps](./integrations/google-maps.md): Prevent a map iframe from mounting before the required permission.
 - [Google Tag](./integrations/google-tag.md): Load gtag.js for Google Analytics or Google Ads with c15t Consent Mode v2 signals, and verify the consent commands in DevTools.
 - [Google Tag Manager](./integrations/google-tag-manager.md): Load a Google Tag Manager container with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
-- [Let visitors turn off one vendor](./integrations/granular-consent.md): Declare vendors so a visitor can allow a category such as marketing and still switch off one vendor in it, without adopting IAB TCF.
 - [Heap](./integrations/heap.md): Load the Heap config script and heap.js only after measurement consent with the c15t heap helper, and check it in DevTools.
 - [Hightouch](./integrations/hightouch.md): Load the Hightouch Events browser SDK only after measurement consent with the c15t hightouch helper, and check page events in DevTools.
 - [Hotjar](./integrations/hotjar.md): Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.
@@ -143,7 +139,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Mixpanel](./integrations/mixpanel-analytics.md): Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
 - [OneDollarStats](./integrations/one-dollar-stats.md): Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
 - [OpenAI Pixel](./integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
-- [Integrations](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
+- [Overview](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
 - [Pinterest Tag](./integrations/pinterest-tag.md): Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
 - [Pirsch](./integrations/pirsch.md): Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
 - [Plausible Analytics](./integrations/plausible-analytics.md): Load the Plausible Analytics tracker only after measurement consent with the c15t plausibleAnalytics helper, and check it in DevTools.

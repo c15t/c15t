@@ -324,10 +324,10 @@ calls the vendor's opt-out API, as shown in
 [custom integrations](./building-integrations.md), and check the
 permission before each of your own event calls. The reload does not delete
 cookies the vendor already set; see
-[clear on revocation](./clear-on-revocation.md).
+[clear on revocation for your framework](./overview.md#vendor-switches-and-cookie-cleanup).
 
 The helper sets `vendor` to its script ID, so once you declare that vendor a
 visitor can turn it off inside an allowed category. See
-[let visitors turn off one vendor](./granular-consent.md). The
+[vendor consent for your framework](./overview.md#vendor-switches-and-cookie-cleanup). The
 [consent verification guide](../guides/verify-consent.md) covers navigation,
 expiry and hosting checks.
