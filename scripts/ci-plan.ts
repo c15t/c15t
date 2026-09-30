@@ -284,7 +284,7 @@ export const createCiPlan = function createCiPlan(
 		)
 		.map((workspace) => workspace.name);
 	const styles = selected.some((workspace) =>
-		/benchmarks\/(?:tw3-test|tw4-test|no-tw-test|css-layer-preview|tailwind-matrix\/v[34](?:\/next-15)?)$/u.test(
+		/benchmarks\/(?:tw3-test|tw4-test|no-tw-test|css-layer-preview|tailwind-matrix\/v[34](?:\/next-15(?:-turbopack)?)?)$/u.test(
 			workspace.directory
 		)
 	);

@@ -117,6 +117,10 @@ describe('CI selection', () => {
 			plan(['benchmarks/tailwind-matrix/v4/next-16-turbopack/app/globals.css'])
 				.styles
 		).toBe(true);
+		expect(
+			plan(['benchmarks/tailwind-matrix/v4/next-15-turbopack/app/globals.css'])
+				.styles
+		).toBe(true);
 		expect(plan(['packages/backend/src/index.ts']).backend).toBe(true);
 		expect(plan(['packages/cli/src/index.ts']).backend).toBe(false);
 	});
