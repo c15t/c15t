@@ -415,6 +415,17 @@
 	--cdtt-shadow: 0 8px 18px rgb(0 0 0 / 0.32), 0 2px 5px rgb(0 0 0 / 0.22);
 }
 
+/* `disableAnimation`: the adapters mark the trigger and the toolbar with
+   `data-disable-animation`. One attribute above the rules that animate, so
+   these win wherever the stylesheet lands. */
+.trigger[data-disable-animation],
+.trigger[data-disable-animation].snapping,
+.toolbar[data-disable-animation],
+.toolbar[data-disable-animation].snapping,
+.toolbar[data-disable-animation] .toolbarItem {
+	transition: none;
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
 	.trigger,

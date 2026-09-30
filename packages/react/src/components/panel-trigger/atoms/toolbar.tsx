@@ -202,7 +202,7 @@ export const TriggerToolbar = ({
 	noStyle = false,
 }: TriggerToolbarProps): ReactNode => {
 	const { components } = useUIConfig();
-	const { noStyle: contextNoStyle } = useTheme();
+	const { disableAnimation, noStyle: contextNoStyle } = useTheme();
 	const {
 		label: defaultPreferencesLabel,
 		right: preferencesRight,
@@ -336,6 +336,7 @@ export const TriggerToolbar = ({
 			data-corner={corner}
 			data-c15t-trigger-toolbar="true"
 			data-c15t-trigger="true"
+			data-disable-animation={disableAnimation ? '' : undefined}
 			data-dragging={isDragging || undefined}
 			data-snapping={isSnapping || undefined}
 			dir="ltr"

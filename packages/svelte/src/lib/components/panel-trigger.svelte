@@ -242,6 +242,7 @@
 			style={buttonStyle}
 			data-c15t-trigger="true"
 			data-c15t-rights={consent.snapshot.policyRule.rights.join(' ')}
+			data-disable-animation={theme.disableAnimation ? '' : undefined}
 			aria-label={ariaLabel}
 			onclick={handleClick}
 			onpointerdown={handlePointerDown}

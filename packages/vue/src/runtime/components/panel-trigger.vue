@@ -181,6 +181,7 @@ const openDialog = function openDialog() {
 			:class="triggerStyles.trigger"
 			:data-size="config.triggerSize"
 			:data-dragging="isDragging ? true : undefined"
+			:data-disable-animation="config.disableAnimation ? true : undefined"
 			:style="[config.components?.trigger?.root?.style, triggerStyle]"
 			:aria-label="config.triggerAriaLabel"
 			@click="openDialog"
