@@ -237,10 +237,12 @@ for (const engine of ENGINES) {
 			const first = await post(appFor('tenant_a'), submission);
 			assert.strictEqual(first.status, 200);
 
+			// 409 with its own code, so a client can tell it apart from a
+			// receipt conflict: this one it recovers from with a new id.
 			const second = await post(appFor('tenant_b'), submission);
-			assert.strictEqual(second.status, 400);
+			assert.strictEqual(second.status, 409);
 			const body = (await second.json()) as { cause?: { code?: string } };
-			assert.strictEqual(body.cause?.code, 'CONFLICT');
+			assert.strictEqual(body.cause?.code, 'SUBJECT_CONFLICT');
 
 			// And nothing was written under the second tenant.
 			assert.deepStrictEqual(await rowTenants('consent'), ['tenant_a']);
@@ -258,7 +260,7 @@ for (const engine of ENGINES) {
 				...submission,
 				preferences: { analytics: true, marketing: true, necessary: true },
 			});
-			assert.strictEqual(changed.status, 400);
+			assert.strictEqual(changed.status, 409);
 			const body = (await changed.json()) as { cause?: { code?: string } };
 			assert.strictEqual(body.cause?.code, 'CONFLICT');
 		});

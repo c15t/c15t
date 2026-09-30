@@ -92,8 +92,24 @@ export interface AppOptions {
 	 * Undefined means a single-tenant deployment whose rows hold NULL. That is
 	 * still a scope — queries filter on `is null` — so there is no unscoped
 	 * mode to fall into.
+	 *
+	 * Checked when the instance is built: an empty or padded string, a
+	 * non-string, or a value that disagrees with `manifest.tenantId` throws
+	 * rather than scoping queries to a tenant nobody meant.
 	 */
 	readonly tenantId?: string;
+	/**
+	 * Refuse to build an instance without a `tenantId`.
+	 *
+	 * Set it wherever several tenants share one database. Without it, an
+	 * instance whose `tenantId` came back undefined (a failed lookup, a missing
+	 * environment variable) runs as the single-tenant scope: it writes rows with
+	 * a NULL tenant that the tenant who owns them never sees, and nothing says
+	 * so. With it, construction throws.
+	 *
+	 * @default false
+	 */
+	readonly requireTenantId?: boolean;
 	/** Per-tenant configuration the manifest and /init are built from. */
 	readonly manifest?: ConsentManifestConfig;
 	readonly manifestCache?: ManifestCacheOptions;
@@ -159,6 +175,56 @@ export interface AppOptions {
 	 */
 	readonly observability?: ObservabilityOptions;
 }
+
+/**
+ * Refuses tenant configuration that would scope queries to the wrong place.
+ *
+ * The tenant is an isolation boundary, so a mistake in it has to stop the
+ * instance from starting. Degrading to the single-tenant scope instead would
+ * write a tenant's consents where it cannot read them, and nothing in a
+ * response or a log would say so.
+ *
+ * @param options - The instance's options.
+ * @throws {Error} When `tenantId` is not a non-empty, unpadded string, when
+ * `requireTenantId` is set without one, or when `manifest.tenantId` names a
+ * different tenant from the instance.
+ * @internal
+ */
+export const assertTenantOptions = function assertTenantOptions(
+	options: Pick<AppOptions, 'manifest' | 'requireTenantId' | 'tenantId'>
+): void {
+	// Read as unknown: a JavaScript config can pass anything, and `null` would
+	// otherwise scope every query to `tenantId = NULL`, which matches nothing.
+	const tenantId: unknown = options.tenantId;
+	if (tenantId !== undefined) {
+		if (typeof tenantId !== 'string') {
+			throw new TypeError(
+				`[c15t] tenantId must be a string, received ${tenantId === null ? 'null' : typeof tenantId}. Omit it for a single-tenant deployment.`
+			);
+		}
+		if (tenantId.trim() === '' || tenantId.trim() !== tenantId) {
+			throw new Error(
+				`[c15t] tenantId ${JSON.stringify(tenantId)} is empty or has surrounding whitespace. Omit it for a single-tenant deployment.`
+			);
+		}
+	}
+
+	if (options.requireTenantId === true && tenantId === undefined) {
+		throw new Error(
+			'[c15t] requireTenantId is set but tenantId is missing. Refusing to start: without it this instance would read and write the single-tenant scope instead of a tenant.'
+		);
+	}
+
+	// The manifest's tenant scopes the policy snapshot audience; the instance's
+	// scopes every query. Two different values mean tokens minted for one
+	// tenant and records written for another.
+	const manifestTenantId = options.manifest?.tenantId;
+	if (manifestTenantId !== undefined && manifestTenantId !== tenantId) {
+		throw new Error(
+			`[c15t] manifest.tenantId is ${JSON.stringify(manifestTenantId)} but the instance tenantId is ${tenantId === undefined ? 'not set' : JSON.stringify(tenantId)}. Set tenantId on the instance to the same value.`
+		);
+	}
+};
 
 /**
  * What a route module needs to register itself.

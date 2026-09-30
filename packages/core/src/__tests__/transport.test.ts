@@ -1788,6 +1788,165 @@ describe('kernel transport: failed save replay', () => {
 		expect(stored[0].attempts).toBe(1);
 		kernel.dispose();
 	});
+
+	/** A save the backend accepts, echoing the subject it was sent under. */
+	const accepted = ({ subjectId }: { subjectId: string }) =>
+		Promise.resolve({ ok: true, subjectId });
+
+	test('a subject id another tenant owns is replaced and the choice sent again', async () => {
+		// On a shared database, `subject.id` is unique across tenants. A
+		// visitor whose id another tenant holds is refused on every save; a
+		// new id is the only way their choice is ever recorded.
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(refused('SUBJECT_CONFLICT'))
+			.mockImplementation(accepted);
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+		const errors: unknown[] = [];
+		kernel.events.on('command:error', ({ error }) => {
+			errors.push(error);
+		});
+		const resolved: (string | undefined)[] = [];
+		kernel.events.on('subject:resolved', ({ snapshot }) => {
+			resolved.push(snapshot.subject?.subjectId);
+		});
+
+		const result = await kernel.commands.save('all');
+
+		expect(saveSpy).toHaveBeenCalledTimes(2);
+		const refusedId = saveSpy.mock.calls[0]?.[0].subjectId as string;
+		const retried = saveSpy.mock.calls[1]?.[0];
+		expect(retried.subjectId).not.toBe(refusedId);
+		expect(retried.subjectId).toMatch(/^sub_/u);
+		expect(retried.subject.subjectId).toBe(retried.subjectId);
+		// The same act, only under the new id.
+		expect({ ...retried, subject: null, subjectId: null }).toEqual({
+			...saveSpy.mock.calls[0]?.[0],
+			subject: null,
+			subjectId: null,
+		});
+		expect(result).toMatchObject({ ok: true, subjectId: retried.subjectId });
+		expect(kernel.getSnapshot().subject?.subjectId).toBe(retried.subjectId);
+		// Persistence writes the new id on `subject:resolved`.
+		expect(resolved).toEqual([retried.subjectId]);
+		expect(errors).toEqual([]);
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		kernel.dispose();
+	});
+
+	test('a backend that refuses every subject id costs one resend, not a loop', async () => {
+		const saveSpy = vi.fn().mockRejectedValue(refused('SUBJECT_CONFLICT'));
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+		const errors: unknown[] = [];
+		kernel.events.on('command:error', ({ error }) => {
+			errors.push(error);
+		});
+
+		await expect(kernel.commands.save('all')).resolves.toMatchObject({
+			ok: false,
+		});
+
+		expect(saveSpy).toHaveBeenCalledTimes(2);
+		expect(errors).toHaveLength(1);
+		// Refused for good, so nothing is queued to replay.
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		kernel.dispose();
+	});
+
+	test('a queued save refused for its subject id replays under a new one', async () => {
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockRejectedValueOnce(refused('SUBJECT_CONFLICT'))
+			.mockImplementation(accepted);
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+		const replayed: { ok: boolean; rejected?: string; subjectId: string }[] =
+			[];
+		kernel.events.on('save:replayed', ({ ok, rejected, subjectId }) => {
+			replayed.push({ ok, rejected, subjectId });
+		});
+
+		await kernel.commands.save('all');
+		const queuedId = kernel.getSnapshot().subject?.subjectId;
+		expect(queuedId).toBeDefined();
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toHaveLength(1);
+		});
+
+		const newId = kernel.getSnapshot().subject?.subjectId;
+		expect(newId).not.toBe(queuedId);
+		expect(replayed).toEqual([{ ok: true, subjectId: newId }]);
+		expect(saveSpy).toHaveBeenCalledTimes(3);
+		expect(saveSpy.mock.calls[2]?.[0]).toMatchObject({
+			subject: { subjectId: newId },
+			subjectId: newId,
+		});
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		kernel.dispose();
+	});
+
+	test('a queued save for a subject the visitor no longer has is dropped, not moved', async () => {
+		// Moving it would record the old subject's choice under whoever holds
+		// the snapshot now.
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockRejectedValue(refused('SUBJECT_CONFLICT'));
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+		const replayed: { ok: boolean; rejected?: string }[] = [];
+		kernel.events.on('save:replayed', ({ ok, rejected }) => {
+			replayed.push({ ok, rejected });
+		});
+
+		await kernel.commands.save('all');
+		kernel.set.subjectId('sub_someone_else');
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toHaveLength(1);
+		});
+
+		expect(replayed).toEqual([{ ok: false, rejected: 'SUBJECT_CONFLICT' }]);
+		expect(kernel.getSnapshot().subject?.subjectId).toBe('sub_someone_else');
+		expect(saveSpy).toHaveBeenCalledTimes(2);
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		kernel.dispose();
+	});
+
+	test('queued saves under a replaced subject id move with it', async () => {
+		// An earlier choice still waiting to replay would otherwise be sent
+		// under the refused id and dropped.
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockRejectedValueOnce(refused('SUBJECT_CONFLICT'))
+			.mockImplementation(accepted);
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+
+		// Disjoint categories, so the second act does not supersede the first
+		// and the queued one is still owed a replay.
+		await kernel.commands.save({ marketing: true });
+		const queuedId = kernel.getSnapshot().subject?.subjectId;
+		await kernel.commands.save({ measurement: false });
+		const newId = kernel.getSnapshot().subject?.subjectId;
+		expect(newId).not.toBe(queuedId);
+
+		const stored = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		expect(stored).toHaveLength(1);
+		expect(stored[0].payload).toMatchObject({
+			confirmed: { categories: { marketing: true } },
+			subject: { subjectId: newId },
+			subjectId: newId,
+		});
+		kernel.dispose();
+	});
 });
 
 describe('hosted transport: save refusals', () => {
@@ -1831,6 +1990,8 @@ describe('hosted transport: save refusals', () => {
 		[409, 'POLICY_SNAPSHOT_INVALID', undefined],
 		[409, 'POLICY_SNAPSHOT_REQUIRED', undefined],
 		[422, 'STALE_POLICY', 'policy-changed'],
+		[409, 'CONFLICT', undefined],
+		[409, 'SUBJECT_CONFLICT', undefined],
 	])(
 		'%i %s is a refusal the kernel does not retry',
 		async (status, code, reason) => {

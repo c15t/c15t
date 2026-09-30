@@ -16,14 +16,16 @@
 import { policyRulePresets } from '@c15t/schema/types';
 import type { ConsentManifestConfig } from '@c15t/schema/types';
 import { PgliteClient } from '@effect/sql-pglite';
-import { assert, describe, it } from '@effect/vitest';
+import { assert, describe, expect, it } from '@effect/vitest';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 
 import { toLayer } from './db/connect';
 import { up as baseline } from './db/migrations/1-baseline';
+import { createApp } from './http/app';
 import type { GvlConfig } from './http/gvl';
 import { c15tInstance } from './instance';
+import type { C15TOptions } from './instance';
 import { composePacks, policyBuilder } from './policy/builder';
 
 /**
@@ -307,6 +309,88 @@ describe('startup warning for the vendor list', () => {
 		assert.deepStrictEqual(
 			warningsDuring({ policyRules: [policyRulePresets.europeOptIn()] }),
 			[]
+		);
+	});
+});
+
+describe('tenant configuration', () => {
+	/**
+	 * Builds an instance and disposes it again, so a case that expects the
+	 * build to succeed does not leak a pool.
+	 */
+	const build = async (options: Omit<C15TOptions, 'database'>) => {
+		const instance = c15tInstance({
+			database: { dialect: 'sqlite', filename: ':memory:' },
+			...options,
+		});
+		await instance.dispose();
+	};
+
+	it('refuses to start without a tenantId when one is required', async () => {
+		// The failure this exists for: a tenant lookup that came back
+		// undefined. Without the flag the instance runs as the single-tenant
+		// scope and writes the tenant's consents where it cannot read them.
+		await expect(
+			build({ requireTenantId: true, tenantId: undefined })
+		).rejects.toThrow(/requireTenantId/u);
+	});
+
+	it('starts when a required tenantId is present', async () => {
+		await expect(
+			build({ requireTenantId: true, tenantId: 'tenant_a' })
+		).resolves.toBeUndefined();
+	});
+
+	it('still starts single-tenant when nothing asks for a tenant', async () => {
+		await expect(build({})).resolves.toBeUndefined();
+	});
+
+	it.each([
+		['empty', ''],
+		['blank', '   '],
+		['padded', ' tenant_a\n'],
+	])('refuses an %s tenantId', async (_label, tenantId) => {
+		await expect(build({ tenantId })).rejects.toThrow(/tenantId/u);
+	});
+
+	it('refuses a null tenantId from an untyped config', async () => {
+		// `null` would scope every query to `tenantId = NULL`, which matches
+		// no row: reads find nothing and nothing says why.
+		await expect(
+			build({ tenantId: null as unknown as string })
+		).rejects.toThrow(/received null/u);
+	});
+
+	it('refuses a manifest tenant the instance does not serve', async () => {
+		// The manifest's tenant scopes policy snapshot tokens and the
+		// instance's scopes the rows, so a mismatch mints tokens for one tenant
+		// and writes records for another.
+		await expect(
+			build({ manifest: { tenantId: 'tenant_b' }, tenantId: 'tenant_a' })
+		).rejects.toThrow(/manifest\.tenantId/u);
+		await expect(build({ manifest: { tenantId: 'tenant_b' } })).rejects.toThrow(
+			/not set/u
+		);
+	});
+
+	it('accepts a manifest tenant that matches the instance', async () => {
+		await expect(
+			build({ manifest: { tenantId: 'tenant_a' }, tenantId: 'tenant_a' })
+		).resolves.toBeUndefined();
+	});
+
+	it('applies the same check to createApp', () => {
+		// `createApp` is the other public way in; it must not be the one that
+		// skips the check.
+		const runtime = ManagedRuntime.make(
+			PgliteClient.layer({}) as unknown as Layer.Layer<
+				SqlClient.SqlClient,
+				never
+			>
+		);
+		assert.throws(
+			() => createApp(runtime, { requireTenantId: true }),
+			/requireTenantId/u
 		);
 	});
 });

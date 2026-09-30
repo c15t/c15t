@@ -38,7 +38,8 @@ fallback. Add reviewed rules for other locations in
 | `database` | Required PostgreSQL, MySQL or SQLite connection, or an Effect SQL client layer. |
 | `basePath` | Mount prefix to strip before routing. Set it when the handler receives paths such as `/api/c15t/init`. |
 | `trustedOrigins` | Browser origins receiving CORS permission. Empty or absent allows no cross-origin browser access. |
-| `tenantId` | Fixed tenant for this instance's database queries. Omitted uses the single-tenant scope with null tenant IDs. |
+| `tenantId` | Fixed tenant for this instance's database queries. Omitted uses the single-tenant scope with null tenant IDs. An empty or padded string, or a non-string such as `null`, throws when the instance is built. |
+| `requireTenantId` | Set to `true` when several tenants share one database. The instance throws at construction if `tenantId` is missing, instead of running in the single-tenant scope. Defaults to `false`. |
 | `manifest` | Policy rules, translations, branding and IAB configuration published by `/manifest` and resolved by `/init`. |
 | `manifestCache` | Public manifest cache durations in seconds. Defaults to `sMaxAge: 300`, `staleWhileRevalidate: 86400`. |
 | `apiKeys` | Keys accepted as `Authorization: Bearer <key>` for administrative endpoints. No keys means no request authenticates. |
@@ -60,7 +61,7 @@ pass logging callbacks when constructing the instance instead.
 | Option | What it changes |
 | --- | --- |
 | `policyRules` | Ordered canonical policy rules. Author this field, not the generated manifest's `policyPacks`. |
-| `tenantId` | Tenant metadata in the manifest. Keep it consistent with the instance's tenant. |
+| `tenantId` | Tenant metadata in the manifest. When set, it must equal the instance's `tenantId`, or the instance throws when it is built. |
 | `appName` | Application name included in configuration. |
 | `branding` | Branding setting, defaulting to `c15t`. |
 | `disableGeoLocation` | Disables location-based resolution. Review the resulting default and fallback behavior. |
@@ -118,6 +119,41 @@ database credentials and signing keys in server environment variables.
 A `tenantId` scopes an instance, not an arbitrary incoming header. Construct the
 correct tenant instance in trusted application code. Do not choose a tenant from
 an unchecked browser value.
+
+When several tenants share one database, set `requireTenantId: true` on every
+instance. Without it, an instance whose tenant lookup returned `undefined` starts
+in the single-tenant scope. It then writes consents with a null tenant, which
+the tenant that owns them never reads, and nothing reports the problem.
+
+```ts title="lib/c15t.ts"
+import { c15tInstance, type C15TInstance } from '@c15t/backend';
+
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
+
+// One instance per tenant: each instance owns a connection pool.
+const instances = new Map<string, C15TInstance>();
+
+export function instanceFor(tenantId: string | undefined) {
+  const key = tenantId ?? '';
+  let instance = instances.get(key);
+  if (!instance) {
+    instance = c15tInstance({
+      database: { dialect: 'postgres', url },
+      tenantId,
+      // Throws here if the tenant lookup returned undefined.
+      requireTenantId: true,
+    });
+    instances.set(key, instance);
+  }
+  return instance;
+}
+```
+
+Subject IDs are chosen by the browser and are unique across the whole database,
+not per tenant. When a save names a subject ID that another tenant already holds,
+the backend answers `409 SUBJECT_CONFLICT` and writes nothing. The c15t client
+then generates a new subject ID for that visitor and sends the choice once more.
 
 `ipAddress.ipAddressHeaders` overrides the ordered headers used to record an IP.
 Configure the reverse proxy to replace trusted forwarding headers. IP recording

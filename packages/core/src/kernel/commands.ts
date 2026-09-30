@@ -25,7 +25,10 @@ import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
-import { isConsentSaveRejection } from '../transports/save-rejection';
+import {
+	isConsentSaveRejection,
+	isSubjectConflict,
+} from '../transports/save-rejection';
 import type {
 	ConsentSnapshot,
 	ConsentState,
@@ -47,7 +50,7 @@ import type {
 } from '../types';
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
-import { createPendingSaveQueue } from './pending-saves';
+import { createPendingSaveQueue, withSubjectId } from './pending-saves';
 import type { KernelRuntime } from './runtime';
 import { selectSavePayload } from './save-selection';
 import { copyIABAuthority, isPromptSurface } from './snapshot';
@@ -845,8 +848,17 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	const { batch, getSnapshot, commit, emit } = runtime;
 	const retryPolicy = resolveInitRetryPolicy(initRetry);
 	const pendingSaves = transport?.save
-		? createPendingSaveQueue({ emit, save: transport.save })
+		? createPendingSaveQueue({
+				emit,
+				// oxlint-disable-next-line no-use-before-define -- Called only during a replay, after the kernel is built.
+				reassignSubject: (from) => reassignSubject(from),
+				save: transport.save,
+			})
 		: null;
+	// Subject ids this kernel replaced after the backend refused them as
+	// another tenant's, old to new. A live save and a replay can both hit the
+	// same refusal; this sends both to one new id instead of minting two.
+	const reassignedSubjects = new Map<string, string>();
 	let disposed = false;
 	// Bumped by every explicit `init()`. An attempt that resolves after a newer
 	// init started is stale: it must not apply its response, touch retry
@@ -1184,6 +1196,59 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	};
 
 	/**
+	 * Give the visitor a new subject id after the backend refused `from`
+	 * with `SUBJECT_CONFLICT`: on a database several tenants share, another
+	 * tenant already owns it. Resending under the same id is refused every
+	 * time, so without this the visitor's choices would never be recorded.
+	 *
+	 * Committed like a subject the server resolved, so persistence writes
+	 * the new id over the stored one, and queued saves for `from` move with
+	 * it. Resolves to `null` when `from` is no longer this visitor's subject:
+	 * a save for a subject since replaced or cleared is not moved onto
+	 * whoever holds the snapshot now.
+	 */
+	const reassignSubject = async function reassignSubject(
+		from: string
+	): Promise<string | null> {
+		const current = getSnapshot().subject;
+		let next = reassignedSubjects.get(from);
+		if (next === undefined) {
+			if (current?.subjectId !== from) {
+				return null;
+			}
+			next = generateSubjectId();
+			reassignedSubjects.set(from, next);
+			const subject: ConsentSubject = { ...current, subjectId: next };
+			batch(() => {
+				commit({ subject });
+				emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
+			});
+		} else if (current?.subjectId !== next) {
+			return null;
+		}
+		// Every time, not only on the first reassignment: a save still in
+		// flight under `from` may have been queued since.
+		await pendingSaves?.rekey(from, next);
+		return next;
+	};
+
+	/**
+	 * The new subject id to resend a live save under, when the transport
+	 * refused it with `SUBJECT_CONFLICT`, the save is still current, and this
+	 * is not already the resend.
+	 */
+	const reassignAfterConflict = function reassignAfterConflict(
+		error: unknown,
+		remaining: SavePayload | null,
+		reassign: boolean
+	): Promise<string | null> {
+		if (!reassign || !remaining || !isSubjectConflict(error)) {
+			return Promise.resolve(null);
+		}
+		return reassignSubject(remaining.subjectId);
+	};
+
+	/**
 	 * Queue a save the transport threw on, unless the backend refused it for
 	 * good: that one would be refused again on every replay. Queued older
 	 * saves it replaced are dropped instead, so they can't replay over the
@@ -1211,7 +1276,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		payload: SavePayload,
 		generation: number,
 		confirmed: readonly OptionalConsentCategory[],
-		actionSnapshot: ConsentSnapshot
+		actionSnapshot: ConsentSnapshot,
+		// False on the resend after a subject reassignment, so a backend that
+		// refuses every id costs one extra request, not a loop.
+		reassign: boolean
 	): Promise<SaveResult> {
 		const currentPayload = (): SavePayload | null => {
 			const current = getSnapshot();
@@ -1294,8 +1362,18 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			}
 			return { ...result, confirmed };
 		} catch (error) {
-			emit({ command: 'save', error, type: 'command:error' });
 			const remaining = currentPayload();
+			const subjectId = await reassignAfterConflict(error, remaining, reassign);
+			if (subjectId !== null) {
+				return sendSave(
+					withSubjectId(payload, subjectId),
+					generation,
+					confirmed,
+					actionSnapshot,
+					false
+				);
+			}
+			emit({ command: 'save', error, type: 'command:error' });
 			if (remaining) {
 				await settleThrownSave(remaining, error);
 			}
@@ -1626,7 +1704,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				payload,
 				generation,
 				recorded.confirmed,
-				after
+				after,
+				true
 			);
 			emit({ result, type: 'command:save:completed' });
 			return result;
