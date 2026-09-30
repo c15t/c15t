@@ -144,4 +144,22 @@ describe('stylesheet variable references', () => {
 			)
 		).toEqual([]);
 	});
+
+	// A motion variable with a fallback still has to be a real token: the
+	// fallback renders, so a theme's `motion` never reaches the part. The
+	// floating trigger read `--c15t-motion-duration` and friends that way.
+	test('every var(--c15t-*) motion reference names a declared token', () => {
+		const dangling = files.flatMap((file) =>
+			[
+				...read(file).matchAll(
+					/var\(\s*(?<name>--c15t-[a-z0-9-]*(?:duration|easing|motion)[a-z0-9-]*)/gu
+				),
+			]
+				.map((match) => match.groups?.name ?? '')
+				.filter((name) => !declared.has(name))
+				.map((name) => `${name} used by ${file.slice(SRC_DIR.length + 1)}`)
+		);
+
+		expect([...new Set(dangling)]).toEqual([]);
+	});
 });

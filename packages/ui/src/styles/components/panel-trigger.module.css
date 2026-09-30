@@ -25,14 +25,12 @@
 	);
 	--cdt-radius: var(--c15t-radius-full, 9999px);
 	--cdt-offset: var(--c15t-space-md, 20px);
-	--cdt-transition-duration: var(--c15t-motion-duration, 200ms);
-	--cdt-transition-easing: var(--c15t-motion-easing, ease-out);
-	--cdt-snap-duration: var(--c15t-motion-duration-slow, 200ms);
-	/* ease-in-out-quart: best for on-screen movement */
-	--cdt-snap-easing: var(
-		--c15t-motion-easing-smooth,
-		cubic-bezier(0.77, 0, 0.175, 1)
-	);
+	/* The theme's motion tokens, so `motion` in a theme reaches the trigger. */
+	--cdt-transition-duration: var(--c15t-duration-slow);
+	--cdt-transition-easing: var(--c15t-easing-out);
+	--cdt-snap-duration: var(--c15t-duration-slow);
+	/* Easing for on-screen movement: the snap to a corner. */
+	--cdt-snap-easing: var(--c15t-easing-in-out);
 	--cdt-icon-color: var(--c15t-text, #171717);
 	--cdt-focus-ring: var(--c15t-primary, #3b82f6);
 
