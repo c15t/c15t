@@ -57,4 +57,10 @@
 	.content {
 		color: var(--c15t-text);
 	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.trigger {
+			transition: none;
+		}
+	}
 }

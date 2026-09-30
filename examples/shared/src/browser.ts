@@ -157,3 +157,48 @@ export const expectNoTracking = async function expectNoTracking(
 	expect(await video(page).count()).toBe(0);
 	expect(requests.unexpected).toEqual([]);
 };
+
+/**
+ * Page init script: record every transition and animation that runs on the
+ * consent banner or dialog, including inside a shadow root.
+ *
+ * Runs in the page, so it takes nothing from this module's scope.
+ */
+export const recordConsentMotion = function recordConsentMotion(): void {
+	const parts =
+		'[data-testid^="consent-banner"], [data-testid^="consent-dialog"]:not([data-testid^="consent-dialog-trigger"])';
+	const record: string[] = [];
+	const seen = new WeakSet<Animation>();
+	Object.assign(window, { __c15tMotion: record });
+	const scan = () => {
+		for (const animation of document.getAnimations()) {
+			if (seen.has(animation)) {
+				continue;
+			}
+			seen.add(animation);
+			const target =
+				animation.effect instanceof KeyframeEffect
+					? animation.effect.target
+					: null;
+			if (!(target && (target.closest(parts) ?? target.querySelector(parts)))) {
+				continue;
+			}
+			const name =
+				'transitionProperty' in animation
+					? String(animation.transitionProperty)
+					: String((animation as CSSAnimation).animationName);
+			const part =
+				target.closest('[data-testid]')?.getAttribute('data-testid') ??
+				target.className.toString();
+			record.push(`${part}: ${name}`);
+		}
+		requestAnimationFrame(scan);
+	};
+	requestAnimationFrame(scan);
+};
+
+/** What {@link recordConsentMotion} recorded so far. */
+export const readConsentMotion = (page: Page): Promise<string[]> =>
+	page.evaluate(
+		() => (window as unknown as { __c15tMotion?: string[] }).__c15tMotion ?? []
+	);

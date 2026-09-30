@@ -813,22 +813,16 @@
 		background-color: var(--consent-banner-overlay-background-color-dark);
 	}
 
+	/* The same selectors as the rules that animate, so these win on
+	   source order in every adapter. */
 	@media (prefers-reduced-motion: reduce) {
-		.bannerEnterActive,
-		.bannerLeaveActive,
-		.bannerEnterFrom,
-		.bannerEnterTo,
-		.bannerLeaveFrom,
-		.bannerLeaveTo,
-		.overlayEnterActive,
-		.overlayLeaveActive,
-		.overlayEnterFrom,
-		.overlayEnterTo,
-		.overlayLeaveFrom,
-		.overlayLeaveTo,
-		.bannerVisible,
-		.bannerHidden,
-		.overlayVisible,
+		.bannerEnterActive:not(:global(.headless)),
+		.bannerLeaveActive:not(:global(.headless)),
+		.bannerVisible:not(:global(.headless)),
+		.bannerHidden:not(:global(.headless)),
+		.overlayEnterActive:not(:global(.headless)),
+		.overlayLeaveActive:not(:global(.headless)),
+		.overlayVisible:not(:global(.headless)),
 		.overlayHidden:not(:global(.headless)) {
 			transition: none;
 			animation: none;

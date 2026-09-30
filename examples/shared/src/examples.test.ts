@@ -13,6 +13,8 @@ import {
 	expectNoTracking,
 	openBrowserContext,
 	openPreferences,
+	readConsentMotion,
+	recordConsentMotion,
 	rejectButton,
 	saveButton,
 	setCategory,
@@ -141,6 +143,25 @@ for (const target of selectedTargets()) {
 				await expectNoTracking(page, requests);
 			});
 		}
+
+		test('a reduced-motion visitor gets the banner and dialog without motion', async () => {
+			({ context, page, requests } = await openBrowserContext(
+				browser,
+				server.baseURL,
+				server.backendURL
+			));
+			await page.emulateMedia({ reducedMotion: 'reduce' });
+			await page.addInitScript(recordConsentMotion);
+			await page.goto(target.routes[0] ?? '/');
+			await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+			// Longer than any stock entrance or exit, so a transition shows.
+			await page.waitForTimeout(400);
+			await rejectButton(page).click();
+			await expect.poll(() => rejectButton(page).isVisible()).toBe(false);
+			await openPreferences(page);
+			await page.waitForTimeout(400);
+			expect(await readConsentMotion(page)).toEqual([]);
+		});
 
 		for (const route of target.routes) {
 			if (target.id === 'nextjs') {

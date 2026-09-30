@@ -256,6 +256,10 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
+		.triggerRow:not(:global(.headless)) {
+			transition: none;
+		}
+
 		.arrow:not(:global(.headless)) {
 			transition: none;
 		}

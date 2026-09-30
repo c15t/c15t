@@ -1566,7 +1566,8 @@
 		.closeButton,
 		.tabButton,
 		.tooltip,
-		.objectButton {
+		.objectButton,
+		.tabIndicator {
 			transition: none;
 		}
 
