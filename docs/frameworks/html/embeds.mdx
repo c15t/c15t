@@ -22,7 +22,7 @@ that says what it shows.
 | --- | --- |
 | `data-src` | The embed's URL. c15t moves it to `src` when the gate opens. Only `http:` and `https:` URLs load. A relative URL resolves against the page. |
 | `data-category` | One category name. An unknown name logs a warning and keeps the iframe blocked. |
-| `data-vendor` | Optional vendor ID for vendor-level consent. The iframe also stays blocked while the visitor has turned that vendor off. |
+| `data-vendor` | Optional vendor ID for vendor-level consent. The iframe also stays blocked while the visitor has turned that vendor off. See [vendor consent](/docs/frameworks/html/vendor-consent). |
 | `data-c15t-paused` | Set by c15t when it took away a `src` the iframe already had. Do not set it yourself. |
 
 Iframes without `data-category` or `data-vendor` are left alone.

@@ -32,7 +32,7 @@ group: reference
   | `iframeBlocker` | `{ disableAutomaticBlocking? }` or `false` | on | Gate iframes that carry `data-category` or `data-vendor`. `false` turns it off. With `disableAutomaticBlocking: true`, c15t checks iframes only when you call `processIframes()`. |
   | `nonce` | `string` | none | Content Security Policy nonce for the stock UI's `<style>` element and every `<script>` the `scripts` option loads. A script's own `nonce` wins. With a nonce set, c15t runs only the `<script type="text/plain" data-c15t-category>` tags that carry the same `nonce`. |
   | `scriptLoader` | `{ onDebug? }` | none | `onDebug` receives every script loader lifecycle event. |
-  | `vendors` | `Vendor[]` | none | Vendors offered for vendor-level consent outside IAB. They merge with vendors from the backend and from `vendor` fields on scripts and rules. |
+  | `vendors` | `Vendor[]` | none | Vendors offered for vendor-level consent outside IAB. The preference dialog lists a switch for each. They merge with vendors from the backend, `vendor` fields on scripts and rules, and `data-c15t-vendor` on gated tags. |
   | `clearOnRevocation` | cookies and storage keys per category | off | Delete named cookies and storage keys when their category is denied. Read once, at start. |
   | `reloadOnConsentRevoked` | `boolean` | `true` | Reload the page after an accept, reject or save turns off a category that was allowed, once the save request finishes. |
   | `callbacks` | `{ onChoiceRecorded?, onPermissionsChanged?, onError?, onBeforeConsentRevocationReload? }` | none | Functions c15t calls on consent events. |
@@ -138,7 +138,7 @@ group: reference
   | Event | Payload | When it fires |
   | --- | --- | --- |
   | `ready` | the snapshot | The policy has resolved and the UI can render. For a returning visitor, `hasConsented()` is reliable from here. |
-  | `consent` | the snapshot | Permissions or the recorded choice changed. This includes a stored choice restored at start, a save, an expiry and a GPC change. |
+  | `consent` | the snapshot | Permissions, the recorded choice or the vendor switches changed. This includes a stored choice restored at start, a save, an expiry and a GPC change. |
   | `ui` | `'banner'`, `'dialog'` or `'none'` | The surface c15t wants shown changed. |
   | `error` | the error | A backend call failed, or an IAB step failed. |
 

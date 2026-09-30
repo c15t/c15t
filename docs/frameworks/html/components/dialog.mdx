@@ -49,6 +49,9 @@ a tag manager, needs it:
 
 [Consent categories](/docs/concepts/consent-categories) describes all five.
 
+When you declare `vendors`, each category row also lists its vendors, with a
+switch per vendor. See [vendor consent](/docs/frameworks/html/vendor-consent).
+
 ## What the switches start at
 
 Each switch shows, in order of precedence:
@@ -112,6 +115,8 @@ Theme tokens apply to the dialog as to the banner; see
 | `consent-dialog-title`, `consent-dialog-description` | The heading and body text. |
 | `consent-widget-accordion-item-measurement` and the other category names | One category row. |
 | `consent-widget-switch-measurement` and the other category names | One category's switch. |
+| `consent-widget-vendor-list-measurement` and the other category names | One category's vendor list. |
+| `consent-widget-vendor-switch-measurement-posthog` | One vendor's switch, by category and vendor id. |
 | `consent-widget-footer` | The button row. |
 | `consent-widget-footer-accept-all-button`, `consent-widget-reject-button`, `consent-widget-footer-save-button` | Each button. |
 | `consent-dialog-branding` | The "Secured by" tag. |

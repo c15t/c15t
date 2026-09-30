@@ -64,6 +64,20 @@ The snapshot fields you are most likely to read:
 A listener runs synchronously on each change. Keep it quick, and read only the
 fields you need.
 
+## Read vendor consent
+
+When the integration declares [vendors](/docs/frameworks/astro/vendor-consent),
+the client also answers per vendor:
+
+| Member | Returns |
+| --- | --- |
+| `client.getDeclaredVendors()` | The vendors from `vendors`, the backend manifest and the slugs on scripts and iframes. Empty under an IAB policy |
+| `client.getVendorChoice()` | The recorded vendor decision, whose `denied` lists the vendors the visitor switched off, or `null` |
+| `client.isVendorAllowed(id)` | `true` when the vendor's category is allowed and the visitor has not switched it off |
+
+`isVendorAllowed()` returns `true` for an id nothing declares. Check the
+category as well when the vendor might not be declared.
+
 ## Open and close dialogs
 
 | Member | Does |
@@ -95,7 +109,7 @@ document.querySelector('#privacy-link')?.addEventListener('click', () => {
 | --- | --- |
 | `client.acceptAll()` | Saves a grant for every category the policy covers |
 | `client.rejectAll()` | Saves a rejection of everything except `necessary` |
-| `client.save(consents)` | Saves the categories you pass, such as `{ measurement: true }` |
+| `client.save(consents)` | Saves the categories you pass, such as `{ measurement: true }`. A `vendors` map, such as `{ vendors: { posthog: false } }`, saves vendor switches too |
 | `client.identify(user)` | Links the consent record to your own user, as `{ externalId }` |
 
 Each applies the choice in the browser at once and returns a promise that
@@ -114,7 +128,9 @@ ID. `identityProvider` and `properties` are optional.
 
 `activateGatedScripts(snapshot, root?)` runs every inline script marked
 `type="text/plain"` and `data-c15t-category` that the snapshot allows, inside
-`root` or the whole document. It returns the number of scripts it ran.
+`root` or the whole document. A script that also carries `data-c15t-vendor`
+waits until the visitor has not switched that vendor off. It returns the
+number of scripts it ran.
 
 c15t calls it after every consent change and every `ClientRouter`
 navigation. Call it yourself only for markup you insert from your own code:

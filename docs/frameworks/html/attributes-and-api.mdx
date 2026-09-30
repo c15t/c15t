@@ -83,7 +83,7 @@ These work anywhere on the page, including markup added after load:
 | --- | --- | --- |
 | `data-c15t-action="accept"`, `"reject"`, `"customize"`, `"dismiss"`, `"banner"` or `"close"` | Runs the action on click. | [Action buttons](/docs/frameworks/html/components/action-buttons) |
 | A link whose `href` ends in `#c15t-preferences` | Opens the preference dialog on click. | [Preferences link](/docs/frameworks/html/components/preferences-link) |
-| `<script type="text/plain" data-c15t-category="…">` | Runs the script once that category is allowed. | [Gated scripts](/docs/frameworks/html/components/gated-script) |
+| `<script type="text/plain" data-c15t-category="…">` | Runs the script once that category is allowed. `data-c15t-vendor` adds a vendor gate. | [Gated scripts](/docs/frameworks/html/components/gated-script) |
 | `<iframe data-src="…" data-category="…">` | Sets the iframe's `src` once that category is allowed. `data-vendor` adds a vendor gate. | [Embeds](/docs/frameworks/html/embeds) |
 
 c15t sets these attributes itself. Read them in CSS or tests, but do not

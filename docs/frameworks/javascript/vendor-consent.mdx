@@ -8,10 +8,11 @@ group: frameworks
 
 ## Declare the vendors and record a switch
 
-The stock `@c15t/browser` banner and preference dialog show no vendor
-switches. Declare the vendors, then render the switch in your own UI with the
-[headless runtime](/docs/frameworks/javascript/headless). This module declares
-X Pixel, reads whether the visitor switched it off, and records a new switch:
+With `createConsentRuntime`, declare the vendors, then render the switch in
+your own UI with the [headless runtime](/docs/frameworks/javascript/headless).
+The stock preference dialog that `init()` from `@c15t/browser` mounts lists
+vendor switches on its own. This module declares X Pixel, reads whether the
+visitor switched it off, and records a new switch:
 
 <include src="../../shared/examples/javascript/vendor-consent.mdx" />
 

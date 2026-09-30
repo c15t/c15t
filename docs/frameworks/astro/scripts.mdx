@@ -59,6 +59,10 @@ Three attributes matter:
 - `is:inline` makes Astro ship the tag as written. Without it, Astro bundles the
   script and runs it regardless of consent.
 
+Add `data-c15t-vendor` with a vendor slug to also hold the script while the
+visitor has switched that vendor off. See
+[vendor consent](/docs/frameworks/astro/vendor-consent).
+
 Under a nonce-based Content Security Policy, where your middleware sets
 `Astro.locals.c15t.nonce`, also add `nonce={Astro.locals.c15t?.nonce}` to the
 tag. c15t then activates only gated tags that carry the page's nonce, and

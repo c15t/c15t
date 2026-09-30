@@ -93,7 +93,7 @@ element again when the visitor withdraws it.
 | `target` | `'head'` (default) or `'body'`. |
 | `async`, `defer`, `nonce`, `fetchPriority`, `attributes` | Attributes for the created `<script>` element. Without its own `nonce`, the script gets the c15t tag's nonce. |
 | `anonymizeId` | Give the element a random `id` so blockers cannot match it by name. On by default. |
-| `vendor` | A vendor ID for vendor-level consent. |
+| `vendor` | A vendor ID for vendor-level consent. See [vendor consent](/docs/frameworks/html/vendor-consent). |
 | `onBeforeLoad`, `onLoad`, `onError` | Run before a load attempt, after the script loads, or when it fails. |
 | `onConsentChange` | Run each time the script's consent changes. The argument has `hasConsent` and `consents`. |
 | `onDispose` | Run when the script is removed from the configuration or c15t is disposed. |

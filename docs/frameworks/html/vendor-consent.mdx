@@ -1,0 +1,112 @@
+---
+title: Vendor consent
+description: Let visitors allow a category such as marketing on a plain HTML page and still turn off one vendor in it, with the vendors option, data-c15t-vendor on gated tags and the vendor switches in the c15t script tag's preference dialog.
+group: frameworks
+---
+
+<import src="../../shared/scripts/vendor-consent.mdx#how" />
+
+## Declare the vendors
+
+Queue a `config` call with `vendors` before the c15t script tag. Each `id` is
+the slug your gated tags and iframes name:
+
+<include src="../../shared/examples/script-tag/vendors.mdx" />
+
+`vendors` is an ordinary `config` option, so `c15t.init({ vendors })` on a
+page with `data-manual` works too. See
+[configuration](/docs/frameworks/html/configuration).
+
+<import src="../../shared/scripts/vendor-consent.mdx#fields" />
+
+## Gate tags and iframes by vendor
+
+Add `data-c15t-vendor` to a gated `<script type="text/plain">` tag, next to
+its `data-c15t-category`. The tag runs once its category is allowed and the
+visitor has not switched its vendor off:
+
+<include src="../../shared/examples/script-tag/vendor-scripts.mdx" />
+
+Add `data-vendor` to a gated iframe:
+
+<include src="../../shared/examples/script-tag/embed.mdx" />
+
+| Target | Field |
+| --- | --- |
+| Gated `<script type="text/plain">` tag | `data-c15t-vendor="x-pixel"` next to `data-c15t-category` |
+| Gated iframe | `data-vendor="x-pixel"` |
+| `scripts` entry in `config` | `vendor: 'x-pixel'` |
+| Network blocker rule | `vendor: 'x-pixel'` |
+
+`data-c15t-vendor` does nothing without `data-c15t-category`. On a page whose
+c15t tag has a nonce, a vendor-gated tag still needs that nonce, like every
+[gated tag](/docs/frameworks/html/components/gated-script#gated-tags-on-a-page-with-a-nonce).
+An iframe with `data-vendor` and no `data-category` is gated on the vendor
+alone.
+
+A tag's `data-c15t-vendor` slug counts as declared, so a stored denial holds
+even before your `vendors` list or the backend names that vendor. The
+preference dialog lists the vendor only once a declaration gives it a `name`
+and a `privacyPolicyUrl`.
+
+## What the preference dialog shows
+
+The preference dialog in `c15t.js` lists each declared vendor under its
+category, with its own switch. `c15t.headless.js` has no dialog; record vendor
+switches from your own UI with `save()`.
+
+<import src="../../shared/scripts/vendor-consent.mdx#dialog" />
+
+## Read and record vendor choices from your own script
+
+`window.c15t` and `c15t.client` have three reads for vendor consent:
+
+| Method | Returns |
+| --- | --- |
+| `getDeclaredVendors()` | The vendors from `vendors`, the backend and the slugs on scripts, gated tags and iframes. Empty under an IAB policy. |
+| `getVendorChoice()` | The recorded vendor decision, whose `denied` lists the vendors the visitor switched off, or `null` before any vendor decision. |
+| `isVendorAllowed(id)` | `true` when the vendor's category is allowed and the visitor has not switched it off. |
+
+`isVendorAllowed()` returns `true` for an id nothing declares, because c15t
+knows nothing about its category. Reads cannot be queued, so call them from
+`onInit` or after `c15t.ready()`.
+
+`save()` accepts a `vendors` map next to the categories. Vendors you leave out
+keep their recorded state. `save` can be queued, so this works before and
+after the tag loads:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['save', { marketing: true, vendors: { 'x-pixel': false } }]);
+</script>
+```
+
+Call it from a visitor's action, such as a switch in your own form, never at
+page load. A save that changes only vendors still fires the `consent` event,
+and c15t checks gated tags again, so a tag waiting on a vendor that was
+switched back on runs. See [window.c15t API](/docs/frameworks/html/api) and
+[events and callbacks](/docs/frameworks/html/callbacks).
+
+<import src="../../shared/scripts/vendor-consent.mdx#storage" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#limits" />
+
+## Verify vendor consent
+
+Open the page in a private window with DevTools Network open and filtered to
+`ads-twitter.com`:
+
+1. Declare `x-pixel` and gate X Pixel's tag with
+   `data-c15t-category="marketing"` and `data-c15t-vendor="x-pixel"`. Open
+   **Privacy settings**. The marketing row lists X Pixel with a switch.
+2. Allow marketing and save. `uwt.js` loads.
+3. Open **Privacy settings**, switch X Pixel off and save. c15t reloads the
+   page. After the reload there is no `uwt.js` request, and other marketing
+   tags still run.
+4. Reload again. The X Pixel switch is still off, and in the console
+   `c15t.isVendorAllowed('x-pixel')` returns `false`.
+5. Turn marketing off. The X Pixel switch is disabled.
+6. Open **Privacy settings** and click **Accept All**. `uwt.js` loads again.

@@ -36,7 +36,7 @@ before or after the tag. `push` returns the number of calls it received.
 | `config`, `init`, `on`, `onInit` | In place, in queue order, as the bundle loads. |
 | `subscribe` | Once the client exists. |
 | `acceptAll`, `rejectAll`, `save`, `dismissNotice`, `saveIAB`, `showBanner`, `openDialog`, `closeDialog`, `setLanguage`, `identify`, `mountUI`, `processIframes` | In queue order, once the policy has resolved. A queued `openDialog` therefore stays open instead of being replaced by the banner. |
-| Any other method, such as `getSnapshot`, `has`, `hasConsented`, `ready` or `dispose`, and names c15t does not know | Skipped, with a console warning. Call them from `onInit` or after `ready()`. |
+| Any other method, such as `getSnapshot`, `has`, `hasConsented`, `isVendorAllowed`, `ready` or `dispose`, and names c15t does not know | Skipped, with a console warning. Call them from `onInit` or after `ready()`. |
 
 A queued call that throws is reported with `console.error`, and the calls
 after it still run. A queue cannot hand back a return value, which is why
@@ -91,6 +91,9 @@ same attributes and queued `config` calls.
 | `hasConsented()` | `boolean` | Whether the visitor has answered the choice prompt, by a recorded choice or an acknowledgement of a prompt with nothing to decide. |
 | `getSnapshot()` | the snapshot | The full consent state: permissions, recorded choice, policy, prompt and surface. |
 | `subscribe(listener)` | an unsubscribe function | Call `listener` with the snapshot after every change. |
+| `isVendorAllowed(id)` | `boolean` | Whether a vendor may run now: its category is allowed and the visitor has not switched it off. `true` for an id nothing declares. |
+| `getDeclaredVendors()` | an array of vendors | The vendors from `vendors`, the backend and the slugs on scripts, gated tags and iframes. Empty under an IAB policy. |
+| `getVendorChoice()` | the vendor decision, or `null` | Which vendors the visitor switched off, in `denied`. |
 | `on(event, listener)` | an unsubscribe function | Listen for `ready`, `consent`, `ui` or `error`. Safe to call before `init()`. See [events and callbacks](/docs/frameworks/html/callbacks). |
 
 ### A permission is not a recorded choice
@@ -116,7 +119,7 @@ Call these only in response to a visitor's click or key press, never at load.
 | --- | --- |
 | `acceptAll()` | Allows every category the dialog offers. Under an IAB policy it confirms through the CMP. |
 | `rejectAll()` | Denies every optional category the dialog offers. |
-| `save(choices)` | The categories you name, such as `{ measurement: true, marketing: false }`. Categories the dialog does not offer are ignored. Fails under an IAB policy; use `saveIAB()`. |
+| `save(choices)` | The categories you name, such as `{ measurement: true, marketing: false }`. Categories the dialog does not offer are ignored. A `vendors` map, such as `{ vendors: { 'x-pixel': false } }`, records vendor switches too. Fails under an IAB policy; use `saveIAB()`. |
 | `saveIAB()` | Confirms the IAB purpose and vendor choices set on the CMP. `c15t.iab.js` only. See [IAB TCF](/docs/frameworks/html/iab). |
 | `dismissNotice()` | Acknowledges a notice. Grants nothing. Resolves with `{ ok: false, reason: 'not-required' }` when no notice is showing. |
 | `identify(user)` | Links the consent record to a signed-in user, such as `{ externalId: 'user_123', identityProvider: 'auth0' }`. |

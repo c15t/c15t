@@ -22,7 +22,9 @@ Astro has no consent gate component. Use one of these:
 
 This component shows a placeholder with a preferences button until
 measurement is allowed. It adds the iframe once the visitor allows
-measurement, and removes it when permission is withdrawn:
+measurement, and removes it when permission is withdrawn. It also keeps the
+iframe out while the visitor has switched YouTube off in
+[vendor consent](/docs/frameworks/astro/vendor-consent):
 
 <include src="../../shared/examples/astro-demo/consent-video.mdx" />
 
@@ -59,7 +61,7 @@ with a category and move its URL from `src` to `data-src`:
 
 When the category is allowed, the blocker copies `data-src` to `src`. When it
 is withdrawn, the blocker removes `src` again. `data-vendor` gates the iframe
-on one vendor as well, for vendor-level consent.
+on one vendor as well. See [vendor consent](/docs/frameworks/astro/vendor-consent).
 
 Always use `data-src`, never `src`, for a gated iframe. The browser starts
 loading a `src` from the HTML before the blocker runs, so an iframe with `src`
