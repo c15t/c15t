@@ -142,6 +142,19 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 		).toBe('present');
 	});
 
+	it('asks for a manual change when the plugin runs after tailwindcss', () => {
+		expect(
+			edit(
+				"export default { plugins: { tailwindcss: {}, '@c15t/ui/postcss-tailwind3': {} } };"
+			)
+		).toBe('manual');
+		expect(
+			edit(
+				"export default { plugins: ['tailwindcss', '@c15t/ui/postcss-tailwind3'] };"
+			)
+		).toBe('manual');
+	});
+
 	it('leaves configs that pass an imported binding to the user', () => {
 		const importConfig = [
 			"import tailwindcss from 'tailwindcss';",

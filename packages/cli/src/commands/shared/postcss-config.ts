@@ -246,7 +246,7 @@ type PostcssConfigEdit =
  * @param fileName - The config's file name, which selects JSON, JavaScript
  *   or TypeScript parsing
  * @returns `present` when the active plugin list already loads the c15t
- *   plugin, `added` with the updated source, or `manual` when the config has
+ *   plugin before `tailwindcss`, `added` with the updated source, or `manual` when the config has
  *   no single plugin list with a `tailwindcss` entry this can edit
  */
 export const addTailwind3PluginToPostcssConfig =
@@ -275,11 +275,24 @@ export const addTailwind3PluginToPostcssConfig =
 			: list.properties.map((property) =>
 					objectEntry(property, sourceFile, isJson)
 				);
-		if (entries.some((entry) => entry?.name === TAILWIND3_POSTCSS_PLUGIN)) {
-			return { status: 'present' };
+		const c15tIndex = entries.findIndex(
+			(entry) => entry?.name === TAILWIND3_POSTCSS_PLUGIN
+		);
+		const tailwindIndex = entries.findIndex(
+			(entry) => entry?.name === 'tailwindcss'
+		);
+		if (c15tIndex >= 0) {
+			// PostCSS runs plugins in order, so a c15t entry after tailwindcss
+			// does nothing. Moving it is left to the user.
+			return {
+				status:
+					tailwindIndex >= 0 && c15tIndex > tailwindIndex
+						? 'manual'
+						: 'present',
+			};
 		}
 
-		const tailwind = entries.find((entry) => entry?.name === 'tailwindcss');
+		const tailwind = entries[tailwindIndex];
 		if (!tailwind) {
 			return { status: 'manual' };
 		}
