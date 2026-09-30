@@ -221,7 +221,7 @@ describe('noninteractive setup', () => {
 		const context = await fixture({ apply: true, scripts: 'google-tag' });
 		const release = c15tReleaseSpecifier();
 		const result = await run(context);
-		const pinned = [`c15t@${release}`, `@c15t/scripts@${release}`];
+		const pinned = [`c15t@${release}`, `@c15t/integrations@${release}`];
 		expect(result.dependencies).toEqual(pinned);
 		expect(install).toHaveBeenCalledWith(
 			context.projectRoot,

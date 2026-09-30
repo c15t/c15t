@@ -6,6 +6,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { createActor, fromPromise } from 'xstate';
 
 import { createCliContext } from '../../context/creator';
+import { c15tReleaseSpecifier } from '../../utils/c15t-release';
 import { createCliLogger } from '../../utils/logger';
 import { generateMachine } from './machine';
 
@@ -82,13 +83,13 @@ const dependenciesFor = async function dependenciesFor(
 
 it('installs @c15t/ui for a Tailwind 3 Next.js app', async () => {
 	await expect(dependenciesFor('c15t/next', '^3.4.17')).resolves.toEqual([
-		'c15t',
-		'@c15t/ui',
+		`c15t@${c15tReleaseSpecifier()}`,
+		`@c15t/ui@${c15tReleaseSpecifier()}`,
 	]);
 });
 
 it('installs only c15t with Tailwind 4', async () => {
 	await expect(dependenciesFor('c15t/react', '^4.1.0')).resolves.toEqual([
-		'c15t',
+		`c15t@${c15tReleaseSpecifier()}`,
 	]);
 });
