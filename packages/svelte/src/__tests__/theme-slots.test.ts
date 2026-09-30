@@ -68,6 +68,8 @@ describe('theme.slots in Svelte', () => {
 		['consentDialogOverlay', 'consent-dialog-overlay'],
 		['consentWidget', 'consent-widget-root'],
 		['consentWidgetFooter', 'consent-widget-footer'],
+		['consentWidgetAccordion', 'consent-widget-accordion'],
+		['toggle', 'consent-widget-switch-necessary'],
 	] as const)('%s puts its class and style on %s', async (slot, testId) => {
 		await renderWithSlots({ [slot]: SLOT });
 

@@ -97,6 +97,24 @@
 		)
 	);
 
+	const accordionStyle = $derived(
+		resolveComponentStyles(
+			'consentWidgetAccordion',
+			theme.theme,
+			{ baseClassName: accordionStyles.list, noStyle },
+			noStyle
+		)
+	);
+
+	const toggleStyle = $derived(
+		resolveComponentStyles(
+			'toggle',
+			theme.theme,
+			{ baseClassName: switchStyles.root, noStyle },
+			noStyle
+		)
+	);
+
 	const footerGroupStyle = $derived(
 		resolveComponentStyles(
 			'consentWidgetFooterSubGroup',
@@ -143,7 +161,8 @@
 			</div>
 		{/if}
 		<div
-			class={noStyle ? '' : accordionStyles.list || ''}
+			class={accordionStyle.className || ''}
+			style={toStyleAttribute(accordionStyle.style)}
 			data-testid="consent-widget-accordion"
 		>
 			{#each displayedConsents as consentType (consentType.name)}
@@ -221,7 +240,8 @@
 									: undefined}
 								onclick={() => toggleConsent(consentType.name, !isChecked)}
 								disabled={isDisabled}
-								class={noStyle ? '' : switchStyles.root}
+								class={toggleStyle.className || ''}
+								style={toStyleAttribute(toggleStyle.style)}
 								data-size={noStyle ? undefined : 'small'}
 								data-testid={`consent-widget-switch-${consentType.name}`}
 							>
