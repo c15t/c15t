@@ -119,17 +119,17 @@ With `proxy` on, it also returns `POST`, `PATCH`, `PUT`, `DELETE` and
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
-| `backendURL` | `string` | `C15T_BACKEND_URL` env | The backend's base URL, absolute or `/`-relative. The manifest is at `<backendURL>/manifest`. See the note on relative URLs below. |
-| `manifestURL` | `string` | `C15T_MANIFEST_URL` env | A manifest URL of its own, such as a CDN. Wins over `backendURL`. Absolute or `/`-relative. |
+| `backendURL` | `string` | none | The backend's base URL, absolute or `/`-relative. The manifest is at `<backendURL>/manifest`. See the note on relative URLs below. |
+| `manifestURL` | `string` | none | A manifest URL of its own, such as a CDN. Wins over `backendURL`. Absolute or `/`-relative. |
 | `proxy` | `true` or `{ paths?, cookieNames? }` | off | Forwards consent writes to `backendURL`. See [save consent through your own origin](./rendering#save-consent-through-your-own-origin). |
 | `reportSessions` | `boolean` | `true` | Reports each resolved visit to the backend's `/sessions`, so Inth counts visitors it never served `/init` to. |
 | `onBackgroundRevalidate` | `(promise, event) => void` | the adapter's `waitUntil` | Keeps background manifest refreshes and session reports alive on runtimes that stop work after the response. |
 | `fetchGvl` | `({ reference, language, fetch }) => Promise<GlobalVendorList \| null>` | a plain `GET` | Fetches the Global Vendor List under an IAB policy. |
 | `fetch` | `typeof fetch` | global `fetch` | The fetch used for an absolute `backendURL` or `manifestURL`, and for the vendor list. |
 
-Without `backendURL`, `manifestURL` or either environment variable, each
-request throws `@c15t/svelte/kit: configure backendURL, manifestURL, or the
-C15T_BACKEND_URL environment variable.`
+Without `backendURL` or `manifestURL`, each request throws
+`@c15t/svelte/kit: pass backendURL or manifestURL.` The handlers read no
+environment variables.
 
 An absolute `backendURL` or `manifestURL` is fetched over the network with
 `fetch`. A `/`-relative one, such as `/api/self-host` for a backend mounted in

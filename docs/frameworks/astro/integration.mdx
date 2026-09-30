@@ -55,7 +55,7 @@ Required. Build it with one of the three helpers from `c15t/astro`:
 
 | Field | Type | Effect |
 | --- | --- | --- |
-| `backendURL` | `string` | Where the browser saves consent. Defaults to `C15T_BACKEND_URL` or `PUBLIC_C15T_BACKEND_URL` from the environment when `astro.config` loads |
+| `backendURL` | `string` | Where the browser saves consent. Required unless you pass an inline `manifest` |
 | `manifestURL` | `string` | Where the server fetches the manifest. Defaults to `${backendURL}/manifest` |
 | `manifest` | `ConsentManifest` | An inline manifest, used instead of fetching one. Your app then serves its own save route |
 | `reportSessions` | `boolean` | Reports each server-resolved view to the backend, so visitor counts stay complete. Default `true` |

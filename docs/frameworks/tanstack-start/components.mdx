@@ -61,7 +61,7 @@ The root entry also exports `DEFAULT_INIT_ROUTE` (`'/api/c15t/init'`),
 | --- | --- | --- |
 | `c15t/tanstack-start/server` | `createConsentStateHandler`, `resolveConsent`, `consentLoaderOptions`, `mergeInitIntoConsentState` | Resolve the visitor's state in a server function |
 | `c15t/tanstack-start/middleware` | `consentRequestMiddleware` | Read location, language and privacy headers on every request. See [geography headers](/docs/frameworks/tanstack-start/geography-headers) |
-| `c15t/tanstack-start/api` | `createConsentServerRoute`, `GET`, `manifestGET`, `initGET` | Serve `/api/c15t/*` from your app |
+| `c15t/tanstack-start/api` | `createConsentServerRoute` | Serve `/api/c15t/*` from your app |
 | `c15t/tanstack-start/static` | `createStaticConsentResolver`, `loadStaticManifest`, `createStaticManifestModule`, `resolveUnknownLocationInit` | Bundle the manifest at build time. See [rendering](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts) |
 | `c15t/tanstack-start/headless` | Headless hooks | [Custom markup](/docs/frameworks/tanstack-start/headless) |
 | `c15t/tanstack-start/components/consent-dialog-link` | `ConsentDialogLink` only | A module that needs the link without loading the rest of the adapter |

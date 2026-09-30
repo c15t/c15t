@@ -320,26 +320,25 @@ export function resolveRequestConsent(req: IncomingMessage) {
 ### createNextConsentRouteHandlers options
 
 `createNextConsentRouteHandlers(optionsOrConfig)` from `c15t/next/api` returns
-`GET` for the init route and `manifestGET` for the manifest route. The
-ready-made `GET` and `manifestGET` exports from the same module are created
-with no options, so they read only environment variables.
+`GET` for the init route and `manifestGET` for the manifest route. Pass
+`backendURL` or `manifestURL`, or a `defineConsentConfig` result. The handlers
+read no environment variables.
 
-| Option | Default / env | Behavior |
+| Option | Default | Behavior |
 | --- | --- | --- |
-| `backendURL` | `C15T_BACKEND_URL`, then `NEXT_PUBLIC_C15T_BACKEND_URL` | Backend base URL. The manifest route fetches `${backendURL}/manifest`. Not read when `manifestURL` is set. |
-| `manifestURL` | `C15T_MANIFEST_URL` | Full upstream manifest URL. Takes precedence over `backendURL` plus `/manifest`. |
-| `manifestRevalidateSeconds` | `300`; env `C15T_MANIFEST_REVALIDATE_SECONDS` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it; the env value `'false'` also disables it. The env value is read with `parseInt`, so `60seconds` becomes `60` and `1e2` becomes `1`; values without a leading number or below `0` fall back to the default. |
+| `backendURL` | none | Backend base URL. The manifest route fetches `${backendURL}/manifest`. Not read when `manifestURL` is set. |
+| `manifestURL` | none | Full upstream manifest URL. Takes precedence over `backendURL` plus `/manifest`. |
+| `manifestRevalidateSeconds` | `300` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the manifest and Global Vendor List requests. |
 | `trustForwardedHeaders` | `false` | Resolve a `/`-relative `backendURL` or `manifestURL` against the request's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead of `request.url`. Set it only behind a proxy that sets those headers and drops the ones a client sends. |
 | `onBackgroundRevalidate` | none | Receives detached work started by a request: a background manifest refresh, and the init route's session report. Keep it alive with `after` from `next/server` or a platform `waitUntil`. Called inside the handler; the promises never reject. See [Optimization](/docs/frameworks/next/optimization#configure-manifest-cache-refresh). |
 | `reportSessions` | `true` | Report each init the route resolves to the backend's `POST /sessions`, server-to-server and detached from the response, so the backend still counts the visitor. Needs an absolute `backendURL`; nothing is inferred from a manifest URL. `false` sends none. |
 | `fetchGvl` | built-in cached fetcher | Loads the Global Vendor List for IAB policies. Called only under the conditions described in this section. |
 
-An explicit option wins over its environment variable, and a manifest URL from
-either source wins over `backendURL`. URLs are resolved per request, so a
+`manifestURL` wins over `backendURL`. URLs are resolved per request, so a
 missing or invalid value fails the request rather than the build: with neither
-`backendURL` nor `manifestURL` configured the handler throws
-`@c15t/nextjs/api: configure C15T_BACKEND_URL or C15T_MANIFEST_URL.`. A
+`backendURL` nor `manifestURL` the handler throws
+`@c15t/nextjs/api: pass backendURL or manifestURL.`. A
 `/`-relative value is resolved against the origin of `request.url`, which
 Next.js builds itself. Forwarding headers are read only with
 `trustForwardedHeaders: true`. A relative value still points the handler at
