@@ -374,6 +374,15 @@ describe('tenant configuration', () => {
 		);
 	});
 
+	it('refuses manifest.tenantId even when its value is undefined', async () => {
+		// `tenantId: process.env.TENANT_ID` with the variable unset: exactly the
+		// migration a value check would wave through into the null scope.
+		const manifest = { tenantId: undefined } as ConsentManifestConfig;
+		await expect(build({ manifest })).rejects.toThrow(
+			/manifest\.tenantId is no longer supported/u
+		);
+	});
+
 	it('applies the same check to createApp', async () => {
 		// `createApp` is the other public way in; it must not be the one that
 		// skips the check.

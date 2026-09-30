@@ -217,9 +217,10 @@ export const assertTenantOptions = function assertTenantOptions(
 
 	// `manifest.tenantId` was a second place to name the tenant, and it never
 	// scoped a query. Ignoring it now would leave a config that set only that
-	// one writing every row with a null tenant, so it is refused by name.
-	const manifest = options.manifest as { tenantId?: unknown } | undefined;
-	if (manifest?.tenantId !== undefined) {
+	// one writing every row with a null tenant, so it is refused by name. The
+	// key is checked rather than its value: `tenantId: process.env.TENANT_ID`
+	// with the variable unset is the case this exists for.
+	if (options.manifest && Object.hasOwn(options.manifest, 'tenantId')) {
 		throw new Error(
 			`[c15t] manifest.tenantId is no longer supported. Set tenantId on the instance instead${tenantId === undefined ? '' : ` (it is already ${JSON.stringify(tenantId)})`} and remove it from manifest.`
 		);
