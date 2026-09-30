@@ -1194,6 +1194,7 @@
         "@c15t/conformance": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
+        "@emotion/css": "11.13.5",
         "genversion": "3.2.0",
         "jsdom": "^25.0.0",
         "postcss": "8.5.10",

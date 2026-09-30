@@ -7,6 +7,7 @@
  * to win over the part's own `@layer components` styles.
  */
 import { clearBrowserConsentStorage } from '@c15t/conformance/suite';
+import { css as emotionCss, flush } from '@emotion/css';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { init } from '../index';
@@ -58,6 +59,7 @@ afterEach(() => {
 	for (const cleanup of cleanups.splice(0)) {
 		cleanup();
 	}
+	flush();
 	clearBrowserConsentStorage();
 });
 
@@ -120,6 +122,40 @@ describe('styling stock UI parts from outside', () => {
 			theme: { slots: { consentBannerCard: 'border-t-brand' } },
 		});
 
+		await expect.poll(() => borderColor(card)).toBe(BRAND);
+	});
+
+	// Emotion's `css()` returns a class and inserts its rule into a <style>
+	// in the document head. The docs tell script tag and `init()` users to
+	// set `shadow: false` for that reason.
+	it('does not let an Emotion class reach a slot inside the shadow root', async () => {
+		const brandCard = emotionCss({ borderTopColor: BRAND });
+
+		const card = await mountCard({
+			theme: { slots: { consentBannerCard: brandCard } },
+		});
+
+		expect(card.getRootNode()).toBeInstanceOf(ShadowRoot);
+		expect(card.classList).toContain(brandCard);
+		expect(
+			[...document.styleSheets].some((sheet) =>
+				[...sheet.cssRules].some((rule) =>
+					rule.cssText.includes(`.${brandCard}`)
+				)
+			)
+		).toBe(true);
+		expect(borderColor(card)).not.toBe(BRAND);
+	});
+
+	it('applies an Emotion class to a slot with shadow: false', async () => {
+		const brandCard = emotionCss({ borderTopColor: BRAND });
+
+		const card = await mountCard({
+			shadow: false,
+			theme: { slots: { consentBannerCard: brandCard } },
+		});
+
+		expect(card.getRootNode()).toBe(document);
 		await expect.poll(() => borderColor(card)).toBe(BRAND);
 	});
 });

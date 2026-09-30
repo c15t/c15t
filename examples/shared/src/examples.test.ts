@@ -69,13 +69,18 @@ for (const target of selectedTargets()) {
 			context = undefined;
 		});
 
-		const visit = async function visit(path: string, failInit = false) {
+		const visit = async function visit(
+			path: string,
+			failInit = false,
+			beforeLoad?: (page: Page) => Promise<void>
+		) {
 			({ context, page, requests } = await openBrowserContext(
 				browser,
 				server.baseURL,
 				server.backendURL,
 				failInit
 			));
+			await beforeLoad?.(page);
 			await page.goto(path);
 			await expect
 				.poll(() =>
@@ -399,6 +404,57 @@ for (const target of selectedTargets()) {
 						card.evaluate((element) => getComputedStyle(element).borderTopColor)
 					)
 					.toMatch(/^oklch\(0\.588 0\.158 241\.966\)$|^rgb\(0, 132, 209\)$/u);
+				expect(requests.unexpected).toEqual([]);
+			});
+
+			test('Tailwind 4 utilities that rely on @property also need the page link', async () => {
+				// The same page without its own <link> to the Tailwind build, so
+				// the build loads only inside the shadow root. The observer sees
+				// the document, not the shadow root, so c15t's link stays.
+				await visit('/consent-example/tailwind', false, (fresh) =>
+					fresh.addInitScript(() => {
+						new MutationObserver((records) => {
+							for (const record of records) {
+								for (const node of record.addedNodes) {
+									if (
+										node instanceof HTMLLinkElement &&
+										node.getAttribute('href') === '/tailwind.css'
+									) {
+										node.remove();
+									}
+								}
+							}
+						}).observe(document, { childList: true, subtree: true });
+					})
+				);
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				expect(
+					await page.evaluate(() =>
+						[...document.styleSheets].some((sheet) =>
+							sheet.href?.endsWith('/tailwind.css')
+						)
+					)
+				).toBe(false);
+				const card = page.getByTestId('consent-banner-card');
+				// `rounded-none` needs no registered property, so it proves the
+				// build loaded inside the shadow root.
+				await expect
+					.poll(() =>
+						card.evaluate(
+							(element) => getComputedStyle(element).borderTopLeftRadius
+						)
+					)
+					.toBe('0px');
+				// `border-4` sets `border-style: var(--tw-border-style)`. Tailwind
+				// gives that variable its `solid` default with @property, which a
+				// shadow root's stylesheet cannot register, so the border has no
+				// style and no width.
+				expect(
+					await card.evaluate((element) => {
+						const style = getComputedStyle(element);
+						return [style.borderTopStyle, style.borderTopWidth];
+					})
+				).toEqual(['none', '0px']);
 				expect(requests.unexpected).toEqual([]);
 			});
 		}
