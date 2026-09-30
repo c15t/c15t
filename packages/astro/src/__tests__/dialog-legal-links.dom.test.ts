@@ -26,8 +26,8 @@ import { vueDialogAdapter } from '../ui/vue';
 // compiles it while this file loads, outside any test timeout.
 import '@c15t/vue/vue-plugin';
 
-import { ISLAND_RENDER_TIMEOUT } from './island-render-timeout';
 import { testRule } from './policy-fixture';
+import { ISLAND_RENDER_TIMEOUT } from './react-dialog-island';
 
 const cleanup: (() => Promise<void> | void)[] = [];
 

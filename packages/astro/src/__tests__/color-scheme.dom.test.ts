@@ -20,8 +20,8 @@ import { offlineMode } from '../mode';
 import type { C15tAstroOptions, C15tColorScheme } from '../types';
 import { registerDialogAdapter, registerDialogSurface } from '../ui/adapter';
 import { reactDialogAdapter } from '../ui/react';
-import { ISLAND_RENDER_TIMEOUT } from './island-render-timeout';
 import { testRule } from './policy-fixture';
+import { ISLAND_RENDER_TIMEOUT } from './react-dialog-island';
 
 interface MediaQueryStub {
 	matches: boolean;

@@ -17,8 +17,8 @@ import type { C15tResolvedOptions } from '../types';
 import { registerDialogSurface } from '../ui/adapter';
 import type { ConsentDialogHandle } from '../ui/adapter';
 import { reactDialogAdapter } from '../ui/react';
-import { ISLAND_RENDER_TIMEOUT } from './island-render-timeout';
 import { testResolution } from './policy-fixture';
+import { ISLAND_RENDER_TIMEOUT } from './react-dialog-island';
 
 const OPTIONS = {
 	consentCategories: ['necessary', 'marketing', 'measurement'],
