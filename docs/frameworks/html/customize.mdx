@@ -18,7 +18,7 @@ the buttons purple and rounds the cards:
 
 Put the block in the same `<head>` as the tag. The tag has `defer`, so any
 inline script above or below it runs first. `theme` takes the same token
-object as the other c15t packages; [tokens and CSS](/docs/customization/tokens)
+object as the other c15t packages; [theme tokens](/docs/customization/tokens)
 lists every token and what it changes. The banner, the preference dialog and
 the trigger button all read the same tokens.
 
@@ -43,6 +43,14 @@ bundled stylesheet, inside the shadow root:
 Select parts by their `data-testid` attributes, which match the other c15t
 packages. Inspect the banner in the browser's element panel to find a part's
 `data-testid`.
+
+To style parts with classes from your own stylesheet, such as a Tailwind
+build, put the classes on parts with `ui.theme.slots` and link the stylesheet
+into the shadow root with `ui.stylesheetURLs`. Page CSS can also reach a part
+by its slot key with `[data-c15t-ui]::part(consentBannerCard)`.
+[Class names and CSS-in-JS](/docs/customization/class-names) and
+[Tailwind CSS](/docs/customization/tailwind) show both, and
+[component parts](/docs/customization/slots) lists the slot keys.
 
 ## Style it with your own stylesheet
 
@@ -96,7 +104,7 @@ link `dist/c15t.css` from the same package version as the script.
 The [banner](/docs/frameworks/html/components/banner#change-the-layout) page
 lists the button layout options. The policy still wins. A notice never blocks the page, a choice wall always
 does, and a policy's required buttons stay visible.
-[Customize your consent interface](/docs/customization/overview#keep-behavior-and-appearance-separate)
+[Keep behavior and appearance separate](/docs/customization/overview#keep-behavior-and-appearance-separate)
 explains the split.
 
 ## Change the copy and language
@@ -121,7 +129,18 @@ surface in `ui.banner.legalLinks` and `ui.dialog.legalLinks`. An empty list or
 `null` hides links on that surface.
 
 `data-hide-branding` removes the "Secured by c15t" tag from both surfaces.
-`data-color-scheme` picks `light`, `dark` or `system`.
+
+## Set dark mode and animation
+
+`data-color-scheme` picks `light`, `dark` or `system`, the default. Set it to
+`none` to follow a `dark` or `c15t-dark` class on your page's `<html>`
+instead. [Dark mode](/docs/customization/dark-mode) covers dark tokens in
+`ui.theme.dark`.
+
+`data-disable-animation` turns off the banner and dialog animations. Without
+it, c15t skips them for visitors who ask for reduced motion.
+[Motion and animation](/docs/customization/motion) covers per-surface settings
+and the duration tokens.
 
 ## Build your own banner
 

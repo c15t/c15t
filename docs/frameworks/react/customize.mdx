@@ -9,9 +9,10 @@ group: frameworks
 | Change | Use |
 | --- | --- |
 | Brand colors, fonts, radius, spacing | [Theme tokens](#change-colors-fonts-and-radius) |
+| Light and dark colors, animation | [Dark mode and motion](#turn-on-dark-mode-and-change-motion) |
 | Which button is filled or outlined | [`consentActions`](#style-the-action-buttons) |
 | Banner shape and position | [`ConsentBanner` props or `presentation`](#change-the-banner-shape) |
-| One element of a component | [Slots](#style-one-part-with-slots) |
+| One element of a component | [Component parts](#style-one-component-part) |
 | Labels and languages | [Copy and translations](#change-the-copy) |
 | Different markup entirely | [Headless](/docs/frameworks/react/headless) |
 
@@ -36,15 +37,6 @@ The import is the same with or without Tailwind. To import the stylesheet from
 CSS instead, put it at the top of your global stylesheet, above any
 `@tailwind` directives. `postcss-import`, which Vite uses, ignores an
 `@import` that follows other rules:
-
-```css title="src/index.css"
-@import 'c15t/react/styles.css';
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-```
-
-<import src="../../shared/react/styling/overview.mdx#tailwind-layers" />
 
 ## Change colors, fonts and radius
 
@@ -84,7 +76,7 @@ A single-page app has no server render, so pick one of two ways:
 
 In a server-rendered app, such as React Router framework mode, render
 `ConsentTheme` in the root component so the `<style>` element is part of the
-server HTML. [Tokens and CSS](/docs/customization/tokens) lists every variable.
+server HTML. [Theme tokens](/docs/customization/tokens) lists every variable.
 
 `ConsentTheme` outranks a plain `:root` rule, wherever each one loads. If you
 use both, a variable set in both places takes the `ConsentTheme` value. Write
@@ -141,7 +133,7 @@ Render `RegionalBanner` in place of `ConsentBanner` inside the provider.
 [ConsentBanner](/docs/frameworks/react/components/consent-banner#variants)
 lists every variant and position, and how to order buttons per policy.
 
-## Style one part with slots
+## Style one component part
 
 Each component part is a slot. Set slots in the provider options under
 `components`, keyed by component and part. A slot takes any attribute the
@@ -149,8 +141,23 @@ element accepts, such as `className` or `style`.
 
 <import src="../../shared/react/styling/overview.mdx#slot-recipes" />
 
-[Slots](/docs/customization/slots) covers the other components' keys and when to
-drop the built-in styles with `noStyle`.
+[Component parts](/docs/customization/slots) lists every component's part keys
+and when to drop the built-in styles with `noStyle`.
+[Class names and CSS-in-JS](/docs/customization/class-names) covers CSS
+Modules, vanilla-extract, StyleX and Emotion, and
+[Tailwind CSS](/docs/customization/tailwind) covers utilities on parts.
+
+## Turn on dark mode and change motion
+
+Pass `colorScheme` in the provider options and the same value to
+`ConsentTheme`. Leave it unset to follow a `dark` class on `<html>`, and add
+dark colors with `theme.dark`. [Dark mode](/docs/customization/dark-mode)
+covers each value and a dark first paint.
+
+`disableAnimation` in the provider options turns off the banner and dialog
+animations, and the same prop on `ConsentBanner` or `ConsentDialog` overrides
+it for one surface. [Motion and animation](/docs/customization/motion) covers
+the duration and easing tokens and reduced motion.
 
 ## Change the copy
 

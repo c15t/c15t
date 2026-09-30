@@ -4,15 +4,19 @@
 
 The provider's `colorScheme` prop switches on the dark token set: `'dark'`
 always, `'system'` when the operating system prefers dark, `'light'` never. It
-toggles a `c15t-dark` class on `<html>`. The stylesheet also uses the dark
-tokens when `<html>` has a `dark` class, so an app with its own dark mode
-toggle gets them without the prop. Override dark values under `:root.dark` and
-`:root.c15t-dark` in your stylesheet.
+toggles a `c15t-dark` class on `<html>`. Left unset, the provider copies a
+`dark` class on `<html>` into `c15t-dark`, so an app with its own dark mode
+toggle gets the dark tokens without the prop. Pass `null` if your app sets
+`c15t-dark` itself. Override dark values under `:root.dark` and
+`:root.c15t-dark` in your stylesheet. [Dark mode](/docs/customization/dark-mode)
+covers a dark first paint.
 
 ## Style one part with theme slots
 
 The provider's `theme` prop still applies slot styles in the browser. A slot
-takes a class name, or `{ className, style, noStyle }`:
+takes a class name, or `{ className, style, noStyle }`. Svelte applies a slot's
+`style` only to right links, action buttons, overlays and the floating trigger,
+with kebab-case keys, so prefer classes:
 
 {/* example: fragment */}
 
@@ -20,7 +24,7 @@ takes a class name, or `{ className, style, noStyle }`:
 const theme = {
   slots: {
     consentBannerCard: 'brand-banner-card',
-    consentBannerTitle: { style: { fontWeight: '600' } },
+    consentBannerTitle: 'brand-banner-title',
   },
 };
 ```
@@ -32,15 +36,20 @@ slots:
 
 | Component | Slots |
 | --- | --- |
-| `ConsentBanner` | `consentBanner`, `consentBannerCard`, `consentBannerHeader`, `consentBannerTitle`, `consentBannerDescription`, `consentBannerFooter`, `consentBannerFooterSubGroup`, `consentBannerRights`, `consentBannerRightLink` |
+| `ConsentBanner` | `consentBanner`, `consentBannerCard`, `consentBannerHeader`, `consentBannerTitle`, `consentBannerDescription`, `consentBannerFooter`, `consentBannerFooterSubGroup`, `consentBannerRights`, `consentBannerRightLink`, `consentBannerTag`, `consentBannerOverlay` |
 | `ConsentDialog` | `consentDialog`, `consentDialogCard`, `consentDialogHeader`, `consentDialogTitle`, `consentDialogDescription`, `consentDialogContent`, `consentDialogTag` |
-| `ConsentWidget` | `consentWidget`, `consentWidgetFooter` |
-| `IABConsentBanner` | `iabConsentBanner` |
+| `ConsentWidget` | `consentWidget`, `consentWidgetFooter`, `consentWidgetFooterSubGroup`, `consentWidgetTag` |
+| `ConsentDialogTrigger` | `consentDialogTrigger`, `consentDialogTriggerIcon` |
+| `IABConsentBanner` | `iabConsentBanner`, `iabConsentBannerTag`, `iabConsentBannerOverlay` |
+| Buttons in every component | `buttonPrimary`, `buttonSecondary` |
 
 Slot names are not React's `components.banner.card` keys; do not copy a React
 configuration. Use slots when one part should change and tokens when a value
-should change everywhere. [Slots](/docs/customization/slots) explains the
-attributes each element carries.
+should change everywhere. `class` on a component, such as
+`<ConsentBanner class="...">`, goes on its root.
+[Component parts](/docs/customization/slots) explains the attributes each
+element carries, and [Tailwind CSS](/docs/customization/tailwind) shows the
+Svelte and SvelteKit setups for Tailwind 4 and 3.
 
 ## Change button styles by action
 
@@ -103,6 +112,15 @@ keep the wording from your Inth project.
 [Translations](./translations) covers both, the message keys and switching
 languages. [Copy and translations](/docs/customization/translations) covers
 wording for each action.
+
+## Turn off animations
+
+`disableAnimation` on the provider turns off the banner and dialog animations,
+and the same prop on `ConsentBanner`, `ConsentDialog`, `IABConsentBanner` or
+`IABConsentDialog` overrides it for one surface. Left unset, the provider
+follows the visitor's reduced motion setting.
+[Motion and animation](/docs/customization/motion) covers the duration and
+easing tokens.
 
 ## Remove c15t's styles
 

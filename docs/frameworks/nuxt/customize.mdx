@@ -11,6 +11,7 @@ group: frameworks
 | Colors, fonts, radius, spacing or motion | `tokens` |
 | Banner shape, position, button order or blocking | `presentation` |
 | Classes or attributes on one part of a component | `components` |
+| Light or dark colors | `colorScheme` and `theme.dark` |
 | The text | Your Inth project's translations |
 | The markup | [Headless](/docs/frameworks/nuxt/headless) |
 
@@ -79,7 +80,7 @@ policy can restore a required button you left out of `layout`.
 ## Style one part of a component
 
 `components` adds attributes to named parts, such as a class on the banner
-card. The keys match the [slot reference](/docs/customization/slots).
+card. The keys match the [component parts](/docs/customization/slots).
 
 {/* example: fragment */}
 
@@ -96,6 +97,26 @@ export default defineNuxtConfig({
 
 Vue binds these objects with `v-bind`, so use Vue attribute names such as
 `class` and `style`. React's `className` does not apply.
+
+With Tailwind CSS, put part classes in `app/app.config.ts` under the same
+`c15t` key rather than in `nuxt.config.ts`, because Tailwind scans `app/`. The
+module merges both. [Tailwind CSS](/docs/customization/tailwind) shows the
+Nuxt setup for Tailwind 4 and 3, and
+[class names and CSS-in-JS](/docs/customization/class-names) covers other
+class sources.
+
+## Turn on dark mode
+
+`colorScheme` in the `c15t` key in `nuxt.config.ts` decides when the banner and dialog turn dark:
+`'light'`, `'dark'`, `'system'`, or unset to copy a `dark` class on `<html>`.
+Set `colorScheme` or `theme.dark` to get dark colors. With both unset, c15t
+copies the class but the tokens stay light. `theme` takes the same token
+object as the other frameworks, including `theme.dark`, and wins over `tokens`
+where both set a variable. For `'dark'` and `'system'`, the module adds an
+inline script to `<head>` that sets the class before the banner paints.
+`colorScheme: null` currently behaves like an unset value in Nuxt.
+[Dark mode](/docs/customization/dark-mode) covers each value and a dark first
+paint.
 
 ## Change the copy
 
@@ -125,7 +146,7 @@ message keys and writing labels.
 | `showTrigger` | Renders the floating [`ConsentDialogTrigger`](/docs/frameworks/nuxt/components/consent-dialog-trigger) from `ConsentRoot`. |
 | `triggerDefaultPosition`, `triggerSize`, `triggerIcon`, `triggerShowWhen` | Place and style that trigger. |
 | `hideBranding`, `bannerHideBranding`, `dialogHideBranding` | Hide the "Secured by" tag. |
-| `disableAnimation` | Turns off banner and dialog animations. |
+| `disableAnimation` | Turns off banner and dialog animations. See [motion and animation](/docs/customization/motion). |
 | `consentCategories` | Limits the categories the dialog shows, within the policy's scope. |
 
 ## Check the result

@@ -7,49 +7,18 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="tailwind-layers">
-  Every rule lives in `@layer components`, so unlayered utilities from Tailwind
-  v4 and atomic classes from StyleX override it without specificity tricks.
-  The stylesheet opens with Tailwind v4's layer order,
-  `@layer properties, theme, base, components, utilities;`. Cascade layers rank
-  by the order they are first named, so `components` stays above Tailwind's
-  preflight in `base` even when the c15t stylesheet loads before Tailwind's.
-  Without Tailwind the other layers stay empty. If your CSS declares its own
-  layer order, load that statement before the c15t stylesheet.
+  c15t's rules live in the cascade layer `components`, and the stylesheet
+  opens with Tailwind CSS 4's layer order,
+  `@layer properties, theme, base, components, utilities;`. Unlayered CSS,
+  Tailwind 4 utilities and StyleX's atomic classes override c15t's rules
+  without specificity tricks, whichever stylesheet loads first.
+  [Stylesheets and CSS layers](/docs/customization/stylesheets) explains the
+  order and when the dialog's rules load.
 
-  With Tailwind 3, import the same stylesheet and add one PostCSS plugin.
-  Tailwind 3 treats `@layer components` as its own directive. Without the
-  plugin the build fails with this error, or Tailwind drops c15t's rules
-  because their class names never appear in your source files:
-
-  ```txt
-  `@layer components` is used but no matching `@tailwind components` directive is present.
-  ```
-
-  `@c15t/ui/postcss-tailwind3` removes the layer wrappers from c15t's
-  stylesheets before Tailwind runs, including the dialog stylesheet the
-  bundler loads. List it before `tailwindcss`:
-
-  ```js title="postcss.config.mjs"
-  export default {
-  	plugins: {
-  		'@c15t/ui/postcss-tailwind3': {},
-  		tailwindcss: {},
-  		autoprefixer: {},
-  	},
-  };
-  ```
-
-  PostCSS runs the plugins in the order the keys are written. Use this object
-  form rather than an array of names: Next.js accepts both, but the loader
-  Vite uses rejects plugin names in an array. With pnpm, add `@c15t/ui` to your dependencies so PostCSS can load the
-  plugin. `c15t setup` makes both changes when it finds Tailwind 3. The
-  `styles.tw3.css` entry from earlier setups still works with the plugin, but
-  new setups do not need it.
-
-  Tailwind 3 has no cascade layers, so c15t's selectors outrank a single
-  utility class. Add the important modifier to utilities you pass to slots:
-  `!bg-red-500`, `hover:!bg-red-500`. A bare `bg-red-500` has no effect.
-  Tailwind 4 utilities win without it. Theme tokens work the same on both.
+  Tailwind CSS 3 has no cascade layers. It needs the `c15t/postcss-tailwind3`
+  PostCSS plugin and the `styles.tw3.css` build, and the import position
+  depends on your build tool. [Tailwind CSS](/docs/customization/tailwind)
+  shows the tested setup for each framework.
 </section>
 
 <section id="tokens-intro">
@@ -73,18 +42,14 @@ group: reference
   | `colorScheme` | `'dark'` makes the dark tokens the default before hydration. `'system'` follows `prefers-color-scheme` with a CSS media query. Omit it to follow a `dark` or `c15t-dark` class on `<html>`. |
   | `nonce` | Content Security Policy nonce for the `<style>` element. |
 
-  Pass the same `colorScheme` to `ConsentTheme` and to the provider. The
-  provider keeps the `c15t-dark` class on `<html>` in sync after hydration.
-  If your app manages dark mode through a root class, such as next-themes'
-  `dark` class, omit `colorScheme` and include that class in the server
-  HTML. If your app sets `c15t-dark` itself, pass `colorScheme: null` to the
-  provider and it leaves the class alone.
+  Pass the same `colorScheme` to `ConsentTheme` and to the provider. If your
+  app manages dark mode through a root class, such as next-themes' `dark`
+  class, omit `colorScheme` and include that class in the server HTML.
+  [Dark mode](/docs/customization/dark-mode) covers `theme.dark`, `null` and
+  a dark first paint.
 
-  To switch between light and dark at runtime, render `ConsentTheme` without
-  `colorScheme` and toggle the `dark` class on `<html>`: its output already
-  holds the variables for both schemes. To switch between different token
-  sets, render `ConsentTheme` from a client component and change its props,
-  which ships the generator.
+  To switch between different token sets at runtime, render `ConsentTheme`
+  from a client component and change its props, which ships the generator.
 
   Outside React, call `generateThemeCSS(theme, colorScheme)` from
   `@c15t/ui/theme` on the server or at build time and put the result in a
@@ -190,52 +155,16 @@ group: reference
   `data-variant` sits on the root, so child slots use Tailwind's `group`
   prefix to read it.
 
-  StyleX, spreading the result of `stylex.props()` into a slot:
-
-  ```tsx
-  import * as stylex from '@stylexjs/stylex';
-
-  const styles = stylex.create({
-  	card: { borderRadius: 0, boxShadow: 'none' },
-  	rightLink: { textUnderlineOffset: 4, color: 'rgb(185 28 28)' },
-  });
-
-  <ConsentProvider
-  	options={{
-  		mode,
-  		components: {
-  			banner: {
-  				card: stylex.props(styles.card),
-  				rightLink: stylex.props(styles.rightLink),
-  			},
-  		},
-  	}}
-  />;
-  ```
+  [Class names and CSS-in-JS](/docs/customization/class-names) shows CSS
+  Modules, vanilla-extract, StyleX and Emotion classes on a part.
 
   Set `noStyle` on a component to drop the built-in classes from every part and
   keep only what your slots pass. Set `noStyle` in the provider options to do it
   for every component.
 
-  Banner slot keys under `components.banner`:
-
-  | Key | Element |
-  | --- | --- |
-  | `root` | Fixed-position wrapper carrying `data-prompt`, `data-model`, `data-variant`, `data-position`, and `data-blocking` |
-  | `cardShell` | Sizes the card and holds the branding tag |
-  | `card` | The visible card, carrying `data-state` |
-  | `header` | Title and description container |
-  | `title` | Heading |
-  | `footer` | Action area |
-  | `actions` | Group of action groups |
-  | `actionGroup` | One group of equally prominent actions |
-  | `rights` | Group of right links, rendered before the actions |
-  | `rightLink` | One right link, carrying `data-action="right"` and `data-right` |
-  | `overlay` | Backdrop shown when the banner blocks the page |
-
-  Action buttons carry `data-action` and `data-variant`, and right links carry
-  `data-action="right"`, so a single rule such as `[data-action='dismiss']` or
-  `[data-action='right']` styles one role across every surface. Right links are
-  underlined text by default, so the only button on a notice is the primary
-  action.
+  [Component parts](/docs/customization/slots) lists every part key under
+  `components` and the `data-*` attributes each part carries. Action buttons
+  carry `data-action`, so a single rule such as `[data-action='dismiss']`
+  styles one role across every surface. Right links are underlined text by
+  default, so the only button on a notice is the primary action.
 </section>

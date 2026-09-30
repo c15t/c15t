@@ -1,6 +1,6 @@
 ---
 title: Customize
-description: Load the c15t stylesheet in Next.js and change colors, radius, button roles, slots and banner shape with ConsentTheme and ConsentRoot options.
+description: Load the c15t stylesheet in Next.js and change colors, radius, button roles, component parts, dark mode and banner shape with ConsentTheme and ConsentRoot options.
 group: frameworks
 ---
 
@@ -13,24 +13,15 @@ the same components imported from `c15t/next`.
 ## Load the stylesheet
 
 Import c15t once from the global stylesheet that `app/layout.tsx` or
-`pages/_app.tsx` loads. With Tailwind CSS 4, put it after the Tailwind import
-so the component layers keep their order:
+`pages/_app.tsx` loads:
 
-```css title="styles/globals.css"
-@import 'tailwindcss';
-@import 'c15t/next/styles.css';
-```
-
-Without Tailwind, keep only the c15t import. With Tailwind CSS 3, put the
-import above the directives. `postcss-import`, which Vite and some PostCSS
-setups use, ignores an `@import` that follows other rules:
+{/* example: fragment */}
 
 ```css title="styles/globals.css"
 @import 'c15t/next/styles.css';
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 ```
+
+With Tailwind CSS 4, put it after `@import 'tailwindcss';`.
 
 <import src="../../shared/react/styling/overview.mdx#tailwind-layers" />
 
@@ -122,10 +113,27 @@ const bannerSlots = {
 
 <import src="../../shared/react/styling/overview.mdx#slot-recipes" />
 
+[Component parts](/docs/customization/slots) lists every component's part keys,
+and [class names and CSS-in-JS](/docs/customization/class-names) covers CSS
+Modules, vanilla-extract, StyleX and Emotion.
+
+## Turn on dark mode and change motion
+
+Pass `colorScheme` to `ConsentTheme` in your layout and the same value in
+`options` on `ConsentRoot`. Leave it unset to follow a `dark` class on
+`<html>`, such as the one next-themes sets, and add dark colors with
+`theme.dark`. [Dark mode](/docs/customization/dark-mode) covers each value
+and a dark first paint.
+
+`options.disableAnimation` on `ConsentRoot` turns off the banner and dialog
+animations, and the same prop on `ConsentBanner` or `ConsentDialog` overrides
+it for one surface. [Motion and animation](/docs/customization/motion) covers
+the duration and easing tokens and reduced motion.
+
 ## Check the result
 
 Open the page in a fresh session. The banner uses your colors and radius, and
 the primary action has the style you set. Choices, policy and actions are the
 same as with the default design; customizing never records a choice. The
-[customization overview](/docs/customization/overview) covers tokens, slots,
+[customization overview](/docs/customization/overview) covers tokens, parts,
 copy and headless UI across frameworks.

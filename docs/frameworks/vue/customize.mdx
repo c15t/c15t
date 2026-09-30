@@ -11,6 +11,7 @@ group: frameworks
 | Colors, fonts, radius, spacing or motion | `tokens` |
 | Banner shape, position, button order or blocking | `presentation` |
 | Classes or attributes on one part of a component | `components` |
+| Light or dark colors | `colorScheme` and `theme.dark` |
 | The text | Your Inth project's translations |
 | The markup | [Headless](/docs/frameworks/vue/headless) |
 
@@ -66,9 +67,23 @@ yourself.
 
 `components` adds attributes to named parts, such as the banner card or the
 floating trigger. The keys match the
-[slot reference](/docs/customization/slots). Vue binds these objects with
+[component parts](/docs/customization/slots). Vue binds these objects with
 `v-bind`, so use Vue attribute names such as `class` and `style`. React's
 `className` does not apply.
+[Tailwind CSS](/docs/customization/tailwind) shows the Vue setup for Tailwind 4
+and 3, and [class names and CSS-in-JS](/docs/customization/class-names) covers
+other class sources.
+
+## Turn on dark mode
+
+`colorScheme` in the `c15tVue` options decides when the banner and dialog turn dark:
+`'light'`, `'dark'`, `'system'`, or unset to copy a `dark` class on `<html>`.
+Set `colorScheme` or `theme.dark` to get dark colors. With both unset, c15t
+copies the class but the tokens stay light. `theme` takes the same token
+object as the other frameworks, including `theme.dark`, and wins over `tokens`
+where both set a variable.
+[Dark mode](/docs/customization/dark-mode) covers each value and a dark first
+paint.
 
 ## Change the copy
 
@@ -98,7 +113,7 @@ message keys and writing labels.
 | `showTrigger` | Renders the floating [`ConsentDialogTrigger`](/docs/frameworks/vue/components/consent-dialog-trigger) from `ConsentRoot`. |
 | `triggerDefaultPosition`, `triggerSize`, `triggerIcon`, `triggerShowWhen` | Place and style that trigger. |
 | `hideBranding`, `bannerHideBranding`, `dialogHideBranding` | Hide the "Secured by" tag. |
-| `disableAnimation` | Turns off banner and dialog animations. |
+| `disableAnimation` | Turns off banner and dialog animations. See [motion and animation](/docs/customization/motion). |
 | `consentCategories` | Limits the categories the dialog shows, within the policy's scope. |
 
 ## Check the result
