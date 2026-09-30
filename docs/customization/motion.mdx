@@ -1,0 +1,122 @@
+---
+title: Motion and animation
+description: Change how fast c15t's banner and dialog animate with duration and easing tokens, turn animations off per surface with disableAnimation, and check reduced-motion behavior in each framework.
+group: customization
+---
+
+## Change the speed with motion tokens
+
+c15t animates its surfaces with three durations and four easing curves. Set
+them in the theme's `motion` object, or as CSS variables:
+
+| CSS variable | Theme key | Default | Used by |
+| --- | --- | --- | --- |
+| `--c15t-duration-fast` | `motion.duration.fast` | `80ms` | Banner, buttons, tabs |
+| `--c15t-duration-normal` | `motion.duration.normal` | `150ms` | Preference dialog, switches, accordions |
+| `--c15t-duration-slow` | `motion.duration.slow` | `200ms` | Legal links |
+| `--c15t-easing` | `motion.easing` | `cubic-bezier(0.4, 0, 0.2, 1)` | Banner fade, switches, accordions |
+| `--c15t-easing-out` | `motion.easingOut` | `cubic-bezier(0.215, 0.61, 0.355, 1)` | Preference dialog |
+| `--c15t-easing-in-out` | `motion.easingInOut` | `cubic-bezier(0.645, 0.045, 0.355, 1)` | Not used by c15t's components. Available for your own rules |
+| `--c15t-easing-spring` | `motion.easingSpring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | The banner's slide in and the dialog's scale in |
+
+This theme slows the dialog down and removes the banner's overshoot:
+
+{/* example: fragment */}
+
+```ts title="consent-theme.ts"
+export const theme = {
+  motion: {
+    duration: { fast: '120ms', normal: '220ms' },
+    easingSpring: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
+  },
+};
+```
+
+The theme goes where your framework's other tokens go. See
+[theme tokens](/docs/customization/tokens) and your framework's customize page.
+In Vue and Nuxt, set `tokens` with the variable name without the leading
+`--`, such as `'c15t-duration-normal': '220ms'`.
+
+The floating `ConsentDialogTrigger` does not read these tokens. It uses its
+own 200ms timing.
+
+## Turn animations off
+
+`disableAnimation` removes the enter and exit transitions. Set it once for
+every surface, then override it for one surface where your framework allows:
+
+| Framework | For every surface | For one surface |
+| --- | --- | --- |
+| Next.js, TanStack Start | `options.disableAnimation` on `ConsentRoot` | `disableAnimation` prop on `ConsentBanner`, `ConsentDialog`, `IABConsentBanner`, `IABConsentDialog` |
+| React | `disableAnimation` in the `ConsentProvider` options | The same component props |
+| Nuxt | `disableAnimation` in the `c15t` module options | `disableAnimation` prop on `consent-banner.vue`, `consent-manager.vue` and the IAB banner and dialog, when you render them yourself |
+| Vue | `disableAnimation` in the `c15tVue` options | The same component props |
+| Astro | `disableAnimation` in the `c15t()` integration options | `disableAnimation` prop on `ConsentBanner`, `ConsentDialog`, `IABConsentBanner`, `IABConsentDialog` |
+| Svelte, SvelteKit | `disableAnimation` on `ConsentManagerProvider` | `disableAnimation` prop on `ConsentBanner`, `ConsentDialog`, `IABConsentBanner`, `IABConsentDialog` |
+| HTML | `data-disable-animation` on the script tag, or `ui.disableAnimation` in `config` | `ui.banner.disableAnimation`, `ui.dialog.disableAnimation` |
+| JavaScript | `ui.disableAnimation` in `init()` | `ui.banner.disableAnimation`, `ui.dialog.disableAnimation` |
+
+A value on one surface wins over the value for every surface. In Svelte,
+SvelteKit, HTML and JavaScript, the preference dialog still plays a short fade
+when it opens with `disableAnimation` set.
+
+Vue's `ConsentRoot` renders the banner and dialog without props, so in Vue and
+Nuxt a per-surface value only applies when you render the surface components
+yourself.
+
+## Follow the visitor's reduced motion setting
+
+| Framework | With `disableAnimation` unset |
+| --- | --- |
+| Next.js, TanStack Start, React | The banner and dialogs skip their animations while the visitor asks for reduced motion |
+| Svelte, SvelteKit | Same, and follows the setting as it changes |
+| HTML, JavaScript | Reads the setting when the UI mounts |
+| Nuxt, Vue, Astro | The banner and dialog still animate. Set `disableAnimation` if you need them still |
+
+Set `disableAnimation: false` explicitly to animate even for visitors who ask
+for reduced motion. The switches in the preference dialog stop animating under
+reduced motion in every framework, through the stylesheet.
+
+## Animate your own rules on dialog state
+
+The preference dialog marks its open state with `data-state`, `open` or
+`closed`, so a rule can animate your own additions to it. Which element
+carries the attribute depends on the framework:
+
+| Framework | Elements with `data-state` |
+| --- | --- |
+| HTML, JavaScript | Dialog overlay, positioner and content |
+| Svelte, SvelteKit | Dialog backdrop, positioner and content |
+| Vue, Nuxt | Dialog content and overlay. The dialog unmounts when it closes, so you only see `open` |
+| React, Next.js, TanStack Start | Not on `ConsentDialog`. The `Dialog` primitive's trigger, overlay, content and close parts carry it |
+
+Banners do not carry `data-state`. Read `data-prompt`, `data-variant` and the
+other attributes in [component parts](/docs/customization/slots) instead.
+
+## Stop transitions while you switch themes
+
+Every c15t stylesheet has a `c15t-no-transitions` class that sets
+`transition` and `animation` to `none` on an element and its children. Add it
+to `<html>` while your app swaps themes, so colors change in one frame, and
+remove it on the next frame:
+
+{/* example: fragment */}
+
+```ts
+document.documentElement.classList.add('c15t-no-transitions');
+applyYourTheme();
+requestAnimationFrame(() => {
+  document.documentElement.classList.remove('c15t-no-transitions');
+});
+```
+
+## Check the result
+
+1. In DevTools, open the Rendering panel and emulate
+   `prefers-reduced-motion: reduce`. Reload with site data cleared.
+2. The banner appears without sliding in, where the table above says your
+   framework follows the setting.
+3. Open the preference dialog and toggle a switch. The switch changes without
+   animating.
+4. Turn the emulation off, set a slower `motion.duration.normal`, and open the
+   dialog again. It fades in at the new speed.
