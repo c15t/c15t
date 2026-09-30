@@ -14,6 +14,7 @@ import { join, resolve } from 'node:path';
 
 import { replaceBenchmarkFixtures } from './benchmark-overlay';
 import { createBenchmarkPlan } from './benchmark-plan';
+import { resolveBenchmarkRevisions } from './benchmark-revisions';
 import { runCommand } from './browser-process';
 import { installBrowsers } from './install-browsers';
 
@@ -23,18 +24,9 @@ const { expectedPackages, packages, suites } = createBenchmarkPlan(
 	process.env.BENCHMARK_PACKAGE
 );
 const root = process.cwd();
-const headSha = execFileSync('git', ['rev-parse', 'HEAD'], {
-	encoding: 'utf8',
-}).trim();
-const baseSha = execFileSync(
-	'git',
-	[
-		'rev-parse',
-		'--verify',
-		`${process.env.BENCHMARK_BASE_REF || 'HEAD^'}^{commit}`,
-	],
-	{ encoding: 'utf8' }
-).trim();
+const { baseSha, headSha } = resolveBenchmarkRevisions(
+	process.env.BENCHMARK_BASE_REF || 'HEAD^'
+);
 const directory = mkdtempSync(join(tmpdir(), 'c15t-benchmark-'));
 const base = join(directory, 'base');
 const report = resolve('.ci-reports', mode);

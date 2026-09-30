@@ -66,10 +66,14 @@ export const GET = async function GET(request: Request) {
 	const fixture = url.searchParams.get('fixture');
 
 	if (fixture === 'iframe') {
-		const requestedDelay = Number(url.searchParams.get('delay') ?? 0);
-		const delay = Number.isFinite(requestedDelay)
-			? Math.min(Math.max(requestedDelay, 0), 15_000)
-			: 0;
+		// Only the fixed demo waits are available on this public endpoint.
+		const requestedDelay = url.searchParams.get('delay');
+		let delay = 0;
+		if (requestedDelay === '8000') {
+			delay = 8000;
+		} else if (requestedDelay === '15000') {
+			delay = 15000;
+		}
 
 		await createDeferredPromise((resolve) => setTimeout(resolve, delay));
 
