@@ -335,6 +335,18 @@ describe('tenant configuration', () => {
 		).rejects.toThrow(/requireTenantId/u);
 	});
 
+	it.each([
+		['string', 'true'],
+		['number', 1],
+		['null', null],
+	])('refuses a requireTenantId that is a %s', async (_label, value) => {
+		// Treating anything but `true` as off would let an untyped config start
+		// in the null-tenant scope while its author believes it is guarded.
+		await expect(
+			build({ requireTenantId: value as unknown as boolean })
+		).rejects.toThrow(/requireTenantId must be a boolean/u);
+	});
+
 	it('starts when a required tenantId is present', async () => {
 		await expect(
 			build({ requireTenantId: true, tenantId: 'tenant_a' })

@@ -209,7 +209,15 @@ export const assertTenantOptions = function assertTenantOptions(
 		}
 	}
 
-	if (options.requireTenantId === true && tenantId === undefined) {
+	// Read as unknown for the same reason: `requireTenantId: 'true'` from an
+	// untyped config would otherwise switch the guard off without a word.
+	const requireTenantId: unknown = options.requireTenantId;
+	if (requireTenantId !== undefined && typeof requireTenantId !== 'boolean') {
+		throw new TypeError(
+			`[c15t] requireTenantId must be a boolean, received ${requireTenantId === null ? 'null' : typeof requireTenantId}.`
+		);
+	}
+	if (requireTenantId === true && tenantId === undefined) {
 		throw new Error(
 			'[c15t] requireTenantId is set but tenantId is missing. Refusing to start: without it this instance would read and write the single-tenant scope instead of a tenant.'
 		);
