@@ -67,7 +67,7 @@ We leverage several automated workflows to ensure code quality:
 
 ## Getting Started
 
-1. Fork the repo and create your branch from `main`:
+1. Fork the repo and create your branch from `canary`:
 
    ```sh
    git clone https://github.com/your-username/c15t.git
