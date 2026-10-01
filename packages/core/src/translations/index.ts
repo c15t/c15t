@@ -170,11 +170,16 @@ export const applyTranslationOverrides = function applyTranslationOverrides(
 };
 
 /**
- * Resolve copy for a language from what the client has on hand: the bundled
- * translations for it, the app's overrides for it, or both.
+ * Resolve copy for a language from what the client has on hand: c15t's
+ * built-in copy for it, the app's overrides for it, or both.
+ *
+ * Both fall back to the primary subtag, so `de-AT` uses German copy. English
+ * built-in copy is always available; every other bundled language is once
+ * `@c15t/translations/all` has loaded. App overrides for a language without
+ * built-in copy apply over English.
  *
  * Used where no backend answers, such as offline mode switching language. A
- * language with neither bundled copy nor app overrides resolves to
+ * language with neither built-in copy nor app overrides resolves to
  * `undefined`, so the caller keeps its current copy instead of labelling
  * another language's text with this one.
  *
@@ -186,15 +191,12 @@ export const resolveLocalTranslations = function resolveLocalTranslations(
 	language: string,
 	overrides: TranslationOverrides | undefined
 ): KernelTranslations | undefined {
-	const bundle = defaultTranslationConfig.translations;
-	const bundled = Object.hasOwn(bundle, language)
-		? (bundle[language] as Translations)
-		: undefined;
+	const bundled = findStockTranslations(language);
 	const selected = selectTranslationOverride(overrides, language);
 	if (!(bundled || selected)) {
 		return undefined;
 	}
-	const base = bundled ?? (bundle.en as Translations);
+	const base = bundled ?? enTranslations;
 	return {
 		language,
 		translations: (selected

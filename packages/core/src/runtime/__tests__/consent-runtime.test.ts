@@ -9,7 +9,9 @@ import { baseTranslations } from '@c15t/translations/all';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { holdNetworkRequests } from '../../modules/network-blocker/hold';
+import { resolveLocalTranslations } from '../../translations';
 import { custom } from '../../transports/mode';
+import { offline } from '../../transports/offline';
 import type { KernelTransport } from '../../types';
 import {
 	createConsentRuntime,
@@ -395,6 +397,41 @@ describe('stock bundles passed as i18n messages', () => {
 		const copy = kernel.getSnapshot().translations?.translations;
 		expect(copy?.cookieBanner.title).toBe(stockGerman.cookieBanner.title);
 		expect(copy?.common.acceptAll).toBe(stockGerman.common.acceptAll);
+		kernel.dispose();
+	});
+});
+
+describe('offline copy with every bundled language loaded', () => {
+	test('a regional language resolves its primary language bundle', () => {
+		const copy = resolveLocalTranslations('de-AT', undefined);
+
+		expect(copy?.language).toBe('de-AT');
+		expect(copy?.translations.cookieBanner.title).toBe(
+			baseTranslations.de.cookieBanner.title
+		);
+	});
+
+	test('app messages apply over the bundle for that language', () => {
+		const copy = resolveLocalTranslations('fr', {
+			fr: { cookieBanner: { title: 'Mon titre' } },
+		});
+
+		expect(copy?.translations.cookieBanner.title).toBe('Mon titre');
+		expect(copy?.translations.common.acceptAll).toBe(
+			baseTranslations.fr.common.acceptAll
+		);
+	});
+
+	test('a language set through the kernel switches to the bundled copy', async () => {
+		const kernel = createRuntimeKernel({ mode: offline() });
+		await kernel.commands.init();
+
+		kernel.set.language('de');
+		await kernel.commands.init();
+
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe(baseTranslations.de.cookieBanner.title);
 		kernel.dispose();
 	});
 });
