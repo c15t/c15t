@@ -3,6 +3,8 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { requireId } from '../_shared/required-id';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 export interface LinkedInInsightsConversionEvent {
 	conversion_id: string | number;
@@ -97,6 +99,8 @@ export interface LinkedInInsightsOptions {
  *
  * @param options - The options for the LinkedIn Insight Tag script.
  * @returns The LinkedIn Insight Tag script configuration.
+ * @throws {Error} `linkedinInsights: missing or invalid id` when `id` is
+ *   empty or only whitespace.
  *
  * @example
  * ```ts
@@ -112,9 +116,11 @@ export const linkedinInsights = function linkedinInsights({
 	scriptSrc,
 }: LinkedInInsightsOptions): Script {
 	const resolved = resolveManifest(linkedinInsightsManifest, {
-		id,
-		scriptSrc:
-			scriptSrc ?? 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
+		id: requireId('linkedinInsights', 'id', id),
+		scriptSrc: resolveScriptUrl(
+			scriptSrc,
+			'https://snap.licdn.com/li.lms-analytics/insight.min.js'
+		),
 	});
 
 	return resolved;

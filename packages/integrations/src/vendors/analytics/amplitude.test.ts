@@ -43,7 +43,7 @@ describe('amplitude', () => {
 
 		expectScriptMatchesIntegration('amplitude', script, {
 			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
+			persistAfterConsentRevoked: true,
 			src: DEFAULT_AMPLITUDE_SCRIPT_URL,
 		});
 	});
@@ -95,10 +95,17 @@ describe('amplitude', () => {
 				AMPLITUDE_IDENTIFY_METHODS.map((method) => [method, 'function'])
 			)
 		);
+		// setOptOut(false) clears an opt-out Amplitude saved in its cookie
+		// when the visitor revoked consent on an earlier visit.
 		expect(snapshotAmplitudeQueue()).toEqual([
 			{
 				args: ['AMPLITUDE_API_KEY', { autocapture: false }],
 				name: 'init',
+				resolveType: 'function',
+			},
+			{
+				args: [false],
+				name: 'setOptOut',
 				resolveType: 'function',
 			},
 		]);
@@ -148,6 +155,11 @@ describe('amplitude', () => {
 			{
 				args: ['AMPLITUDE_API_KEY', {}],
 				name: 'init',
+				resolveType: 'function',
+			},
+			{
+				args: [false],
+				name: 'setOptOut',
 				resolveType: 'function',
 			},
 			{

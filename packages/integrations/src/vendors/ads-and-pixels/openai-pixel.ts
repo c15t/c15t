@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { requireId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 /** User matching fields accepted by OpenAI. Hash identifiers before passing them. */
@@ -219,6 +220,8 @@ export const openaiPixelManifest = {
  *
  * @param options - Pixel ID, debug logging, and optional SDK URL.
  * @returns A script gated on marketing consent, with SDK consent updates.
+ * @throws {Error} `openaiPixel: missing or invalid pixelId` when `pixelId` is
+ *   empty or only whitespace.
  * @example
  * ```ts
  * openaiPixel({ pixelId: 'YOUR_PIXEL_ID', debug: true });
@@ -230,7 +233,10 @@ export const openaiPixel = function openaiPixel({
 	user,
 	scriptSrc,
 }: OpenAIPixelOptions): Script {
-	const initOptions: OpenAIPixelInitOptions = { debug, pixelId };
+	const initOptions: OpenAIPixelInitOptions = {
+		debug,
+		pixelId: requireId('openaiPixel', 'pixelId', pixelId),
+	};
 	if (user !== undefined) {
 		initOptions.user = user;
 	}

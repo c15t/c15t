@@ -117,6 +117,11 @@ describe('amplitude contract', () => {
 				resolveType: 'function',
 			},
 			{
+				args: [false],
+				name: 'setOptOut',
+				resolveType: 'function',
+			},
+			{
 				args: ['Signup', { plan: 'pro' }],
 				name: 'track',
 				resolveType: 'function',
@@ -169,7 +174,7 @@ describe('amplitude contract', () => {
 		expect((window as TestWindow).amplitude).toBeUndefined();
 	});
 
-	it('calls setOptOut(true) after load and unloads by default on revoke', () => {
+	it('calls setOptOut(true) on revoke and keeps the loaded SDK on the page', () => {
 		const setOptOut = vi.fn();
 		const script = {
 			...amplitude({
@@ -190,22 +195,12 @@ describe('amplitude contract', () => {
 		});
 
 		loadScripts([script], grantedMeasurementConsents);
-
-		script.onConsentChange?.({
-			consents: deniedConsents,
-			elementId: script.id,
-			hasConsent: false,
-			id: script.id,
-		});
+		updateScripts([script], deniedConsents);
 
 		expect(setOptOut).toHaveBeenCalledWith(true);
-
-		const result = updateScripts([script], deniedConsents);
-
-		expect(result.unloaded).toEqual(['amplitude-contract']);
 		expect(
-			document.getElementById('c15t-script-amplitude-contract')
-		).toBeNull();
+			document.querySelector('script[src*="cdn.amplitude.com/libs/"]')
+		).not.toBeNull();
 	});
 
 	it('calls setOptOut(false) when measurement consent is granted after load', () => {
@@ -226,5 +221,40 @@ describe('amplitude contract', () => {
 		});
 
 		expect(setOptOut).toHaveBeenCalledWith(false);
+	});
+
+	it('keeps the loaded SDK and opts back in on grant, revoke, grant without a reload', () => {
+		const setOptOut = vi.fn();
+		const track = vi.fn();
+		let appends = 0;
+		const script = {
+			...amplitude({
+				apiKey: 'AMPLITUDE-CONTRACT',
+			}),
+			id: 'amplitude-contract',
+		};
+
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('cdn.amplitude.com/libs/analytics-browser-')) {
+				return;
+			}
+
+			appends += 1;
+			// The Browser SDK 2 bundle assigns its live methods onto the snippet
+			// object and drains `_q`.
+			Object.assign(win.amplitude ?? {}, { setOptOut, track });
+			node.dispatchEvent(new Event('load'));
+		});
+
+		loadScripts([script], grantedMeasurementConsents);
+		updateScripts([script], deniedConsents);
+		loadScripts([script], grantedMeasurementConsents);
+
+		const win = window as TestWindow;
+		win.amplitude?.track?.('Signup');
+
+		expect(appends).toBe(1);
+		expect(setOptOut.mock.calls).toEqual([[true], [false]]);
+		expect(track).toHaveBeenCalledWith('Signup');
 	});
 });

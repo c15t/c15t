@@ -3,7 +3,8 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { stripTrailingSlashes } from '../_shared/script-url';
+import { requireId } from '../_shared/required-id';
+import { stripTrailingSlashes, trimToUndefined } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -146,9 +147,9 @@ const resolvePosthogHosts = function resolvePosthogHosts(
 	}
 
 	let scriptUrl: string;
-	if (options.scriptUrl !== undefined) {
-		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-		scriptUrl = options.scriptUrl;
+	const scriptUrlOverride = trimToUndefined(options.scriptUrl);
+	if (scriptUrlOverride !== undefined) {
+		scriptUrl = scriptUrlOverride;
 	} else if (options.apiHost === undefined) {
 		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		scriptUrl = regionDefaults.scriptUrl;
@@ -341,6 +342,8 @@ export interface PosthogConsentOptions {
  *
  * Edge case: `loadMode: 'disabled'` skips consent-related flows entirely; use it
  * only when consumers manage PostHog loading and consent externally.
+ * @throws {Error} `posthog: missing or invalid id` when `id` is empty or
+ *   only whitespace, unless `loadMode` is `'disabled'`.
  *
  * @see https://posthog.com/docs/libraries/js#opt-in-capturing
  *
@@ -358,10 +361,11 @@ export const posthog = function posthog(
 		};
 	}
 
+	const id = requireId('posthog', 'id', options.id);
 	const { apiHost, uiHost, scriptUrl } = resolvePosthogHosts(options);
 	const resolved = resolveManifest(posthogManifest, {
 		apiHost,
-		id: options.id,
+		id,
 		initOptions: {
 			cookieless_mode: 'on_reject',
 			defaults: DEFAULTS_DATE,

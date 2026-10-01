@@ -33,12 +33,8 @@ export const trimToUndefined = function trimToUndefined(
  *
  * @param override - Explicit script URL supplied by the integration caller.
  * @param fallback - Default vendor script URL.
- * @returns `override` when it is defined, otherwise `fallback`.
- *
- * @remarks
- * This helper intentionally does not trim or validate the override. Use
- * `trimToUndefined` before calling this helper when blank string overrides
- * should fall back to the vendor default.
+ * @returns The trimmed `override` when it contains non-whitespace characters,
+ * otherwise `fallback`. An empty or whitespace-only override counts as unset.
  *
  * @example
  * ```ts
@@ -59,11 +55,7 @@ export const resolveScriptUrl = function resolveScriptUrl(
 	override: string | undefined,
 	fallback: string
 ): string {
-	if (override !== undefined) {
-		return override;
-	}
-
-	return fallback;
+	return trimToUndefined(override) ?? fallback;
 };
 
 /**

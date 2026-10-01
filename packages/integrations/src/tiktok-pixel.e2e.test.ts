@@ -16,7 +16,7 @@ import { tiktokPixel } from './vendors/ads-and-pixels/tiktok-pixel';
 describe('tiktokPixel contract', () => {
 	registerVendorContractCleanup();
 
-	it('boots with queued consent/page calls and a post-load consent handshake', () => {
+	it('boots with queued consent and page calls and no second consent grant', () => {
 		let acknowledged = false;
 		const runtimeCalls: string[] = [];
 		let queueSnapshot: unknown[] = [];
@@ -62,7 +62,7 @@ describe('tiktokPixel contract', () => {
 
 		expect(acknowledged).toBe(true);
 		expect(queueSnapshot).toEqual([['grantConsent'], ['page']]);
-		expect(runtimeCalls).toEqual(['grantConsent']);
+		expect(runtimeCalls).toEqual([]);
 	});
 
 	it('drains the pre-load queue into the vendor runtime after load', () => {
@@ -127,6 +127,6 @@ describe('tiktokPixel contract', () => {
 			grantedMarketingConsents
 		);
 
-		expect(runtimeCalls).toEqual(['grantConsent', 'page', 'grantConsent']);
+		expect(runtimeCalls).toEqual(['grantConsent', 'page']);
 	});
 });

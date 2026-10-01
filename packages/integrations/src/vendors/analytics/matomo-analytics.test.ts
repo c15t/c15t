@@ -84,7 +84,7 @@ describe('matomoAnalytics', () => {
 		expect(globalRef._paq).toContainEqual(['forgetConsentGiven']);
 	});
 
-	it('treats defaultConsent given as immediately granted', () => {
+	it('signals a later revocation in defaultConsent given mode', () => {
 		const globalRef = getTestGlobal();
 		const script = matomoAnalytics({
 			defaultConsent: 'given',
@@ -98,7 +98,8 @@ describe('matomoAnalytics', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				consents: deniedConsentState,
+				consents: grantedMeasurementConsentState,
+				hasConsent: true,
 				id: script.id,
 			})
 		);
@@ -113,5 +114,91 @@ describe('matomoAnalytics', () => {
 		expect(globalRef._paq).toContainEqual(['setConsentGiven']);
 		expect(globalRef._paq).not.toContainEqual(['requireConsent']);
 		expect(globalRef._paq).toContainEqual(['forgetConsentGiven']);
+	});
+
+	it('does not grant Matomo consent on load for a visitor without measurement consent', () => {
+		const globalRef = getTestGlobal();
+		const script = matomoAnalytics({
+			defaultConsent: 'given',
+			matomoUrl: 'https://analytics.example.com',
+			siteId: 1,
+		});
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: deniedConsentState,
+				hasConsent: false,
+				id: script.id,
+			})
+		);
+
+		expect(globalRef._paq).toContainEqual(['requireConsent']);
+		expect(globalRef._paq).not.toContainEqual(['setConsentGiven']);
+		expect(globalRef._paq).not.toContainEqual(['trackPageView']);
+	});
+
+	it('grants Matomo consent and tracks a page view on load when measurement is granted', () => {
+		const globalRef = getTestGlobal();
+		const script = matomoAnalytics({
+			defaultConsent: 'given',
+			matomoUrl: 'https://analytics.example.com',
+			siteId: 1,
+		});
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
+			})
+		);
+
+		expect(globalRef._paq).toContainEqual(['setConsentGiven']);
+		expect(globalRef._paq).not.toContainEqual(['requireConsent']);
+		expect(
+			(globalRef._paq as unknown[][]).filter(
+				([command]) => command === 'trackPageView'
+			)
+		).toHaveLength(1);
+	});
+
+	it('does not queue another page view when an unrelated permission changes', () => {
+		const globalRef = getTestGlobal();
+		const script = matomoAnalytics({
+			defaultConsent: 'required',
+			matomoUrl: 'https://analytics.example.com',
+			siteId: 1,
+		});
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				consents: deniedConsentState,
+				id: script.id,
+			})
+		);
+		script.onConsentChange?.(
+			createCallbackInfo({
+				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
+			})
+		);
+		script.onConsentChange?.(
+			createCallbackInfo({
+				consents: { ...grantedMeasurementConsentState, marketing: true },
+				hasConsent: true,
+				id: script.id,
+			})
+		);
+
+		const commands = (globalRef._paq as unknown[][]).map(
+			([command]) => command
+		);
+		expect(commands.filter((command) => command === 'trackPageView')).toEqual([
+			'trackPageView',
+		]);
+		expect(commands.filter((command) => command === 'setConsentGiven')).toEqual(
+			['setConsentGiven']
+		);
 	});
 });

@@ -110,7 +110,7 @@ describe('redditPixel', () => {
 		const globalRef = getTestGlobal();
 		const script = redditPixel({ pixelId: 't2_abcdef' });
 
-		runOnBeforeLoad(script);
+		runOnBeforeLoad(script, { hasConsent: true });
 		script.onConsentChange?.(
 			createCallbackInfo({
 				hasConsent: false,

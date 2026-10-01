@@ -65,7 +65,8 @@ export interface UmamiAnalyticsOptions {
 	autoTrack?: boolean;
 
 	/**
-	 * Restrict tracking to specific domains.
+	 * Restrict tracking to specific domains. An array is joined into the
+	 * comma-separated `data-domains` list Umami reads.
 	 */
 	domains?: string[] | string;
 

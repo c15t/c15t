@@ -1,3 +1,5 @@
+import { trimToUndefined } from './script-url';
+
 /**
  * Converts an optional boolean into a string suitable for a script `data-*`
  * attribute.
@@ -28,19 +30,19 @@ export const booleanDataAttribute = function booleanDataAttribute(
 };
 
 /**
- * Converts a string or string list into a script `data-*` attribute value.
- *
- * Arrays are JSON-serialized so values containing commas can be round-tripped
- * with `JSON.parse` by consumers that read the attribute.
+ * Converts a string or string list into a comma-separated script `data-*`
+ * attribute value, the list format vendor trackers such as Umami and Pirsch
+ * split on.
  *
  * @param value - Optional string value or string list from a vendor option.
- * @returns The original string, a JSON-serialized array, or `undefined` so the
- * manifest compiler can omit the attribute.
+ * @returns The trimmed string, the trimmed non-empty items joined with commas,
+ * or `undefined` when nothing remains so the manifest compiler can omit the
+ * attribute.
  *
  * @example
  * ```ts
  * listDataAttribute('example.com'); // 'example.com'
- * listDataAttribute(['a.com', 'b.com']); // '["a.com","b.com"]'
+ * listDataAttribute(['a.com', ' b.com ']); // 'a.com,b.com'
  * listDataAttribute([]); // undefined
  * listDataAttribute(undefined); // undefined
  * ```
@@ -53,12 +55,16 @@ export const listDataAttribute = function listDataAttribute(
 	}
 
 	if (Array.isArray(value)) {
-		if (value.length === 0) {
+		const items = value
+			.map((item) => item.trim())
+			.filter((item) => item.length > 0);
+
+		if (items.length === 0) {
 			return undefined;
 		}
 
-		return JSON.stringify(value);
+		return items.join(',');
 	}
 
-	return value;
+	return trimToUndefined(value);
 };

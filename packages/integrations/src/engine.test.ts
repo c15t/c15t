@@ -826,6 +826,39 @@ describe('scripts engine', () => {
 		]);
 	});
 
+	it('records load-time consent for manifests with only consent lifecycle steps', () => {
+		const globalRef = globalThis as TestGlobal;
+		const calls: unknown[] = [];
+		globalRef.recorder = (...args: unknown[]) => {
+			calls.push(args);
+		};
+
+		const script = resolvedManifestToScript(
+			compileManifest(
+				createManifest({
+					category: 'marketing',
+					install: [],
+					onConsentDenied: [
+						{ args: ['denied'], global: 'recorder', type: 'callGlobal' },
+					],
+					onConsentGranted: [
+						{ args: ['granted'], global: 'recorder', type: 'callGlobal' },
+					],
+					vendor: 'lifecycle-only',
+				})
+			)
+		);
+		const info = (hasConsent: boolean) =>
+			createCallbackInfo({ hasConsent, id: script.id });
+
+		script.onBeforeLoad?.(info(true));
+		script.onConsentChange?.(info(true));
+		expect(calls).toEqual([]);
+
+		script.onConsentChange?.(info(false));
+		expect(calls).toEqual([['denied']]);
+	});
+
 	it('exposes the manifest vendor slug for vendor-level consent', () => {
 		const script = resolvedManifestToScript(
 			compileManifest(

@@ -3,6 +3,8 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { requireId } from '../_shared/required-id';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 export interface XPixelContent {
 	/**
@@ -164,6 +166,8 @@ export interface XPixelOptions {
  *
  * @param options - The options for the X Pixel script
  * @returns The X Pixel script configuration
+ * @throws {Error} `xPixel: missing or invalid pixelId` when `pixelId` is
+ *   empty or only whitespace.
  *
  * @example
  * ```ts
@@ -179,14 +183,19 @@ export const xPixel = function xPixel({
 	scriptSrc,
 }: XPixelOptions): Script {
 	const resolved = resolveManifest(xPixelManifest, {
-		pixelId,
-		scriptSrc: scriptSrc ?? 'https://static.ads-twitter.com/uwt.js',
+		pixelId: requireId('xPixel', 'pixelId', pixelId),
+		scriptSrc: resolveScriptUrl(
+			scriptSrc,
+			'https://static.ads-twitter.com/uwt.js'
+		),
 	});
 
 	return resolved;
 };
 
 /**
+ * Tracks an X Pixel conversion event.
+ *
  * @param eventId - The event ID to track
  * @example 'tw-xxxx-xxxx'
  * @param metadata - Optional metadata to track
@@ -204,15 +213,15 @@ export const xPixel = function xPixel({
  * ```
  *
  * @see {@link https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites#event-types-and-parameters}
- * @throws {Error} Throws when `window` is unavailable or `window.twq` is not a
- * function. Ensure marketing consent is granted and the X Pixel has loaded
- * before calling this helper.
+ *
+ * @remarks
+ * Does nothing when `window.twq` is missing, which is the case until
+ * marketing consent is granted and the X Pixel is set up. Events sent before
+ * then are dropped, not queued.
  */
 export const xPixelEvent = (eventId: string, metadata?: XPixelEvent): void => {
 	if (typeof window === 'undefined' || typeof window.twq !== 'function') {
-		throw new Error(
-			'X Pixel (twq) is not loaded. Ensure marketing consent is granted before calling xPixelEvent.'
-		);
+		return;
 	}
 
 	window.twq('event', eventId, metadata);

@@ -3,6 +3,7 @@ import type { ConsentState, Script, ScriptCallbackInfo } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 /**
  * Microsoft Clarity Consent V2 storage state.
@@ -262,15 +263,19 @@ export const clarity = function clarity({
 	scriptUrl,
 }: ClarityOptions): Script {
 	const normalizedId = id.trim();
+	const scriptUrlOverride = trimToUndefined(scriptUrl);
 
-	if (scriptUrl === undefined && normalizedId.length === 0) {
+	if (scriptUrlOverride === undefined && normalizedId.length === 0) {
 		throw new Error(
 			`Invalid Clarity id value "${id}". A non-empty id is required to construct the Clarity loader URL when scriptUrl is not provided.`
 		);
 	}
 
 	const resolved = resolveManifest(clarityManifest, {
-		scriptUrl: scriptUrl ?? `https://www.clarity.ms/tag/${normalizedId}`,
+		scriptUrl: resolveScriptUrl(
+			scriptUrlOverride,
+			`https://www.clarity.ms/tag/${normalizedId}`
+		),
 	});
 	const { onBeforeLoad } = resolved;
 	const { onConsentChange } = resolved;

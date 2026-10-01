@@ -3,6 +3,8 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { requireId } from '../_shared/required-id';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -21,15 +23,19 @@ declare global {
 /**
  * Crisp vendor manifest.
  *
- * Seeds the Crisp queue and website ID before loading the chat client.
- * Optional runtime globals are added when provided by the helper options.
+ * Seeds the Crisp queue and website ID before loading the chat client. An
+ * existing `$crisp` queue array is kept, so calls the page queued earlier
+ * reach Crisp. Optional runtime globals are added when provided by the helper
+ * options.
  */
 export const crispManifest = {
 	...vendorManifestContract,
 	category: 'functionality',
 	install: [
 		{
+			// Keep calls the page queued on `$crisp` before this helper ran.
 			ifUndefined: false,
+			keepExistingQueue: true,
 			name: '$crisp',
 			type: 'setGlobal',
 			value: [],
@@ -80,7 +86,9 @@ const createCrispManifest = function createCrispManifest(
 ): VendorManifest {
 	const install: VendorManifest['install'] = [
 		{
+			// Keep calls the page queued on `$crisp` before this helper ran.
 			ifUndefined: false,
+			keepExistingQueue: true,
 			name: '$crisp',
 			type: 'setGlobal',
 			value: [],
@@ -165,6 +173,8 @@ const createCrispManifest = function createCrispManifest(
  *
  * @param options - The options for the Crisp script.
  * @returns The Crisp script configuration.
+ * @throws {Error} `crisp: missing or invalid websiteId` when `websiteId` is
+ *   empty or only whitespace.
  *
  * @example
  * ```ts
@@ -180,9 +190,12 @@ export const crisp = function crisp(options: CrispOptions): Script {
 		cookieDomain: options.cookieDomain,
 		cookieExpiry: options.cookieExpiry,
 		locale: options.locale,
-		scriptSrc: options.scriptSrc ?? 'https://client.crisp.chat/l.js',
+		scriptSrc: resolveScriptUrl(
+			options.scriptSrc,
+			'https://client.crisp.chat/l.js'
+		),
 		sessionMerge: options.sessionMerge,
 		tokenId: options.tokenId,
-		websiteId: options.websiteId,
+		websiteId: requireId('crisp', 'websiteId', options.websiteId),
 	});
 };

@@ -33,6 +33,15 @@ const consentCategories: readonly AllConsentNames[] = [
 	'marketing',
 ];
 const readyEvent = 'zarazConsentAPIReady';
+const vendorId = 'cloudflare-zaraz';
+/** What a visitor who turned the Zaraz vendor off grants: nothing optional. */
+const ALL_DENIED: ConsentState = {
+	experience: false,
+	functionality: false,
+	marketing: false,
+	measurement: false,
+	necessary: true,
+};
 
 const isConsentApi = (api: unknown): api is ZarazConsentApi =>
 	typeof api === 'object' &&
@@ -60,6 +69,8 @@ const getConsentApi = (): ZarazConsentApi | undefined => {
 /**
  * Synchronize c15t effective permissions with externally loaded Zaraz tools.
  * Does not load Zaraz or configure tools. Unmapped Zaraz purposes are denied.
+ * The script's vendor slug is `cloudflare-zaraz`; while a visitor has that
+ * vendor turned off, every purpose mapped to an optional category is denied.
  * Disable automatic pageviews and send the first Pageview from onReady to avoid
  * running tools with a stale Zaraz consent cookie before synchronization.
  *
@@ -152,8 +163,10 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 		}
 		return true;
 	};
-	const update: NonNullable<Script['onConsentChange']> = ({ consents }) => {
-		latest = consents;
+	const update: NonNullable<Script['onConsentChange']> = (info) => {
+		// A visitor who turned this vendor off gets every optional category
+		// denied, whatever the category state.
+		latest = info.vendor?.granted === false ? ALL_DENIED : info.consents;
 		if (typeof document === 'undefined') {
 			return;
 		}
@@ -172,11 +185,13 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 		alwaysLoad: true,
 		callbackOnly: true,
 		category: 'necessary',
-		id: 'cloudflare-zaraz',
+		id: vendorId,
 		onConsentChange: (info) => {
 			// Removing a configuration invokes onConsentChange with false before
 			// onDispose. Do not start a synchronization during that teardown.
-			if (info.hasConsent) {
+			// A vendor the visitor turned off also arrives without consent and
+			// still needs its purposes denied.
+			if (info.hasConsent || info.vendor?.granted === false) {
 				update(info);
 			}
 		},
@@ -188,5 +203,8 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 			pendingReplay.clear();
 		},
 		onLoad: update,
+		// Like the manifest helpers, the script ID doubles as the vendor slug,
+		// so visitors can turn Zaraz off inside a granted category.
+		vendor: vendorId,
 	};
 };
