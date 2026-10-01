@@ -1,5 +1,5 @@
-import { defineExperiment } from 'c15t';
 // #region docs:experiment-consent title="src/consent.tsx"
+import { defineExperiment } from 'c15t';
 import {
 	ConsentBanner,
 	ConsentDialog,
