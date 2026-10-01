@@ -59,9 +59,10 @@ export interface ConsentRootProps {
 	 *
 	 * Without the proxy this is the c15t backend itself, for example
 	 * `https://consent.example.com`. With
-	 * `createConsentServerRoute({ proxy: true })` mounted, pass the route
-	 * prefix instead, `"/api/c15t"`, so saves stay same-origin and reach the
-	 * backend through the proxy. The server-side `resolveConsent()`
+	 * `createConsentServerRoute({ backendURL: 'https://consent.example.com', proxy: true })`
+	 * mounted, pass the route prefix instead, `"/api/c15t"`, so saves stay
+	 * same-origin and reach the backend through the proxy. The route factory
+	 * still needs the absolute backend URL. The server-side `resolveConsent()`
 	 * (`createConsentStateHandler({ backendURL })`) must still receive the
 	 * absolute backend URL: its self-route guard skips a relative
 	 * `/api/c15t` and returns the cookie-only state.
