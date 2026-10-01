@@ -41,12 +41,13 @@ DevTools in development.
 
 ## Banner experiment
 
-`experiment.html` mounts the same page inside `src/experiment-consent.tsx`, a
-copy of the `Consent` wrapper that adds the banner-shape experiment. Open
-`/experiment.html?experiment=1` and c15t picks the `control` arm (the default
-banner) or the `wall` arm; the page shows `banner-shape · <arm> · c15t`. Add
-`&arm=wall` to set the arm the way a flag provider would (`assignedBy: host`);
-any other `arm` value runs `control`. The provider's `onSurfaceShown` and
-`onChoiceRecorded` callbacks list each impression and choice under the arm and
-push them to `window.dataLayer` as `c15t_surface_shown` and
-`c15t_choice_recorded`. See https://c15t.com/docs/guides/banner-experiments.
+`experiment.html` mounts the same page inside `src/experiment-consent.tsx`,
+the `Consent` wrapper with the banner-shape experiment added. The docs publish
+that file as the experiment setup. Open `/experiment.html` and c15t picks the
+`control` arm (the default banner) or the `wall` arm; the page shows
+`banner-shape · <arm> · c15t`. `?arm=wall` or `?arm=control` sets the arm the
+way a flag provider would (`assignedBy: host`), and `?arm=off` leaves the
+visitor out. The provider's `onSurfaceShown` and `onChoiceRecorded` callbacks
+push each impression and choice under the arm to `window.dataLayer` as
+`c15t_surface_shown` and `c15t_choice_recorded`, and the page lists them. See
+https://c15t.com/docs/guides/banner-experiments.
