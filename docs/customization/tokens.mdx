@@ -6,10 +6,14 @@ group: customization
 
 ## Where tokens come from
 
-Every color, font, radius, spacing, shadow and motion value in c15t's
-components reads a `--c15t-*` CSS variable. c15t's stylesheet sets the
-defaults. You change them with a theme object or with CSS, and every part that
-reads a token changes with it. [Stylesheets and CSS layers](/docs/customization/stylesheets)
+c15t's components take their colors from `--c15t-*` CSS variables, and most
+of their fonts, radii, spacing, shadows and motion too. c15t's stylesheet sets
+the defaults. You change them with a theme object or with CSS, and every part
+that reads a token changes with it. Some values are still fixed for one
+component, such as button padding, the radius of the "Secured by" tag and
+several font sizes and weights, so a token change does not move them. Restyle
+those parts through [slots](/docs/customization/slots) or your own CSS.
+[Stylesheets and CSS layers](/docs/customization/stylesheets)
 covers which stylesheet to load, and [dark mode](/docs/customization/dark-mode)
 covers the dark set of tokens.
 
