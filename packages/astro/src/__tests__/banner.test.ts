@@ -337,6 +337,23 @@ describe('<ConsentBanner />', () => {
 		expect(tag('consent-banner-title')).toContain('brand-title');
 	});
 
+	it('adds px to numeric slot lengths and leaves unitless numbers alone', async () => {
+		const html = await render(
+			await buildLocals({
+				mode: offlineMode({ policyRules: [testRule] }),
+				theme: {
+					slots: {
+						consentBannerCard: { style: { opacity: 0.5, padding: 8 } },
+					},
+				},
+			})
+		);
+
+		expect(
+			/<[^>]*data-testid="consent-banner-card"[^>]*>/u.exec(html)?.[0]
+		).toContain('style="opacity:0.5;padding:8px"');
+	});
+
 	it('keeps `theme.slots` classes with `noStyle`', async () => {
 		const html = await render(
 			await buildLocals({

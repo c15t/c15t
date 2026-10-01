@@ -1,4 +1,4 @@
-import type { AllThemeKeys, SlotStyle } from '../theme/types';
+import type { AllThemeKeys, CSSProperties, SlotStyle } from '../theme/types';
 
 /**
  * The `components` slot that styles the same part as each `theme.slots`
@@ -177,4 +177,153 @@ export const applyThemeSlots = function applyThemeSlots<
 		applied = true;
 	}
 	return applied ? (merged as Components) : components;
+};
+
+/**
+ * Properties whose numeric values take no unit, in kebab-case without a
+ * vendor prefix. Mirrors React's `isUnitlessNumber` list, so a slot style
+ * renders the same declaration in every adapter.
+ */
+const UNITLESS_PROPERTIES = new Set([
+	'animation-iteration-count',
+	'aspect-ratio',
+	'border-image-outset',
+	'border-image-slice',
+	'border-image-width',
+	'box-flex',
+	'box-flex-group',
+	'box-ordinal-group',
+	'column-count',
+	'columns',
+	'fill-opacity',
+	'flex',
+	'flex-grow',
+	'flex-negative',
+	'flex-order',
+	'flex-positive',
+	'flex-shrink',
+	'flood-opacity',
+	'font-weight',
+	'grid-area',
+	'grid-column',
+	'grid-column-end',
+	'grid-column-span',
+	'grid-column-start',
+	'grid-row',
+	'grid-row-end',
+	'grid-row-span',
+	'grid-row-start',
+	'line-clamp',
+	'line-height',
+	'opacity',
+	'order',
+	'orphans',
+	'scale',
+	'stop-opacity',
+	'stroke-dasharray',
+	'stroke-dashoffset',
+	'stroke-miterlimit',
+	'stroke-opacity',
+	'stroke-width',
+	'tab-size',
+	'widows',
+	'z-index',
+	'zoom',
+]);
+
+/**
+ * Turn a style key into a CSS property name.
+ *
+ * camelCase keys, the form React and Vue styles use, become kebab-case
+ * (`backgroundColor` to `background-color`, `WebkitMask` to
+ * `-webkit-mask`, `msFlex` to `-ms-flex`). Custom properties (`--brand`)
+ * and keys that already contain a dash are kept as written.
+ *
+ * @param name - The style key.
+ * @returns The CSS property name.
+ * @internal
+ */
+export const toCSSPropertyName = function toCSSPropertyName(
+	name: string
+): string {
+	if (name.includes('-')) {
+		return name;
+	}
+	return name
+		.replace(/^ms(?=[A-Z])/u, '-ms')
+		.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`);
+};
+
+/**
+ * Turn a style value into the text a CSS declaration takes.
+ *
+ * A number gets `px` unless the property is unitless (`opacity`,
+ * `zIndex`, `flexGrow`, `lineHeight`, ...) or a custom property, and `0`
+ * stays `0`, the way React writes numeric styles. Strings pass through.
+ *
+ * @param name - The style key, camelCase or kebab-case.
+ * @param value - The declared value.
+ * @returns The CSS value.
+ * @internal
+ *
+ * @example
+ * ```ts
+ * toCSSValue('padding', 8); // '8px'
+ * toCSSValue('zIndex', 10); // '10'
+ * ```
+ */
+export const toCSSValue = function toCSSValue(
+	name: string,
+	value: string | number
+): string {
+	if (typeof value !== 'number' || value === 0 || name.startsWith('--')) {
+		return String(value);
+	}
+	const property = toCSSPropertyName(name).replace(
+		/^-(?:webkit|moz|ms|o)-/u,
+		''
+	);
+	return UNITLESS_PROPERTIES.has(property) ? String(value) : `${value}px`;
+};
+
+/**
+ * The declarations a style object sets, as CSS property and value pairs.
+ * Empty values (`undefined`, `null`, `''`) are dropped.
+ *
+ * @param style - A slot or component style object.
+ * @returns `[property, value]` pairs, ready for `style.setProperty`.
+ * @internal
+ */
+export const toCSSDeclarations = function toCSSDeclarations(
+	style: CSSProperties | undefined
+): [property: string, value: string][] {
+	const declarations: [string, string][] = [];
+	for (const [name, value] of Object.entries(style ?? {})) {
+		if (value !== undefined && value !== null && value !== '') {
+			declarations.push([toCSSPropertyName(name), toCSSValue(name, value)]);
+		}
+	}
+	return declarations;
+};
+
+/**
+ * Serialize a style object for a `style` attribute.
+ *
+ * @param style - A slot or component style object.
+ * @returns The attribute value, or `undefined` when nothing is set.
+ * @internal
+ *
+ * @example
+ * ```ts
+ * toStyleAttributeValue({ padding: 8, opacity: 0.5 });
+ * // 'padding:8px;opacity:0.5'
+ * ```
+ */
+export const toStyleAttributeValue = function toStyleAttributeValue(
+	style: CSSProperties | undefined
+): string | undefined {
+	const declarations = toCSSDeclarations(style);
+	return declarations.length > 0
+		? declarations.map(([property, value]) => `${property}:${value}`).join(';')
+		: undefined;
 };

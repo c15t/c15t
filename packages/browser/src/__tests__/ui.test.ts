@@ -581,6 +581,19 @@ describe('mountConsentUI', () => {
 	});
 
 	describe('theme.slots', () => {
+		it('adds px to numeric slot lengths and leaves unitless numbers alone', async () => {
+			const { root } = await mount({
+				theme: {
+					slots: {
+						consentBannerCard: { style: { opacity: 0.5, padding: 8 } },
+					},
+				},
+			});
+			const card = query(root, 'consent-banner-card');
+			expect(card.style.padding).toBe('8px');
+			expect(card.style.opacity).toBe('0.5');
+		});
+
 		it('adds slot classes and inline styles to the parts they name', async () => {
 			const { root, client } = await mount({
 				banner: { legalLinks: [] },

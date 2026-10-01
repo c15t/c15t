@@ -14,7 +14,10 @@ import {
 	generateThemeCSS as baseGenerateThemeCSS,
 	themeToVars as baseThemeToVars,
 } from '@c15t/ui/theme';
-import { resolveStyles as baseResolveStyles } from '@c15t/ui/utils';
+import {
+	resolveStyles as baseResolveStyles,
+	toStyleAttributeValue,
+} from '@c15t/ui/utils';
 
 /**
  * Default design tokens for the theme system.
@@ -65,7 +68,8 @@ export const resolveComponentStyles = function resolveComponentStyles(
  * names. camelCase keys, the form React and Vue slot styles use, become
  * kebab-case (`backgroundColor` to `background-color`, `WebkitMask` to
  * `-webkit-mask`, `msFlex` to `-ms-flex`). Custom properties (`--brand`)
- * are kept as written, and empty values are dropped.
+ * are kept as written, and empty values are dropped. A number gets `px`
+ * unless the property is unitless (`opacity`, `zIndex`, ...), as in React.
  *
  * @param style - The resolved slot style.
  * @returns The attribute value, or `undefined` when there is nothing to set.
@@ -74,22 +78,7 @@ export const resolveComponentStyles = function resolveComponentStyles(
 export const toStyleAttribute = function toStyleAttribute(
 	style: ClassNameStyle['style'] | undefined
 ): string | undefined {
-	if (!style) {
-		return undefined;
-	}
-	const declarations = Object.entries(style)
-		.filter(
-			([, value]) => value !== undefined && value !== null && value !== ''
-		)
-		.map(([key, value]) => {
-			const property = key.startsWith('--')
-				? key
-				: key
-						.replace(/^ms(?=[A-Z])/u, '-ms')
-						.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`);
-			return `${property}:${String(value)}`;
-		});
-	return declarations.length > 0 ? declarations.join(';') : undefined;
+	return toStyleAttributeValue(style);
 };
 
 /** Resolve only host appearance; policy action constraints remain in core. */

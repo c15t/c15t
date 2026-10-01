@@ -1,4 +1,5 @@
 import type { AllThemeKeys, ComponentSlots } from '@c15t/ui/theme';
+import { toCSSDeclarations } from '@c15t/ui/utils';
 
 /**
  * The `theme.slots` keys the stock UI renders, the same keys `@c15t/ui`
@@ -58,15 +59,6 @@ export type SlotApplier = <ElementType extends HTMLElement | null>(
 	key: BrowserSlotKey
 ) => ElementType;
 
-const toCSSProperty = function toCSSProperty(name: string): string {
-	if (name.startsWith('--') || name.includes('-')) {
-		return name;
-	}
-	const kebab = name.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`);
-	// `msTransform` has no leading capital but still takes a vendor dash.
-	return kebab.startsWith('ms-') ? `-${kebab}` : kebab;
-};
-
 /**
  * Build the function surfaces call on each slotted element.
  *
@@ -104,10 +96,9 @@ export const createSlotApplier = function createSlotApplier(
 		if (names.length > 0) {
 			element.classList.add(...names);
 		}
-		for (const [name, declared] of Object.entries(style ?? {})) {
-			if (declared !== undefined && declared !== null && declared !== '') {
-				element.style.setProperty(toCSSProperty(name), String(declared));
-			}
+		// Numbers get `px` where the property takes a unit, as React does.
+		for (const [property, declared] of toCSSDeclarations(style)) {
+			element.style.setProperty(property, declared);
 		}
 		return element;
 	};

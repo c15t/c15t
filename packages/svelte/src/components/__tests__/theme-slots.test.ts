@@ -133,4 +133,19 @@ describe('theme.slots', () => {
 			'brand-trigger-icon'
 		);
 	});
+
+	test('adds px to numeric slot lengths and leaves unitless numbers alone', async () => {
+		render(BannerFixture, {
+			options: {
+				mode: testOffline(),
+				theme: {
+					slots: { consentBannerCard: { style: { opacity: 0.5, padding: 8 } } },
+				},
+			},
+		});
+
+		const card = await part('consent-banner-card');
+		expect(card.style.padding).toBe('8px');
+		expect(card.style.opacity).toBe('0.5');
+	});
 });
