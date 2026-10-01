@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
 import {
+	LINKED_C15T_PACKAGES,
 	c15tReleaseSpecifier,
 	dependencyName,
 	withC15tRelease,
@@ -37,5 +41,35 @@ describe('c15t release specifier', () => {
 		['@c15t/scripts@3.0.0-alpha.2', '@c15t/scripts'],
 	])('reads the package name from %s', (dependency, name) => {
 		expect(dependencyName(dependency)).toBe(name);
+	});
+
+	it.each([
+		['c15t', 'c15t@3'],
+		['@c15t/react', '@c15t/react@3'],
+		['@c15t/dev-tools', '@c15t/dev-tools@3'],
+		['@c15t/ui', '@c15t/ui@latest'],
+		['@c15t/integrations', '@c15t/integrations@latest'],
+		['@c15t/svelte', '@c15t/svelte@latest'],
+	])('pins %s to %s for a stable CLI', (dependency, pinned) => {
+		expect(withC15tRelease(dependency, '3.2.1')).toBe(pinned);
+	});
+
+	it('keeps the dist-tag for unlinked packages on a prerelease CLI', () => {
+		expect(c15tReleaseSpecifier('3.0.0-alpha.3', '@c15t/ui')).toBe('alpha');
+	});
+
+	it('lists the same linked packages as scripts/tegami.ts', () => {
+		const tegami = readFileSync(
+			fileURLToPath(new URL('../../../../scripts/tegami.ts', import.meta.url)),
+			'utf-8'
+		);
+		const list = /linkedPackages = new Set\(\[(?<list>[^\]]*)\]\)/u.exec(tegami)
+			?.groups?.list;
+		const names = [...(list ?? '').matchAll(/'(?<name>[^']+)'/gu)].map(
+			(match) => match.groups?.name
+		);
+
+		expect(names.length).toBeGreaterThan(0);
+		expect([...LINKED_C15T_PACKAGES].toSorted()).toEqual(names.toSorted());
 	});
 });

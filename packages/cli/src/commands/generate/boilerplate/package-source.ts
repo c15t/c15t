@@ -7,7 +7,10 @@ import { promisify } from 'node:util';
 
 import { z } from 'zod';
 
-import { c15tReleaseSpecifier } from '../../../utils/c15t-release';
+import {
+	c15tReleaseSpecifier,
+	withC15tRelease,
+} from '../../../utils/c15t-release';
 import type { FileEdit } from '../templates/shared/file-plan';
 
 const execute = promisify(execFile);
@@ -317,11 +320,10 @@ export const planBoilerplateDependencies = async (options: {
 			`External dependency ${name} must be installed separately; its existing version was not changed.`
 	);
 	if (!options.packageSource) {
-		const release = c15tReleaseSpecifier();
 		const instructions: string[] = [];
 		if (localNames.length) {
 			instructions.push(
-				`Install ${localNames.map((name) => `${name}@${release}`).join(' ')} with your package manager. These match the c15t release this CLI generates code for.`,
+				`Install ${localNames.map((name) => withC15tRelease(name)).join(' ')} with your package manager. These match the c15t release this CLI generates code for.`,
 				'To use a local build instead, pass --package-source <c15t-checkout-root>.',
 				prepareInstruction(localNames)
 			);
@@ -330,7 +332,9 @@ export const planBoilerplateDependencies = async (options: {
 		return {
 			dependencies: names.map((name) => ({
 				name,
-				specifier: localNames.includes(name) ? release : null,
+				specifier: localNames.includes(name)
+					? c15tReleaseSpecifier(undefined, name)
+					: null,
 			})),
 			edits: [],
 			instructions,

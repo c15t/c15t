@@ -84,7 +84,7 @@ const dependenciesFor = async function dependenciesFor(
 it('installs @c15t/ui for a Tailwind 3 Next.js app', async () => {
 	await expect(dependenciesFor('c15t/next', '^3.4.17')).resolves.toEqual([
 		`c15t@${c15tReleaseSpecifier()}`,
-		`@c15t/ui@${c15tReleaseSpecifier()}`,
+		`@c15t/ui@${c15tReleaseSpecifier(undefined, '@c15t/ui')}`,
 	]);
 });
 
