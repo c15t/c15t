@@ -46,15 +46,15 @@ the old page's task.
 | `/docs/frameworks/next/styling/css-variables` | `/docs/customization/tokens` | v2 styling route; CSS variables are theme tokens |
 | `/docs/frameworks/next/styling/slots` | `/docs/customization/slots` | v2 styling route |
 | `/docs/frameworks/next/styling/classnames` | `/docs/customization/slots` | v2 styling route; class names attach to component parts |
-| `/docs/frameworks/next/styling/tailwind` | `/docs/customization/tailwind` | v2 styling route; the destination page is still to be written |
-| `/docs/frameworks/next/styling/color-scheme` | `/docs/customization/dark-mode` | v2 styling route; the destination page is still to be written |
+| `/docs/frameworks/next/styling/tailwind` | `/docs/customization/overview` | v2 styling route; no customization page covers Tailwind yet, so send it to the overview |
+| `/docs/frameworks/next/styling/color-scheme` | `/docs/customization/overview` | v2 styling route; no customization page covers dark mode yet, so send it to the overview |
 | `/docs/frameworks/react/styling/overview` | `/docs/customization/overview` | v2 styling route; customization is shared across frameworks |
 | `/docs/frameworks/react/styling/tokens` | `/docs/customization/tokens` | v2 styling route |
 | `/docs/frameworks/react/styling/css-variables` | `/docs/customization/tokens` | v2 styling route; CSS variables are theme tokens |
 | `/docs/frameworks/react/styling/slots` | `/docs/customization/slots` | v2 styling route |
 | `/docs/frameworks/react/styling/classnames` | `/docs/customization/slots` | v2 styling route; class names attach to component parts |
-| `/docs/frameworks/react/styling/tailwind` | `/docs/customization/tailwind` | v2 styling route; the destination page is still to be written |
-| `/docs/frameworks/react/styling/color-scheme` | `/docs/customization/dark-mode` | v2 styling route; the destination page is still to be written |
+| `/docs/frameworks/react/styling/tailwind` | `/docs/customization/overview` | v2 styling route; no customization page covers Tailwind yet, so send it to the overview |
+| `/docs/frameworks/react/styling/color-scheme` | `/docs/customization/overview` | v2 styling route; no customization page covers dark mode yet, so send it to the overview |
 | `/docs/frameworks/react/optimization` | `/docs/frameworks/react/rendering` | v2 route; rendering covers loading and performance choices |
 | `/docs/frameworks/next/iframe-blocking` | `/docs/frameworks/next/embeds` | v2 route; the embeds page covers the iframe blocker |
 | `/docs/frameworks/react/iframe-blocking` | `/docs/frameworks/react/embeds` | v2 route; the embeds page covers the iframe blocker |
