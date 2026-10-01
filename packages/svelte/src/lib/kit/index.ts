@@ -18,7 +18,7 @@
  * });
  * ```
  */
-export type { C15tHandleOptions } from './handle';
+export type { C15tHandle, C15tHandleOptions } from './handle';
 export { c15tHandle } from './handle';
 export type { LoadConsentOptions } from './load-consent';
 export { loadConsent } from './load-consent';

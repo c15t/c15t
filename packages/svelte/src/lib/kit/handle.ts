@@ -1,5 +1,5 @@
 /**
- * SvelteKit `Handle` that resolves consent context once per request.
+ * SvelteKit `handle` hook that resolves consent context once per request.
  *
  * The Next.js counterpart (`c15tMiddleware`) exists because that platform
  * exposes geo to middleware and strips it before Server Components. SvelteKit
@@ -9,13 +9,27 @@
  * publishes it on `event.locals.c15t`.
  */
 import { extractConsentRequestInputs } from '@c15t/schema/types';
-import type { Handle } from '@sveltejs/kit';
+import type { RequestEvent } from '@sveltejs/kit';
 
 import { resolveConsent } from '../server';
 import type { C15tLocals, ConsentRequestOptions } from './types';
 
 /** Options for {@link c15tHandle}. */
 export type C15tHandleOptions = ConsentRequestOptions;
+
+/**
+ * The `handle` hook signature, assignable to SvelteKit's `Handle` in both
+ * Kit 2 and Kit 3.
+ *
+ * Declared here because the two versions export `Handle` from different
+ * modules: Kit 2 from `@sveltejs/kit`, Kit 3 only from `@sveltejs/kit/hooks`.
+ * Importing either one leaves the other version's apps with an unresolved
+ * type, which `skipLibCheck` turns into a silent `any`.
+ */
+export type C15tHandle = (input: {
+	event: RequestEvent;
+	resolve: (event: RequestEvent) => Response | Promise<Response>;
+}) => Promise<Response>;
 
 /**
  * Rewrites the resolved inputs back onto the request as the canonical
@@ -79,11 +93,11 @@ const normalizeRequestHeaders = function normalizeRequestHeaders(
  * ```
  *
  * @param options - Cookie name and geo/language overrides.
- * @returns A `Handle` that populates `event.locals.c15t`.
+ * @returns A `handle` hook that populates `event.locals.c15t`.
  */
 export const c15tHandle = function c15tHandle(
 	options: C15tHandleOptions = {}
-): Handle {
+): C15tHandle {
 	return async ({ event, resolve }) => {
 		const { headers } = event.request;
 		const inputs = extractConsentRequestInputs(headers, {
