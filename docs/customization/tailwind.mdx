@@ -16,7 +16,7 @@ wins without `!important`.
 
 Tailwind CSS 3 has no cascade layers. It treats `@layer components` as its own
 directive and fails the build on a stylesheet that uses it without a matching
-`@tailwind components`. The `c15t/postcss-tailwind3` PostCSS plugin removes the
+`@tailwind components`. The `@c15t/ui/postcss-tailwind3` PostCSS plugin removes the
 layer wrappers from c15t's stylesheets before Tailwind 3 runs. c15t's rules then
 win by specificity, as they did in c15t v2, so a utility on a c15t part needs
 Tailwind's important modifier, such as `!p-2`.
@@ -140,12 +140,19 @@ c15t's styles for you, so their CSS entry holds only Tailwind.
 
 ## Set up Tailwind CSS 3
 
-Tailwind 3 needs three changes:
+Tailwind 3 loads the same `styles.css` as Tailwind 4 and needs one PostCSS
+plugin, `@c15t/ui/postcss-tailwind3`. Install `@c15t/ui` as a direct
+dependency. PostCSS loads plugins from your app, and pnpm does not expose the
+copy that `c15t` depends on:
 
-1. Add `c15t/postcss-tailwind3` to your PostCSS plugins, before `tailwindcss`.
-   It is the same plugin as `@c15t/ui/postcss-tailwind3`. Apps that installed
-   `@c15t/svelte` or `@c15t/browser` rather than `c15t` use the `@c15t/ui`
-   name, and need `@c15t/ui@alpha` installed.
+<CommandTabs command="@c15t/ui@alpha" mode="install" />
+
+Then make three changes:
+
+1. Add `@c15t/ui/postcss-tailwind3` to your PostCSS plugins, before
+   `tailwindcss`. Write the plugins as an object, as the examples below do.
+   PostCSS runs them in the order of the keys. Next.js also accepts an array
+   of names, but the loader Vite uses rejects one.
 2. Where you import c15t's stylesheet yourself, put the import above the
    `@tailwind` directives, whatever your build tool. Vite drops an `@import`
    that follows another rule, with the warning
@@ -160,15 +167,21 @@ the build with "`@layer components` is used but no matching
 `@tailwind components` directive is present", or purges c15t's rules, because
 c15t's class names never appear in your source.
 
-In React and Next.js apps, the CLI's `setup` command makes the first two
-changes for you. It adds the plugin to `postcss.config.*`, `.postcssrc*` or the `postcss` key of
-`package.json`, and prints the manual step when it cannot edit the config. See
+Tailwind 3 has no cascade layers, so c15t's selectors outrank a single utility
+class. Add the important modifier to utilities you pass to c15t parts:
+`!bg-red-500`, `hover:!bg-red-500`. A bare `bg-red-500` has no effect. Theme
+tokens work the same on Tailwind 3 and 4.
+
+In React and Next.js apps, `c15t setup` installs `@c15t/ui` and makes the
+first two changes when it finds Tailwind 3. It replaces an existing
+`styles.tw3.css` import from an earlier setup with `styles.css`. When it
+cannot edit your PostCSS config, it prints the step to do by hand. See
 [setup](/docs/cli/commands/setup#set-up-styles-and-tailwind-css).
 
-Create React App runs Tailwind 3 without reading `postcss.config.js`, so it
-cannot load the plugin and the build fails on c15t's dialog stylesheet. Add
-`c15t/postcss-tailwind3` before `tailwindcss` through CRACO or after ejecting,
-or move to Tailwind 4 or Vite.
+Create React App ignores PostCSS config files, so Tailwind 3 cannot run the
+plugin and the build fails on c15t's dialog stylesheet. `c15t setup` warns
+about this. Add the plugin before `tailwindcss` through CRACO, eject, or move
+the app to Vite.
 
 <Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
   <Tab value="Next.js">
@@ -180,9 +193,8 @@ or move to Tailwind 4 or Vite.
 
     <include src="../shared/examples/tailwind-v3/next-16-turbopack/tailwind-config.mdx" />
 
-    Import the Tailwind 3 build of c15t's stylesheet,
-    `c15t/next/styles.tw3.css`, above the directives. Turbopack fails the
-    build when the import sits between them. The same order works with
+    Import `c15t/next/styles.css` above the directives. Turbopack fails the
+    build when the import sits below them. The same order works with
     webpack:
 
     <include src="../shared/examples/tailwind-v3/next-16-turbopack/tailwind-css.mdx" />
@@ -195,7 +207,8 @@ or move to Tailwind 4 or Vite.
 
     <include src="../shared/examples/tailwind-v3/tanstack-start/tailwind-config.mdx" />
 
-    Import the Tailwind 3 build of c15t's stylesheet above the directives:
+    Import `c15t/tanstack-start/styles.css` above the directives, in the
+    stylesheet your root route links:
 
     <include src="../shared/examples/tailwind-v3/tanstack-start/tailwind-css.mdx" />
   </Tab>
@@ -207,8 +220,8 @@ or move to Tailwind 4 or Vite.
 
     <include src="../shared/examples/tailwind-v3/react/tailwind-config.mdx" />
 
-    Import the Tailwind 3 build of c15t's stylesheet above the directives, in
-    place of `c15t/react/styles.css`:
+    Import `c15t/react/styles.css` above the directives, and import this
+    stylesheet from your entry module:
 
     <include src="../shared/examples/tailwind-v3/react/tailwind-css.mdx" />
   </Tab>
@@ -256,31 +269,27 @@ or move to Tailwind 4 or Vite.
   </Tab>
 
   <Tab value="Svelte">
-    Install `@c15t/ui@alpha` for the plugin:
-
     <include src="../shared/examples/tailwind-v3/svelte/postcss-config.mdx" />
 
     Scan your source and turn on the class-based dark variant:
 
     <include src="../shared/examples/tailwind-v3/svelte/tailwind-config.mdx" />
 
-    Svelte has one stylesheet for Tailwind 3 and 4. Import it above the
-    directives:
+    Import `@c15t/svelte/styles.css` above the directives, and import this
+    stylesheet from `src/main.ts`:
 
     <include src="../shared/examples/tailwind-v3/svelte/tailwind-css.mdx" />
   </Tab>
 
   <Tab value="SvelteKit">
-    Install `@c15t/ui@alpha` for the plugin:
-
     <include src="../shared/examples/tailwind-v3/sveltekit/postcss-config.mdx" />
 
     Scan your source and turn on the class-based dark variant:
 
     <include src="../shared/examples/tailwind-v3/sveltekit/tailwind-config.mdx" />
 
-    Import c15t's stylesheet above the directives, and import this file from
-    your root `+layout.svelte`:
+    Import `@c15t/svelte/styles.css` above the directives, and import this
+    stylesheet from your root `+layout.svelte`:
 
     <include src="../shared/examples/tailwind-v3/sveltekit/tailwind-css.mdx" />
   </Tab>
@@ -417,9 +426,14 @@ stylesheet, and the layer order keeps it above preflight:
 
 <include src="../shared/examples/tailwind-v4/html/script-tag-light-dom.mdx" />
 
-On Tailwind 3, preflight is unlayered and would beat c15t's layered sheet. Turn
-the injected sheet off with `styles: false`, and build c15t's rules into your
-Tailwind CSS with the plugin instead:
+On Tailwind 3, keep the default shadow root. Tailwind 3's preflight is
+unlayered, so in the page it beats c15t's layered rules whatever their
+specificity and removes the button padding and card borders. Linking
+`c15t.css` from the page does not help, because nothing removes its layers.
+
+To render in the light DOM anyway, turn the injected sheet off with
+`styles: false`, and build c15t's rules into your Tailwind CSS with the plugin
+instead:
 
 <include src="../shared/examples/tailwind-v3/html/script-tag-light-dom.mdx" />
 

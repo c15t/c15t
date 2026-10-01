@@ -15,9 +15,11 @@ group: reference
   [Stylesheets and CSS layers](/docs/customization/stylesheets) explains the
   order and when the dialog's rules load.
 
-  Tailwind CSS 3 has no cascade layers. It needs the `c15t/postcss-tailwind3`
-  PostCSS plugin and the `styles.tw3.css` build, imported above the
-  `@tailwind` directives. [Tailwind CSS](/docs/customization/tailwind)
+  Tailwind CSS 3 has no cascade layers. Import the same `styles.css` above
+  the `@tailwind` directives, install `@c15t/ui`, and add the
+  `@c15t/ui/postcss-tailwind3` PostCSS plugin before `tailwindcss`. Utilities
+  you pass to c15t parts then need the important modifier, such as
+  `!bg-red-500`. [Tailwind CSS](/docs/customization/tailwind#set-up-tailwind-css-3)
   shows the tested setup for each framework.
 </section>
 

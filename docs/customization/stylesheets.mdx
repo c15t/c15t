@@ -20,9 +20,9 @@ group: customization
 Load it once. With IAB TCF in Next.js, TanStack Start, React, Svelte or
 SvelteKit, also load the adapter's `iab/styles.css`, such as
 `c15t/next/iab/styles.css`, after `styles.css`. Astro adds its IAB stylesheet
-when the integration sets `iab`. Next.js, TanStack Start and
-React publish a Tailwind 3 build of each file, such as `styles.tw3.css`.
-[Tailwind CSS](/docs/customization/tailwind) shows where it goes.
+when the integration sets `iab`. Tailwind 3 uses the same files and adds a
+PostCSS plugin; [Tailwind CSS](/docs/customization/tailwind#set-up-tailwind-css-3)
+shows the setup.
 
 ## What loads with the first paint
 
