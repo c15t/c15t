@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -11,6 +12,8 @@ import tailwind3Plugin, { isC15tUiStylesheetPath } from '../postcss-tailwind3';
 import * as pluginModule from '../postcss-tailwind3';
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
+// This checkout's `packages/`, whose package.json files name c15t packages.
+const PACKAGES_DIR = join(TEST_DIR, '..', '..', '..');
 
 const layeredCss = `
 @layer theme, base, components, utilities;
@@ -50,7 +53,7 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 
 	test('unwraps @layer blocks for built @c15t/ui stylesheets in the monorepo', async () => {
 		const css = await processCss(
-			'/repo/packages/ui/dist/styles/components/button.css'
+			join(PACKAGES_DIR, 'ui', 'dist', 'styles', 'components', 'button.css')
 		);
 
 		expect(css).toContain('.c15t-ui-button-a1b2c');
@@ -61,6 +64,21 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 		const css = await processCss('/app/src/app/globals.css');
 
 		expect(css).toContain('@layer theme, base, components, utilities');
+		expect(css).toContain('@layer components');
+		expect(css).toContain('@layer utilities');
+	});
+
+	test('leaves a consumer workspace package named like a c15t one alone', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'c15t-tw3-'));
+		const packageDir = join(root, 'packages', 'react');
+		mkdirSync(join(packageDir, 'dist'), { recursive: true });
+		writeFileSync(
+			join(packageDir, 'package.json'),
+			JSON.stringify({ name: '@acme/react' })
+		);
+
+		const css = await processCss(join(packageDir, 'dist', 'x.css'));
+
 		expect(css).toContain('@layer components');
 		expect(css).toContain('@layer utilities');
 	});
@@ -211,7 +229,7 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 			'/app/node_modules/@c15t/astro/dist/styles.css',
 			'/app/node_modules/@c15t/browser/dist/c15t.css',
 			'/app/node_modules/c15t/dist/react/styles.css',
-			'/repo/packages/svelte/dist/styles.css',
+			join(PACKAGES_DIR, 'svelte', 'dist', 'styles.css'),
 			// Astro's Vite pipeline processes the dialog sheet with a query.
 			'/app/node_modules/@c15t/ui/dist/styles/dialog.css?transform-only',
 		]) {
@@ -221,6 +239,8 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 			'/app/node_modules/@other/ui/dist/styles.css',
 			'/app/node_modules/c15t-theme/dist/styles.css',
 			'/repo/packages/web/dist/styles.css',
+			// Another monorepo's workspace package with a c15t-like name.
+			'/home/dev/app/packages/react/dist/styles.css',
 			'/app/src/styles.css',
 		]) {
 			expect(isC15tUiStylesheetPath(path)).toBe(false);
@@ -235,7 +255,7 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 		).toBe(true);
 		expect(
 			isC15tUiStylesheetPath(
-				'/repo/packages/ui/dist/styles/components/button.css'
+				join(PACKAGES_DIR, 'ui', 'dist', 'styles', 'components', 'button.css')
 			)
 		).toBe(true);
 		expect(
