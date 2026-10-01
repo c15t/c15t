@@ -18,8 +18,10 @@ terminal. Add `--apply` or `--yes` to write files.
 
 Setup installs missing c15t packages from the CLI's release line. A prerelease
 CLI uses its dist-tag, so `@c15t/cli@alpha` installs `c15t@alpha`. A stable CLI
-uses its major version, such as `c15t@3`. Packages already in `package.json`
-stay as they are.
+uses its major version, such as `c15t@3`. A c15t package already in
+`package.json` stays as it is when its range can resolve to that release line.
+A range on another major, such as `^2`, is installed again from the CLI's
+line.
 
 For TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid and Astro, pass
 `--framework`. That selects [framework boilerplate](./boilerplate.md),
