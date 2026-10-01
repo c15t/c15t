@@ -16,8 +16,8 @@ wins without `!important`.
 
 Tailwind CSS 3 has no cascade layers. It treats `@layer components` as its own
 directive and fails the build on a stylesheet that uses it without a matching
-`@tailwind components`. The `@c15t/ui/postcss-tailwind3` PostCSS plugin removes the
-layer wrappers from c15t's stylesheets before Tailwind 3 runs. c15t's rules then
+`@tailwind components`. c15t's Tailwind 3 PostCSS plugin removes the layer
+wrappers from c15t's stylesheets before Tailwind 3 runs. c15t's rules then
 win by specificity, as they did in c15t v2, so a utility on a c15t part needs
 Tailwind's important modifier, such as `!p-2`.
 
@@ -141,16 +141,21 @@ c15t's styles for you, so their CSS entry holds only Tailwind.
 ## Set up Tailwind CSS 3
 
 Tailwind 3 loads the same `styles.css` as Tailwind 4 and needs one PostCSS
-plugin, `@c15t/ui/postcss-tailwind3`. Install `@c15t/ui` as a direct
-dependency. PostCSS loads plugins from your app, and pnpm does not expose the
-copy that `c15t` depends on:
+plugin. Every c15t package that ships a stylesheet exports it as
+`<package>/postcss-tailwind3`, so use the one from the package you installed:
 
-<CommandTabs command="@c15t/ui@alpha" mode="install" />
+| You installed | Plugin name |
+| --- | --- |
+| `c15t` (React, Next.js, TanStack Start, Vue, Nuxt, Astro) | `c15t/postcss-tailwind3` |
+| `@c15t/svelte` (Svelte, SvelteKit) | `@c15t/svelte/postcss-tailwind3` |
+| `@c15t/browser` (script tag in the light DOM) | `@c15t/browser/postcss-tailwind3` |
 
-Then make three changes:
+They are the same plugin. A config that already lists
+`@c15t/ui/postcss-tailwind3` keeps working.
 
-1. Add `@c15t/ui/postcss-tailwind3` to your PostCSS plugins, before
-   `tailwindcss`. Write the plugins as an object, as the examples below do.
+Make three changes:
+
+1. Add the plugin to your PostCSS plugins, before `tailwindcss`. Write the plugins as an object, as the examples below do.
    PostCSS runs them in the order of the keys. Next.js also accepts an array
    of plugin names, but Vite's PostCSS loader rejects that form.
 2. Where you import c15t's stylesheet yourself, put the import above the
@@ -172,8 +177,8 @@ class. Add the important modifier to utilities you pass to c15t parts:
 `!bg-red-500`, `hover:!bg-red-500`. A bare `bg-red-500` has no effect. Theme
 tokens work the same on Tailwind 3 and 4.
 
-In React and Next.js apps, `c15t setup` installs `@c15t/ui` and makes the
-first two changes when it finds Tailwind 3. It replaces an existing
+In React and Next.js apps, `c15t setup` makes the first two changes when it
+finds Tailwind 3. It replaces an existing
 `styles.tw3.css` import from an earlier setup with `styles.css`. When it
 cannot edit your PostCSS config, it prints the step to do by hand. See
 [setup](/docs/cli/commands/setup#set-up-styles-and-tailwind-css).
@@ -438,8 +443,8 @@ instead:
 <include src="../shared/examples/tailwind-v3/html/script-tag-light-dom.mdx" />
 
 Import `@c15t/browser/styles.css` above the directives in your Tailwind entry.
-Install `@c15t/browser@alpha` and `@c15t/ui@alpha` so your build can resolve
-the stylesheet and the plugin:
+Install `@c15t/browser@alpha`, which provides both the stylesheet and
+`@c15t/browser/postcss-tailwind3`:
 
 <include src="../shared/examples/tailwind-v3/html/tailwind-css-light-dom.mdx" />
 

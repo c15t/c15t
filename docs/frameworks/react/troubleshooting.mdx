@@ -80,7 +80,7 @@ covers the options.
 
 **Fix.** Import `c15t/react/styles.css` once in the module that renders the
 provider. With Tailwind 3, keep that import above the `@tailwind` directives
-and add `@c15t/ui/postcss-tailwind3` before `tailwindcss` in your PostCSS
+and add `c15t/postcss-tailwind3` before `tailwindcss` in your PostCSS
 config. Without the plugin, Tailwind 3 drops c15t's rules or fails the build
 with `` `@layer components` is used but no matching `@tailwind components` directive is present ``.
 See [Tailwind CSS](/docs/customization/tailwind#set-up-tailwind-css-3).

@@ -70,11 +70,11 @@ global CSS entry. With Tailwind CSS 3 it also:
 
 - Puts the import above the `@tailwind` directives, and replaces a
   `styles.tw3.css` import from an earlier setup.
-- Adds `@c15t/ui/postcss-tailwind3` before `tailwindcss` in your PostCSS
-  config. It edits one `postcss.config.*` or `.postcssrc*` file, in either the
-  object or the array form.
-- Installs `@c15t/ui`, because PostCSS loads the plugin from your app's own
-  dependencies.
+- Adds the plugin from the package it installed, such as
+  `c15t/postcss-tailwind3`, before `tailwindcss` in your PostCSS config. It
+  edits one `postcss.config.*` or `.postcssrc*` file, in either the object or
+  the array form, and leaves a config that already runs a c15t
+  `postcss-tailwind3` plugin alone.
 
 Setup prints the PostCSS change to make by hand when it finds no config, finds
 several config files, finds the config in the `postcss` key of `package.json`,

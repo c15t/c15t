@@ -83,12 +83,10 @@ const consent = init({
 });
 ```
 
-If your bundler runs Tailwind 3, install `@c15t/ui` as a direct dependency
-and add `@c15t/ui/postcss-tailwind3` before `tailwindcss` in your PostCSS
-plugins, using the object form:
-`{ '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {} }`. PostCSS resolves the
-plugin from your app, so under pnpm the copy nested in `@c15t/browser` is not
-enough. Without the plugin, Tailwind 3 drops the imported rules without an
+If your bundler runs Tailwind 3, add `@c15t/browser/postcss-tailwind3` before
+`tailwindcss` in your PostCSS plugins, using the object form:
+`{ '@c15t/browser/postcss-tailwind3': {}, tailwindcss: {} }`. Without the
+plugin, Tailwind 3 drops the imported rules without an
 error and its preflight overrides the UI. A page that keeps the default shadow
 root needs none of this, because page CSS does not reach the UI.
 
