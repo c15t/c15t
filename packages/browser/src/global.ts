@@ -200,12 +200,20 @@ const runQueued = async function runQueued(
 	}
 };
 
+/** The pending consent and UI actions for one API. */
+interface ActionChain {
+	/** Settles once every batch queued so far has finished. */
+	tail: Promise<void>;
+	/** Set by `dispose()`. Batches that have not run yet stop. */
+	cancelled: boolean;
+}
+
 /**
- * The tail of each API's action chain. Every batch of queued actions runs
- * after the batch before it settles, so actions from separate `push()`
- * calls keep their order.
+ * Each API's action chain. Every batch of queued actions runs after the
+ * batch before it settles, so actions from separate `push()` calls keep
+ * their order.
  */
-const actionChains = new WeakMap<C15tGlobal, Promise<void>>();
+const actionChains = new WeakMap<C15tGlobal, ActionChain>();
 
 /**
  * Run a batch of consent and UI actions once the policy has resolved and
@@ -215,21 +223,46 @@ const enqueueActions = function enqueueActions(
 	api: C15tGlobal,
 	actions: readonly QueuedCall[]
 ): void {
-	const previous = actionChains.get(api);
+	let chain = actionChains.get(api);
+	if (!chain) {
+		chain = { cancelled: false, tail: Promise.resolve() };
+		actionChains.set(api, chain);
+	}
+	const current = chain;
+	const previous = current.tail;
 	const run = async function run(): Promise<void> {
 		// `runQueued` reports its own failures, so the chain never rejects.
 		await previous;
+		if (current.cancelled) {
+			return;
+		}
 		try {
 			await api.ready();
 		} catch {
 			// The actions still run; the client reports its own errors.
 		}
 		for (const call of actions) {
+			if (current.cancelled) {
+				return;
+			}
 			// oxlint-disable-next-line no-await-in-loop -- Queue order is the contract.
 			await runQueued(api, call);
 		}
 	};
-	actionChains.set(api, run());
+	current.tail = run();
+};
+
+/**
+ * Drop every batch still waiting in the API's action chain, so none of it
+ * runs against a disposed client or the one a later `init()` creates.
+ * Batches pushed afterwards start a new chain.
+ */
+const cancelActions = function cancelActions(api: C15tGlobal): void {
+	const chain = actionChains.get(api);
+	if (chain) {
+		chain.cancelled = true;
+		actionChains.delete(api);
+	}
 };
 
 /**
@@ -366,6 +399,7 @@ export const createGlobal = function createGlobal(
 		dispose: () => {
 			api.devtools?.destroy();
 			api.devtools = null;
+			cancelActions(api);
 			client?.dispose();
 			// Keep queued defaults for re-init, including backend-injected
 			// manifests and URLs that are not present on the script tag.

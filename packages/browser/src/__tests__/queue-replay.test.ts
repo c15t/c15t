@@ -221,6 +221,58 @@ describe('c15t.push after the tag loads', () => {
 		expect(api.has('measurement')).toBe(false);
 	});
 
+	it('runs actions pushed after a dispose that interrupted a wait for init', async () => {
+		testWindow.c15t = [['config', options]];
+		const api = installGlobal(createGlobal({ pkg: '@c15t/browser/test' }));
+		const acceptAll = vi.spyOn(api, 'acceptAll');
+
+		api.push(['acceptAll']);
+		await Promise.resolve();
+		api.dispose();
+		api.init();
+		api.push(['openDialog']);
+
+		await vi.waitFor(() => {
+			expect(api.getSnapshot().activeUI).toBe('dialog');
+		});
+		expect(acceptAll).not.toHaveBeenCalled();
+	});
+
+	it('drops pending actions when the API is disposed', async () => {
+		const api = loadTag([['config', options]]);
+		const order: string[] = [];
+		let finishFirst: () => void = () => undefined;
+		api.acceptAll = () => {
+			order.push('acceptAll:start');
+			return new Promise<boolean>((resolve) => {
+				finishFirst = () => {
+					order.push('acceptAll:end');
+					resolve(true);
+				};
+			});
+		};
+		api.rejectAll = () => {
+			order.push('rejectAll');
+			return Promise.resolve(true);
+		};
+
+		api.push(['acceptAll']);
+		api.push(['rejectAll']);
+		await vi.waitFor(() => {
+			expect(order).toEqual(['acceptAll:start']);
+		});
+
+		api.dispose();
+		api.init();
+		finishFirst();
+		api.push(['openDialog']);
+
+		await vi.waitFor(() => {
+			expect(api.getSnapshot().activeUI).toBe('dialog');
+		});
+		expect(order).toEqual(['acceptAll:start', 'acceptAll:end']);
+	});
+
 	it('warns about an unsupported method and keeps going', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const api = loadTag([['config', options]]);
