@@ -164,12 +164,16 @@ const resolveEndpoints = function resolveEndpoints(
 	};
 };
 
-const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
+const readEnv = function readEnv(): Record<string, string | undefined> {
 	if (typeof process === 'undefined') {
-		return undefined;
+		return {};
 	}
-	const env = process.env as Record<string, string | undefined> | undefined;
-	return env?.C15T_BACKEND_URL ?? env?.PUBLIC_C15T_BACKEND_URL;
+	return (process.env as Record<string, string | undefined> | undefined) ?? {};
+};
+
+const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
+	const env = readEnv();
+	return env.C15T_BACKEND_URL ?? env.PUBLIC_C15T_BACKEND_URL;
 };
 
 /**
@@ -178,8 +182,9 @@ const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
  * @param options - The options passed to `c15t()`.
  * @returns Options with defaults applied.
  * @throws {Error} When `mode` is missing, is not a mode descriptor, is a
- * manifest mode with nowhere to save consent, or `experiment` has neither
- * an `arm` nor a site-composed middleware to resolve one.
+ * manifest mode with nowhere to save consent or no manifest to read, or
+ * `experiment` has neither an `arm` nor a site-composed middleware to
+ * resolve one.
  */
 export const resolveOptions = function resolveOptions(
 	options: C15tAstroOptions
@@ -197,20 +202,32 @@ export const resolveOptions = function resolveOptions(
 	// backend URL from the environment is written into the options so the
 	// browser gets it too. An inline `manifest` is the deliberately
 	// network-free path and is left alone: an app on it serves its own save
-	// route. `backendURL: ''` is set on purpose: it means this origin.
+	// route.
+	//
+	// `backendURL: ''` is set on purpose: the browser saves to this origin.
+	// It gives the server no manifest, though: `${backendURL}/manifest`
+	// needs an absolute or root-relative URL, and the environment's backend
+	// URL does not replace it. So it also needs a `manifestURL`, or
+	// `C15T_MANIFEST_URL`, which the server reads first.
 	let { mode } = options;
-	if (
-		mode.type === 'manifest' &&
-		!mode.manifest &&
-		mode.backendURL === undefined
-	) {
-		const backendURL = backendURLFromEnv();
-		if (!backendURL) {
+	if (mode.type === 'manifest' && !mode.manifest) {
+		if (mode.backendURL === undefined) {
+			const backendURL = backendURLFromEnv();
+			if (!backendURL) {
+				throw new Error(
+					'@c15t/astro: manifest mode needs a `backendURL`, for example manifest({ backendURL: "https://your-project.inth.app" }), or the C15T_BACKEND_URL environment variable set when astro.config is loaded. The browser saves consent there with POST /subjects; the injected routes only serve init and manifest.'
+				);
+			}
+			mode = { ...mode, backendURL };
+		} else if (
+			mode.backendURL === '' &&
+			!mode.manifestURL &&
+			!readEnv().C15T_MANIFEST_URL
+		) {
 			throw new Error(
-				'@c15t/astro: manifest mode needs a `backendURL`, for example manifest({ backendURL: "https://your-project.inth.app" }), or the C15T_BACKEND_URL environment variable set when astro.config is loaded. The browser saves consent there with POST /subjects; the injected routes only serve init and manifest.'
+				"@c15t/astro: manifest({ backendURL: '' }) saves consent on this origin but gives the server no manifest to fetch. Add a `manifestURL`, pass an inline `manifest`, or set the C15T_MANIFEST_URL environment variable when astro.config is loaded."
 			);
 		}
-		mode = { ...mode, backendURL };
 	}
 	// A JavaScript `astro.config.mjs` has no type checking, so `ui: 'solid'`
 	// reaches `buildBootScript()` and throws a bare `TypeError` on an

@@ -144,6 +144,38 @@ describe('resolveOptions', () => {
 		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
 		try {
 			expect(
+				resolveOptions({
+					mode: manifestMode({ backendURL: '', manifestURL: '/m.json' }),
+				}).mode
+			).toHaveProperty('backendURL', '');
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
+	it('rejects an empty backendURL with no manifest to fetch', () => {
+		// `''` saves on this origin, but `${backendURL}/manifest` needs a real
+		// URL, and the environment's backend URL does not replace it.
+		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
+		vi.stubEnv('C15T_MANIFEST_URL', '');
+		try {
+			expect(() =>
+				resolveOptions({ mode: manifestMode({ backendURL: '' }) })
+			).toThrowError(/gives the server no manifest to fetch/u);
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
+	it('accepts an empty backendURL with any manifest source', () => {
+		expect(
+			resolveOptions({
+				mode: manifestMode({ backendURL: '', manifest: INLINE_MANIFEST }),
+			}).mode
+		).toHaveProperty('backendURL', '');
+		vi.stubEnv('C15T_MANIFEST_URL', 'https://consent.example.com/manifest');
+		try {
+			expect(
 				resolveOptions({ mode: manifestMode({ backendURL: '' }) }).mode
 			).toHaveProperty('backendURL', '');
 		} finally {
