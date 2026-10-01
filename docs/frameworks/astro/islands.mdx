@@ -37,7 +37,7 @@ integrations: [react(), c15t({ mode: hosted({ url: backendURL }), ui: 'react' })
 ```
 
 The build stops when that integration is missing, and names the packages to
-install. Only the framework `ui` names ends up in your build. With
+install. Only the framework you name in `ui` ends up in your build. With
 `ui: 'svelte'` the build never resolves React or Vue.
 
 The integration logs a hint when your site loads `@astrojs/react` or
@@ -119,7 +119,7 @@ and `getConsent()` from `c15t/astro/client`, as the
    open. Before you open the dialog, no chunk for the `ui` framework's dialog
    loads.
 2. Hover **Cookie preferences**. The dialog chunks download.
-3. Open the dialog, allow measurement and save. Your own island updates to
+3. Open the dialog, turn on **Analytics** (the `measurement` category) and save. Your own island updates to
    match without a reload.
 4. Toggle your system's dark mode. The banner and the dialog follow the
    integration's `colorScheme`, not your island.

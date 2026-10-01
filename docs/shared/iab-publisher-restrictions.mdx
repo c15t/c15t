@@ -58,7 +58,7 @@ objection control is the opt-out. Such a purpose does not decide its c15t
 category: the category follows the purposes in it that the visitor can
 consent to. Legitimate interest never grants a category on its own. If none of
 a category's purposes has a consent basis, the category needs all of them
-consented, which only Accept all does. Stack switches
+consented, which only Accept All does. Stack switches
 cover only the purposes some vendor processes on consent. Display-model rows
 expose this as `hasConsentBasis`. Custom preference UIs can call
 `applyPublisherRestrictionsToGVL` from `@c15t/iab/headless`, or pass
@@ -82,7 +82,7 @@ restrictions. A target that uses only legitimate interest once restrictions
 apply is not blocked by a refused category, since it needs no consent; its
 legitimate interest signals and the visitor's objection decide. GPC and strict
 scope still block it, and the category stays refused for scripts that depend on
-it. Accept all grants the vendor signal a restriction moves a purpose to,
+it. Accept All grants the vendor signal a restriction moves a purpose to,
 including legitimate interest for a vendor that declares none. Legitimate
 interest a restriction introduces applies until the visitor objects: the
 preference centres show it as allowed, and saving without touching it encodes

@@ -16,15 +16,15 @@ group: reference
 
   The policy decides the buttons:
 
-  - A `choice` prompt shows Reject all, Accept all and Customize. Customize is
-    the primary button by default, so Accept all and Reject all look the same.
+  - A `choice` prompt shows Reject All, Accept All and Customize. Customize is
+    the primary button by default, so Accept All and Reject All look the same.
   - A `notice` prompt shows an OK button. When the policy grants an opt-out or
     preferences right, the banner adds a button styled as underlined text,
     labelled "Do not sell or share my data" or "Manage preferences", that
     opens preferences.
   - A policy with prompt `none` shows no banner.
 
-  Each button runs one command. Accept all and Reject all record a choice for
+  Each button runs one command. Accept All and Reject All record a choice for
   every category the policy covers, and the banner closes. Customize sets
   `activeUI` to `'manager'`, which opens `ConsentManager` if it is mounted.
   OK records that the visitor dismissed the notice. Dismissing grants nothing
@@ -122,7 +122,7 @@ group: reference
   ## Verify
 
   Open the page in a private window under a policy that asks for a choice.
-  The banner appears with Reject all and Accept all side by side. Tab through
+  The banner appears with Reject All and Accept All side by side. Tab through
   it and confirm every button is reachable. Click Customize and the preference
   dialog opens. Reject, reload, and confirm the banner stays closed. In the
   Elements panel, the root element carries the `data-variant` and

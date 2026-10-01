@@ -159,11 +159,11 @@ site in a fresh browser session with DevTools open.
 
 1. Under an opt-in policy, the banner appears and the Network panel shows no
    PostHog or X Pixel request.
-2. Click **Reject all**, then reload. The banner stays closed and neither
+2. Click **Reject All**, then reload. The banner stays closed and neither
    vendor loads.
-3. Open **Privacy settings** in the footer and allow measurement only. PostHog
+3. Open **Privacy settings** in the footer and turn on **Analytics** (the `measurement` category) only. PostHog
    loads and X Pixel stays blocked.
-4. Open **Privacy settings** again and turn measurement off. The page reloads
+4. Open **Privacy settings** again and turn **Analytics** off. The page reloads
    and PostHog does not load again.
 5. The browser makes no `/init` request, and choices post to
    `${backendURL}/subjects`.

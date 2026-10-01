@@ -4,7 +4,7 @@
 
 `IABConsentBanner` is the first layer of the IAB TCF 2.4 consent flow. It
 lists the purposes, special features and number of vendors from the Global
-Vendor List, and offers Accept all, Reject all and Customize. It renders only
+Vendor List, and offers Accept All, Reject All and Customize. It renders only
 for visitors whose resolved policy uses the `iab` model, so render it next to
 the standard `ConsentBanner`, which covers everyone else:
 
@@ -32,7 +32,7 @@ visitor's language.
 
 - The banner stays hidden until an IAB policy resolves and the vendor list is
   available. Forcing it does not create either.
-- Accept all and Reject all record the visitor's TCF choice and write the TC
+- Accept All and Reject All record the visitor's TCF choice and write the TC
   String. The banner closes as soon as the click is handled. It comes back
   only if nothing could be recorded, such as when the vendor list failed to
   load, so the visitor can try again. A failed backend request never reopens

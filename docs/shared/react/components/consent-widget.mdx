@@ -22,7 +22,7 @@ group: reference
 
   The widget is the preference center without the modal around it: an
   accordion with one row per category, each with a switch, followed by the
-  Reject all, Accept all and Save actions. `ConsentDialog` renders this same
+  Reject All, Accept All and Save Settings actions. `ConsentDialog` renders this same
   widget inside its card. Standalone, the widget renders in place, takes part
   in server rendering, and does not touch the active surface, so it suits a
   privacy page or an account settings screen.
@@ -44,8 +44,8 @@ group: reference
   one it uses `presentation.preferences.defaults` from the provider options,
   and without that it is on under an opt-out rule and on only for the rule's
   preselected categories under an opt-in rule. Save records the displayed
-  categories, then reseeds the draft from the new record. Accept all and
-  Reject all record immediately without a separate Save. A save answers a
+  categories, then reseeds the draft from the new record. Accept All and
+  Reject All record immediately without a separate Save. A save answers a
   choice prompt, so an open choice banner closes; it does not dismiss a
   `notice` prompt, which keeps its own acknowledgement record. Unsaved toggles
   are lost when the widget unmounts.
@@ -78,7 +78,7 @@ group: reference
   the category is off in the draft the vendor switches are disabled, with the
   hint "Turn on this category to choose vendors." A vendor declared
   `disabled`, or one that only falls under `necessary`, is listed without a
-  switch. Accept all and Reject all clear every vendor denial, including one
+  switch. Accept All and Reject All clear every vendor denial, including one
   staged but not yet saved. Under an `iab` policy no vendor rows render.
   Vendors that are only referenced by a script slug, without a name and
   privacy policy URL, still gate loading but are not listed, and so does a
@@ -88,8 +88,8 @@ group: reference
 
   ### Actions
 
-  The preference center always renders Reject all, Accept all and Save, with
-  Save as the primary action. `presentation.preferences.layout`,
+  The preference center always renders Reject All, Accept All and Save Settings, with
+  Save Settings as the primary action. `presentation.preferences.layout`,
   `primaryActions`, `direction` and `uiProfile` in the provider options
   reorder and restyle them; a layout that omits one of the three has it
   restored. Customize and dismiss actions never render here.

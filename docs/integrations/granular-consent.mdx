@@ -119,7 +119,7 @@ await runtime.kernel.commands.save({
 ```
 
 c15t stores only the vendors a visitor switched off, and sends the full vendor
-map to the backend with the consent record. Accept all and Reject all clear
+map to the backend with the consent record. Accept All and Reject All clear
 that list, so every vendor follows its category again. Under an opt-out policy,
 every vendor starts on.
 
@@ -130,7 +130,7 @@ every vendor starts on.
   because the category stays allowed. Delete the vendor's cookies from the
   script's `onConsentChange` when `info.vendor.granted` is `false`.
 - It does not expire. The switch stays off until the visitor changes it or
-  uses Accept all or Reject all, even across a policy change.
+  uses Accept All or Reject All, even across a policy change.
 - Adding a vendor does not ask returning visitors again. A new vendor starts
   on inside an allowed category. Change the policy's `copyRevision` if a new
   vendor should prompt again.
@@ -145,4 +145,4 @@ every vendor starts on.
    marketing scripts still load.
 4. Reload again. The Meta Pixel switch is still off.
 5. Turn marketing off. The Meta Pixel switch is disabled.
-6. Open Privacy settings and click Accept all. `fbevents.js` loads again.
+6. Open Privacy settings and click Accept All. `fbevents.js` loads again.

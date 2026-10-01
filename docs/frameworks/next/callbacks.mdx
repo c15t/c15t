@@ -38,7 +38,7 @@ remount.
 
 | Callback | Runs when | Receives |
 | --- | --- | --- |
-| `onChoiceRecorded` | The visitor clicks Accept all, Reject all or Save, in the stock UI or through `useSaveConsents()`. | `snapshot`, the state after the choice; `confirmed`, the categories this action recorded; `actionAt`, the time as a millisecond timestamp |
+| `onChoiceRecorded` | The visitor clicks Accept All, Reject All or Save Settings, in the stock UI or through `useSaveConsents()`. | `snapshot`, the state after the choice; `confirmed`, the categories this action recorded; `actionAt`, the time as a millisecond timestamp |
 | `onPermissionsChanged` | Any effective permission changes value. | `snapshot`, the state after the change; `previous`, the permissions before it |
 | `onError` | A consent command fails in the browser, such as a failed `/init` request or a save the backend rejects. | `error`, a message string |
 | `onBeforeConsentRevocationReload` | A save withdrew a granted category or vendor, right before c15t reloads the page. | `preferences`, the permissions after the save |
@@ -114,7 +114,7 @@ runs.
 
 1. Add the callbacks from this page, open the console and DevTools Network,
    clear site data and reload under a policy that shows a banner.
-2. Click Accept all. `onChoiceRecorded` and `onPermissionsChanged` both log,
+2. Click **Accept All**. `onChoiceRecorded` and `onPermissionsChanged` both log,
    and the save request to your backend appears in Network.
 3. Reload. `onChoiceRecorded` does not log again.
 4. Open Privacy settings, turn off a category you allowed and save.

@@ -99,12 +99,12 @@ under a policy that asks for consent.
 1. Load the page. A request to your backend's `/init` resolves the policy and
    the banner appears. No requests to `posthog.com`,
    `static.ads-twitter.com` or `youtube-nocookie.com` appear.
-2. Click Reject all, then reload. The banner stays closed and the vendor
+2. Click **Reject All**, then reload. The banner stays closed and the vendor
    requests stay absent.
-3. Click Privacy Settings, allow Measurement and save. PostHog's `array.js`
+3. Click **Privacy settings**, turn on **Analytics** (the `measurement` category) and save. PostHog's `array.js`
    loads and the video appears. X Pixel stays blocked until you allow
    Marketing.
-4. Turn Measurement off and save. The page reloads, the video is gone and
+4. Turn **Analytics** off and save. The page reloads, the video is gone and
    PostHog does not load again.
 
 [Verify consent](/docs/guides/verify-consent) has the full release checklist.

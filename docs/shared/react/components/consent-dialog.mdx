@@ -11,7 +11,7 @@ group: reference
 
   | Prop | Type | Default | Description |
   | --- | --- | --- | --- |
-  | `open` | `boolean` | follows the active surface | Controls the open state. When set, Escape and the dialog's own Save, Accept all and Reject all buttons no longer close it; change the prop instead. A missing policy or an unlisted model still keeps it closed. |
+  | `open` | `boolean` | follows the active surface | Controls the open state. When set, Escape and the dialog's own Save Settings, Accept All and Reject All buttons no longer close it; change the prop instead. A missing policy or an unlisted model still keeps it closed. |
   | `showTrigger` | `boolean \| ConsentDialogTriggerProps` | `false` | Renders a floating `ConsentDialogTrigger` next to the dialog. Pass an object to configure that trigger. |
   | `models` | `Model[]` | `['opt-in', 'opt-out', 'none']` | Policy models the dialog responds to. Under a model that is not listed, such as `iab`, it stays closed. |
   | `legalLinks` | `(keyof LegalLinks)[] \| null` | none | Which of the links configured in the provider `options.legalLinks` render after the description. Omitting the prop renders none. `null` hides them. |
@@ -28,7 +28,7 @@ group: reference
   The dialog is a modal wrapper around the preference center. Its card has a
   header with the title `consentManagerDialog.title` and the description
   `consentManagerDialog.description` followed by the legal links, then the
-  same category accordion and Reject all, Accept all and Save actions that
+  same category accordion and Reject All, Accept All and Save Settings actions that
   `ConsentWidget` renders, then the branding tag. It mounts through a portal
   into `document.body` after hydration, so it is never part of the server
   HTML.
@@ -73,8 +73,8 @@ group: reference
   The dialog's CSS travels in the same chunk and is applied before the dialog
   renders, so your app's `styles.css` import stays small.
 
-  Without an `open` prop, Escape closes the dialog. Save, Accept all and
-  Reject all close it as soon as the choice is recorded in the browser, in
+  Without an `open` prop, Escape closes the dialog. Save Settings, Accept All and
+  Reject All close it as soon as the choice is recorded in the browser, in
   the same task as the click; the exit animation still plays. The request to
   the backend runs afterwards and never reopens the dialog: a failed request
   keeps the choice, reports through `onError` and is retried later. See

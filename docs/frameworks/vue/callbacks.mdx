@@ -25,7 +25,7 @@ component does not need to be mounted for them to run.
 
 | Callback | Runs when | Receives |
 | --- | --- | --- |
-| `onChoiceRecorded` | The visitor clicks Accept all, Reject all or Save, in the stock UI or through `useConsentSave()`. | `snapshot`, `confirmed` (the categories the action covered) and `actionAt` |
+| `onChoiceRecorded` | The visitor clicks Accept All, Reject All or Save Settings, in the stock UI or through `useConsentSave()`. | `snapshot`, `confirmed` (the categories the action covered) and `actionAt` |
 | `onPermissionsChanged` | Any effective permission changes value. | `snapshot` and `previous`, the permissions before the change |
 | `onBeforeConsentRevocationReload` | A save withdraws a granted category or vendor, right before c15t reloads the page. | `preferences`, the permissions after the save |
 | `onError` | A consent command fails, for example a save the backend rejects. | `error`, a message string |
@@ -62,7 +62,7 @@ them where you create the runtime.
 
 ## Verify
 
-Open the console, load the app and click Accept all. `onChoiceRecorded` logs
+Open the console, load the app and click **Accept All**. `onChoiceRecorded` logs
 once and `onPermissionsChanged` logs the new permissions. Reload: neither logs
 a new choice. Withdraw a category in preferences and save, and the
 revocation callback runs before the page reloads.

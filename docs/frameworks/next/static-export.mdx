@@ -99,9 +99,9 @@ not have. Then open the site in a fresh browser session with DevTools open.
 1. The Network panel shows `/init` and `/subjects` requests to your backend's
    origin, and no failed same-origin `/api/c15t` request.
 2. Under an opt-in policy, the banner appears and no PostHog or X Pixel request
-   runs. Click **Reject all** and reload. The banner stays closed and neither
+   runs. Click **Reject All** and reload. The banner stays closed and neither
    vendor loads.
-3. Open **Privacy settings** and allow measurement only. PostHog loads and
+3. Open **Privacy settings** and turn on **Analytics** (the `measurement` category) only. PostHog loads and
    X Pixel stays blocked.
 4. Block the backend's domain in DevTools and reload in a fresh session. No
    banner appears and no vendor loads.

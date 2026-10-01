@@ -127,13 +127,13 @@ the test only.
    `data-testid="consent-banner-root"`.
 2. **Before a choice.** There are no requests to `posthog.com` or
    `static.ads-twitter.com`.
-3. **Reject all.** The banner closes and the vendor requests stay absent.
+3. **Reject All.** The banner closes and the vendor requests stay absent.
 4. **Reload and view source again.** The HTML no longer contains the banner,
    because the server read the stored rejection from the `c15t` cookie.
-5. **Privacy settings.** The footer link opens the dialog with Measurement and
-   Marketing off. Turn Measurement on and save. PostHog's `array.js` loads and
+5. **Privacy settings.** The footer link opens the dialog with **Analytics** (the
+   `measurement` category) and **Marketing** off. Turn on **Analytics** and save. PostHog's `array.js` loads and
    X Pixel stays absent.
-6. **Turn Measurement off again.** The page reloads and PostHog does not load.
+6. **Turn Analytics off again.** The page reloads and PostHog does not load.
 
 [Troubleshooting](/docs/frameworks/tanstack-start/troubleshooting) covers the
 common failures. [Verify consent](/docs/guides/verify-consent) has the full

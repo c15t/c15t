@@ -130,9 +130,9 @@ open.
 
 1. View the page source. It contains `data-testid="consent-banner-root"`.
 2. Under an opt-in policy, the Network panel shows no PostHog or X Pixel
-   request. Click **Reject all** and reload. The banner stays closed and
+   request. Click **Reject All** and reload. The banner stays closed and
    neither vendor loads.
-3. Open **Privacy settings** and allow measurement only. PostHog loads and
+3. Open **Privacy settings** and turn on **Analytics** (the `measurement` category) only. PostHog loads and
    X Pixel stays blocked.
 4. Navigate to another page with a Next.js `Link` and reopen
    **Privacy settings**. The choice is still selected.

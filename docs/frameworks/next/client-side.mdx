@@ -79,9 +79,9 @@ Open the production build in a fresh browser session with DevTools open.
 
 1. The browser calls `${backendURL}/init` once, then shows the banner. No
    PostHog or X Pixel request runs.
-2. Click **Reject all** and reload. The banner stays closed and neither vendor
+2. Click **Reject All** and reload. The banner stays closed and neither vendor
    loads.
-3. Open **Privacy settings**. The rejection is still selected. Allow
-   measurement only; PostHog loads and X Pixel stays blocked.
+3. Open **Privacy settings**. The rejection is still selected. Turn on
+   **Analytics** (the `measurement` category) only; PostHog loads and X Pixel stays blocked.
 4. Block the backend's domain in DevTools and reload in a fresh session. No
    banner appears and no vendor loads. A hidden banner is not permission.

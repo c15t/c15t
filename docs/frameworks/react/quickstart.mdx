@@ -109,12 +109,12 @@ Test under a policy that asks for a choice, such as an EU opt-in policy.
 
 1. **Before a choice.** The banner shows. There are no requests to
    `posthog.com` or `static.ads-twitter.com`.
-2. **Reject all.** The banner closes and the vendor requests stay absent.
+2. **Reject All.** The banner closes and the vendor requests stay absent.
 3. **Reload.** The banner stays closed and the vendor requests stay absent.
-4. **Privacy settings.** The footer link opens the dialog with Measurement and
-   Marketing off. Turn Measurement on and save. PostHog's `array.js` loads and
+4. **Privacy settings.** The footer link opens the dialog with **Analytics** (the
+   `measurement` category) and **Marketing** off. Turn on **Analytics** and save. PostHog's `array.js` loads and
    X Pixel stays absent.
-5. **Turn Measurement off again.** The page reloads and PostHog does not load.
+5. **Turn Analytics off again.** The page reloads and PostHog does not load.
 
 If the banner never appears, check the Network tab for the request to
 `/init` on your backend URL. [Troubleshooting](/docs/frameworks/react/troubleshooting)
