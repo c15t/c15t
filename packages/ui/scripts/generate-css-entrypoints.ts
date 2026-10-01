@@ -325,10 +325,12 @@ const collectCssParts = function collectCssParts(
  * time from the same object the runtime exports, so CSS and JS cannot drift.
  *
  * Emitted first and **unlayered** in every entrypoint, on the base `:root`
- * selectors. A host's `<style id="c15t-theme">` from `generateThemeCSS`
- * wins wherever it lands: its selectors carry one more specificity point
- * (`:root:root`), so it overrides these even when it comes first in the
- * document, as SvelteKit's `<svelte:head>` does. When a host imports the
+ * selectors. In the light DOM, a host's `<style id="c15t-theme">` from
+ * `generateThemeCSS` wins wherever it lands: its selectors carry one more
+ * specificity point (`:root:root`), so it overrides these even when it comes
+ * first in the document, as SvelteKit's `<svelte:head>` does. Its `:host`
+ * selector does not, so inside a shadow root the theme must come after this
+ * stylesheet. When a host imports the
  * stylesheet into a cascade layer (`@import ... layer(c15t)`), unlayered
  * theme declarations outrank it by layer precedence too.
  */

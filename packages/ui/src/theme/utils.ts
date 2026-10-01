@@ -489,9 +489,11 @@ ${selectors.dark}{${dark}}
  * longer generates theme CSS. `<` is written as a CSS escape, so the result
  * is safe inside a `<style>` element.
  *
- * The selectors are one specificity step above the default tokens in
- * `styles.css`, so the result overrides them whether it lands before or
- * after the package stylesheet in the document.
+ * The light-DOM selectors (`:root`, `.c15t-theme-root`) are one
+ * specificity step above the default tokens in `styles.css`, so in the
+ * document the result overrides them whether it lands before or after the
+ * package stylesheet. `:host` keeps the defaults' specificity, so inside a
+ * shadow root put the result after the package stylesheet.
  * Apply `c15t-no-transitions` while switching themes to suppress animations.
  * @param theme - Theme tokens to serialize.
  * @param colorScheme - Select a scheme before hydration; defaults to root classes.
