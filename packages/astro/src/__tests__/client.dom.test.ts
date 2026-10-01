@@ -1089,8 +1089,11 @@ describe('a CSP nonce on the page', () => {
 		const incoming = document.implementation.createHTMLDocument();
 		incoming.head.innerHTML = [
 			'<script data-c15t-config nonce="next-n0nce"></script>',
+			'<script data-c15t-inline nonce="next-n0nce">0</script>',
 			'<style id="c15t-theme" nonce="next-n0nce"></style>',
 			'<script nonce="unrelated">0</script>',
+			// Not c15t's, so not c15t's to hand the live nonce to.
+			'<script id="foreign" nonce="next-n0nce">0</script>',
 		].join('');
 		incoming.body.innerHTML = [
 			document.body.innerHTML,
@@ -1103,9 +1106,11 @@ describe('a CSP nonce on the page', () => {
 		const nonceOf = (selector: string) =>
 			incoming.querySelector<HTMLElement>(selector)?.getAttribute('nonce');
 		expect(nonceOf('script[data-c15t-config]')).toBe(NONCE);
+		expect(nonceOf('script[data-c15t-inline]')).toBe(NONCE);
 		expect(nonceOf('#c15t-theme')).toBe(NONCE);
 		expect(nonceOf('script[data-c15t-category]')).toBe(NONCE);
-		expect(nonceOf('script:not([data-c15t-config])')).toBe('unrelated');
+		expect(nonceOf('script[nonce="unrelated"]')).toBe('unrelated');
+		expect(nonceOf('#foreign')).toBe('next-n0nce');
 
 		document.body.replaceWith(incoming.body.cloneNode(true));
 		document.dispatchEvent(new Event('astro:after-swap'));
@@ -1121,6 +1126,38 @@ describe('a CSP nonce on the page', () => {
 		expect(
 			document.querySelector('[data-c15t-activated="untrusted"]')
 		).toBeNull();
+	});
+
+	it('leaves the next page alone when a planted config script names another nonce', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		renderConfigScript();
+		renderBanner();
+		start();
+
+		// Markup injected ahead of c15t's own config script, naming a nonce
+		// of the attacker's choosing.
+		const incoming = document.implementation.createHTMLDocument();
+		incoming.head.innerHTML = [
+			'<script data-c15t-config nonce="planted"></script>',
+			'<script data-c15t-config nonce="next-n0nce"></script>',
+		].join('');
+		incoming.body.innerHTML = [
+			'<script id="payload" nonce="planted">0</script>',
+			'<script type="text/plain" data-c15t-category="measurement" nonce="planted">1</script>',
+		].join('');
+		document.dispatchEvent(
+			Object.assign(new Event('astro:before-swap'), { newDocument: incoming })
+		);
+
+		expect(
+			Array.from(incoming.querySelectorAll('[nonce]'), (element) =>
+				element.getAttribute('nonce')
+			)
+		).not.toContain(NONCE);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('different CSP nonces')
+		);
+		warn.mockRestore();
 	});
 
 	it('goes on the dialog stylesheets it links', async () => {

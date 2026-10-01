@@ -108,7 +108,12 @@ const model = resolvePromptModel({
 
 {
 	emitConfig && colorSchemeScript && (
-		<script is:inline nonce={nonce} set:html={colorSchemeScript} />
+		<script
+			is:inline
+			data-c15t-inline
+			nonce={nonce}
+			set:html={colorSchemeScript}
+		/>
 	)
 }
 
@@ -278,6 +283,7 @@ const model = resolvePromptModel({
 	shouldRender && hidden && (
 		<script
 			is:inline
+			data-c15t-inline
 			nonce={nonce}
 			set:html={buildBannerRevealScript(
 				c15t.options.storageConfig,

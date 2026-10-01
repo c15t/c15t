@@ -106,6 +106,11 @@ describe.each(surfaces)('%s', (_name, component, options) => {
 			expect(tag).toContain(`nonce="${NONCE}"`);
 		}
 		expect(html).toMatch(/<script[^>]*data-c15t-config[^>]*>\{/u);
+		// The browser only moves marked elements onto a ClientRouter page's
+		// live nonce, so every inline script carries a c15t marker.
+		for (const tag of tags.filter((value) => value.startsWith('<script'))) {
+			expect(tag).toMatch(/data-c15t-(?:config|inline)/u);
+		}
 	});
 
 	it('renders no nonce attribute without one', async () => {

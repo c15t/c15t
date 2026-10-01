@@ -39,7 +39,12 @@ const themeCSS = shouldEmit
 
 {
 	colorSchemeScript && (
-		<script is:inline nonce={c15t?.nonce} set:html={colorSchemeScript} />
+		<script
+			is:inline
+			data-c15t-inline
+			nonce={c15t?.nonce}
+			set:html={colorSchemeScript}
+		/>
 	)
 }
 

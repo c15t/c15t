@@ -99,7 +99,12 @@ const hidden = c15t.prerendered && !force;
 
 {
 	emitConfig && colorSchemeScript && (
-		<script is:inline nonce={c15t.nonce} set:html={colorSchemeScript} />
+		<script
+			is:inline
+			data-c15t-inline
+			nonce={c15t.nonce}
+			set:html={colorSchemeScript}
+		/>
 	)
 }
 
@@ -260,6 +265,7 @@ const hidden = c15t.prerendered && !force;
 	shouldRender && hidden && (
 		<script
 			is:inline
+			data-c15t-inline
 			nonce={c15t.nonce}
 			set:html={buildBannerRevealScript(
 				c15t.options.storageConfig,

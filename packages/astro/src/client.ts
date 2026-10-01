@@ -196,6 +196,28 @@ const readInlinedConfig = function readInlinedConfig(): KernelConfig {
 let pageNonce: string | undefined;
 
 /**
+ * The scripts that carry the boot payload: the config data block, or a
+ * page's own `buildConfigScript()` script, which has no marker.
+ *
+ * @param root - The document to read.
+ * @returns The config scripts, in document order.
+ */
+const configScripts = function configScripts(
+	root: Document
+): HTMLScriptElement[] {
+	return Array.from(root.scripts).filter(
+		(element) =>
+			element.hasAttribute('data-c15t-config') ||
+			element.textContent?.startsWith(`window.${CONFIG_KEY}=`)
+	);
+};
+
+/** An element's nonce, read the way {@link readPageNonce} explains. */
+const nonceOf = function nonceOf(element: HTMLElement): string | undefined {
+	return element.nonce || element.getAttribute('nonce') || undefined;
+};
+
+/**
  * The nonce the server put on the config data block, from
  * `Astro.locals.c15t.nonce`, or on a page's own `buildConfigScript()`
  * script.
@@ -211,13 +233,23 @@ const readPageNonce = function readPageNonce(
 ): string | undefined {
 	// A page that still assigns the payload with `buildConfigScript()` has
 	// no `data-c15t-config` element; its own script carries the nonce.
+	const scripts = configScripts(root);
 	const script =
-		root.querySelector<HTMLScriptElement>('script[data-c15t-config]') ??
-		Array.from(root.scripts).find((element) =>
-			element.textContent?.startsWith(`window.${CONFIG_KEY}=`)
-		);
-	return script?.nonce || script?.getAttribute('nonce') || undefined;
+		scripts.find((element) => element.hasAttribute('data-c15t-config')) ??
+		scripts[0];
+	return script ? nonceOf(script) : undefined;
 };
+
+/**
+ * The elements c15t renders with the page's nonce, and the gated tags it
+ * activates with it. Nothing else on an incoming page is c15t's to change.
+ */
+const NONCE_BEARING_SELECTOR = [
+	'script[data-c15t-config]',
+	'script[data-c15t-inline]',
+	'style#c15t-theme',
+	'script[data-c15t-category]',
+].join(', ');
 
 /**
  * Move a page the ClientRouter is about to swap in onto the live nonce.
@@ -226,18 +258,40 @@ const readPageNonce = function readPageNonce(
  * nonce while the browser keeps enforcing the first response's policy.
  * Its c15t styles and scripts would be blocked, and its gated tags would
  * fail the nonce check in {@link activateGatedScripts}. The server issued
- * both nonces, so every element carrying the incoming one is given the
- * live one. Elements with any other nonce are left alone.
+ * both nonces, so c15t's own elements and the gated tags carrying the
+ * incoming one are given the live one.
+ *
+ * The incoming nonce is read from the page's config scripts, which an
+ * HTML-injection hole on that page could also write. A planted config
+ * script ahead of c15t's would otherwise name the attacker's nonce, and
+ * the attacker's own elements would be handed the live one. So every config
+ * script on the page has to agree, and only c15t's elements and gated tags
+ * are rewritten: an arbitrary `<script nonce>` never is. A page whose only
+ * config script is planted, because c15t rendered none, is not covered.
  *
  * @param incoming - The parsed next page from `astro:before-swap`.
  */
 const adoptPageNonce = function adoptPageNonce(incoming: Document): void {
-	const incomingNonce = readPageNonce(incoming);
-	if (!pageNonce || !incomingNonce || incomingNonce === pageNonce) {
+	if (!pageNonce) {
 		return;
 	}
-	for (const element of incoming.querySelectorAll<HTMLElement>('[nonce]')) {
-		if ((element.nonce || element.getAttribute('nonce')) === incomingNonce) {
+	const nonces = new Set(configScripts(incoming).map(nonceOf));
+	if (nonces.size > 1) {
+		console.warn(
+			'@c15t/astro: the next page has config scripts with different CSP nonces, so c15t did not move it onto the live nonce. Look for markup injected into that page.'
+		);
+		return;
+	}
+	const [incomingNonce] = nonces;
+	if (!incomingNonce || incomingNonce === pageNonce) {
+		return;
+	}
+	const elements = [
+		...incoming.querySelectorAll<HTMLElement>(NONCE_BEARING_SELECTOR),
+		...configScripts(incoming),
+	];
+	for (const element of new Set(elements)) {
+		if (nonceOf(element) === incomingNonce) {
 			element.setAttribute('nonce', pageNonce);
 			element.nonce = pageNonce;
 		}
