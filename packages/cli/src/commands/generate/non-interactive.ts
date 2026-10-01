@@ -24,6 +24,7 @@ import { needsTailwind3PostcssPlugin } from '../shared/postcss-config';
 import { planGenerateFiles } from './options/utils/generate-files';
 import type { GenerateMode } from './options/utils/generate-files';
 import type { UIStyle, ExpandedTheme } from './prompts';
+import { getClientConfigDependencies } from './templates/config';
 import {
 	applyFileEdits,
 	rollbackFileEdits,
@@ -298,6 +299,9 @@ export const generateWithoutPrompts = async (
 	}
 	if (flags.devtools && framework.pkg === 'c15t') {
 		dependencies.push('@c15t/dev-tools');
+	}
+	if (framework.pkg === 'c15t') {
+		dependencies.push(...getClientConfigDependencies(mode));
 	}
 	if (needsTailwind3PostcssPlugin(framework)) {
 		dependencies.push('@c15t/ui');

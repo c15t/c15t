@@ -1,4 +1,6 @@
 import { resolvePolicyRules } from '@c15t/schema/types';
+import { enTranslations } from '@c15t/translations';
+import { baseTranslations } from '@c15t/translations/all';
 /**
  * @vitest-environment jsdom
  *
@@ -7,7 +9,9 @@ import { resolvePolicyRules } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { holdNetworkRequests } from '../../modules/network-blocker/hold';
+import { resolveLocalTranslations } from '../../translations';
 import { custom } from '../../transports/mode';
+import { offline } from '../../transports/offline';
 import type { KernelTransport } from '../../types';
 import {
 	createConsentRuntime,
@@ -224,6 +228,211 @@ describe('createRuntimeKernel', () => {
 			externalId: 'user_1',
 			identityProvider: 'auth0',
 		});
+	});
+});
+
+describe('app i18n over backend translations', () => {
+	const backendEnglish = {
+		language: 'en',
+		translations: {
+			...enTranslations,
+			cookieBanner: {
+				...enTranslations.cookieBanner,
+				description: 'Backend description',
+				title: 'Backend title',
+			},
+		},
+	} as never;
+	const appI18n = {
+		messages: { en: { cookieBanner: { title: 'App title' } } },
+	} as never;
+
+	test('an app override survives a hosted init for the same language', async () => {
+		const transport = createTransport({
+			init: vi.fn().mockResolvedValue({
+				...RESOLVED_PREFETCH,
+				translations: backendEnglish,
+			}),
+		});
+		const kernel = createRuntimeKernel({
+			i18n: appI18n,
+			mode: custom(transport),
+		});
+
+		await kernel.commands.init();
+
+		const copy = kernel.getSnapshot().translations?.translations;
+		expect(copy?.cookieBanner.title).toBe('App title');
+		// Keys the app did not override keep the backend's copy.
+		expect(copy?.cookieBanner.description).toBe('Backend description');
+		kernel.dispose();
+	});
+
+	test('an app override survives a server prefetch for the same language', () => {
+		const kernel = createRuntimeKernel({
+			i18n: appI18n,
+			mode: custom(createTransport()),
+			prefetch: { ...RESOLVED_PREFETCH, initialTranslations: backendEnglish },
+		});
+
+		const copy = kernel.getServerSnapshot().translations?.translations;
+		expect(copy?.cookieBanner.title).toBe('App title');
+		expect(copy?.cookieBanner.description).toBe('Backend description');
+		kernel.dispose();
+	});
+
+	test('a regional backend language takes the overrides for its primary language', async () => {
+		const transport = createTransport({
+			init: vi.fn().mockResolvedValue({
+				...RESOLVED_PREFETCH,
+				translations: { language: 'de-AT', translations: enTranslations },
+			}),
+		});
+		const kernel = createRuntimeKernel({
+			i18n: {
+				messages: { de: { cookieBanner: { title: 'Kekse' } } },
+			} as never,
+			mode: custom(transport),
+		});
+
+		await kernel.commands.init();
+
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe('Kekse');
+		kernel.dispose();
+	});
+
+	test('overrides for another language do not leak into the copy', async () => {
+		const transport = createTransport({
+			init: vi.fn().mockResolvedValue({
+				...RESOLVED_PREFETCH,
+				translations: backendEnglish,
+			}),
+		});
+		const kernel = createRuntimeKernel({
+			i18n: {
+				messages: { de: { cookieBanner: { title: 'Kekse' } } },
+			} as never,
+			mode: custom(transport),
+		});
+
+		await kernel.commands.init();
+
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe('Backend title');
+		kernel.dispose();
+	});
+});
+
+describe('stock bundles passed as i18n messages', () => {
+	const stockGerman = baseTranslations.de;
+	const hostedGerman = (translations: Record<string, unknown>) =>
+		custom(
+			createTransport({
+				init: vi.fn().mockResolvedValue({
+					...RESOLVED_PREFETCH,
+					translations: { language: 'de', translations },
+				}),
+			})
+		);
+
+	test('a backend edit shows when the app passes the stock bundle', async () => {
+		const kernel = createRuntimeKernel({
+			i18n: { locale: 'de', messages: { de: { ...stockGerman } } } as never,
+			mode: hostedGerman({
+				...stockGerman,
+				cookieBanner: { ...stockGerman.cookieBanner, title: 'Vom Backend' },
+			}),
+		});
+
+		await kernel.commands.init();
+
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe('Vom Backend');
+		kernel.dispose();
+	});
+
+	test('a customized key still wins over the backend', async () => {
+		const kernel = createRuntimeKernel({
+			i18n: {
+				locale: 'de',
+				messages: {
+					de: {
+						...stockGerman,
+						cookieBanner: {
+							...stockGerman.cookieBanner,
+							title: 'Eigener Titel',
+						},
+					},
+				},
+			} as never,
+			mode: hostedGerman({
+				...stockGerman,
+				cookieBanner: {
+					...stockGerman.cookieBanner,
+					description: 'Vom Backend',
+				},
+			}),
+		});
+
+		await kernel.commands.init();
+
+		const copy = kernel.getSnapshot().translations?.translations;
+		expect(copy?.cookieBanner.title).toBe('Eigener Titel');
+		expect(copy?.cookieBanner.description).toBe('Vom Backend');
+		kernel.dispose();
+	});
+
+	test('keys the backend does not supply keep the app copy in full', async () => {
+		const kernel = createRuntimeKernel({
+			i18n: { locale: 'de', messages: { de: { ...stockGerman } } } as never,
+			mode: hostedGerman({}),
+		});
+
+		await kernel.commands.init();
+
+		const copy = kernel.getSnapshot().translations?.translations;
+		expect(copy?.cookieBanner.title).toBe(stockGerman.cookieBanner.title);
+		expect(copy?.common.acceptAll).toBe(stockGerman.common.acceptAll);
+		kernel.dispose();
+	});
+});
+
+describe('offline copy with every bundled language loaded', () => {
+	test('a regional language resolves its primary language bundle', () => {
+		const copy = resolveLocalTranslations('de-AT', undefined);
+
+		expect(copy?.language).toBe('de-AT');
+		expect(copy?.translations.cookieBanner.title).toBe(
+			baseTranslations.de.cookieBanner.title
+		);
+	});
+
+	test('app messages apply over the bundle for that language', () => {
+		const copy = resolveLocalTranslations('fr', {
+			fr: { cookieBanner: { title: 'Mon titre' } },
+		});
+
+		expect(copy?.translations.cookieBanner.title).toBe('Mon titre');
+		expect(copy?.translations.common.acceptAll).toBe(
+			baseTranslations.fr.common.acceptAll
+		);
+	});
+
+	test('a language set through the kernel switches to the bundled copy', async () => {
+		const kernel = createRuntimeKernel({ mode: offline() });
+		await kernel.commands.init();
+
+		kernel.set.language('de');
+		await kernel.commands.init();
+
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe(baseTranslations.de.cookieBanner.title);
+		kernel.dispose();
 	});
 });
 

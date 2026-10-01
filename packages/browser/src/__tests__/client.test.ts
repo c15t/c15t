@@ -505,3 +505,75 @@ describe('processIframes', () => {
 		expect(iframe.getAttribute('src')).toBe('https://example.com/embed');
 	});
 });
+
+describe('translations', () => {
+	const german = {
+		de: { cookieBanner: { title: 'Wir schätzen Ihre Privatsphäre' } },
+	};
+
+	it('keeps an i18n override over hosted init copy for the same language', async () => {
+		const client = start({
+			i18n: { messages: { en: { cookieBanner: { title: 'App title' } } } },
+			mode: custom({
+				init: () =>
+					Promise.resolve({
+						policyResolution: writePolicyResolutionWire(
+							resolvePolicyRules({ rules: [policyRulePresets.worldNone()] })
+						),
+						translations: {
+							language: 'en',
+							translations: {
+								cookieBanner: {
+									description: 'Backend description',
+									title: 'Backend title',
+								},
+							} as never,
+						},
+					}),
+			}),
+		});
+
+		const { translations } = await client.ready();
+		expect(translations?.translations.cookieBanner.title).toBe('App title');
+		expect(translations?.translations.cookieBanner.description).toBe(
+			'Backend description'
+		);
+	});
+
+	it('offline mode renders the language named by overrides (data-language)', async () => {
+		const client = start({
+			i18n: { messages: german },
+			overrides: { language: 'de' },
+		});
+
+		const { translations } = await client.ready();
+		expect(translations?.language).toBe('de');
+		expect(translations?.translations.cookieBanner.title).toBe(
+			'Wir schätzen Ihre Privatsphäre'
+		);
+		// Keys German does not override fall back to bundled English.
+		expect(translations?.translations.common.acceptAll).toBe('Accept All');
+	});
+
+	it('offline setLanguage switches the copy when that language is available', async () => {
+		const client = start({ i18n: { messages: german } });
+		expect((await client.ready()).translations?.language).toBe('en');
+
+		client.setLanguage('de');
+		await vi.waitFor(() =>
+			expect(client.getSnapshot().translations?.language).toBe('de')
+		);
+		expect(
+			client.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe('Wir schätzen Ihre Privatsphäre');
+
+		// No bundled or supplied copy for French: the default copy returns,
+		// labelled as what it is rather than as French.
+		client.setLanguage('fr');
+		await client.kernel.commands.init();
+		expect(client.getSnapshot().translations?.language).toBe('en');
+		expect(
+			client.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe('We value your privacy');
+	});
+});

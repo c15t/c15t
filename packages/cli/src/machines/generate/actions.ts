@@ -4,6 +4,7 @@
  * Actions are side-effect functions executed during state transitions.
  */
 
+import { getClientConfigDependencies } from '~/commands/generate/templates/config';
 import { UMBRELLA_PACKAGE } from '~/constants';
 import { withC15tRelease } from '~/utils/c15t-release';
 
@@ -207,6 +208,11 @@ export const addDependencies = function addDependencies({
 	// Add dev tools package if selected
 	if (context.enableDevTools && context.framework?.pkg === 'c15t') {
 		deps.push('@c15t/dev-tools');
+	}
+
+	// The generated client config imports these next to c15t.
+	if (context.framework?.pkg === 'c15t') {
+		deps.push(...getClientConfigDependencies(context.selectedMode));
 	}
 
 	return {

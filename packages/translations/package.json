@@ -30,7 +30,9 @@
 		"dist-types"
 	],
 	"type": "module",
-	"sideEffects": false,
+	"sideEffects": [
+		"./dist/all.js"
+	],
 	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"exports": {

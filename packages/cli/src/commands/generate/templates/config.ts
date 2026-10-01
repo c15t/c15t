@@ -21,10 +21,23 @@ const generateOfflineConfig = function generateOfflineConfig(
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';
 
-	return `import { createConsentKernel, createOfflineTransport } from 'c15t';
+	return `import { baseTranslations } from '@c15t/translations/all';
+import {
+	createConsentKernel,
+	createOfflineTransport,
+	resolveLocalTranslations,
+} from 'c15t';
 ${devToolsImport}
 export const kernel = createConsentKernel({
-	transport: createOfflineTransport({ policyRules: ${DEFAULT_OFFLINE_RULES} }),
+	transport: createOfflineTransport({
+		policyRules: ${DEFAULT_OFFLINE_RULES},
+		// Serve c15t's bundled copy for a language set later with
+		// kernel.set.language(). To change wording, add your messages, such
+		// as { ...baseTranslations, de: { cookieBanner: { title: '...' } } };
+		// keys you leave out keep the bundled copy.
+		translationsFor: (language) =>
+			resolveLocalTranslations(language, baseTranslations),
+	}),
 });
 
 void kernel.commands.init();
@@ -159,6 +172,29 @@ ${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
 // Confirm only the category the visitor chose
 // await kernel.commands.save({ measurement: true });
 `;
+};
+
+const BACKEND_CONFIG_MODES: ReadonlySet<string> = new Set([
+	STORAGE_MODES.C15T,
+	STORAGE_MODES.CUSTOM,
+	STORAGE_MODES.HOSTED,
+	STORAGE_MODES.SELF_HOSTED,
+]);
+
+/**
+ * Packages the generated client config imports besides `c15t`. Every mode
+ * without a backend gets the offline config, which imports the bundled
+ * translations.
+ *
+ * @param mode - The storage mode, or `null` when none was chosen.
+ * @returns Package names to install next to `c15t`.
+ */
+export const getClientConfigDependencies = function getClientConfigDependencies(
+	mode: string | null
+): string[] {
+	return mode !== null && BACKEND_CONFIG_MODES.has(mode)
+		? []
+		: ['@c15t/translations'];
 };
 
 /**

@@ -1,11 +1,11 @@
 import {
 	seedExperiment,
+	applyTranslationOverrides,
 	deferInitGvl,
 	deferInitGvlToRoute,
 	c15tProtocolHeaders,
 	createConsentKernel,
 	createOfflineTransport,
-	deepMergeTranslations,
 	defaultTranslationConfig,
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
@@ -15,6 +15,7 @@ import type {
 	KernelConfig,
 	KernelOverrides,
 	KernelTranslations,
+	TranslationOverrides,
 	TranslationsResponse,
 } from '@c15t/core';
 /**
@@ -47,7 +48,6 @@ import type {
 	GlobalVendorList,
 	InitOutput,
 } from '@c15t/schema/types';
-import type { Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import type { Theme } from '@c15t/ui/theme';
@@ -171,6 +171,16 @@ const raceBudget = async function raceBudget<Value>(
 };
 
 /**
+ * The integration's `i18n.messages`, typed as overrides. The option is
+ * serializable and typed loosely; the shape is the same.
+ */
+const readTranslationOverrides = function readTranslationOverrides(
+	options: C15tResolvedOptions
+): TranslationOverrides | undefined {
+	return options.i18n?.messages as TranslationOverrides | undefined;
+};
+
+/**
  * Resolve the language the surfaces should render in.
  *
  * @param options - Integration options.
@@ -193,23 +203,19 @@ export const resolveTranslations = function resolveTranslations(
 		string,
 		TranslationsResponse
 	>;
+	// A regional locale such as `de-AT` uses its primary language's bundle,
+	// the same fallback the app's messages get.
+	const primary = language.split('-')[0]?.toLowerCase();
 	const base =
-		catalogue[language] ??
+		(Object.hasOwn(catalogue, language) ? catalogue[language] : undefined) ??
+		(primary && Object.hasOwn(catalogue, primary)
+			? catalogue[primary]
+			: undefined) ??
 		(defaultTranslationConfig.translations.en as TranslationsResponse);
-	const overrides = options.i18n?.messages?.[language] as
-		| Partial<Translations>
-		| undefined;
-	return {
-		language,
-		// Deep, as in every other adapter: overriding `common.acceptAll`
-		// keeps the rest of `common`.
-		translations: overrides
-			? (deepMergeTranslations(
-					base as Translations,
-					overrides
-				) as TranslationsResponse)
-			: base,
-	};
+	return applyTranslationOverrides(
+		{ language, translations: base },
+		readTranslationOverrides(options)
+	);
 };
 
 /**
@@ -788,6 +794,14 @@ export const resolveConsentContext = async function resolveConsentContext(
 	}
 
 	config.initialPolicyPending = config.initialPolicyResolution === undefined;
+	// Hosted and manifest mode replace the copy with the backend's. It is the
+	// base for that language; the app's own messages still win key by key.
+	if (config.initialTranslations) {
+		config.initialTranslations = applyTranslationOverrides(
+			config.initialTranslations,
+			readTranslationOverrides(options)
+		);
+	}
 	// Judge the visitor against the categories the browser runtime will ask
 	// about. The page's config leaves them out: the runtime derives them from
 	// the same options.

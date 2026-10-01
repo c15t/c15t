@@ -9,6 +9,8 @@ import { deepMergeTranslations } from '@c15t/translations';
 
 import type { RecordIssue } from '../consent-record/validation';
 import { resolveVendors, withoutManifestVendors } from '../libs/vendors';
+import { applyTranslationOverrides } from '../translations';
+import type { TranslationOverrides } from '../translations';
 import type {
 	ConsentSnapshot,
 	InitResponse,
@@ -64,12 +66,17 @@ export interface AppliedInitResponse {
 /**
  * Build the patch for an init response. Always returns a patch: a complete
  * init at least finalizes the resolution and the provisional flag.
+ *
+ * `translationOverrides` are the app's code-level messages. They apply on
+ * top of the response's copy for its language, so a backend supplies the
+ * base and the app's keys still win.
  */
 // oxlint-disable-next-line complexity -- One pass over every response field keeps the fold order visible.
 export const applyInitResponse = function applyInitResponse(
 	current: ConsentSnapshot,
 	response: InitResponse,
-	now: number
+	now: number,
+	translationOverrides?: TranslationOverrides
 ): AppliedInitResponse {
 	const patch: SnapshotPatch = { now, policyPending: false };
 
@@ -84,7 +91,10 @@ export const applyInitResponse = function applyInitResponse(
 	}
 	if (response.translations !== undefined) {
 		patch.translations = response.translations
-			? mergeInitTranslations(current.translations, response.translations)
+			? applyTranslationOverrides(
+					mergeInitTranslations(current.translations, response.translations),
+					translationOverrides
+				)
 			: response.translations;
 	}
 	if (response.branding !== undefined) {

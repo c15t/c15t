@@ -10,6 +10,7 @@ import {
 	kernelConfigToInitResponse,
 	declareOwnedVendors,
 	forgetOwnedVendors,
+	resolveLocalTranslations,
 	resolveVendors,
 	hostExperiment,
 	seedExperiment,
@@ -623,6 +624,8 @@ const createProviderKernel = function createProviderKernel(
 		consentCategories: options.consentCategories,
 		prefetch,
 		translations: i18nTranslations,
+		translationsFor: (language) =>
+			resolveLocalTranslations(language, options.i18n?.messages),
 	};
 	const baseTransport = getProviderMode(options)(transportContext);
 
@@ -696,6 +699,9 @@ const createProviderKernel = function createProviderKernel(
 		},
 		initialUser: normalizeUser(options.user) ?? prefetch.initialUser,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
+		// A backend, manifest or prefetch supplies the base copy; the app's
+		// own messages for the active language win key by key.
+		translationOverrides: options.i18n?.messages,
 		// The synthetic categories fallback is a placeholder for whatever the
 		// transport's init resolves — mark it provisional so no surface renders
 		// copy/actions that init may replace (mid-read copy swap, CLS, consent
