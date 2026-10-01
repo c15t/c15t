@@ -7,7 +7,6 @@ import type { Component, ComponentPublicInstance } from 'vue';
 import { h } from 'vue';
 
 import { translations as de } from '../../../translations/src/translations/de';
-import ConsentGate from '../runtime/components/consent-gate.vue';
 import ConsentPreferencesLink from '../runtime/components/preferences-link.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
