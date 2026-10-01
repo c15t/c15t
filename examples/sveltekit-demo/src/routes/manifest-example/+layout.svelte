@@ -1,5 +1,4 @@
 <script lang="ts">
-	// #endhide docs
 	import {
 		ConsentBanner,
 		ConsentDialog,
@@ -11,6 +10,7 @@
 	import { scripts } from '#lib/example-scripts.js';
 	// #hide docs
 	import { testBackend } from '#lib/test-backend.js';
+	// #endhide docs
 
 	import '@c15t/svelte/styles.css';
 

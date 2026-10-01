@@ -19,7 +19,9 @@
 		experimentCallbacks,
 		experimentFromSearch,
 	} from '#lib/experiment.svelte.js';
+	// #hide docs
 	import { testBackend } from '#lib/test-backend.js';
+	// #endhide docs
 
 	import '@c15t/svelte/styles.css';
 

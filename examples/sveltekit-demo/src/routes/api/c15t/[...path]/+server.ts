@@ -1,9 +1,10 @@
-// #endhide docs
-import { createSvelteKitConsentRouteHandlers } from '@c15t/svelte/kit';
-
 // #region docs:route-handlers
+import { createSvelteKitConsentRouteHandlers } from '@c15t/svelte/kit';
 // #hide docs
+
 import { testBackend } from '#lib/test-backend.js';
+
+// #endhide docs
 
 // GET /api/c15t resolves the visitor from the cached policy manifest.
 // GET /api/c15t/manifest serves that manifest. Other methods are not handled:

@@ -14,6 +14,6 @@
 			"@sveltejs/kit/*": ["./node_modules/sveltekit-3/types/index.d.ts"]
 		}
 	},
-	"include": ["src/lib/kit/*.ts"],
+	"include": ["src/lib/kit/*.ts", "type-tests/handle-kit3.ts"],
 	"exclude": ["node_modules", "dist", "src/**/__tests__/**"]
 }

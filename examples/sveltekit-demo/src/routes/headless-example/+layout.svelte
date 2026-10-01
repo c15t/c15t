@@ -1,6 +1,5 @@
 <!-- #region docs:headless-layout title="src/routes/+layout.svelte" -->
 <script lang="ts">
-	// #endhide docs
 	import {
 		ConsentDialog,
 		ConsentDialogLink,
@@ -12,6 +11,7 @@
 	import { scripts } from '#lib/example-scripts.js';
 	// #hide docs
 	import { testBackend } from '#lib/test-backend.js';
+	// #endhide docs
 
 	// The stock dialog still needs the stylesheet.
 	import '@c15t/svelte/styles.css';
