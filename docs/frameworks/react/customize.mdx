@@ -32,14 +32,19 @@ Import the stylesheet once, in the module that renders `ConsentProvider`. The
 import 'c15t/react/styles.css';
 ```
 
-<import src="../../shared/react/styling/overview.mdx#tailwind-layers" />
+The import is the same with or without Tailwind. To import the stylesheet from
+CSS instead, put it at the top of your global stylesheet, above any
+`@tailwind` directives. `postcss-import`, which Vite uses, ignores an
+`@import` that follows other rules:
 
 ```css title="src/index.css"
+@import 'c15t/react/styles.css';
 @tailwind base;
 @tailwind components;
-@import 'c15t/react/styles.tw3.css';
 @tailwind utilities;
 ```
+
+<import src="../../shared/react/styling/overview.mdx#tailwind-layers" />
 
 ## Change colors, fonts and radius
 

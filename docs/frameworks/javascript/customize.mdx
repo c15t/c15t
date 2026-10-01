@@ -69,6 +69,15 @@ import '@c15t/browser/styles.css';
 const consent = init({ backendURL, ui: { shadow: false, styles: false } });
 ```
 
+If your bundler runs Tailwind 3, install `@c15t/ui` as a direct dependency
+and add `@c15t/ui/postcss-tailwind3` before `tailwindcss` in your PostCSS
+plugins, using the object form:
+`{ '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {} }`. PostCSS resolves the
+plugin from your app, so under pnpm the copy nested in `@c15t/browser` is not
+enough. Without the plugin, Tailwind 3 drops the imported rules without an
+error and its preflight overrides the UI. A page that keeps the default shadow
+root needs none of this, because page CSS does not reach the UI.
+
 `ui: { shadow: false, noStyle: true }` renders markup with no c15t classes,
 for a design written from scratch. Parts keep their `data-testid`. Your app's
 global rules reach the UI in either mode, so check buttons and headings after

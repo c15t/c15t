@@ -44,8 +44,12 @@ the Tailwind import so the c15t component layer follows Tailwind's:
 @import 'c15t/next/styles.css';
 ```
 
-Without Tailwind, keep only the c15t import. Tailwind CSS 3 uses a separate
-stylesheet; see [Customize](/docs/frameworks/next/customize#load-the-stylesheet).
+Without Tailwind, keep only the c15t import. With Tailwind CSS 3, put the
+same import above the `@tailwind` directives and add
+`@c15t/ui/postcss-tailwind3` to your PostCSS config, as
+[Customize](/docs/frameworks/next/customize#load-the-stylesheet) shows.
+Without the plugin, Tailwind 3 fails the build on c15t's `@layer components`
+rules.
 Import the stylesheet from a global CSS file, not from a component. Next.js may
 load a component's CSS before Tailwind's and change the layer order.
 

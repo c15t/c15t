@@ -59,7 +59,11 @@ page's CSS now applies too:
 ```
 
 Your theme's global rules reach the banner in this mode, so check buttons and
-headings after you switch. To write every rule yourself, set
+headings after you switch. In the page, c15t's rules sit in
+`@layer components`, and any CSS outside a layer beats them whatever its
+specificity. That includes a theme's global `button {}` rule and Tailwind 3's
+preflight, which removes the button padding and card borders. On a site with
+Tailwind 3 or such global rules, keep the default shadow root. To write every rule yourself, set
 `ui: { shadow: false, noStyle: true }`. c15t then renders unstyled markup with
 the same `data-testid` attributes.
 

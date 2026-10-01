@@ -37,11 +37,32 @@ import consentCss from 'c15t/tanstack-start/styles.css?url';
 ```
 
 If your app already has a global stylesheet, you can `@import` the c15t
-stylesheet from it instead. With Tailwind v3, import
-`c15t/tanstack-start/styles.tw3.css` from your Tailwind entry, between the
-`components` and `utilities` directives. The rules live in
-`@layer components`, so Tailwind v4 utilities override them without extra
-specificity.
+stylesheet from it instead. The rules live in `@layer components`, so
+Tailwind 4 utilities override them without extra specificity.
+
+With Tailwind 3, keep `c15t/tanstack-start/styles.css`. If you import it from
+CSS, put the import above the `@tailwind` directives; `postcss-import` ignores
+an `@import` that follows other rules. Then add `@c15t/ui/postcss-tailwind3`
+before `tailwindcss` in your PostCSS config. Tailwind 3 rejects
+`@layer components` without its own `@tailwind components` directive, and the
+plugin removes those layer wrappers from c15t's stylesheets, including the
+dialog stylesheet the bundler loads:
+
+```js title="postcss.config.mjs"
+export default {
+  plugins: {
+    '@c15t/ui/postcss-tailwind3': {},
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+```
+
+Use this object form: the PostCSS loader Vite uses rejects plugin names in an
+array. With pnpm, add `@c15t/ui` to your dependencies so PostCSS can load the
+plugin. Tailwind 3 has no cascade layers, so utilities you pass to slots need
+the important modifier, such as `!bg-red-500`. Tailwind 4 utilities win
+without it.
 
 ## Change colors, fonts and radius
 

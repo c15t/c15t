@@ -61,8 +61,12 @@ the Tailwind import:
 @import 'c15t/next/styles.css';
 ```
 
-Without Tailwind, keep only the c15t import. For Tailwind CSS 3, see
-[Customize](/docs/frameworks/next/customize#load-the-stylesheet).
+Without Tailwind, keep only the c15t import. With Tailwind CSS 3, put the
+same import above the `@tailwind` directives and add
+`@c15t/ui/postcss-tailwind3` to your PostCSS config, as
+[Customize](/docs/frameworks/next/customize#load-the-stylesheet) shows.
+Without the plugin, Tailwind 3 fails the build on c15t's `@layer components`
+rules.
 
 In the App Router, mount the wrapper with an empty state in the root layout:
 

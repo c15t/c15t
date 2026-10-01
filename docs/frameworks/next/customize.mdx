@@ -21,17 +21,18 @@ so the component layers keep their order:
 @import 'c15t/next/styles.css';
 ```
 
-Without Tailwind, keep only the c15t import. Tailwind CSS 3 uses a separate
-build:
-
-<import src="../../shared/react/styling/overview.mdx#tailwind-layers" />
+Without Tailwind, keep only the c15t import. With Tailwind CSS 3, put the
+import above the directives. `postcss-import`, which Vite and some PostCSS
+setups use, ignores an `@import` that follows other rules:
 
 ```css title="styles/globals.css"
+@import 'c15t/next/styles.css';
 @tailwind base;
 @tailwind components;
-@import 'c15t/next/styles.tw3.css';
 @tailwind utilities;
 ```
+
+<import src="../../shared/react/styling/overview.mdx#tailwind-layers" />
 
 ## Change colors and radius with tokens
 
