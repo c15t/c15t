@@ -45,15 +45,15 @@ the old page's task.
 | `/docs/frameworks/next/styling/css-variables` | `/docs/customization/tokens` | v2 styling route; CSS variables are theme tokens |
 | `/docs/frameworks/next/styling/slots` | `/docs/customization/slots` | v2 styling route |
 | `/docs/frameworks/next/styling/classnames` | `/docs/customization/slots` | v2 styling route; class names attach to component parts |
-| `/docs/frameworks/next/styling/tailwind` | `/docs/customization/overview` | v2 styling route; no customization page covers Tailwind yet, so send it to the overview |
-| `/docs/frameworks/next/styling/color-scheme` | `/docs/customization/overview` | v2 styling route; no customization page covers dark mode yet, so send it to the overview |
+| `/docs/frameworks/next/styling/tailwind` | `/docs/customization/tailwind` | v2 styling route |
+| `/docs/frameworks/next/styling/color-scheme` | `/docs/customization/dark-mode` | v2 styling route; the dark mode page covers the color scheme |
 | `/docs/frameworks/react/styling/overview` | `/docs/customization/overview` | v2 styling route; customization is shared across frameworks |
 | `/docs/frameworks/react/styling/tokens` | `/docs/customization/tokens` | v2 styling route |
 | `/docs/frameworks/react/styling/css-variables` | `/docs/customization/tokens` | v2 styling route; CSS variables are theme tokens |
 | `/docs/frameworks/react/styling/slots` | `/docs/customization/slots` | v2 styling route |
 | `/docs/frameworks/react/styling/classnames` | `/docs/customization/slots` | v2 styling route; class names attach to component parts |
-| `/docs/frameworks/react/styling/tailwind` | `/docs/customization/overview` | v2 styling route; no customization page covers Tailwind yet, so send it to the overview |
-| `/docs/frameworks/react/styling/color-scheme` | `/docs/customization/overview` | v2 styling route; no customization page covers dark mode yet, so send it to the overview |
+| `/docs/frameworks/react/styling/tailwind` | `/docs/customization/tailwind` | v2 styling route |
+| `/docs/frameworks/react/styling/color-scheme` | `/docs/customization/dark-mode` | v2 styling route; the dark mode page covers the color scheme |
 | `/docs/frameworks/react/optimization` | `/docs/frameworks/react/rendering` | v2 route; rendering covers loading and performance choices |
 | `/docs/frameworks/next/iframe-blocking` | `/docs/frameworks/next/embeds` | v2 route; the embeds page covers the iframe blocker |
 | `/docs/frameworks/react/iframe-blocking` | `/docs/frameworks/react/embeds` | v2 route; the embeds page covers the iframe blocker |
@@ -64,6 +64,18 @@ the old page's task.
 | `/docs/frameworks/javascript/modules/clear-on-revocation` | `/docs/frameworks/javascript/clear-on-revocation` | Merged with the option guide so JavaScript has one clear on revocation page, at the same slug as every other framework |
 
 ## Removed routes
+
+These pages were removed, not moved, so no page covers their whole task.
+Redirect each route to the closest page that remains.
+
+The guide to running c15t beside another consent platform was removed, along
+with the v2 shared consent controls page it replaced. The integrations
+overview keeps the event controls.
+
+| Old route | Redirect to | Reason |
+| --- | --- | --- |
+| `/docs/guides/shared-consent-controls` | `/docs/integrations/overview` | Removed with the existing-CMP guide; the overview covers sending events only to allowed integrations |
+| `/docs/integrations/existing-cmp` | `/docs/integrations/overview` | Removed |
 
 React Native is not published with v3, so its pages were removed, not moved.
 No page covers their task. Redirect each route to `/docs/frameworks` so old
