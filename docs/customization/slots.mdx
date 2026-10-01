@@ -233,7 +233,7 @@ so use it when you intend to write all of that yourself.
 | Svelte, SvelteKit | `noStyle` in the provider options, or the prop on a stock component |
 | Astro | `noStyle` prop on `ConsentBanner` and `IABConsentBanner` |
 | HTML, JavaScript | `ui.noStyle`, which also drops the bundled stylesheet |
-| Vue, Nuxt | Not available on the stock components |
+| Vue, Nuxt | The `noStyle` prop on `ConsentWidget`, and on the `PreferenceItemRoot` and `PreferenceItemContent` primitives, whose other parts follow the root. The banner, dialog and trigger have no `noStyle` |
 
 In `theme.slots`, `{ noStyle: true }` on one slot replaces that part's stock
 classes in Svelte, Astro's banner and the script tag. React and Vue, including
