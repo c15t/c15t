@@ -250,9 +250,11 @@ describe('forwardConsentRequest', () => {
 			respond: () => {
 				const headers = new Headers({
 					'access-control-allow-origin': '*',
-					connection: 'keep-alive',
+					connection: 'keep-alive, X-Internal-Hop',
 					'content-type': 'application/json',
 					'proxy-authenticate': 'Basic',
+					trailer: 'expires',
+					'x-internal-hop': '1',
 				});
 				headers.append('set-cookie', 'a=1; Domain=consent.example.com; Path=/');
 				headers.append('set-cookie', 'b=2; Path=/');
@@ -265,6 +267,8 @@ describe('forwardConsentRequest', () => {
 		expect(answer.headers.get('access-control-allow-origin')).toBeNull();
 		expect(answer.headers.get('connection')).toBeNull();
 		expect(answer.headers.get('proxy-authenticate')).toBeNull();
+		expect(answer.headers.get('trailer')).toBeNull();
+		expect(answer.headers.get('x-internal-hop')).toBeNull();
 		expect(answer.headers.getSetCookie()).toEqual([
 			'a=1; Path=/',
 			'b=2; Path=/',

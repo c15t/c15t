@@ -96,8 +96,9 @@ const PROXY_SET_HEADERS: ReadonlySet<string> = new Set([
 
 /**
  * Upstream response headers that never reach the browser. Hop-by-hop
- * headers describe the upstream connection, not this one; `content-encoding`
- * and `content-length` describe a body the runtime `fetch` already decoded;
+ * headers describe the upstream connection, not this one, and so does any
+ * header the upstream `Connection` value names; `content-encoding` and
+ * `content-length` describe a body the runtime `fetch` already decoded;
  * `set-cookie` is re-added without its `Domain`.
  */
 const STRIPPED_RESPONSE_HEADERS: ReadonlySet<string> = new Set([
@@ -106,6 +107,8 @@ const STRIPPED_RESPONSE_HEADERS: ReadonlySet<string> = new Set([
 	'content-length',
 	'keep-alive',
 	'set-cookie',
+	'te',
+	'trailer',
 	'transfer-encoding',
 	'upgrade',
 ]);
@@ -496,7 +499,8 @@ const readSetCookies = function readSetCookies(headers: Headers): string[] {
 
 /**
  * Builds the browser-facing response headers from the upstream response:
- * strips hop-by-hop, body-encoding, and CORS headers, and re-appends each
+ * strips hop-by-hop headers (including those the upstream `Connection`
+ * value names), body-encoding, and CORS headers, and re-appends each
  * `set-cookie` without its `Domain` attribute.
  *
  * @param upstream - The backend's response headers.
@@ -505,10 +509,17 @@ const readSetCookies = function readSetCookies(headers: Headers): string[] {
 export const buildConsentProxyResponseHeaders =
 	function buildConsentProxyResponseHeaders(upstream: Headers): Headers {
 		const headers = new Headers();
+		const nominated = new Set(
+			(upstream.get('connection') ?? '')
+				.split(',')
+				.map((token) => token.trim().toLowerCase())
+				.filter(Boolean)
+		);
 		upstream.forEach((value, name) => {
 			const lower = name.toLowerCase();
 			if (
 				STRIPPED_RESPONSE_HEADERS.has(lower) ||
+				nominated.has(lower) ||
 				STRIPPED_RESPONSE_PREFIXES.some((prefix) => lower.startsWith(prefix))
 			) {
 				return;
