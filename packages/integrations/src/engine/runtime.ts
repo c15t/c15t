@@ -666,7 +666,8 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 	);
 
 	// The vendor consent last seen by this script, so onConsentGranted and
-	// onConsentDenied run on transitions only. Unknown until setup runs.
+	// onConsentDenied run on transitions only. Recorded in onBeforeLoad,
+	// which is installed whenever the manifest has consent lifecycle steps.
 	let lastHasConsent: boolean | undefined;
 
 	const script: Script = {
@@ -689,7 +690,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 		resolvedManifest.setupSteps.length > 0 ||
 		resolvedManifest.onBeforeLoadGrantedSteps.length > 0 ||
 		resolvedManifest.onBeforeLoadDeniedSteps.length > 0 ||
-		hasConsentMapping
+		hasConsentLifecycle
 	) {
 		script.onBeforeLoad = (info: ScriptCallbackInfo) => {
 			lastHasConsent = info.hasConsent;
