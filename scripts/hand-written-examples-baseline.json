@@ -79,7 +79,7 @@
 	"docs/integrations/umami-analytics.mdx": 1,
 	"docs/integrations/vercel-analytics.mdx": 1,
 	"docs/integrations/x-pixel.mdx": 1,
-	"docs/self-host/api/configuration.mdx": 1,
+	"docs/self-host/api/configuration.mdx": 2,
 	"docs/self-host/guides/caching.mdx": 1,
 	"docs/self-host/guides/database-setup.mdx": 2,
 	"docs/self-host/guides/iab-tcf.mdx": 1,
