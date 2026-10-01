@@ -99,6 +99,54 @@ describe('the Vue plugin applies tokens', () => {
 		expect(tokensStyle()).toBeNull();
 	});
 
+	test('keeps the element until the last app that uses it unmounts', () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(new Response('{}', { status: 503 })))
+		);
+		const mountApp = () => {
+			const app = createApp(defineComponent({ setup: () => () => h('main') }));
+			app.use(c15tVue, {
+				backendURL: 'https://consent.example.test',
+				tokens: { 'c15t-primary': '#2f6f4e' },
+			});
+			const container = document.createElement('div');
+			document.body.append(container);
+			app.mount(container);
+			return app;
+		};
+		const first = mountApp();
+		const second = mountApp();
+		expect(document.querySelectorAll('#c15t-css-vars')).toHaveLength(1);
+
+		first.unmount();
+		expect(tokensStyle()?.textContent).toContain('--c15t-primary:#2f6f4e;');
+
+		second.unmount();
+		expect(tokensStyle()).toBeNull();
+	});
+
+	test('leaves a server-rendered element in place on unmount', () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(new Response('{}', { status: 503 })))
+		);
+		const serverStyle = document.createElement('style');
+		serverStyle.id = 'c15t-css-vars';
+		document.head.append(serverStyle);
+		const app = createApp(defineComponent({ setup: () => () => h('main') }));
+		app.use(c15tVue, {
+			backendURL: 'https://consent.example.test',
+			tokens: { 'c15t-primary': '#2f6f4e' },
+		});
+		const container = document.createElement('div');
+		document.body.append(container);
+		app.mount(container);
+		app.unmount();
+
+		expect(tokensStyle()).toBe(serverStyle);
+	});
+
 	test('leaves styling to the host that owns a borrowed runtime', () => {
 		const runtime = createConsentRuntime({
 			mode: hosted({ url: 'https://consent.example.test' }),

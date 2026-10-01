@@ -42,10 +42,18 @@ export const generateTokensCSS = function generateTokensCSS(
 };
 
 /**
- * Put the token CSS in `document.head`, reusing a server-rendered element
- * with the same id.
+ * How many installed plugins use each `<style>` element a plugin created.
+ * Server-rendered elements are not tracked: the page owns them.
+ */
+const pluginStyleUsers = new Map<HTMLElement, number>();
+
+/**
+ * Put the token CSS in `document.head`, reusing an element with the same
+ * id that the server rendered or another app's plugin added.
  *
- * @returns A function that removes the element again if this call added it.
+ * @returns A function that releases this call's use of the element. The
+ * element is removed once every plugin that added or reused it has
+ * released it; a server-rendered element is never removed.
  * @internal
  */
 export const mountTokensStyle = function mountTokensStyle(
@@ -61,9 +69,25 @@ export const mountTokensStyle = function mountTokensStyle(
 		style.setAttribute('nonce', config.nonce);
 	}
 	style.textContent = generateTokensCSS(config.tokens);
-	if (existing) {
+	if (existing && !pluginStyleUsers.has(existing)) {
 		return () => undefined;
 	}
-	document.head.append(style);
-	return () => style.remove();
+	if (!existing) {
+		document.head.append(style);
+	}
+	pluginStyleUsers.set(style, (pluginStyleUsers.get(style) ?? 0) + 1);
+	let released = false;
+	return () => {
+		if (released) {
+			return;
+		}
+		released = true;
+		const users = (pluginStyleUsers.get(style) ?? 1) - 1;
+		if (users > 0) {
+			pluginStyleUsers.set(style, users);
+			return;
+		}
+		pluginStyleUsers.delete(style);
+		style.remove();
+	};
 };
