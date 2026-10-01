@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import fg from 'fast-glob';
@@ -7,6 +8,7 @@ import { PACKAGE_DOCS_CONFIGS } from './generate-package-docs';
 import { renderPackageSkill } from './package-skill';
 
 const docsRoot = fileURLToPath(new URL('../docs', import.meta.url));
+const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
 test.each(PACKAGE_DOCS_CONFIGS)(
 	'every $name bundle pattern matches a docs page',
@@ -15,6 +17,18 @@ test.each(PACKAGE_DOCS_CONFIGS)(
 			(pattern) => fg.sync(pattern, { cwd: docsRoot }).length === 0
 		);
 		expect(empty).toEqual([]);
+	}
+);
+
+test.each(PACKAGE_DOCS_CONFIGS)(
+	'$name publishes its generated docs and skill',
+	(config) => {
+		const manifest = JSON.parse(
+			readFileSync(`${repoRoot}/${config.outDir}/package.json`, 'utf8')
+		) as { files?: string[] };
+		expect(manifest.files).toEqual(
+			expect.arrayContaining(['AGENTS.md', 'SKILL.md', 'docs'])
+		);
 	}
 );
 
