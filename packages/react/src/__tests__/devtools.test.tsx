@@ -665,4 +665,16 @@ describe('v3 TanStack Devtools adapter', () => {
 		await view.unmount();
 		expect(getMountedDevTools()).toBeNull();
 	});
+
+	test('keeps the theme option when TanStack passes no theme', () => {
+		const element = c15tDevtools({ theme: 'dark' }).render(
+			document.createElement('div')
+		);
+		expect(element.props).toMatchObject({ theme: 'dark' });
+		expect(
+			c15tDevtools({ theme: 'dark' }).render(document.createElement('div'), {
+				theme: 'light',
+			}).props
+		).toMatchObject({ theme: 'light' });
+	});
 });

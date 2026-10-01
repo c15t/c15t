@@ -37,6 +37,12 @@ const runTabScript = (view: Window): void => {
 		throw new Error('The DevTools page has no inline script');
 	}
 	const timers: ReturnType<typeof setInterval>[] = [];
+	cleanups.push(() => {
+		for (const timer of timers) {
+			clearInterval(timer);
+		}
+		view.dispatchEvent(new Event('pagehide'));
+	});
 	// oxlint-disable-next-line no-new-func -- Runs the page's shipped inline script with the iframe's globals.
 	new Function(
 		'window',
@@ -56,12 +62,6 @@ const runTabScript = (view: Window): void => {
 		},
 		MutationObserver
 	);
-	cleanups.push(() => {
-		for (const timer of timers) {
-			clearInterval(timer);
-		}
-		view.dispatchEvent(new Event('pagehide'));
-	});
 };
 
 const panelRoot = (view: Window): HTMLElement | null =>
@@ -98,6 +98,42 @@ describe('Nuxt DevTools tab bridge', () => {
 		root?.querySelector<HTMLButtonElement>('[data-tab="events"]')?.click();
 		await kernel.commands.save({ measurement: true });
 		expect(panelRoot(view)?.textContent).toContain('choice:recorded');
+	});
+
+	test('mounts again when the page returns from the back/forward cache', () => {
+		const kernel = createConsentKernel();
+		cleanups.push(() => kernel.dispose());
+		const view = createTabFrame();
+		cleanups.push(registerDevToolsBridge(view.parent, { kernel }));
+		runTabScript(view);
+		expect(panelRoot(view)).not.toBeNull();
+
+		view.dispatchEvent(new Event('pagehide'));
+		expect(panelRoot(view)).toBeNull();
+		view.dispatchEvent(new Event('pageshow'));
+		expect(panelRoot(view)).not.toBeNull();
+	});
+
+	test('keeps retrying when the first mount throws', async () => {
+		const view = createTabFrame();
+		const mount = vi
+			.fn()
+			.mockImplementationOnce(() => {
+				throw new Error('kernel not ready');
+			})
+			.mockReturnValue({ destroy: vi.fn(), element: null });
+		Object.defineProperty(view.parent, DEVTOOLS_BRIDGE_KEY, {
+			configurable: true,
+			value: { mount },
+		});
+		cleanups.push(() => {
+			Reflect.deleteProperty(view.parent, DEVTOOLS_BRIDGE_KEY);
+		});
+		expect(() => runTabScript(view)).toThrow('kernel not ready');
+
+		await vi.waitFor(() => expect(mount).toHaveBeenCalledTimes(2), {
+			timeout: 2000,
+		});
 	});
 
 	test('removes the bridge and every panel it mounted', () => {

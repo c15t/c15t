@@ -1139,10 +1139,11 @@ label.c15t-dev-tools__check:has(input:disabled) {
 }
 
 /*
- * With a mouse or trackpad, match desktop devtools density. Touch devices
- * keep the 44px targets and 16px inputs above.
+ * With only a mouse or trackpad, match desktop devtools density. Any
+ * touchscreen, including one on a laptop, keeps the 44px targets and 16px
+ * inputs above.
  */
-@media (pointer: fine) {
+@media (pointer: fine) and (not (any-pointer: coarse)) {
 	.c15t-dev-tools {
 		font-size: 0.8125rem;
 	}

@@ -60,14 +60,16 @@ const CONNECT_SCRIPT = `(function (key) {
 			mounted.destroy();
 		}
 		mounted = undefined;
-		bridge = next;
-		waiting.hidden = Boolean(bridge);
-		if (bridge) {
-			mounted = bridge.mount(container);
+		bridge = undefined;
+		waiting.hidden = Boolean(next);
+		if (next) {
+			mounted = next.mount(container);
 			syncScheme();
 		}
+		// Set after mounting, so a mount that throws is retried.
+		bridge = next;
 	}
-	connect();
+	// Registered before the first connect, which can throw.
 	setInterval(connect, 1000);
 	try {
 		new MutationObserver(syncScheme).observe(
@@ -81,7 +83,13 @@ const CONNECT_SCRIPT = `(function (key) {
 		if (mounted) {
 			mounted.destroy();
 		}
+		// Forget the bridge so a page restored from the back/forward cache
+		// mounts again.
+		mounted = undefined;
+		bridge = undefined;
 	});
+	addEventListener('pageshow', connect);
+	connect();
 })`;
 
 /**

@@ -749,6 +749,13 @@ function renderEvents(
 	clearEvents: () => void,
 	viewState: ViewState
 ): void {
+	// Forget events that were cleared or fell off the end of the log.
+	const eventIds = new Set(state.events.map((event) => event.id));
+	for (const id of viewState.expandedEvents) {
+		if (!eventIds.has(id)) {
+			viewState.expandedEvents.delete(id);
+		}
+	}
 	const clear = createButton(document, 'Clear events', clearEvents, 'ghost');
 	clear.disabled = state.events.length === 0;
 	const section = createSection(

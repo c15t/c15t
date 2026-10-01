@@ -328,11 +328,14 @@ export const c15tDevtools = (
 		defaultOpen,
 		id,
 		name,
-		// Older TanStack releases pass the theme string instead of props.
+		// Older TanStack releases pass the theme string instead of props, and
+		// some pass nothing; then the `theme` option applies.
 		render: (_element, props) =>
 			createElement(C15tTanStackDevtoolsPanel, {
 				...panelProps,
-				theme: typeof props === 'string' ? props : props?.theme,
+				theme:
+					(typeof props === 'string' ? props : props?.theme) ??
+					panelProps.theme,
 			}),
 	};
 };
