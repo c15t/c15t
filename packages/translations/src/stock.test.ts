@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import manifest from '../package.json';
 import { baseTranslations } from './all';
 import { getStockTranslations, registerStockTranslations } from './stock';
 import { translations as enTranslations } from './translations/en';
@@ -18,5 +19,15 @@ describe('stock translations registry', () => {
 		expect(getStockTranslations('tlh')).toBeUndefined();
 		registerStockTranslations({ tlh: enTranslations });
 		expect(getStockTranslations('tlh')).toBe(enTranslations);
+	});
+});
+
+describe('package metadata', () => {
+	it('keeps /all as a side effect so a bare import still registers', () => {
+		const allEntry = manifest.exports['./all'].import;
+		const sideEffects: boolean | string[] = manifest.sideEffects;
+
+		expect(allEntry).toBeDefined();
+		expect(sideEffects).toContain(allEntry);
 	});
 });
