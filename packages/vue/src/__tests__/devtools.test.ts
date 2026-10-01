@@ -8,6 +8,7 @@ import type { PropType, VNode } from 'vue';
 import ConsentDevToolsDefault, {
 	C15TDevTools,
 	ConsentDevTools,
+	ConsentDevToolsPanel,
 	DevTools,
 } from '../devtools';
 import { consentConfigKey } from '../runtime/composables/config';
@@ -284,6 +285,36 @@ describe('@c15t/vue/devtools', () => {
 		expect(queryDevTools('.c15t-dev-tools--bottom-right')).not.toBeNull();
 
 		wrapper.unmount();
+		expect(mountedDevTools()).toHaveLength(0);
+	});
+
+	test('embeds an open panel in its own element and removes it on unmount', async () => {
+		const kernel = createConsentKernel();
+		const wrapper = mount(
+			defineComponent({
+				setup: () => () =>
+					provider(kernel, h(ConsentDevToolsPanel, { defaultTab: 'events' })),
+			}),
+			{ attachTo: document.body }
+		);
+		try {
+			await vi.waitFor(() => expect(mountedDevTools()).toHaveLength(1));
+			const [root] = mountedDevTools();
+			expect(root?.classList).toContain('c15t-dev-tools--embedded');
+			const host = (root?.getRootNode() as ShadowRoot | undefined)?.host;
+			expect(wrapper.element.contains(host ?? null)).toBe(true);
+			expect(
+				root
+					?.querySelector('[data-tab="events"]')
+					?.getAttribute('aria-selected')
+			).toBe('true');
+			expect(root?.querySelector('[role="tabpanel"]')?.childElementCount).toBe(
+				1
+			);
+		} finally {
+			wrapper.unmount();
+			kernel.dispose();
+		}
 		expect(mountedDevTools()).toHaveLength(0);
 	});
 });

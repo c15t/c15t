@@ -366,3 +366,48 @@ describe('vendors on the consents tab', () => {
 		expect(tools.element?.textContent).not.toContain('Denied');
 	});
 });
+
+describe('embedded panel', () => {
+	it('fills its container when embedded and ignores Escape', () => {
+		const container = document.createElement('div');
+		document.body.append(container);
+		const tools = createDevTools({
+			container,
+			embedded: true,
+			kernel: createConsentKernel(),
+		});
+		instances.push(tools);
+		expect(tools.getState().isOpen).toBe(true);
+		expect(tools.element?.classList).toContain('c15t-dev-tools--embedded');
+		tools.element?.dispatchEvent(
+			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+		);
+		expect(tools.getState().isOpen).toBe(true);
+	});
+
+	it('renders into an iframe container and scans the page that owns the kernel', () => {
+		const frame = document.createElement('iframe');
+		document.body.append(frame);
+		const frameDocument = frame.contentDocument;
+		if (!frameDocument) {
+			throw new Error('jsdom did not create the iframe document');
+		}
+		const script = document.createElement('script');
+		script.src = 'https://example.test/app-analytics.js';
+		document.body.append(script);
+		const tools = createDevTools({
+			container: frameDocument.body,
+			embedded: true,
+			kernel: createConsentKernel(),
+		});
+		instances.push(tools);
+		expect(tools.element?.ownerDocument).toBe(frameDocument);
+		tools.setActiveTab('scripts');
+		[...(tools.element?.querySelectorAll('button') ?? [])]
+			.find((button) => button.textContent === 'Scan page')
+			?.click();
+		expect(tools.element?.textContent).toContain(
+			'https://example.test/app-analytics.js'
+		);
+	});
+});

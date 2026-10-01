@@ -35,8 +35,18 @@ export interface DevToolsOptions {
 	getPresentation?: () => ConsentPresentation | undefined;
 	/** Clear through the existing persistence handle, including its configured storage keys. */
 	clearRecords?: () => void;
-	/** Parent node for the imperative UI. Defaults to `document.body`. */
+	/**
+	 * Parent node for the imperative UI. Defaults to `document.body`. The
+	 * panel renders into the container's document, so it can live in a
+	 * same-origin iframe while it inspects the page that owns `kernel`.
+	 */
 	container?: HTMLElement;
+	/**
+	 * Fill `container` instead of floating over the page: the panel starts
+	 * open, and the launcher and close button are hidden. Use this to host
+	 * the panel inside another devtools UI. @default false
+	 */
+	embedded?: boolean;
 	/**
 	 * Render the panel inside a shadow root with its own stylesheet, so the
 	 * host page's CSS cannot restyle it and its CSS cannot leak out.
@@ -111,6 +121,7 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 	const {
 		kernel,
 		container,
+		embedded = false,
 		shadow = true,
 		position = 'bottom-right',
 		defaultOpen = false,
@@ -134,7 +145,7 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 	};
 	const stateManager = createStateManager({
 		activeTab: defaultTab,
-		isOpen: defaultOpen,
+		isOpen: embedded || defaultOpen,
 		maxEvents: eventLimit,
 		position,
 		snapshot: kernel.getSnapshot(),
@@ -260,6 +271,7 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 	const view = createDevToolsView({
 		actions,
 		container,
+		embedded,
 		getConsentCategories,
 		getPresentation: options.getPresentation,
 		kernel,

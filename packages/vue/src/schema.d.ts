@@ -1,8 +1,9 @@
+import type { ModuleOptions } from './module-options';
 import type { ConsentConfig } from './runtime/config';
 
 declare module 'nuxt/schema' {
 	interface NuxtConfig {
-		c15t?: Partial<ConsentConfig>;
+		c15t?: ModuleOptions;
 	}
 	interface PublicRuntimeConfig {
 		c15t?: Partial<ConsentConfig>;

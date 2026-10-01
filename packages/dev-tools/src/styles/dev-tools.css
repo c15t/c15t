@@ -1,20 +1,103 @@
 .c15t-dev-tools {
-	color-scheme: light dark;
-	--c15t-dev-tools-bg: var(--c15t-surface, light-dark(white, #121212));
-	--c15t-dev-tools-bg-raised: var(
-		--c15t-surface-hover,
-		light-dark(#fafafa, #1c1c1c)
+	/*
+	 * Hosts can pin the scheme (a devtools shell that has its own theme)
+	 * through the inherited custom property; otherwise follow the OS.
+	 */
+	color-scheme: var(--c15t-dev-tools-color-scheme, light dark);
+
+	/* Own palette: cool neutrals that agree with the blue accent. */
+	--c15t-dev-tools-palette-bg: light-dark(#fff, oklch(0.185 0.003 265));
+	--c15t-dev-tools-palette-border: light-dark(
+		oklch(0.25 0.02 265 / 10%),
+		oklch(0.3 0.006 265)
 	);
-	--c15t-dev-tools-bg-muted: var(
-		--c15t-surface-hover,
-		light-dark(#fafafa, #1c1c1c)
+	--c15t-dev-tools-palette-text: light-dark(
+		oklch(0.22 0.012 265),
+		oklch(0.93 0.004 265)
 	);
-	--c15t-dev-tools-border: var(--c15t-border, light-dark(#e8e8e8, #303030));
-	--c15t-dev-tools-text: var(--c15t-text, light-dark(#171717, #ededed));
-	--c15t-dev-tools-muted: var(--c15t-text-muted, light-dark(#737373, #a3a3a3));
-	--c15t-dev-tools-accent: var(--c15t-primary, light-dark(#335cff, #6685ff));
-	--c15t-dev-tools-danger: light-dark(#b42318, #fda29b);
+	--c15t-dev-tools-palette-muted: light-dark(
+		oklch(0.5 0.014 265),
+		oklch(0.7 0.01 265)
+	);
+	--c15t-dev-tools-palette-accent: light-dark(
+		oklch(0.53 0.22 264),
+		oklch(0.6 0.18 264)
+	);
+
+	/* The floating panel matches the page's c15t theme when one is set. */
+	--c15t-dev-tools-bg: var(--c15t-surface, var(--c15t-dev-tools-palette-bg));
+	--c15t-dev-tools-border: var(
+		--c15t-border,
+		var(--c15t-dev-tools-palette-border)
+	);
+	--c15t-dev-tools-text: var(--c15t-text, var(--c15t-dev-tools-palette-text));
+	--c15t-dev-tools-muted: var(
+		--c15t-text-muted,
+		var(--c15t-dev-tools-palette-muted)
+	);
+	--c15t-dev-tools-accent: var(
+		--c15t-primary,
+		var(--c15t-dev-tools-palette-accent)
+	);
+	--c15t-dev-tools-on-accent: var(--c15t-text-on-primary, #fff);
+	--c15t-dev-tools-switch-track: var(
+		--c15t-switch-track,
+		color-mix(
+			in oklch,
+			var(--c15t-dev-tools-text) 20%,
+			var(--c15t-dev-tools-bg)
+		)
+	);
+	--c15t-dev-tools-switch-thumb: var(--c15t-switch-thumb, #fff);
+	--c15t-dev-tools-switch-track-active: var(
+		--c15t-switch-track-active,
+		var(--c15t-dev-tools-accent)
+	);
+
+	/*
+	 * Everything below derives from the surface and text actually in use, so
+	 * a light page theme under a dark OS never pairs light surfaces with
+	 * dark-mode status colors.
+	 */
+	--c15t-dev-tools-bg-sunken: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-text) 4%,
+		var(--c15t-dev-tools-bg)
+	);
+	--c15t-dev-tools-bg-hover: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-text) 7%,
+		var(--c15t-dev-tools-bg)
+	);
+	--c15t-dev-tools-border-strong: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-text) 22%,
+		var(--c15t-dev-tools-bg)
+	);
+	--c15t-dev-tools-disabled: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-muted) 70%,
+		var(--c15t-dev-tools-bg)
+	);
+	--c15t-dev-tools-danger: color-mix(
+		in oklch,
+		oklch(0.58 0.2 27) 72%,
+		var(--c15t-dev-tools-text)
+	);
+	--c15t-dev-tools-success: color-mix(
+		in oklch,
+		oklch(0.6 0.15 152) 70%,
+		var(--c15t-dev-tools-text)
+	);
+	--c15t-dev-tools-warning: color-mix(
+		in oklch,
+		oklch(0.72 0.15 75) 70%,
+		var(--c15t-dev-tools-text)
+	);
 	--c15t-dev-tools-focus: var(--c15t-dev-tools-accent);
+	--c15t-dev-tools-radius: var(--c15t-radius-md, 0.5rem);
+	--c15t-dev-tools-mono:
+		ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 	/* Inspection controls sit above c15t's banner and dialog layers. */
 	--c15t-dev-tools-z: calc(
 		max(
@@ -57,6 +140,18 @@
 	display: none;
 }
 
+.c15t-dev-tools__sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
 .c15t-dev-tools--bottom-right {
 	right: max(0.75rem, env(safe-area-inset-right));
 	bottom: max(0.75rem, env(safe-area-inset-bottom));
@@ -81,16 +176,46 @@
 	align-items: flex-start;
 }
 
+/*
+ * Embedded in a devtools shell, the panel belongs to that shell, not to the
+ * app's consent theme: use the own palette and a system font, and let the
+ * host pick light or dark.
+ */
 .c15t-dev-tools--embedded {
+	--c15t-dev-tools-bg: var(--c15t-dev-tools-palette-bg);
+	--c15t-dev-tools-border: var(--c15t-dev-tools-palette-border);
+	--c15t-dev-tools-text: var(--c15t-dev-tools-palette-text);
+	--c15t-dev-tools-muted: var(--c15t-dev-tools-palette-muted);
+	--c15t-dev-tools-accent: var(--c15t-dev-tools-palette-accent);
+	--c15t-dev-tools-on-accent: #fff;
+	--c15t-dev-tools-switch-track: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-text) 20%,
+		var(--c15t-dev-tools-bg)
+	);
+	--c15t-dev-tools-switch-thumb: #fff;
+	--c15t-dev-tools-switch-track-active: var(--c15t-dev-tools-accent);
+	--c15t-dev-tools-radius: 0.375rem;
+
 	position: relative;
 	inset: auto;
 	width: 100%;
 	height: 100%;
 	align-items: stretch;
 	gap: 0;
+	background: var(--c15t-dev-tools-bg);
+	font-family:
+		ui-sans-serif,
+		system-ui,
+		-apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		sans-serif;
 }
 
 .c15t-dev-tools__panel {
+	/* Layout follows the panel's width, not the viewport's. */
+	container: c15t-dev-tools / inline-size;
 	display: flex;
 	flex-direction: column;
 	width: min(28rem, calc(100vw - 1.5rem));
@@ -99,14 +224,17 @@
 	border: 1px solid var(--c15t-dev-tools-border);
 	border-radius: var(--c15t-radius-lg, 0.75rem);
 	background: var(--c15t-dev-tools-bg);
-	box-shadow: var(--c15t-shadow-lg, 0 8px 32px rgb(0 0 0 / 12%));
+	box-shadow:
+		0 0 0 1px rgb(0 0 0 / 2%),
+		0 2px 4px rgb(0 0 0 / 4%),
+		0 12px 32px -4px rgb(0 0 0 / 12%);
 }
 
 .c15t-dev-tools__header {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 0.375rem 0.5rem 0.375rem 1rem;
+	padding: 0.375rem 0.375rem 0.375rem 1rem;
 	flex-shrink: 0;
 }
 
@@ -114,104 +242,185 @@
 	margin: 0;
 	display: flex;
 	align-items: center;
-	gap: 0.75rem;
+	gap: 0.5rem;
 	font-size: 0.875rem;
-	font-weight: 500;
-	color: var(--c15t-dev-tools-muted);
+	font-weight: 600;
+	color: var(--c15t-dev-tools-text);
 	line-height: 1.25;
-	text-wrap: balance;
 }
+
+.c15t-dev-tools__logo {
+	color: var(--c15t-dev-tools-accent);
+	flex: 0 0 auto;
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+/* Tabs */
 
 .c15t-dev-tools__tabs {
 	display: flex;
 	flex-wrap: wrap;
 	min-width: 0;
-	padding: 0 0.75rem;
+	padding: 0 0.5rem;
 	flex-shrink: 0;
 	border-bottom: 1px solid var(--c15t-dev-tools-border);
 }
 
+/* Buttons */
+
 .c15t-dev-tools__button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.375rem;
 	min-height: 2.75rem;
-	padding: 0.625rem 0.75rem;
+	padding: 0.625rem 0.875rem;
 	touch-action: manipulation;
 	border: 1px solid var(--c15t-dev-tools-border);
-	border-radius: 0.5rem;
-	background: transparent;
+	border-radius: var(--c15t-dev-tools-radius);
+	background: var(--c15t-dev-tools-bg);
 	color: var(--c15t-dev-tools-text);
 	font: inherit;
 	font-weight: 500;
 	line-height: 1.25;
+	white-space: nowrap;
 	cursor: pointer;
 	transition:
 		background-color 150ms ease-out,
-		border-color 150ms ease-out;
+		border-color 150ms ease-out,
+		color 150ms ease-out,
+		transform 100ms ease-out;
 }
 
-.c15t-dev-tools__button:active {
-	background: var(--c15t-dev-tools-bg-muted);
+.c15t-dev-tools__button:active:not(:disabled) {
+	background: var(--c15t-dev-tools-bg-hover);
+	transform: scale(0.97);
 }
 
 .c15t-dev-tools__button:focus-visible,
 .c15t-dev-tools input:focus-visible,
 .c15t-dev-tools select:focus-visible,
+.c15t-dev-tools summary:focus-visible,
 .c15t-dev-tools__content:focus-visible {
 	outline: 2px solid var(--c15t-dev-tools-focus);
 	outline-offset: 2px;
 }
 
-.c15t-dev-tools__button:disabled {
-	cursor: not-allowed;
-	color: var(--c15t-dev-tools-muted);
-	background: var(--c15t-dev-tools-bg-muted);
+.c15t-dev-tools__content:focus-visible {
+	outline-offset: -2px;
 }
 
 .c15t-dev-tools__button--primary {
-	border-color: var(--c15t-dev-tools-accent);
-	background: var(--c15t-dev-tools-bg);
-	color: var(--c15t-dev-tools-accent);
-	box-shadow: var(--c15t-shadow-sm, 0 1px 2px rgb(0 0 0 / 5%));
+	border-color: transparent;
+	background: var(--c15t-dev-tools-accent);
+	color: var(--c15t-dev-tools-on-accent);
+}
+
+.c15t-dev-tools__button--primary:active:not(:disabled) {
+	background: color-mix(in oklch, var(--c15t-dev-tools-accent) 85%, black);
 }
 
 .c15t-dev-tools__button--danger {
-	border-color: var(--c15t-dev-tools-danger);
 	color: var(--c15t-dev-tools-danger);
 }
 
+.c15t-dev-tools__button--ghost {
+	border-color: transparent;
+	background: transparent;
+	color: var(--c15t-dev-tools-muted);
+}
+
+.c15t-dev-tools__button:disabled {
+	cursor: not-allowed;
+	border-color: var(--c15t-dev-tools-border);
+	background: var(--c15t-dev-tools-bg-sunken);
+	color: var(--c15t-dev-tools-disabled);
+}
+
+.c15t-dev-tools__button--ghost:disabled {
+	border-color: transparent;
+	background: transparent;
+}
+
 .c15t-dev-tools__toggle {
-	display: flex;
-	align-items: center;
-	justify-content: center;
 	width: 3rem;
 	height: 3rem;
 	padding: 0;
-	border-radius: 50%;
 	border-color: var(--c15t-dev-tools-border);
+	border-radius: 50%;
 	background: var(--c15t-dev-tools-bg);
 	color: var(--c15t-dev-tools-text);
-	box-shadow: var(--c15t-shadow-md, 0 4px 12px rgb(0 0 0 / 10%));
+	box-shadow:
+		0 1px 2px rgb(0 0 0 / 6%),
+		0 4px 12px rgb(0 0 0 / 10%);
+}
+
+.c15t-dev-tools__toggle .c15t-dev-tools__logo {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+
+.c15t-dev-tools__button.c15t-dev-tools__close {
+	width: 2.75rem;
+	padding: 0;
+	border-color: transparent;
+	background: transparent;
+	color: var(--c15t-dev-tools-muted);
+	font-size: 1.25rem;
+	font-weight: 400;
 }
 
 .c15t-dev-tools__tabs .c15t-dev-tools__button {
+	position: relative;
 	min-height: 2.75rem;
 	min-width: 0;
 	max-width: 100%;
 	flex: 1 0 auto;
 	padding: 0.5rem 0.375rem;
 	border: 0;
-	border-bottom: 2px solid transparent;
 	border-radius: 0;
+	background: transparent;
 	color: var(--c15t-dev-tools-muted);
 	font-size: 0.8125rem;
 	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
+.c15t-dev-tools__tabs .c15t-dev-tools__button:active {
+	transform: none;
+}
+
+.c15t-dev-tools__tabs .c15t-dev-tools__button::after {
+	content: '';
+	position: absolute;
+	right: 0.375rem;
+	bottom: -1px;
+	left: 0.375rem;
+	height: 2px;
+	border-radius: 2px 2px 0 0;
+	background: transparent;
 }
 
 .c15t-dev-tools__tabs .c15t-dev-tools__button[aria-selected='true'] {
-	border-bottom-color: var(--c15t-dev-tools-accent);
 	color: var(--c15t-dev-tools-text);
 }
 
+.c15t-dev-tools__tabs .c15t-dev-tools__button[aria-selected='true']::after {
+	background: var(--c15t-dev-tools-accent);
+}
+
+.c15t-dev-tools__tabs .c15t-dev-tools__button:focus-visible {
+	outline-offset: -2px;
+}
+
+/* Content */
+
 .c15t-dev-tools__content {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	gap: 1.25rem;
 	min-height: 0;
 	min-width: 0;
 	overflow-x: hidden;
@@ -225,7 +434,7 @@
 .c15t-dev-tools__content,
 .c15t-dev-tools__code {
 	scrollbar-width: thin;
-	scrollbar-color: var(--c15t-dev-tools-muted) transparent;
+	scrollbar-color: var(--c15t-dev-tools-border-strong) transparent;
 }
 
 .c15t-dev-tools__content::-webkit-scrollbar,
@@ -244,7 +453,7 @@
 .c15t-dev-tools__code::-webkit-scrollbar-thumb {
 	border: 2px solid transparent;
 	border-radius: 4px;
-	background: var(--c15t-dev-tools-muted);
+	background: var(--c15t-dev-tools-border-strong);
 	background-clip: padding-box;
 }
 
@@ -257,12 +466,30 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0.75rem;
+	min-width: 0;
 }
 
 .c15t-dev-tools__section + .c15t-dev-tools__section {
-	margin-top: 1rem;
-	padding-top: 1rem;
+	padding-top: 1.25rem;
 	border-top: 1px solid var(--c15t-dev-tools-border);
+}
+
+/* Lone buttons keep their width instead of stretching across the column. */
+.c15t-dev-tools__section > .c15t-dev-tools__button {
+	align-self: flex-start;
+}
+
+.c15t-dev-tools__section-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.c15t-dev-tools__section-heading {
+	display: grid;
+	gap: 0.125rem;
+	min-width: 0;
 }
 
 .c15t-dev-tools__section h3,
@@ -275,7 +502,7 @@
 .c15t-dev-tools__section h3 {
 	font-size: 0.875rem;
 	font-weight: 600;
-	line-height: 1.25;
+	line-height: 1.4;
 	text-wrap: balance;
 }
 
@@ -283,139 +510,79 @@
 .c15t-dev-tools__empty {
 	max-width: 65ch;
 	color: var(--c15t-dev-tools-muted);
+	text-wrap: pretty;
 }
 
-.c15t-dev-tools__control-list,
+.c15t-dev-tools__empty {
+	max-width: none;
+	padding: 0.75rem;
+	border: 1px dashed var(--c15t-dev-tools-border-strong);
+	border-radius: var(--c15t-dev-tools-radius);
+	text-align: center;
+}
+
 .c15t-dev-tools__form,
 .c15t-dev-tools__action-grid {
 	display: grid;
 	gap: 0.75rem;
 }
 
+/* Short fields pair up once there is room for two, and never go past two. */
+.c15t-dev-tools__form {
+	grid-template-columns: repeat(
+		auto-fill,
+		minmax(max(min(100%, 10rem), calc((100% - 0.75rem) / 2)), 1fr)
+	);
+}
+
+.c15t-dev-tools__form > .c15t-dev-tools__actions {
+	grid-column: 1 / -1;
+}
+
 .c15t-dev-tools__action-grid {
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+	gap: 0.5rem;
+	/* Two columns in the floating panel and in a wide pane alike. */
+	max-width: 26rem;
+}
+
+.c15t-dev-tools__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+/* A trailing ghost action (Discard draft) sits apart from the others. */
+.c15t-dev-tools__actions > .c15t-dev-tools__button--ghost:last-child {
+	margin-inline-start: auto;
+}
+
+/* Joined rows: consent categories and vendors */
+
+.c15t-dev-tools__control-list {
+	display: grid;
+	border: 1px solid var(--c15t-dev-tools-border);
+	border-radius: var(--c15t-dev-tools-radius);
+	overflow: hidden;
 }
 
 .c15t-dev-tools__check {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
-	gap: 0.75rem;
+	column-gap: 0.75rem;
+	row-gap: 0.25rem;
 	min-height: 2.75rem;
 	padding: 0.5rem 0.75rem;
+}
+
+label.c15t-dev-tools__check {
 	cursor: pointer;
 }
 
-.c15t-dev-tools__check:has(input:disabled) {
+label.c15t-dev-tools__check:has(input:disabled) {
 	cursor: not-allowed;
-	color: var(--c15t-dev-tools-muted);
-}
-
-.c15t-dev-tools__check input {
-	appearance: none;
-	position: relative;
-	flex: 0 0 2rem;
-	width: 2rem;
-	height: 1.25rem;
-	min-height: 0;
-	margin: 0;
-	padding: 0;
-	border: 1px solid var(--c15t-dev-tools-border);
-	border-radius: 999px;
-	background: var(--c15t-switch-track, var(--c15t-dev-tools-border));
-	cursor: inherit;
-}
-
-.c15t-dev-tools__field {
-	display: grid;
-	min-width: 0;
-	gap: 0.375rem;
-	font-weight: 550;
-}
-
-.c15t-dev-tools__script-list {
-	display: grid;
-	gap: 0.5rem;
-}
-
-.c15t-dev-tools__script {
-	border: 1px solid var(--c15t-dev-tools-border);
-	border-radius: var(--c15t-radius-md, 0.5rem);
-}
-
-.c15t-dev-tools__script-summary {
-	display: flex;
-	align-items: center;
-	gap: 0.75rem;
-	min-height: 2.75rem;
-	padding: 0.625rem 0.75rem;
-	cursor: pointer;
-}
-
-.c15t-dev-tools__script-summary::before {
-	content: '+';
-	color: var(--c15t-dev-tools-muted);
-}
-
-.c15t-dev-tools__script[open] > summary::before {
-	content: '−';
-}
-
-.c15t-dev-tools__script-summary:focus-visible {
-	outline: 2px solid var(--c15t-dev-tools-focus);
-	outline-offset: 2px;
-}
-
-.c15t-dev-tools__script-name {
-	flex: 1;
-	min-width: 0;
-	overflow-wrap: anywhere;
-}
-
-.c15t-dev-tools__status {
-	flex-shrink: 0;
-	padding: 0.125rem 0.375rem;
-	border-radius: 0.25rem;
-	background: var(--c15t-dev-tools-bg-muted);
-	color: var(--c15t-dev-tools-muted);
-	font-size: 0.75rem;
-}
-
-.c15t-dev-tools__status[data-status='error'] {
-	color: var(--c15t-dev-tools-danger);
-}
-
-.c15t-dev-tools__status[data-status='loaded'] {
-	color: var(--c15t-dev-tools-accent);
-}
-
-.c15t-dev-tools__script-body {
-	display: grid;
-	gap: 0.5rem;
-	padding: 0.75rem;
-	border-top: 1px solid var(--c15t-dev-tools-border);
-	overflow-wrap: anywhere;
-}
-
-.c15t-dev-tools__logo {
-	color: var(--c15t-dev-tools-text);
-	flex: 0 0 auto;
-	width: 1.5rem;
-	height: 1.5rem;
-}
-
-.c15t-dev-tools__button.c15t-dev-tools__close {
-	width: 2.75rem;
-	padding: 0;
-	border: 0;
-	color: var(--c15t-dev-tools-muted);
-	font-size: 1.5rem;
-}
-
-.c15t-dev-tools__control-list {
-	gap: 0;
-	border: 1px solid var(--c15t-dev-tools-border);
-	border-radius: var(--c15t-radius-md, 0.5rem);
-	overflow: hidden;
 }
 
 .c15t-dev-tools__check + .c15t-dev-tools__check {
@@ -424,11 +591,43 @@
 
 .c15t-dev-tools__check > span:first-child {
 	flex: 1;
+	min-width: 0;
+	font-weight: 500;
+}
+
+/* Secondary notes in a row wrap onto their own line under the name. */
+.c15t-dev-tools__check > .c15t-dev-tools__muted {
+	flex-basis: 100%;
+	font-size: 0.75rem;
 }
 
 .c15t-dev-tools__badge {
+	flex-shrink: 0;
+	padding: 0.0625rem 0.375rem;
+	border: 1px solid var(--c15t-dev-tools-border);
+	border-radius: 999px;
 	color: var(--c15t-dev-tools-muted);
-	font-size: 0.75rem;
+	font-size: 0.6875rem;
+	font-weight: 500;
+	line-height: 1.4;
+}
+
+/* Switch */
+
+.c15t-dev-tools__check input {
+	appearance: none;
+	position: relative;
+	flex: 0 0 2rem;
+	width: 2rem;
+	height: 1.125rem;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 999px;
+	background: var(--c15t-dev-tools-switch-track);
+	cursor: inherit;
+	transition: background-color 150ms ease-out;
 }
 
 .c15t-dev-tools__check input::before {
@@ -439,25 +638,113 @@
 	width: 0.875rem;
 	height: 0.875rem;
 	border-radius: 50%;
-	background: var(--c15t-switch-thumb, white);
-	box-shadow: 0 1px 2px rgb(0 0 0 / 15%);
+	background: var(--c15t-dev-tools-switch-thumb);
+	box-shadow:
+		0 1px 2px rgb(0 0 0 / 20%),
+		0 0 0 0.5px rgb(0 0 0 / 6%);
+	transition: transform 150ms ease-out;
 }
 
 .c15t-dev-tools__check input:checked {
-	background: var(--c15t-switch-track-active, var(--c15t-dev-tools-accent));
-	border-color: transparent;
+	background: var(--c15t-dev-tools-switch-track-active);
 }
 
 .c15t-dev-tools__check input:checked::before {
-	transform: translateX(0.75rem);
+	transform: translateX(0.875rem);
 }
 
 .c15t-dev-tools__check input:disabled {
-	opacity: 0.5;
+	background: var(--c15t-dev-tools-bg-hover);
 }
 
-.c15t-dev-tools--embedded .c15t-dev-tools__close {
-	display: none;
+.c15t-dev-tools__check input:disabled:checked {
+	background: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-switch-track-active) 40%,
+		var(--c15t-dev-tools-bg)
+	);
+}
+
+/* Status pills: effective consent, vendor gate, script state */
+
+.c15t-dev-tools__state,
+.c15t-dev-tools__status {
+	display: inline-flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.0625rem 0.5rem 0.0625rem 0.4375rem;
+	border-radius: 999px;
+	background: var(--c15t-dev-tools-bg-sunken);
+	color: var(--c15t-dev-tools-muted);
+	font-size: 0.75rem;
+	font-weight: 500;
+	line-height: 1.5;
+	white-space: nowrap;
+}
+
+.c15t-dev-tools__state::before,
+.c15t-dev-tools__status::before {
+	content: '';
+	width: 0.375rem;
+	height: 0.375rem;
+	border-radius: 50%;
+	background: currentcolor;
+	opacity: 0.8;
+}
+
+.c15t-dev-tools__state[data-state='allowed'],
+.c15t-dev-tools__status[data-status='loaded'] {
+	background: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-success) 12%,
+		var(--c15t-dev-tools-bg)
+	);
+	color: var(--c15t-dev-tools-success);
+}
+
+.c15t-dev-tools__state[data-state='denied'],
+.c15t-dev-tools__status[data-status='error'] {
+	background: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-danger) 12%,
+		var(--c15t-dev-tools-bg)
+	);
+	color: var(--c15t-dev-tools-danger);
+}
+
+.c15t-dev-tools__status[data-status='pending'],
+.c15t-dev-tools__status[data-status='loading'] {
+	background: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-warning) 14%,
+		var(--c15t-dev-tools-bg)
+	);
+	color: var(--c15t-dev-tools-warning);
+}
+
+.c15t-dev-tools__status[data-status='present'],
+.c15t-dev-tools__status[data-status='retained'] {
+	background: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-accent) 10%,
+		var(--c15t-dev-tools-bg)
+	);
+	color: var(--c15t-dev-tools-text);
+}
+
+.c15t-dev-tools__status[data-status='present']::before,
+.c15t-dev-tools__status[data-status='retained']::before {
+	background: var(--c15t-dev-tools-accent);
+}
+
+/* Fields */
+
+.c15t-dev-tools__field {
+	display: grid;
+	min-width: 0;
+	gap: 0.375rem;
+	font-weight: 500;
 }
 
 .c15t-dev-tools__field input,
@@ -468,30 +755,158 @@
 	padding: 0.625rem 0.75rem;
 	touch-action: manipulation;
 	border: 1px solid var(--c15t-dev-tools-border);
-	border-radius: 0.5rem;
-	background: var(--c15t-dev-tools-bg-muted);
+	border-radius: var(--c15t-dev-tools-radius);
+	background: var(--c15t-dev-tools-bg-sunken);
 	color: var(--c15t-dev-tools-text);
 	font: inherit;
 	font-size: 1rem;
+	font-weight: 400;
+	transition:
+		border-color 150ms ease-out,
+		background-color 150ms ease-out;
 }
 
-.c15t-dev-tools__actions {
-	display: flex;
-	flex-wrap: wrap;
+.c15t-dev-tools__field input::placeholder {
+	color: var(--c15t-dev-tools-muted);
+	opacity: 1;
+}
+
+.c15t-dev-tools__field input:focus-visible,
+.c15t-dev-tools__field select:focus-visible {
+	border-color: var(--c15t-dev-tools-accent);
+	background: var(--c15t-dev-tools-bg);
+	outline-offset: 0;
+	outline-width: 1px;
+}
+
+/* Scripts and other disclosure lists */
+
+.c15t-dev-tools__script-list {
+	display: grid;
 	gap: 0.5rem;
 }
 
+.c15t-dev-tools__script-list:has(
+	> .c15t-dev-tools__script,
+	> .c15t-dev-tools__script-body
+) {
+	gap: 0;
+	border: 1px solid var(--c15t-dev-tools-border);
+	border-radius: var(--c15t-dev-tools-radius);
+	overflow: hidden;
+}
+
+.c15t-dev-tools__script-list:empty {
+	display: none;
+}
+
+.c15t-dev-tools__script {
+	min-width: 0;
+	border: 1px solid var(--c15t-dev-tools-border);
+	border-radius: var(--c15t-dev-tools-radius);
+}
+
+.c15t-dev-tools__script-list > .c15t-dev-tools__script {
+	border: 0;
+	border-radius: 0;
+}
+
+.c15t-dev-tools__script-list > * + * {
+	border-top: 1px solid var(--c15t-dev-tools-border);
+}
+
+.c15t-dev-tools__script-summary {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	min-height: 2.75rem;
+	padding: 0.5rem 0.75rem;
+	font-weight: 500;
+	list-style: none;
+	cursor: pointer;
+	transition: background-color 150ms ease-out;
+}
+
+.c15t-dev-tools__script-summary::-webkit-details-marker {
+	display: none;
+}
+
+/* Chevron: points right when closed, down when open. */
+.c15t-dev-tools__script-summary::before {
+	content: '';
+	flex: 0 0 auto;
+	width: 0.375rem;
+	height: 0.375rem;
+	margin: 0 0.125rem;
+	border-right: 1.5px solid var(--c15t-dev-tools-muted);
+	border-bottom: 1.5px solid var(--c15t-dev-tools-muted);
+	transform: rotate(-45deg);
+	transition: transform 150ms ease-out;
+}
+
+.c15t-dev-tools__script[open] > summary::before {
+	transform: translateY(-0.0625rem) rotate(45deg);
+}
+
+.c15t-dev-tools__script-summary:focus-visible {
+	outline-offset: -2px;
+}
+
+.c15t-dev-tools__script-meta {
+	display: none;
+}
+
+.c15t-dev-tools__script-name {
+	flex: 1;
+	min-width: 0;
+	font-family: var(--c15t-dev-tools-mono);
+	font-size: 0.8125rem;
+	font-weight: 400;
+	overflow-wrap: anywhere;
+}
+
+.c15t-dev-tools__script-body {
+	display: grid;
+	gap: 0.5rem;
+	min-width: 0;
+	padding: 0.75rem;
+	border-top: 1px solid var(--c15t-dev-tools-border);
+	overflow-wrap: anywhere;
+}
+
+.c15t-dev-tools__script-body:empty {
+	display: none;
+}
+
+.c15t-dev-tools__script-list > .c15t-dev-tools__script-body {
+	border-top: 0;
+}
+
+.c15t-dev-tools__script-list > .c15t-dev-tools__script-body + * {
+	border-top: 1px solid var(--c15t-dev-tools-border);
+}
+
+.c15t-dev-tools__script-body > strong {
+	font-weight: 500;
+}
+
+.c15t-dev-tools__script-body > .c15t-dev-tools__muted {
+	font-size: 0.75rem;
+}
+
+/* Policy stats */
+
 .c15t-dev-tools__stats {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
 	gap: 0.5rem;
 }
 
 .c15t-dev-tools__stat {
-	padding: 0.75rem;
-	border: 1px solid var(--c15t-dev-tools-border);
-	border-radius: 0.5rem;
-	background: var(--c15t-dev-tools-bg-raised);
+	min-width: 0;
+	padding: 0.5rem 0.75rem;
+	border-radius: var(--c15t-dev-tools-radius);
+	background: var(--c15t-dev-tools-bg-sunken);
 }
 
 .c15t-dev-tools__stat dt {
@@ -500,10 +915,14 @@
 }
 
 .c15t-dev-tools__stat dd {
-	margin: 0.25rem 0 0;
+	margin: 0.125rem 0 0;
+	font-family: var(--c15t-dev-tools-mono);
+	font-size: 0.8125rem;
 	font-variant-numeric: tabular-nums;
-	font-weight: 600;
+	font-weight: 500;
 }
+
+/* Code */
 
 .c15t-dev-tools__code {
 	min-width: 0;
@@ -512,65 +931,41 @@
 	margin: 0;
 	overflow-x: hidden;
 	overflow-y: auto;
-	padding: 0.75rem;
-	border-radius: 0.5rem;
-	background: var(--c15t-dev-tools-bg-muted);
+	padding: 0.625rem 0.75rem;
+	border: 1px solid var(--c15t-dev-tools-border);
+	border-radius: var(--c15t-dev-tools-radius);
+	background: var(--c15t-dev-tools-bg-sunken);
 	color: var(--c15t-dev-tools-text);
-	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-family: var(--c15t-dev-tools-mono);
 	font-size: 0.75rem;
-	line-height: 1.5;
+	line-height: 1.6;
+	tab-size: 2;
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
 }
 
+/* Events */
+
 .c15t-dev-tools__event-list {
 	display: grid;
-	gap: 0.75rem;
+	gap: 0.5rem;
 	padding: 0;
 	list-style: none;
 }
 
-.c15t-dev-tools__iab-list {
-	display: grid;
-	gap: 0.75rem;
-}
-
-.c15t-dev-tools__iab-choice {
-	min-width: 0;
-	padding: 0.75rem;
-	border: 1px solid var(--c15t-dev-tools-border);
-	border-radius: 0.5rem;
-	overflow-wrap: anywhere;
-}
-
-.c15t-dev-tools__iab-choice > strong {
-	display: block;
-	margin-bottom: 0.5rem;
-}
-
-.c15t-dev-tools__feedback {
-	margin: 0;
-	padding: 0.5rem 1rem;
-	border-bottom: 1px solid var(--c15t-dev-tools-border);
-	overflow-wrap: anywhere;
-}
-
-.c15t-dev-tools__feedback[data-status='error'] {
-	color: var(--c15t-dev-tools-danger);
-}
-
 .c15t-dev-tools__event {
 	display: grid;
-	gap: 0.5rem;
-	padding: 0.75rem;
+	gap: 0.375rem;
+	min-width: 0;
+	padding: 0.625rem 0.75rem;
 	border: 1px solid var(--c15t-dev-tools-border);
-	border-radius: 0.5rem;
-	background: var(--c15t-dev-tools-bg-raised);
+	border-radius: var(--c15t-dev-tools-radius);
 }
 
 .c15t-dev-tools__event-header {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: baseline;
 	justify-content: space-between;
 	gap: 0.75rem;
 	color: var(--c15t-dev-tools-muted);
@@ -578,38 +973,291 @@
 	font-variant-numeric: tabular-nums;
 }
 
+.c15t-dev-tools__event-data > summary {
+	justify-self: start;
+	width: fit-content;
+	color: var(--c15t-dev-tools-muted);
+	font-size: 0.75rem;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.c15t-dev-tools__event-data[open] > summary {
+	margin-bottom: 0.375rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.c15t-dev-tools__event-data > summary:hover {
+		color: var(--c15t-dev-tools-text);
+	}
+}
+
+.c15t-dev-tools__event-header code {
+	color: var(--c15t-dev-tools-text);
+	font-family: var(--c15t-dev-tools-mono);
+	font-weight: 500;
+}
+
+/* IAB */
+
+.c15t-dev-tools__iab-list {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.c15t-dev-tools__iab-choice {
+	display: grid;
+	align-content: start;
+	gap: 0.25rem;
+	min-width: 0;
+	padding: 0.625rem 0.75rem;
+	border: 1px solid var(--c15t-dev-tools-border);
+	border-radius: var(--c15t-dev-tools-radius);
+	overflow-wrap: anywhere;
+}
+
+.c15t-dev-tools__iab-choice > strong {
+	font-weight: 500;
+}
+
+.c15t-dev-tools__iab-choice > .c15t-dev-tools__badge {
+	justify-self: start;
+}
+
+/* Outranks the density rules: switch rows sit flush inside the tile. */
+.c15t-dev-tools .c15t-dev-tools__iab-choice > .c15t-dev-tools__check {
+	min-height: 2.25rem;
+	padding: 0.25rem 0;
+}
+
+.c15t-dev-tools__iab-choice > .c15t-dev-tools__check + .c15t-dev-tools__check {
+	border-top: 0;
+}
+
+/* Action feedback, shown between the tabs and the content */
+
+.c15t-dev-tools__feedback {
+	display: flex;
+	flex-shrink: 0;
+	align-items: center;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0.5rem 1rem;
+	border-bottom: 1px solid var(--c15t-dev-tools-border);
+	background: var(--c15t-dev-tools-bg-sunken);
+	font-size: 0.8125rem;
+	overflow-wrap: anywhere;
+}
+
+.c15t-dev-tools__feedback::before {
+	content: '';
+	flex: 0 0 auto;
+	width: 0.375rem;
+	height: 0.375rem;
+	border-radius: 50%;
+	background: var(--c15t-dev-tools-muted);
+}
+
+.c15t-dev-tools__feedback[data-status='pending']::before {
+	background: var(--c15t-dev-tools-warning);
+}
+
+.c15t-dev-tools__feedback[data-status='success'] {
+	background: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-success) 8%,
+		var(--c15t-dev-tools-bg)
+	);
+}
+
+.c15t-dev-tools__feedback[data-status='success']::before {
+	background: var(--c15t-dev-tools-success);
+}
+
+.c15t-dev-tools__feedback[data-status='error'] {
+	background: color-mix(
+		in oklch,
+		var(--c15t-dev-tools-danger) 8%,
+		var(--c15t-dev-tools-bg)
+	);
+	color: var(--c15t-dev-tools-danger);
+}
+
+.c15t-dev-tools__feedback[data-status='error']::before {
+	background: var(--c15t-dev-tools-danger);
+}
+
+/* Hover */
+
 @media (hover: hover) and (pointer: fine) {
 	.c15t-dev-tools__button:hover:not(:disabled) {
-		border-color: var(--c15t-dev-tools-accent);
-		background: var(--c15t-dev-tools-bg-raised);
+		border-color: var(--c15t-dev-tools-border-strong);
+		background: var(--c15t-dev-tools-bg-hover);
 	}
 
 	.c15t-dev-tools__button--primary:hover:not(:disabled) {
-		background: color-mix(
-			in srgb,
-			var(--c15t-dev-tools-accent) 6%,
+		border-color: transparent;
+		background: color-mix(in oklch, var(--c15t-dev-tools-accent) 90%, black);
+	}
+
+	.c15t-dev-tools__button--ghost:hover:not(:disabled) {
+		border-color: transparent;
+		color: var(--c15t-dev-tools-text);
+	}
+
+	.c15t-dev-tools__button--danger:hover:not(:disabled) {
+		border-color: color-mix(
+			in oklch,
+			var(--c15t-dev-tools-danger) 45%,
 			var(--c15t-dev-tools-bg)
 		);
+		background: color-mix(
+			in oklch,
+			var(--c15t-dev-tools-danger) 8%,
+			var(--c15t-dev-tools-bg)
+		);
+	}
+
+	.c15t-dev-tools__tabs .c15t-dev-tools__button:hover:not(:disabled) {
+		background: transparent;
+		color: var(--c15t-dev-tools-text);
+	}
+
+	.c15t-dev-tools__button.c15t-dev-tools__close:hover {
+		border-color: transparent;
+		color: var(--c15t-dev-tools-text);
+	}
+
+	.c15t-dev-tools__script-summary:hover {
+		background: var(--c15t-dev-tools-bg-sunken);
+	}
+
+	.c15t-dev-tools__field input:hover:not(:focus-visible),
+	.c15t-dev-tools__field select:hover:not(:focus-visible) {
+		border-color: var(--c15t-dev-tools-border-strong);
+	}
+}
+
+/*
+ * With only a mouse or trackpad, match desktop devtools density. Any
+ * touchscreen, including one on a laptop, keeps the 44px targets and 16px
+ * inputs above.
+ */
+@media (pointer: fine) and (not (any-pointer: coarse)) {
+	.c15t-dev-tools {
+		font-size: 0.8125rem;
+	}
+
+	.c15t-dev-tools__tabs .c15t-dev-tools__button {
+		min-height: 2.5rem;
+	}
+
+	.c15t-dev-tools__button {
+		min-height: 1.875rem;
+		padding: 0.3125rem 0.75rem;
+	}
+
+	.c15t-dev-tools__button.c15t-dev-tools__close {
+		width: 2rem;
+		min-height: 2rem;
+	}
+
+	.c15t-dev-tools__check,
+	.c15t-dev-tools__script-summary {
+		min-height: 2.25rem;
+		padding: 0.375rem 0.75rem;
+	}
+
+	.c15t-dev-tools__section h3 {
+		font-size: 0.8125rem;
+	}
+
+	.c15t-dev-tools__field input,
+	.c15t-dev-tools__field select {
+		min-height: 2rem;
+		padding: 0.3125rem 0.625rem;
+		font-size: 0.8125rem;
+	}
+
+	/*
+	 * A devtools pane is a full application surface, not a corner widget:
+	 * keep 14px text and roomier rows even with a mouse.
+	 */
+	.c15t-dev-tools--embedded {
+		font-size: 0.875rem;
+	}
+
+	.c15t-dev-tools--embedded .c15t-dev-tools__section h3 {
+		font-size: 0.9375rem;
+	}
+
+	.c15t-dev-tools--embedded .c15t-dev-tools__button {
+		min-height: 2rem;
+		padding: 0.375rem 0.875rem;
+	}
+
+	.c15t-dev-tools--embedded .c15t-dev-tools__check,
+	.c15t-dev-tools--embedded .c15t-dev-tools__script-summary {
+		min-height: 2.5rem;
+		padding: 0.5rem 0.875rem;
+	}
+
+	.c15t-dev-tools--embedded .c15t-dev-tools__field input,
+	.c15t-dev-tools--embedded .c15t-dev-tools__field select {
+		min-height: 2.125rem;
+		padding: 0.375rem 0.75rem;
+		font-size: 0.875rem;
+	}
+
+	.c15t-dev-tools--embedded .c15t-dev-tools__tabs {
+		flex-wrap: nowrap;
+		gap: 0.25rem;
+		padding: 0 0.75rem;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+
+	.c15t-dev-tools--embedded .c15t-dev-tools__tabs .c15t-dev-tools__button {
+		flex: 0 0 auto;
+		min-height: 2.5rem;
+		padding: 0.5rem 0.75rem;
+		font-size: 0.875rem;
+		overflow-wrap: normal;
+		white-space: nowrap;
+	}
+
+	.c15t-dev-tools--embedded
+		.c15t-dev-tools__tabs
+		.c15t-dev-tools__button::after {
+		right: 0.75rem;
+		left: 0.75rem;
 	}
 }
 
 @media (max-width: 28rem) {
-	.c15t-dev-tools__action-grid,
-	.c15t-dev-tools__stats {
+	.c15t-dev-tools__action-grid {
 		grid-template-columns: 1fr;
 	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.c15t-dev-tools__button {
+	.c15t-dev-tools__button,
+	.c15t-dev-tools__check input,
+	.c15t-dev-tools__check input::before,
+	.c15t-dev-tools__script-summary,
+	.c15t-dev-tools__script-summary::before,
+	.c15t-dev-tools__field input,
+	.c15t-dev-tools__field select {
 		transition: none;
 	}
 
-	.c15t-dev-tools__button:active {
+	.c15t-dev-tools__button:active:not(:disabled) {
 		transform: none;
 	}
 }
 
+/* The host UI already names and closes the panel. */
+.c15t-dev-tools--embedded .c15t-dev-tools__header,
 .c15t-dev-tools--embedded .c15t-dev-tools__toggle {
 	display: none;
 }
@@ -624,5 +1272,184 @@
 }
 
 .c15t-dev-tools--embedded .c15t-dev-tools__content {
-	max-height: none;
+	padding: 1.25rem;
+}
+
+/*
+ * A narrow devtools pane (a side dock) wraps its tabs: the tab strip hides
+ * its scrollbar, so clipped tabs would give no sign they exist.
+ */
+@container c15t-dev-tools (max-width: 40rem) {
+	.c15t-dev-tools--embedded .c15t-dev-tools__tabs {
+		flex-wrap: wrap;
+		overflow-x: visible;
+	}
+}
+
+/*
+ * Wide pane: the panel fills a devtools shell (Nuxt tab, TanStack bottom
+ * dock). Instead of stretching the widget's single column, lay controls out
+ * as tiles, tables, and paired columns, capped so rows stay scannable.
+ * Narrow panes, including the floating widget, keep the layout above.
+ */
+@container c15t-dev-tools (min-width: 48rem) {
+	.c15t-dev-tools__content {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 36rem));
+		align-content: start;
+		align-items: start;
+		gap: 2rem;
+		padding: 1.5rem;
+	}
+
+	.c15t-dev-tools__content > * {
+		grid-column: 1 / -1;
+	}
+
+	.c15t-dev-tools__content > .c15t-dev-tools__section--column {
+		grid-column: auto;
+	}
+
+	/* Whitespace separates sections once they can sit side by side. */
+	.c15t-dev-tools__section + .c15t-dev-tools__section {
+		padding-top: 0;
+		border-top: 0;
+	}
+
+	.c15t-dev-tools__section > .c15t-dev-tools__field {
+		max-width: 24rem;
+	}
+
+	/* Eight policy stats as two even rows. */
+	.c15t-dev-tools__stats {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+
+	.c15t-dev-tools__actions > .c15t-dev-tools__button--ghost:last-child {
+		margin-inline-start: 0;
+	}
+
+	/* Consent categories and vendors as tiles. */
+	.c15t-dev-tools__control-list {
+		grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+		gap: 0.5rem;
+		border: 0;
+		border-radius: 0;
+		overflow: visible;
+	}
+
+	.c15t-dev-tools__control-list > .c15t-dev-tools__check {
+		display: grid;
+		grid-template-columns: auto auto minmax(0, 1fr) auto;
+		align-content: start;
+		align-items: center;
+		gap: 0.625rem 0.5rem;
+		min-height: 0;
+		padding: 0.75rem 0.875rem;
+		border: 1px solid var(--c15t-dev-tools-border);
+		border-radius: var(--c15t-dev-tools-radius);
+		transition: border-color 150ms ease-out;
+	}
+
+	.c15t-dev-tools__control-list > .c15t-dev-tools__check > span:first-child {
+		grid-row: 1;
+		grid-column: 1 / 4;
+	}
+
+	.c15t-dev-tools__control-list > .c15t-dev-tools__check > input {
+		grid-row: 1;
+		grid-column: 4;
+	}
+
+	.c15t-dev-tools__control-list
+		> .c15t-dev-tools__check
+		> .c15t-dev-tools__muted {
+		grid-column: 1 / -1;
+	}
+
+	.c15t-dev-tools__control-list
+		> label.c15t-dev-tools__check:has(input:checked:not(:disabled)) {
+		border-color: color-mix(
+			in oklch,
+			var(--c15t-dev-tools-accent) 45%,
+			var(--c15t-dev-tools-bg)
+		);
+	}
+
+	/* Scripts as table rows: name, source, status. */
+	.c15t-dev-tools__script-summary {
+		gap: 1rem;
+	}
+
+	.c15t-dev-tools__script-name {
+		flex: 0 1 16rem;
+	}
+
+	.c15t-dev-tools__script-meta {
+		display: block;
+		flex: 1 1 0;
+		min-width: 0;
+		overflow: hidden;
+		color: var(--c15t-dev-tools-muted);
+		font-size: 0.8125rem;
+		font-weight: 400;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	/* Events as a log: time, type, message on one line. */
+	.c15t-dev-tools__event-list {
+		gap: 0;
+		border: 1px solid var(--c15t-dev-tools-border);
+		border-radius: var(--c15t-dev-tools-radius);
+		overflow: hidden;
+	}
+
+	.c15t-dev-tools__event {
+		grid-template-columns: 6rem minmax(10rem, 16rem) minmax(0, 1fr);
+		align-items: baseline;
+		gap: 0.5rem 1rem;
+		padding: 0.5rem 0.875rem;
+		border: 0;
+		border-radius: 0;
+	}
+
+	.c15t-dev-tools__event + .c15t-dev-tools__event {
+		border-top: 1px solid var(--c15t-dev-tools-border);
+	}
+
+	.c15t-dev-tools__event-header {
+		display: contents;
+	}
+
+	.c15t-dev-tools__event-header > time {
+		grid-row: 1;
+		grid-column: 1;
+		color: var(--c15t-dev-tools-muted);
+		font-size: 0.75rem;
+	}
+
+	.c15t-dev-tools__event-header > code {
+		grid-row: 1;
+		grid-column: 2;
+		font-size: 0.8125rem;
+	}
+
+	.c15t-dev-tools__event > p {
+		grid-row: 1;
+		grid-column: 3;
+	}
+
+	.c15t-dev-tools__event > .c15t-dev-tools__event-data {
+		grid-column: 2 / -1;
+	}
+
+	/* IAB choices as tiles; the count and pagination span the row. */
+	.c15t-dev-tools__iab-list {
+		grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+	}
+
+	.c15t-dev-tools__iab-list > :not(.c15t-dev-tools__iab-choice) {
+		grid-column: 1 / -1;
+	}
 }
