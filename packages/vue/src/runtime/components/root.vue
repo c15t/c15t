@@ -4,9 +4,10 @@ import { onMounted, watch } from 'vue';
 import {
 	useConsentActiveUI,
 	useConsentInit,
-	useConsentKernel,
+	useConsentKernelContext,
 } from '../composables';
 import { useConsentConfig } from '../composables/config';
+import { applyRootOverrides } from '../root-overrides';
 import {
 	LazyConsentManager,
 	LazyIabConsentBanner,
@@ -26,12 +27,9 @@ const props = defineProps<{
 const activeUI = useConsentActiveUI();
 const init = useConsentInit();
 const config = useConsentConfig();
-const kernel = useConsentKernel();
+const context = useConsentKernelContext();
 
 onMounted(() => {
-	for (const [key, value] of Object.entries(config.value.tokens ?? {})) {
-		document.documentElement.style.setProperty(`--${key}`, String(value));
-	}
 	// Warm the dialog chunk during idle so the first open is instant.
 	if (init.value?.gvl || init.value?.gvlReference) {
 		prefetchIabConsentDialog();
@@ -41,14 +39,12 @@ onMounted(() => {
 });
 
 watch(
-	() => [props.country, props.region, props.language] as const,
-	([country, region, language]) => {
-		if (!(country || region || language)) {
-			return;
-		}
-		kernel.set.overrides({ country, language, region });
-		void kernel.commands.init();
-	},
+	() => ({
+		country: props.country,
+		language: props.language,
+		region: props.region,
+	}),
+	(next, previous) => applyRootOverrides(context, next, previous),
 	{ immediate: true }
 );
 </script>

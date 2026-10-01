@@ -59,6 +59,7 @@ import {
 	isServerManifestModeEnabled,
 	resolveClientManifestURL,
 } from './manifest';
+import { markRuntimeStarted } from './root-overrides';
 import { invalidateIABChoice } from './utils/save-iab-choice';
 
 export const INIT_HEADER_NAMES = [...CONSENT_REQUEST_HEADER_NAMES] as const;
@@ -550,19 +551,58 @@ const prepareVueRecords = (
 	};
 };
 
-const hydrateVuePersistence = (
+/**
+ * Mount persistence over the kernel's records.
+ *
+ * Records the server read from the request cookie seed the kernel first.
+ * Persistence then applies any newer denial storage holds on top: the
+ * cookie can miss a choice localStorage kept, and HTML from a cache the
+ * server did not recognise can carry nobody's records. A stored grant
+ * never overrides the seed. Without a seed, storage hydrates the kernel.
+ */
+const createVuePersistence = (
 	context: VueConsentKernelContext,
-	persistence: ReturnType<typeof createPersistence>
-): void => {
+	storageConfig: StorageConfig | undefined
+): ReturnType<typeof createPersistence> => {
 	if (context.initialRecords) {
 		context.kernel.hydrate(context.initialRecords);
-		return;
+		return createPersistence({
+			kernel: context.kernel,
+			skipHydration: true,
+			storageConfig,
+		});
 	}
 	const prefetchedSubject = context.kernel.getSnapshot().subject;
+	const persistence = createPersistence({
+		kernel: context.kernel,
+		skipHydration: true,
+		storageConfig,
+	});
 	persistence.hydrate();
 	if (prefetchedSubject) {
 		context.kernel.hydrate({ subject: prefetchedSubject });
 	}
+	return persistence;
+};
+
+/**
+ * Mount persistence for a browser context and route `clearRecords` through
+ * it. No-op without browser storage.
+ */
+const mountVuePersistence = (
+	context: VueConsentKernelContext,
+	config: RuntimeConsentConfig
+): (() => void) => {
+	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
+		return () => undefined;
+	}
+	const persistence = createVuePersistence(context, config.storageConfig);
+	const clearMemory = context.clearRecords;
+	context.clearRecords = persistence.clear;
+	return () => {
+		context.clearRecords = clearMemory;
+		persistence.dispose();
+	};
 };
 
 const resolveInitialPolicyPending = (
@@ -901,30 +941,6 @@ const mountClearOnRevocation = (
  * @param options - Set `runInit: false` to skip the initial `init()`.
  * @returns A disposer that undoes everything this call mounted.
  */
-/**
- * Hydrate stored records into the kernel. No-op without browser storage.
- */
-const mountVuePersistence = (
-	context: VueConsentKernelContext,
-	config: RuntimeConsentConfig
-): (() => void) => {
-	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
-		return () => undefined;
-	}
-	const persistence = createPersistence({
-		kernel: context.kernel,
-		skipHydration: true,
-		storageConfig: config.storageConfig,
-	});
-	hydrateVuePersistence(context, persistence);
-	const clearMemory = context.clearRecords;
-	context.clearRecords = persistence.clear;
-	return () => {
-		context.clearRecords = clearMemory;
-		persistence.dispose();
-	};
-};
-
 // oxlint-disable-next-line complexity -- Mounts consent modules in lifecycle order with one external authority.
 export const startVueConsentRuntime = function startVueConsentRuntime(
 	context: VueConsentKernelContext,
@@ -932,8 +948,13 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	options: { runInit?: boolean } = {}
 ): () => void {
 	const disposers: (() => void)[] = [];
+	const overridesChanged = markRuntimeStarted(context);
 
 	if (!context.ownsKernel) {
+		// The host runtime ran its init before these overrides were set.
+		if (overridesChanged) {
+			void context.kernel.commands.init();
+		}
 		return () => {
 			context.dispose();
 		};
@@ -1063,6 +1084,10 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 
 	if (config.consentSource) {
 		// An external source owns permissions; there is nothing to initialise.
+	} else if (options.runInit === false && overridesChanged) {
+		// The prefetch answered for overrides a ConsentRoot prop has since
+		// changed. The init for the new ones also marks the kernel live.
+		void context.kernel.commands.init();
 	} else if (options.runInit === false) {
 		// No init call marks this kernel live, so do it here: the banner the
 		// server rendered is the visitor's first impression.

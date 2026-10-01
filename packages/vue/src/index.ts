@@ -9,6 +9,7 @@ import {
 	startVueConsentRuntime,
 } from './runtime/kernel';
 import type { RuntimeConsentConfig } from './runtime/kernel';
+import { mountTokensStyle } from './runtime/theme-tokens';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -29,6 +30,7 @@ export type {
 	RuntimeConsentConfig,
 	UseNetworkBlockerOptions,
 } from './runtime/kernel';
+export { generateTokensCSS } from './runtime/theme-tokens';
 
 /**
  * Options accepted by the {@link c15tVue} plugin: the consent config plus
@@ -56,8 +58,23 @@ export type C15tVuePluginOptions = Partial<RuntimeConsentConfig> & {
 	runtime?: ConsentRuntime;
 };
 
+/**
+ * Plain Vue has no Nuxt server to host the init route that server manifest
+ * mode calls. A `manifestURL` without an explicit `manifest` mode therefore
+ * means the browser fetches and resolves that manifest itself.
+ */
+const resolvePlainVueOptions = function resolvePlainVueOptions(
+	options: C15tVuePluginOptions | undefined
+): C15tVuePluginOptions | undefined {
+	if (options?.manifestURL && options.manifest === undefined) {
+		return { ...options, manifest: 'client' };
+	}
+	return options;
+};
+
 export const c15tVue: Plugin<[C15tVuePluginOptions?]> = {
-	install(app: App, options?: C15tVuePluginOptions) {
+	install(app: App, pluginOptions?: C15tVuePluginOptions) {
+		const options = resolvePlainVueOptions(pluginOptions);
 		if (options) {
 			app.provide(consentConfigKey, options);
 		}
@@ -71,6 +88,12 @@ export const c15tVue: Plugin<[C15tVuePluginOptions?]> = {
 		app.provide(symbolInit, context.init);
 		app.provide(symbolActiveUI, context.activeUI);
 		app.provide(symbolConsent, context.storedConsent);
+		// Tokens apply from install, before the first render, so every
+		// surface is styled whether or not a ConsentRoot mounts. A borrowed
+		// runtime's host renders its own theme.
+		const removeTokensStyle = runtime
+			? () => undefined
+			: mountTokensStyle(config);
 		let disposeRuntime = () => context.dispose();
 		app.mixin({
 			mounted() {
@@ -85,7 +108,10 @@ export const c15tVue: Plugin<[C15tVuePluginOptions?]> = {
 		// `app.onUnmount` is Vue 3.5+. On older runtimes skip cleanup
 		// registration rather than throwing during plugin install.
 		if (typeof app.onUnmount === 'function') {
-			app.onUnmount(() => disposeRuntime());
+			app.onUnmount(() => {
+				disposeRuntime();
+				removeTokensStyle();
+			});
 		}
 	},
 };

@@ -160,6 +160,20 @@ for (const target of selectedTargets()) {
 					expect(html).not.toContain('<iframe');
 				});
 			}
+			if (target.directory === 'nuxt' && route !== '/consent-example') {
+				// Prerendered and cached HTML is served to every visitor, so it
+				// cannot hold anyone's policy or choice. The browser resolves
+				// both after hydration; the journeys below check that it does.
+				test(`${route}: shared HTML leaves the visitor to the browser`, async () => {
+					const response = await fetch(`${server.baseURL}${route}`, {
+						headers: { 'x-vercel-ip-country': 'DE' },
+					});
+					expect(response.ok).toBe(true);
+					const html = await response.text();
+					expect(html).toContain('Consent example');
+					expect(html).not.toContain('data-testid="consent-banner-root"');
+				});
+			}
 			test(`${route}: UI loads with component URL filters enabled`, async () => {
 				({ context, page, requests } = await openBrowserContext(
 					browser,

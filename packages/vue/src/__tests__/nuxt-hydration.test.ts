@@ -74,6 +74,8 @@ vi.mock('#imports', async () => {
 			}
 			return Promise.resolve({ data: makeRef(nuxt.cached) });
 		},
+		useHead: () => undefined,
+		useRequestEvent: () => undefined,
 		useRequestHeaders: () => nuxt.headers,
 		useRuntimeConfig: () => ({ public: { c15t: {} } }),
 		useState: (key: string, init: () => unknown) => {
@@ -160,6 +162,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
+			payload: { prerenderedAt?: number };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
 	let context!: VueConsentKernelContext;
@@ -188,6 +191,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		hook: () => {
 			throw new Error('Server must not start browser lifecycle');
 		},
+		payload: {},
 		vueApp: serverApp,
 	});
 	const html = await renderToString(serverApp);
@@ -221,6 +225,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		hook: (_name, lifecycle) => {
 			mounted = lifecycle;
 		},
+		payload: {},
 		vueApp: clientApp,
 	});
 	const container = document.createElement('div');
@@ -288,6 +293,7 @@ test('Nuxt external authority skips server fetch and records, then connects only
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
+			payload: { prerenderedAt?: number };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
 	let context!: VueConsentKernelContext;
@@ -306,6 +312,7 @@ test('Nuxt external authority skips server fetch and records, then connects only
 				mounted = handler;
 			}
 		},
+		payload: {},
 		vueApp: app,
 	});
 	expect(nuxt.requests).toBe(0);
@@ -336,6 +343,7 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
+			payload: { prerenderedAt?: number };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
 	const policy = normalizePolicyRule({
@@ -370,6 +378,7 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 	vi.stubGlobal('document', undefined);
 	await plugin({
 		hook: () => undefined,
+		payload: {},
 		vueApp: createSSRApp(defineComponent({ render: () => null })),
 	});
 	expect(nuxt.fetchHeaders[0]?.['x-c15t-experiment']).toBe('banner-shape=wall');

@@ -16,6 +16,8 @@ import {
 	defineNuxtPlugin,
 	useAppConfig,
 	useFetch,
+	useHead,
+	useRequestEvent,
 	useRequestHeaders,
 	useRuntimeConfig,
 	useState as useNuxtState,
@@ -36,6 +38,8 @@ import {
 	resolveManifestMode,
 	resolveNuxtTimeoutMs,
 } from './manifest';
+import { isSharedNuxtRender } from './shared-render';
+import { generateTokensCSS, TOKENS_STYLE_ID } from './theme-tokens';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -55,21 +59,52 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 				runtimeConfig.public.c15t
 			) as Partial<RuntimeConsentConfig>
 	);
-	const requestHeaders = useNuxtState('c15t:request-headers', () =>
-		pickAllowedInitHeaders(useRequestHeaders([...INIT_HEADER_NAMES]))
+	// Tokens go in the head from the plugin, so the server HTML carries them
+	// for the first paint and composed surfaces without ConsentRoot get
+	// them too. Registered before the first await, while the Nuxt context
+	// is still current.
+	useHead(
+		computed(() => {
+			const style: Record<string, string> = {
+				id: TOKENS_STYLE_ID,
+				innerHTML: generateTokensCSS(config.value.tokens),
+				key: TOKENS_STYLE_ID,
+			};
+			if (config.value.nonce) {
+				style.nonce = config.value.nonce;
+			}
+			return { style: [style] };
+		})
+	);
+	// HTML that is prerendered or cached is served to every visitor, so it
+	// must carry nobody's consent, location or request headers. The server
+	// decides once and the payload tells the browser, which then resolves
+	// the visitor itself, as on a first visit without a server render.
+	const sharedRender = useNuxtState('c15t:shared-render', () =>
+		isSharedNuxtRender({
+			eventContext:
+				typeof window === 'undefined' ? useRequestEvent()?.context : undefined,
+			prerenderedAt: nuxtApp.payload.prerenderedAt,
+		})
+	);
+	const shared = sharedRender.value;
+	const requestHeaders = useNuxtState(
+		'c15t:request-headers',
+		(): Record<string, string> =>
+			shared
+				? {}
+				: pickAllowedInitHeaders(useRequestHeaders([...INIT_HEADER_NAMES]))
 	);
 	const headers = requestHeaders.value;
-	const cookieHeader =
-		typeof document === 'undefined'
-			? useRequestHeaders(['cookie']).cookie
-			: document.cookie;
 	const initFetchTarget = getNuxtInitFetchTarget(config.value);
 	const manifestMode = resolveManifestMode(config.value);
 	const initialRecords = useNuxtState('c15t:records', () =>
-		config.value.consentSource
+		config.value.consentSource || shared
 			? undefined
 			: readStoredRecordsFromCookieHeader(
-					cookieHeader,
+					typeof document === 'undefined'
+						? useRequestHeaders(['cookie']).cookie
+						: document.cookie,
 					config.value.storageConfig,
 					Date.now()
 				)
@@ -80,7 +115,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		() => undefined
 	);
 	let prefetch: InitOutput | undefined;
-	if (initFetchTarget && !config.value.consentSource) {
+	if (initFetchTarget && !config.value.consentSource && !shared) {
 		// The render waits at most `timeoutMs` for policy. The same-origin init
 		// route runs in-process, where an abort signal does not reach it, so it
 		// is told the budget in a header; an absolute backend `/init` is a real

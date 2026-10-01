@@ -1,14 +1,13 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue';
-
-import { useHead } from '#imports';
+import { onMounted, ref, watch } from 'vue';
 
 import {
 	useConsentActiveUI,
 	useConsentInit,
 	useConsentConfig,
-	useConsentKernel,
+	useConsentKernelContext,
 } from '../composables';
+import { applyRootOverrides } from '../root-overrides';
 import {
 	LazyConsentManager,
 	LazyIabConsentBanner,
@@ -22,42 +21,24 @@ import ConsentBanner from './prompt.vue';
 const props = defineProps<{
 	region?: string;
 	country?: string;
+	language?: string;
 }>();
 
 const config = useConsentConfig();
 const init = useConsentInit();
 const activeUI = useConsentActiveUI();
-const kernel = useConsentKernel();
+const context = useConsentKernelContext();
 
 watch(
-	() => [props.country, props.region] as const,
-	([country, region]) => {
-		if (!(country || region)) {
-			return;
-		}
-		kernel.set.overrides({ country, region });
-		void kernel.commands.init();
-	},
+	() => ({
+		country: props.country,
+		language: props.language,
+		region: props.region,
+	}),
+	(next, previous) => applyRootOverrides(context, next, previous),
 	{ immediate: true }
 );
 
-useHead(
-	computed(() => {
-		const style = Object.entries(config.value.tokens ?? {})
-			.map(([key, value]) => `--${key}: ${String(value)};`)
-			.join(' ');
-		return style
-			? {
-					style: [
-						{
-							id: 'c15t-css-vars',
-							innerHTML: `:root { ${style} }`,
-						},
-					],
-				}
-			: {};
-	})
-);
 // Mount dialog surfaces once first needed, then keep them mounted (close
 // animations, repeat opens). Chunks are prefetched on idle so the first
 // open never pays network+parse.

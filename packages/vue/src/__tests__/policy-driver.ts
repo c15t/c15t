@@ -411,6 +411,8 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			],
 			disableAnimation: true,
 			hideBranding: true,
+			// React's trigger shows by default; scenarios open it before a choice.
+			triggerShowWhen: 'always',
 		};
 		context = createVueConsentKernelContext({
 			config: options,

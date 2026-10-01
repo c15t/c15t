@@ -14,7 +14,11 @@ import {
 	useConsentInit,
 } from '#c15t/composables';
 
-import { useHasConsentPreferences, usePolicyRule } from '../composables/kernel';
+import {
+	useHasConsentPreferences,
+	usePolicyRule,
+	usePromptRequirement,
+} from '../composables/kernel';
 import { useDraggable } from '../composables/use-draggable';
 import { useLocalStorageRef } from '../composables/use-local-storage-ref';
 import { useMounted } from '../composables/use-mounted';
@@ -127,6 +131,7 @@ watch(
 );
 
 const hasConsentUi = useHasConsentPreferences();
+const promptRequirement = usePromptRequirement();
 const isVisible = computed(() => {
 	if (!mounted.value) {
 		return false;
@@ -139,10 +144,13 @@ const isVisible = computed(() => {
 	if (activeUI.value === 'manager') {
 		return false;
 	}
-	if (config.value.triggerShowWhen === 'never') {
+	const showWhen = config.value.triggerShowWhen;
+	if (showWhen === 'never') {
 		return false;
 	}
-	return true;
+	// `after-consent` waits until no prompt is owed: a choice saved or a
+	// notice dismissed, the same rule as React's `after-prompt`.
+	return showWhen === 'always' || promptRequirement.value.kind === 'none';
 });
 
 const triggerStyle = computed(() => ({

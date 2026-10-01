@@ -45,14 +45,17 @@ constraint bugs surface here. Delete `.pgdata/` to reset the demo.
 Set `NUXT_PUBLIC_C15T_BACKEND_URL` to point at a hosted c15t instance instead
 of the self-hosted route.
 
-The `vite.ssr.noExternal` entry in `nuxt.config.ts` is a workaround for a
-`@c15t/vue` packaging issue, not part of the integration — see the comment
-there.
-
 ## Consent example
 
 Open `/consent-example` for the shared integration scenario. The existing home
 and showcase routes remain available.
+
+`/prerendered/consent-example` is the same page prerendered at build time, and
+`/cached/consent-example` is the same page cached by Nitro (`swr`). Every
+visitor gets the same HTML there, so it renders without the banner and the
+browser resolves the visitor's policy and stored choice after hydration. Set
+`C15T_NUXT_MANIFEST=client` at build time to run the demo in client manifest
+mode.
 
 For hosted operation, create an [Inth](https://inth.com) project, configure an
 opt-in policy covering `measurement` and `marketing`, and allow this app's

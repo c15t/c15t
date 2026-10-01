@@ -299,6 +299,59 @@ describe('@c15t/vue kernel runtime', () => {
 		}
 	});
 
+	test('a stored rejection wins over server records that lack it', async () => {
+		const { policyResolution } = initFixture;
+		if (policyResolution?.status !== 'matched') {
+			throw new Error('Expected a matched fixture');
+		}
+		const denial = {
+			basis: {
+				fingerprint: policyResolution.fingerprints.choice,
+				kind: 'choice-v1',
+			},
+			confirmedAt: Date.now() - 1000,
+			value: false,
+		};
+		// localStorage kept the visitor's rejection; the render did not see
+		// it (no cookie reached the server, or the HTML came from a cache).
+		window.localStorage.setItem(
+			'c15t',
+			JSON.stringify({
+				categories: { marketing: denial, measurement: denial },
+				version: 3,
+			})
+		);
+		const { fetchMock } = createFetchMock();
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			consentCategories: ['necessary', 'measurement', 'marketing'],
+			customFetch: fetchMock as unknown as typeof fetch,
+			iframeBlocker: false,
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			initialRecords: readStoredRecordsFromCookieHeader(
+				undefined,
+				undefined,
+				Date.now()
+			),
+			prefetch: initFixture,
+		});
+		expect(context.kernel.getSnapshot().activeUI).toBe('banner');
+		const dispose = startVueConsentRuntime(context, config, { runInit: false });
+		try {
+			await flushPromises();
+			const snapshot = context.kernel.getSnapshot();
+			expect(snapshot.explicitChoice?.categories).toMatchObject({
+				marketing: { value: false },
+				measurement: { value: false },
+			});
+			expect(snapshot.activeUI).toBe('none');
+		} finally {
+			dispose();
+		}
+	});
+
 	test('disposes the kernel with its Vue context', () => {
 		const context = createVueConsentKernelContext({
 			config: {
