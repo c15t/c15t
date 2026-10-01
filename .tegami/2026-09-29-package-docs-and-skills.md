@@ -25,5 +25,4 @@ it for the first time.
 
 The bundled docs follow the rewritten v3 guides: concept pages, a setup
 chooser, a full page set for every framework, and a new HTML guide for the
-script tag in `@c15t/browser`. The `c15t` bundle no longer includes the React
-Native guides, which ship with `@c15t/react-native`.
+script tag in `@c15t/browser`.
