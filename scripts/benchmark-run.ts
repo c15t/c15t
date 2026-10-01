@@ -47,13 +47,6 @@ const env = {
 const measure = async function measure(cwd: string, sha: string, arm: string) {
 	process.stdout.write(`Measuring ${arm} ${sha} with the ${mode} suite.\n`);
 	rmSync(join(cwd, '.benchmarks/head'), { force: true, recursive: true });
-	if (mode === 'bundle') {
-		// Tarballs include consumer documentation; generate it on both sides.
-		await runCommand(['bun', 'scripts/generate-package-docs.ts'], {
-			cwd,
-			env: { ...env, GITHUB_SHA: sha },
-		});
-	}
 	await runCommand(
 		[
 			'bun',
