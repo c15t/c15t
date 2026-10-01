@@ -1,16 +1,10 @@
-import {
-	mkdirSync,
-	readFileSync,
-	readdirSync,
-	rmSync,
-	writeFileSync,
-} from 'node:fs';
-import { dirname, relative, resolve } from 'node:path';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
 	collectExampleRegions,
-	generatedExamplesDir,
+	listGeneratedExamples,
 	renderExampleRegion,
 } from './example-doc-sources';
 import {
@@ -25,18 +19,6 @@ import {
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const check = process.argv.includes('--check');
-
-const listGenerated = (dir: string): string[] => {
-	let entries: string[];
-	try {
-		entries = readdirSync(dir, { encoding: 'utf8', recursive: true });
-	} catch {
-		return [];
-	}
-	return entries
-		.filter((entry) => entry.endsWith('.mdx'))
-		.map((entry) => relative(root, resolve(dir, entry)));
-};
 
 const regions = collectExampleRegions(root);
 const expected = new Set(regions.map((region) => region.destination));
@@ -80,7 +62,7 @@ for (const region of regions) {
 	}
 }
 
-for (const file of listGenerated(resolve(root, generatedExamplesDir))) {
+for (const file of listGeneratedExamples(root)) {
 	if (expected.has(file)) {
 		continue;
 	}

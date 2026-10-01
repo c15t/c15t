@@ -1,5 +1,5 @@
-import { readFileSync, readdirSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, test } from 'vitest';
@@ -10,7 +10,9 @@ import {
 	findRegions,
 	generatedExamplesDir,
 	languageFor,
+	listGeneratedExamples,
 	renderExampleRegion,
+	toPosixPath,
 } from './example-doc-sources';
 import {
 	compareToBaseline,
@@ -33,15 +35,14 @@ describe('generated example snippets', () => {
 
 	test('every generated snippet still has a source region', () => {
 		const expected = new Set(regions.map((region) => region.destination));
-		const generated = readdirSync(resolve(root, generatedExamplesDir), {
-			encoding: 'utf8',
-			recursive: true,
-		})
-			.filter((entry) => entry.endsWith('.mdx'))
-			.map((entry) =>
-				relative(root, resolve(root, generatedExamplesDir, entry))
-			);
+		const generated = listGeneratedExamples(root);
+		expect(generated.length).toBeGreaterThan(0);
 		expect(generated.filter((file) => !expected.has(file))).toEqual([]);
+	});
+
+	test('compares Windows paths in the same form as destinations', () => {
+		expect(toPosixPath('nextjs\\config.mdx', '\\')).toBe('nextjs/config.mdx');
+		expect(toPosixPath('nextjs/config.mdx', '/')).toBe('nextjs/config.mdx');
 	});
 });
 

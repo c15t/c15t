@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { basename, extname, resolve } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { basename, extname, resolve, sep } from 'node:path';
 
 /**
  * Directories whose apps are built and tested in CI. Documentation code that
@@ -94,6 +94,32 @@ const destinationFor = (app: string, name: string): string => {
 		prefix = app.slice('apps/'.length);
 	}
 	return `${generatedExamplesDir}/${prefix}/${name}.mdx`;
+};
+
+/**
+ * Converts a path that uses `separator` to forward slashes, the form
+ * `ExampleRegion.destination` uses on every platform.
+ */
+export const toPosixPath = (path: string, separator: string = sep): string =>
+	path.split(separator).join('/');
+
+/**
+ * Lists the generated snippet files on disk, relative to the repository root
+ * and with forward slashes, so they compare equal to region destinations.
+ */
+export const listGeneratedExamples = (root: string): string[] => {
+	let entries: string[];
+	try {
+		entries = readdirSync(resolve(root, generatedExamplesDir), {
+			encoding: 'utf8',
+			recursive: true,
+		});
+	} catch {
+		return [];
+	}
+	return entries
+		.filter((entry) => entry.endsWith('.mdx'))
+		.map((entry) => `${generatedExamplesDir}/${toPosixPath(entry)}`);
 };
 
 /** Finds every marked region in one file's contents. */
