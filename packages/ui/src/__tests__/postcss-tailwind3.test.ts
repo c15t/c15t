@@ -265,7 +265,7 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 			isC15tUiStylesheetPath('/app/node_modules/@c15t/browser/dist/c15t.js')
 		).toBe(false);
 		expect(
-			isC15tUiStylesheetPath('/app/node_modules/@c15t/ui/dist/other.css')
+			isC15tUiStylesheetPath('/app/node_modules/other-ui/dist/styles.css')
 		).toBe(false);
 	});
 });

@@ -134,7 +134,9 @@ describe('the svelte dialog island', () => {
 			theme: THEME,
 			ui: 'svelte' satisfies C15tUIAdapterName,
 		});
-		const props = buildProviderProps({} as never, options);
+		// The props read the experiment assignment off the page runtime.
+		const runtime = { kernel: { getSnapshot: () => ({}) } };
+		const props = buildProviderProps(runtime as never, options);
 
 		expect(props.options.theme?.slots).toEqual(THEME.slots);
 	});
