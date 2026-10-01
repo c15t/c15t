@@ -12,9 +12,11 @@ describe('@c15t/astro/postcss-tailwind3', () => {
 			types: './dist-types/postcss-tailwind3.d.ts',
 		});
 
-		expect(Object.keys(entry).sort()).toEqual(Object.keys(expected).sort());
-		expect(entry.default).toBe(expected.default);
-		expect(entry.postcss).toBe(expected.postcss);
-		expect(entry.isC15tUiStylesheetPath).toBe(expected.isC15tUiStylesheetPath);
+		expect(Object.keys(expected)).toEqual(
+			expect.arrayContaining(['default', 'postcss'])
+		);
+		// Compare whole namespaces: lint resolves `@c15t/ui/postcss-tailwind3`
+		// only after a build, so reading `entry.postcss` fails on an unbuilt tree.
+		expect({ ...entry }).toStrictEqual({ ...expected });
 	});
 });
