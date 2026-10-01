@@ -11,15 +11,15 @@ Copy the tag ID, for example `G-XXXXXXXXXX` for Google Analytics or
 `AW-XXXXXXXXX` for Google Ads. Remove any `gtag.js` snippet already in your
 HTML and any tag-manager entry that loads the same tag.
 
-| Package manager | Command                           |
-| :-------------- | :-------------------------------- |
-| npm             | `npm install @c15t/scripts@alpha` |
-| pnpm            | `pnpm add @c15t/scripts@alpha`    |
-| yarn            | `yarn add @c15t/scripts@alpha`    |
-| bun             | `bun add @c15t/scripts@alpha`     |
+| Package manager | Command                                |
+| :-------------- | :------------------------------------- |
+| npm             | `npm install @c15t/integrations@alpha` |
+| pnpm            | `pnpm add @c15t/integrations@alpha`    |
+| yarn            | `yarn add @c15t/integrations@alpha`    |
+| bun             | `bun add @c15t/integrations@alpha`     |
 
 ```ts title="src/consent-scripts.ts"
-import { gtag } from '@c15t/scripts/google-tag';
+import { gtag } from '@c15t/integrations/google-tag';
 
 export const scripts = [gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })];
 ```
@@ -207,7 +207,7 @@ SPA-mode pages use the same `scripts` prop. If you pass an externally owned
 
 **HTML**
 
-The helpers in `@c15t/scripts` are ES modules that need a bundler. On a
+The helpers in `@c15t/integrations` are ES modules that need a bundler. On a
 page that loads the c15t script tag, paste the vendor's own snippet instead
 and keep it inert until its category is allowed:
 
@@ -242,7 +242,7 @@ A kernel you create yourself needs a loader from
 
 **React Native**
 
-There is no script loader to register. `@c15t/scripts` loads browser
+There is no script loader to register. `@c15t/integrations` loads browser
 documents, and a React Native app has none: the consent kernel runs natively
 and the vendor ships as a native or JavaScript module you start yourself.
 

@@ -29,15 +29,15 @@ Zaraz can still run before the bridge starts; audit them. Cloudflare documents
 [purpose assignment](https://developers.cloudflare.com/zaraz/consent-management/)
 and [pageview settings](https://developers.cloudflare.com/zaraz/reference/settings/).
 
-| Package manager | Command                           |
-| :-------------- | :-------------------------------- |
-| npm             | `npm install @c15t/scripts@alpha` |
-| pnpm            | `pnpm add @c15t/scripts@alpha`    |
-| yarn            | `yarn add @c15t/scripts@alpha`    |
-| bun             | `bun add @c15t/scripts@alpha`     |
+| Package manager | Command                                |
+| :-------------- | :------------------------------------- |
+| npm             | `npm install @c15t/integrations@alpha` |
+| pnpm            | `pnpm add @c15t/integrations@alpha`    |
+| yarn            | `yarn add @c15t/integrations@alpha`    |
+| bun             | `bun add @c15t/integrations@alpha`     |
 
 ```ts title="src/consent-scripts.ts"
-import { cloudflareZaraz } from '@c15t/scripts/cloudflare-zaraz';
+import { cloudflareZaraz } from '@c15t/integrations/cloudflare-zaraz';
 
 // Zaraz provides this global after its loader runs.
 declare const zaraz: { track: (event: string) => void };
@@ -57,7 +57,7 @@ export const scripts = [
 
 Register one bridge per app. Keep Zaraz's own loader and its dashboard tools
 when you follow the registration steps below; remove only standalone loaders
-for tools that Zaraz already runs, including a separate `@c15t/scripts` helper
+for tools that Zaraz already runs, including a separate `@c15t/integrations` helper
 for the same tool. If Zaraz auto-injection is off, load
 [Zaraz manually](https://developers.cloudflare.com/zaraz/advanced/load-zaraz-manually/)
 once.
@@ -245,7 +245,7 @@ SPA-mode pages use the same `scripts` prop. If you pass an externally owned
 
 **HTML**
 
-The helpers in `@c15t/scripts` are ES modules that need a bundler. On a
+The helpers in `@c15t/integrations` are ES modules that need a bundler. On a
 page that loads the c15t script tag, paste the vendor's own snippet instead
 and keep it inert until its category is allowed:
 
@@ -280,7 +280,7 @@ A kernel you create yourself needs a loader from
 
 **React Native**
 
-There is no script loader to register. `@c15t/scripts` loads browser
+There is no script loader to register. `@c15t/integrations` loads browser
 documents, and a React Native app has none: the consent kernel runs natively
 and the vendor ships as a native or JavaScript module you start yourself.
 

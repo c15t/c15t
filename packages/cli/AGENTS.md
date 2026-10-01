@@ -31,6 +31,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 ## Guides
 
+- [Banner experiments](./docs/guides/banner-experiments.md): Run A/B tests on consent banner presentation with any feature-flag provider or built-in weighted assignment, and attribute every impression and choice to its arm.
 - [Troubleshooting](./docs/guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
 - [Verify consent](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
 
@@ -38,7 +39,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 - [Agents and automation](./docs/cli/automation.md): Read JSON results from the c15t CLI, call it from another program with runCli, and give a coding agent a v3 setup or migration task.
 - [Framework boilerplate](./docs/cli/commands/boilerplate.md): Generate c15t integration files and wiring instructions for TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid, Astro, React, Next.js or JavaScript with the c15t CLI.
-- [Codemods](./docs/cli/commands/codemods.md): Rewrite useConsentManager() calls to the c15t v3 hooks, and run the v1 to v2 source transforms, with the c15t CLI codemods command.
+- [Codemods](./docs/cli/commands/codemods.md): Rewrite useConsentManager() calls to the c15t v3 hooks, rename @c15t/scripts imports to @c15t/integrations, and run the v1 to v2 source transforms with the c15t CLI codemods command.
 - [Hosted projects and authentication](./docs/cli/commands/hosted.md): Sign in to Inth from the c15t CLI, then list, select or create the Inth project that setup uses.
 - [Self-hosted migrations](./docs/cli/commands/self-host.md): Plan and apply database migrations for a self-hosted c15t backend with the c15t CLI self-host migrate command.
 - [setup](./docs/cli/commands/setup.md): Flags and file handling for c15t setup, which plans and applies c15t integration files in Next.js, React and JavaScript apps.

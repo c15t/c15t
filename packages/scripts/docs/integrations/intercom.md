@@ -11,15 +11,15 @@ Copy the app ID from your Intercom installation snippet, where it is set as
 `app_id`. If your workspace is hosted in the EU or Australia, also set
 `apiBase`.
 
-| Package manager | Command                           |
-| :-------------- | :-------------------------------- |
-| npm             | `npm install @c15t/scripts@alpha` |
-| pnpm            | `pnpm add @c15t/scripts@alpha`    |
-| yarn            | `yarn add @c15t/scripts@alpha`    |
-| bun             | `bun add @c15t/scripts@alpha`     |
+| Package manager | Command                                |
+| :-------------- | :------------------------------------- |
+| npm             | `npm install @c15t/integrations@alpha` |
+| pnpm            | `pnpm add @c15t/integrations@alpha`    |
+| yarn            | `yarn add @c15t/integrations@alpha`    |
+| bun             | `bun add @c15t/integrations@alpha`     |
 
 ```ts title="src/consent-scripts.ts"
-import { intercom } from '@c15t/scripts/intercom';
+import { intercom } from '@c15t/integrations/intercom';
 
 export const scripts = [intercom({ appId: 'YOUR_APP_ID' })];
 ```
@@ -207,7 +207,7 @@ SPA-mode pages use the same `scripts` prop. If you pass an externally owned
 
 **HTML**
 
-The helpers in `@c15t/scripts` are ES modules that need a bundler. On a
+The helpers in `@c15t/integrations` are ES modules that need a bundler. On a
 page that loads the c15t script tag, paste the vendor's own snippet instead
 and keep it inert until its category is allowed:
 
@@ -242,7 +242,7 @@ A kernel you create yourself needs a loader from
 
 **React Native**
 
-There is no script loader to register. `@c15t/scripts` loads browser
+There is no script loader to register. `@c15t/integrations` loads browser
 documents, and a React Native app has none: the consent kernel runs natively
 and the vendor ships as a native or JavaScript module you start yourself.
 
@@ -266,7 +266,7 @@ check it there too. See
 | Option      | Default                                     | Behavior                                                                                                                                |
 | ----------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `appId`     | Required                                    | Sets `app_id` and the loader URL. The helper trims it. Empty or whitespace-only values throw.                                           |
-| `apiBase`   | `https://api-iam.intercom.io`               | Regional API base. `INTERCOM_API_BASES` from `@c15t/scripts/intercom` lists `us`, `eu` and `au`.                                        |
+| `apiBase`   | `https://api-iam.intercom.io`               | Regional API base. `INTERCOM_API_BASES` from `@c15t/integrations/intercom` lists `us`, `eu` and `au`.                                   |
 | `settings`  | None                                        | Extra JSON-serializable settings merged into `window.intercomSettings`. `appId` and `apiBase` override any `app_id` or `api_base` here. |
 | `scriptSrc` | `https://widget.intercom.io/widget/<appId>` | Loader URL override. A blank value falls back to the default.                                                                           |
 

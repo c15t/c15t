@@ -1,7 +1,7 @@
 ---
 title: Custom integrations
-description: Gate a vendor that has no @c15t/scripts helper, or sync consent
-  with an SDK your app already loads, using a c15t script configuration.
+description: Gate a vendor that has no @c15t/integrations helper, or sync
+  consent with an SDK your app already loads, using a c15t script configuration.
 group: integrations
 ---
 

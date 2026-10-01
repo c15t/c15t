@@ -11,15 +11,15 @@ Copy the pixel ID from Meta Events Manager. Remove the original pixel snippet,
 its `<noscript>` tracking image and any tag-manager entry that loads the same
 pixel.
 
-| Package manager | Command                           |
-| :-------------- | :-------------------------------- |
-| npm             | `npm install @c15t/scripts@alpha` |
-| pnpm            | `pnpm add @c15t/scripts@alpha`    |
-| yarn            | `yarn add @c15t/scripts@alpha`    |
-| bun             | `bun add @c15t/scripts@alpha`     |
+| Package manager | Command                                |
+| :-------------- | :------------------------------------- |
+| npm             | `npm install @c15t/integrations@alpha` |
+| pnpm            | `pnpm add @c15t/integrations@alpha`    |
+| yarn            | `yarn add @c15t/integrations@alpha`    |
+| bun             | `bun add @c15t/integrations@alpha`     |
 
 ```ts title="src/consent-scripts.ts"
-import { metaPixel } from '@c15t/scripts/meta-pixel';
+import { metaPixel } from '@c15t/integrations/meta-pixel';
 
 export const scripts = [metaPixel({ pixelId: '123456789012345' })];
 ```
@@ -207,7 +207,7 @@ SPA-mode pages use the same `scripts` prop. If you pass an externally owned
 
 **HTML**
 
-The helpers in `@c15t/scripts` are ES modules that need a bundler. On a
+The helpers in `@c15t/integrations` are ES modules that need a bundler. On a
 page that loads the c15t script tag, paste the vendor's own snippet instead
 and keep it inert until its category is allowed:
 
@@ -242,7 +242,7 @@ A kernel you create yourself needs a loader from
 
 **React Native**
 
-There is no script loader to register. `@c15t/scripts` loads browser
+There is no script loader to register. `@c15t/integrations` loads browser
 documents, and a React Native app has none: the consent kernel runs natively
 and the vendor ships as a native or JavaScript module you start yourself.
 
@@ -297,7 +297,7 @@ export function trackPurchase(marketingAllowed: boolean, value: number) {
 ```
 
 Pass the current marketing permission from your framework, for example
-`useConsent('marketing')` in React. `@c15t/scripts/meta-pixel` also exports
+`useConsent('marketing')` in React. `@c15t/integrations/meta-pixel` also exports
 typed wrappers: `metaPixelEvent`, `metaPixelCustomEvent`,
 `metaPixelSingleEvent` and `metaPixelSingleCustomEvent`. They do nothing while
 `window.fbq` is undefined, before the pixel's first setup. They do not check

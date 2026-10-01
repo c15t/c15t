@@ -1,6 +1,6 @@
 # @c15t/scripts
 
-> Consent-aware vendor integrations and Consent Mode loading contracts.
+> Deprecated v3 compatibility package for @c15t/integrations. Migrate before v4.
 
 These docs ship inside the package so coding agents can read them offline. Open the topic file you need from the list below — paths are relative to this file.
 
@@ -63,6 +63,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 ## Guides
 
+- [Banner experiments](./guides/banner-experiments.md): Run A/B tests on consent banner presentation with any feature-flag provider or built-in weighted assignment, and attribute every impression and choice to its arm.
 - [Troubleshooting](./guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
 - [Verify consent](./guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
 
@@ -79,7 +80,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Adobe Analytics](./integrations/adobe-analytics.md): Load an Adobe Data Collection Tags property only after measurement consent with the c15t adobeAnalytics helper, and check its extensions in DevTools.
 - [Ahrefs Analytics](./integrations/ahrefs-analytics.md): Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
 - [Amplitude](./integrations/amplitude.md): Load the Amplitude Browser SDK 2 only after measurement consent with the c15t amplitude helper, which opts the SDK out on revocation and back in on a new grant.
-- [Custom integrations](./integrations/building-integrations.md): Gate a vendor that has no @c15t/scripts helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
+- [Custom integrations](./integrations/building-integrations.md): Gate a vendor that has no @c15t/integrations helper, or sync consent with an SDK your app already loads, using a c15t script configuration.
 - [Clear on revocation](./integrations/clear-on-revocation.md): Delete the first-party cookies and Web Storage keys a consent category owns when that category is denied, and check the deletion in DevTools.
 - [Clearbit](./integrations/clearbit.md): Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.
 - [Cloudflare Web Analytics](./integrations/cloudflare-web-analytics.md): Load the Cloudflare Web Analytics beacon only after measurement consent with the c15t cloudflareWebAnalytics helper, and check it in DevTools.

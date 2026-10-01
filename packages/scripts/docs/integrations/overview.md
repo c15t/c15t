@@ -7,19 +7,19 @@ group: integrations
 
 ## Choose an integration
 
-Each vendor helper in `@c15t/scripts` returns a script configuration that you
+Each vendor helper in `@c15t/integrations` returns a script configuration that you
 register with your c15t provider. Importing a helper installs nothing on its
 own. Set up consent with your [framework quickstart](https://c15t.com/docs/frameworks) first,
 then follow the vendor guide.
 
-| Package manager | Command                           |
-| :-------------- | :-------------------------------- |
-| npm             | `npm install @c15t/scripts@alpha` |
-| pnpm            | `pnpm add @c15t/scripts@alpha`    |
-| yarn            | `yarn add @c15t/scripts@alpha`    |
-| bun             | `bun add @c15t/scripts@alpha`     |
+| Package manager | Command                                |
+| :-------------- | :------------------------------------- |
+| npm             | `npm install @c15t/integrations@alpha` |
+| pnpm            | `pnpm add @c15t/integrations@alpha`    |
+| yarn            | `yarn add @c15t/integrations@alpha`    |
+| bun             | `bun add @c15t/integrations@alpha`     |
 
-`@c15t/scripts` is a separate package. Keep importing c15t itself from `c15t`,
+`@c15t/integrations` is a separate package. Keep importing c15t itself from `c15t`,
 for example `c15t/react` or `c15t/next`.
 
 The Loading behavior column shows when each helper requests the vendor. Most
@@ -36,7 +36,7 @@ before a choice.
 
 Both guides include all nine framework examples. React and Svelte use `ConsentGate`;
 Vue conditionally renders the iframe, and Astro and JavaScript use the existing
-kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
+kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Tag managers
 
@@ -110,13 +110,13 @@ on revocation and how to check it.
 
 ## Send events only to allowed integrations
 
-`createEventDispatcher` from `@c15t/scripts/events` sends one named event to
+`createEventDispatcher` from `@c15t/integrations/events` sends one named event to
 every registered integration that has an event API and is allowed right now.
 It drops events while measurement is denied, and one vendor's error does not
 stop delivery to the others:
 
 ```ts
-import { createEventDispatcher } from '@c15t/scripts/events';
+import { createEventDispatcher } from '@c15t/integrations/events';
 
 const events = createEventDispatcher({
   scripts,

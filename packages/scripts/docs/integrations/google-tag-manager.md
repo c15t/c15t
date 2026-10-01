@@ -12,15 +12,15 @@ Copy the container ID, which starts with `GTM-`, from your GTM workspace.
 Remove the existing GTM snippet, its `<noscript>` iframe and any framework
 plugin that loads the same container.
 
-| Package manager | Command                           |
-| :-------------- | :-------------------------------- |
-| npm             | `npm install @c15t/scripts@alpha` |
-| pnpm            | `pnpm add @c15t/scripts@alpha`    |
-| yarn            | `yarn add @c15t/scripts@alpha`    |
-| bun             | `bun add @c15t/scripts@alpha`     |
+| Package manager | Command                                |
+| :-------------- | :------------------------------------- |
+| npm             | `npm install @c15t/integrations@alpha` |
+| pnpm            | `pnpm add @c15t/integrations@alpha`    |
+| yarn            | `yarn add @c15t/integrations@alpha`    |
+| bun             | `bun add @c15t/integrations@alpha`     |
 
 ```ts title="src/consent-scripts.ts"
-import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { googleTagManager } from '@c15t/integrations/google-tag-manager';
 
 export const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
 ```
@@ -208,7 +208,7 @@ SPA-mode pages use the same `scripts` prop. If you pass an externally owned
 
 **HTML**
 
-The helpers in `@c15t/scripts` are ES modules that need a bundler. On a
+The helpers in `@c15t/integrations` are ES modules that need a bundler. On a
 page that loads the c15t script tag, paste the vendor's own snippet instead
 and keep it inert until its category is allowed:
 
@@ -243,7 +243,7 @@ A kernel you create yourself needs a loader from
 
 **React Native**
 
-There is no script loader to register. `@c15t/scripts` loads browser
+There is no script loader to register. `@c15t/integrations` loads browser
 documents, and a React Native app has none: the consent kernel runs natively
 and the vendor ships as a native or JavaScript module you start yourself.
 
@@ -313,6 +313,13 @@ For each non-Google tag, add a consent requirement in the tag's consent
 settings, or fire it from a Custom Event trigger on `consent-update`. If a
 vendor must make no request before consent, remove it from the container and
 register its own c15t helper instead.
+
+## Measure opt-in rate
+
+Running a banner experiment? The backend already counts visitors and choices
+per arm. To see the arm in GTM as well, forward the `onSurfaceShown` and
+`onChoiceRecorded` callbacks, which carry `experiment: { id, arm }`. See
+[banner experiments](../guides/banner-experiments.md#send-the-events-to-your-own-analytics-too).
 
 ## Verify Google Tag Manager
 

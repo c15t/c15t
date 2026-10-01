@@ -12,15 +12,15 @@ Copy the pixel ID from the conversions tab in OpenAI Ads Manager. Remove the
 standalone OpenAI installation snippet, because the helper creates the `oaiq`
 queue and initializes the pixel itself.
 
-| Package manager | Command                           |
-| :-------------- | :-------------------------------- |
-| npm             | `npm install @c15t/scripts@alpha` |
-| pnpm            | `pnpm add @c15t/scripts@alpha`    |
-| yarn            | `yarn add @c15t/scripts@alpha`    |
-| bun             | `bun add @c15t/scripts@alpha`     |
+| Package manager | Command                                |
+| :-------------- | :------------------------------------- |
+| npm             | `npm install @c15t/integrations@alpha` |
+| pnpm            | `pnpm add @c15t/integrations@alpha`    |
+| yarn            | `yarn add @c15t/integrations@alpha`    |
+| bun             | `bun add @c15t/integrations@alpha`     |
 
 ```ts title="src/consent-scripts.ts"
-import { openaiPixel } from '@c15t/scripts/openai-pixel';
+import { openaiPixel } from '@c15t/integrations/openai-pixel';
 
 export const scripts = [openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 ```
@@ -208,7 +208,7 @@ SPA-mode pages use the same `scripts` prop. If you pass an externally owned
 
 **HTML**
 
-The helpers in `@c15t/scripts` are ES modules that need a bundler. On a
+The helpers in `@c15t/integrations` are ES modules that need a bundler. On a
 page that loads the c15t script tag, paste the vendor's own snippet instead
 and keep it inert until its category is allowed:
 
@@ -243,7 +243,7 @@ A kernel you create yourself needs a loader from
 
 **React Native**
 
-There is no script loader to register. `@c15t/scripts` loads browser
+There is no script loader to register. `@c15t/integrations` loads browser
 documents, and a React Native app has none: the consent kernel runs natively
 and the vendor ships as a native or JavaScript module you start yourself.
 
@@ -316,7 +316,7 @@ Pass the current marketing permission from your framework, for example
 minor unit, so `2599` is $25.99. Reuse `event_id` on the server event to
 deduplicate it.
 
-`@c15t/scripts/openai-pixel` also exports `openaiPixelEvent`, a typed wrapper
+`@c15t/integrations/openai-pixel` also exports `openaiPixelEvent`, a typed wrapper
 around `oaiq('measure', ...)`. It drops calls made before the queue exists and
 does not check permission, so apply the same guard before calling it. A
 `custom` event needs `custom_event_name` in its options. To send to one pixel

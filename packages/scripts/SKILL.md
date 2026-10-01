@@ -1,6 +1,6 @@
 ---
 name: c15t-scripts
-description: Set up, customize or debug c15t consent management with @c15t/scripts. Use when the project loads analytics, pixels, tag managers or embeds that must wait for consent, or when a task mentions a cookie banner, consent dialog, GDPR or CCPA prompts, blocking analytics until consent, Google Consent Mode or IAB TCF.
+description: Set up, customize or debug c15t consent management with @c15t/scripts. Use when the project imports the deprecated `@c15t/scripts` vendor helpers, or loads analytics, pixels, tag managers or embeds that must wait for consent, or when a task mentions a cookie banner, consent dialog, GDPR or CCPA prompts, blocking analytics until consent, Google Consent Mode or IAB TCF.
 ---
 
 # c15t with @c15t/scripts
@@ -14,9 +14,9 @@ The Markdown under `./docs` matches the installed version. Read it before writin
 
 ## Rules
 
-- Install with the `alpha` tag: `npm install @c15t/scripts@alpha` alongside `c15t@alpha`. npm `latest` is still v2. Keep every c15t package on the same release.
+- Install with the `alpha` tag: `npm install @c15t/integrations@alpha` alongside `c15t@alpha`, replacing the deprecated `@c15t/scripts`. npm `latest` is still v2. Keep every c15t package on the same release.
 - The backend URL comes from the user's Inth project or self-hosted backend. It is public configuration. Never invent one; ask for it or read it from the environment.
-- Register analytics, pixels and embeds through c15t and remove the vendor's own loader or plugin. With a bundler, use `@c15t/scripts` helpers and `ConsentGate`. On a plain HTML page, change the vendor's `<script>` to `type="text/plain"` with `data-c15t-category`. A banner does not block code loaded elsewhere.
+- Register analytics, pixels and embeds through c15t and remove the vendor's own loader or plugin. With a bundler, use `@c15t/integrations` helpers and `ConsentGate`. On a plain HTML page, change the vendor's `<script>` to `type="text/plain"` with `data-c15t-category`. A banner does not block code loaded elsewhere.
 - Gate features on the current permission. Never save a consent choice on page load or from code; only a visitor action records one.
 - Offline mode keeps policies in code and choices in the browser, with no consent records. Not recommended for production environments.
 - Keep one consent provider or root for the whole app, mounted outside route-level components.
