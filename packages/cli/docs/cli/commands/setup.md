@@ -66,21 +66,28 @@ you deploy.
 
 ## Set up styles and Tailwind CSS
 
-In React and Next.js apps, setup adds c15t's stylesheet import to your global
-CSS entry. With Tailwind CSS 3 it imports the Tailwind 3 build, such as
-`c15t/react/styles.tw3.css`, above the `@tailwind` directives, and adds
-`c15t/postcss-tailwind3` before `tailwindcss` in your PostCSS config. It edits
-`postcss.config.*`, `.postcssrc*` or the `postcss` key of `package.json`.
+In React and Next.js apps, setup adds c15t's `styles.css` import to your
+global CSS entry. With Tailwind CSS 3 it also:
 
-When setup cannot edit the PostCSS config, it prints the step to do by hand.
-A non-interactive run logs these warnings and lists them in `warnings` in its
-result. [Tailwind CSS](https://c15t.com/docs/customization/tailwind#set-up-tailwind-css-3)
-shows the finished setup.
+* Puts the import above the `@tailwind` directives, and replaces a
+  `styles.tw3.css` import from an earlier setup.
+* Adds `@c15t/ui/postcss-tailwind3` before `tailwindcss` in your PostCSS
+  config. It edits one `postcss.config.*` or `.postcssrc*` file, in either the
+  object or the array form.
+* Installs `@c15t/ui`, because PostCSS loads the plugin from your app's own
+  dependencies.
 
-Create React App runs Tailwind 3 without reading `postcss.config.js`, so it
-cannot load the plugin and the build fails on c15t's dialog stylesheet. Setup
-warns about this. Add the plugin through CRACO or after ejecting, or move to
-Tailwind 4 or Vite.
+Setup prints the PostCSS change to make by hand when it finds no config, finds
+several config files, finds the config in the `postcss` key of `package.json`,
+or cannot edit the plugin list, such as a YAML file. A non-interactive run
+logs these warnings and lists them in `warnings` in its result.
+[Tailwind CSS](https://c15t.com/docs/customization/tailwind#set-up-tailwind-css-3) shows the
+finished setup.
+
+Create React App ignores PostCSS config files, so Tailwind 3 cannot run the
+plugin and the build fails on c15t's dialog stylesheet. Setup warns about
+this. Add the plugin before `tailwindcss` through CRACO, eject, or move the app
+to Vite.
 
 ## How setup changes files
 
