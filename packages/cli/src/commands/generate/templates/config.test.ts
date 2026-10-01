@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateClientConfigContent } from './config';
+import {
+	generateClientConfigContent,
+	getClientConfigDependencies,
+} from './config';
 
 describe('JavaScript client config', () => {
 	it.each(['hosted', 'offline', 'self-hosted', 'custom'])(
@@ -23,11 +26,23 @@ describe('JavaScript client config', () => {
 		).toMatchSnapshot();
 	});
 
-	it('offline kernel resolves copy for a language set later', () => {
+	it('offline kernel resolves bundled copy for a language set later', () => {
 		const content = generateClientConfigContent('offline');
-		expect(content).toContain('resolveLocalTranslations');
-		expect(content).toMatch(
-			/translationsFor: \(language\) =>\s+resolveLocalTranslations\(language, undefined\)/u
+		expect(content).toContain(
+			"import { baseTranslations } from '@c15t/translations/all';"
 		);
+		expect(content).toMatch(
+			/translationsFor: \(language\) =>\s+resolveLocalTranslations\(language, baseTranslations\)/u
+		);
+	});
+
+	it.each([
+		['offline', ['@c15t/translations']],
+		[null, ['@c15t/translations']],
+		['hosted', []],
+		['self-hosted', []],
+		['custom', []],
+	])('the %s config installs %j next to c15t', (mode, dependencies) => {
+		expect(getClientConfigDependencies(mode)).toEqual(dependencies);
 	});
 });
