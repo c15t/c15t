@@ -159,7 +159,7 @@ describe('hand-written docs examples', () => {
 			'```',
 			'',
 			'  ```ts',
-			"  import { posthog } from '@c15t/scripts/posthog';",
+			"  import { posthog } from '@c15t/integrations/posthog';",
 			'  ```',
 			'',
 			'```bash',

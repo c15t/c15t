@@ -238,25 +238,34 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		],
 		name: '@c15t/integrations',
 		outDir: 'packages/integrations',
+		skill: {
+			install: '`npm install @c15t/integrations@alpha` alongside `c15t@alpha`',
+			topic:
+				'the project loads analytics, pixels, tag managers or embeds that must wait for consent',
+		},
 		summary:
 			'Consent-aware vendor integrations and Consent Mode loading contracts.',
 	},
 	{
 		include: [
 			'upgrade-v3.mdx',
+			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
-			'frameworks/javascript/script-loader.mdx',
-			'frameworks/react/script-loader.mdx',
-			'frameworks/next/script-loader.mdx',
+			'frameworks/*/scripts.mdx',
+			'frameworks/*/embeds.mdx',
+			'frameworks/*/network-blocker.mdx',
 			'customization/**/*.mdx',
 			'integrations/**/*.mdx',
 		],
 		name: '@c15t/scripts',
 		outDir: 'packages/scripts',
 		skill: {
-			install: '`npm install @c15t/scripts@alpha` alongside `c15t@alpha`',
+			// The compatibility package re-exports @c15t/integrations; new code
+			// installs the canonical package.
+			install:
+				'`npm install @c15t/integrations@alpha` alongside `c15t@alpha`, replacing the deprecated `@c15t/scripts`',
 			topic:
-				'the project loads analytics, pixels, tag managers or embeds that must wait for consent',
+				'the project imports the deprecated `@c15t/scripts` vendor helpers, or loads analytics, pixels, tag managers or embeds that must wait for consent',
 		},
 		summary:
 			'Deprecated v3 compatibility package for @c15t/integrations. Migrate before v4.',
