@@ -76,9 +76,9 @@
 			"default": "./dist/headless.js"
 		},
 		"./components/consent-dialog-link": {
-			"types": "./dist-types/index.d.ts",
-			"import": "./dist/index.js",
-			"default": "./dist/index.js"
+			"types": "./dist-types/components/consent-dialog-link.d.ts",
+			"import": "./dist/components/consent-dialog-link.js",
+			"default": "./dist/components/consent-dialog-link.js"
 		},
 		".": {
 			"types": "./dist-types/index.d.ts",

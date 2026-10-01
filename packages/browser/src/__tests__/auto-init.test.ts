@@ -95,6 +95,21 @@ describe('readScriptOptions', () => {
 		});
 	});
 
+	it('reads the nonce from data-nonce, then from the tag itself', () => {
+		expect(readScriptOptions(scriptWith({ 'data-nonce': 'explicit' }))).toEqual(
+			{ nonce: 'explicit' }
+		);
+		expect(readScriptOptions(scriptWith({ nonce: 'from-tag' }))).toEqual({
+			nonce: 'from-tag',
+		});
+		expect(
+			readScriptOptions(
+				scriptWith({ 'data-nonce': 'explicit', nonce: 'from-tag' })
+			)
+		).toEqual({ nonce: 'explicit' });
+		expect(readScriptOptions(scriptWith({ nonce: '' }))).toEqual({});
+	});
+
 	it('ignores empty legal-link URLs', () => {
 		expect(
 			readScriptOptions(

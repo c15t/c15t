@@ -28,8 +28,9 @@ themselves (i.e. Private CMP)."
 (`docs/frameworks/react/iab/overview.mdx:20`,
 `docs/frameworks/next/iab/overview.mdx:25`), an argument for headless
 (`docs/frameworks/javascript/iab/overview.mdx:16`), and an inline script option
-(`docs/frameworks/javascript/script-tag.mdx:318`). There is no code path that
-supplies a c15t-owned ID. The backend only echoes what the operator configured:
+(the "Load the IAB build" section of `docs/frameworks/html/iab.mdx`). There is
+no code path that supplies a c15t-owned ID. The backend only echoes what the
+operator configured:
 `config.iab?.cmpId` becomes `manifest.cmpId`
 (`packages/schema/src/shared/consent-manifest.ts:413`) and `/init` returns it
 only when it was set (same file, lines 313-317). No c15t-owned CMP ID

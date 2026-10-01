@@ -27,7 +27,7 @@ export type ProviderIABOptions =
  * The runtime's own contract, re-exported under this package's `use*`
  * naming so the Svelte hooks and the runtime cannot drift apart.
  *
- * @see {@link https://c15t.com/docs/frameworks/svelte}
+ * @see {@link https://c15t.com/docs/frameworks/svelte/quickstart}
  */
 export type UseScriptLoaderOptions = RuntimeScriptLoaderOptions;
 

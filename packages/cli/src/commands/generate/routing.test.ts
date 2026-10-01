@@ -7,6 +7,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as packageManagerDetection from '../../context/package-manager-detection';
 import { createCliLogger, runCli } from '../../index';
 import * as generateRunner from '../../machines/generate/runner';
+import { c15tReleaseSpecifier } from '../../utils/c15t-release';
 
 const { detectPackageManager } = packageManagerDetection;
 const packageManagerDetectionSpy = vi
@@ -84,7 +85,9 @@ describe('setup routing in an interactive terminal', () => {
 		).toMatchObject({
 			data: {
 				applied: false,
-				dependencies: expect.arrayContaining(['@c15t/integrations']),
+				dependencies: expect.arrayContaining([
+					`@c15t/integrations@${c15tReleaseSpecifier()}`,
+				]),
 				edits: expect.arrayContaining([
 					expect.objectContaining({
 						after: expect.stringContaining(

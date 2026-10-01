@@ -12,6 +12,12 @@ import { fromPromise } from 'xstate';
 import { SCOPED_FRAMEWORK_PACKAGES, UMBRELLA_PACKAGE } from '~/constants';
 import type { PackageManager } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
+import {
+	dependencyName,
+	isC15tPackage,
+	isOnC15tRelease,
+	withC15tRelease,
+} from '~/utils/c15t-release';
 
 /**
  * Input for the dependency installation actor
@@ -252,34 +258,63 @@ export interface CheckDepsOutput {
 }
 
 /**
- * Check whether a requested dependency is satisfied by the app's manifest.
- *
- * The umbrella `c15t` requirement is also satisfied when the app already
- * depends on a scoped framework package (`@c15t/react`, `@c15t/nextjs`) —
- * rerunning setup in such an app must retain the scoped install style
- * instead of layering the umbrella package on top of it.
- *
- * @param depName - Bare package name (version specifier stripped)
- * @param allDeps - Merged dependencies and devDependencies from package.json
- * @returns Whether the dependency does not need to be installed
+ * Whether the app declares a package on a range setup can keep. A c15t
+ * package must also be on the release line this CLI installs, so a v2
+ * install is replaced rather than left under v3 code.
  */
-const isDependencySatisfied = function isDependencySatisfied(
-	depName: string,
+const isDeclared = function isDeclared(
+	name: string,
 	allDeps: Record<string, unknown>
 ): boolean {
-	if (depName in allDeps) {
-		return true;
+	if (!(name in allDeps)) {
+		return false;
 	}
-
+	const range = allDeps[name];
 	return (
-		depName === UMBRELLA_PACKAGE &&
-		SCOPED_FRAMEWORK_PACKAGES.some((scopedPackage) => scopedPackage in allDeps)
+		!isC15tPackage(name) ||
+		typeof range !== 'string' ||
+		isOnC15tRelease(name, range)
 	);
 };
 
 /**
+ * Resolve one requested dependency against the app's manifest.
+ *
+ * The umbrella `c15t` requirement is also satisfied when the app already
+ * depends on a scoped framework package (`@c15t/react`, `@c15t/nextjs`) —
+ * rerunning setup in such an app must retain the scoped install style
+ * instead of layering the umbrella package on top of it. A scoped package
+ * on another release line is reinstalled from this CLI's line instead.
+ *
+ * @param dep - Requested dependency, possibly with a version specifier
+ * @param allDeps - Merged dependencies and devDependencies from package.json
+ * @returns The packages still to install; empty when the request is met
+ */
+const missingFor = function missingFor(
+	dep: string,
+	allDeps: Record<string, unknown>
+): string[] {
+	const name = dependencyName(dep);
+	if (isDeclared(name, allDeps)) {
+		return [];
+	}
+	if (name === UMBRELLA_PACKAGE && !(name in allDeps)) {
+		const scoped = SCOPED_FRAMEWORK_PACKAGES.filter(
+			(scopedPackage) => scopedPackage in allDeps
+		);
+		if (scoped.length > 0) {
+			return scoped
+				.filter((scopedPackage) => !isDeclared(scopedPackage, allDeps))
+				.map((scopedPackage) => withC15tRelease(scopedPackage));
+		}
+	}
+	return [dep];
+};
+
+/**
  * Split requested dependencies into installed and missing sets based on the
- * project's package.json.
+ * project's package.json. A c15t package declared on another release line
+ * counts as missing, so setup installs the line it generates code for.
  *
  * @param input - Project root and the dependencies to check
  * @returns Installed and missing dependency lists
@@ -307,13 +342,11 @@ export const checkInstalledDependencies =
 			};
 
 			for (const dep of dependencies) {
-				// Handle scoped packages
-				const depName = dep.startsWith('@') ? dep : dep.split('@')[0];
-
-				if (depName && isDependencySatisfied(depName, allDeps)) {
+				const toInstall = missingFor(dep, allDeps);
+				if (toInstall.length === 0) {
 					installed.push(dep);
 				} else {
-					missing.push(dep);
+					missing.push(...toInstall);
 				}
 			}
 		} catch {

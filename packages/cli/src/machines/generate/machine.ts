@@ -11,6 +11,7 @@ import { UMBRELLA_PACKAGE } from '~/constants';
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
 import { CliError } from '~/core/errors';
+import { withC15tRelease } from '~/utils/c15t-release';
 
 import {
 	checkDependenciesActor,
@@ -694,7 +695,7 @@ export const generateMachine = setup({
 							if (needsTailwind3PostcssPlugin(context.framework)) {
 								deps.push('@c15t/ui');
 							}
-							return deps;
+							return deps.map((dependency) => withC15tRelease(dependency));
 						},
 						selectedScripts: ({ event }) => event.output.selectedScripts ?? [],
 					}),

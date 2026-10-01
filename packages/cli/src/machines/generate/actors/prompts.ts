@@ -468,7 +468,7 @@ export const frontendOptionsActor = fromPromise<
 			'Choose how you want your consent UI components generated.'
 		);
 		cliContext.logger.info(
-			'Learn more: https://c15t.com/docs/frameworks/next/styling/overview'
+			'Learn more: https://c15t.com/docs/frameworks/next/customize'
 		);
 
 		const styleResult = await p.select({

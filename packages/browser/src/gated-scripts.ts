@@ -4,8 +4,38 @@ import type { AllConsentNames, ConsentSnapshot } from '@c15t/core';
 /** Attribute that names the category an inert `<script>` waits on. */
 export const CATEGORY_ATTRIBUTE = 'data-c15t-category';
 
-/** Set once a gated script has been activated (or rejected as invalid). */
+/**
+ * Set once a gated script has been activated (`true`), rejected for an
+ * unknown category (`invalid`), or refused for lacking the page nonce
+ * (`untrusted`).
+ */
 export const ACTIVATED_ATTRIBUTE = 'data-c15t-activated';
+
+/**
+ * Whether an inert tag may be activated under the configured nonce.
+ *
+ * Activation creates a new, non-parser-inserted `<script>`, which a CSP
+ * with `'strict-dynamic'` runs without a nonce. Without this check, markup
+ * injected through an HTML-injection hole would run once its category is
+ * granted. With a nonce configured, only tags carrying that nonce are the
+ * page's own. Browsers hide a connected element's nonce attribute, so the
+ * property is compared.
+ */
+const isTrusted = function isTrusted(
+	element: HTMLScriptElement,
+	nonce: string | undefined
+): boolean {
+	if (!nonce || element.nonce === nonce) {
+		return true;
+	}
+	// oxlint-disable-next-line no-console -- Security diagnostic for the page author.
+	console.warn(
+		`@c15t/browser: skipped a ${CATEGORY_ATTRIBUTE} script without the configured nonce. Add nonce="..." to your own gated tags.`,
+		element
+	);
+	element.setAttribute(ACTIVATED_ATTRIBUTE, 'untrusted');
+	return false;
+};
 
 const COPIED_ATTRIBUTES = [
 	'src',
@@ -105,13 +135,15 @@ interface GatedScriptActivator {
  * @param getSnapshot - Read current consent before each activation.
  * @param root - Where to look. Defaults to the document when scanning.
  * @param registerCategories - Add discovered categories before evaluating gates.
+ * @param nonce - When set, only tags carrying this nonce are activated.
  * @returns A scanner and its disposal function.
  * @internal
  */
 export const createGatedScriptActivator = function createGatedScriptActivator(
 	getSnapshot: () => ConsentSnapshot,
 	root?: ParentNode,
-	registerCategories?: (categories: AllConsentNames[]) => void
+	registerCategories?: (categories: AllConsentNames[]) => void,
+	nonce?: string
 ): GatedScriptActivator {
 	let disposed = false;
 	let scanning = false;
@@ -143,11 +175,13 @@ export const createGatedScriptActivator = function createGatedScriptActivator(
 		let activated = 0;
 		try {
 			const selector = `script[type="text/plain"][${CATEGORY_ATTRIBUTE}]:not([${ACTIVATED_ATTRIBUTE}])`;
-			const elements = (root ?? document).querySelectorAll<HTMLScriptElement>(
-				selector
-			);
+			// Untrusted tags are marked, so each is refused (and reported) once
+			// and cannot add a category to the UI.
+			const elements = Array.from(
+				(root ?? document).querySelectorAll<HTMLScriptElement>(selector)
+			).filter((element) => isTrusted(element, nonce));
 			registerCategories?.(
-				Array.from(elements).flatMap((element) => {
+				elements.flatMap((element) => {
 					const category = element.getAttribute(
 						CATEGORY_ATTRIBUTE
 					) as AllConsentNames;
@@ -193,11 +227,16 @@ export const createGatedScriptActivator = function createGatedScriptActivator(
 	};
 };
 
-// Standalone scans retain their latest snapshot per root. Clients own their
-// activator so disposal never cancels another client's continuation.
+// Standalone scans retain their latest snapshot and nonce per root. Clients
+// own their activator so disposal never cancels another client's
+// continuation.
 const standaloneActivators = new WeakMap<
 	ParentNode,
-	{ snapshot: ConsentSnapshot; activator: GatedScriptActivator }
+	{
+		snapshot: ConsentSnapshot;
+		activator: GatedScriptActivator;
+		nonce: string | undefined;
+	}
 >();
 
 /**
@@ -209,22 +248,41 @@ const standaloneActivators = new WeakMap<
  * Each script runs at most once; withdrawing consent after activation requires
  * vendor cleanup or a page reload.
  *
+ * Pass the page's CSP nonce on a page whose policy uses `'strict-dynamic'`:
+ * tags without it are then skipped, so injected markup cannot run.
+ *
  * @param snapshot - The kernel snapshot.
  * @param root - Where to look. Defaults to the document.
+ * @param options - `nonce` limits activation to tags carrying it. The root
+ * remembers the last nonce passed: a call with a different nonce replaces
+ * it, and a call without one keeps it.
  * @returns How many scripts were activated immediately. Others may be waiting
  * for an earlier external script.
  */
 export const activateGatedScripts = function activateGatedScripts(
 	snapshot: ConsentSnapshot,
-	root: ParentNode = document
+	root: ParentNode = document,
+	options: { nonce?: string } = {}
 ): number {
 	let state = standaloneActivators.get(root);
+	if (state && options.nonce !== undefined && options.nonce !== state.nonce) {
+		state.activator.dispose();
+		state = undefined;
+	}
 	if (!state) {
+		const { nonce } = options;
 		const current: {
 			snapshot: ConsentSnapshot;
 			activator: GatedScriptActivator;
+			nonce: string | undefined;
 		} = {
-			activator: createGatedScriptActivator(() => current.snapshot, root),
+			activator: createGatedScriptActivator(
+				() => current.snapshot,
+				root,
+				undefined,
+				nonce
+			),
+			nonce,
 			snapshot,
 		};
 		state = current;

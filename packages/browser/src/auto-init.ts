@@ -72,6 +72,20 @@ const readOverrides = function readOverrides(
 };
 
 /**
+ * The CSP nonce the tag names: `data-nonce`, else the tag's own nonce.
+ * Browsers hide a connected element's `nonce` content attribute, so the
+ * property is read, not the attribute.
+ */
+const readNonce = function readNonce(element: Element): string | undefined {
+	const explicit = element.getAttribute('data-nonce');
+	if (explicit) {
+		return explicit;
+	}
+	const own = (element as Partial<HTMLOrSVGElement>).nonce;
+	return typeof own === 'string' && own !== '' ? own : undefined;
+};
+
+/**
  * Read client options from a `<script>` tag's `data-*` attributes.
  *
  * ```html
@@ -82,6 +96,9 @@ const readOverrides = function readOverrides(
  *   data-privacy-policy-url="/privacy"
  *   defer></script>
  * ```
+ *
+ * A `nonce` on the tag (or `data-nonce`) becomes the `nonce` option, so the
+ * UI's `<style>` element passes a nonce-based CSP.
  *
  * @param element - The script element, or `null` outside a classic script.
  * @returns Options for `init()`.
@@ -123,6 +140,10 @@ export const readScriptOptions = function readScriptOptions(
 	const legalLinks = readLegalLinks(element);
 	if (legalLinks) {
 		options.legalLinks = legalLinks;
+	}
+	const nonce = readNonce(element);
+	if (nonce) {
+		options.nonce = nonce;
 	}
 	if (readFlag(element, 'data-no-ui')) {
 		options.ui = false;

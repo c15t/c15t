@@ -148,8 +148,25 @@ export interface ConsentUIOptions {
  */
 export interface ConsentClientOptions extends Pick<
 	ConsentRuntimeOptions,
-	'consentSource'
+	'consentSource' | 'persistence' | 'scriptLoader' | 'vendors'
 > {
+	/**
+	 * Content Security Policy nonce for the elements c15t adds to the page:
+	 * the stock UI's `<style>` element and every `<script>` the `scripts`
+	 * option loads. Set it when your CSP allows styles or scripts by nonce
+	 * instead of `'unsafe-inline'`. A script's own `nonce` takes precedence.
+	 *
+	 * The script-tag build reads `data-nonce`, then the tag's own `nonce`, so
+	 * `<script nonce="…" src=".../c15t.js">` needs nothing else.
+	 *
+	 * With a nonce set, inert `<script type="text/plain" data-c15t-category>`
+	 * tags run only when they carry the same nonce; others are skipped with
+	 * a warning and marked `data-c15t-activated="untrusted"`. Activation
+	 * creates a new script, which a `'strict-dynamic'` policy runs without a
+	 * nonce, so injected markup would otherwise run once consent is granted.
+	 * The configured nonce is never copied onto an inert tag.
+	 */
+	nonce?: string;
 	/** IAB configuration. Requires the `@c15t/browser/iab` entry. */
 	iab?: ConsentRuntimeOptions['iab'];
 	/**
@@ -208,7 +225,11 @@ export interface ConsentClientOptions extends Pick<
 	legalLinks?: LegalLinks;
 	/** Block network requests by URL until consent. */
 	networkBlocker?: RuntimeNetworkBlockerOptions | false;
-	/** Gate iframes by category. On by default. */
+	/**
+	 * Gate iframes by category. On by default. With
+	 * `disableAutomaticBlocking`, frames are only checked when you call
+	 * {@link ConsentClient.processIframes}.
+	 */
 	iframeBlocker?: ConsentRuntimeOptions['iframeBlocker'];
 	/** `false` grants every category and mounts nothing. */
 	enabled?: boolean;
@@ -356,7 +377,9 @@ export interface ConsentClient {
 	 *
 	 * Once the policy is resolved, a new `ready` listener runs at once and
 	 * a new `ui` listener receives the surface currently up, so wiring
-	 * attached after a fast init misses nothing.
+	 * attached after a fast init misses nothing. A listener that throws is
+	 * reported with `console.error`; the listeners after it and the matching
+	 * `c15t:*` document event still run.
 	 *
 	 * @param event - The event name.
 	 * @param listener - Called with the event payload.
@@ -372,6 +395,23 @@ export interface ConsentClient {
 	 * @param options - UI options; defaults to `options.ui`.
 	 */
 	mountUI: (options?: ConsentUIOptions) => ConsentUIHandle;
+	/**
+	 * Scan every iframe on the page and apply the current consent: pause
+	 * gated frames (`data-category`, `data-vendor`) that are not allowed and
+	 * restore the ones that are. The blocker does this on its own; call it
+	 * yourself when `iframeBlocker.disableAutomaticBlocking` is set, after
+	 * adding frames and after consent changes. A no-op before `start()`,
+	 * after `dispose()`, and when `iframeBlocker` is `false`.
+	 *
+	 * @example
+	 * ```ts
+	 * const client = init({ iframeBlocker: { disableAutomaticBlocking: true } });
+	 * client.on('consent', () => client.processIframes());
+	 * container.append(embed);
+	 * client.processIframes();
+	 * ```
+	 */
+	processIframes: () => void;
 	/** Start the runtime and mount the UI. Idempotent. */
 	start: () => void;
 	/** Tear everything down. */

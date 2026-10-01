@@ -406,6 +406,35 @@ describe('mountConsentUI', () => {
 		).toBeNull();
 	});
 
+	it('closes the preference centre on Escape pressed outside it', async () => {
+		const { root, client } = await mount(
+			{},
+			{ presentation: { preferences: { blocking: false } } }
+		);
+		client.openDialog();
+		const outside = document.createElement('button');
+		document.body.append(outside);
+
+		outside.dispatchEvent(
+			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+		);
+
+		expect(client.getSnapshot().activeUI).toBe('none');
+		expect(
+			root.querySelector('[data-testid="consent-dialog-root"]')
+		).toBeNull();
+	});
+
+	it('stamps the configured nonce on the injected style element', async () => {
+		const { root } = await mount(
+			{ css: '.probe { color: red; }' },
+			{ nonce: 'page-nonce' }
+		);
+
+		const style = root.querySelector('style');
+		expect(style?.nonce).toBe('page-nonce');
+	});
+
 	it('renders configured legal links with translated labels', async () => {
 		const { root } = await mount({ banner: { legalLinks: ['privacyPolicy'] } });
 

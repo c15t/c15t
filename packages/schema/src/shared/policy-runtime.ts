@@ -154,7 +154,7 @@ const applyPolicyMatchFragment = function applyPolicyMatchFragment(
  * These helpers normalize country and region casing and make intent explicit in
  * both backend config and tests.
  *
- * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs#matching-order}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs#understand-rule-selection}
  */
 export const policyMatchers = {
 	countries(countries: string[]): PolicyMatch {

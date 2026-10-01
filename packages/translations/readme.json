@@ -8,6 +8,6 @@
 		"Defines translation types for cookie banners, consent dialogs, and consent types",
 		"Flexible language configuration with optional auto-language switching"
 	],
-	"docsLink": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
+	"docsLink": "https://c15t.com/docs/customization/translations",
 	"showCLIGeneration": false
 }

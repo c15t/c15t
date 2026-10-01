@@ -36,7 +36,7 @@ export const getSSROption = async function getSSROption({
 		'The generated layout passes the pending consent state to the provider, so pages render without waiting for the backend; the banner appears after hydration.'
 	);
 	context.logger.info(
-		'Learn more: https://c15t.com/docs/frameworks/next/server-side'
+		'Learn more: https://c15t.com/docs/frameworks/next/rendering'
 	);
 
 	const enableSSR = await p.select({

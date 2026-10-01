@@ -47,6 +47,52 @@ describe('gated inline scripts', () => {
 		expect(document.querySelector('script')).toBe(script);
 	});
 
+	it('with a nonce configured, activates only tags that carry it', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			/* expected */
+		});
+		const injected = inertScript('necessary', 'window.__injected = true;');
+		const own = inertScript('necessary', 'window.__own = true;');
+		own.nonce = 'page-nonce';
+		const client = createConsentClient({ nonce: 'page-nonce', ui: false });
+		clients.push(client);
+		client.start();
+		await client.ready();
+
+		await vi.waitFor(() => expect(own.isConnected).toBe(false));
+		expect(injected.isConnected).toBe(true);
+		expect(injected.type).toBe('text/plain');
+		expect(injected.getAttribute('data-c15t-activated')).toBe('untrusted');
+		expect(warn).toHaveBeenCalledOnce();
+	});
+
+	it('applies a nonce passed after an earlier call without one', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			/* expected */
+		});
+		const root = document.createElement('div');
+		document.body.append(root);
+		const client = createConsentClient({ ui: false });
+		clients.push(client);
+
+		expect(activateGatedScripts(client.getSnapshot(), root)).toBe(0);
+
+		const injected = inertScript('necessary', 'window.__injected = true;');
+		const own = inertScript('necessary', 'window.__own = true;');
+		own.nonce = 'page-nonce';
+		root.append(injected, own);
+
+		expect(
+			activateGatedScripts(client.getSnapshot(), root, { nonce: 'page-nonce' })
+		).toBe(1);
+		expect(own.isConnected).toBe(false);
+		expect(injected.getAttribute('data-c15t-activated')).toBe('untrusted');
+
+		activateGatedScripts(client.getSnapshot(), root);
+		expect(injected.type).toBe('text/plain');
+		expect(warn).toHaveBeenCalledOnce();
+	});
+
 	it('activates inert scripts inserted after initialization', async () => {
 		const client = createConsentClient({ ui: false });
 		clients.push(client);

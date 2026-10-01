@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { runCli } from '../../../index';
+import { c15tReleaseSpecifier } from '../../../utils/c15t-release';
 import { applyFileEdits } from '../templates/shared/file-plan';
 import {
 	planBoilerplateDependencies,
@@ -74,12 +75,22 @@ afterEach(async () => {
 });
 
 describe('local unpublished package sources', () => {
-	it('does not add registry versions or touch package.json without a source', async () => {
+	it('points at the CLI release line without touching package.json when no source is given', async () => {
+		const release = c15tReleaseSpecifier();
+		const svelteRelease = c15tReleaseSpecifier(undefined, '@c15t/svelte');
 		const plan = await planBoilerplateDependencies({
-			dependencies: ['c15t'],
+			dependencies: ['c15t', '@c15t/svelte', 'svelte'],
 			projectRoot: app,
 		});
-		expect(plan.dependencies).toEqual([{ name: 'c15t', specifier: null }]);
+		expect(plan.dependencies).toEqual([
+			{ name: 'c15t', specifier: release },
+			{ name: '@c15t/svelte', specifier: svelteRelease },
+			{ name: 'svelte', specifier: null },
+		]);
+		expect(plan.instructions[0]).toContain(
+			`Install c15t@${release} @c15t/svelte@${svelteRelease} with your package manager.`
+		);
+		expect(plan.instructions.join('\n')).not.toContain('unpublished');
 		expect(plan.edits).toEqual([]);
 		expect(await fs.readdir(app)).toEqual([]);
 	});

@@ -10,11 +10,11 @@ import { packageInfo } from './package-info';
 // --- URLs ---
 export const URLS = {
 	/** API documentation */
-	API_DOCS: 'https://c15t.com/docs/api',
+	API_DOCS: 'https://c15t.com/docs/self-host/api/endpoints',
 	/** Product changelog */
 	CHANGELOG: 'https://c15t.com/changelog',
 	/** CLI documentation */
-	CLI_DOCS: 'https://c15t.com/docs/cli',
+	CLI_DOCS: 'https://c15t.com/docs/cli/overview',
 	/** Default c15t cloud platform URL */
 	CONSENT_IO: 'https://inth.com',
 	/** Discord community */

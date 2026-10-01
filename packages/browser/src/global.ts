@@ -47,6 +47,8 @@ export type QueuedCall = [method: string, ...args: unknown[]];
  * ```
  *
  * The tag replaces it with this object and replays the queue in order.
+ * Actions such as `openDialog` or `acceptAll` wait for the client and its
+ * policy; unsupported methods are skipped with a warning.
  * Before `init()` the read methods throw and `on()`/`ready()` wait; after
  * it everything proxies to the page's client. `version`, `pkg` and `mode`
  * keep the shape `@c15t/core` installs for devtools.
@@ -85,6 +87,16 @@ export interface C15tGlobal {
 	 * @returns A function that cancels the call if it has not run yet.
 	 */
 	onInit: (listener: (client: ConsentClient) => void) => Unsubscribe;
+	/**
+	 * Run `[method, ...args]` calls the same way as calls queued before the
+	 * tag loaded, so `window.c15t = window.c15t || []; c15t.push([...])`
+	 * works whether the snippet runs before or after the tag. Unsupported
+	 * methods are skipped with a warning.
+	 *
+	 * @param calls - One or more `[method, ...args]` arrays.
+	 * @returns The number of calls received.
+	 */
+	push: (...calls: unknown[]) => number;
 	/** The DevTools panel, once `c15t.devtools.js` has mounted it. */
 	devtools: DevToolsInstance | null;
 	/** Resolves once the policy is resolved. Safe to call before `init()`. */
@@ -109,6 +121,8 @@ export interface C15tGlobal {
 	setLanguage: (code: string) => void;
 	identify: (user: KernelUser) => Promise<void>;
 	mountUI: (options?: ConsentUIOptions) => ConsentUIHandle;
+	/** See {@link ConsentClient.processIframes}. */
+	processIframes: () => void;
 	dispose: () => void;
 	/** Transport factories, for `init({ mode: c15t.hosted({ url }) })`. */
 	hosted: typeof hosted;
@@ -121,9 +135,197 @@ type GlobalWindow = Window & {
 	[GLOBAL_NAME]?: C15tGlobal | QueuedCall[] | unknown;
 };
 
+/** Queued methods that configure or observe the client, run in place. */
+const QUEUE_SETUP_METHODS: ReadonlySet<string> = new Set([
+	'config',
+	'init',
+	'on',
+	'onInit',
+]);
+
+/** Queued methods that need a client; attached as soon as it exists. */
+const QUEUE_INIT_METHODS: ReadonlySet<string> = new Set(['subscribe']);
+
+/**
+ * Queued methods that act on consent or the UI. They wait for the policy
+ * to resolve, so a queued `openDialog` is not replaced by the banner the
+ * resolution derives, and `acceptAll` knows which model to save.
+ */
+const QUEUE_ACTION_METHODS: ReadonlySet<string> = new Set([
+	'acceptAll',
+	'closeDialog',
+	'dismissNotice',
+	'identify',
+	'mountUI',
+	'openDialog',
+	'processIframes',
+	'rejectAll',
+	'save',
+	'saveIAB',
+	'setLanguage',
+	'showBanner',
+]);
+
+const queuedName = function queuedName(call: unknown): string {
+	return Array.isArray(call) && typeof call[0] === 'string'
+		? call[0]
+		: String(call);
+};
+
+const reportQueuedFailure = function reportQueuedFailure(
+	call: unknown,
+	error: unknown
+): void {
+	// oxlint-disable-next-line no-console -- Authoring-time diagnostic.
+	console.error(
+		`@c15t/browser: queued c15t.${queuedName(call)}() failed; continuing with the rest of the queue.`,
+		error
+	);
+};
+
+/**
+ * Run one queued call against the API, reporting a throw or a rejected
+ * promise instead of letting it stop the calls behind it.
+ */
+const runQueued = async function runQueued(
+	api: C15tGlobal,
+	call: QueuedCall
+): Promise<void> {
+	const [method, ...args] = call;
+	const fn = (api as unknown as Record<string, unknown>)[method];
+	try {
+		await (fn as (...params: unknown[]) => unknown).apply(api, args);
+	} catch (error) {
+		reportQueuedFailure(call, error);
+	}
+};
+
+/** The pending consent and UI actions for one API. */
+interface ActionChain {
+	/** Settles once every batch reserved so far has finished. */
+	tail: Promise<void>;
+	/** Set by `dispose()`. Batches that have not run yet stop. */
+	cancelled: boolean;
+}
+
+/**
+ * Each API's action chain. Every batch of queued actions runs after the
+ * batch before it settles, so actions from separate `push()` calls keep
+ * their order.
+ */
+const actionChains = new WeakMap<C15tGlobal, ActionChain>();
+
+/**
+ * Reserve the next place in the API's action chain for a batch of consent
+ * and UI actions. The batch runs once it is released, every earlier batch
+ * has finished and the policy has resolved. Reserving before the batch is
+ * filled keeps its place ahead of any `push()` made while it is filled.
+ *
+ * @param api - The API the actions run against.
+ * @param actions - The batch. It is read when the batch runs, so the
+ * caller can keep adding to it until it calls the returned function.
+ * @returns A function that releases the batch.
+ */
+const reserveActions = function reserveActions(
+	api: C15tGlobal,
+	actions: readonly QueuedCall[]
+): () => void {
+	let chain = actionChains.get(api);
+	if (!chain) {
+		chain = { cancelled: false, tail: Promise.resolve() };
+		actionChains.set(api, chain);
+	}
+	const current = chain;
+	const previous = current.tail;
+	const released = createDeferred<undefined>();
+	const run = async function run(): Promise<void> {
+		// `runQueued` reports its own failures, so the chain never rejects.
+		await previous;
+		await released.promise;
+		if (current.cancelled || actions.length === 0) {
+			return;
+		}
+		try {
+			await api.ready();
+		} catch {
+			// The actions still run; the client reports its own errors.
+		}
+		for (const call of actions) {
+			if (current.cancelled) {
+				return;
+			}
+			// oxlint-disable-next-line no-await-in-loop -- Queue order is the contract.
+			await runQueued(api, call);
+		}
+	};
+	current.tail = run();
+	return function release() {
+		released.resolve(undefined);
+	};
+};
+
+/**
+ * Drop every batch still waiting in the API's action chain, so none of it
+ * runs against a disposed client or the one a later `init()` creates.
+ * Batches pushed afterwards start a new chain.
+ */
+const cancelActions = function cancelActions(api: C15tGlobal): void {
+	const chain = actionChains.get(api);
+	if (chain) {
+		chain.cancelled = true;
+		actionChains.delete(api);
+	}
+};
+
+/**
+ * Replay the calls a page pushed onto `window.c15t` before the script
+ * loaded. `config`, `init`, `on` and `onInit` run in place, `subscribe`
+ * attaches once the client exists, and consent and UI actions run in
+ * queue order once the policy has resolved, after any actions from
+ * earlier `push()` calls. Anything else is skipped with a warning. A
+ * call that throws is reported and the rest still run.
+ */
+const replayQueue = function replayQueue(
+	api: C15tGlobal,
+	queue: readonly unknown[]
+): void {
+	const actions: QueuedCall[] = [];
+	// Reserve before the setup calls run: a ready listener that `init()`
+	// fires can push actions of its own, and those belong after these.
+	const releaseActions = reserveActions(api, actions);
+	for (const call of queue) {
+		const method = Array.isArray(call) ? call[0] : undefined;
+		if (typeof method !== 'string') {
+			// oxlint-disable-next-line no-console -- Authoring-time diagnostic.
+			console.warn(
+				'@c15t/browser: skipped a queued c15t entry that is not [method, ...args].',
+				call
+			);
+			continue;
+		}
+		const queued = call as QueuedCall;
+		if (QUEUE_SETUP_METHODS.has(method)) {
+			void runQueued(api, queued);
+		} else if (QUEUE_INIT_METHODS.has(method)) {
+			api.onInit(() => {
+				void runQueued(api, queued);
+			});
+		} else if (QUEUE_ACTION_METHODS.has(method)) {
+			actions.push(queued);
+		} else {
+			// oxlint-disable-next-line no-console -- Authoring-time diagnostic.
+			console.warn(
+				`@c15t/browser: c15t.push(['${method}', ...]) is not supported before the tag loads and was skipped. Call it from c15t.onInit() instead.`
+			);
+		}
+	}
+	releaseActions();
+};
+
 /**
  * Put the API on `window.c15t`, replaying in order any calls a page queued
- * on the array that was there before the script loaded.
+ * on the array that was there before the script loaded. See `replayQueue`
+ * for when each kind of call runs.
  *
  * @param api - The API object.
  */
@@ -148,15 +350,8 @@ export const installGlobal = function installGlobal(
 		return existing as C15tGlobal;
 	}
 	target[GLOBAL_NAME] = api;
-	if (!Array.isArray(existing)) {
-		return api;
-	}
-	for (const call of existing as QueuedCall[]) {
-		const [method, ...args] = call;
-		const fn = (api as unknown as Record<string, unknown>)[method];
-		if (typeof fn === 'function') {
-			(fn as (...params: unknown[]) => unknown)(...args);
-		}
+	if (Array.isArray(existing)) {
+		replayQueue(api, existing);
 	}
 	return api;
 };
@@ -216,6 +411,7 @@ export const createGlobal = function createGlobal(
 		dispose: () => {
 			api.devtools?.destroy();
 			api.devtools = null;
+			cancelActions(api);
 			client?.dispose();
 			// Keep queued defaults for re-init, including backend-injected
 			// manifests and URLs that are not present on the script tag.
@@ -283,6 +479,13 @@ export const createGlobal = function createGlobal(
 			require().openDialog();
 		},
 		pkg: context.pkg ?? '@c15t/browser',
+		processIframes: () => {
+			require().processIframes();
+		},
+		push(...calls) {
+			replayQueue(api, calls);
+			return calls.length;
+		},
 		async ready() {
 			const resolvedClient = await clientReady.promise;
 			return resolvedClient.ready();
