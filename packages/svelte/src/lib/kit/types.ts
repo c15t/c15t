@@ -32,7 +32,11 @@ export type ConsentRequestInputs = ConsentRequestHeaderInputs;
 
 /** Manifest-mode wiring shared by the route handlers and `loadConsent`. */
 export interface ConsentManifestOptions extends ManifestSourceConfig {
-	/** Fetch implementation. Defaults to the global `fetch`. */
+	/**
+	 * Fetch implementation for an absolute `backendURL` or `manifestURL`.
+	 * Defaults to the global `fetch`. The route handlers fetch a relative
+	 * one, such as `/api/self-host`, through `event.fetch` instead.
+	 */
 	fetch?: ManifestFetch;
 	/**
 	 * Receives the promise of a background manifest revalidation started by

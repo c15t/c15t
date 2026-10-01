@@ -291,23 +291,57 @@ describe('createSvelteKitConsentRouteHandlers proxy', () => {
 		expect(response.headers.get('set-cookie')).toBe('a=1; Path=/');
 	});
 
-	test('resolves a relative backendURL against the request origin', async () => {
-		const { calls, fetch } = upstream();
+	test('sends a relative backendURL through event.fetch whatever the Host', async () => {
+		const configured = upstream();
+		const inProcess = upstream();
 		const { POST } = createSvelteKitConsentRouteHandlers({
 			backendURL: '/api/self-host',
-			fetch,
+			fetch: configured.fetch,
 			proxy: true,
 		});
 
-		await POST(
-			consentEvent('subjects', {
+		// On adapter-node without ORIGIN, event.url carries the client's Host.
+		const response = await POST(
+			createEvent({
 				body: '{}',
+				fetch: inProcess.fetch,
+				headers: { host: 'attacker.example' },
 				method: 'POST',
-				origin: 'http://localhost:5173',
+				route: { id: ROUTE_ID, params: { path: 'subjects' } },
+				url: 'http://attacker.example/api/c15t/subjects?x=1',
 			})
 		);
 
-		expect(calls[0]?.url).toBe('http://localhost:5173/api/self-host/subjects');
+		expect(response.status).toBe(200);
+		expect(configured.calls).toHaveLength(0);
+		expect(inProcess.calls.map((call) => call.url)).toEqual([
+			'/api/self-host/subjects?x=1',
+		]);
+	});
+
+	test('reads the manifest of a relative backendURL through event.fetch', async () => {
+		const configured = upstream();
+		const inProcess = upstream(() => Response.json(MANIFEST_FIXTURE));
+		const { GET } = createSvelteKitConsentRouteHandlers({
+			backendURL: '/api/self-host',
+			fetch: configured.fetch,
+			proxy: true,
+		});
+
+		const response = await GET(
+			createEvent({
+				fetch: inProcess.fetch,
+				headers: { host: 'attacker.example' },
+				route: { id: ROUTE_ID, params: { path: 'manifest' } },
+				url: 'http://attacker.example/api/c15t/manifest',
+			})
+		);
+
+		expect(response.status).toBe(200);
+		expect(configured.calls).toHaveLength(0);
+		expect(inProcess.calls.map((call) => call.url)).toEqual([
+			'/api/self-host/manifest',
+		]);
 	});
 
 	test('refuses to proxy without a backend URL', async () => {

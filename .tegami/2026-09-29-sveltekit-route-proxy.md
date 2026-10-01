@@ -27,6 +27,14 @@ anything else gets `404`. Cookies are forwarded only when `cookieNames`
 names them. The client address comes from `event.getClientAddress()`, and
 `x-forwarded-host` and `x-forwarded-proto` from `event.url`.
 
+A relative `backendURL` or `manifestURL`, such as `/api/self-host`, is now
+fetched through `event.fetch`, so SvelteKit answers it in-process. The
+route handlers used to resolve it against `event.url`, which on
+adapter-node without `ORIGIN` takes its host from the client's `Host`
+header, so a forged header could send the manifest, init or proxied
+request to a host of the client's choosing and return its response. The
+`fetch` option now applies to absolute URLs only.
+
 To a remote backend over plain `http:`, the proxy sends only the public
 browser headers: no cookies, no custom headers and no `x-forwarded-for`.
 Such a backend no longer sees the visitor's IP address, so it cannot use it

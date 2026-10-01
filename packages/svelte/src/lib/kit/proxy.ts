@@ -92,7 +92,8 @@ const readForwarding = function readForwarding(
  *
  * @internal
  * @param input - The request event, the absolute backend URL, the resolved
- * options and the fetch to call.
+ * options and the fetch to call. For a backend route in this app the URL is
+ * on a placeholder origin and `fetch` sends it to `event.fetch` as a path.
  * @returns The upstream response, or a 404 when the path is not allowed.
  */
 export const proxyConsentRequest = function proxyConsentRequest(input: {
