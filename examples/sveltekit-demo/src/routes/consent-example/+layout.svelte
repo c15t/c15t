@@ -1,8 +1,5 @@
 <!-- #region docs:layout title="src/routes/+layout.svelte" -->
 <script lang="ts">
-	import { scripts } from '$lib/example-scripts';
-	// #hide docs
-	import { testBackend } from '$lib/test-backend';
 	// #endhide docs
 	import {
 		ConsentBanner,
@@ -11,6 +8,10 @@
 		ConsentManagerProvider,
 		hosted,
 	} from '@c15t/svelte';
+
+	import { scripts } from '#lib/example-scripts.js';
+	// #hide docs
+	import { testBackend } from '#lib/test-backend.js';
 
 	import '@c15t/svelte/styles.css';
 

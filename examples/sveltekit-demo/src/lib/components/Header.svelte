@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ThemeSwitcherButton from '$lib/consent-manager/ThemeSwitcherButton.svelte';
+	import ThemeSwitcherButton from '#lib/consent-manager/ThemeSwitcherButton.svelte';
 
 	import I18nButton from './I18nButton.svelte';
 </script>

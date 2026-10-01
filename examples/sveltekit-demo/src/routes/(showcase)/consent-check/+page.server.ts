@@ -1,4 +1,4 @@
-import { consentClient } from '$lib/c15t-client';
+import { consentClient } from '#lib/c15t-client.js';
 
 import type { PageServerLoad } from './$types';
 

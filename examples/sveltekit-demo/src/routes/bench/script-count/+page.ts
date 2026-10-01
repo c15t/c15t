@@ -1,4 +1,4 @@
-import { normalizeCount } from '$lib/bench/script-count-state';
+import { normalizeCount } from '#lib/bench/script-count-state.js';
 
 export const load = function load({ url }: { url: URL }) {
 	return {

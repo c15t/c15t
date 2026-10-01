@@ -1,5 +1,5 @@
 // #region docs:manifest-layout-server title="src/routes/+layout.server.ts"
-import { building } from '$app/environment';
+import { building } from '$app/env';
 import { loadConsent } from '@c15t/svelte/kit';
 
 import type { LayoutServerLoad } from './$types';

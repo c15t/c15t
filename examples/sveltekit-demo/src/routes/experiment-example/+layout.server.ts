@@ -1,5 +1,6 @@
-import { testBackend } from '$lib/test-backend';
 import { loadConsent } from '@c15t/svelte/kit';
+
+import { testBackend } from '#lib/test-backend.js';
 
 import type { LayoutServerLoad } from './$types';
 

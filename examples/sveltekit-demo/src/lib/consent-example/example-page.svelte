@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { ConsentGate } from '@c15t/svelte';
+	import type { Snippet } from 'svelte';
+
 	/**
 	 * The page content every consent recipe route renders. It stands in for
 	 * your application; the recipe itself lives in each route's layout.
 	 */
-	import ConsentDevTools from '$lib/consent-dev-tools.svelte';
-	import { ConsentGate } from '@c15t/svelte';
-	import type { Snippet } from 'svelte';
+	import ConsentDevTools from '#lib/consent-dev-tools.svelte';
 
 	import './example.css';
 
