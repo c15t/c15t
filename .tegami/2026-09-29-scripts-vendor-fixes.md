@@ -1,6 +1,6 @@
 ---
 packages:
-  '@c15t/scripts': patch
+  '@c15t/integrations': patch
 ---
 
 ### Fix consent handling, IDs and loader URLs in vendor helpers
