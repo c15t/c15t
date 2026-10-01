@@ -2,8 +2,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 
 import { parse } from '@babel/parser';
+import {
+	buildConsentManifestFromConfig,
+	policyRulePresets,
+} from '@c15t/schema/types';
 import { describe, expect, it, vi } from 'vitest';
 
+import { buildInlineCodeHashes } from '../csp';
 import { c15t, createOwnEntryResolver, resolveOptions } from '../integration';
 import { hostedMode, manifestMode, offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
@@ -17,11 +22,19 @@ interface SetupCalls {
 
 const resolveOwnEntry = await createOwnEntryResolver();
 
+const INLINE_MANIFEST = await buildConsentManifestFromConfig({
+	branding: 'c15t',
+	policyRules: [policyRulePresets.europeOptIn()],
+});
+
 /** How an injected module reads in the page script. */
 const specifier = (entry: string): string =>
 	JSON.stringify(resolveOwnEntry(entry));
 
-const runSetup = async function runSetup(options: C15tAstroOptions) {
+const runSetup = async function runSetup(
+	options: C15tAstroOptions,
+	config: Record<string, unknown> = {}
+) {
 	const integration = c15t(options);
 	const calls: SetupCalls = {
 		addMiddleware: vi.fn(),
@@ -29,11 +42,12 @@ const runSetup = async function runSetup(options: C15tAstroOptions) {
 		injectScript: vi.fn(),
 		updateConfig: vi.fn(),
 	};
-	await integration.hooks['astro:config:setup']?.(
-		calls as unknown as Parameters<
-			NonNullable<(typeof integration)['hooks']['astro:config:setup']>
-		>[0]
-	);
+	await integration.hooks['astro:config:setup']?.({
+		...calls,
+		config,
+	} as unknown as Parameters<
+		NonNullable<(typeof integration)['hooks']['astro:config:setup']>
+	>[0]);
 	return { calls, integration };
 };
 
@@ -87,9 +101,10 @@ describe('resolveOptions', () => {
 				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
 			}).endpoints.enabled
 		).toBe(true);
-		expect(resolveOptions({ mode: manifestMode() }).endpoints.enabled).toBe(
-			true
-		);
+		expect(
+			resolveOptions({ mode: manifestMode({ manifest: INLINE_MANIFEST }) })
+				.endpoints.enabled
+		).toBe(true);
 	});
 
 	it.each(['solid', 'constructor', '__proto__'])(
@@ -106,12 +121,81 @@ describe('resolveOptions', () => {
 		}
 	);
 
+	it('rejects a bare manifest() with nowhere to save consent', () => {
+		// The browser would post saves to the init route's own prefix,
+		// `/api/c15t/subjects`, where nothing answers.
+		expect(() => resolveOptions({ mode: manifestMode() })).toThrowError(
+			/needs a .backendURL./u
+		);
+	});
+
+	it('hands a backend URL from the environment to the browser', () => {
+		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
+		try {
+			expect(resolveOptions({ mode: manifestMode() }).mode).toMatchObject({
+				backendURL: 'https://consent.example.com',
+			});
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
+	it('keeps an empty backendURL, which means this origin', () => {
+		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
+		try {
+			expect(
+				resolveOptions({
+					mode: manifestMode({ backendURL: '', manifestURL: '/m.json' }),
+				}).mode
+			).toHaveProperty('backendURL', '');
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
+	it('rejects an empty backendURL with no manifest to fetch', () => {
+		// `''` saves on this origin, but `${backendURL}/manifest` needs a real
+		// URL, and the environment's backend URL does not replace it.
+		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
+		vi.stubEnv('C15T_MANIFEST_URL', '');
+		try {
+			expect(() =>
+				resolveOptions({ mode: manifestMode({ backendURL: '' }) })
+			).toThrowError(/gives the server no manifest to fetch/u);
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
+	it('accepts an empty backendURL with any manifest source', () => {
+		expect(
+			resolveOptions({
+				mode: manifestMode({ backendURL: '', manifest: INLINE_MANIFEST }),
+			}).mode
+		).toHaveProperty('backendURL', '');
+		vi.stubEnv('C15T_MANIFEST_URL', 'https://consent.example.com/manifest');
+		try {
+			expect(
+				resolveOptions({ mode: manifestMode({ backendURL: '' }) }).mode
+			).toHaveProperty('backendURL', '');
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
+	it('leaves an inline manifest without a backendURL alone', () => {
+		// The network-free path: the app serves its own save route.
+		expect(
+			resolveOptions({ mode: manifestMode({ manifest: INLINE_MANIFEST }) }).mode
+		).not.toHaveProperty('backendURL');
+	});
+
 	it('rejects a manifestURL with nowhere to save consent', () => {
 		// The injected routes serve init and manifest; `POST /subjects` is
 		// the backend's, so a `manifestURL` without one would 404 on save.
 		expect(() =>
 			resolveOptions({ mode: manifestMode({ manifestURL: '/m.json' }) })
-		).toThrowError(/also needs a .backendURL./u);
+		).toThrowError(/needs a .backendURL./u);
 		expect(
 			resolveOptions({
 				mode: manifestMode({
@@ -200,6 +284,58 @@ describe('resolveOptions', () => {
 });
 
 describe('astro:config:setup', () => {
+	it("hands c15t's inline hashes to Astro's CSP when the site turned it on", async () => {
+		const options: C15tAstroOptions = { mode: offlineMode() };
+		const { calls } = await runSetup(options, { security: { csp: true } });
+		expect(calls.updateConfig).toHaveBeenCalledWith({
+			security: {
+				csp: {
+					algorithm: 'SHA-256',
+					scriptDirective: {
+						hashes: (await buildInlineCodeHashes(resolveOptions(options)))
+							.scripts,
+					},
+				},
+			},
+		});
+
+		const without = await runSetup(options);
+		expect(
+			without.calls.updateConfig.mock.calls.some(([update]) =>
+				Object.hasOwn(update as object, 'security')
+			)
+		).toBe(false);
+	});
+
+	it('hands the browser the policy hashes when a clientEntrypoint can add inline scripts', async () => {
+		const options: C15tAstroOptions = {
+			clientEntrypoint: './src/c15t.client.ts',
+			mode: offlineMode(),
+		};
+		const { calls } = await runSetup(options, {
+			security: { csp: { scriptDirective: { hashes: ['sha256-site'] } } },
+		});
+		const update = calls.updateConfig.mock.calls.find(([value]) =>
+			Object.hasOwn(value as object, 'vite')
+		)?.[0] as {
+			vite: {
+				plugins: { load: (id: string) => string }[];
+			};
+		};
+		const loaded = update.vite.plugins[0]?.load('\0virtual:c15t/options');
+		const parsed = JSON.parse(
+			(loaded ?? '').replace(/^export default /u, '').replace(/;$/u, '')
+		);
+
+		expect(parsed.csp).toEqual({
+			algorithm: 'SHA-256',
+			scriptHashes: [
+				...(await buildInlineCodeHashes(resolveOptions(options))).scripts,
+				'sha256-site',
+			],
+		});
+	});
+
 	it('registers the middleware before user middleware', async () => {
 		const { calls } = await runSetup({
 			mode: hostedMode({ url: '/api/c15t' }),

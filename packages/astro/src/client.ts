@@ -25,6 +25,7 @@ import type {
 	ConsentState,
 	KernelConfig,
 	KernelUser,
+	LegalLinks,
 	Unsubscribe,
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
@@ -44,6 +45,7 @@ import {
 	PROMPT_SLOT_ATTRIBUTE,
 	readIABSpotModels,
 } from './banner/slot';
+import { reportUnhashedScripts } from './browser/csp-report';
 import {
 	keepDialogStylesOnSwap,
 	loadDialogStyles,
@@ -155,8 +157,145 @@ const getWindow = function getWindow(): ClientWindow | undefined {
 	return typeof window === 'undefined' ? undefined : (window as ClientWindow);
 };
 
+/**
+ * The boot payload the server rendered.
+ *
+ * The components write it as a JSON data block. A page that sets
+ * `window.__c15tAstroConfig` itself, with `buildConfigScript()`, still
+ * wins, as before the data block existed.
+ *
+ * @returns The payload, or an empty config when the page has none.
+ */
 const readInlinedConfig = function readInlinedConfig(): KernelConfig {
-	return getWindow()?.[CONFIG_KEY] ?? {};
+	const assigned = getWindow()?.[CONFIG_KEY];
+	if (assigned) {
+		return assigned;
+	}
+	const block = document.querySelector(
+		'script[type="application/json"][data-c15t-config]'
+	);
+	if (!block?.textContent) {
+		return {};
+	}
+	try {
+		return JSON.parse(block.textContent) as KernelConfig;
+	} catch {
+		return {};
+	}
+};
+
+/**
+ * The page's Content Security Policy nonce, read once at boot.
+ *
+ * Module state because the gated-script and stylesheet passes run from
+ * document listeners that only see the client. A ClientRouter swap keeps
+ * the first document's policy, so the first page's nonce stays the right
+ * one for the rest of the visit; {@link adoptPageNonce} moves each incoming
+ * page onto it.
+ */
+let pageNonce: string | undefined;
+
+/**
+ * The scripts that carry the boot payload: the config data block, or a
+ * page's own `buildConfigScript()` script, which has no marker.
+ *
+ * @param root - The document to read.
+ * @returns The config scripts, in document order.
+ */
+const configScripts = function configScripts(
+	root: Document
+): HTMLScriptElement[] {
+	return Array.from(root.scripts).filter(
+		(element) =>
+			element.hasAttribute('data-c15t-config') ||
+			element.textContent?.startsWith(`window.${CONFIG_KEY}=`)
+	);
+};
+
+/** An element's nonce, read the way {@link readPageNonce} explains. */
+const nonceOf = function nonceOf(element: HTMLElement): string | undefined {
+	return element.nonce || element.getAttribute('nonce') || undefined;
+};
+
+/**
+ * The nonce the server put on the config data block, from
+ * `Astro.locals.c15t.nonce`, or on a page's own `buildConfigScript()`
+ * script.
+ *
+ * Read through the `nonce` property first: browsers hide the attribute's
+ * value once a policy has checked it, but keep it on the property.
+ *
+ * @param root - The document to read. Defaults to the live page.
+ * @returns The nonce, or `undefined` when the page was rendered without one.
+ */
+const readPageNonce = function readPageNonce(
+	root: Document = document
+): string | undefined {
+	// A page that still assigns the payload with `buildConfigScript()` has
+	// no `data-c15t-config` element; its own script carries the nonce.
+	const scripts = configScripts(root);
+	const script =
+		scripts.find((element) => element.hasAttribute('data-c15t-config')) ??
+		scripts[0];
+	return script ? nonceOf(script) : undefined;
+};
+
+/**
+ * The elements c15t renders with the page's nonce, and the gated tags it
+ * activates with it. Nothing else on an incoming page is c15t's to change.
+ */
+const NONCE_BEARING_SELECTOR = [
+	'script[data-c15t-config]',
+	'script[data-c15t-inline]',
+	'style#c15t-theme',
+	'script[data-c15t-category]',
+].join(', ');
+
+/**
+ * Move a page the ClientRouter is about to swap in onto the live nonce.
+ *
+ * With a nonce generated per request, the next page arrives with a new
+ * nonce while the browser keeps enforcing the first response's policy.
+ * Its c15t styles and scripts would be blocked, and its gated tags would
+ * fail the nonce check in {@link activateGatedScripts}. The server issued
+ * both nonces, so c15t's own elements and the gated tags carrying the
+ * incoming one are given the live one.
+ *
+ * The incoming nonce is read from the page's config scripts, which an
+ * HTML-injection hole on that page could also write. A planted config
+ * script ahead of c15t's would otherwise name the attacker's nonce, and
+ * the attacker's own elements would be handed the live one. So every config
+ * script on the page has to agree, and only c15t's elements and gated tags
+ * are rewritten: an arbitrary `<script nonce>` never is. A page whose only
+ * config script is planted, because c15t rendered none, is not covered.
+ *
+ * @param incoming - The parsed next page from `astro:before-swap`.
+ */
+const adoptPageNonce = function adoptPageNonce(incoming: Document): void {
+	if (!pageNonce) {
+		return;
+	}
+	const nonces = new Set(configScripts(incoming).map(nonceOf));
+	if (nonces.size > 1) {
+		console.warn(
+			'@c15t/astro: the next page has config scripts with different CSP nonces, so c15t did not move it onto the live nonce. Look for markup injected into that page.'
+		);
+		return;
+	}
+	const [incomingNonce] = nonces;
+	if (!incomingNonce || incomingNonce === pageNonce) {
+		return;
+	}
+	const elements = [
+		...incoming.querySelectorAll<HTMLElement>(NONCE_BEARING_SELECTOR),
+		...configScripts(incoming),
+	];
+	for (const element of new Set(elements)) {
+		if (nonceOf(element) === incomingNonce) {
+			element.setAttribute('nonce', pageNonce);
+			element.nonce = pageNonce;
+		}
+	}
 };
 
 /**
@@ -220,6 +359,26 @@ const ensureDialogHost = function ensureDialogHost(): HTMLElement {
 };
 
 /**
+ * The legal links `<ConsentDialog legalLinks>` asked for.
+ *
+ * Read when the island mounts rather than at boot, so the list follows
+ * the page a ClientRouter navigation swapped in.
+ *
+ * @returns The link keys, or `undefined` when the page asked for none.
+ */
+const readDialogLegalLinks = function readDialogLegalLinks():
+	| (keyof LegalLinks)[]
+	| undefined {
+	const value = document
+		.querySelector('[data-c15t-dialog-host="preferences"]')
+		?.getAttribute('data-legal-links');
+	if (value === null || value === undefined) {
+		return undefined;
+	}
+	return value.split(/\s+/u).filter(Boolean) as (keyof LegalLinks)[];
+};
+
+/**
  * Undo the scroll lock and focus trap of a blocking banner, if one is
  * active. Module-level because the banner element can be replaced by a
  * ClientRouter swap while the lock is still held.
@@ -242,7 +401,7 @@ const loadDialogChunks = async function loadDialogChunks(
 			const adapter = await loadDialogAdapter(client.options.ui);
 			await adapter.preload?.();
 		})(),
-		loadDialogStyles(),
+		loadDialogStyles(pageNonce),
 	]);
 };
 
@@ -415,11 +574,18 @@ const createClient = function createClient(
 	extension: C15tClientOptionsExtension = {}
 ): AstroConsentClient {
 	const inlined = readInlinedConfig();
+	pageNonce = readPageNonce();
 	// A prerendered page inlines no clock: the build's would age every
 	// stored record against the day the site was built.
 	const config: KernelConfig =
 		inlined.now === undefined ? { ...inlined, now: Date.now() } : inlined;
 	const scripts = [...(options.scripts ?? []), ...(extension.scripts ?? [])];
+	// Under Astro's CSP the config could not hash these, so say which ones
+	// the policy will block. A page with a nonce runs under the site's own
+	// policy, which the loader's nonce satisfies.
+	if (options.csp && !pageNonce && extension.scripts?.length) {
+		void reportUnhashedScripts(extension.scripts, options.csp);
+	}
 
 	// The server already resolved translations into `prefetch`, which the
 	// runtime prefers over anything it would derive from `i18n`.
@@ -446,6 +612,7 @@ const createClient = function createClient(
 			initPath: options.endpoints.initPath,
 		}),
 		networkBlocker: extension.networkBlocker ?? options.networkBlocker,
+		nonce: pageNonce,
 		pkg: '@c15t/astro',
 		policyRules:
 			options.mode.type === 'offline' ? options.mode.policyRules : undefined,
@@ -563,7 +730,7 @@ const createClient = function createClient(
 					// for both so the dialog never paints without its rules.
 					const [adapter] = await Promise.all([
 						loadDialogAdapter(options.ui),
-						loadDialogStyles(),
+						loadDialogStyles(pageNonce),
 					]);
 					if (disposed) {
 						return;
@@ -579,6 +746,8 @@ const createClient = function createClient(
 					const target = ensureDialogHost();
 					const handle = await adapter.mount({
 						kind,
+						legalLinks:
+							kind === 'preferences' ? readDialogLegalLinks() : undefined,
 						options,
 						runtime,
 						tab,
@@ -853,7 +1022,7 @@ const attach = function attach(client: AstroConsentClient): void {
 	ensurePromptRendered(client, snapshot);
 	syncBannerVisibility(snapshot);
 	syncSurfaceVisibility(snapshot);
-	activateGatedScripts(snapshot);
+	activateGatedScripts(snapshot, document, pageNonce);
 };
 
 /**
@@ -975,7 +1144,7 @@ export const boot = function boot(
 		ensurePromptRendered(client, snapshot);
 		syncBannerVisibility(snapshot);
 		syncSurfaceVisibility(snapshot);
-		activateGatedScripts(snapshot);
+		activateGatedScripts(snapshot, document, pageNonce);
 	});
 
 	// The ClientRouter replaces the document without re-evaluating modules,
@@ -996,6 +1165,7 @@ export const boot = function boot(
 	const onBeforeSwap = function onBeforeSwap(event: Event): void {
 		const incoming = (event as Event & { newDocument?: Document }).newDocument;
 		if (incoming) {
+			adoptPageNonce(incoming);
 			keepDialogStylesOnSwap(incoming);
 		}
 	};

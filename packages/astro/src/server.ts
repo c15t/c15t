@@ -5,6 +5,7 @@ import {
 	c15tProtocolHeaders,
 	createConsentKernel,
 	createOfflineTransport,
+	deepMergeTranslations,
 	defaultTranslationConfig,
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
@@ -46,6 +47,7 @@ import type {
 	GlobalVendorList,
 	InitOutput,
 } from '@c15t/schema/types';
+import type { Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import type { Theme } from '@c15t/ui/theme';
@@ -195,11 +197,18 @@ export const resolveTranslations = function resolveTranslations(
 		catalogue[language] ??
 		(defaultTranslationConfig.translations.en as TranslationsResponse);
 	const overrides = options.i18n?.messages?.[language] as
-		| Partial<TranslationsResponse>
+		| Partial<Translations>
 		| undefined;
 	return {
 		language,
-		translations: overrides ? { ...base, ...overrides } : base,
+		// Deep, as in every other adapter: overriding `common.acceptAll`
+		// keeps the rest of `common`.
+		translations: overrides
+			? (deepMergeTranslations(
+					base as Translations,
+					overrides
+				) as TranslationsResponse)
+			: base,
 	};
 };
 
@@ -811,11 +820,45 @@ export const resolveConsentContext = async function resolveConsentContext(
 };
 
 /**
+ * Build the boot payload as JSON for a data block.
+ *
+ * The components render it as
+ * `<script type="application/json" data-c15t-config>`, which the browser
+ * never runs. A Content Security Policy does not govern a data block, so a
+ * policy that allows inline scripts only by hash or nonce still lets the
+ * payload through, even though it changes per visitor.
+ *
+ * @param config - The resolved kernel configuration.
+ * @returns JSON safe to place inside a `<script>` element.
+ * @example
+ * ```astro
+ * <script
+ *   is:inline
+ *   type="application/json"
+ *   data-c15t-config
+ *   set:html={buildConfigJSON(Astro.locals.c15t.config)}
+ * />
+ * ```
+ */
+export const buildConfigJSON = function buildConfigJSON(
+	config: KernelConfig
+): string {
+	// `<` is escaped so a translation string can never close the script tag.
+	return JSON.stringify(config ?? {}).replace(/</gu, '\\u003c');
+};
+
+/**
  * Build the inline `<script>` body that hands the browser its boot payload.
  *
  * The payload is the already-resolved `KernelConfig`, not a fetch: the
  * browser starts with the same decision the server rendered, so there is no
  * network init per page and no banner flicker.
+ *
+ * The components use {@link buildConfigJSON} instead. This form runs, so a
+ * Content Security Policy has to allow it; it changes per visitor, so only
+ * a nonce or `'unsafe-inline'` can. Put the nonce on the script: the
+ * browser runtime reads it from there for the scripts and stylesheets it
+ * adds.
  *
  * @param config - The resolved kernel configuration.
  * @returns JavaScript safe for inline `<script>` injection.
@@ -823,9 +866,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 export const buildConfigScript = function buildConfigScript(
 	config: KernelConfig
 ): string {
-	// `<` is escaped so a translation string can never close the script tag.
-	const json = JSON.stringify(config ?? {}).replace(/</gu, '\\u003c');
-	return `window.__c15tAstroConfig=${json};`;
+	return `window.__c15tAstroConfig=${buildConfigJSON(config)};`;
 };
 
 /**

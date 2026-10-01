@@ -200,6 +200,9 @@ describe('<IABConsentBanner />', () => {
 
 	it('inlines the resolved config so the browser skips /init', async () => {
 		const html = await render(await buildLocals());
-		expect(html).toContain('window.__c15tAstroConfig=');
+		// A data block: it never runs, so no CSP has to allow it.
+		expect(html).toMatch(
+			/<script[^>]*type="application\/json"[^>]*data-c15t-config[^>]*>\{/u
+		);
 	});
 });

@@ -102,8 +102,8 @@ export default defineConfig({
 				'marketing',
 			],
 			legalLinks: {
-				cookiePolicy: { label: 'Cookie Policy', url: '/cookies' },
-				privacyPolicy: { label: 'Privacy Policy', url: '/privacy' },
+				cookiePolicy: { href: '/cookies', label: 'Cookie Policy' },
+				privacyPolicy: { href: '/privacy', label: 'Privacy Policy' },
 			},
 			// `offline()` resolves policies locally, so the demo runs with no
 			// backend. Swap in `hosted({ url })` or `manifest({ backendURL })`

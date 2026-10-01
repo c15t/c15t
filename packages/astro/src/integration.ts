@@ -164,12 +164,16 @@ const resolveEndpoints = function resolveEndpoints(
 	};
 };
 
-const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
+const readEnv = function readEnv(): Record<string, string | undefined> {
 	if (typeof process === 'undefined') {
-		return undefined;
+		return {};
 	}
-	const env = process.env as Record<string, string | undefined> | undefined;
-	return env?.C15T_BACKEND_URL ?? env?.PUBLIC_C15T_BACKEND_URL;
+	return (process.env as Record<string, string | undefined> | undefined) ?? {};
+};
+
+const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
+	const env = readEnv();
+	return env.C15T_BACKEND_URL ?? env.PUBLIC_C15T_BACKEND_URL;
 };
 
 /**
@@ -178,8 +182,9 @@ const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
  * @param options - The options passed to `c15t()`.
  * @returns Options with defaults applied.
  * @throws {Error} When `mode` is missing, is not a mode descriptor, is a
- * manifest mode with nowhere to save consent, or `experiment` has neither
- * an `arm` nor a site-composed middleware to resolve one.
+ * manifest mode with nowhere to save consent or no manifest to read, or
+ * `experiment` has neither an `arm` nor a site-composed middleware to
+ * resolve one.
  */
 export const resolveOptions = function resolveOptions(
 	options: C15tAstroOptions
@@ -190,20 +195,39 @@ export const resolveOptions = function resolveOptions(
 		);
 	}
 	// The injected routes cover `init` and `manifest`; consent is saved with
-	// `POST /subjects` at the backend itself. A `manifestURL` says where the
-	// manifest lives but not where consent goes, so without a `backendURL`
-	// the browser would post it at the init route's own prefix, where
-	// nothing answers. An inline `manifest` is the deliberately network-free
-	// path and is left alone: an app on it supplies its own save route.
-	if (
-		options.mode.type === 'manifest' &&
-		options.mode.manifestURL &&
-		!options.mode.backendURL &&
-		!backendURLFromEnv()
-	) {
-		throw new Error(
-			'@c15t/astro: manifest mode with a `manifestURL` also needs a `backendURL` (or C15T_BACKEND_URL) — that is where consent is saved, and the injected routes only serve init and manifest.'
-		);
+	// `POST /subjects` at the backend itself, and the browser only learns
+	// where that is from these options. Without a `backendURL` it would post
+	// to the init route's own prefix, where nothing answers, so a bare
+	// `manifest()` or one with only a `manifestURL` fails here instead. A
+	// backend URL from the environment is written into the options so the
+	// browser gets it too. An inline `manifest` is the deliberately
+	// network-free path and is left alone: an app on it serves its own save
+	// route.
+	//
+	// `backendURL: ''` is set on purpose: the browser saves to this origin.
+	// It gives the server no manifest, though: `${backendURL}/manifest`
+	// needs an absolute or root-relative URL, and the environment's backend
+	// URL does not replace it. So it also needs a `manifestURL`, or
+	// `C15T_MANIFEST_URL`, which the server reads first.
+	let { mode } = options;
+	if (mode.type === 'manifest' && !mode.manifest) {
+		if (mode.backendURL === undefined) {
+			const backendURL = backendURLFromEnv();
+			if (!backendURL) {
+				throw new Error(
+					'@c15t/astro: manifest mode needs a `backendURL`, for example manifest({ backendURL: "https://your-project.inth.app" }), or the C15T_BACKEND_URL environment variable set when astro.config is loaded. The browser saves consent there with POST /subjects; the injected routes only serve init and manifest.'
+				);
+			}
+			mode = { ...mode, backendURL };
+		} else if (
+			mode.backendURL === '' &&
+			!mode.manifestURL &&
+			!readEnv().C15T_MANIFEST_URL
+		) {
+			throw new Error(
+				"@c15t/astro: manifest({ backendURL: '' }) saves consent on this origin but gives the server no manifest to fetch. Add a `manifestURL`, pass an inline `manifest`, or set the C15T_MANIFEST_URL environment variable when astro.config is loaded."
+			);
+		}
 	}
 	// A JavaScript `astro.config.mjs` has no type checking, so `ui: 'solid'`
 	// reaches `buildBootScript()` and throws a bare `TypeError` on an
@@ -240,6 +264,7 @@ export const resolveOptions = function resolveOptions(
 		colorScheme: options.colorScheme ?? 'system',
 		endpoints: resolveEndpoints(options),
 		middleware: resolveMiddleware(options),
+		mode,
 		ui: options.ui ?? 'svelte',
 	};
 };
@@ -523,15 +548,30 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 			async 'astro:config:setup'({
 				addMiddleware,
 				command: setupCommand,
+				config,
 				injectRoute,
 				injectScript,
 				updateConfig,
 			}) {
 				command = setupCommand;
 				const resolveEntry = await createOwnEntryResolver();
+
+				// With Astro's own CSP on, allow the inline code the components
+				// render, and hand the browser the policy's script hashes so it
+				// can name the `clientEntrypoint` scripts the policy lacks.
+				// Loaded here so the package root, which browser code may
+				// import, does not pull in the server renderers.
+				const { buildAstroCsp } = await import('./csp');
+				const csp = await buildAstroCsp(config, resolved);
+				const serialized = csp?.browser
+					? { ...resolved, csp: csp.browser }
+					: resolved;
 				updateConfig({
-					vite: { plugins: await buildVitePlugins(resolved) },
+					vite: { plugins: await buildVitePlugins(serialized) },
 				});
+				if (csp) {
+					updateConfig(csp.update);
+				}
 
 				if (resolved.middleware.enabled) {
 					addMiddleware({

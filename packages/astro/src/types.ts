@@ -381,6 +381,16 @@ export interface C15tI18nOptions {
  * {@link C15tAstroOptions.clientEntrypoint}.
  */
 export interface C15tClientOptionsExtension {
+	/**
+	 * Scripts added to the integration's `scripts`.
+	 *
+	 * Under Astro's CSP, the integration cannot hash an inline
+	 * (`textContent`) script from here, because this module only runs in
+	 * the browser. The browser logs the hash of each one the policy lacks;
+	 * add it to the CSP config's `scriptDirective.hashes`, or move a script
+	 * without callbacks into the integration's `scripts` option, which c15t
+	 * hashes for you.
+	 */
 	scripts?: Script[];
 	/** Overrides cleanup targets from the integration options. */
 	clearOnRevocation?: ClearOnRevocationConfig;
@@ -417,14 +427,32 @@ export interface C15tResolvedOptions extends Omit<
 	};
 	middleware: Required<Omit<C15tMiddlewareOptions, 'timeoutMs'>> &
 		Pick<C15tMiddlewareOptions, 'timeoutMs'>;
+	/**
+	 * Set when the site turned on Astro's CSP and has a `clientEntrypoint`.
+	 * The browser checks the inline scripts that module adds against it.
+	 */
+	csp?: C15tBrowserCsp;
+}
+
+/**
+ * The part of Astro's CSP the browser needs to tell which inline scripts
+ * from a `clientEntrypoint` the policy will block.
+ *
+ * @internal
+ */
+export interface C15tBrowserCsp {
+	/** The digest the policy's hashes use. */
+	algorithm: 'SHA-256' | 'SHA-384' | 'SHA-512';
+	/** Every script hash the policy allows: c15t's and the site's own. */
+	scriptHashes: string[];
 }
 
 /** Consent context the middleware attaches to every request. */
 export interface C15tLocals {
 	/**
-	 * Server-resolved kernel configuration. Inline it into the page with
-	 * `<ConsentBanner />` or `buildConfigScript()` so the browser boots with
-	 * no `/init` roundtrip.
+	 * Server-resolved kernel configuration. `<ConsentScript />` and
+	 * `<ConsentBanner />` inline it as a JSON data block (see
+	 * `buildConfigJSON()`) so the browser boots with no `/init` roundtrip.
 	 */
 	config: KernelConfig;
 
@@ -474,4 +502,35 @@ export interface C15tLocals {
 
 	/** The integration options, as the browser will receive them. */
 	options: C15tResolvedOptions;
+
+	/**
+	 * Content Security Policy nonce for this request.
+	 *
+	 * c15t's middleware leaves it unset. Set it from your own middleware,
+	 * which runs after c15t's, when your policy allows inline code by nonce
+	 * instead of `'unsafe-inline'`. Every inline `<script>` and `<style>`
+	 * the c15t components render carries it, and the browser runtime puts
+	 * it on the scripts it loads, the gated inline scripts it activates and
+	 * the dialog stylesheets it links.
+	 *
+	 * @example
+	 * ```ts
+	 * // src/middleware.ts
+	 * import { defineMiddleware } from 'astro:middleware';
+	 *
+	 * export const onRequest = defineMiddleware(async (context, next) => {
+	 *   const nonce = crypto.randomUUID();
+	 *   if (context.locals.c15t) {
+	 *     context.locals.c15t.nonce = nonce;
+	 *   }
+	 *   const response = await next();
+	 *   response.headers.set(
+	 *     'content-security-policy',
+	 *     `script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'`
+	 *   );
+	 *   return response;
+	 * });
+	 * ```
+	 */
+	nonce?: string;
 }

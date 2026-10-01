@@ -49,6 +49,50 @@ describe('activateGatedScripts', () => {
 		expect(activated?.dataset.vendor).toBe('ga');
 	});
 
+	describe("under a page nonce and 'strict-dynamic'", () => {
+		// Activation creates a new script, which 'strict-dynamic' runs with
+		// no nonce check. A tag injected through an HTML-injection hole would
+		// run once its category is granted, so only the page's own tags,
+		// which carry its nonce, are activated.
+		it('skips an injected tag without the nonce', () => {
+			const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			document.body.innerHTML = [
+				'<script type="text/plain" data-c15t-category="measurement">injected</script>',
+				'<script type="text/plain" data-c15t-category="measurement" nonce="other">forged</script>',
+			].join('');
+
+			expect(
+				activateGatedScripts(snapshot({ measurement: true }), document, 'page')
+			).toBe(0);
+			const tags = Array.from(document.querySelectorAll('script'));
+			expect(tags.map((tag) => tag.type)).toEqual(['text/plain', 'text/plain']);
+			expect(tags.map((tag) => tag.getAttribute(ACTIVATED_ATTRIBUTE))).toEqual([
+				'untrusted',
+				'untrusted',
+			]);
+			expect(warn).toHaveBeenCalledTimes(2);
+
+			// Marked, so a later pass neither retries nor warns again.
+			activateGatedScripts(snapshot({ measurement: true }), document, 'page');
+			expect(warn).toHaveBeenCalledTimes(2);
+			warn.mockRestore();
+		});
+
+		it('activates a tag carrying the nonce, with the nonce', () => {
+			document.body.innerHTML =
+				'<script type="text/plain" data-c15t-category="measurement" nonce="page">1</script>';
+
+			expect(
+				activateGatedScripts(snapshot({ measurement: true }), document, 'page')
+			).toBe(1);
+			expect(
+				document.querySelector<HTMLScriptElement>(
+					`script[${ACTIVATED_ATTRIBUTE}="true"]:not([type])`
+				)?.nonce
+			).toBe('page');
+		});
+	});
+
 	it('preserves src and loading attributes', () => {
 		document.body.innerHTML =
 			'<script type="text/plain" data-c15t-category="marketing" src="https://cdn.example.com/p.js" async defer></script>';

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { ConsentSnapshot } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,6 +18,7 @@ import {
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
+import { buildConfigScript } from '../server';
 import type { C15tAstroOptions, C15tIABOptions } from '../types';
 import { registerDialogAdapter } from '../ui/adapter';
 import type { ConsentDialogHandle } from '../ui/adapter';
@@ -376,6 +379,32 @@ describe('ClientRouter navigation', () => {
 		expect(
 			document.querySelector('script[data-c15t-activated="true"]')
 		).not.toBeNull();
+	});
+
+	it('gates iframes on a page the router swapped in', async () => {
+		renderBanner();
+		const booted = start();
+		await booted.acceptAll();
+
+		// The ClientRouter replaces `<body>` itself, not its children.
+		const incoming = document.implementation.createHTMLDocument();
+		incoming.body.innerHTML =
+			'<iframe data-category="marketing" data-src="https://embed.example/video"></iframe>';
+		document.body.replaceWith(document.importNode(incoming.body, true));
+		document.dispatchEvent(new Event('astro:after-swap'));
+		document.dispatchEvent(new Event('astro:page-load'));
+
+		await vi.waitFor(() => {
+			expect(document.querySelector('iframe')?.getAttribute('src')).toBe(
+				'https://embed.example/video'
+			);
+		});
+
+		// And the gate keeps working on the new page when consent changes.
+		await booted.rejectAll();
+		await vi.waitFor(() => {
+			expect(document.querySelector('iframe')?.hasAttribute('src')).toBe(false);
+		});
 	});
 });
 
@@ -918,5 +947,266 @@ describe('dialog stylesheets and ClientRouter swaps', () => {
 		expect(targets).toHaveLength(2);
 		expect(targets[1]?.isConnected).toBe(true);
 		expect(booted.getConsent().activeUI).toBe('dialog');
+	});
+});
+
+describe("Astro's hash-based CSP", () => {
+	const ALLOWED = 'globalThis.__allowed = true;';
+	const BLOCKED = 'globalThis.__blocked = true;';
+	/** The hash a browser computes for an inline script's text. */
+	const sha256 = (text: string): string =>
+		`sha256-${createHash('sha256').update(text).digest('base64')}`;
+
+	it('names each clientEntrypoint inline script the policy has no hash for', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		(window as unknown as Record<string, unknown>).__c15tAstroConfig =
+			INLINE_CONFIG;
+		renderBanner();
+		client = boot(
+			{
+				...resolveOptions(OPTIONS),
+				// The site added the first script's hash to its own policy.
+				csp: { algorithm: 'SHA-256', scriptHashes: [sha256(ALLOWED)] },
+			},
+			{
+				scripts: [
+					{ category: 'measurement', id: 'allowed', textContent: ALLOWED },
+					{ category: 'measurement', id: 'blocked', textContent: BLOCKED },
+					{ category: 'measurement', id: 'remote', src: '/vendor.js' },
+				],
+			}
+		);
+
+		// Every script is hashed before any is reported, so once the second
+		// one is, the first has been checked too.
+		await vi.waitFor(() => {
+			expect(error).toHaveBeenCalledWith(expect.stringContaining(`'blocked'`));
+		});
+		expect(error).toHaveBeenCalledOnce();
+		// The hash the browser checks, so the site can add it as logged.
+		expect(error).toHaveBeenCalledWith(
+			expect.stringContaining(`'${sha256(BLOCKED)}'`)
+		);
+		error.mockRestore();
+	});
+});
+
+describe('a CSP nonce on the page', () => {
+	const NONCE = 'p4ge-n0nce';
+
+	/** The config script the server renders with `Astro.locals.c15t.nonce`. */
+	const renderConfigScript = function renderConfigScript(): void {
+		document.head.innerHTML = `<script data-c15t-config nonce="${NONCE}"></script>`;
+	};
+
+	it('goes on the scripts the loader injects', async () => {
+		renderConfigScript();
+		renderBanner();
+		const booted = start({
+			...OPTIONS,
+			scripts: [
+				{
+					category: 'measurement',
+					id: 'nonce-probe',
+					textContent: 'globalThis.__nonceProbe = true;',
+				},
+			],
+		});
+		await booted.acceptAll();
+
+		await vi.waitFor(() => {
+			const loaded = Array.from(document.querySelectorAll('script')).find(
+				(script) => script.textContent?.includes('__nonceProbe')
+			);
+			expect(loaded?.nonce).toBe(NONCE);
+		});
+	});
+
+	it('is read from a legacy buildConfigScript() script', async () => {
+		// A page that assigns `window.__c15tAstroConfig` itself renders no
+		// `data-c15t-config` element; the nonce is on its own script.
+		const legacy = document.createElement('script');
+		legacy.nonce = NONCE;
+		legacy.textContent = buildConfigScript(INLINE_CONFIG);
+		document.head.append(legacy);
+		// What running it does; jsdom here does not run scripts.
+		(window as unknown as Record<string, unknown>).__c15tAstroConfig =
+			INLINE_CONFIG;
+		renderBanner();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			`<script type="text/plain" data-c15t-category="measurement" nonce="${NONCE}">1</script>`
+		);
+		client = boot(resolveOptions(OPTIONS));
+		await client.acceptAll();
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector<HTMLScriptElement>(
+					'script[data-c15t-activated="true"]:not([type])'
+				)?.nonce
+			).toBe(NONCE);
+		});
+	});
+
+	it('activates only the gated tags that carry it', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		renderConfigScript();
+		renderBanner();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			[
+				`<script type="text/plain" data-c15t-category="measurement" nonce="${NONCE}">1</script>`,
+				'<script type="text/plain" data-c15t-category="measurement" id="injected">2</script>',
+			].join('')
+		);
+		const booted = start();
+		await booted.acceptAll();
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector<HTMLScriptElement>(
+					'script[data-c15t-activated="true"]:not([type])'
+				)?.nonce
+			).toBe(NONCE);
+		});
+		expect(
+			document.querySelector('#injected')?.getAttribute('data-c15t-activated')
+		).toBe('untrusted');
+		expect(
+			document.querySelectorAll(
+				'script[data-c15t-activated="true"]:not([type])'
+			)
+		).toHaveLength(1);
+		warn.mockRestore();
+	});
+
+	it("replaces the next page's per-request nonce before a ClientRouter swap", async () => {
+		renderConfigScript();
+		renderBanner();
+		const booted = start();
+
+		const incoming = document.implementation.createHTMLDocument();
+		incoming.head.innerHTML = [
+			'<script data-c15t-config nonce="next-n0nce"></script>',
+			'<script data-c15t-inline nonce="next-n0nce">0</script>',
+			'<style id="c15t-theme" nonce="next-n0nce"></style>',
+			'<script nonce="unrelated">0</script>',
+			// Not c15t's, so not c15t's to hand the live nonce to.
+			'<script id="foreign" nonce="next-n0nce">0</script>',
+		].join('');
+		incoming.body.innerHTML = [
+			document.body.innerHTML,
+			'<script type="text/plain" data-c15t-category="measurement" nonce="next-n0nce">1</script>',
+		].join('');
+		document.dispatchEvent(
+			Object.assign(new Event('astro:before-swap'), { newDocument: incoming })
+		);
+
+		const nonceOf = (selector: string) =>
+			incoming.querySelector<HTMLElement>(selector)?.getAttribute('nonce');
+		expect(nonceOf('script[data-c15t-config]')).toBe(NONCE);
+		expect(nonceOf('script[data-c15t-inline]')).toBe(NONCE);
+		expect(nonceOf('#c15t-theme')).toBe(NONCE);
+		expect(nonceOf('script[data-c15t-category]')).toBe(NONCE);
+		expect(nonceOf('script[nonce="unrelated"]')).toBe('unrelated');
+		expect(nonceOf('#foreign')).toBe('next-n0nce');
+
+		document.body.replaceWith(incoming.body.cloneNode(true));
+		document.dispatchEvent(new Event('astro:after-swap'));
+		await booted.acceptAll();
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector<HTMLScriptElement>(
+					'script[data-c15t-activated="true"]:not([type])'
+				)?.nonce
+			).toBe(NONCE);
+		});
+		expect(
+			document.querySelector('[data-c15t-activated="untrusted"]')
+		).toBeNull();
+	});
+
+	it('leaves the next page alone when a planted config script names another nonce', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		renderConfigScript();
+		renderBanner();
+		start();
+
+		// Markup injected ahead of c15t's own config script, naming a nonce
+		// of the attacker's choosing.
+		const incoming = document.implementation.createHTMLDocument();
+		incoming.head.innerHTML = [
+			'<script data-c15t-config nonce="planted"></script>',
+			'<script data-c15t-config nonce="next-n0nce"></script>',
+		].join('');
+		incoming.body.innerHTML = [
+			'<script id="payload" nonce="planted">0</script>',
+			'<script type="text/plain" data-c15t-category="measurement" nonce="planted">1</script>',
+		].join('');
+		document.dispatchEvent(
+			Object.assign(new Event('astro:before-swap'), { newDocument: incoming })
+		);
+
+		expect(
+			Array.from(incoming.querySelectorAll('[nonce]'), (element) =>
+				element.getAttribute('nonce')
+			)
+		).not.toContain(NONCE);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('different CSP nonces')
+		);
+		warn.mockRestore();
+	});
+
+	it('goes on the dialog stylesheets it links', async () => {
+		renderConfigScript();
+		registerDialogStyles(['/_astro/dialog.css']);
+		registerDialogAdapter('svelte', () =>
+			Promise.resolve({
+				mount: () =>
+					Promise.resolve({
+						close: vi.fn(),
+						destroy: vi.fn(),
+					} as ConsentDialogHandle),
+				name: 'svelte',
+			})
+		);
+		renderBanner();
+		const booted = start();
+
+		const opening = booted.openDialog();
+		let link: HTMLLinkElement | null = null;
+		await vi.waitFor(() => {
+			link = document.head.querySelector<HTMLLinkElement>(
+				'link[rel="stylesheet"][href="/_astro/dialog.css"]'
+			);
+			expect(link).not.toBeNull();
+		});
+		(link as HTMLLinkElement | null)?.dispatchEvent(new Event('load'));
+		await opening;
+
+		expect((link as HTMLLinkElement | null)?.nonce).toBe(NONCE);
+	});
+});
+
+describe('the boot payload as a JSON data block', () => {
+	it('boots from the block the components render', () => {
+		const payload = {
+			...INLINE_CONFIG,
+			initialTranslations: {
+				language: 'fr',
+				translations: { cookieBanner: { title: '</script>' } },
+			},
+		};
+		document.head.innerHTML = `<script type="application/json" data-c15t-config>${JSON.stringify(
+			payload
+		).replace(/</gu, '\\u003c')}</script>`;
+		renderBanner();
+		client = boot(resolveOptions(OPTIONS));
+
+		expect(client.getConsent().translations?.language).toBe('fr');
+		expect(client.getConsent().policyPending).toBe(false);
 	});
 });

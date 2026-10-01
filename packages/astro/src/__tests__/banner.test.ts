@@ -3,6 +3,7 @@ import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import ConsentDialogTrigger from '../components/panel-trigger.astro';
+import ConsentDialog from '../components/panel.astro';
 import ConsentBanner from '../components/prompt.astro';
 import { resolveOptions } from '../integration';
 import { hostedMode, offlineMode } from '../mode';
@@ -69,7 +70,10 @@ describe('<ConsentBanner />', () => {
 
 	it('inlines the resolved config so the browser skips /init', async () => {
 		const html = await render(await buildLocals());
-		expect(html).toContain('window.__c15tAstroConfig=');
+		// A data block: it never runs, so no CSP has to allow it.
+		expect(html).toMatch(
+			/<script[^>]*type="application\/json"[^>]*data-c15t-config[^>]*>\{/u
+		);
 	});
 
 	it('escapes `<` in the inlined config', async () => {
@@ -119,7 +123,7 @@ describe('<ConsentBanner />', () => {
 		});
 		const html = await render(locals);
 		expect(html).toContain('data-variant="bar"');
-		expect(html).toContain('window.__c15tAstroConfig=');
+		expect(html).toContain('data-c15t-config');
 		expect(html).toContain('"initialExperiment"');
 	});
 
@@ -214,6 +218,28 @@ describe('<ConsentBanner />', () => {
 		expect(html.indexOf('consent-banner-branding')).toBeLessThan(
 			html.indexOf('consent-banner-card')
 		);
+	});
+
+	it('labels a legal link without a `label` from the translations', async () => {
+		const options: C15tAstroOptions = {
+			legalLinks: {
+				cookiePolicy: { href: '/cookies', label: 'Our cookies' },
+				privacyPolicy: { href: '/privacy' },
+			},
+			mode: offlineMode({ policyRules: [testRule] }),
+		};
+		const english = await render(await buildLocals(options), {
+			legalLinks: ['privacyPolicy', 'cookiePolicy'],
+		});
+		expect(english).toContain('>Privacy Policy</a>');
+		expect(english).toContain('>Our cookies</a>');
+		expect(english).not.toContain('>privacyPolicy</a>');
+
+		const german = await render(
+			await buildLocals(options, { 'accept-language': 'de' }),
+			{ legalLinks: ['privacyPolicy'] }
+		);
+		expect(german).toContain('>Datenschutzerklärung</a>');
 	});
 
 	it('drops the branding tag with `hideBranding`', async () => {
@@ -584,5 +610,19 @@ describe('<ConsentBanner /> under a none rule', () => {
 		expect(
 			/<[^>]*data-testid="consent-dialog-trigger"[^>]*>/u.exec(trigger)?.[0]
 		).not.toContain('hidden');
+	});
+});
+
+describe('<ConsentDialog />', () => {
+	it('carries its legalLinks to the island on the host element', async () => {
+		const withLinks = await container.renderToString(ConsentDialog, {
+			props: { legalLinks: ['privacyPolicy', 'termsOfService'] },
+		});
+		expect(withLinks).toContain(
+			'data-legal-links="privacyPolicy termsOfService"'
+		);
+
+		const without = await container.renderToString(ConsentDialog, {});
+		expect(without).not.toContain('data-legal-links');
 	});
 });

@@ -395,7 +395,14 @@ export const resolvePromptModel = function resolvePromptModel(
 			.map((key) => ({
 				href: input.legalLinks?.[key]?.href,
 				key,
-				label: input.legalLinks?.[key]?.label ?? key,
+				// A link without its own label takes the translated name
+				// for its type, as the React, Vue and Svelte banners do.
+				label: firstOf(
+					input.legalLinks?.[key]?.label,
+					bundle.legalLinks?.[key],
+					fallback.legalLinks?.[key],
+					key
+				),
 			})),
 		model: snapshot.policyRule.model,
 		position,

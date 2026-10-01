@@ -17,9 +17,9 @@
  *
  * The fragments are static server output, so `<script>` tags are stripped:
  * Astro's build pipeline is what would normally bundle them, and the story
- * boots `@c15t/astro/client` itself instead. The inline config script the
+ * boots `@c15t/astro/client` itself instead. The JSON config block the
  * banner emits is captured separately and replayed as
- * `window.__c15tAstroConfig`, which is what a real page does.
+ * `window.__c15tAstroConfig`, which the client reads before the block.
  */
 
 import path from 'node:path';
@@ -56,24 +56,23 @@ export interface PrerenderedVariant {
 }
 
 const SCRIPT_TAG = /<script\b[^>]*>[\s\S]*?<\/script>/giu;
-const CONFIG_SCRIPT =
-	/window\.__c15tAstroConfig\s*=\s*(?<config>[\s\S]*?);?\s*$/u;
+const CONFIG_BLOCK = /^<script\b[^>]*\bdata-c15t-config\b[^>]*>/iu;
 
 /**
- * Pull the kernel config out of the inline script the banner emits.
+ * Pull the kernel config out of the JSON block the banner emits.
  *
  * @param html - The container's raw output.
  * @returns The parsed config, or `{}` when the fragment emitted none.
  */
 const extractConfig = function extractConfig(html: string): unknown {
 	for (const tag of html.match(SCRIPT_TAG) ?? []) {
+		if (!CONFIG_BLOCK.test(tag)) {
+			continue;
+		}
 		const body = tag
 			.replace(/^<script\b[^>]*>/iu, '')
 			.replace(/<\/script>$/iu, '');
-		const config = CONFIG_SCRIPT.exec(body.trim())?.groups?.config;
-		if (config) {
-			return JSON.parse(config);
-		}
+		return JSON.parse(body);
 	}
 	return {};
 };
