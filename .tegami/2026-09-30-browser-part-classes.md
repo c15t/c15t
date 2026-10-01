@@ -10,3 +10,5 @@ The banner, preference centre, floating trigger and IAB surfaces now apply `ui.t
 Each of those parts also carries its slot key in a `part` attribute, so page CSS can style it inside the shadow root with `[data-c15t-ui]::part(consentBannerCard)`.
 
 A class from the page's stylesheet only reaches a part with `shadow: false`. In the default shadow root, the new `ui.stylesheetURLs` option links stylesheets inside it, after the bundled one and with the client's nonce, so Tailwind, CSS Modules or vanilla-extract classes apply there too. The script tag accepts both through `c15t.push(['config', { ui: { … } }])`.
+
+A slot's numeric `style` values get `px` where the property takes a unit, as React writes them: `{ padding: 8 }` renders `padding: 8px`, while `opacity`, `zIndex`, `flexGrow`, `lineHeight` and the other unitless properties keep the bare number. An experiment arm's `theme.slots` apply to the parts of visitors assigned that arm, merged over the host theme's slots.
