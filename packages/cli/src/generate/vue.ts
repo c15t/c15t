@@ -1,8 +1,5 @@
 import { DEFAULT_OFFLINE_RULES } from './options';
-import {
-	generateScriptsArrayValue,
-	generateScriptsImport,
-} from './scripts';
+import { generateScriptsArrayValue, generateScriptsImport } from './scripts';
 import type { BoilerplateOptions, BoilerplateTemplate } from './types';
 
 const runtimeSource = function runtimeSource(

@@ -56,16 +56,20 @@ Install `@c15t/cli@alpha` in the host project. Import the generation entry point
 import { generate, runGenerateCommand } from '@c15t/cli/generate';
 
 const plan = generate({
-  framework: 'react',
-  mode: 'hosted',
-  backendURL: projectBackendURL,
-  scripts: ['google-tag'],
-  output: 'src/consent',
+	framework: 'react',
+	mode: 'hosted',
+	backendURL: projectBackendURL,
+	scripts: ['google-tag'],
+	output: 'src/consent',
 });
 
 // Forward arguments after `inth c15t generate`:
 const forwardedPlan = runGenerateCommand([
-  'hosted', '--framework', 'react', '--backend-url', projectBackendURL,
+	'hosted',
+	'--framework',
+	'react',
+	'--backend-url',
+	projectBackendURL,
 ]);
 ```
 
@@ -85,7 +89,7 @@ Use `@c15t/cli/frontend` when Inth or another host owns authentication and the s
 import { runFrontendCommand } from '@c15t/cli/frontend';
 
 const result = runFrontendCommand(['setup', '--framework', 'react'], {
-  generation: { backendURL: projectBackendURL },
+	generation: { backendURL: projectBackendURL },
 });
 ```
 
@@ -97,13 +101,16 @@ A host can supply its already-fetched projects and current selection instead of 
 import { runFrontendCommand } from '@c15t/cli/frontend';
 
 const context = {
-  generation: { framework: 'react' as const },
-  projects: availableProjects,
-  selectedProject: selectedProjectId,
+	generation: { framework: 'react' as const },
+	projects: availableProjects,
+	selectedProject: selectedProjectId,
 };
 
 const plan = runFrontendCommand(['generate'], context);
-const selection = runFrontendCommand(['projects', 'select', 'organization/project'], context);
+const selection = runFrontendCommand(
+	['projects', 'select', 'organization/project'],
+	context
+);
 ```
 
 Projects use `{ id, name, organizationSlug?, status, url }`. `status` is `active`, `pending`, or `inactive`; `url` is the provisioned consent backend URL. Generation resolves the selected ID or unambiguous `organization/name` and rejects an unavailable or invalid backend. An explicit backend URL takes precedence over the selected project.
@@ -128,9 +135,13 @@ dependency installation. It uses Node built-ins supported by scriptc 0.2.0:
 import { runGenerationWorkflow } from '@c15t/cli/frontend/runtime';
 
 const result = await runGenerationWorkflow(
-  ['generate', '--framework', 'react', '--apply'],
-  { generation: { backendURL: projectBackendURL } },
-  { cwd: projectDirectory, packageManager: 'bun', signal: abortController.signal }
+	['generate', '--framework', 'react', '--apply'],
+	{ generation: { backendURL: projectBackendURL } },
+	{
+		cwd: projectDirectory,
+		packageManager: 'bun',
+		signal: abortController.signal,
+	}
 );
 ```
 
@@ -182,11 +193,11 @@ import { dirname, resolve } from 'node:path';
 
 const require = createRequire(import.meta.url);
 for (const entry of ['generate', 'frontend']) {
-  const source = dirname(require.resolve(`@c15t/cli/${entry}/source`));
-  const destination = resolve(`vendor/c15t/${entry}`);
-  mkdirSync(dirname(destination), { recursive: true });
-  rmSync(destination, { recursive: true, force: true });
-  cpSync(source, destination, { recursive: true });
+	const source = dirname(require.resolve(`@c15t/cli/${entry}/source`));
+	const destination = resolve(`vendor/c15t/${entry}`);
+	mkdirSync(dirname(destination), { recursive: true });
+	rmSync(destination, { recursive: true, force: true });
+	cpSync(source, destination, { recursive: true });
 }
 ```
 
@@ -198,15 +209,17 @@ In the host's `cli.ts`, route the generation subcommand to the vendored parser. 
 import { runGenerateCommand } from './vendor/c15t/generate/index.ts';
 
 try {
-  const args = process.argv.slice(2);
-  if (args[0] !== 'c15t' || args[1] !== 'generate') {
-    throw new Error('Usage: inth c15t generate <mode> --framework <framework>');
-  }
-  const plan = runGenerateCommand(args.slice(2));
-  process.stdout.write(`${JSON.stringify(plan)}\n`);
+	const args = process.argv.slice(2);
+	if (args[0] !== 'c15t' || args[1] !== 'generate') {
+		throw new Error('Usage: inth c15t generate <mode> --framework <framework>');
+	}
+	const plan = runGenerateCommand(args.slice(2));
+	process.stdout.write(`${JSON.stringify(plan)}\n`);
 } catch (error) {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = 1;
+	process.stderr.write(
+		`${error instanceof Error ? error.message : String(error)}\n`
+	);
+	process.exitCode = 1;
 }
 ```
 
@@ -265,13 +278,11 @@ Hosts can reuse the same prompt and launcher:
 
 ```ts
 import {
-  createAgentSetupPlan,
-  launchAgentSetup,
+	createAgentSetupPlan,
+	launchAgentSetup,
 } from '@c15t/cli/frontend/agent';
 
-const plan = createAgentSetupPlan({
-  backendURL: provisionedBackendURL,
-});
+const plan = createAgentSetupPlan({ backendURL: provisionedBackendURL });
 // Show plan.prompt for review, or hand it to another coding agent.
 const exitCode = await launchAgentSetup(projectDirectory, plan, abortSignal);
 ```
