@@ -1,103 +1,129 @@
 ---
 title: Quickstart
-description: Connect a headless JavaScript consent engine to Inth and own its UI and lifecycle.
+description: Add the stock c15t banner, preferences and script gating to a JavaScript app built with Vite or another bundler, with no UI framework, using @c15t/browser.
 group: frameworks
 ---
 
 ## Connect Inth
 
-[Create an Inth project](https://inth.com), configure policy rules and your
-application origin, and copy its endpoint. The headless engine does not render
-a banner; choose a framework adapter if you want stock components.
+[Create an Inth project](https://inth.com), set its policy rules, add your
+app's origin to its trusted origins, and copy the project's backend URL. The
+URL is public configuration.
+
+This guide uses `@c15t/browser` as an ES module in a Vite app. `init()` starts
+the consent runtime and mounts the stock banner and preference dialog. For
+your own UI, use the [headless runtime](/docs/frameworks/javascript/headless)
+instead. Sites without a build step load the same package from a script tag;
+[choose your setup](/docs/concepts/choose-your-setup) points to that guide.
 
 ## Install
 
-<CommandTabs command="c15t @c15t/integrations" mode="install" />
+<CommandTabs command="@c15t/browser@alpha @c15t/integrations@alpha" mode="install" />
 
-## Register consent-gated scripts
+`@c15t/browser` is not part of the `c15t` package. `@c15t/integrations` supplies
+the PostHog and X Pixel helpers used below.
 
-Include measurement and marketing categories in your policy for these vendors.
-Remove any existing loaders for them so each script loads once.
+## Set the backend URL
 
-This setup uses Vite's public environment variables. Set the Inth endpoint and
-add your PostHog project key, PostHog API host and X Pixel ID in `.env.local`:
+This setup reads Vite's public environment variables. Put the Inth URL and your
+vendor IDs in `.env.local`:
 
 ```dotenv title=".env.local"
-VITE_C15T_BACKEND_URL=
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
 VITE_POSTHOG_KEY=
 VITE_POSTHOG_HOST=
 VITE_X_PIXEL_ID=
 ```
 
-Copy the exact backend endpoint from Inth. The vendor IDs are optional: leaving
-an ID empty disables that integration. When enabling PostHog, fill in both its project key and the API host
-shown in your PostHog project. Restart Vite after editing these values and
-rebuild for deployment. Other bundlers need their own configuration mechanism.
+The vendor IDs are optional. An empty ID leaves that vendor out. When you
+enable PostHog, set both its project key and the API host from your PostHog
+project. Vite embeds these values at build time, so restart the dev server
+after editing them and rebuild for deployment. Other bundlers have their own
+way to expose public values.
+
+## Register consent-gated scripts
 
 Create `src/scripts.ts`. PostHog waits for measurement permission with
-`loadMode: 'after-consent'` and disables cookieless capture with
-`cookieless_mode: 'never'`. X Pixel waits for marketing permission.
+`loadMode: 'after-consent'`, and `cookieless_mode: 'never'` turns off its
+cookieless capture. X Pixel waits for marketing permission.
 
-<include src="../../shared/examples/javascript-scripts.mdx" />
+<include src="../../shared/examples/javascript/scripts.mdx" />
 
-## Create the consent engine
+Include the measurement and marketing categories in your Inth policy. Remove
+any other loader for these vendors, such as a snippet in `index.html`, so each
+one loads once and only through c15t.
 
-```ts title="src/consent.ts"
-import { createConsentKernel, createHostedTransport } from 'c15t';
-import { createPersistence } from 'c15t/modules/persistence';
-import { createScriptLoader } from 'c15t/modules/script-loader';
-import { scripts } from './scripts';
+## Start c15t
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+Call `init()` once, in your browser entry point:
 
-const kernel = createConsentKernel({
-	transport: createHostedTransport({
-		backendURL,
-	}),
-});
-const persistence = createPersistence({ kernel });
-const loader = createScriptLoader({ kernel, scripts });
-await kernel.commands.init();
+<include src="../../shared/examples/javascript/init.mdx" />
 
-const unsubscribe = kernel.subscribe((snapshot) => {
-	console.log(snapshot.effectivePermissions.marketing);
-});
+`init()` returns the client. It reads stored choices, asks Inth for the
+visitor's policy, shows the banner when the policy needs one, and loads each
+script once its category is allowed. The banner renders in a shadow root with
+its own styles, so you do not import a stylesheet. The client lasts for the
+page; call `consent.dispose()` only if your app removes consent entirely.
 
-// Call this from your UI's explicit reject action.
-async function rejectOptionalCategories() {
-	await kernel.commands.save('none');
-}
+When a visitor withdraws a permission they had given, the client saves the
+choice and reloads the page, because code that already ran cannot be unloaded.
+[Scripts](/docs/frameworks/javascript/scripts) explains how to change that.
 
-// Call this when the app or consent integration is torn down.
-function dispose() {
-	unsubscribe();
-	loader.dispose();
-	persistence.dispose();
-	kernel.dispose();
-}
-```
+## Gate embeds and add a privacy settings button
 
-Run this code in the browser. The headless engine does not render a banner.
-Connect your UI to `snapshot.promptRequirement` and expose persistent privacy
-settings. Use `save('all')` for accept, `save('none')` for reject, or
-`save({ marketing: false })` to confirm only that category.
+Put the embed's URL in `data-src` and name its category in `data-category`.
+The client sets `src` only while that category is allowed:
 
-Browser-only policy resolution is an alternative described in
-[deployment modes](/docs/guides/deployment-modes).
+<include src="../../shared/examples/javascript/embed.mdx" />
 
-## Read permissions and choices
+Visitors need a way to change their choice after the banner closes. The
+entry point above opens the preference dialog from this button:
 
-Use `effectivePermissions` for script and feature gates. `explicitChoice` holds
-recorded per-category values and confirmation times. A partial save preserves
-receipts for categories you omit. `commands.dismissNotice()` only dismisses the
-current notice; it does not save a choice.
+<include src="../../shared/examples/javascript/preferences-button.mdx" />
 
-Validate the integration by rejecting, reloading, and confirming that optional
-features stay blocked. See the [v3 migration guide](/docs/upgrade-v3) for policy
-configuration and storage compatibility.
+A link to `#c15t-preferences` or a button with `data-c15t-action="customize"`
+opens the dialog too, without code.
 
-## Run the complete example
+## Change the look
 
-Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
-YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.
+Pass theme tokens in `ui.theme`. This version of `init()` turns the buttons
+purple and rounds the cards:
+
+<include src="../../shared/examples/javascript/theme.mdx" />
+
+`theme` takes the same tokens as every c15t package; see
+[tokens and CSS](/docs/customization/tokens). `presentation.prompt` changes the
+banner's shape and position, `ui.css` adds CSS inside the shadow root, and
+`i18n` changes the copy. [Customize](/docs/frameworks/javascript/customize)
+covers each option.
+
+## Check it works
+
+Run the app, open it in a private window, and open the browser's developer
+tools on the Network tab.
+
+1. Before you choose, filter for `posthog` and `ads-twitter`. There are no
+   requests, and the YouTube iframe has no `src`.
+2. Click **Reject All** and reload. The banner stays closed and the vendor
+   requests stay absent.
+3. Click **Privacy settings**, turn on **Analytics** (the `measurement` category) only and save. PostHog and
+   the YouTube player load. X Pixel does not.
+4. Open **Privacy settings** again and turn **Analytics** off. The page reloads,
+   and PostHog and YouTube do not load again.
+
+If no banner appears, see [why is there no banner](/docs/guides/troubleshooting#why-is-there-no-banner).
+Run the full [verification checklist](/docs/guides/verify-consent) before you
+ship.
+
+## Next steps
+
+- Render your own banner with the [headless runtime](/docs/frameworks/javascript/headless).
+- Inspect consent with [DevTools](/docs/frameworks/javascript/dev-tools).
+- Read consent from your code. `consent.has('measurement')` answers whether a
+  category is allowed now, `consent.on('consent', listener)` reports changes,
+  and `consent.save({ measurement: true })` records a choice. The
+  [@c15t/browser API](/docs/frameworks/javascript/api/browser) lists every
+  method, and [options](/docs/frameworks/javascript/api/browser-options) every
+  option.
+- Run code on consent events with [callbacks](/docs/frameworks/javascript/callbacks).
+- Add languages with [translations](/docs/frameworks/javascript/translations).

@@ -1,47 +1,40 @@
 ---
 title: Cloudflare Zaraz
-description: Synchronize c15t permissions with Zaraz purposes while Cloudflare
-  manages your tools.
+description: Sync c15t permissions to Cloudflare Zaraz purposes with the c15t
+  cloudflareZaraz bridge, which runs on every page without loading a script, and
+  check the tools it controls.
 group: integrations
 ---
 
-## Configure Zaraz before registering the bridge
+## Configure Cloudflare Zaraz
 
-This helper connects c15t to an existing Zaraz installation. It does not insert a
-script, configure Cloudflare tools, or turn a standalone SDK into a server-side
-integration. Configure each tool in Zaraz and remove its previous standalone
-loader, including any duplicate `@c15t/integrations` helper.
+`cloudflareZaraz` connects c15t to an existing Zaraz installation. It inserts
+no script and configures no tools. Zaraz loads the tools; c15t decides which
+purposes they may use. In the Zaraz dashboard:
 
-In the Zaraz dashboard:
+1. Enable Consent Management and create purposes for the c15t categories you
+   use.
+2. Assign a purpose to every tool that needs permission. Zaraz runs a tool
+   without a purpose regardless of consent.
+3. Turn off automatic display of the Zaraz consent modal. c15t owns the UI.
+4. Turn off **Automatic Pageview Tracking**, and automatic SPA pageviews too if
+   your app sends them itself.
+5. Copy the purpose IDs, not the purpose names, into the mapping below.
 
-1. Enable Consent Management and create purposes for the categories you use.
-2. Assign a purpose to every tool requiring permission. Zaraz tools without a
-   purpose bypass consent checks.
-3. Disable automatic display of the Zaraz consent modal. c15t owns the UI.
-4. Disable **Automatic Pageview Tracking**. Disable automatic SPA pageviews too
-   if your application will emit them itself.
-5. Copy the purpose IDs into the mapping below. Every active purpose returned by `zaraz.consent.getAll()` and omitted
-   from the mapping is denied by this bridge. Register one bridge per application.
+Zaraz keeps its own consent cookie. An automatic pageview can run with a grant
+from a previous visit before c15t applies the current permissions. With
+automatic pageviews off, send the first pageview from `onReady`, which runs
+after the first synchronization. DOM-ready, timer and click triggers you add in
+Zaraz can still run before the bridge starts; audit them. Cloudflare documents
+[purpose assignment](https://developers.cloudflare.com/zaraz/consent-management/)
+and [pageview settings](https://developers.cloudflare.com/zaraz/reference/settings/).
 
-Zaraz keeps a separate consent cookie. Its automatic pageview can run before
-c15t resolves the current permissions, using a grant from a previous visit.
-Disabling that pageview and emitting it from `onReady` prevents this particular
-startup race. Do not send other events before synchronization, and audit any
-custom triggers that run independently. DOM-ready, timer or click triggers can
-run with stale permissions before the bridge mounts. The bridge cannot undo
-requests sent before it starts.
-
-Cloudflare documents [purpose assignment](https://developers.cloudflare.com/zaraz/consent-management/)
-and [automatic pageview settings](https://developers.cloudflare.com/zaraz/reference/settings/).
-
-## Register the consent bridge
-
-| Package manager | Command                          |
-| :-------------- | :------------------------------- |
-| npm             | `npm install @c15t/integrations` |
-| pnpm            | `pnpm add @c15t/integrations`    |
-| yarn            | `yarn add @c15t/integrations`    |
-| bun             | `bun add @c15t/integrations`     |
+| Package manager | Command                                |
+| :-------------- | :------------------------------------- |
+| npm             | `npm install @c15t/integrations@alpha` |
+| pnpm            | `pnpm add @c15t/integrations@alpha`    |
+| yarn            | `yarn add @c15t/integrations@alpha`    |
+| bun             | `bun add @c15t/integrations@alpha`     |
 
 ```ts title="src/consent-scripts.ts"
 import { cloudflareZaraz } from '@c15t/integrations/cloudflare-zaraz';
@@ -62,30 +55,25 @@ export const scripts = [
 ];
 ```
 
-Use actual IDs from your dashboard, not the purpose names. A category may map to
-several purposes, but a purpose cannot appear more than once. Empty mappings,
-blank IDs and duplicate IDs throw during construction. Zaraz only returns purposes attached to enabled tools from `getAll()`. IDs absent
-from that result cannot receive a grant; compare the mapping with
-`zaraz.consent.getAll()` when troubleshooting.
-
-Include the mapped categories in your c15t policy. The bridge reads effective
-permissions, including policy restrictions, rather than treating every allowed
-category as a recorded visitor choice.
-
-For the shared registration examples below, keep Zaraz's own loader and its
-configured dashboard tools. Remove duplicate standalone vendor loaders only.
-For this integration, c15t owns permission synchronization and Zaraz owns tool
-loading.
+Register one bridge per app. Keep Zaraz's own loader and its dashboard tools
+when you follow the registration steps below; remove only standalone loaders
+for tools that Zaraz already runs, including a separate `@c15t/integrations` helper
+for the same tool. If Zaraz auto-injection is off, load
+[Zaraz manually](https://developers.cloudflare.com/zaraz/advanced/load-zaraz-manually/)
+once.
 
 ## Register the scripts
 
 Complete your [framework quickstart](https://c15t.com/docs/frameworks) first. Keep its Inth
 endpoint, policy, styles and consent UI. Remove the vendor's original script,
-SDK initializer or tag-manager entry so c15t owns loading once.
+SDK initializer or tag-manager entry, so the vendor loads only through c15t.
 
-The `scripts` export in `src/consent-scripts.ts` is a configuration, not an
-initializer. Add it to your existing consent owner using the registration point
-below. These are partial edits to that owner, not additional providers.
+The vendor pages put the helper in `src/consent-scripts.ts`. If your framework
+quickstart already created a scripts file, such as `lib/scripts.ts` in the
+Next.js guide, add the helper to that array instead of creating a second file.
+The `scripts` export is a configuration, not an initializer. Add it to the c15t provider you already have, at the registration
+point for your framework below. These are edits to that provider, not a second
+provider.
 
 **Next.js**
 
@@ -106,158 +94,104 @@ router guide. Its manifest, init and save URLs stay in effect. Add
 </ConsentRoot>
 ```
 
-For a Pages Router or static-export setup using `ConsentProvider`, add
-`scripts` to its existing `options` instead. Keep the router-specific setup
-from [Next.js script loading](https://c15t.com/docs/frameworks/next/script-loader).
+App Router, Pages Router and static export all use this `ConsentRoot` in
+the `'use client'` wrapper `components/consent.tsx`. Keep `scripts` there,
+because a Server Component cannot pass script callbacks to it. See
+[Next.js scripts and embeds](https://c15t.com/docs/frameworks/next/scripts).
 
 **TanStack Start**
 
-In your existing root route component, import the scripts alongside
-`ConsentRoot`. Keep the server loader from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart).
+Import the configuration into your root route and pass it to the existing
+`ConsentRoot` as a top-level prop. Keep the loader, `backendURL` and
+`initRoute` from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart):
 
-```tsx
-import { Outlet } from '@tanstack/react-router';
-import { ConsentRoot } from 'c15t/tanstack-start';
+```tsx title="src/routes/__root.tsx"
 import { scripts } from '../consent-scripts';
 
-function Root() {
-  const state = Route.useLoaderData();
-  return (
-    <ConsentRoot state={state} backendURL={backendURL} initRoute={false} scripts={scripts}>
-      <Outlet />
-      {/* Keep your consent banner, dialog and preferences link here. */}
-    </ConsentRoot>
-  );
-}
+<ConsentRoot
+  state={consent}
+  backendURL={backendURL}
+  initRoute={false}
+  scripts={scripts}
+>
 ```
 
-This edits the existing route. `Route` and `backendURL` come from its setup;
-keep the document shell and head components if they are part of your root.
-`initRoute={false}` keeps the quickstart's direct-backend initialization.
-If your app mounts a consent server route, retain its existing `initRoute`
-instead. Do not return script callbacks from a server function or route loader.
+Import vendor helpers in the root route module, not in a server function.
+A server function's return value must be serializable, and script
+configurations carry callbacks. See
+[TanStack Start scripts](https://c15t.com/docs/frameworks/tanstack-start/scripts).
 
 **React**
 
-Import the scripts into your existing provider component:
+Add the configuration to the existing `ConsentProvider` options, next to
+`mode`:
 
-```ts
-import { ConsentProvider } from 'c15t/react';
+```tsx title="src/consent.tsx"
 import { scripts } from './consent-scripts';
+
+<ConsentProvider options={{ mode, scripts }}>
 ```
 
-Keep the existing options and add `scripts`:
-
-```tsx
-<ConsentProvider options={{ ...consentOptions, scripts }}>
-  {children}
-</ConsentProvider>
-```
-
-Here `consentOptions` is your existing configuration, including
-`mode: hosted({ url: backendURL })`. Keep the banner, dialog and preferences
-link inside the provider. See [React script loading](https://c15t.com/docs/frameworks/react/script-loader).
+`mode` is the `hosted({ url: backendURL })` value from the
+[React quickstart](https://c15t.com/docs/frameworks/react/quickstart). Keep the banner,
+dialog and preferences link inside the provider. See
+[React scripts and embeds](https://c15t.com/docs/frameworks/react/scripts).
 
 **Nuxt**
 
-Attach one loader from the root `app.vue`, after the Nuxt module has
-started its browser runtime. This keeps vendor callbacks in application code rather
-than serialized `nuxt.config.ts` runtime configuration.
+Register the scripts under the `c15t` key in `app/app.config.ts`. Adjust the
+relative import to where you created `consent-scripts.ts`:
 
-```vue title="app/app.vue"
-<script setup lang="ts">
-import { onUnmounted } from 'vue';
-import { createScriptLoader } from 'c15t/modules/script-loader';
+```ts title="app/app.config.ts"
 import { scripts } from '../src/consent-scripts';
 
-const nuxtApp = useNuxtApp();
-const kernel = useConsentKernel();
-let loader: ReturnType<typeof createScriptLoader> | undefined;
-
-const removeMountedHook = nuxtApp.hook('app:mounted', () => {
-  loader = createScriptLoader({ kernel, scripts });
+export default defineAppConfig({
+  c15t: { scripts },
 });
-onUnmounted(() => {
-  removeMountedHook();
-  loader?.dispose();
-});
-</script>
-
-<template>
-  <ConsentRoot />
-  <NuxtPage />
-</template>
 ```
 
-Merge the setup code into your root and retain its footer and preferences
-link. `useConsentKernel` is auto-imported by the c15t Nuxt module. Adjust the
-relative script import if your `app.vue` is at the project root. This loader
-waits until the module has applied browser persistence and privacy signals,
-then reads the current snapshot and observes future changes. Do not also register these scripts
-in another loader. See the [Nuxt quickstart](https://c15t.com/docs/frameworks/nuxt/quickstart).
+The Nuxt module merges this over its options in `nuxt.config.ts` and starts
+one script loader in the browser after hydration, once it has applied the
+visitor's stored choice and privacy signals. Keep `scripts` out of
+`nuxt.config.ts`, which reaches the browser as JSON and drops the vendor
+callbacks. `app.config.ts` cannot read `runtimeConfig`, so write the vendor
+IDs into `consent-scripts.ts` or read them from `VITE_` variables. See
+[Nuxt scripts and embeds](https://c15t.com/docs/frameworks/nuxt/scripts).
 
 **Vue**
 
-Use the kernel already provided by the Vue plugin. Merge this setup into
-`App.vue`, whose lifetime covers the application:
+Pass the scripts to the existing `c15tVue` plugin call in `src/main.ts`:
 
-```vue title="src/App.vue"
-<script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
-import { createScriptLoader } from 'c15t/modules/script-loader';
-import { useConsentKernel } from 'c15t/vue/vue-plugin';
-import ConsentRoot from 'c15t/vue/consent-root';
+```ts title="src/main.ts"
 import { scripts } from './consent-scripts';
 
-const kernel = useConsentKernel();
-let loader: ReturnType<typeof createScriptLoader> | undefined;
-
-onMounted(() => {
-  loader = createScriptLoader({ kernel, scripts });
-});
-onUnmounted(() => loader?.dispose());
-</script>
-
-<template>
-  <ConsentRoot />
-  <main>Your application</main>
-</template>
+app.use(c15tVue, { backendURL, scripts });
 ```
 
-Keep your existing page content and preferences link. The plugin still owns
-the kernel and persistence; this component owns only the vendor loader.
-Do not register the same scripts in plugin configuration as well. See the
-[Vue quickstart](https://c15t.com/docs/frameworks/vue/quickstart).
+Keep your existing backend URL and other options. The plugin starts one
+script loader when the app mounts, after it has applied the visitor's stored
+choice. Do not also call `createScriptLoader` from a component. See
+[Vue scripts and embeds](https://c15t.com/docs/frameworks/vue/scripts).
 
 **Astro**
 
-Point the existing Astro integration at a client module. Keep its `mode`,
-`ui` and framework integration from the [Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart).
-Import `fileURLToPath` in your Astro configuration:
+Add the scripts to the client entrypoint from the
+[Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart), the module that the
+integration's `clientEntrypoint` option names. Keep `mode`, `ui` and the
+framework integration in `astro.config.mjs` as they are. If the module
+already exports scripts, combine the two arrays.
 
-```js title="astro.config.mjs"
-import { fileURLToPath } from 'node:url';
-```
-
-Add this option to the existing `c15t({ ... })` call. Resolve the path from
-the configuration file because Astro injects the import into a virtual module:
-
-```js
-clientEntrypoint: fileURLToPath(new URL('./src/c15t.client.ts', import.meta.url)),
-```
-
-Export the scripts from that module:
-
-```ts title="src/c15t.client.ts"
+```ts title="src/consent-client.ts"
 import type { C15tClientOptionsExtension } from 'c15t/astro';
 import { scripts } from './consent-scripts';
 
 export default { scripts } satisfies C15tClientOptionsExtension;
 ```
 
-The integration passes this extension to its shared browser runtime. Vendor
-helpers contain callbacks, so do not put them in the serialized `scripts`
-option in `astro.config.mjs`. Keep one runtime across consent islands and
+Vendor helpers contain callbacks, and the integration options in
+`astro.config.mjs` are serialized into the page, so do not put helpers in
+the integration's `scripts` option. The integration passes the client
+entrypoint to the one runtime every page shares, including across
 `ClientRouter` navigation.
 
 **Svelte**
@@ -290,11 +224,12 @@ and its serializable prefetch data from the [SvelteKit quickstart](../frameworks
 
 ```svelte title="src/routes/+layout.svelte"
 <script lang="ts">
+  import { env } from '$env/dynamic/public';
   import { ConsentManagerProvider, hosted } from '@c15t/svelte';
   import { scripts } from '../consent-scripts';
 
   let { children, data } = $props();
-  const mode = hosted({ url: data.backendURL });
+  const mode = hosted({ url: env.PUBLIC_C15T_BACKEND_URL });
 </script>
 
 <ConsentManagerProvider {mode} {scripts} prefetch={data.prefetch}>
@@ -303,27 +238,45 @@ and its serializable prefetch data from the [SvelteKit quickstart](../frameworks
 </ConsentManagerProvider>
 ```
 
-Import vendor helpers in the layout component, not in `+layout.server.ts`.
-For static hosting, keep your browser-only `mode` setup and omit request
-prefetch; the `scripts` prop stays the same. If you pass an externally owned
+Import vendor helpers in the layout component, not in `+layout.server.ts`:
+a server load cannot send functions to the browser. Prerendered, static and
+SPA-mode pages use the same `scripts` prop. If you pass an externally owned
 `runtime` to the provider, register scripts when creating that runtime instead.
+
+**HTML**
+
+The helpers in `@c15t/integrations` are ES modules that need a bundler. On a
+page that loads the c15t script tag, paste the vendor's own snippet instead
+and keep it inert until its category is allowed:
+
+```html
+<script type="text/plain" data-c15t-category="measurement">
+  // The vendor's snippet, unchanged
+</script>
+```
+
+Use the category this guide names for the vendor. c15t runs the snippet
+once that category is allowed, and reloads the page when the visitor
+withdraws it. Helper options on this page, such as `loadMode`, do not apply
+to a pasted snippet. See [HTML scripts](https://c15t.com/docs/frameworks/html/scripts).
 
 **JavaScript**
 
-Attach the loader to your existing kernel before calling
-`kernel.commands.init()`:
+Pass the scripts to `init()` from `@c15t/browser`, next to your backend
+URL:
 
 ```ts
-import { createScriptLoader } from 'c15t/modules/script-loader';
+import { init } from '@c15t/browser';
 import { scripts } from './consent-scripts';
 
-const loader = createScriptLoader({ kernel, scripts });
+const consent = init({ backendURL, scripts });
 ```
 
-Call `loader.dispose()` when that application instance is destroyed.
-`kernel` is the hosted kernel from your quickstart. A provider-owned kernel
-already has a loader; do not attach a second one. See
-[JavaScript script loading](https://c15t.com/docs/frameworks/javascript/script-loader).
+`backendURL` is the Inth URL from your quickstart. With
+`createConsentRuntime` from `c15t/runtime`, pass `scripts` to it instead.
+A kernel you create yourself needs a loader from
+`c15t/modules/script-loader`. Attach one loader per kernel. See
+[JavaScript scripts](https://c15t.com/docs/frameworks/javascript/scripts).
 
 **React Native**
 
@@ -346,75 +299,67 @@ An SDK you start outside React reads the same snapshot natively and has to
 check it there too. See
 [React Native setup](https://c15t.com/docs/frameworks/react-native/quickstart).
 
-## Loading and updates
+## Options
 
-The helper returns an `alwaysLoad`, `callbackOnly` configuration with category
-`necessary`. This lets consent synchronization run for every visitor. It does
-not make the downstream analytics or advertising tools necessary.
+| Option             | Default  | Behavior                                                                                                                                                                  |
+| ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `purposes`         | Required | Maps c15t categories to Zaraz purpose IDs. A category can list several IDs. An empty mapping, a blank ID, an ID with surrounding whitespace or an ID mapped twice throws. |
+| `hideBuiltInModal` | `true`   | Hides the Zaraz modal if it is visible. Also turn off auto-display in Zaraz.                                                                                              |
+| `sendQueuedEvents` | `true`   | Calls `zaraz.consent.sendQueuedEvents()` after a purpose changes from denied to allowed. Set `false` to discard pageviews Zaraz queued before consent.                    |
+| `onReady`          | None     | Runs once after the first successful synchronization, even when every purpose is denied.                                                                                  |
+| `onError`          | None     | Receives synchronization errors.                                                                                                                                          |
 
-Zaraz normally injects its own loader. If auto-injection is disabled, install
-[Zaraz manually](https://developers.cloudflare.com/zaraz/advanced/load-zaraz-manually/)
-once. The bridge supports either loading order: an already-ready API is updated
-immediately; otherwise it waits for `zarazConsentAPIReady` and applies the latest
-c15t permissions. No polling is used.
+## Loading and revocation
 
-On a change, the bridge calls `zaraz.consent.set()` before
-`zaraz.consent.sendQueuedEvents()`. It flushes Zaraz's queued pageviews only when
-a purpose changes from denied to allowed. Revocation updates purposes to false
-and does not flush events. Repeated identical permissions do not rewrite the
-Zaraz cookie. `onReady` runs once after the first successful synchronization,
-including when all optional purposes are denied. A pageview sent there remains
-subject to Zaraz's purpose checks.
+`cloudflareZaraz` returns a callback-only script with the `necessary` category
+and `alwaysLoad`, so the bridge runs for every visitor. That does not make the
+tools behind it necessary. Control each tool through its Zaraz purpose.
 
-| Option             | Default  | Behavior                                                                     |
-| ------------------ | -------- | ---------------------------------------------------------------------------- |
-| `purposes`         | Required | Maps categories to Zaraz purpose IDs; unmapped purposes are denied           |
-| `hideBuiltInModal` | `true`   | Hides the currently visible modal; also disable auto-display in Cloudflare   |
-| `sendQueuedEvents` | `true`   | Replays Zaraz's queued pageviews after new grants                            |
-| `onReady`          | Unset    | Runs after initial permission synchronization                                |
-| `onError`          | Unset    | Receives synchronization errors so the application can report or handle them |
+The bridge's vendor slug is `cloudflare-zaraz`. Declare a vendor with that
+`id` to give visitors a switch for Zaraz in the preference dialog. While a
+visitor has it switched off, the bridge denies every purpose mapped to an
+optional category, whatever the categories allow. See
+[let visitors turn off one vendor](./granular-consent.md).
 
-If a Zaraz API call throws, `onReady` does not run until synchronization
-succeeds. Use `onError(error)` to report the failure and prevent application
-events from relying on permissions that were not applied. The bridge retries
-with the latest permissions on the next consent update or readiness event;
-it does not poll or schedule automatic retries. Readiness retries remain
-registered when `onError` is omitted and an error reaches the loader debug hook. A failed queued-event replay
-remains pending until synchronization succeeds while that purpose is still
-allowed. Revoking the purpose cancels its pending replay. Zaraz can partially
-process a queue before throwing, so retries cannot guarantee exactly-once delivery. Without `onError`, synchronous
-failures reach the script loader's debug events and readiness-event failures
-reach the browser's error handler. A failed revocation can leave the previous
-Zaraz grant in place.
+When the Zaraz consent API is ready, the bridge reads `zaraz.consent.getAll()`
+and sets each returned purpose to `true` only if its mapped category is
+allowed in c15t's effective permissions, which include policy restrictions.
+Purposes you did not map are set to `false`. If the API is not ready,
+the bridge waits for the `zarazConsentAPIReady` event and applies the latest
+permissions; it does not poll. On each consent change it calls
+`zaraz.consent.set()` only when a value differs, then replays queued events
+for newly allowed purposes. Revocation sets purposes to `false` and replays
+nothing. Zaraz returns only purposes attached to enabled tools, so a mapped ID
+missing from `getAll()` gets no grant.
 
-If the bridge starts before saved consent or policy resolution is available,
-it applies the kernel's current effective permissions and updates them when
-initialization completes. Pass restored state during setup when available.
-The bridge does not force a denial when the kernel already permits a purpose.
+If a Zaraz call throws, `onReady` waits and the bridge retries on the next
+consent change or readiness event. Without `onError`, the error reaches the
+script loader's debug events, or the browser's error handler for readiness
+events. A failed revocation can leave the previous Zaraz grant in place, and a
+retried replay can send a queued event twice. Disposing the loader detaches the
+bridge but does not revoke purposes or stop tools that already ran. The bridge
+maps categories to purposes only; it does not translate IAB TCF choices.
 
-Set `sendQueuedEvents: false` if your application deliberately discards
-pre-consent pageviews. Send subsequent route events only after readiness and
-avoid combining manual route events with Zaraz's automatic SPA pageviews.
+## Verify Cloudflare Zaraz
 
-Removing or replacing the configuration, or disposing its loader, detaches the
-readiness listener. Disposal does not revoke consent, clear vendor storage, or
-stop a tool that has already initialized. Save the denied permissions before
-teardown when revocation is required. Zaraz controls subsequent tool execution;
-test vendor-specific behavior for scripts with their own ongoing activity.
+Test with isolated destinations. `getAll()` shows what the bridge set, but only
+a tool's own requests show whether it respected that.
 
-## Verify the configured tools
-
-Use a test environment with isolated destinations. Check a first visit, a return
-visit with stale Zaraz grants, measurement-only acceptance, marketing-only
-acceptance, rejection, and revocation. Inspect both `zaraz.consent.getAll()` and
-actual tool activity. An updated consent object alone does not prove that a
-misconfigured tool stopped sending data.
-
-This integration maps c15t categories to Zaraz purposes. It does not translate
-IAB TCF vendor and purpose choices or replace Zaraz's separate TCF configuration.
+1. In a private window with an opt-in policy, load the page. The bridge adds
+   no script element. `zaraz.consent.getAll()` returns `false` for every
+   purpose, the Zaraz modal stays hidden, and no purpose-gated tool sends a
+   request.
+2. Click Reject, then reload. Every purpose is still `false`.
+3. Open Privacy settings and allow measurement. Without a reload, the
+   measurement purposes become `true`, the queued pageview replays and
+   measurement tools send requests. Marketing tools stay silent.
+4. Turn measurement off again and save. c15t reloads the page, and the new
+   page starts with every purpose `false`.
+5. In the console, call `zaraz.consent.set()` to grant a purpose that c15t
+   denies, then reload. The bridge sets it back to `false` before `onReady`
+   runs.
 
 [Cloudflare Web Analytics](./cloudflare-web-analytics.md) is a
-separate analytics product with its own loader. Zaraz manages multiple tools,
-which can have different consent requirements and execution costs. Moving a
-tool to Zaraz can reduce browser work, but this bridge alone does not establish
-a performance improvement for that tool.
+separate product with its own helper. See the
+[consent verification guide](../guides/verify-consent.md) for navigation and
+hosting checks.

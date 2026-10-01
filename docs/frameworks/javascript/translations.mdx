@@ -1,0 +1,116 @@
+---
+title: Translations
+description: Choose the language of the c15t banner and preference dialog in a JavaScript app, change its wording with i18n, and add languages with @c15t/browser or createConsentRuntime.
+group: frameworks
+---
+
+## Where the copy comes from
+
+`@c15t/browser` and `c15t` bundle English only. Other languages come from
+outside the bundle, and which source wins depends on the transport:
+
+| Transport | Where the copy comes from |
+| --- | --- |
+| Hosted | Your Inth project. The backend picks the language from the browser's `Accept-Language` header or your `language` override, and sends that copy with the policy. |
+| Manifest | The manifest's translations for the visitor's language. |
+| Offline or custom | English, or the `locale` and `messages` you set in `i18n`. |
+
+In every mode, your `i18n.messages` for the language in use override that copy
+key by key. Text you set in `ui.banner`, such as `title` or
+`acceptButtonText`, replaces the translated banner text for all languages.
+
+## Set messages
+
+`i18n.locale` picks the starting language and `i18n.messages` supplies copy
+per language. Messages merge over the bundled English, so a partial set
+keeps every default you leave out:
+
+<include src="../../shared/examples/javascript/translations.mdx" />
+
+This example runs offline, so the German copy shows as written. With a
+backend, the `/init` response, a server prefetch or the manifest carries your
+Inth project's copy for the visitor's language. Your `i18n.messages` for that
+language override it key by key, and keys you leave out keep the project's
+copy. c15t looks for the exact language first, then the primary language, so
+a visitor on `de-AT` gets your `de` messages. Messages for other languages
+are not applied.
+
+A key only overrides the backend when your text differs from c15t's built-in
+wording for that language. So passing the stock bundles from
+`@c15t/translations/all` to enable languages keeps edits made in your Inth project visible,
+while a key you actually reworded stays pinned in code. Core bundles only
+English; for other languages, import `@c15t/translations/all` so c15t can
+recognize its stock wording.
+
+Offline mode is shown here to keep the example short. Not recommended for
+production environments.
+
+## Switch language at runtime
+
+`consent.setLanguage('fr')` from `@c15t/browser` sets the language override
+and resolves the policy again, which fetches French copy from the backend.
+The banner and dialog re-render. With a runtime or kernel, call
+`kernel.set.language('fr')` and then `kernel.commands.init()`.
+
+To follow your app's own language setting from the first render, pass it as
+an override: `init({ backendURL, overrides: { language: 'fr' } })`.
+
+In offline mode there is no copy to fetch. With `offline()` from `c15t` or
+`@c15t/browser`, a language set with the `language` override,
+`setLanguage()` or `kernel.set.language()` switches to that language's copy
+from the bundle or `i18n.messages`. This works for `@c15t/browser` and for a
+headless `createConsentRuntime({ mode: offline() })`. A language with no copy
+shows the default copy, and the language a server prefetch detected from
+`Accept-Language` does not switch the copy. The bundle has English only, so
+put every other language in `messages`.
+
+## Use c15t's bundled translations
+
+`@c15t/translations` has complete copy in more than 30 languages. Its
+`@c15t/translations/all` entry exports `baseTranslations`, keyed by language
+code, which you can pass as `messages`:
+
+{/* example: fragment */}
+
+```ts
+import { baseTranslations } from '@c15t/translations/all';
+
+init({ i18n: { locale: 'de', messages: { de: baseTranslations.de } } });
+```
+
+Importing `baseTranslations` adds every language to your bundle. Import it
+only where you need offline copy in many languages. Install
+`@c15t/translations@alpha` to use it.
+
+## Message keys the stock UI reads
+
+| Key | Where it shows |
+| --- | --- |
+| `cookieBanner.title`, `cookieBanner.description` | Banner under a choice policy. |
+| `cookieBanner.noticeTitle`, `cookieBanner.noticeDescription` | Banner under a notice policy. |
+| `common.acceptAll`, `common.rejectAll`, `common.customize` | Banner and dialog buttons. |
+| `common.acknowledge` | The notice's dismiss button. |
+| `common.save` | The dialog's save button. |
+| `common.securedBy` | The "Secured by" tag. |
+| `consentManagerDialog.title`, `consentManagerDialog.description` | Dialog heading and text. |
+| `consentTypes.<category>.title`, `consentTypes.<category>.description` | Each category row in the dialog. |
+| `legalLinks.privacyPolicy`, `legalLinks.cookiePolicy`, `legalLinks.termsOfService` | Legal link labels. |
+| `rights.optOut`, `rights.preferences` | The extra button an opt-out policy adds to the banner. |
+
+A headless UI reads the same copy from `snapshot.translations`.
+
+## Right-to-left languages
+
+For a language such as Hebrew, the stock banner and dialog set `dir="rtl"`,
+and a banner at a default left or right position moves to the other side.
+
+[Copy and translations](/docs/customization/translations) covers labelling
+actions honestly and testing long strings.
+
+## Check it works
+
+1. Set your browser's preferred language to German and open the app in a
+   private window. With a backend, the banner shows your project's German
+   copy.
+2. Call `consent.setLanguage('fr')`. The banner switches to French.
+3. Open the dialog. Its title, categories and buttons use the same language.

@@ -357,7 +357,7 @@ const main = async function main() {
 				summarizeMetric('@c15t/nextjs', 'bytes', [nextjsTarball.size]),
 			],
 			notes: [
-				'Tarball sizes are captured with npm pack --json; failed or invalid packs fail the run.',
+				'Tarball sizes are captured with npm pack --json and exclude bundled docs (docs/, AGENTS.md, SKILL.md); failed or invalid packs fail the run.',
 				...coreTarball.notes,
 				...reactTarball.notes,
 				...nextjsTarball.notes,

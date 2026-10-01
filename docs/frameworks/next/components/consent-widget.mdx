@@ -7,7 +7,7 @@ group: frameworks
 ## Embed the preference center inline
 
 `ConsentWidget` renders the preference center in the page flow instead of in
-a modal: the category switches and the Reject all, Accept all and Save
+a modal: the category switches and the Reject All, Accept All and Save Settings
 actions, without a title, backdrop or portal. Use it on a privacy or
 settings route where the visitor expects the controls to be part of the
 content. It is a Client Component; render it from any route under the
@@ -45,12 +45,14 @@ export function CookiePreferences() {
 ```
 
 The page stays a Server Component; only the widget file needs
-`'use client'`. On routes where `ConsentRoot` receives the visitor's resolved
-state from an awaited `resolveConsent` (the App Router layout, or a
-Pages Router page with `getServerSideProps`), the widget is part of the server
-HTML with the visitor's recorded choices applied, unlike `ConsentDialog`,
-which mounts after hydration. On a static or otherwise non-prefetched route the
-widget renders after the browser resolves policy. The widget uses the
+`'use client'`. When `ConsentRoot` receives an awaited `resolveConsent`
+result, from the
+[awaited App Router layout](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html)
+or a Pages Router page with `getServerSideProps`, the widget is part of the
+server HTML with the visitor's recorded choices applied. `ConsentDialog`, by
+contrast, always mounts after hydration. With the default streamed layout,
+which passes a pending promise, and on static routes, the widget renders once
+the browser has applied the resolved policy. The widget uses the
 boundary's policy, translations and transport; it does not need a second
 provider, and it does not open or close the banner or dialog by itself.
 
@@ -67,6 +69,6 @@ The `useConsentDraft` hook and `ConsentDraftProvider` component import from
 
 The compound parts import from `c15t/next` as properties of `ConsentWidget`.
 Server Components cannot render them: keep the composition in a file with
-`'use client'`. See [Styling](../styling/overview) for slots and tokens.
+`'use client'`. See [Customize](/docs/frameworks/next/customize) for slots and tokens.
 
 <import src="../../../shared/react/components/consent-widget.mdx#verify" />

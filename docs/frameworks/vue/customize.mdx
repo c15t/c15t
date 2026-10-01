@@ -1,0 +1,108 @@
+---
+title: Customize
+description: Change the c15t banner and dialog in a Vue app with theme tokens, layout presentation, component slots and copy.
+group: frameworks
+---
+
+## Pick the right option
+
+| You want to change | Use |
+| --- | --- |
+| Colors, fonts, radius, spacing or motion | `tokens` |
+| Banner shape, position, button order or blocking | `presentation` |
+| Classes or attributes on one part of a component | `components` |
+| The text | Your Inth project's translations |
+| The markup | [Headless](/docs/frameworks/vue/headless) |
+
+The [customization overview](/docs/customization/overview) explains these
+choices across frameworks. All three options go in the object you pass to
+`app.use(c15tVue, ...)`.
+
+See the [design gallery](/docs/customization/recipes) for five banner designs,
+from a bottom bar to a fully custom one, with tested code for this framework.
+
+## A customized setup
+
+This `src/main.ts` sets brand tokens, shows the banner as a bar along the
+bottom of the page, and adds a class to the banner card:
+
+<include src="../../shared/examples/vue/customize.mdx" />
+
+The banner appears as a bar along the bottom of the page, its primary buttons
+use the brand purple, and the card gets the border that your stylesheet sets
+for `brand-consent-card`.
+
+## Set theme tokens
+
+`tokens` sets c15t's CSS variables. Keys are the variable names without the
+leading `--`. [Theme tokens](/docs/customization/tokens) lists every token.
+
+The c15tVue plugin adds every token, including the defaults you did not set,
+to `document.head` in a `<style id="c15t-css-vars">` element when you install
+it, before the first render. Every c15t component gets them, with or without
+`ConsentRoot`. A `:root` rule in your stylesheet can lose to that element
+depending on stylesheet order, so set token values through the `tokens`
+option. `defineTheme` from `c15t/vue/vue-plugin` only types a theme object; it
+does not apply anything.
+
+## Change the banner layout
+
+`presentation.prompt` sets the banner's `variant`, `position`, `layout`,
+`primaryActions`, `direction`, `uiProfile` and `blocking`.
+`presentation.preferences` sets the same layout fields for the dialog.
+
+`variant` is `'floating'`, `'bar'`, `'widget'` or `'wall'`, and each accepts
+its own positions. `bar` takes `top` or `bottom`, `wall` takes `center`,
+`widget` takes the four corners, and `floating` takes the corners plus
+`top-center` and `bottom-center`. The policy still has the last word. A choice
+wall always blocks, a notice never blocks, and the policy can restore a
+required button you left out of `layout`.
+
+[`ConsentBanner`](/docs/frameworks/vue/components/consent-banner#props) also
+takes `variant`, `position` and `blocking` as props when you render it
+yourself.
+
+## Style one part of a component
+
+`components` adds attributes to named parts, such as the banner card or the
+floating trigger. The keys match the
+[slot reference](/docs/customization/slots). Vue binds these objects with
+`v-bind`, so use Vue attribute names such as `class` and `style`. React's
+`className` does not apply.
+
+## Change the copy
+
+The banner and dialog text come from the translations of your Inth project,
+resolved for the visitor's language. Edit them there. `legalLinks` adds links
+to your privacy policy and similar pages:
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+app.use(c15tVue, {
+  backendURL,
+  bannerLegalLinks: ['privacyPolicy'],
+  legalLinks: { privacyPolicy: { href: '/privacy' } },
+  scripts,
+});
+```
+
+[Translations](/docs/frameworks/vue/translations) covers the visitor's
+language, and [copy and translations](/docs/customization/translations) covers
+message keys and writing labels.
+
+## Other display options
+
+| Option | What it does |
+| --- | --- |
+| `showTrigger` | Renders the floating [`ConsentDialogTrigger`](/docs/frameworks/vue/components/consent-dialog-trigger) from `ConsentRoot`. |
+| `triggerDefaultPosition`, `triggerSize`, `triggerIcon`, `triggerShowWhen` | Place and style that trigger. |
+| `hideBranding`, `bannerHideBranding`, `dialogHideBranding` | Hide the "Secured by" tag. |
+| `disableAnimation` | Turns off banner and dialog animations. |
+| `consentCategories` | Limits the categories the dialog shows, within the policy's scope. |
+
+## Check the result
+
+Run `vite` and open the app in a private window so the banner shows. In the
+Elements panel, the `<style id="c15t-css-vars">` element in `<head>` holds
+your token values.

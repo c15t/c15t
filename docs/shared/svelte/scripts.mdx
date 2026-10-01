@@ -1,0 +1,85 @@
+{/* Shared by docs/frameworks/svelte/scripts.mdx and docs/frameworks/sveltekit/scripts.mdx. */}
+
+## How registered scripts load
+
+The provider's `scripts` prop takes an array of script configurations. Each
+has a category. The loader adds a script to the page when its category becomes
+allowed and removes it when the category is withdrawn. Nothing optional loads
+while the policy is still resolving, or when it fails.
+
+Helpers in `@c15t/integrations`, such as `posthog()` from `@c15t/integrations/posthog`,
+return a configuration with the right category and the vendor's own consent
+calls. [Integrations](/docs/integrations/overview) lists every helper. For an
+SDK without a helper, write a configuration with an `id`, `category` and `src`
+as shown in [building integrations](/docs/integrations/building-integrations).
+
+Remove the vendor's original `<script>` tag, `app.html` snippet or SDK import
+before you register it. A banner does not block code that loads some other
+way, and a vendor loaded twice sends events twice.
+
+The `scripts` array is read when the provider is created. Build it once, at
+the top level of the component, not inside an effect.
+
+## Script options
+
+Helpers set these for you. For a script without a helper, write the object
+yourself:
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `id` | required | A unique name. The loader uses it to add and remove the script once. |
+| `category` | required | The category or condition, such as `'measurement'` or `{ and: ['measurement', 'marketing'] }`, that must be allowed. |
+| `src` or `textContent` | none | The script's URL, or inline code. |
+| `callbackOnly` | `false` | Adds no `<script>` element and only runs the callbacks. Use it to switch an SDK you load yourself on and off. |
+| `alwaysLoad` | `false` | Loads at once, whatever the consent state. Only for scripts that apply consent themselves, such as a tag manager with Consent Mode. |
+| `persistAfterConsentRevoked` | `false` | Keeps the element after withdrawal instead of removing it. |
+| `target` | `'head'` | Where the element goes: `'head'` or `'body'`. |
+| `async`, `defer`, `fetchPriority`, `attributes`, `nonce` | none | Set on the `<script>` element. |
+| `anonymizeId` | `true` | Gives the element a random `id`, so ad blockers do not match it by name. |
+| `vendor` | none | Also waits for this vendor to be allowed, for vendor-level consent outside IAB. |
+| `onBeforeLoad`, `onLoad`, `onError`, `onConsentChange`, `onDispose` | none | Lifecycle callbacks. See [callbacks](./callbacks#script-callbacks). |
+
+## Gate embeds
+
+Iframes are not scripts. Wrap them in `ConsentGate`, which keeps the iframe
+out of the DOM until its category is allowed:
+
+<include src="../examples/svelte/youtube-embed.mdx" />
+
+For iframes from a CMS or Markdown, which you cannot wrap, use the iframe
+blocker's `data-category` and `data-src` attributes. [Embeds](./embeds) covers
+both.
+
+## Block requests from code already on the page
+
+The provider's `networkBlocker` option holds `fetch` and `XMLHttpRequest`
+calls to the domains you list until their category is allowed. It is a
+backstop for code you cannot move into `scripts`. [Network blocker](./network-blocker)
+covers the rules and what it cannot stop.
+
+## What happens when consent is withdrawn
+
+Removing a script tag cannot stop code that already ran. So when a save
+withdraws a category that was granted, the provider reloads the page after the
+save request, and the new page starts with only the permitted code. Set
+`reloadOnConsentRevoked: false` on the provider if you handle withdrawal
+yourself, for example through a vendor's own opt-out call in
+`onConsentChange`.
+
+`ConsentGate` content unmounts without a reload. To delete first-party cookies
+a vendor set, configure `clearOnRevocation`; see
+[clearing data on revocation](/docs/integrations/clear-on-revocation).
+
+## Verify vendor loading
+
+Open DevTools, clear site data for your origin and reload:
+
+1. With the banner showing, the Network panel has no requests to your vendors,
+   and gated iframes are absent from the Elements panel.
+2. Allow one category in preferences. Only that category's vendors load, and
+   its iframes appear.
+3. Reject, reload, and confirm the vendor requests stay absent.
+4. Withdraw a category you allowed. The page reloads and its vendors no longer
+   load.
+
+[Verify consent](/docs/guides/verify-consent) covers automated checks.

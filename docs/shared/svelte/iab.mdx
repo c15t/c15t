@@ -1,0 +1,86 @@
+{/* Shared by docs/frameworks/svelte/iab.mdx and docs/frameworks/sveltekit/iab.mdx. */}
+
+## Before you turn on IAB TCF
+
+Use IAB TCF when your ad partners require a TC String. It needs an IAB policy
+in your Inth project and a CMP ID. IAB Europe assigns a CMP ID to a company
+when it registers as a CMP
+([register.consensu.org/CMP](https://register.consensu.org/CMP)). Every TC
+String names the CMP that wrote it, so an ID you did not register attributes
+your visitors' consent to someone else. Example CMP IDs in c15t demos are not
+production configuration.
+
+`@c15t/svelte` loads the TCF add-on from `@c15t/iab`, which it installs as a
+dependency. The add-on is a separate chunk that apps without IAB never
+download.
+
+## Add the IAB components
+
+Turn IAB on with the provider's `iab` prop, keeping your existing `mode`,
+`scripts` and other props. `registeredCmpId` stands for the number IAB Europe
+assigned to your company:
+
+{/* example: fragment */}
+
+```svelte
+<ConsentManagerProvider {mode} {scripts} iab={{ cmpId: registeredCmpId }}>
+```
+
+Then render `IABConsentBanner` and `IABConsentDialog` next to the standard
+components, and import the IAB stylesheet after `@c15t/svelte/styles.css`.
+The standard components cover visitors whose policy is not IAB, such as those
+outside Europe:
+
+<include src="../examples/storybook-svelte/iab-surfaces.mdx" />
+
+| `iab` option | Purpose |
+| --- | --- |
+| `cmpId` | Your registered CMP ID. A hosted backend can supply it instead. |
+| `vendors` | Limit the Global Vendor List to these vendor IDs. |
+| `customVendors` | Vendors outside the IAB list, with their purposes and data use. |
+| `publisherRestrictions` | Override how vendors may use a purpose. See below. |
+| `publisherCountryCode` | Your country, written into the TC String. |
+| `gvl`, `gvlURL` | Supply the vendor list, or change where it is fetched from. |
+| `enabled` | `false` keeps the configuration but leaves the add-on unmounted. |
+
+Pass `iab={false}`, or omit it, to leave IAB off.
+
+[IABConsentBanner](./components/iab-consent-banner) and
+[IABConsentDialog](./components/iab-consent-dialog) list each component's
+props.
+
+`IABConsentBanner` and `IABConsentDialog` stay hidden until an IAB policy resolves for the visitor. Forcing the
+dialog open does not create a policy or a vendor list, so check the policy
+resolution and the vendor list request before changing how they render.
+
+## Read the TCF state
+
+`getConsentManager().iab` holds the live IAB state: the vendor list, purpose
+and vendor consents, `isLoadingGVL`, and the actions `acceptAll()`,
+`rejectAll()`, `setPurposeConsent()`, `setVendorConsent()`,
+`setSpecialFeatureOptIn()` and `save()`. It is `null` when IAB is off.
+`getIAB()` returns the same object at the moment you call it.
+[Context getters](./getters#read-and-change-iab-tcf-consent) lists every
+member.
+
+For a custom IAB banner, `@c15t/svelte/headless` exports
+`getIABBannerDisplayItems`, `processGVLData` and `getIABTranslations`.
+
+## Restrict how vendors use a purpose
+
+Pass publisher restrictions in the provider's `iab` option as
+`publisherRestrictions`, for example
+`[{ purposeId: 4, restrictionType: 0, vendorIds: [10, 755] }]` to stop vendors
+10 and 755 using purpose 4. Use vendors from your own list whose declarations
+allow each restriction.
+
+<include src="../iab-publisher-restrictions.mdx" />
+
+<include src="../iab-tcf-2-4.mdx" />
+
+## Verify the TCF flow
+
+Accept, reject and save purpose and vendor choices, then check in the console
+that `__tcfapi('getTCData', 2, console.log)` returns a TC String that matches
+what you chose. Reload and confirm it persists. Check the vendors' actual
+requests too; a category banner test does not show that the IAB flow works.

@@ -1,0 +1,40 @@
+---
+title: IAB TCF
+description: Show the IAB TCF banner and preference centre in Nuxt with the c15t Nuxt module when your Inth policy uses the IAB model.
+group: frameworks
+---
+
+## Turn on IAB TCF
+
+IAB TCF is a policy setting, not a Nuxt option. When the visitor's policy uses
+the `iab` model and names your CMP ID, `ConsentRoot` renders the IAB banner and
+preference centre in place of the standard ones. No extra component or
+stylesheet is needed; the IAB components include their own styles. Configure
+the CMP ID, vendors and publisher restrictions in your Inth project, or see
+[IAB TCF for a self-hosted backend](/docs/self-host/guides/iab-tcf).
+
+To compose the IAB surfaces yourself, import
+[`IABConsentBanner`](/docs/frameworks/nuxt/components/iab-consent-banner) and
+[`IABConsentDialog`](/docs/frameworks/nuxt/components/iab-consent-dialog) and
+render them in place of `ConsentRoot`. For a custom preference centre, `useConsentIabSelection()`
+reads the visitor's purpose and vendor selection and `useConsentIabSave()`
+writes it and the TC String.
+
+## Vendor list during server rendering
+
+For an IAB policy, the server HTML carries the banner's purpose names, vendor
+count and a reference to the Global Vendor List, not the whole list. The banner
+renders on the server with the same summary the browser shows. After
+hydration, the IAB module fetches the full list and loads it before it saves a
+TC String. With `manifest: 'server'`, the module's init route serves the
+versioned list with a one-day public cache. Allow that route, or your backend
+origin, in your CSP `connect-src`. See
+[Content Security Policy](/docs/frameworks/nuxt/content-security-policy).
+
+<include src="../../shared/iab-tcf-2-4.mdx" />
+
+## Verify IAB consent
+
+Load a page under your IAB policy and confirm the IAB banner appears. In the
+browser console, `__tcfapi('getTCData', 2, console.log)` returns a TC String
+after you accept or reject.

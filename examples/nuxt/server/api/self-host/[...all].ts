@@ -112,7 +112,9 @@ const getInstance = function getInstance() {
 	return instancePromise;
 };
 
+// #region docs:self-host-route
 export default defineEventHandler(async (event) => {
 	const instance = await getInstance();
 	return instance.handler(toWebRequest(event));
 });
+// #endregion docs:self-host-route

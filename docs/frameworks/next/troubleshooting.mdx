@@ -1,28 +1,29 @@
 ---
-title: Troubleshoot Next.js consent
-description: Diagnose failed Next.js prefetch, verify manifest requests, and fix consent rendering or persistence problems.
+title: Troubleshooting
+description: Diagnose failed c15t consent prefetch in Next.js, verify manifest requests, and fix symbol serialization warnings, unknown server location and prerendering errors.
 group: frameworks
 ---
 
 ## Why does the page render when consent prefetch fails?
 
-`resolveConsent` returns its baseline state when a manifest or
+**Check.** `resolveConsent` returns its baseline state when a manifest or
 backend request fails. The page can still render, and the client retries
 initialization. Until policy resolution succeeds, optional categories stay
-denied and the stock banner stays hidden.
+denied and the stock banner stays hidden. Check the failed URL and response in
+your server logs, as browser Network tools cannot show a server-side fetch.
 
-Pass `onError` to `resolveConsent` to report failures in production.
-Without it, the helper logs a warning only outside production. Check the failed
-URL and response in your server logs, as browser Network tools cannot show a
-server-side fetch.
+**Fix.** Pass `onError` to `resolveConsent` to report failures in production.
+Without it, the helper logs a warning only outside production.
 
-If the local manifest handler repeatedly calls itself, check its upstream URL.
-`C15T_BACKEND_URL` must be the absolute Inth or self-hosted backend endpoint.
-The browser can use `/api/c15t` with an optional rewrite, but that local prefix
-must not become the handler's upstream backend. See
+**Check.** If the local manifest handler repeatedly calls itself, check its
+upstream URL.
+
+**Fix.** Set `C15T_BACKEND_URL` to the absolute Inth or self-hosted backend
+endpoint. The browser can use `/api/c15t` with an optional rewrite, but that
+local prefix must not become the handler's upstream backend. See
 [Next.js optimization](/docs/frameworks/next/optimization) for the rewrite setup.
 
-## How do I verify manifest fetching?
+## Verify manifest fetching
 
 Check the Next.js server and browser requests after following the
 [App Router](/docs/frameworks/next/app-router) or
@@ -42,23 +43,37 @@ Check the Next.js server and browser requests after following the
    including submissions. Direct requests to the backend are expected when you
    have not configured a rewrite.
 
+## Why does React warn about objects with symbol properties?
+
+**Check.** A development error that says objects with symbol properties are not
+supported, pointing at `ConsentRoot`, means a Server Component passed the
+`defineConsentConfig` result to it. The config carries a symbol key that React
+cannot serialize.
+
+**Fix.** Move `ConsentRoot` into a `'use client'` wrapper that imports
+`consentConfig` itself, and pass only `state` from the layout, as the
+[App Router guide](/docs/frameworks/next/app-router#register-scripts-in-a-client-wrapper)
+shows.
+
 ## Why is the visitor's location unknown on the server?
 
-`resolveConsent` and the local init handler read the visitor's country
-and region from hosting platform headers such as `cf-ipcountry` and
+**Check.** `resolveConsent` and the local init handler read the visitor's
+country and region from hosting platform headers such as `cf-ipcountry` and
 `x-vercel-ip-country`; c15t never derives location from an IP address itself.
 Some platforms expose those headers to Next.js middleware or proxy but strip
 them before Server Components and Route Handlers run, so every visitor falls
-back to your unknown-location rule. Confirm it by logging
-`(await headers()).get('x-vercel-ip-country')`, or your host's equivalent, in a
-Server Component. If the header is missing there, add `c15tProxy` as described in
-[Forward geography headers](/docs/frameworks/next/geography-headers); it
-forwards the resolved values as `x-c15t-country` and `x-c15t-region`, which take
-precedence everywhere c15t reads location.
+back to your unknown-location rule. Log
+`(await headers()).get('x-vercel-ip-country')`, or your host's equivalent, in
+a Server Component.
+
+**Fix.** If the header is missing there, add `c15tProxy` as described in
+[Forward geography headers](/docs/frameworks/next/geography-headers). It
+forwards the resolved values as `x-c15t-country` and `x-c15t-region`, which
+take precedence everywhere c15t reads location.
 
 ## Why does Next.js report an unstable `Date.now()` during prerendering?
 
-The error
+**Check.** The error
 `Next.js encountered the unstable value Date.now() while prerendering`,
 pointing at the `await resolveConsent(...)` line, comes from
 `partialPrefetching: true` combined with `cacheComponents: true` (Next.js
@@ -67,11 +82,55 @@ pointing at the `await resolveConsent(...)` line, comes from
 `next dev`; `next build` passes because build-time prerenders never resolve
 `headers()`.
 
-`resolveConsent` handles this itself: the default App Router request reader
-calls `await connection()` from `next/server` before reading the clock, so the
-component is already request-time when the clock is read. You do not need to
-add `connection()` to your layout. If you still see the error on the current
-release, report your Next.js version and config on
+**Fix.** Use the current c15t release. `resolveConsent` handles this itself:
+the default App Router request reader calls `await connection()` from
+`next/server` before reading the clock, so the component is already
+request-time when the clock is read. You do not need to add `connection()` to
+your layout. If you still see the error on the current release, report your
+Next.js version and config on
 [c15t/c15t#1107](https://github.com/c15t/c15t/issues/1107).
 
-<include src="../../guides/troubleshooting.mdx" />
+## Inspect the active policy
+
+Place this diagnostic component inside your existing consent
+boundary. It reads state without recording a choice.
+
+```tsx title="app/consent-policy-debug.tsx"
+'use client';
+
+import { useSnapshot } from 'c15t/next';
+
+export function ConsentPolicyDebug() {
+  const snapshot = useSnapshot();
+  const resolution = snapshot.resolution;
+
+  return (
+    <pre>
+      {JSON.stringify(
+        {
+          status: resolution.status,
+          policy: resolution.status === 'matched' ? resolution.policy.id : null,
+          prompt: snapshot.promptRequirement,
+          permissions: snapshot.effectivePermissions,
+          location: snapshot.location,
+          privacySignals: snapshot.privacySignals,
+        },
+        null,
+        2,
+      )}
+    </pre>
+  );
+}
+```
+
+The diagnostic subscribes to consent changes. Remove it after verification.
+For a production feature gate, use `useConsent('marketing')` or the category
+your feature needs instead of subscribing to the whole snapshot.
+
+## More help
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI.

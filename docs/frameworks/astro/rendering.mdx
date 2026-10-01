@@ -1,0 +1,186 @@
+---
+title: Rendering and deployment
+description: Choose how c15t resolves consent on an Astro site, from static output with hosted mode to server output with manifest mode, prerendered pages, server islands, ClientRouter and offline development.
+group: frameworks
+---
+
+## Choose a rendering path
+
+Where consent resolves decides what the first HTML contains. A page that is
+built once and served to everyone cannot contain one visitor's consent, so the
+browser finishes the job. A page rendered per request can.
+
+| Your site | Astro setup | c15t mode | Banner in the first HTML |
+| --- | --- | --- | --- |
+| Static pages on any static host | `output: 'static'`, no adapter | `hosted()` | No. The browser renders it after `/init` |
+| Pages rendered on each request | `output: 'server'` and an adapter | `manifest()` | Yes |
+| A server build with some prerendered pages | `output: 'server'`, `prerender = true` on those pages | `manifest()` | Only on the request-rendered pages |
+| Cached pages that still need a per-visitor banner | An adapter, and `ConsentBannerDeferred` in the layout | `manifest()` | Yes, from a server island |
+| Local development and tests with no backend | Either output | `offline()` | Depends on the output |
+
+Every path uses the same layout, client entrypoint and scripts from the
+[quickstart](/docs/frameworks/astro/quickstart). Only `astro.config.mjs` and,
+for cached pages, the banner component change.
+[Choose your setup](/docs/concepts/choose-your-setup) explains the trade-off
+across frameworks.
+
+## Static output with `hosted()`
+
+<include src="../../shared/examples/astro-demo/static-config.mdx" />
+
+Astro builds every page once. At build time there is no visitor, so
+`ConsentBanner` renders an empty, hidden placeholder. In the browser, c15t
+reads the visitor's consent cookie, calls your backend's `/init` directly, and
+renders the banner into the placeholder when the policy says to show one. A
+returning visitor keeps their choice, because it comes from their own cookie.
+
+The browser calls the backend from your site's origin, so that origin must be
+in the Inth project's trusted origins.
+
+`manifest()` does not work here. It adds on-demand routes, and without an
+adapter `astro build` stops with an error that names them. Use `hosted()` for a
+purely static host.
+
+## Server output with `manifest()`
+
+<include src="../../shared/examples/astro-demo/server-config.mdx" />
+
+The integration registers a middleware that runs before every page. It reads
+the visitor's consent cookie, location headers and Global Privacy Control
+signal, resolves the policy, and stores the result in `Astro.locals.c15t`. The
+components render from it, so the banner is part of the HTML and a visitor who
+has already chosen gets no banner markup at all. Such a page holds one
+visitor's decision, so keep it out of shared caches. See
+[Server API](/docs/frameworks/astro/server#cache-server-rendered-pages-safely).
+
+`manifest()` downloads your project's public policy file, caches it on the
+server and resolves each request locally. The browser asks the injected
+`/api/c15t/init` route when it needs a decision, and saves consent to the
+`backendURL`. `manifest()` needs that URL, either as `backendURL` or from
+`C15T_BACKEND_URL` or `PUBLIC_C15T_BACKEND_URL` in the environment when
+`astro.config` loads. Without one, the config fails to load.
+[Data fetching](/docs/concepts/data-fetching) compares this with calling
+`/init` for every render.
+
+`hosted()` also works with server output. Every server render then calls the
+backend's `/init`, so each page view waits on a backend request.
+
+### Set how long a render waits for the backend
+
+The middleware waits up to 500 ms for the policy. If the backend has not
+answered by then, for example on a cold cache or during an outage, the page
+renders without a server decision. The HTML has no banner, optional categories
+are denied, and gated scripts and iframes stay blocked. The browser then asks
+for the policy and shows the banner when it arrives.
+
+Change the budget in the integration options:
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: manifest({ backendURL }),
+  middleware: { timeoutMs: 800 },
+});
+```
+
+Set `timeoutMs: false` to wait however long the backend takes. With
+`hosted()`, keep the budget above the backend's usual `/init` response time.
+
+### Skip routes that never render consent
+
+The middleware resolves consent for every route, including your API routes.
+List routes that should not pay for that, such as health checks or webhooks.
+A prefix also covers the routes below it, and `Astro.locals.c15t` stays unset
+on a skipped route:
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: manifest({ backendURL }),
+  middleware: { skip: ['/api/webhooks', '/healthz'] },
+});
+```
+
+The integration's own `/api/c15t/init` and `/api/c15t/manifest` routes are
+always skipped.
+
+## Prerender pages in a server build
+
+Add `prerender` to a page's frontmatter to build it once in a server build:
+
+```astro title="src/pages/about.astro (partial)"
+---
+export const prerender = true;
+---
+```
+
+The middleware sees that the page is prerendered and does not read the build's
+request headers or cookies. The page then behaves like a page from a static
+build. The browser reads the visitor's cookie, requests the policy from
+`/api/c15t/init` and renders the banner. Other pages still render per request.
+
+If you call `resolveConsentContext` from `c15t/astro/server` yourself, pass
+`prerendered: true` only for output that every visitor shares. It drops the
+request's cookie and location, so do not use it to skip the backend for one
+visitor's render.
+
+## Cache a page and render the banner per request
+
+A page served from a CDN cache or prerendered once can still show the right
+banner to each visitor. Replace `ConsentBanner` with `ConsentBannerDeferred`,
+which renders the banner in an Astro server island:
+
+<include src="../../shared/examples/astro-demo/cached-layout.mdx" />
+
+The page HTML stays the same for everyone. The island's request carries the
+visitor's cookie and location, so the middleware resolves consent for it and
+the banner arrives with the visitor's own policy. Server islands need an
+adapter. On a static host with no adapter, use `ConsentBanner` and let the
+browser render it.
+
+## Keep consent across `ClientRouter` navigation
+
+With Astro's `ClientRouter`, the browser swaps pages without reloading scripts.
+c15t creates one consent runtime per page load and keeps it across swaps. After
+each swap it re-attaches to the new page's banner, gated scripts and dialog
+triggers, applies the color scheme again, and keeps the dialog stylesheets. The
+visitor's choice and an open dialog both carry over, and no new `/init`
+request is made.
+
+Your own scripts run once per page load, like c15t's. To update markup after a
+swap, listen for `astro:page-load`. See the
+[client API](/docs/frameworks/astro/client-api).
+
+## Develop without a backend
+
+`offline()` resolves policies in the browser and on your server with no
+backend. Not recommended for production environments.
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: offline(),
+  ui: 'svelte',
+});
+```
+
+Import `offline` from `c15t/astro`. Choices persist in the visitor's cookie and
+localStorage only. There are no consent records, no hosted policies and no
+visitor counts. Pass `policyRules` to `offline()` to test a specific policy.
+
+On a prerendered page, offline mode resolves the policy at build time because
+it needs no request. The banner is in the HTML but hidden, and a small inline
+script shows it in the first paint to visitors with nothing stored.
+
+## Check the rendering path
+
+- **Server output:** view the page source of a first visit. It contains
+  `data-testid="consent-banner-root"`. After you choose and reload, it does not.
+  In DevTools Network, the browser does not request `/init` on a server-rendered
+  page.
+- **Static output or a prerendered page:** the page source has no banner
+  markup. In DevTools Network, the browser requests `/init` from your backend,
+  or `/api/c15t/init` in a server build, and the banner appears after it
+  returns.
+- **Server island:** the page source has no banner markup. In DevTools
+  Network, a request to `/_server-islands/ConsentBanner` returns it.
+- **Every path:** vendor requests stay absent until you allow their category,
+  and a rejection survives a reload. See
+  [Verify consent](/docs/guides/verify-consent).

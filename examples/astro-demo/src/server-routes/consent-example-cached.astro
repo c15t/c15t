@@ -1,0 +1,21 @@
+---
+/**
+ * The consent example as a cached page with the banner in a server
+ * island. The page is prerendered once; `<ConsentBannerDeferred />` renders
+ * the banner per request. Server islands need an adapter, so
+ * `astro.config.mjs` only injects this route into the server build.
+ */
+import ConsentExample from '../components/consent-example.astro';
+import CachedLayout from '../layouts/cached.astro';
+
+export const prerender = true;
+---
+
+<CachedLayout title="Consent example">
+	<nav>
+		<a href="/consent-example">Consent example</a>
+		<a href="/second">Second page</a>
+	</nav>
+	<h1>Consent example</h1>
+	<ConsentExample />
+</CachedLayout>

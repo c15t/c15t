@@ -1,0 +1,56 @@
+---
+title: Customize
+description: Change c15t's colors, shape, button styles and copy in a Svelte app with a token stylesheet, theme slots, presentation props and translations.
+group: frameworks
+---
+
+## Pick the right tool
+
+| Change | Use |
+| --- | --- |
+| Brand colors, radius, type, spacing | `--c15t-*` variables in a stylesheet |
+| One part of one component | `theme.slots` on the provider |
+| Button styles by action | `theme.consentActions` |
+| Shape, position, blocking, button order | `ConsentBanner` props or `presentation` |
+| Wording and languages | `ConsentBanner` text props, or [translations](/docs/frameworks/svelte/translations) |
+| Different markup | [Headless](/docs/frameworks/svelte/headless) |
+
+[Customization](/docs/customization/overview) explains how the pieces fit
+together across frameworks.
+
+See the [design gallery](/docs/customization/recipes) for five banner designs,
+from a bottom bar to a fully custom one, with tested code for this framework.
+
+## Set brand colors and radius
+
+Write the `--c15t-*` variables in a stylesheet and import it after
+`@c15t/svelte/styles.css`. The stock stylesheet sets the defaults on `:root`,
+so a later rule on `:root` replaces them before the banner first paints:
+
+<include src="../../shared/examples/svelte/theme-css.mdx" />
+
+{/* example: fragment */}
+
+```ts
+import '@c15t/svelte/styles.css';
+import './consent-theme.css';
+```
+
+Set a hover color and a text color with the primary color, so buttons stay
+readable in each state. [Tokens and CSS](/docs/customization/tokens) lists
+every variable.
+
+Do not put colors, radius or other tokens in the provider's `theme` prop. In
+the browser, `theme` applies slots and `consentActions` only; the token values
+are ignored. In development, the provider logs a warning when `theme` has
+tokens and the page has no `<style id="c15t-theme">`.
+
+If your tokens come from data at runtime, `generateThemeCSS(theme)` from
+`@c15t/ui/theme` turns a theme object into the same CSS. Install
+`@c15t/ui@alpha` to use it, put the result in a `<style id="c15t-theme">`
+element, and expect the generator to add to your bundle. Its selectors outrank
+the stock defaults, so the element works before or after the stylesheet. They
+also outrank a plain `:root` rule of your own, so if you mix both, write your
+overrides on `:root:root`.
+
+<include src="../../shared/svelte/customize.mdx" />

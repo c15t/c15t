@@ -1,0 +1,23 @@
+{/* Generated from apps/storybook-react/src/docs-recipes/slim-bar.tsx (docs:slim-bar) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```tsx title="src/cookie-banner.tsx"
+import { ConsentBanner } from 'c15t/react';
+
+import './slim-bar.css';
+
+/**
+ * The title, copy and the policy's buttons in a single row. The compound
+ * parts keep the policy's actions, so a required Reject button stays.
+ */
+export const CookieBanner = () => (
+	<ConsentBanner.Root variant="bar">
+		<ConsentBanner.Card className="slim-bar">
+			<ConsentBanner.Header className="slim-bar__text">
+				<ConsentBanner.Title />
+				<ConsentBanner.Description />
+			</ConsentBanner.Header>
+			<ConsentBanner.PolicyActions />
+		</ConsentBanner.Card>
+	</ConsentBanner.Root>
+);
+```

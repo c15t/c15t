@@ -166,8 +166,8 @@ export const coreRuntimeBudgets: MetricBudget[] = [
  */
 const VENDOR_CONSENT_GZIP_BYTES = 3584;
 /**
- * The same allowance for the core package tarball, which also carries the
- * bundled docs for the feature and its hooks and modules uncompressed.
+ * The same allowance for the core package tarball, which carries the
+ * feature's hooks and modules uncompressed.
  */
 const VENDOR_CONSENT_TARBALL_BYTES = 8192;
 
@@ -206,25 +206,32 @@ export const bundleBudgets: MetricBudget[] = [
 	},
 ];
 
+/**
+ * Package tarball budgets. The measured tarball leaves out the bundled docs
+ * (`docs/`, `AGENTS.md`, `SKILL.md`), so these budgets cover code only and
+ * documentation changes never count against them.
+ */
 export const artifactBudgets: MetricBudget[] = [
 	{
 		comparator: 'absolute-and-percent-lte',
 		description:
-			'Core package tarball growth must stay below 15kB and 10%, plus the vendor consent allowance.',
+			'Core package tarball growth, excluding bundled docs, must stay below 15kB and 10%, plus the vendor consent allowance.',
 		metric: 'c15t',
 		secondaryThreshold: 10,
 		threshold: 15360 + VENDOR_CONSENT_TARBALL_BYTES,
 	},
 	{
 		comparator: 'absolute-and-percent-lte',
-		description: 'React package tarball growth must stay below 15kB and 10%.',
+		description:
+			'React package tarball growth, excluding bundled docs, must stay below 15kB and 10%.',
 		metric: '@c15t/react',
 		secondaryThreshold: 10,
 		threshold: 15360,
 	},
 	{
 		comparator: 'absolute-and-percent-lte',
-		description: 'Next.js package tarball growth must stay below 15kB and 10%.',
+		description:
+			'Next.js package tarball growth, excluding bundled docs, must stay below 15kB and 10%.',
 		metric: '@c15t/nextjs',
 		secondaryThreshold: 10,
 		threshold: 15360,

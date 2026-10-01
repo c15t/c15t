@@ -11,45 +11,22 @@ variant, position, layout, primary actions, blocking. The policy rule, its
 categories and its copy stay the same for every arm, so every arm records a
 choice under the same policy fingerprint.
 
-Your normal `presentation` is the `control` arm. Every other arm lists only
-what it changes. Pass the arm your feature flag resolved:
+Your normal `presentation` is the `control` arm; without one, `control` is
+the stock banner. Every other arm lists only what it changes. Add the
+experiment to the provider you already have and pass the arm your feature flag
+resolved. In the React example, the `Consent` wrapper takes the arm as a prop:
 
-```tsx title="src/app/providers.tsx"
-'use client';
+<include src="../shared/examples/react/experiment-consent.mdx" />
 
-import { ConsentProvider, hosted } from 'c15t/react';
+`defineExperiment()` from `c15t` returns its argument and has TypeScript check
+the arm names in `arm` and `split`. The callbacks forward each impression and
+choice to `window.dataLayer`; see
+[send the events to your own analytics](#send-the-events-to-your-own-analytics-too).
 
-const bannerShape = {
-	id: 'banner-shape',
-	arms: {
-		invasive: { prompt: { variant: 'wall' } },
-	},
-};
-
-export const Providers = ({
-	children,
-	arm,
-}: {
-	children: React.ReactNode;
-	arm?: 'control' | 'invasive';
-}) => (
-	<ConsentProvider
-		options={{
-			mode: hosted({ url: 'https://your-project.inth.app' }),
-			presentation: { prompt: { variant: 'floating', position: 'bottom-left' } },
-			// No arm: this visitor is not in the experiment.
-			experiment: arm ? { ...bannerShape, arm } : undefined,
-		}}
-	>
-		{children}
-	</ConsentProvider>
-);
-```
-
-Or let c15t split visitors itself:
+Omit `arm` to let c15t pick, and set `split` to weight the arms:
 
 ```ts
-experiment: { ...bannerShape, split: { control: 60, invasive: 40 } }
+experiment: { ...bannerExperiment, split: { control: 60, wall: 40 } }
 ```
 
 | Field | Purpose |
@@ -64,26 +41,14 @@ c15t merges the arm over `presentation`, exposes it as `snapshot.experiment`,
 sends it with `/init`, and records it on the choices of visitors the banner
 showed it to, so you can compare opt-in rate and time to decision per arm.
 
-The same option exists on `c15t/next` (`ConsentRoot` options), `c15t/vue`,
-`@c15t/svelte`, `@c15t/astro` and `@c15t/browser`. On a server-rendered page
-in Next.js, TanStack Start or SvelteKit, pass it to `resolveConsent` instead,
-which counts the arm and hands it to the client; see
-[Vercel Flags SDK](#vercel-flags-sdk).
+The same option exists in `c15t/next` (`ConsentRoot` `options`), `c15t/vue`,
+`@c15t/svelte`, the `c15t()` Astro integration from `c15t/astro`, and
+`@c15t/browser`. On a server-rendered page in Next.js, TanStack Start or
+SvelteKit, pass it to `resolveConsent` instead, which counts the arm and hands
+it to the client; see [Vercel Flags SDK](#vercel-flags-sdk).
 
 `experiment` is read once, when the provider mounts. Changing it later has
 no effect; remount the provider (a `key` in React) to switch experiments.
-
-Build the experiment with `defineExperiment()` to have TypeScript check the
-arm names in `arm` and `split`:
-
-```ts title="src/experiments.ts"
-import { defineExperiment } from 'c15t';
-
-export const bannerShape = defineExperiment({
-	id: 'banner-shape',
-	arms: { invasive: { prompt: { variant: 'wall' } } },
-});
-```
 
 Assignment and arm validation load as a separate chunk, only on pages that
 set `experiment`. A site without an experiment does not download them.
@@ -93,13 +58,15 @@ set `experiment`. A site without an experiment does not download them.
 The Astro banner is server-rendered HTML that the browser only shows or
 hides, so the arm is resolved on the server. To pick it per request, set
 `middleware: false` in `c15t()` and compose the consent middleware yourself
-with `experimentArm`:
+with `experimentArm`, where `bannerExperimentFlag` stands for your flag lookup:
+
+{/* example: fragment */}
 
 ```ts title="src/middleware.ts"
-import { consentMiddleware } from '@c15t/astro/middleware';
+import { consentMiddleware } from 'c15t/astro/middleware';
 
 export const onRequest = consentMiddleware({
-	experimentArm: async (context) => await bannerShapeFlag(context),
+	experimentArm: async (context) => await bannerExperimentFlag(context),
 });
 ```
 
@@ -135,16 +102,13 @@ Read the merged theme with `useResolvedTheme()` in React,
 `client.theme` in `@c15t/browser`. Astro renders the arm's tokens with the
 banner. In React, `consentActions` and slot overrides apply through the
 provider, but colour, radius and other tokens reach the page through
-`ConsentTheme`, so render it from the resolved theme:
+`ConsentTheme`. Render it from the resolved theme in a client component inside
+the provider, with both imported from `c15t/react`:
+
+{/* example: fragment */}
 
 ```tsx
-'use client';
-
-import { ConsentTheme, useResolvedTheme } from 'c15t/react';
-
-export const ExperimentTheme = () => (
-	<ConsentTheme theme={useResolvedTheme()} />
-);
+<ConsentTheme theme={useResolvedTheme()} />
 ```
 
 Rendered from a client component, `ConsentTheme` ships the theme generator.
@@ -163,7 +127,7 @@ records `assignedBy: 'host'` and never re-assigns a visitor you assigned.
 ### Vercel Flags SDK
 
 Give the flag three values. `off` keeps a visitor out of the test; `control`
-and `invasive` split the rest. Set the weights in the Vercel dashboard, so
+and `wall` split the rest. Set the weights in the Vercel dashboard, so
 you can roll out and widen the test without a deploy: start at 90% `off`,
 check that both arms arrive, then move to 0% `off` for the real run.
 
@@ -171,7 +135,7 @@ check that both arms arrive, then move to 0% `off` for the real run.
 import { vercelAdapter } from '@flags-sdk/vercel';
 import { flag } from 'flags/next';
 
-export const bannerShapeFlag = flag<'off' | 'control' | 'invasive'>({
+export const bannerExperimentFlag = flag<'off' | 'control' | 'wall'>({
 	key: 'banner-shape',
 	adapter: vercelAdapter(),
 	identify, // your existing identify
@@ -185,35 +149,20 @@ keeps their arm when you change the weights.
 Resolve the flag where consent resolves and pass the experiment to
 `resolveConsent`. The server reports the arm with `/init`, and the returned
 state carries the experiment to `ConsentRoot`, so the client needs no
-`experiment` option of its own:
+`experiment` option of its own. The Next.js example does this in the root
+layout of its `/experiment` route:
 
-```tsx title="src/app/resolved-consent.tsx"
-import { resolveConsent } from 'c15t/next/server';
+<include src="../shared/examples/nextjs/experiment-layout.mdx" />
 
-import { consentConfig } from '../c15t.config';
-import { Consent } from '../components/consent';
-import { bannerShape } from '../experiments';
-import { bannerShapeFlag } from '../flags';
-
-export async function ResolvedConsent({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
-	const arm = await bannerShapeFlag();
-	const state = await resolveConsent({
-		config: consentConfig,
-		experiment: arm === 'off' ? undefined : { ...bannerShape, arm },
-	});
-	return <Consent state={state}>{children}</Consent>;
-}
-```
-
-Render it inside `<Suspense>`, as in
-[Await consent inside Suspense](/docs/frameworks/next/server-side#await-consent-inside-suspense).
-The banner is then in the server HTML already showing the visitor's arm.
-`resolveConsent` in `@c15t/tanstack-start` and `@c15t/svelte` takes the same
-`experiment`.
+In the example, `lib/flags.ts` stands in for the flag above and reads the arm
+from the URL. `ExperimentConsent` is the `Consent` wrapper from the
+[App Router guide](/docs/frameworks/next/app-router) with the event callbacks
+from [send the events to your own analytics](#send-the-events-to-your-own-analytics-too)
+in `options`. The layout awaits consent inside `<Suspense>`, as in
+[render the banner in the server HTML](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html),
+so the banner is in the server HTML already showing the visitor's arm.
+`resolveConsent` in `c15t/tanstack-start/server` and `@c15t/svelte/server`
+takes the same `experiment`.
 
 If you pass `resolveConsent()` to `ConsentRoot` without awaiting it (the
 streaming layout), the client mounts before the state arrives. Pass the
@@ -227,28 +176,24 @@ is read once at mount, wait for the flags, then mount the provider with the
 resolved arm. Do not wait forever: a blocked or slow flags request would
 leave the visitor with no banner and you with no consent. After a second,
 mount without the experiment. Those visitors see `presentation` and are not
-counted in either arm.
+counted in either arm. This component wraps the `Consent` component from
+[the first example](#vary-presentation-not-policy):
 
-```tsx title="src/app/flagged-providers.tsx"
-'use client';
-
-import { useEffect, useState } from 'react';
+```tsx title="src/flagged-consent.tsx"
 import posthog from 'posthog-js';
+import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 
-import { Providers } from './providers';
+import { Consent } from './consent';
 
-export const FlaggedProviders = ({
-	children,
-}: {
-	children: React.ReactNode;
-}) => {
-	const [arm, setArm] = useState<'control' | 'invasive' | 'off' | null>(null);
+export const FlaggedConsent = ({ children }: { children: ReactNode }) => {
+	const [arm, setArm] = useState<'control' | 'wall' | 'off' | null>(null);
 	useEffect(() => {
 		// The first answer wins: the provider reads the arm once.
 		const fallback = setTimeout(() => setArm((current) => current ?? 'off'), 1000);
 		const unsubscribe = posthog.onFeatureFlags(() => {
 			const flag = posthog.getFeatureFlag('banner-shape');
-			setArm((current) => current ?? (flag === 'invasive' ? 'invasive' : 'control'));
+			setArm((current) => current ?? (flag === 'wall' ? 'wall' : 'control'));
 		});
 		return () => {
 			clearTimeout(fallback);
@@ -259,9 +204,7 @@ export const FlaggedProviders = ({
 		// Flags not loaded yet: no provider, no banner.
 		return children;
 	}
-	return (
-		<Providers arm={arm === 'off' ? undefined : arm}>{children}</Providers>
-	);
+	return <Consent arm={arm}>{children}</Consent>;
 };
 ```
 
@@ -308,8 +251,8 @@ split gets no visitors.
 ```ts
 experiment: {
 	id: 'banner-shape',
-	arms: { invasive: { prompt: { variant: 'wall' } } },
-	split: { control: 60, invasive: 40 },
+	arms: { wall: { prompt: { variant: 'wall' } } },
+	split: { control: 60, wall: 40 },
 }
 ```
 
@@ -317,7 +260,7 @@ Changing `id` starts a new experiment and re-assigns everyone. Removing an
 arm re-assigns only the visitors who were in it. For a clean analysis, change
 `id` rather than editing the arms of a running experiment.
 
-Built-in assignment is not available on `@c15t/astro`; see
+Built-in assignment is not available in Astro; see
 [Astro](#astro).
 
 ## Acknowledge presentation diagnostics
@@ -333,13 +276,16 @@ then logs the diagnostics as a warning once per policy and records
 legal review of that arm; c15t records that you made it.
 
 The check runs in the browser once the policy is known, so catch a rejected
-arm before you deploy with `validateExperiment` in a test:
+arm before you deploy with `validateExperiment` in a test. `euPolicy` and
+`presentation` stand for the policy and presentation your site uses:
+
+{/* example: fragment */}
 
 ```ts
 import { validateExperiment } from 'c15t/experiment';
 
 test('banner-shape arms pass under the EU policy', () => {
-	validateExperiment(bannerShape, euPolicy, { presentation });
+	validateExperiment(bannerExperiment, euPolicy, { presentation });
 });
 ```
 
@@ -347,6 +293,8 @@ It throws for an invalid definition and for arms with unacknowledged
 diagnostics.
 
 ## Read the assignment
+
+{/* example: fragment */}
 
 ```tsx
 import {
@@ -424,15 +372,16 @@ On a server-rendered page the server calls `/init`, not the browser, so the
 server has to know the arm. Pass the experiment to `resolveConsent`, as in
 [Vercel Flags SDK](#vercel-flags-sdk): it sends only `{ id, arm }` to the
 backend and hands the full experiment to the client in its state.
-`resolveConsent` takes `experiment` in `c15t/next`, `@c15t/tanstack-start`
-and `@c15t/svelte`; Astro and Nuxt pass the arm they rendered on their own.
-When c15t picks the arm in the browser, the browser's own `/init` carries
-it, so a server-rendered page that skips the client `/init` has no count
-for built-in assignment. Resolve the arm with a flag on those pages.
+`resolveConsent` takes `experiment` in `c15t/next/server`,
+`c15t/tanstack-start/server` and `@c15t/svelte/server`; Astro and Nuxt pass
+the arm they rendered on their own. When c15t picks the arm in the browser,
+the browser's own `/init` carries it, so a server-rendered page that skips
+the client `/init` has no count for built-in assignment. Resolve the arm with
+a flag on those pages.
 
 ### Where the counts go
 
-On inth, the dashboard reads both counts for you. A self-hosted backend
+On Inth, the dashboard reads both counts for you. A self-hosted backend
 hands each session report to `sessions.onReport`, which is where you log or
 count it; `experiment` is on the report. Choices are in the `consent` table,
 and [`GET /experiments/:id/summary`](#read-the-summary-from-your-backend)
@@ -447,32 +396,13 @@ sessions.
 ### Send the events to your own analytics too
 
 The `onSurfaceShown` and `onChoiceRecorded` callbacks carry the same
-`experiment` object, so one line forwards them to any tool:
-
-```tsx
-<ConsentProvider
-	options={{
-		experiment,
-		callbacks: {
-			onSurfaceShown: ({ experiment, surface }) =>
-				experiment &&
-				window.dataLayer?.push({
-					event: 'c15t_surface_shown',
-					experiment_id: experiment.id,
-					arm: experiment.arm,
-					surface,
-				}),
-			onChoiceRecorded: ({ experiment, consentAction }) =>
-				experiment &&
-				posthog.capture('c15t_choice_recorded', {
-					experiment_id: experiment.id,
-					arm: experiment.arm,
-					consent_action: consentAction,
-				}),
-		},
-	}}
->
-```
+`experiment` object, so a few lines forward them to any tool. The
+[React example](#vary-presentation-not-policy) pushes both to
+`window.dataLayer` for Google Tag Manager, as `c15t_surface_shown` with the
+surface and `c15t_choice_recorded` with the consent action. To send them to
+PostHog instead, call `posthog.capture()` with the same fields in the
+callbacks. The callbacks run for every impression and choice; check
+`experiment` first, because it is `undefined` for visitors outside the test.
 
 An impression fires before any consent exists. If your analytics tool loads
 only after consent, it never sees a decliner's impression, and its opt-in
@@ -502,7 +432,7 @@ The self-hosted backend copies `experiment.id`, `experiment.arm` and
 choices per arm without a JSON query. It needs an API key.
 
 ```bash
-curl 'http://localhost:3000/api/c15t/experiments/banner-shape/summary?from=2026-09-01&to=2026-09-30' \
+curl 'https://app.example.com/api/c15t/experiments/banner-shape/summary?from=2026-09-01&to=2026-09-30' \
   -H "Authorization: Bearer $C15T_API_KEY"
 ```
 
@@ -565,13 +495,23 @@ arm by the visitors whose reports carry that arm.
 
 ## Try it
 
-Every example app under `examples/` runs this experiment. Open
-`/?experiment=1` in the React, Vue, Svelte, JavaScript and script-tag
-examples, `/app-router?experiment=1` in Next.js, or
-`/consent-example?experiment=1` in TanStack Start and SvelteKit; add
-`&arm=wall` to see an arm from a flag. The Nuxt and Astro examples take
-static config, so start them with `NUXT_PUBLIC_C15T_EXPERIMENT=1` or
-`C15T_EXPERIMENT=1`. Each page shows the assigned arm.
+Every example app under `examples/` runs this experiment outside the pages
+the docs publish. Each page shows the assigned arm and the events the
+callbacks sent. Adding `arm=wall` sets the arm the way a flag would, so the
+page shows `assignedBy: host`. Run each command in the example's directory.
+
+| Example | Start | Open |
+| --- | --- | --- |
+| Next.js | `bun run dev` | `/experiment`, with the arm from a stand-in flag: `?arm=wall`, `?arm=off` to leave the test, `control` otherwise |
+| TanStack Start | `C15T_EXPERIMENT=1 bun run dev` | `/consent-example?experiment=1`, then add `&arm=wall` |
+| React | `bun run dev` | `/experiment.html`, then add `?arm=wall` |
+| Nuxt | `C15T_NUXT_EXPERIMENT=1 bun run dev`; add `C15T_NUXT_EXPERIMENT_ARM=wall` for the wall arm | `/consent-example` |
+| Vue | `bun run dev` | `/?experiment=1`, then add `&arm=wall` |
+| Astro | `C15T_EXPERIMENT=1 bun run dev` | `/consent-example?experiment=1` runs `control`, as Astro has no built-in assignment; add `&arm=wall` |
+| Svelte | `bun run dev` | `/?experiment=1`, then add `&arm=wall` |
+| SvelteKit | `bun run dev` | `/experiment-example?experiment=1`, then add `&arm=wall` |
+| HTML script tag | `bun run dev` | `/?experiment=1`, then add `&arm=wall` |
+| JavaScript | `bun run dev` | `/experiment/`, then add `?arm=wall` |
 
 ## End an experiment
 

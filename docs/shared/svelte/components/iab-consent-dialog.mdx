@@ -1,0 +1,44 @@
+{/* Shared by the Svelte and SvelteKit IABConsentDialog pages. */}
+
+## Show the TCF preference center
+
+`IABConsentDialog` is the IAB TCF 2.4 preference center. It has two tabs:
+purposes, with stacks, special features and legitimate interest objections,
+and vendors, with each vendor's purposes, data retention and privacy policy.
+Render it next to `IABConsentBanner`; the banner's Customize button opens it:
+
+<include src="../../examples/storybook-svelte/iab-surfaces.mdx" />
+
+## Props
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `open` | `boolean` | follows the consent state | Controls visibility yourself. |
+| `initialTab` | `'purposes'` or `'vendors'` | `'purposes'` | The tab it opens on, for example from a "See our partners" link. |
+| `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
+| `models` | `Model[]` | `['iab']` | Policy models it opens for. |
+| `noStyle` | `boolean` | provider's `noStyle` | Drops c15t's classes. |
+| `class` | `string` | none | Extra class on the root element. |
+
+## Behavior
+
+- It opens when the active surface is `'dialog'` under an IAB policy, the
+  same state `ConsentDialog` uses for other policies. Opening preferences
+  from `ConsentDialogLink` therefore shows this dialog to IAB visitors and
+  `ConsentDialog` to everyone else.
+- Switches change purpose consent, legitimate interest, special feature
+  opt-ins and vendor consent in the TCF state. Save writes a new TC String.
+- It needs the Global Vendor List. While the list loads,
+  `getConsentManager().iab.isLoadingGVL` is `true`.
+
+## Accessibility
+
+The preference center is a `dialog` labelled with its title, with a close
+button labelled from the `common.close` translation. Escape closes it. While
+it is blocking, which is the default, focus stays inside it and the page does
+not scroll. The purposes and vendors tabs are keyboard-operable tabs.
+
+## Style the dialog
+
+It needs `@c15t/svelte/iab/styles.css`. The root carries
+`data-testid="iab-consent-dialog-root"`.

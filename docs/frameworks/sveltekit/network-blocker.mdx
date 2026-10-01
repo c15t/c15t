@@ -1,0 +1,15 @@
+---
+title: Network blocker
+description: Hold browser fetch and XMLHttpRequest calls to tracking domains in a SvelteKit app until their consent category is allowed, with the networkBlocker option.
+group: frameworks
+---
+
+<include src="../../shared/svelte/network-blocker.mdx" />
+
+## Server requests are not blocked
+
+The network blocker runs in the browser. A `fetch` in a SvelteKit `load`,
+`+server.ts` or `hooks.server.ts` is never blocked, even when the visitor has
+denied the category. If server code sends data to a vendor, check the
+visitor's stored choice yourself before it does; `event.locals.c15t.config`
+from [`c15tHandle`](./server-api#c15thandle) holds it.

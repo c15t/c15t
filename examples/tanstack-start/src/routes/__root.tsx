@@ -1,3 +1,5 @@
+// oxlint-disable no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
+// #region docs:root
 import {
 	createRootRoute,
 	HeadContent,
@@ -6,95 +8,33 @@ import {
 } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import {
-	IABConsentBanner,
-	IABProvider,
-	IABConsentDialog,
-} from 'c15t/react/iab';
-import {
 	ConsentBanner,
 	ConsentDialog,
+	ConsentDialogLink,
 	ConsentRoot,
-	useModel,
 } from 'c15t/tanstack-start';
 import {
 	consentLoaderOptions,
 	createConsentStateHandler,
 } from 'c15t/tanstack-start/server';
-import { useMemo } from 'react';
 
-import { backendURL, consentRoute } from '../consent';
-import { createExampleScripts } from '../example-scripts';
-import {
-	bannerExperiment,
-	ExperimentEventsContext,
-	experimentSearch,
-	useExperimentLog,
-} from '../experiment';
-import type { ExperimentSearch } from '../experiment';
+import { scripts } from '../scripts';
 
-import '../consent-example.css';
-import appCss from '../styles.css?url';
-import iabCss from 'c15t/tanstack-start/iab/styles.css?url';
+import consentCss from 'c15t/tanstack-start/styles.css?url';
 
-const scripts = createExampleScripts(
-	import.meta.env.VITE_POSTHOG_KEY,
-	import.meta.env.VITE_X_PIXEL_ID
-);
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) {
+	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth backend URL');
+}
 
-/**
- * Declared here, not in the package: the Start compiler splits server code
- * out of the client bundle at this `createServerFn().handler()` call site.
- *
- * The handler reads the request's `c15t` cookie and geo headers, then
- * resolves init from the backend manifest so the first paint already knows
- * the policy, UI mode, and translations. `ConsentRoot` reads the result
- * back through loader data, which is what keeps SSR and hydration in sync.
- *
- * The server function gets the absolute `backendURL`; `ConsentRoot` gets
- * the same-origin `consentRoute`. The prefetch skips a self-referencing
- * `/api/c15t`, so the two must not be swapped.
- */
+// Declare the server function in your own module. Start's compiler splits
+// the server code out of the browser bundle at this call site.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
 	createConsentStateHandler({ backendURL })
 );
 
-const IabSurfaces = ({ cmpId }: { cmpId: number }) => {
-	const model = useModel();
-	if (model !== 'iab') {
-		return null;
-	}
-	return (
-		<IABProvider cmpId={cmpId}>
-			<IABConsentBanner />
-			<IABConsentDialog />
-		</IABProvider>
-	);
-};
-
 const RootComponent = () => {
-	// oxlint-disable-next-line no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
-	const { experimentSwitch, ...state } = Route.useLoaderData();
-	// `?experiment=1` runs the banner-shape experiment; the loader resolved
-	// `arm` on the server, which is where a flag provider's answer would
-	// come from. Without the param the root gets no `experiment` option.
-	// The log belongs to one run: a client navigation to another arm starts
-	// a fresh list instead of mixing the two.
-	const experimentRun = experimentSwitch.enabled
-		? `exp:${experimentSwitch.arm ?? ''}`
-		: '';
-	const { callbacks, events } = useExperimentLog(experimentRun);
-	const experiment = useMemo(
-		() =>
-			experimentSwitch.enabled
-				? bannerExperiment(experimentSwitch.arm)
-				: undefined,
-		[experimentSwitch.arm, experimentSwitch.enabled]
-	);
-	const experimentEvents = useMemo(
-		() => (experiment ? events : null),
-		[experiment, events]
-	);
-
+	const { consent } = Route.useLoaderData();
 	return (
 		<html lang="en">
 			<head>
@@ -102,20 +42,17 @@ const RootComponent = () => {
 			</head>
 			<body>
 				<ConsentRoot
-					state={state}
-					backendURL={consentRoute}
+					state={consent}
+					backendURL={backendURL}
+					initRoute={false}
 					scripts={scripts}
-					options={{
-						callbacks: experiment ? callbacks : undefined,
-						experiment,
-					}}
 				>
+					<Outlet />
 					<ConsentBanner />
 					<ConsentDialog />
-					<IabSurfaces cmpId={state.initialIab?.cmpId ?? 10} />
-					<ExperimentEventsContext.Provider value={experimentEvents}>
-						<Outlet />
-					</ExperimentEventsContext.Provider>
+					<footer>
+						<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+					</footer>
 				</ConsentRoot>
 				<Scripts />
 			</body>
@@ -127,25 +64,12 @@ export const Route = createRootRoute({
 	...consentLoaderOptions,
 	component: RootComponent,
 	head: () => ({
-		links: [
-			{ href: appCss, rel: 'stylesheet' },
-			{ href: iabCss, rel: 'stylesheet' },
-		],
+		links: [{ href: consentCss, rel: 'stylesheet' }],
 		meta: [
 			{ charSet: 'utf-8' },
 			{ content: 'width=device-width, initial-scale=1', name: 'viewport' },
-			{ title: 'c15t × TanStack Start' },
 		],
 	}),
-	loader: async ({
-		location,
-	}): Promise<
-		Awaited<ReturnType<typeof getConsentState>> & {
-			experimentSwitch: ExperimentSearch;
-		}
-	> => ({
-		...(await getConsentState()),
-		// Not `experiment`: the consent state carries that key itself.
-		experimentSwitch: experimentSearch(location.searchStr),
-	}),
+	loader: async () => ({ consent: await getConsentState() }),
 });
+// #endregion docs:root

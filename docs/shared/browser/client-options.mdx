@@ -1,0 +1,150 @@
+---
+title: "@c15t/browser client options"
+description: "Shared option tables for the @c15t/browser client, used by the HTML and JavaScript guides."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="connection">
+  ## Connection and policy
+
+  | Option | Type | Default | What it does |
+  | --- | --- | --- | --- |
+  | `backendURL` | `string` | none | Your Inth or self-hosted backend URL. Used by hosted and manifest modes. |
+  | `mode` | `'hosted'`, `'offline'`, `'manifest'` or a transport factory | picked from the other options | `manifest` when `manifest` or `manifestURL` is set, `hosted` when `backendURL` is set, otherwise `offline`. A factory from `hosted()`, `offline()`, `manifest()` or `custom()` is used as is. Hosted mode without `backendURL` throws. |
+  | `manifest` | `ConsentManifest` | none | The backend's policy manifest, inlined in the page, for manifest mode. |
+  | `manifestURL` | `string` | none | Where manifest mode fetches the manifest. A URL that ends in `/manifest` also gives the backend URL; any other URL needs `backendURL` too. |
+  | `policyRules` | array of policy rules or preset names | recommended rules | Offline mode only. A preset name such as `'europeOptIn'` stands for that preset in `policyRulePresets`. An unknown name throws. |
+  | `overrides` | `{ country?, region?, language?, gpc? }` | none | The visitor's location, language or GPC signal, when the page knows it. Policy matching uses these instead of detection. |
+  | `prefetch` | kernel configuration | none | A server-resolved init answer. When it carries a resolved policy, the client renders from it and does not call `/init`. |
+  | `consentSource` | external source | none | Follow another CMP instead of storing choices. See [use c15t with an existing CMP](/docs/integrations/existing-cmp). |
+  | `enabled` | `boolean` | `true` | `false` grants every category, shows no UI and loads every configured script at once. |
+</section>
+
+<section id="gating">
+  ## Scripts, blockers and data
+
+  | Option | Type | Default | What it does |
+  | --- | --- | --- | --- |
+  | `scripts` | `Script[]` | `[]` | Vendor scripts to load once their category is allowed. Each entry needs `id`, `category`, and `src` or `textContent`. |
+  | `consentCategories` | category names | categories your scripts, iframes and rules use | The categories the preference dialog offers, within the policy's scope. `necessary` is always included. |
+  | `networkBlocker` | `{ rules, enabled?, logBlockedRequests?, onRequestBlocked? }` or `false` | off | Hold `fetch` and `XMLHttpRequest` calls that match a rule until the rule's category is allowed. |
+  | `iframeBlocker` | `{ disableAutomaticBlocking? }` or `false` | on | Gate iframes that carry `data-category` or `data-vendor`. `false` turns it off. With `disableAutomaticBlocking: true`, c15t checks iframes only when you call `processIframes()`. |
+  | `nonce` | `string` | none | Content Security Policy nonce for the stock UI's `<style>` element and every `<script>` the `scripts` option loads. A script's own `nonce` wins. With a nonce set, c15t runs only the `<script type="text/plain" data-c15t-category>` tags that carry the same `nonce`. |
+  | `scriptLoader` | `{ onDebug? }` | none | `onDebug` receives every script loader lifecycle event. |
+  | `vendors` | `Vendor[]` | none | Vendors offered for vendor-level consent outside IAB. They merge with vendors from the backend and from `vendor` fields on scripts and rules. |
+  | `clearOnRevocation` | cookies and storage keys per category | off | Delete named cookies and storage keys when their category is denied. Read once, at start. |
+  | `reloadOnConsentRevoked` | `boolean` | `true` | Reload the page after an accept, reject or save turns off a category that was allowed, once the save request finishes. |
+  | `callbacks` | `{ onChoiceRecorded?, onPermissionsChanged?, onError?, onBeforeConsentRevocationReload? }` | none | Functions c15t calls on consent events. |
+  | `storageConfig` | `{ storageKey?, crossSubdomain?, defaultDomain?, defaultExpiryDays? }` | key `c15t`, current host, 365 days | The name, domain and lifetime of the consent cookie and localStorage key. |
+  | `persistence` | `boolean` or `{ storageConfig?, skipHydration?, sync? }` | `true` | Read and write choices in the cookie and localStorage, and follow other tabs. `false` keeps choices in memory only. `{ sync: false }` stops following other tabs. |
+  | `user` | `{ externalId, identityProvider?, externalIdType?, properties? }` | none | An identified visitor, sent with consent records. |
+  | `iab` | IAB options or `false` | none | CMP settings such as `cmpId` and `vendors`. Only the IAB build accepts it; the other builds throw when it is set. |
+</section>
+
+<section id="presentation">
+  ## Presentation and copy
+
+  | Option | Type | Default | What it does |
+  | --- | --- | --- | --- |
+  | `ui` | UI options or `false` | stock UI on | Theme tokens, CSS, surfaces and mounting. `false` starts the client with no UI. See [UI options](#ui-options). |
+  | `presentation` | `{ prompt?, preferences? }` | floating banner, bottom left | Banner shape, position, button layout and blocking, within what the policy allows. |
+  | `i18n` | `{ locale?, messages }` | English | The language to start in, and messages per language that override the bundled, backend or manifest copy key by key for that language. |
+  | `legalLinks` | `{ privacyPolicy?, cookiePolicy?, termsOfService? }` | none | Each link is `{ href, label?, target?, rel? }`. The banner and dialog show only the links their `legalLinks` option lists. |
+</section>
+
+<section id="ui">
+  ## UI options
+
+  These go under `ui`. The headless builds ignore them.
+
+  | Option | Type | Default | What it does |
+  | --- | --- | --- | --- |
+  | `theme` | theme tokens | none | Colors, radius, typography, spacing and motion. The same token object every c15t package takes. |
+  | `css` | `string` | none | CSS added after the bundled stylesheet, in the same root as the UI. |
+  | `colorScheme` | `'light'`, `'dark'` or `'system'` | `'system'` | Which token set to use. `system` follows the visitor's setting and updates when it changes. |
+  | `shadow` | `boolean` | `true` | Render inside a shadow root. `false` renders into the page, where your stylesheet applies. |
+  | `styles` | `boolean` | `true` | Include the bundled stylesheet. Set `false` with `shadow: false` when the page loads the stylesheet itself. |
+  | `noStyle` | `boolean` | `false` | Render markup with no c15t classes and no bundled stylesheet, for fully custom CSS. `theme` and `css` still apply. |
+  | `disableAnimation` | `boolean` | the visitor's reduced motion setting | Show and hide surfaces without transitions. |
+  | `container` | element or CSS selector | `document.body` | Where the UI host element is appended. A selector that matches nothing throws. |
+  | `banner` | `boolean` or banner options | `true` | `false` renders no banner. An object sets copy and behavior; see the banner options. |
+  | `dialog` | `boolean` or dialog options | `true` | `false` renders no preference dialog. |
+  | `trigger` | `boolean` or trigger options | `false` | Render the floating button that reopens the dialog. |
+  | `iab` | `{ loadErrorText?, saveErrorText?, moreVendorsText? }` | translated copy | Copy for the IAB vendor list states. IAB build only. |
+</section>
+
+<section id="banner">
+  ## Banner options
+
+  These go under `ui.banner`.
+
+  | Option | Type | Default | What it does |
+  | --- | --- | --- | --- |
+  | `title` | `string` | translated title | Heading. A notice uses the notice title by default. |
+  | `description` | `string` | translated description | Body text. A notice uses the notice description by default. |
+  | `acceptButtonText` | `string` | "Accept All" | Label of the accept button. |
+  | `rejectButtonText` | `string` | "Reject All" | Label of the reject button. |
+  | `customizeButtonText` | `string` | "Customize" | Label of the button that opens the dialog. |
+  | `legalLinks` | list of `privacyPolicy`, `cookiePolicy`, `termsOfService`, or `null` | none | Which configured legal links to show after the description. `null` or `[]` shows none. |
+  | `hideBranding` | `boolean` | `false` | Hide the "Secured by" tag. The IAB banner always keeps it. |
+  | `scrollLock` | `boolean` | from `presentation` | Deprecated. Use `presentation.prompt.blocking`. |
+  | `trapFocus` | `boolean` | from `presentation` | Deprecated. Use `presentation.prompt.blocking`. |
+
+  The dismiss button of a notice always uses the translated
+  `common.acknowledge` label. Change it through `i18n`.
+</section>
+
+<section id="dialog">
+  ## Dialog options
+
+  These go under `ui.dialog`.
+
+  | Option | Type | Default | What it does |
+  | --- | --- | --- | --- |
+  | `legalLinks` | list of `privacyPolicy`, `cookiePolicy`, `termsOfService`, or `null` | none | Which configured legal links to show after the description. |
+  | `hideBranding` | `boolean` | `false` | Hide the "Secured by" tag at the bottom of the dialog. |
+
+  The dialog's title, description, category names and button labels come
+  from translations. Change them through `i18n`.
+</section>
+
+<section id="trigger">
+  ## Trigger options
+
+  `ui.trigger: true` shows the trigger with its defaults. An object sets these:
+
+  | Option | Type | Default | What it does |
+  | --- | --- | --- | --- |
+  | `position` | `'bottom-right'`, `'bottom-left'`, `'top-right'` or `'top-left'` | `'bottom-right'` | The corner the button starts in. |
+  | `size` | `'sm'`, `'md'` or `'lg'` | `'md'` | Button size. |
+  | `showWhen` | `'always'` or `'after-consent'` | `'always'` | `after-consent` hides the button until the visitor has answered the prompt. |
+  | `ariaLabel` | `string` | "Open privacy settings" | The button's accessible name. It has no visible text. |
+  | `persistPosition` | `boolean` | `true` | Remember the corner a visitor dragged the button to, in localStorage. A remembered corner wins over `position`. |
+</section>
+
+<section id="page-actions">
+  | Value | What a click does |
+  | --- | --- |
+  | `accept` | Accepts every category the dialog offers, like the banner's accept button. Under an IAB policy it confirms through the CMP. |
+  | `reject` | Rejects every optional category the dialog offers. |
+  | `customize` | Opens the preference dialog. Records nothing. |
+  | `dismiss` | Dismisses a notice. This records an acknowledgement, not consent, and does nothing unless the policy shows a notice. |
+  | `banner` | Shows the banner again. Records nothing. |
+  | `close` | Closes the banner or dialog. Records nothing. |
+</section>
+
+<section id="events">
+  | Event | Payload | When it fires |
+  | --- | --- | --- |
+  | `ready` | the snapshot | The policy has resolved and the UI can render. For a returning visitor, `hasConsented()` is reliable from here. |
+  | `consent` | the snapshot | Permissions or the recorded choice changed. This includes a stored choice restored at start, a save, an expiry and a GPC change. |
+  | `ui` | `'banner'`, `'dialog'` or `'none'` | The surface c15t wants shown changed. |
+  | `error` | the error | A backend call failed, or an IAB step failed. |
+
+  A `ready` listener added after the policy resolved runs at once with the
+  snapshot from that moment. A `ui` listener added after that runs at once
+  with the current surface. `consent` and `error` listeners only hear later
+  changes.
+</section>

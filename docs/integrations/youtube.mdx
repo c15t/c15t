@@ -7,7 +7,9 @@ group: integrations
 ## Configure the video
 
 Use the ID of an embeddable video and the category matching its purpose in your
-policy. The current v3 adapters use consent-gated iframes rather than the v2
+policy. This page uses `marketing` because the YouTube player can set
+advertising identifiers. The framework quickstarts gate their demo video on
+`measurement` instead; either works if your policy says so. The current v3 adapters use consent-gated iframes rather than the v2
 `YouTubeEmbed` convenience component.
 
 ```ts title="src/embed-config.ts"
@@ -29,8 +31,8 @@ Set playback options in the iframe URL. For example, append `start=36` to begin
 and reserve at least a 200-by-200-pixel player area.
 
 React and Svelte `ConsentGate` components provide a blocked-state placeholder and
-consent action. Their `placeholder` APIs differ: React takes a node, Svelte
-takes a snippet. Keep a clear way to reopen preferences when customizing them.
+consent action. Their `placeholder` APIs differ. React takes a node, and
+Svelte takes a snippet. Keep a clear way to reopen preferences when customizing them.
 The Vue and browser examples show that action explicitly. `loading="lazy"` delays an
 allowed iframe for performance; it does not implement consent gating.
 

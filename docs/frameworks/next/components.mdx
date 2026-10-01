@@ -1,0 +1,100 @@
+---
+title: Components
+description: Every c15t component a Next.js app imports from c15t/next, what each renders, which ones are Client Components, and where to start.
+group: frameworks
+---
+
+## Component reference
+
+`c15t/next` exports `ConsentRoot` and re-exports every component and hook from
+`c15t/react`, so a Next.js app needs one import path. Every component except
+`ConsentTheme` ships with `'use client'`. You can still render them from a
+Server Component, as long as every prop you pass is serializable.
+
+| Component | Renders | Runs as | Reference |
+| --- | --- | --- | --- |
+| `ConsentRoot` | The consent runtime, seeded with the state `resolveConsent` returned | Client Component | [ConsentRoot](/docs/frameworks/next/components/consent-root) |
+| `ConsentBanner` | The banner, when the visitor's policy asks for one | Client Component | [ConsentBanner](/docs/frameworks/next/components/consent-banner) |
+| `ConsentDialog` | The preference center as a modal | Client Component | [ConsentDialog](/docs/frameworks/next/components/consent-dialog) |
+| `ConsentWidget` | The preference center inline in a page, for a privacy route | Client Component | [ConsentWidget](/docs/frameworks/next/components/consent-widget) |
+| `ConsentDialogLink` | An unstyled button that opens the dialog, for your footer | Client Component | [ConsentDialogLink](/docs/frameworks/next/components/consent-dialog-link) |
+| `ConsentDialogTrigger` | A floating, draggable button that opens the dialog. `ConsentDialogTriggerToolbar` adds your own actions beside it | Client Component | [ConsentDialogTrigger](/docs/frameworks/next/components/consent-dialog-trigger) |
+| `ConsentGate` | Its children while a category is allowed, a placeholder otherwise | Client Component | [ConsentGate](/docs/frameworks/next/components/consent-gate) |
+| `ConsentTheme` | A `<style>` element with your theme tokens | Server-safe | [Customize](/docs/frameworks/next/customize) |
+| `DevTools` from `c15t/next/devtools` | A development panel for consent state, scripts and events | Client Component | [DevTools](/docs/frameworks/next/components/dev-tools) |
+
+Render every component except `ConsentTheme` inside `ConsentRoot`, because
+they read the runtime `ConsentRoot` creates. `ConsentRoot` already renders
+`ConsentProvider`, so do not mount both.
+
+## Start with ConsentRoot, the banner and the dialog
+
+Most apps start with four components. `ConsentRoot` holds the runtime,
+`ConsentBanner` and `ConsentDialog` ask for a choice, and a
+`ConsentDialogLink` lets visitors reopen their preferences. The example app puts them in one client wrapper:
+
+<include src="../../shared/examples/nextjs/consent-wrapper.mdx" />
+
+The root layout, a Server Component, calls `resolveConsent` and passes only
+`state` to this wrapper. The [App Router guide](/docs/frameworks/next/app-router)
+shows the layout, and the
+[Pages Router guide](/docs/frameworks/next/pages-router) shows the same
+wrapper in `pages/_app.tsx`. Add `ConsentWidget`, `ConsentDialogTrigger` or
+`ConsentGate` later, where a page needs them.
+
+## Server and Client Components
+
+In the App Router, the `'use client'` boundary decides what you can pass as a
+prop:
+
+- **`ConsentRoot`** needs the `config` from `defineConsentConfig`, which React
+  cannot pass from a Server Component because it carries a symbol key. Import
+  the config in a `'use client'` wrapper, as above. The `state` from
+  `resolveConsent`, or its promise, is plain data and can cross.
+- **Banner, dialog, widget, link, trigger and gate** can render straight from
+  a Server Component page or layout under `ConsentRoot`. Strings, numbers,
+  booleans and JSX children cross the boundary. Function props, such as the
+  `onSelect` handler of a `ConsentDialogTriggerToolbar` action, need a
+  `'use client'` file.
+- **`ConsentTheme`** has no `'use client'` directive. Render it from a Server
+  Component layout and the theme generator stays out of the browser bundle.
+- **`DevTools`** loads only in development. Import it with `next/dynamic` and
+  `ssr: false`, as its page shows.
+
+A component that reads consent state with a hook, such as `useConsent`, is
+always a Client Component. See [hooks](/docs/frameworks/next/hooks).
+
+## IAB TCF components
+
+`c15t/next` does not re-export the IAB TCF components. Import
+`IABProvider`, `IABConsentBanner` and `IABConsentDialog` from `c15t/react/iab`,
+render them inside `ConsentRoot` next to
+`ConsentBanner` and `ConsentDialog`, and load `c15t/next/iab/styles.css`. All three are Client
+Components. The stock banner and dialog stay closed
+under an IAB policy. See [IAB TCF](/docs/frameworks/next/iab).
+
+## Other entry points
+
+| Import | Exports | Use |
+| --- | --- | --- |
+| `c15t/next/components/consent-dialog-link` | `ConsentDialogLink` only | A module that needs the link without loading the rest of the adapter |
+| `c15t/next/headless` | Headless hooks | Your own banner and dialog markup. See [headless](/docs/frameworks/next/headless) |
+| `c15t/next/server` | `resolveConsent` and the other server helpers | Server Components and Route Handlers |
+| `c15t/next/devtools` | `DevTools` | Development only |
+
+## Check the components
+
+Load the site in a private window under a policy that asks for a choice:
+
+1. The banner shows, and DevTools Network has no requests to your vendors'
+   hosts.
+2. Click the footer's `ConsentDialogLink`. The dialog opens with every optional
+   category off.
+3. Allow one category and save. Its vendor requests appear, and a
+   `ConsentGate` for that category mounts its children.
+4. Reload. The banner stays closed, and the link still reopens the dialog.
+5. View the page source. With the
+   [awaited layout](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html),
+   a first visit contains an element with
+   `data-testid="consent-banner-root"`, and the page after your choice does
+   not.

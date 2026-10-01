@@ -1,0 +1,116 @@
+---
+title: Scripts
+description: Load vendor scripts and gated inline scripts on an Astro site only after the visitor allows their consent category, and stop them when consent is withdrawn.
+group: frameworks
+---
+
+## Register vendor scripts
+
+The `ConsentBanner` component does not stop a `<script>` tag you already have.
+Give c15t each vendor script to load instead, and remove the vendor's own
+snippet so it loads once.
+
+Vendor helpers from `@c15t/integrations` contain callbacks, and the integration
+options in `astro.config.mjs` must survive JSON serialization. So register
+helpers in the module that the integration's `clientEntrypoint` option names.
+This list loads PostHog on measurement and X Pixel on marketing:
+
+<include src="../../shared/examples/astro-demo/scripts.mdx" />
+
+<include src="../../shared/examples/astro-demo/client-entrypoint.mdx" />
+
+The integration imports that module into the page's boot script, so every page
+shares one script loader. Each helper's guide under
+[integrations](/docs/integrations/overview) lists its options and the requests
+to expect.
+
+## Add a script without a helper
+
+A script with no callbacks can go straight into the integration options. Give
+it an `id`, a `category`, and either a `src` or inline `textContent`:
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: hosted({ url: backendURL }),
+  scripts: [
+    {
+      id: 'example-analytics',
+      category: 'measurement',
+      src: 'https://analytics.example.com/script.js',
+    },
+  ],
+});
+```
+
+Scripts from `astro.config.mjs` and from the client entrypoint both load.
+
+## Gate an inline script
+
+For a script that has to stay in the page's markup, make it inert and label it
+with a category. c15t runs it once the category is allowed:
+
+<include src="../../shared/examples/astro-demo/gated-inline-script.mdx" />
+
+Three attributes matter:
+
+- `type="text/plain"` stops the browser from running the script.
+- `data-c15t-category` names one category. An unknown name logs a warning and
+  the script never runs.
+- `is:inline` makes Astro ship the tag as written. Without it, Astro bundles the
+  script and runs it regardless of consent.
+
+Under a nonce-based Content Security Policy, where your middleware sets
+`Astro.locals.c15t.nonce`, also add `nonce={Astro.locals.c15t?.nonce}` to the
+tag. c15t then activates only gated tags that carry the page's nonce, and
+skips the rest with a console warning. See
+[put the nonce on your gated scripts](/docs/frameworks/astro/content-security-policy#put-the-nonce-on-your-gated-scripts).
+
+c15t checks gated scripts when the page loads, after each consent change and
+after each `ClientRouter` navigation, so a script on a page you navigate to
+runs as soon as it is allowed. A script with `src` works the same way. For
+markup you insert later from your own code, call
+`activateGatedScripts(getConsent(), container)` from `c15t/astro/client`.
+Under a nonce policy, give the inserted tags the nonce and pass it as a third
+argument.
+
+A script that has run cannot be undone. When the visitor withdraws consent,
+c15t reloads the page, and the reloaded page leaves the script inert.
+
+## Gate embeds and requests
+
+An iframe loads as soon as it is in the page, so gate embeds separately. See
+[Embeds](/docs/frameworks/astro/embeds) for a component that renders an iframe
+only while its category is allowed, and for the iframe blocker.
+
+To stop `fetch` and `XMLHttpRequest` calls to tracking hosts until consent,
+add rules to `networkBlocker`. See
+[Network blocker](/docs/frameworks/astro/network-blocker).
+
+## Clear data when consent is withdrawn
+
+Set `clearOnRevocation` in the integration options to remove a vendor's
+cookies and storage keys when its category is withdrawn. See
+[clear on revocation](/docs/integrations/clear-on-revocation) for the shape.
+
+## Withdraw consent without reloading
+
+By default c15t reloads the page after a save turns off a category that was
+allowed, because it cannot stop code that has already run. Set
+`reloadOnConsentRevoked: false` in the integration options only if every script
+on the page stops itself when its category is withdrawn. Stop your own code
+from the `onPermissionsChanged` callback. See
+[Callbacks](/docs/frameworks/astro/callbacks).
+
+## Check script loading
+
+Build the site and open it in a private window with DevTools Network open:
+
+1. Before you choose, filter for each vendor's domain. There are no requests,
+   and a gated inline script has not run.
+2. Allow one category from **Cookie preferences**. Only that category's vendors
+   load, and inline scripts gated on it run.
+3. Reload. The allowed vendors load again, and the others stay absent.
+4. Withdraw the category and save. The page reloads and the vendor does not
+   load.
+
+See [Verify consent](/docs/guides/verify-consent) for the full checklist.

@@ -15,28 +15,53 @@ export interface ExperimentLogEntry {
 /** Impressions and choices made under the arm so far; the page lists them. */
 export const experimentEvents = $state<ExperimentLogEntry[]>([]);
 
-/** Provider callbacks that log each impression and choice made under an arm. */
+const pushToDataLayer = function pushToDataLayer(
+	event: Record<string, unknown>
+): void {
+	const page = window as Window & { dataLayer?: unknown[] };
+	page.dataLayer ??= [];
+	page.dataLayer.push(event);
+};
+
+/**
+ * Provider callbacks that log each impression and choice made under an
+ * arm, and push them to `window.dataLayer` for GTM.
+ */
 export const experimentCallbacks = {
 	onChoiceRecorded: ({
 		consentAction,
 		experiment,
 	}: OnChoiceRecordedPayload) => {
-		if (experiment) {
-			experimentEvents.push({
-				arm: experiment.arm,
-				detail: consentAction,
-				name: 'c15t_choice_recorded',
-			});
+		if (!experiment) {
+			return;
 		}
+		pushToDataLayer({
+			arm: experiment.arm,
+			consent_action: consentAction,
+			event: 'c15t_choice_recorded',
+			experiment_id: experiment.id,
+		});
+		experimentEvents.push({
+			arm: experiment.arm,
+			detail: consentAction,
+			name: 'c15t_choice_recorded',
+		});
 	},
 	onSurfaceShown: ({ experiment, surface }: OnSurfaceShownPayload) => {
-		if (experiment) {
-			experimentEvents.push({
-				arm: experiment.arm,
-				detail: surface,
-				name: 'c15t_surface_shown',
-			});
+		if (!experiment) {
+			return;
 		}
+		pushToDataLayer({
+			arm: experiment.arm,
+			event: 'c15t_surface_shown',
+			experiment_id: experiment.id,
+			surface,
+		});
+		experimentEvents.push({
+			arm: experiment.arm,
+			detail: surface,
+			name: 'c15t_surface_shown',
+		});
 	},
 };
 

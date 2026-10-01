@@ -10,6 +10,11 @@ import {
 	useSetActiveUI,
 } from 'c15t/tanstack-start';
 
+import { IabSurfaces } from '../demo/iab-surfaces';
+
+import homeCss from '../demo/home.css?url';
+import iabCss from 'c15t/tanstack-start/iab/styles.css?url';
+
 const HomePage = () => {
 	const activeUI = useActiveUI();
 	const consents = useConsents();
@@ -26,6 +31,7 @@ const HomePage = () => {
 
 	return (
 		<main className="page">
+			<IabSurfaces cmpId={10} />
 			<h1>c15t × TanStack Start</h1>
 			<a href="/consent-example">Consent example</a>
 			<p>
@@ -125,4 +131,10 @@ const HomePage = () => {
 
 export const Route = createFileRoute('/')({
 	component: HomePage,
+	head: () => ({
+		links: [
+			{ href: homeCss, rel: 'stylesheet' },
+			{ href: iabCss, rel: 'stylesheet' },
+		],
+	}),
 });

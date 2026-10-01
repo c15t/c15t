@@ -1,0 +1,84 @@
+---
+title: Network blocker
+description: Hold fetch and XMLHttpRequest calls in a JavaScript app until their consent category is allowed, with networkBlocker rules in @c15t/browser or createConsentRuntime, or createNetworkBlocker on your own kernel.
+group: frameworks
+---
+
+## When you need it
+
+The network blocker holds `fetch` and `XMLHttpRequest` calls that match a rule
+until the rule's category is allowed. Use it for requests you cannot move
+behind the [script loader](/docs/frameworks/javascript/modules/script-loader),
+such as a first-party events endpoint or a vendor SDK you bundle yourself.
+
+## Add rules
+
+With `@c15t/browser` or `createConsentRuntime`, pass `networkBlocker` next to
+your other options:
+
+{/* example: fragment */}
+
+```ts
+networkBlocker: {
+  rules: [
+    { id: 'events', domain: 'example.com', pathIncludes: '/api/track', methods: ['POST'], category: 'measurement' },
+  ],
+},
+```
+
+Rules start holding matching requests when the client or runtime is created,
+before `start()`, so a request sent early in your app still waits.
+
+For a kernel you created yourself, attach the module:
+
+<include src="../../../shared/examples/javascript/network-blocker.mdx" />
+
+`createNetworkBlocker` returns `{ dispose, updateRules, setEnabled }`.
+`updateRules(next)` takes effect on the next request. `setEnabled(false)`
+keeps the patches but lets everything through. `dispose()` restores `fetch`
+and `XMLHttpRequest`. Dispose blockers in the reverse order you created them.
+
+## Rule fields
+
+| Field | Required | What it does |
+| --- | --- | --- |
+| `domain` | Yes | The host to match. Subdomains match too. |
+| `category` | Yes | The category, or a condition, that lets matching requests through. |
+| `pathIncludes` | No | Match only URLs whose path contains this text. |
+| `methods` | No | Match only these HTTP methods. All methods when omitted. |
+| `id` | No | A name shown in logs and passed to `onRequestBlocked`. |
+| `vendor` | No | Also block while the visitor has turned this vendor off. |
+| `vendorId`, `iabPurposes`, `iabLegIntPurposes`, `iabSpecialFeatures` | No | IAB conditions, checked only under an IAB policy. |
+
+## Blocker options
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `rules` | required | The rules. |
+| `enabled` | `true` | `false` keeps the configuration but blocks nothing. |
+| `logBlockedRequests` | `true` | Log each blocked request with `console.warn`, as `[c15t] blocked POST https://… (rule: events)`. |
+| `onRequestBlocked` | none | Called with `{ method, url, rule }` for each blocked request. |
+
+## What a blocked request sees
+
+- A blocked `fetch` resolves with a `451` response. Check `response.ok`.
+- A blocked `XMLHttpRequest` aborts and fires an `error` event.
+- A request sent while the policy is still loading waits, then goes out or
+  is blocked. If the policy fails to load, it is blocked.
+- A synchronous XHR cannot wait. While matching requests are held, a
+  matching synchronous XHR throws a `NetworkError`.
+- Requests that match no rule go out at once.
+
+## What it cannot block
+
+It patches `fetch` and `XMLHttpRequest` in the page's own window. It does not
+cover `navigator.sendBeacon`, WebSockets, `EventSource`, requests from
+elements such as `<img>` and `<script>`, other frames, or service workers.
+
+## Check it works
+
+1. Send a matching request before any choice. The console logs
+   `[c15t] blocked …` and the Network tab shows nothing.
+2. Allow the category and send it again. It goes out.
+3. Withdraw the category with `reloadOnConsentRevoked: false`. The next
+   request is blocked again.

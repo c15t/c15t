@@ -155,10 +155,15 @@ export const createCiPlan = function createCiPlan(
 		['react', 'react'],
 		['vue', 'vue'],
 		['svelte', 'svelte'],
+		['html', 'script-tag'],
 		['javascript', 'javascript'],
 		['nuxt', 'nuxt'],
 		['nuxt-prerender', 'nuxt'],
+		['nuxt-static', 'nuxt'],
 		['tanstack-start', 'tanstack-start'],
+		['tanstack-start-streamed', 'tanstack-start'],
+		['tanstack-start-same-origin', 'tanstack-start'],
+		['tanstack-start-static', 'tanstack-start'],
 		['astro', 'astro-demo'],
 		['astro-static', 'astro-demo'],
 		['sveltekit', 'sveltekit-demo'],
@@ -177,10 +182,15 @@ export const createCiPlan = function createCiPlan(
 			'react',
 			'vue',
 			'svelte',
+			'html',
 			'javascript',
 			'nuxt',
 			'nuxt-prerender',
+			'nuxt-static',
 			'tanstack-start',
+			'tanstack-start-streamed',
+			'tanstack-start-same-origin',
+			'tanstack-start-static',
 			'astro',
 			'astro-static',
 			'sveltekit'
@@ -248,7 +258,7 @@ export const createCiPlan = function createCiPlan(
 			examples.some(
 				(target) =>
 					workspace.directory ===
-					`examples/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', 'nuxt-prerender': 'nuxt', sveltekit: 'sveltekit-demo' } as Record<string, string>)[target] ?? target}`
+					`examples/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', html: 'script-tag', 'nuxt-prerender': 'nuxt', 'nuxt-static': 'nuxt', sveltekit: 'sveltekit-demo', 'tanstack-start-same-origin': 'tanstack-start', 'tanstack-start-static': 'tanstack-start', 'tanstack-start-streamed': 'tanstack-start' } as Record<string, string>)[target] ?? target}`
 			)
 		) {
 			required.add(workspace.name);

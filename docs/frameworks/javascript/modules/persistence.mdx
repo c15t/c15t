@@ -1,0 +1,91 @@
+---
+title: Persistence
+description: How c15t stores consent choices in a JavaScript app, with the storage key, cookie domain and lifetime options, multi-tab sync, reconcile and clear, and createPersistence for your own kernel.
+group: frameworks
+---
+
+## Where choices are stored
+
+The persistence module writes each recorded choice to a first-party cookie
+and to localStorage, and reads them back when the page loads. The visitor's
+choice survives reloads and later visits without a backend request.
+`@c15t/browser` and `createConsentRuntime` run it by default.
+
+| Stored item | Name, with the default key |
+| --- | --- |
+| Category choice | `c15t` cookie and localStorage key |
+| Notice acknowledgement | `c15t-notice` |
+| Vendor choice | `c15t-vendors` |
+| Saves waiting to reach the backend | a separate localStorage queue |
+
+The cookie is readable by your server, so a server-rendered page can see the
+visitor's choice before any script runs.
+
+## Name, domain and lifetime
+
+`storageConfig` sets where and how long records live:
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `storageKey` | `'c15t'` | The cookie and localStorage name. Other records use it as a prefix. |
+| `crossSubdomain` | `false` | Set the cookie on the root domain, so `www.example.com` and `shop.example.com` share it. |
+| `defaultDomain` | current host | An explicit cookie domain, such as `'.example.com'`. Wins over `crossSubdomain`. |
+| `defaultExpiryDays` | `365` | Cookie lifetime in days. The policy's own validity still decides when a choice expires. |
+
+Use the same `storageConfig` on every site that shares the cookie. Pass it to
+`init()` or `createConsentRuntime`, or inside `persistence` for a runtime:
+
+{/* example: fragment */}
+
+```ts
+storageConfig: { crossSubdomain: true },
+```
+
+## Keep open tabs in step
+
+Tabs on the same origin share localStorage, so a choice made in one tab
+reaches the others at once through the `storage` event. A tab on another
+subdomain that shares only the cookie gets no such event. It reads stored
+records again when the page becomes visible or the window regains focus.
+
+Call `runtime.reconcileStorage()` to read them at another moment, for
+example after a response set the consent cookie. With `@c15t/browser`, call
+`client.runtime.reconcileStorage()`. `persistence: { sync: false }` on the
+runtime or the `@c15t/browser` client turns the automatic reads off.
+[Keep open tabs in step](/docs/concepts/consent-state#keep-open-tabs-in-step)
+explains the merge rules.
+
+## Turn it off
+
+`persistence: false` on `createConsentRuntime` or on `init()` from
+`@c15t/browser` keeps choices in memory only.
+Every page load starts without a choice, so the banner shows on every page.
+Use it only when something else stores choices, such as a `consentSource`.
+
+## Attach it to your own kernel
+
+A kernel from `createConsentKernel` stores nothing. Create the module before
+`commands.init()` so stored choices apply first:
+
+<include src="../../../shared/examples/javascript/kernel.mdx" />
+
+`createPersistence({ kernel, storageConfig?, skipHydration?, sync? })`
+returns:
+
+| Member | What it does |
+| --- | --- |
+| `hydrate()` | Read storage again. Returns whether any record was found. |
+| `reconcile()` | Merge records another tab or runtime stored. Returns whether anything changed. |
+| `clear()` | Delete every c15t record and reset the kernel's records. |
+| `dispose()` | Stop writing and remove the tab listeners. Stored records stay. |
+
+`skipHydration: true` skips the first read, for a kernel a server already
+seeded with the visitor's records.
+
+## Check it works
+
+1. Accept all and open DevTools, Application. A `c15t` cookie and a `c15t`
+   localStorage entry exist.
+2. Reload. The banner stays closed.
+3. Open a second tab, reject all there and switch back. The first tab now
+   shows the rejection.

@@ -1,0 +1,8 @@
+{/* Generated from examples/nuxt/server/api/self-host/[...all].ts (docs:self-host-route) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="server/api/self-host/[...all].ts"
+export default defineEventHandler(async (event) => {
+	const instance = await getInstance();
+	return instance.handler(toWebRequest(event));
+});
+```

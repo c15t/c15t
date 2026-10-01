@@ -1,0 +1,76 @@
+---
+title: ConsentScript
+description: Put the c15t ConsentScript component in the head of an Astro layout so the browser starts with the server's consent decision, the right color scheme and your theme tokens.
+group: frameworks
+---
+
+## Render `ConsentScript` in the layout head
+
+Render `ConsentScript` once in the `<head>` of the layout that wraps every
+page:
+
+<include src="../../../shared/examples/astro-demo/layout.mdx" />
+
+`ConsentScript` takes no props and ships no bundled JavaScript. Everything it
+renders is inline, so it works before any module script has loaded.
+
+## What it renders
+
+`ConsentScript` renders up to three elements from `Astro.locals.c15t`:
+
+| Element | When | Does |
+| --- | --- | --- |
+| Color-scheme `<script>` | `colorScheme` is `'system'` or `'dark'` | Sets the `c15t-dark` class on `<html>` before first paint |
+| `<style id="c15t-theme">` | The integration sets `theme` | Holds the `--c15t-*` custom properties for your tokens |
+| Boot payload `<script type="application/json" data-c15t-config>` | Always | Hands the browser the consent decision the server resolved |
+
+The boot payload is a JSON data block holding the resolved consent
+configuration: the policy, the visitor's stored consent and the translations
+for the negotiated language. The browser starts from it, so a page rendered on
+the server needs no `/init` request and the banner does not flicker. The
+payload escapes `<`, so translated text cannot close the script tag.
+
+With `colorScheme: 'light'` or `'none'`, there is no color-scheme script.
+Light is the absence of the class, and `'none'` leaves the class to your site.
+See [set light or dark mode](/docs/frameworks/astro/customize#set-light-or-dark-mode).
+
+## Rendered once per request
+
+`ConsentBanner`, `IABConsentBanner` and `ConsentScript` all need the boot
+payload, and a page often contains more than one of them. The first of these
+components to render on a request emits the elements. The rest emit nothing.
+
+Keep `ConsentScript` in `<head>` even though the banner would emit the same
+elements. In `<head>`, the color-scheme script runs before the browser paints
+anything, so a visitor whose system is dark never sees a light banner for a
+frame.
+
+## On prerendered and skipped routes
+
+On a prerendered page, the boot payload carries no visitor state: no stored
+consent, no clock and no privacy signal. The browser reads the visitor's own
+cookie instead. See
+[prerender pages in a server build](/docs/frameworks/astro/rendering#prerender-pages-in-a-server-build).
+
+On a route listed in `middleware.skip`, `Astro.locals.c15t` is unset and
+`ConsentScript` renders nothing. The page then starts without a server
+decision, and the browser requests one.
+
+## Content Security Policy
+
+The color-scheme script and the theme `<style>` are inline code. They carry
+`Astro.locals.c15t.nonce` when your middleware sets it, and under Astro's
+`security.csp` the integration adds their hashes to the policy. The boot
+payload is a data block that the browser never runs, so a policy does not
+need to allow it. See
+[Content Security Policy](/docs/frameworks/astro/content-security-policy).
+
+## Next steps
+
+- [ConsentBanner](/docs/frameworks/astro/components/consent-banner) renders the
+  same elements when `ConsentScript` is missing.
+- [Integration options](/docs/frameworks/astro/integration) covers `theme` and
+  `colorScheme`.
+- [Server API](/docs/frameworks/astro/server) documents `buildConfigJSON`,
+  `buildThemeCSS` and `buildColorSchemeScript`, the helpers behind these
+  elements.

@@ -1,0 +1,59 @@
+---
+title: "ConsentDialogTrigger"
+description: "Shared ConsentDialogTrigger reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt ConsentDialogTrigger pages. */}
+
+<section id="behavior">
+  ## What ConsentDialogTrigger renders
+
+  `ConsentDialogTrigger` renders a round floating button, fixed to a corner of
+  the viewport, that opens the preference dialog. Visitors can drag it to
+  another spot. It has no props. Your c15t options configure it.
+
+  The trigger renders in the browser only, after mount, in `document.body`. It
+  hides while the preference dialog is open, until the visitor's policy has
+  resolved, and when the policy owes no consent UI. Under the default
+  `triggerShowWhen: 'after-consent'`, it also stays hidden while the banner
+  waits for an answer, and appears once the visitor saves a choice or
+  dismisses a notice.
+</section>
+
+<section id="options">
+  ## Options
+
+  | Option | Type | Default | Behavior |
+  | --- | --- | --- | --- |
+  | `showTrigger` | `boolean` | `false` | Makes `ConsentRoot` render the trigger. |
+  | `triggerDefaultPosition` | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'` | `'bottom-right'` | Starting corner. |
+  | `triggerSize` | `'sm' \| 'md' \| 'lg'` | `'md'` | 32, 40 or 48 pixels. |
+  | `triggerIcon` | `'branding' \| 'fingerprint' \| 'settings'` | `'fingerprint'` | The icon inside the button. `'branding'` shows the c15t or Inth mark. |
+  | `triggerPersistPosition` | `boolean` | `true` | Remembers where the visitor dragged it, in localStorage under `c15t:dialog-trigger-position`. |
+  | `triggerShowWhen` | `'always' \| 'after-consent' \| 'never'` | `'after-consent'` | `'after-consent'` shows the trigger once the policy owes no prompt: the visitor saved a choice or dismissed a notice. `'always'` also shows it while the banner is open. `'never'` hides it. |
+  | `triggerAriaLabel` | `string` | `'Open privacy settings'` | The button's accessible name. |
+</section>
+
+<section id="accessibility">
+  ## Accessibility and styling
+
+  The trigger is a native `button` with `aria-label` set from
+  `triggerAriaLabel`. The icon is hidden from assistive technology. Set
+  `triggerAriaLabel` in the visitor's language, because the default is
+  English.
+
+  The `components.trigger` option adds attributes to `root`, `icon` and
+  `text`. Setting `components.trigger.text`, even to `{}`, shows
+  `triggerAriaLabel` as visible text next to the icon. The button carries
+  `data-size` and, while dragged, `data-dragging`.
+</section>
+
+<section id="verify">
+  ## Verify
+
+  Load a page under a policy with a prompt and answer the banner. Confirm the
+  button appears in the corner you set. Click it and the preference dialog opens while the
+  button hides. Drag it, reload, and confirm it keeps its place when
+  `triggerPersistPosition` is on.
+</section>

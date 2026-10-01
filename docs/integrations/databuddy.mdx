@@ -1,15 +1,17 @@
 ---
 title: Databuddy
-description: Configure Databuddy's initial and updated consent state with c15t v3.
+description: Load the Databuddy SDK on every page with the c15t databuddy helper, switch its disabled flag and config from measurement consent, and check both in DevTools.
 group: integrations
 ---
 
 ## Configure Databuddy
 
-Use the client ID for your Databuddy project. Supply both configuration objects
-so the initial script load has an explicit allowed and denied state.
+Copy the client ID from your Databuddy project. The helper passes it to the
+script as `data-client-id`. Remove any existing Databuddy script and any code
+that sets `window.databuddyConfig`. The helper seeds that global only when it
+is absent, so an existing value overrides your initial state.
 
-<CommandTabs command="@c15t/integrations" mode="install" />
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { databuddy } from '@c15t/integrations/databuddy';
@@ -27,34 +29,43 @@ export const scripts = [
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `clientId` | Required project client ID. |
-| `configWhenGranted` | Required configuration used when measurement is allowed. |
-| `configWhenDenied` | Required configuration used when measurement is denied. |
-| `apiUrl` | Defaults to `https://basket.databuddy.cc`. |
-| `scriptUrl` | Defaults to `https://cdn.databuddy.cc/databuddy.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `clientId` | Required | Set as `data-client-id`. The helper trims it. Empty or whitespace-only values throw. |
+| `configWhenGranted` | Required | Object set as `window.databuddyConfig` while measurement is allowed. |
+| `configWhenDenied` | Required | Object set as `window.databuddyConfig` while measurement is denied. |
+| `apiUrl` | `https://basket.databuddy.cc` | Collection endpoint, set as `data-api-url`. |
+| `scriptUrl` | `https://cdn.databuddy.cc/databuddy.js` | Loader URL override. A blank value falls back to the default. |
 
-Use serializable configuration values. The helper seeds
-`window.databuddyConfig` before loading only if that global is absent. Remove a
-separate global initializer that could override your intended initial state.
+## Loading and revocation
 
-## Consent behavior
+`databuddy` uses the `measurement` category with `alwaysLoad`, so the
+Databuddy script loads on every page, before the visitor chooses. Before the
+script loads, the helper sets `window.databuddyConfig` to `configWhenDenied` or
+`configWhenGranted`, unless that global already exists. After the script
+loads, the helper sets `window.databuddy.options.disabled` to `true` without
+measurement permission and to `false` with it. On each later consent change,
+the helper replaces `window.databuddyConfig` with the matching object and
+updates `disabled` again. c15t never removes the script.
 
-Databuddy uses `alwaysLoad: true`. The script is requested regardless of
-measurement permission. On load and later changes, the helper sets
-`window.databuddy.options.disabled` from measurement permission. On consent
-changes it also replaces `window.databuddyConfig` with the matching object.
+The Databuddy SDK decides what `disabled` stops. The helper cannot prevent the
+script request before consent. If Databuddy must receive no request before
+consent, write a
+[custom gated integration](/docs/integrations/building-integrations) instead.
 
-This helper is not a no-request-before-consent integration. If your requirement
-is to prevent even the SDK request, use a
-[custom gated integration](/docs/integrations/building-integrations) and verify
-its complete lifecycle.
+## Verify Databuddy
 
-## Verify the integration
+1. In a private window with an opt-in policy, load the page. `databuddy.js`
+   loads from `cdn.databuddy.cc` with your `data-client-id`. In the console,
+   `window.databuddyConfig` matches `configWhenDenied` and
+   `window.databuddy.options.disabled` is `true`.
+2. Click Reject, then reload. `disabled` is still `true`, and DevTools Network
+   shows no event request to your `apiUrl`.
+3. Open Privacy settings and allow measurement. Without a reload, `disabled`
+   becomes `false`, `window.databuddyConfig` matches `configWhenGranted`, and
+   event requests reach your `apiUrl`.
+4. Turn measurement off again and save. c15t reloads the page, and the new
+   page starts with `disabled` set to `true`.
 
-Expect the loader request while consent is denied. Check the initial global
-configuration and the SDK's `disabled` value, grant measurement, then revoke it.
-Confirm collection follows those transitions and that application event calls
-stop after revocation. Test with no pre-existing `databuddyConfig` as well as
-with persisted consent. See [consent verification](/docs/guides/verify-consent).
+See the [consent verification guide](/docs/guides/verify-consent) for
+navigation and hosting checks.

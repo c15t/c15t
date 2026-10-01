@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getConsentManager } from '@c15t/svelte/headless';
+	import { getConsentManager } from '@c15t/svelte';
 
 	import { experimentEvents } from './experiment.svelte';
 
@@ -22,4 +22,5 @@
 			</li>
 		{/each}
 	</ul>
+	<p>The same events are pushed to <code>window.dataLayer</code>.</p>
 </section>

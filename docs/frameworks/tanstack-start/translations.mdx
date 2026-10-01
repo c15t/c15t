@@ -1,0 +1,121 @@
+---
+title: Translations
+description: Where c15t banner and dialog copy comes from in TanStack Start, how the server and browser pick the visitor's language, and how to override copy and switch languages from the root route.
+group: frameworks
+---
+
+## Where the copy comes from
+
+The banner, dialog, widget and gate placeholder read their text from the
+translations in your Inth project, or your self-hosted backend's
+configuration. The policy carries the copy for the visitor's language. Edit
+wording there first, so it changes without a deploy.
+
+Code can override that copy in two places:
+
+- `options.i18n` on `ConsentRoot` changes a message everywhere it appears.
+- Text props on `ConsentBanner` change one banner.
+
+[Copy and translations](/docs/customization/translations) lists the message
+keys and explains how code messages combine with the project's copy.
+
+## How c15t picks the language
+
+In the [quickstart](/docs/frameworks/tanstack-start/quickstart) setup, the
+root loader's `resolveConsent` reads the request's `Accept-Language` header.
+It resolves the policy and its copy from the cached manifest on the server, so
+the banner in the first HTML is already in the visitor's language.
+
+To override the header, set `language` in one of these places:
+
+- `consentRequestMiddleware({ language })` in `src/start.ts` fixes one
+  language for every request.
+- `createConsentStateHandler({ backendURL, language })` fixes one language for
+  the root loader.
+- `resolveConsent({ backendURL, language })` from
+  `c15t/tanstack-start/server`, called in your own server function, takes a
+  different language per request, such as the locale from your URL.
+
+When the browser resolves consent, as on
+[prerendered and static pages](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts),
+the `/init` request carries the browser's own `Accept-Language` header.
+
+When your project has no copy for the requested language, the backend
+returns its fallback language.
+
+The banner, dialog and widget set `dir` from the active language. Right-to-left
+languages such as Arabic and Hebrew render with `dir="rtl"`, and a floating
+banner you did not position yourself moves to the opposite side.
+
+## Change the copy in code
+
+Keep the messages in their own module:
+
+<include src="../../shared/examples/tanstack-start/i18n.mdx" />
+
+Import it in `src/routes/__root.tsx` and pass it under `options` on
+`ConsentRoot`:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+<ConsentRoot
+  state={consent}
+  backendURL={backendURL}
+  initRoute={false}
+  scripts={scripts}
+  options={{ i18n }}
+>
+```
+
+The root route component renders on the server and again in the browser, so
+both read the same module and your messages are already in the server HTML.
+Import the module in the component. Do not return it from the loader or a
+server function. Loader data is serialized for the browser, and it should
+carry only the consent state.
+
+For the visitor's language, your messages replace the project's copy key by
+key. Keys you leave out keep the project's wording, and messages for other
+languages are not applied. `ConsentRoot` reads `i18n` once, when it mounts. In
+development it logs a warning if `i18n` changes later.
+
+`i18n.locale` sets the language of the copy when no backend or server state
+supplies one, as in offline mode. It defaults to `en`.
+
+## Change one banner's copy
+
+`ConsentBanner` takes `title`, `description`, `acceptButtonText`,
+`rejectButtonText`, `customizeButtonText` and `dismissButtonText`. The props
+replace the text in every language, so pass values in the page's language:
+
+{/* example: fragment */}
+
+```tsx
+<ConsentBanner title="Cookies on this site" rejectButtonText="Reject optional" />
+```
+
+## Switch the language at runtime
+
+`useSetLanguage()` stores the new language, and `useInit()` resolves the policy
+again, which fetches the copy for that language. Call both from your language
+switcher:
+
+<include src="../../shared/examples/tanstack-start/language-switcher.mdx" />
+
+Setting the language without calling `init()` changes nothing on screen. Your
+`i18n` messages for the new language apply on top of the copy that arrives.
+Render the switcher anywhere inside `ConsentRoot`.
+
+If your site changes language through its own i18n library, run the same two
+calls when its locale changes. To make the server HTML match too, pass the
+locale to `resolveConsent` as `language`.
+
+## Verify
+
+1. Under a policy that shows a banner, request a page with
+   `curl -H 'Accept-Language: de' <your-url>`. If your project translates
+   German, the banner text in the HTML is German.
+2. Open the page in the browser and check that a message you set in `i18n`
+   shows in the banner.
+3. Switch the language with your switcher. DevTools Network shows a new
+   `/init` request, and the banner and dialog text change without a reload.

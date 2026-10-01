@@ -1,0 +1,97 @@
+---
+title: Troubleshooting
+description: Fix a banner missing from SvelteKit server HTML, failed saves through the manifest route, prerender build errors and ignored theme colors.
+group: frameworks
+---
+
+## Why is the banner missing from the server HTML?
+
+**Check.** View the page source and search for `consent-banner-root`.
+
+**Fix.** If the banner only appears after hydration, work through these causes
+in order:
+
+1. **The provider has no `prefetch`.** Check that the root
+   `+layout.server.ts` returns `prefetch` and that `+layout.svelte` passes
+   `prefetch={data.prefetch}`.
+2. **`loadConsent` fell back.** It returns the stored choice without a policy
+   when the backend fails or takes longer than `timeoutMs`, 500 ms by default.
+   Check the server logs and the backend's response time, and raise
+   `timeoutMs` if it is slow.
+3. **The page is prerendered.** Prerendered pages never carry a visitor's
+   consent. See
+   [prerender some pages](/docs/frameworks/sveltekit/rendering#prerender-some-pages).
+4. **No banner is due.** The policy for the visitor's location may ask for no
+   prompt, or the visitor already chose. Clear site data and check the policy.
+
+## The banner flashes, or the stored choice is ignored on the server
+
+**Check.** The server reads the choice from the `c15t` cookie. Look for a
+changed `storageConfig.storageKey` on the provider. Without a matching cookie
+name, the server reads nothing and renders the banner for every visitor.
+
+**Fix.** Pass the same name as `cookieName` to `loadConsent` or `c15tHandle`.
+
+**Check.** Look at what the layout passes to the provider. Rebuilding
+`data.prefetch` from booleans loses the policy and the stored record.
+
+**Fix.** Pass `data.prefetch` to the provider unchanged.
+
+## Saving fails with 405 from /api/c15t
+
+**Check.** The provider's `hosted()` mode points at `/api/c15t`, but the route
+does not forward writes. A route file that exports only `GET` still answers a
+save with `405`.
+
+**Fix.** Pass `proxy: true` to `createSvelteKitConsentRouteHandlers` and export
+`POST`, `PATCH`, `PUT`, `DELETE` and `OPTIONS` next to `GET` from the
+catch-all route. See
+[save consent through your own origin](/docs/frameworks/sveltekit/rendering#save-consent-through-your-own-origin).
+
+## The manifest route times out or calls itself
+
+**Check.** `createSvelteKitConsentRouteHandlers` needs the backend's URL. A
+relative `backendURL` names a route in your own app, which the handlers call
+in-process; if it points at `/api/c15t`, the route requests itself.
+
+**Fix.** Pass the Inth URL, or set `C15T_BACKEND_URL` in the server
+environment.
+
+## The build fails while prerendering a page
+
+**Check.** The root layout reads `PUBLIC_C15T_BACKEND_URL` while SvelteKit
+prerenders, and throws when it is empty.
+
+**Fix.** Set the variable in the build environment, not only where the server
+runs.
+
+## Your own `:root` token rules are ignored
+
+**Check.** A theme from `generateThemeCSS()` uses `:root:root`, which outranks a
+plain `:root` rule wherever each one sits in the page. If you also set
+`--c15t-*` variables on `:root` in a stylesheet, the generated theme wins for
+every token both set.
+
+**Fix.** Move those values into the theme, or write the rule on `:root:root`.
+See [customize](/docs/frameworks/sveltekit/customize).
+
+## Server code ends up in the browser bundle
+
+**Check.** Look for imports of `@c15t/svelte/kit` or `@c15t/svelte/server` in
+components. They are for server files: `hooks.server.ts`,
+`+layout.server.ts`, `+page.server.ts` and `+server.ts`. Imported from a
+component, they pull the manifest resolver and every bundled translation into
+the browser bundle.
+
+**Fix.** Import `hosted` and the components from `@c15t/svelte` in components.
+
+<include src="../../shared/svelte/troubleshooting.mdx" />
+
+## More help
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI. [Verify
+consent](/docs/guides/verify-consent) lists the checks to run before release.

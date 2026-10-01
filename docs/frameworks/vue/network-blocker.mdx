@@ -1,0 +1,79 @@
+---
+title: Network blocker
+description: Hold fetch and XMLHttpRequest calls in a Vue app until their consent category is allowed, with rules passed to the c15t Vue plugin.
+group: frameworks
+---
+
+## Add rules
+
+The network blocker stops `fetch` and `XMLHttpRequest` calls that match a
+rule until the rule's category is allowed. Use it as a backstop for tracking
+calls your own code or a vendor SDK makes. Load vendor SDKs through
+[`scripts`](/docs/frameworks/vue/scripts) first, so they do not run at all
+before consent.
+
+Define the rules in their own file:
+
+<include src="../../shared/examples/vue/network-blocker.mdx" />
+
+Pass them to the plugin in `src/main.ts`:
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+app.use(c15tVue, { backendURL, networkBlocker, scripts });
+```
+
+## Match requests with rules
+
+Each rule names a `domain` and the consent `category` a request needs. The
+domain also matches its subdomains, so `google-analytics.com` covers
+`www.google-analytics.com`. `pathIncludes` narrows a rule to paths that
+contain a substring, and `methods` narrows it to HTTP methods. `category`
+also takes conditions such as `{ and: ['measurement', 'marketing'] }`.
+
+Add `vendor` with a vendor ID to also block the request while the visitor has
+turned that vendor off. Rules for IAB TCF vendors use `vendorId` and the
+`iabPurposes` fields instead.
+
+| Option | Default | Purpose |
+| --- | --- | --- |
+| `rules` | Required | The rules above. |
+| `enabled` | `true` | `false` keeps the rules but stops blocking. |
+| `logBlockedRequests` | `true` | Logs each blocked request with `console.warn`. |
+| `onRequestBlocked` | Unset | Called with `{ method, url, rule }` for each blocked request. |
+
+## What a blocked request looks like
+
+A blocked `fetch` resolves to a `451` response with the status text
+`Request blocked by consent`, and nothing is sent. A blocked XHR is aborted
+and fires an `error` event. Requests that match no rule are not delayed.
+
+## When blocking starts
+
+The plugin starts holding matching requests when `app.use(c15tVue, ...)`
+runs, before your app mounts. While consent is unknown, a matching request
+waits instead of failing. Once the policy has loaded and the stored choice
+applies, a waiting request is sent if consent allows it and blocked
+otherwise. If the policy fails to load, optional categories stay denied and
+waiting requests are blocked.
+
+## What it cannot stop
+
+The blocker sees only `fetch` and `XMLHttpRequest` calls made after
+`app.use()` runs. It cannot stop:
+
+- Scripts in `index.html` and modules that run before `src/main.ts`.
+- Code that saved its own reference to `fetch` before the plugin installed.
+- `navigator.sendBeacon`, `WebSocket`, `EventSource`, and requests from
+  `<img>`, `<script>` and `<iframe>` elements, web workers and service
+  workers.
+
+Check `useConsent()` before you call a vendor from your own code, and treat
+the blocker as a backstop.
+
+## Verify
+
+Open the Network tab, clear site data and reload. Requests that match a rule
+do not appear until you allow their category, and the console lists each
+blocked request. Reject, reload, and check that they still do not appear.

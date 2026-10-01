@@ -1,0 +1,53 @@
+---
+title: Components
+description: Every c15t Astro component, from ConsentScript and ConsentBanner to the server island banner, the preference dialog, its trigger and the IAB TCF surfaces, with import paths and links to each reference.
+group: frameworks
+---
+
+## Where the components go
+
+Every component reads `Astro.locals.c15t`, which the integration's middleware
+sets on each request. Put them in the layout that wraps every page:
+
+<include src="../../shared/examples/astro-demo/layout.mdx" />
+
+The `c15t()` integration in `astro.config.mjs` plays the part a provider plays
+in React or Vue. It holds the configuration every component reads. See
+[Integration options](/docs/frameworks/astro/integration).
+
+## Component reference
+
+Import each component from its own path under `c15t/astro/components/`:
+
+| Component | Import path | Renders |
+| --- | --- | --- |
+| [`ConsentScript`](/docs/frameworks/astro/components/consent-script) | `c15t/astro/components/consent-script.astro` | Inline scripts for the boot payload and color scheme, and the theme `<style>` |
+| [`ConsentBanner`](/docs/frameworks/astro/components/consent-banner) | `c15t/astro/components/consent-banner.astro` | The banner, as server HTML |
+| [`ConsentBannerDeferred`](/docs/frameworks/astro/components/consent-banner-deferred) | `c15t/astro/components/consent-banner-deferred.astro` | The banner, in a server island |
+| [`ConsentDialog`](/docs/frameworks/astro/components/consent-dialog) | `c15t/astro/components/consent-dialog.astro` | An empty host for the preference dialog island |
+| [`ConsentDialogTrigger`](/docs/frameworks/astro/components/consent-dialog-trigger) | `c15t/astro/components/consent-dialog-trigger.astro` | A button or link that opens a dialog |
+| [`IABConsentBanner`](/docs/frameworks/astro/components/iab-consent-banner) | `c15t/astro/components/iab-consent-banner.astro` | The IAB TCF banner, as server HTML |
+| [`IABConsentDialog`](/docs/frameworks/astro/components/iab-consent-dialog) | `c15t/astro/components/iab-consent-dialog.astro` | An empty host for the IAB TCF dialog island |
+
+## How much JavaScript each component ships
+
+The banners and the trigger are plain `.astro` markup and ship no framework
+JavaScript. One small shared script turns their buttons into consent actions.
+The dialogs are islands in the framework the integration's `ui` option names,
+and they download only when a visitor first reaches for one. See
+[Dialog islands and your own islands](/docs/frameworks/astro/islands).
+
+Astro has no floating preferences widget, consent gate component or dev tools
+component. Gate embeds with the pattern in
+[Embeds](/docs/frameworks/astro/embeds), and inspect consent with the
+[client API](/docs/frameworks/astro/client-api) and DevTools.
+
+## What every component needs
+
+- The `c15t()` integration in `astro.config.mjs`, with its middleware on.
+  `ConsentBanner` and `IABConsentBanner` throw when `Astro.locals.c15t` is
+  missing, and the others render nothing useful without it.
+- A route that the middleware does not skip. A route in `middleware.skip` has
+  no `Astro.locals.c15t`.
+- For the dialogs, the Astro integration of the `ui` framework, listed before
+  `c15t()`.

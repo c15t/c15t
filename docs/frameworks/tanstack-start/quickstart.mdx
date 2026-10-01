@@ -1,325 +1,154 @@
 ---
 title: Quickstart
-description: Resolve consent through a Start server function and hydrate it through the root route.
+description: Resolve consent on the server in a TanStack Start root loader, render the banner in the first HTML, and gate vendor scripts, using Inth as the consent backend.
 group: frameworks
 ---
 
-[Create an Inth project](https://inth.com) and use its backend endpoint in
-this guide. Configure the project's policy rules and allowed app origins first.
+## Before you start
 
-## Install
+This guide sets up the recommended path for a TanStack Start app with server
+rendering. On each request, a server function in the root loader reads the
+visitor's consent cookie and location headers, resolves their policy from a
+cached policy manifest, and hands the result to `ConsentRoot`. The banner is
+part of the first HTML, and gated scripts can run right after hydration.
 
-<CommandTabs command="c15t @c15t/integrations" mode="install" />
+It needs a running Start server. For SPA mode, prerendered pages or a static
+host, or to stream the page before consent resolves, see
+[rendering](/docs/frameworks/tanstack-start/rendering).
 
-Set `VITE_C15T_BACKEND_URL` to your consent backend's absolute base URL and allow
-your application origin on that backend. This direct-backend recipe uses the
-same public URL for prefetch and browser saves.
+You need an [Inth](https://inth.com) project. In the project, set the policy
+rules for your regions, add your site's origin to the trusted origins, and copy
+the backend URL. The URL is public configuration, not a secret.
+[Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
+covers self-hosting and offline mode.
 
-## Normalize request inputs
+## Install c15t
 
-Merge the middleware into your existing Start configuration:
+<CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-```ts title="src/start.ts"
-import { createStart } from '@tanstack/react-start';
-import { consentRequestMiddleware } from 'c15t/tanstack-start/middleware';
+`c15t` contains the TanStack Start adapter at `c15t/tanstack-start`.
+`@c15t/integrations` holds the vendor loaders used below.
 
-export const startInstance = createStart(() => ({
-  requestMiddleware: [consentRequestMiddleware()],
-}));
-```
+## Set the backend URL
 
-## Register consent-gated scripts
-
-Include measurement and marketing categories in your policy for these vendors.
-Remove any existing loaders for them so each script loads once.
-
-Add your PostHog project key and X Pixel ID to `.env`:
+Add the Inth backend URL and your vendor IDs to `.env`:
 
 ```dotenv title=".env"
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
 VITE_POSTHOG_KEY=
 VITE_X_PIXEL_ID=
 ```
 
-Vite embeds these public values at build time; restart development or rebuild
-for deployment after changing them.
-An empty ID disables that integration. Create `src/example-scripts.ts`
-using the helper below. It selects PostHog's EU region; change `region` to `'us'`
-for a US project. PostHog waits for measurement permission and disables
-cookieless capture. X Pixel waits for marketing permission.
+Paste the backend URL exactly as Inth shows it. The server function and the
+browser both read `VITE_C15T_BACKEND_URL`, and Vite writes it into both bundles
+at build time, so rebuild after you change it. Leave a vendor ID empty to skip
+that vendor. Keep secrets out of `VITE_` variables.
 
-<include src="../../shared/examples/tanstack-start-scripts.mdx" />
+## Read location headers on every request
 
-## Resolve consent in the root loader
+Register `consentRequestMiddleware` in `src/start.ts`. It reads the country and
+region headers your host or CDN adds, such as `cf-ipcountry` or
+`x-vercel-ip-country`, plus `accept-language` and the Global Privacy Control
+header. It writes them onto the request in one format that the server function
+reads.
 
-Declare `createServerFn` in your app. Start's compiler uses that call site to
-separate the server handler from the browser bundle.
+<include src="../../shared/examples/tanstack-start/start.mdx" />
 
-```tsx title="src/routes/__root.tsx"
-import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router';
-import { createServerFn } from '@tanstack/react-start';
-import {
-  ConsentBanner,
-  ConsentDialog,
-  ConsentDialogLink,
-  ConsentRoot,
-} from 'c15t/tanstack-start';
-import {
-  consentLoaderOptions,
-  createConsentStateHandler,
-} from 'c15t/tanstack-start/server';
-import consentCss from 'c15t/tanstack-start/styles.css?url';
-import { createExampleScripts } from '../example-scripts';
+If `src/start.ts` already exists, add `consentRequestMiddleware()` to its
+`requestMiddleware` list.
 
-const scripts = createExampleScripts(
-  import.meta.env.VITE_POSTHOG_KEY,
-  import.meta.env.VITE_X_PIXEL_ID,
-);
+## Register your vendor scripts
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
+Create `src/scripts.ts`. PostHog waits for measurement permission and X Pixel
+waits for marketing permission, so your policy must include both categories.
+PostHog uses its EU host; change `region` to `'us'` for a US project. Remove any
+other PostHog or X Pixel loader from your app so each vendor loads once.
 
-const getConsentState = createServerFn({ method: 'GET' }).handler(
-  createConsentStateHandler({ backendURL }),
-);
+<include src="../../shared/examples/tanstack-start/scripts.mdx" />
 
-export const Route = createRootRoute({
-  ...consentLoaderOptions,
-  loader: () => getConsentState(),
-  head: () => ({ links: [{ rel: 'stylesheet', href: consentCss }] }),
-  component: Root,
-});
+## Resolve consent in the root route
 
-function Root() {
-  const state = Route.useLoaderData();
-  return (
-    <html lang="en">
-      <head><HeadContent /></head>
-      <body>
-        <ConsentRoot state={state} backendURL={backendURL} initRoute={false} scripts={scripts}>
-          <Outlet />
-          <ConsentBanner />
-          <ConsentDialog />
-          <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-        </ConsentRoot>
-        <Scripts />
-      </body>
-    </html>
-  );
+Replace or merge `src/routes/__root.tsx`:
+
+<include src="../../shared/examples/tanstack-start/root.mdx" />
+
+What each part does:
+
+- **`getConsentState`** runs on the server. `createConsentStateHandler` reads
+  the `c15t` cookie and the headers from the middleware, fetches the policy
+  manifest from your backend, caches it in memory, and resolves this visitor's
+  policy. Declare the `createServerFn()` call in your own module, as shown.
+  Start's compiler finds server code by that call site, so a server function
+  built inside a package does not work.
+- **The loader** awaits the result. `consentLoaderOptions` stops the loader
+  from running again on client-side navigation, since the visitor's consent
+  state does not change between routes.
+- **`ConsentRoot`** creates the consent runtime from that state, so the server
+  HTML and the first browser render match. `initRoute={false}` sends the
+  browser's requests straight to your backend URL.
+- **`scripts`** stays in this module. A server function can only return
+  serializable data, and vendor loaders contain functions.
+- **The stylesheet** loads through `head()` with Vite's `?url` import.
+
+If the backend does not answer within 500 ms, the server function gives up and
+returns the cookie and header state. The page renders without the banner,
+optional categories stay denied, and the browser resolves consent after it
+loads.
+
+## Gate your own features
+
+Read a category's permission with `useConsent` from `c15t/tanstack-start`:
+
+{/* example: fragment */}
+
+```tsx title="src/components/marketing-banner.tsx"
+import { useConsent } from 'c15t/tanstack-start';
+
+export function MarketingBanner() {
+  return useConsent('marketing') ? <aside>Spring sale</aside> : null;
 }
 ```
 
-Merge the loader and head entries if the root route already has them. Keep
-`consentLoaderOptions` so consent loading follows the adapter's cache and reload
-settings. The server resolves the visitor's `ConsentState`; `ConsentRoot`
-uses it for the first client render. `initRoute={false}` sends browser
-initialization to `${backendURL}/init`, matching this direct-backend setup.
+`useConsent` returns the permission right now. Under an opt-out policy it can be
+`true` before the visitor has chosen anything. Read
+[how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+before you record or report choices. For iframes, use `ConsentGate`; see
+[scripts and embeds](/docs/frameworks/tanstack-start/scripts).
 
-## Stream the page while consent resolves
+## Check that it works
 
-The loader above awaits the server function, so TanStack Start sends no part
-of the response until the consent state is ready. With a warm manifest cache
-that takes a few milliseconds. The first request after a server starts, or any
-request while the backend is slow or down, waits for the backend, for at most
-the prefetch's `timeoutMs` (500 ms by default; see
-[add a same-origin proxy](#add-a-same-origin-proxy-when-needed)).
+Build the app with `vite build`, start the production server, and open the site
+in a private window with DevTools open on the Network tab. Test under a policy
+that asks for a choice, such as an EU opt-in policy. Your host must send a
+country header; locally, add `consentRequestMiddleware({ country: 'DE' })` for
+the test only.
 
-To send the page without waiting, return the pending server function call
-from the loader instead of awaiting it. TanStack Router streams the promise,
-and `ConsentRoot` accepts it as `state`. This partial example keeps the
-imports, `scripts`, `backendURL` and `getConsentState` from the root-route
-setup above:
+1. **Server HTML.** View the page source. It contains an element with
+   `data-testid="consent-banner-root"`.
+2. **Before a choice.** There are no requests to `posthog.com` or
+   `static.ads-twitter.com`.
+3. **Reject All.** The banner closes and the vendor requests stay absent.
+4. **Reload and view source again.** The HTML no longer contains the banner,
+   because the server read the stored rejection from the `c15t` cookie.
+5. **Privacy settings.** The footer link opens the dialog with **Analytics** (the
+   `measurement` category) and **Marketing** off. Turn on **Analytics** and save. PostHog's `array.js` loads and
+   X Pixel stays absent.
+6. **Turn Analytics off again.** The page reloads and PostHog does not load.
 
-```tsx title="src/routes/__root.tsx"
-export const Route = createRootRoute({
-  ...consentLoaderOptions,
-  loader: () => ({ consent: getConsentState() }),
-  head: () => ({ links: [{ rel: 'stylesheet', href: consentCss }] }),
-  component: Root,
-});
+[Troubleshooting](/docs/frameworks/tanstack-start/troubleshooting) covers the
+common failures. [Verify consent](/docs/guides/verify-consent) has the full
+release checklist.
 
-function Root() {
-  const { consent } = Route.useLoaderData();
-  return (
-    <html lang="en">
-      <head><HeadContent /></head>
-      <body>
-        <ConsentRoot state={consent} backendURL={backendURL} initRoute={false} scripts={scripts}>
-          <Outlet />
-          <ConsentBanner />
-          <ConsentDialog />
-          <ConsentDialogLink>Privacy settings</ConsentDialogLink>
-        </ConsentRoot>
-        <Scripts />
-      </body>
-    </html>
-  );
-}
-```
+## Next steps
 
-The trade-off is the banner. The awaited loader puts the banner in the server
-HTML, so it paints with the page. The streamed loader renders the page without
-consent UI; the banner mounts after hydration, once the promise resolves. Until
-then no optional category is granted, so gated scripts and embeds stay
-blocked, and a returning visitor's stored choice applies when the state
-arrives. If the server gives up on the manifest after `timeoutMs`, the promise
-resolves to the cookie-and-headers state and the browser runs init itself.
-
-In a test app on a 170 ms round trip with 4× CPU throttling, a cold manifest
-cache and a backend answering in 200 ms, the awaited loader painted at 628 ms
-and the streamed one at 428 ms. With a warm cache both painted at 424 ms, and
-the banner appeared at 433 ms with the awaited loader and 719 ms with the
-streamed one. When the backend stopped answering, the awaited loader held the
-page for over 10 seconds, measured before the prefetch had a `timeoutMs`; it
-now gives up after 500 ms by default. The streamed one painted at 424 ms.
-
-Keep the awaited loader when the banner should be in the first paint and the
-backend is reliable. Stream when even the `timeoutMs` wait for a slow or
-unavailable backend must not delay the page, for example on serverless hosts where many requests start with a
-cold manifest cache.
-
-## Customize the theme
-
-Import `defineTheme` from `c15t/tanstack-start` to define colors and radius
-tokens. The same entry exports the `Theme` type for annotations.
-
-```ts title="src/consent-theme.ts"
-import { defineTheme } from 'c15t/tanstack-start';
-
-export const theme = defineTheme({
-  colors: { primary: '#2f6f4e' },
-  radius: { lg: '4px' },
-});
-```
-
-The browser does not turn tokens into CSS, so generate it in a server
-function and render it in the document head. In `src/routes/__root.tsx`, add
-the server function next to `getConsentState`, return its result from the
-loader and render it. This partial example keeps the rest of the root-route
-setup:
-
-```tsx title="src/routes/__root.tsx"
-import { generateThemeCSS } from '@c15t/ui/theme';
-import { theme } from '../consent-theme';
-
-const getThemeCSS = createServerFn({ method: 'GET' }).handler(() =>
-  generateThemeCSS(theme),
-);
-
-export const Route = createRootRoute({
-  ...consentLoaderOptions,
-  loader: async () => {
-    const [state, themeCSS] = await Promise.all([getConsentState(), getThemeCSS()]);
-    return { state, themeCSS };
-  },
-  head: () => ({ links: [{ rel: 'stylesheet', href: consentCss }] }),
-  component: Root,
-});
-
-function Root() {
-  const { state, themeCSS } = Route.useLoaderData();
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-        <style id="c15t-theme" dangerouslySetInnerHTML={{ __html: themeCSS }} />
-      </head>
-      <body>
-        {/* ConsentRoot and its children as above */}
-      </body>
-    </html>
-  );
-}
-```
-
-Install `@c15t/ui` for `generateThemeCSS`; it escapes `<`, so its output is
-safe inside `<style>`. The consent UI uses a green primary color and a 4px
-large-radius token from the first server render. Rendering
-`<ConsentTheme theme={theme} />` from `c15t/tanstack-start` in `Root` also
-works, but the root component runs in the browser too, so it ships the theme
-generator. Pass `theme` to `ConsentRoot` through `options` only when it holds
-`consentActions` or slot styles.
-
-## Granular consent
-
-A visitor can grant marketing and still turn one vendor off. Declare the
-vendors next to the scripts, with the `vendor` slug each script already
-carries, and pass both to `ConsentRoot`:
-
-```ts title="src/vendors.ts"
-import type { Vendor } from 'c15t';
-
-export const vendors: Vendor[] = [
-  {
-    id: 'x-pixel',
-    name: 'X Pixel',
-    category: 'marketing',
-    privacyPolicyUrl: 'https://x.com/privacy',
-  },
-];
-```
-
-```tsx title="src/routes/__root.tsx"
-import { vendors } from '../vendors';
-
-<ConsentRoot state={state} backendURL={backendURL} initRoute={false} scripts={scripts} vendors={vendors}>
-  <Outlet />
-</ConsentRoot>
-```
-
-The preference center lists each vendor under its category with a switch.
-Integrations from `@c15t/integrations` set `vendor` to their manifest slug, so
-`xPixel()` needs no extra wiring; give a hand-written script the same slug
-in its `vendor` field. See
-[granular consent](/docs/integrations/granular-consent) for storage, bulk
-actions and the hooks a custom control uses.
-
-## Add a same-origin proxy when needed
-
-If browser traffic should use `/api/c15t`, mount a real Start server route using
-`createConsentServerRoute` from `c15t/tanstack-start/api` with `proxy: true`.
-Give `createConsentStateHandler` the upstream backend URL and set its
-`routePrefix: '/api/c15t'` to the mounted route prefix. This also routes deferred
-IAB vendor lists through the proxy. Without an explicit `routePrefix`, the browser
-loads public vendor lists directly from the manifest URL, which must allow
-browser access and CORS. Give `ConsentRoot` the browser route URL. Remove `initRoute={false}` to use the default
-`/api/c15t/init` route, or set `initRoute` to your custom route URL. Do not make
-prefetch call its own proxy unnecessarily.
-
-Only enable `trustForwardedHeaders` when your deployment overwrites and
-sanitizes those headers. Otherwise a caller can supply a false visitor IP.
-The complete route example lives in `examples/tanstack-start` in the source
-repository.
-
-Once the cached manifest passes its `s-maxage`, the route and the prefetch
-serve it stale and refresh it in the background. On a runtime that stops work
-after the response is sent, pass `onBackgroundRevalidate` to either and hand
-the promise to your platform's `waitUntil`; it never rejects. Both also hand
-it their session report: after each resolution they post a small report to
-the backend's `POST /sessions`, server-to-server, so the backend still counts
-visitors it never served `/init` to. Pass `reportSessions: false` to send
-none.
-
-The prefetch waits at most `timeoutMs` (500 ms by default) for the manifest.
-If the backend is slow or down, the page renders without consent UI in the
-server HTML, optional categories stay denied, consent-gated scripts and iframes
-stay blocked, and `ConsentRoot` initializes in the browser, showing the banner
-once the backend answers. The manifest request keeps running and fills the
-cache for the next request; `onBackgroundRevalidate` receives it too. After a
-failed manifest request with nothing cached, the cache waits 1 second before
-asking the backend again, doubling up to 5 seconds while failures continue, so
-an outage does not turn every page view into a backend request. Set
-`timeoutMs: false` to wait for the cache's 5 second request timeout instead.
-
-## Verify the server path
-
-Load the page directly and inspect the initial HTML under a choice policy.
-Reject, navigate, reload and reopen preferences. Hydration must not produce a
-new choice callback. This recipe requires a Start server; if you publish only
-static HTML, use browser initialization with an external backend rather than
-expecting the server function to exist. Follow
-[verification](/docs/guides/verify-consent) for the full flow.
-
-## Run the complete example
-
-Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
-YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.
+- [Rendering](/docs/frameworks/tanstack-start/rendering) for streaming, SPA mode,
+  prerendering and a same-origin consent route.
+- [Scripts and embeds](/docs/frameworks/tanstack-start/scripts) for more vendors,
+  iframes and network blocking.
+- [Customize](/docs/frameworks/tanstack-start/customize) for colors, fonts, layout
+  and copy.
+- [Components](/docs/frameworks/tanstack-start/components) and
+  [hooks](/docs/frameworks/tanstack-start/hooks).
+- The runnable app in `examples/tanstack-start` of the
+  [c15t repository](https://github.com/c15t/c15t) contains this setup and every
+  rendering variant.

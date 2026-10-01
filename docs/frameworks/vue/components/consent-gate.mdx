@@ -1,0 +1,37 @@
+---
+title: ConsentGate
+description: Render an iframe or widget in a Vue app only while its consent category is allowed, with a placeholder slot until then.
+group: frameworks
+---
+
+## Import `ConsentGate` and wrap an embed
+
+Import `ConsentGate` from `c15t/vue/runtime/components/consent-gate.vue`.
+Put the embed in the default slot and a placeholder in the `placeholder`
+slot:
+
+<include src="../../../shared/examples/vue/embed.mdx" />
+
+The iframe is absent from the page until the visitor allows measurement. The
+placeholder uses `ConsentPreferencesLink` so the visitor can open preferences
+from it.
+
+<import src="../../../shared/vue/components/consent-gate.mdx#behavior" />
+
+<import src="../../../shared/vue/components/consent-gate.mdx#props" />
+
+<import src="../../../shared/vue/components/consent-gate.mdx#accessibility" />
+
+## Verify
+
+Load the page in a private window with the Network tab open. The placeholder
+shows and no request goes to the embed's host. Allow the category in
+preferences and save: the iframe appears and its requests start. Withdraw the
+category and save: the page reloads without the iframe.
+
+## Next steps
+
+- [Embeds](/docs/frameworks/vue/embeds) compares `ConsentGate` with the
+  iframe blocker.
+- [YouTube](/docs/integrations/youtube) and
+  [Google Maps](/docs/integrations/google-maps) show complete embeds.

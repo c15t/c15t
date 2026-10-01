@@ -1,0 +1,164 @@
+---
+title: Server API
+description: How the c15t middleware resolves consent for each Astro request, what Astro.locals.c15t holds, the helpers in c15t/astro/server, the injected init and manifest routes, and how to cache server-rendered pages safely.
+group: frameworks
+---
+
+## What the middleware does
+
+The `c15t()` integration registers a middleware with `order: 'pre'`, so it
+runs before your own middleware on every route: pages, endpoints and server
+islands. For each request it:
+
+1. Reads the visitor's consent cookie.
+2. Reads location, language and Global Privacy Control from the request
+   headers. See [Geography headers](/docs/frameworks/astro/geography-headers).
+3. Resolves the policy through the integration's `mode`.
+4. Stores the result in `Astro.locals.c15t`.
+
+The components render from `Astro.locals.c15t`, and `ConsentScript` inlines
+it for the browser. A server-rendered page therefore needs no `/init` request
+from the browser.
+
+A render waits up to 500 ms for the policy. When the backend is slower, the
+page renders without a server decision: no banner in the HTML, optional
+categories denied, gated scripts blocked. The browser then requests the
+policy itself. Change the budget with `middleware: { timeoutMs }`. See
+[set how long a render waits](/docs/frameworks/astro/rendering#set-how-long-a-render-waits-for-the-backend).
+
+On a prerendered page, the middleware reads no request headers or cookie,
+because the build has no visitor. `hosted()` and `manifest()` leave the
+policy for the browser. `offline()` resolves it at build time, because it
+needs no request.
+
+## Type `Astro.locals.c15t`
+
+Add the middleware types to `src/env.d.ts`:
+
+<include src="../../shared/examples/astro-demo/env-types.mdx" />
+
+## What `Astro.locals.c15t` holds
+
+| Field | Holds |
+| --- | --- |
+| `snapshot` | The consent snapshot for this request, the same shape the browser's `getConsent()` returns |
+| `shouldShowBanner` | Whether this request should see the banner |
+| `hasPolicy` | Whether a policy rule resolved for this request |
+| `hasConsentUi` | Whether that rule owes a banner or a way back to preferences |
+| `prerendered` | Whether this render is shared by every visitor, as on a prerendered page |
+| `inputs` | The request's `country`, `region`, `language` and `gpc` values |
+| `decision` | The policy decision, when the mode produced one |
+| `config` | The payload `ConsentScript` inlines for the browser |
+| `options` | The integration options |
+| `nonce` | The Content Security Policy nonce for this request. c15t leaves it unset. Set it from your own middleware, and the components put it on their inline scripts and styles |
+
+On a prerendered page, `snapshot` is what a first-time visitor would get, and
+`prerendered` is `true`. On a route listed in `middleware.skip`, and on the
+integration's own init and manifest routes, `Astro.locals.c15t` is unset.
+
+## Use consent in server code
+
+Read `Astro.locals.c15t` in a page, layout or endpoint to decide what the
+server renders. A layout can pick the IAB surfaces only for visitors who get
+an IAB policy:
+
+{/* example: fragment */}
+
+```astro title="src/layouts/page.astro (partial)"
+---
+import BaseLayout from './base.astro';
+import IABLayout from './iab.astro';
+
+const Layout =
+  Astro.locals.c15t?.snapshot.model === 'iab' ? IABLayout : BaseLayout;
+---
+```
+
+Use `snapshot.effectivePermissions` for what may run on this request, such as
+an embed the server can render. Remember that a choice the visitor makes on
+the page only reaches the server on the next request. Content that must
+appear the moment the visitor allows it belongs in a browser script. See
+[Embeds](/docs/frameworks/astro/embeds).
+
+Do not build consent records from these values. The backend records consent
+when the browser saves it.
+
+## Cache server-rendered pages safely
+
+A page rendered with `hosted()` or `manifest()` contains one visitor's
+decision: the banner or its absence, and the boot payload with their stored
+consent and location. A shared cache that stores that HTML serves it to the
+next visitor.
+
+- Do not put request-rendered pages that include c15t components in a shared
+  CDN cache.
+- For a page that must be cached, prerender it, or render the banner with
+  [`ConsentBannerDeferred`](/docs/frameworks/astro/components/consent-banner-deferred).
+  Both keep visitor state out of the cached HTML.
+- The injected `/api/c15t/init` route answers with `Cache-Control: private,
+  no-store`. Keep it out of shared caches too.
+- The injected `/api/c15t/manifest` route passes the backend's
+  `Cache-Control` and `ETag` through and answers `If-None-Match` with `304`,
+  so a CDN can cache it.
+
+## The injected routes
+
+In `manifest()` mode the integration adds two on-demand routes:
+
+| Route | Returns |
+| --- | --- |
+| `GET /api/c15t/init` | The policy for this request, resolved from the cached manifest. The browser calls it on prerendered pages and after a failed server resolution |
+| `GET /api/c15t/manifest` | Your project's public policy file, proxied from the backend with its cache headers |
+
+The server keeps the manifest in memory and refreshes it in the background.
+On Cloudflare, c15t hands that refresh to the adapter's `waitUntil`, so the
+request context stays alive until it finishes. The browser saves consent to
+the backend URL directly, not to these routes.
+
+Change the paths with `endpoints.initPath` and `endpoints.manifestPath`.
+
+### Serve the routes yourself
+
+With `endpoints: false`, `astro build` no longer needs the routes, and your
+app serves `init` and `manifest` at the configured paths.
+`createConsentRouteHandlers({ options })` from `c15t/astro/api` returns
+`init(request, { locals })` and `manifest(request, { locals })`, the same
+handlers the injected routes use. Pass the resolved integration options. The
+browser still calls `endpoints.initPath`, so keep that path pointing at your
+route.
+
+## Helpers in `c15t/astro/server`
+
+The components and the middleware are built from these helpers. Use them for
+a custom middleware or your own components:
+
+| Export | Does |
+| --- | --- |
+| `resolveConsentContext({ headers, url, options, prerendered?, timeoutMs?, fetch?, onBackgroundRevalidate? })` | Resolves the value the middleware stores on `Astro.locals.c15t` |
+| `buildConfigJSON(config)` | The boot payload as JSON, for a `<script type="application/json" data-c15t-config>` data block |
+| `buildConfigScript(config)` | The boot payload as a script that sets `window.__c15tAstroConfig`. The browser still reads it. It changes per visitor, so a policy can allow it only by nonce or `'unsafe-inline'` |
+| `buildThemeCSS(theme)` | The CSS for `<style id="c15t-theme">`, or an empty string |
+| `buildColorSchemeScript(colorScheme)` | The first-paint color-scheme script, or an empty string |
+| `buildBannerRevealScript(storageConfig, testId)` | The inline script that shows a prerendered banner to visitors with nothing stored |
+| `markConfigEmitted(Astro.locals)` | Claims the one boot payload per request. Returns `true` for the first caller |
+| `resolvePromptModel(input)` and `resolveIABPromptModel(input)` | The copy, actions and class names of the banner and the IAB banner |
+| `snapshotFromConfig(config)` | Derives a consent snapshot from a resolved configuration |
+
+`resolveConsentContext` takes the integration options already resolved. Get
+them from `Astro.locals.c15t.options`, or with `resolveOptions()` from
+`c15t/astro`. Pass `prerendered: true` only for output that every visitor
+shares. It drops the request's cookie and location.
+
+To run c15t's middleware inside your own, set `middleware: false` and
+register `onRequest` from `c15t/astro/middleware` with Astro's `sequence()` in
+`src/middleware.ts`. Put it before anything that renders consent components.
+
+## Check the server path
+
+1. View the page source of a first visit on a server-rendered page. It
+   contains `data-testid="consent-banner-root"` and a
+   `<script type="application/json" data-c15t-config>` data block.
+2. Choose, then reload. The source has no banner markup, and DevTools Network
+   shows no browser request to `/init` on that page.
+3. Request `/api/c15t/init` and check the `Cache-Control: private, no-store`
+   response header.

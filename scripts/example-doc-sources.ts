@@ -1,60 +1,261 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, readdirSync } from 'node:fs';
+import { basename, extname, resolve, sep } from 'node:path';
 
-/** Runnable files whose contents are also published in documentation. */
-export const exampleDocSources = [
-	{
-		destination: 'docs/shared/examples/nextjs-scripts.mdx',
-		source: 'examples/nextjs/lib/scripts.ts',
-		title: 'lib/scripts.ts',
-	},
-	{
-		destination: 'docs/shared/examples/react-scripts.mdx',
-		source: 'examples/react/src/scripts.ts',
-		title: 'src/scripts.ts',
-	},
-	{
-		destination: 'docs/shared/examples/vue-scripts.mdx',
-		source: 'examples/vue/src/scripts.ts',
-		title: 'src/scripts.ts',
-	},
-	{
-		destination: 'docs/shared/examples/svelte-scripts.mdx',
-		source: 'examples/svelte/src/scripts.ts',
-		title: 'src/scripts.ts',
-	},
-	{
-		destination: 'docs/shared/examples/javascript-scripts.mdx',
-		source: 'examples/javascript/src/scripts.ts',
-		title: 'src/scripts.ts',
-	},
-	{
-		destination: 'docs/shared/examples/nuxt-scripts.mdx',
-		source: 'examples/nuxt/app/example-scripts.ts',
-		title: 'app/example-scripts.ts',
-	},
-	{
-		destination: 'docs/shared/examples/tanstack-start-scripts.mdx',
-		source: 'examples/tanstack-start/src/example-scripts.ts',
-		title: 'src/example-scripts.ts',
-	},
-	{
-		destination: 'docs/shared/examples/astro-scripts.mdx',
-		source: 'examples/astro-demo/src/example-scripts.ts',
-		title: 'src/example-scripts.ts',
-	},
-	{
-		destination: 'docs/shared/examples/sveltekit-scripts.mdx',
-		source: 'examples/sveltekit-demo/src/lib/example-scripts.ts',
-		title: 'src/lib/example-scripts.ts',
-	},
+/**
+ * Directories whose apps are built and tested in CI. Documentation code that
+ * wires c15t into an application comes from marked regions in these files.
+ * `apps` is scanned for its Storybook apps, whose design recipes CI runs
+ * through `test-storybook`.
+ */
+export const exampleRoots = [
+	'examples',
+	'internals/next-compat',
+	'apps',
 ] as const;
 
-/** Creates a code fence from the exact runnable file, without rewriting imports. */
-export const renderExampleSource = (
-	root: string,
-	entry: (typeof exampleDocSources)[number]
+/** Where generated snippets are written, relative to the repository root. */
+export const generatedExamplesDir = 'docs/shared/examples';
+
+/**
+ * A marked region of a runnable file that is published in the docs.
+ *
+ * Mark a region with `#region docs:<name>` and `#endregion docs:<name>` inside
+ * any comment syntax the file supports. Add `title="<path>"` to the opening
+ * marker when the reader's path differs from the path inside the example app.
+ */
+export interface ExampleRegion {
+	/** Region name, unique within its example app. */
+	name: string;
+	/** Example app directory, relative to the repository root. */
+	app: string;
+	/** Source file, relative to the repository root. */
+	source: string;
+	/** File path shown to the reader. */
+	title: string;
+	/** Generated MDX file, relative to the repository root. */
+	destination: string;
+}
+
+// Markers count only at the start of a line comment, block comment, JSX
+// comment, HTML comment or shell comment, so code or prose that mentions a
+// marker is published as written.
+const markerPrefix = String.raw`^\s*(?:\/\/|\{?\/\*|<!--|#)\s*`;
+const openPattern = new RegExp(
+	`${markerPrefix}#region docs:(?<name>[a-z0-9][a-z0-9-]*)(?:\\s+title="(?<title>[^"]+)")?`,
+	'u'
+);
+const closePattern = new RegExp(
+	`${markerPrefix}#endregion docs:(?<name>[a-z0-9][a-z0-9-]*)`,
+	'u'
+);
+const anyMarker = new RegExp(`${markerPrefix}#(?:end)?region docs:`, 'u');
+
+const languages: Record<string, string> = {
+	'.astro': 'astro',
+	'.css': 'css',
+	'.html': 'html',
+	'.js': 'js',
+	'.json': 'json',
+	'.jsx': 'jsx',
+	'.mjs': 'js',
+	'.sh': 'sh',
+	'.svelte': 'svelte',
+	'.ts': 'ts',
+	'.tsx': 'tsx',
+	'.vue': 'vue',
+};
+
+/** Returns the fence language for a source file. */
+export const languageFor = (source: string): string => {
+	if (basename(source).startsWith('.env')) {
+		return 'dotenv';
+	}
+	const language = languages[extname(source)];
+	if (!language) {
+		throw new Error(`No docs language is configured for ${source}.`);
+	}
+	return language;
+};
+
+/** Returns the example app directory that owns a source file. */
+export const appFor = (source: string): string => {
+	const [root, name] = source.split('/');
+	if (root === 'examples' && name) {
+		return `examples/${name}`;
+	}
+	const compat = source.match(/^internals\/next-compat\/(?<name>[^/]+)\//u);
+	if (compat?.groups?.name) {
+		return `internals/next-compat/${compat.groups.name}`;
+	}
+	const storybook = source.match(/^apps\/(?<name>storybook-[^/]+)\//u);
+	if (storybook?.groups?.name) {
+		return `apps/${storybook.groups.name}`;
+	}
+	throw new Error(`${source} is not inside an example app.`);
+};
+
+const destinationFor = (app: string, name: string): string => {
+	let prefix = `next-compat/${app.slice('internals/next-compat/'.length)}`;
+	if (app.startsWith('examples/')) {
+		prefix = app.slice('examples/'.length);
+	} else if (app.startsWith('apps/')) {
+		prefix = app.slice('apps/'.length);
+	}
+	return `${generatedExamplesDir}/${prefix}/${name}.mdx`;
+};
+
+/**
+ * Converts a path that uses `separator` to forward slashes, the form
+ * `ExampleRegion.destination` uses on every platform.
+ */
+export const toPosixPath = (path: string, separator: string = sep): string =>
+	path.split(separator).join('/');
+
+/**
+ * Lists the generated snippet files on disk, relative to the repository root
+ * and with forward slashes, so they compare equal to region destinations.
+ */
+export const listGeneratedExamples = (root: string): string[] => {
+	let entries: string[];
+	try {
+		entries = readdirSync(resolve(root, generatedExamplesDir), {
+			encoding: 'utf8',
+			recursive: true,
+		});
+	} catch {
+		return [];
+	}
+	return entries
+		.filter((entry) => entry.endsWith('.mdx'))
+		.map((entry) => `${generatedExamplesDir}/${toPosixPath(entry)}`);
+};
+
+/** Finds every marked region in one file's contents. */
+export const findRegions = (
+	source: string,
+	content: string
+): ExampleRegion[] => {
+	const app = appFor(source);
+	const regions: ExampleRegion[] = [];
+	for (const line of content.split('\n')) {
+		const match = line.match(openPattern);
+		if (!match?.groups?.name) {
+			continue;
+		}
+		const { name } = match.groups;
+		regions.push({
+			app,
+			destination: destinationFor(app, name),
+			name,
+			source,
+			title: match.groups.title ?? source.slice(app.length + 1),
+		});
+	}
+	return regions;
+};
+
+const dedent = (lines: string[]): string[] => {
+	const indents = lines
+		.filter((line) => line.trim() !== '')
+		.map((line) => line.match(/^[\t ]*/u)?.[0].length ?? 0);
+	const shared = indents.length > 0 ? Math.min(...indents) : 0;
+	return lines.map((line) => line.slice(shared));
+};
+
+/**
+ * Extracts a region's lines. Markers of this and any nested region are
+ * removed, so a file can publish overlapping snippets.
+ */
+export const extractRegion = (
+	content: string,
+	name: string,
+	source: string
 ): string => {
-	const source = readFileSync(resolve(root, entry.source), 'utf8').trimEnd();
-	return `{/* Generated from ${entry.source} by scripts/sync-example-docs.ts. */}\n\n\`\`\`ts title="${entry.title}"\n${source}\n\`\`\`\n`;
+	const lines = content.split('\n');
+	const start = lines.findIndex(
+		(line) => line.match(openPattern)?.groups?.name === name
+	);
+	const end = lines.findIndex(
+		(line, index) =>
+			index > start && line.match(closePattern)?.groups?.name === name
+	);
+	if (start === -1) {
+		throw new Error(`${source} has no region docs:${name}.`);
+	}
+	if (end === -1) {
+		throw new Error(`${source} does not close region docs:${name}.`);
+	}
+	const body = lines
+		.slice(start + 1, end)
+		.filter((line) => !anyMarker.test(line));
+	while (body[0]?.trim() === '') {
+		body.shift();
+	}
+	while (body.at(-1)?.trim() === '') {
+		body.pop();
+	}
+	if (body.length === 0) {
+		throw new Error(`${source} region docs:${name} is empty.`);
+	}
+	return dedent(body).join('\n');
+};
+
+/** Renders a region as an MDX partial containing one titled code fence. */
+export const renderExampleRegion = (
+	root: string,
+	region: ExampleRegion
+): string => {
+	const content = readFileSync(resolve(root, region.source), 'utf8');
+	const code = extractRegion(content, region.name, region.source);
+	const fence = code.includes('```') ? '````' : '```';
+	return [
+		`{/* Generated from ${region.source} (docs:${region.name}) by scripts/sync-example-docs.ts. Edit the source file. */}`,
+		'',
+		`${fence}${languageFor(region.source)} title="${region.title}"`,
+		code,
+		fence,
+		'',
+	].join('\n');
+};
+
+const trackedFiles = (root: string): string[] =>
+	execFileSync('git', ['ls-files', '-z', '--', ...exampleRoots], {
+		cwd: root,
+		encoding: 'utf8',
+	})
+		.split('\0')
+		.filter(Boolean);
+
+/**
+ * Collects every marked region in tracked example files.
+ *
+ * @throws {Error} When two regions in one app share a name.
+ */
+export const collectExampleRegions = (root: string): ExampleRegion[] => {
+	const regions: ExampleRegion[] = [];
+	for (const source of trackedFiles(root)) {
+		let content: string;
+		try {
+			content = readFileSync(resolve(root, source), 'utf8');
+		} catch {
+			continue;
+		}
+		// Markdown such as a README documents the markers rather than using them.
+		if (source.endsWith('.md') || !content.includes('#region docs:')) {
+			continue;
+		}
+		regions.push(...findRegions(source, content));
+	}
+	const seen = new Map<string, string>();
+	for (const region of regions) {
+		const previous = seen.get(region.destination);
+		if (previous) {
+			throw new Error(
+				`Region docs:${region.name} is defined in both ${previous} and ${region.source}.`
+			);
+		}
+		seen.set(region.destination, region.source);
+	}
+	return regions.sort((a, b) => a.destination.localeCompare(b.destination));
 };

@@ -1,71 +1,94 @@
 ---
-title: V3 boilerplate
-description: Generate framework integration files using unpublished local v3 packages.
+title: Framework boilerplate
+description: Generate c15t integration files and wiring instructions for TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid, Astro, React, Next.js or JavaScript with the c15t CLI.
 group: cli
 ---
 
+## Generate files for your framework
+
+Pass `--framework` to `setup` to write standalone integration files. The CLI
+leaves your entry point, layout and configuration alone and tells you where to
+connect the files.
+
 ```bash
-node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to/app --plan --json
-node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to/app --apply
+npx @c15t/cli@alpha setup offline --framework vue --plan --json
+npx @c15t/cli@alpha setup offline --framework vue --apply
 ```
 
-Run these commands from the c15t checkout after building the CLI. The application must have a `package.json`. V3 packages are not published yet: this workflow creates source files and instructions without installing packages from npm.
+Run it from the app directory, which must contain a `package.json`, or pass
+`--cwd path/to/app`. Pick the mode explicitly, either `offline` or `hosted` with
+`--backend-url` set to the URL from your Inth project or self-hosted backend.
+Offline mode keeps choices in the browser and records nothing on a server. Not
+recommended for production environments.
 
-## Generate integration files
-
-`generate` and `setup` accept `--framework` to select standalone boilerplate. Alternatively, use `--boilerplate` to detect the framework from the application's dependencies. Pass an explicit target when the router or framework cannot be detected.
-
-Choose `offline` for browser storage or `hosted --backend-url https://your-backend.example.com` for a provisioned v3-compatible backend. The command does not select a storage mode for you.
-
-| Target | Generated integration |
+| `--framework` | Generated files |
 | --- | --- |
-| `next-app`, `next-pages` | Client provider with stock consent UI and privacy settings access. |
-| `react` | Provider component with stock consent UI and privacy settings access. |
-| `javascript` | Headless browser runtime with explicit start and disposal. |
-| `tanstack-start` | Request-scoped server function, loader guidance, and consent boundary. |
-| `vue`, `nuxt` | App-owned runtime, Vue consent UI, and plugin wiring. |
-| `svelte`, `sveltekit` | Svelte 5 provider wrapper and application/layout wiring. |
-| `solid` | App-owned runtime and a basic custom consent interface. |
-| `astro` | Native integration, head/body components, and client script configuration. |
+| `next-app`, `next-pages` | Client provider with the stock banner, dialog and a privacy settings link. It initializes in the browser, without server resolution. |
+| `react` | Provider component with the stock banner, dialog and a privacy settings link. |
+| `javascript` | Headless runtime with explicit start and dispose. |
+| `tanstack-start` | Request-scoped server function, loader wiring and `ConsentRoot`. |
+| `vue`, `nuxt` | App-owned runtime, Vue consent UI and plugin wiring. Nuxt uses a client plugin. |
+| `svelte`, `sveltekit` | Svelte 5 provider wrapper with app or layout wiring. |
+| `solid` | App-owned runtime and a basic custom consent interface, without IAB or modal UI. |
+| `astro` | Astro integration, head and body components and client script configuration. |
 
-The default output directory is `src/consent`. Change it with `--output src/privacy`. Files stay inside the application directory. Existing files with different contents cause an error; matching files are left alone.
+Use `--boilerplate` without `--framework` to detect the framework from
+`package.json`. Pass `--framework` when the CLI cannot tell, such as a Next.js
+app without a router layout.
 
-The result includes full file edits, dependencies, and framework-specific wiring instructions. The command also writes those instructions to the output directory's `README.md`. Follow them to connect the generated files to your existing entry point, layout, or framework configuration. Boilerplate generation does not rewrite those application files.
+## Install the packages and connect the files
 
-Use `--scripts google-tag,google-tag-manager` to include integration examples. Replace vendor IDs before running the app. Offline templates contain an explicit starting opt-in policy; review its categories and behavior before deployment.
+Generation never installs packages. The result lists them under
+`data.dependencies`, with each c15t package pinned to the CLI's release line,
+and the first instruction gives the install command. From `@c15t/cli@alpha`,
+that is the `alpha` dist-tag, for example for Vue:
 
-## Use unpublished local packages
+<CommandTabs command="@c15t/vue@alpha @c15t/core@alpha @c15t/ui@alpha" mode="install" />
 
-Build and prepare the packages requested by your generator. For React, run from the c15t checkout:
+Then follow the numbered steps under `data.instructions`. The CLI also writes
+them to `README.md` in the output directory. The instructions can mention
+`--package-source`; skip that step unless you are testing a local c15t checkout.
+
+## Options
+
+| Option | Purpose |
+| --- | --- |
+| `--framework <target>` | Generate files for this target. |
+| `--boilerplate` | Generate files for the detected framework. |
+| `--output <dir>` | Write files to this project-relative directory. Defaults to `src/consent`. |
+| `--scripts <ids>` | Add vendor script examples, as a comma-separated list such as `google-tag,google-tag-manager`. Replace the placeholder IDs before you run the app. |
+| `--plan`, `--dry-run` | Return the files and instructions without writing them. |
+| `--apply`, `--yes` | Write the files. |
+| `--resume` | Restore an interrupted apply, then plan and apply again. Requires `--apply` or `--yes`. |
+| `--package-source <dir>` | Point dependencies at prepared packages from a local c15t checkout. For c15t contributors. |
+
+Files stay inside the project. An existing file with different contents stops
+generation; an identical file is left alone. Setup flags for themes, UI style,
+environment files, DevTools, proxy and server resolution do not apply here;
+change those in the generated source.
+
+Offline templates start with an opt-in policy. Review its categories before you
+deploy.
+
+## Check the result
+
+Run the app's typecheck and build. In a private window, reject optional
+categories, reload, and confirm the banner stays closed and optional vendor
+requests stay absent in DevTools Network. Open privacy settings, allow a
+category, and confirm its vendor requests start.
+
+## Test a local c15t checkout
+
+To try unreleased changes, build the packages the plan lists, prepare local
+snapshots from the checkout root, then pass the checkout with
+`--package-source`:
 
 ```bash
 bun turbo run build --filter=@c15t/cli --filter=@c15t/react
 bun scripts/prepare-cli-packages.ts @c15t/react
-
-node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to/app --package-source "$PWD" --plan --json
-node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to/app --package-source "$PWD" --apply
+node packages/cli/dist/bin.mjs setup offline --framework react --cwd /path/to/app --package-source "$PWD" --apply
 ```
 
-Preparation creates local package snapshots without publishing them. Add `@c15t/integrations` to the build and preparation commands when selecting script integrations. For other frameworks, prepare the `c15t` or `@c15t/*` dependencies returned by the generation plan. External requirements such as Astro's Svelte integration are reported separately; keep or install versions compatible with your application.
-
-`--package-source` points to the checkout root. With prepared packages, the plan includes application `package.json` edits for local snapshots. Review those edits before applying them. Then run the install command printed by the CLI from your application directory. Installation is separate from file generation.
-
-These are development snapshots of unpublished code. Their package metadata can still carry a canary version; that does not make them published v2 artifacts. The application manifest includes the complete local runtime dependency set so Bun can resolve the snapshots without nested tarball references. Keep the local snapshot directory while an application references it, and prepare again after changing package source or builds.
-
-## Options and limits
-
-`--plan` and `--dry-run` are read-only. `--apply` or `--yes` writes the plan. Generation never starts a dependency installer, even when `--package-source` is supplied. `--json` returns the plan and wiring instructions as structured data.
-
-If an apply is interrupted, repeat the original command with `--resume --apply`. Keep the same mode, framework, output and package source. The CLI restores the interrupted transaction, then plans and applies the boilerplate again:
-
-```bash
-node packages/cli/dist/bin.mjs generate offline --framework react --cwd /path/to/app --package-source "$PWD" --resume --apply
-```
-
-Recovery requires `--apply` or `--yes` and cannot run with `--plan` or `--dry-run`. If a file changed after the interruption, recovery preserves that file and the journal for inspection.
-
-Standalone boilerplate supports `--framework`, `--output`, `--package-source`, `--scripts`, and an explicit storage mode/backend URL. Existing setup flags for theme, expanded UI, environment files, devtools, proxy, and SSR do not apply to this path. Configure those in the generated source using the local adapter documentation.
-
-JavaScript output is headless. Solid output provides a basic custom interface, not the IAB or modal UI. Next.js boilerplate initializes in the browser without server prefetch. Astro's native components work on prerendered and on-demand pages; the generated instructions explain when to render on demand. Nuxt instructions use a client plugin and composables alias instead of combining two runtime owners.
-
-Run the application's typecheck and build after wiring the files. In a fresh browser, reject optional categories, reload, and verify that permissions persist and optional scripts remain blocked. Open privacy settings and save a different choice to verify the update path.
+The plan then includes `package.json` edits that point at the snapshots.
+Install from the app directory afterwards. Keep the snapshot directory while
+the app references it, and prepare again after changing package source.

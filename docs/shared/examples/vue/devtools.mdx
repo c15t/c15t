@@ -1,0 +1,20 @@
+{/* Generated from examples/vue/src/ConsentDevTools.vue (docs:devtools) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```vue title="src/ConsentDevTools.vue"
+<script setup lang="ts">
+import { defineAsyncComponent } from 'vue';
+
+// Development builds only: the dynamic import keeps DevTools out of
+// production bundles.
+const DevTools = import.meta.env.DEV
+	? defineAsyncComponent(() => import('c15t/vue/devtools'))
+	: null;
+</script>
+
+<template>
+	<DevTools
+		v-if="DevTools"
+		position="bottom-right"
+	/>
+</template>
+```

@@ -1,3 +1,4 @@
+// #region docs:scripts
 import { posthog } from '@c15t/integrations/posthog';
 import { xPixel } from '@c15t/integrations/x-pixel';
 import type { Script } from 'c15t';
@@ -21,3 +22,4 @@ if (process.env.NEXT_PUBLIC_POSTHOG_KEY) {
 if (process.env.NEXT_PUBLIC_X_PIXEL_ID) {
 	scripts.push(xPixel({ pixelId: process.env.NEXT_PUBLIC_X_PIXEL_ID }));
 }
+// #endregion docs:scripts

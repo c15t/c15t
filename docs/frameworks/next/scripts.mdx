@@ -1,0 +1,147 @@
+---
+title: Scripts
+description: Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor and clear stored data after revocation.
+group: frameworks
+---
+
+## Install the script helpers
+
+The [App Router](/docs/frameworks/next/app-router),
+[Pages Router](/docs/frameworks/next/pages-router) and
+[static export](/docs/frameworks/next/static-export) guides already register
+scripts. Use this page to add vendors to an existing setup or to change how
+they load. Install the helpers if you have not:
+
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+
+Keep `c15t.config.ts`, the manifest route and the layout from your router
+guide. Adding a vendor needs no server change. Server-rendered state, a
+streamed promise and browser initialization with `state={{}}` all reach the
+same `ConsentRoot`, and no script loads until the browser has a resolved
+policy and the visitor's choice allows it.
+
+<include src="../../shared/next-consent-wrapper.mdx" />
+
+## Register several vendors
+
+Every helper goes in the same `scripts` array in `lib/scripts.ts`, in the App
+Router and the Pages Router alike. This array loads Google Tag Manager and
+Meta Pixel together:
+
+{/* example: fragment */}
+
+```ts title="lib/scripts.ts (partial)"
+import { googleTagManager } from '@c15t/integrations/google-tag-manager';
+import { metaPixel } from '@c15t/integrations/meta-pixel';
+import type { Script } from 'c15t';
+
+export const scripts: Script[] = [
+  googleTagManager({ id: 'GTM-XXXXXXX' }),
+  metaPixel({ pixelId: 'YOUR_PIXEL_ID' }),
+];
+```
+
+Each helper keeps its own consent rules. Meta Pixel waits for marketing, and
+Google Tag Manager follows the
+[Consent Mode contract](/docs/integrations/google-tag-manager). Remove the
+container and pixel snippets from `pages/_document.tsx` or your layout, so each
+vendor loads once. Both helpers throw on an empty ID, so leave a helper out of
+the array until you have its ID.
+
+## Check each vendor's loading behavior
+
+The example configures PostHog to load after consent and turns off cookieless
+capture. Its default helper can load before consent and use the SDK's own
+consent controls. Read the [PostHog guide](/docs/integrations/posthog) before
+you change those settings.
+
+Ordinary scripts wait for their category's permission. Give each script a
+stable, unique `id`, and remove any other loader for the same vendor. Helpers
+with `alwaysLoad` can load an SDK before permission is granted, so a category
+alone does not guarantee that no request happens. See the
+[vendor guides](/docs/integrations/overview) for each helper's contract.
+
+Removing a script element cannot undo JavaScript that already ran or requests
+already sent. When a visitor turns off a category they had granted,
+`ConsentRoot` reloads the page, so the next page runs only permitted code. See
+[reload after revocation](/docs/frameworks/next/components/consent-root#reload-after-revocation).
+
+Use [custom integrations](/docs/integrations/building-integrations) for a
+vendor without a helper. Google helpers follow the
+[Consent Mode contract](/docs/integrations/google-tag-manager).
+
+## Embeds and other requests
+
+Scripts cover vendor code c15t loads for you. For the rest:
+
+- [Embeds](/docs/frameworks/next/embeds) keeps iframes out of the page with
+  `ConsentGate` or the iframe blocker.
+- [Network blocker](/docs/frameworks/next/network-blocker) holds `fetch` and
+  XHR calls that match a rule until their category is allowed.
+
+## Let visitors turn off one vendor
+
+A visitor can grant marketing and still turn one vendor off. Declare the
+vendors next to the scripts in `lib/scripts.ts`, using the `vendor` slug each
+script already carries:
+
+{/* example: fragment */}
+
+```ts title="lib/scripts.ts (partial)"
+import type { Vendor } from 'c15t';
+
+export const vendors: Vendor[] = [
+  {
+    id: 'x-pixel',
+    name: 'X Pixel',
+    category: 'marketing',
+    privacyPolicyUrl: 'https://x.com/privacy',
+  },
+];
+```
+
+Then pass them to the `ConsentRoot` in `components/consent.tsx`:
+
+{/* example: fragment */}
+
+```tsx title="components/consent.tsx (partial)"
+import { scripts, vendors } from '@/lib/scripts';
+
+<ConsentRoot state={state} config={consentConfig} scripts={scripts} vendors={vendors}>
+```
+
+The preference center lists each vendor under its category with a switch.
+Helpers from `@c15t/integrations` set `vendor` to their manifest slug, so `xPixel()`
+needs no extra wiring. Give a hand-written script the same slug in its `vendor`
+field. A backend manifest can declare vendors too. See
+[granular consent](/docs/integrations/granular-consent) for storage, bulk
+actions and the hooks a custom control uses.
+
+## Clear stored tracking data
+
+Script gating does not remove cookies or Web Storage entries a script already
+wrote. Pass `clearOnRevocation` to `ConsentRoot` to remove declared data when
+its category is denied. See
+[clear on revocation](/docs/integrations/clear-on-revocation) for
+configuration and browser limits.
+
+To keep another consent platform in charge, see
+[use c15t with an existing CMP](/docs/integrations/existing-cmp). To send your
+own events only to allowed integrations, see
+[send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations).
+
+## Verify the integration
+
+Open the production build in a fresh browser session with DevTools open.
+
+1. Under an opt-in policy, neither PostHog nor X Pixel requests anything before
+   you choose.
+2. Open **Privacy settings** and turn on **Analytics** (the `measurement` category) only. PostHog loads and
+   X Pixel stays blocked.
+3. Reject, reload, and reopen **Privacy settings**. The rejection is still
+   selected and neither vendor loads.
+4. Turn a granted category off. The page reloads and that vendor does not load
+   again.
+
+The [runnable example](/docs/examples) has the same script definitions, and
+[the consent checks](/docs/guides/verify-consent) cover the release checklist.

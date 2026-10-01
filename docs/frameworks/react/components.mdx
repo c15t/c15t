@@ -1,0 +1,78 @@
+---
+title: Components
+description: Every c15t component a React app imports from c15t/react, what each renders, where each one mounts, and which to start with.
+group: frameworks
+---
+
+## Component reference
+
+`c15t/react` exports the provider, the consent UI and the hooks from one
+import path. Every component except `ConsentProvider` and `ConsentTheme`
+reads the runtime the provider creates, so render them inside
+`ConsentProvider`.
+
+| Component | Renders | Reference |
+| --- | --- | --- |
+| `ConsentProvider` | The consent runtime, which loads the policy, stores the choice and loads scripts. No markup of its own | [ConsentProvider](/docs/frameworks/react/components/consent-provider) |
+| `ConsentBanner` | The banner, when the visitor's policy asks for one | [ConsentBanner](/docs/frameworks/react/components/consent-banner) |
+| `ConsentDialog` | The preference center as a modal | [ConsentDialog](/docs/frameworks/react/components/consent-dialog) |
+| `ConsentWidget` | The preference center inline in a page, for a privacy route | [ConsentWidget](/docs/frameworks/react/components/consent-widget) |
+| `ConsentDialogLink` | An unstyled button that opens the dialog, for your footer | [ConsentDialogLink](/docs/frameworks/react/components/consent-dialog-link) |
+| `ConsentDialogTrigger` | A floating, draggable button that opens the dialog. `ConsentDialogTriggerToolbar` adds your own actions beside it | [ConsentDialogTrigger](/docs/frameworks/react/components/consent-dialog-trigger) |
+| `ConsentGate` | Its children while a category is allowed, a placeholder otherwise | [ConsentGate](/docs/frameworks/react/components/consent-gate) |
+| `ConsentTheme` | A `<style>` element with your theme tokens | [Customize](/docs/frameworks/react/customize) |
+| `DevTools` from `c15t/react/devtools` | A development panel for consent state, scripts and events | [DevTools](/docs/frameworks/react/components/dev-tools) |
+
+Mount one `ConsentProvider` at the root of the app and keep it mounted across
+client navigation. The provider reads `mode` and its module options once,
+when it mounts.
+
+## Start with the provider, banner and dialog
+
+Most apps start with four components. `ConsentProvider` holds the runtime,
+`ConsentBanner` and `ConsentDialog` ask for a choice, and a
+`ConsentDialogLink` lets visitors reopen their preferences. The [quickstart](/docs/frameworks/react/quickstart) puts them in
+one file:
+
+<include src="../../shared/examples/react/consent.mdx" />
+
+Add `ConsentWidget`, `ConsentDialogTrigger` or `ConsentGate` later, where a
+page needs them. Keep `ConsentDialog` mounted even when you add a widget,
+because the banner's Customize button and every dialog link open it.
+
+## Server-rendered React apps
+
+React Router framework mode, Remix and other server-rendered React apps use the
+same components. `ConsentProvider` renders on the server without touching
+browser APIs, and the banner mounts after hydration, once the browser has
+resolved the policy. [Rendering](/docs/frameworks/react/rendering#react-router-remix-and-other-server-rendered-apps)
+explains the trade-off.
+
+## IAB TCF components
+
+Import `IABProvider`, `IABConsentBanner` and `IABConsentDialog` from
+`c15t/react/iab`, render them inside `ConsentProvider` next to
+`ConsentBanner` and `ConsentDialog`, and load `c15t/react/iab/styles.css`. The stock banner and dialog stay closed
+under an IAB policy. See
+[IAB TCF](/docs/frameworks/react/iab).
+
+## Other entry points
+
+| Import | Exports | Use |
+| --- | --- | --- |
+| `c15t/react/consent-banner`, `c15t/react/consent-dialog`, `c15t/react/consent-widget`, `c15t/react/consent-dialog-link`, `c15t/react/consent-dialog-trigger`, `c15t/react/consent-gate` | One component each | A module that needs one component without the rest of the adapter |
+| `c15t/react/headless` | Headless hooks | Your own banner and dialog markup. See [headless](/docs/frameworks/react/headless) |
+| `c15t/react/server` | `fetchSSRData` and its helpers | Resolve `/init` in a server loader. See [rendering](/docs/frameworks/react/rendering#skip-the-browsers-first-init-request) |
+| `c15t/react/devtools` | `DevTools` | Development only |
+
+## Check the components
+
+Load the app in a private window under a policy that asks for a choice:
+
+1. The banner shows, and DevTools Network has no requests to your vendors'
+   hosts.
+2. Click the footer's `ConsentDialogLink`. The dialog opens with every optional
+   category off.
+3. Allow one category and save. Its vendor requests appear, and a
+   `ConsentGate` for that category mounts its children.
+4. Reload. The banner stays closed, and the link still reopens the dialog.

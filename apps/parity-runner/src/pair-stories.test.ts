@@ -151,3 +151,23 @@ test('selectComparablePairs honours excluded key prefixes', () => {
 
 	expect(pairs.map((pair) => pair.key)).toEqual(['Button/Default']);
 });
+
+test('selectComparablePairs never pairs docs recipe stories', () => {
+	// `Docs/Banner designs` shows each adapter's own way to customize the
+	// banner (React compound parts, Vue and Svelte slot classes), so the
+	// same title does not mean the same markup.
+	const docsEntry = (): StoryEntry => ({
+		id: 'docs-banner-designs--slim-bar-design',
+		name: 'Slim Bar Design',
+		title: 'Docs/Banner designs',
+	});
+	const pairs = selectComparablePairs(
+		{
+			react: [entryFor('react', 'Button'), docsEntry()],
+			vue: [entryFor('vue', 'Button'), docsEntry()],
+		},
+		{ baseline: 'react', frameworks: ['react', 'vue'] }
+	);
+
+	expect(pairs.map((pair) => pair.key)).toEqual(['Button/Default']);
+});

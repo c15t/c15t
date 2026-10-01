@@ -1,0 +1,102 @@
+---
+title: ConsentProvider
+description: Mount ConsentProvider in a React app and configure its backend, scripts, storage, blocking and presentation options.
+group: frameworks
+---
+
+## Mount one provider
+
+`ConsentProvider` creates the consent runtime, loads the policy, stores the
+visitor's choice and loads consent-gated scripts. Render one provider at the
+root of your app and put the banner, dialog and a preferences link inside it.
+The [quickstart](/docs/frameworks/react/quickstart) does this in
+`src/consent.tsx`:
+
+<include src="../../../shared/examples/react/consent.mdx" />
+
+`hosted({ url })` points the provider at your Inth backend. Paste the URL from
+your Inth project into `VITE_C15T_BACKEND_URL`. The Next.js and TanStack
+Start adapters export `ConsentRoot` instead, which wraps this provider and
+passes it server-resolved state.
+
+## Provider options
+
+Keep the provider mounted across client navigation. It reads `mode`,
+`prefetch`, `persistence`, `clearOnRevocation` and the module options once,
+when it mounts. Remount the provider to change them.
+
+| Option | Purpose |
+| --- | --- |
+| `mode` | Required. `hosted({ url })` for a backend, `offline()` for local policies, or `custom()` for your own transport |
+| `prefetch` | Server-resolved state, or a promise of it, from a framework adapter's server helper |
+| `scripts` | Consent-gated vendor scripts. See [scripts and embeds](/docs/frameworks/react/scripts) |
+| `vendors` | Vendors listed under their category with their own switch. See [granular consent](/docs/integrations/granular-consent) |
+| `scriptLoader` | Options for the script loader module |
+| `networkBlocker` | Rules that hold `fetch` and `XMLHttpRequest` calls until their category is allowed, or `false` |
+| `iframeBlocker` | Gates DOM iframes that carry `data-category`. On by default; `false` turns it off |
+| `persistence` | Stores the visitor's choice in a cookie and localStorage. On by default |
+| `storageConfig` | Storage key and cookie settings for the stored choice |
+| `clearOnRevocation` | Cookies and storage keys to delete when a category is denied |
+| `reloadOnConsentRevoked` | Reload the page after the visitor turns off a granted category or vendor. Defaults to `true` |
+| `consentCategories` | Categories the preference dialog offers alongside those your scripts use, within the policy's scope |
+| `overrides` | Force the country, region or language the policy is resolved for, for testing |
+| `user` | Link consent records to a signed-in user |
+| `callbacks` | Choice, permission and error events |
+| `consentSource` | Delegate decisions to another consent tool. See [use c15t with an existing CMP](/docs/integrations/existing-cmp) |
+| `i18n` | Languages and message overrides |
+| `legalLinks` | Privacy policy and other links shown in the banner and dialog |
+| `theme` | `consentActions` and slot styles. Tokens go through `ConsentTheme`; see [customize](/docs/frameworks/react/customize) |
+| `components` | Slot attributes per component part |
+| `presentation` | Banner and dialog shape, position and blocking |
+| `experiment` | A/B test of `presentation`, read once at mount. See [banner experiments](/docs/guides/banner-experiments) |
+| `colorScheme` | `'light'`, `'dark'`, `'system'`, or `null` to leave the `c15t-dark` class alone |
+| `noStyle`, `disableAnimation` | Drop the built-in styles, or turn off animations |
+| `preloadDialog` | When the deferred `ConsentDialog` starts loading: `'idle'` (default) or `'intent'`; see [ConsentDialog](/docs/frameworks/react/components/consent-dialog#behavior) |
+| `nonce` | Content Security Policy nonce for script elements c15t inserts |
+| `enabled` | Set `false` only when you deliberately bypass consent enforcement |
+
+`enabled: false` grants categories and allows gated loading while suppressing
+consent UI. It is not a way to fix failed initialization or hide a banner in
+production.
+
+## Observe changes without inventing choices
+
+`onChoiceRecorded` reports explicit accept, reject and save actions.
+`onPermissionsChanged` also covers changes caused by policy, expiry or privacy
+signals. Hydration and notice dismissal do not become explicit choices.
+
+An externally owned runtime can be passed through `runtime`. Its owner must
+start and dispose it. A provider borrowing that runtime must not initialize or
+dispose a second copy. Passing a different `runtime` moves the provider and its
+hooks to the new runtime's kernel and unsubscribes them from the previous one.
+The previous runtime keeps running until its owner disposes it. Switch the
+provider to another runtime, or unmount it, before disposing the runtime it
+renders. Changing between a borrowed runtime and a provider-created one still
+requires remounting the provider. IAB actions taken before its handle is ready
+wait for that handle. If the provider unmounts or switches runtimes first, a
+pending `save()` rejects with an `AbortError` instead of waiting indefinitely.
+See [how consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice) and
+[choose your setup](/docs/concepts/choose-your-setup).
+
+## Reload after revocation
+
+Removing a script cannot stop code that already ran. A vendor's listeners,
+timers and widgets keep working until the page unloads. When an accept, reject
+or save turns off a category or vendor that was granted, the provider reloads
+the page once the save request settles, so the next page runs only permitted
+code. `onBeforeConsentRevocationReload` runs just before the reload. With a
+[`consentSource`](/docs/integrations/existing-cmp), any withdrawal the
+external CMP reports reloads the same way, including expiry.
+
+Otherwise, expiry, policy changes and privacy signals do not reload the page. Set
+`reloadOnConsentRevoked: false` only when every gated vendor stops itself on
+revocation, for example through its own opt-out API.
+
+## Clear data when consent is denied
+
+Set `options.clearOnRevocation` to declare cookies, localStorage keys, and
+sessionStorage keys by optional consent category. Cleanup waits for policy
+resolution, then clears denied categories and later allowed-to-denied
+transitions. This option is initial-only. See
+[clear on revocation](/docs/integrations/clear-on-revocation) for examples,
+cookie scopes, and browser limits.

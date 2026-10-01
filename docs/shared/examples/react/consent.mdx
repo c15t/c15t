@@ -1,0 +1,33 @@
+{/* Generated from examples/react/src/consent.tsx (docs:consent) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```tsx title="src/consent.tsx"
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogLink,
+	ConsentProvider,
+	hosted,
+} from 'c15t/react';
+import type { ReactNode } from 'react';
+
+import { scripts } from './scripts';
+
+import 'c15t/react/styles.css';
+
+const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
+if (!backendURL) {
+	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth backend URL');
+}
+const mode = hosted({ url: backendURL });
+
+export const Consent = ({ children }: { children: ReactNode }) => (
+	<ConsentProvider options={{ mode, scripts }}>
+		{children}
+		<ConsentBanner />
+		<ConsentDialog />
+		<footer>
+			<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+		</footer>
+	</ConsentProvider>
+);
+```

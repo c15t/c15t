@@ -1,0 +1,35 @@
+{/* Generated from examples/astro-demo/src/layouts/cached.astro (docs:cached-layout) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```astro title="src/layouts/cached.astro"
+---
+import { ClientRouter } from 'astro:transitions';
+import ConsentBannerDeferred from 'c15t/astro/components/consent-banner-deferred.astro';
+import ConsentDialog from 'c15t/astro/components/consent-dialog.astro';
+import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
+import ConsentScript from 'c15t/astro/components/consent-script.astro';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
+		<title>{title}</title>
+		<ConsentScript />
+		<ClientRouter />
+	</head>
+	<body>
+		<slot />
+		<footer>
+			<ConsentDialogTrigger>Cookie preferences</ConsentDialogTrigger>
+		</footer>
+		<ConsentBannerDeferred />
+		<ConsentDialog />
+	</body>
+</html>
+```

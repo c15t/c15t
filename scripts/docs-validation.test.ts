@@ -61,6 +61,7 @@ test('framework quickstarts resolve inside the host framework group', async () =
 		'astro',
 		'svelte',
 		'sveltekit',
+		'html',
 		'javascript',
 		'react-native',
 	]);
@@ -72,14 +73,99 @@ test('framework quickstarts resolve inside the host framework group', async () =
 	}
 });
 
+/** Sidebar groups every framework uses, in this order, when it has the pages. */
+const frameworkGroupOrder = [
+	'Scripts and embeds',
+	'Customization',
+	'Components',
+	'Consent API',
+	'Advanced',
+	'Reference',
+	'Verify and troubleshoot',
+];
+
+test('framework sidebars follow the shared group template', async () => {
+	const navigation = await resolveDocsNavigation({
+		groups: docsConfig.groups,
+		nav: docsConfig.navigation,
+		srcDir: resolve(docsRoot, '..'),
+	});
+	const frameworks = navigation.groups.find(
+		(group) => group.slug === 'frameworks'
+	);
+	const files = await fg('frameworks/*/**/*.mdx', { cwd: docsRoot });
+	const listed = new Set<string>();
+	for (const framework of frameworks?.children ?? []) {
+		const titles = framework.children.map((group) => group.title);
+		expect(titles).toEqual(
+			frameworkGroupOrder.filter((title) => titles.includes(title))
+		);
+		for (const group of framework.children) {
+			expect(
+				group.pages.length,
+				`${framework.title} / ${group.title} needs two or more pages`
+			).toBeGreaterThanOrEqual(2);
+		}
+		for (const page of [
+			...framework.pages,
+			...framework.children.flatMap((group) => group.pages),
+		]) {
+			listed.add(page.urlPath);
+		}
+		// Shared pages are linked in with a leading slash and keep their route.
+		const verify = framework.children
+			.find((group) => group.title === 'Verify and troubleshoot')
+			?.pages.map((page) => page.urlPath);
+		expect(verify).toContain('/docs/guides/verify-consent');
+	}
+	// Every framework page is reachable from its sidebar.
+	const unlisted = files
+		.map((file) => `/docs/${file.slice(0, -4)}`)
+		.filter((route) => !listed.has(route));
+	expect(unlisted).toEqual([]);
+});
+
+/**
+ * v3 is published under the `alpha` dist-tag while `latest` is still v2.
+ * Set this to `undefined` when v3 becomes `latest`, then drop the tags.
+ */
+const installTag: string | undefined = 'alpha';
+
+test('c15t install commands select the documented release', async () => {
+	const files = await fg('**/*.mdx', { cwd: docsRoot });
+	const wrong: string[] = [];
+	for (const file of files) {
+		const content = readFileSync(resolve(docsRoot, file), 'utf8');
+		for (const match of content.matchAll(
+			/<CommandTabs command="(?<command>[^"]+)"/gu
+		)) {
+			for (const name of (match.groups?.command ?? '').split(' ')) {
+				const bare = name.replace(/(?<=.)@[^/]*$/u, '');
+				// React Native is released separately and has no alpha tag.
+				if (
+					!/^(?:c15t|@c15t\/.+)$/u.test(bare) ||
+					bare === '@c15t/react-native'
+				) {
+					continue;
+				}
+				const expected = installTag ? `${bare}@${installTag}` : bare;
+				if (name !== expected) {
+					wrong.push(`${file}: ${name} (expected ${expected})`);
+				}
+			}
+		}
+	}
+	expect(wrong).toEqual([]);
+});
+
 test('installation tabs flatten to usable umbrella-package commands', async () => {
 	const { markdown } = await convertMdxToMarkdown(
 		resolve(docsRoot, 'frameworks/react/quickstart.mdx'),
 		[remarkInclude, ...defaultRemarkPlugins]
 	);
-	expect(markdown).toContain('npm install c15t');
-	expect(markdown).toContain('pnpm add c15t');
-	expect(markdown).toContain('bun add c15t');
+	expect(markdown).toContain(`npm install c15t@${installTag}`);
+	expect(markdown).toContain(`pnpm add c15t@${installTag}`);
+	expect(markdown).toContain(`bun add c15t@${installTag}`);
 	expect(markdown).toContain("from 'c15t/react'");
 	expect(markdown).not.toContain('CommandTabs');
 	expect(markdown).not.toContain('package-install');
@@ -95,10 +181,11 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		(group) => group.slug === 'integrations'
 	);
 	expect(integrations?.children.map((group) => group.slug)).toEqual([
+		'vendor-controls',
 		'embeds',
 		'tag-managers',
 		'analytics',
-		'functionality',
+		'chat-and-support',
 		'ads-and-pixels',
 	]);
 	const vendors = Object.entries(scriptsPackage.exports)
@@ -112,6 +199,7 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		'building-integrations',
 		'granular-consent',
 		'clear-on-revocation',
+		'existing-cmp',
 	].map((slug) => `/docs/integrations/${slug}`);
 	const pages = [
 		...(integrations?.pages ?? []),
@@ -192,6 +280,8 @@ test('shared framework tabs match the selector and survive Markdown conversion',
 	);
 });
 
+// leadtype lints the whole docs tree; under the full parallel suite this can
+// take well over 15 seconds.
 test('documentation links, includes and metadata are valid', async () => {
 	const result = await lintDocs({ srcDir: docsRoot });
 	const errors = result.violations.filter((violation) => {
@@ -206,7 +296,7 @@ test('documentation links, includes and metadata are valid', async () => {
 			violation.rule === 'cross-framework-link'
 		) {
 			const target = violation.message.match(
-				/`\/docs\/(?<route>frameworks\/[a-z-]+\/quickstart)`/u
+				/`\/docs\/(?<route>frameworks\/[a-z-]+\/[a-z-/]+)`/u
 			)?.groups?.route;
 			if (target && existsSync(resolve(docsRoot, `${target}.mdx`))) {
 				return false;
@@ -215,4 +305,23 @@ test('documentation links, includes and metadata are valid', async () => {
 		return true;
 	});
 	expect(errors).toEqual([]);
-}, 15_000);
+}, 60_000);
+
+test('every include resolves to a file', async () => {
+	// leadtype 0.2.1 lint and conversion only warn when an include is missing,
+	// which silently drops the included setup code from the page.
+	const files = await fg('**/*.mdx', { cwd: docsRoot });
+	const missing: string[] = [];
+	for (const file of files) {
+		const content = readFileSync(resolve(docsRoot, file), 'utf8');
+		for (const match of content.matchAll(
+			/<include[^>]*\ssrc="(?<src>[^"#]+)(?:#[^"]*)?"/gu
+		)) {
+			const src = match.groups?.src ?? '';
+			if (!existsSync(resolve(docsRoot, file, '..', src))) {
+				missing.push(`${file}: ${src}`);
+			}
+		}
+	}
+	expect(missing).toEqual([]);
+});

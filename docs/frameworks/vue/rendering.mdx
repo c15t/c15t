@@ -1,0 +1,90 @@
+---
+title: Rendering and deployment
+description: How the c15t Vue plugin resolves consent in the browser, how to host it statically, and why server-rendered Vue apps should use Nuxt.
+group: frameworks
+---
+
+## Pick the setup for your deployment
+
+| Your app | c15t setup |
+| --- | --- |
+| Vue with Vite, served as static files | The [quickstart](/docs/frameworks/vue/quickstart). The browser calls your backend's `/init`. |
+| Vue with Vite, with a cacheable policy file | The quickstart plus `manifest: 'client'` and `manifestURL`. |
+| Vue rendered on the server without Nuxt | Supported; the banner mounts after hydration. For the banner in server HTML, use the Nuxt module from the [framework list](/docs/frameworks). |
+
+## Resolve consent in the browser
+
+The Vue plugin renders nothing consent-related until the page loads. After the
+root component mounts, the plugin reads the visitor's stored choice from their
+cookie and localStorage and requests their policy from the backend's `/init`.
+The backend reads the visitor's location from the request, resolves the
+policy, and the banner appears. Until then every optional category is denied,
+so gated scripts and iframes wait.
+
+The build output is plain static files. Deploy it to any static host. The
+backend must allow your site's origin. With Inth, add it to the project's
+trusted origins.
+
+`examples/vue` in the c15t repository runs this setup.
+
+## Resolve from the manifest in the browser
+
+With `manifest: 'client'`, the browser downloads your project's public policy
+manifest from `manifestURL` and resolves the policy itself, without calling
+`/init`. Add both options to the plugin:
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+app.use(c15tVue, {
+  backendURL,
+  manifest: 'client',
+  manifestURL: `${backendURL}/manifest`,
+  scripts,
+});
+```
+
+In the plain Vue plugin, a `manifestURL` with `manifest` unset also selects
+client mode. The Nuxt module defaults `manifest` to `false` and calls the
+backend's `/init` for the same config, so keep `manifest: 'client'` in config
+you share with a Nuxt app.
+
+The manifest is the same for every visitor, so a CDN can cache it. The
+browser has no request location, so without `geoURL` every visitor gets the
+policy your manifest assigns when the location is unknown. Set `geoURL` to
+an endpoint you run that returns the visitor's `country` and `region` as JSON.
+Consent saves still go to `backendURL`.
+[Data fetching](/docs/concepts/data-fetching) compares the two paths.
+
+## Server rendering without Nuxt
+
+c15t has no server helper for plain Vue. The plugin accepts `prefetch` and
+`initialRecords`, but nothing produces them for a custom Vue server. A
+server-rendered page renders without the banner, and the banner appears after
+hydration.
+
+Your theme tokens can still be in the first HTML. `generateTokensCSS()` from
+`c15t/vue/vue-plugin` returns the CSS the plugin applies. Put it in a
+`<style id="c15t-css-vars">` element in your server HTML, and the plugin
+reuses that element in the browser:
+
+{/* example: fragment */}
+
+```ts
+import { generateTokensCSS } from 'c15t/vue/vue-plugin';
+
+const tokensStyle = `<style id="c15t-css-vars">${generateTokensCSS(tokens)}</style>`;
+```
+
+For the banner in server-rendered HTML, use the c15t Nuxt module. Start with
+the Nuxt quickstart in the [framework list](/docs/frameworks).
+It resolves the policy on the server, renders the banner and tokens in the
+first HTML, and hydrates without another request.
+
+## Verify your deployment
+
+Serve the production build and open the Network tab. With the default setup,
+the page makes one request to your backend's `/init`. With
+`manifest: 'client'`, it requests `manifestURL` instead. Reject, reload, and
+confirm the banner stays closed. Then follow
+[verify consent](/docs/guides/verify-consent) for the vendor checks.

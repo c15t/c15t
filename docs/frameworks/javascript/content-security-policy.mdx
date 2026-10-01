@@ -1,0 +1,85 @@
+---
+title: Content Security Policy
+description: Allow c15t in a JavaScript app under a Content Security Policy, covering backend requests, the stock UI's styles, nonces for vendor scripts and gated snippets, and embeds.
+group: frameworks
+---
+
+## What c15t needs from your policy
+
+Your bundle contains c15t, so `script-src` already covers it. The rest:
+
+| Directive | Allow | Why |
+| --- | --- | --- |
+| `connect-src` | Your backend's origin, such as `https://your-project.inth.app` | `/init`, `/subjects`, and `/manifest` in manifest mode. |
+| `script-src` | Each vendor's script origin, or a nonce | Scripts the script loader adds and gated `text/plain` tags it runs. |
+| `style-src` | A nonce, or the origin of the CSS file your bundler emits | The stock UI's `<style>` element. |
+| `frame-src` | Each embed's origin | Iframes the iframe blocker releases. |
+| `img-src`, `connect-src` | Each vendor's collection endpoints | What vendor scripts send once they run. |
+
+A missing `connect-src` entry stops the policy from resolving. The console
+shows a CSP violation for `/init`, and no banner appears.
+
+## Put a nonce on created scripts and styles
+
+Pass the page's nonce once, to `init()` or `createConsentClient()` from
+`@c15t/browser`. The script loader puts it on every `<script>` it creates, and
+the stock UI puts it on its `<style>` element:
+
+{/* example: fragment */}
+
+```ts
+init({ backendURL, scripts, nonce });
+```
+
+`createConsentRuntime` takes the same `nonce` option for the scripts it
+loads. A script's own `nonce` wins over the configured one. Read the nonce from wherever
+your server puts it, such as a `<meta>` tag or a data attribute. With
+`'strict-dynamic'` in `script-src`, scripts that a trusted script creates are
+allowed, so vendor origins need no entry. Some vendors then load more scripts
+of their own, which `'strict-dynamic'` allows too.
+
+With `nonce` set, `@c15t/browser` runs only the
+`<script type="text/plain" data-c15t-category>` tags in your HTML that carry
+the same nonce. c15t runs an inert tag by creating a new `<script>`, and
+`'strict-dynamic'` lets scripts that trusted code creates run without a
+nonce, so without this check injected markup would run once its category was
+allowed. A tag without the nonce is skipped with a console warning and marked
+`data-c15t-activated="untrusted"`. c15t never copies the nonce onto an inert
+tag, so add it to every inert tag, including tags your code inserts later.
+`activateGatedScripts(snapshot, root, { nonce })` applies the same check.
+
+## Allow the stock UI's styles
+
+The stock UI renders its CSS, theme tokens and `ui.css` into a `<style>`
+element inside its shadow root. With the `nonce` option set, the element
+carries the nonce, so `style-src 'nonce-…'` allows it without
+`'unsafe-inline'`.
+
+Without a per-response nonce, render into the page and import the stylesheet
+from your bundle, which your bundler emits as a CSS file:
+
+{/* example: fragment */}
+
+```ts
+import '@c15t/browser/styles.css';
+
+init({ backendURL, ui: { shadow: false, styles: false } });
+```
+
+With `styles: false` and no `theme` or `css` option, c15t adds no `<style>`
+element. Put token overrides in your own CSS. Under IAB, also import
+`@c15t/browser/iab/styles.css`.
+
+The headless entries, `createConsentRuntime` and the kernel add no styles.
+The DevTools panel adds a `<style>` element, which is one more reason to keep
+it out of production builds.
+
+## Check it works
+
+1. Send the policy as `Content-Security-Policy-Report-Only` and open the app
+   with the console open.
+2. The console shows no violation for `/init`, `/subjects` or the banner's
+   styles. The banner renders styled.
+3. Allow each category. Each vendor's scripts and requests load without a
+   violation.
+4. Switch to `Content-Security-Policy` and repeat.

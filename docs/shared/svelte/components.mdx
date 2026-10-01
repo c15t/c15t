@@ -1,0 +1,56 @@
+{/* Shared by docs/frameworks/svelte/components.mdx and docs/frameworks/sveltekit/components.mdx. */}
+
+## Every component
+
+Import every component from `@c15t/svelte`, except the dev tools panel,
+which comes from `@c15t/svelte/devtools`. Render them inside
+`ConsentManagerProvider`; a component outside it throws
+`c15t: no v3 consent context`.
+
+| Component | Renders | Page |
+| --- | --- | --- |
+| `ConsentManagerProvider` | Nothing. Creates and starts the consent runtime. | [ConsentManagerProvider](./components/consent-manager-provider) |
+| `ConsentBanner` | The first-layer banner when the policy asks for one. | [ConsentBanner](./components/consent-banner) |
+| `ConsentDialog` | The preference dialog, loaded on first use. | [ConsentDialog](./components/consent-dialog) |
+| `ConsentWidget` | The preference controls inline, for a settings page. | [ConsentWidget](./components/consent-widget) |
+| `ConsentDialogLink` | An unstyled button that opens preferences, for your footer. | [ConsentDialogLink](./components/consent-dialog-link) |
+| `ConsentDialogTrigger` | A floating, draggable button that opens preferences. | [ConsentDialogTrigger](./components/consent-dialog-trigger) |
+| `ConsentGate` | Its children only while a category is allowed. | [ConsentGate](./components/consent-gate) |
+| `ConsentButton` | A button that accepts, rejects, saves or opens preferences. | [ConsentButton](./components/consent-button) |
+| `IABConsentBanner` | The IAB TCF banner, for visitors under an IAB policy. | [IABConsentBanner](./components/iab-consent-banner) |
+| `IABConsentDialog` | The IAB TCF preference center. | [IABConsentDialog](./components/iab-consent-dialog) |
+| `ConsentDevTools` | A development panel for the consent state. | [Dev tools](./components/dev-tools) |
+| `Dialog`, `Switch`, `Tabs` and others | Unstyled building blocks for your own UI. | [Primitives](./components/primitives) |
+
+`Frame` is a deprecated alias for `ConsentGate`. `DevTools` and
+`C15TDevTools` are aliases for `ConsentDevTools`.
+
+## Styles
+
+Import `@c15t/svelte/styles.css` once for the stock appearance. It contains
+the banner, dialog, widget, trigger, gate placeholder and primitive rules, so
+you import no other c15t stylesheet unless you use IAB TCF, which adds
+`@c15t/svelte/iab/styles.css`.
+
+## When components render nothing
+
+Every consent surface stays hidden until a policy resolves for the visitor,
+and again when the resolved policy asks for no prompt and grants no way to
+change preferences. A missing banner or link is usually a policy result, not
+a rendering bug. See
+[why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
+
+## Shared props
+
+Several props mean the same thing on every component:
+
+| Prop | Behavior |
+| --- | --- |
+| `noStyle` | Renders the same markup and behavior without c15t's classes. Set it on the provider for every component, or on one component. |
+| `class` | Adds your class to the component's root element. |
+| `hideBranding` | Hides the "Secured by" tag on the banner, dialog and widget. |
+| `models` | The policy models a surface renders for: `opt-in`, `opt-out`, `iab` and `none`. |
+| `legalLinks` | Which of the provider's legal links a banner or dialog shows, or `null` for none. |
+
+Theme slots style one part of one component; [customize](./customize) lists
+them.

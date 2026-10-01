@@ -1,0 +1,102 @@
+---
+title: Callbacks
+description: Run code in a JavaScript app when a visitor records a consent choice, when permissions change, when a request fails or before the withdrawal reload, with c15t callbacks, client events and kernel events.
+group: frameworks
+---
+
+## Pick the hook for the job
+
+| You want to | Use |
+| --- | --- |
+| Start or stop your own code as permissions change | `callbacks.onPermissionsChanged`, or the client's `consent` event |
+| Know that a visitor clicked accept, reject or save | `callbacks.onChoiceRecorded` |
+| Wait until c15t knows the visitor's permissions | `consent.ready()`, or the `ready` event |
+| Show, hide or switch your own UI | The client's `ui` event, or `kernel.subscribe` |
+| Report failed backend calls | `callbacks.onError`, or the `error` event |
+| Flush data before the reload after a withdrawal | `callbacks.onBeforeConsentRevocationReload` |
+
+Prefer gating a vendor through `scripts` where you can. The loader starts and
+stops it for you, and its own `onLoad` and `onConsentChange` callbacks cover
+per-vendor work; see the [script loader](/docs/frameworks/javascript/modules/script-loader).
+
+## Pass callbacks
+
+`callbacks` works the same in `init()` from `@c15t/browser` and in
+`createConsentRuntime`:
+
+<include src="../../shared/examples/javascript/callbacks.mdx" />
+
+| Callback | Payload | When it runs |
+| --- | --- | --- |
+| `onChoiceRecorded` | `{ snapshot, confirmed, actionAt }` | A visitor accepted, rejected or saved. `confirmed` lists the categories this action recorded. |
+| `onPermissionsChanged` | `{ snapshot, previous }` | Effective permissions changed value, for any reason. `previous` is the old permission map. |
+| `onError` | `{ error }`, a message string | A command failed, such as `/init` or a save request. |
+| `onBeforeConsentRevocationReload` | `{ preferences }` | Right before the reload that follows a withdrawal. Runs synchronously; keep it short. |
+
+Callbacks are read when the client or runtime is created.
+
+## A recorded choice is not a permission change
+
+- `onChoiceRecorded` runs only for a visitor's own accept, reject or save. It
+  does not run when a stored choice is restored at load, when a choice
+  expires, or when a notice is dismissed. Use it for analytics about the
+  decision itself.
+- `onPermissionsChanged` runs whenever what may run changes. That includes a
+  save that changed something, a stored choice restored at load, a policy
+  resolving, a choice expiring and a GPC signal. Use it to start and stop
+  your code.
+
+A save that leaves every permission as it was can run `onChoiceRecorded`
+without `onPermissionsChanged`. Never call a save from
+`onPermissionsChanged`; that turns a permission into a recorded choice the
+visitor did not make. [How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+explains the difference.
+
+## Client events
+
+The `@c15t/browser` client also emits events. `consent.on(event, listener)`
+returns an unsubscribe function:
+
+<import src="../../shared/browser/client-options.mdx#events" />
+
+Each event is also dispatched on `document` as `c15t:ready`, `c15t:consent`,
+`c15t:ui` and `c15t:error`, with the payload in `event.detail`, for code that
+cannot import the client.
+
+## Kernel events
+
+A runtime or a kernel you own has no client events. Listen on the kernel
+instead:
+
+{/* example: fragment */}
+
+```ts
+const stop = runtime.kernel.events.on('choice:recorded', ({ confirmed }) => {
+  console.info('Visitor confirmed', confirmed);
+});
+```
+
+The four callbacks are built on `choice:recorded`, `permissions:changed` and
+`command:error`. The [kernel reference](/docs/frameworks/javascript/api/kernel#events)
+lists every event. To attach the callbacks to a kernel you created yourself,
+call `wireRuntimeCallbacks({ kernel, callbacks })` from `c15t/runtime`.
+
+## Errors thrown by your code
+
+A callback or kernel listener that throws does not stop other listeners or
+fail the action. c15t reports it with `reportError` in the browser.
+
+A listener added with `on()` on the `@c15t/browser` client that throws is
+logged with `console.error`. The later `on` listeners for the same event and
+the matching `c15t:*` event on `document` still run. This covers the `ready`
+and `ui` listeners that `on()` calls at once after the policy resolved, so
+`on()` still returns its unsubscribe function.
+
+## Check it works
+
+1. Add the callbacks above and open the app in a private window under an
+   opt-in policy. Nothing logs, because nothing is allowed and nobody chose.
+2. Click **Accept All**. Both `onChoiceRecorded` and `onPermissionsChanged`
+   log.
+3. Reload. `onPermissionsChanged` logs the restored permissions and
+   `onChoiceRecorded` stays silent.

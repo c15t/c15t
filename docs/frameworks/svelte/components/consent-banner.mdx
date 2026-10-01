@@ -1,0 +1,17 @@
+---
+title: ConsentBanner
+description: Show the c15t cookie banner in a Svelte app with ConsentBanner, and set its variant, position, button layout, copy, accessibility and styling hooks.
+group: frameworks
+---
+
+## Render the banner
+
+Render `ConsentBanner` once, inside `ConsentManagerProvider`, next to
+`ConsentDialog` so its Customize button has a dialog to open:
+
+<include src="../../../shared/examples/svelte/app.mdx" />
+
+The banner decides for itself whether to show. You do not wrap it in a
+condition.
+
+<include src="../../../shared/svelte/components/consent-banner.mdx" />

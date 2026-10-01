@@ -1,0 +1,94 @@
+---
+title: Geography headers
+description: Which request headers the c15t Nuxt module reads for the visitor's country, region, language and Global Privacy Control, and how to trust and test them.
+group: frameworks
+---
+
+## How Nuxt finds the visitor's location
+
+The Nuxt server reads the visitor's location from request headers that your
+host or CDN adds. It never looks up an IP address itself. The headers are read
+in three places:
+
+- During server rendering, the c15t plugin reads them from the page request.
+- In server mode, the `/api/c15t/init` route reads them from the browser's own
+  request, for example on a prerendered route.
+- With `manifest` unset, the plugin forwards them to your backend's `/init`.
+
+With `manifest: 'client'`, no request reaches your server, so the browser has
+no location. Set `geoURL` to an endpoint that returns the visitor's `country`
+and `region`, or every visitor gets the policy for an unknown location. See
+[deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting).
+
+When no location header is present, the location stays unknown and your
+policy's rule for unknown locations applies.
+
+## Which headers are read?
+
+Within each row, the first header with a value wins:
+
+| Input | Headers, highest precedence first | Source |
+| --- | --- | --- |
+| Country | `x-c15t-country`, `cf-ipcountry`, `x-vercel-ip-country`, `x-amz-cf-ipcountry`, `x-country-code`, `x-country` | c15t override, Cloudflare, Vercel, CloudFront, generic |
+| Region | `x-c15t-region`, `cf-region-code`, `x-vercel-ip-country-region`, `x-region-code` | c15t override, Cloudflare, Vercel, generic |
+| Global Privacy Control | `x-c15t-gpc`, `sec-gpc` | c15t override, browser signal |
+| Language | `accept-language` | Browser |
+
+Vercel sends its headers without setup. Cloudflare sends `cf-region-code`
+only with its visitor location headers setting turned on. CloudFront's own
+`CloudFront-Viewer-Country` and `CloudFront-Viewer-Country-Region` headers are
+not in the list. Map them to `x-c15t-country` and `x-c15t-region` at the edge,
+for example with a CloudFront Function, as in
+[AWS's viewer-request example](https://github.com/aws-samples/amazon-cloudfront-functions/tree/main/redirect-based-on-country).
+
+The init route responds with `Cache-Control: private, no-store`, because its
+answer belongs to one visitor.
+
+## Trust only your own infrastructure
+
+The `x-c15t-*` headers always win, by design. A visitor who sends
+`x-c15t-country: US` picks their own policy unless something removes the
+header first. The header only changes the policy for the visitor who sent it.
+For geography you can trust, configure the edge that terminates all your
+traffic, such as your CDN or load balancer, to delete incoming
+`x-c15t-country`, `x-c15t-region` and `x-c15t-gpc` headers before it sets any
+of its own.
+
+Stripping the headers also turns off the `country` and `region` props of
+`ConsentRoot` in server mode. In the browser, those props reach the
+`/api/c15t/init` route as `x-c15t-country` and `x-c15t-region` headers, so
+the edge removes them too.
+
+Do not strip them in a Nitro server middleware. During server rendering, the
+c15t plugin forwards the visitor's location headers to the module's init
+route inside the same server, and a middleware runs for that internal request
+too. A middleware that deletes or rewrites location headers there removes the
+location the plugin has forwarded.
+
+If a client can reach your origin without passing through your CDN, it can
+send any platform header, such as `cf-ipcountry`. Block direct origin access
+with your host's origin protection.
+
+## Test another region
+
+Use one of these while you build, never in production:
+
+- Render `<ConsentRoot country="DE" />`, or pass `region` too. c15t resolves
+  the policy again for that location. In server mode this only works while
+  nothing strips the `x-c15t-*` headers.
+- Send the override header yourself, for example
+  `curl -H 'x-c15t-country: DE' http://localhost:3000/api/c15t/init`. This
+  only works while nothing strips the header.
+- Use a VPN or your host's geography testing tools against a deployment.
+
+The `examples/nuxt` app in the c15t repository has a demo middleware that
+turns `?country=DE` into an override header. It lets any visitor pick their
+policy, so do not copy it into production.
+
+## Verify
+
+Deploy and load the site from two locations with different policy rules, for
+example through a VPN. View the source of each page: an opt-in region has
+`data-testid="consent-banner-root"` in the HTML, and a region with no prompt
+does not. Then request `/api/c15t/init` with `curl -H 'x-c15t-country: US'`
+against production and confirm the resolved location ignores the header.

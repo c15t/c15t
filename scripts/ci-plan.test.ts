@@ -117,7 +117,7 @@ describe('CI selection', () => {
 		const result = plan([file]);
 		expect(result.full).toBe(true);
 		expect(result.backend).toBe(true);
-		expect(result.examples).toHaveLength(11);
+		expect(result.examples).toHaveLength(16);
 	});
 	it('runs benchmark helper tests when benchmark infrastructure changes', () => {
 		expect(plan(['benchmarks/shared/src/budgets.ts']).tests).toContain(
@@ -129,6 +129,14 @@ describe('CI selection', () => {
 		expect(result.build).toContain('@c15t/core');
 		expect(result.examples).toEqual(['vue']);
 		expect(result.compat).toEqual([]);
+	});
+	it('runs every target built from a changed example directory', () => {
+		expect(plan(['examples/script-tag/serve.ts']).examples).toEqual(['html']);
+		expect(plan(['examples/nuxt/app/app.vue']).examples).toEqual([
+			'nuxt',
+			'nuxt-prerender',
+			'nuxt-static',
+		]);
 	});
 	it('runs the mobile SDK jobs for the package, the kernels, and the mobile bench', () => {
 		for (const file of [

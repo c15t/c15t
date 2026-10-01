@@ -1,0 +1,123 @@
+---
+title: Troubleshooting
+description: Fix common c15t Nuxt module problems, from a missing banner and scripts that never load to returning banners and static hosting.
+group: frameworks
+---
+
+## Why is there no banner?
+
+**Check.** [DevTools](/docs/frameworks/nuxt/components/dev-tools) shows the
+matched policy, and `useConsentSnapshot()` exposes `policyRule.prompt`. In the
+Network tab, find the init request.
+
+**Fix.** Work through these causes in order:
+
+1. **The visitor's policy asks for no banner.** A policy with prompt `none`
+   shows no banner, which is common in opt-out regions. See
+   [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
+2. **`ConsentRoot` is inside a page that unmounts.** Put it in `app.vue`.
+3. **The backend did not answer.** `/api/c15t/init` must return 200 with
+   `manifest: 'server'`, or your `manifestURL` must with
+   `manifest: 'client'`. While resolution fails, c15t shows no UI and keeps
+   every optional category denied.
+4. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
+   or use a private window.
+
+## The banner is not in the server HTML
+
+**Check.** Only request-time rendering with `manifest: 'server'`, or with
+`manifest` unset, puts the banner in the HTML. Prerendered routes, routes with
+a `prerender`, `swr`, `isr` or `cache` rule, `nuxt generate` output and
+`ssr: false` send the same HTML to every visitor, so the banner appears after
+the browser resolves the policy.
+
+**Fix.** If a route needs the banner in its HTML, render it at request time
+with `manifest: 'server'` or with `manifest` unset.
+
+**Check.** With server rendering, the render waits at most `timeoutMs` for the
+policy, 500 milliseconds by default. A slower backend renders the page without
+consent UI and the browser resolves the policy after hydration. Check the
+server log for backend errors.
+
+**Fix.** Raise `timeoutMs` if your backend is reachable but slow.
+
+## The banner comes back after a visitor rejects
+
+**Check.** Filter the Network tab by `subjects` and check that the `POST` to
+your backend returns 2xx. A CORS error means the site's origin is missing from
+your Inth project's trusted origins.
+
+**Fix.** Add the site's origin to the trusted origins.
+
+**Check.** Compare `storageConfig.storageKey` in the module options and
+`app.config.ts`. When they differ, the choice is written under one name and
+read under another.
+
+**Fix.** Use the same `storageKey` in both places.
+
+**Check.** Look for a cache in front of Nuxt, such as a CDN, that stores pages
+Nitro renders per request. The module only recognizes Nuxt's own prerendering
+and `prerender`, `swr`, `isr` or `cache` route rules.
+
+**Fix.** Use a route rule for those pages, or have the CDN skip HTML. See
+[prerendered and cached routes](/docs/frameworks/nuxt/rendering#prerendered-and-cached-routes).
+
+## Scripts never load, or load before consent
+
+**Check.** Look for `scripts` in `nuxt.config.ts`. Module options drop
+functions.
+
+**Fix.** Move `scripts` to `app/app.config.ts`.
+
+**Check.** Check whether the vendor ID is empty at build time. `app.config.ts`
+cannot read `runtimeConfig`, so a value set only at runtime never reaches it.
+
+**Fix.** Make the vendor ID available when the app builds.
+
+**Check.** Look for a second loader, such as the vendor's own Nuxt module or a
+`useHead` script, that also loads the vendor.
+
+**Fix.** Remove it, or the vendor loads without consent.
+
+## Static hosting returns 404 for /api/c15t/manifest
+
+**Check.** A static host has no Nuxt server routes, so `/api/c15t/manifest`
+does not exist after deployment.
+
+**Fix.** Use `manifest: 'client'` with an absolute `manifestURL`, or leave
+`manifest` unset, as in
+[deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting).
+If the browser reports a CORS error for the manifest, add your site's origin
+to the Inth project's trusted origins.
+
+## Every visitor gets the same policy on a static site
+
+**Check.** In `manifest: 'client'` mode the browser has no request location,
+so it resolves the policy for an unknown location.
+
+**Fix.** Set `geoURL` to an endpoint that returns the visitor's `country` and
+`region`.
+
+## A composable throws "Kernel not found"
+
+**Check.** The composable ran outside the Nuxt app, for example in a server
+route or a plain module.
+
+**Fix.** Call consent composables inside a component's `setup`.
+
+## Every visitor resolves the same location
+
+**Check.** The server found no location header, or an `x-c15t-country` header
+that your own code adds, such as a test middleware, won. A header a visitor
+sends only changes that visitor's policy. Check which headers reach Nuxt.
+
+**Fix.** Choose the headers you trust as
+[geography headers](/docs/frameworks/nuxt/geography-headers) describes.
+
+## More help
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI.

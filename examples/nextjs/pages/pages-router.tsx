@@ -1,8 +1,9 @@
+// #region docs:pages-ssr title="pages/index.tsx (partial)"
 import type { ConsentRootProps } from 'c15t/next';
 import { resolveConsent } from 'c15t/next/pages';
 import type { GetServerSideProps } from 'next';
 
-import { consentConfig, demoLocation } from '../c15t.config';
+import { consentConfig } from '@/c15t.config';
 
 interface PageProps {
 	initialConsent: ConsentRootProps['state'];
@@ -11,12 +12,8 @@ interface PageProps {
 export const getServerSideProps: GetServerSideProps<PageProps> = async ({
 	req,
 }) => {
-	const initialConsent = await resolveConsent({
-		config: consentConfig,
-		...demoLocation,
-		req,
-	});
-	// Pages Router props must omit undefined values, including absent privacy signals.
+	const initialConsent = await resolveConsent({ config: consentConfig, req });
+	// Next.js rejects undefined prop values, such as an absent GPC signal.
 	return {
 		props: {
 			initialConsent: JSON.parse(
@@ -25,12 +22,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async ({
 		},
 	};
 };
+// #endregion docs:pages-ssr
 
-const Page = () => (
-	<p className="route-note">
-		Pages Router resolves consent in getServerSideProps and restores it in the
-		browser.
-	</p>
-);
-
-export default Page;
+export { default } from '@/components/pages-router-demo';

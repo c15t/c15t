@@ -1,42 +1,53 @@
 ---
 title: Crisp
-description: Configure Crisp with c15t v3, understand functionality permission and verify loading and revocation.
+description: Load the Crisp chat widget only after functionality consent with the c15t crisp helper, pass its runtime settings and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Crisp
 
-Use the Crisp website ID. The helper prepares `$crisp` and the runtime configuration before loading the chat widget.
+Copy the website ID from your Crisp installation snippet, where it is assigned
+to `CRISP_WEBSITE_ID`.
 
-<CommandTabs command="@c15t/integrations" mode="install" />
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { crisp } from '@c15t/integrations/crisp';
 
-export const scripts = [crisp({ websiteId: 'YOUR_WEBSITE_ID', locale: 'en' })];
+export const scripts = [crisp({ websiteId: 'YOUR_WEBSITE_ID' })];
 ```
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `websiteId` | Required Crisp website ID. |
-| `locale / safeMode` | Optional widget locale and queue safe mode. |
-| `cookieDomain / cookieExpiry` | Optional cookie domain and expiry in seconds. |
-| `tokenId / sessionMerge` | Optional session continuity token and anonymous-session merging. |
-| `scriptSrc` | Defaults to `https://client.crisp.chat/l.js`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `websiteId` | Required | Written to `window.CRISP_WEBSITE_ID`. The helper trims it. Empty or whitespace-only values throw. |
+| `locale` | None | Widget locale, written to `window.CRISP_RUNTIME_CONFIG.locale`. |
+| `sessionMerge` | None | Merges anonymous sessions into token-backed sessions. Written to `CRISP_RUNTIME_CONFIG.session_merge`. |
+| `tokenId` | None | Session continuity token, written to `window.CRISP_TOKEN_ID`. |
+| `cookieDomain` | None | Cookie domain, written to `window.CRISP_COOKIE_DOMAIN`. |
+| `cookieExpiry` | None | Cookie lifetime in seconds, written to `window.CRISP_COOKIE_EXPIRE`. |
+| `safeMode` | `false` | Pushes `['safe', true]` to `$crisp` before the loader. |
+| `scriptSrc` | `https://client.crisp.chat/l.js` | Loader URL override. A blank value falls back to the default. |
 
-## Consent behavior
+## Loading and revocation
 
-The widget waits for functionality permission. The helper does not call a Crisp shutdown API on revocation. Manage any existing chat session and logged-in identity when consent or the application user changes.
+`crisp` uses the `functionality` category. The chat widget loads only while
+functionality is allowed, so link another support contact for visitors who
+deny it. On revocation the helper removes the script element and calls no
+Crisp API. The running widget stays until c15t reloads the page.
 
-## Verify the integration
+Before loading, the helper creates `window.$crisp` as an empty array unless
+your page already made one. Commands your code pushed onto `$crisp` earlier
+stay queued, and Crisp runs them when it loads. They never reach Crisp while
+functionality is denied.
 
-Reject functionality permission and confirm the widget is absent. Grant it and test chat, logout and a later denial. Keep another support contact available while chat is blocked.
+## Verify Crisp
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`functionality`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+After you allow functionality, the request to `client.crisp.chat/l.js` appears
+and the chat launcher shows. Before that, `window.CRISP_WEBSITE_ID` is
+undefined.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

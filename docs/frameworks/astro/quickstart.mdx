@@ -1,380 +1,168 @@
 ---
 title: Quickstart
-description: Add c15t to static or server-rendered Astro pages and choose the framework used by preference dialogs.
+description: Add a c15t consent banner, preference dialog and consent-gated scripts to an Astro 5, 6 or 7 site with the c15t integration and Inth, on static or server output.
 group: frameworks
 ---
 
-[Create an Inth project](https://inth.com) and use its backend endpoint in
-this guide. Configure the project's policy rules and allowed app origins first.
+## Before you start
 
-`@c15t/astro` supports Astro 5, 6 and 7.
+[Create an Inth project](https://inth.com) and set it up before you touch the
+code:
 
-## Choose the dialog framework
+1. Add policy rules that cover the `measurement` and `marketing` categories.
+   This guide loads PostHog on measurement and X Pixel on marketing.
+2. Add your site's origin to the project's trusted origins.
+3. Copy the project's backend URL. It is public configuration, not a secret.
 
-Astro renders the banner with native `.astro` components. Preference dialogs use
-an on-demand Svelte, React or Vue island. Choose the framework your site already
-uses; set `ui` explicitly. This example uses Svelte.
+Then decide how Astro builds your pages. The integration supports both, and
+[Rendering and deployment](/docs/frameworks/astro/rendering) covers mixed and
+cached setups.
 
-The island downloads when a visitor points at or focuses a control that opens
-the preference dialog, such as the banner's Customize button or
-`ConsentDialogTrigger`, so a mouse click usually finds it loaded. Visitors who
-only accept or reject never download it. Taps and keyboard presses give no
-warning; to make the first open instant for them too, add `preload` to
-`ConsentDialog`, which downloads the island once the browser is idle on every
-page that renders it.
+| Your site | Astro output | c15t mode |
+| --- | --- | --- |
+| Static pages on any static host, no adapter | `output: 'static'` | `hosted()` |
+| Pages rendered on each request, with a server adapter | `output: 'server'` | `manifest()` |
 
-<CommandTabs command="c15t @astrojs/svelte svelte @c15t/integrations" mode="install" />
+## Install the packages
 
-## Register consent-gated scripts
+<CommandTabs command="c15t@alpha @astrojs/svelte svelte @c15t/integrations@alpha" mode="install" />
 
-Include measurement and marketing categories in your policy for these vendors.
-Remove any existing loaders for them so each script loads once.
+The banner is plain `.astro` markup and ships no framework JavaScript. The
+preference dialog is an island that loads when a visitor first reaches for it.
+The `ui` option picks the framework that renders it, and the `c15t` package
+includes the dialog for Svelte, React and Vue.
 
-Add your PostHog project key and X Pixel ID to `.env`:
+Use the framework your site already ships, so visitors do not download a second
+one for a single dialog. This guide uses Svelte, the default. For React, install
+`@astrojs/react react react-dom` instead of `@astrojs/svelte svelte`, register
+`react()` and set `ui: 'react'`. For Vue, install `@astrojs/vue vue`, register
+`vue()` and set `ui: 'vue'`.
+
+## Set the backend URL
+
+The configuration below reads the backend URL from `C15T_BACKEND_URL`. Astro
+evaluates `astro.config.mjs` before it loads `.env` files, so set the variable
+in your shell for local work and in your host's build settings for deploys.
+Paste the URL from your Inth project in place of `https://your-project.inth.app`:
+
+```sh
+C15T_BACKEND_URL="https://your-project.inth.app" npx astro dev
+```
+
+## Configure the integration
+
+Pick the file that matches your output. Register the framework integration
+before `c15t()`.
+
+### Static output
+
+<include src="../../shared/examples/astro-demo/static-config.mdx" />
+
+`hosted()` sends the browser straight to your Inth backend, so no server is
+needed. A static page is the same for every visitor, which means the banner
+appears once the browser's `/init` request returns, not in the first HTML.
+
+### Server output
+
+<include src="../../shared/examples/astro-demo/server-config.mdx" />
+
+`manifest()` caches your project's public policy file on the server and
+resolves each request from it. The first HTML already contains the banner, or
+no banner at all for a visitor who has chosen. It adds `/api/c15t/init` and
+`/api/c15t/manifest` routes, so it needs a server adapter. Use the adapter for
+your host in place of `@astrojs/node`.
+
+The integration writes its options into the page as JSON. Keep callbacks,
+vendor helpers and secrets out of `c15t({ ... })`. They belong in the module
+that `clientEntrypoint` names.
+
+## Register vendor scripts
+
+Remove any existing PostHog or X Pixel snippet first, so each vendor loads once.
+Add the public IDs to your environment. Unlike the backend URL, Vite reads these
+from `.env`:
 
 ```dotenv title=".env"
 PUBLIC_POSTHOG_KEY=
 PUBLIC_X_PIXEL_ID=
 ```
 
-Astro exposes these public values to the client through `import.meta.env`.
-Restart development or rebuild for deployment after changing them.
-An empty ID disables that integration. Create `src/example-scripts.ts`
-using the helper below. It selects PostHog's EU region; change `region` to `'us'`
-for a US project. PostHog waits for measurement permission and disables
-cookieless capture. X Pixel waits for marketing permission.
+Astro builds these values into the browser code, so restart `astro dev` or
+rebuild after you change them. An empty value leaves that vendor out. Create
+the script list. It selects
+PostHog's EU region. Change `region` to `'us'` for a US project.
 
-<include src="../../shared/examples/astro-scripts.mdx" />
+<include src="../../shared/examples/astro-demo/scripts.mdx" />
 
-Create the client extension so script callbacks stay out of serialized server
-configuration:
+PostHog waits for measurement permission and does not fall back to cookieless
+capture. X Pixel waits for marketing permission.
 
-```ts title="src/consent-client.ts"
-import type { C15tClientOptionsExtension } from 'c15t/astro';
-import { createExampleScripts } from './example-scripts';
+Then export the scripts from the client entrypoint that `astro.config.mjs`
+points at:
 
-export default {
-  scripts: createExampleScripts(
-    import.meta.env.PUBLIC_POSTHOG_KEY,
-    import.meta.env.PUBLIC_X_PIXEL_ID,
-  ),
-} satisfies C15tClientOptionsExtension;
-```
+<include src="../../shared/examples/astro-demo/client-entrypoint.mdx" />
 
-## Block tracking requests
+Other vendors work the same way. See
+[integrations](/docs/integrations/overview) for the list, and
+[Scripts](/docs/frameworks/astro/scripts),
+[Embeds](/docs/frameworks/astro/embeds) and
+[Network blocker](/docs/frameworks/astro/network-blocker) for inline scripts,
+iframes and tracking requests.
 
-`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
-until the visitor grants the rule's category. A blocked `fetch` resolves to a
-`451` response and nothing is sent. Set the rules in the integration options,
-next to `mode`:
+## Add the consent components to your layout
 
-```js
-networkBlocker: {
-  rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
-},
-```
+<include src="../../shared/examples/astro-demo/layout.mdx" />
 
-To pass `onRequestBlocked`, set `networkBlocker` in the client extension
-instead. It replaces the integration option.
+Wrap every page in this layout. `ConsentScript` goes in `<head>`, where it
+hands the browser the server's decision and sets the color scheme before first
+paint. `ConsentBanner` renders the banner, `ConsentDialog` reserves a place for
+the preference dialog, and `ConsentDialogTrigger` is the link visitors use to
+change their mind later. The integration adds the stylesheet to every page, so
+you do not import one.
 
-## Configure the integration
+`ClientRouter` is optional. With it, the consent runtime survives page
+navigation. Without it, each page load starts the runtime again from the stored
+choice.
 
-```js title="astro.config.mjs"
-import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'astro/config';
-import svelte from '@astrojs/svelte';
-import c15t, { hosted } from 'c15t/astro';
+## Type `Astro.locals.c15t`
 
-const backendURL = process.env.C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set C15T_BACKEND_URL');
+Add the middleware types so TypeScript knows about the consent context the
+integration puts on every request:
 
-export default defineConfig({
-  integrations: [
-    svelte(),
-    c15t({
-      mode: hosted({ url: backendURL }),
-      ui: 'svelte',
-      clientEntrypoint: fileURLToPath(new URL('./src/consent-client.ts', import.meta.url)),
-    }),
-  ],
-});
-```
+<include src="../../shared/examples/astro-demo/env-types.mdx" />
 
-Set `C15T_BACKEND_URL` to your backend's absolute URL, with policy rules and the
-app origin configured. The integration serializes its options into browser
-configuration. Keep secrets and callbacks out of this configuration.
+## Check that it works
 
-For IAB policies in hosted mode, the browser fetches the vendor list from the
-configured backend's `/init` endpoint after server rendering. That endpoint must
-be publicly reachable from the app origin and allow its CORS requests without
-server-only credentials. A private hosted backend needs a public same-origin
-proxy that keeps authentication on the server.
+Build and preview the site, then open it in a private window with DevTools open
+on the Network tab:
 
-In manifest mode, Astro injects a local init route and the browser fetches the
-vendor list through that same-origin route. The backend does not need to allow
-browser access or CORS requests from the app.
+1. Before you choose, the banner shows and there are no requests to
+   `posthog.com` or `static.ads-twitter.com`.
+2. Select **Reject All** and reload. The banner stays closed and neither vendor
+   loads.
+3. Open **Cookie preferences**, turn on **Analytics** (the `measurement` category) and select **Save Settings**. PostHog loads;
+   X Pixel does not.
+4. Turn on **Marketing** and save. X Pixel loads.
+5. Turn both off and save. The page reloads, and neither vendor loads again.
 
-Past the manifest's `s-maxage` the injected routes and the middleware serve it
-stale and refresh it in the background. On the Cloudflare adapter, which
-exposes `waitUntil` on `locals.cfContext` from Astro 6 and on
-`locals.runtime.ctx` before that, the refresh is handed to it so it is not cut
-short when the response is sent; nothing is needed from you. For
-another lifetime API, pass `onBackgroundRevalidate` to
-`createConsentRouteHandlers` or `resolveConsentContext`. Session reports go
-through the same hook: after each resolution, in the middleware and the init
-route, the server posts a small report to the backend's `POST /sessions` so
-the backend still counts visitors it never served `/init` to. Set
-`reportSessions: false` on `manifest()` to send none.
+On server output, the page source of a first visit contains the banner markup.
+On static output it does not, and the banner appears after the `/init`
+request. Follow [Verify consent](/docs/guides/verify-consent) before you
+ship.
 
-The framework integration must appear before `c15t()`. For React or Vue, install
-that framework's Astro integration and runtime, register the matching
-integration, and set `ui: 'react'` or `ui: 'vue'`. The `c15t` package already
-includes the c15t adapters for Svelte, React and Vue. The same entry points are
-also published as `@c15t/astro`, for example `@c15t/astro/client`.
+## Next steps
 
-## Add the shared layout
-
-```astro title="src/layouts/Base.astro"
----
-import ConsentScript from 'c15t/astro/components/consent-script.astro';
-import ConsentBanner from 'c15t/astro/components/consent-banner.astro';
-import ConsentDialog from 'c15t/astro/components/consent-dialog.astro';
-import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
----
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>My site</title>
-    <ConsentScript />
-  </head>
-  <body>
-    <slot />
-    <ConsentBanner />
-    <ConsentDialog />
-    <footer>
-      <ConsentDialogTrigger>Privacy settings</ConsentDialogTrigger>
-    </footer>
-  </body>
-</html>
-```
-
-Use this layout around each page. The integration supplies the shared browser
-runtime. `ConsentScript` prepares the client configuration and color scheme. Do
-not create separate runtimes for each consent island.
-
-## Styles
-
-The integration adds `c15t/astro/styles.css` to every page, and
-`c15t/astro/iab/styles.css` when `iab` is set. The stylesheet covers the tokens
-and the banner: about 66 KB, or 9 KB gzipped. Do not import
-`c15t/astro/styles.css` again.
-
-The preference dialog's rules are not on the page. The browser runtime links
-`@c15t/ui/styles/dialog.css` when a visitor hovers, focuses or clicks a control
-that opens the dialog. With `ui: 'svelte'` it also links
-`@c15t/ui/styles/primitives.css`. The dialog mounts once they have loaded, and
-the links stay in `<head>` across ClientRouter navigations.
-
-The integration injects the stylesheet ahead of your own CSS. It opens with
-Tailwind CSS 4's layer order,
-`@layer properties, theme, base, components, utilities;`. Cascade layers rank
-by the order they are first named, so on a Tailwind 4 site the c15t
-`components` layer stays above Tailwind's preflight in `base`, and the banner
-keeps its padding and borders. Without Tailwind the other layers stay empty.
-
-To load the styles yourself, for example from a global stylesheet that orders
-its own cascade layers, set `styles: false` and import the files below after
-your layer order statement. With `styles: false` the runtime links no dialog
-stylesheet, so import the dialog's rules as well. Sites that set `iab` need the
-IAB import too; without it the IAB banner and dialog are unstyled.
-
-```css title="src/styles/global.css"
-@import 'c15t/astro/styles.css';
-@import '@c15t/ui/styles/dialog.css';
-/* Only with `ui: 'svelte'`. */
-@import '@c15t/ui/styles/primitives.css';
-/* Only when the integration sets `iab`. */
-@import 'c15t/astro/iab/styles.css';
-```
-
-The integration's `theme` tokens are rendered on the server as a
-`<style id="c15t-theme">` element next to the config script, so the
-server-rendered banner and the dialog islands share them from the first paint.
-The banner also reads `consentActions` from the integration's `theme` to set
-each button's `mode` and `variant`, in the same order as the React banner: the
-action's own key, then `primary` for the policy's primary action, then
-`default`. Put tokens and `consentActions` in the integration's `theme`, not
-in the client entrypoint. The IAB banner keeps its fixed button styles, as it
-does in React.
-
-```js title="astro.config.mjs (partial)"
-c15t({
-  theme: {
-    consentActions: {
-      primary: { mode: 'filled' },
-      customize: { mode: 'ghost', variant: 'neutral' },
-    },
-  },
-});
-```
-
-### Color scheme
-
-The banner and dialogs turn dark when `<html>` has the `c15t-dark` class. The
-integration's `colorScheme` option decides who sets it:
-
-| Value | Behavior |
-| --- | --- |
-| `'system'` (default) | Follows `prefers-color-scheme`, including changes while the page is open. |
-| `'dark'` | Always adds the class. |
-| `'light'` | Always removes the class. |
-| `'none'` | Never adds or removes the class. Your site sets it. |
-
-With the first three values, `ConsentScript` applies the setting before the
-first paint, and the browser runtime applies it again after each ClientRouter
-navigation. Opening a preference dialog does not change the class.
-
-Use `'none'` when your site has its own theme switch. Toggle `c15t-dark` on
-`<html>` together with your own dark class, and set it again after
-ClientRouter navigations if your theme script does not already run on
-`astro:after-swap`:
-
-```js title="astro.config.mjs"
-c15t({
-  mode: hosted({ url: backendURL }),
-  colorScheme: 'none',
-});
-```
-
-Keep the c15t stylesheet when you restyle the surfaces. The browser runtime
-hides the banner with the `hidden` attribute, and the stylesheet makes that
-attribute beat the banner's own `display`.
-
-## Static pages and request SSR
-
-A prerendered page is built once and served to every visitor, so the build
-never reads a request's cookies, geography or privacy signals. The browser
-reads the visitor's consent cookie when it boots, so a returning visitor keeps
-their choice.
-
-- In `offline()` mode the build resolves the policy, because the browser would
-  resolve it the same way without request geography. The banner is in the HTML
-  but hidden. A small inline script shows it in the first paint to visitors with
-  no stored consent. For everyone else, the browser decides once it has read
-  their stored records.
-- In `hosted()` and `manifest()` mode the policy depends on the visitor's
-  location, so the build cannot resolve it. `ConsentBanner` and
-  `IABConsentBanner` leave empty placeholders. The browser renders the banner
-  that matches the policy once its `/init` request returns one. For an IAB
-  policy it also waits for the vendor list.
-
-In hosted and manifest mode, first-time visitors see the banner once `/init`
-returns, not in the first paint.
-
-On a prerendered page `Astro.locals.c15t.prerendered` is `true`, and the config
-the page inlines carries no stored consent, clock or privacy signal.
-
-For server-rendered pages, keep your Astro server adapter and output settings.
-The middleware resolves the request's consent state into `Astro.locals.c15t`,
-so the banner is in the first paint and a returning visitor gets no banner
-markup at all. Pass the prepared state through the supplied components instead
-of constructing records from permission booleans. To render only the banner per
-request on an otherwise cached page, use `ConsentBannerDeferred`, which needs an
-adapter for its server island.
-
-The middleware runs before the page renders, so the response waits for the
-backend. It waits at most 500 ms. If the backend has not answered by then, for
-example on a cold manifest cache or during an outage, the page renders without
-the server decision: no banner in the HTML, optional categories denied, and
-consent-gated scripts and iframes blocked. The browser then asks for the policy
-itself and shows the banner when it arrives. A manifest request keeps running
-and fills the cache for the next render. Change the budget with
-`middleware: { timeoutMs }`, or set `timeoutMs: false` to wait for the backend
-however long it takes. In hosted mode every server render calls the backend's
-`/init`, so keep the budget above its usual response time.
-
-```js title="astro.config.mjs"
-c15t({
-  mode: hosted({ url: backendURL }),
-  middleware: { timeoutMs: 800 },
-});
-```
-
-The middleware handles both cases. If you call `resolveConsentContext` from
-`@c15t/astro/server` yourself, pass `prerendered: true` only for a render that
-every visitor shares. It ignores the request's headers and cookies, leaves
-visitor state out of the inlined configuration, and resolves only offline
-policies at build time. Do not use it to skip the backend request for a single
-visitor's render: that visitor's stored choice and location are discarded. It
-replaces the `skipPrefetch` option from earlier alphas.
-
-`manifest()` mode injects on-demand init and manifest routes, so it needs an
-Astro server adapter. Without one the build stops with an error that names the
-routes. For a purely static host, use `hosted()` or `offline()`, or set
-`endpoints: false` and serve those routes elsewhere. Nonserializable extensions belong in
-the module selected by `clientEntrypoint`, not in `astro.config.mjs`.
-
-`clientEntrypoint` is a module path. The integration escapes it when generating
-the page script, including quotes and backslashes in file names.
-
-## Verify navigation and loading
-
-Test the built output, including a full page load and any navigation through
-Astro's `ClientRouter`. Open preferences twice and check the runtime retains the
-current choice. The dialog should reuse the selected framework, not load a
-second adapter. Follow [verification](/docs/guides/verify-consent) for rejection,
-reload and script requests.
-
-## Run the complete example
-
-Try the [runnable example](/docs/examples) with PostHog, X Pixel, a consent-gated
-YouTube video and a persistent preferences control. Use it to test rejection, permission changes and reloads.
-
-## Use an external consent source
-
-These are [shared core controls](/docs/guides/shared-consent-controls), also available
-through React, Vue, Svelte, and the browser client.
-
-An existing CMP can own consent decisions, UI, records, expiry, and privacy-signal handling while c15t owns the script runtime. Export `consentSource` from the browser client entrypoint. Its `getPermissions()` returns a complete current decision; omitted optional categories are denied. Notify on initialization, changes, withdrawal, expiry, and loss of availability.
-
-```ts title="src/consent-client.ts"
-import type { C15tClientOptionsExtension } from '@c15t/astro';
-import { provider } from './your-consent-provider';
-import { posthog } from '@c15t/integrations/posthog';
-
-export default {
-  scripts: [posthog({ id: 'ph_your_project_key' })],
-  consentSource: {
-    getPermissions: () => provider.currentPermissions(),
-    subscribe: (notify) => provider.subscribe(notify),
-    openPreferences: () => provider.openPreferences(),
-  },
-} satisfies C15tClientOptionsExtension;
-```
-
-`provider` is your application adapter, not a c15t export. While using an external source, omit c15t's banner and dialog components. The runtime disables c15t persistence, initialization, and IAB setup, keeps optional permissions denied until the source reports them, and does not create c15t choice receipts. Save choices through the external provider; c15t's save commands reject while an external authority is configured. `openDialog()` opens the provider's preferences.
-
-When the source withdraws a category that was granted, c15t reloads the page so SDKs that already ran stop. Store the decision in the CMP before notifying c15t. Set `reloadOnConsentRevoked: false` on the Astro integration to handle withdrawal yourself.
-
-## Dispatch application events
-
-`createEventDispatcher` from `@c15t/integrations/events` sends custom analytics events to configured integrations with supported event APIs. Pass the same scripts registered with c15t and a live `getSnapshot` function. It checks measurement and each script's consent condition, isolates vendor failures, and discards denied events instead of replaying them later.
-
-```ts title="src/events.ts"
-import { getConsentClient } from '@c15t/astro/client';
-import { createEventDispatcher } from '@c15t/integrations/events';
-import options from './consent-client';
-
-export function trackSearch(resultCount: number) {
-  const client = getConsentClient();
-  if (!client) return;
-  const events = createEventDispatcher({
-    scripts: options.scripts ?? [],
-    getSnapshot: client.getConsent,
-  });
-  events.track('search', { resultCount });
-}
-```
-
-Keep raw search text and other sensitive application payloads out of event properties unless you have deliberately configured their collection. Early-loading scripts are not automatically eligible for application analytics events. Use SDK-specific helpers for vendor-specific events that are not part of the shared dispatcher.
+- [Rendering and deployment](/docs/frameworks/astro/rendering) covers
+  prerendered pages in a server build, cached pages with a server island, and
+  offline mode for development.
+- [Integration options](/docs/frameworks/astro/integration) lists every
+  `c15t()` option, and [Components](/docs/frameworks/astro/components) every
+  component and prop.
+- [Client API](/docs/frameworks/astro/client-api) and
+  [Server API](/docs/frameworks/astro/server) cover reading consent from your
+  own scripts and from `Astro.locals.c15t`.
+- [Customize](/docs/frameworks/astro/customize) and
+  [Translations](/docs/frameworks/astro/translations) cover theme tokens, copy,
+  dark mode and languages.
+- [IAB TCF](/docs/frameworks/astro/iab) and
+  [troubleshooting](/docs/frameworks/astro/troubleshooting).

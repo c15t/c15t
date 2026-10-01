@@ -1,0 +1,100 @@
+---
+title: c15tVue plugin
+description: Install c15t in a Vue app with app.use(c15tVue), what the plugin starts when the app mounts, and every option it accepts.
+group: frameworks
+---
+
+## Install the plugin
+
+Import `c15tVue` from `c15t/vue/vue-plugin` and pass it to `app.use()` in
+`src/main.ts`:
+
+<include src="../../shared/examples/vue/main.mdx" />
+
+`c15t/vue` is the Nuxt module, not a Vue plugin. Passing it to `app.use()`
+does nothing useful. The [quickstart](/docs/frameworks/vue/quickstart) covers
+the Vite plugin and the `scripts` file.
+
+## What the plugin does
+
+`app.use(c15tVue, options)` creates one consent runtime for the app and
+provides it to every component. It also adds your `tokens` to
+`document.head` in a `<style id="c15t-css-vars">` element, before the first
+render. Nothing else runs in the browser until the root component mounts.
+Then the plugin, in order:
+
+1. Reads the visitor's stored choice from the `c15t` cookie and
+   localStorage.
+2. Applies Global Privacy Control when the browser sends it.
+3. Starts the script loader for `scripts`, clear-on-revocation, the network
+   blocker and the iframe blocker.
+4. Requests the visitor's policy from your backend's `/init`, or resolves it
+   from the manifest with `manifest: 'client'`.
+5. Loads the IAB TCF module once a policy uses the `iab` model.
+
+Until the policy arrives, every optional category is denied, so gated scripts
+and iframes wait. On Vue 3.5 and later, `app.unmount()` stops every module
+and removes the token style element.
+Composables called outside this app throw `[c15t] Kernel not found`.
+
+## Options
+
+Every option is optional. Options that hold functions, such as `scripts` and
+`callbacks`, work here because the plugin runs in the browser.
+
+### Backend and policy
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `backendURL` | `'/api/c15t'` | Your Inth or self-hosted backend. The browser requests `/init` from it and sends consent saves to it. |
+| `manifest` | Unset | `'client'` downloads the public policy manifest and resolves the policy in the browser instead of calling `/init`. See [rendering](/docs/frameworks/vue/rendering#resolve-from-the-manifest-in-the-browser). |
+| `manifestURL` | `/api/c15t/manifest` | Where client mode downloads the manifest. Set it to an absolute URL, such as `${backendURL}/manifest`. Setting it with `manifest` unset selects client mode. |
+| `geoURL` | Unset | Client mode only. An endpoint you run that returns `{ country, region }` for the visitor. |
+| `consentCategories` | The policy's categories | Limits the categories the dialog and widget show, within the policy's scope. |
+| `vendors` | Unset | Vendors listed under their category with their own switch. See [granular consent](/docs/integrations/granular-consent). |
+| `storageConfig` | `{ storageKey: 'c15t' }` | Cookie and localStorage name, `crossSubdomain`, `defaultDomain` and `defaultExpiryDays`, 365 by default. |
+| `customFetch` | `fetch` | The fetch function for backend requests. |
+
+### Scripts and blocking
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `scripts` | Unset | Vendor scripts that load by consent category. See [scripts](/docs/frameworks/vue/scripts). |
+| `networkBlocker` | Off | Rules that hold `fetch` and XHR requests until their category is allowed. See [network blocker](/docs/frameworks/vue/network-blocker). |
+| `iframeBlocker` | On | Gates iframes that carry `data-src` and `data-category`. `false` turns it off. See [embeds](/docs/frameworks/vue/embeds). |
+| `nonce` | Unset | Content Security Policy nonce for every script the loader creates and for the token style element. See [Content Security Policy](/docs/frameworks/vue/content-security-policy). |
+| `reloadOnConsentRevoked` | `true` | Reloads the page when a save withdraws a granted category or vendor. |
+| `clearOnRevocation` | Unset | Deletes first-party cookies and storage keys for a withdrawn category. See [clear on revocation](/docs/integrations/clear-on-revocation). |
+
+### Events and other tools
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `callbacks` | Unset | `onChoiceRecorded`, `onPermissionsChanged`, `onError` and `onBeforeConsentRevocationReload`. See [callbacks](/docs/frameworks/vue/callbacks). |
+| `consentSource` | Unset | Hands the decision to an existing consent tool. See [use c15t with an existing CMP](/docs/integrations/existing-cmp). |
+
+### Appearance
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `tokens` | The default theme | CSS variables the plugin adds to `document.head` in a `<style id="c15t-css-vars">` element. See [customize](/docs/frameworks/vue/customize#set-theme-tokens). |
+| `presentation` | Policy defaults | Banner and dialog variant, position, action layout and blocking. |
+| `components` | Unset | Attributes, such as `class`, for named parts of each component. |
+| `legalLinks`, `bannerLegalLinks`, `dialogLegalLinks` | None shown | Links to your privacy policy and similar pages, and which surfaces show them. |
+| `hideBranding`, `bannerHideBranding`, `dialogHideBranding`, `iabBannerHideBranding`, `iabDialogHideBranding` | `false` | Hide the "Secured by" tag. |
+| `showTrigger` and the `trigger*` options | `false` | The floating trigger. See [ConsentDialogTrigger](/docs/frameworks/vue/components/consent-dialog-trigger). |
+| `disableAnimation` | `false` | Turns off banner and dialog transitions. |
+| `models`, `bannerModels`, `iabBannerModels`, `iabDialogModels` | Every model | Limit which policy models show a surface. |
+
+### Advanced
+
+| Option | What it does |
+| --- | --- |
+| `runtime` | A runtime created elsewhere with `createConsentRuntime()`. The plugin renders it and neither starts nor stops it, and ignores `callbacks`, blockers, `scripts` and `tokens`, which the runtime's owner configures. |
+| `prefetch`, `initialRecords` | A resolved policy and stored records from a server, used for the first render. Plain Vue has no server helper that produces them. |
+
+## Verify
+
+Open the app with the Network tab open. After the page loads, one request goes
+to your backend's `/init`, or to `manifestURL` in client mode. In the
+Application panel, a `c15t` cookie appears after you accept or reject.

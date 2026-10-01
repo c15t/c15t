@@ -1,0 +1,169 @@
+---
+title: Banner
+description: The stock consent banner the c15t script tag shows on a plain HTML site, with its options, layouts, policy-driven buttons, keyboard behavior and data-testid styling hooks.
+group: frameworks
+---
+
+## What the banner shows
+
+The banner is the first prompt a visitor sees. `c15t.js` renders it when the
+resolved policy asks for a choice or a notice and the visitor has not answered
+it yet. A returning visitor with a valid choice, and a visitor whose policy
+needs no prompt, sees no banner.
+
+The banner has a title, a description, optional legal links, a row of buttons
+and a "Secured by" tag. You do not add markup for it. The
+[quickstart](/docs/frameworks/html/quickstart) tag is enough:
+
+<include src="../../../shared/examples/script-tag/script-tag.mdx" />
+
+## Which buttons it shows
+
+The policy decides the buttons, not the page:
+
+| Policy prompt | Buttons |
+| --- | --- |
+| A choice | The actions the policy allows. By default that is Reject All and Accept All at equal size, then Customize. |
+| A choice under a policy with an opt-out right and no reject action | The allowed actions plus "Do not sell or share my data", which opens the dialog. |
+| A notice | "OK", which acknowledges the notice, plus any other action the policy allows. |
+
+Accept and reject record a choice and close the banner in the same click.
+Customize opens the [preference dialog](/docs/frameworks/html/components/dialog)
+and records nothing. The notice button records that the visitor saw the
+notice. It grants nothing. [How consent works](/docs/concepts/how-consent-works#notices-and-privacy-signals)
+explains the difference.
+
+`presentation.prompt` can reorder buttons, group them or make one primary.
+When your layout drops a button the policy requires, c15t puts it back, and it
+keeps accept and reject equally prominent where the policy says so.
+
+## Change the text
+
+Queue a `config` call before the tag and set the banner options under
+`ui.banner`:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    ui: {
+      banner: {
+        title: 'Cookies on this site',
+        description: 'We use cookies to measure traffic. Choose what can run.',
+        rejectButtonText: 'Reject optional',
+      },
+    },
+  }]);
+</script>
+```
+
+These options replace the text in every language. For copy that changes with
+the visitor's language, use [translations](/docs/frameworks/html/translations).
+
+<import src="../../../shared/browser/client-options.mdx#banner" />
+
+## Change the layout
+
+`presentation.prompt` picks the banner's shape, position and button layout:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    presentation: {
+      prompt: { variant: 'bar', position: 'bottom', direction: 'row' },
+    },
+  }]);
+</script>
+```
+
+| `variant` | Positions |
+| --- | --- |
+| `floating` (default) | `bottom-left` (default), `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` |
+| `bar` | `bottom` (default), `top` |
+| `widget` | `bottom-right` (default), `bottom-left`, `top-left`, `top-right` |
+| `wall` | `center` |
+
+| `presentation.prompt` option | What it does |
+| --- | --- |
+| `layout` | The order of the buttons. A nested array groups buttons together. |
+| `primaryActions` | The buttons drawn with the primary style. |
+| `direction` | `row` (default) or `column`. |
+| `uiProfile` | `compact` (default) sizes buttons to their labels. `balanced` and `strict` stretch every button and stack the groups. |
+| `blocking` | Dim the page, stop it scrolling and keep focus in the banner. |
+
+A notice never blocks the page and cannot use `wall`. A `wall` always blocks.
+An invalid position falls back to the variant's default. In a right-to-left
+language, a default left or right position flips.
+
+## Show legal links
+
+Add the link URLs to the tag. The banner and the dialog both show them:
+
+{/* example: fragment */}
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
+  data-backend-url="https://your-project.inth.app"
+  data-privacy-policy-url="/privacy"
+  data-cookie-policy-url="/cookies"
+  defer
+></script>
+```
+
+To show different links on each surface, set `legalLinks` in `config` and list
+the keys in `ui.banner.legalLinks` and `ui.dialog.legalLinks`. Each link opens
+in a new tab unless its `target` says otherwise.
+
+## Keyboard and screen readers
+
+- A non-blocking banner is a `role="region"` landmark named by its title.
+  Focus stays where it was, and the page remains usable.
+- A blocking banner is a modal `role="dialog"`. c15t moves focus into it,
+  keeps Tab inside it and stops the page scrolling until the visitor answers.
+- The banner sets `lang` and `dir` from the resolved language, so screen
+  readers use the right voice and right-to-left text lays out correctly.
+- Every action is a native `button`. The banner has no close button, because
+  closing it without answering would not settle the prompt.
+- Enter and exit transitions follow the visitor's reduced motion setting. Set
+  `ui.disableAnimation` to turn them off for everyone.
+
+## Style it
+
+Theme tokens change colors, radius, fonts and spacing for the banner and every
+other surface. See [customize](/docs/frameworks/html/customize). To target one
+part, use its `data-testid` in `ui.css`:
+
+| `data-testid` | Element |
+| --- | --- |
+| `consent-banner-root` | The positioned wrapper. Carries `data-variant`, `data-position` and `data-blocking`. |
+| `consent-banner-card` | The card or bar. |
+| `consent-banner-title`, `consent-banner-description` | The heading and body text. |
+| `consent-banner-legal-link-privacyPolicy` and the other link keys | Each legal link. |
+| `consent-banner-footer` | The button row. |
+| `consent-banner-accept-button`, `consent-banner-reject-button`, `consent-banner-customize-button`, `consent-banner-dismiss-button` | Each action button. |
+| `consent-banner-branding` | The "Secured by" tag. |
+| `consent-banner-overlay` | The backdrop of a blocking banner. |
+
+## Turn the banner off
+
+`ui: { banner: false }` renders no banner. The policy still requires a prompt,
+so render your own with [headless](/docs/frameworks/html/headless) instead of
+leaving visitors without one.
+
+## Check it works
+
+Open the page in a private window.
+
+1. The banner appears once the policy resolves, with the buttons your policy
+   requires.
+2. Press Tab. Focus reaches every button in order.
+3. Click **Reject All** and reload. The banner stays closed.
+4. In the DevTools panel's Location tab, pick a country with a different
+   policy and run init. The banner changes to that policy's buttons, or
+   disappears.

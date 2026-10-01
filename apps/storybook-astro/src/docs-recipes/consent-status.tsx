@@ -1,0 +1,42 @@
+// #region docs:react-island title="src/components/consent-status.tsx"
+import { getConsentClient, openDialog } from 'c15t/astro/client';
+import { ConsentProvider, useConsent } from 'c15t/react';
+
+const MeasurementStatus = () => {
+	const allowed = useConsent('measurement');
+	return (
+		<p>
+			<span data-testid="measurement-status">
+				Measurement is {allowed ? 'allowed' : 'not allowed'}.
+			</span>{' '}
+			<button
+				onClick={() => {
+					void openDialog();
+				}}
+				type="button"
+			>
+				Change cookie settings
+			</button>
+		</p>
+	);
+};
+
+const ConsentStatus = () => {
+	// The page's consent runtime, which the c15t integration started.
+	const runtime = getConsentClient()?.runtime;
+	if (!runtime) {
+		return null;
+	}
+	return (
+		// `colorScheme: null` leaves dark mode to the integration.
+		<ConsentProvider
+			options={{ colorScheme: null }}
+			runtime={runtime}
+		>
+			<MeasurementStatus />
+		</ConsentProvider>
+	);
+};
+
+export default ConsentStatus;
+// #endregion docs:react-island

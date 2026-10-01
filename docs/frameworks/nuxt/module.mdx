@@ -1,0 +1,107 @@
+---
+title: Nuxt module
+description: What the c15t Nuxt module registers, where each option goes between nuxt.config.ts and app.config.ts, and every module option.
+group: frameworks
+---
+
+## Register the module
+
+Add `c15t/vue` to `modules` in `nuxt.config.ts` and configure it under the
+`c15t` key:
+
+<include src="../../shared/examples/nuxt/nuxt-config.mdx" />
+
+`c15t/vue` is the Nuxt module. You do not install a separate Nuxt package or
+call `app.use()`. The [quickstart](/docs/frameworks/nuxt/quickstart) covers
+the whole setup.
+
+## What the module registers
+
+| What | Details |
+| --- | --- |
+| Components | `ConsentRoot`, `ConsentWidget`, `ConsentPreferencesLink`, `ConsentDialogTrigger`, `ConsentGate` and the deprecated `ConsentFrame`, all global. See [components](/docs/frameworks/nuxt/components). |
+| Composables | 25 composables, auto-imported. See [composables](/docs/frameworks/nuxt/composables). |
+| A Nuxt plugin | Creates the consent runtime for each request on the server and once in the browser, resolves the visitor's policy during server rendering, and writes the `tokens` option into the page head. |
+| Server routes | With `manifest: 'server'`, `GET /api/c15t/init` and `GET /api/c15t/manifest`. With `manifest: 'client'` and no `manifestURL`, only the manifest route. |
+| The `#c15t/composables` alias | Points at the module's composables, for the few that are not auto-imported. |
+
+In the browser, the plugin starts the consent modules once the app has
+mounted: it reads the stored choice, applies Global Privacy Control, and
+starts the script loader, clear-on-revocation, the network blocker, the
+iframe blocker and, under an IAB policy, the IAB module.
+
+## nuxt.config.ts or app.config.ts
+
+The module merges the `c15t` key of `app/app.config.ts` over its options in
+`nuxt.config.ts`. Arrays from both files are combined. The module types both
+keys, including when you register it as `c15t/vue`.
+
+| Put it in | Options |
+| --- | --- |
+| `nuxt.config.ts` | Plain data: `backendURL`, `manifest`, `manifestURL`, `tokens`, `presentation`, `components`, `legalLinks`, trigger options, network blocker `rules`. |
+| `app/app.config.ts` | Anything with a function: `scripts`, `callbacks`, `consentSource`, `networkBlocker.onRequestBlocked`. |
+
+Module options reach the browser as JSON through `runtimeConfig.public`,
+which drops functions. `app.config.ts` is part of the browser bundle, so it
+keeps functions but cannot read `runtimeConfig`. Read values there from
+`VITE_` variables at build time, or write them into the file.
+
+## Options
+
+### Backend and rendering
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `backendURL` | `'/api/c15t'` | Your Inth or self-hosted backend. Consent saves go here. |
+| `manifest` | `false` | `'server'` resolves each visitor on the Nuxt server from a cached manifest. `'client'` resolves in the browser. `false` calls the backend's `/init`. `true` is an older name for `'server'`. |
+| `manifestURL` | `${backendURL}/manifest` in server mode, `manifestRoute` in client mode | Where the manifest is downloaded from. Must be absolute in client mode on a static host. It does not choose a mode: with `manifest` unset the module keeps its `false` default and calls `/init`, so set `manifest: 'server'` (or `true`) to add the init and manifest server routes. |
+| `geoURL` | Unset | Client mode only. An endpoint that returns `{ country, region }` for the visitor. |
+| `manifestRoute` | `/api/c15t/manifest` | Path of the manifest route the module adds. |
+| `initRoute` | `/api/c15t/init` | Path of the init route the module adds in server mode. |
+| `timeoutMs` | `500` | Longest wait for the policy during server rendering. `false` waits as long as the backend takes. |
+| `reportSessions` | `true` | Server mode only. The init route reports each visitor it resolves to the backend, so Inth counts visitors it never served `/init` to. Needs an absolute `backendURL`. |
+
+[Rendering and deployment](/docs/frameworks/nuxt/rendering) explains which
+mode fits which deployment.
+
+### Consent and storage
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `consentCategories` | The policy's categories | Limits the categories the dialog and widget show, within the policy's scope. |
+| `vendors` | Unset | Vendors listed under their category with their own switch. See [granular consent](/docs/integrations/granular-consent). |
+| `storageConfig` | `{ storageKey: 'c15t' }` | Cookie and localStorage name, `crossSubdomain`, `defaultDomain` and `defaultExpiryDays`. Use the same value in both config files. |
+| `domain` | The browser's hostname | The domain the browser sends with each consent save to the backend's `/subjects`. |
+| `reloadOnConsentRevoked` | `true` | Reloads the page when a save withdraws a granted category or vendor. |
+| `clearOnRevocation` | Unset | Deletes first-party cookies and storage keys for a withdrawn category. |
+| `consentSource` | Unset | Hands the decision to an existing consent tool. `app.config.ts` only. See [use c15t with an existing CMP](/docs/integrations/existing-cmp). |
+
+### Scripts, blocking and events
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `scripts` | Unset | Vendor scripts that load by consent category. `app.config.ts` only. See [scripts](/docs/frameworks/nuxt/scripts). |
+| `networkBlocker` | Off | Rules that hold `fetch` and XHR requests until their category is allowed. See [network blocker](/docs/frameworks/nuxt/network-blocker). |
+| `iframeBlocker` | On | Gates iframes that carry `data-src` and `data-category`. `false` turns it off. See [embeds](/docs/frameworks/nuxt/embeds). |
+| `nonce` | Unset | A nonce for every script the loader creates and for the theme token style tag. See [Content Security Policy](/docs/frameworks/nuxt/content-security-policy). |
+| `callbacks` | Unset | `app.config.ts` only. See [callbacks](/docs/frameworks/nuxt/callbacks). |
+
+### Appearance
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `tokens` | The default theme | CSS variables the module writes into a `<style id="c15t-css-vars">` tag in the page head on every page. See [customize](/docs/frameworks/nuxt/customize#set-theme-tokens). |
+| `presentation` | Policy defaults | Banner and dialog variant, position, action layout and blocking. |
+| `components` | Unset | Attributes, such as `class`, for named parts of each component. |
+| `legalLinks`, `bannerLegalLinks`, `dialogLegalLinks` | None shown | Links to your privacy policy and similar pages, and which surfaces show them. |
+| `hideBranding` and its per-surface forms | `false` | Hide the "Secured by" tag. |
+| `showTrigger` and the `trigger*` options | `false` | The floating trigger. See [ConsentDialogTrigger](/docs/frameworks/nuxt/components/consent-dialog-trigger). |
+| `disableAnimation` | `false` | Turns off banner and dialog transitions. |
+| `models`, `bannerModels`, `iabBannerModels`, `iabDialogModels` | Every model | Limit which policy models show a surface. |
+
+## Verify
+
+Run `nuxt dev` and request `/api/c15t/init` with `manifest: 'server'`. It
+returns JSON with the resolved policy for your location. View the source of
+a page under a policy that asks for consent and find
+`data-testid="consent-banner-root"`.

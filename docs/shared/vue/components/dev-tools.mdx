@@ -1,0 +1,75 @@
+---
+title: "ConsentDevTools"
+description: "Shared ConsentDevTools reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt DevTools pages. */}
+
+<section id="behavior">
+  ## What ConsentDevTools renders
+
+  `ConsentDevTools` mounts a floating panel for the consent runtime your app
+  already created. It renders nothing into your component tree and mounts its
+  panel in `document.body`. It must render inside the app that set up c15t,
+  or it throws `[c15t] Kernel not found`.
+
+  | Panel | What it shows |
+  | --- | --- |
+  | Consents | Each category's value, with save, accept all and reject actions |
+  | Scripts | Your `scripts`, their loading status, and the scripts and iframes found in the page |
+  | Location | The resolved country, region and jurisdiction |
+  | Policy | The resolved policy and presentation |
+  | IAB | Vendors, purposes and the TC String, under an IAB policy |
+  | Events | A timeline of consent changes and script events |
+  | Actions | Show the banner, open preferences, hide consent UI, or resolve the policy again |
+
+  Accept and reject in the Consents panel apply only to the categories the
+  policy covers, filtered by `consentCategories`. Necessary stays on.
+  `DevTools` and `C15TDevTools` are other names for the same component.
+</section>
+
+<section id="props">
+  ## Props
+
+  | Prop | Type | Default | Behavior |
+  | --- | --- | --- | --- |
+  | `position` | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'` | `'bottom-right'` | Corner of the toggle button. |
+  | `defaultOpen` | `boolean` | `false` | Opens the panel on load. |
+  | `defaultTab` | `'consents' \| 'scripts' \| 'location' \| 'policy' \| 'iab' \| 'events' \| 'actions'` | `'consents'` | Panel shown first. |
+  | `maxEvents` | `number` | `100` | How many events the Events panel keeps. |
+  | `getConsentCategories` | `() => readonly ConsentCategory[]` | `consentCategories` | Narrows the categories the Consents panel acts on. It cannot add categories outside the policy. |
+  | `getPresentation` | `() => ConsentPresentation \| undefined` | Your `presentation` option | Presentation the Policy panel resolves. |
+  | `clearRecords` | `() => void` | Clears the stored consent records | Runs when you clear records from the panel. |
+  | `shadow` | `boolean` | `true` | Mounts the panel inside a shadow root that carries its own stylesheet, so your page's CSS cannot restyle it. `:shadow="false"` mounts the panel in the light DOM and adds its stylesheet to `<head>`. |
+
+  Changing a prop destroys the panel and creates a new one, which clears its
+  event history.
+</section>
+
+<section id="embedded-panel">
+  ## Embed the panel in your own page
+
+  `ConsentDevToolsPanel` from `c15t/vue/devtools` fills its parent element
+  instead of floating over the page. It has no launcher or close button and
+  starts open. Use it for your own debug page or another devtools host. Give
+  the parent a height:
+
+  {/* example: fragment */}
+
+  ```vue
+  <script setup lang="ts">
+  import { ConsentDevToolsPanel } from 'c15t/vue/devtools';
+  </script>
+
+  <template>
+    <div style="height: 32rem">
+      <ConsentDevToolsPanel default-tab="events" />
+    </div>
+  </template>
+  ```
+
+  It accepts `defaultTab`, `maxEvents`, `getConsentCategories`,
+  `getPresentation` and `clearRecords`, and must render inside the provider
+  that supplies the kernel.
+</section>

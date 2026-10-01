@@ -24,9 +24,9 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/cli/telemetry` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/contributing/docs-preview-action` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/contributing/documentation-setup` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/javascript/api/checking-consent` | Compare with `/docs/frameworks/javascript/api/overview` before redirecting |
-| `/docs/frameworks/javascript/api/location-info` | Compare with `/docs/frameworks/javascript/api/overview` before redirecting |
-| `/docs/frameworks/javascript/api/setting-consent` | Compare with `/docs/frameworks/javascript/api/overview` before redirecting |
+| `/docs/frameworks/javascript/api/checking-consent` | Compare with `/docs/frameworks/javascript/api/kernel` before redirecting |
+| `/docs/frameworks/javascript/api/location-info` | Compare with `/docs/frameworks/javascript/api/kernel` before redirecting |
+| `/docs/frameworks/javascript/api/setting-consent` | Compare with `/docs/frameworks/javascript/api/kernel` before redirecting |
 | `/docs/frameworks/javascript/callbacks` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/javascript/concepts/client-modes` | Compare with `/docs/guides/deployment-modes` before redirecting |
 | `/docs/frameworks/javascript/concepts/consent-models` | Compare with `/docs/guides/consent-state` before redirecting |
@@ -34,9 +34,9 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/javascript/concepts/glossary` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/javascript/concepts/initialization-flow` | Compare with `/docs/guides/consent-state` before redirecting |
 | `/docs/frameworks/javascript/concepts/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
-| `/docs/frameworks/javascript/iframe-blocking` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/javascript/iframe-blocking` | Redirect to `/docs/frameworks/javascript/modules/iframe-blocker` |
 | `/docs/frameworks/javascript/internationalization` | Compare with `/docs/customization/translations` before redirecting |
-| `/docs/frameworks/javascript/network-blocker` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/javascript/network-blocker` | Redirect to `/docs/frameworks/javascript/modules/network-blocker` |
 | `/docs/frameworks/javascript/optimization` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/javascript/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/next/building-headless-components` | Compare with `/docs/frameworks/next/headless` before redirecting |
@@ -52,10 +52,10 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/next/concepts/initialization-flow` | Compare with `/docs/guides/consent-state` before redirecting |
 | `/docs/frameworks/next/concepts/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/next/hooks/use-color-scheme` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/next/hooks/use-consent-manager/checking-consent` | Compare with `/docs/frameworks/next/hooks/overview` before redirecting |
-| `/docs/frameworks/next/hooks/use-consent-manager/overview` | Redirect to `/docs/frameworks/next/hooks/overview`; the v3 page moved there when `useConsentManager()` was removed |
-| `/docs/frameworks/next/hooks/use-consent-manager/location-info` | Compare with `/docs/frameworks/next/hooks/overview` before redirecting |
-| `/docs/frameworks/next/hooks/use-consent-manager/setting-consent` | Compare with `/docs/frameworks/next/hooks/overview` before redirecting |
+| `/docs/frameworks/next/hooks/use-consent-manager/checking-consent` | Compare with `/docs/frameworks/next/hooks` before redirecting |
+| `/docs/frameworks/next/hooks/use-consent-manager/overview` | Redirect to `/docs/frameworks/next/hooks`; the v3 page moved there when `useConsentManager()` was removed |
+| `/docs/frameworks/next/hooks/use-consent-manager/location-info` | Compare with `/docs/frameworks/next/hooks` before redirecting |
+| `/docs/frameworks/next/hooks/use-consent-manager/setting-consent` | Compare with `/docs/frameworks/next/hooks` before redirecting |
 | `/docs/frameworks/next/hooks/use-draggable` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/hooks/use-focus-trap` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/hooks/use-reduced-motion` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
@@ -65,9 +65,9 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/next/iab/consent-banner` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/iab/consent-dialog` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/next/iab/use-gvl-data` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/next/iframe-blocking` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/next/iframe-blocking` | Redirect to `/docs/frameworks/next/embeds`, which covers the iframe blocker |
 | `/docs/frameworks/next/internationalization` | Compare with `/docs/customization/translations` before redirecting |
-| `/docs/frameworks/next/network-blocker` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/next/network-blocker` | Live again in v3; no redirect |
 | `/docs/frameworks/next/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/next/styling/classnames` | Compare with `/docs/customization/slots` before redirecting |
 | `/docs/frameworks/next/styling/color-scheme` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
@@ -88,10 +88,10 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/react/concepts/initialization-flow` | Compare with `/docs/guides/consent-state` before redirecting |
 | `/docs/frameworks/react/concepts/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/react/hooks/use-color-scheme` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/react/hooks/use-consent-manager/checking-consent` | Compare with `/docs/frameworks/react/hooks/overview` before redirecting |
-| `/docs/frameworks/react/hooks/use-consent-manager/overview` | Redirect to `/docs/frameworks/react/hooks/overview`; the v3 page moved there when `useConsentManager()` was removed |
-| `/docs/frameworks/react/hooks/use-consent-manager/location-info` | Compare with `/docs/frameworks/react/hooks/overview` before redirecting |
-| `/docs/frameworks/react/hooks/use-consent-manager/setting-consent` | Compare with `/docs/frameworks/react/hooks/overview` before redirecting |
+| `/docs/frameworks/react/hooks/use-consent-manager/checking-consent` | Compare with `/docs/frameworks/react/hooks` before redirecting |
+| `/docs/frameworks/react/hooks/use-consent-manager/overview` | Redirect to `/docs/frameworks/react/hooks`; the v3 page moved there when `useConsentManager()` was removed |
+| `/docs/frameworks/react/hooks/use-consent-manager/location-info` | Compare with `/docs/frameworks/react/hooks` before redirecting |
+| `/docs/frameworks/react/hooks/use-consent-manager/setting-consent` | Compare with `/docs/frameworks/react/hooks` before redirecting |
 | `/docs/frameworks/react/hooks/use-draggable` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/hooks/use-focus-trap` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/hooks/use-reduced-motion` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
@@ -101,9 +101,9 @@ The private host owns version routing, canonical URLs and redirect status codes.
 | `/docs/frameworks/react/iab/consent-banner` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/iab/consent-dialog` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/iab/use-gvl-data` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
-| `/docs/frameworks/react/iframe-blocking` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/react/iframe-blocking` | Redirect to `/docs/frameworks/react/embeds`, which covers the iframe blocker |
 | `/docs/frameworks/react/internationalization` | Compare with `/docs/customization/translations` before redirecting |
-| `/docs/frameworks/react/network-blocker` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
+| `/docs/frameworks/react/network-blocker` | Live again in v3; no redirect |
 | `/docs/frameworks/react/optimization` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |
 | `/docs/frameworks/react/policy-packs` | Compare with `/docs/upgrade-v3` before redirecting |
 | `/docs/frameworks/react/server-side` | Keep in a v2 archive or restore a dedicated v3 page; no equivalent verified |

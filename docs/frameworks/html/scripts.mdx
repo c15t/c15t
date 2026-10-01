@@ -1,0 +1,183 @@
+---
+title: Scripts
+description: Hold vendor scripts on a plain HTML page until the visitor allows their category, load scripts with callbacks, handle withdrawal and clear vendor cookies with the c15t script tag and no build step.
+group: frameworks
+---
+
+## Choose how to gate a script
+
+The c15t script tag has two ways to hold a vendor script until its category is
+allowed:
+
+| Form | Use it when |
+| --- | --- |
+| A `<script type="text/plain" data-c15t-category>` tag in your HTML | You paste a vendor snippet into a theme, a CMS field or a page builder. No JavaScript of your own. |
+| A `scripts` entry in a queued `config` call | You need a callback after the vendor loads, on an error, or when consent changes. |
+
+Both wait for the same permission and both add their category to the
+preference dialog. Iframes use `data-src` instead; see
+[embeds](/docs/frameworks/html/embeds). Requests your own code sends with
+`fetch` use the [network blocker](/docs/frameworks/html/network-blocker).
+
+## Gate a pasted snippet
+
+Change the vendor's tag to `type="text/plain"` and add
+`data-c15t-category`:
+
+{/* example: fragment */}
+
+```html
+<script type="text/plain" data-c15t-category="measurement">
+  // The vendor's snippet, unchanged
+</script>
+<script type="text/plain" data-c15t-category="marketing" src="https://vendor.example/tag.js"></script>
+```
+
+On a page whose c15t tag has a nonce, add the same `nonce` to each gated tag,
+or c15t skips it. See
+[gated tags on a page with a nonce](/docs/frameworks/html/components/gated-script#gated-tags-on-a-page-with-a-nonce).
+The [quickstart](/docs/frameworks/html/quickstart#gate-your-vendor-scripts)
+shows this with PostHog and X Pixel. [Gated scripts](/docs/frameworks/html/components/gated-script)
+covers load order, copied attributes and tags added after load.
+
+## What happens when a visitor withdraws permission
+
+A script that has run cannot be stopped. When a visitor turns off a category
+they had allowed, c15t saves the choice and reloads the page. The new page
+starts with the vendor tag inert again. Allowing a category never reloads.
+
+To handle withdrawal yourself, for example by calling a vendor's opt-out
+function, set `reloadOnConsentRevoked: false` in `config`. Then c15t does not
+reload and the vendor code that already ran keeps running until the next page
+load. `callbacks.onBeforeConsentRevocationReload` runs right before the
+reload, if you need to flush something first. See
+[events and callbacks](/docs/frameworks/html/callbacks).
+
+## Load a script with callbacks
+
+List the script under `scripts` in a queued `config` call before the tag:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    scripts: [
+      {
+        id: 'analytics',
+        src: 'https://analytics.example/sdk.js',
+        category: 'measurement',
+        onLoad: () => window.analytics.track('page_view'),
+        onConsentChange: ({ hasConsent }) => {
+          if (!hasConsent) window.analytics.optOut();
+        },
+      },
+    ],
+  }]);
+</script>
+```
+
+`analytics.track` and `analytics.optOut` stand for your vendor's own API.
+c15t adds the script to `<head>` once measurement is allowed, and removes the
+element again when the visitor withdraws it.
+
+| Field | What it does |
+| --- | --- |
+| `id` | A unique, stable name for the script. Required. |
+| `category` | The category it needs, such as `'measurement'`. Required. It also accepts a condition such as `{ and: ['measurement', 'marketing'] }`. |
+| `src` or `textContent` | The URL to load, or inline code to run. One is required unless `callbackOnly` is set. |
+| `callbackOnly` | Add no element. Only run the callbacks, for a vendor that is already on the page. |
+| `alwaysLoad` | Load whatever the consent state. Use it only for tags that manage consent themselves. |
+| `persistAfterConsentRevoked` | Keep the element on the page after withdrawal. |
+| `target` | `'head'` (default) or `'body'`. |
+| `async`, `defer`, `nonce`, `fetchPriority`, `attributes` | Attributes for the created `<script>` element. Without its own `nonce`, the script gets the c15t tag's nonce. |
+| `anonymizeId` | Give the element a random `id` so blockers cannot match it by name. On by default. |
+| `vendor` | A vendor ID for vendor-level consent. |
+| `onBeforeLoad`, `onLoad`, `onError` | Run before a load attempt, after the script loads, or when it fails. |
+| `onConsentChange` | Run each time the script's consent changes. The argument has `hasConsent` and `consents`. |
+| `onDispose` | Run when the script is removed from the configuration or c15t is disposed. |
+
+Every callback receives the script's `id`, the created element's
+`elementId`, `hasConsent`, the current `consents`, and the `element` when
+there is one.
+
+For a plain vendor snippet, the `text/plain` tag is simpler and works in any
+CMS field that accepts HTML. The vendor helpers in `@c15t/integrations`, such as
+the PostHog and Google tag helpers, are ES modules that need a bundler. On a
+plain HTML page, paste the vendor's own snippet into a `text/plain` tag.
+
+## Clear cookies when permission is withdrawn
+
+Gating stops new requests but does not delete what a vendor already stored.
+`clearOnRevocation` deletes named cookies and storage keys when their category
+is denied:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    clearOnRevocation: {
+      measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
+    },
+  }]);
+</script>
+```
+
+c15t reads this once, at start. It clears the listed data when a visitor
+withdraws the category, and once at start for categories that are already
+denied. [Clear on revocation](/docs/integrations/clear-on-revocation) covers
+patterns, cookie domains and browser limits.
+
+## Google Consent Mode and tag managers
+
+The script tag does not send Google Consent Mode signals. The Google tag and
+Google Tag Manager helpers in `@c15t/integrations` do, but they need a bundler. On
+a plain HTML page, gate Google's snippet like any other vendor. Google then
+loads only after consent, so it sends nothing before a choice.
+[Gated scripts](/docs/frameworks/html/components/gated-script#load-order)
+shows the GA4 snippet with its two tags in the right order.
+
+If you need Consent Mode instead, load Google's snippet ungated and send the
+signals yourself. Put this before Google's tags:
+
+```html
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('consent', 'default', {
+    analytics_storage: 'denied',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+  });
+  window.c15t = window.c15t || [];
+  c15t.push(['on', 'consent', (snapshot) => {
+    const allowed = snapshot.effectivePermissions;
+    const state = (granted) => (granted ? 'granted' : 'denied');
+    gtag('consent', 'update', {
+      analytics_storage: state(allowed.measurement),
+      ad_storage: state(allowed.marketing),
+      ad_user_data: state(allowed.marketing),
+      ad_personalization: state(allowed.marketing),
+    });
+  }]);
+</script>
+```
+
+With Consent Mode, Google receives requests before a choice, marked as denied.
+Decide which behavior your policy needs before you pick one.
+
+The vendor guides under [integrations](/docs/integrations/overview) have an
+HTML tab with the no-build setup.
+
+## Check it works
+
+Open the page in a private window with the Network tab open.
+
+1. Filter for each vendor's domain. Nothing loads before a choice.
+2. Allow one category. Only that category's vendors load, and each `onLoad`
+   runs.
+3. Turn the category off again. The page reloads and the vendor stays absent.

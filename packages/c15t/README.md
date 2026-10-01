@@ -61,7 +61,7 @@ pnpm add c15t
 
 Prefer granular installs? The scoped packages ship the same code: `@c15t/core` (headless engine), `@c15t/react`, and `@c15t/nextjs`.
 
-To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup).
+To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/javascript/quickstart).
 
 ## Usage
 
@@ -70,23 +70,28 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 3. For full implementation details, see the [quickstart docs](https://c15t.com/docs)
 
 ```tsx
-// React
+// React: src/consent.tsx
 import {
-  ConsentManagerProvider,
   ConsentBanner,
   ConsentDialog,
+  ConsentDialogLink,
+  ConsentProvider,
+  hosted,
 } from 'c15t/react'
+import type { ReactNode } from 'react'
+
 import 'c15t/react/styles.css'
 
-function App() {
-  return (
-    <ConsentManagerProvider>
-      <YourApp />
-      <ConsentBanner />
-      <ConsentDialog />
-    </ConsentManagerProvider>
-  )
-}
+const mode = hosted({ url: 'https://your-project.inth.app' })
+
+export const Consent = ({ children }: { children: ReactNode }) => (
+  <ConsentProvider options={{ mode }}>
+    {children}
+    <ConsentBanner />
+    <ConsentDialog />
+    <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+  </ConsentProvider>
+)
 ```
 
 ## Documentation

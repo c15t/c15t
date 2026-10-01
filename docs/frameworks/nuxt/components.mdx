@@ -1,0 +1,54 @@
+---
+title: Components
+description: Every c15t component in Nuxt, which ones the Nuxt module registers globally, which you import, and a page for each one's props and behavior.
+group: frameworks
+---
+
+## Component reference
+
+Every component reads the consent runtime the Nuxt module creates, and each
+imports its own styles. The module registers the components marked Global, so
+you use them in templates without an import. Import the others by path.
+
+| Component | In Nuxt | What it renders |
+| --- | --- | --- |
+| [`ConsentRoot`](/docs/frameworks/nuxt/components/consent-root) | Global | The banner, rendered on the server, and the preference dialog once opened. Switches to the IAB surfaces under an IAB policy. |
+| [`ConsentWidget`](/docs/frameworks/nuxt/components/consent-widget) | Global | Category switches and save actions inline, for a privacy page. |
+| [`ConsentPreferencesLink`](/docs/frameworks/nuxt/components/consent-preferences-link) | Global | A button that opens preferences. |
+| [`ConsentDialogTrigger`](/docs/frameworks/nuxt/components/consent-dialog-trigger) | Global | A floating, draggable button that opens preferences. |
+| [`ConsentGate`](/docs/frameworks/nuxt/components/consent-gate) | Global | Its default slot while a category is allowed, otherwise its `placeholder` slot. |
+| [`ConsentBanner`](/docs/frameworks/nuxt/components/consent-banner) | `c15t/vue/runtime/components/consent-banner.vue` | The first-layer banner on its own. |
+| [`ConsentManager`](/docs/frameworks/nuxt/components/consent-manager) | `c15t/vue/runtime/components/consent-manager.vue` | The preference dialog on its own. |
+| [`IABConsentBanner`](/docs/frameworks/nuxt/components/iab-consent-banner) | `c15t/vue/runtime/components/iab-consent-banner.vue` | The IAB TCF first layer. |
+| [`IABConsentDialog`](/docs/frameworks/nuxt/components/iab-consent-dialog) | `c15t/vue/runtime/components/iab-consent-dialog.vue` | The IAB TCF preference centre. |
+| [`ConsentDevTools`](/docs/frameworks/nuxt/components/dev-tools) | `c15t/vue/devtools` | A development panel for the consent runtime. |
+
+Import the path components inside a Nuxt component's `<script setup>`:
+
+{/* example: fragment */}
+
+```ts
+import ConsentBanner from 'c15t/vue/runtime/components/consent-banner.vue';
+```
+
+## ConsentRoot or the parts
+
+`ConsentRoot` renders `ConsentBanner` and `ConsentManager`, or the IAB
+components, for the visitor's policy. Mount `ConsentRoot`, or mount the parts,
+never both, or the visitor sees two banners. Always use the global
+`ConsentRoot` in Nuxt, not `c15t/vue/consent-root`. The global one renders the
+banner on the server. The module writes theme tokens into the page head
+whether you mount `ConsentRoot` or the parts.
+
+`ConsentFrame` is a deprecated name for `ConsentGate`. The module still
+registers it so older templates resolve.
+
+## Building blocks
+
+The stock surfaces are built from smaller components that the package also
+exports under `c15t/vue/runtime/components/`: `consent-button.vue`,
+`consent-switch.vue`, `consent-actions.vue`, `consent-link.vue`,
+`consent-legal-links.vue`, `consent-description.vue`, `consent-tag.vue` and
+`consent-branding-icon.vue`. For consent UI in your own markup, use the
+[headless composables](/docs/frameworks/nuxt/headless) instead. They give you
+the policy's actions and the draft state without the stock markup.

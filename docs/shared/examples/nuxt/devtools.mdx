@@ -1,0 +1,20 @@
+{/* Generated from examples/nuxt/app/components/ConsentDebugTools.vue (docs:devtools) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```vue title="app/components/ConsentDebugTools.vue"
+<script setup lang="ts">
+import { defineAsyncComponent } from 'vue';
+
+// Development builds only: the dynamic import keeps DevTools out of
+// production bundles.
+const ConsentDevTools = import.meta.dev
+	? defineAsyncComponent(() => import('c15t/vue/devtools'))
+	: null;
+</script>
+
+<template>
+	<ConsentDevTools
+		v-if="ConsentDevTools"
+		position="bottom-right"
+	/>
+</template>
+```

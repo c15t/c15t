@@ -1,0 +1,70 @@
+---
+title: Headless
+description: Build your own consent banner and preference form in a Vue app with the c15t composables instead of ConsentRoot.
+group: frameworks
+---
+
+## When to go headless
+
+Tokens, `presentation` and `components` slots change most designs without
+new markup. See [customize](/docs/frameworks/vue/customize) first. Go
+headless when the consent UI has to be your own markup, such as a design
+system component.
+
+Headless changes only the UI. The Vue plugin still resolves the policy,
+stores choices, loads your `scripts` and gates iframes.
+
+## Install the plugin as usual
+
+Install `c15tVue` exactly as in the [quickstart](/docs/frameworks/vue/quickstart),
+with the Vite plugin and your `scripts`:
+
+<include src="../../shared/examples/vue/headless-main.mdx" />
+
+## Write the consent UI
+
+This component shows a banner while `activeUI` is `'banner'` and a preference
+form while it is `'manager'`:
+
+<include src="../../shared/examples/vue/headless-prompt.mdx" />
+
+`useConsentSave()` records Accept all or Reject all. Recording a choice
+satisfies the prompt, so c15t sets `activeUI` to `null` and the banner closes.
+`useConsentDraft()` holds the preference form. `displayedCategories` lists the
+categories the policy lets the visitor choose, `values` holds each switch, and
+`save()` records them. Preferences stay open after a save, so close them
+yourself. [Composables](/docs/frameworks/vue/composables#build-a-preference-form)
+lists every field of the draft.
+
+Add focus handling, a close control and styles before you ship this. The
+component keeps the bare markup so the consent logic is easy to read.
+
+## Mount it instead of ConsentRoot
+
+Render your component where `ConsentRoot` would go, and keep a way to reopen
+preferences:
+
+<include src="../../shared/examples/vue/headless-app.mdx" />
+
+Setting `activeUI` to `'manager'` opens your preference form. Do not render
+`ConsentRoot` as well, or the visitor sees two banners.
+
+## Show the buttons the policy requires
+
+A policy can require buttons and forbid others. For a notice, it requires a
+dismiss action instead of Accept and Reject. Read the resolved actions with
+`useConsentPolicyActions('prompt')` and render `primaryActions` and
+`actionGroups` from it, rather than hard-coding the buttons. Call
+`useDismissNotice()` for a notice's dismiss action. Dismissing records an
+acknowledgement, not consent.
+
+`usePromptRequirement()` tells you whether the policy asks for a choice, a
+notice or nothing.
+
+## Verify the custom UI
+
+Run through [verify consent](/docs/guides/verify-consent) with your
+component. Check that Reject all is as easy to reach as Accept all, that the
+preference form lists the policy's categories, and that a rejection survives a
+reload. The `/headless` route of `examples/vue` runs this component through
+the same acceptance tests as the stock UI.

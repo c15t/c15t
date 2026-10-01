@@ -1,27 +1,23 @@
 ---
-title: Block network requests
-description: Block fetch and XHR calls to third-party domains in a React app until the visitor grants their consent category.
+title: Network blocker
+description: Hold fetch and XMLHttpRequest calls in a React app until their consent category is allowed, with networkBlocker rules in the ConsentProvider options.
 group: frameworks
 ---
 
-## Add rules to the provider
+## Add rules
 
-The network blocker stops `fetch` and `XMLHttpRequest` calls to domains you
-list until the visitor grants their category. Use it for beacons and API
-calls that bypass script loading, such as a pixel fired by an SDK that is
-already on the page.
+Some SDKs are already on the page and send beacons or API calls of their own.
+Add `networkBlocker` rules to the provider options to stop `fetch` and
+`XMLHttpRequest` calls to those domains until the category is allowed. Load
+vendor SDKs through [`scripts`](/docs/frameworks/react/scripts) first, so they
+do not run at all before consent.
 
-Add `networkBlocker` to the `ConsentProvider` options from your
-[quickstart](/docs/frameworks/react/quickstart). Set the URL to the endpoint
-supplied by your Inth project.
+This partial example adds the option next to the existing `mode` and
+`scripts`:
 
-```tsx title="components/consent.tsx"
-'use client';
+{/* example: fragment */}
 
-import type { ReactNode } from 'react';
-import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/react';
-
-const mode = hosted({ url: 'https://your-project.inth.app' });
+```tsx title="src/consent.tsx"
 const networkBlocker = {
   rules: [
     { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
@@ -29,20 +25,8 @@ const networkBlocker = {
   ],
 };
 
-export function Consent({ children }: { children: ReactNode }) {
-  return (
-    <ConsentProvider options={{ mode, networkBlocker }}>
-      {children}
-      <ConsentBanner />
-      <ConsentDialog />
-    </ConsentProvider>
-  );
-}
+<ConsentProvider options={{ mode, scripts, networkBlocker }}>
 ```
-
-Render your app inside `ConsentProvider`. Blocking starts when it renders, so
-components outside it that send requests while rendering, or modules evaluated
-before it, are not covered. See the limits below.
 
 <import src="../../shared/react/network-blocker.mdx#rules" />
 
@@ -50,4 +34,12 @@ before it, are not covered. See the limits below.
 
 <import src="../../shared/react/network-blocker.mdx#limits" />
 
-<import src="../../shared/react/network-blocker.mdx#verify" />
+## Verify the blocked requests
+
+Open DevTools Network in a private window, under a policy that asks for
+consent.
+
+1. Before a choice, requests matching a rule are absent, and the console logs
+   each blocked request.
+2. Allow the rule's category and save. Matching requests go out.
+3. Reject, reload, and check that they stay absent.

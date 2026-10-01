@@ -1,0 +1,21 @@
+.consent-example {
+	max-width: 48rem;
+	margin: 3rem auto;
+	padding: 1.5rem;
+	font-family: system-ui, sans-serif;
+}
+.consent-example iframe {
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	border: 0;
+}
+.consent-example nav a {
+	padding: 0.75rem 1rem;
+	margin: 0.25rem;
+}
+.consent-example + footer {
+	max-width: 48rem;
+	margin: 0 auto 3rem;
+	padding: 0 1.5rem;
+	font-family: system-ui, sans-serif;
+}

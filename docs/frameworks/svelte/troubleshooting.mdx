@@ -1,0 +1,33 @@
+---
+title: Troubleshooting
+description: Fix a missing banner, an unset backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
+group: frameworks
+---
+
+## The app throws "Set `VITE_C15T_BACKEND_URL`"
+
+**Check.** `src/App.svelte` throws when the backend URL is empty. Vite reads
+env files only at startup and build, and writes the value into the bundle.
+
+**Fix.** Add `VITE_C15T_BACKEND_URL` to `.env.local` and restart Vite. In
+production, set it where you run the build.
+
+## The banner appears after the page
+
+**Check.** In a Svelte app without a server, the browser requests the policy
+after the page loads, then shows the banner. That is expected. Optional
+categories stay denied until the policy arrives.
+
+**Fix.** For a banner in the first HTML, the page has to be server-rendered;
+SvelteKit does that. See [choose your setup](/docs/concepts/choose-your-setup).
+
+<include src="../../shared/svelte/troubleshooting.mdx" />
+
+## More help
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI. [Verify
+consent](/docs/guides/verify-consent) lists the checks to run before release.

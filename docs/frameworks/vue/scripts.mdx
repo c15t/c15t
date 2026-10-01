@@ -1,0 +1,64 @@
+---
+title: Scripts
+description: Load vendor scripts by consent category in a Vue app with the c15t Vue plugin, and what happens when a visitor withdraws consent.
+group: frameworks
+---
+
+## Register vendor scripts
+
+A banner does not stop a script you load with a `<script>` tag in
+`index.html` or a vendor SDK you initialize yourself. Remove those loaders and
+register the vendor with c15t instead, so c15t loads it only while its
+category is allowed.
+
+Create the script configuration with the helpers from `@c15t/integrations`:
+
+<include src="../../shared/examples/vue/scripts.mdx" />
+
+Pass it to the plugin as `scripts`:
+
+<include src="../../shared/examples/vue/main.mdx" />
+
+The plugin starts one script loader when the app mounts, after it has applied
+the visitor's stored choice and privacy signals. Do not also call
+`createScriptLoader` from a component. A component's `onMounted` runs before
+the plugin has read the stored choice, and each script would load twice.
+
+Every vendor guide under [integrations](/docs/integrations/overview) gives the
+helper and options for that vendor.
+
+## Embeds and other requests
+
+Scripts cover vendor code c15t loads for you. For the rest:
+
+- [Embeds](/docs/frameworks/vue/embeds) gates iframes with `ConsentGate` or
+  the iframe blocker.
+- [Network blocker](/docs/frameworks/vue/network-blocker) holds `fetch` and
+  XHR calls that match a rule until their category is allowed.
+
+## When a visitor withdraws consent
+
+Removing a script tag cannot stop code that already ran. When a save turns off
+a category or vendor that was allowed, c15t reloads the page so the new
+document starts with only permitted code. Set `reloadOnConsentRevoked: false`
+to handle revocation yourself, or use the
+[`onBeforeConsentRevocationReload` callback](/docs/frameworks/vue/callbacks#before-a-revocation-reload)
+to run code before the reload.
+
+`clearOnRevocation` deletes first-party cookies and storage keys that belong to
+a category when it is withdrawn. See
+[clear on revocation](/docs/integrations/clear-on-revocation).
+
+## Content Security Policy
+
+Allow each vendor's script host in `script-src`. The plugin's `nonce` option
+adds a nonce to every script the loader creates. See
+[Content Security Policy](/docs/frameworks/vue/content-security-policy).
+
+## Verify gating
+
+In a private window, open the Network tab and load the app under a policy that
+asks for consent. Requests to your vendors are absent.
+Allow one category and save, and only that category's vendors load. Withdraw
+it, and the page reloads without loading the vendor again.
+[Verify consent](/docs/guides/verify-consent) has the full checklist.

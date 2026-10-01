@@ -1,0 +1,134 @@
+---
+title: Gated scripts
+description: Hold a vendor's script tag on a plain HTML page until its consent category is allowed with type="text/plain" and data-c15t-category, including load order, copied attributes and what happens on withdrawal.
+group: frameworks
+---
+
+## Make a script wait for consent
+
+Change the vendor's `<script>` to `type="text/plain"` and name the category it
+needs in `data-c15t-category`. Browsers do not run a `text/plain` script. Once
+the category is allowed, c15t puts a normal copy of the tag in its place, and
+the browser runs the copy.
+
+<include src="../../../shared/examples/script-tag/vendor-scripts.mdx" />
+
+The first tag loads a file, the second holds the vendor's snippet inline.
+Both forms work. Remove the original, active copy of each vendor tag so it
+cannot run on its own.
+
+## Attributes
+
+| Attribute | Required | What it does |
+| --- | --- | --- |
+| `type="text/plain"` | Yes | Stops the browser running the script. A tag without it runs at once, whatever its category. |
+| `data-c15t-category` | Yes | One category name: `necessary`, `functionality`, `experience`, `measurement` or `marketing`. |
+| `src` | No | Load the script from a URL. Without it, c15t runs the tag's inline text. |
+| `async` | No | Load without waiting for earlier gated scripts, and let later ones start without waiting for this one. |
+| `data-c15t-activated` | Set by c15t | `true` once c15t has run the tag, `invalid` when its category name is unknown, `untrusted` when the page has a nonce and the tag lacks it. Do not set it yourself. |
+
+`necessary` is always allowed, so a `necessary` tag runs as soon as c15t
+starts. A category name c15t does not know logs a console warning, and the tag
+never runs.
+
+## What c15t copies to the new tag
+
+The replacement tag gets `src`, `async`, `defer`, `crossorigin`, `integrity`,
+`referrerpolicy`, `id`, `nonce`, every other `data-*` attribute, and the
+inline text. It gets `data-c15t-activated="true"` in place of `type`. Other
+attributes, such as `class` or `fetchpriority`, are not copied.
+
+The copied `nonce` keeps a nonce-based Content Security Policy working. A
+`defer` attribute has no effect on a script added after the page parsed, so
+ordering follows the rules below instead.
+
+## Load order
+
+c15t runs allowed tags in page order:
+
+- An external script without `async` finishes loading, or fails, before c15t
+  runs the next tag. An inline snippet after a library tag can use that
+  library.
+- An external script with `async` starts loading and c15t moves on at once.
+- Tags that become allowed later, after a visitor accepts, run in page order
+  among themselves.
+
+Google's GA4 snippet shows why this matters. Its first tag loads the library
+and its second calls it:
+
+{/* example: fragment */}
+
+```html
+<script type="text/plain" data-c15t-category="measurement" src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX"></script>
+<script type="text/plain" data-c15t-category="measurement">
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXX');
+</script>
+```
+
+Leave `async` off the first tag so the library loads before the second tag
+runs.
+
+## When c15t looks for tags
+
+- When it starts, which runs every tag a returning visitor already allowed.
+- After every change to permissions, such as an accept, a save, or a policy
+  that resolves.
+- When a new gated tag is added to the page, for example by a page builder
+  widget. A new tag whose category is already allowed runs straight away.
+
+Each tag runs at most once per page load.
+
+## Gated tags on a page with a nonce
+
+When the c15t tag has a nonce, from its own `nonce` attribute or from
+`data-nonce`, c15t runs only the gated tags that carry the same nonce:
+
+{/* example: fragment */}
+
+```html
+<script nonce="RANDOM_PER_RESPONSE" type="text/plain" data-c15t-category="measurement">
+  // The vendor's snippet
+</script>
+```
+
+c15t skips a gated tag without the nonce, logs a console warning and marks the
+tag `data-c15t-activated="untrusted"`. The tag's category is not added to the
+preference dialog. c15t never copies the nonce onto a gated tag, so add it to
+every gated tag, including tags your own code inserts later. This check stops
+markup injected into your page from running as a trusted script once its
+category is allowed. A page without a nonce runs every gated tag.
+[Content Security Policy](/docs/frameworks/html/content-security-policy)
+covers the rest of the policy.
+
+## The categories reach the dialog
+
+c15t adds the category of every gated tag to the categories the
+[preference dialog](/docs/frameworks/html/components/dialog) offers, as long as
+the policy covers it. A visitor can then allow a category because your page
+uses it.
+
+## What happens when a visitor withdraws permission
+
+A script that ran cannot be stopped. When a visitor turns off a category they
+had allowed, c15t saves the choice and reloads the page, and the new page
+starts with the tag inert again. [Scripts](/docs/frameworks/html/scripts#what-happens-when-a-visitor-withdraws-permission)
+covers turning the reload off and cleaning up cookies.
+
+## When to use config scripts instead
+
+A gated tag is the simplest form and works in any CMS field that accepts
+HTML. Use a `scripts` entry in `config` instead when you need a callback after
+the vendor loads or when consent changes. See
+[load a script with callbacks](/docs/frameworks/html/scripts#load-a-script-with-callbacks).
+
+## Check it works
+
+Open the page in a private window with the Network tab open.
+
+1. Filter for the vendor's domain. Nothing loads before a choice.
+2. Allow the tag's category. The vendor's request appears, and in the Elements
+   panel the tag now has `data-c15t-activated="true"` and no `type`.
+3. Reload. The vendor loads at once, before you touch the banner.

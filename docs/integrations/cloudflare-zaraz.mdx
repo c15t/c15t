@@ -1,41 +1,33 @@
 ---
 title: Cloudflare Zaraz
-description: Synchronize c15t permissions with Zaraz purposes while Cloudflare manages your tools.
+description: Sync c15t permissions to Cloudflare Zaraz purposes with the c15t cloudflareZaraz bridge, which runs on every page without loading a script, and check the tools it controls.
 group: integrations
 ---
 
-## Configure Zaraz before registering the bridge
+## Configure Cloudflare Zaraz
 
-This helper connects c15t to an existing Zaraz installation. It does not insert a
-script, configure Cloudflare tools, or turn a standalone SDK into a server-side
-integration. Configure each tool in Zaraz and remove its previous standalone
-loader, including any duplicate `@c15t/integrations` helper.
+`cloudflareZaraz` connects c15t to an existing Zaraz installation. It inserts
+no script and configures no tools. Zaraz loads the tools; c15t decides which
+purposes they may use. In the Zaraz dashboard:
 
-In the Zaraz dashboard:
+1. Enable Consent Management and create purposes for the c15t categories you
+   use.
+2. Assign a purpose to every tool that needs permission. Zaraz runs a tool
+   without a purpose regardless of consent.
+3. Turn off automatic display of the Zaraz consent modal. c15t owns the UI.
+4. Turn off **Automatic Pageview Tracking**, and automatic SPA pageviews too if
+   your app sends them itself.
+5. Copy the purpose IDs, not the purpose names, into the mapping below.
 
-1. Enable Consent Management and create purposes for the categories you use.
-2. Assign a purpose to every tool requiring permission. Zaraz tools without a
-   purpose bypass consent checks.
-3. Disable automatic display of the Zaraz consent modal. c15t owns the UI.
-4. Disable **Automatic Pageview Tracking**. Disable automatic SPA pageviews too
-   if your application will emit them itself.
-5. Copy the purpose IDs into the mapping below. Every active purpose returned by `zaraz.consent.getAll()` and omitted
-   from the mapping is denied by this bridge. Register one bridge per application.
+Zaraz keeps its own consent cookie. An automatic pageview can run with a grant
+from a previous visit before c15t applies the current permissions. With
+automatic pageviews off, send the first pageview from `onReady`, which runs
+after the first synchronization. DOM-ready, timer and click triggers you add in
+Zaraz can still run before the bridge starts; audit them. Cloudflare documents
+[purpose assignment](https://developers.cloudflare.com/zaraz/consent-management/)
+and [pageview settings](https://developers.cloudflare.com/zaraz/reference/settings/).
 
-Zaraz keeps a separate consent cookie. Its automatic pageview can run before
-c15t resolves the current permissions, using a grant from a previous visit.
-Disabling that pageview and emitting it from `onReady` prevents this particular
-startup race. Do not send other events before synchronization, and audit any
-custom triggers that run independently. DOM-ready, timer or click triggers can
-run with stale permissions before the bridge mounts. The bridge cannot undo
-requests sent before it starts.
-
-Cloudflare documents [purpose assignment](https://developers.cloudflare.com/zaraz/consent-management/)
-and [automatic pageview settings](https://developers.cloudflare.com/zaraz/reference/settings/).
-
-## Register the consent bridge
-
-<CommandTabs command="@c15t/integrations" mode="install" />
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { cloudflareZaraz } from '@c15t/integrations/cloudflare-zaraz';
@@ -56,92 +48,76 @@ export const scripts = [
 ];
 ```
 
-Use actual IDs from your dashboard, not the purpose names. A category may map to
-several purposes, but a purpose cannot appear more than once. Empty mappings,
-blank IDs and duplicate IDs throw during construction. Zaraz only returns purposes attached to enabled tools from `getAll()`. IDs absent
-from that result cannot receive a grant; compare the mapping with
-`zaraz.consent.getAll()` when troubleshooting.
-
-Include the mapped categories in your c15t policy. The bridge reads effective
-permissions, including policy restrictions, rather than treating every allowed
-category as a recorded visitor choice.
-
-For the shared registration examples below, keep Zaraz's own loader and its
-configured dashboard tools. Remove duplicate standalone vendor loaders only.
-For this integration, c15t owns permission synchronization and Zaraz owns tool
-loading.
+Register one bridge per app. Keep Zaraz's own loader and its dashboard tools
+when you follow the registration steps below; remove only standalone loaders
+for tools that Zaraz already runs, including a separate `@c15t/integrations` helper
+for the same tool. If Zaraz auto-injection is off, load
+[Zaraz manually](https://developers.cloudflare.com/zaraz/advanced/load-zaraz-manually/)
+once.
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
-## Loading and updates
-
-The helper returns an `alwaysLoad`, `callbackOnly` configuration with category
-`necessary`. This lets consent synchronization run for every visitor. It does
-not make the downstream analytics or advertising tools necessary.
-
-Zaraz normally injects its own loader. If auto-injection is disabled, install
-[Zaraz manually](https://developers.cloudflare.com/zaraz/advanced/load-zaraz-manually/)
-once. The bridge supports either loading order: an already-ready API is updated
-immediately; otherwise it waits for `zarazConsentAPIReady` and applies the latest
-c15t permissions. No polling is used.
-
-On a change, the bridge calls `zaraz.consent.set()` before
-`zaraz.consent.sendQueuedEvents()`. It flushes Zaraz's queued pageviews only when
-a purpose changes from denied to allowed. Revocation updates purposes to false
-and does not flush events. Repeated identical permissions do not rewrite the
-Zaraz cookie. `onReady` runs once after the first successful synchronization,
-including when all optional purposes are denied. A pageview sent there remains
-subject to Zaraz's purpose checks.
+## Options
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `purposes` | Required | Maps categories to Zaraz purpose IDs; unmapped purposes are denied |
-| `hideBuiltInModal` | `true` | Hides the currently visible modal; also disable auto-display in Cloudflare |
-| `sendQueuedEvents` | `true` | Replays Zaraz's queued pageviews after new grants |
-| `onReady` | Unset | Runs after initial permission synchronization |
-| `onError` | Unset | Receives synchronization errors so the application can report or handle them |
+| `purposes` | Required | Maps c15t categories to Zaraz purpose IDs. A category can list several IDs. An empty mapping, a blank ID, an ID with surrounding whitespace or an ID mapped twice throws. |
+| `hideBuiltInModal` | `true` | Hides the Zaraz modal if it is visible. Also turn off auto-display in Zaraz. |
+| `sendQueuedEvents` | `true` | Calls `zaraz.consent.sendQueuedEvents()` after a purpose changes from denied to allowed. Set `false` to discard pageviews Zaraz queued before consent. |
+| `onReady` | None | Runs once after the first successful synchronization, even when every purpose is denied. |
+| `onError` | None | Receives synchronization errors. |
 
-If a Zaraz API call throws, `onReady` does not run until synchronization
-succeeds. Use `onError(error)` to report the failure and prevent application
-events from relying on permissions that were not applied. The bridge retries
-with the latest permissions on the next consent update or readiness event;
-it does not poll or schedule automatic retries. Readiness retries remain
-registered when `onError` is omitted and an error reaches the loader debug hook. A failed queued-event replay
-remains pending until synchronization succeeds while that purpose is still
-allowed. Revoking the purpose cancels its pending replay. Zaraz can partially
-process a queue before throwing, so retries cannot guarantee exactly-once delivery. Without `onError`, synchronous
-failures reach the script loader's debug events and readiness-event failures
-reach the browser's error handler. A failed revocation can leave the previous
-Zaraz grant in place.
+## Loading and revocation
 
-If the bridge starts before saved consent or policy resolution is available,
-it applies the kernel's current effective permissions and updates them when
-initialization completes. Pass restored state during setup when available.
-The bridge does not force a denial when the kernel already permits a purpose.
+`cloudflareZaraz` returns a callback-only script with the `necessary` category
+and `alwaysLoad`, so the bridge runs for every visitor. That does not make the
+tools behind it necessary. Control each tool through its Zaraz purpose.
 
-Set `sendQueuedEvents: false` if your application deliberately discards
-pre-consent pageviews. Send subsequent route events only after readiness and
-avoid combining manual route events with Zaraz's automatic SPA pageviews.
+The bridge's vendor slug is `cloudflare-zaraz`. Declare a vendor with that
+`id` to give visitors a switch for Zaraz in the preference dialog. While a
+visitor has it switched off, the bridge denies every purpose mapped to an
+optional category, whatever the categories allow. See
+[let visitors turn off one vendor](/docs/integrations/granular-consent).
 
-Removing or replacing the configuration, or disposing its loader, detaches the
-readiness listener. Disposal does not revoke consent, clear vendor storage, or
-stop a tool that has already initialized. Save the denied permissions before
-teardown when revocation is required. Zaraz controls subsequent tool execution;
-test vendor-specific behavior for scripts with their own ongoing activity.
+When the Zaraz consent API is ready, the bridge reads `zaraz.consent.getAll()`
+and sets each returned purpose to `true` only if its mapped category is
+allowed in c15t's effective permissions, which include policy restrictions.
+Purposes you did not map are set to `false`. If the API is not ready,
+the bridge waits for the `zarazConsentAPIReady` event and applies the latest
+permissions; it does not poll. On each consent change it calls
+`zaraz.consent.set()` only when a value differs, then replays queued events
+for newly allowed purposes. Revocation sets purposes to `false` and replays
+nothing. Zaraz returns only purposes attached to enabled tools, so a mapped ID
+missing from `getAll()` gets no grant.
 
-## Verify the configured tools
+If a Zaraz call throws, `onReady` waits and the bridge retries on the next
+consent change or readiness event. Without `onError`, the error reaches the
+script loader's debug events, or the browser's error handler for readiness
+events. A failed revocation can leave the previous Zaraz grant in place, and a
+retried replay can send a queued event twice. Disposing the loader detaches the
+bridge but does not revoke purposes or stop tools that already ran. The bridge
+maps categories to purposes only; it does not translate IAB TCF choices.
 
-Use a test environment with isolated destinations. Check a first visit, a return
-visit with stale Zaraz grants, measurement-only acceptance, marketing-only
-acceptance, rejection, and revocation. Inspect both `zaraz.consent.getAll()` and
-actual tool activity. An updated consent object alone does not prove that a
-misconfigured tool stopped sending data.
+## Verify Cloudflare Zaraz
 
-This integration maps c15t categories to Zaraz purposes. It does not translate
-IAB TCF vendor and purpose choices or replace Zaraz's separate TCF configuration.
+Test with isolated destinations. `getAll()` shows what the bridge set, but only
+a tool's own requests show whether it respected that.
+
+1. In a private window with an opt-in policy, load the page. The bridge adds
+   no script element. `zaraz.consent.getAll()` returns `false` for every
+   purpose, the Zaraz modal stays hidden, and no purpose-gated tool sends a
+   request.
+2. Click Reject, then reload. Every purpose is still `false`.
+3. Open Privacy settings and allow measurement. Without a reload, the
+   measurement purposes become `true`, the queued pageview replays and
+   measurement tools send requests. Marketing tools stay silent.
+4. Turn measurement off again and save. c15t reloads the page, and the new
+   page starts with every purpose `false`.
+5. In the console, call `zaraz.consent.set()` to grant a purpose that c15t
+   denies, then reload. The bridge sets it back to `false` before `onReady`
+   runs.
 
 [Cloudflare Web Analytics](/docs/integrations/cloudflare-web-analytics) is a
-separate analytics product with its own loader. Zaraz manages multiple tools,
-which can have different consent requirements and execution costs. Moving a
-tool to Zaraz can reduce browser work, but this bridge alone does not establish
-a performance improvement for that tool.
+separate product with its own helper. See the
+[consent verification guide](/docs/guides/verify-consent) for navigation and
+hosting checks.

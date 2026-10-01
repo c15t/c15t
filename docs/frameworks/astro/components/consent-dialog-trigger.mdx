@@ -1,0 +1,78 @@
+---
+title: ConsentDialogTrigger
+description: Add a footer button or link that reopens the c15t preference dialog or the IAB TCF preference center on an Astro site, with no JavaScript of its own.
+group: frameworks
+---
+
+## Add the trigger to your footer
+
+Put one `ConsentDialogTrigger` in your footer, so visitors can change their
+choice at any time. Its children are the label:
+
+<include src="../../../shared/examples/astro-demo/layout.mdx" />
+
+`ConsentDialogTrigger` renders a plain `<button>` or `<a>` with no styles of
+its own. It carries `data-c15t-action="customize"`, and the same shared
+listener the banner uses opens the dialog on click.
+
+## Props
+
+| Prop | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `kind` | `'preferences' \| 'iab'` | `'preferences'` | Which dialog to open |
+| `as` | `'button' \| 'a'` | `'button'` | Renders a `<button type="button">`, or an `<a href="#c15t-preferences">` |
+| `class` | `string` | None | Class names for your own styles |
+
+Use `as="a"` when your footer styles links and not buttons. The click handler
+cancels the link's navigation, so the page does not jump.
+
+## When the trigger is hidden
+
+The trigger renders with the `hidden` attribute while there is nothing to
+manage:
+
+- No policy is resolved yet, or the backend request failed.
+- The resolved rule has `prompt: 'none'` and no rights, so it owes no consent
+  interface.
+
+The browser removes `hidden` as soon as a later `/init` answer supplies a rule
+that owes one, and adds it back if the rule stops owing one. With an
+[external consent source](/docs/frameworks/astro/client-api#use-an-external-consent-source),
+the trigger stays visible and opens the other platform's preferences.
+
+If your own CSS sets `display` on the trigger, keep `[hidden]` hidden too, for
+example with `.footer-link[hidden] { display: none; }`.
+
+## Open the IAB preference center
+
+With an IAB TCF policy, set `kind="iab"`:
+
+{/* example: fragment */}
+
+```astro title="src/layouts/iab.astro (partial)"
+<ConsentDialogTrigger kind="iab">Cookie preferences</ConsentDialogTrigger>
+```
+
+The page needs `IABConsentDialog` for `kind="iab"`, and `ConsentDialog` for
+the default kind. See [IAB TCF](/docs/frameworks/astro/iab).
+
+## Accessibility
+
+The trigger is a real `<button>` or `<a>`, so it is reachable with Tab and
+activates with Enter. Give it a label that says what it opens, such as
+"Cookie preferences" or "Privacy settings". Keyboard focus or a hover on a
+trigger for the preference dialog starts downloading it, so by the time the
+visitor presses Enter the dialog is usually ready.
+
+## Open a dialog from your own control
+
+A control that is not a `ConsentDialogTrigger` can open the dialog with
+`openDialog()` from `c15t/astro/client`. See
+[open and close dialogs](/docs/frameworks/astro/client-api#open-and-close-dialogs).
+
+## Next steps
+
+- [ConsentDialog](/docs/frameworks/astro/components/consent-dialog) is the
+  dialog this trigger opens.
+- [Verify consent](/docs/guides/verify-consent) checks that preferences reopen
+  after a choice.

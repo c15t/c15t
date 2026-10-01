@@ -1,0 +1,130 @@
+---
+title: "ConsentBanner"
+description: "Shared ConsentBanner reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt ConsentBanner pages. */}
+
+<section id="behavior">
+  ## What ConsentBanner renders
+
+  `ConsentBanner` renders the first-layer banner while `activeUI` is
+  `'banner'`. It renders nothing until the visitor's policy has resolved,
+  when the policy asks for no prompt, and when a `bannerModels` or `models`
+  option leaves out the policy's model.
+
+  The policy decides the buttons:
+
+  - A `choice` prompt shows Reject All, Accept All and Customize. Customize is
+    the primary button by default, so Accept All and Reject All look the same.
+  - A `notice` prompt shows an OK button. When the policy grants an opt-out or
+    preferences right, the banner adds a button styled as underlined text,
+    labelled "Do not sell or share my data" or "Manage preferences", that
+    opens preferences.
+  - A policy with prompt `none` shows no banner.
+
+  Each button runs one command. Accept All and Reject All record a choice for
+  every category the policy covers, and the banner closes. Customize sets
+  `activeUI` to `'manager'`, which opens `ConsentManager` if it is mounted.
+  OK records that the visitor dismissed the notice. Dismissing grants nothing
+  and leaves earlier refusals in place.
+
+  The text comes from the translations the backend resolved for the visitor:
+  `cookieBanner.title` and `cookieBanner.description` for a choice,
+  `cookieBanner.noticeTitle` and `cookieBanner.noticeDescription` for a
+  notice, and `common.acceptAll`, `common.rejectAll`, `common.customize` and
+  `common.acknowledge` for the buttons. `bannerLegalLinks` picks which of your
+  `legalLinks` appear under the description. The banner has no slots and no
+  text props.
+
+  `ConsentBanner` moves itself into `document.body` once it has mounted.
+  During server rendering it renders in place, so the banner can be part of
+  the server HTML.
+
+  ## Variants and positions
+
+  The policy decides which actions the banner offers. The variant decides the
+  shape they take.
+
+  | Variant | Shape | Positions | Default position |
+  | --- | --- | --- | --- |
+  | `floating` | A card in a corner or centred on an edge. The default. | `bottom-left`, `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` | `bottom-left` |
+  | `bar` | A full-width bar along the top or bottom edge. | `top`, `bottom` | `bottom` |
+  | `widget` | A compact card with smaller type. | `bottom-left`, `bottom-right`, `top-left`, `top-right` | `bottom-right` |
+  | `wall` | A centred card over a backdrop that blocks the page. | `center` | `center` |
+
+  The policy has the last word. A choice `wall` always blocks. A notice never
+  blocks, and a notice `wall` falls back to `floating`. A position the variant
+  does not accept falls back to the variant's default. Each correction logs a
+  `[c15t]` warning in the browser console.
+
+  A default corner mirrors left and right for right-to-left languages. A
+  position you set is kept as written.
+</section>
+
+<section id="props">
+  ## Props
+
+  | Prop | Type | Default | Behavior |
+  | --- | --- | --- | --- |
+  | `variant` | `'floating' \| 'bar' \| 'widget' \| 'wall'` | `presentation.prompt.variant`, else `'floating'` | Shape of the banner. |
+  | `position` | `PromptPosition` | `presentation.prompt.position`, else the variant's default | Where the banner sits. Must be valid for the variant. |
+  | `blocking` | `boolean` | `presentation.prompt.blocking`, else `true` for `wall` only | Backdrop, scroll lock and focus trap, as one value. |
+
+  A prop you set beats the matching `presentation.prompt` option. Leave a prop
+  unset to follow your c15t options. `PromptVariant` and `PromptPosition` are
+  exported as types from `c15t`.
+</section>
+
+<section id="accessibility">
+  ## Accessibility and focus
+
+  - A non-blocking banner is a `region` labelled with the banner title. It does
+    not trap focus or lock scrolling, so the page stays usable with a keyboard
+    and a pointer.
+  - A blocking banner is a `dialog` with `aria-modal="true"`. It shows a
+    backdrop, locks page scrolling, moves focus to the banner card and keeps
+    Tab inside the card.
+  - The banner has no close button, and Escape does not dismiss it. The
+    visitor answers with one of its buttons.
+  - Every action is a native `button`. The banner sets `dir` from the resolved
+    language.
+</section>
+
+<section id="styling">
+  ## Style the banner
+
+  [Theme tokens](/docs/customization/tokens) change colors, type, radius,
+  spacing and motion. The `components.banner` option adds attributes, such as
+  `class` or `style`, to these parts: `root`, `overlay`, `cardShell`, `card`,
+  `header`, `title`, `footer`, `actions`, `actionGroup`, `rights` and
+  `rightLink`. `components.description.banner` and `components.tag.banner`
+  reach the description and the branding tag.
+  [Component slots](/docs/customization/slots) lists every part.
+
+  The root element carries attributes you can target from CSS:
+
+  | Attribute | Values |
+  | --- | --- |
+  | `data-variant` | `floating`, `bar`, `widget`, `wall` |
+  | `data-position` | The resolved position |
+  | `data-prompt` | `choice`, `notice` |
+  | `data-model` | `opt-in`, `opt-out`, `iab` |
+  | `data-blocking` | `true`, present only while blocking |
+
+  `bannerHideBranding`, or `hideBranding` for every surface, hides the
+  "Secured by" tag. `disableAnimation` turns off the enter and exit
+  transitions.
+</section>
+
+<section id="verify">
+  ## Verify
+
+  Open the page in a private window under a policy that asks for a choice.
+  The banner appears with Reject All and Accept All side by side. Tab through
+  it and confirm every button is reachable. Click Customize and the preference
+  dialog opens. Reject, reload, and confirm the banner stays closed. In the
+  Elements panel, the root element carries the `data-variant` and
+  `data-position` you set.
+</section>

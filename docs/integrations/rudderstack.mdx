@@ -1,15 +1,15 @@
 ---
 title: RudderStack
-description: Gate the RudderStack browser SDK or map c15t categories to destination consent IDs.
+description: Load the RudderStack JavaScript SDK after measurement consent with the c15t rudderstack helper, or map c15t categories to destination consent IDs, and check each mode.
 group: integrations
 ---
 
 ## Configure RudderStack
 
-Copy the source write key and HTTPS data plane URL from your RudderStack source.
-The default helper waits for measurement permission before loading the SDK.
+Copy the source write key and the HTTPS data plane URL from your RudderStack
+source. Keep control-plane credentials out of the browser.
 
-<CommandTabs command="@c15t/integrations" mode="install" />
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { rudderstack } from '@c15t/integrations/rudderstack';
@@ -21,56 +21,75 @@ export const scripts = [
   }),
 ];
 ```
-
-Replace both values before running the example. Keep secret control-plane
-credentials out of the browser.
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
-## Map destination consent when loading before permission
-
-`consentManagement` changes the loading contract. The SDK loads immediately,
-receives pre-consent configuration, and stays loaded after revocation. c15t
-sends consent updates through `rudderanalytics.consent()`.
-
-```ts title="src/consent-scripts.ts"
-import { rudderstack } from '@c15t/integrations/rudderstack';
-
-export const scripts = [
-  rudderstack({
-    writeKey: 'YOUR_SOURCE_WRITE_KEY',
-    dataPlaneUrl: 'https://your-data-plane.example.com',
-    consentManagement: {
-      mapping: {
-        measurement: ['product-analytics'],
-        marketing: ['advertising'],
-      },
-    },
-  }),
-];
-```
-
-The IDs in this example are placeholders for your destination consent settings.
-Allowed c15t categories contribute their IDs to `allowedConsentIds`; denied
-categories contribute theirs to `deniedConsentIds`. Test each destination
-independently. This mode does not prevent the initial SDK request.
-
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `writeKey` | Required non-empty browser source key. |
-| `dataPlaneUrl` | Required HTTPS data plane URL. |
-| `consentManagement.mapping` | Optional category-to-consent-ID map. Enables pre-consent loading. |
-| `loadOptions` | Optional JSON-serializable SDK options; functions are not supported. |
-| `trackPageView` | Defaults to `true`, queuing an initial `page()` call. |
-| `scriptUrl` | Optional HTTPS loader override. Defaults to the modern v3 RudderStack loader. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `writeKey` | Required | Source write key. Surrounding whitespace is trimmed; an empty value throws. |
+| `dataPlaneUrl` | Required | Data plane URL. A missing, invalid or non-HTTPS URL throws. |
+| `consentManagement` | None | `{ mapping }` from c15t categories to RudderStack consent IDs. Switches to destination consent mode. |
+| `loadOptions` | `{}` | Third argument to `rudderanalytics.load()`. Use JSON-serializable values only. |
+| `trackPageView` | `true` | Queues `rudderanalytics.page()` before the loader. |
+| `scriptUrl` | `https://cdn.rudderlabs.com/v3/modern/rsa.min.js` | Loader URL override. A non-HTTPS URL throws; a blank value uses the default. |
 
-## Verify the integration
+## Loading and revocation
 
-In the default mode, confirm denial prevents the initial SDK load. With a
-consent mapping, expect the SDK request and inspect the destination consent IDs
-instead. The default mode has no vendor shutdown hook after loading, so verify
-revocation beyond script removal. In both modes, check routing for duplicate
-page events and stop disallowed application events. See
-[consent verification](/docs/guides/verify-consent).
+`rudderstack` uses the `measurement` category. `consentManagement` picks the
+mode:
+
+| Mode | Loads | On consent change | On revocation |
+| --- | --- | --- | --- |
+| Default | After measurement is allowed, with `load` and `page` queued | Nothing | Removes the script element and calls no RudderStack API |
+| `consentManagement` | On every page, in RudderStack's pre-consent state | Calls `rudderanalytics.consent()` with the mapped IDs | Keeps the SDK and calls `consent()` with the revoked IDs denied |
+
+## Map destination consent
+
+`consentManagement` loads the RudderStack SDK before the visitor chooses. Use
+it only when every destination in your workspace carries a consent ID from the
+mapping; c15t cannot check destination settings from the browser. Add the
+mapping to the helper call:
+
+```ts
+rudderstack({
+  writeKey: 'YOUR_SOURCE_WRITE_KEY',
+  dataPlaneUrl: 'https://your-data-plane.example.com',
+  consentManagement: {
+    mapping: {
+      measurement: ['YOUR_ANALYTICS_CONSENT_ID'],
+      marketing: ['YOUR_ADVERTISING_CONSENT_ID'],
+    },
+  },
+});
+```
+
+The helper sets `preConsent.enabled`, buffered event delivery and
+`consentManagement.provider: 'custom'` in the load options. Storage defaults to
+`{ strategy: 'none' }`; a `preConsent.storage` value in `loadOptions` replaces
+it. Before `load`, the helper queues a `consent()` call. IDs of allowed
+categories go to `allowedConsentIds` and IDs of denied categories go to
+`deniedConsentIds`. A visitor who turns off the `rudderstack` vendor gets every
+mapped ID denied. An empty mapping, or a category with no non-blank IDs, throws.
+
+## Verify RudderStack
+
+In the default mode, allowing measurement loads `rsa.min.js` with a
+`data-rsa-write-key` attribute, and a page event goes to your data plane URL.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />
+
+With `consentManagement`, the SDK loads before the choice, so check your
+destinations instead. Test in a private window with an opt-in policy:
+
+1. Load the page. `rsa.min.js` loads before you choose. Destinations whose
+   consent IDs map to a denied category receive no events.
+2. Open Privacy settings and allow measurement. Without a reload,
+   destinations with measurement IDs start receiving events. Destinations
+   mapped only to marketing still receive none.
+3. Turn measurement off and save. c15t reloads the page, and destinations with
+   measurement IDs receive no events from the new page.
+
+See the [consent verification guide](/docs/guides/verify-consent) for
+navigation and hosting checks.

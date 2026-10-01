@@ -1,0 +1,14 @@
+---
+title: ConsentWidget
+description: Put c15t's category switches inline on a SvelteKit privacy settings route with ConsentWidget, and how its draft, vendors and stale-policy alert behave.
+group: frameworks
+---
+
+<include src="../../../shared/svelte/components/consent-widget.mdx" />
+
+## Widget in the server HTML
+
+With a server `prefetch` from the root layout, the widget renders into the
+route's HTML with the visitor's stored choices. Without one, it appears after
+hydration once the policy resolves. The page title in the example is
+`src/routes/privacy/+page.svelte`; any route under the root layout works.

@@ -1,0 +1,16 @@
+---
+/**
+ * The consent example as a prerendered page. In the server build this is
+ * one static page inside an on-demand site: the middleware resolves no
+ * visitor at build time, and the browser applies each visitor's policy and
+ * stored choice.
+ */
+import ConsentExample from '../components/consent-example.astro';
+import DemoLayout from '../layouts/demo.astro';
+
+export const prerender = true;
+---
+
+<DemoLayout title="Consent example">
+	<ConsentExample />
+</DemoLayout>

@@ -1,0 +1,117 @@
+---
+title: Translations
+description: Where c15t banner and dialog copy comes from in Next.js, how the server and browser pick the visitor's language, and how to override copy and switch languages from a Client Component.
+group: frameworks
+---
+
+## Where the copy comes from
+
+The banner, dialog, widget and gate placeholder read their text from the
+translations in your Inth project, or your self-hosted backend's
+configuration. The policy carries the copy for the visitor's language. Edit
+wording there first, so it changes without a deploy.
+
+Code can override that copy in two places:
+
+- `options.i18n` on `ConsentRoot` changes a message everywhere it appears.
+- Text props on `ConsentBanner` change one banner.
+
+[Copy and translations](/docs/customization/translations) lists the message
+keys and explains how code messages combine with the project's copy.
+
+## How c15t picks the language
+
+In the [App Router](/docs/frameworks/next/app-router) and
+[Pages Router](/docs/frameworks/next/pages-router) setups, `resolveConsent`
+reads the first entry of the request's `Accept-Language` header. It resolves
+the policy and its copy on the server, so the banner in the first HTML is
+already in the visitor's language. Pass `language` to `resolveConsent` to use
+your own value instead, such as the locale from a `[lang]` route segment.
+
+When the browser resolves consent, as in
+[client-side rendering](/docs/frameworks/next/client-side) and
+[static export](/docs/frameworks/next/static-export), the browser's `/init`
+request carries its own `Accept-Language` header.
+
+When your project has no copy for the requested language, the backend
+returns its fallback language.
+
+The banner, dialog and widget set `dir` from the active language. Right-to-left
+languages such as Arabic and Hebrew render with `dir="rtl"`, and a floating
+banner you did not position yourself moves to the opposite side.
+
+## Change the copy in code
+
+Keep the messages in their own module:
+
+<include src="../../shared/examples/nextjs/i18n.mdx" />
+
+Import it in the `'use client'` file that renders `ConsentRoot`, such as
+`components/consent.tsx` from the App Router guide, and pass it under
+`options`:
+
+{/* example: fragment */}
+
+```tsx title="components/consent.tsx"
+<ConsentRoot
+  state={state}
+  config={consentConfig}
+  scripts={scripts}
+  options={{ i18n }}
+>
+```
+
+Pass `i18n` in the client file, not from the layout. The layout is a Server
+Component, and React serializes every prop it passes to a Client Component.
+Functions and the `defineConsentConfig()` result cannot cross that boundary,
+so the App Router guide keeps all `ConsentRoot` configuration in the client
+wrapper and the layout passes only `state`. Keep `i18n` next to the rest.
+
+`ConsentRoot` renders on the server too, so your messages are already in the
+server HTML.
+
+For the visitor's language, your messages replace the project's copy key by
+key. Keys you leave out keep the project's wording, and messages for other
+languages are not applied. `ConsentRoot` reads `i18n` once, when it mounts. In
+development it logs a warning if `i18n` changes later.
+
+`i18n.locale` sets the language of the copy when no backend or server state
+supplies one, as in offline mode. It defaults to `en`.
+
+## Change one banner's copy
+
+`ConsentBanner` takes `title`, `description`, `acceptButtonText`,
+`rejectButtonText`, `customizeButtonText` and `dismissButtonText`. The props
+replace the text in every language, so pass values in the page's language:
+
+{/* example: fragment */}
+
+```tsx
+<ConsentBanner title="Cookies on this site" rejectButtonText="Reject optional" />
+```
+
+## Switch the language at runtime
+
+`useSetLanguage()` stores the new language, and `useInit()` resolves the policy
+again, which fetches the copy for that language. Call both from your language
+switcher:
+
+<include src="../../shared/examples/nextjs/language-switcher.mdx" />
+
+Setting the language without calling `init()` changes nothing on screen. Your
+`i18n` messages for the new language apply on top of the copy that arrives.
+
+If your site changes language through its own i18n library, run the same two
+calls when its locale changes. To make the server HTML match too, pass the
+locale to `resolveConsent` as `language`.
+
+## Verify
+
+1. Under a policy that shows a banner, request a dynamic page with
+   `curl -H 'Accept-Language: de' <your-url>`. If your project translates
+   German, the banner text in the HTML is German.
+2. Open the page in the browser and check that a message you set in `i18n`
+   shows in the banner.
+3. Switch the language with your switcher. DevTools Network shows a new
+   request to your manifest route or `/init`, and the banner and dialog text
+   change without a reload.

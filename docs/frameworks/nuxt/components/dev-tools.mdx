@@ -1,0 +1,65 @@
+---
+title: DevTools
+description: Inspect consent state, the resolved policy, location, scripts and consent events in a Nuxt app during development with ConsentDevTools.
+group: frameworks
+---
+
+## Load DevTools only in development
+
+The module does not register `ConsentDevTools`. Import it from
+`c15t/vue/devtools` with a dynamic import that runs only in development:
+
+<include src="../../../shared/examples/nuxt/devtools.mdx" />
+
+Render this component anywhere in your app, such as `app.vue`.
+`import.meta.dev` is `false` in production builds, so the dynamic import and
+the panel stay out of your production bundle. A static `import` would ship
+DevTools to every visitor even when `v-if` hides it. The panel mounts in the
+browser only.
+
+<import src="../../../shared/vue/components/dev-tools.mdx#behavior" />
+
+<import src="../../../shared/vue/components/dev-tools.mdx#props" />
+
+## Inspect consent in Nuxt DevTools
+
+In development, the module adds a **c15t** tab to Nuxt DevTools, so you don't
+need to render `ConsentDevTools` to inspect consent. Open Nuxt DevTools with
+Shift + Option + D (Shift + Alt + D on Windows and Linux) and choose c15t. The
+tab shows consent values, scripts, location, the resolved policy, IAB state,
+events and consent actions. It follows the DevTools light or dark theme.
+
+Nuxt enables its DevTools by default in development. Production builds don't
+register the tab, its `/__c15t_devtools__` page or the client plugin that
+exposes the kernel to it. To turn the tab off in development, set
+`devtools: false`:
+
+{/* example: fragment */}
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+  modules: ['c15t/vue'],
+  c15t: {
+    devtools: false,
+  },
+});
+```
+
+The tab's event history starts when you first open it. Nuxt DevTools keeps the
+tab loaded, so switching to another tab and back keeps the history. Saves and
+actions in the tab change the app's real consent state, as they would through
+the banner.
+
+<import src="../../../shared/vue/components/dev-tools.mdx#embedded-panel" />
+
+## Verify
+
+Run `nuxt dev` and open the app. A DevTools button appears in the corner you
+set. Open the Location panel and check the country the server resolved. Build
+with `nuxt build`, start the server and confirm the button does not appear.
+
+## Next steps
+
+- [Troubleshooting](/docs/frameworks/nuxt/troubleshooting) uses DevTools to
+  explain a missing banner.
+- [Verify consent](/docs/guides/verify-consent) is the release checklist.

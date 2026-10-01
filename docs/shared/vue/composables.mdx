@@ -1,0 +1,149 @@
+---
+title: "Vue and Nuxt composables"
+description: "Shared composable reference for the c15t Vue plugin and Nuxt module."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt composables pages. */}
+
+<section id="rules">
+  ## Where composables work
+
+  Call the composables inside `setup` of a component that renders in the app
+  where c15t is installed. Anywhere else they throw an error such as
+  `[c15t] Kernel not found`. Most return a Vue `computed`, so read them with
+  `.value` in `<script setup>` and without it in the template. They update
+  whenever the consent runtime changes.
+</section>
+
+<section id="permission">
+  ## Permission or recorded choice
+
+  `useConsent()` and `useHasConsent()` answer "may this run now?" Under an
+  opt-out policy a category can be allowed before the visitor has done
+  anything, and Global Privacy Control can deny a category the visitor
+  allowed. Use them to decide whether to run code or render optional content.
+
+  `useExplicitChoice()` answers "what did the visitor decide?" It stays
+  `null` until the visitor accepts, rejects or saves. Use it to show the
+  visitor's choice or to report consent rates. Loading a page never changes
+  it, and dismissing a notice does not set it.
+
+  Never save a choice on the visitor's behalf because a permission is `true`.
+  [How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+  explains the difference.
+</section>
+
+<section id="read-state">
+  ## Read consent state
+
+  | Composable | Returns | Use it to |
+  | --- | --- | --- |
+  | `useConsent()` | Computed `Record<category, boolean>` | Read every category's current permission, such as `consent.value.marketing`. |
+  | `useHasConsent()` | Computed array of allowed categories | List what may run now. The array keeps its identity until a category changes. |
+  | `useEffectivePermissions()` | Computed permissions | The same values as `useConsent()`, read from the snapshot field. |
+  | `useExplicitChoice()` | Computed recorded choice, or `null` | Read what the visitor decided. |
+  | `useStoredConsent()` | Computed recorded choice, or `null` | The same value as `useExplicitChoice()`. |
+  | `useNoticeDismissal()` | Computed dismissal record, or `null` | Check whether the visitor dismissed a notice. |
+  | `usePrivacySignals()` | Computed privacy signals | Read whether Global Privacy Control was detected and applied. |
+  | `useConsentRestrictions()` | Computed restrictions | See why a permission is limited, for example by the policy or a privacy signal. |
+  | `usePolicyRule()` | Computed policy rule | Read the `model`, `prompt`, `scope` and `rights` of the visitor's policy. |
+  | `usePolicyResolution()` | Computed resolution | Check that a policy matched. `status` is `'matched'` when one applies. |
+  | `useRequestRegion()` | Computed `{ country, region }` | Read the location the policy resolved for. |
+</section>
+
+<section id="act">
+  ## Record a choice
+
+  `useConsentSave()` returns a function that records a choice and resolves to
+  `{ ok }` once the backend has answered. c15t applies the choice in the page
+  before the request, so gated scripts start without waiting for it.
+
+  | Argument | Records |
+  | --- | --- |
+  | `'all'` | Every category the policy covers allowed. |
+  | `'none'` | Every optional category denied. |
+  | `['measurement']` | The listed categories allowed and every other optional category denied. |
+
+  `useDismissNotice()` returns the function that dismisses a notice. It
+  records an acknowledgement, grants nothing and leaves earlier refusals in
+  place. Use it only for a policy whose prompt is `notice`.
+
+  ## Open the banner or preferences
+
+  `useConsentActiveUI()` returns a writable computed. Its value is
+  `'banner'`, `'manager'` or `null`. Set it to `'manager'` to open
+  preferences, to `'banner'` to show the banner again, or to `null` to close
+  both. The Vue adapter uses `'manager'` where the React adapter uses
+  `'dialog'`. `ConsentPreferencesLink` does the same as setting `'manager'` and
+  hides itself when the policy offers no preferences.
+
+  ## Change the language
+
+  `useConsentLanguage()` returns a writable computed with the language
+  override, or `null`. Assigning a new language code stores it and runs init
+  again, so c15t fetches the banner and dialog text in that language.
+  Assigning the current language, or `null`, does nothing.
+</section>
+
+<section id="headless">
+  ## Build a preference form
+
+  `useConsentDraft()` holds the switches of a preference form separately from
+  the recorded choice, so nothing is saved until the visitor clicks Save.
+
+  | Field | Type | Meaning |
+  | --- | --- | --- |
+  | `displayedCategories` | `Ref<category[]>` | The categories the policy lets the visitor choose, `necessary` first. |
+  | `values` | `Ref<Partial<Record<category, boolean>>>` | One value per displayed category. Bind switches to it with `v-model`. |
+  | `vendors` | `Ref<Record<string, boolean>>` | One value per declared vendor. Change them with `setVendor(id, granted)`. |
+  | `isStale` | `ComputedRef<boolean>` | `true` when the policy changed after the draft was filled. |
+  | `save()` | `() => Promise<{ ok: boolean }>` | Records `values` and changed vendors. Resolves `{ ok: false }` without saving while `isStale` is `true`. |
+  | `reset()` | `() => void` | Refills the draft from the recorded choice and the policy. |
+
+  The draft starts from the recorded choice. Before any choice, it starts
+  from the policy's defaults: on under an opt-out policy or for preselected
+  categories, otherwise off. A choice saved elsewhere updates the values the
+  visitor has not touched. `save()` does not close anything. Set `activeUI`
+  to `null` yourself after it.
+
+  ## Render the actions the policy requires
+
+  | Composable | Returns | Use it to |
+  | --- | --- | --- |
+  | `usePromptRequirement()` | Computed `{ kind }`, where `kind` is `'choice'`, `'notice'` or `'none'` | Decide whether to show a banner at all. |
+  | `useConsentPolicyActions(surface)` | Computed `actionGroups`, `primaryActions`, `variant`, `position`, `blocking`, `direction` and `preferenceControls` | Render the buttons a banner (`'prompt'`) or preference form (`'preferences'`) must show, in order. |
+  | `useHasConsentPolicy()` | Computed boolean | Check that a policy matched the visitor. |
+  | `useHasConsentUi()` | Computed boolean | Check that the policy owes any consent UI. Every stock surface hides while it is `false`. |
+  | `useHasConsentPreferences()` | Computed boolean | Check whether a preferences control should render. |
+
+  Under a notice, `actionGroups` holds `dismiss` instead of accept and
+  reject. `preferenceControls` lists extra buttons, `'opt-out'` or
+  `'preferences'`, that open preferences under a policy with those rights.
+</section>
+
+<section id="iab">
+  ## IAB TCF
+
+  | Composable | Returns | Use it to |
+  | --- | --- | --- |
+  | `useConsentIabSelection()` | Writable computed with purpose, legitimate-interest, vendor and special-feature maps, and `preferenceCenterTab` | Read and change the visitor's IAB selection in a custom preference centre. Writing it updates gating live without saving. |
+  | `useConsentIabSave()` | `(input, tab?) => Promise<void>` | Save `'all'`, `'none'` or a selection. It waits for the Global Vendor List, then writes the TC String. |
+  | `useIabTranslations()` | Computed IAB copy | Read the IAB banner and dialog text for the visitor's language. |
+</section>
+
+<section id="advanced">
+  ## Advanced
+
+  | Composable | Returns | Use it to |
+  | --- | --- | --- |
+  | `useConsentSnapshot()` | `Ref<ConsentSnapshot>` | Read any snapshot field, such as `policyPending`, `vendors` or `iab`. |
+  | `useConsentKernel()` | The consent kernel | Call `commands.init()`, `commands.save()`, `commands.identify(user)`, subscribe with `events.on(type, listener)`, or read `getSnapshot()`. |
+  | `useConsentConfig()` | Computed options, merged with defaults | Read the options you passed. |
+  | `useConsentInit()` | Computed `{ translations, location, branding, gvl, cmpId, customVendors }`, or `undefined` before the policy resolves | Read display data from the resolved policy. |
+  | `useConsentComponent(name)` | Computed slot attributes | Read the `components` option for one component, to reuse it in custom markup. |
+
+  `useConsentKernel().events.on()` returns an unsubscribe function. Call it in
+  `onUnmounted`. For choice and permission events, prefer the `callbacks`
+  option, which c15t wires once for the whole app.
+</section>

@@ -151,7 +151,13 @@ const renderVariants = async function renderVariants(
 				colorScheme: variant.options?.colorScheme ?? 'light',
 				consentCategories: variant.options?.consentCategories,
 				mode: mode.offlineMode({ policyRules: [storybook.storybookPolicy] }),
-				presentation: storybook.storybookPresentation,
+				presentation: {
+					...storybook.storybookPresentation,
+					prompt: {
+						...storybook.storybookPresentation.prompt,
+						...variant.options?.presentation?.prompt,
+					},
+				},
 				ui: variant.ui ?? 'svelte',
 			};
 			if (variant.options?.iab) {

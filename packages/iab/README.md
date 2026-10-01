@@ -56,11 +56,11 @@ import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab'
 1. Configure c15t with the IAB consent model for jurisdictions that require TCF workflows
 2. Use the React IAB components for a prebuilt TCF banner and preference center
 3. Use headless APIs when you need a custom IAB consent experience
-4. For full implementation details, see the [IAB TCF 2.4 docs](https://c15t.com/docs/frameworks/react/iab/overview)
+4. For full implementation details, see the [IAB TCF 2.4 docs](https://c15t.com/docs/frameworks/react/iab)
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/react/iab/overview).
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/react/iab).
 
 ## Related Packages
 

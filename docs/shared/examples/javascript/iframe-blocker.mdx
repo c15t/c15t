@@ -1,0 +1,12 @@
+{/* Generated from examples/javascript/src/ref-iframe-blocker.ts (docs:iframe-blocker) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/iframe-blocker.ts"
+import type { ConsentKernel } from 'c15t';
+import { createIframeBlocker } from 'c15t/modules/iframe-blocker';
+
+// Watches the page for <iframe data-src data-category> and sets `src` while
+// the category is allowed.
+export const gateIframes = function gateIframes(kernel: ConsentKernel) {
+	return createIframeBlocker({ kernel });
+};
+```

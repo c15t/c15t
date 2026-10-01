@@ -1,103 +1,96 @@
 ---
 title: Callbacks
-description: React ConsentProvider callbacks for banner impressions, recorded choices, permission changes and transport errors, with time to decision for analytics.
+description: Run code in a React app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, with the ConsentProvider callbacks option.
 group: frameworks
 ---
 
 ## Pass callbacks to the provider
 
-`ConsentProvider` from `c15t/react` accepts a `callbacks` object in its
-`options`. Each callback fires only when its event happens; none of them fires
-for a hydrated record or a server render. Callbacks read the latest function
-you pass, so an inline object does not restart the runtime.
+Keep the callbacks in their own module:
 
-```tsx title="src/app/providers.tsx"
-'use client';
+<include src="../../shared/examples/react/callbacks.mdx" />
 
-import { ConsentProvider, hosted } from 'c15t/react';
+Pass them in the `ConsentProvider` options, in the file that renders the
+provider, such as `src/consent.tsx` from the
+[quickstart](/docs/frameworks/react/quickstart):
 
-export const Providers = ({ children }: { children: React.ReactNode }) => (
-	<ConsentProvider
-		options={{
-			mode: hosted({ url: 'https://your-project.inth.app' }),
-			callbacks: {
-				onSurfaceShown: ({ surface, shownAt }) => {
-					analytics.track('consent_surface_shown', { surface, shownAt });
-				},
-				onChoiceRecorded: ({ confirmed, timeToDecisionMs, snapshot }) => {
-					analytics.track('consent_choice', {
-						confirmed,
-						timeToDecisionMs,
-						uiSource: snapshot.activeUI,
-					});
-				},
-				onPermissionsChanged: ({ snapshot }) => {
-					analytics.setConsent(snapshot.effectivePermissions);
-				},
-				onError: ({ error }) => {
-					console.error('c15t', error);
-				},
-			},
-		}}
-	>
-		{children}
-	</ConsentProvider>
-);
+{/* example: fragment */}
+
+```tsx title="src/consent.tsx"
+<ConsentProvider options={{ mode, scripts, callbacks }}>
 ```
 
-| Callback | Fires when | Payload |
+The provider subscribes the callbacks after it mounts, so they run in the
+browser. If you render on the server, server rendering never calls them. The
+provider calls the latest `callbacks` object it received, so a new object on
+a later render takes effect without a remount. Defining the object at module
+level, as above, keeps it the same across renders.
+
+When you pass your own `runtime` to `ConsentProvider`, the provider does not
+wire `callbacks` or `reloadOnConsentRevoked` from its options. Pass them to
+`createConsentRuntime` instead.
+
+## Available callbacks
+
+| Callback | Runs when | Receives |
 | --- | --- | --- |
-| `onSurfaceShown` | The banner or the dialog becomes visible | `surface`, `shownAt`, `snapshot` |
-| `onChoiceRecorded` | An explicit accept, reject or save is recorded locally | `confirmed`, `actionAt`, `timeToDecisionMs?`, `snapshot` |
-| `onPermissionsChanged` | Effective permissions change by value | `previous`, `snapshot` |
-| `onError` | A transport command fails | `error` (a string) |
+| `onChoiceRecorded` | The visitor clicks Accept All, Reject All or Save Settings, in the stock UI or through `useSaveConsents()`. | `snapshot`, the state after the choice; `confirmed`, the categories this action recorded; `actionAt`, the time as a millisecond timestamp |
+| `onPermissionsChanged` | Any effective permission changes value. | `snapshot`, the state after the change; `previous`, the permissions before it |
+| `onError` | A consent command fails, such as a failed `/init` request or a save the backend rejects. | `error`, a message string |
+| `onBeforeConsentRevocationReload` | A save withdrew a granted category or vendor, right before c15t reloads the page. | `preferences`, the permissions after the save |
 
-## Count impressions with `onSurfaceShown`
+The type for the whole object is `ConsentProviderCallbacks` from `c15t/react`.
+Callbacks run after c15t updates its state, so `snapshot` and hooks such as
+`useConsent()` already hold the new values.
 
-`onSurfaceShown` runs once each time the banner or the dialog opens, once the
-runtime is live in the browser: after `init` completes, or after hydration
-when a server-resolved prefetch stands in for `init`. A server-rendered banner
-therefore counts once, on the client, not on every hydration. `surface` is
-`'banner'` or `'dialog'`; `shownAt` is epoch milliseconds.
+## onChoiceRecorded or onPermissionsChanged
 
-The event bus does not replay to late subscribers. An analytics SDK that loads
-after the banner appeared can read `snapshot.surfaceShownAt.banner` and
-`snapshot.surfaceShownAt.dialog` instead: the first impression time of each
-surface in this page's kernel, or `null` while it was never shown.
+`onChoiceRecorded` runs only for a visitor's action. `onPermissionsChanged`
+runs whenever effective permissions change, whatever the cause:
 
-```tsx
-import { useSnapshot } from 'c15t/react';
+| Event | `onChoiceRecorded` | `onPermissionsChanged` |
+| --- | --- | --- |
+| Visitor accepts, rejects or saves | Yes | Yes, if a permission changed |
+| A policy resolves and allows categories before any choice | No | Yes |
+| Global Privacy Control turns off a grant | No | Yes |
+| A recorded choice expires | No | Yes |
+| Visitor dismisses a notice | No | No |
 
-const ImpressionProbe = () => {
-	const { surfaceShownAt } = useSnapshot();
-	return <output>{surfaceShownAt.banner ?? 'not shown'}</output>;
-};
-```
+Use `onChoiceRecorded` for consent analytics and audit trails, because it
+fires only when the visitor chose. Use `onPermissionsChanged` to start or stop
+your own code. Never treat it as proof that the visitor agreed to anything,
+and never save consent from it.
+[How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+explains the difference.
 
-## Measure time to decision with `onChoiceRecorded`
+Dismissing a notice records no choice and changes no permission. Read it with
+`useNoticeDismissal()` instead. For consent inside one component, use the
+[hooks](/docs/frameworks/react/hooks), which re-render the component when
+consent changes.
 
-`onChoiceRecorded` reports the visitor's action before the transport answers.
-`confirmed` lists the categories this action confirmed and `actionAt` is when
-the visitor acted. `timeToDecisionMs` is `actionAt` minus the first impression
-of the surface the save is attributed to: the banner or the dialog. It is
-absent when that surface was never shown to this kernel, or when the save came
-from `ConsentWidget`, which is attributed to `'widget'`.
+## Before a revocation reload
 
-The same value is sent to the backend as `metadata.timeToDecisionMs` on the
-saved consent, next to `uiSource`, so a hosted project can compare designs
-without a client-side analytics tool.
+Removing a script tag cannot stop code that already ran, so c15t reloads the
+page after an accept, reject or save turns off a category or vendor that was
+granted. The reload waits for the save request to finish. Right before it,
+`onBeforeConsentRevocationReload` runs synchronously. Use it to call a
+vendor's shutdown API or flush queued events. Keep it short, because the
+reload does not wait for promises.
 
-`onChoiceRecorded` does not fire for hydration, expiry, privacy signals or a
-policy change. Use `onPermissionsChanged` for those: it reports every change
-in effective permissions with the `previous` map, which is what a tag manager
-or an SDK's consent API needs.
+A choice that expires, a new policy and a privacy signal change permissions
+without a visitor action, so they do not reload the page.
 
-## Handle transport failures with `onError`
+To handle revocation yourself, set `reloadOnConsentRevoked: false` in the
+provider options. Code the visitor turned off then keeps running until the
+next full page load, and `onBeforeConsentRevocationReload` never runs.
 
-`onError` receives a string message whenever `init`, `save`, `identify` or a
-privacy directive fails at the transport. A failed save keeps the local choice
-and queues the payload for retry, so the visitor's decision is not lost; use
-the callback for logging, not to re-prompt.
+## Verify
 
-See [understand consent state](/docs/guides/consent-state) for the difference
-between an impression, a choice and a permission.
+1. Add the callbacks from this page, open the console and DevTools Network,
+   clear site data and reload under a policy that shows a banner.
+2. Click **Accept All**. `onChoiceRecorded` and `onPermissionsChanged` both log,
+   and the save request to your backend appears in Network.
+3. Reload. `onChoiceRecorded` does not log again.
+4. Open Privacy settings, turn off a category you allowed and save.
+   `onBeforeConsentRevocationReload` logs, then the page reloads. After the
+   reload, that category's vendor requests are absent from Network.

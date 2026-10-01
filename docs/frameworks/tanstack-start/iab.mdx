@@ -1,0 +1,84 @@
+---
+title: IAB TCF
+description: Show the IAB TCF banner and dialog in a TanStack Start app for visitors whose policy uses the IAB model, with c15t/react/iab inside ConsentRoot.
+group: frameworks
+---
+
+## Before you start
+
+Use the IAB integration when your site needs the Transparency and Consent
+Framework. Enable IAB in your Inth project and give a policy the `iab` model.
+You also need a CMP ID, which IAB Europe assigns when a company registers as a
+CMP at [register.consensu.org/CMP](https://register.consensu.org/CMP). Every TC
+String names the CMP that wrote it, so do not use an ID you did not register.
+
+The IAB components ship with the `c15t` package; no extra install is needed.
+With the quickstart's root loader, the server resolves IAB visitors like any
+other visitor, and the policy manifest carries the vendor list reference.
+
+## Render the IAB banner and dialog
+
+The stock `ConsentBanner` and `ConsentDialog` stay closed under the `iab`
+model. Render the IAB components inside `ConsentRoot`, next to them:
+
+{/* example: fragment */}
+
+```tsx title="src/components/iab-consent.tsx"
+import { IABConsentBanner, IABConsentDialog, IABProvider } from 'c15t/react/iab';
+import { useModel } from 'c15t/tanstack-start';
+
+export function IABConsent({ cmpId }: { cmpId: number }) {
+  const model = useModel();
+  if (model !== 'iab') {
+    return null;
+  }
+  return (
+    <IABProvider cmpId={cmpId}>
+      <IABConsentBanner />
+      <IABConsentDialog />
+    </IABProvider>
+  );
+}
+```
+
+Render `<IABConsent cmpId={YOUR_CMP_ID} />` in the root route, next to
+`ConsentBanner`. Checking `useModel()` renders the IAB components only for
+visitors whose policy uses the IAB model.
+
+Link the IAB stylesheet after the base stylesheet in the root route's `head()`.
+It holds only the IAB rules and uses the base stylesheet's tokens:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+import iabCss from 'c15t/tanstack-start/iab/styles.css?url';
+
+// In head().links, after the base stylesheet:
+{ href: iabCss, rel: 'stylesheet' }
+```
+
+<import src="../../shared/react/iab/overview.mdx#configure" />
+
+## Restrict how vendors use a purpose
+
+Publisher restrictions override a vendor's declared use of one purpose. Pass
+them to `IABProvider` as `publisherRestrictions`. The vendor IDs below are
+placeholders; use vendors from your list whose declarations allow each
+restriction:
+
+{/* example: fragment */}
+
+```tsx title="src/components/iab-consent.tsx"
+const publisherRestrictions = [
+  // Vendors 10 and 755 may not use purpose 4.
+  { purposeId: 4, restrictionType: 0 as const, vendorIds: [10, 755] },
+  // Vendor 755 must use legitimate interest for purpose 7.
+  { purposeId: 7, restrictionType: 2 as const, vendorIds: [755] },
+];
+
+<IABProvider cmpId={cmpId} publisherRestrictions={publisherRestrictions}>
+```
+
+<include src="../../shared/iab-publisher-restrictions.mdx" />
+
+<include src="../../shared/iab-tcf-2-4.mdx" />

@@ -1,11 +1,11 @@
 ---
 import ConsentState from '../components/consent-state.astro';
-import BaseLayout from '../layouts/base.astro';
+import BaseLayout from '../layouts/demo.astro';
 
 const { c15t } = Astro.locals;
 ---
 
-<BaseLayout title="@c15t/astro">
+<BaseLayout title="Astro demo">
 	<p>
 		The banner below is server-rendered: no framework JavaScript, the same
 		DOM and <code>data-testid</code>s as the Svelte and React banners, and it
@@ -37,15 +37,14 @@ const { c15t } = Astro.locals;
 			Gated scripts need <code>is:inline</code> so Astro ships the tag as
 			written instead of bundling and running it.
 		</p>
+		<!-- #region docs:gated-inline-script title="src/pages/index.astro (partial)" -->
 		<script data-c15t-category="measurement" is:inline type="text/plain">
-			document
-				.querySelector('[data-testid="inline-script-status"]')
-				?.setAttribute('data-loaded', 'true');
-			document.querySelector('[data-testid="inline-script-status"]').textContent =
-				'inline script ran';
+			document.getElementById('inline-script-status').textContent =
+				'Measurement script ran';
 		</script>
-		<p data-loaded="false" data-testid="inline-script-status">
-			inline script blocked
+		<!-- #endregion docs:gated-inline-script -->
+		<p data-testid="inline-script-status" id="inline-script-status">
+			Measurement script blocked
 		</p>
 	</section>
 </BaseLayout>

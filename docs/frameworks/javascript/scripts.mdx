@@ -1,0 +1,100 @@
+---
+title: Scripts
+description: Register vendor scripts with @c15t/browser, createConsentRuntime or a consent kernel in JavaScript, and control what happens when a visitor withdraws permission.
+group: frameworks
+---
+
+## Register scripts where you start c15t
+
+Pass the `scripts` list to whichever API starts c15t. The list is the same in
+each case, built from `@c15t/integrations` helpers or your own script objects:
+
+| Setup | Where `scripts` goes |
+| --- | --- |
+| `@c15t/browser` | `init({ backendURL, scripts })`, as in the [quickstart](/docs/frameworks/javascript/quickstart#start-c15t). |
+| `c15t/runtime` | `createConsentRuntime({ mode, scripts })`, as in [headless](/docs/frameworks/javascript/headless#create-the-runtime). |
+| Your own kernel | `createScriptLoader({ kernel, scripts })`. See [script loader](/docs/frameworks/javascript/modules/script-loader#attach-the-loader-to-your-own-kernel). |
+
+The quickstart's `src/scripts.ts` shows PostHog and X Pixel:
+
+<include src="../../shared/examples/javascript/scripts.mdx" />
+
+Each [integration guide](/docs/integrations/overview) gives the helper and
+options for one vendor. For a vendor without a helper, write the object
+yourself:
+
+{/* example: fragment */}
+
+```ts
+const scripts = [
+  {
+    id: 'analytics',
+    src: 'https://analytics.example/sdk.js',
+    category: 'measurement',
+    onLoad: () => window.analytics?.track('page_view'),
+  },
+];
+```
+
+`window.analytics` stands for your vendor's global. The
+[script loader](/docs/frameworks/javascript/modules/script-loader) page lists
+every field and callback.
+
+## Gate a snippet in your HTML
+
+`@c15t/browser` also runs `<script type="text/plain" data-c15t-category>`
+tags in your `index.html` once their category is allowed, in page order. Use
+it for a vendor snippet you would rather keep in HTML. `createConsentRuntime`
+and a plain kernel do not scan the page for these tags;
+`activateGatedScripts(snapshot)` from `@c15t/browser` runs them for you.
+
+With the `nonce` option set, `@c15t/browser` runs only the tags that carry the
+same `nonce`, and marks the others `data-c15t-activated="untrusted"`. Pass
+`{ nonce }` as the third argument of `activateGatedScripts` for the same
+check. See [Content Security Policy](/docs/frameworks/javascript/content-security-policy).
+
+## When a visitor withdraws permission
+
+A script that has run cannot be unloaded. `@c15t/browser` and
+`createConsentRuntime` reload the page after a visitor turns off a category
+they had allowed, so the new page starts without that vendor. Allowing a
+category never reloads.
+
+Set `reloadOnConsentRevoked: false` to handle withdrawal yourself, for
+example with the vendor's opt-out call in the script's `onConsentChange`.
+Until the next page load, code that already ran keeps running.
+`callbacks.onBeforeConsentRevocationReload` runs right before the reload, for
+work that must finish first. A kernel you create yourself does not reload;
+add `watchRevocationReload` from `c15t` if you want it.
+
+## Keep one owner per vendor
+
+Use stable script IDs and remove the vendor's original snippet, so each
+vendor loads once and only through c15t. Ordinary scripts wait for
+permission. Helpers with `alwaysLoad` load at once and pass consent to the
+vendor's own API instead. Read the individual integration guide before
+assuming all helpers have the same network behavior.
+
+Create `init()` or the runtime once per page. A second client, or a second
+loader on a kernel that `@c15t/browser` or `createConsentRuntime` owns, loads
+vendors twice.
+
+## Clear stored tracking data
+
+Script gating does not remove cookies or Web Storage entries that a script
+already wrote. Configure [clear on revocation](/docs/frameworks/javascript/modules/clear-on-revocation)
+to delete them when their category is denied.
+
+## Shared lifecycle controls
+
+See [use c15t with an existing CMP](/docs/integrations/existing-cmp) for
+external CMPs, preference delegation, withdrawal reloads and application
+events. These controls use the same core runtime across frameworks.
+
+## Check it works
+
+Run the app in a private window with the Network tab open.
+
+1. Filter for each vendor's host. Nothing loads before a choice.
+2. Allow one category. Only that category's vendors load.
+3. Withdraw it. The page reloads and the vendor stays absent.

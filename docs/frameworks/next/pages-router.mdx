@@ -1,73 +1,51 @@
 ---
 title: Pages Router
-description: Set up Pages Router with Inth, cached manifests and consent-gated scripts.
+description: Set up c15t in the Next.js Pages Router with Inth, a cached policy manifest, getServerSideProps and consent-gated scripts.
 group: frameworks
 ---
 
 ## Before you start
 
-This guide uses [Inth](https://inth.com) with cached manifests. Your Next.js
-server reuses public policy data and resolves consent for each visitor. The
-browser sends consent submissions to Inth.
+This guide uses [Inth](https://inth.com) for policies and consent records. Your
+Next.js server caches the project's public policy manifest and resolves consent
+for each visitor in `getServerSideProps`. The browser sends consent choices to
+Inth.
 
-You can use a [self-hosted backend](/docs/self-host/quickstart) with the same
-configuration and your own endpoint. [Offline mode](/docs/frameworks/next/api-reference/data-fetching#offline-configuration)
-uses bundled policy and browser storage without backend records. Not recommended
-for production environments.
+A [self-hosted backend](/docs/self-host/quickstart) uses the same files with
+its own URL. [Offline mode](/docs/frameworks/next/data-fetching-reference#offline-configuration)
+keeps policy in your code and choices in the browser, with no consent records.
+Not recommended for production environments.
 
 This setup needs a Next.js server. For `output: 'export'`, follow
-[static export](/docs/frameworks/next/static-export). For a smaller setup with no
-local API routes, use [client-side initialization](/docs/frameworks/next/client-side).
-Same-origin [rewrites](/docs/frameworks/next/optimization) are optional.
+[static export](/docs/frameworks/next/static-export).
+[Rendering and deployment](/docs/frameworks/next/rendering) compares every
+path.
 
 Location-based policies need trusted location headers from your host. Without
-them, c15t uses your unknown-location rule. Check the supported
-[geography headers](/docs/frameworks/next/api-reference/data-fetching#geography-and-privacy-signals)
-before deploying.
-
-The setup below uses `getServerSideProps` for request-specific consent. Pages
-without prefetch initialize in the browser through the same `ConsentRoot`.
+them, c15t applies your unknown-location rule. See
+[Forward geography headers](/docs/frameworks/next/geography-headers) before
+you deploy.
 
 ## Install c15t and configure your backend
 
-[Create an Inth project](https://inth.com), configure its policy rules and allow
-your app's origin. Copy its backend endpoint for the upstream configuration.
+[Create an Inth project](https://inth.com), set its policy rules and add your
+site's origin to its trusted origins. Copy the project's backend URL.
 
-If you chose self-hosting, complete the
-[backend quickstart](/docs/self-host/quickstart) and use its public endpoint in
-the steps below. Offline setups do not need an endpoint; use the
-[offline example](/docs/frameworks/next/api-reference/data-fetching#offline-configuration).
+<CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-<CommandTabs command="c15t" mode="install" />
-
-<CommandTabs command="@c15t/integrations" mode="install" />
-
-Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute endpoint supplied by Inth or
-your self-hosted backend, including any path prefix. This is a public endpoint,
-not a secret. Configure the backend to allow your app's origin.
+Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the backend URL from your Inth project, such
+as `https://your-project.inth.app`,
+including any path prefix. The URL is public configuration, not a secret.
 
 ## Share the consent URLs
 
-Create this file at the project root. Set `manifestURL` explicitly to select
-manifest resolution.
+Create `c15t.config.ts` at the project root, or in `src/` if your app uses a
+`src` directory. `manifestURL` selects manifest
+resolution; a backend URL alone uses backend `/init`.
 
-```ts title="c15t.config.ts"
-import { defineConsentConfig } from 'c15t/next';
-
-const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
-
-export const consentConfig = defineConsentConfig({
-  backendURL,
-  manifestURL: '/api/c15t/manifest',
-});
-```
+<include src="../../shared/examples/nextjs/config.mdx" />
 
 ## Add the manifest API route
-
-The Pages Router adapter reads `C15T_BACKEND_URL`, falling back to the
-`NEXT_PUBLIC_C15T_BACKEND_URL` configured above. If you set both, use the same
-absolute backend endpoint.
 
 ```ts title="pages/api/c15t/manifest.ts"
 import { createPagesApiHandlers } from 'c15t/next/pages';
@@ -75,131 +53,93 @@ import { createPagesApiHandlers } from 'c15t/next/pages';
 export default createPagesApiHandlers().manifest;
 ```
 
-The manifest route caches public policy data. Server prefetch resolves it
-using the visitor's request. Consent submissions go directly to `backendURL`.
-
-The following imports assume `pages/` is at the project root. Adjust them if you
-use `src/pages/`.
+The route fetches `/manifest` from the backend in `C15T_BACKEND_URL`, falling
+back to `NEXT_PUBLIC_C15T_BACKEND_URL`. If you set both, point them at the same
+backend. The route caches the public policy and answers methods other than
+`GET` and `HEAD` with `405`. An app that also has an `app/` directory can serve
+the App Router route from the [App Router guide](/docs/frameworks/next/app-router#serve-the-manifest-route)
+instead; the runnable example does that.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 
-## Keep one root in the app
+## Mount one root for every page
 
-Add c15t to your global stylesheet. With Tailwind CSS 4, keep its import first:
+Add the c15t stylesheet to your global CSS. With Tailwind CSS 4, put it after
+the Tailwind import:
 
 ```css title="styles/globals.css"
 @import 'tailwindcss';
 @import 'c15t/next/styles.css';
 ```
 
-Without Tailwind, omit its import. For Tailwind CSS 3, use the
-[separate stylesheet recipe](/docs/frameworks/next/styling/overview#stylesheet).
-Keep any existing app styles and adjust the import below to their location.
+Without Tailwind, keep only the c15t import. With Tailwind CSS 3, put the
+same import above the `@tailwind` directives and add
+`@c15t/ui/postcss-tailwind3` to your PostCSS config, as
+[Customize](/docs/frameworks/next/customize#load-the-stylesheet) shows.
+Without the plugin, Tailwind 3 fails the build on c15t's `@layer components`
+rules.
 
-```tsx title="pages/_app.tsx"
-import type { AppProps } from 'next/app';
-import type { ConsentRootProps } from 'c15t/next';
-import { Consent } from '../components/consent';
-import '../styles/globals.css';
+Mount the wrapper in `_app.tsx`. It reads the state a page resolved on the
+server from `pageProps.initialConsent`:
 
-type ConsentPageProps = {
-  consentState?: ConsentRootProps['state'];
-};
+<include src="../../shared/examples/nextjs/pages-app.mdx" />
 
-export default function App({ Component, pageProps }: AppProps<ConsentPageProps>) {
-  return (
-    <Consent state={pageProps.consentState ?? {}}>
-      <Component {...pageProps} />
-    </Consent>
-  );
-}
-```
+A page with `getServerSideProps` supplies `initialConsent`. Any other page,
+including static and `getStaticProps` pages, passes `{}`, and the browser
+loads the manifest and resolves consent after hydration. Browser resolution
+has no location input, so those pages follow your unknown-location rule unless
+you add the
+[optional local init route](/docs/frameworks/next/data-fetching-reference#do-i-need-the-local-init-route).
 
-`consentState` is the visitor's resolved state; `consentConfig` contains the
-shared URLs. Without page prefetch, the browser loads the manifest and resolves
-policy locally. Without supplied location, geography is unknown. For browser
-initialization with request geography, see the
-[optional local init route](/docs/frameworks/next/api-reference/data-fetching#do-i-need-the-local-init-route).
-Consent submissions go to `${backendURL}/subjects` on the configured backend.
+## Resolve consent in getServerSideProps
 
-## Prefetch for a server-rendered page
+Import `resolveConsent` from `c15t/next/pages` and pass it the `req` from
+`getServerSideProps`. The App Router helper in `c15t/next/server` reads
+`next/headers`, which the Pages Router does not have.
 
-Use `c15t/next/pages` with the `req` from `getServerSideProps`. The App Router
-helper reads a different request context and must not be used here.
+<include src="../../shared/examples/nextjs/pages-ssr.mdx" />
 
-```tsx title="pages/index.tsx"
-import type { GetServerSideProps } from 'next';
-import type { ConsentRootProps } from 'c15t/next';
-import { resolveConsent } from 'c15t/next/pages';
-import { consentConfig } from '../c15t.config';
+The JSON round trip removes `undefined` fields, such as an absent GPC signal,
+because `next dev` rejects `undefined` in `getServerSideProps` props. The page renders the banner in the
+server HTML, and the browser applies the same state without an `/init`
+request.
 
-type PageProps = { consentState: ConsentRootProps['state'] };
+Add this `getServerSideProps` to every page that should render consent on the
+server, and return `initialConsent` from each. Do not resolve consent in
+`getStaticProps`. It runs without the visitor's request, so it cannot read
+their cookies or location. If the manifest request fails or takes longer than
+`timeoutMs`, 500 ms by default, the page renders without a policy and the
+browser retries after hydration.
 
-export const getServerSideProps: GetServerSideProps<PageProps> = async ({ req }) => {
-  const state = await resolveConsent({ config: consentConfig, req });
-  return {
-    props: {
-      consentState: JSON.parse(
-        JSON.stringify(state)
-      ) as PageProps['consentState'],
-    },
-  };
-};
+## Use backend init instead of the manifest
 
-export default function Home() {
-  return <main>Your page</main>;
-}
-```
+Delete the `manifestURL` line from `c15t.config.ts` and delete
+`pages/api/c15t/manifest.ts`. `_app.tsx` and the pages stay the same.
+`resolveConsent` and the browser now call `${backendURL}/init`, and consent
+choices still go to `${backendURL}/subjects`. For a browser-only setup with no
+server work, follow [client-side initialization](/docs/frameworks/next/client-side).
 
-The JSON round-trip removes `undefined` fields, such as an absent GPC signal,
-because Next.js rejects them in `getServerSideProps` props.
+A same-origin [rewrite](/docs/frameworks/next/optimization) is optional with
+either source.
 
-Repeat prefetch on pages that need request-specific initial HTML. Do not use
-`getStaticProps` to resolve visitor cookies or geography: it runs without the
-visitor's request. Keep the shared URL configuration consistent across pages.
+## Verify the setup
 
-## Verify entry and navigation
+Start the production build with `next build` and `next start`, then open a
+page that has `getServerSideProps` in a fresh browser session with DevTools
+open.
 
-For an opt-in policy, reject and confirm neither configured vendor loads. Allow
-measurement only: PostHog can load, while X Pixel stays blocked. Revoke
-measurement from Privacy settings and check PostHog's capture is disabled.
-See [script loading](/docs/frameworks/next/script-loader) for vendor-specific
-loading and revocation behavior.
+1. View the page source. It contains `data-testid="consent-banner-root"`.
+2. Under an opt-in policy, the Network panel shows no PostHog or X Pixel
+   request. Click **Reject All** and reload. The banner stays closed and
+   neither vendor loads.
+3. Open **Privacy settings** and turn on **Analytics** (the `measurement` category) only. PostHog loads and
+   X Pixel stays blocked.
+4. Navigate to another page with a Next.js `Link` and reopen
+   **Privacy settings**. The choice is still selected.
+5. Open a static page directly. It shows the same choice, resolved in the
+   browser.
 
-Load a server-rendered page directly, reject, and reload. Then navigate without
-a full reload and reopen preferences. The mounted boundary should retain the
-choice. Also test direct entry to a statically generated page; it uses browser
-manifest resolution, so verify your unknown-location rule.
-
-Confirm the server reads `/manifest` instead of the backend `/init` and choices
-reach `${backendURL}/subjects`. See
-[Optimization](/docs/frameworks/next/optimization) for caching, or compare
-alternatives in [data fetching](/docs/frameworks/next/data-fetching). For a deployment with no Next.js server, use
-[static export](/docs/frameworks/next/static-export) and remove local API routes.
-
-## Use regular backend initialization instead
-
-For a complete browser-only setup with hosted records, follow
-[client-side initialization](/docs/frameworks/next/client-side). It needs no
-local route handlers or server prefetch.
-
-For the smallest hosted configuration, keep only `backendURL` in
-`defineConsentConfig`:
-
-```ts title="c15t.config.ts"
-import { defineConsentConfig } from 'c15t/next';
-
-const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL');
-
-export const consentConfig = defineConsentConfig({ backendURL });
-```
-
-This is an alternative to the manifest configuration. Remove the unused local
-manifest route. The existing prefetch and boundary now initialize
-through `${backendURL}/init`; consent saves still use `${backendURL}/subjects`.
-A backend-only config does not enable manifest mode automatically.
-
-Compare the choices in [data fetching](/docs/frameworks/next/data-fetching), or
-configure cache settings and optional rewrites in
-[Optimization](/docs/frameworks/next/optimization).
+The browser makes no `/init` request, and choices post to
+`${backendURL}/subjects`. [Script loading](/docs/frameworks/next/scripts)
+explains each vendor's loading and revocation behavior, and
+[the consent checks](/docs/guides/verify-consent) cover the release checklist.

@@ -1,0 +1,76 @@
+---
+title: Translations
+description: Where the c15t banner and dialog text comes from in Nuxt, how the server picks the visitor's language, and how to switch it at runtime.
+group: frameworks
+---
+
+## Where the text comes from
+
+The banner, dialog and IAB text comes from the translations in your Inth
+project, or your self-hosted backend's configuration. The policy carries the
+text for the visitor's language. Edit copy there, not in your Nuxt code. The
+module has no option for message overrides.
+
+[Copy and translations](/docs/customization/translations) lists the message
+keys and how to write labels that describe each action.
+
+## How c15t picks the language
+
+The request's `Accept-Language` header decides:
+
+- With `manifest: 'server'`, the Nuxt server reads the header during server
+  rendering and resolves the text from the cached manifest. The banner is in
+  the visitor's language in the first HTML.
+- With `manifest` unset, the server forwards the header to the backend's
+  `/init`.
+- With `manifest: 'client'`, the browser reads `navigator.language` and
+  resolves the text from the manifest.
+
+On prerendered and cached routes the browser requests `/api/c15t/init` after
+hydration, and that request carries the browser's own header. When your
+project has no text for the language, the backend picks its fallback
+language.
+
+The text direction follows the resolved language. Right-to-left languages
+render the banner and dialog with `dir="rtl"`, and a default corner position
+mirrors.
+
+## Follow your site's language
+
+Bind the `language` prop of the Nuxt `ConsentRoot` to your site's current
+language, for example from `@nuxtjs/i18n`. When the prop changes,
+`ConsentRoot` stores the language and resolves the policy again, which
+fetches the text in that language:
+
+{/* example: fragment */}
+
+```vue
+<ConsentRoot :language="locale" />
+```
+
+From your own language switcher, assign the language to
+`useConsentLanguage()`. A new language runs init again. Assigning the current
+language does nothing:
+
+<include src="../../shared/examples/nuxt/language-switcher.mdx" />
+
+The assignment alone loads the new text. The example's extra
+`kernel.commands.init()` call repeats the request and is not needed.
+
+## Text that does not come from translations
+
+`ConsentPreferencesLink` and the `ConsentGate` placeholder read their default
+text from the translations, in English until init has delivered copy. One
+label is a module option instead. Set it in the visitor's language when your
+site has more than one:
+
+| Text | Where | How to change it |
+| --- | --- | --- |
+| "Open privacy settings" | `ConsentDialogTrigger` label | Set the `triggerAriaLabel` option. |
+
+## Verify
+
+Request a page with `curl -H 'Accept-Language: de' <your-url>` under a policy
+that asks for consent, and confirm the banner text in the HTML is German, if
+your project translates German. Switch the language in the browser with your
+switcher and confirm the banner and dialog text change without a reload.

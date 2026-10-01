@@ -1,5 +1,5 @@
 ---
-title: Theme tokens and CSS
+title: Theme tokens
 description: Style c15t with semantic tokens and use the stylesheet that matches your CSS tooling.
 group: customization
 ---
@@ -43,11 +43,12 @@ that keeps dependencies external, does not fail on the `.css` file. In your
 own components, import `@c15t/ui/styles/dialog` rather than the `.css` file
 if the module can run on the server.
 
-Svelte loads its dialog with the page, so `c15t/svelte/styles.css` also
-imports the dialog and primitive rules. Astro injects the banner rules; the
-React and Svelte dialog islands import the rest, and Astro links those
-stylesheets on every page, so in Astro the dialog rules still block rendering.
-Vue components import their own stylesheets.
+Svelte loads its dialog in a separate chunk too, but
+`@c15t/svelte/styles.css` already includes the dialog and primitive rules, so
+Svelte apps import that one stylesheet. Astro injects the banner rules on every
+page and links the dialog's stylesheets when a visitor first points at, focuses
+or opens a control that opens the dialog, so in Astro the dialog rules do not
+block rendering. Vue components import their own stylesheets.
 
 The dialog rules sit in `@layer components` and declare no variables, so
 tokens from `theme`, variables you override in your own CSS, and Tailwind 4
@@ -106,11 +107,50 @@ not turn tokens into CSS. In React and Next.js, render
 `theme` in your provider options for `consentActions`. Elsewhere, call
 `generateThemeCSS(theme)` from `@c15t/ui/theme` on the server or at build time
 and put the result in a `<style>` element or your stylesheet. See
-[React styling](/docs/frameworks/react/styling/overview) and
-[Next.js styling](/docs/frameworks/next/styling/overview).
+[React customization](/docs/frameworks/react/customize) and
+[Next.js customization](/docs/frameworks/next/customize).
 
 `consentActions` selects styling by action role. A per-action entry overrides
 `primary`, which overrides `default`.
+
+## Combine a generated theme with your own CSS
+
+`generateThemeCSS` writes its variables on `:root:root` and
+`.c15t-theme-root.c15t-theme-root`, one step more specific than the defaults
+in `styles.css`. The theme therefore overrides the defaults whether its
+`<style>` element comes before or after the stylesheet. The same output backs
+`ConsentTheme` in React, Next.js and TanStack Start, Astro's `theme` option and
+the script tag's `ui.theme`.
+
+A `--c15t-*` variable you set on plain `:root` in your own CSS loses to a
+generated theme that sets the same variable, even when your rule loads later.
+Put the value in the theme, or raise your selector:
+
+```css
+:root:root {
+  --c15t-primary: #2f6f4e;
+}
+```
+
+Scoped rules such as `[data-prompt] { --c15t-primary: ... }` set the variable
+on the banner element itself, so they still apply inside it.
+
+## Every token
+
+Every framework uses the same tokens. React, Next.js, TanStack Start and
+Astro take the theme key, such as `radius.lg`, in a `theme` object. Vue and
+Nuxt take the CSS variable name without the leading `--`, such as
+`c15t-radius-lg`, in `tokens`. Svelte and the HTML script tag set the CSS
+variable in a stylesheet. Your framework's customize page shows where each one
+goes.
+
+<include src="../shared/reference/theme-tokens.mdx" />
+
+The radius tokens round different parts. `radius.lg` rounds the banner card,
+the preference dialog, `ConsentGate` placeholders and the floating trigger.
+`radius.md` rounds buttons, accordions, tabs and the vendor list.
+`radius.sm` rounds small parts inside the banner and dialog. To give the banner
+and its buttons the same 4px corners, set both `lg` and `md`.
 
 ## Target a prompt with CSS
 

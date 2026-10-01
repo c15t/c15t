@@ -1,4 +1,5 @@
-import type { C15tClientOptionsExtension } from '@c15t/astro';
+// #region docs:client-entrypoint
+import type { C15tClientOptionsExtension } from 'c15t/astro';
 
 import { createExampleScripts } from './example-scripts';
 
@@ -8,3 +9,4 @@ export default {
 		import.meta.env.PUBLIC_X_PIXEL_ID
 	),
 } satisfies C15tClientOptionsExtension;
+// #endregion docs:client-entrypoint

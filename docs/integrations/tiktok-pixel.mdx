@@ -1,14 +1,14 @@
 ---
 title: TikTok Pixel
-description: Configure TikTok Pixel with c15t v3, understand marketing permission and verify loading and revocation.
+description: Load the TikTok Pixel only after marketing consent with the c15t tiktokPixel helper, guard ttq event calls, and check it in DevTools.
 group: integrations
 ---
 
-## Configure TikTok Pixel
+## Configure the TikTok Pixel
 
-Use your TikTok Pixel ID. The helper prepares `ttq`, queues consent and a page event, and loads the pixel for that ID.
+Copy your TikTok Pixel ID. The helper adds it to the loader URL as `sdkid`.
 
-<CommandTabs command="@c15t/integrations" mode="install" />
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { tiktokPixel } from '@c15t/integrations/tiktok-pixel';
@@ -20,20 +20,46 @@ export const scripts = [tiktokPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `pixelId` | Required TikTok Pixel ID. |
-| `scriptSrc` | Optional loader base URL. The helper appends `sdkid` and `lib=ttq`. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `pixelId` | Required | Pixel ID sent in the loader URL. The helper trims it. Empty or whitespace-only values throw. |
+| `scriptSrc` | `https://analytics.tiktok.com/i18n/pixel/events.js` | Loader base URL override. The helper appends `?sdkid=<pixelId>&lib=ttq`. A blank value falls back to the default. |
 
-## Consent behavior
+## Loading and revocation
 
-The first request waits for marketing permission. The helper retains the SDK after revocation and calls `revokeConsent`; grants call `grantConsent`. It does not treat the presence of `ttq` as a grant.
+`tiktokPixel` uses the `marketing` category. Before marketing is allowed, c15t
+defines no `ttq` queue and loads nothing from TikTok. When marketing becomes
+allowed, the helper sets up `ttq` the way TikTok's base code does, queues one
+`ttq.grantConsent()` and `ttq.page()`, then loads `events.js`.
 
-## Verify the integration
+On revocation the helper keeps the pixel and calls `ttq.revokeConsent()`. If
+the visitor allows marketing again before the page reloads, it calls
+`ttq.grantConsent()`.
 
-Check the pixel ID in the loader URL and the initial page event. Test grant and revoke commands and stop your own `track` or `identify` calls when marketing is denied.
+## Guard your own ttq calls
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`marketing`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+The helper sends the page view. Events your code sends through `ttq.track` or
+`ttq.identify` need their own check. After revocation `window.ttq` still
+exists, so its presence does not mean marketing is allowed. Check the
+permission first, then that the pixel is set up:
+
+```ts title="src/track-purchase.ts"
+export function trackPurchase(marketingAllowed: boolean, value: number) {
+  if (!marketingAllowed || typeof window.ttq?.track !== 'function') return;
+  window.ttq.track('CompletePayment', { currency: 'USD', value });
+}
+```
+
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. `@c15t/integrations/tiktok-pixel` exports no
+event wrapper.
+
+## Verify the TikTok Pixel
+
+After you allow marketing, a request to
+`analytics.tiktok.com/i18n/pixel/events.js` carries your pixel ID as `sdkid`,
+and the pixel sends one page event. Trigger one guarded event and check that
+its request appears. Then revoke marketing. Until the page reloads, calling
+`trackPurchase` sends nothing.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

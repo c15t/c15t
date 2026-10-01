@@ -1,0 +1,170 @@
+---
+title: Customize
+description: Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a React app with the stylesheet, theme tokens, provider options and slots.
+group: frameworks
+---
+
+## Pick the right tool
+
+| Change | Use |
+| --- | --- |
+| Brand colors, fonts, radius, spacing | [Theme tokens](#change-colors-fonts-and-radius) |
+| Which button is filled or outlined | [`consentActions`](#style-the-action-buttons) |
+| Banner shape and position | [`ConsentBanner` props or `presentation`](#change-the-banner-shape) |
+| One element of a component | [Slots](#style-one-part-with-slots) |
+| Labels and languages | [Copy and translations](#change-the-copy) |
+| Different markup entirely | [Headless](/docs/frameworks/react/headless) |
+
+[Customization](/docs/customization/overview) explains how these choices relate
+across frameworks.
+
+See the [design gallery](/docs/customization/recipes) for five banner designs,
+from a bottom bar to a fully custom one, with tested code for this framework.
+
+## Import the stylesheet
+
+Import the stylesheet once, in the module that renders `ConsentProvider`. The
+[quickstart](/docs/frameworks/react/quickstart) does this in `src/consent.tsx`:
+
+{/* example: fragment */}
+
+```tsx
+import 'c15t/react/styles.css';
+```
+
+The import is the same with or without Tailwind. To import the stylesheet from
+CSS instead, put it at the top of your global stylesheet, above any
+`@tailwind` directives. `postcss-import`, which Vite uses, ignores an
+`@import` that follows other rules:
+
+```css title="src/index.css"
+@import 'c15t/react/styles.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+<import src="../../shared/react/styling/overview.mdx#tailwind-layers" />
+
+## Change colors, fonts and radius
+
+<import src="../../shared/react/styling/overview.mdx#tokens-intro" />
+
+A single-page app has no server render, so pick one of two ways:
+
+- **Set the variables in your CSS.** Nothing extra ships to the browser. Load
+  this after `c15t/react/styles.css`:
+
+  ```css title="src/index.css"
+  :root {
+    --c15t-primary: #2f6f4e;
+    --c15t-primary-hover: #24563c;
+    --c15t-text-on-primary: #fff;
+    --c15t-radius-lg: 4px;
+  }
+  ```
+
+- **Render `ConsentTheme` next to the provider.** Use this when the theme lives
+  in TypeScript or changes at runtime. The browser downloads the theme
+  generator.
+
+  {/* example: fragment */}
+
+  ```tsx title="src/consent-theme.ts"
+  import { defineTheme } from 'c15t/react';
+
+  export const theme = defineTheme({
+    colors: { primary: '#2f6f4e', primaryHover: '#24563c' },
+    radius: { lg: '4px' },
+  });
+  ```
+
+  In `src/consent.tsx`, render `<ConsentTheme theme={theme} />` from
+  `c15t/react` just before `<ConsentProvider>`.
+
+In a server-rendered app, such as React Router framework mode, render
+`ConsentTheme` in the root component so the `<style>` element is part of the
+server HTML. [Tokens and CSS](/docs/customization/tokens) lists every variable.
+
+`ConsentTheme` outranks a plain `:root` rule, wherever each one loads. If you
+use both, a variable set in both places takes the `ConsentTheme` value. Write
+your CSS overrides on `:root:root` to beat it, or move the values into the
+theme.
+
+## Style the action buttons
+
+`consentActions` decides how each action looks. `default` applies to every
+button, `primary` to the action the policy or your props mark primary, and
+`accept`, `reject`, `customize` and `dismiss` to one action each. Pass it
+through the provider's `theme` option:
+
+{/* example: fragment */}
+
+```tsx title="src/consent.tsx"
+<ConsentProvider
+  options={{
+    mode,
+    scripts,
+    theme: {
+      consentActions: {
+        primary: { variant: 'primary', mode: 'filled' },
+        dismiss: { variant: 'neutral', mode: 'stroke' },
+      },
+    },
+  }}
+>
+```
+
+The provider's `theme` option only reads `consentActions` and slot styles.
+Tokens passed there do nothing, and the provider logs a warning in development.
+Changing button styles does not change the policy or expire a saved choice.
+
+## Change the banner shape
+
+`ConsentBanner` takes `variant` (`floating`, `bar`, `widget` or `wall`) and
+`position`. To use one shape everywhere, set `presentation.prompt` in the
+provider options instead. This banner is a full-width bar for notices and a
+card for choices:
+
+{/* example: fragment */}
+
+```tsx title="src/regional-banner.tsx"
+import { ConsentBanner, usePolicyRule } from 'c15t/react';
+
+export function RegionalBanner() {
+  const policy = usePolicyRule();
+  return <ConsentBanner variant={policy?.prompt === 'notice' ? 'bar' : 'floating'} />;
+}
+```
+
+Render `RegionalBanner` in place of `ConsentBanner` inside the provider.
+[ConsentBanner](/docs/frameworks/react/components/consent-banner#variants)
+lists every variant and position, and how to order buttons per policy.
+
+## Style one part with slots
+
+Each component part is a slot. Set slots in the provider options under
+`components`, keyed by component and part. A slot takes any attribute the
+element accepts, such as `className` or `style`.
+
+<import src="../../shared/react/styling/overview.mdx#slot-recipes" />
+
+[Slots](/docs/customization/slots) covers the other components' keys and when to
+drop the built-in styles with `noStyle`.
+
+## Change the copy
+
+Labels, descriptions and languages come from the translations in your Inth
+project and from the provider's `i18n` option. For the visitor's language,
+`i18n.messages` replace the project's copy key by key, and keys you leave out
+keep the project's wording.
+[Copy and translations](/docs/customization/translations) shows the message
+keys. For one banner, `ConsentBanner` also accepts text props such as
+`dismissButtonText`.
+
+## Check the result
+
+Clear site data and reload under a policy that shows a banner. Check the banner
+and the preferences dialog, since both read the same tokens. Test a narrow
+window, keyboard focus and contrast on the primary button. In development, the
+console warns if `theme` holds tokens but the page has no `c15t-theme` style.

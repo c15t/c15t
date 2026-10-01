@@ -7,7 +7,8 @@
 		"check-types": "tsc --noEmit",
 		"db:migrate": "bunx @c15t/cli self-host migrate",
 		"dev": "vite dev --port 3010",
-		"start": "node scripts/serve.mjs"
+		"start": "node scripts/serve.mjs",
+		"start:static": "node scripts/serve.mjs --static"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",

@@ -1,0 +1,126 @@
+---
+title: Content Security Policy
+description: Run c15t in a React app under a Content Security Policy, allow the consent backend and vendor hosts, and pass a nonce to ConsentProvider and ConsentTheme.
+group: frameworks
+---
+
+## What c15t adds to the page
+
+A React app with c15t adds these to the page, and your policy must allow them:
+
+| What | Directive |
+| --- | --- |
+| `c15t/react/styles.css`, which your bundler emits with your own CSS | `style-src 'self'` |
+| The `<style id="c15t-theme">` element, if you render `ConsentTheme` | `style-src` with a nonce or its hash |
+| `<script>` elements the script loader creates for `scripts` entries, both `src` and inline | `script-src` with each vendor's host, or a nonce |
+| Browser requests to your backend's `/init` and `/subjects` | `connect-src` with the backend origin |
+| Iframes inside `ConsentGate`, and the frames, images and requests your vendors load | `frame-src`, `img-src`, `connect-src` for each vendor |
+
+In a client-rendered app, c15t components set their inline styles through
+React. A policy does not restrict styles set that way, so they need no
+directive.
+
+## Allow the consent backend
+
+With `hosted({ url })`, the browser calls `GET {url}/init` on every page load
+and `POST {url}/subjects` when the visitor accepts, rejects or saves. Add the
+backend's origin to `connect-src`:
+
+```txt title="Content-Security-Policy (partial)"
+connect-src 'self' https://<your-backend-host>;
+```
+
+Use the origin of the backend URL from your Inth project or self-hosted
+backend. When the URL is a same-origin path such as `/api/c15t` behind your
+own proxy, `'self'` covers it.
+
+Under an IAB TCF policy the browser also loads the Global Vendor List from the
+URL the policy provides. Allow that host in `connect-src` if you use the
+[IAB TCF add-on](/docs/frameworks/react/iab).
+
+## Allow vendor scripts
+
+The script loader adds a `<script>` element for each `scripts` entry once its
+category is allowed. List each vendor's script host in `script-src`, and the
+hosts its script calls in `connect-src` and `img-src`. The vendor's own
+documentation lists them. Scripts that a vendor script adds itself, such as a
+tag manager's tags, need their own hosts too, or `'strict-dynamic'` with a
+nonce.
+
+A `scripts` entry with inline `textContent` instead of `src` needs a nonce or
+its hash in `script-src`.
+
+## Use a nonce
+
+A nonce protects a page only when it changes on every response. A static host
+serves the same file to everyone, so use host allowlists there. Use a nonce
+when a server renders or rewrites your `index.html` per request.
+
+Pass the nonce as `options.nonce` on `ConsentProvider`. The script loader
+stamps it on every `<script>` it creates. A `nonce` on a single `scripts`
+entry takes precedence for that element.
+
+With Vite, set `html.cspNonce` to a placeholder in `vite.config.ts`, and have
+your server replace it with a new nonce on every response. Vite then adds
+`<meta property="csp-nonce" nonce="...">` to the page, and the browser keeps the
+value in the tag's `nonce` property. Read it where you create the provider, in
+the quickstart's `src/consent.tsx`:
+
+{/* example: fragment */}
+
+```tsx title="src/consent.tsx (partial)"
+const nonce =
+  document.querySelector<HTMLMetaElement>('meta[property="csp-nonce"]')
+    ?.nonce || undefined;
+
+<ConsentProvider options={{ mode, scripts, nonce }}>
+```
+
+If you render `ConsentTheme`, pass it the same value:
+`<ConsentTheme theme={theme} nonce={nonce} />`.
+
+The provider reads `options.nonce` once, when it mounts. A server-rendered
+React app, such as one built with React Router framework mode, reads the nonce
+from its own request and passes it the same way.
+
+## Allow the theme style element
+
+`ConsentTheme` renders your theme tokens into a `<style id="c15t-theme">`
+element. Without a nonce, a `style-src` that lacks `'unsafe-inline'` blocks it,
+and the banner falls back to the default theme. The element's content depends
+only on the theme, so a hash works:
+
+1. Load the page with the policy enforced.
+2. Copy the `sha256-...` value from the `Refused to apply inline style`
+   console error.
+3. Add it to `style-src` and redeploy.
+
+Recompute the hash when you change the theme. To avoid the hash, set the
+tokens in your own stylesheet instead, as
+[customize](/docs/frameworks/react/customize) shows.
+
+## Allow embeds and the dev server
+
+Add the host of every iframe you gate to `frame-src`. A YouTube player inside
+`ConsentGate` needs `https://www.youtube-nocookie.com`, for example.
+
+Vite's dev server injects CSS as `<style>` elements, and the DevTools panel
+adds a `<style>` element without a nonce. Test the policy against a
+production build.
+
+## Verify
+
+Build the app, serve it with the policy enforced, not in report-only mode, and
+open DevTools. Test under a policy that asks for a choice, such as an EU
+opt-in policy.
+
+1. The banner renders with its theme colors, and the console shows no
+   `Refused to` error that mentions a c15t element, your backend or a vendor.
+2. Before a choice, the Network tab shows no vendor requests.
+3. Click **Accept All**. The vendor scripts load, and their `<script>` elements have ids
+   starting `c15t-`. With a nonce, read each element's `nonce` property in the
+   console. Browsers hide the attribute from `getAttribute`.
+4. The save to `/subjects` succeeds. A `connect-src` violation here means the
+   backend origin is missing.
+5. Reload. The banner stays closed, and the vendors load without a console
+   error.

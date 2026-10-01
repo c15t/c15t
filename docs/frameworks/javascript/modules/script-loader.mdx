@@ -1,0 +1,95 @@
+---
+title: Script loader
+description: Reference for the c15t script loader in JavaScript, covering every Script field, lifecycle callbacks, updateScripts, disposal and createScriptLoader for a kernel you own.
+group: frameworks
+---
+
+## What the script loader does
+
+The script loader adds a vendor's `<script>` to the page once the script's
+category is allowed, and removes the element again when the visitor withdraws
+it. `@c15t/browser` and `createConsentRuntime` create one from their `scripts`
+option. Create one yourself only for a kernel you built with
+`createConsentKernel`.
+
+The [scripts guide](/docs/frameworks/javascript/scripts) shows where the list
+goes in each setup. The helpers in `@c15t/integrations` return `Script` objects for
+common vendors; each [integration guide](/docs/integrations/overview) covers
+one.
+
+## Script fields
+
+| Field | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `id` | `string` | required | A unique, stable name. The loader tracks the script by it. |
+| `category` | category or condition | required | What must be allowed, such as `'measurement'` or `{ and: ['measurement', 'marketing'] }`. |
+| `src` | `string` | none | The URL to load. |
+| `textContent` | `string` | none | Inline code to run instead of `src`. |
+| `callbackOnly` | `boolean` | `false` | Add no element, run only the callbacks. For a vendor already on the page. |
+| `alwaysLoad` | `boolean` | `false` | Load whatever the consent state, for tags that manage consent themselves through the vendor's API. |
+| `persistAfterConsentRevoked` | `boolean` | `false` | Keep the element after withdrawal instead of removing it. |
+| `target` | `'head' \| 'body'` | `'head'` | Where the element goes. |
+| `async`, `defer` | `boolean` | none | Attributes on the created element. |
+| `nonce` | `string` | the runtime's `nonce` | CSP nonce for this element. |
+| `fetchPriority` | `'high' \| 'low' \| 'auto'` | none | Fetch priority hint. |
+| `attributes` | `Record<string, string>` | none | Other attributes for the element. |
+| `anonymizeId` | `boolean` | `true` | Give the element a random `id`, so content blockers cannot match it by name. |
+| `vendor` | `string` | none | A vendor slug for vendor-level consent. The script also waits while the visitor has turned that vendor off. |
+| `vendorId`, `iabPurposes`, `iabLegIntPurposes`, `iabSpecialFeatures` | IAB IDs | none | Under an IAB policy, the TC string decides instead of the category. |
+
+## Lifecycle callbacks
+
+Each callback receives `{ id, elementId, hasConsent, consents, element?,
+error?, vendor? }`.
+
+| Callback | When it runs |
+| --- | --- |
+| `onBeforeLoad` | Before a load attempt. It can run again for the same script if consent changes before the load starts, so make it safe to repeat. |
+| `onLoad` | After the script loaded. Use it for set-up that needs the vendor's code. |
+| `onError` | When the script failed to load. |
+| `onConsentChange` | Each time the script's consent changes, loaded or not. Use it for a vendor's opt-out call when you turn off the reload. |
+| `onDispose` | When the configuration is removed or the loader is disposed, including a script that never loaded. |
+
+Withdrawal alone does not call `onDispose`. With the default reload, the page
+reloads after withdrawal anyway; with `reloadOnConsentRevoked: false`, use
+`onConsentChange` to stop the vendor.
+
+## Update the list
+
+`loader.updateScripts(next)` replaces the configuration and reconciles at
+once:
+
+- A script with the same `id`, source, inline code and attributes keeps its
+  element. New callback functions alone do not reload it.
+- Changing the source, inline code or attributes starts a new load.
+- A script that adds `onDispose` is tracked by object. Replacing the object
+  disposes it and starts again, even with the same `id`. Keep such objects
+  stable.
+- A removed script has its element removed, unless it is retained.
+
+Updates requested from inside a callback run after the current pass; the
+latest wins. A chain of callbacks that keeps changing consent or the list is
+stopped after 100 passes, and the loader disposes itself.
+
+`loader.getLoadedScriptIds()` lists the scripts currently loaded.
+
+## Attach the loader to your own kernel
+
+A kernel from `createConsentKernel` has no loader. This file creates one with
+persistence, before initialization:
+
+<include src="../../../shared/examples/javascript/kernel.mdx" />
+
+`createScriptLoader({ kernel, scripts, nonce?, onDebug? })` returns the
+handle. `onDebug` receives every lifecycle step, for logging. Dispose the
+loader before the kernel. Do not attach a loader to a kernel that
+`@c15t/browser` or `createConsentRuntime` owns; each already has one.
+
+## Check it works
+
+1. Filter the Network tab for the vendor's host. Nothing loads before a
+   choice.
+2. Allow the category. The vendor loads and `onLoad` runs. In the Elements
+   panel, the script sits in `<head>` with a random `id`.
+3. With `reloadOnConsentRevoked: false`, withdraw the category.
+   `onConsentChange` runs with `hasConsent: false` and the element is gone.

@@ -1,0 +1,107 @@
+---
+title: Callbacks
+description: Run code in a TanStack Start app when a visitor records a consent choice, when permissions change, when a request fails and before the revocation reload, from ConsentRoot in the root route.
+group: frameworks
+---
+
+## Pass callbacks to ConsentRoot
+
+Keep the callbacks in their own module:
+
+<include src="../../shared/examples/tanstack-start/callbacks.mdx" />
+
+Import it in `src/routes/__root.tsx` and pass it under `options` on
+`ConsentRoot`:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+<ConsentRoot
+  state={consent}
+  backendURL={backendURL}
+  initRoute={false}
+  scripts={scripts}
+  options={{ callbacks }}
+>
+```
+
+The root route component renders on the server and again in the browser, and
+each side imports the module itself. Do not return callbacks from the root
+loader or a server function. Loader data is serialized for the browser, and
+functions cannot be serialized, so it should carry only the consent state.
+
+`ConsentRoot` subscribes the callbacks after it mounts in the browser. Server
+rendering never calls them. The provider calls the latest `callbacks` object
+it received, so a new object on a later render takes effect without a
+remount.
+
+## Available callbacks
+
+| Callback | Runs when | Receives |
+| --- | --- | --- |
+| `onChoiceRecorded` | The visitor clicks Accept All, Reject All or Save Settings, in the stock UI or through `useSaveConsents()`. | `snapshot`, the state after the choice; `confirmed`, the categories this action recorded; `actionAt`, the time as a millisecond timestamp |
+| `onPermissionsChanged` | Any effective permission changes value. | `snapshot`, the state after the change; `previous`, the permissions before it |
+| `onError` | A consent command fails in the browser, such as a failed `/init` request or a save the backend rejects. | `error`, a message string |
+| `onBeforeConsentRevocationReload` | A save withdrew a granted category or vendor, right before c15t reloads the page. | `preferences`, the permissions after the save |
+
+The type for the whole object is `ConsentProviderCallbacks` from
+`c15t/tanstack-start`. Callbacks run after c15t updates its state, so
+`snapshot` and hooks such as `useConsent()` already hold the new values.
+
+`resolveConsent` on the server has no error callback. When the manifest
+request fails or runs out of `timeoutMs`, the loader returns the request-only
+state, and the browser resolves consent after hydration. A failure there
+reaches `onError`.
+
+## onChoiceRecorded or onPermissionsChanged
+
+`onChoiceRecorded` runs only for a visitor's action. `onPermissionsChanged`
+runs whenever effective permissions change, whatever the cause:
+
+| Event | `onChoiceRecorded` | `onPermissionsChanged` |
+| --- | --- | --- |
+| Visitor accepts, rejects or saves | Yes | Yes, if a permission changed |
+| A policy resolves in the browser and allows categories before any choice | No | Yes |
+| Global Privacy Control turns off a grant | No | Yes |
+| A recorded choice expires | No | Yes |
+| Visitor dismisses a notice | No | No |
+
+Use `onChoiceRecorded` for consent analytics and audit trails, because it
+fires only when the visitor chose. Use `onPermissionsChanged` to start or stop
+your own code. Never treat it as proof that the visitor agreed to anything,
+and never save consent from it.
+[How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+explains the difference.
+
+Dismissing a notice records no choice and changes no permission. Read it with
+`useNoticeDismissal()` instead. For consent inside one component, use the
+[hooks](/docs/frameworks/tanstack-start/hooks), which re-render the component
+when consent changes.
+
+## Before a revocation reload
+
+Removing a script tag cannot stop code that already ran, so c15t reloads the
+page after an accept, reject or save turns off a category or vendor that was
+granted. The reload waits for the save request to finish. Right before it,
+`onBeforeConsentRevocationReload` runs synchronously. Use it to call a
+vendor's shutdown API or flush queued events. Keep it short, because the
+reload does not wait for promises.
+
+A choice that expires, a new policy and a privacy signal change permissions
+without a visitor action, so they do not reload the page.
+
+To handle revocation yourself, set `reloadOnConsentRevoked: false` in
+`options` on `ConsentRoot`. Code the visitor turned off then keeps running
+until the next full page load, and `onBeforeConsentRevocationReload` never
+runs.
+
+## Verify
+
+1. Add the callbacks from this page, open the console and DevTools Network,
+   clear site data and reload under a policy that shows a banner.
+2. Click **Accept All**. `onChoiceRecorded` and `onPermissionsChanged` both log,
+   and the save request to your backend appears in Network.
+3. Reload. `onChoiceRecorded` does not log again.
+4. Open Privacy settings, turn off a category you allowed and save.
+   `onBeforeConsentRevocationReload` logs, then the page reloads. After the
+   reload, that category's vendor requests are absent from Network.

@@ -28,10 +28,10 @@
 		"Configure c15t with the IAB consent model for jurisdictions that require TCF workflows",
 		"Use the React IAB components for a prebuilt TCF banner and preference center",
 		"Use headless APIs when you need a custom IAB consent experience",
-		"For full implementation details, see the [IAB TCF 2.4 docs](https://c15t.com/docs/frameworks/react/iab/overview)"
+		"For full implementation details, see the [IAB TCF 2.4 docs](https://c15t.com/docs/frameworks/react/iab)"
 	],
-	"docsLink": "https://c15t.com/docs/frameworks/react/iab/overview",
-	"quickStartLink": "https://c15t.com/docs/frameworks/react/iab/overview",
+	"docsLink": "https://c15t.com/docs/frameworks/react/iab",
+	"quickStartLink": "https://c15t.com/docs/frameworks/react/iab",
 	"showCLIGeneration": false,
 	"customSections": {
 		"Related Packages": "- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React IAB consent banner, dialog, and hooks through @c15t/react/iab\n- [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): Backend configuration for IAB TCF, GVL, CMP registration, and custom vendors\n- [c15t](https://www.npmjs.com/package/c15t): Core consent engine"

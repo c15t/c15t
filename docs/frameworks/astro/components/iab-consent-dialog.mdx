@@ -1,0 +1,52 @@
+---
+title: IABConsentDialog
+description: Add the IAB TCF 2.4 preference center to an Astro site with c15t as an island that loads the TCF code only when a visitor opens it.
+group: frameworks
+---
+
+## Render the dialog next to `IABConsentBanner`
+
+Render one `IABConsentDialog` next to `IABConsentBanner`:
+
+<include src="../../../shared/examples/astro-demo/iab-layout.mdx" />
+
+`IABConsentDialog` renders an empty host element on the server. The IAB
+preference center and the TCF code both load the first time something opens
+it:
+
+- The IAB banner's **Customize** button.
+- The IAB banner's partners count, which opens the vendors tab.
+- A `<ConsentDialogTrigger kind="iab">`.
+- `openDialog('iab', 'vendors')` or `openDialog('iab', 'purposes')` from
+  [`c15t/astro/client`](/docs/frameworks/astro/client-api#open-and-close-dialogs).
+
+A page with IAB configured still serves a banner-only first load with no TCF
+bytes.
+
+## Props
+
+| Prop | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `preload` | `boolean` | `false` | Downloads the dialog once the browser is idle |
+
+Hovering or focusing an IAB control does not start the download early, as it
+does for the preference dialog. Set `preload` when the IAB preference center
+must open without a wait.
+
+## What it contains
+
+The preference center is the IAB dialog of the framework the integration's
+`ui` option names. It has tabs for purposes and vendors, per-purpose and
+per-vendor controls including legitimate interest, and Accept All, Reject All
+and Save Settings. Saving writes the TC String, which `__tcfapi` then reports.
+
+Opening the dialog on a different tab than the one it shows remounts it on
+that tab.
+
+## Next steps
+
+- [IABConsentBanner](/docs/frameworks/astro/components/iab-consent-banner)
+- [IAB TCF](/docs/frameworks/astro/iab) covers the CMP ID, the vendor list and
+  how to check the TC String.
+- [Dialog islands and your own islands](/docs/frameworks/astro/islands)
+  explains the `ui` option.

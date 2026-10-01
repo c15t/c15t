@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>c15t JavaScript example</title>
+		<link
+			rel="stylesheet"
+			href="/src/style.css"
+		/>
+	</head>
+	<body>
+		<main>
+			<p>c15t / JavaScript</p>
+			<h1>Consent example</h1>
+			<p>
+				The stock banner and preferences from <code>@c15t/browser</code>,
+				started from a bundled module. The
+				<a href="/headless/">headless example</a> renders its own HTML instead.
+			</p>
+			<nav aria-label="Banner design">
+				<a href="/">Default</a><a href="/branded/">Branded</a
+				><a href="/experiment/">Experiment</a>
+			</nav>
+			<section class="card">
+				<h2>Scripts follow your choices</h2>
+				<ul class="statuses">
+					<li>PostHog loads once measurement is allowed.</li>
+					<li>X Pixel loads once marketing is allowed.</li>
+				</ul>
+				<p>Set your project IDs in .env.local to enable the vendor scripts.</p>
+			</section>
+			<section class="card">
+				<h2>YouTube embed</h2>
+				<div class="embed">
+					<iframe
+						data-src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y?playsinline=1"
+						data-category="measurement"
+						title="YouTube video"
+						allow="encrypted-media; picture-in-picture"
+						allowfullscreen
+					></iframe>
+					<p class="placeholder">
+						Allow measurement to load this YouTube video.
+					</p>
+				</div>
+			</section>
+			<footer>
+				<button
+					id="privacy-settings"
+					type="button"
+				>
+					Privacy settings
+				</button>
+			</footer>
+		</main>
+		<script
+			type="module"
+			src="/src/branded.ts"
+		></script>
+	</body>
+</html>

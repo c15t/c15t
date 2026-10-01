@@ -1,0 +1,29 @@
+{/* Generated from examples/javascript/src/ref-network-blocker.ts (docs:network-blocker) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/network-blocker.ts"
+import type { ConsentKernel } from 'c15t';
+import { createNetworkBlocker } from 'c15t/modules/network-blocker';
+
+export const blockTracking = function blockTracking(kernel: ConsentKernel) {
+	return createNetworkBlocker({
+		kernel,
+		onRequestBlocked: ({ method, url, rule }) => {
+			console.info('Held back', method, url, rule?.id);
+		},
+		rules: [
+			{
+				category: 'measurement',
+				domain: 'collect.example.com',
+				id: 'collector',
+			},
+			{
+				category: 'measurement',
+				domain: 'example.com',
+				id: 'events',
+				methods: ['POST'],
+				pathIncludes: '/api/track',
+			},
+		],
+	});
+};
+```

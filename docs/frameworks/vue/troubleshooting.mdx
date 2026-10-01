@@ -1,0 +1,99 @@
+---
+title: Troubleshooting
+description: Fix common c15t Vue plugin problems, from unresolved imports and a missing banner to tokens that do not apply and scripts that load twice.
+group: frameworks
+---
+
+## Vite cannot resolve #imports or #c15t/composables
+
+**Check.** Look in the `plugins` array of `vite.config.ts`. The c15t Vite
+plugin is missing.
+
+**Fix.** Add `c15tVue()` from `c15t/vue/vite` to the `plugins` array, next to
+`@vitejs/plugin-vue`. See the
+[quickstart](/docs/frameworks/vue/quickstart#add-the-vite-plugin).
+
+## app.use() fails or does nothing
+
+**Check.** Look at where you import the plugin. `c15t/vue` is the Nuxt module
+and is not a Vue plugin.
+
+**Fix.** Import the plugin from `c15t/vue/vue-plugin`.
+
+## A composable throws "Kernel not found"
+
+**Check.** The component is outside the app that installed `c15tVue`, for
+example in a separate `createApp()` instance, or the composable ran outside
+`setup`.
+
+**Fix.** Install the plugin on the app that renders the component, and call
+composables inside `setup`.
+
+## Why is there no banner?
+
+**Check.** [DevTools](/docs/frameworks/vue/components/dev-tools) shows the
+matched policy. In the Network tab, find the `/init` request.
+
+**Fix.** Work through these causes in order:
+
+1. **The visitor's policy asks for no banner.** A policy with prompt `none`
+   shows no banner, which is common in opt-out regions. See
+   [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
+2. **`ConsentRoot` is inside a route that unmounts.** Put it in the root
+   component.
+3. **The backend did not answer.** `/init` must return 200. A CORS error means
+   your site's origin is missing from the Inth project's trusted origins.
+   While resolution fails, c15t shows no UI and keeps every optional category
+   denied.
+4. **`VITE_C15T_BACKEND_URL` was not set when Vite built the app.** Vite
+   replaces it at build time, so restart the dev server or rebuild after
+   changing it.
+5. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
+   or use a private window.
+
+## The browser requests /api/c15t/init
+
+**Check.** Look for `backendURL` and `manifest` in the plugin options. When
+`backendURL` is unset, the plugin defaults to `/api/c15t` and requests the
+`/api/c15t/init` route that only the Nuxt module provides.
+`manifest: 'server'` calls the same route.
+
+**Fix.** Set `backendURL` to your backend. Use `manifest: 'client'` or leave
+`manifest` unset in a plain Vue app.
+
+## Tokens in my CSS do not apply
+
+**Check.** The c15tVue plugin appends a `<style id="c15t-css-vars">` element to
+`<head>` when you install it. The element sets every token, including the
+defaults. A `:root` rule in your stylesheet for the same variable competes
+with it on source order, so it may lose.
+
+**Fix.** Set values through the plugin's `tokens` option. See
+[customize](/docs/frameworks/vue/customize#set-theme-tokens).
+
+## A script loads twice, or before consent
+
+**Check.** Look for the vendor in both the plugin's `scripts` and a
+`createScriptLoader` call.
+
+**Fix.** Keep only `scripts`.
+
+**Check.** Look for the vendor's own snippet in `index.html`, or SDK
+initialization in your code.
+
+**Fix.** Remove it so c15t is the only loader.
+
+## The page flashes without the banner on a server-rendered Vue app
+
+**Check.** c15t does not support server rendering for plain Vue.
+
+**Fix.** Use the c15t Nuxt module. See
+[server rendering without Nuxt](/docs/frameworks/vue/rendering#server-rendering-without-nuxt).
+
+## More help
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI.

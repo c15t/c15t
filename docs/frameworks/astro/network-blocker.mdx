@@ -1,0 +1,88 @@
+---
+title: Network blocker
+description: Block fetch and XMLHttpRequest calls to tracking hosts on an Astro site until the visitor allows their consent category, with c15t's network blocker rules and an onRequestBlocked handler.
+group: frameworks
+---
+
+## What the network blocker does
+
+`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
+until the visitor allows the rule's category. A blocked `fetch` resolves to a
+`451` response, and nothing is sent. It covers requests that code already on
+the page makes, such as an SDK you load yourself or a tag manager's own calls.
+
+It does not stop `navigator.sendBeacon`, WebSockets, image pixels, `<script>`
+tags or iframes. Load scripts through c15t and gate iframes as
+[Scripts](/docs/frameworks/astro/scripts) and
+[Embeds](/docs/frameworks/astro/embeds) describe.
+
+## Add rules
+
+Rules are plain data, so they can go in the integration options:
+
+{/* example: fragment */}
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: hosted({ url: backendURL }),
+  networkBlocker: {
+    rules: [
+      { category: 'measurement', domain: 'google-analytics.com' },
+      {
+        category: 'marketing',
+        domain: 'ads.example.com',
+        pathIncludes: '/collect',
+        methods: ['POST'],
+      },
+    ],
+  },
+});
+```
+
+| Rule field | Effect |
+| --- | --- |
+| `category` | The category that must be allowed for the request to go through |
+| `domain` | The host to match. It also matches every subdomain |
+| `pathIncludes` | Matches only URLs whose path contains this text |
+| `methods` | Matches only these HTTP methods |
+| `vendor` | Also requires this vendor to be allowed, for vendor-level consent |
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `rules` | Required | The rules to apply |
+| `enabled` | `true` | Set `false` to keep the rules but stop blocking |
+| `logBlockedRequests` | `true` | Logs each blocked request to the console. Set `false` to silence it |
+
+The blocker starts with the consent runtime, from a module script. A request
+made before that, such as from an inline script at the top of `<head>`, is not
+blocked.
+
+## Log or report blocked requests
+
+`onRequestBlocked` is a function, so it cannot go in `astro.config.mjs`. Set
+`networkBlocker` in the default export of your client entrypoint instead. It
+replaces the integration's `networkBlocker` completely, so repeat the rules
+there:
+
+{/* example: fragment */}
+
+```ts title="src/consent-client.ts (partial)"
+export default {
+  scripts,
+  networkBlocker: {
+    rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
+    onRequestBlocked: ({ url, rule }) => {
+      console.info('Blocked until consent:', url, rule?.category);
+    },
+  },
+} satisfies C15tClientOptionsExtension;
+```
+
+## Check the network blocker
+
+1. Open the site in a private window with DevTools Network open, and trigger
+   the code that calls a blocked host. The request does not appear, and a
+   `fetch` receives a `451` response.
+2. Allow the rule's category. The next request to that host goes through.
+3. Withdraw the category and save. After the reload, requests to the host are
+   blocked again.

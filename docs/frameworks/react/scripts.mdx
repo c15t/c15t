@@ -1,0 +1,76 @@
+---
+title: Scripts
+description: Load vendor scripts by consent category in a React app with ConsentProvider, and clear stored data or reload the page when a visitor withdraws consent.
+group: frameworks
+---
+
+## Register vendor scripts
+
+Pass vendor loaders to `ConsentProvider` through `options.scripts`. The
+provider loads each script when its category is allowed and removes it when
+the category is denied. The [quickstart](/docs/frameworks/react/quickstart)
+registers PostHog and X Pixel this way:
+
+<include src="../../shared/examples/react/scripts.mdx" />
+
+The provider in `src/consent.tsx` receives them:
+
+<include src="../../shared/examples/react/consent.mdx" />
+
+Each helper from `@c15t/integrations` sets its own category and a stable `id`.
+Remove every other loader for the same vendor, such as a `<script>` tag in
+`index.html` or an SDK you initialize at module level, so the vendor loads
+once and only through c15t. [Integrations](/docs/integrations/overview) lists
+every helper, and [building integrations](/docs/integrations/building-integrations)
+covers a vendor without one.
+
+## What happens when consent changes
+
+- **Allowed.** The script loads, or its SDK is started, the first time its
+  category is allowed.
+- **Denied later.** The provider removes the script element. Code that already
+  ran keeps running, so after the visitor turns off a category they had
+  allowed, the provider reloads the page once the save finishes. Set
+  `reloadOnConsentRevoked: false` only if every gated vendor stops itself.
+- **`alwaysLoad` helpers.** Some integrations, such as Google Consent Mode,
+  load before consent and pass the visitor's choice to the vendor. Read the
+  vendor's guide; a category on a script does not always mean zero requests.
+
+## Embeds and other requests
+
+Scripts cover vendor code c15t loads for you. For the rest:
+
+- [Embeds](/docs/frameworks/react/embeds) keeps iframes out of the page with
+  `ConsentGate` or the iframe blocker.
+- [Network blocker](/docs/frameworks/react/network-blocker) holds `fetch` and
+  XHR calls that match a rule until their category is allowed.
+
+## Clear stored data after revocation
+
+Removing a script does not delete the cookies or storage entries it wrote. Add
+`clearOnRevocation` to the provider options to delete the entries you list for
+each category when it is denied. The option is read once, when the provider
+mounts. [Clear on revocation](/docs/integrations/clear-on-revocation) covers
+configuration and browser limits.
+
+## Vendors with their own switch
+
+To let a visitor allow a category but turn off one vendor, pass `vendors` to
+the provider options. The preference dialog then lists each vendor under its
+category. [Granular consent](/docs/integrations/granular-consent) explains the
+setup. To keep another consent tool in charge, see
+[use c15t with an existing CMP](/docs/integrations/existing-cmp). To send your
+own events only to allowed integrations, see
+[send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations).
+
+## Check the scripts
+
+Open DevTools Network in a private window, filter by each vendor's domain and
+reload.
+
+1. Before a choice under an opt-in policy, no vendor script loads.
+2. Allow one category. Only that category's vendors load.
+3. Turn the category off. The page reloads and the vendor stays absent.
+4. Reload again. The rejection holds.
+
+[Verify consent](/docs/guides/verify-consent) has the full checklist.

@@ -1,0 +1,74 @@
+---
+title: Customize
+description: Render c15t brand colors on the SvelteKit server with generateThemeCSS, and change slots, button styles, banner shape and copy.
+group: frameworks
+---
+
+## Pick the right tool
+
+| Change | Use |
+| --- | --- |
+| Brand colors, radius, type, spacing | `generateThemeCSS()` in a server load, or `--c15t-*` variables in a stylesheet |
+| One part of one component | `theme.slots` on the provider |
+| Button styles by action | `theme.consentActions` |
+| Shape, position, blocking, button order | `ConsentBanner` props or `presentation` |
+| Wording and languages | `ConsentBanner` text props, or [translations](/docs/frameworks/sveltekit/translations) |
+| Different markup | [Headless](/docs/frameworks/sveltekit/headless) |
+
+[Customization](/docs/customization/overview) explains how the pieces fit
+together across frameworks.
+
+See the [design gallery](/docs/customization/recipes) for five banner designs,
+from a bottom bar to a fully custom one, with tested code for this framework.
+
+## Render brand tokens on the server
+
+The provider's `theme` prop does not turn colors, radius or other tokens into
+CSS in the browser. Generate the CSS on the server instead, so the first paint
+already uses your brand. Install `@c15t/ui`, which has the generator:
+
+<CommandTabs command="@c15t/ui@alpha" mode="install" />
+
+Put the theme in a `$lib/server` module. SvelteKit refuses to import those
+modules into browser code, so the generator never reaches the bundle:
+
+<include src="../../shared/examples/sveltekit-demo/theme.mdx" />
+
+Return the CSS from a layout load. If your root `+layout.server.ts` already
+has a load from the quickstart, add `themeCSS` to the object it returns next
+to `prefetch`:
+
+<include src="../../shared/examples/sveltekit-demo/theme-load.mdx" />
+
+Render it in `<svelte:head>` in the layout:
+
+<include src="../../shared/examples/sveltekit-demo/theme-style.mdx" />
+
+SvelteKit writes `<svelte:head>` content before its stylesheet links. The
+`generateThemeCSS` selectors are more specific than the defaults in
+`@c15t/svelte/styles.css`, so the theme still wins. Keep the `c15t-theme` id. In development, the provider logs a warning when its
+`theme` prop has tokens and the page has no `<style id="c15t-theme">`. `generateThemeCSS` escapes `<`,
+so its output is safe inside a `<style>` element.
+
+`generateThemeCSS` fills in what you leave out, such as a readable text color
+for your primary color. Pass a color scheme as its second argument,
+`'dark'` or `'system'`, to include dark tokens. Keep slot styles and
+`consentActions` in the provider's `theme` prop; the server CSS covers tokens
+only. [Tokens and CSS](/docs/customization/tokens) lists every token.
+
+### Use a stylesheet instead
+
+For fixed brand values you can skip the generator. Write the `--c15t-*`
+variables on `:root` in a stylesheet and import it right after
+`@c15t/svelte/styles.css` in the root layout:
+
+<include src="../../shared/examples/svelte/theme-css.mdx" />
+
+Set the hover and text colors yourself; a stylesheet does not derive them.
+
+Pick one of the two for each token. `generateThemeCSS` output outranks a plain
+`:root` rule, so a `--c15t-*` value you set on `:root` loses to the generated
+theme wherever the two overlap. To override a generated value from your
+stylesheet, write the rule on `:root:root`, or move the value into the theme.
+
+<include src="../../shared/svelte/customize.mdx" />

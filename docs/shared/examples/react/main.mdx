@@ -1,0 +1,18 @@
+{/* Generated from examples/react/src/main.tsx (docs:main) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```tsx title="src/main.tsx"
+import { createRoot } from 'react-dom/client';
+
+import { App } from './app';
+import { Consent } from './consent';
+
+const root = document.getElementById('root');
+if (!root) {
+	throw new Error('Missing #root element');
+}
+createRoot(root).render(
+	<Consent>
+		<App />
+	</Consent>
+);
+```

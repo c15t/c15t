@@ -1,0 +1,24 @@
+---
+title: Content Security Policy
+description: Write a Content Security Policy for a Svelte app using c15t, with the hosts to allow, the provider's nonce option and what c15t injects.
+group: frameworks
+---
+
+## Set the policy where you host the app
+
+A Svelte app built with Vite has no server of its own, so the policy comes
+from your host or CDN as a `Content-Security-Policy` header, or from a
+`<meta http-equiv="Content-Security-Policy">` tag in `index.html`. Test it
+against `vite build` and `vite preview`. The dev server injects CSS through
+`<style>` elements, so a strict policy breaks `vite dev` even when production
+works.
+
+A static host serves the same file to everyone and cannot put a fresh nonce
+in each response, so allow each vendor's script host in `script-src` instead
+of relying on the provider's `nonce`.
+
+In a Svelte app without server rendering, Svelte sets every `style` value
+through the DOM, which a policy does not block, so c15t needs no
+`'unsafe-inline'` for style attributes.
+
+<include src="../../shared/svelte/content-security-policy.mdx" />

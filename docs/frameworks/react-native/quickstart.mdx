@@ -14,7 +14,7 @@ keeps no second copy of consent state.
 
 Because the kernel is native code, consent resolves before your first JavaScript
 frame and survives a cold start with no connectivity. Read
-[native behaviour](/docs/frameworks/react-native/native-behaviour) for the ordering
+[native behavior](/docs/frameworks/react-native/native-behaviour) for the ordering
 that follows from this.
 
 ## Before you start
@@ -56,7 +56,7 @@ same values to JavaScript under `extra.c15t`.
     [
       "@c15t/react-native/expo-plugin",
       {
-        "backendURL": "https://consent.example.com"
+        "backendURL": "https://your-project.inth.app"
       }
     ]
   ]
@@ -113,7 +113,7 @@ Then declare the backend in `ios/<App>/Info.plist`:
 
 ```xml
 <key>com.c15t.backend.url</key>
-<string>https://consent.example.com</string>
+<string>https://your-project.inth.app</string>
 <key>com.c15t.backend.mode</key>
 <string>hosted</string>
 ```
@@ -132,7 +132,7 @@ in the library manifest and merges on its own, so do not register a second one.
 <application>
   <meta-data
     android:name="com.c15t.PORTAL_URL"
-    android:value="https://consent.example.com" />
+    android:value="https://your-project.inth.app" />
 </application>
 ```
 
@@ -230,7 +230,7 @@ preference center together. It needs no extra build step, and neither it nor App
 expanded prompt changes the iOS floor that
 [platform support](/docs/frameworks/react-native/platform-support) lists. Read
 [usage](/docs/frameworks/react-native/usage#driving-the-whole-apple-request) for the
-example, and [native behaviour](/docs/frameworks/react-native/native-behaviour) for what
+example, and [native behavior](/docs/frameworks/react-native/native-behaviour) for what
 Apple keeps to itself.
 
 ## Verify the setup

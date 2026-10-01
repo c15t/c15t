@@ -1,0 +1,80 @@
+---
+title: Compose your own banner
+description: Build a TanStack Start consent banner from the ConsentBanner parts in c15t/tanstack-start, with your own markup and buttons, rendered inside ConsentRoot in the root route.
+group: frameworks
+---
+
+## When to compose
+
+<import src="../../shared/react/compose.mdx#when-to-compose" />
+
+For a banner that shares nothing with the stock markup, use the
+[headless hooks](/docs/frameworks/tanstack-start/headless). For one changed
+class, token or prop, see [customize](/docs/frameworks/tanstack-start/customize).
+
+## Compose the banner
+
+`CookieBanner` keeps the stock card, title and copy, and renders each action
+the policy asks for as your design system's button. `BrandButton` stands in
+for that button:
+
+<include src="../../shared/examples/tanstack-start/compose-button.mdx" />
+
+<include src="../../shared/examples/tanstack-start/compose-banner.mdx" />
+
+`c15t/tanstack-start` re-exports every `c15t/react` component, so
+`ConsentBanner` and its parts come from the same import as `ConsentRoot`.
+
+The parts read the provider that `ConsentRoot` renders. In the
+`src/routes/__root.tsx` file from the
+[quickstart](/docs/frameworks/tanstack-start/quickstart), import
+`CookieBanner` from `../components/cookie-banner` and render it in place of
+`ConsentBanner`, next to `ConsentDialog`:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx (partial)"
+<ConsentRoot
+	state={consent}
+	backendURL={backendURL}
+	initRoute={false}
+	scripts={scripts}
+>
+	<Outlet />
+	<CookieBanner />
+	<ConsentDialog />
+	<footer>
+		<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+	</footer>
+</ConsentRoot>
+```
+
+The root route renders on the server, and `CookieBanner` renders there with
+it, the same as the stock banner.
+
+<import src="../../shared/react/compose.mdx#how-it-works" />
+
+<import src="../../shared/react/compose.mdx#banner-parts" />
+
+[ConsentBanner](/docs/frameworks/tanstack-start/components/consent-banner)
+lists the stock banner's props, variants and data attributes.
+
+<import src="../../shared/react/compose.mdx#as-child" />
+
+<import src="../../shared/react/compose.mdx#dialog" />
+
+`c15t/tanstack-start` exports `ConsentDialog` and `ConsentWidget` with their
+parts. It has no `components/consent-dialog` subpath, so import the parts
+without the deferral from `c15t/react/components/consent-dialog`.
+[ConsentDialog](/docs/frameworks/tanstack-start/components/consent-dialog)
+and [ConsentWidget](/docs/frameworks/tanstack-start/components/consent-widget)
+list every part and its slots.
+
+<import src="../../shared/react/compose.mdx#accessibility" />
+
+<import src="../../shared/react/compose.mdx#theming" />
+
+[Customize](/docs/frameworks/tanstack-start/customize) shows where to set
+tokens, slots and `consentActions` through `ConsentRoot`'s `options`.
+
+<import src="../../shared/react/compose.mdx#verify" />

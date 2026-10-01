@@ -1,0 +1,32 @@
+---
+title: DevTools
+description: Inspect consent, scripts, location and events in a Svelte app with ConsentDevTools from @c15t/svelte/devtools, loaded only in development.
+group: frameworks
+---
+
+## Add the panel in development
+
+Render `ConsentDevTools` inside `ConsentManagerProvider`, and load it only in
+development. Vite sets `import.meta.env.DEV` to `true` in `vite dev` and to
+`false` in a production build, which then drops the import:
+
+{/* example: fragment */}
+
+```svelte title="src/lib/ConsentDevTools.svelte"
+<script lang="ts">
+  const devTools = import.meta.env.DEV
+    ? import('@c15t/svelte/devtools')
+    : null;
+</script>
+
+{#if devTools}
+  {#await devTools then { ConsentDevTools }}
+    <ConsentDevTools />
+  {/await}
+{/if}
+```
+
+Render `<ConsentDevTools />` from that file anywhere inside the provider. The
+export is also available as `DevTools` and `C15TDevTools`.
+
+<include src="../../../shared/svelte/components/dev-tools.mdx" />

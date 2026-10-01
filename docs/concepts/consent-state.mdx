@@ -1,0 +1,356 @@
+---
+title: Consent state reference
+description: How c15t saves choices, gates IAB vendors, hydrates server records and keeps browser tabs and storage in step.
+group: concepts
+---
+
+This reference covers the edge cases behind the model in
+[how consent works](/docs/concepts/how-consent-works). You need it when you
+build custom consent UI, run c15t across subdomains, or debug a choice that
+changes between tabs.
+
+## Gate IAB vendors on the TC string
+
+Under an IAB policy, a script, network rule or iframe that names a `vendorId`
+or IAB purposes is an IAB target. It runs only while a confirmed TC string
+grants what it declares: purpose and vendor consent for `iabPurposes`, purpose
+and vendor legitimate interest for `iabLegIntPurposes`, and opt-ins for
+`iabSpecialFeatures`. Every category it names must also be free of
+restrictions, so GPC or strict scope blocks it.
+
+A refused category is the one exception. It does not block an IAB target that
+processes only on legitimate interest, after publisher restrictions, because
+the TCF lets that processing run without consent. The visitor's control for it
+is the objection, which the legitimate interest signals record. The category
+itself stays refused: its `effectivePermissions` entry is `false`, and targets
+that name only the category, or that also declare a consent purpose or special
+feature, stay blocked.
+
+## When a choice is saved
+
+A save records the choice in the browser first and sends it to the backend
+afterwards. The stock banner, preference dialog and IAB surfaces in every
+framework adapter, and the browser client's `acceptAll()`, `rejectAll()`
+and `save()`, close without waiting for the backend. In order:
+
+1. In the click task, the explicit choice and effective permissions change,
+   `onChoiceRecorded` and `onPermissionsChanged` run, gated scripts, iframes
+   and network rules follow the new permissions, and the surface leaves the
+   active state. Its exit animation still plays.
+2. In the next task, the choice is written to the cookie and localStorage.
+3. After that write is queued, the request to the backend starts.
+4. When the request settles, the kernel emits `command:save:completed`. The
+   promise returned by `kernel.commands.save()`, React's `performAction()` and
+   Svelte's `saveConsents()` resolves or rejects only then.
+5. If the save turned off a category or vendor that was granted, the page
+   reloads in the next task, after `onBeforeConsentRevocationReload` runs.
+   Removing a script cannot stop code that already ran, so the reload starts a
+   page with only permitted code. With several saves in flight, it waits for
+   the last one. Set `reloadOnConsentRevoked: false` to handle revocation
+   yourself.
+
+A failed request does not reopen the surface or roll the choice back. The
+kernel emits `command:error`, which reaches the `onError` callback in adapters
+that accept one, and queues the payload in localStorage. The queue is replayed
+after the next successful initialization and when the browser comes back
+online, up to 10 attempts over 7 days. A replay carries the original action
+time and policy snapshot token, so the backend records when the visitor
+decided, and a duplicate submission resolves to the same consent record. A
+backend that signs policy snapshot tokens rejects a replay made after the
+token expires, which is 30 minutes by default for the self-hosted backend. A
+save still queued by then is recorded only in the browser.
+
+IAB surfaces close in the click task too, but an IAB choice is recorded only
+after its TC string is encoded, which can wait for the TCF library to load.
+If that local step records nothing, for example because the vendor list
+failed to load, the surface comes back so the visitor can try again.
+
+## Preserve records during hydration
+
+Server helpers return records with policy information and evaluation time.
+Forward that configuration intact. Copying an allowed category into a receipt
+would invent a grant and lose its original confirmation time.
+
+Valid v2 records can be read without a startup rewrite. The next explicit action
+writes the v3 format. See [migration](/docs/upgrade-v3) for expiry, partial saves,
+custom transports and backend contract changes.
+
+## Keep open tabs in step
+
+Tabs and windows on the same origin (scheme, host and port) share the consent
+cookie and localStorage. When a visitor rejects in one tab, every other open tab
+on that origin applies the rejection without a reload. Scripts and features
+gated on `effectivePermissions` lose permission, subscribers are notified once
+and `onPermissionsChanged` fires. Clearing records in one tab returns the others
+to the active policy's defaults: an opt-in policy denies optional categories and
+shows the prompt again.
+
+Tabs on another subdomain that shares the consent cookie do not share
+localStorage, so the browser sends them no `storage` event. They pick up the
+change on their next focus or visibility change, or when you reconcile
+yourself as described in
+[Reconcile yourself or turn it off](#reconcile-yourself-or-turn-it-off).
+
+The `storage` event only exists for localStorage. When localStorage is
+unavailable (blocked by the browser, a sandboxed frame or a privacy mode) and
+c15t stores in the cookie alone, another tab's change arrives only on the next
+focus or visibility change, or when you call `runtime.reconcileStorage()` or
+`persistence.reconcile()`. c15t does not poll the cookie or use a
+`BroadcastChannel` for this.
+
+Browser persistence reads stored records again at these moments:
+
+| Moment | What happens |
+| --- | --- |
+| Another tab or window on the same origin changes a c15t localStorage key | Reconciles on the `storage` event |
+| The page becomes visible again | Reconciles on `visibilitychange` |
+| The window regains focus | Reconciles on `focus` |
+| The network reconnects | No storage read |
+
+Several triggers in quick succession run one reconciliation in a later task.
+Reconnecting does not read storage, because going online changes nothing in
+browser storage. On reconnect the kernel retries saves the backend did not
+accept and a failed initialization. Save retries do not write the cookie or
+localStorage. A write that follows initialization obeys the rules in
+[Ordering with pending writes](#ordering-with-pending-writes).
+
+Every adapter that mounts browser persistence does this: the React, Next.js and
+TanStack Start providers, Vue, Svelte, Astro, the script tag and
+`createConsentRuntime`. With `persistence: false` nothing is stored or read.
+
+### What a reconciliation applies
+
+Stored records are merged into the ones in memory:
+
+- Category decisions merge per category. Each category keeps the decision with
+  the newer confirmation time, so a tab that only changed marketing never
+  reverts another tab's newer measurement decision.
+- The notice dismissal and the vendor record are single decisions. A stored one
+  at least as new as the one in memory replaces it; an older one is ignored.
+- When two tabs record decisions in the same millisecond, the one stored first
+  wins in both tabs.
+- Tabs keep one subject. A stored subject is considered only when the record
+  that carries it changed, never on focus alone. It replaces a subject the tab
+  generated on its first save or copied from storage, so a tab that opened
+  before another tab stored a subject joins it. A subject id the server
+  resolved (at init, from a prefetch or in a save response) is replaced only by
+  a strictly newer stored choice, and an identity set with `identify()` is
+  never replaced.
+- Under an IAB policy, the TC string follows the reconciled choice. See
+  [How the TC string is reconciled](#how-the-tc-string-is-reconciled).
+- A record removed from readable storage since this tab last saw it present is
+  cleared, and the active policy decides again. A record this tab never saw in
+  storage, such as a receipt merged from the server after `identify()` or a
+  choice seeded while storage was blocked, stays.
+- Blocked storage, or bytes that do not decode, change nothing. A failed read
+  never grants a category.
+
+Expiry is not decided here. The applied records are evaluated at the time of the
+read, the same way as at startup.
+
+### How the TC string is reconciled
+
+Under an IAB policy, a tab adopts the TC string another tab stored, unless that
+TC string conflicts with the reconciled choice. A conflicting TC string is
+withdrawn, and `__tcfapi` reports no consent until the next save. Vendors never
+receive a stale TC string: c15t withdraws it, or holds it back, before
+`__tcfapi` publishes.
+
+1. The `@c15t/iab` module loads the TC string the other tab stored, with its
+   purpose, vendor and special-feature selections, so `__tcfapi` and the
+   preference controls show the choice now in force. Selections the visitor
+   changed in this tab without saving are kept.
+2. A missing or older stored TC string leaves the current one in place, unless
+   the current one conflicts with the reconciled choice. Then it is withdrawn.
+3. A category denied after the TC string was saved conflicts if the TC string
+   grants any of its purposes. A partial selection saved through IAB, which
+   records its category as denied because not every purpose is granted, keeps
+   its TC string.
+4. A TC string confirmed before the choice's newest decision no longer
+   describes it and is withdrawn, unless a newer receipt replaces it. That
+   receipt is adopted even when its TC string is identical, because TC strings
+   round their time to the day and custom-vendor selections live only in the
+   receipt. The receipt's expiry then applies.
+5. The TC string and its receipt (`euconsent-v2`, `c15t-iab-authority-v1`)
+   belong to one origin. After a save on a sibling subdomain that shares the
+   consent cookie, this subdomain reports no consent through `__tcfapi` until
+   it saves again.
+6. A tab reloads the TC string when another tab on the same origin stores a
+   new one. This covers a save in the same millisecond, or one that changed
+   only vendors.
+7. When two tabs save in the same millisecond with different selections, the
+   more restrictive TC string wins in both, so a revoked vendor is never
+   advertised again. If each grants something the other denies, neither is
+   published until the next save, and the stored receipt is removed so a page
+   opened later does not restore it.
+8. When another tab removes the receipt or clears localStorage, this tab
+   withdraws its TC string too, because a page opened now would find none. A
+   receipt this tab was still decoding is not installed.
+9. The removal after a tie checks that the stored receipt is the one it read.
+   localStorage has no conditional removal, so a receipt another tab stored a
+   moment earlier can still be removed. Every tab then withdraws its TC string
+   until the next save, so the race only ever withholds consent.
+
+### Clearing records across tabs
+
+`clearRecords()` removes every record and then stores the time of the clear,
+the clear epoch, under its own key: `c15t-epoch` in localStorage and a cookie
+of the same name (`<storageKey>-epoch` with a custom `storageKey`). Clearing
+never removes it. Every consent record written afterwards also records the
+epoch it was written under.
+
+A decision confirmed before the epoch was made before the clear, so it is void
+wherever it turns up. A decision stamped in the very millisecond of the clear
+counts only if it comes from a tab that had already seen that clear, so a tab's
+own choice right after its own clear stands while another tab's decision in the
+same millisecond does not. A stored record left with no decisions after the
+clear is void too, subject included.
+
+- A tab that reconciles only after another tab cleared and saved again drops
+  its pre-clear decisions instead of merging them back. Its subject from before
+  the clear is dropped too.
+- A tab that missed the clear writes only decisions it made after it. Its queued
+  write of an earlier decision is discarded, so it cannot bring back a cleared
+  record.
+- Browser hydration and server reads (`readStoredRecordsFromCookieHeader`, used
+  by the Next.js, TanStack Start, Nuxt, SvelteKit and Astro helpers) apply the
+  same rule, so a server render agrees with the browser.
+
+Records from before any clear, including v2 and legacy records, read as epoch 0
+and are unaffected. A corrupt epoch, or one that cannot be read, also reads as
+0: it voids nothing, so a failed read never grants a category. A consent record
+whose own epoch field is corrupt is kept, and only its epoch is ignored.
+
+Each clear moves the epoch forward, even when the device clock went back, so a
+later clear never lets earlier decisions back in. Two clears in the same
+millisecond therefore leave the epoch a millisecond ahead, and a decision saved
+in that millisecond is void. An epoch up to one hour ahead
+of the clock is kept, as it is when the clock was set back after a clear. Until
+the clock catches up, decisions saved in that window are void too. An epoch more
+than an hour ahead is treated as corrupt and reads as 0, so a clear never writes
+one: after the clock went back more than an hour, the new epoch is capped at an
+hour ahead of the clock.
+
+That cap is a known limit. A cleared record carries times from before the clock
+went back, and a runtime that missed the clear can write those times back. The
+capped epoch is lower than them, so once the clock has recovered, such a
+decision counts again. Leaving the epoch uncapped does not help: every tab
+whose clock is still behind reads it as corrupt, which voids nothing. Times
+alone cannot order a clear against decisions stamped by a clock that went back
+more than an hour.
+
+This changes the stored format. After a clear, the consent cookie carries
+`&e=<time>` (16 bytes) and the localStorage record an `epoch` field (22 bytes),
+and the epoch cookie itself holds a 13-digit time. Visitors who never cleared
+their records store exactly what they did before. An older c15t build rejects
+both the cookie and the localStorage record once they carry the epoch, so a page
+still running one treats the visitor as undecided. Under an opt-out policy that
+page grants optional categories by default until a new choice is saved, and the
+configured prompt may appear again. Deploy the new build to every page of the
+site before visitors can clear their records.
+
+### When the cookie and localStorage disagree
+
+When both copies hold a decision for a category from the same millisecond and
+the two conflict, the denial wins.
+
+The subject and IAB metadata come from the cookie. A server response, such as
+server-side consent restoration, and a sibling subdomain sharing the cookie
+with `crossSubdomain` can both rewrite it without touching this origin's
+localStorage, so the local copy can be the older one. The local copy's subject
+is used only when this browser's last consent write reached localStorage but
+not the cookie, for example because the cookie grew past the size limit, and
+the cookie has not changed since. Such a write stores the cookie as it stood
+under `<storageKey>-cookie-miss` in localStorage; the next write that reaches
+the cookie, or a clear, removes it. When localStorage rejects a write that the
+cookie takes, for example because storage is full, the older localStorage copy
+is removed.
+
+When a server render seeded the page from the consent cookie
+(`skipHydration`), that seed stays authoritative. A denial that reached only
+localStorage is still applied on top of it when the page mounts, since it can
+only restrict, if it is newer than the seeded decision or from the same
+millisecond as a seeded grant. A stored grant is not.
+
+The notice dismissal and vendor denials are stored twice as well. A vendor
+list in localStorage at least as new as the cookie's adds its denials but never
+lifts one the cookie holds; a copy confirmed before the last clear is ignored, so its
+denials never come back. The newer notice dismissal applies; it still only hides a
+notice with the fingerprint it names. The consent record follows the rules
+below.
+
+The consent record is stored twice: as a cookie, which a server render reads,
+and in localStorage. The cookie is authoritative. A well-formed cookie wins
+even when it has expired, so a local copy can never bring back a grant the
+cookie no longer carries.
+
+A browser can still drop a cookie write, for example when the record grows past
+the cookie size limit, while localStorage takes it. A denial in the local copy
+that is newer than the cookie's decision for that category is therefore applied
+on top of the cookie. A newer local grant is not, so a dropped cookie write only
+ever leaves the visitor with less permission. A server render sees only the
+cookie; after a dropped write that carried a denial, the browser is the stricter
+of the two.
+
+When the two copies were written under different clear epochs, each loses its
+decisions from before the later epoch first, and the same rule applies to what
+remains. A later epoch in the local copy never lets its grant replace a cookie
+denial. The subject and IAB metadata come from the copy written under the later
+epoch; a record written before the clear in force keeps its later decisions but
+no subject.
+
+A server render cannot know about a clear that never reached a cookie. If the
+page could write localStorage but its cookie writes failed during
+`clearRecords()` (cookies blocked for the page, or a cookie setter that
+throws), the removal of the consent cookie failed too, and so did the epoch
+cookie. The browser then applies the clear from localStorage, while a server
+render still reads the old consent cookie until the next successful cookie
+write. The same applies to a consent cookie set with a different `domain` than
+the current `storageConfig` uses, which the clear cannot remove.
+
+### Ordering with pending writes
+
+A tab writes its own choices in a later task, not during the click. Before it
+reads storage, it lands its own queued writes, so a reconciliation never undoes
+the visitor's latest action in that tab. A queued write follows the same rules
+as a read: it stores the per-category merge of its choice and the stored one,
+and never replaces a newer notice or vendor record. It keeps the stored subject
+unless this tab identified a different user.
+When a slow save response returns a server subject id, the tab adds it only to
+the record it wrote; it does not recreate records another tab cleared or
+overwrite another tab's newer choice.
+
+Two tabs that write at the same moment can both read storage before either
+writes, and the later write can then drop the other tab's category decision.
+The tab whose decision was dropped still holds it, and on its next
+reconciliation it writes it back, merged with what storage holds. It does so
+only for decisions it actually stored itself, never for one a clear voided or
+another tab replaced with a newer one.
+
+If another tab's change reaches this tab while one of its saves is pending, the
+save depends on how far it got. A save not yet sent is dropped. A request
+already sent still reaches the backend, which may record it; this tab ignores
+the response, so it queues no retry and applies no subject id from it. A save
+already queued for retry keeps its original decision time.
+
+### Reconcile yourself or turn it off
+
+Browsers send no event for a change made in the same document, or for a cookie
+rewritten without a localStorage change, such as a `Set-Cookie` response header
+or another subdomain sharing the cookie. The next focus or visibility change
+picks it up. To apply it at once, call the method yourself:
+
+```ts
+// Runtime owners: returns true when any record changed.
+runtime.reconcileStorage();
+
+// Kernel owners with createPersistence from c15t/modules/persistence:
+persistence.reconcile();
+```
+
+To keep storage but stop automatic reconciliation, pass `sync: false` in the
+persistence options, for example `createConsentRuntime({ persistence: { sync:
+false } })` or `createPersistence({ kernel, sync: false })`. The manual methods
+still work.
+
+`dispose()` removes the listeners and cancels a scheduled reconciliation.

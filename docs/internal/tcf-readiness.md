@@ -25,9 +25,9 @@ themselves (i.e. Private CMP)."
 **What c15t implements today is the Private CMP model.** Every doc page puts
 `cmpId` on the customer: `manifest.iab` for self-host
 (`docs/self-host/guides/iab-tcf.mdx:30`), a provider prop for React and Next
-(`docs/frameworks/react/iab/overview.mdx:20`,
-`docs/frameworks/next/iab/overview.mdx:25`), an argument for headless
-(`docs/frameworks/javascript/iab/overview.mdx:16`), and an inline script option
+(`docs/frameworks/react/iab.mdx:20`,
+`docs/frameworks/next/iab.mdx:25`), an argument for headless
+(`docs/frameworks/javascript/iab.mdx:16`), and an inline script option
 (the "Load the IAB build" section of `docs/frameworks/html/iab.mdx`). There is
 no code path that supplies a c15t-owned ID. The backend only echoes what the
 operator configured:

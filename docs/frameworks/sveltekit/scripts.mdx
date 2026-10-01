@@ -1,0 +1,20 @@
+---
+title: Scripts
+description: Load vendor scripts, iframes and network requests in a SvelteKit app only after the visitor allows their consent category, and stop them when consent is withdrawn.
+group: frameworks
+---
+
+## Register scripts in the root layout
+
+Pass the array from `src/lib/example-scripts.ts` to `ConsentManagerProvider`
+as the `scripts` prop in `src/routes/+layout.svelte`. The
+[quickstart](/docs/frameworks/sveltekit/quickstart) sets up both files:
+
+<include src="../../shared/examples/sveltekit-demo/scripts.mdx" />
+
+Create the scripts in the layout component, not in `+layout.server.ts`. Script
+configurations hold functions, which a server load cannot send to the
+browser. Scripts load only in the browser, after hydration, so they never
+appear in server HTML.
+
+<include src="../../shared/svelte/scripts.mdx" />

@@ -1,33 +1,68 @@
 ---
 title: Intercom
-description: Load the Intercom messenger with functionality permission and configure its region.
+description: Load the Intercom messenger only after functionality consent with the c15t intercom helper, set its region and check it in DevTools.
 group: integrations
 ---
 
-## Register the messenger
+## Configure Intercom
 
-<CommandTabs command="@c15t/integrations" mode="install" />
+Copy the app ID from your Intercom installation snippet, where it is set as
+`app_id`. If your workspace is hosted in the EU or Australia, also set
+`apiBase`.
+
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { intercom } from '@c15t/integrations/intercom';
 
-export const scripts = [intercom({ appId: 'your-app-id' })];
+export const scripts = [intercom({ appId: 'YOUR_APP_ID' })];
 ```
-
-Pass `scripts` to the existing provider or loader. The helper uses the
-`functionality` category and defaults to Intercom's US API base. Set `apiBase`
-when your workspace uses another region. Optional serializable `settings` are
-merged into `window.intercomSettings`.
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
-## Verify identity and lifecycle
+## Options
 
-Remove an existing Intercom plugin or snippet. Test that the messenger waits
-while functionality permission is denied under your policy. Check later login,
-logout and user changes separately from consent initialization. Do not leave
-previous-user identity in an application-controlled SDK session.
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `appId` | Required | Sets `app_id` and the loader URL. The helper trims it. Empty or whitespace-only values throw. |
+| `apiBase` | `https://api-iam.intercom.io` | Regional API base. `INTERCOM_API_BASES` from `@c15t/integrations/intercom` lists `us`, `eu` and `au`. |
+| `settings` | None | Extra JSON-serializable settings merged into `window.intercomSettings`. `appId` and `apiBase` override any `app_id` or `api_base` here. |
+| `scriptSrc` | `https://widget.intercom.io/widget/<appId>` | Loader URL override. A blank value falls back to the default. |
 
-Revoking permission cannot erase a request already sent. Verify the vendor's
-shutdown and future event behavior for your configuration, then run the checks
-in [verification](/docs/guides/verify-consent).
+## Loading and revocation
+
+`intercom` uses the `functionality` category. Once functionality is allowed,
+the helper defines a queueing `window.Intercom` stub, writes
+`window.intercomSettings` and loads the messenger. On revocation it removes the
+script element and calls no Intercom API, including `shutdown`. The messenger
+keeps running until c15t reloads the page.
+
+## Guard your own Intercom calls
+
+The helper writes `settings` once, before the messenger loads. It does not
+update them when a user logs in or out, so send identity changes through
+Intercom's messenger API yourself. After revocation `window.Intercom` still
+exists, so its presence does not mean functionality is allowed. Check the
+permission first:
+
+```ts title="src/intercom-user.ts"
+export function updateIntercomUser(
+  functionalityAllowed: boolean,
+  userId: string
+) {
+  if (!functionalityAllowed || typeof window.Intercom !== 'function') return;
+  window.Intercom('update', { user_id: userId });
+}
+```
+
+Pass the current functionality permission from your framework, for example
+`useConsent('functionality')` in React.
+
+## Verify Intercom
+
+After you allow functionality, the request to
+`widget.intercom.io/widget/<appId>` appears and the messenger shows. Log in
+and out of your app, and check that the messenger never shows the previous
+user's conversations.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -1,58 +1,47 @@
 ---
-title: Choose your c15t integration
-description: Find the c15t v3 setup for your framework, router and deployment.
+title: Frameworks
+description: c15t setup guides for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, plain HTML, JavaScript and React Native.
 group: frameworks
 ---
 
-## Start with Inth
+## Pick your framework
 
-[Inth](https://inth.com) is the recommended backend for these quickstarts.
-Choose your framework below and follow its setup guide.
-
-## Start with your framework
-
-These guides describe the v3 APIs in this repository. Keep the core, schema,
-backend and framework adapter on compatible v3 releases. An older npm release
-may not export the APIs shown here.
-
-| Your app | Start here | Rendering choices |
+| Framework | Package | Guide |
 | --- | --- | --- |
-| Next.js | [Next.js setup](/docs/frameworks/next/quickstart) | App Router, Pages Router, static export |
-| TanStack Start | [TanStack Start setup](/docs/frameworks/tanstack-start/quickstart) | Server functions, root loader and client boundary |
-| React with Vite or another client bundler | [React setup](/docs/frameworks/react/quickstart) | Browser initialization |
-| Nuxt | [Nuxt setup](/docs/frameworks/nuxt/quickstart) | Request SSR, SPA, prerendering |
-| Vue with Vite | [Vue setup](/docs/frameworks/vue/quickstart) | Vue plugin and Vite integration |
-| Astro | [Astro setup](/docs/frameworks/astro/quickstart) | Prerendered or server pages, shared island runtime |
-| Svelte | [Svelte setup](/docs/frameworks/svelte/quickstart) | Svelte 5 components |
-| SvelteKit | [SvelteKit setup](/docs/frameworks/sveltekit/quickstart) | Request SSR or static hosting |
-| JavaScript or a custom UI | [JavaScript setup](/docs/frameworks/javascript/quickstart) | Headless engine and explicit runtime ownership |
-| React Native or Expo | [React Native setup](/docs/frameworks/react-native/quickstart) | Native consent kernel, bare React Native and Expo |
+| Next.js | `c15t` (`c15t/next`) | [Next.js quickstart](/docs/frameworks/next/quickstart) |
+| TanStack Start | `c15t` (`c15t/tanstack-start`) | [TanStack Start quickstart](/docs/frameworks/tanstack-start/quickstart) |
+| React | `c15t` (`c15t/react`) | [React quickstart](/docs/frameworks/react/quickstart) |
+| Nuxt | `c15t` (`c15t/vue` Nuxt module) | [Nuxt quickstart](/docs/frameworks/nuxt/quickstart) |
+| Vue | `c15t` (`c15t/vue/vue-plugin`) | [Vue quickstart](/docs/frameworks/vue/quickstart) |
+| Astro | `c15t` (`c15t/astro`) | [Astro quickstart](/docs/frameworks/astro/quickstart) |
+| Svelte | `@c15t/svelte` | [Svelte quickstart](/docs/frameworks/svelte/quickstart) |
+| SvelteKit | `@c15t/svelte` | [SvelteKit quickstart](/docs/frameworks/sveltekit/quickstart) |
+| HTML, a CMS, a page builder or a static site generator | `@c15t/browser` from a script tag | [HTML quickstart](/docs/frameworks/html/quickstart) |
+| JavaScript with a bundler, or your own UI | `@c15t/browser`, or `c15t` (`c15t/runtime`) | [JavaScript quickstart](/docs/frameworks/javascript/quickstart) |
+| React Native or Expo | `@c15t/react-native` | [React Native quickstart](/docs/frameworks/react-native/quickstart) |
 
-`@c15t/solid` currently re-exports UI primitives. It does not provide the same
-provider integration as React, Vue or Svelte. Use the headless engine when
-building a Solid integration and own its subscription and cleanup lifecycle.
+Not sure which setup your rendering mode needs? [Choose your setup](/docs/concepts/choose-your-setup)
+maps each app shape, such as a Next.js static export or a prerendered SvelteKit
+site, to a guide.
 
-## Choose how consent resolves
+## Install the right package
 
-A static site can use a hosted consent backend. Static describes your app's
-hosting; browser-only describes where consent is managed. Those are separate
-choices. Use [deployment modes](/docs/guides/deployment-modes) to choose between
-request-time resolution, browser initialization and local policies.
+Most frameworks use one package, `c15t`, and import the framework entry point:
+`c15t/next`, `c15t/react`, `c15t/vue` (the Nuxt module), `c15t/vue/vue-plugin`
+(plain Vue), `c15t/astro` or `c15t/tanstack-start`.
+You do not need `@c15t/nextjs` or `@c15t/react` as well; `c15t` depends on
+them.
 
-Install `c15t` for JavaScript, React, Next.js, Vue, Nuxt, TanStack Start and
-Astro. Use its framework entry points, such as `c15t/react`, `c15t/next` and
-`c15t/astro`. Svelte currently uses its dedicated package because the umbrella
-package does not export that adapter. React Native uses `@c15t/react-native`,
-which carries its own native iOS and Android code and is never part of the
-umbrella package. Add-ons such as `@c15t/integrations` are separate installs.
+Three frameworks use their own package: Svelte and SvelteKit use
+`@c15t/svelte`, HTML and the stock UI in JavaScript use `@c15t/browser`, and
+React Native uses `@c15t/react-native`. Vendor script helpers are a separate install,
+`@c15t/integrations`, in every framework.
 
-## Finish the integration
+v3 is published under the `alpha` tag. Install `c15t@alpha`; a plain
+`c15t` install still gets v2.
 
-Adding a banner does not move existing analytics behind consent. Register
-optional scripts with c15t, replace unconditional embeds, and keep a way to
-reopen preferences. Follow [verification](/docs/guides/verify-consent) before
-shipping.
+## After the quickstart
 
-Use [customization](/docs/customization/overview) to choose presentation, tokens,
-slots or custom markup. For an existing installation, start with
-[the v3 migration guide](/docs/upgrade-v3).
+A banner on screen does not mean analytics wait for consent. Move existing
+scripts into c15t, replace embeds that load on their own, and keep a link to
+reopen preferences. Then [verify the integration](/docs/guides/verify-consent).

@@ -1,17 +1,18 @@
 # c15t × Nuxt example
 
-Minimal c15t Nuxt integration through the `c15t` umbrella package
-(`c15t/vue` ≡ `@c15t/vue`): one module entry in `nuxt.config.ts`, one
-`<ConsentRoot />` in `app.vue` — plus a self-hosted `@c15t/backend` mounted
-at `/api/self-host` (`server/api/self-host/[...all].ts`) so the whole demo,
-including the consent manifest, is served from a single origin.
+c15t Nuxt integration through the `c15t` umbrella package (`c15t/vue` is
+`@c15t/vue`). The consent setup is a module entry in a Nuxt layer under
+`config/`, `ConsentRoot` and `ConsentPreferencesLink` in `app/app.vue`, and
+`scripts` in `app/app.config.ts`. Without a backend URL the demo falls back to a
+self-hosted `@c15t/backend` mounted at `/api/self-host`
+(`server/api/self-host/[...all].ts`), so it also runs from a single origin.
 
 ```bash
 bun install
 bun run dev
 ```
 
-`manifest: true` enables same-origin, CDN-cacheable consent resolution — the
+`manifest: 'server'` enables same-origin, CDN-cacheable consent resolution — the
 module's server routes fetch `GET /api/self-host/manifest` once, cache it,
 and resolve `/api/c15t/init` locally from geo/language/GPC headers with no
 consent-backend round trip on the request path — see
@@ -66,37 +67,56 @@ Then run from the repository root:
 bun run --cwd examples/nuxt dev
 ```
 
-Public vendor settings are optional:
+Public vendor settings are optional. They are read at build time, because
+`app.config.ts` is part of the browser bundle and cannot read `runtimeConfig`:
 
-- `NUXT_PUBLIC_POSTHOG_KEY`: PostHog browser project key. The example selects the EU region;
-  change `region` in `example-scripts.ts` for a US project.
-- `NUXT_PUBLIC_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
+- `VITE_POSTHOG_KEY`: PostHog browser project key. The example selects the EU
+  region; change `region` in `app/consent-scripts.ts` for a US project.
+- `VITE_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
 
 An unset vendor setting omits that loader. PostHog uses `loadMode: 'after-consent'`
 and `cookieless_mode: 'never'`. X Pixel waits for marketing permission. Remove
 other initializers for these vendors before reusing the example.
 
-The YouTube nocookie iframe only mounts with measurement permission and is
-removed on revocation. The placeholder opens preferences. Use the footer's
-Privacy settings control to reopen the dialog. Default theme and Branded theme
-buttons demonstrate CSS token overrides without replacing the consent runtime.
+The YouTube nocookie iframe in `app/components/VideoEmbed.vue` only mounts with
+measurement permission and is removed on revocation. The placeholder opens
+preferences. Use the footer's Privacy settings control to reopen the dialog.
+Default theme and Branded theme buttons demonstrate CSS token overrides
+without replacing the consent runtime.
 
 Test a fresh rejection, grant, reload and withdrawal. Confirm PostHog and X
 requests are absent before their respective permissions, and the iframe is
-absent before measurement permission. The example emits no custom conversion
-events. Script removal cannot undo SDK code that already ran; application event
-calls must also stop after withdrawal.
+absent before measurement permission. Script removal cannot undo SDK code that
+already ran; application event calls must also stop after withdrawal.
+
+## Banner experiment
 
 Module config is static, so the banner-shape experiment is switched on at
-build time. Run `NUXT_PUBLIC_C15T_EXPERIMENT=1 bun run --cwd examples/nuxt dev`
-and open `/consent-example`: c15t picks the `control` arm (the default banner)
-or the `wall` arm, and the page shows `banner-shape · <arm> · c15t` with a
+build time. Run `C15T_NUXT_EXPERIMENT=1 bun run --cwd examples/nuxt dev` and
+open `/consent-example`: c15t picks the `control` arm (the default banner) or
+the `wall` arm, and the page shows `banner-shape · <arm> · c15t` with a
 `c15t_surface_shown` and `c15t_choice_recorded` line for each impression and
-choice under the arm, read from the kernel's `surface:shown` and
-`choice:recorded` events. Add `NUXT_PUBLIC_C15T_EXPERIMENT_ARM=wall` to set the
-arm the way a flag provider would; any other value runs `control`. See
+choice under the arm. `app/components/ExperimentReadout.vue` reads them from the
+kernel's `surface:shown` and `choice:recorded` events and pushes the same
+events to `window.dataLayer`. Add `C15T_NUXT_EXPERIMENT_ARM=wall` to set the
+arm the way a flag provider would; any other value runs `control`. Both
+variables work with `bun run build` and `bun run generate` too. They are not
+`NUXT_PUBLIC_*` names because Nitro applies those at runtime over
+`runtimeConfig.public.c15t`. See
 https://c15t.com/docs/guides/banner-experiments.
 
-The Nuxt module owns the shared runtime. One loader starts after `app:mounted`
-and is disposed with the app. The existing development DevTools remains mounted.
-Without the backend override, the existing self-hosted backend is used.
+## Layout
+
+- `config/server/nuxt.config.ts`: the module with `manifest: 'server'`.
+- `config/static/nuxt.config.ts`: `ssr: false` with `manifest: 'client'`,
+  used when `C15T_NUXT_OUTPUT=static`. Build it with `bun run generate` and
+  serve it with `bun run preview:static`.
+- `app/app.config.ts` and `app/consent-scripts.ts`: vendor scripts.
+- `app/components/ConsentPrompt.vue`: the headless UI the docs publish. It is
+  type-checked but not mounted.
+- `nuxt.config.ts`, `app/pages/`, `app/components/ConsentDebugTools.vue` and
+  `app/components/ExperimentReadout.vue`: demo shell, region preview,
+  development DevTools and the banner experiment.
+
+`EXAMPLE_TARGET=nuxt,nuxt-static bun run --cwd examples/shared test` runs both
+builds through the acceptance journeys.

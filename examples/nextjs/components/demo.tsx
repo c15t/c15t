@@ -1,23 +1,26 @@
 'use client';
 
-import {
-	ConsentDialogLink,
-	ConsentGate,
-	useConsent,
-	useExperiment,
-	usePersistence,
-} from 'c15t/next';
+import { ConsentDialogTrigger, useConsent } from 'c15t/next';
+import { ConsentDevTools } from 'c15t/next/devtools';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 
-import type { ExperimentLogEntry } from '../lib/experiment';
-import { posthogConfigured, xPixelConfigured } from '../lib/scripts';
-import type { BannerDesign } from './consent';
+import { VideoEmbed } from '@/components/video-embed';
+import { posthogConfigured, xPixelConfigured } from '@/lib/scripts';
 
-const designs: { value: BannerDesign; label: string }[] = [
-	{ label: 'Default', value: 'default' },
-	{ label: 'Branded', value: 'branded' },
-	{ label: 'Custom', value: 'custom' },
+const routes = [
+	{ href: '/app-router', label: 'App Router' },
+	{ href: '/awaited', label: 'Awaited' },
+	{ href: '/pages-router', label: 'Pages Router' },
+	{ href: '/client-init', label: 'Browser init' },
+	{ href: '/experiment', label: 'Experiment' },
+];
+
+const designs = [
+	{ href: '/app-router', label: 'Default design' },
+	{ href: '/branded', label: 'Branded design' },
 ];
 
 const IntegrationStatus = ({
@@ -40,70 +43,16 @@ const IntegrationStatus = ({
 	);
 };
 
-/** The assigned arm and the experiment events logged so far. */
-const ExperimentReadout = ({
-	events,
-}: {
-	events: readonly ExperimentLogEntry[];
-}) => {
-	const assignment = useExperiment();
-	return (
-		<div
-			className="experiment-readout"
-			data-testid="experiment"
-		>
-			<p>
-				Experiment arm:{' '}
-				<code data-testid="experiment-arm">
-					{assignment
-						? `${assignment.id} · ${assignment.arm} · ${assignment.assignedBy}`
-						: 'assigning…'}
-				</code>
-			</p>
-			<ul>
-				{events.map((event, index) => (
-					<li
-						// oxlint-disable-next-line react/no-array-index-key -- append-only log
-						key={index}
-					>
-						<code>{event.name}</code> · {event.arm} · {event.detail}
-					</li>
-				))}
-			</ul>
-			<p className="caption">
-				The same events are pushed to <code>window.dataLayer</code>.
-			</p>
-		</div>
-	);
-};
-
-export const Demo = ({
-	children,
-	design,
-	onDesignChange,
-	showTrigger,
-	onTriggerChange,
-	experimentEvents,
-}: {
-	children: ReactNode;
-	design: BannerDesign;
-	onDesignChange: (design: BannerDesign) => void;
-	showTrigger: boolean;
-	onTriggerChange: (visible: boolean) => void;
-	/** Logged experiment events, or `null` when no experiment runs. */
-	experimentEvents: readonly ExperimentLogEntry[] | null;
-}) => {
+/**
+ * Demo gallery rendered by every example route inside that route's
+ * `Consent` wrapper. It owns only demo controls. The consent setup lives in
+ * the root layouts, `components/consent.tsx` and `pages/_app.tsx`.
+ */
+export const Demo = ({ children }: { children: ReactNode }) => {
 	const measurementAllowed = useConsent('measurement');
 	const marketingAllowed = useConsent('marketing');
-	// The boundary disables its automatic persistence so this is the sole owner.
-	// Its public clear() method resets only c15t records, not other site storage.
-	const persistence = usePersistence();
-
-	const reset = () => {
-		persistence.clear();
-		// Reload also removes previously executed vendor code and its globals.
-		window.location.reload();
-	};
+	const pathname = usePathname();
+	const [showTrigger, setShowTrigger] = useState(false);
 
 	return (
 		<div className="demo-shell">
@@ -116,9 +65,15 @@ export const Demo = ({
 					c15t<span> / next.js</span>
 				</a>
 				<nav aria-label="Example routes">
-					<Link href="/app-router">App Router</Link>
-					<Link href="/pages-router">Pages Router</Link>
-					<Link href="/client-init">Browser init</Link>
+					{routes.map(({ href, label }) => (
+						<Link
+							key={href}
+							href={href}
+							aria-current={pathname === href ? 'page' : undefined}
+						>
+							{label}
+						</Link>
+					))}
 				</nav>
 			</header>
 			<main>
@@ -130,7 +85,7 @@ export const Demo = ({
 						Video and analytics follow your permissions. Reject, allow a
 						category, or reopen your preferences to try another choice.
 					</p>
-					{children}
+					<p className="route-note">{children}</p>
 				</section>
 
 				<section
@@ -138,49 +93,30 @@ export const Demo = ({
 					aria-labelledby="design-heading"
 				>
 					<div>
-						<h2 id="design-heading">Choose a banner design</h2>
+						<h2 id="design-heading">Compare banner designs</h2>
 						<p>The same policy and actions, with different presentation.</p>
 					</div>
 					<div className="design-controls">
-						<fieldset
-							className="design-buttons"
+						<nav
+							className="design-links"
 							aria-label="Banner design"
 						>
-							{designs.map(({ value, label }) => (
-								<button
-									key={value}
-									type="button"
-									aria-pressed={design === value}
-									onClick={() => onDesignChange(value)}
+							{designs.map(({ href, label }) => (
+								<a
+									key={href}
+									href={href}
+									aria-current={pathname === href ? 'page' : undefined}
 								>
 									{label}
-								</button>
+								</a>
 							))}
-						</fieldset>
-						<button
-							className="text-button"
-							type="button"
-							onClick={reset}
-						>
-							Reset demo
-						</button>
+						</nav>
 					</div>
-					<nav
-						className="experiment-links"
-						aria-label="Banner experiment"
-					>
-						<a href="/app-router">Default</a>
-						<a href="/app-router?experiment=1">Experiment</a>
-						<a href="/app-router?experiment=1&arm=wall">
-							Experiment (wall arm)
-						</a>
-					</nav>
-					{experimentEvents && <ExperimentReadout events={experimentEvents} />}
 					<label className="trigger-option">
 						<input
 							type="checkbox"
 							checked={showTrigger}
-							onChange={(event) => onTriggerChange(event.target.checked)}
+							onChange={(event) => setShowTrigger(event.target.checked)}
 						/>
 						Show floating preferences trigger
 					</label>
@@ -195,18 +131,7 @@ export const Demo = ({
 							<h2 id="video-heading">A video, when you allow it</h2>
 							<span className="category">Measurement</span>
 						</div>
-						<ConsentGate category="measurement">
-							{/* oxlint-disable react/iframe-missing-sandbox -- This fixed cross-origin YouTube player needs its own origin for storage and playback. */}
-							<iframe
-								className="video-frame"
-								sandbox="allow-scripts allow-same-origin allow-presentation"
-								src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y"
-								title="YouTube video"
-								allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-								allowFullScreen
-							/>
-							{/* oxlint-enable react/iframe-missing-sandbox */}
-						</ConsentGate>
+						<VideoEmbed />
 						<p className="caption">
 							Revoking measurement removes the iframe. Requests already sent
 							cannot be undone.
@@ -246,15 +171,13 @@ export const Demo = ({
 						</div>
 						<p className="caption">
 							Open c15t DevTools in the corner to inspect consent state and
-							script activity.
+							script activity, or to clear stored records.
 						</p>
 					</section>
 				</div>
 			</main>
-			<footer className="site-footer">
-				<p>Your preferences are available whenever you need them.</p>
-				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
-			</footer>
+			{showTrigger && <ConsentDialogTrigger />}
+			<ConsentDevTools position="bottom-right" />
 		</div>
 	);
 };

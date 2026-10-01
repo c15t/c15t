@@ -1,0 +1,33 @@
+---
+title: ConsentWidget
+description: Put the c15t category switches and save actions inline on a Nuxt privacy settings page with the globally registered ConsentWidget.
+group: frameworks
+---
+
+## Add the widget to your privacy page
+
+The Nuxt module registers `ConsentWidget` globally. Render it on your privacy
+or account settings page without an import:
+
+<include src="../../../shared/examples/nuxt/privacy-page.mdx" />
+
+Keep `ConsentRoot` in `app.vue` too, so visitors on other pages still get the
+banner. With `manifest: 'server'`, the widget renders on the server with the
+visitor's recorded choice already applied to the switches.
+
+<import src="../../../shared/vue/components/consent-widget.mdx#behavior" />
+
+<import src="../../../shared/vue/components/consent-widget.mdx#props" />
+
+<import src="../../../shared/vue/components/consent-widget.mdx#accessibility" />
+
+<import src="../../../shared/vue/components/consent-widget.mdx#styling" />
+
+<import src="../../../shared/vue/components/consent-widget.mdx#verify" />
+
+## Next steps
+
+- [ConsentManager](/docs/frameworks/nuxt/components/consent-manager) shows
+  these controls in a dialog.
+- [Composables](/docs/frameworks/nuxt/composables#build-a-preference-form)
+  build a preference form from your own markup.

@@ -19,7 +19,7 @@
 		"",
 		"```bash\npnpm add @c15t/core\n```",
 		"",
-		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup)."
+		"To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/javascript/quickstart)."
 	],
 	"usage": [
 		"Import the c15t core library",

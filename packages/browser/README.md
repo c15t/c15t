@@ -23,13 +23,13 @@ Cookie banner, preference centre, and consent-gated script loading for sites wit
 ## Key Features
 
 - One script tag from a CDN, configured with data attributes or calls queued on window.c15t
-- Prebuilt banner and preference centre rendered in a shadow root, immune to theme CSS
+- Prebuilt banner and preference dialog rendered in a shadow root, immune to theme CSS
 - Headless build with the same runtime and window.c15t API for custom banners
 - data-c15t-action buttons and #c15t-preferences links wired for you
+- Vendor scripts held as `<script type="text/plain" data-c15t-category>` until consent, and iframes gated with `data-src` and `data-category`
 - Hosted, self-hosted, offline, and manifest modes; an inlined manifest renders a location-independent policy with no request at all
 - DevTools panel as a second tag (c15t.devtools.js) with a Location tab for trying geo-keyed policies
-- Consent-gated script loading and Google Consent Mode through @c15t/integrations
-- ES module entry points for bundler projects without a framework
+- ES module entry points for bundled apps, which can use the @c15t/integrations vendor helpers
 
 ## Prerequisites
 
@@ -38,40 +38,38 @@ Cookie banner, preference centre, and consent-gated script loading for sites wit
 
 ## Manual Installation
 
-Paste before `</head>`:
+Paste before `</head>`, with the backend URL from your Inth project:
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@0.2.0/dist/c15t.js"
-  data-backend-url="https://your-instance.c15t.dev"
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
+  data-backend-url="YOUR_INTH_BACKEND_URL"
   defer
 ></script>
 ```
 
-Drop `data-backend-url` for offline mode. Load `dist/c15t.headless.js` instead for the runtime without any UI.
+Replace `@alpha` with an exact version for production. Load `dist/c15t.headless.js` instead for the runtime without any UI.
 
-For bundler projects:
+For bundled apps:
 
 ```bash
-pnpm add @c15t/browser
+npm install @c15t/browser@alpha
 ```
 
 ## Usage
 
-1. Add the tag and reload; the banner appears on the first visit
-2. Put `data-c15t-action="customize"` on any button to open the preference centre
-3. Read consent from `window.c15t` in your own code
-4. For the full set of attributes and options, see the [script tag reference](https://c15t.com/docs/frameworks/html/attributes-and-api)
+1. Add the tag and reload; the banner appears when the visitor's policy asks for one
+2. Change vendor tags to `type="text/plain"` with `data-c15t-category="measurement"` so they wait for consent
+3. Link to `#c15t-preferences` so visitors can reopen the preference dialog
+4. For every attribute and method, see the [HTML docs](https://c15t.com/docs/frameworks/html/attributes-and-api)
 
 ```js
-c15t.on('consent', () => {
+window.c15t = window.c15t || [];
+c15t.push(['on', 'consent', () => {
   if (c15t.has('measurement')) {
     startAnalytics();
   }
-});
-
-await c15t.ready();
-c15t.openDialog();
+}]);
 ```
 
 ## Documentation
@@ -83,7 +81,7 @@ For further information, guides, and examples visit the [reference documentation
 - **Hosted on inth.com**: Hosted c15t backend for policy storage, audit history, and hosted infrastructure
 - **Self-hosted backend**: Use @c15t/backend when you need full infrastructure control
 - **Manifest mode**: Inline or fetch the backend's cacheable `/manifest` and resolve the policy in the browser
-- **Offline mode**: Browser-only consent storage for portfolios, docs sites, previews, and demos
+- **Offline mode**: Browser-only consent storage for local development and tests; not recommended for production environments
 
 ## Optional IAB entry
 

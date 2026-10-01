@@ -1,0 +1,30 @@
+---
+title: IABConsentBanner
+description: Render the IAB TCF first layer in a Vue app with IABConsentBanner, when to import it instead of relying on ConsentRoot, and its props.
+group: frameworks
+---
+
+## Import the IAB banner in place of `ConsentRoot`
+
+`ConsentRoot` renders `IABConsentBanner` for you when the visitor's policy
+uses IAB TCF. Import it only when every policy on your site is IAB and you
+compose the surfaces yourself. Import it from
+`c15t/vue/runtime/components/iab-consent-banner.vue`:
+
+<include src="../../../shared/examples/vue/iab-surfaces.mdx" />
+
+Render this in place of `ConsentRoot`. A visitor whose policy is not IAB sees
+nothing from these components.
+
+<import src="../../../shared/vue/components/iab-consent-banner.mdx#behavior" />
+
+<import src="../../../shared/vue/components/iab-consent-banner.mdx#props" />
+
+<import src="../../../shared/vue/components/iab-consent-banner.mdx#accessibility" />
+
+## Next steps
+
+- [IAB TCF](/docs/frameworks/vue/iab) turns on IAB in your policy and
+  verifies the TC String.
+- [IABConsentDialog](/docs/frameworks/vue/components/iab-consent-dialog) is
+  the preference centre this banner opens.

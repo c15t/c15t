@@ -1,0 +1,57 @@
+{/* Shared by the Svelte and SvelteKit IABConsentBanner pages. */}
+
+## Show the TCF banner
+
+`IABConsentBanner` is the first layer of the IAB TCF 2.4 consent flow. It
+lists the purposes, special features and number of vendors from the Global
+Vendor List, and offers Accept All, Reject All and Customize. It renders only
+for visitors whose resolved policy uses the `iab` model, so render it next to
+the standard `ConsentBanner`, which covers everyone else:
+
+<include src="../../examples/storybook-svelte/iab-surfaces.mdx" />
+
+Turn IAB on with the provider's `iab` prop first; [IAB TCF](../iab) covers the
+CMP ID, the vendor list and the provider options.
+
+## Props
+
+| Prop | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `primaryButton` | `'accept'`, `'reject'` or `'customize'` | `'customize'` | Which button gets the primary style. |
+| `hideBranding` | `boolean` | `false` | Hides the "Secured by" tag. |
+| `models` | `Model[]` | `['iab']` | Policy models the banner renders for. |
+| `noStyle` | `boolean` | provider's `noStyle` | Drops c15t's classes. |
+| `disableAnimation` | `boolean` | provider's value | Shows and hides without a transition. |
+| `scrollLock`, `trapFocus` | `boolean` | from `presentation` | Lock page scroll or trap focus while the banner shows. |
+| `class` | `string` | none | Extra class on the root element. |
+
+The banner has no text props. Its copy comes from the IAB translations, in the
+visitor's language.
+
+## Behavior
+
+- The banner stays hidden until an IAB policy resolves and the vendor list is
+  available. Forcing it does not create either.
+- Accept All and Reject All record the visitor's TCF choice and write the TC
+  String. The banner closes as soon as the click is handled. It comes back
+  only if nothing could be recorded, such as when the vendor list failed to
+  load, so the visitor can try again. A failed backend request never reopens
+  it.
+- Customize opens `IABConsentDialog`, so render it too. The partners link in
+  the description opens the dialog on the vendors tab.
+- The `__tcfapi` function is available once the TCF add-on loads, whether or
+  not the banner is showing, so vendor scripts can read the TC String.
+
+## Accessibility
+
+The banner card is a `region` labelled with the banner title. When focus
+trapping is on, through `trapFocus` or a blocking presentation, it becomes a
+`dialog` with `aria-modal="true"`. The title is an `h2`, and every control is
+a native `<button>`.
+
+## Style the banner
+
+`IABConsentBanner` reads the `iabConsentBanner` theme slot and needs
+`@c15t/svelte/iab/styles.css`, loaded after `@c15t/svelte/styles.css`.
+Buttons carry `data-testid="iab-consent-banner-accept-button"`,
+`iab-consent-banner-reject-button` and `iab-consent-banner-customize-button`.

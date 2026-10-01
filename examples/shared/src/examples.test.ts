@@ -1,4 +1,4 @@
-// oxlint-disable vitest/no-conditional-expect -- Only the Next adapter promises cookie-backed server HTML; all selected Next routes run these assertions.
+// oxlint-disable vitest/no-conditional-expect -- Only adapters that await consent on the server promise cookie-backed server HTML; the selected routes of those targets run these assertions.
 // oxlint-disable no-loop-func -- Each sequential suite owns its browser context and mutable request counters.
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -25,7 +25,7 @@ import { selectedTargets } from './targets';
 /** The `--c15t-primary` each example's Branded design sets, where checked. */
 const BRANDED_PRIMARY: Record<string, string> = {
 	svelte: '#6943a3',
-	sveltekit: '#146b56',
+	sveltekit: '#6943a3',
 };
 
 for (const target of selectedTargets()) {
@@ -144,11 +144,12 @@ for (const target of selectedTargets()) {
 
 		for (const route of target.routes) {
 			if (target.id === 'nextjs') {
-				// The App Router layout passes the pending consent state without
-				// awaiting it, so the page renders first and the banner mounts
-				// after hydration. The Pages Router awaits it in
-				// getServerSideProps and renders the banner on the server.
-				const bannerInHTML = route !== '/app-router';
+				// The default App Router layout passes the pending consent state
+				// without awaiting it, and the browser-init layout passes none, so
+				// their banners mount after hydration. The awaited layout and the
+				// Pages Router resolve consent first and render the banner on
+				// the server.
+				const bannerInHTML = ['/awaited', '/pages-router'].includes(route);
 				test(`${route}: initial HTML renders the page with embeds blocked`, async () => {
 					const response = await fetch(`${server.baseURL}${route}`);
 					expect(response.ok).toBe(true);
@@ -217,7 +218,14 @@ for (const target of selectedTargets()) {
 				await expect
 					.poll(() => page.evaluate(() => localStorage.getItem('c15t')))
 					.not.toBeNull();
-				if (target.id === 'nextjs') {
+				// These routes await consent on the server, so the reloaded HTML
+				// reflects the stored rejection.
+				const cookieBackedHTML = [
+					'nextjs',
+					'tanstack-start',
+					'tanstack-start-same-origin',
+				].includes(target.id);
+				if (cookieBackedHTML) {
 					// Receipt writes are deferred. Wait for the saved choice before
 					// testing how the server renders that choice on the next request.
 					await expect
@@ -229,7 +237,7 @@ for (const target of selectedTargets()) {
 						.toBe(true);
 				}
 				const reloaded = await page.reload();
-				if (target.id === 'nextjs') {
+				if (cookieBackedHTML) {
 					expect(reloaded).not.toBeNull();
 					expect(await reloaded?.text()).not.toContain(
 						'data-testid="consent-banner-root"'
@@ -257,13 +265,18 @@ for (const target of selectedTargets()) {
 				await setCategory(page, 'Marketing', false);
 				await saveButton(page).click();
 				await expect.poll(() => requests.posthog).toBe(1);
-				await expect
-					.poll(() =>
-						page.evaluate(() =>
-							sessionStorage.getItem('__examplePosthogConsent')
+				// Plain HTML loads PostHog's own snippet only after consent, so no
+				// helper calls PostHog's opt-in API. The other examples use
+				// `@c15t/integrations`, which does.
+				if (target.id !== 'html') {
+					await expect
+						.poll(() =>
+							page.evaluate(() =>
+								sessionStorage.getItem('__examplePosthogConsent')
+							)
 						)
-					)
-					.toBe('granted');
+						.toBe('granted');
+				}
 				await expect.poll(() => video(page).count()).toBe(1);
 				expect(requests.xPixel).toBe(0);
 				await openPreferences(page);
@@ -273,24 +286,21 @@ for (const target of selectedTargets()) {
 				await openPreferences(page);
 				await setCategory(page, 'Measurement', false);
 				await setCategory(page, 'Marketing', false);
-				if (target.id === 'javascript') {
-					// The bare-kernel example owns its lifecycle without auto-reload.
-					await saveButton(page).click();
-				} else {
-					// Providers reload after revocation. Assert against the new page.
-					await Promise.all([
-						page.waitForEvent('load'),
-						saveButton(page).click(),
-					]);
-				}
+				// Every example reloads after revocation. Assert against the new page.
+				await Promise.all([
+					page.waitForEvent('load'),
+					saveButton(page).click(),
+				]);
 				await expect.poll(() => video(page).count()).toBe(0);
-				await expect
-					.poll(() =>
-						page.evaluate(() =>
-							sessionStorage.getItem('__examplePosthogConsent')
+				if (target.id !== 'html') {
+					await expect
+						.poll(() =>
+							page.evaluate(() =>
+								sessionStorage.getItem('__examplePosthogConsent')
+							)
 						)
-					)
-					.toBe('denied');
+						.toBe('denied');
+				}
 				await openPreferences(page);
 				expect(await categoryControl(page, 'Measurement').isChecked()).toBe(
 					false
@@ -339,6 +349,50 @@ for (const target of selectedTargets()) {
 				await expect.poll(() => video(page).count()).toBe(1);
 				await openPreferences(page);
 				expect(requests.unexpected).toEqual([]);
+			});
+		}
+
+		if (target.id.startsWith('tanstack-start')) {
+			// Awaited server rendering puts the banner in the HTML. A streamed
+			// loader and prerendered pages mount it after hydration.
+			const bannerInHTML = [
+				'tanstack-start',
+				'tanstack-start-same-origin',
+			].includes(target.id);
+			// Only the same-origin variant sends consent traffic to the app.
+			const sameOrigin = target.id === 'tanstack-start-same-origin';
+
+			test('initial HTML matches the rendering variant', async () => {
+				const response = await fetch(`${server.baseURL}/consent-example`, {
+					headers: { 'x-vercel-ip-country': 'DE' },
+				});
+				expect(response.ok).toBe(true);
+				const html = await response.text();
+				expect(html.includes('data-testid="consent-banner-root"')).toBe(
+					bannerInHTML
+				);
+				expect(html).not.toContain('<iframe');
+			});
+
+			test('consent saves reach the configured origin', async () => {
+				await visit('/consent-example');
+				const saves: string[] = [];
+				page.on('request', (request) => {
+					const url = new URL(request.url());
+					if (
+						request.method() === 'POST' &&
+						url.pathname.endsWith('/subjects')
+					) {
+						saves.push(url.origin);
+					}
+				});
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				await rejectButton(page).click();
+				await expect.poll(() => saves.length).toBeGreaterThan(0);
+				const expected = new URL(
+					sameOrigin ? server.baseURL : server.backendURL
+				).origin;
+				expect(saves.every((origin) => origin === expected)).toBe(true);
 			});
 		}
 
@@ -414,7 +468,7 @@ for (const target of selectedTargets()) {
 		}
 
 		if (['nextjs', 'react'].includes(target.id)) {
-			const route = target.id === 'nextjs' ? '/app-router' : '/';
+			const route = target.id === 'nextjs' ? '/experiment' : '/experiment.html';
 			test('a host-resolved experiment arm reports the impression and the choice', async () => {
 				const dataLayer = () =>
 					page.evaluate(
@@ -452,7 +506,7 @@ for (const target of selectedTargets()) {
 
 		if (target.id === 'sveltekit') {
 			test('a theme rendered in svelte:head overrides the stylesheet defaults', async () => {
-				await visit('/consent-example?theme=branded');
+				await visit('/consent-example/branded');
 				// SvelteKit writes `<svelte:head>` before its stylesheet links, so
 				// the package defaults load after the theme and must still lose.
 				const firstStyle = await page.evaluate(
@@ -468,15 +522,15 @@ for (const target of selectedTargets()) {
 								.trim(),
 						name
 					);
-				expect(await token('--c15t-primary')).toBe('#146b56');
-				expect(await token('--c15t-radius-lg')).toBe('1.25rem');
+				expect(await token('--c15t-primary')).toBe('#6943a3');
+				expect(await token('--c15t-radius-lg')).toBe('18px');
 				expect(requests.unexpected).toEqual([]);
 			});
 		}
 
 		if (target.id === 'javascript') {
 			test('a persisted pagehide keeps preferences and consent gating active', async () => {
-				await visit('/');
+				await visit('/headless/');
 				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
 				await rejectButton(page).click();
 				// Dispatch the browser lifecycle signal deterministically: Chromium's
@@ -503,27 +557,21 @@ for (const target of selectedTargets()) {
 		}
 
 		if (target.id === 'nextjs') {
-			test('reset clears the recorded grant and Custom keeps consent controls', async () => {
-				await visit('/app-router');
-				await expect.poll(() => acceptButton(page).isVisible()).toBe(true);
-				await acceptButton(page).click();
-				await expect.poll(() => requests.posthog).toBe(1);
-				await expect.poll(() => requests.xPixel).toBe(1);
-				await expect.poll(() => video(page).count()).toBe(1);
-				await page
-					.getByRole('button', { exact: true, name: 'Reset demo' })
-					.click();
+			test('the branded route keeps the policy actions and the saved choice', async () => {
+				await visit('/branded');
 				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
-				expect(await video(page).count()).toBe(0);
-				await page.getByRole('button', { exact: true, name: 'Custom' }).click();
 				await rejectButton(page).click();
 				await openPreferences(page);
-				await setCategory(page, 'Measurement', false);
-				await setCategory(page, 'Marketing', false);
+				await setCategory(page, 'Measurement', true);
 				await saveButton(page).click();
-				await page.waitForTimeout(300);
-				expect(requests.posthog).toBe(1);
-				expect(requests.xPixel).toBe(1);
+				await expect.poll(() => requests.posthog).toBe(1);
+				await page
+					.getByRole('link', { exact: true, name: 'Default design' })
+					.click();
+				await page.waitForURL('**/app-router');
+				await expect.poll(() => video(page).count()).toBe(1);
+				expect(await rejectButton(page).isVisible()).toBe(false);
+				expect(requests.xPixel).toBe(0);
 				expect(requests.unexpected).toEqual([]);
 			});
 		}
@@ -533,7 +581,10 @@ for (const target of selectedTargets()) {
 				server.setFailure(true);
 				// Restart before an SSR outage so prior requests cannot satisfy
 				// prefetch from an in-process manifest cache.
-				if (['nuxt', 'tanstack-start', 'astro'].includes(target.id)) {
+				if (
+					['nuxt', 'astro'].includes(target.id) ||
+					target.id.startsWith('tanstack-start')
+				) {
 					await server.restart();
 				}
 				await visit(target.failureRoute ?? '/', true);

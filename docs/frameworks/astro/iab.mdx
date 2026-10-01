@@ -1,0 +1,104 @@
+---
+title: IAB TCF
+description: Render the IAB TCF 2.4 banner and preference center on an Astro site with the c15t integration, and configure the CMP ID, vendor list source and publisher restrictions.
+group: frameworks
+---
+
+## Before you start
+
+Use IAB TCF when your site works with advertising vendors that read a TC
+String. You need:
+
+- An Inth project whose policy for the relevant regions uses the `iab` model.
+- A CMP ID. IAB Europe assigns one when a company registers as a CMP at
+  [register.consensu.org/CMP](https://register.consensu.org/CMP). Every TC
+  String names the CMP that wrote it, so use the ID your company registered.
+
+The `c15t` package includes the IAB code, so there is nothing else to
+install.
+
+## Turn on IAB in the integration
+
+Add `iab` to the integration options, next to the `mode` from the
+[quickstart](/docs/frameworks/astro/quickstart):
+
+```js title="astro.config.mjs (partial)"
+c15t({
+  mode: manifest({ backendURL }),
+  iab: { cmpId: Number(process.env.C15T_CMP_ID) },
+  ui: 'svelte',
+});
+```
+
+Set `C15T_CMP_ID` where you set `C15T_BACKEND_URL`. A hosted backend can
+supply the CMP ID through `/init`, so `cmpId` is optional when your Inth
+project has one. The integration adds `c15t/astro/iab/styles.css`
+to every page once `iab` is set.
+
+| Option | Effect |
+| --- | --- |
+| `cmpId` | Your registered CMP ID |
+| `cmpVersion` | The CMP version `__tcfapi` reports |
+| `vendors` | Limits the vendor list to these vendor IDs |
+| `publisherCountryCode` | Publisher country written into the TC String |
+| `publisherRestrictions` | Restrictions written into the TC String and applied to vendors |
+| `gvl` | A vendor list to use as-is, for offline mode |
+| `gvlURL` | Where the server fetches the vendor list, for offline mode |
+| `enabled` | Set `false` to keep the configuration but turn IAB off |
+
+## Render the IAB banner and dialog
+
+Replace the standard banner and dialog with the IAB pair. The footer trigger
+opens the IAB preference center:
+
+<include src="../../shared/examples/astro-demo/iab-layout.mdx" />
+
+`IABConsentBanner` lists the purposes and the number of partners from the
+vendor list, and renders nothing until a vendor list is available. Its
+partners link opens `IABConsentDialog` on the vendors tab. See
+[IABConsentBanner](/docs/frameworks/astro/components/iab-consent-banner) for props.
+
+With server output, the layout can choose per request. When only some visitors
+get an IAB policy, render the IAB pair when
+`Astro.locals.c15t.snapshot.model` is `'iab'` and the standard pair otherwise.
+
+## Where the vendor list comes from
+
+| Mode | Vendor list source |
+| --- | --- |
+| `manifest()` | The server resolves it, and the browser reads it through the same-origin `/api/c15t/init` route |
+| `hosted()` | The browser fetches it from the backend's `/init` after the page loads |
+| `offline()` | The `gvl` or `gvlURL` option |
+
+In hosted mode, the backend's `/init` must be reachable from the browser and
+accept requests from your site's origin without server-only credentials. For a
+private backend, put a public same-origin proxy in front of it that adds the
+credentials on the server.
+
+On a static page, the build has no vendor list, so the IAB banner appears once
+the browser has one.
+
+## Publisher restrictions
+
+Pass `publisherRestrictions` in the `iab` options. Each entry names a
+`purposeId`, a `restrictionType` and the `vendorIds` it applies to.
+
+<include src="../../shared/iab-publisher-restrictions.mdx" />
+
+<include src="../../shared/iab-tcf-2-4.mdx" />
+
+## Check the IAB setup
+
+Open the site in a private window from a region your IAB policy covers:
+
+1. The IAB banner shows the purposes and a partner count. No advertising
+   vendor requests appear in DevTools Network.
+2. Select the partners link. The preference center opens on the vendors tab.
+3. Save a choice. In the console, `__tcfapi('getTCData', 2, console.log)`
+   reports a TC String, and an `euconsent-v2` cookie exists.
+4. Reload. The banner stays closed and the TC String is the same.
+5. Open **Cookie preferences** from the footer. The IAB preference center
+   opens with your saved choices.
+
+Test the vendors' own requests as well. A category-only test does not show
+that the IAB flow works.

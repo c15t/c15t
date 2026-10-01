@@ -62,7 +62,7 @@ The CLI will:
 pnpm add @c15t/svelte
 ```
 
-To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/svelte/quickstart#manual-setup).
+To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/svelte/quickstart).
 
 ## Usage
 

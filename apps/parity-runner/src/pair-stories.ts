@@ -81,6 +81,19 @@ export const missingFrameworks = function missingFrameworks(
 	return frameworks.filter((framework) => !pair.entries[framework]);
 };
 
+/**
+ * Story-key prefixes no comparison pairs.
+ *
+ * `Docs/` stories are the docs' design recipes and examples. Each renders
+ * the snippet the docs publish for that adapter, and the adapters customize
+ * differently (React compound parts, Vue and Svelte slot classes, Astro's
+ * server-rendered components), so a shared title does not promise shared
+ * markup. The shared conformance plays (`@c15t/conformance/play`) check
+ * their behavior in each Storybook's `test-storybook` run instead; parity
+ * stays on the component stories.
+ */
+export const NEVER_PAIRED_KEY_PREFIXES = ['Docs/'] as const;
+
 /** A pair the gate will compare, plus the frameworks it does not cover. */
 export interface ComparablePair extends PairedStory {
 	/** Enabled frameworks that ship no equivalent of this story. */
@@ -116,7 +129,10 @@ export const selectComparablePairs = function selectComparablePairs(
 	entriesByFramework: Readonly<Record<string, readonly StoryEntry[]>>,
 	options: ComparablePairOptions
 ): ComparablePair[] {
-	const excluded = options.excludeKeyPrefixes ?? [];
+	const excluded = [
+		...NEVER_PAIRED_KEY_PREFIXES,
+		...(options.excludeKeyPrefixes ?? []),
+	];
 	return pairStories(entriesByFramework)
 		.filter((pair) => Object.keys(pair.entries).length >= 2)
 		.filter((pair) => !options.baseline || pair.entries[options.baseline])

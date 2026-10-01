@@ -1,0 +1,92 @@
+{/* Shared by docs/frameworks/svelte/callbacks.mdx and docs/frameworks/sveltekit/callbacks.mdx. */}
+
+## Pick the right callback
+
+Run your own code when consent changes through the provider's `callbacks`
+prop, a script's own callbacks, or a kernel event in one component:
+
+| You want to | Use |
+| --- | --- |
+| Send a choice to your analytics or CRM when the visitor makes one | `callbacks.onChoiceRecorded` |
+| Start or stop your own code when what may run changes | `callbacks.onPermissionsChanged` |
+| Report failed backend requests | `callbacks.onError` |
+| Show a message or flush data before a withdrawal reloads the page | `callbacks.onBeforeConsentRevocationReload` |
+| Call a vendor's own consent API after its script loads | The script's `onConsentChange` |
+| React to consent inside one component | `getConsentKernel().events.on()` or the manager's properties |
+
+## onChoiceRecorded or onPermissionsChanged
+
+`onChoiceRecorded` runs only when the visitor accepts, rejects or saves.
+`onPermissionsChanged` runs whenever effective permissions change, whatever
+the cause:
+
+| Event | `onChoiceRecorded` | `onPermissionsChanged` |
+| --- | --- | --- |
+| Visitor accepts, rejects or saves | Yes | Yes, if a permission changed |
+| Policy resolves under opt-out and allows categories before a choice | No | Yes |
+| Global Privacy Control overrides a grant | No | Yes |
+| A recorded choice expires | No | Yes |
+| Visitor dismisses a notice | No | No |
+
+Use `onChoiceRecorded` for consent records and audit trails, because it fires
+only for a visitor's action. Use `onPermissionsChanged` to start or stop code,
+because it covers every way a permission changes. Never treat
+`onPermissionsChanged` as proof that the visitor agreed to something.
+
+## Pass callbacks to the provider
+
+<include src="../examples/storybook-svelte/consent-callbacks.mdx" />
+
+Pass the object as `callbacks={callbacks}` on `ConsentManagerProvider`. The
+provider reads it once, when it is created. Keep the functions in a module or
+in the component that renders the provider; on SvelteKit, not in a server
+load, because a load cannot send functions to the browser.
+
+| Callback | Payload |
+| --- | --- |
+| `onChoiceRecorded` | `snapshot`, the state after the choice; `confirmed`, the categories this action recorded; `actionAt`, the time. |
+| `onPermissionsChanged` | `snapshot`, the state after the change; `previous`, the permissions before it. |
+| `onError` | `error`, a message string. |
+| `onBeforeConsentRevocationReload` | `preferences`, the permissions after the withdrawal. |
+
+Callbacks run after c15t updates its own state, so `snapshot` and
+`getConsentManager()` already hold the new values. Visitor actions happen in
+the browser, so in practice that is where the callbacks run.
+
+`onBeforeConsentRevocationReload` runs synchronously right before the reload.
+Keep it short; the page is about to unload. It does not run when you set
+`reloadOnConsentRevoked={false}`.
+
+## Script callbacks
+
+Each entry in `scripts` takes its own callbacks:
+
+| Callback | Runs |
+| --- | --- |
+| `onBeforeLoad` | Before the loader adds the script. |
+| `onLoad` | When the script loaded. |
+| `onError` | When the script failed to load. |
+| `onConsentChange` | When consent changes after the script loaded. Use it to call the vendor's own consent API. |
+| `onDispose` | When the configuration is removed or the provider unmounts. |
+
+Helpers from `@c15t/integrations` already set these for their vendor.
+[Building integrations](/docs/integrations/building-integrations) shows how to
+write them.
+
+## Listen inside one component
+
+For a component that shows or reacts to consent, subscribe to a kernel event
+in `$effect`, so the listener goes away with the component. The
+[context getters](./getters#listen-to-consent-events) page has the example.
+For values you render, read the manager's properties instead; they update the
+component without a listener.
+
+## Verify the callbacks
+
+Open the console, clear site data and reload:
+
+1. Accept in the banner. `onChoiceRecorded` and `onPermissionsChanged` both
+   log.
+2. Dismiss a notice, if your policy shows one. Neither logs.
+3. Withdraw a category you allowed. `onBeforeConsentRevocationReload` logs,
+   then the page reloads.

@@ -1,0 +1,115 @@
+---
+title: Script tag attributes
+description: Reference for the c15t script tag on plain HTML pages, covering the bundle files, every data attribute on the script tag, the DevTools tag and your own markup, and the modes the attributes select.
+group: frameworks
+---
+
+## Where each part is documented
+
+| Reference | Page |
+| --- | --- |
+| Bundle files and every `data-*` attribute | This page |
+| `window.c15t` methods and the call queue | [window.c15t API](/docs/frameworks/html/api) |
+| Options for `c15t.push(['config', …])` | [Configuration](/docs/frameworks/html/configuration) |
+| Events, `c15t:*` DOM events and callbacks | [Events and callbacks](/docs/frameworks/html/callbacks) |
+
+## Script files
+
+`@c15t/browser` publishes four browser bundles. Load them from
+`https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/<file>` or the same
+path on unpkg.
+
+| File | What it contains |
+| --- | --- |
+| `c15t.js` | The consent runtime, the stock banner, the preference dialog and their stylesheet. Starts from the tag's attributes. |
+| `c15t.headless.js` | The same runtime and `window.c15t` API with no banner, dialog or CSS. Your page renders the UI. See [headless](/docs/frameworks/html/headless). |
+| `c15t.iab.js` | Replaces `c15t.js` when your policy uses IAB TCF. See [IAB TCF](/docs/frameworks/html/iab). |
+| `c15t.devtools.js` | The DevTools panel, loaded as a second tag. See [DevTools](/docs/frameworks/html/dev-tools). |
+
+Load one of `c15t.js`, `c15t.headless.js` or `c15t.iab.js` on a page, never
+two. `c15t.iab.js` throws an error if another one loaded first. When
+`c15t.js` or `c15t.headless.js` finds another c15t bundle already installed,
+it leaves the first one in place and does not start a second client.
+
+`dist/c15t.css` and `dist/c15t.iab.css` are the stylesheets, for pages that
+render the UI with `data-shadow="false"` and load the CSS themselves.
+
+## Script tag attributes
+
+Every attribute is optional. The tag reads them once, when the script runs.
+
+| Attribute | What it does |
+| --- | --- |
+| `data-backend-url` | Your Inth or self-hosted backend URL. Selects hosted mode. |
+| `data-mode` | `hosted`, `offline` or `manifest`. Without it, c15t picks `manifest` when a manifest URL is set, `hosted` when a backend URL is set, and `offline` otherwise. An unknown value is ignored. |
+| `data-manifest-url` | Where to fetch the policy manifest in manifest mode. See [choose a mode](#choose-a-mode). |
+| `data-policy-rules` | Comma-separated policy presets for offline mode, such as `europeOptIn,usPrivacyStatesOptOut,worldNone`. Any name exported by `policyRulePresets` works; an unknown name throws. [Policies](/docs/concepts/policies) describes the presets. |
+| `data-categories` | Comma-separated categories to offer in the preference dialog, such as `measurement,marketing`. Without it, the dialog offers the categories your gated scripts, iframes and rules use. This changes the dialog, not the policy. |
+| `data-country`, `data-region` | The visitor's location, when your host can print it into the page. Policy matching uses these instead of detection. |
+| `data-language` | Use this language instead of the browser's. See [translations](/docs/frameworks/html/translations). |
+| `data-privacy-policy-url`, `data-cookie-policy-url`, `data-terms-url` | Show these legal links in the banner and the preference dialog. |
+| `data-color-scheme` | `light`, `dark` or `system`. Defaults to `system`. |
+| `data-trigger` | Show the [floating trigger](/docs/frameworks/html/components/trigger) that reopens the preference dialog. |
+| `data-hide-branding` | Hide the "Secured by" tag in the banner and dialog. The IAB banner always keeps it. |
+| `data-shadow="false"` | Render the UI into the page instead of a shadow root, so your stylesheet applies. See [customize](/docs/frameworks/html/customize#style-it-with-your-own-stylesheet). |
+| `data-no-ui` | Start the runtime without the stock UI. `c15t.js` still downloads the UI code and CSS; load `c15t.headless.js` to skip them. The UI attributes above are ignored. |
+| `data-manual` | Do not start. Your page calls `c15t.init()` later. See [start c15t yourself](/docs/frameworks/html/api#start-c15t-yourself). |
+| `data-nonce` | The Content Security Policy nonce for the stock UI's `<style>` element and the scripts c15t loads. Without it, c15t uses the tag's own `nonce` attribute. See [Content Security Policy](/docs/frameworks/html/content-security-policy). |
+
+Flag attributes such as `data-trigger` are on when present, unless their value
+is `false`. `data-shadow` is the exception. Only `data-shadow="false"` changes
+anything. `data-backend` is accepted as an older spelling of
+`data-backend-url`.
+
+Everything the attributes set, and every option they cannot express, can also
+be passed in a queued `config` call. See
+[configuration](/docs/frameworks/html/configuration).
+
+## DevTools tag attributes
+
+These go on the `c15t.devtools.js` tag:
+
+| Attribute | What it does |
+| --- | --- |
+| `data-open` | Open the panel on load. `data-open="false"` keeps it closed. |
+| `data-tab` | The first tab: `consents`, `scripts`, `location`, `policy`, `iab`, `events` or `actions`. |
+| `data-position` | The corner: `bottom-right`, `bottom-left`, `top-right` or `top-left`. |
+
+## Attributes on your own markup
+
+These work anywhere on the page, including markup added after load:
+
+| Markup | What it does | Page |
+| --- | --- | --- |
+| `data-c15t-action="accept"`, `"reject"`, `"customize"`, `"dismiss"`, `"banner"` or `"close"` | Runs the action on click. | [Action buttons](/docs/frameworks/html/components/action-buttons) |
+| A link whose `href` ends in `#c15t-preferences` | Opens the preference dialog on click. | [Preferences link](/docs/frameworks/html/components/preferences-link) |
+| `<script type="text/plain" data-c15t-category="…">` | Runs the script once that category is allowed. | [Gated scripts](/docs/frameworks/html/components/gated-script) |
+| `<iframe data-src="…" data-category="…">` | Sets the iframe's `src` once that category is allowed. `data-vendor` adds a vendor gate. | [Embeds](/docs/frameworks/html/embeds) |
+
+c15t sets these attributes itself. Read them in CSS or tests, but do not
+write them:
+
+| Attribute | Where | Meaning |
+| --- | --- | --- |
+| `data-c15t-activated` | Gated `<script>` | `true` once the tag ran, `invalid` when its category is unknown, `untrusted` when the page has a nonce and the tag lacks it. |
+| `data-c15t-paused` | Gated `<iframe>` | c15t removed a `src` the iframe already had. |
+| `data-c15t-ui` | The UI host `<div>` | The element that holds the banner, dialog and trigger. |
+| `data-testid` | Parts of the stock UI | Stable names for styling and tests. Each component page lists them. |
+
+## Choose a mode
+
+| Mode | Set it with | What happens |
+| --- | --- | --- |
+| Hosted | `data-backend-url` | Each fresh visit asks the backend's `/init` endpoint for the visitor's policy. Choices are saved to the backend. |
+| Manifest | `data-manifest-url`, or `mode: 'manifest'` with an inline `manifest` in `config` | The browser resolves the policy from the backend's public, cacheable `/manifest`. Choices still go to the backend. |
+| Offline | No backend URL | Policy rules come from `data-policy-rules` or c15t's recommended rules. Choices stay in the browser. Not recommended for production environments. |
+
+In manifest mode, c15t can take the backend URL from a manifest URL that ends
+in `/manifest`. A manifest on another host, or an inline manifest, also needs
+`data-backend-url` so saves have somewhere to go. When a policy depends on the
+visitor's location and the page does not supply it, c15t falls back to the
+backend's `/init`. [Data fetching](/docs/concepts/data-fetching) compares the
+modes.
+
+Offline mode cannot see the visitor's country. Without `data-country`, every
+visitor gets the strict opt-in fallback.

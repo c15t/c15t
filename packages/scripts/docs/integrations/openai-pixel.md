@@ -1,21 +1,23 @@
 ---
 title: OpenAI Pixel
-description: Configure the OpenAI Measurement Pixel for ChatGPT Ads with c15t
-  v3, manage marketing permission and verify conversion delivery.
+description: Load the ChatGPT Ads Measurement Pixel only after marketing consent
+  with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in
+  DevTools.
 group: integrations
 ---
 
-## Configure OpenAI Pixel
+## Configure the OpenAI Pixel
 
-Copy your Pixel ID from the conversions tab in OpenAI Ads Manager. The helper
-initializes `oaiq` and loads the SDK when marketing permission allows it.
+Copy the pixel ID from the conversions tab in OpenAI Ads Manager. Remove the
+standalone OpenAI installation snippet, because the helper creates the `oaiq`
+queue and initializes the pixel itself.
 
-| Package manager | Command                          |
-| :-------------- | :------------------------------- |
-| npm             | `npm install @c15t/integrations` |
-| pnpm            | `pnpm add @c15t/integrations`    |
-| yarn            | `yarn add @c15t/integrations`    |
-| bun             | `bun add @c15t/integrations`     |
+| Package manager | Command                                |
+| :-------------- | :------------------------------------- |
+| npm             | `npm install @c15t/integrations@alpha` |
+| pnpm            | `pnpm add @c15t/integrations@alpha`    |
+| yarn            | `yarn add @c15t/integrations@alpha`    |
+| bun             | `bun add @c15t/integrations@alpha`     |
 
 ```ts title="src/consent-scripts.ts"
 import { openaiPixel } from '@c15t/integrations/openai-pixel';
@@ -23,18 +25,18 @@ import { openaiPixel } from '@c15t/integrations/openai-pixel';
 export const scripts = [openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 ```
 
-Remove the standalone OpenAI installation snippet when using this integration.
-c15t creates the `oaiq` queue, initializes the pixel, and loads the SDK.
-
 ## Register the scripts
 
 Complete your [framework quickstart](https://c15t.com/docs/frameworks) first. Keep its Inth
 endpoint, policy, styles and consent UI. Remove the vendor's original script,
-SDK initializer or tag-manager entry so c15t owns loading once.
+SDK initializer or tag-manager entry, so the vendor loads only through c15t.
 
-The `scripts` export in `src/consent-scripts.ts` is a configuration, not an
-initializer. Add it to your existing consent owner using the registration point
-below. These are partial edits to that owner, not additional providers.
+The vendor pages put the helper in `src/consent-scripts.ts`. If your framework
+quickstart already created a scripts file, such as `lib/scripts.ts` in the
+Next.js guide, add the helper to that array instead of creating a second file.
+The `scripts` export is a configuration, not an initializer. Add it to the c15t provider you already have, at the registration
+point for your framework below. These are edits to that provider, not a second
+provider.
 
 **Next.js**
 
@@ -55,158 +57,104 @@ router guide. Its manifest, init and save URLs stay in effect. Add
 </ConsentRoot>
 ```
 
-For a Pages Router or static-export setup using `ConsentProvider`, add
-`scripts` to its existing `options` instead. Keep the router-specific setup
-from [Next.js script loading](../frameworks/next/script-loader.md).
+App Router, Pages Router and static export all use this `ConsentRoot` in
+the `'use client'` wrapper `components/consent.tsx`. Keep `scripts` there,
+because a Server Component cannot pass script callbacks to it. See
+[Next.js scripts and embeds](../frameworks/next/scripts.md).
 
 **TanStack Start**
 
-In your existing root route component, import the scripts alongside
-`ConsentRoot`. Keep the server loader from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart).
+Import the configuration into your root route and pass it to the existing
+`ConsentRoot` as a top-level prop. Keep the loader, `backendURL` and
+`initRoute` from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart):
 
-```tsx
-import { Outlet } from '@tanstack/react-router';
-import { ConsentRoot } from 'c15t/tanstack-start';
+```tsx title="src/routes/__root.tsx"
 import { scripts } from '../consent-scripts';
 
-function Root() {
-  const state = Route.useLoaderData();
-  return (
-    <ConsentRoot state={state} backendURL={backendURL} initRoute={false} scripts={scripts}>
-      <Outlet />
-      {/* Keep your consent banner, dialog and preferences link here. */}
-    </ConsentRoot>
-  );
-}
+<ConsentRoot
+  state={consent}
+  backendURL={backendURL}
+  initRoute={false}
+  scripts={scripts}
+>
 ```
 
-This edits the existing route. `Route` and `backendURL` come from its setup;
-keep the document shell and head components if they are part of your root.
-`initRoute={false}` keeps the quickstart's direct-backend initialization.
-If your app mounts a consent server route, retain its existing `initRoute`
-instead. Do not return script callbacks from a server function or route loader.
+Import vendor helpers in the root route module, not in a server function.
+A server function's return value must be serializable, and script
+configurations carry callbacks. See
+[TanStack Start scripts](../frameworks/tanstack-start/scripts.md).
 
 **React**
 
-Import the scripts into your existing provider component:
+Add the configuration to the existing `ConsentProvider` options, next to
+`mode`:
 
-```ts
-import { ConsentProvider } from 'c15t/react';
+```tsx title="src/consent.tsx"
 import { scripts } from './consent-scripts';
+
+<ConsentProvider options={{ mode, scripts }}>
 ```
 
-Keep the existing options and add `scripts`:
-
-```tsx
-<ConsentProvider options={{ ...consentOptions, scripts }}>
-  {children}
-</ConsentProvider>
-```
-
-Here `consentOptions` is your existing configuration, including
-`mode: hosted({ url: backendURL })`. Keep the banner, dialog and preferences
-link inside the provider. See [React script loading](../frameworks/react/script-loader.md).
+`mode` is the `hosted({ url: backendURL })` value from the
+[React quickstart](https://c15t.com/docs/frameworks/react/quickstart). Keep the banner,
+dialog and preferences link inside the provider. See
+[React scripts and embeds](../frameworks/react/scripts.md).
 
 **Nuxt**
 
-Attach one loader from the root `app.vue`, after the Nuxt module has
-started its browser runtime. This keeps vendor callbacks in application code rather
-than serialized `nuxt.config.ts` runtime configuration.
+Register the scripts under the `c15t` key in `app/app.config.ts`. Adjust the
+relative import to where you created `consent-scripts.ts`:
 
-```vue title="app/app.vue"
-<script setup lang="ts">
-import { onUnmounted } from 'vue';
-import { createScriptLoader } from 'c15t/modules/script-loader';
+```ts title="app/app.config.ts"
 import { scripts } from '../src/consent-scripts';
 
-const nuxtApp = useNuxtApp();
-const kernel = useConsentKernel();
-let loader: ReturnType<typeof createScriptLoader> | undefined;
-
-const removeMountedHook = nuxtApp.hook('app:mounted', () => {
-  loader = createScriptLoader({ kernel, scripts });
+export default defineAppConfig({
+  c15t: { scripts },
 });
-onUnmounted(() => {
-  removeMountedHook();
-  loader?.dispose();
-});
-</script>
-
-<template>
-  <ConsentRoot />
-  <NuxtPage />
-</template>
 ```
 
-Merge the setup code into your root and retain its footer and preferences
-link. `useConsentKernel` is auto-imported by the c15t Nuxt module. Adjust the
-relative script import if your `app.vue` is at the project root. This loader
-waits until the module has applied browser persistence and privacy signals,
-then reads the current snapshot and observes future changes. Do not also register these scripts
-in another loader. See the [Nuxt quickstart](https://c15t.com/docs/frameworks/nuxt/quickstart).
+The Nuxt module merges this over its options in `nuxt.config.ts` and starts
+one script loader in the browser after hydration, once it has applied the
+visitor's stored choice and privacy signals. Keep `scripts` out of
+`nuxt.config.ts`, which reaches the browser as JSON and drops the vendor
+callbacks. `app.config.ts` cannot read `runtimeConfig`, so write the vendor
+IDs into `consent-scripts.ts` or read them from `VITE_` variables. See
+[Nuxt scripts and embeds](../frameworks/nuxt/scripts.md).
 
 **Vue**
 
-Use the kernel already provided by the Vue plugin. Merge this setup into
-`App.vue`, whose lifetime covers the application:
+Pass the scripts to the existing `c15tVue` plugin call in `src/main.ts`:
 
-```vue title="src/App.vue"
-<script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
-import { createScriptLoader } from 'c15t/modules/script-loader';
-import { useConsentKernel } from 'c15t/vue/vue-plugin';
-import ConsentRoot from 'c15t/vue/consent-root';
+```ts title="src/main.ts"
 import { scripts } from './consent-scripts';
 
-const kernel = useConsentKernel();
-let loader: ReturnType<typeof createScriptLoader> | undefined;
-
-onMounted(() => {
-  loader = createScriptLoader({ kernel, scripts });
-});
-onUnmounted(() => loader?.dispose());
-</script>
-
-<template>
-  <ConsentRoot />
-  <main>Your application</main>
-</template>
+app.use(c15tVue, { backendURL, scripts });
 ```
 
-Keep your existing page content and preferences link. The plugin still owns
-the kernel and persistence; this component owns only the vendor loader.
-Do not register the same scripts in plugin configuration as well. See the
-[Vue quickstart](https://c15t.com/docs/frameworks/vue/quickstart).
+Keep your existing backend URL and other options. The plugin starts one
+script loader when the app mounts, after it has applied the visitor's stored
+choice. Do not also call `createScriptLoader` from a component. See
+[Vue scripts and embeds](../frameworks/vue/scripts.md).
 
 **Astro**
 
-Point the existing Astro integration at a client module. Keep its `mode`,
-`ui` and framework integration from the [Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart).
-Import `fileURLToPath` in your Astro configuration:
+Add the scripts to the client entrypoint from the
+[Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart), the module that the
+integration's `clientEntrypoint` option names. Keep `mode`, `ui` and the
+framework integration in `astro.config.mjs` as they are. If the module
+already exports scripts, combine the two arrays.
 
-```js title="astro.config.mjs"
-import { fileURLToPath } from 'node:url';
-```
-
-Add this option to the existing `c15t({ ... })` call. Resolve the path from
-the configuration file because Astro injects the import into a virtual module:
-
-```js
-clientEntrypoint: fileURLToPath(new URL('./src/c15t.client.ts', import.meta.url)),
-```
-
-Export the scripts from that module:
-
-```ts title="src/c15t.client.ts"
+```ts title="src/consent-client.ts"
 import type { C15tClientOptionsExtension } from 'c15t/astro';
 import { scripts } from './consent-scripts';
 
 export default { scripts } satisfies C15tClientOptionsExtension;
 ```
 
-The integration passes this extension to its shared browser runtime. Vendor
-helpers contain callbacks, so do not put them in the serialized `scripts`
-option in `astro.config.mjs`. Keep one runtime across consent islands and
+Vendor helpers contain callbacks, and the integration options in
+`astro.config.mjs` are serialized into the page, so do not put helpers in
+the integration's `scripts` option. The integration passes the client
+entrypoint to the one runtime every page shares, including across
 `ClientRouter` navigation.
 
 **Svelte**
@@ -239,11 +187,12 @@ and its serializable prefetch data from the [SvelteKit quickstart](https://c15t.
 
 ```svelte title="src/routes/+layout.svelte"
 <script lang="ts">
+  import { env } from '$env/dynamic/public';
   import { ConsentManagerProvider, hosted } from '@c15t/svelte';
   import { scripts } from '../consent-scripts';
 
   let { children, data } = $props();
-  const mode = hosted({ url: data.backendURL });
+  const mode = hosted({ url: env.PUBLIC_C15T_BACKEND_URL });
 </script>
 
 <ConsentManagerProvider {mode} {scripts} prefetch={data.prefetch}>
@@ -252,27 +201,45 @@ and its serializable prefetch data from the [SvelteKit quickstart](https://c15t.
 </ConsentManagerProvider>
 ```
 
-Import vendor helpers in the layout component, not in `+layout.server.ts`.
-For static hosting, keep your browser-only `mode` setup and omit request
-prefetch; the `scripts` prop stays the same. If you pass an externally owned
+Import vendor helpers in the layout component, not in `+layout.server.ts`:
+a server load cannot send functions to the browser. Prerendered, static and
+SPA-mode pages use the same `scripts` prop. If you pass an externally owned
 `runtime` to the provider, register scripts when creating that runtime instead.
+
+**HTML**
+
+The helpers in `@c15t/integrations` are ES modules that need a bundler. On a
+page that loads the c15t script tag, paste the vendor's own snippet instead
+and keep it inert until its category is allowed:
+
+```html
+<script type="text/plain" data-c15t-category="measurement">
+  // The vendor's snippet, unchanged
+</script>
+```
+
+Use the category this guide names for the vendor. c15t runs the snippet
+once that category is allowed, and reloads the page when the visitor
+withdraws it. Helper options on this page, such as `loadMode`, do not apply
+to a pasted snippet. See [HTML scripts](../frameworks/html/scripts.md).
 
 **JavaScript**
 
-Attach the loader to your existing kernel before calling
-`kernel.commands.init()`:
+Pass the scripts to `init()` from `@c15t/browser`, next to your backend
+URL:
 
 ```ts
-import { createScriptLoader } from 'c15t/modules/script-loader';
+import { init } from '@c15t/browser';
 import { scripts } from './consent-scripts';
 
-const loader = createScriptLoader({ kernel, scripts });
+const consent = init({ backendURL, scripts });
 ```
 
-Call `loader.dispose()` when that application instance is destroyed.
-`kernel` is the hosted kernel from your quickstart. A provider-owned kernel
-already has a loader; do not attach a second one. See
-[JavaScript script loading](../frameworks/javascript/script-loader.md).
+`backendURL` is the Inth URL from your quickstart. With
+`createConsentRuntime` from `c15t/runtime`, pass `scripts` to it instead.
+A kernel you create yourself needs a loader from
+`c15t/modules/script-loader`. Attach one loader per kernel. See
+[JavaScript scripts](../frameworks/javascript/scripts.md).
 
 **React Native**
 
@@ -297,166 +264,99 @@ check it there too. See
 
 ## Options
 
-| Option      | Type              | Default                                     | Description                                        |
-| ----------- | ----------------- | ------------------------------------------- | -------------------------------------------------- |
-| `pixelId`   | `string`          | Required                                    | Your OpenAI Ads Manager Pixel ID.                  |
-| `debug`     | `boolean`         | `false`                                     | Log SDK activity to the browser console.           |
-| `user`      | `OpenAIPixelUser` | Omitted                                     | User matching fields passed to SDK initialization. |
-| `scriptSrc` | `string`          | `https://bzrcdn.openai.com/sdk/oaiq.min.js` | Override the SDK URL.                              |
+| Option      | Default                                     | Behavior                                                                                                                                                                                    |
+| ----------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pixelId`   | Required                                    | Pixel ID passed to `oaiq('init', ...)`. The helper trims it. Empty or whitespace-only values throw.                                                                                         |
+| `debug`     | `false`                                     | Logs SDK activity, including queued and dropped events, to the browser console.                                                                                                             |
+| `user`      | None                                        | User matching fields passed to `init`: `email_sha256`, `phone_number_sha256`, `external_id_sha256`, `first_name_sha256`, `last_name_sha256`, `country`, `city`, `region` and `postal_code`. |
+| `scriptSrc` | `https://bzrcdn.openai.com/sdk/oaiq.min.js` | SDK URL override. A blank value falls back to the default.                                                                                                                                  |
 
-## Consent behavior
+c15t forwards `user` unchanged. Normalize and hash identifiers yourself as
+OpenAI's
+[user data rules](https://developers.openai.com/ads/measurement-pixel#send-user-data)
+describe. If user data arrives after initialization, call
+`window.oaiq('init', { pixelId, user })` again with the complete object.
 
-The first SDK request waits for effective `marketing` permission. Under an
-opt-in policy, that means waiting for the visitor to grant consent.
-`measurement` permission alone does not enable this advertising pixel.
+## Loading and revocation
 
-Before the SDK loads, c15t queues these commands in order:
+`openaiPixel` uses the `marketing` category. Before marketing is allowed, c15t
+defines no `oaiq` function and loads nothing from OpenAI. Measurement
+permission alone does not load the pixel. When marketing becomes allowed, the
+helper queues `oaiq('consent', false)`, `init` and `oaiq('consent', true)`,
+then loads `oaiq.min.js`. The first call overrides the SDK's default consent of
+`true`.
 
-```js
-oaiq('consent', false);
-oaiq('init', { pixelId: 'YOUR_PIXEL_ID', debug: false });
-oaiq('consent', true);
+On revocation the helper keeps the SDK and calls `oaiq('consent', false)`. If
+the visitor allows marketing again before the page reloads, it calls
+`oaiq('consent', true)` without reinitializing the pixel. OpenAI drops events
+sent while consent is denied and does not replay them later. The SDK can still
+send diagnostic pings while consent is denied.
+
+## Guard your own oaiq calls
+
+The helper sends no page view or conversion, so every event comes from your
+code. After revocation `window.oaiq` still exists, so its presence does not
+mean marketing is allowed. Check the permission first, then that the queue
+exists:
+
+```ts title="src/track-order.ts"
+export function trackOrder(marketingAllowed: boolean, orderId: string) {
+  if (!marketingAllowed || typeof window.oaiq !== 'function') return;
+  window.oaiq(
+    'measure',
+    'order_created',
+    { type: 'contents', amount: 2599, currency: 'USD' },
+    { event_id: orderId },
+  );
+}
 ```
 
-The initial denial overrides the SDK's default consent of `true`. Once loaded,
-the SDK stays on the page. c15t calls `oaiq('consent', false)` when marketing
-permission is denied and `oaiq('consent', true)` when it is granted again.
-Granting permission again does not reload or reinitialize the pixel.
+Pass the current marketing permission from your framework, for example
+`useConsent('marketing')` in React. `amount` is an integer in the currency's
+minor unit, so `2599` is $25.99. Reuse `event_id` on the server event to
+deduplicate it.
 
-OpenAI documents that denied measurement events are dropped and are not replayed
-when consent returns. Consent denial does not unload the SDK or promise to erase
-existing attribution cookies. The SDK can still send diagnostic pings while
-measurement consent is denied.
+`@c15t/integrations/openai-pixel` also exports `openaiPixelEvent`, a typed wrapper
+around `oaiq('measure', ...)`. It drops calls made before the queue exists and
+does not check permission, so apply the same guard before calling it. A
+`custom` event needs `custom_event_name` in its options. To send to one pixel
+when you run several, call `window.oaiq('measureSingle', pixelId, ...)`.
 
-## User matching
+## Verify the OpenAI Pixel
 
-Add `user` to the existing `openaiPixel` configuration in
-`src/consent-scripts.ts` to include customer matching data at initialization.
-All fields are optional:
+Set `debug: true` while you test. After you allow marketing, `oaiq.min.js`
+loads from `bzrcdn.openai.com`. Trigger one guarded event and check that a
+request to `https://bzr.openai.com/v1/sdk/events` succeeds and the event
+appears in Event Stream in Ads Manager. An accepted request confirms delivery,
+not attribution to a ChatGPT ad. Then revoke marketing. Until the page
+reloads, calling `trackOrder` sends nothing. Turn off `debug` when you finish.
 
-* `email_sha256`, `phone_number_sha256`, `external_id_sha256`,
-  `first_name_sha256`, and `last_name_sha256` accept normalized SHA-256 hashes.
-* `country`, `city`, `region`, and `postal_code` accept location strings.
+If your site sets a Content Security Policy, allow `https://bzrcdn.openai.com`
+in `script-src`, both `https://bzr.openai.com` and `https://bzrcdn.openai.com`
+in `connect-src`, and `https://bzr.openai.com` in `img-src`.
 
-```ts
-openaiPixel({
-  pixelId: 'YOUR_PIXEL_ID',
-  user: { country: 'US', region: 'California', postal_code: '94107' },
-});
-```
+Test in a private window with an opt-in policy. Open DevTools Network, disable
+the cache and filter by the vendor's domain:
 
-Normalize identifiers according to OpenAI's
-[user data rules](https://developers.openai.com/ads/measurement-pixel#send-user-data),
-then hash them as lowercase, 64-character SHA-256 hex strings. c15t forwards these
-values unchanged. It does not collect customer location or identifiers, or
-normalize or hash identifiers for you.
+1. Load the page. No request goes to the vendor before you choose.
+2. Click Reject, then reload. There is still no vendor request.
+3. Open Privacy settings and allow the helper's category. The vendor script
+   loads without a page reload.
+4. Turn the category off again and save. c15t reloads the page, and the new
+   page makes no vendor request.
 
-If user data becomes available after initialization, pass the complete updated
-object through `window.oaiq?.('init', { pixelId: 'YOUR_PIXEL_ID', user })`.
-User data belongs on `init`, not on individual conversion events. Automatic
-advanced matching is configured by OpenAI; it is not an additional SDK init option.
+c15t reloads on revocation because removing a script element does not stop
+code that already ran. The vendor's listeners, timers and queued events stay
+alive until the page unloads. If you set `reloadOnConsentRevoked: false`, stop
+the vendor yourself. Register a callback-only script whose `onConsentChange`
+calls the vendor's opt-out API, as shown in
+[custom integrations](./building-integrations.md), and check the
+permission before each of your own event calls. The reload does not delete
+cookies the vendor already set; see
+[clear on revocation](./clear-on-revocation.md).
 
-## Send conversions
-
-Installing the pixel does not send a conversion or page view. Check effective
-marketing permission using your framework
-[consent API](https://c15t.com/docs/frameworks) before calling `openaiPixelEvent` from an
-application event handler. The helper checks API availability, not permission;
-the loaded SDK applies the consent signal supplied by c15t.
-
-This partial example belongs in an order-completion handler after that
-permission check. It sends an order value of $25.99:
-
-```ts
-import { openaiPixelEvent } from '@c15t/integrations/openai-pixel';
-
-openaiPixelEvent(
-  'order_created',
-  { type: 'contents', amount: 2599, currency: 'USD' },
-  { event_id: 'order_123', opt_out: true },
-);
-```
-
-The helper supports every documented browser event and its corresponding data
-shape. The optional fourth argument to the SDK, passed as the helper's third
-argument, supports `event_id` for browser/server deduplication and `opt_out` for
-opting an event out of future user-level personalization.
-
-Calls made before the queue exists are dropped. A callable `window.oaiq` does
-not mean marketing permission is still granted. Stop application event calls
-when permission is denied, even though the SDK remains loaded.
-
-`window.oaiq` is also typed for `init`, `consent`, `measure`, and `measureSingle`.
-The event helper uses `measure`, which sends to every initialized pixel. To target
-one initialized pixel, use:
-
-```ts
-window.oaiq?.(
-  'measureSingle',
-  'YOUR_PIXEL_ID',
-  'page_viewed',
-  { type: 'contents' },
-);
-```
-
-See OpenAI's [supported events](https://developers.openai.com/ads/supported-events)
-for payload fields. `app_installed` and `app_opened` require the Conversions API
-and are not supported by the browser pixel.
-
-### Custom events
-
-Custom events require `custom_event_name`. After checking marketing permission,
-you can verify a custom event with a clearly named payload:
-
-```ts
-import { openaiPixelEvent } from '@c15t/integrations/openai-pixel';
-
-openaiPixelEvent(
-  'custom',
-  { type: 'custom' },
-  {
-    custom_event_name: 'c15t_integration_test',
-    event_id: crypto.randomUUID(),
-    opt_out: true,
-  },
-);
-```
-
-## Verify the integration
-
-Use a fresh session with an opt-in policy and set `debug: true` in your existing
-`openaiPixel` configuration while testing.
-
-1. Before granting `marketing`, verify that the OpenAI SDK does not load and no
-   measurement request is sent. Granting only `measurement` should not load it.
-2. Grant `marketing` and perform an action that calls your event handler. For a
-   page view, send `page_viewed` with `{ type: 'contents' }`.
-3. Open Event Stream in Ads Manager and find the event. Inspect requests to
-   `https://bzr.openai.com/v1/sdk/events` in the Network panel and check the
-   response status. An accepted request confirms transport, not attribution to
-   a ChatGPT ad.
-4. Revoke `marketing` and verify that future application event calls stop. The
-   SDK remains loaded and may still send diagnostic pings. Grant permission
-   again and check that the SDK is not loaded twice.
-5. Reload and repeat with the saved choice. Turn off `debug` after testing.
-
-The browser console reports whether the SDK queued or dropped an event. Follow
-the [consent verification guide](../guides/verify-consent.md) for policy and
-privacy-signal checks.
-
-The c15t live vendor monitor checks consent gating, the queue, the real SDK
-response, and runtime initialization. It uses a placeholder Pixel ID and blocks
-measurement requests, so monitor runs do not populate your Ads Manager events.
-
-## Content Security Policy
-
-If your site uses a Content Security Policy, allow these sources in the
-corresponding directives:
-
-| Directive     | Sources                                                  |
-| ------------- | -------------------------------------------------------- |
-| `script-src`  | `https://bzrcdn.openai.com`                              |
-| `connect-src` | `https://bzr.openai.com` and `https://bzrcdn.openai.com` |
-| `img-src`     | `https://bzr.openai.com`                                 |
-
-Also allow the CDN in `script-src-elem` if your policy defines that directive.
+The helper sets `vendor` to its script ID, so once you declare that vendor a
+visitor can turn it off inside an allowed category. See
+[let visitors turn off one vendor](./granular-consent.md). The
+[consent verification guide](../guides/verify-consent.md) covers navigation,
+expiry and hosting checks.

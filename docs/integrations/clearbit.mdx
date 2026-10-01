@@ -1,14 +1,15 @@
 ---
 title: Clearbit
-description: Configure Clearbit with c15t v3, understand marketing permission and verify loading and revocation.
+description: Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure Clearbit
 
-Use the publishable key from your Clearbit tag installation. The helper loads the account-specific `tags.js` URL. Do not put a secret enrichment API key in browser code.
+Use the publishable key from your Clearbit tag installation. Do not put a
+secret Clearbit API key in browser code.
 
-<CommandTabs command="@c15t/integrations" mode="install" />
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { clearbit } from '@c15t/integrations/clearbit';
@@ -20,20 +21,24 @@ export const scripts = [clearbit({ publishableKey: 'YOUR_PUBLISHABLE_KEY' })];
 
 ## Options
 
-| Option | Behavior |
-| --- | --- |
-| `publishableKey` | Required non-empty publishable key. |
-| `scriptUrl` | Optional full loader override; otherwise derived from the publishable key. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `publishableKey` | Required | Publishable key. The helper trims it and URL-encodes it into the default loader URL. Empty or non-string values throw. |
+| `scriptUrl` | `https://tag.clearbitscripts.com/v1/<publishableKey>/tags.js` | Loader URL override. A blank value falls back to the default. |
 
-## Consent behavior
+## Loading and revocation
 
-Clearbit is listed under Analytics for discovery, but its helper uses marketing permission because it performs enrichment. The helper has no vendor revocation callback; do not assume removing the tag stops an enrichment SDK that already ran.
+`clearbit` uses the `marketing` category, not `measurement`. Clearbit
+identifies visitors and their companies for enrichment, so c15t treats it as
+marketing even though these docs list it with analytics. The `tags.js` script
+loads with `referrerpolicy="strict-origin-when-cross-origin"` only while
+marketing is allowed. On revocation the helper removes the script element and
+calls no Clearbit API.
 
-## Verify the integration
+## Verify Clearbit
 
-Check the account key in the requested loader URL and inspect enrichment requests. Confirm marketing rejection prevents the initial load, even when measurement is allowed.
+Filter DevTools Network by `clearbitscripts.com`. After you allow marketing,
+the `tags.js` request carries your publishable key in its path. Allowing
+measurement alone loads nothing from Clearbit.
 
-Use a fresh session with an opt-in policy to check initial denial. Then grant
-`marketing`, revoke it, and reload. Inspect both network requests and future
-application events. Removing a script cannot undo code or requests that already
-ran. Follow the [consent verification guide](/docs/guides/verify-consent).
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

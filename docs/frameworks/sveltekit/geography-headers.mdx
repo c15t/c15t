@@ -1,0 +1,110 @@
+---
+title: Geography headers
+description: Which request headers SvelteKit's c15t helpers read for country, region, language and Global Privacy Control, how to trust them, and how to test another location.
+group: frameworks
+---
+
+## Why location matters
+
+Your consent policy picks a rule by the visitor's country and region: opt-in
+in Europe, opt-out in US states with privacy laws, no banner where no law
+applies. On SvelteKit, the server helpers read that location from request
+headers your host or CDN adds. If no header arrives, the policy resolves with
+its rule for an unknown location.
+
+## Which headers are read
+
+`loadConsent`, `c15tHandle`, the manifest route and `resolveConsent` read the
+same headers, in this order. The first one present wins.
+
+| Input | Headers, highest priority first |
+| --- | --- |
+| Country | `x-c15t-country`, `cf-ipcountry`, `x-vercel-ip-country`, `x-amz-cf-ipcountry`, `x-country-code`, `x-country` |
+| Region | `x-c15t-region`, `cf-region-code`, `x-vercel-ip-country-region`, `x-region-code` |
+| Language | `accept-language`, negotiated by quality value to a primary tag such as `de` |
+| Global Privacy Control | `x-c15t-gpc`, `sec-gpc`; only `1` and `0` count |
+
+Vercel adds its country and region headers on every request. Cloudflare adds
+`cf-ipcountry`; for `cf-region-code`, turn on Cloudflare's visitor location
+headers. On another host, or a Node server without a CDN, set `x-c15t-country`
+and `x-c15t-region` at your proxy from whatever location data it has.
+
+In hosted mode, `loadConsent` forwards these headers to the backend's `/init`,
+along with `user-agent` and `x-forwarded-for`. It sends `x-forwarded-host`,
+`x-forwarded-proto` and `forwarded` only with `trustForwardedHeaders: true`. In manifest
+mode, it passes the resolved inputs to your route as `x-c15t-*` headers,
+because `event.fetch` forwards only cookies and authorization by itself.
+
+## Resolve the inputs once per request
+
+`c15tHandle` in `src/hooks.server.ts` reads the headers once, stores the
+inputs on `event.locals.c15t.inputs`, and rewrites the request's headers to
+the normalized `x-c15t-country`, `x-c15t-region`, `accept-language` and
+`sec-gpc`. Later loads, endpoints and proxied backend calls then see one
+form, whichever CDN header carried the value:
+
+<include src="../../shared/examples/sveltekit-demo/hooks.mdx" />
+
+[Server API](./server-api#c15thandle) lists its options.
+
+## Trust the headers
+
+The `x-c15t-*` headers always win, and a browser can send them. A visitor who
+sets `x-c15t-country: US` gets the policy for the United States. That changes
+only their own banner, not anyone else's, but if you need the policy to
+follow your CDN's location, remove incoming `x-c15t-*` headers at your edge
+before the request reaches SvelteKit.
+
+`cf-ipcountry` and the Vercel headers are set by the platform and cannot be
+forged through it. Behind your own proxy, make sure it overwrites the country
+headers rather than passing a client's value through.
+
+The manifest route fetches a relative `backendURL` through `event.fetch` and
+never resolves it against the request, so a forged `Host` or
+`x-forwarded-host` header cannot send its requests elsewhere. `loadConsent`
+resolves a relative `backendURL` against `event.url`. With its default
+`event.fetch`, the call stays in-process. With your own `fetch`, it goes to the
+origin of `event.url`, which SvelteKit builds from the adapter's `ORIGIN`, or
+`PROTOCOL_HEADER` and `HOST_HEADER` settings; without `ORIGIN`, `adapter-node`
+takes the host from the `Host` header. A forged `x-forwarded-host` changes
+neither unless you set `trustForwardedHeaders`. See
+[Server API](./server-api#loadconsent).
+
+## Force a location
+
+Pass `country`, `region` or `language` to force an input:
+
+- On `c15tHandle({ country: 'DE' })`, for every request, such as a site that
+  serves one country.
+- On one `loadConsent(event, { country: 'DE' })` call, for one layout, such
+  as a `/de/` section.
+
+A per-call value wins over the handle's. The browser's provider takes
+`overrides={{ country, region, language, gpc }}` for the same purpose after
+hydration.
+
+## Test another location
+
+Send the override header with a request and look for the banner in the HTML:
+
+{/* example: fragment */}
+
+```sh
+curl -s -H 'x-c15t-country: DE' http://localhost:5173/ | grep -c consent-banner-root
+curl -s -H 'x-c15t-country: US' -H 'x-c15t-region: CA' http://localhost:5173/ | grep -c consent-banner-root
+curl -s -H 'Sec-GPC: 1' -H 'x-c15t-country: US' -H 'x-c15t-region: CA' http://localhost:5173/
+```
+
+The first request prints `1` under a policy that asks Europe for opt-in. What
+the others print depends on your policy's rules for California. In the
+browser, the dev tools panel's location tab changes the location for the
+current page without a request header.
+
+## Verify
+
+1. On your deployed site, open DevTools and check the document request's
+   headers for your CDN's country header.
+2. View the page source. The banner is in the HTML for a location that needs
+   one, and absent for one that does not.
+3. With the dev tools panel, confirm the resolved country and policy match
+   where you are.

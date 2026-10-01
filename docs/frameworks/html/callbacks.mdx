@@ -1,0 +1,141 @@
+---
+title: Callbacks
+description: Run code on a plain HTML page when c15t resolves the policy, when a visitor records a choice, when permissions change or when a request fails, with window.c15t events, DOM events and config callbacks.
+group: frameworks
+---
+
+## Pick the hook for the job
+
+| You want to | Use |
+| --- | --- |
+| Start or stop your own code as permissions change | The `consent` event, or `callbacks.onPermissionsChanged` |
+| Know that a visitor clicked accept, reject or save | `callbacks.onChoiceRecorded` |
+| Wait until c15t knows the visitor's permissions | The `ready` event, or `c15t.ready()` |
+| Show, hide or switch your own banner | The `ui` event |
+| Report failed backend calls | The `error` event, or `callbacks.onError` |
+| Flush data before the reload after a withdrawal | `callbacks.onBeforeConsentRevocationReload` |
+| Listen from a script that does not use `window.c15t` | The `c15t:*` events on `document` |
+
+Most pages need only the `consent` event. Prefer gating a vendor with a
+[gated script](/docs/frameworks/html/components/gated-script) where you can,
+because that works before any script of yours runs.
+
+## Listen for events
+
+Queue `on` calls before the tag. c15t attaches them when it starts, so they
+hear the first `ready` and `consent` events:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['on', 'consent', (snapshot) => {
+    if (snapshot.effectivePermissions.measurement) {
+      startAnalytics();
+    }
+  }]);
+</script>
+```
+
+`startAnalytics` stands for your own code. After the tag has loaded,
+`c15t.on(event, listener)` works directly and returns a function that removes
+the listener.
+
+<import src="../../shared/browser/client-options.mdx#events" />
+
+## Listen on document
+
+Each event is also dispatched on `document` as a `CustomEvent` named
+`c15t:ready`, `c15t:consent`, `c15t:ui` or `c15t:error`, with the payload in
+`event.detail`. A script that loads in any order, such as a tag manager
+snippet, can listen without touching `window.c15t`:
+
+{/* example: fragment */}
+
+```html
+<script>
+  document.addEventListener('c15t:consent', (event) => {
+    const allowed = event.detail.effectivePermissions;
+    console.log('measurement allowed:', allowed.measurement);
+  });
+</script>
+```
+
+Unlike `c15t.on`, a `document` listener added after an event fired does not
+receive it. Add it before the c15t tag runs, or read the current state with
+`c15t.getSnapshot()` once `window.c15t` is the API.
+
+## Config callbacks
+
+Callbacks go under `callbacks` in a queued `config` call:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    callbacks: {
+      onChoiceRecorded: ({ snapshot, confirmed }) => {
+        console.log('visitor confirmed', confirmed, snapshot.explicitChoice);
+      },
+      onPermissionsChanged: ({ snapshot, previous }) => {
+        console.log('permissions', previous, '->', snapshot.effectivePermissions);
+      },
+      onError: ({ error }) => console.warn('c15t:', error),
+    },
+  }]);
+</script>
+```
+
+| Callback | Payload | When it runs |
+| --- | --- | --- |
+| `onChoiceRecorded` | `{ snapshot, confirmed, actionAt }` | A visitor accepted, rejected or saved. `confirmed` lists the categories this action recorded. |
+| `onPermissionsChanged` | `{ snapshot, previous }` | Effective permissions changed value, for any reason. |
+| `onError` | `{ error }`, a message string | A backend call or another command failed. |
+| `onBeforeConsentRevocationReload` | `{ preferences }` | Right before the reload that follows a withdrawal. Runs synchronously; keep it short. |
+
+## A recorded choice is not a permission change
+
+`onChoiceRecorded` and `onPermissionsChanged` answer different questions:
+
+- `onChoiceRecorded` runs only for a visitor's own accept, reject or save. It
+  does not run when a stored choice is restored at load. Use it to report
+  consent rates or to thank the visitor.
+- `onPermissionsChanged` runs whenever what may run changes. That
+  includes a save that changed something, a stored choice restored at load, a
+  policy resolving, a choice expiring and a GPC signal. Use it to start and stop your code.
+
+A save that leaves every permission as it was can run `onChoiceRecorded`
+without `onPermissionsChanged`. Dismissing a notice runs neither, because it
+records no choice and changes no permission.
+[How consent works](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice)
+explains the difference.
+
+## Follow every change with subscribe
+
+`c15t.subscribe(listener)` calls your listener with the full snapshot after
+every change, including UI and policy changes that the events above skip. It
+suits code that renders from the whole state, such as a custom banner. Queue
+it like `on`; it attaches as soon as the client exists.
+
+## Errors thrown by your listeners
+
+A listener that throws does not fail the action that caused the event. c15t
+logs the error with `console.error`, then runs the later `on` listeners for
+the same event and dispatches the matching `c15t:*` event on `document`. The
+same holds for a `ready` or `ui` listener that `c15t.on()` runs at once after
+the policy resolved, so `c15t.on()` still returns the function that removes
+the listener. Keep listeners quick, because they run synchronously while the
+change is applied.
+
+## Check it works
+
+1. Add a `consent` listener that logs `effectivePermissions` and an
+   `onChoiceRecorded` callback that logs `confirmed`.
+2. Open the page in a private window under an opt-in policy. Neither logs,
+   because nothing is allowed yet and nobody has chosen.
+3. Click **Accept All**. Both log.
+4. Reload. The `consent` listener logs the restored permissions and
+   `onChoiceRecorded` stays silent.

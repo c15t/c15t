@@ -1,0 +1,43 @@
+---
+title: ConsentDialogTrigger
+description: Show a floating, draggable button that reopens the c15t preference dialog in a Vue app, and configure its corner, size, icon and label.
+group: frameworks
+---
+
+## Turn on the trigger in the plugin options
+
+Turn the trigger on with `showTrigger` in the plugin options. `ConsentRoot`
+then renders it:
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+app.use(c15tVue, {
+  backendURL,
+  scripts,
+  showTrigger: true,
+  triggerDefaultPosition: 'bottom-left',
+});
+```
+
+When you compose the surfaces without `ConsentRoot`, import the trigger from
+`c15t/vue/runtime/components/consent-dialog-trigger.vue` and render it
+yourself:
+
+<include src="../../../shared/examples/vue/consent-surfaces.mdx" />
+
+<import src="../../../shared/vue/components/consent-dialog-trigger.mdx#behavior" />
+
+<import src="../../../shared/vue/components/consent-dialog-trigger.mdx#options" />
+
+All trigger options go in the object you pass to `app.use(c15tVue, ...)`.
+
+<import src="../../../shared/vue/components/consent-dialog-trigger.mdx#accessibility" />
+
+<import src="../../../shared/vue/components/consent-dialog-trigger.mdx#verify" />
+
+## Next steps
+
+- [ConsentPreferencesLink](/docs/frameworks/vue/components/consent-preferences-link)
+  is an inline alternative for a footer.
+- [c15tVue plugin](/docs/frameworks/vue/plugin) lists every option.

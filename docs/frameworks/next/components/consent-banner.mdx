@@ -4,42 +4,24 @@ description: Render the pre-built ConsentBanner inside a Next.js ConsentRoot and
 group: frameworks
 ---
 
-## Usage
+## Render the banner inside `ConsentRoot`
 
-Keep the `ConsentRoot` and URL configuration from your
-[App Router setup](/docs/frameworks/next/app-router). Render one banner inside
-that existing root. Keep the global stylesheet from that setup,
-with the c15t import after Tailwind CSS 4's import:
+Render one `ConsentBanner` inside `ConsentRoot`, in the `'use client'` wrapper
+from your [App Router](/docs/frameworks/next/app-router) or
+[Pages Router](/docs/frameworks/next/pages-router) setup:
 
-```tsx
-// app/layout.tsx
-import { ConsentBanner, ConsentDialog, ConsentRoot } from 'c15t/next';
-import { resolveConsent } from 'c15t/next/server';
-import { consentConfig } from '../c15t.config';
-import './globals.css';
+<include src="../../../shared/examples/nextjs/consent-wrapper.mdx" />
 
-export default function Layout({ children }: { children: React.ReactNode }) {
-	const state = resolveConsent({ config: consentConfig });
+Keep the banner and `ConsentRoot` in that client file. Do not mount
+`ConsentRoot` directly in a Server Component layout with
+`config={consentConfig}`. The `defineConsentConfig` result carries a symbol
+key, and React cannot pass it from a Server Component to a Client Component.
 
-	return (
-		<html lang="en">
-			<body>
-				<ConsentRoot state={state} config={consentConfig}>
-					{children}
-					<ConsentBanner />
-					<ConsentDialog />
-				</ConsentRoot>
-			</body>
-		</html>
-	);
-}
-```
-
-The banner renders what the resolved policy rule requires. This example lets
-the page render while the prompt waits for the prefetch promise. Await the
-helper inside `Suspense` to render resolved consent UI on the server; the
-surrounding shell may stream first. The server and client use the same
-prepared state:
+The banner renders what the resolved policy rule requires. With the default
+streamed layout, it mounts after hydration. With the
+[awaited layout](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html)
+or Pages Router `getServerSideProps`, it is part of the server HTML. The server
+and the browser use the same state:
 
 - A `choice` prompt shows the actions the rule allows: reject and accept at
   equal prominence, plus customize when the rule offers it.
@@ -127,10 +109,11 @@ const theme = {
 } as const;
 ```
 
-Pass `theme` in `ConsentProvider` options. Per-action theme overrides such
-as `consentActions.dismiss` take precedence over this primary style.
-See [Styling](../styling/overview) for tokens and slots, and
-[Policy presets](../concepts/policy-presets) for the rule IDs and coverage.
+Pass `theme` to `ConsentRoot` through `options` in your client wrapper.
+Per-action theme overrides such as `consentActions.dismiss` take precedence
+over this primary style. See [Customize](/docs/frameworks/next/customize) for
+tokens and slots, and [Policies](/docs/concepts/policies) for the rule IDs and
+coverage.
 
 ## Variants
 

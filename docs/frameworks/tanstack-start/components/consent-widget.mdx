@@ -1,0 +1,45 @@
+---
+title: ConsentWidget
+description: Embed the c15t preference controls inline on a TanStack Start privacy page with ConsentWidget, recording a choice only when the visitor saves.
+group: frameworks
+---
+
+## Embed the preference center in a page
+
+`ConsentWidget` renders the category switches and the Reject All, Accept All
+and Save Settings actions in the page flow instead of a modal. Use it on a privacy or
+settings route. Keep `ConsentDialog` in the root route too, so the banner's
+Customize button still has a dialog to open.
+
+{/* example: fragment */}
+
+```tsx title="src/routes/privacy.tsx"
+import { createFileRoute } from '@tanstack/react-router';
+import { ConsentWidget } from 'c15t/tanstack-start';
+
+const PrivacyPage = () => (
+  <main>
+    <h1>Privacy</h1>
+    <section aria-labelledby="cookie-preferences">
+      <h2 id="cookie-preferences">Cookie preferences</h2>
+      <ConsentWidget />
+    </section>
+  </main>
+);
+
+export const Route = createFileRoute('/privacy')({ component: PrivacyPage });
+```
+
+The widget uses `ConsentRoot`'s policy, translations and backend. It needs no
+second provider. `useConsentDraft` and `ConsentDraftProvider` also import from
+`c15t/tanstack-start`.
+
+<import src="../../../shared/react/components/consent-widget.mdx#props" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#behavior" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#accessibility" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#composition" />
+
+<import src="../../../shared/react/components/consent-widget.mdx#verify" />

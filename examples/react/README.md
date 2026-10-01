@@ -1,7 +1,7 @@
 # React consent example
 
 A runnable Inth setup with PostHog, X Pixel, a consent-gated YouTube video,
-a persistent preferences control and DevTools. Choose **Default** or **Branded**
+a persistent preferences control and DevTools in development. Choose **Default** or **Branded**
 to compare the same consent flow with different styling.
 
 From the repository root, install and build workspace packages first:
@@ -35,16 +35,19 @@ runs these examples with a fixture backend and intercepted vendor requests:
 EXAMPLE_TARGET=react bun run --cwd examples/shared test
 ```
 
-`src/scripts.ts` contains the vendor configuration. Framework setup stays in
-this example's source files so documentation can use the same code.
+`src/consent.tsx`, `src/main.tsx` and `src/scripts.ts` hold the setup the docs
+publish. `src/app.tsx` is the demo page: status, gated video, design switch and
+DevTools in development.
 
 ## Banner experiment
 
-Open `/?experiment=1` to run the banner-shape experiment: c15t picks the
-`control` arm (the default banner) or the `wall` arm, and the page shows
-`banner-shape · <arm> · c15t`. Open `/?experiment=1&arm=wall` to set the arm
-the way a flag provider would (`assignedBy: host`); any other `arm` value runs
-`control`. The provider's `onSurfaceShown` and `onChoiceRecorded` callbacks
-list each impression and choice under the arm, and push them to
-`window.dataLayer` as `c15t_surface_shown` and `c15t_choice_recorded`.
-See https://c15t.com/docs/guides/banner-experiments.
+`experiment.html` mounts the same page inside `src/experiment-consent.tsx`,
+the `Consent` wrapper with the banner-shape experiment added. The docs publish
+that file as the experiment setup. Open `/experiment.html` and c15t picks the
+`control` arm (the default banner) or the `wall` arm; the page shows
+`banner-shape · <arm> · c15t`. `?arm=wall` or `?arm=control` sets the arm the
+way a flag provider would (`assignedBy: host`), and `?arm=off` leaves the
+visitor out. The provider's `onSurfaceShown` and `onChoiceRecorded` callbacks
+push each impression and choice under the arm to `window.dataLayer` as
+`c15t_surface_shown` and `c15t_choice_recorded`, and the page lists them. See
+https://c15t.com/docs/guides/banner-experiments.

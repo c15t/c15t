@@ -33,8 +33,8 @@ Add a `nonce` prop to the `Consent` wrapper from the
 import type { ReactNode } from 'react';
 import { ConsentRoot } from 'c15t/next';
 import type { ConsentRootProps } from 'c15t/next';
-import { consentConfig } from '../c15t.config';
-import { scripts } from '../lib/scripts';
+import { consentConfig } from '@/c15t.config';
+import { scripts } from '@/lib/scripts';
 
 export function Consent({
   children,
@@ -67,9 +67,9 @@ import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
 import { resolveConsent } from 'c15t/next/server';
-import { consentConfig } from '../c15t.config';
-import { Consent } from '../components/consent';
-import './globals.css';
+import { consentConfig } from '@/c15t.config';
+import { Consent } from '@/components/consent';
+import '@/styles/globals.css';
 
 async function ResolvedConsent({ children }: { children: ReactNode }) {
   const nonce = (await headers()).get('x-nonce') ?? undefined;
@@ -163,7 +163,7 @@ the backend outside the browser's CSP. A local manifest route at
 
 IAB TCF policies can fetch the Global Vendor List from the URL the policy
 provides; allow that host in `connect-src` if you use the
-[IAB TCF add-on](/docs/frameworks/next/iab/overview). Server-side prefetch runs
+[IAB TCF add-on](/docs/frameworks/next/iab). Server-side prefetch runs
 in Next.js and is not subject to the browser's CSP.
 
 ## Verify

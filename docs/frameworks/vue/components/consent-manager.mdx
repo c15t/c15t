@@ -1,0 +1,46 @@
+---
+title: ConsentManager
+description: Render the c15t preference dialog in a Vue app, open it from your own code, and understand its actions, focus handling and styling.
+group: frameworks
+---
+
+## Import the dialog when you compose surfaces
+
+`ConsentRoot` already renders `ConsentManager` when preferences open. Import
+it yourself only when you compose the surfaces in place of `ConsentRoot`.
+Import it from `c15t/vue/runtime/components/consent-manager.vue`:
+
+<include src="../../../shared/examples/vue/consent-surfaces.mdx" />
+
+## Open the dialog from your code
+
+Set `activeUI` to `'manager'` with `useConsentActiveUI()` from
+`c15t/vue/vue-plugin`. The Vue adapter uses `'manager'` where the React
+adapter uses `'dialog'`.
+
+{/* example: fragment */}
+
+```ts
+const activeUI = useConsentActiveUI();
+activeUI.value = 'manager';
+```
+
+For a footer link, use
+[ConsentPreferencesLink](/docs/frameworks/vue/components/consent-preferences-link),
+which hides itself when the policy offers no preferences.
+
+<import src="../../../shared/vue/components/consent-manager.mdx#behavior" />
+
+<import src="../../../shared/vue/components/consent-manager.mdx#accessibility" />
+
+<import src="../../../shared/vue/components/consent-manager.mdx#styling" />
+
+<import src="../../../shared/vue/components/consent-manager.mdx#verify" />
+
+## Next steps
+
+- [ConsentWidget](/docs/frameworks/vue/components/consent-widget) renders the
+  same controls inline on a page.
+- [IABConsentDialog](/docs/frameworks/vue/components/iab-consent-dialog)
+  replaces this dialog under an IAB policy.
+- [Customize](/docs/frameworks/vue/customize) sets tokens and slots.

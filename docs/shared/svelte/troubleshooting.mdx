@@ -1,0 +1,80 @@
+{/* Shared by docs/frameworks/svelte/troubleshooting.mdx and docs/frameworks/sveltekit/troubleshooting.mdx. */}
+
+## Why is there no banner?
+
+**Check.** Read `getConsentManager().policyRule.prompt` and `.location`, or open
+DevTools. In the Network panel, find the `/init` request.
+
+**Fix.** Work through these causes in order:
+
+1. **The policy asks for no prompt.** Visitors in regions without a consent
+   law, and opt-out policies with no prompt, get no banner. See
+   [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
+2. **A choice is already stored.** Clear site data for your origin, or use the
+   DevTools panel, and reload.
+3. **The backend request failed.** A CORS error means your site's origin is
+   not in the Inth project's trusted origins. A 404 means the backend URL is
+   wrong. While the request fails, optional categories stay denied and no
+   banner shows.
+4. **The component is outside the provider.** `ConsentBanner` must render
+   inside `ConsentManagerProvider`; outside it, Svelte throws
+   `c15t: no v3 consent context`.
+
+## Svelte throws "no v3 consent context"
+
+**Check.** A getter or component ran without a `ConsentManagerProvider` above
+it.
+
+**Fix.** Move it inside the provider.
+
+**Check.** Look for a getter called in an event handler or effect. Getters use
+Svelte's `getContext`.
+
+**Fix.** Call getters at the top level of a component's `<script>`.
+
+**Check.** If the provider is there, check that the app resolves one copy of
+`@c15t/svelte`. Two copies create two separate contexts.
+
+**Fix.** Make the app resolve a single copy of `@c15t/svelte`.
+
+## Theme colors are ignored
+
+**Check.** The provider's `theme` prop applies slot styles and `consentActions`
+only. Colors, radius, typography and other tokens in `theme` are not turned
+into CSS in the browser, and in development the provider logs a warning about
+it.
+
+**Fix.** Set the `--c15t-*` variables in a stylesheet that loads after
+`@c15t/svelte/styles.css`, or render `generateThemeCSS()` output as
+`<style id="c15t-theme">`. The customize page shows both.
+
+**Check.** If your values still lose, inspect the element. A generated theme
+uses `:root:root`, so it beats your own `:root` rule.
+
+**Fix.** Write your rule on `:root:root` too, or move the value into the theme.
+
+## The dialog or banner has no styles
+
+**Check.** Look for an import of `@c15t/svelte/styles.css`. It contains the
+banner, dialog and primitive rules.
+
+**Fix.** Import `@c15t/svelte/styles.css` once, in the component that renders
+the provider or in your global stylesheet. For IAB TCF, also import
+`@c15t/svelte/iab/styles.css`.
+
+## A vendor loads before consent, or twice
+
+**Check.** The vendor is still loaded some other way: a `<script>` tag in
+`index.html` or `app.html`, a tag manager, or an SDK import in your code. Check
+the Network panel with site data cleared; nothing from the vendor should load
+before you allow its category.
+
+**Fix.** Remove the other loader and keep only the `scripts` registration.
+
+## The page reloads after saving
+
+**Check.** When a save withdraws a category that was granted, the provider
+reloads the page so code that already ran is gone. This is expected.
+
+**Fix.** Set `reloadOnConsentRevoked: false` on the provider only if every
+registered vendor stops itself through its consent API.

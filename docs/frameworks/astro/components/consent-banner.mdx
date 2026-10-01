@@ -1,0 +1,170 @@
+---
+title: ConsentBanner
+description: Render the c15t consent banner as server HTML on an Astro site, with props for copy, legal links and branding, the policy-driven actions, accessibility behavior and the attributes to style it.
+group: frameworks
+---
+
+## Add the banner to your layout
+
+Render one `ConsentBanner` in the layout that wraps every page, after your page
+content:
+
+<include src="../../../shared/examples/astro-demo/layout.mdx" />
+
+`ConsentBanner` renders on the server from `Astro.locals.c15t`. It ships no
+framework JavaScript. A small shared script adds one click listener to the
+document, and that listener turns the banner's buttons into consent actions.
+
+## When the banner renders
+
+The server renders the banner markup only when the resolved policy asks for a
+banner and this visitor has not answered yet:
+
+- A returning visitor who has chosen gets no banner markup at all.
+- A rule with `prompt: 'none'` renders no banner.
+- With no resolved policy, because the backend failed, timed out or matched no
+  rule, the server renders a hidden placeholder. The browser renders the banner
+  into it if its own `/init` request resolves a policy.
+
+On a prerendered page, the same HTML serves every visitor, so the banner ships
+hidden. A small inline script right after it shows the banner at first paint
+when the visitor has no stored consent. For a visitor with a stored choice,
+the consent runtime decides once it has read the cookie. In `hosted()` and
+`manifest()` modes, the build cannot know the policy, so the page carries the
+placeholder and the browser renders the banner after `/init`. See
+[Rendering and deployment](/docs/frameworks/astro/rendering).
+
+After a save, the browser hides the banner by setting the `hidden` attribute.
+After a `ClientRouter` navigation, it shows or hides the new page's banner to
+match the visitor's state.
+
+## Props
+
+| Prop | Type | Default | Effect |
+| --- | --- | --- | --- |
+| `title` | `string` | `cookieBanner.title`, or `cookieBanner.noticeTitle` under a notice | Banner heading |
+| `description` | `string` | `cookieBanner.description`, or `cookieBanner.noticeDescription` under a notice | Banner body text |
+| `acceptButtonText` | `string` | `common.acceptAll` | Accept button label |
+| `rejectButtonText` | `string` | `common.rejectAll` | Reject button label |
+| `customizeButtonText` | `string` | `common.customize` | Customize button label |
+| `dismissButtonText` | `string` | `common.acknowledge` | Label of the button that acknowledges a notice |
+| `legalLinks` | `('privacyPolicy' \| 'cookiePolicy' \| 'termsOfService')[] \| null` | None | Which links from the integration's `legalLinks` render after the description |
+| `hideBranding` | `boolean` | `false` | Removes the "Secured by" tag |
+| `noStyle` | `boolean` | `false` | Renders the markup without c15t's class names or button styles |
+| `class` | `string` | None | Extra class on the banner root, kept with `noStyle` |
+| `force` | `boolean` | `false` | Renders the banner even when the server decided to hide it, for visual tests |
+| `nonce` | `string` | `Astro.locals.c15t.nonce` | Content Security Policy nonce for this banner's inline scripts and style. See [Content Security Policy](/docs/frameworks/astro/content-security-policy#allow-c15t-with-a-nonce) |
+
+A prop wins over the translation for the visitor's language, which wins over
+the English default. For wording on every page, set `i18n.messages` in the
+integration instead. See [Translations](/docs/frameworks/astro/translations).
+
+`force` does not create a policy. With no resolved policy, or under a rule that
+owes no consent interface, the banner still renders nothing. On a prerendered
+page, `force` also renders the banner visible.
+
+## Actions come from the policy
+
+The resolved policy rule decides which buttons the banner shows and in which
+order. The same resolver runs for the React, Vue and Svelte banners, so a rule
+produces the same actions on every framework:
+
+- A `choice` prompt shows Reject and Accept at equal prominence, plus
+  Customize when the rule offers it. Customize is the primary action by
+  default.
+- A `notice` prompt shows an acknowledgement button and, under an opt-out
+  rule, a "Do not sell or share my data" button. The acknowledgement records
+  that the visitor saw the notice. It records no consent and changes no
+  permission.
+- A rule that keeps preferences reachable adds a "Manage preferences" button.
+
+Every button that opens preferences opens the preference dialog. None of them
+submits an opt-out by itself.
+[How consent works](/docs/concepts/how-consent-works) explains prompts, rights
+and recorded choices.
+
+## Shape and position
+
+The integration's `presentation.prompt` option sets the banner's variant and
+position for every page. The policy still decides the actions:
+
+| Variant | Positions | Default position |
+| --- | --- | --- |
+| `floating` (default) | `bottom-left`, `bottom-right`, `top-left`, `top-right`, `bottom-center`, `top-center` | `bottom-left` |
+| `bar` | `top`, `bottom` | `bottom` |
+| `widget` | `bottom-left`, `bottom-right`, `top-left`, `top-right` | `bottom-right` |
+| `wall` | `center` | `center` |
+
+A default corner mirrors left and right for right-to-left languages. A
+position you set is never mirrored. A choice `wall` always blocks the page. A
+notice never blocks, and asking for a notice `wall` falls back to `floating`.
+See [change the banner's shape and position](/docs/frameworks/astro/customize#change-the-banners-shape-and-position)
+and the [design gallery](/docs/customization/recipes).
+
+The banner has no per-page variant or layout prop. Every banner on the site
+shares `presentation.prompt`.
+
+## Legal links
+
+Define the links once in the integration's `legalLinks` option, then pick
+which ones this banner shows:
+
+{/* example: fragment */}
+
+```astro title="src/layouts/base.astro (partial)"
+<ConsentBanner legalLinks={['privacyPolicy', 'cookiePolicy']} />
+```
+
+A key renders only when the integration defines it. Each link opens in a new
+tab. A link without a `label` reads as the translated name for its type, such
+as "Privacy Policy" in English or "Datenschutzerklärung" in German. Set
+`label` in the integration options, such as
+`{ href: '/privacy', label: 'Privacy notice' }`, to use your own wording.
+[`ConsentDialog`](/docs/frameworks/astro/components/consent-dialog#props)
+takes the same `legalLinks` list.
+
+## Accessibility
+
+- The card has `role="region"` and an `aria-label` set to the banner title.
+  It leaves the page usable by keyboard and pointer.
+- A blocking banner, such as a choice `wall`, has `role="dialog"` and
+  `aria-modal="true"`. The browser locks page scroll, traps focus inside the
+  card and shows a backdrop until the visitor answers.
+- The root carries `lang` and `dir` for the translation's language, so screen
+  readers pronounce the copy correctly and right-to-left text lays out
+  correctly.
+- Every action is a `<button type="button">`. Until the consent runtime
+  starts, a click does nothing, because the page has not loaded the handler
+  yet.
+
+## Style the banner
+
+Theme tokens and `theme.consentActions` change colors, type, radius and button
+styles without touching the markup. See
+[Customize](/docs/frameworks/astro/customize).
+
+To write your own CSS, target the attributes. They stay with `noStyle`:
+
+| Element | Attributes |
+| --- | --- |
+| Root | `data-testid="consent-banner-root"`, `data-prompt` (`choice` or `notice`), `data-model`, `data-variant`, `data-position`, `data-blocking`, `data-c15t-visible` |
+| Backdrop | `data-testid="consent-banner-overlay"`, rendered only for a blocking banner |
+| Card | `data-testid="consent-banner-card"` |
+| Title and description | `data-testid="consent-banner-title"`, `data-testid="consent-banner-description"` |
+| Footer and button groups | `data-testid="consent-banner-footer"`, `data-direction`, `data-split`, `data-fill` |
+| Each action | `data-action` (`accept`, `reject`, `customize` or `dismiss`), `data-testid="consent-banner-<action>-button"` |
+| Each rights button | `data-action="right"`, `data-right` (`opt-out` or `preferences`) |
+| Each legal link | `data-testid="consent-banner-legal-link-<key>"` |
+
+Keep c15t's stylesheet loaded when you restyle the banner. The browser hides
+the banner with the `hidden` attribute, and the stylesheet makes `hidden` win
+over the banner's `display` rule.
+
+## Next steps
+
+- [ConsentBannerDeferred](/docs/frameworks/astro/components/consent-banner-deferred)
+  renders this banner in a server island for cached pages.
+- [ConsentDialog](/docs/frameworks/astro/components/consent-dialog) is what
+  Customize opens.
+- [IABConsentBanner](/docs/frameworks/astro/components/iab-consent-banner)
+  replaces this banner under an IAB TCF policy.

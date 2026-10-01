@@ -1,0 +1,131 @@
+---
+title: Customize
+description: Load the c15t stylesheet in Next.js and change colors, radius, button roles, slots and banner shape with ConsentTheme and ConsentRoot options.
+group: frameworks
+---
+
+## See the designs
+
+See the [design gallery](/docs/customization/recipes) for five banner designs,
+from a bottom bar to a fully custom one. Its React code works in Next.js with
+the same components imported from `c15t/next`.
+
+## Load the stylesheet
+
+Import c15t once from the global stylesheet that `app/layout.tsx` or
+`pages/_app.tsx` loads. With Tailwind CSS 4, put it after the Tailwind import
+so the component layers keep their order:
+
+```css title="styles/globals.css"
+@import 'tailwindcss';
+@import 'c15t/next/styles.css';
+```
+
+Without Tailwind, keep only the c15t import. With Tailwind CSS 3, put the
+import above the directives. `postcss-import`, which Vite and some PostCSS
+setups use, ignores an `@import` that follows other rules:
+
+```css title="styles/globals.css"
+@import 'c15t/next/styles.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+<import src="../../shared/react/styling/overview.mdx#tailwind-layers" />
+
+## Change colors and radius with tokens
+
+<import src="../../shared/react/styling/overview.mdx#tokens-intro" />
+
+Define the theme in a module without `'use client'`, so Server and Client
+Components can both import it:
+
+<include src="../../shared/examples/nextjs/theme.mdx" />
+
+Render `ConsentTheme` from a Server Component layout. The runnable example
+renders it in the layout of its branded route:
+
+<include src="../../shared/examples/nextjs/branded-layout.mdx" />
+
+To theme the whole site, render `<ConsentTheme theme={brandTheme} />` in your
+root layout, before the `Consent` wrapper. View the page source to check that
+the `<style id="c15t-theme">` element is in the server HTML. In the Pages
+Router, render `ConsentTheme` in `pages/_document.tsx`, which runs only on the
+server.
+
+<import src="../../shared/react/styling/overview.mdx#theme-migration" />
+
+## Style the action buttons
+
+<import src="../../shared/react/styling/overview.mdx#token-roles" />
+
+`ConsentTheme` renders tokens only. Components read `consentActions` in the
+browser, so pass a theme that contains them to `ConsentRoot` through `options`
+in `components/consent.tsx`:
+
+{/* example: fragment */}
+
+```ts title="lib/theme.ts (partial)"
+export const actionTheme = defineTheme({
+	consentActions: {
+		primary: { variant: 'primary', mode: 'filled' },
+		dismiss: { variant: 'neutral', mode: 'stroke' },
+	},
+});
+```
+
+{/* example: fragment */}
+
+```tsx title="components/consent.tsx (partial)"
+<ConsentRoot state={state} config={consentConfig} scripts={scripts} options={{ theme: actionTheme }}>
+```
+
+The theme is plain data, but keep this import in the client wrapper next to
+`consentConfig`.
+
+## Change the banner's shape
+
+For a full-width notice, use the `bar` variant. In a Client Component inside
+the existing root, replace the stock banner with:
+
+```tsx title="components/regional-banner.tsx"
+'use client';
+
+import { ConsentBanner, usePolicyRule } from 'c15t/next';
+
+export function RegionalBanner() {
+  const policy = usePolicyRule();
+  return <ConsentBanner variant={policy?.prompt === 'notice' ? 'bar' : 'floating'} />;
+}
+```
+
+[ConsentBanner](/docs/frameworks/next/components/consent-banner#variants)
+lists every variant and position.
+
+To remove the notice card's radius, add these values to the existing
+`options.components.banner` slots. The root owns `data-prompt`, so the card
+uses Tailwind's `group` selector to read it:
+
+```ts
+const bannerSlots = {
+  root: { className: 'group' },
+  card: { className: 'group-data-[prompt=notice]:rounded-none' },
+  rightLink: {
+    className: 'underline-offset-4 data-[right=opt-out]:text-red-700',
+  },
+};
+
+// In the existing options.components object:
+// banner: bannerSlots
+```
+
+<import src="../../shared/react/styling/overview.mdx#slot-recipes" />
+
+## Check the result
+
+Open the page in a fresh session. The banner uses your colors and radius, and
+the primary action has the style you set. Choices, policy and actions are the
+same as with the default design; customizing never records a choice. The
+[customization overview](/docs/customization/overview) covers tokens, slots,
+copy and headless UI across frameworks.

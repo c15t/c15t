@@ -13,37 +13,41 @@ export interface ExperimentLogEntry {
 	detail: string;
 }
 
-/**
- * Impressions and choices made under the experiment arm, for the page's
- * readout. The root route provides `null` while no experiment runs;
- * `undefined` means no provider is mounted.
- */
-export const ExperimentEventsContext = createContext<
-	readonly ExperimentLogEntry[] | null | undefined
->(undefined);
+/** What `src/experiment-root.tsx` hands the page for its readout. */
+export interface ExperimentReadoutState {
+	/** Whether this request runs the experiment (`?experiment=1`). */
+	running: boolean;
+	/** Impressions and choices made under the arm so far. */
+	events: readonly ExperimentLogEntry[];
+}
 
 /**
- * The experiment events logged so far, or `null` when no experiment runs.
- *
- * @throws {Error} When rendered outside the root route's provider.
+ * The experiment readout, or `null` when the default root is mounted. Only
+ * `src/experiment-root.tsx`, selected by `C15T_EXPERIMENT=1`, provides it.
  */
-export const useExperimentEvents = function useExperimentEvents():
-	| readonly ExperimentLogEntry[]
-	| null {
-	const events = useContext(ExperimentEventsContext);
-	if (events === undefined) {
-		throw new Error(
-			'useExperimentEvents must be rendered inside the root route.'
-		);
-	}
-	return events;
+export const ExperimentReadoutContext =
+	createContext<ExperimentReadoutState | null>(null);
+
+/** The experiment readout, or `null` without the experiment root. */
+export const useExperimentReadout =
+	function useExperimentReadout(): ExperimentReadoutState | null {
+		return useContext(ExperimentReadoutContext);
+	};
+
+const pushToDataLayer = function pushToDataLayer(
+	event: Record<string, unknown>
+): void {
+	const page = window as Window & { dataLayer?: unknown[] };
+	page.dataLayer ??= [];
+	page.dataLayer.push(event);
 };
 
 /**
  * Provider callbacks that log each impression and choice made under an
- * arm during one experiment run. `run` names the run (arm and switch);
- * when it changes the list starts over, so a client navigation to another
- * arm never shows the previous arm's events.
+ * arm during one experiment run, and push them to `window.dataLayer` for
+ * GTM. `run` names the run (arm and switch); when it changes the list
+ * starts over, so a client navigation to another arm never shows the
+ * previous arm's events.
  */
 export const useExperimentLog = function useExperimentLog(run: string) {
 	const [log, setLog] = useState<{
@@ -62,22 +66,36 @@ export const useExperimentLog = function useExperimentLog(run: string) {
 				consentAction,
 				experiment,
 			}: OnChoiceRecordedPayload) => {
-				if (experiment) {
-					append({
-						arm: experiment.arm,
-						detail: consentAction,
-						name: 'c15t_choice_recorded',
-					});
+				if (!experiment) {
+					return;
 				}
+				pushToDataLayer({
+					arm: experiment.arm,
+					consent_action: consentAction,
+					event: 'c15t_choice_recorded',
+					experiment_id: experiment.id,
+				});
+				append({
+					arm: experiment.arm,
+					detail: consentAction,
+					name: 'c15t_choice_recorded',
+				});
 			},
 			onSurfaceShown: ({ experiment, surface }: OnSurfaceShownPayload) => {
-				if (experiment) {
-					append({
-						arm: experiment.arm,
-						detail: surface,
-						name: 'c15t_surface_shown',
-					});
+				if (!experiment) {
+					return;
 				}
+				pushToDataLayer({
+					arm: experiment.arm,
+					event: 'c15t_surface_shown',
+					experiment_id: experiment.id,
+					surface,
+				});
+				append({
+					arm: experiment.arm,
+					detail: surface,
+					name: 'c15t_surface_shown',
+				});
 			},
 		};
 	}, [run]);
@@ -116,15 +134,10 @@ export const experimentSearch = function experimentSearch(
 };
 
 /**
- * The banner-shape experiment. `arm` is the arm the server resolved, as a
- * flag provider would; omit it and c15t picks one.
+ * The banner-shape experiment. `control` is the default banner; `wall`
+ * blocks the page until the visitor chooses.
  */
-export const bannerExperiment = function bannerExperiment(
-	arm: ExperimentArm | undefined
-): ConsentExperiment {
-	const experiment: ConsentExperiment<'wall'> = {
-		arms: { wall: { prompt: { variant: 'wall' } } },
-		id: 'banner-shape',
-	};
-	return arm === undefined ? experiment : { ...experiment, arm };
+export const bannerExperiment: ConsentExperiment<'wall'> = {
+	arms: { wall: { prompt: { variant: 'wall' } } },
+	id: 'banner-shape',
 };

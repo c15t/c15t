@@ -1,0 +1,66 @@
+---
+title: Translations
+description: Where the c15t banner and dialog text comes from in a Vue app, how c15t picks the visitor's language, and how to switch it at runtime.
+group: frameworks
+---
+
+## Where the text comes from
+
+The banner, dialog and IAB text comes from the translations in your Inth
+project, or your self-hosted backend's configuration. The backend sends the
+text for the visitor's language with the policy. Edit copy there, not in your
+Vue code. The Vue plugin has no option for message overrides.
+
+[Copy and translations](/docs/customization/translations) lists the message
+keys and how to write labels that describe each action.
+
+## How c15t picks the language
+
+By default the browser's own language decides. The browser sends it as
+`Accept-Language` with the policy request to `/init`. With
+`manifest: 'client'`, c15t reads `navigator.language` and resolves the text
+from the manifest. When your project has no text for that language, the
+backend picks its fallback language.
+
+The text direction follows the resolved language. Arabic, Hebrew and other
+right-to-left languages render the banner and dialog with `dir="rtl"`, and a
+default corner position mirrors.
+
+## Follow your site's language
+
+Bind the `language` prop of `ConsentRoot` to your site's current language.
+When the prop changes, `ConsentRoot` stores the language and resolves the
+policy again, which fetches the text in that language:
+
+{/* example: fragment */}
+
+```vue
+<ConsentRoot :language="locale" />
+```
+
+Without `ConsentRoot`, assign the language to `useConsentLanguage()`. A new
+language runs init again, which fetches the banner and dialog text in that
+language. Assigning the current language does nothing:
+
+<include src="../../shared/examples/vue/language-switcher.mdx" />
+
+The assignment alone loads the new text. The example's extra
+`kernel.commands.init()` call repeats the request and is not needed.
+
+## Text that does not come from translations
+
+`ConsentPreferencesLink` and the `ConsentGate` placeholder read their default
+text from the translations, in English until init has delivered copy. One
+label in the Vue components is a c15t option instead. Set it in the visitor's
+language when your site has more than one:
+
+| Text | Where | How to change it |
+| --- | --- | --- |
+| "Open privacy settings" | `ConsentDialogTrigger` label | Set the `triggerAriaLabel` option. |
+
+## Verify
+
+Set your browser's preferred language to one your project translates, open
+the app in a private window and confirm the banner uses it. Switch the
+language with your switcher and confirm the banner and dialog text change
+without a page reload.

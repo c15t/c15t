@@ -1,15 +1,15 @@
 ---
 title: OneDollarStats
-description: Load the OneDollarStats tracker with measurement permission, forward its settings and verify loading and revocation.
+description: Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
 group: integrations
 ---
 
 ## Configure OneDollarStats
 
-OneDollarStats needs no API key. The helper loads the tracker after
-measurement permission and forwards its settings as `data-*` attributes.
+OneDollarStats needs no API key. The helper loads the tracker and forwards
+each setting you pass as a `data-*` attribute.
 
-<CommandTabs command="@c15t/integrations" mode="install" />
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
 import { oneDollarStats } from '@c15t/integrations/one-dollar-stats';
@@ -22,32 +22,37 @@ export const scripts = [oneDollarStats()];
 ## Options
 
 Every setting is a string without the `data-` prefix. Setting names use
-lowercase letters, digits and hyphens. Unknown names are forwarded so newer
-tracker settings work.
+lowercase letters, digits and hyphens. The helper throws on any other name and
+on a non-string value. Unknown names are forwarded, so newer tracker settings
+work.
 
-| Option | Behavior |
-| --- | --- |
-| `hostname` | Bare host, optionally with a port. Overrides the event hostname on every host, including production. |
-| `devmode` | `'true'` records local visits. Local testing needs `hostname` as well. |
-| `autocollect` | `'false'` turns off automatic page view and click collection. |
-| `hash-routing` | `'true'` tracks hash routes. `'false'` omits the attribute, because the tracker turns hash routing on whenever it is present. |
-| `url` | Custom collection endpoint. |
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `hostname` | None | Bare host, optionally with a port. Overrides the event hostname on every host, including production. A scheme, path, query or fragment throws. |
+| `devmode` | None | `'true'` records local visits. Local testing needs `hostname` as well. |
+| `autocollect` | None | `'false'` turns off automatic page view and click collection. |
+| `hash-routing` | None | `'true'` tracks hash routes. `'false'` omits the attribute, because the tracker turns hash routing on whenever it is present. |
+| `url` | None | Custom collection endpoint. |
 
-The tracker follows client-side navigation itself. See the
-[vendor reference](https://docs.onedollarstats.com/installation) for its
+The helper always loads `https://assets.onedollarstats.com/stonks.js` and has
+no loader URL option. The tracker follows client-side navigation itself. See
+the [vendor reference](https://docs.onedollarstats.com/installation) for its
 settings.
 
-## Consent behavior
+## Loading and revocation
 
-Measurement permission gates the tracker. The tracker installs history hooks
-and event listeners that removing its script cannot undo, so c15t reloads the
-page when a visitor revokes measurement permission. Keep
-`reloadOnConsentRevoked` enabled, and check measurement permission before any
-manual tracking call.
+`oneDollarStats` uses the `measurement` category. The tracker loads only while
+measurement is allowed. On revocation the helper removes the script element
+and calls no OneDollarStats API.
 
-## Verify the integration
+The tracker installs history hooks and event listeners that removing its
+script cannot undo, so the c15t reload on revocation is what stops it. Keep
+`reloadOnConsentRevoked` enabled.
 
-Use a fresh session with an opt-in policy and confirm the tracker is absent.
-Grant `measurement`, navigate between routes and confirm page views arrive. Then
-revoke it, confirm the page reloads, and check that later navigation sends no
-events. Follow the [consent verification guide](/docs/guides/verify-consent).
+## Verify OneDollarStats
+
+After you allow measurement, the `stonks.js` request appears and its script
+element carries the `data-*` settings you passed. Navigate between routes and
+check that each one sends a page view.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

@@ -1,0 +1,54 @@
+---
+title: Preferences link
+description: Let visitors reopen c15t privacy settings on a plain HTML site from a footer link, a CMS menu item or a page builder link to the c15t-preferences fragment, with no JavaScript.
+group: frameworks
+---
+
+## Add a privacy settings link
+
+Visitors need a way to change their choice after the banner closes. A link
+whose `href` ends in `#c15t-preferences` opens the preference dialog:
+
+<include src="../../../shared/examples/script-tag/preferences-link.mdx" />
+
+Put it in the footer or legal links menu that every page renders. The link
+works in places where you cannot add a `data-*` attribute or a script, such as
+a CMS menu editor or a page builder's link field. Set the menu item's URL to
+`#c15t-preferences`.
+
+## How the link behaves
+
+- c15t matches any `a[href]` whose `href` ends in `#c15t-preferences`. A
+  link to `/about#c15t-preferences` opens the dialog on the current page and
+  does not go to `/about`.
+- A click opens the dialog and records nothing. c15t calls `preventDefault()`,
+  so the URL does not change and the page does not scroll.
+- Links added after the page loaded work, because c15t listens for clicks on
+  the whole document.
+- Opening a URL that already contains `#c15t-preferences` does not open the
+  dialog. Only a click does.
+
+A `<button data-c15t-action="customize">` does the same thing. Use whichever
+fits your markup; see [action buttons](/docs/frameworks/html/components/action-buttons).
+
+## Word the link for your visitors
+
+"Privacy settings", "Cookie settings" and "Your privacy choices" all work.
+Some US state privacy laws name specific link text, such as "Do not sell or
+share my personal information". c15t does not change your link text by
+region, so choose the wording your policy requires.
+
+## When the dialog is off
+
+With `ui: { dialog: false }` or `c15t.headless.js`, the link makes `dialog`
+the active surface but nothing renders it. Your page must render its own
+dialog when the `ui` event reports `'dialog'`. See
+[headless](/docs/frameworks/html/headless).
+
+## Check it works
+
+1. Click the link on any page. The preference dialog opens and the address
+   bar keeps its URL.
+2. Change a category and save. The dialog closes.
+3. Check a page from each template your site uses, because the link only
+   works where the footer renders it.

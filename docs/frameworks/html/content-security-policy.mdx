@@ -1,0 +1,119 @@
+---
+title: Content Security Policy
+description: Allow the c15t script tag, its stylesheet, backend requests, gated scripts and embeds under a Content Security Policy on a plain HTML site, with nonces or allowed origins.
+group: frameworks
+---
+
+## What c15t needs from your policy
+
+The script tag loads one file, sends requests to your backend, adds a
+`<style>` element for the stock UI, and runs your gated scripts and iframes
+when they are allowed. Each needs a directive:
+
+| Directive | Allow | Why |
+| --- | --- | --- |
+| `script-src` | `https://cdn.jsdelivr.net`, or the host you serve `c15t.js` from | The c15t bundle. |
+| `script-src` | A nonce or hash for each inline script | Your queued `config` and `on` calls, and inline gated snippets. |
+| `script-src` | Each vendor's script origin | Gated `<script src>` tags and `scripts` entries. |
+| `connect-src` | Your backend's origin, such as `https://your-project.inth.app` | `/init`, `/subjects`, and `/manifest` in manifest mode. |
+| `style-src` | The same nonce as the c15t tag, or the host you serve `c15t.css` from | The stock UI's `<style>` element, or the stylesheet file. |
+| `frame-src` | Each embed's origin, such as `https://www.youtube-nocookie.com` | Gated iframes. |
+| `img-src`, `connect-src` | Each vendor's collection endpoints | What the vendor scripts send once they run. |
+
+A missing `connect-src` entry is the most common failure. The `/init`
+request fails with a CSP error in the console, no policy resolves, and no
+banner shows.
+
+## Use a nonce
+
+With a nonce-based policy, put the nonce on the c15t tag, on every inline
+script that talks to `window.c15t`, and on every gated inline script:
+
+{/* example: fragment */}
+
+```html
+<script nonce="RANDOM_PER_RESPONSE">
+  window.c15t = window.c15t || [];
+  c15t.push(['config', { legalLinks: { privacyPolicy: { href: '/privacy' } } }]);
+</script>
+<script
+  nonce="RANDOM_PER_RESPONSE"
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
+  data-backend-url="https://your-project.inth.app"
+  defer
+></script>
+<script nonce="RANDOM_PER_RESPONSE" type="text/plain" data-c15t-category="measurement">
+  // The vendor's snippet
+</script>
+```
+
+Your server generates `RANDOM_PER_RESPONSE` for each response and sends the
+same value in the header, such as
+`Content-Security-Policy: script-src 'nonce-RANDOM_PER_RESPONSE' 'strict-dynamic'; style-src 'nonce-RANDOM_PER_RESPONSE'`.
+A static host that cannot vary the response cannot use a nonce; list origins
+and hashes instead.
+
+The c15t tag reads its own `nonce` and puts it on the stock UI's `<style>`
+element and on every script that a `scripts` entry in `config` loads. An
+entry's own `nonce` wins. To give c15t a nonce without putting it on the tag,
+for example when `script-src` allows the tag by its origin, set
+`data-nonce="RANDOM_PER_RESPONSE"` on the tag instead. `data-nonce` wins over
+the tag's `nonce`.
+
+Once the c15t tag has a nonce, c15t runs only the gated `text/plain` tags
+that carry the same nonce. c15t runs a gated tag by creating a new `<script>`,
+and `'strict-dynamic'` lets scripts that trusted code creates run without a
+nonce, so without this check a tag injected into your page would run once its
+category was allowed. c15t skips a gated tag without the nonce, logs a console
+warning and marks the tag `data-c15t-activated="untrusted"`. It never copies
+the nonce onto a gated tag, so add `nonce="RANDOM_PER_RESPONSE"` to every gated
+tag you write, including tags your own code inserts later.
+
+When c15t runs a gated tag, it copies that tag's `nonce` to the tag it
+creates, so the browser accepts the snippet. With `'strict-dynamic'`, scripts
+that c15t creates are trusted because the c15t tag itself carries the nonce.
+Without `'strict-dynamic'`, each vendor origin must be in `script-src`.
+
+## Allow the stock UI's styles
+
+`c15t.js` renders its CSS in a `<style>` element inside the UI's shadow root.
+Theme tokens and `ui.css` go into the same element. The element carries the
+nonce from the c15t tag, or from `data-nonce`, so
+`style-src 'nonce-RANDOM_PER_RESPONSE'` allows it without `'unsafe-inline'`.
+
+A host that cannot send a nonce can render into the page and serve the
+stylesheet as a file instead:
+
+{/* example: fragment */}
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.css" />
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', { ui: { shadow: false, styles: false } }]);
+</script>
+```
+
+With `styles: false` and no `theme` or `css` option, c15t adds no `<style>`
+element. Put your token overrides in your own stylesheet. Your site's CSS now
+reaches the banner, so check it after the switch. Use the same version for
+the stylesheet and the script.
+
+`c15t.headless.js` adds no styles at all. The DevTools panel adds its own
+`<style>` element, so remove its tag before you apply a strict policy.
+
+## IAB TCF
+
+`c15t.iab.js` loads the Global Vendor List through your backend in hosted
+mode, so the backend's origin in `connect-src` covers it. It adds
+`dist/c15t.iab.css` rules to the same `<style>` element as the stock UI.
+
+## Check it works
+
+1. Send your policy as `Content-Security-Policy-Report-Only` first, and open
+   the page with the console open.
+2. The console shows no CSP violation for the c15t tag, `/init` or the
+   banner's styles. The banner renders styled.
+3. Allow each category. Each vendor's script and requests load without a
+   violation.
+4. Switch the header to `Content-Security-Policy` and repeat.

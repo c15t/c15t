@@ -1,0 +1,106 @@
+---
+title: Translations
+description: Where c15t banner and dialog copy comes from in a React app, how the browser picks the visitor's language, and how to override copy and switch languages with the provider's i18n option and hooks.
+group: frameworks
+---
+
+## Where the copy comes from
+
+The banner, dialog, widget and gate placeholder read their text from one set
+of translations for the visitor's language. Which set depends on the
+provider's `mode`:
+
+| Mode | Copy comes from |
+| --- | --- |
+| `hosted()` | The backend's `/init` response for the visitor's language, from the translations in your Inth project or your self-hosted backend's configuration, with your `i18n` messages for that language on top |
+| `offline()` | Your `i18n` messages, merged over bundled English |
+
+With a backend, edit wording in your Inth project first, so it changes without
+a deploy. Code can override that copy in two places:
+
+- `i18n` in the `ConsentProvider` options changes a message everywhere it
+  appears.
+- Text props on `ConsentBanner` change one banner.
+
+[Copy and translations](/docs/customization/translations) lists the message
+keys and explains how code messages combine with the project's copy.
+
+## How c15t picks the language
+
+In `hosted()` mode the browser's `/init` request carries its own
+`Accept-Language` header, and the backend answers with copy in that language.
+When your project has no copy for it, the backend returns its fallback
+language. Set `overrides.language` in the provider options to request a
+specific language instead.
+
+In `offline()` mode, `i18n.locale` picks the language, `en` by default. The
+browser's language is not read.
+
+The banner, dialog and widget set `dir` from the active language. Right-to-left
+languages such as Arabic and Hebrew render with `dir="rtl"`, and a floating
+banner you did not position yourself moves to the opposite side.
+
+## Change the copy in code
+
+Keep the messages in their own module:
+
+<include src="../../shared/examples/react/i18n.mdx" />
+
+Pass them to the provider in the file that renders it, such as
+`src/consent.tsx` from the [quickstart](/docs/frameworks/react/quickstart):
+
+{/* example: fragment */}
+
+```tsx title="src/consent.tsx"
+<ConsentProvider options={{ mode, scripts, i18n }}>
+```
+
+For the visitor's language, your messages replace the backend's copy key by
+key. Keys you leave out keep the project's wording, and messages for other
+languages are not applied. In `offline()` mode c15t bundles only English, so
+keys you leave out for another language show in English.
+
+The provider reads `i18n` once, when it mounts. In development it logs a
+warning if `i18n` changes later. Define the object at module level, as above,
+rather than inside a component.
+
+## Change one banner's copy
+
+`ConsentBanner` takes `title`, `description`, `acceptButtonText`,
+`rejectButtonText`, `customizeButtonText` and `dismissButtonText`. The props
+replace the text in every language, so pass values in the page's language:
+
+{/* example: fragment */}
+
+```tsx
+<ConsentBanner title="Cookies on this site" rejectButtonText="Reject optional" />
+```
+
+## Switch the language at runtime
+
+`useSetLanguage()` stores the new language, and `useInit()` resolves the policy
+again, which fetches the copy for that language. Call both from your language
+switcher:
+
+<include src="../../shared/examples/react/language-switcher.mdx" />
+
+Setting the language without calling `init()` changes nothing on screen. Your
+`i18n` messages for the new language apply on top of the copy that arrives.
+Render the switcher anywhere inside `ConsentProvider`.
+
+Switching needs a backend. In `offline()` mode the copy stays in the
+`i18n.locale` language.
+
+If your site changes language through its own i18n library, you can instead
+pass its locale as `overrides.language` in the provider options. When that
+value changes, the provider resolves the policy again in the new language.
+
+## Verify
+
+1. Set your browser language to one your project translates, clear site data
+   and reload under a policy that shows a banner. DevTools Network shows the
+   `/init` request with that `Accept-Language` header, and the banner uses
+   that language.
+2. Check that a message you set in `i18n` shows in the banner.
+3. Switch the language with your switcher. A new `/init` request runs, and the
+   banner and dialog text change without a reload.

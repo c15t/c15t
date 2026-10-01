@@ -123,6 +123,12 @@ title, so `COMPONENTS - REACT/Core/Consent Banner` pairs with
 the key: rename a section in one Storybook and that framework silently
 drops out of every comparison.
 
+`Docs/` stories never pair. They render the recipe each adapter's docs
+publish, and the adapters customize the banner differently: React with
+compound parts, Vue and Svelte with slot classes. The shared plays in
+`@c15t/conformance/play/docs-recipes` check them in each Storybook's
+`test-storybook` run instead.
+
 ## DevTools
 
 Run just the DevTools comparisons:

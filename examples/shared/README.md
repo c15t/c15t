@@ -23,11 +23,18 @@ EXAMPLE_TARGET=all bun run --cwd examples/shared test
 ```
 
 Targets are `nextjs`, `react`, `vue`, `svelte`, `javascript`, `nuxt`,
-`nuxt-prerender`, `tanstack-start`, `astro`, `astro-static` and `sveltekit`.
-`astro-static` builds the Astro demo as a static site with no adapter, so every
-page is prerendered. `nuxt` also runs the journeys on a prerendered route and a
-Nitro-cached route; `nuxt-prerender` runs those two routes in client manifest
-mode. `src/targets.ts` contains only paths,
+`nuxt-prerender`, `nuxt-static`, `tanstack-start`, `tanstack-start-streamed`,
+`tanstack-start-same-origin`, `tanstack-start-static`, `astro`, `astro-static`,
+`sveltekit` and `html`. `astro-static` builds the Astro demo as a static site
+with no adapter, so every page is prerendered. `nuxt` also runs the journeys on
+a prerendered route and a Nitro-cached route; `nuxt-prerender` runs those two
+routes in client manifest mode. `nuxt-static` runs `nuxt generate` with
+`ssr: false` and client manifest mode, then serves `.output/public` with no
+Nuxt server. The `tanstack-start-*` targets build the TanStack Start example
+with one of the alternative root routes in
+`examples/tanstack-start/src/rendering`. The `vue` target also runs every
+journey against `/headless`, which replaces the stock consent UI with the
+composables. `src/targets.ts` contains only paths,
 commands and environment aliases. No framework provider is implemented here.
 Every run builds again because public backend URLs contain the fixture's port.
 The build uses test vendor IDs, never account credentials.
@@ -77,3 +84,43 @@ that the public examples do not. Example acceptance owns vendor gating and
 outage recovery. Shared server startup and process cleanup live in
 `scripts/browser-process.ts`. Failed journeys retain screenshots and traces
 under `.ci-reports/`.
+
+## Publish example code in the docs
+
+Setup code in `docs/` comes from these apps, so the docs show code that builds
+and passes the journeys above. Mark the lines to publish with a named region in
+the file's own comment syntax:
+
+```tsx
+// #region docs:app-router-layout
+export default function RootLayout({ children }: { children: ReactNode }) {
+	…
+}
+// #endregion docs:app-router-layout
+```
+
+```vue
+<!-- #region docs:root title="app/app.vue" -->
+<ConsentRoot />
+<!-- #endregion docs:root -->
+```
+
+Then run `bun scripts/sync-example-docs.ts`. Each region becomes
+`docs/shared/examples/<app>/<name>.mdx`, a titled code fence that a page
+includes with `<include src="../../shared/examples/<app>/<name>.mdx" />`.
+The fence title defaults to the file's path inside the app; set `title` when
+readers use a different path. Regions can nest, and nested markers are removed
+from the outer snippet. `internals/next-compat` apps can publish regions too,
+and so can the Storybook apps in `apps/storybook-*`: a region in
+`apps/storybook-react` becomes `docs/shared/examples/storybook-react/<name>.mdx`.
+
+Keep demo-only code, such as the design gallery, reset buttons and location
+overrides, outside published regions or in separate files. A region should be
+something a reader can copy into their app unchanged.
+
+`scripts/example-doc-sources.test.ts` fails when a generated snippet is stale
+or orphaned. It also counts hand-written docs fences that import c15t against
+`scripts/hand-written-examples-baseline.json`; that count may only fall. Put
+`{/* example: fragment */}` on the line before a fence that is deliberately a
+partial edit rather than a file, such as one changed prop. When you move or
+rename a page, move its baseline entry with it.

@@ -1,7 +1,121 @@
 ---
-title: Troubleshoot JavaScript consent
-description: Diagnose policy resolution, early scripts, storage and rendering problems.
+title: Troubleshooting
+description: Diagnose vendor scripts that run early, unexpected reloads, empty custom banners, CORS errors, duplicate consent owners and policy resolution in a JavaScript app that uses @c15t/browser or c15t/runtime.
 group: frameworks
 ---
 
-<include src="../../guides/troubleshooting.mdx" />
+## Why do scripts load twice or before consent?
+
+**Check.** Each vendor needs one owner. Look for a snippet left in
+`index.html`, a second `init()` call, or a script loader attached to a kernel
+that `@c15t/browser` or `createConsentRuntime` already owns. Each of these loads
+vendors outside the consent gate or twice.
+
+**Fix.** Call `init()` or create the runtime once per page, in the browser
+entry point, and pass every vendor through its `scripts` list.
+
+## Why does the page reload when a visitor saves?
+
+**Check.** Did the visitor turn off a category they had allowed?
+`@c15t/browser` and `createConsentRuntime` reload the page then, because code
+that already ran cannot be unloaded. Allowing categories never reloads.
+
+**Fix.** To handle withdrawal yourself, pass `reloadOnConsentRevoked: false`,
+and stop each vendor with its own opt-out call. See
+[scripts](/docs/frameworks/javascript/scripts#when-a-visitor-withdraws-permission).
+
+## Why is my custom banner empty?
+
+**Check.** Confirm that you subscribed before calling `runtime.start()`, that
+you wait for `resolution.status` to be `'matched'`, and that you render
+`promptRequirement.kind` `'notice'` as well as `'choice'`.
+
+**Fix.** Render the headless UI from the snapshot, not from assumptions.
+[Headless](/docs/frameworks/javascript/headless#what-your-ui-must-handle) lists
+what a custom UI must cover.
+
+## Why does /init fail with a CORS or CSP error?
+
+**Check.** A CORS error means the backend does not trust your app's origin.
+
+**Fix.** Add the exact origin, including the port in development, to your Inth
+project's trusted origins.
+
+**Check.** A CSP error means your policy's `connect-src` lacks the backend's
+origin.
+
+**Fix.** Add the backend's origin to `connect-src`. See
+[Content Security Policy](/docs/frameworks/javascript/content-security-policy).
+
+## Why does a gated script in my HTML never run?
+
+**Check.** With the `nonce` option set, `@c15t/browser` runs only
+`<script type="text/plain" data-c15t-category>` tags that carry the same
+nonce. Open the console and look for a warning that c15t skipped a
+`data-c15t-category` script, and check the tag for
+`data-c15t-activated="untrusted"`.
+
+**Fix.** Add the page's nonce to the tag, including tags your code inserts
+later. See
+[Content Security Policy](/docs/frameworks/javascript/content-security-policy).
+
+## Why is the stock banner unstyled?
+
+**Check.** Look at your Content Security Policy's `style-src`. If it does not
+allow the `<style>` element the stock UI adds, the policy blocks it.
+
+**Fix.** Pass the nonce from your `style-src` as the `nonce` option, or import
+`@c15t/browser/styles.css` with `ui: { shadow: false, styles: false }` as
+[Content Security Policy](/docs/frameworks/javascript/content-security-policy#allow-the-stock-uis-styles)
+describes.
+
+## Why does a fetch return status 451?
+
+**Check.** A [network blocker](/docs/frameworks/javascript/modules/network-blocker)
+rule matched the request and its category is not allowed. The console logs
+`[c15t] blocked` with the rule's ID.
+
+**Fix.** If the request should not match, check the rule's `domain` and
+`pathIncludes`.
+
+## Inspect the active policy
+
+Call this helper with your kernel: `consent.kernel` from `@c15t/browser`,
+`runtime.kernel` from `createConsentRuntime`, or one you created. It logs the
+current state and later changes without recording a choice.
+
+```ts title="src/observe-consent-policy.ts"
+import type { ConsentKernel } from 'c15t';
+
+export function observeConsentPolicy(kernel: ConsentKernel) {
+  const report = () => {
+    const snapshot = kernel.getSnapshot();
+    const resolution = snapshot.resolution;
+
+    console.log({
+      status: resolution.status,
+      policy: resolution.status === 'matched' ? resolution.policy.id : null,
+      prompt: snapshot.promptRequirement,
+      permissions: snapshot.effectivePermissions,
+      location: snapshot.location,
+      privacySignals: snapshot.privacySignals,
+    });
+  };
+
+  report();
+  return kernel.subscribe(report);
+}
+```
+
+The helper returns an unsubscribe function. Call it when you remove the
+diagnostic or dispose the app. Production gates should read
+`kernel.getSnapshot().effectivePermissions` at the point where an optional
+feature would run.
+
+## More help
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI.

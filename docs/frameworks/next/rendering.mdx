@@ -1,0 +1,219 @@
+---
+title: Rendering and deployment
+description: Choose how Next.js resolves consent for your router, rendering mode and hosting, from streamed App Router layouts to static export, ISR and Cache Components.
+group: frameworks
+---
+
+## Pick your rendering path
+
+Find the row that matches your app. Most App Router apps with a Next.js server
+use the first row.
+
+| Your app | Where consent resolves | Banner in the server HTML | Recipe |
+| --- | --- | --- | --- |
+| App Router with a Next.js server | Root layout starts `resolveConsent` and streams the result | No, it mounts after hydration. The page renders without waiting. | [Stream consent](/docs/frameworks/next/app-router#start-consent-resolution-in-the-root-layout) |
+| App Router, the banner must be in the first HTML | Root layout awaits `resolveConsent` inside `Suspense` | Yes. The page waits for consent. | [Await consent](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html) |
+| App Router with `cacheComponents: true` | Either layout above. Never await in the layout itself. | With the streamed layout, no. With the awaited layout, yes. | [Cache Components](#use-cache-components) |
+| Static, ISR or `'use cache'` pages | Browser, with `state={{}}` | No | [Static, ISR and cached pages](#render-static-isr-and-cached-pages) |
+| Pages Router with `getServerSideProps` | `resolveConsent` from `c15t/next/pages` | Yes | [Pages Router](/docs/frameworks/next/pages-router#resolve-consent-in-getserversideprops) |
+| Pages Router pages without `getServerSideProps` | Browser, through the same `_app.tsx` | No | [Pages Router](/docs/frameworks/next/pages-router#mount-one-root-for-every-page) |
+| `output: 'export'` | Browser, calling the backend directly | No | [Static export](/docs/frameworks/next/static-export) |
+| A server app that should skip server work and local routes | Browser, calling backend `/init` | No | [Client-side initialization](/docs/frameworks/next/client-side) |
+| Edge runtime | Not covered by an example or test | Not covered | [Edge runtime](#edge-runtime) |
+
+Server rendering puts the visitor's answer in the first response. The browser
+then applies it without another request, so gated scripts can load as soon as
+the page hydrates. Browser rendering sends the same HTML to every visitor and
+resolves consent after the page loads. In both cases optional categories stay
+denied, and the banner stays hidden, until a policy has resolved.
+[Choose your setup](/docs/concepts/choose-your-setup) explains this across
+frameworks.
+
+## Stream or await consent in the App Router
+
+Both App Router layouts call `resolveConsent` from `c15t/next/server` in the
+root layout. They differ in what waits for it.
+
+| Layout | What the visitor gets | Cost |
+| --- | --- | --- |
+| Streamed, the default | The page renders at once. The banner, dialog, gated scripts and embeds wait for the result, which arrives in the same response. | The banner is not in the server HTML. It mounts after hydration. |
+| Awaited inside `Suspense` | The banner is in the server HTML and does not change after hydration. | The page content streams after consent resolves, in a later chunk of the same response. |
+
+The streamed layout passes the pending promise to `ConsentRoot`, so a slow or
+failed manifest request never holds the page. Start with it.
+
+The awaited layout moves the page inside the consent boundary. A slow manifest
+response keeps the page blank for up to `timeoutMs`, 500 ms by default. React
+can also hold a streamed boundary's reveal for up to 300 ms after the browser's
+first paint or an earlier boundary's reveal, even with a warm manifest cache.
+`<SpeedInsights />` from `@vercel/speed-insights` is one such boundary, because
+it wraps itself in `Suspense`. Choose the awaited layout only when the banner
+has to be part of the first HTML, and measure the page.
+
+Without `cacheComponents`, you can also make the root layout itself async and
+await `resolveConsent` there. The page and the banner then arrive together, but
+the response starts only after consent resolves.
+
+## Use Cache Components
+
+With `cacheComponents: true`, Next.js prerenders a static shell and fills
+request-time parts per request. Both App Router layouts work:
+
+- The streamed layout stays synchronous. The page content stays in the static
+  shell and consent resolves per request.
+- The awaited layout needs its `Suspense` boundary. Awaiting request data in
+  the root layout without one fails the build with a
+  `blocking-prerender-dynamic` error. The page content moves into the
+  per-request part.
+
+`ConsentGate` does not read the clock while rendering, so a page that renders
+it can stay in the static shell without its own `Suspense` boundary.
+
+Cache Components rejects `export const revalidate`. Cache page content with
+`'use cache'` and `cacheLife` instead, and resolve consent for those pages in
+the browser as described in the next section.
+
+Two Cache Components issues have their own pages. A per-request CSP nonce does
+not work with a prerendered shell; see
+[Content Security Policy](/docs/frameworks/next/content-security-policy). If
+`next dev` reports an unstable `Date.now()` at the `resolveConsent` call, see
+[troubleshooting](/docs/frameworks/next/troubleshooting#why-does-nextjs-report-an-unstable-datenow-during-prerendering).
+
+## Render static, ISR and cached pages
+
+`resolveConsent` reads the request's cookies and headers. A layout that calls
+it makes every route under it dynamic. A static, ISR or `'use cache'` page is
+shared between visitors, so it cannot contain one visitor's consent. Resolve
+consent for those pages in the browser:
+
+<include src="../../shared/examples/nextjs/browser-layout.mdx" />
+
+`state={{}}` supplies no server state. `ConsentRoot` loads the manifest in the
+browser and resolves the visitor's consent after hydration. The page can be
+static, use `export const revalidate` for ISR, or use `'use cache'`. Keep the
+shared config and manifest route from the
+[App Router guide](/docs/frameworks/next/app-router).
+
+For a whole app of static pages, use this as the only root layout. To mix
+static pages with server-rendered ones, give each kind its own root layout in
+a route group, such as `app/(site)/layout.tsx` with the streamed layout and
+`app/(static)/layout.tsx` with this one. The
+[runnable example](/docs/examples) uses this structure for `/app-router`,
+`/awaited` and `/client-init`. Moving between two root layouts loads the whole
+page. The visitor's choice survives because c15t stores it in a cookie and
+localStorage.
+
+Browser resolution from the manifest has no location input, so the visitor's
+policy follows your unknown-location rule. To resolve location on the server
+for these pages, add the
+[optional local init route](/docs/frameworks/next/data-fetching-reference#do-i-need-the-local-init-route).
+
+## Choose how the server gets the policy
+
+The rendering path decides when consent resolves. The URLs in
+`defineConsentConfig` decide where the policy comes from.
+
+| Source | Config | Use it when |
+| --- | --- | --- |
+| Cached manifest | `backendURL` and `manifestURL` | You deploy a Next.js server. Recommended. |
+| Backend `/init` | `backendURL` only | You want the fewest files, or you export a static site. |
+| Offline | No backend URL | Local development and tests. Not recommended for production environments. |
+
+With a manifest, your Next.js server caches the project's public policy and
+resolves each visitor locally. Warm requests make no policy request to the
+backend. With backend `/init`, every server render or browser initialization
+asks the backend to resolve the visitor. Consent saves go to
+`${backendURL}/subjects` either way.
+
+Offline mode keeps policy in your code and choices in the browser, with no
+consent records. `ConsentRoot` runs offline when it has no backend URL. See
+[offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).
+
+A backend URL without `manifestURL` does not turn on manifest mode. The
+[fetching reference](/docs/frameworks/next/data-fetching-reference#transport-combinations)
+lists what each combination does on the server and in the browser, and
+[data fetching](/docs/concepts/data-fetching) compares the transports across
+frameworks.
+
+## Get the visitor's location
+
+Location-based policies need trusted location headers from your host, such as
+`x-vercel-ip-country` or `cf-ipcountry`. Without them, c15t applies your
+unknown-location rule. Some hosts pass those headers to `proxy.ts` but strip
+them before Server Components run. Add `c15tProxy` from `c15t/next/proxy` in
+that case, as [Forward geography headers](/docs/frameworks/next/geography-headers)
+shows. A static export has no server and cannot read location headers.
+
+## Add a same-origin rewrite
+
+A rewrite from `/api/c15t` to the backend is optional. It saves the browser a
+separate connection to the backend's domain and changes nothing about when
+consent resolves. It needs a Next.js server or a hosting-level proxy. See
+[Optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin).
+
+## Use a src directory
+
+With `src/`, put `c15t.config.ts`, `components/`, `lib/` and `proxy.ts` under
+`src/` next to `src/app` or `src/pages`. The guides import through the `@/`
+path alias that `create-next-app` configures, which points at `src/` in that
+layout, so the imports stay the same.
+
+## Edge runtime
+
+No c15t example or compatibility test runs on the Edge runtime. What is known:
+
+- `c15t/next/pages` takes the Node.js `req` and `res` from `getServerSideProps`
+  and `pages/api` routes, so it needs the Node.js runtime.
+- The App Router examples and tests run `resolveConsent` and the route handlers
+  from `c15t/next/api` on the default Node.js runtime.
+
+Keep the default runtime for layouts, pages and route handlers that use c15t.
+If you set `export const runtime = 'edge'` on them, test the result yourself.
+
+## Keep server and browser state aligned
+
+Pass the `resolveConsent` result to `ConsentRoot` unchanged, and keep the same
+`defineConsentConfig` result in the client wrapper. The result carries the
+resolved policy, the stored records and the evaluation time. Replacing it with a
+browser preset, or turning allowed categories into saved choices during
+hydration, can change the first render's permissions or prompt. Keep one
+`ConsentRoot` mounted across client navigation.
+
+With server state, `ConsentGate` renders the placeholder for a denied category
+in the server HTML. A granted category gets an empty wrapper, and the embed
+mounts after hydration, so an iframe loads once even when the page streams
+inside `Suspense`. See [ConsentGate](/docs/frameworks/next/components/consent-gate).
+
+If the server request fails or runs past `timeoutMs`, `resolveConsent` returns
+a baseline state without a policy. The page still renders, optional categories
+stay denied, and the browser retries after hydration. See
+[troubleshooting](/docs/frameworks/next/troubleshooting).
+
+`resolveConsent()` without `config` or `backendURL` makes no backend request.
+It returns the visitor's stored records, location, language and privacy
+signals, with no resolved policy. Pass `config` when rendering needs the policy.
+
+## Cache policy, never visitor state
+
+A manifest is public policy configuration, so your server and CDN can cache it.
+A resolved state, a stored record and HTML rendered with them belong to one
+visitor. Keep them out of shared caches. Do not cache a route whose layout
+awaits `resolveConsent`, and do not store `resolveConsent` results under a
+shared key. The prerendered static shell under Cache Components holds no
+visitor state, so Next.js can cache it.
+
+## Verify your rendering path
+
+1. Run `next build` and read the route table. Routes under a layout that calls
+   `resolveConsent` show as dynamic, or partial with Cache Components. Static
+   and ISR pages under the browser layout stay static.
+2. View the page source in a fresh session. The awaited layout and Pages Router
+   `getServerSideProps` pages contain `data-testid="consent-banner-root"`. The
+   streamed and browser layouts do not.
+3. In DevTools Network, confirm no vendor request runs before you choose.
+   With a manifest, the browser makes no `/init` request.
+4. Reject, reload, and confirm the banner stays closed and vendors stay blocked.
+   Reopen Privacy settings and confirm the rejection is still selected.
+5. Test two locations if your policies differ by region.
+
+The [consent checks](/docs/guides/verify-consent) cover the rest.

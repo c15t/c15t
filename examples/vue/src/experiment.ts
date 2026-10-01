@@ -16,13 +16,30 @@ export interface ExperimentLogEntry {
 /** Impressions and choices made under the arm so far; the page lists them. */
 export const experimentEvents = reactive<ExperimentLogEntry[]>([]);
 
-/** Plugin callbacks that log each impression and choice made under an arm. */
+const pushToDataLayer = function pushToDataLayer(
+	event: Record<string, unknown>
+): void {
+	const page = window as Window & { dataLayer?: unknown[] };
+	page.dataLayer ??= [];
+	page.dataLayer.push(event);
+};
+
+/**
+ * Plugin callbacks that log each impression and choice made under an arm,
+ * and push them to `window.dataLayer` for GTM.
+ */
 export const experimentCallbacks = {
 	onChoiceRecorded: ({
 		consentAction,
 		experiment,
 	}: OnChoiceRecordedPayload) => {
 		if (experiment) {
+			pushToDataLayer({
+				arm: experiment.arm,
+				consent_action: consentAction,
+				event: 'c15t_choice_recorded',
+				experiment_id: experiment.id,
+			});
 			experimentEvents.push({
 				arm: experiment.arm,
 				detail: consentAction,
@@ -32,6 +49,12 @@ export const experimentCallbacks = {
 	},
 	onSurfaceShown: ({ experiment, surface }: OnSurfaceShownPayload) => {
 		if (experiment) {
+			pushToDataLayer({
+				arm: experiment.arm,
+				event: 'c15t_surface_shown',
+				experiment_id: experiment.id,
+				surface,
+			});
 			experimentEvents.push({
 				arm: experiment.arm,
 				detail: surface,

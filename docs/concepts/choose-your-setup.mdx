@@ -1,0 +1,86 @@
+---
+title: Choose your setup
+description: Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
+group: concepts
+---
+
+## Find your app in this table
+
+Most apps need one row. Follow its guide from start to finish; each guide links
+to the alternatives it rules out.
+
+| Your app | Setup | Guide |
+| --- | --- | --- |
+| Next.js App Router with a Next.js server | Server resolves consent from a cached manifest and streams it to the page | [App Router](/docs/frameworks/next/rendering#pick-your-rendering-path) |
+| Next.js App Router, banner must be in the first HTML | Await consent inside `Suspense` | [Stream or await](/docs/frameworks/next/rendering#stream-or-await-consent-in-the-app-router) |
+| Next.js with static, ISR or `'use cache'` pages | Browser resolves consent on those pages | [Static, ISR and cached pages](/docs/frameworks/next/rendering#render-static-isr-and-cached-pages) |
+| Next.js Pages Router | Resolve consent in `getServerSideProps` | [Pages Router](/docs/frameworks/next/rendering#pick-your-rendering-path) |
+| Next.js with `output: 'export'` | Browser resolves consent | [Static export](/docs/frameworks/next/static-export) |
+| TanStack Start with a server | Root loader resolves consent on the server | [TanStack Start](/docs/frameworks/tanstack-start/quickstart) |
+| TanStack Start on a serverless host, banner may follow the page | Root loader streams consent | [TanStack Start rendering](/docs/frameworks/tanstack-start/rendering#stream-the-page-while-consent-resolves) |
+| TanStack Start in SPA mode or prerendered | Browser resolves consent | [TanStack Start rendering](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts) |
+| React with Vite, or another single-page app | Browser resolves consent | [React](/docs/frameworks/react/quickstart) |
+| React Router framework mode, Remix, or another server-rendered React app | Browser resolves consent after hydration | [React rendering](/docs/frameworks/react/rendering#react-router-remix-and-other-server-rendered-apps) |
+| Nuxt with a Nuxt server | Nuxt module resolves consent on the server from a cached manifest | [Nuxt](/docs/frameworks/nuxt/quickstart) |
+| Nuxt with prerendered or cached routes | Nuxt server for most pages, the browser on prerendered and cached routes | [Nuxt prerendered and cached routes](/docs/frameworks/nuxt/rendering#prerendered-and-cached-routes) |
+| Nuxt with `nuxt generate` on static hosting | Nuxt module, browser resolves consent from the manifest or `/init` | [Nuxt static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting) |
+| Nuxt with `ssr: false` | Nuxt module, browser resolves consent from the manifest | [Nuxt single-page app](/docs/frameworks/nuxt/rendering#build-a-single-page-app-with-ssr-false) |
+| Vue with Vite | Vue plugin, browser resolves consent | [Vue](/docs/frameworks/vue/quickstart) |
+| Vue rendered on the server without Nuxt | Vue plugin; the banner mounts after hydration. Use Nuxt for the banner in server HTML. | [Vue rendering](/docs/frameworks/vue/rendering#server-rendering-without-nuxt) |
+| Astro with static output | Browser resolves consent through the hosted backend | [Astro static output](/docs/frameworks/astro/rendering#static-output-with-hosted) |
+| Astro with server output and an adapter | Middleware resolves consent from a cached manifest | [Astro server output](/docs/frameworks/astro/rendering#server-output-with-manifest) |
+| Svelte with Vite | Svelte provider, browser resolves consent | [Svelte](/docs/frameworks/svelte/quickstart) |
+| SvelteKit with a server | Root layout load resolves consent on the server | [SvelteKit](/docs/frameworks/sveltekit/quickstart) |
+| SvelteKit with `adapter-static`, prerendered pages or SPA mode | Browser resolves consent | [SvelteKit rendering](/docs/frameworks/sveltekit/rendering#build-a-static-site) |
+| Plain HTML, a CMS, a page builder, or a static site generator such as Hugo or Eleventy | One script tag, stock banner included | [HTML](/docs/frameworks/html/quickstart) |
+| JavaScript with a bundler and no UI framework | `@c15t/browser` module, stock banner included | [JavaScript](/docs/frameworks/javascript/quickstart) |
+| Your own UI, or a framework without an adapter such as Solid | Headless runtime | [JavaScript headless](/docs/frameworks/javascript/headless) |
+| React Native or Expo | Native consent SDK | [React Native](/docs/frameworks/react-native/quickstart) |
+
+Solid has no c15t adapter. Use the [headless runtime](/docs/frameworks/javascript/headless#use-c15t-with-solid)
+and subscribe to it from your components.
+
+## Decide who runs the consent backend
+
+The backend supplies policies and stores consent records. Every setup above
+works with each option; only the URL changes.
+
+| Option | Use it when |
+| --- | --- |
+| [Inth](https://inth.com) | You want hosted policies and consent records. The guides use this. |
+| [Self-hosted c15t backend](/docs/self-host/overview) | You need to run the service and its database yourself. |
+| Offline mode | Local development and tests. Policies live in your code and choices stay in the browser, with no consent records. Not recommended for production environments. |
+
+To use Inth, create a project, set its policy rules, add your site's origin to
+its trusted origins, and copy the backend URL. The URL is public configuration,
+not a secret; it ends up in browser code.
+
+## Server rendering or browser rendering
+
+Where consent resolves decides what the visitor's first HTML contains.
+
+| Rendering | What the visitor gets |
+| --- | --- |
+| The server resolves consent for each request | The server reads the visitor's cookie and location headers, so the browser starts with the answer. Gated scripts can run right after hydration, and the banner can be part of the HTML. |
+| The browser resolves consent | The HTML is the same for everyone. After the page loads, the browser requests the policy, then shows the banner or runs gated scripts. |
+
+A static or prerendered page cannot contain one visitor's consent, because the
+same HTML goes to everyone. Static sites still use Inth; the browser talks to it
+directly. A same-origin `/api/c15t` route only works where a server runs it.
+
+Pages that are cached and shared between visitors, such as Next.js ISR or
+`'use cache'` routes, need browser resolution for the same reason. Cache the
+public policy manifest, never a response that contains a visitor's consent.
+
+## How the server gets the policy
+
+Server setups fetch policy one of two ways:
+
+- **Manifest**, used by the Next.js, Nuxt and Astro server guides.
+  Your server downloads the project's public policy file, caches it, and
+  resolves each visitor locally. Consent saves still go to the backend.
+- **`/init`**. Each visit asks the backend to resolve the visitor. Simpler, but
+  every page load makes a request to the backend.
+
+[Data fetching](/docs/concepts/data-fetching) compares them in detail,
+including proxies and custom transports.

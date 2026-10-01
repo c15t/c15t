@@ -1,65 +1,71 @@
 ---
-title: Compare c15t with consent tools
-description: Choose a consent tool by its integration model, hosted operations, framework behavior and record workflow, with sourced vendor comparisons.
+title: Compare c15t with other consent tools
+description: How c15t v3 compares with Cookiebot, OneTrust, Usercentrics, Didomi, iubenda, Osano, CookieConsent, Klaro, react-cookie-consent, Silktide Consent Manager and tarteaucitron.js, from their published documentation.
 group: reference
 ---
 
-## Start with the consent work your application needs
+## What c15t is
 
-Evaluate c15t when your application needs policy-aware consent components,
-permissions and vendor loading in framework code. Start with
-[Inth](https://inth.com) for managed policy and records. Compare that setup with
-the specific product and plan you would deploy, including the engineering work
-and services each choice requires.
+c15t is an open-source consent runtime with components for each framework. You
+install it in your app's code, and it reads policy and stores consent records
+through a backend: [Inth](https://inth.com), a
+[self-hosted c15t backend](/docs/self-host/overview), or no backend in offline
+mode.
 
-A browser banner library, a managed web CMP and a broader privacy platform can
-overlap without covering the same tasks. The comparisons below identify their
-scope and link to official product documentation. They do not assign a winner
-from an untested feature list or reuse performance scores from older releases.
-
-## Compare hosted consent workflows
-
-| Comparison | Decision to investigate |
+| Capability | c15t v3 |
 | --- | --- |
-| [Cookiebot](/docs/comparisons/cookiebot) | Hosted scanning, domain and subpage billing, and control of existing tags |
-| [Didomi](/docs/comparisons/didomi) | Shared notice publication workflows across engineering, marketing and legal |
-| [iubenda](/docs/comparisons/iubenda) | Consent tooling purchased alongside legal-document generation |
-| [OneTrust](/docs/comparisons/onetrust) | Cookie inventory and scanning requirements within a larger operation |
-| [Osano](/docs/comparisons/osano) | Commercial CMP scope, usage estimates and vendor blocking |
-| [Usercentrics Web CMP](/docs/comparisons/usercentrics) | Product selection, session allowances and multiple domains |
+| License | Apache-2.0, every published package |
+| Framework support | Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, a script tag for plain HTML, a headless JavaScript runtime, and React Native |
+| Consent records | Stored by Inth or by `@c15t/backend` on PostgreSQL, MySQL or SQLite |
+| Policies | Region-based policy rules, with presets for Europe, US states, California, Québec, Canada and more |
+| Vendor loading | Consent-aware loaders in `@c15t/integrations`, a network blocker, and gated embeds |
+| Google Consent Mode v2 | Through the [Google tag](/docs/integrations/google-tag) and [Tag Manager](/docs/integrations/google-tag-manager) integrations |
+| IAB TCF | TCF 2.4 through `@c15t/iab` |
+| Presentation | Stock components, theme tokens, component slots, or [headless hooks](/docs/customization/overview) |
 
-## Compare browser libraries and service configuration
+c15t does not scan your site for cookies or generate privacy policies.
 
-| Comparison | Decision to investigate |
-| --- | --- |
-| [CookieConsent v3](/docs/comparisons/cookieconsent-v3) | Browser categories and the backend work required for consent logging |
-| [Klaro](/docs/comparisons/klaro) | Service configuration and HTML resource annotations; hosted options also exist |
-| [react-cookie-consent](/docs/comparisons/react-cookie-consent) | A React banner component and the application behavior around its callbacks |
-| [Silktide Consent Manager](/docs/comparisons/silktide-consent-manager) | Browser configuration, consent signals and requirements beyond the banner |
-| [tarteaucitron.js](/docs/comparisons/tarteaucitron) | Service definitions, saved choices and migration to category permissions |
+## Compare hosted consent platforms
 
-## Run one integration before choosing
+These products run the banner and its configuration as a hosted service. The
+second column summarizes what each vendor's own pages describe; follow the link
+for the sources and a test plan.
 
-Use the same application, vendors and policy requirements for each candidate.
-For c15t, install `c15t` and follow the
-[framework and router guide](/docs/frameworks). A Next.js static export needs a
-different setup from request-time server rendering.
+| Product | What its published pages describe | Pricing basis they state |
+| --- | --- | --- |
+| [Cookiebot](/docs/comparisons/cookiebot) | Hosted banner setup and cookie scanning | Plans by domain and subpage count |
+| [Didomi](/docs/comparisons/didomi) | A console for managing notices, plus SDKs and APIs | No public price on the linked page |
+| [iubenda](/docs/comparisons/iubenda) | Cookie consent, consent records and privacy and cookie policy generators | Included pageviews, with extra usage billed |
+| [OneTrust](/docs/comparisons/onetrust) | Scheduled scanning, cookie inventories and a consent transaction database | No public price on the linked page |
+| [Osano](/docs/comparisons/osano) | Cookie classification, blocking, customizable banners and reporting | How often `Osano.js` is served, estimated from daily active users |
+| [Usercentrics Web CMP](/docs/comparisons/usercentrics) | A hosted website consent product | Plans with monthly session and domain allowances |
 
-| Task | Evidence to collect |
-| --- | --- |
-| Load a vendor only when permitted | Network requests before a decision, after rejection and after acceptance |
-| Preserve a choice | Browser state and backend records after reload |
-| Change preferences | Permission updates and vendor-specific cleanup after withdrawal |
-| Match the application design | A working [customization recipe](/docs/customization/recipes), including keyboard and mobile behavior |
-| Operate the deployment | Required backend services, support terms and policy publication steps |
-| Use an agent to implement it | Correct imports and a working integration from version-matched documentation |
+## Compare browser libraries
 
-Follow the [verification guide](/docs/guides/verify-consent) for the c15t checks.
-Neither a visible banner nor a vendor's product description establishes the
-behavior of your deployed site. Review legal requirements separately from the
-integration result.
+These are libraries you install in the page and configure in code.
 
-Competitor sources reviewed on 10 September 2026. Each page states its product
-scope and links to the official sources used. Check current pricing terms for
-your region and usage; these pages do not quote a fixed cost or measured speed
-advantage.
+| Library | What its published pages describe | Consent records |
+| --- | --- | --- |
+| [CookieConsent v3](/docs/comparisons/cookieconsent-v3) | Categories and a preference modal, with setup for HTML, React, Vue and Angular | You send them to your own backend from its callbacks |
+| [Klaro](/docs/comparisons/klaro) | Service configuration and annotated script tags; a hosted version also exists | Not described in the linked setup guide |
+| [react-cookie-consent](/docs/comparisons/react-cookie-consent) | A React consent bar with accept and decline callbacks and cookie helpers | Not described |
+| [Silktide Consent Manager](/docs/comparisons/silktide-consent-manager) | A free banner with no domain or user limits, Google Consent Mode v2 and translations | Not described |
+| [tarteaucitron.js](/docs/comparisons/tarteaucitron) | A service panel that stores choices in a cookie, with built-in service definitions | A browser cookie |
+
+## Test before you choose
+
+Run the same test on each tool you shortlist, with your own app and vendors:
+
+1. Load the site in a private window and check DevTools Network. Optional vendor
+   requests should not start before a choice.
+2. Reject, reload, and confirm the vendors stay blocked.
+3. Accept, then reopen preferences and withdraw. Check what the vendor still
+   does after withdrawal.
+4. Check where the record of each choice is stored and how you retrieve it.
+
+For c15t, follow the [framework guide](/docs/frameworks) with
+[Inth](https://inth.com), then run the [verification guide](/docs/guides/verify-consent).
+Review legal requirements separately from these results.
+
+Competitor sources were reviewed on 10 September 2026. Pricing changes; check
+each vendor's current terms for your region and traffic.

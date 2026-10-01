@@ -1,0 +1,74 @@
+---
+title: Headless
+description: Build your own consent banner markup in a TanStack Start app with the c15t/tanstack-start/headless hooks inside ConsentRoot.
+group: frameworks
+---
+
+## When to go headless
+
+<import src="../../shared/react/headless.mdx#when-to-go-headless" />
+
+## Render your own banner
+
+`c15t/tanstack-start/headless` re-exports the headless hooks from
+`c15t/react/headless`. They read the runtime from `ConsentRoot`. Render your
+component inside `ConsentRoot` in place of `ConsentBanner`, and keep
+`ConsentDialog` and a preferences link:
+
+{/* example: fragment */}
+
+```tsx title="src/components/consent-banner.tsx"
+import { useHeadlessConsentUI, useTranslations } from 'c15t/tanstack-start/headless';
+
+const ACTION_LABELS = {
+  accept: 'acceptAll',
+  reject: 'rejectAll',
+  customize: 'customize',
+  dismiss: 'acknowledge',
+  save: 'save',
+} as const;
+
+export function Banner() {
+  const { banner, performAction, openDialog } = useHeadlessConsentUI();
+  const { common, rights } = useTranslations();
+
+  if (!banner.isVisible) {
+    return null;
+  }
+
+  return (
+    <section role="region" aria-label="Privacy">
+      {banner.preferenceControls.map((right) => (
+        <button key={right} type="button" onClick={openDialog}>
+          {right === 'opt-out' ? rights?.optOut : rights?.preferences}
+        </button>
+      ))}
+      {banner.actionGroups.map((group) => (
+        <div key={group.join('-')}>
+          {group.map((action) => (
+            <button
+              key={action}
+              type="button"
+              data-primary={banner.primaryActions.includes(action) || undefined}
+              onClick={() => performAction(action)}
+            >
+              {common[ACTION_LABELS[action]]}
+            </button>
+          ))}
+        </div>
+      ))}
+    </section>
+  );
+}
+```
+
+With an awaited root loader, `banner.isVisible` is already `true` on the server
+for a visitor who owes a choice, so your banner is in the first HTML like the
+stock one. With a streamed loader or a prerendered page it turns `true` after
+hydration.
+
+Check for a policy before rendering other custom surfaces. `useModel()` returns
+`null` while no policy has resolved and `'none'` under a policy that owes no
+consent UI.
+
+<import src="../../shared/react/headless.mdx#banner-api" />

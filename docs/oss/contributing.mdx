@@ -1,135 +1,71 @@
 ---
-title: Contributing to c15t.com
-description: Set up the c15t workspace, submit changes, and add release notes.
+title: Contribute to c15t
+description: Open an issue, set up the c15t monorepo with Bun, branch from canary, run the checks and add a Tegami release note for package changes.
 group: reference
 ---
 
-We love your input! We want to make contributing to c15t.com as easy and transparent as possible, whether it's:
+## Open an issue first
 
-- Reporting a bug
-- Discussing the current state of the code
-- Submitting a fix
-- Proposing new features
-- Becoming a maintainer
+Search the [issues](https://github.com/c15t/c15t/issues) and
+[pull requests](https://github.com/c15t/c15t/pulls) before you start, then open
+an issue for your change.
 
-## 📜 License
+New features, large refactors and architecture changes carry the
+`needs-approval` label. Wait for a maintainer to remove it before you write
+code. Bug fixes, documentation, performance improvements, security fixes and
+tests can start right away.
 
-By contributing to c15t, you agree that your contributions will be licensed under the Apache License, Version 2.0 (Apache-2.0).
+## Set up the repository
 
-[Read the full license here](/docs/oss/license)
+The repository uses Bun 1.3.11. Fork it and create your branch from `canary`,
+the default branch that pull requests target:
 
-## 🏠 House Rules
+```sh
+git clone https://github.com/your-username/c15t.git
+cd c15t
+git switch -c my-change
+bun install
+```
 
-### Before You Start
+`bun install` also installs a Lefthook pre-commit hook that formats staged
+files with Oxfmt.
 
-- Check existing [issues](https://github.com/c15t/c15t/issues) and [PRs](https://github.com/c15t/c15t/pulls) first
-- **Always create an issue before starting development**
-- Follow our PR template carefully
+## Run the checks
 
-### Issue Approval Process
+```sh
+bun run build         # build every package with Turborepo
+bun run test          # Vitest for packages your branch changed, and their dependents
+bun run check-types   # TypeScript, after a build
+bun run lint          # Oxlint
+bun run fmt           # Oxfmt
+```
 
-We use the `needs-approval` label to manage contributions:
+Tests run with Vitest, not `bun test`. Browser tests for React, Next.js and
+TanStack Start need Chromium: run `bunx playwright@1.58.2 install` once.
+`bun run test:full` runs every package. For documentation changes, run
+`bun run lint:docs` and `bun run fmt:docs`.
 
-#### For Contributors
+Add or update tests with your change. For a bug fix, add a test that fails
+without the fix.
 
-- 🚫 **Needs Approval First:**
-  - New features
-  - Large-scale refactoring
-  - Architecture changes
-  - *Wait for a c15t.com team member to remove the `needs-approval` label*
+## Open the pull request
 
-- ✅ **Can Start Immediately:**
-  - Bug fixes
-  - Documentation updates
-  - Performance improvements
-  - Security fixes
-  - Tests
+Target `canary`. Fill in the pull request template, link the issue and add
+screenshots for UI changes. Write commit messages as
+[Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`,
+`docs:`, `chore:`, `refactor:` or `test:`.
 
-## Development Process
+CI picks its checks from the files you changed: package builds, tests, type
+checks, linting, docs generation and, for runtime changes, browser and bundle
+checks. autofix.ci pushes formatting fixes to your branch, so pull before you
+add more commits.
 
-We use GitHub to host code, to track issues and feature requests, as well as accept pull requests.
+## Add a release note
 
-### 🤖 Automated Workflows
-
-We leverage several automated workflows to ensure code quality:
-
-1. **Code Quality**
-   - Formatting: Oxfmt automatically formats code
-   - Types: TypeScript checks run on every PR
-   - Tests: Vitest runs the test suite
-   - Build: Turbo ensures everything builds correctly
-
-2. **Dependencies**
-   - Renovate keeps dependencies up to date
-   - Bun manages our packages
-   - Tegami handles versioning and publishing
-
-3. **Pull Requests**
-   - PR titles are checked for semantic versioning
-   - Automated code review for common issues
-   - Required checks must pass before merging
-
-## Getting Started
-
-1. Fork the repo and create your branch from `main`:
-
-   ```sh
-   git clone https://github.com/your-username/c15t.git
-   cd c15t
-   git switch -c my-feature
-   ```
-
-2. Install dependencies:
-
-   ```sh
-   bun install
-   ```
-
-3. Make your changes and ensure the following pass:
-
-   ```sh
-   bun run fmt         # Format code
-   bun run test        # Run tests
-   bun run build       # Build packages
-   ```
-
-## Pull Request Process
-
-1. **Create an Issue First**
-   - For features/refactoring: Wait for approval (needs-approval label)
-   - For bugs/docs: Can start work immediately
-
-2. **Make Your Changes**
-   - Follow our coding standards (enforced by Oxlint and Oxfmt)
-   - Add tests for new functionality
-   - Update documentation as needed
-
-3. **Create Pull Request**
-   - Use our PR template
-   - Link the related issue
-   - Add screenshots for UI changes
-   - Describe your changes clearly
-
-4. **Automated Checks**
-   The following will run automatically:
-   - Code formatting (Oxfmt)
-   - Type checking (TypeScript)
-   - Tests (Vitest)
-   - Build verification (Turbo)
-   - Dependency checks (Renovate)
-   - PR title format
-   - Issue linking
-
-5. **Review Process**
-   - Maintainers will review your code
-   - Address any requested changes
-   - Once approved, it will be merged
-
-## Release Process
-
-Add a `.tegami/*.md` release note for changes to published packages. On a
-feature branch, run `RELEASE_BRANCH=v3 bun run tegami`, replacing `v3` with the
-PR target. Use explicit package bumps and include a Markdown heading:
+Changes to published packages need a `.tegami/*.md` release note. Run
+`RELEASE_BRANCH=v3 bun run tegami`, replacing `v3` with your pull request's
+target branch. Give explicit package bumps and a Markdown heading, and write
+the body as the changelog entry:
 
 ```md
 ---
@@ -142,59 +78,22 @@ packages:
 Keep saved preferences after reloading the page.
 ```
 
-The existing `release.yml` workflow runs CI before Tegami opens a version PR.
-Merging that PR publishes packages and creates GitHub releases. `main` publishes
-stable releases, `v3` publishes alphas, and `2.0.0` publishes RCs. Canary pushes
-publish commit-specific snapshots directly, without a version PR.
+Do not edit package `CHANGELOG.md` files or the publish lock; Tegami generates
+them. The `release.yml` workflow runs CI, and Tegami opens a version pull
+request. Merging it publishes the packages and creates GitHub releases. `main`
+publishes stable releases, `v3` publishes alphas and `2.0.0` publishes release
+candidates. Pushes to `canary` publish commit-specific snapshots under the
+`canary` npm tag without a version pull request. The
+[release guide](https://github.com/c15t/c15t/blob/v3/.tegami/README.md) covers
+versioning rules and npm trusted publishing.
 
-Keep generated package changelogs and the publish lock unchanged in feature PRs.
-Replay-only notes remain until the package graduates from prerelease to stable.
-See the [release guide](https://github.com/c15t/c15t/blob/v3/.tegami/README.md)
-for the versioning rules and npm trusted publishing setup.
+## Edit the documentation
 
-## Development Guidelines
+Edit the MDX source in `docs/`. Package `README.md` files, the `docs/` folders
+inside packages and their `AGENTS.md` files are generated; change
+`docs/**/*.mdx` or the package's `readme.json` instead.
 
-### Code Style
+## License
 
-We use Oxlint for linting and Oxfmt for formatting. Configuration is in `oxlint.config.ts` and `oxfmt.config.ts`.
-
-### Commits
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-- `feat:` New features
-- `fix:` Bug fixes
-- `docs:` Documentation
-- `chore:` Maintenance
-- `refactor:` Code changes
-- `test:` Test changes
-
-### Testing
-
-- Write tests for new features
-- Update tests for changes
-- Run `bun run test` locally
-
-### Documentation
-
-- Update docs with new features
-- Include code examples
-- Update README if needed
-
-## Questions?
-
-Don't hesitate to:
-
-- Open an issue
-- Start a discussion
-- Ask in comments
-
-## Important License Note
-
-c15t.com is licensed under the Apache License, Version 2.0 (Apache-2.0). By contributing
-to this project, you agree to license your contributions under the same license. In
-summary, you may use, modify, and distribute the software, including commercially,
-provided you include the required notices and do not use contributor names for
-endorsement without permission.
-
-[Learn more about Apache-2.0](https://choosealicense.com/licenses/apache-2.0/)
+By contributing, you agree that your contributions are licensed under the
+[Apache License, Version 2.0](/docs/oss/license), the license c15t uses.

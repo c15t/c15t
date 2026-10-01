@@ -22,6 +22,27 @@ read the `leadtype` skill before changing MDX components or generation.
    shared explanations in `docs/` and reuse them through leadtype includes or
    links. Do not clone a React guide and replace its framework name.
 
+## Take setup code from the example apps
+
+Code that wires c15t into an app comes from `examples/*` or
+`internals/next-compat/*`, which CI builds and tests. Do not hand-write a
+provider, layout, route handler or config file in MDX. Hand-written snippets
+drift: one Next.js page passed a `defineConsentConfig()` result from a server
+layout to `ConsentRoot`, which React cannot serialize.
+
+1. Find the example for the path you document. If none exists, add a route or
+   app and cover it in `examples/shared` before writing the page.
+2. Keep demo-only code (galleries, reset buttons, location overrides) out of
+   the file, or outside the published region.
+3. Mark the lines with `#region docs:<name>` and `#endregion docs:<name>`, then
+   run `bun scripts/sync-example-docs.ts`.
+4. Include `docs/shared/examples/<app>/<name>.mdx` from the page.
+
+A fence that is deliberately a fragment, such as one changed prop, needs
+`{/* example: fragment */}` on the line before it. The baseline in
+`scripts/hand-written-examples-baseline.json` counts older hand-written fences
+and may only fall. See `examples/shared/README.md` for marker syntax.
+
 ## Write for people and agents
 
 Lead each page with the answer and its deployment constraints. Use familiar
@@ -43,8 +64,10 @@ reference tables where humans need discovery; do not delete useful reference
 because an agent could inspect a declaration file.
 
 Lead quickstarts with Inth hosted consent management, including static sites.
-Keep self-hosting and browser-only modes as deliberate alternatives. Use the
-exact endpoint supplied by the Inth project; never invent a project URL.
+Keep self-hosting and browser-only modes as deliberate alternatives. Where a page needs a literal backend URL, use `https://your-project.inth.app`
+and tell readers to replace it with the URL from their Inth project. Existing
+`*.c15t.dev` URLs from v2 keep working; show them only in migration examples.
+Self-hosted examples use your own origin, such as `https://app.example.com/api/c15t`.
 Prefer one working path followed by links to alternatives. For hosted examples,
 name the required backend URL, policy configuration and trusted origin. For
 browser-only examples, state where choices persist and what backend services are
@@ -58,7 +81,9 @@ Lead installation with `c15t` and use its actual exports: `c15t/react`,
 `c15t/next`, `c15t/vue`, `c15t/tanstack-start`, `c15t/astro`, and `c15t` for the
 headless engine. The installed package name is `c15t`, not the import subpath.
 Use separate packages only for adapters and add-ons absent from its export map.
-Svelte currently requires its dedicated package. Never invent an umbrella
+Svelte currently requires `@c15t/svelte`, and the HTML script tag uses
+`@c15t/browser`. Install commands pin c15t packages to `@alpha` while npm
+`latest` is v2; `scripts/docs-validation.test.ts` enforces it. Never invent an umbrella
 subpath or mechanically replace provider names across adapters.
 Migration pages may show old APIs only in clearly labelled before examples.
 
@@ -135,18 +160,22 @@ contains the useful information without raw preview JSX.
 
 Update `docs/docs.config.ts` for every public page. Keep framework variants nested
 under the `frameworks` navigation group, because
-the docs host uses that group for its framework selector and sidebar. Confirm
+the docs host uses that group for its framework selector and sidebar. Every
+framework sidebar uses the same group order; see the framework sidebar table in
+the information architecture reference. Confirm
 the host's framework list includes every variant. Do not flatten frameworks
 into separate root groups to shorten the config.
-Keep integrations under one `integrations` navigation group with service-type
-children: embeds, tag managers, analytics, functionality, and ads and pixels.
+Keep integrations under one `integrations` navigation group. Its children are
+Vendor controls, then the service types: Embeds, Tag managers, Analytics, Chat
+and support, and Ads and pixels.
 Every exported vendor helper needs a discoverable guide. Preserve old vendor
 routes during rewrites and compare against the existing integration inventory.
 Vendor guides need configuration, registration, options, actual loading and
 revocation behavior, and verification. Reuse the shared registration include for
 all supported frameworks; keep adapter-specific differences explicit.
 Shared integration and embed tabs must match the framework selector order:
-Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, JavaScript.
+Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML,
+JavaScript, React Native.
 Keep `docs/docs.config.ts` and the framework index in that order too. Give each
 framework its own usable example, including server/browser ownership and
 cleanup where needed. Do not send Nuxt readers to a plain Vue snippet or
@@ -163,6 +192,10 @@ Use factual titles, unique descriptions and descriptive link text.
 search rankings or citations. The docs host must also verify HTML indexing,
 canonical URLs, redirects, sitemap entries, robots rules and matching structured
 data. Content work alone cannot prove those deployed behaviors.
+
+Follow [the v3 information architecture](references/v3-information-architecture.md)
+for the page set each framework gets, and record moved routes in
+[v3-route-moves.md](references/v3-route-moves.md).
 
 For a broad rewrite or publication review, read
 [the v3 editorial review](references/v3-editorial-review.md) for the historical

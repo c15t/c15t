@@ -1,0 +1,14 @@
+---
+title: ConsentDialogTrigger
+description: Add a floating, draggable privacy button to a SvelteKit layout with ConsentDialogTrigger, and set its corner, size, saved position, accessible name and callbacks.
+group: frameworks
+---
+
+<include src="../../../shared/svelte/components/consent-dialog-trigger.mdx" />
+
+## Trigger in the server HTML
+
+Rendered in the root layout with a server `prefetch`, the trigger is in the
+server HTML at its default corner. After hydration it moves to
+`document.body` and, if the visitor dragged it on an earlier visit, to the
+saved corner.

@@ -1,0 +1,29 @@
+{/* Generated from examples/javascript/src/ref-custom-runtime.ts (docs:transport-custom) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-runtime.ts"
+import { createOfflineTransport, custom, policyRulePresets } from 'c15t';
+import { createConsentRuntime } from 'c15t/runtime';
+
+// Resolve the policy in the browser and record choices with your own API.
+const local = createOfflineTransport({
+	policyRules: [policyRulePresets.europeOptIn()],
+});
+
+export const runtime = createConsentRuntime({
+	mode: custom({
+		init: local.init,
+		async save(payload) {
+			const response = await fetch('/api/consent', {
+				body: JSON.stringify({
+					choice: payload.choice,
+					consents: payload.consents,
+					subjectId: payload.subjectId,
+				}),
+				headers: { 'content-type': 'application/json' },
+				method: 'POST',
+			});
+			return { ok: response.ok, subjectId: payload.subjectId };
+		},
+	}),
+});
+```

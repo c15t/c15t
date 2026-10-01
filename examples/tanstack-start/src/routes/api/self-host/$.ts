@@ -126,6 +126,7 @@ const getInstance = function getInstance() {
 	return instancePromise;
 };
 
+// #region docs:self-host-route
 const handle = async function handle({ request }: { request: Request }) {
 	const instance = await getInstance();
 	return instance.handler(request);
@@ -143,3 +144,4 @@ export const Route = createFileRoute('/api/self-host/$')({
 		},
 	},
 });
+// #endregion docs:self-host-route
