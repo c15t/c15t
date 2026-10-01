@@ -252,6 +252,25 @@ describe('@c15t/vue/devtools', () => {
 		expect(mountedDevTools()).toHaveLength(1);
 		wrapper.unmount();
 	});
+	test('mounts in the light DOM when shadow is false', async () => {
+		const kernel = createConsentKernel();
+		const wrapper = mount(
+			defineComponent({
+				setup: () => () =>
+					provider(kernel, h(ConsentDevTools, { shadow: false })),
+			})
+		);
+		try {
+			await vi.waitFor(() =>
+				expect(
+					document.body.querySelector('[data-c15t-dev-tools]')
+				).not.toBeNull()
+			);
+			expect(document.querySelector('[data-c15t-dev-tools-host]')).toBeNull();
+		} finally {
+			wrapper.unmount();
+		}
+	});
 	test('exports compatible component names', () => {
 		expect(ConsentDevToolsDefault).toBe(ConsentDevTools);
 		expect(DevTools).toBe(ConsentDevTools);

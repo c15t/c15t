@@ -16,9 +16,10 @@
 		ConsentGate,
 		hosted,
 	} from '@c15t/svelte';
-	import { onDestroy } from 'svelte';
 
 	import '$lib/consent-example.css';
+
+	let { data } = $props();
 
 	const mode = hosted({ url: env.PUBLIC_C15T_BACKEND_URL || '/api/c15t' });
 	const scripts = createExampleScripts(
@@ -30,15 +31,14 @@
 	// the arm. Read once: the provider takes its experiment at mount, so the
 	// links below reload the document instead of a client-side navigation.
 	const experiment = experimentFromSearch(page.url.searchParams);
-	const setTheme = (theme: string) => {
-		document.documentElement.dataset.consentExampleTheme = theme;
-	};
-	onDestroy(() => {
-		if (typeof document !== 'undefined') {
-			delete document.documentElement.dataset.consentExampleTheme;
-		}
-	});
 </script>
+
+<svelte:head>
+	{#if data.themeCSS}
+		<!-- generateThemeCSS escapes `<`, so its output is safe in a style element. -->
+		{@html `<style id="c15t-theme">${data.themeCSS}</style>`}
+	{/if}
+</svelte:head>
 
 <ConsentManagerProvider
 	callbacks={experiment ? experimentCallbacks : undefined}
@@ -52,14 +52,10 @@
 			PostHog waits for measurement permission. X Pixel waits for marketing
 			permission.
 		</p>
-		<button
-			type="button"
-			onclick={() => setTheme('default')}>Default theme</button
-		>
-		<button
-			type="button"
-			onclick={() => setTheme('branded')}>Branded theme</button
-		>
+		<nav aria-label="Theme">
+			<a href="/consent-example">Default theme</a>
+			<a href="/consent-example?theme=branded">Branded theme</a>
+		</nav>
 		<nav aria-label="Banner experiment">
 			<a
 				data-sveltekit-reload

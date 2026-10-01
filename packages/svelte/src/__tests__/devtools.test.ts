@@ -212,6 +212,19 @@ describe('@c15t/svelte/devtools', () => {
 		expect(mountedDevTools()).toHaveLength(1);
 		result.unmount();
 	});
+	test('mounts in the light DOM when shadow is false', async () => {
+		const result = render(DevToolsFixture, { shadow: false });
+		try {
+			await vi.waitFor(() =>
+				expect(
+					document.body.querySelector('[data-c15t-dev-tools]')
+				).not.toBeNull()
+			);
+			expect(document.querySelector('[data-c15t-dev-tools-host]')).toBeNull();
+		} finally {
+			result.unmount();
+		}
+	});
 	test('exports compatible component names', () => {
 		expect(ConsentDevToolsDefault).toBe(ConsentDevTools);
 		expect(DevTools).toBe(ConsentDevTools);

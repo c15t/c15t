@@ -22,6 +22,7 @@ import {
 	reportConsentSession,
 	resolveSessionReportBackendURL,
 } from '@c15t/core/server';
+import type { ManifestFetch } from '@c15t/core/server';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
@@ -37,7 +38,15 @@ import type {
 import { baseTranslations } from '@c15t/translations/all';
 import type { RequestEvent, RequestHandler } from '@sveltejs/kit';
 
+import {
+	proxyConsentRequest,
+	readRestPath,
+	resolveProxyOptions,
+} from './proxy';
+import type { ConsentProxyOptions } from './proxy';
 import type { ConsentManifestOptions } from './types';
+
+export type { ConsentProxyOptions } from './proxy';
 
 const INIT_CACHE_CONTROL = 'private, no-store';
 const MANIFEST_ROUTE_SUFFIX = '/manifest';
@@ -119,7 +128,77 @@ export interface SvelteKitConsentRouteOptions extends ConsentManifestOptions {
 		language: string;
 		fetch: typeof globalThis.fetch;
 	}) => Promise<GlobalVendorList | null>;
+	/**
+	 * Forward consent writes to `backendURL` through this route, so
+	 * `hosted({ url: '/api/c15t' })` can save through the app's own origin.
+	 * Without it the route answers `GET` only and a save gets `405`.
+	 *
+	 * When enabled the handlers gain `POST`, `PATCH`, `PUT`, `DELETE`, and
+	 * `OPTIONS`, and `GET` forwards every path below the route's rest
+	 * parameter other than `manifest` and `init`, which stay resolved
+	 * in-process. Only an allowlist of paths is forwarded (`subjects`,
+	 * `subjects/:id`, `init`, `manifest`, `health`, `status`, plus
+	 * {@link ConsentProxyOptions.paths}); anything else is a 404, so the
+	 * route is never an open proxy. Mount it as a catch-all route such as
+	 * `src/routes/api/c15t/[...path]/+server.ts`.
+	 *
+	 * The proxy forwards the browser's identity headers (`user-agent`,
+	 * `accept-language`, `origin`, `referer`, `sec-gpc`, the geo headers),
+	 * cookies only when {@link ConsentProxyOptions.cookieNames} names them,
+	 * and sets `x-forwarded-for` from `event.getClientAddress()`,
+	 * `x-forwarded-host` and `x-forwarded-proto` from `event.url`, the c15t
+	 * version header, and `x-c15t-proxy: @c15t/svelte`. The hosted backend
+	 * sits behind a firewall that scores a bare server-to-server request as a
+	 * bot; these give it the signals a direct browser request carries, and a
+	 * stable key for a bypass rule. It needs `backendURL` or
+	 * `C15T_BACKEND_URL`, not a `manifestURL` alone. A path such as
+	 * `/api/self-host` names a route in this app: requests to it go through
+	 * `event.fetch`, which SvelteKit answers in-process, so the request's
+	 * `Host` header never chooses where they go.
+	 *
+	 * @defaultValue false
+	 */
+	proxy?: boolean | ConsentProxyOptions;
 }
+
+/** Handlers returned by {@link createSvelteKitConsentRouteHandlers}. */
+export interface SvelteKitConsentRouteHandlers {
+	/** Serves `manifest` and `init` from one catch-all route. */
+	GET: RequestHandler;
+	/** Init resolver for a dedicated `/api/c15t/init` route. */
+	init: RequestHandler;
+	/** Manifest passthrough for a dedicated `/api/c15t/manifest` route. */
+	manifest: RequestHandler;
+}
+
+/**
+ * Handlers returned by {@link createSvelteKitConsentRouteHandlers} when
+ * `proxy` is enabled: the in-process handlers plus one proxy handler per
+ * write method.
+ */
+export interface SvelteKitConsentProxyRouteHandlers extends SvelteKitConsentRouteHandlers {
+	POST: RequestHandler;
+	PATCH: RequestHandler;
+	PUT: RequestHandler;
+	DELETE: RequestHandler;
+	OPTIONS: RequestHandler;
+	/**
+	 * The bare proxy handler, for a route file mounted at one fixed path
+	 * (`api/c15t/subjects/+server.ts`). Applies the same path allowlist and
+	 * header shaping.
+	 */
+	proxy: RequestHandler;
+}
+
+/**
+ * Picks the handler shape from the options: the proxy handlers when
+ * `proxy` is set to anything truthy, the plain handlers otherwise.
+ */
+export type SvelteKitConsentRouteHandlersFor<
+	Options extends SvelteKitConsentRouteOptions,
+> = Options extends { proxy: true | ConsentProxyOptions }
+	? SvelteKitConsentProxyRouteHandlers
+	: SvelteKitConsentRouteHandlers;
 
 const getEnv = function getEnv(name: string): string | undefined {
 	if (typeof process === 'undefined') {
@@ -133,23 +212,57 @@ const getEnv = function getEnv(name: string): string | undefined {
 };
 
 /**
- * Resolves a possibly-relative backend URL against the request.
- *
- * Only `event.url` decides the origin. SvelteKit derives it from the
- * adapter's trusted configuration (`ORIGIN`, or `PROTOCOL_HEADER`/
- * `HOST_HEADER` where a proxy is declared), so seeding from it both fixes a
- * relative URL on a plain `http://localhost` dev server and keeps a forged
- * `x-forwarded-host` from steering this server-side fetch at a host of the
- * caller's choosing.
+ * Origin a relative `backendURL` or `manifestURL` is resolved against. It is
+ * never contacted: a request to it goes to `event.fetch` as a path, which
+ * SvelteKit answers in-process. Resolving against `event.url` instead would
+ * let the client choose the host, because on adapter-node without `ORIGIN`
+ * `event.url` takes its host from the request's `Host` header. Loopback, so
+ * the proxy's cleartext rules treat the in-process hop as local.
  */
-const resolveAgainstRequest = function resolveAgainstRequest(
-	url: string,
+const IN_PROCESS_ORIGIN = 'http://localhost';
+
+/** A configured URL and the fetch that reaches it. */
+interface ResolvedTarget {
+	url: string;
+	fetch: ManifestFetch | undefined;
+}
+
+/**
+ * Sends requests for {@link IN_PROCESS_ORIGIN} URLs to `event.fetch` as
+ * paths, so they stay inside this app.
+ */
+const inProcessFetch = function inProcessFetch(
 	event: RequestEvent
-): string | null {
-	return resolveBackendURL(url, {
-		host: event.url.host,
-		'x-forwarded-proto': event.url.protocol.replace(':', ''),
-	});
+): ManifestFetch {
+	return (input, init) => {
+		const url = new URL(input instanceof Request ? input.url : input);
+		return event.fetch(`${url.pathname}${url.search}`, init);
+	};
+};
+
+/**
+ * Resolves a configured URL. An absolute `http(s)` URL is used as is with
+ * the configured `fetch`. A path such as `/api/self-host` names a route in
+ * this app and is fetched through `event.fetch`; the request's host never
+ * becomes part of the target.
+ */
+const resolveTarget = function resolveTarget(
+	url: string,
+	event: RequestEvent,
+	options: SvelteKitConsentRouteOptions
+): ResolvedTarget | null {
+	if (url.startsWith('/')) {
+		if (url.startsWith('//')) {
+			return null;
+		}
+		const resolved = resolveBackendURL(url, {
+			host: new URL(IN_PROCESS_ORIGIN).host,
+			'x-forwarded-proto': 'http',
+		});
+		return resolved ? { fetch: inProcessFetch(event), url: resolved } : null;
+	}
+	const resolved = resolveBackendURL(url, {});
+	return resolved ? { fetch: options.fetch, url: resolved } : null;
 };
 
 /**
@@ -160,14 +273,14 @@ const resolveAgainstRequest = function resolveAgainstRequest(
 const resolveManifestSource = function resolveManifestSource(
 	event: RequestEvent,
 	options: SvelteKitConsentRouteOptions
-): { manifestURL: string } {
+): { manifestURL: string; fetch: ManifestFetch | undefined } {
 	const manifestURL = options.manifestURL ?? getEnv('C15T_MANIFEST_URL');
 	if (manifestURL) {
-		const resolved = resolveAgainstRequest(manifestURL, event);
+		const resolved = resolveTarget(manifestURL, event, options);
 		if (!resolved) {
 			throw new Error('@c15t/svelte/kit: invalid manifest URL.');
 		}
-		return { manifestURL: resolved };
+		return { fetch: resolved.fetch, manifestURL: resolved.url };
 	}
 
 	const backendURL = options.backendURL ?? getEnv('C15T_BACKEND_URL');
@@ -176,11 +289,35 @@ const resolveManifestSource = function resolveManifestSource(
 			'@c15t/svelte/kit: configure `backendURL`, `manifestURL`, or the C15T_BACKEND_URL environment variable.'
 		);
 	}
-	const resolved = resolveAgainstRequest(backendURL, event);
+	const resolved = resolveTarget(backendURL, event, options);
 	if (!resolved) {
 		throw new Error('@c15t/svelte/kit: invalid backend URL.');
 	}
-	return { manifestURL: `${resolved}${MANIFEST_ROUTE_SUFFIX}` };
+	return {
+		fetch: resolved.fetch,
+		manifestURL: `${resolved.url}${MANIFEST_ROUTE_SUFFIX}`,
+	};
+};
+
+/**
+ * The backend the proxy forwards to. A `manifestURL` alone names no backend
+ * to save to.
+ */
+const resolveProxyBackend = function resolveProxyBackend(
+	event: RequestEvent,
+	options: SvelteKitConsentRouteOptions
+): ResolvedTarget {
+	const backendURL = options.backendURL ?? getEnv('C15T_BACKEND_URL');
+	if (!backendURL) {
+		throw new Error(
+			'@c15t/svelte/kit: `proxy` needs `backendURL` or the C15T_BACKEND_URL environment variable.'
+		);
+	}
+	const resolved = resolveTarget(backendURL, event, options);
+	if (!resolved) {
+		throw new Error('@c15t/svelte/kit: invalid backend URL.');
+	}
+	return resolved;
 };
 
 /**
@@ -245,22 +382,32 @@ const defaultFetchGvl = async function defaultFetchGvl(input: {
  *
  * …or one file per route, using `init` and `manifest` directly.
  *
- * @param options - Manifest source, fetch implementation, GVL fetcher.
- * @returns `init`, `manifest`, and a `GET` that dispatches between them.
+ * With `proxy: true` the catch-all route also forwards consent writes to the
+ * backend, so the browser only talks to this origin:
+ *
+ * ```ts
+ * export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } =
+ *   createSvelteKitConsentRouteHandlers({
+ *     backendURL: process.env.C15T_BACKEND_URL,
+ *     proxy: true, // then hosted({ url: '/api/c15t' })
+ *   });
+ * ```
+ *
+ * @param options - Manifest source, fetch implementation, GVL fetcher, proxy.
+ * @returns `init`, `manifest`, and a `GET` that dispatches between them. With
+ * `proxy` on, `POST`, `PATCH`, `PUT`, `DELETE`, `OPTIONS`, and `proxy` join.
  */
 export const createSvelteKitConsentRouteHandlers =
-	function createSvelteKitConsentRouteHandlers(
-		options: SvelteKitConsentRouteOptions = {}
-	): {
-		GET: RequestHandler;
-		init: RequestHandler;
-		manifest: RequestHandler;
-	} {
+	function createSvelteKitConsentRouteHandlers<
+		Options extends SvelteKitConsentRouteOptions = SvelteKitConsentRouteOptions,
+	>(routeOptions?: Options): SvelteKitConsentRouteHandlersFor<Options> {
+		const options: SvelteKitConsentRouteOptions = routeOptions ?? {};
+		const proxyOptions = resolveProxyOptions(options.proxy);
 		const resolveInit = async (event: RequestEvent): Promise<Response> => {
-			const { manifestURL } = resolveManifestSource(event, options);
+			const source = resolveManifestSource(event, options);
 			const { manifest } = await fetchCachedManifest({
-				config: { manifestURL },
-				fetch: options.fetch,
+				config: { manifestURL: source.manifestURL },
+				fetch: source.fetch,
 				onBackgroundRevalidate: bindBackgroundRevalidate(options, event),
 			});
 
@@ -338,11 +485,11 @@ export const createSvelteKitConsentRouteHandlers =
 			keepAliveOnAbort(options, event, () => resolveInit(event));
 
 		const manifest: RequestHandler = async (event) => {
-			const { manifestURL } = resolveManifestSource(event, options);
+			const source = resolveManifestSource(event, options);
 			const query = event.url.searchParams.toString();
 			const result = await fetchCachedManifest({
-				config: { manifestURL },
-				fetch: options.fetch,
+				config: { manifestURL: source.manifestURL },
+				fetch: source.fetch,
 				onBackgroundRevalidate: bindBackgroundRevalidate(options, event),
 				query,
 			});
@@ -367,10 +514,47 @@ export const createSvelteKitConsentRouteHandlers =
 			});
 		};
 
-		const GET: RequestHandler = (event) =>
-			event.url.pathname.endsWith(MANIFEST_ROUTE_SUFFIX)
-				? manifest(event)
-				: init(event);
+		const proxy: RequestHandler = async (event) => {
+			if (!proxyOptions) {
+				return Response.json({ error: 'Not found' }, { status: 404 });
+			}
+			const backend = resolveProxyBackend(event, options);
+			return await proxyConsentRequest({
+				backendURL: backend.url,
+				event,
+				fetch: backend.fetch as typeof globalThis.fetch | undefined,
+				options: proxyOptions,
+			});
+		};
 
-		return { GET, init, manifest };
+		const GET: RequestHandler = (event) => {
+			// Dispatch on the rest parameter when the route has one, so a
+			// proxied path such as `reports/manifest` still reaches the backend.
+			const restPath = readRestPath(event);
+			const isManifest =
+				restPath === undefined
+					? event.url.pathname.endsWith(MANIFEST_ROUTE_SUFFIX)
+					: restPath === 'manifest';
+			if (isManifest) {
+				return manifest(event);
+			}
+			return proxyOptions && restPath && restPath !== 'init'
+				? proxy(event)
+				: init(event);
+		};
+
+		const handlers: SvelteKitConsentRouteHandlers = { GET, init, manifest };
+		if (!proxyOptions) {
+			return handlers as SvelteKitConsentRouteHandlersFor<Options>;
+		}
+		const proxied: SvelteKitConsentProxyRouteHandlers = {
+			...handlers,
+			DELETE: proxy,
+			OPTIONS: proxy,
+			PATCH: proxy,
+			POST: proxy,
+			PUT: proxy,
+			proxy,
+		};
+		return proxied as SvelteKitConsentRouteHandlersFor<Options>;
 	};

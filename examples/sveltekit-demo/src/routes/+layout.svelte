@@ -4,6 +4,7 @@
 	import { env } from '$env/dynamic/public';
 	import { createDemoScripts } from '$lib/consent-manager/demo-scripts';
 	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
+	import ThemeTokens from '$lib/consent-manager/ThemeTokens.svelte';
 	import {
 		ConsentBanner,
 		ConsentDialog,
@@ -26,6 +27,8 @@
 		page.url.pathname.startsWith('/bench') ||
 			page.url.pathname === '/consent-example'
 	);
+	// The showcase renders its own provider and theme tokens.
+	const isThemeShowcase = $derived(page.url.pathname === '/theme');
 	const isIabPlayground = dev && env.PUBLIC_DEVTOOLS_IAB === 'true';
 	const scripts = dev
 		? createDemoScripts({
@@ -63,6 +66,9 @@
 {#if isBenchRoute}
 	{@render children()}
 {:else}
+	{#if !isThemeShowcase}
+		<ThemeTokens theme={activeTheme} />
+	{/if}
 	<!--
 		`prefetch` and `mode` are top-level props: the server already resolved the
 		policy in +layout.server.ts, so the banner renders in the first HTML.

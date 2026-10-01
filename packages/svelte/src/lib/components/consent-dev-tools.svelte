@@ -13,6 +13,7 @@
 		getConsentCategories,
 		maxEvents,
 		position,
+		shadow,
 	}: ConsentDevToolsProps = $props();
 	const context = getConsentContext();
 	// Snapshot updates can return a new array with the same categories. Only
@@ -32,13 +33,14 @@
 			defaultTab,
 			maxEvents,
 			position,
+			shadow,
 		})
 	);
 
 	$effect(() => {
 		const { categoryKey: scopeKey, ...settings } = JSON.parse(viewKey) as Pick<
 			ConsentDevToolsProps,
-			'defaultOpen' | 'defaultTab' | 'maxEvents' | 'position'
+			'defaultOpen' | 'defaultTab' | 'maxEvents' | 'position' | 'shadow'
 		> & { categoryKey: string };
 		const categories = JSON.parse(scopeKey) as ReturnType<
 			NonNullable<ConsentDevToolsProps['getConsentCategories']>

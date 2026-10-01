@@ -17,6 +17,7 @@
 		"@c15t/node-sdk": "workspace:*",
 		"@c15t/svelte": "workspace:*",
 		"@c15t/translations": "workspace:*",
+		"@c15t/ui": "workspace:*",
 		"@libsql/kysely-libsql": "^0.4.1",
 		"c15t": "workspace:*",
 		"kysely": "^0.28.11"

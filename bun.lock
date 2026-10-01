@@ -733,6 +733,7 @@
         "@c15t/node-sdk": "workspace:*",
         "@c15t/svelte": "workspace:*",
         "@c15t/translations": "workspace:*",
+        "@c15t/ui": "workspace:*",
         "@libsql/kysely-libsql": "^0.4.1",
         "c15t": "workspace:*",
         "kysely": "^0.28.11",
@@ -1381,6 +1382,7 @@
         "@c15t/translations": "workspace:*",
         "@c15t/ui": "workspace:*",
         "clsx": "2.1.1",
+        "esm-env": "1.2.2",
       },
       "devDependencies": {
         "@c15t/conformance": "workspace:*",

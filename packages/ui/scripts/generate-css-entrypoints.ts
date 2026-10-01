@@ -42,7 +42,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-import { defaultTheme, generateThemeCSS } from '../src/theme/utils';
+import { defaultTheme, generateDefaultThemeCSS } from '../src/theme/utils';
 import {
 	DIALOG_COMPONENTS,
 	FIRST_PAINT_COMPONENTS,
@@ -314,8 +314,8 @@ const collectCssParts = function collectCssParts(
 };
 
 /**
- * The `defaultTheme` base tokens, rendered by the same `generateThemeCSS` a
- * host calls when it passes `theme`. Every component stylesheet resolves its
+ * The `defaultTheme` base tokens, serialized by the same code as the
+ * `generateThemeCSS` a host calls for its own theme. Every component stylesheet resolves its
  * colours, radii, fonts and motion through these, mostly without `var()`
  * fallbacks, so a stylesheet that ships without them renders unstyled in any
  * app that does not pass a `theme` — including server-rendered, zero-JS pages
@@ -324,18 +324,21 @@ const collectCssParts = function collectCssParts(
  * `defaultTheme` stays the single source of truth: this is generated at build
  * time from the same object the runtime exports, so CSS and JS cannot drift.
  *
- * Emitted first and **unlayered** in every entrypoint. A provider's injected
- * `<style id="c15t-theme">` still wins: it carries the same selectors and the
- * same specificity, and lands later in the cascade — later in `<head>` when
- * the defaults are unlayered too, and unconditionally when a host imports the
- * stylesheet into a cascade layer (`@import ... layer(c15t)`), since unlayered
- * declarations outrank every layer.
+ * Emitted first and **unlayered** in every entrypoint, on the base `:root`
+ * selectors. In the light DOM, a host's `<style id="c15t-theme">` from
+ * `generateThemeCSS` wins wherever it lands: its selectors carry one more
+ * specificity point (`:root:root`), so it overrides these even when it comes
+ * first in the document, as SvelteKit's `<svelte:head>` does. Its `:host`
+ * selector does not, so inside a shadow root the theme must come after this
+ * stylesheet. When a host imports the
+ * stylesheet into a cascade layer (`@import ... layer(c15t)`), unlayered
+ * theme declarations outrank it by layer precedence too.
  */
 const DEFAULT_THEME_BANNER =
 	'/* default theme tokens (generated from defaultTheme) */';
 const DEFAULT_THEME_CSS = [
 	DEFAULT_THEME_BANNER,
-	generateThemeCSS(defaultTheme),
+	generateDefaultThemeCSS(defaultTheme),
 ].join('\n');
 
 /**

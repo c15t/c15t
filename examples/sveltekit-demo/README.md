@@ -62,8 +62,10 @@ other initializers for these vendors before reusing the example.
 
 The YouTube nocookie iframe only mounts with measurement permission and is
 removed on revocation. The placeholder opens preferences. Use the footer's
-Privacy settings control to reopen the dialog. Default theme and Branded theme
-buttons demonstrate CSS token overrides without replacing the consent runtime.
+Privacy settings control to reopen the dialog. The Default theme and Branded
+theme links switch design tokens: `+page.server.ts` renders the Branded theme
+with `generateThemeCSS` and the page puts it in `<svelte:head>`, so the first
+paint already uses it.
 
 Test a fresh rejection, grant, reload and withdrawal. Confirm PostHog and X
 requests are absent before their respective permissions, and the iframe is

@@ -22,6 +22,12 @@ import type { Requests } from './browser';
 import { startExample } from './server';
 import { selectedTargets } from './targets';
 
+/** The `--c15t-primary` each example's Branded design sets, where checked. */
+const BRANDED_PRIMARY: Record<string, string> = {
+	svelte: '#6943a3',
+	sveltekit: '#146b56',
+};
+
 for (const target of selectedTargets()) {
 	describe(target.id, () => {
 		let server: Awaited<ReturnType<typeof startExample>>;
@@ -296,6 +302,20 @@ for (const target of selectedTargets()) {
 					.or(page.getByRole('link', { name: /branded/iu }))
 					.first();
 				await branded.click();
+				const brandedPrimary = BRANDED_PRIMARY[target.id];
+				if (brandedPrimary) {
+					// Branded must reach the tokens the consent UI reads. A provider
+					// `theme` prop alone no longer produces CSS in the browser.
+					await expect
+						.poll(() =>
+							page.evaluate(() =>
+								getComputedStyle(document.documentElement)
+									.getPropertyValue('--c15t-primary')
+									.trim()
+							)
+						)
+						.toBe(brandedPrimary);
+				}
 				await expect.poll(() => video(page).count()).toBe(1);
 				// A query navigation keeps the example route while exercising persisted
 				// entry in every router, including plain HTML examples.
@@ -413,6 +433,30 @@ for (const target of selectedTargets()) {
 				await expect
 					.poll(() => page.getByTestId('experiment').textContent())
 					.toContain('c15t_choice_recorded');
+			});
+		}
+
+		if (target.id === 'sveltekit') {
+			test('a theme rendered in svelte:head overrides the stylesheet defaults', async () => {
+				await visit('/consent-example?theme=branded');
+				// SvelteKit writes `<svelte:head>` before its stylesheet links, so
+				// the package defaults load after the theme and must still lose.
+				const firstStyle = await page.evaluate(
+					() =>
+						document.querySelector('#c15t-theme, link[rel="stylesheet"]')?.id
+				);
+				expect(firstStyle).toBe('c15t-theme');
+				const token = (name: string) =>
+					page.evaluate(
+						(property) =>
+							getComputedStyle(document.documentElement)
+								.getPropertyValue(property)
+								.trim(),
+						name
+					);
+				expect(await token('--c15t-primary')).toBe('#146b56');
+				expect(await token('--c15t-radius-lg')).toBe('1.25rem');
+				expect(requests.unexpected).toEqual([]);
 			});
 		}
 

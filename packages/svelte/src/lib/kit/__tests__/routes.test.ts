@@ -245,20 +245,24 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 			expect(payload.policyResolution.policy.id).toBe('notice-default');
 		});
 
-		test('resolves a relative backendURL against the request origin', async () => {
+		test('fetches a relative backendURL in-process through event.fetch', async () => {
 			const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
+			const eventFetch = vi.fn(() => Promise.resolve(manifestResponse()));
 			const { init } = createSvelteKitConsentRouteHandlers({
 				backendURL: '/api/self-host',
 				fetch: fetchImpl,
 			});
 
-			await init(createEvent({ url: 'http://localhost:5173/api/c15t' }));
-
-			// Keeps the request's own scheme — a plain-http dev server must not
-			// have its backend URL upgraded to https.
-			expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-				'http://localhost:5173/api/self-host/manifest'
+			await init(
+				createEvent({
+					fetch: eventFetch as unknown as typeof globalThis.fetch,
+					headers: { host: 'attacker.example' },
+					url: 'http://attacker.example/api/c15t',
+				})
 			);
+
+			expect(fetchImpl).not.toHaveBeenCalled();
+			expect(eventFetch.mock.calls[0]?.[0]).toBe('/api/self-host/manifest');
 		});
 
 		test('throws when no manifest source is configured', async () => {

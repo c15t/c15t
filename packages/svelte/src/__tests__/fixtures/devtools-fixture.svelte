@@ -15,6 +15,7 @@
 		multiple = false,
 		policyCategories,
 		position = 'top-left',
+		shadow,
 	}: {
 		categories?: import('@c15t/core').AllConsentNames[];
 		clearRecords?: import('../../lib/devtools-options').ConsentDevToolsProps['clearRecords'];
@@ -25,6 +26,7 @@
 		multiple?: boolean;
 		policyCategories?: import('@c15t/core').AllConsentNames[];
 		position?: import('../../lib/devtools-options').ConsentDevToolsProps['position'];
+		shadow?: boolean;
 	} = $props();
 	const resolution = $derived.by(() => {
 		if (!policyCategories) {
@@ -65,6 +67,7 @@
 		{getPresentation}
 		{position}
 		{getConsentCategories}
+		{shadow}
 		defaultOpen
 	/>
 </ConsentManagerProvider>

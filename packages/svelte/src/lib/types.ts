@@ -54,10 +54,15 @@ export type UsePersistenceOptions = RuntimePersistenceOptions;
  * {@link ConsentRuntimeOptions} contract, forwarded untouched to
  * `createConsentRuntime()` from `@c15t/core/runtime`. `createIAB` is
  * supplied by this package, and `pkg` is fixed to `'@c15t/svelte'`.
+ * Policy rules are not a provider option: pass them to the transport as
+ * `offline({ policyRules })`.
  */
 export interface ConsentManagerOptions
 	extends
-		Omit<ConsentRuntimeOptions, 'createIAB' | 'iab' | 'mode' | 'pkg'>,
+		Omit<
+			ConsentRuntimeOptions,
+			'createIAB' | 'iab' | 'mode' | 'pkg' | 'policyRules'
+		>,
 		Pick<
 			UIOptions,
 			| 'colorScheme'
@@ -107,7 +112,9 @@ export interface ConsentManagerOptions
 	 * Slot styles and consent-action variants. Design tokens (colors, dark,
 	 * typography, spacing, radius, shadows, motion) are not applied in the
 	 * browser: render `generateThemeCSS(theme)` from `@c15t/ui/theme` in a
-	 * server `load` or a stylesheet instead.
+	 * server `load` as `<style id="c15t-theme">` in `<svelte:head>`, or put
+	 * its output in a stylesheet. In development the provider warns when
+	 * `theme` has tokens and the page has no `#c15t-theme` element.
 	 */
 	theme?: Theme;
 }
