@@ -197,9 +197,13 @@ export const resolveOptions = function resolveOptions(
 	// backend URL from the environment is written into the options so the
 	// browser gets it too. An inline `manifest` is the deliberately
 	// network-free path and is left alone: an app on it serves its own save
-	// route.
+	// route. `backendURL: ''` is set on purpose: it means this origin.
 	let { mode } = options;
-	if (mode.type === 'manifest' && !mode.manifest && !mode.backendURL) {
+	if (
+		mode.type === 'manifest' &&
+		!mode.manifest &&
+		mode.backendURL === undefined
+	) {
 		const backendURL = backendURLFromEnv();
 		if (!backendURL) {
 			throw new Error(

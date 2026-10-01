@@ -140,6 +140,17 @@ describe('resolveOptions', () => {
 		}
 	});
 
+	it('keeps an empty backendURL, which means this origin', () => {
+		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
+		try {
+			expect(
+				resolveOptions({ mode: manifestMode({ backendURL: '' }) }).mode
+			).toHaveProperty('backendURL', '');
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
 	it('leaves an inline manifest without a backendURL alone', () => {
 		// The network-free path: the app serves its own save route.
 		expect(
