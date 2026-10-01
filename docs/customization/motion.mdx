@@ -91,18 +91,24 @@ other attributes in [component parts](/docs/customization/slots) instead.
 
 Every c15t stylesheet has a `c15t-no-transitions` class that sets
 `transition` and `animation` to `none` on an element and its children. Add it
-to `<html>` while your app swaps themes, so colors change in one frame, and
-remove it on the next frame:
+to `<html>` while your app swaps themes, so colors change in one frame. Force
+a style and layout pass before you remove it. Otherwise the browser computes
+the new theme only after the class is gone, and the change animates:
 
 {/* example: fragment */}
 
 ```ts
-document.documentElement.classList.add('c15t-no-transitions');
+const root = document.documentElement;
+root.classList.add('c15t-no-transitions');
 applyYourTheme();
-requestAnimationFrame(() => {
-	document.documentElement.classList.remove('c15t-no-transitions');
-});
+// Reading layout applies the new theme while transitions are off.
+root.getBoundingClientRect();
+root.classList.remove('c15t-no-transitions');
 ```
+
+This assumes `applyYourTheme` changes classes or custom properties
+synchronously. If your framework applies the theme in a later render, run the
+last two lines after that render commits.
 
 ## Check the result
 
