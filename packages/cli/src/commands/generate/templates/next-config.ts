@@ -51,15 +51,18 @@ const findNextConfigFile = async function findNextConfigFile(
 };
 
 /**
- * Generates the rewrite destination as a quoted string literal
+ * Generates the rewrite destination as a string literal. `JSON.stringify`
+ * escapes quotes and backslashes in the URL, so the generated file stays valid.
  *
  * @param backendURL - The backend URL
- * @returns The destination, for example `'https://your-project.inth.app/:path*'`
+ * @returns The destination, for example `"https://your-project.inth.app/:path*"`
  */
 const generateRewriteDestination = function generateRewriteDestination(
 	backendURL?: string
 ): string {
-	return `'${backendURL || 'https://your-project.inth.app'}/:path*'`;
+	return JSON.stringify(
+		`${backendURL || 'https://your-project.inth.app'}/:path*`
+	);
 };
 
 /**
