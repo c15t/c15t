@@ -48,7 +48,6 @@ import type {
 	GlobalVendorList,
 	InitOutput,
 } from '@c15t/schema/types';
-import type { Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import type { Theme } from '@c15t/ui/theme';
