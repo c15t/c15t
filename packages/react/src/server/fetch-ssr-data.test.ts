@@ -151,6 +151,42 @@ describe('fetchSSRData', () => {
 		expect(sent).not.toHaveProperty('x-forwarded-proto');
 	});
 
+	it('still fetches when only untrusted forwarding headers mark the request', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(createResponse({ categories: [], gvl: null }));
+		vi.stubGlobal('fetch', fetchMock);
+		const headers = new Headers({
+			host: 'example.com',
+			'x-forwarded-host': 'example.com',
+		});
+
+		await fetchSSRData({ backendURL: '/api/c15t', headers });
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://example.com/api/c15t/init',
+			expect.any(Object)
+		);
+		const sent = fetchMock.mock.calls[0]?.[1]?.headers as Record<
+			string,
+			string
+		>;
+		expect(sent).not.toHaveProperty('x-forwarded-host');
+	});
+
+	it('skips the fetch when the request carries no headers', async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+
+		const result = await fetchSSRData({
+			backendURL: 'https://consent.example.com',
+			headers: new Headers(),
+		});
+
+		expect(result).toBeUndefined();
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
 	it('runs independent fetches for concurrent calls', async () => {
 		const fetchMock = vi
 			.fn()
