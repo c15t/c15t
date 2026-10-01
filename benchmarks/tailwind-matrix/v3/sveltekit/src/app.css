@@ -1,5 +1,5 @@
 /* #region docs:tailwind-css title="src/app.css" */
-/* Vite inlines @import first, so it goes above the directives. */
+/* Vite ignores an @import below other rules, so it goes first. */
 @import '@c15t/svelte/styles.css';
 
 @tailwind base;
