@@ -46,3 +46,30 @@ group: reference
   Changing a prop destroys the panel and creates a new one, which clears its
   event history.
 </section>
+
+<section id="embedded-panel">
+  ## Embed the panel in your own page
+
+  `ConsentDevToolsPanel` from `c15t/vue/devtools` fills its parent element
+  instead of floating over the page. It has no launcher or close button and
+  starts open. Use it for your own debug page or another devtools host. Give
+  the parent a height:
+
+  {/* example: fragment */}
+
+  ```vue
+  <script setup lang="ts">
+  import { ConsentDevToolsPanel } from 'c15t/vue/devtools';
+  </script>
+
+  <template>
+    <div style="height: 32rem">
+      <ConsentDevToolsPanel default-tab="events" />
+    </div>
+  </template>
+  ```
+
+  It accepts `defaultTab`, `maxEvents`, `getConsentCategories`,
+  `getPresentation` and `clearRecords`, and must render inside the provider
+  that supplies the kernel.
+</section>

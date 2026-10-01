@@ -176,6 +176,21 @@ group: reference
   ```
 
   In a Next.js app, import `c15tDevtools` from `c15t/next/devtools` instead. Scoped installs use `@c15t/react/devtools` and `@c15t/nextjs/devtools`.
+
+  The c15t panel follows the TanStack Devtools light or dark theme, not your app's consent theme. If you write the plugin entry yourself, use a render function and pass the theme to `C15tTanStackDevtoolsPanel`:
+
+  {/* example: fragment */}
+
+  ```tsx
+  import { C15tTanStackDevtoolsPanel } from 'c15t/react/devtools';
+
+  const c15tPlugin = {
+    name: 'Consent',
+    render: (_element: HTMLElement, { theme }: { theme: 'light' | 'dark' }) => (
+      <C15tTanStackDevtoolsPanel theme={theme} />
+    ),
+  };
+  ```
 </section>
 
 <section id="props">

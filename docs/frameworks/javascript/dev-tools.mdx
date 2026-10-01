@@ -33,6 +33,12 @@ your UI displays if they differ from the policy's. Call `tools.destroy()` from
 your app's teardown; the example uses Vite's hot-module disposal. Destroying
 the panel does not dispose the kernel or change consent.
 
+To host the panel inside another devtools UI, pass that UI's element as
+`container` and set `embedded: true`. The panel then fills the container,
+starts open, and hides its launcher, header and close button. The container can
+belong to a same-origin iframe; the panel still inspects the page that owns the
+kernel.
+
 ## Keep it out of production
 
 `import.meta.env.DEV` is Vite's development flag. Webpack and other bundlers
