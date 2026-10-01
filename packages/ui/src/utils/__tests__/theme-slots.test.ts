@@ -58,6 +58,45 @@ describe('applyThemeSlots', () => {
 		});
 	});
 
+	test('carries a slot noStyle onto the part, even with nothing else', () => {
+		expect(
+			applyThemeSlots(
+				{
+					consentBannerCard: { className: 'custom', noStyle: true },
+					consentDialogCard: { noStyle: true },
+				},
+				undefined,
+				'className'
+			)
+		).toEqual({
+			banner: { card: { className: 'custom', noStyle: true } },
+			dialog: { card: { noStyle: true } },
+		});
+	});
+
+	test('keeps noStyle from either the theme slot or the components part', () => {
+		expect(
+			applyThemeSlots(
+				{
+					consentBannerCard: { className: 'theme-card', noStyle: true },
+					consentBannerTitle: 'theme-title',
+				},
+				{
+					banner: {
+						card: { class: 'app-card', noStyle: false },
+						title: { class: 'app-title', noStyle: true },
+					},
+				},
+				'class'
+			)
+		).toEqual({
+			banner: {
+				card: { class: 'theme-card app-card', noStyle: true },
+				title: { class: 'theme-title app-title', noStyle: true },
+			},
+		});
+	});
+
 	test('maps the consentGate slots onto the consent-gate parts', () => {
 		expect(
 			applyThemeSlots(

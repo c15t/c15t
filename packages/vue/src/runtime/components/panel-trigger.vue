@@ -23,6 +23,7 @@ import { useDraggable } from '../composables/use-draggable';
 import { useLocalStorageRef } from '../composables/use-local-storage-ref';
 import { useMounted } from '../composables/use-mounted';
 import { useWindowSize } from '../composables/use-window-size';
+import { slotAttrs } from '../utils/slot-attrs';
 import ConsentBrandingIcon from './branding-icon.vue';
 
 const activeUI = useConsentActiveUI();
@@ -173,12 +174,13 @@ const openDialog = function openDialog() {
 		<button
 			v-if="isVisible"
 			ref="triggerRef"
-			v-bind="config.components?.trigger?.root"
+			v-bind="
+				slotAttrs(config.components?.trigger?.root, triggerStyles.trigger)
+			"
 			type="button"
 			data-testid="consent-dialog-trigger"
 			data-c15t-trigger="true"
 			:data-c15t-rights="policy.rights.join(' ')"
-			:class="triggerStyles.trigger"
 			:data-size="config.triggerSize"
 			:data-dragging="isDragging ? true : undefined"
 			:data-disable-animation="config.disableAnimation ? true : undefined"
@@ -187,8 +189,7 @@ const openDialog = function openDialog() {
 			@click="openDialog"
 		>
 			<span
-				v-bind="config.components?.trigger?.icon"
-				:class="triggerStyles.icon"
+				v-bind="slotAttrs(config.components?.trigger?.icon, triggerStyles.icon)"
 				aria-hidden="true"
 			>
 				<svg

@@ -8,6 +8,8 @@ import {
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 import { translations as enTranslations } from '@c15t/translations/en';
+import actionStyles from '@c15t/ui/styles/components/consent-actions';
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { flushPromises, mount } from '@vue/test-utils';
 import type { VueWrapper } from '@vue/test-utils';
 import { afterEach, expect, test, vi } from 'vitest';
@@ -115,6 +117,58 @@ test('puts slot classes and styles on the stock banner under components', async 
 	expect(card?.style.padding).toBe('8px');
 	expect(card?.style.opacity).toBe('0.5');
 	expect(part('consent-banner-title')?.classList).toContain('theme-title');
+});
+
+test('drops the stock classes of a part whose slot sets noStyle', async () => {
+	const config = {
+		backendURL: 'https://consent.example',
+		components: { banner: { card: { class: 'app-card' } } },
+		customFetch: vi.fn(() => new Response('{}')) as unknown as typeof fetch,
+		disableAnimation: true,
+		hideBranding: true,
+		theme: {
+			slots: {
+				consentBannerCard: { className: 'theme-card', noStyle: true },
+				consentBannerFooter: { className: 'theme-footer', noStyle: true },
+				consentBannerTitle: { noStyle: true },
+			},
+		},
+	} as ConsentConfig;
+	const context = createVueConsentKernelContext({ config, prefetch: init });
+	context.activeUI.value = 'banner';
+	const wrapper = mount(ConsentBanner, {
+		attachTo: document.body,
+		global: {
+			provide: {
+				[consentConfigKey as symbol]: config,
+				[symbolKernelContext as symbol]: context,
+				[symbolKernel as symbol]: context.kernel,
+				[symbolSnapshot as symbol]: context.snapshot,
+				[symbolInit as symbol]: context.init,
+				[symbolActiveUI as symbol]: context.activeUI,
+				[symbolConsent as symbol]: context.storedConsent,
+			},
+		},
+	});
+	mounted = { context, wrapper };
+	await flushPromises();
+	await vi.waitFor(() => expect(part('consent-banner-card')).not.toBeNull());
+
+	const card = part('consent-banner-card');
+	expect(card?.className).toBe('theme-card app-card');
+	expect(card?.hasAttribute('nostyle')).toBe(false);
+	// A slot with only `noStyle` still applies.
+	expect(part('consent-banner-title')?.classList).not.toContain(
+		bannerStyles.title
+	);
+	const footer = part('consent-banner-footer');
+	expect(footer?.classList).toContain('theme-footer');
+	expect(footer?.classList).not.toContain(bannerStyles.footer);
+	expect(footer?.classList).not.toContain(actionStyles.actionRoot);
+	// Parts without the flag keep their stock classes.
+	expect(part('consent-banner-header')?.classList).toContain(
+		bannerStyles.header
+	);
 });
 
 test('applies the assigned experiment arm slots to the stock banner', async () => {

@@ -7,6 +7,7 @@ import type { ButtonSize } from '@c15t/ui/styles/primitives';
 import { computed, mergeProps } from 'vue';
 
 import { useConsentConfig } from '../composables/config';
+import { slotAttrs } from '../utils/slot-attrs';
 
 const props = withDefaults(
 	defineProps<{
@@ -14,9 +15,15 @@ const props = withDefaults(
 		mode?: ButtonMode;
 		size?: ButtonSize;
 		type?: 'button' | 'submit' | 'reset';
+		/**
+		 * Drop the stock button class. A `components` part bound onto the
+		 * button with `noStyle: true` sets it.
+		 */
+		noStyle?: boolean;
 	}>(),
 	{
 		mode: 'filled',
+		noStyle: false,
 		// Matches the React primitive's default, so a consent surface sizes
 		// its controls the same way in both.
 		size: 'small',
@@ -35,21 +42,18 @@ const buttonAttrs = computed(() =>
 			'data-variant': props.variant,
 			type: props.type,
 		},
-		((props.variant === 'primary'
-			? config.value.components?.button?.primary
-			: config.value.components?.button?.secondary) ?? {}) as Record<
-			string,
-			unknown
-		>
+		slotAttrs(
+			props.variant === 'primary'
+				? config.value.components?.button?.primary
+				: config.value.components?.button?.secondary,
+			props.noStyle ? undefined : buttonStyles.button
+		)
 	)
 );
 </script>
 
 <template>
-	<button
-		v-bind="buttonAttrs"
-		:class="buttonStyles.button"
-	>
+	<button v-bind="buttonAttrs">
 		<slot />
 	</button>
 </template>

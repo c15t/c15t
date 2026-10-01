@@ -5,6 +5,7 @@ import '@c15t/ui/styles/components/consent-actions.css';
 import type { ButtonSize } from '@c15t/ui/styles/primitives';
 import { computed } from 'vue';
 
+import { slotAttrs } from '../utils/slot-attrs';
 import ConsentButton from './button.vue';
 
 type ConsentActionsDirection = 'row' | 'column';
@@ -21,6 +22,10 @@ const props = withDefaults(
 		primaryActions?: T[];
 		labels?: Partial<Record<T, string>>;
 		testIds?: Partial<Record<T, string>>;
+		/**
+		 * The surface's `components` parts for the root and each group. A
+		 * part with `noStyle: true` drops that element's stock classes.
+		 */
 		rootAttrs?: object;
 		groupAttrs?: object;
 		/**
@@ -136,9 +141,8 @@ const buttonMode = function buttonMode(action: T) {
 
 <template>
 	<div
-		v-bind="rootAttrs"
+		v-bind="slotAttrs(rootAttrs, [actionStyles.actionRoot, rootClass])"
 		:data-testid="rootTestId ?? undefined"
-		:class="[actionStyles.actionRoot, rootClass]"
 		:data-direction="resolvedDirection"
 		:data-fill="shouldFill ? true : undefined"
 		:data-split="isSplitLayout && !shouldFill ? true : undefined"
@@ -148,9 +152,8 @@ const buttonMode = function buttonMode(action: T) {
 		<div
 			v-for="(group, groupIndex) in actionGroups"
 			:key="`group-${group.join('-') || groupIndex}`"
-			v-bind="groupAttrs"
+			v-bind="slotAttrs(groupAttrs, actionStyles.actionGroup)"
 			:data-testid="groupTestId"
-			:class="actionStyles.actionGroup"
 			:data-direction="resolvedDirection"
 			:data-fill="shouldFill ? true : undefined"
 		>

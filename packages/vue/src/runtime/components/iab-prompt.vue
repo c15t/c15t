@@ -25,6 +25,7 @@ import { useConsentPolicyActions } from '../composables/use-consent-policy-actio
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import { saveIABChoice } from '../utils/save-iab-choice';
+import { slotAttrs } from '../utils/slot-attrs';
 import ConsentActions from './actions.vue';
 import ConsentTag from './tag.vue';
 
@@ -205,14 +206,15 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 		>
 			<div
 				v-if="showBanner && scrollLock"
-				v-bind="config.components?.['iab-banner']?.overlay"
+				v-bind="
+					slotAttrs(config.components?.['iab-banner']?.overlay, [
+						bannerStyles.overlay,
+						bannerStyles.overlayVisible,
+						disableAnimation ? undefined : bannerStyles.overlayEntering,
+					])
+				"
 				aria-hidden="true"
 				data-testid="iab-consent-banner-overlay"
-				:class="[
-					bannerStyles.overlay,
-					bannerStyles.overlayVisible,
-					disableAnimation ? undefined : bannerStyles.overlayEntering,
-				]"
 			/>
 		</Transition>
 		<Transition
@@ -226,18 +228,19 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 		>
 			<div
 				v-if="showBanner"
-				v-bind="config.components?.['iab-banner']?.root"
+				v-bind="
+					slotAttrs(config.components?.['iab-banner']?.root, [
+						bannerStyles.root,
+						bannerStyles.bannerVisible,
+						disableAnimation ? undefined : bannerStyles.bannerEntering,
+					])
+				"
 				data-testid="iab-consent-banner-root"
 				:data-position="
 					textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
 				"
 				:dir="textDirection"
 				tabindex="-1"
-				:class="[
-					bannerStyles.root,
-					bannerStyles.bannerVisible,
-					disableAnimation ? undefined : bannerStyles.bannerEntering,
-				]"
 			>
 				<div
 					v-bind="config.components?.['iab-banner']?.cardShell"
@@ -248,18 +251,26 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 						context="iab-banner"
 					/>
 					<div
-						v-bind="config.components?.['iab-banner']?.card"
+						v-bind="
+							slotAttrs(
+								config.components?.['iab-banner']?.card,
+								bannerStyles.card
+							)
+						"
 						ref="bannerCard"
 						data-testid="iab-consent-banner-card"
-						:class="bannerStyles.card"
 						:role="shouldTrapFocus ? 'dialog' : 'region'"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.banner?.title"
 					>
 						<div
-							v-bind="config.components?.['iab-banner']?.header"
+							v-bind="
+								slotAttrs(
+									config.components?.['iab-banner']?.header,
+									bannerStyles.header
+								)
+							"
 							data-testid="iab-consent-banner-header"
-							:class="bannerStyles.header"
 						>
 							<h2
 								v-bind="config.components?.['iab-banner']?.title"

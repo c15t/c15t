@@ -4,6 +4,7 @@
  */
 import { CONSENT_COMPONENT_SLOT_KEY_MAP } from '@c15t/schema/config';
 import type { ConsentComponentSlotKey } from '@c15t/schema/config';
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { THEME_SLOT_COMPONENT_KEYS } from '@c15t/ui/utils';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -72,6 +73,42 @@ describe('theme.slots in React', () => {
 			color: 'rgb(4, 5, 6)',
 		});
 		expect(part('consent-banner-title')?.classList).toContain('theme-title');
+		unmount();
+	});
+
+	test('drops the stock classes of a part whose slot sets noStyle', async () => {
+		const { unmount } = await render(
+			<ConsentProvider
+				options={{
+					components: {
+						banner: { card: { className: 'app-card' } },
+					},
+					mode: offline(),
+					persistence: false,
+					prefetch: policyFixture(),
+					theme: {
+						slots: {
+							consentBannerCard: { className: 'theme-card', noStyle: true },
+							consentBannerTitle: { noStyle: true },
+						},
+					},
+				}}
+			>
+				<ConsentBanner disableAnimation />
+			</ConsentProvider>
+		);
+
+		await vi.waitFor(() => expect(part('consent-banner-card')).not.toBeNull());
+		const card = part('consent-banner-card');
+		expect(card?.className).toBe('theme-card app-card');
+		expect(card?.hasAttribute('nostyle')).toBe(false);
+		// A slot with only `noStyle` still applies.
+		const title = part('consent-banner-title');
+		expect(title?.classList).not.toContain(bannerStyles.title);
+		// Parts without the flag keep their stock classes.
+		expect(part('consent-banner-header')?.classList).toContain(
+			bannerStyles.header
+		);
 		unmount();
 	});
 

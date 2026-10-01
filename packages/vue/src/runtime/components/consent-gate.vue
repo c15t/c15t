@@ -13,6 +13,7 @@ import {
 } from '../composables';
 import { useConsentConfig } from '../composables/config';
 import { useSurfaceTranslations } from '../composables/use-surface-translations';
+import { slotAttrs } from '../utils/slot-attrs';
 import ConsentButton from './button.vue';
 
 const props = defineProps<{ category: AllConsentNames }>();
@@ -95,14 +96,22 @@ const openPreferences = function openPreferences() {
 		name="placeholder"
 	>
 		<div
-			v-bind="config.components?.['consent-gate']?.root"
+			v-bind="
+				slotAttrs(
+					config.components?.['consent-gate']?.root,
+					gateStyles.placeholder
+				)
+			"
 			data-testid="consent-gate-placeholder"
-			:class="gateStyles.placeholder"
 		>
 			<div
-				v-bind="config.components?.['consent-gate']?.title"
+				v-bind="
+					slotAttrs(
+						config.components?.['consent-gate']?.title,
+						gateStyles.title
+					)
+				"
 				data-testid="consent-gate-title"
-				:class="gateStyles.title"
 			>
 				{{ title }}
 			</div>

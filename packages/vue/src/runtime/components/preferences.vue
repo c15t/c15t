@@ -38,6 +38,7 @@ import { useConsentDraft } from '../composables/draft';
 import { useConsentSnapshot } from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { switchVariants } from '../primitives/switch-variants';
+import { slotAttrs } from '../utils/slot-attrs';
 import { consentWidgetManagerKey } from './preferences-manager-context';
 import ConsentTag from './tag.vue';
 import ConsentWidgetVendorList from './vendor-list.vue';
@@ -259,15 +260,23 @@ const onAction = async function onAction(action: PresentationAction) {
 	</div>
 	<div
 		v-if="hasConsentUi"
-		v-bind="config.components?.manager?.root"
-		:class="noStyle ? undefined : managerStyles.manager"
+		v-bind="
+			slotAttrs(
+				config.components?.manager?.root,
+				noStyle ? undefined : managerStyles.manager
+			)
+		"
 		:dir="textDirection"
 		data-testid="consent-widget-root"
 		:data-disable-animation="config.disableAnimation ? true : undefined"
 	>
 		<div
-			v-bind="config.components?.accordion?.root"
-			:class="noStyle ? undefined : accordionStyles.list"
+			v-bind="
+				slotAttrs(
+					config.components?.accordion?.root,
+					noStyle ? undefined : accordionStyles.list
+				)
+			"
 			data-testid="consent-widget-accordion"
 		>
 			<div
@@ -338,8 +347,12 @@ const onAction = async function onAction(action: PresentationAction) {
 							role="switch"
 							:aria-checked="draft[category] ? 'true' : 'false'"
 							:aria-label="consentTitle(category)"
-							v-bind="config.components?.switch?.root"
-							:class="noStyle ? undefined : sw.root()"
+							v-bind="
+								slotAttrs(
+									config.components?.switch?.root,
+									noStyle ? undefined : sw.root()
+								)
+							"
 							:data-disabled="category === 'necessary' ? '' : undefined"
 							:data-size="noStyle ? undefined : 'small'"
 							data-slot="switch"
@@ -402,12 +415,14 @@ const onAction = async function onAction(action: PresentationAction) {
 		</div>
 		<div
 			v-bind="
-				mergeProps(
-					{ ...config.components?.manager?.footer },
-					{ ...config.components?.manager?.actions }
+				slotAttrs(
+					mergeProps(
+						{ ...config.components?.manager?.footer },
+						{ ...config.components?.manager?.actions }
+					),
+					footerClass
 				)
 			"
-			:class="footerClass"
 			data-testid="consent-widget-footer"
 			:data-direction="direction"
 			:data-fill="shouldFillActions ? true : undefined"
@@ -416,8 +431,12 @@ const onAction = async function onAction(action: PresentationAction) {
 			<div
 				v-for="(group, groupIndex) in actionGroups"
 				:key="`group-${group.join('-') || groupIndex}`"
-				v-bind="config.components?.manager?.actionGroup"
-				:class="footerSubGroupClass"
+				v-bind="
+					slotAttrs(
+						config.components?.manager?.actionGroup,
+						footerSubGroupClass
+					)
+				"
 				data-testid="consent-widget-footer-sub-group"
 				:data-direction="direction"
 				:data-fill="shouldFillActions ? true : undefined"
@@ -427,11 +446,13 @@ const onAction = async function onAction(action: PresentationAction) {
 					:key="action"
 					type="button"
 					v-bind="
-						actionVariant(action) === 'primary'
-							? config.components?.button?.primary
-							: config.components?.button?.secondary
+						slotAttrs(
+							actionVariant(action) === 'primary'
+								? config.components?.button?.primary
+								: config.components?.button?.secondary,
+							actionClass()
+						)
 					"
-					:class="actionClass()"
 					:disabled="isStale"
 					:data-action="action"
 					:data-mode="noStyle ? undefined : 'stroke'"

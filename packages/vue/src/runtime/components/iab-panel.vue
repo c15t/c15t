@@ -45,6 +45,7 @@ import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '../primitives';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import { saveIABChoice } from '../utils/save-iab-choice';
+import { slotAttrs } from '../utils/slot-attrs';
 import ConsentActions from './actions.vue';
 import IabFeatureItem from './iab-feature-item.vue';
 import type { IabVendorId } from './iab-purpose-item.vue';
@@ -361,10 +362,14 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 		>
 			<div
 				v-if="showDialog && scrollLock"
-				v-bind="config.components?.['iab-dialog']?.overlay"
+				v-bind="
+					slotAttrs(config.components?.['iab-dialog']?.overlay, [
+						dialogStyles.overlay,
+						dialogStyles.overlayVisible,
+					])
+				"
 				aria-hidden="true"
 				data-testid="iab-consent-dialog-overlay"
-				:class="[dialogStyles.overlay, dialogStyles.overlayVisible]"
 			/>
 		</Transition>
 		<Transition
@@ -378,10 +383,14 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 		>
 			<div
 				v-if="showDialog"
-				v-bind="config.components?.['iab-dialog']?.root"
+				v-bind="
+					slotAttrs(config.components?.['iab-dialog']?.root, [
+						dialogStyles.root,
+						dialogStyles.dialogVisible,
+					])
+				"
 				data-testid="iab-consent-dialog-root"
 				:dir="textDirection"
-				:class="[dialogStyles.root, dialogStyles.dialogVisible]"
 			>
 				<Transition
 					:css="!disableAnimation"
@@ -395,9 +404,13 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 					<div
 						v-if="showDialog"
 						ref="card"
-						v-bind="config.components?.['iab-dialog']?.card"
+						v-bind="
+							slotAttrs(config.components?.['iab-dialog']?.card, [
+								dialogStyles.card,
+								dialogStyles.contentVisible,
+							])
+						"
 						data-testid="iab-consent-dialog-card"
-						:class="[dialogStyles.card, dialogStyles.contentVisible]"
 						role="dialog"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.preferenceCenter?.title"
@@ -406,8 +419,12 @@ useFocusTrap(card, () => shouldTrapFocus.value, {
 						@keydown="onDialogKeydown"
 					>
 						<div
-							v-bind="config.components?.['iab-dialog']?.header"
-							:class="dialogStyles.header"
+							v-bind="
+								slotAttrs(
+									config.components?.['iab-dialog']?.header,
+									dialogStyles.header
+								)
+							"
 						>
 							<div
 								v-bind="config.components?.['iab-dialog']?.headerContent"

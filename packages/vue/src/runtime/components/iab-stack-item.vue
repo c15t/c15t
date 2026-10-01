@@ -32,6 +32,7 @@ import {
 	SwitchRoot,
 	SwitchThumb,
 } from '../primitives';
+import { slotAttrs } from '../utils/slot-attrs';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
 import IabPurposeItem from './iab-purpose-item.vue';
 import ChevronRightIcon from './icons/chevron-right-icon.vue';
@@ -151,9 +152,8 @@ const stackChecked = computed({
 				<SwitchRoot
 					v-if="consentPurposes.length > 0"
 					v-model="stackChecked"
-					v-bind="config.components?.switch?.root"
+					v-bind="slotAttrs(config.components?.switch?.root, switchStyles.root)"
 					:aria-label="stack.name"
-					:class="switchStyles.root"
 					data-size="medium"
 				>
 					<span

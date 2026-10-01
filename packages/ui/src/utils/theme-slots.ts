@@ -78,8 +78,9 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
 /**
  * Put one slot's attributes from `theme.slots` under the ones `components`
  * sets for the same part. Classes from both apply, theme first. Inline
- * styles merge, with `components` winning per property. Any other attribute
- * set in `components` replaces the theme's.
+ * styles merge, with `components` winning per property. `noStyle` from
+ * either side applies, as in `resolveStyles`. Any other attribute set in
+ * `components` replaces the theme's.
  */
 const mergeSlot = function mergeSlot(
 	fromTheme: ComponentSlotAttributes,
@@ -90,6 +91,9 @@ const mergeSlot = function mergeSlot(
 		return fromTheme;
 	}
 	const merged: ComponentSlotAttributes = { ...fromTheme, ...explicit };
+	if (fromTheme.noStyle === true || explicit.noStyle === true) {
+		merged.noStyle = true;
+	}
 	const themeClass = fromTheme[classAttribute];
 	const explicitClass = explicit[classAttribute];
 	if (themeClass && explicitClass) {
@@ -240,9 +244,10 @@ const withCSSLengths = function withCSSLengths(
  * map a React or Vue app passes itself.
  *
  * Each slot's classes and `style` become the attributes the framework
- * binds: `className` for React, `class` for Vue. A slot's `noStyle` flag
- * has no `components` equivalent and is dropped: the slot's classes still
- * apply, on top of the stock ones.
+ * binds: `className` for React, `class` for Vue. A slot's `noStyle: true`
+ * sets `noStyle: true` on the part, which drops that part's stock classes
+ * and keeps the slot's, as in the other adapters. A `noStyle` set on the
+ * part in `components` stays: either side turns it on.
  *
  * @param slots - The theme's `slots`.
  * @param components - The app's own `components` map, which wins where both
@@ -279,16 +284,17 @@ export const applyThemeSlots = function applyThemeSlots<
 		if (!value) {
 			continue;
 		}
-		const { className, style } =
-			typeof value === 'string'
-				? { className: value, style: undefined }
-				: value;
+		const { className, noStyle, style } =
+			typeof value === 'string' ? { className: value } : value;
 		const attributes: ComponentSlotAttributes = {};
 		if (className) {
 			attributes[classAttribute] = className;
 		}
 		if (style && Object.keys(style).length > 0) {
 			attributes.style = withCSSLengths(style);
+		}
+		if (noStyle) {
+			attributes.noStyle = true;
 		}
 		if (Object.keys(attributes).length === 0) {
 			continue;

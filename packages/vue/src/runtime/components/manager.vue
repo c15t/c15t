@@ -24,6 +24,7 @@ import {
 	DialogPortal,
 	DialogRoot,
 } from '../primitives';
+import { slotAttrs } from '../utils/slot-attrs';
 import ConsentDescription from './description.vue';
 import { consentWidgetManagerKey } from './preferences-manager-context';
 import ConsentWidget from './preferences.vue';
@@ -221,14 +222,15 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 			<DialogOverlay
 				v-if="surface.blocking"
 				:style="overlayFallbackStyle"
-				v-bind="config.components?.dialog?.overlay"
+				v-bind="
+					slotAttrs(config.components?.dialog?.overlay, [
+						dialogStyles.overlay,
+						isOverlayVisible
+							? dialogStyles.overlayVisible
+							: dialogStyles.overlayHidden,
+					])
+				"
 				data-testid="consent-dialog-overlay"
-				:class="[
-					dialogStyles.overlay,
-					isOverlayVisible
-						? dialogStyles.overlayVisible
-						: dialogStyles.overlayHidden,
-				]"
 				:data-disable-animation="disableAnimation ? true : undefined"
 			/>
 			<!-- The outer element only positions the panel over the
@@ -246,30 +248,43 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 				aria-describedby="consent-dialog-description"
 			>
 				<DialogContent
-					v-bind="config.components?.dialog?.container"
+					v-bind="
+						slotAttrs(config.components?.dialog?.container, [
+							dialogStyles.container,
+							dialogStyles.contentVisible,
+						])
+					"
 					:data-blocking="surface.blocking ? 'true' : undefined"
 					data-testid="consent-dialog-root"
 					:dir="textDirection"
-					:class="[dialogStyles.container, dialogStyles.contentVisible]"
 					aria-labelledby="consent-dialog-title"
 					aria-describedby="consent-dialog-description"
 				>
 					<div
-						v-bind="config.components?.dialog?.card"
+						v-bind="
+							slotAttrs(config.components?.dialog?.card, dialogStyles.card)
+						"
 						data-testid="consent-dialog-card"
-						:class="dialogStyles.card"
 						tabindex="-1"
 					>
 						<div
-							v-bind="config.components?.dialog?.header"
+							v-bind="
+								slotAttrs(
+									config.components?.dialog?.header,
+									dialogStyles.header
+								)
+							"
 							data-testid="consent-dialog-header"
-							:class="dialogStyles.header"
 						>
 							<h2
-								v-bind="config.components?.dialog?.title"
+								v-bind="
+									slotAttrs(
+										config.components?.dialog?.title,
+										dialogStyles.title
+									)
+								"
 								data-testid="consent-dialog-title"
 								id="consent-dialog-title"
-								:class="dialogStyles.title"
 							>
 								{{
 									init?.translations?.translations?.consentManagerDialog?.title
@@ -278,9 +293,13 @@ provide(consentWidgetManagerKey, { draft: draftState, onAction });
 							<ConsentDescription context="dialog" />
 						</div>
 						<div
-							v-bind="config.components?.dialog?.content"
+							v-bind="
+								slotAttrs(
+									config.components?.dialog?.content,
+									dialogStyles.content
+								)
+							"
 							data-testid="consent-dialog-content"
-							:class="dialogStyles.content"
 						>
 							<ConsentWidget />
 						</div>
