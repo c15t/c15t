@@ -528,11 +528,19 @@ export const createSvelteKitConsentRouteHandlers =
 		};
 
 		const GET: RequestHandler = (event) => {
-			if (event.url.pathname.endsWith(MANIFEST_ROUTE_SUFFIX)) {
+			// Dispatch on the rest parameter when the route has one, so a
+			// proxied path such as `reports/manifest` still reaches the backend.
+			const restPath = readRestPath(event);
+			const isManifest =
+				restPath === undefined
+					? event.url.pathname.endsWith(MANIFEST_ROUTE_SUFFIX)
+					: restPath === 'manifest';
+			if (isManifest) {
 				return manifest(event);
 			}
-			const restPath = proxyOptions ? readRestPath(event) : undefined;
-			return restPath && restPath !== 'init' ? proxy(event) : init(event);
+			return proxyOptions && restPath && restPath !== 'init'
+				? proxy(event)
+				: init(event);
 		};
 
 		const handlers: SvelteKitConsentRouteHandlers = { GET, init, manifest };

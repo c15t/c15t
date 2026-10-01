@@ -11,8 +11,9 @@ packages:
 using `hosted({ url: '/api/c15t' })` got `405` on every save. Pass
 `proxy: true` and the handlers add `POST`, `PATCH`, `PUT`, `DELETE` and
 `OPTIONS`, which forward to `backendURL`. `GET` forwards paths other than
-`init` and `manifest`, which are still resolved in-process. Export all six
-from the catch-all route:
+`init` and `manifest`, which are still resolved in-process. Only those
+exact rest paths stay local, so a `paths` entry such as `reports/manifest`
+is forwarded. Export all six from the catch-all route:
 
 ```ts
 // src/routes/api/c15t/[...path]/+server.ts

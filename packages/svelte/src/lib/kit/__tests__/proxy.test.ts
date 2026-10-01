@@ -155,6 +155,22 @@ describe('createSvelteKitConsentRouteHandlers proxy', () => {
 		expect(calls.at(-1)?.url).toBe(`${BACKEND}/status`);
 	});
 
+	test('forwards a custom GET path that ends in manifest', async () => {
+		const { calls, fetch } = upstream(() => Response.json({ rows: [] }));
+		const { GET } = createSvelteKitConsentRouteHandlers({
+			backendURL: BACKEND,
+			fetch,
+			proxy: { paths: ['reports/manifest'] },
+		});
+
+		const response = await GET(consentEvent('reports/manifest'));
+
+		expect(await response.json()).toEqual({ rows: [] });
+		expect(calls.map((call) => call.url)).toEqual([
+			`${BACKEND}/reports/manifest`,
+		]);
+	});
+
 	test.each([
 		['an unlisted path', 'admin/users'],
 		['an encoded dot segment', 'subjects/%2e%2e'],
