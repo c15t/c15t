@@ -97,6 +97,24 @@ banner's shape and position, `ui.css` adds CSS inside the shadow root, and
 `i18n` changes the copy. [Customize](/docs/frameworks/javascript/customize)
 covers each option.
 
+## Check it works
+
+Run the app, open it in a private window, and open the browser's developer
+tools on the Network tab.
+
+1. Before you choose, filter for `posthog` and `ads-twitter`. There are no
+   requests, and the YouTube iframe has no `src`.
+2. Click **Reject All** and reload. The banner stays closed and the vendor
+   requests stay absent.
+3. Click **Privacy settings**, turn on **Analytics** (the `measurement` category) only and save. PostHog and
+   the YouTube player load. X Pixel does not.
+4. Open **Privacy settings** again and turn **Analytics** off. The page reloads,
+   and PostHog and YouTube do not load again.
+
+If no banner appears, see [why is there no banner](/docs/guides/troubleshooting#why-is-there-no-banner).
+Run the full [verification checklist](/docs/guides/verify-consent) before you
+ship.
+
 ## Next steps
 
 - Render your own banner with the [headless runtime](/docs/frameworks/javascript/headless).
@@ -109,21 +127,3 @@ covers each option.
   option.
 - Run code on consent events with [callbacks](/docs/frameworks/javascript/callbacks).
 - Add languages with [translations](/docs/frameworks/javascript/translations).
-
-## Check it works
-
-Run the app, open it in a private window, and open the browser's developer
-tools on the Network tab.
-
-1. Before you choose, filter for `posthog` and `ads-twitter`. There are no
-   requests, and the YouTube iframe has no `src`.
-2. Click **Reject All** and reload. The banner stays closed and the vendor
-   requests stay absent.
-3. Click **Privacy settings**, allow Measurement only and save. PostHog and
-   the YouTube player load. X Pixel does not.
-4. Open **Privacy settings** again and turn Measurement off. The page reloads,
-   and PostHog and YouTube do not load again.
-
-If no banner appears, see [troubleshooting](/docs/frameworks/javascript/troubleshooting).
-Run the full [verification checklist](/docs/guides/verify-consent) before you
-ship.

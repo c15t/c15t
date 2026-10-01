@@ -91,6 +91,24 @@ tag adds a [floating button](/docs/frameworks/html/components/trigger)
 instead. [Components](/docs/frameworks/html/components) lists every surface
 and page hook.
 
+## Check it works
+
+Open the site in a private window with the browser's developer tools open on
+the Network tab.
+
+1. Before you choose, filter for `posthog` and `ads-twitter`. There are no
+   requests, and the YouTube iframe has no `src`.
+2. Click **Reject All** and reload. The banner stays closed and the vendor
+   requests stay absent.
+3. Open **Privacy settings**, turn on **Analytics** (the `measurement` category) only and save. PostHog's
+   `array.js` and the YouTube player load. X Pixel's `uwt.js` does not.
+4. Open **Privacy settings** again and turn **Analytics** off. The page reloads,
+   and PostHog and YouTube do not load again.
+
+If no banner appears, the policy for your location may not ask for one. See
+[troubleshooting](/docs/frameworks/html/troubleshooting). Run the full
+[verification checklist](/docs/guides/verify-consent) before you ship.
+
 ## Other ways to run the tag
 
 - **Offline mode.** Leave out `data-backend-url` and c15t resolves the policy
@@ -108,25 +126,9 @@ and page hook.
   the banner can render without a per-visit request. See
   [modes](/docs/frameworks/html/attributes-and-api#choose-a-mode).
 
-Next, [customize the banner](/docs/frameworks/html/customize), read the
-[attributes](/docs/frameworks/html/attributes-and-api) and
-[window.c15t API](/docs/frameworks/html/api) references, or add
-[translations](/docs/frameworks/html/translations).
+## Next steps
 
-## Check it works
-
-Open the site in a private window with the browser's developer tools open on
-the Network tab.
-
-1. Before you choose, filter for `posthog` and `ads-twitter`. There are no
-   requests, and the YouTube iframe has no `src`.
-2. Click **Reject All** and reload. The banner stays closed and the vendor
-   requests stay absent.
-3. Open **Privacy settings**, allow Measurement only and save. PostHog's
-   `array.js` and the YouTube player load. X Pixel's `uwt.js` does not.
-4. Open **Privacy settings** again and turn Measurement off. The page reloads,
-   and PostHog and YouTube do not load again.
-
-If no banner appears, the policy for your location may not ask for one. See
-[troubleshooting](/docs/frameworks/html/troubleshooting). Run the full
-[verification checklist](/docs/guides/verify-consent) before you ship.
+- [Customize the banner](/docs/frameworks/html/customize).
+- Read the [attributes](/docs/frameworks/html/attributes-and-api) and
+  [window.c15t API](/docs/frameworks/html/api) references.
+- Add [translations](/docs/frameworks/html/translations).

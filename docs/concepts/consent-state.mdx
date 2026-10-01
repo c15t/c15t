@@ -88,7 +88,8 @@ shows the prompt again.
 Tabs on another subdomain that shares the consent cookie do not share
 localStorage, so the browser sends them no `storage` event. They pick up the
 change on their next focus or visibility change, or when you reconcile
-yourself (see below).
+yourself as described in
+[Reconcile yourself or turn it off](#reconcile-yourself-or-turn-it-off).
 
 The `storage` event only exists for localStorage. When localStorage is
 unavailable (blocked by the browser, a sandboxed frame or a privacy mode) and
@@ -110,8 +111,8 @@ Several triggers in quick succession run one reconciliation in a later task.
 Reconnecting does not read storage, because going online changes nothing in
 browser storage. On reconnect the kernel retries saves the backend did not
 accept and a failed initialization. Save retries do not write the cookie or
-localStorage. A write that follows initialization obeys the ordering described
-below.
+localStorage. A write that follows initialization obeys the rules in
+[Ordering with pending writes](#ordering-with-pending-writes).
 
 Every adapter that mounts browser persistence does this: the React, Next.js and
 TanStack Start providers, Vue, Svelte, Astro, the script tag and
@@ -135,38 +136,8 @@ Stored records are merged into the ones in memory:
   resolved (at init, from a prefetch or in a save response) is replaced only by
   a strictly newer stored choice, and an identity set with `identify()` is
   never replaced.
-- Under an IAB policy, the `@c15t/iab` module then loads the TC string the other
-  tab stored, together with its purpose, vendor and special-feature selections,
-  so `__tcfapi` and the preference controls show the choice now in force.
-  Selections the visitor changed in this tab without saving are kept. A missing
-  or older stored TC string leaves the current one in place, unless it conflicts
-  with the reconciled choice: then it is withdrawn and `__tcfapi` reports no
-  consent until the next save. A category denied after the TC string was saved
-  conflicts if the TC string grants any of its purposes. A partial selection
-  saved through IAB, which records its category as denied because not every
-  purpose is granted, keeps its TC string. A TC string confirmed before the
-  choice's newest decision no longer describes it and is withdrawn too, unless
-  a newer receipt replaces it. That receipt is adopted even when its TC string
-  is identical, since TC strings round their time to the day and custom-vendor
-  selections live only in the receipt; its expiry then applies. The TC
-  string and its receipt (`euconsent-v2`, `c15t-iab-authority-v1`) belong to one
-  origin, so after a save on a sibling subdomain that shares the consent cookie,
-  this subdomain reports no consent through `__tcfapi` until it saves again.
-  Vendors never receive the stale TC string in between: it is withdrawn, or
-  held back, before `__tcfapi` publishes. A tab also reloads the TC string
-  when another tab on the same origin stores a new one, which covers a save in
-  the same millisecond or one that changed only vendors. When two tabs save in
-  the same millisecond with different selections, the more restrictive TC
-  string wins in both, so a revoked vendor is never advertised again. If each
-  grants something the other denies, neither is published until the next save:
-  the stored receipt is removed, so a page opened later does not restore it.
-  When another tab removes the receipt, or clears localStorage, the TC string
-  is withdrawn here too, since a page opened now would find none, and a
-  receipt this tab was still decoding is not installed. The removal after a
-  tie checks that the stored receipt is the one it read, but localStorage has
-  no conditional removal, so a receipt another tab stored a moment earlier can
-  still be removed. Every tab then withdraws its TC string until the next save,
-  so the race only ever withholds consent.
+- Under an IAB policy, the TC string follows the reconciled choice. See
+  [How the TC string is reconciled](#how-the-tc-string-is-reconciled).
 - A record removed from readable storage since this tab last saw it present is
   cleared, and the active policy decides again. A record this tab never saw in
   storage, such as a receipt merged from the server after `identify()` or a
@@ -176,6 +147,49 @@ Stored records are merged into the ones in memory:
 
 Expiry is not decided here. The applied records are evaluated at the time of the
 read, the same way as at startup.
+
+### How the TC string is reconciled
+
+Under an IAB policy, a tab adopts the TC string another tab stored, unless that
+TC string conflicts with the reconciled choice. A conflicting TC string is
+withdrawn, and `__tcfapi` reports no consent until the next save. Vendors never
+receive a stale TC string: c15t withdraws it, or holds it back, before
+`__tcfapi` publishes.
+
+1. The `@c15t/iab` module loads the TC string the other tab stored, with its
+   purpose, vendor and special-feature selections, so `__tcfapi` and the
+   preference controls show the choice now in force. Selections the visitor
+   changed in this tab without saving are kept.
+2. A missing or older stored TC string leaves the current one in place, unless
+   the current one conflicts with the reconciled choice. Then it is withdrawn.
+3. A category denied after the TC string was saved conflicts if the TC string
+   grants any of its purposes. A partial selection saved through IAB, which
+   records its category as denied because not every purpose is granted, keeps
+   its TC string.
+4. A TC string confirmed before the choice's newest decision no longer
+   describes it and is withdrawn, unless a newer receipt replaces it. That
+   receipt is adopted even when its TC string is identical, because TC strings
+   round their time to the day and custom-vendor selections live only in the
+   receipt. The receipt's expiry then applies.
+5. The TC string and its receipt (`euconsent-v2`, `c15t-iab-authority-v1`)
+   belong to one origin. After a save on a sibling subdomain that shares the
+   consent cookie, this subdomain reports no consent through `__tcfapi` until
+   it saves again.
+6. A tab reloads the TC string when another tab on the same origin stores a
+   new one. This covers a save in the same millisecond, or one that changed
+   only vendors.
+7. When two tabs save in the same millisecond with different selections, the
+   more restrictive TC string wins in both, so a revoked vendor is never
+   advertised again. If each grants something the other denies, neither is
+   published until the next save, and the stored receipt is removed so a page
+   opened later does not restore it.
+8. When another tab removes the receipt or clears localStorage, this tab
+   withdraws its TC string too, because a page opened now would find none. A
+   receipt this tab was still decoding is not installed.
+9. The removal after a tie checks that the stored receipt is the one it read.
+   localStorage has no conditional removal, so a receipt another tab stored a
+   moment earlier can still be removed. Every tab then withdraws its TC string
+   until the next save, so the race only ever withholds consent.
 
 ### Clearing records across tabs
 

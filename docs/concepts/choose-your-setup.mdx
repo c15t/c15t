@@ -26,7 +26,7 @@ to the alternatives it rules out.
 | Nuxt with `nuxt generate` on static hosting | Nuxt module, browser resolves consent from the manifest or `/init` | [Nuxt static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting) |
 | Nuxt with `ssr: false` | Nuxt module, browser resolves consent from the manifest | [Nuxt single-page app](/docs/frameworks/nuxt/rendering#build-a-single-page-app-with-ssr-false) |
 | Vue with Vite | Vue plugin, browser resolves consent | [Vue](/docs/frameworks/vue/quickstart) |
-| Vue rendered on the server without Nuxt | Not supported. Use Nuxt. | [Vue rendering](/docs/frameworks/vue/rendering#server-rendering-without-nuxt) |
+| Vue rendered on the server without Nuxt | Vue plugin; the banner mounts after hydration. Use Nuxt for the banner in server HTML. | [Vue rendering](/docs/frameworks/vue/rendering#server-rendering-without-nuxt) |
 | Astro with static output | Browser resolves consent through the hosted backend | [Astro static output](/docs/frameworks/astro/rendering#static-output-with-hosted) |
 | Astro with server output and an adapter | Middleware resolves consent from a cached manifest | [Astro server output](/docs/frameworks/astro/rendering#server-output-with-manifest) |
 | Svelte with Vite | Svelte provider, browser resolves consent | [Svelte](/docs/frameworks/svelte/quickstart) |

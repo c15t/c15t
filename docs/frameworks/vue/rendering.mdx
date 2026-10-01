@@ -10,7 +10,7 @@ group: frameworks
 | --- | --- |
 | Vue with Vite, served as static files | The [quickstart](/docs/frameworks/vue/quickstart). The browser calls your backend's `/init`. |
 | Vue with Vite, with a cacheable policy file | The quickstart plus `manifest: 'client'` and `manifestURL`. |
-| Vue rendered on the server without Nuxt | Not supported. Use the c15t Nuxt module. |
+| Vue rendered on the server without Nuxt | Supported; the banner mounts after hydration. For the banner in server HTML, use the Nuxt module from the [framework list](/docs/frameworks). |
 
 ## Resolve consent in the browser
 
@@ -75,8 +75,8 @@ import { generateTokensCSS } from 'c15t/vue/vue-plugin';
 const tokensStyle = `<style id="c15t-css-vars">${generateTokensCSS(tokens)}</style>`;
 ```
 
-For server-rendered Vue, use the c15t Nuxt module; its guide is under Nuxt in
-the framework list.
+For the banner in server-rendered HTML, use the c15t Nuxt module. Start with
+the Nuxt quickstart in the [framework list](/docs/frameworks).
 It resolves the policy on the server, renders the banner and tokens in the
 first HTML, and hydrates without another request.
 
