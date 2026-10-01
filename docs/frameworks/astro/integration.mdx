@@ -55,7 +55,7 @@ Required. Build it with one of the three helpers from `c15t/astro`:
 
 | Field | Type | Effect |
 | --- | --- | --- |
-| `backendURL` | `string` | Where the browser saves consent. Required unless you pass an inline `manifest` |
+| `backendURL` | `string` | Where the browser saves consent. Required unless you pass an inline `manifest`. `''` saves on this origin and then also needs a `manifestURL` or an inline `manifest` |
 | `manifestURL` | `string` | Where the server fetches the manifest. Defaults to `${backendURL}/manifest` |
 | `manifest` | `ConsentManifest` | An inline manifest, used instead of fetching one. Your app then serves its own save route |
 | `reportSessions` | `boolean` | Reports each server-resolved view to the backend, so visitor counts stay complete. Default `true` |
@@ -182,7 +182,8 @@ one copy. Keep it small, because it loads on every page.
 | Message contains | Cause |
 | --- | --- |
 | `` `mode` is required `` | `c15t()` has no `mode`, or `mode` is not built with a helper |
-| `manifest mode` and `backendURL` | `manifest()` has no backend URL in its options or the environment |
+| `pass backendURL to manifest()` | `manifest()` has no `backendURL` and no inline `manifest` |
+| `gives the server no manifest to fetch` | `manifest({ backendURL: '' })` has no `manifestURL` or inline `manifest` |
 | `unknown ui` | `ui` is not `'svelte'`, `'react'` or `'vue'` |
 | `ui: "svelte" needs @astrojs/svelte` | The `ui` framework's Astro integration is missing |
 | `manifest mode injects on-demand routes` | `astro build` runs with the routes on and no server adapter |
