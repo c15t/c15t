@@ -172,6 +172,8 @@ queue instead of retrying:
 | `409 POLICY_SNAPSHOT_EXPIRED` | `givenAt` is outside the token's lifetime, or the request arrived after the replay window |
 | `409 POLICY_SNAPSHOT_INVALID` | The token doesn't verify, or its claims are incomplete |
 | `422 STALE_POLICY`, reason `policy-changed` | The policy the token names is no longer in the manifest under that fingerprint. The visitor saw the old text, so the choice is not recorded against the new one. |
+| `409 CONFLICT` | This act was already recorded with different receipts, purposes or vendor grants. The earlier record stands. |
+| `409 SUBJECT_CONFLICT` | Another tenant on the same database already holds the save's `subjectId`. The client generates a new subject ID and sends the choice once under it; the save is dropped only if that also fails. |
 
 A refused save stays recorded in the visitor's browser only. `givenAt` is
 supplied by the client. A late save can only claim a time inside the lifetime

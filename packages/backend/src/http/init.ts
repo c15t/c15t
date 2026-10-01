@@ -126,11 +126,11 @@ export const buildInitResponse = async function buildInitResponse(
 	snapshot?: PolicySnapshotOptions,
 	gvl?: GvlConfig,
 	/**
-	 * Tenant the token audience is scoped to. The instance's tenant when it
-	 * has one, so the save route verifying under `options.tenantId` and the
-	 * init route minting agree; the manifest's tenant otherwise.
+	 * Tenant the token audience is scoped to: the instance's, so the save
+	 * route verifying under `options.tenantId` and the init route minting
+	 * agree.
 	 */
-	tokenTenantId: string | undefined = config.tenantId
+	tokenTenantId?: string
 ): Promise<{
 	body: InitOutput;
 	signals: InitRequestSignals;

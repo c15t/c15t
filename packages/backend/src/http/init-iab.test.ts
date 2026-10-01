@@ -90,7 +90,6 @@ const manifest: ConsentManifestConfig = {
 	appName: 'c15t-self-host',
 	iab: { cmpId: 53, enabled: true },
 	policyRules: [policyRulePresets.europeIab()],
-	tenantId: 'ins_1',
 };
 
 /** A Berlin visitor: covered by the preset, German-language. */

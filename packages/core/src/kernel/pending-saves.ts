@@ -13,8 +13,14 @@
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import { validateExplicitChoice } from '../consent-record/validation';
 import { isExperimentAssignment } from '../libs/experiment-record';
-import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
-import { isConsentSaveRejection } from '../transports/save-rejection';
+import {
+	PENDING_SAVES_STORAGE_KEY,
+	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
+} from '../libs/storage-keys';
+import {
+	isConsentSaveRejection,
+	isSubjectConflict,
+} from '../transports/save-rejection';
 import type { KernelEvent, KernelTransport, SavePayload } from '../types';
 import { selectSavePayload } from './save-selection';
 
@@ -356,6 +362,93 @@ const readPendingSaves = function readPendingSaves(
 	}
 };
 
+/** A subject id the backend refused, and the one this browser moved to. */
+interface SubjectReassignment {
+	from: string;
+	to: string;
+	at: number;
+}
+
+const isSubjectReassignment = function isSubjectReassignment(
+	value: unknown
+): value is SubjectReassignment {
+	return (
+		isRecord(value) &&
+		typeof value.from === 'string' &&
+		typeof value.to === 'string' &&
+		typeof value.at === 'number' &&
+		Number.isFinite(value.at)
+	);
+};
+
+/**
+ * Stored reassignments, dropping malformed ones and those no queued save can
+ * still need: older than a queued save may live, and with no save left
+ * queued under the old id. A tab still on the old id can queue a save days
+ * after the reassignment, and that save needs the record for as long as it
+ * waits.
+ */
+const readReassignments = function readReassignments(
+	storage: Storage,
+	now: number
+): SubjectReassignment[] {
+	try {
+		const parsed: unknown = JSON.parse(
+			storage.getItem(SUBJECT_REASSIGNMENTS_STORAGE_KEY) ?? '[]'
+		);
+		if (!Array.isArray(parsed)) {
+			return [];
+		}
+		const cutoff = now - MAX_PENDING_SAVE_AGE_MS;
+		const queued = new Set(
+			readPendingSaves(storage).map((entry) => entry.payload.subjectId)
+		);
+		return parsed.filter(
+			(item): item is SubjectReassignment =>
+				isSubjectReassignment(item) &&
+				(item.at >= cutoff || queued.has(item.from))
+		);
+	} catch {
+		return [];
+	}
+};
+
+const writeReassignments = function writeReassignments(
+	storage: Storage,
+	reassignments: SubjectReassignment[]
+): void {
+	try {
+		if (reassignments.length === 0) {
+			storage.removeItem(SUBJECT_REASSIGNMENTS_STORAGE_KEY);
+			return;
+		}
+		storage.setItem(
+			SUBJECT_REASSIGNMENTS_STORAGE_KEY,
+			JSON.stringify(reassignments)
+		);
+	} catch {
+		// Without storage each tab picks its own id; the save still goes out.
+	}
+};
+
+/**
+ * The same save under another subject id. Keys keep their positions, so a
+ * queued entry moved by the queue's `claimReassignment` still serializes
+ * identically to one rebuilt from the original payload.
+ *
+ * @internal
+ */
+export const withSubjectId = function withSubjectId(
+	payload: SavePayload,
+	subjectId: string
+): SavePayload {
+	return {
+		...payload,
+		subject: { ...payload.subject, subjectId },
+		subjectId,
+	};
+};
+
 const isSamePendingSave = function isSamePendingSave(
 	left: PendingSaveEntry,
 	right: PendingSaveEntry
@@ -393,6 +486,12 @@ const recordReplayResult = function recordReplayResult(
 interface PendingSaveQueueOptions {
 	emit: (event: KernelEvent) => void;
 	save: NonNullable<KernelTransport['save']>;
+	/**
+	 * Give the visitor a new subject id after the backend refused `from` as
+	 * another tenant's. Resolves to the new id, or `null` when `from` is no
+	 * longer the visitor's subject and the save cannot move.
+	 */
+	reassignSubject?: (from: string) => Promise<string | null>;
 }
 
 /**
@@ -442,10 +541,89 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 	};
 
 	/**
+	 * The subject id that replaces `from` in this browser, shared by every
+	 * tab. The first caller records `proposed`; any later one, in this tab or
+	 * another, gets the id already recorded. Two tabs refused at the same
+	 * moment would otherwise each pick an id, and one of them would persist a
+	 * subject the backend holds no consent for.
+	 *
+	 * Every queued save for `from` moves to the returned id in the same
+	 * locked step, so none is replayed under the refused one. Calling it again
+	 * moves saves queued under `from` since.
+	 *
+	 * `isCurrent` is asked once the lock is held, before anything is written.
+	 * Waiting for the lock can take long enough for the visitor to be cleared
+	 * or switched; then nothing is recorded or moved and this resolves to
+	 * `null`, so saves that no longer belong to the visitor stay where they
+	 * were.
+	 */
+	const claimReassignment = function claimReassignment(
+		from: string,
+		proposed: string,
+		isCurrent: () => boolean
+	): Promise<string | null> {
+		const storage = getLocalStorage();
+		if (!storage) {
+			return Promise.resolve(isCurrent() ? proposed : null);
+		}
+
+		return withQueueLock(() => {
+			if (!isCurrent()) {
+				return null;
+			}
+			const now = Date.now();
+			const reassignments = readReassignments(storage, now);
+			const recorded = reassignments.find((item) => item.from === from);
+			const to = recorded?.to ?? proposed;
+			if (!recorded) {
+				writeReassignments(storage, [...reassignments, { at: now, from, to }]);
+			}
+
+			const pending = readPendingSaves(storage);
+			if (pending.some((entry) => entry.payload.subjectId === from)) {
+				const moved = pending.map((entry) =>
+					entry.payload.subjectId === from
+						? { ...entry, payload: withSubjectId(entry.payload, to) }
+						: entry
+				);
+				writePendingSaves(storage, normalizePendingSaves(moved, now));
+			}
+			return to;
+		});
+	};
+
+	/**
+	 * The id this browser already moved `from` to, if one is recorded. Read
+	 * without recording anything, so a save for a subject this browser never
+	 * reassigned cannot start a new reassignment.
+	 */
+	const recordedReassignment = function recordedReassignment(
+		from: string
+	): Promise<string | undefined> {
+		const storage = getLocalStorage();
+		if (!storage) {
+			return Promise.resolve(undefined);
+		}
+		return withQueueLock(
+			() =>
+				readReassignments(storage, Date.now()).find(
+					(item) => item.from === from
+				)?.to
+		);
+	};
+
+	/**
 	 * Replay one entry. Returns `null` when another tab already replayed or
 	 * dropped it, otherwise the replay outcome. A save the backend refused
 	 * for good (a `ConsentSaveRejectedError`) leaves the queue at once
 	 * instead of using up its attempts.
+	 *
+	 * The exception is a `SUBJECT_CONFLICT`: the subject id belongs to
+	 * another tenant, not the choice. The kernel reassigns the subject, which
+	 * rekeys the queue, and the entry is replayed once more under the new id.
+	 * The move is recorded in `moved` so the rest of this run replays its
+	 * other saves under the new id too. `moved` is `null` for the second
+	 * attempt, so a backend that refuses every id cannot keep the loop going.
 	 *
 	 * The lock is only held around the queue reads and writes, never across
 	 * the network call: a hung transport must not block other tabs from
@@ -455,8 +633,9 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 	 */
 	const replayEntry = async function replayEntry(
 		storage: Storage,
-		entry: PendingSaveEntry
-	): Promise<{ ok: boolean; rejected?: string } | null> {
+		entry: PendingSaveEntry,
+		moved: Map<string, string> | null
+	): Promise<{ ok: boolean; rejected?: string; subjectId: string } | null> {
 		const stillQueued = await withQueueLock(() =>
 			readPendingSaves(storage).some((candidate) =>
 				isSamePendingSave(candidate, entry)
@@ -472,6 +651,20 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 			const { ok } = await options.save(entry.payload);
 			outcome = ok ? 'saved' : 'retry';
 		} catch (error) {
+			if (moved && isSubjectConflict(error) && options.reassignSubject) {
+				const subjectId = await options.reassignSubject(
+					entry.payload.subjectId
+				);
+				if (subjectId !== null) {
+					moved.set(entry.payload.subjectId, subjectId);
+					// The queue already holds this entry under the new id.
+					return replayEntry(
+						storage,
+						{ ...entry, payload: withSubjectId(entry.payload, subjectId) },
+						null
+					);
+				}
+			}
 			// Anything else keeps the entry for a later init or online event.
 			if (isConsentSaveRejection(error)) {
 				outcome = 'rejected';
@@ -479,9 +672,10 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 			}
 		}
 		await withQueueLock(() => recordReplayResult(storage, entry, outcome));
+		const { subjectId } = entry.payload;
 		return rejected === undefined
-			? { ok: outcome === 'saved' }
-			: { ok: false, rejected };
+			? { ok: outcome === 'saved', subjectId }
+			: { ok: false, rejected, subjectId };
 	};
 
 	const runReplay = async function runReplay(): Promise<boolean> {
@@ -491,19 +685,26 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 		}
 
 		const pending = await withQueueLock(() => readPendingSaves(storage));
-		for (const entry of pending) {
+		// Subjects reassigned during this run. The queue has already moved
+		// their saves, so the entries read above are looked up under the new
+		// id rather than skipped as gone.
+		const moved = new Map<string, string>();
+		for (const queued of pending) {
+			const to = moved.get(queued.payload.subjectId);
+			const entry =
+				to === undefined
+					? queued
+					: { ...queued, payload: withSubjectId(queued.payload, to) };
 			// Preserve save order and avoid burst replays against the consent
 			// endpoint.
 			// oxlint-disable-next-line no-await-in-loop
-			const result = await replayEntry(storage, entry);
+			const result = await replayEntry(storage, entry, moved);
 			if (result === null) {
 				continue;
 			}
-			options.emit({
-				...result,
-				subjectId: entry.payload.subjectId,
-				type: 'save:replayed',
-			});
+			// The subject the save finally went out under, which differs from
+			// the queued one after a reassignment.
+			options.emit({ ...result, type: 'save:replayed' });
 		}
 
 		const remaining = await withQueueLock(() => readPendingSaves(storage));
@@ -523,5 +724,11 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 		}
 	};
 
-	return { discard, enqueue, replay };
+	return {
+		claimReassignment,
+		discard,
+		enqueue,
+		recordedReassignment,
+		replay,
+	};
 };

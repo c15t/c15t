@@ -235,7 +235,7 @@ for (const engine of ENGINES) {
 				givenAt: T0,
 				preferences: { marketing: false, necessary: true },
 			});
-			assert.strictEqual(changed.status, 400);
+			assert.strictEqual(changed.status, 409);
 			assert.strictEqual(
 				(changed.body.cause as { code: string }).code,
 				'CONFLICT'

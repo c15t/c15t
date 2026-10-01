@@ -63,6 +63,11 @@ export interface ConsentManifestIAB {
 export interface ConsentManifest {
 	schemaVersion: 2;
 	revision: string;
+	/**
+	 * The tenant, when the manifest's producer names one. Host session
+	 * reports copy it. `@c15t/backend` leaves it unset: a self-hosted
+	 * instance's `tenantId` option scopes everything it serves.
+	 */
 	tenantId?: string;
 	appName?: string;
 	branding: ConsentManifestBranding;
@@ -340,7 +345,6 @@ export { checkJurisdiction };
  * object carrying these fields will do.
  */
 export interface ConsentManifestConfig {
-	readonly tenantId?: string;
 	readonly appName?: string;
 	readonly branding?: ConsentManifest['branding'];
 	readonly disableGeoLocation?: boolean;
@@ -433,7 +437,6 @@ export const buildConsentManifestFromConfig =
 			policyPacks,
 			revision: '',
 			schemaVersion: 2,
-			tenantId: config.tenantId,
 			translations: {
 				customTranslations: config.customTranslations,
 				i18n: config.i18n,

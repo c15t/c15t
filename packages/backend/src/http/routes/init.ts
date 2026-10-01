@@ -39,7 +39,7 @@ export const register = function register({
 				c.req.raw.headers,
 				options.policySnapshot,
 				options.gvl,
-				options.tenantId ?? options.manifest?.tenantId
+				options.tenantId
 			);
 			// The same event a manifest host reports through `POST /sessions`,
 			// so one sink sees every visitor regardless of which path served

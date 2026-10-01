@@ -43,6 +43,23 @@ export class PolicySnapshotError extends Data.TaggedError(
 }> {}
 
 /**
+ * A save collides with a record that already exists and says something else.
+ *
+ * 409 rather than 400: the request is well-formed, and resending it unchanged
+ * is refused the same way every time. A client can drop it rather than
+ * replaying it.
+ *
+ * - `CONFLICT`: the consent was already recorded with different purposes,
+ *   receipts or vendor grants.
+ * - `SUBJECT_CONFLICT`: the client-chosen `subjectId` belongs to another
+ *   tenant. The client can recover by choosing a new id.
+ */
+export class ConflictError extends Data.TaggedError('ConflictError')<{
+	readonly code: 'CONFLICT' | 'SUBJECT_CONFLICT';
+	readonly message: string;
+}> {}
+
+/**
  * A save asserted a policy decision that no longer resolves.
  *
  * 422, matching 2.x's manifest-mode recompute-on-write: the inputs parsed,
@@ -59,6 +76,7 @@ export type RouteError =
 	| NotFoundError
 	| BadRequestError
 	| PolicySnapshotError
+	| ConflictError
 	| StalePolicyError
 	| SqlError.SqlError;
 
@@ -87,6 +105,7 @@ export const toHttp = function toHttp(error: RouteError): HttpFailure {
 				status: 400,
 			};
 		case 'PolicySnapshotError':
+		case 'ConflictError':
 			return {
 				body: { cause: { code: error.code }, message: error.message },
 				status: 409,

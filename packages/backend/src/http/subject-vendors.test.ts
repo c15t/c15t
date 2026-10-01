@@ -252,7 +252,7 @@ for (const engine of ENGINES) {
 					version: 1,
 				},
 			});
-			assert.strictEqual(conflict.status, 400, JSON.stringify(conflict.body));
+			assert.strictEqual(conflict.status, 409, JSON.stringify(conflict.body));
 			assert.strictEqual(
 				(conflict.body.cause as { code: string }).code,
 				'CONFLICT'

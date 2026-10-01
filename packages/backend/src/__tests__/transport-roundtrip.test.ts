@@ -20,6 +20,7 @@ import { afterEach, assert, beforeEach, describe, it } from 'vitest';
 
 import { evaluateConsentRecord } from '../../../core/src/consent-record/evaluate';
 import { createEvaluationPolicy } from '../../../core/src/consent-record/evaluation-policy';
+import { createConsentKernel } from '../../../core/src/kernel';
 import { createHostedTransport } from '../../../core/src/transports/hosted';
 import type { SubjectSavePayload } from '../../../core/src/transports/subject-body';
 import { ENGINES } from './engines';
@@ -265,6 +266,98 @@ describe.each(ENGINES)(
 			assert.strictEqual(evaluation.categories.marketing.authority, 'valid');
 			assert.strictEqual(evaluation.permissions.marketing, true);
 			assert.strictEqual(evaluation.permissions.measurement, false);
+		});
+	}
+);
+
+describe.each(ENGINES)(
+	'a subject id another tenant owns, client to database ($name)',
+	(engine) => {
+		let harness: HttpHarness;
+
+		beforeEach(async () => {
+			harness = await createHttpHarness(engine, {
+				manifest: { appName: 'Tenant A', policyRules: RULES },
+				tenantId: 'tenant_a',
+			});
+		});
+
+		afterEach(async () => {
+			await harness.dispose();
+		});
+
+		/** A hosted transport whose fetches the given app answers. */
+		const transportFor = (app: HttpHarness['app']) =>
+			createHostedTransport({
+				backendURL: 'https://backend.test/c15t',
+				domain: 'example.com',
+				fetch: ((input: string | URL | Request, init?: RequestInit) =>
+					app.request(
+						new URL(String(input)).pathname.replace(/^\/c15t/u, ''),
+						init
+					)) as typeof globalThis.fetch,
+				headers: { 'x-c15t-country': 'DE' },
+			});
+
+		it('records the visitor under a new id instead of failing every save', async () => {
+			// Two tenants on one database. `subject.id` is the primary key, so
+			// once tenant A holds `sub_shared`, tenant B can never insert it.
+			// Before the fix, B's visitor got an error on every save, forever.
+			const tenantB = harness.appWith({
+				manifest: { appName: 'Tenant B', policyRules: RULES },
+				tenantId: 'tenant_b',
+			});
+			const kernelA = createConsentKernel({
+				initialRecords: { subject: { subjectId: 'sub_shared' } },
+				transport: transportFor(harness.app),
+			});
+			const kernelB = createConsentKernel({
+				initialRecords: { subject: { subjectId: 'sub_shared' } },
+				transport: transportFor(tenantB),
+			});
+
+			try {
+				await kernelA.commands.init();
+				const saved = await kernelA.commands.save('all');
+				assert.deepInclude(saved, { ok: true, subjectId: 'sub_shared' });
+
+				await kernelB.commands.init();
+				const recovered = await kernelB.commands.save('all');
+
+				assert.isTrue(recovered.ok);
+				const newId = kernelB.getSnapshot().subject?.subjectId;
+				assert.isString(newId);
+				assert.notStrictEqual(newId, 'sub_shared');
+				assert.strictEqual(recovered.subjectId, newId);
+
+				// B reads its consent under the new id; the shared id stays A's.
+				const mine = await harness.json(
+					'GET',
+					`/subjects/${newId}`,
+					undefined,
+					{},
+					tenantB
+				);
+				assert.strictEqual(mine.status, 200);
+				const theirs = await harness.json(
+					'GET',
+					'/subjects/sub_shared',
+					undefined,
+					{},
+					tenantB
+				);
+				assert.strictEqual(theirs.status, 404);
+				assert.strictEqual(
+					await harness.count('consent', {
+						column: 'subjectId',
+						value: 'sub_shared',
+					}),
+					1
+				);
+			} finally {
+				kernelA.dispose();
+				kernelB.dispose();
+			}
 		});
 	}
 );

@@ -14,6 +14,7 @@ import {
 	PENDING_SAVES_STORAGE_KEY,
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
+	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 } from '../../../libs/storage-keys';
 import type { ConsentKernel } from '../../../types';
 import { createClearOnRevocation } from '../index';
@@ -197,6 +198,7 @@ describe('web storage cleanup', () => {
 			STORAGE_KEY_V2,
 			STORAGE_KEY,
 			PENDING_SAVES_STORAGE_KEY,
+			SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 			'c15t-notice',
 			'c15t-privacy',
 			'custom',
@@ -220,8 +222,13 @@ describe('web storage cleanup', () => {
 		for (const key of protectedKeys) {
 			expect(window.localStorage.getItem(key)).toBe('value');
 		}
+		// Protected in localStorage only; nothing writes these as cookies.
+		const storageOnly = new Set([
+			PENDING_SAVES_STORAGE_KEY,
+			SUBJECT_REASSIGNMENTS_STORAGE_KEY,
+		]);
 		for (const key of protectedKeys.filter(
-			(value) => value !== PENDING_SAVES_STORAGE_KEY
+			(value) => !storageOnly.has(value)
 		)) {
 			expect(document.cookie).toContain(`${key}=value`);
 		}

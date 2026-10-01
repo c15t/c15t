@@ -27,7 +27,6 @@ import {
 
 const config: ConsentManifestConfig = {
 	appName: 'Example',
-	tenantId: 'tenant_1',
 };
 
 describe('init signals', () => {
@@ -369,8 +368,9 @@ describe('init with a matching policy', () => {
 				prompt: 'choice',
 			},
 		],
-		tenantId: 'tenant_1',
 	};
+	/** The instance's tenant, which the routes pass for the token audience. */
+	const tenantId = 'tenant_1';
 
 	it('resolves a policy decision', async () => {
 		const { body } = await buildInitResponse(withPolicy, new Headers());
@@ -405,7 +405,9 @@ describe('init with a matching policy', () => {
 		const { body } = await buildInitResponse(
 			withPolicy,
 			new Headers(),
-			snapshot
+			snapshot,
+			undefined,
+			tenantId
 		);
 		const typed = body as {
 			policySnapshotToken?: string;
@@ -428,7 +430,9 @@ describe('init with a matching policy', () => {
 		const { body } = await buildInitResponse(
 			withPolicy,
 			new Headers(),
-			snapshot
+			snapshot,
+			undefined,
+			tenantId
 		);
 		const claims = decodeJwt(
 			(body as { policySnapshotToken?: string }).policySnapshotToken ?? ''

@@ -543,10 +543,10 @@ for (const engine of ENGINES) {
 			assert.isNull(onReport.mock.calls[0]?.[1].ip);
 		});
 
-		it('stamps a /init session with the configured tenant over the manifest one', async () => {
+		it('stamps a /init session with the configured tenant', async () => {
 			const onReport = vi.fn();
 			const reporting = createApp(runtime, {
-				manifest: { appName: 'Example', tenantId: 'from_manifest' },
+				manifest: { appName: 'Example' },
 				sessions: { onReport },
 				tenantId: 'tenant_a',
 			});
@@ -629,7 +629,7 @@ for (const engine of ENGINES) {
 			// counting sessions needs no second path for the old route.
 			const onReport = vi.fn();
 			const reporting = createApp(runtime, {
-				manifest: { appName: 'Example', tenantId: 'tenant_1' },
+				manifest: { appName: 'Example' },
 				sessions: { onReport },
 				tenantId: 'tenant_1',
 			});

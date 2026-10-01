@@ -34,7 +34,7 @@ import type { ConsentRow } from '../../repository/subject';
 import { validateRequestAuth } from '../auth';
 import { prepareSubmission } from '../consent-submission';
 import type { RouteContext } from '../context';
-import { BadRequestError, NotFoundError } from '../errors';
+import { BadRequestError, ConflictError, NotFoundError } from '../errors';
 
 /** One consent as the wire reports it, with 2.x fields plus v3 receipts. */
 const toConsentItem = (consent: ConsentRow): ConsentItem => ({
@@ -232,7 +232,7 @@ export const register = function register({
 						now,
 						policySnapshot: options.policySnapshot,
 						// The same tenant the init route scoped the token audience to.
-						tenantId: options.tenantId ?? options.manifest?.tenantId,
+						tenantId: options.tenantId,
 					});
 					const { input } = prepared;
 
@@ -302,10 +302,15 @@ export const register = function register({
 					// The client chose this `subjectId` and it is already taken by
 					// another tenant. Reported rather than absorbed: writing under the
 					// other tenant's subject would disclose its consents, and dropping
-					// the submission would lose a legal record.
+					// the submission would lose a legal record. A code of its own,
+					// because this is the one conflict the client can recover from:
+					// it picks a new id and sends the choice again.
 					Effect.catchTag('SubjectTenantConflictError', (error) =>
 						Effect.fail(
-							new BadRequestError({ code: 'CONFLICT', message: error.message })
+							new ConflictError({
+								code: 'SUBJECT_CONFLICT',
+								message: error.message,
+							})
 						)
 					),
 					// Same shape, different cause: the identity exists but the
@@ -314,7 +319,7 @@ export const register = function register({
 					// it was not.
 					Effect.catchTag('ConsentPurposeConflictError', (error) =>
 						Effect.fail(
-							new BadRequestError({ code: 'CONFLICT', message: error.message })
+							new ConflictError({ code: 'CONFLICT', message: error.message })
 						)
 					)
 				)

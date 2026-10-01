@@ -16,14 +16,16 @@
 import { policyRulePresets } from '@c15t/schema/types';
 import type { ConsentManifestConfig } from '@c15t/schema/types';
 import { PgliteClient } from '@effect/sql-pglite';
-import { assert, describe, it } from '@effect/vitest';
+import { assert, describe, expect, it } from '@effect/vitest';
 import { Effect, Layer, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 
 import { toLayer } from './db/connect';
 import { up as baseline } from './db/migrations/1-baseline';
+import { createApp } from './http/app';
 import type { GvlConfig } from './http/gvl';
 import { c15tInstance } from './instance';
+import type { C15TOptions } from './instance';
 import { composePacks, policyBuilder } from './policy/builder';
 
 /**
@@ -308,5 +310,107 @@ describe('startup warning for the vendor list', () => {
 			warningsDuring({ policyRules: [policyRulePresets.europeOptIn()] }),
 			[]
 		);
+	});
+});
+
+describe('tenant configuration', () => {
+	/**
+	 * Builds an instance and disposes it again, so a case that expects the
+	 * build to succeed does not leak a pool.
+	 */
+	const build = async (options: Omit<C15TOptions, 'database'>) => {
+		const instance = c15tInstance({
+			database: { dialect: 'sqlite', filename: ':memory:' },
+			...options,
+		});
+		await instance.dispose();
+	};
+
+	it('refuses to start without a tenantId when one is required', async () => {
+		// The failure this exists for: a tenant lookup that came back
+		// undefined. Without the flag the instance runs as the single-tenant
+		// scope and writes the tenant's consents where it cannot read them.
+		await expect(
+			build({ requireTenantId: true, tenantId: undefined })
+		).rejects.toThrow(/requireTenantId/u);
+	});
+
+	it.each([
+		['string', 'true'],
+		['number', 1],
+		['null', null],
+	])('refuses a requireTenantId that is a %s', async (_label, value) => {
+		// Treating anything but `true` as off would let an untyped config start
+		// in the null-tenant scope while its author believes it is guarded.
+		await expect(
+			build({ requireTenantId: value as unknown as boolean })
+		).rejects.toThrow(/requireTenantId must be a boolean/u);
+	});
+
+	it('starts when a required tenantId is present', async () => {
+		await expect(
+			build({ requireTenantId: true, tenantId: 'tenant_a' })
+		).resolves.toBeUndefined();
+	});
+
+	it('still starts single-tenant when nothing asks for a tenant', async () => {
+		await expect(build({})).resolves.toBeUndefined();
+	});
+
+	it.each([
+		['empty', ''],
+		['blank', '   '],
+		['padded', ' tenant_a\n'],
+	])('refuses an %s tenantId', async (_label, tenantId) => {
+		await expect(build({ tenantId })).rejects.toThrow(/tenantId/u);
+	});
+
+	it('refuses a null tenantId from an untyped config', async () => {
+		// `null` would scope every query to `tenantId = NULL`, which matches
+		// no row: reads find nothing and nothing says why.
+		await expect(
+			build({ tenantId: null as unknown as string })
+		).rejects.toThrow(/received null/u);
+	});
+
+	it('refuses the removed manifest.tenantId instead of ignoring it', async () => {
+		// It never scoped a query. A config that named its tenant only there
+		// would, if the field were silently dropped, write every row with a
+		// null tenant.
+		const manifest = { tenantId: 'tenant_a' } as ConsentManifestConfig;
+		await expect(build({ manifest })).rejects.toThrow(
+			/manifest\.tenantId is no longer supported/u
+		);
+		await expect(build({ manifest, tenantId: 'tenant_a' })).rejects.toThrow(
+			/already "tenant_a"/u
+		);
+	});
+
+	it('refuses manifest.tenantId even when its value is undefined', async () => {
+		// `tenantId: process.env.TENANT_ID` with the variable unset: exactly the
+		// migration a value check would wave through into the null scope.
+		const manifest = { tenantId: undefined } as ConsentManifestConfig;
+		await expect(build({ manifest })).rejects.toThrow(
+			/manifest\.tenantId is no longer supported/u
+		);
+	});
+
+	it('applies the same check to createApp', async () => {
+		// `createApp` is the other public way in; it must not be the one that
+		// skips the check.
+		const runtime = ManagedRuntime.make(
+			PgliteClient.layer({}) as unknown as Layer.Layer<
+				SqlClient.SqlClient,
+				never
+			>
+		);
+		try {
+			assert.throws(
+				() => createApp(runtime, { requireTenantId: true }),
+				/requireTenantId/u
+			);
+		} finally {
+			await runtime.dispose();
+		}
 	});
 });

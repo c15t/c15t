@@ -19,7 +19,7 @@ import {
 	gradeLevel,
 	middleware as observability,
 } from '../observability/evlog';
-import { makeRun } from './context';
+import { assertTenantOptions, makeRun } from './context';
 import type { AppOptions, RouteContext } from './context';
 import { register as registerConsent } from './routes/consent';
 import { register as registerExperiment } from './routes/experiment';
@@ -37,6 +37,7 @@ export const createApp = function createApp(
 	runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>,
 	options: AppOptions = {}
 ) {
+	assertTenantOptions(options);
 	const app = new Hono();
 
 	// First, so the wide event covers CORS rejections and preflights too — a

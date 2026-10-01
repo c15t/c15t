@@ -14,6 +14,12 @@
  * - `STALE_POLICY`: the policy the save names is no longer the one the
  *   backend has (reason `policy-changed`), or its decision inputs no
  *   longer resolve to it.
+ * - `CONFLICT`: this act was already recorded with different receipts,
+ *   purposes or vendor grants. The earlier record stands.
+ * - `SUBJECT_CONFLICT`: the save's `subjectId` belongs to another tenant
+ *   on a shared database. Resending it is refused the same way, so the
+ *   kernel gives the visitor a new subject id and sends the choice again
+ *   once under it.
  *
  * Transports throw a {@link ConsentSaveRejectedError} for these, and the
  * kernel drops the save instead of queueing it for replay. The choice
@@ -22,10 +28,12 @@
  */
 
 const PERMANENT_REJECTION_CODES: ReadonlySet<string> = new Set([
+	'CONFLICT',
 	'POLICY_SNAPSHOT_EXPIRED',
 	'POLICY_SNAPSHOT_INVALID',
 	'POLICY_SNAPSHOT_REQUIRED',
 	'STALE_POLICY',
+	'SUBJECT_CONFLICT',
 ]);
 
 /**
@@ -84,6 +92,20 @@ export const isConsentSaveRejection = function isConsentSaveRejection(
 		error !== null &&
 		(error as { c15tSaveRejected?: unknown }).c15tSaveRejected === true
 	);
+};
+
+/**
+ * Whether `error` refused a save because its `subjectId` belongs to
+ * another tenant, the one refusal a new subject id recovers from.
+ *
+ * @param error - Anything a transport threw.
+ * @returns `true` for a `SUBJECT_CONFLICT` rejection.
+ * @internal
+ */
+export const isSubjectConflict = function isSubjectConflict(
+	error: unknown
+): boolean {
+	return isConsentSaveRejection(error) && error.code === 'SUBJECT_CONFLICT';
 };
 
 /**

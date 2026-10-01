@@ -92,8 +92,24 @@ export interface AppOptions {
 	 * Undefined means a single-tenant deployment whose rows hold NULL. That is
 	 * still a scope — queries filter on `is null` — so there is no unscoped
 	 * mode to fall into.
+	 *
+	 * The only place a self-hosted instance names its tenant. Checked when
+	 * the instance is built: an empty or padded string, or a non-string,
+	 * throws rather than scoping queries to a tenant nobody meant.
 	 */
 	readonly tenantId?: string;
+	/**
+	 * Refuse to build an instance without a `tenantId`.
+	 *
+	 * Set it wherever several tenants share one database. Without it, an
+	 * instance whose `tenantId` came back undefined (a failed lookup, a missing
+	 * environment variable) runs as the single-tenant scope: it writes rows with
+	 * a NULL tenant that the tenant who owns them never sees, and nothing says
+	 * so. With it, construction throws.
+	 *
+	 * @default false
+	 */
+	readonly requireTenantId?: boolean;
 	/** Per-tenant configuration the manifest and /init are built from. */
 	readonly manifest?: ConsentManifestConfig;
 	readonly manifestCache?: ManifestCacheOptions;
@@ -159,6 +175,65 @@ export interface AppOptions {
 	 */
 	readonly observability?: ObservabilityOptions;
 }
+
+/**
+ * Refuses tenant configuration that would scope queries to the wrong place.
+ *
+ * The tenant is an isolation boundary, so a mistake in it has to stop the
+ * instance from starting. Degrading to the single-tenant scope instead would
+ * write a tenant's consents where it cannot read them, and nothing in a
+ * response or a log would say so.
+ *
+ * @param options - The instance's options.
+ * @throws {Error} When `tenantId` is not a non-empty, unpadded string, when
+ * `requireTenantId` is set without one, or when the config still sets the
+ * removed `manifest.tenantId`.
+ * @internal
+ */
+export const assertTenantOptions = function assertTenantOptions(
+	options: Pick<AppOptions, 'manifest' | 'requireTenantId' | 'tenantId'>
+): void {
+	// Read as unknown: a JavaScript config can pass anything, and `null` would
+	// otherwise scope every query to `tenantId = NULL`, which matches nothing.
+	const tenantId: unknown = options.tenantId;
+	if (tenantId !== undefined) {
+		if (typeof tenantId !== 'string') {
+			throw new TypeError(
+				`[c15t] tenantId must be a string, received ${tenantId === null ? 'null' : typeof tenantId}. Omit it for a single-tenant deployment.`
+			);
+		}
+		if (tenantId.trim() === '' || tenantId.trim() !== tenantId) {
+			throw new Error(
+				`[c15t] tenantId ${JSON.stringify(tenantId)} is empty or has surrounding whitespace. Omit it for a single-tenant deployment.`
+			);
+		}
+	}
+
+	// Read as unknown for the same reason: `requireTenantId: 'true'` from an
+	// untyped config would otherwise switch the guard off without a word.
+	const requireTenantId: unknown = options.requireTenantId;
+	if (requireTenantId !== undefined && typeof requireTenantId !== 'boolean') {
+		throw new TypeError(
+			`[c15t] requireTenantId must be a boolean, received ${requireTenantId === null ? 'null' : typeof requireTenantId}.`
+		);
+	}
+	if (requireTenantId === true && tenantId === undefined) {
+		throw new Error(
+			'[c15t] requireTenantId is set but tenantId is missing. Refusing to start: without it this instance would read and write the single-tenant scope instead of a tenant.'
+		);
+	}
+
+	// `manifest.tenantId` was a second place to name the tenant, and it never
+	// scoped a query. Ignoring it now would leave a config that set only that
+	// one writing every row with a null tenant, so it is refused by name. The
+	// key is checked rather than its value: `tenantId: process.env.TENANT_ID`
+	// with the variable unset is the case this exists for.
+	if (options.manifest && Object.hasOwn(options.manifest, 'tenantId')) {
+		throw new Error(
+			`[c15t] manifest.tenantId is no longer supported. Set tenantId on the instance instead${tenantId === undefined ? '' : ` (it is already ${JSON.stringify(tenantId)})`} and remove it from manifest.`
+		);
+	}
+};
 
 /**
  * What a route module needs to register itself.
