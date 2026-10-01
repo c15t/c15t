@@ -30,7 +30,7 @@ const staticOutput = process.env.C15T_NUXT_OUTPUT === 'static';
 // URL in the published layer config.
 const testBackendURL = process.env.NUXT_PUBLIC_C15T_BACKEND_URL;
 const experimentArm = process.env.C15T_NUXT_EXPERIMENT_ARM;
-const experiment =
+const experiment: ModuleOptions['experiment'] =
 	process.env.C15T_NUXT_EXPERIMENT === '1'
 		? {
 				arms: { wall: { prompt: { variant: 'wall' as const } } },
@@ -43,13 +43,15 @@ const experiment =
 
 const c15t: ModuleOptions = {
 	backendURL: testBackendURL ?? '/api/self-host',
-	experiment,
 	// #region docs:color-scheme title="nuxt.config.ts (c15t options)"
 	// Follow the visitor's system setting, with a dark primary of our own.
 	colorScheme: 'system',
 	theme: { dark: { primary: '#7fd1a8' } },
 	// #endregion docs:color-scheme
 };
+if (experiment) {
+	c15t.experiment = experiment;
+}
 // Left unset otherwise, so the layer's `manifest` applies.
 if (process.env.C15T_NUXT_MANIFEST === 'client') {
 	c15t.manifest = 'client';
