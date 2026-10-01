@@ -7,17 +7,12 @@
 import type { PolicyRight } from '@c15t/schema/types';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/consent-banner';
-import { forwardRef as createForwardRef, useRef } from 'react';
-import type {
-	ButtonHTMLAttributes,
-	MouseEvent,
-	ReactNode,
-	Ref,
-	RefObject,
-} from 'react';
+import { forwardRef as createForwardRef, isValidElement, useRef } from 'react';
+import type { ButtonHTMLAttributes, MouseEvent, ReactNode, Ref } from 'react';
 
 import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
 import { useTranslations } from '~/component-hooks/use-translations';
+import { useComposedRefs } from '~/components/shared/libs/compose-refs';
 import { Slot } from '~/components/shared/libs/slot';
 import { usePolicyRule, useSetActiveUI } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
@@ -62,18 +57,24 @@ export type ConsentBannerRight = Exclude<PolicyRight, 'disclosure'>;
  * @remarks
  * Provides the main heading for the consent notice.
  * Implements proper heading semantics and supports theming.
+ * Renders an `h2`. With `asChild`, the child element, such as an `h1`,
+ * takes its place and receives the title's class and attributes.
  *
  * @example
  * ```tsx
  * <ConsentBannerTitle>
  *   Cookie Preferences
  * </ConsentBannerTitle>
+ *
+ * <ConsentBannerTitle asChild>
+ *   <h1>Cookie Preferences</h1>
+ * </ConsentBannerTitle>
  * ```
  */
 const ConsentBannerTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
->(({ children, ...props }, ref) => {
+>(({ children, asChild, ...props }, ref) => {
 	const { title } = useBannerCopy();
 	return (
 		<Box
@@ -84,7 +85,11 @@ const ConsentBannerTitle = createForwardRef<
 			{...props}
 			asChild
 		>
-			<h2>{children ?? title}</h2>
+			{asChild && isValidElement(children) ? (
+				children
+			) : (
+				<h2>{children ?? title}</h2>
+			)}
 		</Box>
 	);
 });
@@ -133,15 +138,14 @@ const ConsentBannerDescription = createForwardRef<
 			}
 		);
 
-		if (asChild) {
-			const Comp = Slot;
+		if (asChild && isValidElement(children)) {
 			return (
-				<Comp
+				<Slot
 					ref={ref as Ref<HTMLDivElement>}
 					{...descriptionProps}
 				>
-					{children ?? description}
-				</Comp>
+					{children}
+				</Slot>
 			);
 		}
 
@@ -228,8 +232,10 @@ const ConsentBannerCard = createForwardRef<
 >(({ children, ...props }, ref) => {
 	const { blocking } = useConsentBannerSurface();
 	const { title } = useBannerCopy();
-	const localRef = useRef<HTMLDivElement>(null);
-	const cardRef = (ref || localRef) as RefObject<HTMLElement>;
+	// The trap reads its own ref; the caller's ref, object or callback, is
+	// filled alongside it.
+	const cardRef = useRef<HTMLDivElement>(null);
+	const composedRef = useComposedRefs(cardRef, ref);
 
 	// A blocking surface traps focus and announces as a modal dialog. A
 	// non-blocking surface is a labelled region that never steals focus.
@@ -238,7 +244,7 @@ const ConsentBannerCard = createForwardRef<
 
 	return (
 		<Box
-			ref={cardRef as Ref<HTMLDivElement>}
+			ref={composedRef}
 			tabIndex={-1}
 			baseClassName={styles.card}
 			data-testid="consent-banner-card"
@@ -326,6 +332,7 @@ const ConsentBannerRejectButton = createForwardRef<
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
 			action="reject-consent"
+			consentAction="reject"
 			data-testid="consent-banner-reject-button"
 			closeConsentBanner
 			{...props}
@@ -353,6 +360,7 @@ const ConsentBannerCustomizeButton = createForwardRef<
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
 			action="open-consent-dialog"
+			consentAction="customize"
 			data-testid="consent-banner-customize-button"
 			{...props}
 		>
@@ -388,6 +396,7 @@ const ConsentBannerAcceptButton = createForwardRef<
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
 			action="accept-consent"
+			consentAction="accept"
 			data-testid="consent-banner-accept-button"
 			closeConsentBanner
 			noStyle={noStyle}

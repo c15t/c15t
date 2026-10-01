@@ -14,7 +14,10 @@ import {
 	generateThemeCSS as baseGenerateThemeCSS,
 	themeToVars as baseThemeToVars,
 } from '@c15t/ui/theme';
-import { resolveStyles as baseResolveStyles } from '@c15t/ui/utils';
+import {
+	resolveStyles as baseResolveStyles,
+	toStyleAttributeValue,
+} from '@c15t/ui/utils';
 
 /**
  * Default design tokens for the theme system.
@@ -35,9 +38,10 @@ export const themeToVars = function themeToVars(
  * Generates a CSS string for the theme variables.
  */
 export const generateThemeCSS = function generateThemeCSS(
-	theme: Theme
+	theme: Theme,
+	colorScheme?: Parameters<typeof baseGenerateThemeCSS>[1]
 ): string {
-	return baseGenerateThemeCSS(theme);
+	return baseGenerateThemeCSS(theme, colorScheme);
 };
 
 /**
@@ -55,6 +59,26 @@ export const resolveComponentStyles = function resolveComponentStyles(
 		componentStyle as ThemeValue | undefined,
 		noStyle
 	) as ClassNameStyle;
+};
+
+/**
+ * Serialize a slot's `style` object for a `style` attribute.
+ *
+ * Svelte writes the attribute as text, so the keys have to be CSS property
+ * names. camelCase keys, the form React and Vue slot styles use, become
+ * kebab-case (`backgroundColor` to `background-color`, `WebkitMask` to
+ * `-webkit-mask`, `msFlex` to `-ms-flex`). Custom properties (`--brand`)
+ * are kept as written, and empty values are dropped. A number gets `px`
+ * unless the property is unitless (`opacity`, `zIndex`, ...), as in React.
+ *
+ * @param style - The resolved slot style.
+ * @returns The attribute value, or `undefined` when there is nothing to set.
+ * @internal
+ */
+export const toStyleAttribute = function toStyleAttribute(
+	style: ClassNameStyle['style'] | undefined
+): string | undefined {
+	return toStyleAttributeValue(style);
 };
 
 /** Resolve only host appearance; policy action constraints remain in core. */

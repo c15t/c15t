@@ -7,6 +7,7 @@
  */
 
 import { MINIMAL_GVL } from '@c15t/conformance/fixtures/gvl';
+import iabBannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
 import { experimental_AstroContainer as AstroContainer } from 'astro/container';
 import { beforeAll, describe, expect, it } from 'vitest';
 
@@ -138,6 +139,78 @@ describe('<IABConsentBanner />', () => {
 			);
 		}
 	);
+	it('adds `theme.slots` classes and styles to the parts they name', async () => {
+		const html = await render(
+			await buildLocals({
+				...iabOptions,
+				presentation: { prompt: { blocking: true } },
+				theme: {
+					slots: {
+						buttonPrimary: 'brand-primary',
+						buttonSecondary: 'brand-secondary',
+						iabConsentBanner: 'brand-iab-banner',
+						iabConsentBannerCard: {
+							className: 'brand-iab-card',
+							style: { borderTopWidth: '4px' },
+						},
+						iabConsentBannerFooter: 'brand-iab-footer',
+						iabConsentBannerHeader: 'brand-iab-header',
+						iabConsentBannerOverlay: 'brand-iab-overlay',
+						iabConsentBannerTag: 'brand-iab-tag',
+					},
+				},
+			})
+		);
+		const tag = (testId: string) =>
+			new RegExp(`<[^>]*data-testid="${testId}"[^>]*>`, 'u').exec(html)?.[0];
+
+		expect(tag('iab-consent-banner-root')).toContain('brand-iab-banner');
+		expect(tag('iab-consent-banner-card')).toContain('brand-iab-card');
+		expect(tag('iab-consent-banner-card')).toContain(
+			'style="border-top-width:4px"'
+		);
+		expect(tag('iab-consent-banner-header')).toContain('brand-iab-header');
+		expect(tag('iab-consent-banner-footer')).toContain('brand-iab-footer');
+		expect(tag('iab-consent-banner-overlay')).toContain('brand-iab-overlay');
+		expect(tag('iab-consent-banner-branding')).toContain('brand-iab-tag');
+		// `customize` is the default primary action.
+		expect(tag('iab-consent-banner-customize-button')).toContain(
+			'brand-primary'
+		);
+		expect(tag('iab-consent-banner-accept-button')).toContain(
+			'brand-secondary'
+		);
+	});
+
+	it('skips the entry animation with `disableAnimation`', async () => {
+		const blocking = {
+			...iabOptions,
+			presentation: { prompt: { blocking: true } },
+		};
+		const entering = [
+			iabBannerStyles.bannerEntering,
+			iabBannerStyles.overlayEntering,
+		];
+		const animated = await render(await buildLocals(blocking));
+		for (const name of entering) {
+			expect(animated).toContain(name);
+		}
+
+		const prop = await render(await buildLocals(blocking), {
+			disableAnimation: true,
+			force: true,
+		});
+		const option = await render(
+			await buildLocals({ ...blocking, disableAnimation: true })
+		);
+		for (const html of [prop, option]) {
+			expect(html).toContain('data-testid="iab-consent-banner-overlay"');
+			for (const name of entering) {
+				expect(html).not.toContain(name);
+			}
+		}
+	});
+
 	it('defaults to a non-blocking IAB banner', async () => {
 		const html = await render(await buildLocals());
 		expect(html).not.toContain('aria-modal="true"');

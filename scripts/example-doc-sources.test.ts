@@ -126,6 +126,18 @@ describe('region extraction', () => {
 		});
 	});
 
+	test('publishes Tailwind matrix fixtures by version and framework', () => {
+		const [region] = findRegions(
+			'benchmarks/tailwind-matrix/v3/react/src/app.css',
+			'/* #region docs:tailwind-css */\nx\n/* #endregion docs:tailwind-css */'
+		);
+		expect(region).toMatchObject({
+			app: 'benchmarks/tailwind-matrix/v3/react',
+			destination: `${generatedExamplesDir}/tailwind-v3/react/tailwind-css.mdx`,
+			title: 'src/app.css',
+		});
+	});
+
 	test('rejects files outside an example app', () => {
 		expect(() =>
 			findRegions(
@@ -167,6 +179,74 @@ describe('region extraction', () => {
 		expect(() =>
 			extractRegion('// #region docs:open\nx', 'open', 'x.tsx')
 		).toThrow('does not close');
+	});
+
+	test('omits lines that end in a docs:hide comment', () => {
+		const hidden = [
+			'// #region docs:config',
+			'c15t({',
+			'\tmode: hosted({ url }),',
+			'\tdebug: true, // docs:hide',
+			'});',
+			'<Banner />',
+			'<Demo /> <!-- docs:hide -->',
+			'{demo} {/* docs:hide */}',
+			'.demo {} /* docs:hide */',
+			'// #endregion docs:config',
+		].join('\n');
+		expect(extractRegion(hidden, 'config', 'x.tsx')).toBe(
+			'c15t({\n\tmode: hosted({ url }),\n});\n<Banner />'
+		);
+	});
+
+	test('keeps a line that only mentions docs:hide before the end', () => {
+		const kept = [
+			'// #region docs:note',
+			"const marker = 'docs:hide'; // explains the marker",
+			'// #endregion docs:note',
+		].join('\n');
+		expect(extractRegion(kept, 'note', 'x.ts')).toBe(
+			"const marker = 'docs:hide'; // explains the marker"
+		);
+	});
+
+	test('omits hide blocks, while a region inside one still publishes', () => {
+		const block = [
+			'// #region docs:config',
+			'c15t({',
+			"\tui: 'svelte',",
+			'\t// #hide docs',
+			'\t// #region docs:vendors',
+			'\tvendors: [],',
+			'\t// #endregion docs:vendors',
+			'\t// #endhide docs',
+			'});',
+			'<!-- #hide docs -->',
+			'<Demo />',
+			'<!-- #endhide docs -->',
+			'// #endregion docs:config',
+		].join('\n');
+		expect(extractRegion(block, 'config', 'x.mjs')).toBe(
+			"c15t({\n\tui: 'svelte',\n});"
+		);
+		expect(extractRegion(block, 'vendors', 'x.mjs')).toBe('vendors: [],');
+	});
+
+	test('rejects an unclosed or unopened hide block', () => {
+		expect(() =>
+			extractRegion(
+				'// #region docs:x\n// #hide docs\ny\n// #endregion docs:x',
+				'x',
+				'x.ts'
+			)
+		).toThrow('does not close a hide block');
+		expect(() =>
+			extractRegion(
+				'// #region docs:x\ny\n// #endhide docs\n// #endregion docs:x',
+				'x',
+				'x.ts'
+			)
+		).toThrow('closes a hide block it never opened');
 	});
 
 	test('names fence languages from file names', () => {

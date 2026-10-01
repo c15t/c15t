@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Spremi postavke',
 		securedBy: 'Zaštitu pruža',
 	},
+	consentGate: {
+		actionButton: 'Omogući {category} privolu',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Prihvatite {category} privolu za prikaz ovog sadržaja.',
+	},
 	consentManagerDialog: {
 		description:
 			'Ovdje možete prilagoditi svoje postavke privatnosti. Možete odabrati koje vrste kolačića i tehnologija praćenja dopuštate.',
@@ -57,14 +65,6 @@ export const translations: CompleteTranslations = {
 			'Koristimo kolačiće i slične tehnologije za rad ove stranice, mjerenje prometa te personalizaciju sadržaja i oglasa. U bilo kojem trenutku možete se odjaviti ili upravljati svojim postavkama.',
 		noticeTitle: 'Obavijest o privatnosti',
 		title: 'Cijenimo vašu privatnost',
-	},
-	frame: {
-		actionButton: 'Omogući {category} privolu',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Prihvatite {category} privolu za prikaz ovog sadržaja.',
 	},
 	iab: {
 		banner: {

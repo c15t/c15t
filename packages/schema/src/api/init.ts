@@ -97,6 +97,10 @@ export const completeTranslationsSchema = v.object({
 		rejectAll: v.string(),
 		save: v.string(),
 	}),
+	consentGate: v.object({
+		actionButton: v.string(),
+		title: v.string(),
+	}),
 	consentManagerDialog: consentManagerDialogTranslationsSchema,
 	consentTypes: v.object({
 		experience: titleDescriptionSchema,
@@ -106,11 +110,6 @@ export const completeTranslationsSchema = v.object({
 		necessary: titleDescriptionSchema,
 	}),
 	cookieBanner: cookieBannerTranslationsSchema,
-	frame: v.object({
-		actionButton: v.string(),
-
-		title: v.string(),
-	}),
 	legalLinks: v.object({
 		cookiePolicy: v.string(),
 
@@ -119,6 +118,14 @@ export const completeTranslationsSchema = v.object({
 	}),
 	rights: rightsTranslationsSchema,
 });
+
+/** `ConsentGate` placeholder copy from a backend that serves partial copy. */
+const consentGateTranslationsSchema = v.partial(
+	v.object({
+		actionButton: v.optional(v.string()),
+		title: v.optional(v.string()),
+	})
+);
 
 /**
  * Partial translations schema for backward compatibility with older backend versions
@@ -135,6 +142,7 @@ export const partialTranslationsSchema = v.object({
 			save: v.optional(v.string()),
 		})
 	),
+	consentGate: v.optional(consentGateTranslationsSchema),
 	consentManagerDialog: partialConsentManagerDialogTranslationsSchema,
 	consentTypes: v.partial(
 		v.object({
@@ -146,15 +154,13 @@ export const partialTranslationsSchema = v.object({
 		})
 	),
 	cookieBanner: partialCookieBannerTranslationsSchema,
-	frame: v.optional(
-		v.partial(
-			v.object({
-				actionButton: v.optional(v.string()),
-
-				title: v.optional(v.string()),
-			})
-		)
-	),
+	/**
+	 * `consentGate` copy under its name before the rename, as an older
+	 * backend serves it. Clients read it as `consentGate`.
+	 *
+	 * @deprecated Serve `consentGate` instead.
+	 */
+	frame: v.optional(consentGateTranslationsSchema),
 	legalLinks: v.optional(
 		v.partial(
 			v.object({

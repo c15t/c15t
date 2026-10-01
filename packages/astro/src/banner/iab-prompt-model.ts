@@ -13,10 +13,12 @@ import {
 } from '@c15t/core';
 import type { ConsentPresentation, ConsentSnapshot } from '@c15t/core';
 import type { Translations } from '@c15t/translations';
+import type { AllThemeKeys, Theme } from '@c15t/ui/theme';
 import { getTextDirection } from '@c15t/ui/utils';
 
 import type { IABPromptClassNames } from './class-names';
 import { joinClasses } from './prompt-model';
+import { resolveSlotBinding } from './theme-slots';
 
 /** An action on the IAB banner. */
 export type IABAction = 'reject' | 'accept' | 'customize';
@@ -32,6 +34,11 @@ export interface IABPromptProps {
 	models?: string[];
 	/** Ship the DOM without the bundled stylesheet's class names. */
 	noStyle?: boolean;
+	/**
+	 * Skip the entry animation. Defaults to the integration's
+	 * `disableAnimation`.
+	 */
+	disableAnimation?: boolean;
 	/** Extra class on the banner root. */
 	class?: string;
 	/** Drop the "Secured by c15t" tag. */
@@ -46,8 +53,12 @@ export interface IABPromptModelInput {
 	props: IABPromptProps;
 	/** The integration's `presentation` option. */
 	presentation?: ConsentPresentation;
+	/** The integration's `disableAnimation` option. */
+	disableAnimation?: boolean;
 	/** The stylesheet class names the markup uses. */
 	classNames: IABPromptClassNames;
+	/** The integration's `theme`, for `slots`. */
+	theme?: Theme;
 }
 
 /** One banner button. */
@@ -56,6 +67,10 @@ export interface IABPromptButton {
 	label: string;
 	mode: string | undefined;
 	variant: string | undefined;
+	/** The button's classes, with its `buttonPrimary` or `buttonSecondary` slot. */
+	className: string;
+	/** The button's inline style from that slot. */
+	style: string | undefined;
 }
 
 /** Everything the IAB banner markup needs. */
@@ -102,6 +117,8 @@ export interface IABPromptModel {
 		actionGroup: string;
 		button: string;
 	};
+	/** Inline styles from `theme.slots`, by the same element names. */
+	styles: Partial<Record<keyof IABPromptModel['classes'], string>>;
 }
 
 type IABCopy = NonNullable<Translations['iab']>;
@@ -182,16 +199,36 @@ const resolveIABCopy = function resolveIABCopy(
 	};
 };
 
-/** Class names for every element, or none with `noStyle`. */
+/** The `theme.slots` key each IAB banner element answers to. */
+const IAB_PROMPT_SLOTS = {
+	card: 'iabConsentBannerCard',
+	footer: 'iabConsentBannerFooter',
+	header: 'iabConsentBannerHeader',
+	overlay: 'iabConsentBannerOverlay',
+	root: 'iabConsentBanner',
+} as const satisfies Partial<
+	Record<keyof IABPromptModel['classes'], AllThemeKeys>
+>;
+
+/**
+ * Class names and inline styles for every element: the stock classes, or
+ * none with `noStyle`, then the element's `theme.slots` entry. With
+ * `disableAnimation` the entering classes, the `@starting-style` state the
+ * entry animation starts from, are left out before the slots apply.
+ */
 const resolveIABClasses = function resolveIABClasses(
 	classNames: IABPromptClassNames,
-	props: IABPromptProps
-): IABPromptModel['classes'] {
+	props: IABPromptProps,
+	theme: Theme | undefined,
+	disableAnimation: boolean
+): Pick<IABPromptModel, 'classes' | 'styles'> {
 	const { actions, button, iabBanner } = classNames;
 	const noStyle = props.noStyle === true;
 	const cls = (...names: (string | undefined)[]): string =>
 		noStyle ? '' : joinClasses(...names);
-	return {
+	const entering = (name: string | undefined) =>
+		disableAnimation ? undefined : name;
+	const classes: IABPromptModel['classes'] = {
 		actionGroup: cls(actions.actionGroup),
 		button: cls(button.button),
 		card: cls(iabBanner.card),
@@ -203,17 +240,30 @@ const resolveIABClasses = function resolveIABClasses(
 		overlay: cls(
 			iabBanner.overlay,
 			iabBanner.overlayVisible,
-			iabBanner.overlayEntering
+			entering(iabBanner.overlayEntering)
 		),
 		partnersLink: cls(iabBanner.partnersLink),
 		purposeList: cls(iabBanner.purposeList),
 		purposeMore: cls(iabBanner.purposeMore),
-		root: joinClasses(
-			cls(iabBanner.root, iabBanner.bannerVisible, iabBanner.bannerEntering),
-			props.class
+		root: cls(
+			iabBanner.root,
+			iabBanner.bannerVisible,
+			entering(iabBanner.bannerEntering)
 		),
 		title: cls(iabBanner.title),
 	};
+	const styles: IABPromptModel['styles'] = {};
+	for (const [name, key] of Object.entries(IAB_PROMPT_SLOTS) as [
+		keyof typeof IAB_PROMPT_SLOTS,
+		AllThemeKeys,
+	][]) {
+		const binding = resolveSlotBinding(theme, key, classes[name]);
+		classes[name] = binding.class;
+		styles[name] = binding.style;
+	}
+	// The `class` prop goes last, as the component's own override.
+	classes.root = joinClasses(classes.root, props.class);
+	return { classes, styles };
 };
 
 /**
@@ -224,7 +274,9 @@ const resolveIABClasses = function resolveIABClasses(
 const resolveIABButton = function resolveIABButton(
 	action: IABAction,
 	{ english, iab }: IABTranslations,
-	props: IABPromptProps
+	props: IABPromptProps,
+	buttonClass: string,
+	theme: Theme | undefined
 ): IABPromptButton {
 	const labels: Record<IABAction, string> = {
 		accept: text(iab.common?.acceptAll, english.common?.acceptAll),
@@ -232,14 +284,28 @@ const resolveIABButton = function resolveIABButton(
 		reject: text(iab.common?.rejectAll, english.common?.rejectAll),
 	};
 	const label = labels[action];
-	if (props.noStyle) {
-		return { action, label, mode: undefined, variant: undefined };
-	}
 	const primary = action === (props.primaryButton ?? 'customize');
+	const slot = resolveSlotBinding(
+		theme,
+		primary ? 'buttonPrimary' : 'buttonSecondary',
+		buttonClass
+	);
+	if (props.noStyle) {
+		return {
+			action,
+			className: slot.class,
+			label,
+			mode: undefined,
+			style: slot.style,
+			variant: undefined,
+		};
+	}
 	return {
 		action,
+		className: slot.class,
 		label,
 		mode: primary && action !== 'reject' ? 'filled' : 'stroke',
+		style: slot.style,
 		variant: primary ? 'primary' : 'neutral',
 	};
 };
@@ -282,16 +348,28 @@ export const resolveIABPromptModel = function resolveIABPromptModel(
 		textDirection === 'rtl' && presentation.positionSource === 'default'
 			? mirrorCorner(presentation.position)
 			: presentation.position;
+	const classesAndStyles = resolveIABClasses(
+		input.classNames,
+		props,
+		input.theme,
+		props.disableAnimation ?? input.disableAnimation ?? false
+	);
+	const button = (action: IABAction) =>
+		resolveIABButton(
+			action,
+			translations,
+			props,
+			classesAndStyles.classes.button,
+			input.theme
+		);
 
 	return {
 		blocking: presentation.blocking,
 		canRender: summary.isReady && models.includes(snapshot.policyRule.model),
-		choiceButtons: (['reject', 'accept'] as const).map((action) =>
-			resolveIABButton(action, translations, props)
-		),
-		classes: resolveIABClasses(input.classNames, props),
+		choiceButtons: (['reject', 'accept'] as const).map(button),
+		...classesAndStyles,
 		copy: resolveIABCopy(translations, summary),
-		customizeButton: resolveIABButton('customize', translations, props),
+		customizeButton: button('customize'),
 		displayItems: [...summary.displayItems],
 		language: snapshot.translations?.language,
 		position,

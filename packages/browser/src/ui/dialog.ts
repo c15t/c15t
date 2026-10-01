@@ -32,7 +32,8 @@ export const createDialog = function createDialog(
 	options: ConsentDialogOptions
 ): Surface {
 	const styles = classes.dialog;
-	const { noStyle } = ctx;
+	const { noStyle, slot } = ctx;
+	const disableAnimation = options.disableAnimation ?? ctx.disableAnimation;
 
 	let overlay: HTMLElement | null = null;
 	let positioner: HTMLElement | null = null;
@@ -62,96 +63,127 @@ export const createDialog = function createDialog(
 		widget = createWidget(ctx, { hideBranding: true });
 		widget.sync(snapshot);
 
-		content = h(
-			'div',
-			{
-				'aria-describedby': 'consent-dialog-description',
-				'aria-labelledby': 'consent-dialog-title',
-				'aria-modal': resolveConsentPresentation({
-					policy: snapshot.policyRule,
-					presentation: ctx.client.presentation,
-					surface: 'preferences',
-				}).blocking
-					? 'true'
-					: undefined,
-				class: noStyle ? '' : styles.container,
-				'data-state': 'open',
-				'data-testid': 'consent-dialog-root',
-				dir: copy.dir,
-				lang: copy.language,
-				onkeydown: onKeyDown as EventListener,
-				role: 'dialog',
-			},
+		content = slot(
 			h(
 				'div',
 				{
-					class: noStyle ? '' : styles.card,
-					'data-testid': 'consent-dialog-card',
-					tabindex: '-1',
+					'aria-describedby': 'consent-dialog-description',
+					'aria-labelledby': 'consent-dialog-title',
+					'aria-modal': resolveConsentPresentation({
+						policy: snapshot.policyRule,
+						presentation: ctx.client.presentation,
+						surface: 'preferences',
+					}).blocking
+						? 'true'
+						: undefined,
+					class: noStyle ? '' : styles.container,
+					'data-state': 'open',
+					'data-testid': 'consent-dialog-root',
+					dir: copy.dir,
+					lang: copy.language,
+					onkeydown: onKeyDown as EventListener,
+					role: 'dialog',
 				},
-				h(
-					'div',
-					{
-						class: noStyle ? '' : styles.header,
-						'data-testid': 'consent-dialog-header',
-					},
-					h(
-						'h2',
-						{
-							class: noStyle ? '' : styles.title,
-							'data-testid': 'consent-dialog-title',
-							id: 'consent-dialog-title',
-						},
-						t.consentManagerDialog.title
-					),
+				slot(
 					h(
 						'div',
 						{
-							class: noStyle ? '' : styles.description,
-							'data-context': 'dialog',
-							'data-testid': 'consent-dialog-description',
-							id: 'consent-dialog-description',
+							class: noStyle ? '' : styles.card,
+							'data-testid': 'consent-dialog-card',
+							tabindex: '-1',
 						},
-						t.consentManagerDialog.description,
-						...renderLegalLinks({
-							keys: options.legalLinks,
-							labels: t.legalLinks,
-							legalLinks: ctx.legalLinks,
-							noStyle,
-							testIdPrefix: 'consent-dialog-legal-link',
-						})
-					)
-				),
-				h(
-					'div',
-					{
-						class: noStyle ? '' : styles.content,
-						'data-testid': 'consent-dialog-content',
-					},
-					widget.element
-				),
-				renderBranding({
-					branding: snapshot.branding,
-					hide: options.hideBranding ?? false,
-					noStyle,
-					securedBy: t.common.securedBy,
-					testId: 'consent-dialog-branding',
-					variant: 'dialog-tag',
-				})
-			)
+						slot(
+							h(
+								'div',
+								{
+									class: noStyle ? '' : styles.header,
+									'data-testid': 'consent-dialog-header',
+								},
+								slot(
+									h(
+										'h2',
+										{
+											class: noStyle ? '' : styles.title,
+											'data-testid': 'consent-dialog-title',
+											id: 'consent-dialog-title',
+										},
+										t.consentManagerDialog.title
+									),
+									'consentDialogTitle'
+								),
+								slot(
+									h(
+										'div',
+										{
+											class: noStyle ? '' : styles.description,
+											'data-context': 'dialog',
+											'data-testid': 'consent-dialog-description',
+											id: 'consent-dialog-description',
+										},
+										t.consentManagerDialog.description,
+										...renderLegalLinks({
+											keys: options.legalLinks,
+											labels: t.legalLinks,
+											legalLinks: ctx.legalLinks,
+											noStyle,
+											testIdPrefix: 'consent-dialog-legal-link',
+										})
+									),
+									'consentDialogDescription'
+								)
+							),
+							'consentDialogHeader'
+						),
+						slot(
+							h(
+								'div',
+								{
+									class: noStyle ? '' : styles.content,
+									'data-testid': 'consent-dialog-content',
+								},
+								widget.element
+							),
+							'consentDialogContent'
+						),
+						slot(
+							renderBranding({
+								branding: snapshot.branding,
+								hide: options.hideBranding ?? false,
+								noStyle,
+								securedBy: t.common.securedBy,
+								testId: 'consent-dialog-branding',
+								variant: 'dialog-tag',
+							}),
+							'consentDialogTag'
+						)
+					),
+					'consentDialogCard'
+				)
+			),
+			'consentDialog'
 		);
+		// `data-disable-animation` switches off the keyframes the stylesheet
+		// runs on `data-state`, as in the Vue dialog.
 		positioner = h(
 			'div',
-			{ class: noStyle ? '' : styles.root, 'data-state': 'open' },
+			{
+				class: noStyle ? '' : styles.root,
+				'data-disable-animation': disableAnimation,
+				'data-state': 'open',
+			},
 			content
 		);
-		overlay = h('div', {
-			'aria-hidden': 'true',
-			class: noStyle ? '' : styles.overlay,
-			'data-state': 'open',
-			'data-testid': 'consent-dialog-overlay',
-			role: 'presentation',
-		});
+		overlay = slot(
+			h('div', {
+				'aria-hidden': 'true',
+				class: noStyle ? '' : styles.overlay,
+				'data-disable-animation': disableAnimation,
+				'data-state': 'open',
+				'data-testid': 'consent-dialog-overlay',
+				role: 'presentation',
+			}),
+			'consentDialogOverlay'
+		);
 		renderedFrom = {
 			branding: snapshot.branding,
 			experiment: snapshot.experiment,
@@ -203,9 +235,9 @@ export const createDialog = function createDialog(
 		// The state classes go on before insertion so the first style the
 		// browser computes already includes them; the scroll lock reads
 		// layout, which would otherwise fix the bare state as the start.
-		const flip = !(noStyle || ctx.disableAnimation || supportsStartingStyle());
+		const flip = !(noStyle || disableAnimation || supportsStartingStyle());
 		setVisible(!flip);
-		if (!(noStyle || flip || ctx.disableAnimation)) {
+		if (!(noStyle || flip || disableAnimation)) {
 			// `@starting-style` transitions from the entering state on the
 			// first frame; nothing here has to wait for layout.
 			overlay.classList.add(styles.overlayEntering);
@@ -248,7 +280,7 @@ export const createDialog = function createDialog(
 		}
 		cleanups = [];
 		widget?.resetDraft();
-		if (noStyle || ctx.disableAnimation) {
+		if (noStyle || disableAnimation) {
 			removeNow();
 			return;
 		}

@@ -386,7 +386,15 @@
 		.button-neutral-filled:hover:not(:disabled),
 		.button-neutral-stroke:hover:not(:disabled),
 		.button-neutral-lighter:hover:not(:disabled),
-		.button-neutral-ghost:hover:not(:disabled) {
+		.button-neutral-ghost:hover:not(:disabled),
+		:global(.c15t-dark) .button-primary-filled:hover:not(:disabled),
+		:global(.c15t-dark) .button-primary-stroke:hover:not(:disabled),
+		:global(.c15t-dark) .button-primary-lighter:hover:not(:disabled),
+		:global(.c15t-dark) .button-primary-ghost:hover:not(:disabled),
+		:global(.c15t-dark) .button-neutral-filled:hover:not(:disabled),
+		:global(.c15t-dark) .button-neutral-stroke:hover:not(:disabled),
+		:global(.c15t-dark) .button-neutral-lighter:hover:not(:disabled),
+		:global(.c15t-dark) .button-neutral-ghost:hover:not(:disabled) {
 			transition: none;
 		}
 	}

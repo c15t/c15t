@@ -30,6 +30,10 @@ const translations: TranslationsResponse = {
 		rejectAll: 'Reject all',
 		save: 'Save settings',
 	},
+	consentGate: {
+		actionButton: 'Manage',
+		title: 'Privacy',
+	},
 	consentManagerDialog: {
 		description: 'Manage your choices.',
 		title: 'Privacy preferences',
@@ -59,10 +63,6 @@ const translations: TranslationsResponse = {
 	cookieBanner: {
 		description: 'We use cookies to enhance your experience.',
 		title: 'We value your privacy',
-	},
-	frame: {
-		actionButton: 'Manage',
-		title: 'Privacy',
 	},
 	legalLinks: {
 		cookiePolicy: 'Cookie policy',

@@ -31,7 +31,7 @@ export const Placeholder: Story = {
 				<ConsentGate
 					category="marketing"
 					placeholder={
-						<div data-testid="frame-placeholder">
+						<div data-testid="consent-gate-placeholder">
 							Marketing content requires consent.
 						</div>
 					}
@@ -56,7 +56,7 @@ export const GrantedContent: Story = {
 				<ConsentGate
 					category="marketing"
 					placeholder={
-						<div data-testid="frame-placeholder">
+						<div data-testid="consent-gate-placeholder">
 							Marketing content requires consent.
 						</div>
 					}

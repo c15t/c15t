@@ -251,6 +251,24 @@
 		"./styles/components/iab-consent-dialog.js": "./dist/styles/components/iab-panel.js",
 		"./styles/components/iab-consent-dialog.node.js": "./dist/styles/components/iab-panel.node.js",
 		"./styles/components/iab-consent-dialog.d.ts": "./dist/styles/components/iab-panel.d.ts",
+		"./styles/components/frame": {
+			"types": "./dist/styles/components/consent-gate.d.ts",
+			"style": "./dist/styles/components/consent-gate.css",
+			"node": "./dist/styles/components/consent-gate.node.js",
+			"import": "./dist/styles/components/consent-gate.js",
+			"default": "./dist/styles/components/consent-gate.js"
+		},
+		"./styles/components/frame.module.css": {
+			"types": "./dist/styles/components/consent-gate.d.ts",
+			"style": "./dist/styles/components/consent-gate.css",
+			"node": "./dist/styles/components/consent-gate.node.js",
+			"import": "./dist/styles/components/consent-gate.js",
+			"default": "./dist/styles/components/consent-gate.js"
+		},
+		"./styles/components/frame.css": "./dist/styles/components/consent-gate.css",
+		"./styles/components/frame.js": "./dist/styles/components/consent-gate.js",
+		"./styles/components/frame.node.js": "./dist/styles/components/consent-gate.node.js",
+		"./styles/components/frame.d.ts": "./dist/styles/components/consent-gate.d.ts",
 		"./styles/components/animations/iab-consent-banner.css": "./dist/styles/components/animations/iab-prompt.css"
 	},
 	"publishConfig": {

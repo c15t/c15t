@@ -42,7 +42,7 @@ const renderConsentGate = (granted: boolean) => ({
 			<div>
 				<ConsentGate category="marketing">
 					<template #placeholder>
-						<div data-testid="frame-placeholder">Marketing content requires consent.</div>
+						<div data-testid="consent-gate-placeholder">Marketing content requires consent.</div>
 					</template>
 					<div data-testid="parity-consent-gate-content" style="border-radius: 1rem; padding: 1.25rem; background: var(--c15t-surface); border: 1px solid var(--c15t-border);">
 						Embedded marketing content is now visible.

@@ -1,17 +1,67 @@
 /**
- * Built `@c15t/ui` stylesheets: the entrypoints (`styles.css`,
- * `iab/styles.css` and their `.tw3.css` twins) and everything under
- * `styles/` (`dialog.css`, `primitives.css`, per-component files).
+ * A built stylesheet under `dist/` of `c15t` or an `@c15t/*` package in
+ * `node_modules` (pnpm and Bun store paths included). Vite may append a
+ * query such as `?transform-only` to the file name.
  */
-const C15T_UI_DIST_STYLES_PATH =
-	/(?:^|[\\/])(?:node_modules[\\/]@c15t[\\/]ui|packages[\\/]ui)[\\/]dist[\\/](?:(?:iab[\\/])?styles(?:\.tw3)?\.css|styles[\\/](?:components[\\/])?[^\\/]+\.css)$/u;
+const C15T_INSTALLED_STYLESHEET_PATH =
+	/(?:^|[\\/])node_modules[\\/](?:@c15t[\\/][^\\/]+|c15t)[\\/]dist[\\/](?:[^\\/]+[\\/])*[^\\/]+\.css(?:\?[^\\/]*)?$/u;
 
 /**
- * `@c15t/browser`'s light-DOM stylesheets (`@c15t/browser/styles.css` and
- * `iab/styles.css`), which carry the `@c15t/ui` rules with their layers.
+ * A built stylesheet under `packages/<name>/dist/` of a workspace, with the
+ * package directory captured. Any monorepo has these paths, so a match only
+ * counts once that directory's `package.json` names a c15t package.
  */
-const C15T_BROWSER_DIST_STYLES_PATH =
-	/(?:^|[\\/])(?:node_modules[\\/]@c15t[\\/]browser|packages[\\/]browser)[\\/]dist[\\/]c15t(?:\.iab)?\.css$/u;
+const WORKSPACE_STYLESHEET_PATH =
+	/^(?<directory>.*[\\/]packages[\\/][^\\/]+)[\\/]dist[\\/](?:[^\\/]+[\\/])*[^\\/]+\.css(?:\?[^\\/]*)?$/u;
+
+interface FileSystem {
+	readFileSync: (path: string, encoding: 'utf8') => string;
+}
+
+/** Whether each workspace package directory holds a c15t package. */
+const workspacePackageCache = new Map<string, boolean>();
+
+/**
+ * Whether a workspace package directory holds `c15t` or an `@c15t/*`
+ * package, by the `name` in its `package.json`.
+ *
+ * `node:fs` comes from `process.getBuiltinModule` rather than an import, so
+ * the module stays importable by bundlers that target the browser. Where
+ * that is missing (Node before 20.16), workspace paths do not match;
+ * installed packages still do.
+ */
+const isC15tWorkspacePackage = function isC15tWorkspacePackage(
+	directory: string
+): boolean {
+	const cached = workspacePackageCache.get(directory);
+	if (cached !== undefined) {
+		return cached;
+	}
+	const fs = (
+		globalThis as {
+			process?: { getBuiltinModule?: (id: string) => unknown };
+		}
+	).process?.getBuiltinModule?.('node:fs') as FileSystem | undefined;
+	let matches = false;
+	if (fs) {
+		try {
+			const manifest: unknown = JSON.parse(
+				fs.readFileSync(`${directory}/package.json`, 'utf8')
+			);
+			const name =
+				typeof manifest === 'object' && manifest !== null && 'name' in manifest
+					? manifest.name
+					: undefined;
+			matches =
+				typeof name === 'string' &&
+				(name === 'c15t' || name.startsWith('@c15t/'));
+		} catch {
+			// No readable `package.json`: not a c15t package.
+		}
+	}
+	workspacePackageCache.set(directory, matches);
+	return matches;
+};
 
 interface PostcssSource {
 	input?: {
@@ -42,18 +92,25 @@ export interface PostcssTailwind3PluginCreator {
 }
 
 /**
- * Whether a file is a built c15t stylesheet the plugin flattens.
+ * Whether a file is a built stylesheet from a c15t package, the files whose
+ * `@layer` blocks `@c15t/ui/postcss-tailwind3` unwraps.
  *
- * @param filePath - Absolute path of the stylesheet
- * @returns True for `@c15t/ui` and `@c15t/browser` dist stylesheets
+ * Installed packages match by path. A workspace path such as
+ * `packages/react/dist/styles.css` matches only when the package's own
+ * `package.json` is named `c15t` or `@c15t/*`, so another monorepo's
+ * `packages/react` keeps its layers.
+ *
+ * @param filePath - Absolute path of a CSS file.
+ * @returns `true` for `dist/` stylesheets of `c15t` and `@c15t/*` packages.
  */
 export const isC15tUiStylesheetPath = function isC15tUiStylesheetPath(
 	filePath: string
 ): boolean {
-	return (
-		C15T_UI_DIST_STYLES_PATH.test(filePath) ||
-		C15T_BROWSER_DIST_STYLES_PATH.test(filePath)
-	);
+	if (C15T_INSTALLED_STYLESHEET_PATH.test(filePath)) {
+		return true;
+	}
+	const directory = WORKSPACE_STYLESHEET_PATH.exec(filePath)?.groups?.directory;
+	return directory !== undefined && isC15tWorkspacePackage(directory);
 };
 
 /**
@@ -65,15 +122,16 @@ export const isC15tUiStylesheetPath = function isC15tUiStylesheetPath(
  * tree-shakes layer contents against the Tailwind content scan. c15t's hashed
  * CSS Module classes (`c15t-ui-*`) are generated into dist class maps and never
  * appear verbatim in application source, so Tailwind 3 can purge the component
- * rules. This plugin unwraps `@layer` blocks only inside built `@c15t/ui`
- * stylesheet files before Tailwind runs, restoring Tailwind 3's v2-era
- * semantics: c15t base styles win by specificity, and overrides use
- * important-modifier utilities such as `!bg-blue-600` or c15t theme slots.
+ * rules. This plugin unwraps `@layer` blocks that come from a built c15t
+ * stylesheet before Tailwind runs, restoring Tailwind 3's v2-era semantics:
+ * c15t base styles win by specificity, and overrides use important-modifier
+ * utilities such as `!bg-blue-600` or c15t theme slots.
  *
- * Each `@layer` rule is checked against its own source file, not the root's.
- * Vite and `postcss-import` inline `@import`ed files into the importing
- * stylesheet before other plugins run, so c15t's rules can arrive inside the
- * app's Tailwind entry. The app's own layers are left alone.
+ * Each block is judged by the file it was written in, not the file being
+ * processed. Vite and `postcss-import` inline an app's
+ * `@import '@c15t/svelte/styles.css'` into the app's stylesheet, and Astro
+ * processes `@c15t/astro/styles.css`, which imports `@c15t/ui/styles.css`;
+ * in both, the root is not a c15t file but the layered rules are.
  */
 const c15tTailwind3: PostcssTailwind3PluginCreator = Object.assign(
 	(): PostcssTailwind3Plugin => ({

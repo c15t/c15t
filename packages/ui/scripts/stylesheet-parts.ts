@@ -1,7 +1,8 @@
 /**
  * Which stylesheet each component's rules go into. Names are the flat files
  * in `dist/styles/components` (`prompt` is the consent banner, `panel` the
- * consent dialog, `manager` the preference widget, `frame` ConsentGate).
+ * consent dialog, `manager` the preference widget, `consent-gate` the
+ * ConsentGate placeholder).
  *
  * `generate-css-entrypoints.ts` fails the build when a component is in
  * neither list, so a new component needs a deliberate choice.
@@ -17,7 +18,7 @@ export const FIRST_PAINT_COMPONENTS = [
 	'branding',
 	'button',
 	'consent-actions',
-	'frame',
+	'consent-gate',
 	'legal-links',
 	'panel-trigger',
 	'prompt',
@@ -41,3 +42,21 @@ export const DIALOG_COMPONENTS = [
 
 /** Prefix of the IAB TCF components, which go into `iab/styles.css`. */
 export const IAB_PREFIX = 'iab-';
+
+/**
+ * Tailwind 4's layer order: it emits `@layer properties;` and then
+ * `@layer theme, base, components, utilities;`. Layers rank by first
+ * mention, so a sheet that reaches the page before Tailwind's would declare
+ * `components` first and rank it below `base`, where preflight zeroes the
+ * banner's padding and borders. Every layered stylesheet opens with the
+ * full order, so `components` lands between `base` and `utilities`
+ * whichever sheet loads first. Without Tailwind the other four layers stay
+ * empty. `@c15t/ui/postcss-tailwind3` removes the statement with the blocks.
+ *
+ * That covers the aggregates (`styles.css` loaded above the app's own CSS,
+ * or injected by Astro from `page-ssr`) and the per-component sheets Vue
+ * imports, which Vite links ahead of the app's stylesheet when they live in
+ * a shared chunk.
+ */
+export const LAYER_ORDER =
+	'@layer properties, theme, base, components, utilities;';

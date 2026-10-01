@@ -65,8 +65,11 @@ export type {
 	KernelConfig,
 	LegalLinks,
 	PolicyRule,
+	ResolvedVendor,
 	Script,
 	StorageConfig,
+	Vendor,
+	VendorChoice,
 } from '@c15t/core';
 export { policyRulePresets } from '@c15t/core';
 export type { Theme } from '@c15t/ui/theme';

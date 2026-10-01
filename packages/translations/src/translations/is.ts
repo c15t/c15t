@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Vista stillingar',
 		securedBy: 'Varið af',
 	},
+	consentGate: {
+		actionButton: 'Virkja {category} samþykki',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Samþykktu {category} samþykki til að skoða þetta efni.',
+	},
 	consentManagerDialog: {
 		description:
 			'Sérsníðaðu persónuverndastillingar þínar hér. Þú getur valið hvaða tegundir af vafrakökum og rakningartækni þú leyfir.',
@@ -56,14 +64,6 @@ export const translations: CompleteTranslations = {
 			'Við notum vafrakökur og sambærilega tækni til að reka þennan vef, mæla umferð og sérsníða efni og auglýsingar. Þú getur afþakkað eða stjórnað stillingum þínum hvenær sem er.',
 		noticeTitle: 'Persónuverndartilkynning',
 		title: 'Við metum friðhelgi þína',
-	},
-	frame: {
-		actionButton: 'Virkja {category} samþykki',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Samþykktu {category} samþykki til að skoða þetta efni.',
 	},
 	iab: {
 		banner: {

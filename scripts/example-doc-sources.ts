@@ -6,12 +6,15 @@ import { basename, extname, resolve, sep } from 'node:path';
  * Directories whose apps are built and tested in CI. Documentation code that
  * wires c15t into an application comes from marked regions in these files.
  * `apps` is scanned for its Storybook apps, whose design recipes CI runs
- * through `test-storybook`.
+ * through `test-storybook`. `benchmarks/tailwind-matrix` holds one fixture per
+ * framework and Tailwind version, which `scripts/verify-tailwind-matrix.ts`
+ * builds and checks in Chromium.
  */
 export const exampleRoots = [
 	'examples',
 	'internals/next-compat',
 	'apps',
+	'benchmarks/tailwind-matrix',
 ] as const;
 
 /** Where generated snippets are written, relative to the repository root. */
@@ -23,6 +26,11 @@ export const generatedExamplesDir = 'docs/shared/examples';
  * Mark a region with `#region docs:<name>` and `#endregion docs:<name>` inside
  * any comment syntax the file supports. Add `title="<path>"` to the opening
  * marker when the reader's path differs from the path inside the example app.
+ *
+ * Demo-only code inside a region stays out of the snippet: end a line with a
+ * `docs:hide` comment (`// docs:hide`, `<!-- docs:hide -->`,
+ * `{/* docs:hide *\/}` or `/* docs:hide *\/`), or wrap several lines in
+ * `#hide docs` and `#endhide docs` markers.
  */
 export interface ExampleRegion {
 	/** Region name, unique within its example app. */
@@ -50,6 +58,49 @@ const closePattern = new RegExp(
 	'u'
 );
 const anyMarker = new RegExp(`${markerPrefix}#(?:end)?region docs:`, 'u');
+const hideOpen = /#hide docs\b/u;
+const hideClose = /#endhide docs\b/u;
+/** A trailing `docs:hide` comment in any of the supported comment syntaxes. */
+const hiddenLine =
+	/(?:\/\/\s*docs:hide|<!--\s*docs:hide\s*-->|\{\/\*\s*docs:hide\s*\*\/\}|\/\*\s*docs:hide\s*\*\/)\s*$/u;
+
+/**
+ * Drops the demo-only lines of a region body: lines ending in a `docs:hide`
+ * comment, and everything between `#hide docs` and `#endhide docs`. The hide
+ * markers themselves never publish.
+ */
+const withoutHiddenLines = (
+	lines: string[],
+	name: string,
+	source: string
+): string[] => {
+	const kept: string[] = [];
+	let depth = 0;
+	for (const line of lines) {
+		if (hideOpen.test(line)) {
+			depth += 1;
+			continue;
+		}
+		if (hideClose.test(line)) {
+			if (depth === 0) {
+				throw new Error(
+					`${source} region docs:${name} closes a hide block it never opened.`
+				);
+			}
+			depth -= 1;
+			continue;
+		}
+		if (depth === 0 && !hiddenLine.test(line)) {
+			kept.push(line);
+		}
+	}
+	if (depth > 0) {
+		throw new Error(
+			`${source} region docs:${name} does not close a hide block.`
+		);
+	}
+	return kept;
+};
 
 const languages: Record<string, string> = {
 	'.astro': 'astro',
@@ -92,6 +143,12 @@ export const appFor = (source: string): string => {
 	if (storybook?.groups?.name) {
 		return `apps/${storybook.groups.name}`;
 	}
+	const tailwind = source.match(
+		/^benchmarks\/tailwind-matrix\/(?<version>v[34])\/(?<name>[^/]+)\//u
+	);
+	if (tailwind?.groups?.version && tailwind.groups.name) {
+		return `benchmarks/tailwind-matrix/${tailwind.groups.version}/${tailwind.groups.name}`;
+	}
 	throw new Error(`${source} is not inside an example app.`);
 };
 
@@ -101,6 +158,11 @@ const destinationFor = (app: string, name: string): string => {
 		prefix = app.slice('examples/'.length);
 	} else if (app.startsWith('apps/')) {
 		prefix = app.slice('apps/'.length);
+	} else if (app.startsWith('benchmarks/tailwind-matrix/')) {
+		const [version, framework] = app
+			.slice('benchmarks/tailwind-matrix/'.length)
+			.split('/');
+		prefix = `tailwind-${version}/${framework}`;
 	}
 	return `${generatedExamplesDir}/${prefix}/${name}.mdx`;
 };
@@ -165,7 +227,8 @@ const dedent = (lines: string[]): string[] => {
 
 /**
  * Extracts a region's lines. Markers of this and any nested region are
- * removed, so a file can publish overlapping snippets.
+ * removed, so a file can publish overlapping snippets. Hidden lines are
+ * dropped: a region nested inside a hide block still publishes on its own.
  */
 export const extractRegion = (
 	content: string,
@@ -186,9 +249,11 @@ export const extractRegion = (
 	if (end === -1) {
 		throw new Error(`${source} does not close region docs:${name}.`);
 	}
-	const body = lines
-		.slice(start + 1, end)
-		.filter((line) => !anyMarker.test(line));
+	const body = withoutHiddenLines(
+		lines.slice(start + 1, end),
+		name,
+		source
+	).filter((line) => !anyMarker.test(line));
 	while (body[0]?.trim() === '') {
 		body.shift();
 	}

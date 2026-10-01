@@ -208,7 +208,11 @@
 		transform: translateX(var(--switch-thumb-translate));
 	}
 
-	.root:not(:global(.headless))[dir='rtl'][data-state='checked'] .thumb {
+	/* The track lays the thumb out from its inline start, the right edge in
+	   right-to-left copy, so checked moves it the other way there. `:dir()`
+	   matches the direction the switch inherits: adapters put `dir` on the
+	   dialog or widget, not on the switch. */
+	.root:not(:global(.headless)):dir(rtl)[data-state='checked'] .thumb {
 		transform: translateX(calc(-1 * var(--switch-thumb-translate)));
 	}
 
@@ -222,6 +226,11 @@
 
 	.root:not(:global(.headless))[data-state='checked'][data-disabled] .thumb {
 		transform: translateX(var(--switch-thumb-translate));
+	}
+
+	.root:not(:global(.headless)):dir(rtl)[data-state='checked'][data-disabled]
+		.thumb {
+		transform: translateX(calc(-1 * var(--switch-thumb-translate)));
 	}
 
 	.root:not(:global(.headless)):focus-visible {

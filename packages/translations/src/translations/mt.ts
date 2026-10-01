@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Issejvja s-settings',
 		securedBy: 'Protett minn',
 	},
+	consentGate: {
+		actionButton: "Attiva l-kunsens ta' {category}",
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: "Aċċetta l-kunsens ta' {category} biex tara dan il-kontenut.",
+	},
 	consentManagerDialog: {
 		description:
 			"Personalizza s-settings tal-privatezza tiegħek hawn. Tista' tagħżel liema tipi ta' cookies u teknoloġiji ta' traċċar tippermetti.",
@@ -56,14 +64,6 @@ export const translations: CompleteTranslations = {
 			"Nużaw cookies u teknoloġiji simili biex inħaddmu dan is-sit, inkejlu t-traffiku, u nippersonalizzaw il-kontenut u r-reklami. Tista' tagħżel li toħroġ jew timmaniġġja l-preferenzi tiegħek fi kwalunkwe ħin.",
 		noticeTitle: 'Avviż dwar il-privatezza',
 		title: 'Napprezzaw il-privatezza tiegħek',
-	},
-	frame: {
-		actionButton: "Attiva l-kunsens ta' {category}",
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: "Aċċetta l-kunsens ta' {category} biex tara dan il-kontenut.",
 	},
 	iab: {
 		banner: {

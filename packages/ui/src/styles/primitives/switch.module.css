@@ -202,7 +202,9 @@
 		transform: translateX(var(--switch-thumb-translate));
 	}
 
-	.root[dir='rtl'][data-state='checked'] .thumb {
+	/* Right-to-left copy lays the thumb out from the right edge. `:dir()`
+	   matches the direction the switch inherits from the dialog. */
+	.root:dir(rtl)[data-state='checked'] .thumb {
 		transform: translateX(calc(-1 * var(--switch-thumb-translate)));
 	}
 
@@ -217,6 +219,10 @@
 
 	.root[data-state='checked'] .thumb-disabled {
 		transform: translateX(var(--switch-thumb-translate));
+	}
+
+	.root:dir(rtl)[data-state='checked'] .thumb-disabled {
+		transform: translateX(calc(-1 * var(--switch-thumb-translate)));
 	}
 
 	.root-small {

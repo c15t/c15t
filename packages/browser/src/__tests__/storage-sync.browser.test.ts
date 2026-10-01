@@ -5,6 +5,10 @@
 import { clearBrowserConsentStorage } from '@c15t/conformance/suite';
 import { afterEach, expect, it } from 'vitest';
 
+// The fixture page imports the client. Importing it here makes Vite
+// transform its graph while it collects this file, not inside the first
+// test's timeout. See csp-nonce.browser.test.ts.
+import '../client';
 import type { StorageSyncPage } from './fixtures/storage-sync-page';
 
 const opened: Window[] = [];

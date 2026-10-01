@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,8 +8,10 @@ import {
 	addTailwind3PluginToPostcssConfig,
 	ensureTailwind3PostcssPlugin,
 	isTailwindV3,
-	needsTailwind3PostcssPlugin,
+	tailwind3PostcssPluginName,
 } from './postcss-config';
+
+const PLUGIN = 'c15t/postcss-tailwind3';
 
 const tempDirs: string[] = [];
 
@@ -34,7 +36,7 @@ afterEach(async () => {
 
 /** The edited source, or the status when nothing was added. */
 const edit = function edit(content: string, fileName = 'postcss.config.mjs') {
-	const result = addTailwind3PluginToPostcssConfig(content, fileName);
+	const result = addTailwind3PluginToPostcssConfig(content, fileName, PLUGIN);
 	return result.status === 'added' ? result.content : result.status;
 };
 
@@ -53,7 +55,7 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 			[
 				'module.exports = {',
 				'  plugins: {',
-				"    '@c15t/ui/postcss-tailwind3': {},",
+				"    'c15t/postcss-tailwind3': {},",
 				'    tailwindcss: {},',
 				'    autoprefixer: {},',
 				'  },',
@@ -66,7 +68,7 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 		expect(
 			edit('export default { plugins: ["tailwindcss", "autoprefixer"] };')
 		).toBe(
-			'export default { plugins: ["@c15t/ui/postcss-tailwind3", "tailwindcss", "autoprefixer"] };'
+			'export default { plugins: ["c15t/postcss-tailwind3", "tailwindcss", "autoprefixer"] };'
 		);
 	});
 
@@ -74,7 +76,7 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 		expect(
 			edit("export default { plugins: [['tailwindcss', {}], 'autoprefixer'] };")
 		).toBe(
-			"export default { plugins: ['@c15t/ui/postcss-tailwind3', ['tailwindcss', {}], 'autoprefixer'] };"
+			"export default { plugins: ['c15t/postcss-tailwind3', ['tailwindcss', {}], 'autoprefixer'] };"
 		);
 	});
 
@@ -85,7 +87,7 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 				'postcss.config.cjs'
 			)
 		).toBe(
-			"module.exports = { plugins: [require('@c15t/ui/postcss-tailwind3'), require('tailwindcss')({ config: './tw.js' }), require('autoprefixer')] };"
+			"module.exports = { plugins: [require('c15t/postcss-tailwind3'), require('tailwindcss')({ config: './tw.js' }), require('autoprefixer')] };"
 		);
 	});
 
@@ -96,7 +98,7 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 				'.postcssrc.json'
 			)
 		).toBe(
-			'{ "plugins": { "@c15t/ui/postcss-tailwind3": {}, "tailwindcss": {}, "autoprefixer": {} } }'
+			'{ "plugins": { "c15t/postcss-tailwind3": {}, "tailwindcss": {}, "autoprefixer": {} } }'
 		);
 	});
 
@@ -106,13 +108,13 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 				"export default { plugins: { 'tailwindcss/nesting': {}, tailwindcss: {} } };"
 			)
 		).toBe(
-			"export default { plugins: { 'tailwindcss/nesting': {}, '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {} } };"
+			"export default { plugins: { 'tailwindcss/nesting': {}, 'c15t/postcss-tailwind3': {}, tailwindcss: {} } };"
 		);
 	});
 
 	it('edits the active config, not a commented-out example', () => {
 		const config = [
-			"// previous: { plugins: { '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {} } }",
+			"// previous: { plugins: { 'c15t/postcss-tailwind3': {}, tailwindcss: {} } }",
 			'/* plugins: { tailwindcss: {} } */',
 			'export default {',
 			'\tplugins: {',
@@ -124,7 +126,7 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 		expect(edit(config)).toBe(
 			config.replace(
 				'\t\ttailwindcss: {},',
-				"\t\t'@c15t/ui/postcss-tailwind3': {},\n\t\ttailwindcss: {},"
+				"\t\t'c15t/postcss-tailwind3': {},\n\t\ttailwindcss: {},"
 			)
 		);
 	});
@@ -132,25 +134,52 @@ describe('addTailwind3PluginToPostcssConfig', () => {
 	it('reports a plugin that is already active', () => {
 		expect(
 			edit(
-				"export default { plugins: { '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {} } };"
+				"export default { plugins: { 'c15t/postcss-tailwind3': {}, tailwindcss: {} } };"
 			)
 		).toBe('present');
 		expect(
 			edit(
-				"export default { plugins: [['@c15t/ui/postcss-tailwind3'], 'tailwindcss'] };"
+				"export default { plugins: [['c15t/postcss-tailwind3'], 'tailwindcss'] };"
 			)
 		).toBe('present');
+	});
+
+	it.each([
+		'@c15t/ui/postcss-tailwind3',
+		'@c15t/nextjs/postcss-tailwind3',
+		'@c15t/react/postcss-tailwind3',
+	])('takes %s for the same plugin', (name) => {
+		expect(
+			edit(`export default { plugins: { '${name}': {}, tailwindcss: {} } };`)
+		).toBe('present');
+		expect(
+			edit(`export default { plugins: { tailwindcss: {}, '${name}': {} } };`)
+		).toBe('manual');
+	});
+
+	it('adds the named plugin next to an unrelated postcss-tailwind3', () => {
+		expect(
+			addTailwind3PluginToPostcssConfig(
+				"export default { plugins: { 'other/postcss-tailwind3': {}, tailwindcss: {} } };",
+				'postcss.config.mjs',
+				'@c15t/react/postcss-tailwind3'
+			)
+		).toEqual({
+			content:
+				"export default { plugins: { 'other/postcss-tailwind3': {}, '@c15t/react/postcss-tailwind3': {}, tailwindcss: {} } };",
+			status: 'added',
+		});
 	});
 
 	it('asks for a manual change when the plugin runs after tailwindcss', () => {
 		expect(
 			edit(
-				"export default { plugins: { tailwindcss: {}, '@c15t/ui/postcss-tailwind3': {} } };"
+				"export default { plugins: { tailwindcss: {}, 'c15t/postcss-tailwind3': {} } };"
 			)
 		).toBe('manual');
 		expect(
 			edit(
-				"export default { plugins: ['tailwindcss', '@c15t/ui/postcss-tailwind3'] };"
+				"export default { plugins: ['tailwindcss', 'c15t/postcss-tailwind3'] };"
 			)
 		).toBe('manual');
 	});
@@ -190,23 +219,29 @@ describe('ensureTailwind3PostcssPlugin', () => {
 				'export default { plugins: { tailwindcss: {}, autoprefixer: {} } };\n',
 		});
 
-		const result = await ensureTailwind3PostcssPlugin({ projectRoot: root });
+		const result = await ensureTailwind3PostcssPlugin({
+			pluginName: PLUGIN,
+			projectRoot: root,
+		});
 
 		expect(result).toEqual({
 			filePath: join(root, 'postcss.config.mjs'),
 			status: 'added',
 		});
 		expect(await readFile(join(root, 'postcss.config.mjs'), 'utf-8')).toBe(
-			"export default { plugins: { '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {}, autoprefixer: {} } };\n"
+			"export default { plugins: { 'c15t/postcss-tailwind3': {}, tailwindcss: {}, autoprefixer: {} } };\n"
 		);
 	});
 
 	it('does not add the plugin twice', async () => {
 		const config =
-			"export default { plugins: ['@c15t/ui/postcss-tailwind3', 'tailwindcss'] };\n";
+			"export default { plugins: ['c15t/postcss-tailwind3', 'tailwindcss'] };\n";
 		const root = await createProject({ 'postcss.config.js': config });
 
-		const result = await ensureTailwind3PostcssPlugin({ projectRoot: root });
+		const result = await ensureTailwind3PostcssPlugin({
+			pluginName: PLUGIN,
+			projectRoot: root,
+		});
 
 		expect(result.status).toBe('present');
 		expect(await readFile(join(root, 'postcss.config.js'), 'utf-8')).toBe(
@@ -220,6 +255,7 @@ describe('ensureTailwind3PostcssPlugin', () => {
 
 		const result = await ensureTailwind3PostcssPlugin({
 			dryRun: true,
+			pluginName: PLUGIN,
 			projectRoot: root,
 		});
 
@@ -236,7 +272,10 @@ describe('ensureTailwind3PostcssPlugin', () => {
 			'postcss.config.mjs': config,
 		});
 
-		const result = await ensureTailwind3PostcssPlugin({ projectRoot: root });
+		const result = await ensureTailwind3PostcssPlugin({
+			pluginName: PLUGIN,
+			projectRoot: root,
+		});
 
 		expect(result.status).toBe('manual');
 		expect(await readFile(join(root, 'postcss.config.mjs'), 'utf-8')).toBe(
@@ -252,7 +291,7 @@ describe('ensureTailwind3PostcssPlugin', () => {
 		});
 
 		await expect(
-			ensureTailwind3PostcssPlugin({ projectRoot: root })
+			ensureTailwind3PostcssPlugin({ pluginName: PLUGIN, projectRoot: root })
 		).resolves.toEqual({
 			filePath: join(root, '.postcssrc.yml'),
 			status: 'manual',
@@ -262,11 +301,43 @@ describe('ensureTailwind3PostcssPlugin', () => {
 		);
 	});
 
+	it.each([
+		{ config: 'module.exports = { plugins: { tailwindcss: {} } };\n' },
+		{ config: null },
+	])(
+		'leaves Create React App alone, which ignores PostCSS config (config: $config)',
+		async ({ config }) => {
+			const files: Record<string, string> = {
+				'package.json': JSON.stringify({
+					dependencies: { 'react-scripts': '5.0.1' },
+				}),
+			};
+			if (config) {
+				files['postcss.config.js'] = config;
+			}
+			const root = await createProject(files);
+
+			const result = await ensureTailwind3PostcssPlugin({
+				pluginName: PLUGIN,
+				projectRoot: root,
+			});
+
+			expect(result).toEqual({
+				filePath: config ? join(root, 'postcss.config.js') : null,
+				status: 'config-ignored',
+			});
+			expect((await readdir(root)).sort()).toEqual(Object.keys(files).sort());
+			expect(
+				config && (await readFile(join(root, 'postcss.config.js'), 'utf-8'))
+			).toBe(config);
+		}
+	);
+
 	it('asks for a manual change without a config', async () => {
 		const root = await createProject({});
 
 		await expect(
-			ensureTailwind3PostcssPlugin({ projectRoot: root })
+			ensureTailwind3PostcssPlugin({ pluginName: PLUGIN, projectRoot: root })
 		).resolves.toEqual({ filePath: null, status: 'manual' });
 	});
 });
@@ -279,23 +350,21 @@ describe('Tailwind 3 detection', () => {
 		expect(isTailwindV3('^4.1.0')).toBe(false);
 		expect(isTailwindV3(null)).toBe(false);
 	});
+});
 
-	it('only wires the plugin for React and Next.js apps', () => {
-		expect(
-			needsTailwind3PostcssPlugin({
-				pkg: 'c15t/next',
-				tailwindVersion: '^3.4.0',
-			})
-		).toBe(true);
-		expect(
-			needsTailwind3PostcssPlugin({ pkg: 'c15t', tailwindVersion: '^3.4.0' })
-		).toBe(false);
-		expect(
-			needsTailwind3PostcssPlugin({
-				pkg: 'c15t/react',
-				tailwindVersion: '^4.1.0',
-			})
-		).toBe(false);
-		expect(needsTailwind3PostcssPlugin(null)).toBe(false);
+describe('tailwind3PostcssPluginName', () => {
+	it('names the plugin after the package the app imports c15t from', () => {
+		expect(tailwind3PostcssPluginName('c15t/next')).toBe(
+			'c15t/postcss-tailwind3'
+		);
+		expect(tailwind3PostcssPluginName('c15t/react')).toBe(
+			'c15t/postcss-tailwind3'
+		);
+		expect(tailwind3PostcssPluginName('@c15t/nextjs')).toBe(
+			'@c15t/nextjs/postcss-tailwind3'
+		);
+		expect(tailwind3PostcssPluginName('@c15t/svelte')).toBe(
+			'@c15t/svelte/postcss-tailwind3'
+		);
 	});
 });

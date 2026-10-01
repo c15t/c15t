@@ -11,6 +11,15 @@ export const translations: CompleteTranslations = {
 		save: 'Uložiť nastavenia',
 		securedBy: 'Zabezpečuje',
 	},
+	consentGate: {
+		actionButton: 'Povoliť súhlas pre {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title:
+			'Prijmite súhlas pre kategóriu {category} na zobrazenie tohto obsahu.',
+	},
 	consentManagerDialog: {
 		description:
 			'Prispôsobte si nastavenia súkromia tu. Môžete si vybrať, ktoré typy cookies a sledovacích technológií povolíte.',
@@ -57,15 +66,6 @@ export const translations: CompleteTranslations = {
 			'Používame súbory cookie a podobné technológie na prevádzku tejto stránky, meranie návštevnosti a personalizáciu obsahu a reklám. Kedykoľvek sa môžete odhlásiť alebo spravovať svoje predvoľby.',
 		noticeTitle: 'Oznámenie o ochrane súkromia',
 		title: 'Vážime si vaše súkromie',
-	},
-	frame: {
-		actionButton: 'Povoliť súhlas pre {category}',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title:
-			'Prijmite súhlas pre kategóriu {category} na zobrazenie tohto obsahu.',
 	},
 	iab: {
 		banner: {

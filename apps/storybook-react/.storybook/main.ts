@@ -2,6 +2,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { StorybookConfig } from '@storybook/react-vite';
+import stylex from '@stylexjs/unplugin/vite';
+import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin';
 import { mergeConfig } from 'vite';
 
 const storybookDir = path.dirname(fileURLToPath(import.meta.url));
@@ -29,6 +31,15 @@ const config: StorybookConfig = {
 					'react-dom/client',
 				],
 			},
+			// The docs' class-name recipes (src/docs-recipes/class-names).
+			plugins: [
+				vanillaExtractPlugin(),
+				// Append StyleX's rules to the preview entry's CSS, which every
+				// story loads, rather than whichever CSS asset comes first.
+				stylex({
+					cssInjectionTarget: (fileName) => fileName.includes('iframe'),
+				}),
+			],
 			resolve: {
 				alias: [
 					{

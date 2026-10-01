@@ -12,6 +12,7 @@ import { computed } from 'vue';
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
 
 import { useConsentSnapshot } from '../composables/kernel';
+import { slotAttrs } from '../utils/slot-attrs';
 import ConsentLegalLinks from './legal-links.vue';
 
 const props = defineProps<{
@@ -66,10 +67,11 @@ const testId = computed(() =>
 
 <template>
 	<div
-		v-bind="config.components?.description?.[context]"
+		v-bind="
+			slotAttrs(config.components?.description?.[context], descriptionClass)
+		"
 		:id="descriptionId"
 		:data-testid="testId"
-		:class="descriptionClass"
 		:data-context="context"
 	>
 		<slot>

@@ -1,4 +1,4 @@
-/* The same import every c15t setup uses. @c15t/ui/postcss-tailwind3 (in
+/* The same import every c15t setup uses. @c15t/nextjs/postcss-tailwind3 (in
    postcss.config.mjs) flattens its layers for Tailwind 3. It sits first
    because postcss-import (Vite) drops an @import that follows the
    directives. */

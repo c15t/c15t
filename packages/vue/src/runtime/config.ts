@@ -11,6 +11,7 @@ import type {
 } from '@c15t/core/runtime';
 import type { ConsentConfig as BaseConsentConfig } from '@c15t/schema/config';
 import type { InitOutput } from '@c15t/schema/types';
+import type { Theme, UIOptions } from '@c15t/ui/theme';
 import type { HTMLAttributes } from 'vue';
 
 export interface ConsentManifestNuxtConfig {
@@ -118,4 +119,34 @@ export interface ConsentConfig
 	experiment?: ConsentExperiment;
 	/** Receives kernel events only when the corresponding change occurs. */
 	callbacks?: ConsentRuntimeOptions['callbacks'];
+	/**
+	 * Light or dark for the banner and dialogs, through the `c15t-dark`
+	 * class on `<html>`.
+	 *
+	 * `'light'` and `'dark'` force a scheme. `'system'` follows
+	 * `prefers-color-scheme` and keeps following it as the visitor changes
+	 * it. Left unset, `c15t-dark` mirrors a `dark` class on `<html>`, so a
+	 * site theme switch that toggles `dark` also switches the consent UI.
+	 * `null` leaves `c15t-dark` to the site.
+	 *
+	 * Nuxt sets the class for `'dark'` and `'system'` from an inline script
+	 * in the server HTML, so the first paint is already dark.
+	 */
+	colorScheme?: UIOptions['colorScheme'];
+	/**
+	 * Design tokens, including `dark` colors, written as CSS custom
+	 * properties into the same `<style id="c15t-css-vars">` element as
+	 * `tokens`. Where both set a variable, `theme` wins. `theme.slots`
+	 * style the same parts as `components`, which win where both set the
+	 * same attribute.
+	 *
+	 * @example
+	 * ```ts
+	 * theme: {
+	 * 	colors: { primary: '#2f6f4e' },
+	 * 	dark: { primary: '#7fd1a8', surface: '#101512' },
+	 * }
+	 * ```
+	 */
+	theme?: Theme;
 }

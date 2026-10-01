@@ -16,7 +16,9 @@
 		direction = 'row',
 		noStyle = false,
 		footerClassName,
+		footerStyle,
 		footerSubGroupClassName,
+		footerSubGroupStyle,
 		footerTestId,
 		footerSubGroupTestId,
 		leading,
@@ -28,7 +30,11 @@
 		direction?: SurfacePresentation['direction'];
 		noStyle?: boolean;
 		footerClassName?: string;
+		/** `style` attribute for the footer, from its theme slot. */
+		footerStyle?: string;
 		footerSubGroupClassName?: string;
+		/** `style` attribute for each action group, from its theme slot. */
+		footerSubGroupStyle?: string;
 		footerTestId?: string;
 		footerSubGroupTestId?: string;
 		/** Rendered inside the footer before the action groups, e.g. rights links. */
@@ -58,6 +64,7 @@
 
 <div
 	class={resolvedFooterClassName}
+	style={footerStyle}
 	data-testid={footerTestId}
 	data-direction={direction}
 	data-fill={shouldFillActions ? true : undefined}
@@ -67,6 +74,7 @@
 	{#each keyedActionGroups as actionGroup (actionGroup.key)}
 		<div
 			class={resolvedFooterSubGroupClassName}
+			style={footerSubGroupStyle}
 			data-testid={footerSubGroupTestId}
 			data-direction={direction}
 			data-fill={shouldFillActions ? true : undefined}

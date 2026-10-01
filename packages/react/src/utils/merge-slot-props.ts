@@ -32,20 +32,36 @@ export type MergedSlotProps = Omit<ReactSlotProps, 'style'> & {
 	style?: CSSPropertiesWithVars;
 };
 
+/**
+ * A `components` part, plus the `noStyle` flag a `theme.slots` entry puts
+ * on it through `applyThemeSlots`.
+ */
+type SlotPropsInput = ReactSlotProps & { noStyle?: boolean };
+
+/**
+ * Merge a `components` part with a component's own props.
+ *
+ * The stock `baseClassName` is dropped when the component's `noStyle` or
+ * the part's `noStyle` is set; the part's and the component's classes
+ * stay, as `resolveStyles` keeps theme slot classes under `noStyle`.
+ */
 export const mergeSlotProps = function mergeSlotProps(
-	slotProps: ReactSlotProps | undefined,
+	slotProps: SlotPropsInput | undefined,
 	{ baseClassName, className, noStyle, style, ...ownProps }: MergeSlotPropsInput
 ): MergedSlotProps {
+	const { noStyle: slotNoStyle, ...slotAttributes } = slotProps ?? {};
 	const mergedStyle =
-		slotProps?.style || style ? { ...slotProps?.style, ...style } : undefined;
+		slotAttributes.style || style
+			? { ...slotAttributes.style, ...style }
+			: undefined;
 	const mergedClassName = cn(
-		noStyle ? undefined : baseClassName,
-		slotProps?.className,
+		noStyle || slotNoStyle ? undefined : baseClassName,
+		slotAttributes.className,
 		className
 	);
 
 	return {
-		...slotProps,
+		...slotAttributes,
 		...ownProps,
 		className: mergedClassName || undefined,
 		style: mergedStyle as CSSPropertiesWithVars | undefined,

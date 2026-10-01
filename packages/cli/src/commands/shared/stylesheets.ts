@@ -46,8 +46,8 @@ export interface EnsureGlobalCssStylesheetImportsOptions {
 	/**
 	 * Set only by the v1 to v2 codemod. With Tailwind 3 it imports v2's
 	 * `styles.tw3.css` between `@tailwind components` and
-	 * `@tailwind utilities`, because `@c15t/ui/postcss-tailwind3` does not
-	 * exist in v2. v3 setup leaves it unset and imports `styles.css`.
+	 * `@tailwind utilities`, because v2 has no `postcss-tailwind3` plugin.
+	 * v3 setup leaves it unset and imports `styles.css`.
 	 */
 	legacyTailwindVersion?: string | null;
 	entrypointPath?: string | null;
@@ -110,8 +110,8 @@ const getStylesheetKind = function getStylesheetKind(
 };
 
 /**
- * v3 setup imports `styles.css`; Tailwind 3 apps run
- * `@c15t/ui/postcss-tailwind3` to flatten its layers (see
+ * v3 setup imports `styles.css`; Tailwind 3 apps run c15t's
+ * `postcss-tailwind3` plugin to flatten its layers (see
  * `postcss-config.ts`), and an existing `styles.tw3.css` import is
  * replaced. The v1 to v2 codemod keeps v2's `styles.tw3.css` for Tailwind 3.
  */

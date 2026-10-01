@@ -101,6 +101,92 @@ describe('mountConsentUI', () => {
 		expect(query(root, 'consent-banner-root').dataset.variant).toBe('bar');
 	});
 
+	it('applies the assigned arm theme slots to the rendered parts', async () => {
+		const experiment = {
+			// `control` is the host presentation and is not listed in `arms`.
+			arm: 'control',
+			arms: {
+				branded: {
+					theme: { slots: { consentBannerCard: 'arm-card' } },
+				},
+			},
+			id: 'card-class',
+		};
+		const { client, root } = await mount(
+			{ theme: { slots: { consentBannerTitle: 'base-title' } } },
+			{ experiment }
+		);
+		// Start on the control arm, so the lazily loaded controller cannot
+		// assign `branded` before the first assertion.
+		await vi.waitFor(() => {
+			expect(client.getSnapshot().experiment?.arm).toBe('control');
+			query(root, 'consent-banner-card');
+		});
+		expect(query(root, 'consent-banner-card').classList).not.toContain(
+			'arm-card'
+		);
+		client.kernel.set.experiment({
+			acknowledgedDiagnostics: false,
+			arm: 'branded',
+			assignedBy: 'c15t',
+			id: 'card-class',
+		});
+		expect(query(root, 'consent-banner-card').classList).toContain('arm-card');
+		// The arm's slots merge over the host's, as the theme tokens do.
+		expect(query(root, 'consent-banner-title').classList).toContain(
+			'base-title'
+		);
+	});
+
+	it('re-slots the trigger icon when the arm changes after mount', async () => {
+		const experiment = {
+			arm: 'control',
+			arms: {
+				branded: {
+					theme: {
+						slots: {
+							consentDialogTrigger: { style: { opacity: 0.5 } },
+							consentDialogTriggerIcon: 'branded-icon',
+						},
+					},
+				},
+				plain: {
+					theme: {
+						slots: {
+							consentDialogTriggerIcon: { className: 'bare', noStyle: true },
+						},
+					},
+				},
+			},
+			id: 'trigger-icon',
+		};
+		const { client, root } = await mount({ trigger: true }, { experiment });
+		const trigger = query(root, 'consent-dialog-trigger');
+		const icon = () =>
+			trigger.querySelector('[part~="consentDialogTriggerIcon"]');
+		expect(icon()?.classList).toContain(classes.trigger.icon);
+		expect(icon()?.classList).not.toContain('branded-icon');
+
+		const assign = (arm: string) =>
+			client.kernel.set.experiment({
+				acknowledgedDiagnostics: false,
+				arm,
+				assignedBy: 'c15t',
+				id: 'trigger-icon',
+			});
+		assign('branded');
+		expect(icon()?.classList).toContain('branded-icon');
+		expect(icon()?.classList).toContain(classes.trigger.icon);
+		expect(trigger.style.opacity).toBe('0.5');
+
+		// The next arm's `noStyle` drops the stock class, and the previous
+		// arm's class and inline style go with it.
+		assign('plain');
+		expect(icon()?.className).toBe('bare');
+		expect(trigger.style.opacity).toBe('');
+		expect(trigger.classList).toContain(classes.trigger.trigger);
+	});
+
 	it('creates the stylesheet when an arm theme arrives after mount', async () => {
 		const experiment = {
 			arms: {
@@ -278,6 +364,26 @@ describe('mountConsentUI', () => {
 				false
 			);
 			expect(layout).toHaveBeenCalledTimes(2);
+		});
+
+		it('lets the banner and dialog options override disableAnimation', async () => {
+			declareStartingStyle();
+			const { root } = await mount({
+				banner: { disableAnimation: true },
+				dialog: { disableAnimation: false },
+				disableAnimation: false,
+			});
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				false
+			);
+
+			query(root, 'consent-banner-customize-button').click();
+			const dialog = query(root, 'consent-dialog-root');
+			expect(dialog.classList.contains(classes.dialog.contentEntering)).toBe(
+				true
+			);
 		});
 
 		it('skips the entering state when animation is disabled', async () => {
@@ -489,11 +595,259 @@ describe('mountConsentUI', () => {
 		expect(handle.host.style.colorScheme).toBe('dark');
 	});
 
+	it('follows the document with a null scheme', async () => {
+		// The system is dark; null must not follow it.
+		vi.stubGlobal(
+			'matchMedia',
+			vi.fn(() => ({
+				addEventListener: () => undefined,
+				matches: true,
+				removeEventListener: () => undefined,
+			}))
+		);
+		const html = document.documentElement;
+		try {
+			const { root, handle } = await mount({ colorScheme: null });
+			const dark = () =>
+				root.querySelector('.c15t-host')?.classList.contains('c15t-dark') &&
+				handle.host.classList.contains('c15t-dark');
+			expect(dark()).toBe(false);
+
+			// The site's own class, either spelling, reaches the shadow root.
+			html.classList.add('dark');
+			await vi.waitFor(() => expect(dark()).toBe(true));
+			html.classList.replace('dark', 'c15t-dark');
+			await Promise.resolve();
+			expect(dark()).toBe(true);
+			html.classList.remove('c15t-dark');
+			await vi.waitFor(() => expect(dark()).toBe(false));
+			expect(html.classList.length).toBe(0);
+		} finally {
+			vi.unstubAllGlobals();
+			html.className = '';
+		}
+	});
+
 	it('tears everything down on destroy', async () => {
 		const { handle } = await mount();
 
 		handle.destroy();
 
 		expect(document.querySelector('[data-c15t-ui]')).toBeNull();
+	});
+
+	describe('theme.slots', () => {
+		it('adds px to numeric slot lengths and leaves unitless numbers alone', async () => {
+			const { root } = await mount({
+				theme: {
+					slots: {
+						consentBannerCard: { style: { opacity: 0.5, padding: 8 } },
+					},
+				},
+			});
+			const card = query(root, 'consent-banner-card');
+			expect(card.style.padding).toBe('8px');
+			expect(card.style.opacity).toBe('0.5');
+		});
+
+		it('adds slot classes and inline styles to the parts they name', async () => {
+			const { root, client } = await mount({
+				banner: { legalLinks: [] },
+				theme: {
+					slots: {
+						buttonPrimary: 'brand-primary',
+						buttonSecondary: { className: 'brand-secondary' },
+						consentBanner: 'brand-banner',
+						consentBannerCard: {
+							className: 'brand-card  shadow-lg',
+							style: { '--brand-accent': '#0a66ff', borderTopWidth: '4px' },
+						},
+						consentBannerDescription: 'brand-description',
+						consentBannerFooter: 'brand-footer',
+						consentBannerFooterSubGroup: 'brand-group',
+						consentBannerHeader: 'brand-header',
+						consentBannerTag: 'brand-tag',
+						consentBannerTitle: 'brand-title',
+						consentDialog: 'brand-dialog',
+						consentDialogCard: 'brand-dialog-card',
+						consentDialogContent: 'brand-dialog-content',
+						consentDialogDescription: 'brand-dialog-description',
+						consentDialogHeader: 'brand-dialog-header',
+						consentDialogTag: 'brand-dialog-tag',
+						consentDialogTitle: 'brand-dialog-title',
+						consentWidget: 'brand-widget',
+						consentWidgetAccordion: 'brand-accordion',
+						consentWidgetFooter: 'brand-widget-footer',
+						consentWidgetFooterSubGroup: 'brand-widget-group',
+						toggle: 'brand-toggle',
+					},
+				},
+			});
+
+			const card = query(root, 'consent-banner-card');
+			expect(card.classList.contains(classes.banner.card)).toBe(true);
+			expect(card.classList.contains('brand-card')).toBe(true);
+			expect(card.classList.contains('shadow-lg')).toBe(true);
+			expect(card.style.getPropertyValue('--brand-accent')).toBe('#0a66ff');
+			expect(card.style.borderTopWidth).toBe('4px');
+			const bannerParts: [string, string][] = [
+				['consent-banner-root', 'brand-banner'],
+				['consent-banner-header', 'brand-header'],
+				['consent-banner-title', 'brand-title'],
+				['consent-banner-description', 'brand-description'],
+				['consent-banner-footer', 'brand-footer'],
+				['consent-banner-footer-sub-group', 'brand-group'],
+				['consent-banner-branding', 'brand-tag'],
+			];
+			for (const [testId, className] of bannerParts) {
+				expect(query(root, testId).classList, testId).toContain(className);
+			}
+			// Buttons take the slot for the variant the policy gives them.
+			const buttons = [
+				...query(root, 'consent-banner-footer').querySelectorAll('button'),
+			];
+			expect(
+				buttons.map((button) => [
+					button.dataset.variant,
+					button.classList.contains('brand-primary'),
+					button.classList.contains('brand-secondary'),
+				])
+			).toEqual(
+				buttons.map((button) => [
+					button.dataset.variant,
+					button.dataset.variant === 'primary',
+					button.dataset.variant !== 'primary',
+				])
+			);
+			expect(
+				buttons.some((button) => button.dataset.variant === 'primary')
+			).toBe(true);
+
+			client.openDialog();
+			const dialogParts: [string, string][] = [
+				['consent-dialog-root', 'brand-dialog'],
+				['consent-dialog-card', 'brand-dialog-card'],
+				['consent-dialog-header', 'brand-dialog-header'],
+				['consent-dialog-title', 'brand-dialog-title'],
+				['consent-dialog-description', 'brand-dialog-description'],
+				['consent-dialog-content', 'brand-dialog-content'],
+				['consent-dialog-branding', 'brand-dialog-tag'],
+				['consent-widget-root', 'brand-widget'],
+				['consent-widget-accordion', 'brand-accordion'],
+				['consent-widget-footer', 'brand-widget-footer'],
+				['consent-widget-footer-sub-group', 'brand-widget-group'],
+				['consent-widget-switch-measurement', 'brand-toggle'],
+			];
+			for (const [testId, className] of dialogParts) {
+				expect(query(root, testId).classList, testId).toContain(className);
+			}
+		});
+
+		it('names every slotted element as a CSS part with its slot key', async () => {
+			const { root, client } = await mount();
+
+			expect(query(root, 'consent-banner-card').getAttribute('part')).toBe(
+				'consentBannerCard'
+			);
+			expect(query(root, 'consent-banner-root').getAttribute('part')).toBe(
+				'consentBanner'
+			);
+			for (const button of query(
+				root,
+				'consent-banner-footer'
+			).querySelectorAll('button')) {
+				expect(button.getAttribute('part')).toBe(
+					button.dataset.variant === 'primary'
+						? 'buttonPrimary'
+						: 'buttonSecondary'
+				);
+			}
+			client.openDialog();
+			expect(query(root, 'consent-dialog-card').getAttribute('part')).toBe(
+				'consentDialogCard'
+			);
+			expect(
+				query(root, 'consent-widget-switch-measurement').getAttribute('part')
+			).toBe('toggle');
+		});
+
+		it('keeps the trigger slot classes through position and visibility changes', async () => {
+			const { root, client } = await mount({
+				theme: {
+					slots: {
+						consentDialogTrigger: {
+							className: 'brand-trigger',
+							style: { '--brand-ring': '#0a66ff' },
+						},
+						consentDialogTriggerIcon: 'brand-trigger-icon',
+					},
+				},
+				trigger: true,
+			});
+
+			const trigger = query(root, 'consent-dialog-trigger');
+			expect(trigger.getAttribute('part')).toBe('consentDialogTrigger');
+			expect(trigger.classList).toContain('brand-trigger');
+			expect(trigger.classList).toContain(classes.trigger.trigger);
+			expect(trigger.style.getPropertyValue('--brand-ring')).toBe('#0a66ff');
+			const icon = trigger.querySelector('span');
+			expect(icon?.classList).toContain('brand-trigger-icon');
+			expect(icon?.getAttribute('part')).toBe('consentDialogTriggerIcon');
+
+			// Showing the trigger rewrites its state classes.
+			await client.acceptAll();
+			expect(trigger.hidden).toBe(false);
+			expect(trigger.classList).toContain('brand-trigger');
+			expect(trigger.getAttribute('part')).toBe('consentDialogTrigger');
+		});
+
+		it('keeps slot classes when noStyle drops the stock ones', async () => {
+			const { root } = await mount({
+				noStyle: true,
+				theme: { slots: { consentBannerCard: 'brand-card' } },
+			});
+
+			expect(query(root, 'consent-banner-card').getAttribute('class')).toBe(
+				'brand-card'
+			);
+		});
+
+		it('drops the stock classes of one part when its slot sets noStyle', async () => {
+			const { root } = await mount({
+				theme: {
+					slots: {
+						consentBannerCard: { className: 'brand-card', noStyle: true },
+					},
+				},
+			});
+
+			expect(query(root, 'consent-banner-card').getAttribute('class')).toBe(
+				'brand-card'
+			);
+			expect(
+				query(root, 'consent-banner-header').classList.contains(
+					classes.banner.header
+				)
+			).toBe(true);
+		});
+
+		it('links stylesheetURLs inside the UI root with the configured nonce', async () => {
+			const { root } = await mount(
+				{ stylesheetURLs: ['/brand.css', 'https://cdn.example/brand.css'] },
+				{ nonce: 'page-nonce' }
+			);
+
+			const links = [
+				...root.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'),
+			];
+			expect(links.map((link) => link.getAttribute('href'))).toEqual([
+				'/brand.css',
+				'https://cdn.example/brand.css',
+			]);
+			expect(links.map((link) => link.nonce)).toEqual([
+				'page-nonce',
+				'page-nonce',
+			]);
+		});
 	});
 });

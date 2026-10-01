@@ -609,7 +609,67 @@
 			)[data-variant='neutral'][data-mode='lighter']:hover:not(:disabled),
 		.button:not(
 				:global(.headless)
-			)[data-variant='neutral'][data-mode='ghost']:hover:not(:disabled) {
+			)[data-variant='neutral'][data-mode='ghost']:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant='secondary'][data-mode='filled']:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant='secondary'][data-mode='stroke']:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant='secondary'][data-mode='lighter']:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant='secondary'][data-mode='ghost']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='primary'][data-mode='filled']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='primary'][data-mode='stroke']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='primary'][data-mode='lighter']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='primary'][data-mode='ghost']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='neutral'][data-mode='filled']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='neutral'][data-mode='stroke']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='neutral'][data-mode='lighter']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='neutral'][data-mode='ghost']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='secondary'][data-mode='filled']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='secondary'][data-mode='stroke']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='secondary'][data-mode='lighter']:hover:not(:disabled),
+		:global(.c15t-dark)
+			.button:not(
+				:global(.headless)
+			)[data-variant='secondary'][data-mode='ghost']:hover:not(:disabled) {
 			transition: none;
 		}
 	}

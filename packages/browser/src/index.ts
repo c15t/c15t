@@ -66,6 +66,7 @@ export type {
 	ConsentClientOptions,
 	ConsentDialogOptions,
 	ConsentModeName,
+	ConsentSaveInput,
 	PolicyPresetName,
 	ConsentTriggerOptions,
 	ConsentUIHandle,
@@ -74,4 +75,10 @@ export type {
 } from './types';
 export { mountConsentUI } from './ui/mount';
 export { version } from './version';
-export type { ConsentSnapshot, ConsentState } from '@c15t/core';
+export type {
+	ConsentSnapshot,
+	ConsentState,
+	ResolvedVendor,
+	Vendor,
+	VendorChoice,
+} from '@c15t/core';

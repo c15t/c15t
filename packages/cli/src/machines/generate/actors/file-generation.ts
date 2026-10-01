@@ -119,6 +119,9 @@ export const fileGenerationActor = fromPromise<
 		}
 		throw error;
 	}
+	for (const warning of generateResult.warnings ?? []) {
+		logger.warn(warning);
+	}
 	for (const edit of generateResult.edits) {
 		if (edit.before === null) {
 			filesCreated.push(edit.path);

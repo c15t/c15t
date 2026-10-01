@@ -11,6 +11,15 @@ export const translations: CompleteTranslations = {
 		save: 'Αποθήκευση ρυθμίσεων',
 		securedBy: 'Προστατεύεται από',
 	},
+	consentGate: {
+		actionButton: 'Ενεργοποίηση συγκατάθεσης {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title:
+			'Αποδεχτείτε τη συγκατάθεση {category} για να δείτε αυτό το περιεχόμενο.',
+	},
 	consentManagerDialog: {
 		description:
 			'Προσαρμόστε τις ρυθμίσεις απορρήτου σας εδώ. Μπορείτε να επιλέξετε ποιους τύπους cookies και τεχνολογιών παρακολούθησης επιτρέπετε.',
@@ -57,15 +66,6 @@ export const translations: CompleteTranslations = {
 			'Χρησιμοποιούμε cookies και παρόμοιες τεχνολογίες για τη λειτουργία αυτού του ιστότοπου, τη μέτρηση της επισκεψιμότητας και την εξατομίκευση περιεχομένου και διαφημίσεων. Μπορείτε να εξαιρεθείτε ή να διαχειριστείτε τις προτιμήσεις σας ανά πάσα στιγμή.',
 		noticeTitle: 'Ειδοποίηση απορρήτου',
 		title: 'Εκτιμούμε το απόρρητό σας',
-	},
-	frame: {
-		actionButton: 'Ενεργοποίηση συγκατάθεσης {category}',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title:
-			'Αποδεχτείτε τη συγκατάθεση {category} για να δείτε αυτό το περιεχόμενο.',
 	},
 	iab: {
 		banner: {

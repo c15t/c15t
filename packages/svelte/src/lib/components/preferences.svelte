@@ -11,7 +11,11 @@
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { PreferenceItem, Switch } from '../primitives';
-	import { resolveComponentStyles, resolveConsentActionStyle } from '../utils';
+	import {
+		resolveComponentStyles,
+		resolveConsentActionStyle,
+		toStyleAttribute,
+	} from '../utils';
 	import ConsentButton from './action-button.svelte';
 	import Branding from './branding.svelte';
 	import PolicyActionsRenderer from './policy-actions-renderer.svelte';
@@ -93,9 +97,27 @@
 		)
 	);
 
+	const accordionStyle = $derived(
+		resolveComponentStyles(
+			'consentWidgetAccordion',
+			theme.theme,
+			{ baseClassName: accordionStyles.list, noStyle },
+			noStyle
+		)
+	);
+
+	const toggleStyle = $derived(
+		resolveComponentStyles(
+			'toggle',
+			theme.theme,
+			{ baseClassName: switchStyles.root, noStyle },
+			noStyle
+		)
+	);
+
 	const footerGroupStyle = $derived(
 		resolveComponentStyles(
-			'consentWidgetFooter',
+			'consentWidgetFooterSubGroup',
 			theme.theme,
 			{ noStyle },
 			noStyle
@@ -125,7 +147,8 @@
 
 {#if consent.state.hasConsentUi}
 	<div
-		class={noStyle ? className : widgetRootStyle.className || ''}
+		class={widgetRootStyle.className || ''}
+		style={toStyleAttribute(widgetRootStyle.style)}
 		dir={textDirection}
 		data-testid="consent-widget-root"
 	>
@@ -138,7 +161,8 @@
 			</div>
 		{/if}
 		<div
-			class={noStyle ? '' : accordionStyles.list || ''}
+			class={accordionStyle.className || ''}
+			style={toStyleAttribute(accordionStyle.style)}
 			data-testid="consent-widget-accordion"
 		>
 			{#each displayedConsents as consentType (consentType.name)}
@@ -216,7 +240,8 @@
 									: undefined}
 								onclick={() => toggleConsent(consentType.name, !isChecked)}
 								disabled={isDisabled}
-								class={noStyle ? '' : switchStyles.root}
+								class={toggleStyle.className || ''}
+								style={toStyleAttribute(toggleStyle.style)}
 								data-size={noStyle ? undefined : 'small'}
 								data-testid={`consent-widget-switch-${consentType.name}`}
 							>
@@ -262,8 +287,10 @@
 			{shouldFillActions}
 			{direction}
 			{noStyle}
-			footerClassName={noStyle ? '' : footerStyle.className || ''}
-			footerSubGroupClassName={noStyle ? '' : footerGroupStyle.className || ''}
+			footerClassName={footerStyle.className || ''}
+			footerStyle={toStyleAttribute(footerStyle.style)}
+			footerSubGroupClassName={footerGroupStyle.className || ''}
+			footerSubGroupStyle={toStyleAttribute(footerGroupStyle.style)}
 			footerTestId="consent-widget-footer"
 			footerSubGroupTestId="consent-widget-footer-sub-group"
 		>

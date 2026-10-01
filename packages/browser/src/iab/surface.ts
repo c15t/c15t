@@ -19,7 +19,7 @@ export const createIABSurface = (
 	ctx: SurfaceContext,
 	options: ConsentUIOptions
 ): Surface => {
-	const { client, noStyle } = ctx;
+	const { client, noStyle, slot } = ctx;
 	const bannerOptions =
 		typeof options.banner === 'object' ? options.banner : {};
 	const dialogOptions =
@@ -129,21 +129,27 @@ export const createIABSurface = (
 		const title = dialog
 			? t.preferenceCenter.title
 			: (bannerOptions.title ?? t.banner.title);
-		const content = h('div', {
-			'aria-describedby': dialog ? `${prefix}-description` : undefined,
-			'aria-labelledby': `${prefix}-title`,
-			'aria-modal': actions.blocking ? 'true' : undefined,
-			class: css(styles.card),
-			'data-testid': `${prefix}-card`,
-			role: dialog || actions.blocking ? 'dialog' : 'region',
-			tabindex: '-1',
-		});
+		const content = slot(
+			h('div', {
+				'aria-describedby': dialog ? `${prefix}-description` : undefined,
+				'aria-labelledby': `${prefix}-title`,
+				'aria-modal': actions.blocking ? 'true' : undefined,
+				class: css(styles.card),
+				'data-testid': `${prefix}-card`,
+				role: dialog || actions.blocking ? 'dialog' : 'region',
+				tabindex: '-1',
+			}),
+			dialog ? 'iabConsentDialogCard' : 'iabConsentBannerCard'
+		);
 		const headerCopy = h(
 			'div',
 			{ class: dialog ? css(classes.dialog.headerContent) : '' },
 			h('h2', { class: css(styles.title), id: `${prefix}-title` }, title)
 		);
-		const header = h('div', { class: css(styles.header) }, headerCopy);
+		const header = slot(
+			h('div', { class: css(styles.header) }, headerCopy),
+			dialog ? 'iabConsentDialogHeader' : 'iabConsentBannerHeader'
+		);
 		content.append(header);
 		if (dialog) {
 			header.append(
@@ -266,59 +272,75 @@ export const createIABSurface = (
 				actions,
 				buttonTestId: (action) => `${prefix}-${action}-button`,
 				footerClassName: styles.footer,
+				footerSlot: dialog
+					? 'iabConsentDialogFooter'
+					: 'iabConsentBannerFooter',
 				label: (action) => labels[action],
 				noStyle,
 				onAction: (action) => {
 					void perform(action);
 				},
+				slot,
 				subGroupTestId: `${prefix}-footer-group`,
 				testId: `${prefix}-footer`,
 			})
 		);
-		const branding = renderBranding({
-			branding: snapshot.branding,
-			hide: dialog && (dialogOptions.hideBranding ?? false),
-			noStyle,
-			securedBy: all.common.securedBy,
-			testId: `${prefix}-branding`,
-			variant: dialog ? 'dialog-tag' : 'banner-tag',
-		});
+		const branding = slot(
+			renderBranding({
+				branding: snapshot.branding,
+				hide: dialog && (dialogOptions.hideBranding ?? false),
+				noStyle,
+				securedBy: all.common.securedBy,
+				testId: `${prefix}-branding`,
+				variant: dialog ? 'dialog-tag' : 'banner-tag',
+			}),
+			dialog ? 'iabConsentDialogTag' : 'iabConsentBannerTag'
+		);
 		if (dialog) {
 			if (branding) {
 				content.append(branding);
 			}
-			root = h(
-				'div',
-				{
-					class: css(classes.dialog.root, classes.dialog.dialogVisible),
-					'data-testid': `${prefix}-root`,
-					dir,
-					lang: language,
-				},
-				content
+			root = slot(
+				h(
+					'div',
+					{
+						class: css(classes.dialog.root, classes.dialog.dialogVisible),
+						'data-testid': `${prefix}-root`,
+						dir,
+						lang: language,
+					},
+					content
+				),
+				'iabConsentDialog'
 			);
 		} else {
-			root = h(
-				'div',
-				{
-					class: css(classes.banner.root, classes.banner.bannerVisible),
-					'data-blocking': String(actions.blocking),
-					'data-position': position,
-					'data-testid': `${prefix}-root`,
-					'data-variant': actions.variant,
-					dir,
-					lang: language,
-				},
-				h('div', { class: css(classes.banner.cardShell) }, branding, content)
+			root = slot(
+				h(
+					'div',
+					{
+						class: css(classes.banner.root, classes.banner.bannerVisible),
+						'data-blocking': String(actions.blocking),
+						'data-position': position,
+						'data-testid': `${prefix}-root`,
+						'data-variant': actions.variant,
+						dir,
+						lang: language,
+					},
+					h('div', { class: css(classes.banner.cardShell) }, branding, content)
+				),
+				'iabConsentBanner'
 			);
 		}
 		if (actions.blocking) {
-			overlay = h('div', {
-				'aria-hidden': 'true',
-				class: css(styles.overlay, styles.overlayVisible),
-				'data-testid': `${prefix}-overlay`,
-				role: 'presentation',
-			});
+			overlay = slot(
+				h('div', {
+					'aria-hidden': 'true',
+					class: css(styles.overlay, styles.overlayVisible),
+					'data-testid': `${prefix}-overlay`,
+					role: 'presentation',
+				}),
+				dialog ? 'iabConsentDialogOverlay' : 'iabConsentBannerOverlay'
+			);
 			ctx.root.append(overlay);
 		}
 		ctx.root.append(root);

@@ -1,0 +1,5 @@
+.astro/
+.nuxt/
+.output/
+.tanstack/
+routeTree.gen.ts

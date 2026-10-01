@@ -15,6 +15,7 @@ import { computed, ref, useId } from 'vue';
 import { useConsentConfig, useConsentInit } from '../composables';
 import { preferenceItemVariants } from '../primitives/preference-item/variants';
 import { switchVariants } from '../primitives/switch-variants';
+import { slotAttrs } from '../utils/slot-attrs';
 
 const props = defineProps<{
 	/** Category whose vendors to list. */
@@ -179,8 +180,12 @@ const contentId = (index: number) =>
 							copy.switchLabel.replace('{vendor}', vendorName(vendor))
 						"
 						:aria-describedby="labelId(vendor)"
-						v-bind="config.components?.switch?.root"
-						:class="noStyle ? undefined : sw.root()"
+						v-bind="
+							slotAttrs(
+								config.components?.switch?.root,
+								noStyle ? undefined : sw.root()
+							)
+						"
 						:data-disabled="categoryOn ? undefined : ''"
 						:data-size="noStyle ? undefined : 'small'"
 						data-slot="switch"

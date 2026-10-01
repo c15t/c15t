@@ -1,5 +1,6 @@
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntime } from '@c15t/core/runtime';
+import type { ComponentProps } from 'react';
 import { useContext } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -8,8 +9,11 @@ import { KernelContext } from '../context';
 import { ConsentProvider, offline, useConsent } from '../index';
 import { policyFixture } from './policy-fixture';
 
-const createRuntime = function createRuntime(): ConsentRuntime {
+const createRuntime = function createRuntime(
+	callbacks?: Parameters<typeof createConsentRuntime>[0]['callbacks']
+): ConsentRuntime {
 	return createConsentRuntime({
+		callbacks,
 		consentCategories: [
 			'functionality',
 			'experience',
@@ -137,6 +141,58 @@ describe('ConsentProvider with an external runtime', () => {
 		expect(
 			(window as Window & { c15t?: { pkg: string } }).c15t
 		).toBeUndefined();
+	});
+
+	test('warns that provider callbacks do not attach to a borrowed runtime', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const runtime = createRuntime();
+		const onChoiceRecorded = vi.fn();
+
+		await render(
+			<ConsentProvider
+				runtime={runtime}
+				options={
+					{ callbacks: { onChoiceRecorded } } as unknown as NonNullable<
+						ComponentProps<typeof ConsentProvider>['options']
+					>
+				}
+			>
+				<div data-testid="child">borrowed</div>
+			</ConsentProvider>
+		);
+
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('createConsentRuntime({ callbacks })')
+		);
+		await runtime.kernel.commands.save('all');
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20);
+		});
+		expect(onChoiceRecorded).not.toHaveBeenCalled();
+		warn.mockRestore();
+	});
+
+	test("runs the runtime owner's callbacks once", async () => {
+		const warn = vi.spyOn(console, 'warn');
+		const onChoiceRecorded = vi.fn();
+		const runtime = createRuntime({ onChoiceRecorded });
+
+		await render(
+			<ConsentProvider runtime={runtime}>
+				<div data-testid="child">borrowed</div>
+			</ConsentProvider>
+		);
+		await runtime.kernel.commands.save('all');
+
+		await vi.waitFor(() => expect(onChoiceRecorded).toHaveBeenCalled());
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20);
+		});
+		expect(onChoiceRecorded).toHaveBeenCalledTimes(1);
+		expect(warn).not.toHaveBeenCalledWith(
+			expect.stringContaining('createConsentRuntime({ callbacks })')
+		);
+		warn.mockRestore();
 	});
 
 	test('still owns the kernel when no runtime is passed', async () => {

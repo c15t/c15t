@@ -23,7 +23,8 @@ import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.a
 				return;
 			}
 			const render = () => {
-				const allowed = client.getConsent().effectivePermissions.measurement;
+				// Measurement is on and the visitor has not turned YouTube off.
+				const allowed = client.isVendorAllowed('youtube');
 				if (!allowed) {
 					container.textContent =
 						'Allow measurement to load this YouTube video. No video request is sent before permission.';

@@ -1,0 +1,25 @@
+{/* Generated from apps/storybook-react/src/docs-recipes/class-names/stylex.ts (docs:class-names-stylex) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-components.ts"
+import * as stylex from '@stylexjs/stylex';
+import type { ConsentProviderOptions } from 'c15t/react';
+
+const styles = stylex.create({
+	card: {
+		borderColor: 'rgb(22 163 74)',
+		borderRadius: 4,
+		borderStyle: 'solid',
+		borderWidth: 3,
+	},
+});
+
+/**
+ * Pass as `components` in your ConsentProvider options. `stylex.props()`
+ * returns `className` and, for dynamic styles, `style`; the slot takes both.
+ */
+export const components: ConsentProviderOptions['components'] = {
+	banner: {
+		card: stylex.props(styles.card),
+	},
+};
+```

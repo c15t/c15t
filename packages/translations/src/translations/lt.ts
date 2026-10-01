@@ -11,6 +11,15 @@ export const translations: CompleteTranslations = {
 		save: 'Išsaugoti nustatymus',
 		securedBy: 'Apsaugą teikia',
 	},
+	consentGate: {
+		actionButton: 'Įgalinti {category} sutikimą',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title:
+			'Priimkite {category} sutikimą, kad galėtumėte peržiūrėti šį turinį.',
+	},
 	consentManagerDialog: {
 		description:
 			'Čia galite tinkinti savo privatumo nustatymus. Galite pasirinkti, kokių tipų slapukus ir sekimo technologijas leidžiate naudoti.',
@@ -57,15 +66,6 @@ export const translations: CompleteTranslations = {
 			'Naudojame slapukus ir panašias technologijas šiai svetainei veikti, srautui matuoti bei turiniui ir reklamoms pritaikyti. Galite bet kada atsisakyti arba tvarkyti savo nuostatas.',
 		noticeTitle: 'Privatumo pranešimas',
 		title: 'Mes vertiname jūsų privatumą',
-	},
-	frame: {
-		actionButton: 'Įgalinti {category} sutikimą',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title:
-			'Priimkite {category} sutikimą, kad galėtumėte peržiūrėti šį turinį.',
 	},
 	iab: {
 		banner: {

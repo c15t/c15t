@@ -19,8 +19,6 @@
 	/* Animation variables */
 	--consent-banner-animation-duration: var(--c15t-duration-fast);
 	--consent-banner-animation-timing: var(--c15t-easing);
-	--consent-banner-entry-animation: var(--c15t-enter-animation);
-	--consent-banner-exit-animation: var(--c15t-exit-animation);
 
 	/* Border */
 	--consent-banner-border-width: 1px;
@@ -453,15 +451,6 @@
 		box-shadow: var(--consent-banner-shadow-dark);
 	}
 
-	/* Animation states */
-	.card:not(:global(.headless))[data-state='open'] {
-		animation: var(--consent-banner-entry-animation);
-	}
-
-	.card:not(:global(.headless))[data-state='closed'] {
-		animation: var(--consent-banner-exit-animation);
-	}
-
 	/* Divider between sections */
 	.card:not(:global(.headless)) > :not([hidden]) ~ :not([hidden]) {
 		border-top-width: var(--consent-banner-border-width);
@@ -824,25 +813,17 @@
 		background-color: var(--consent-banner-overlay-background-color-dark);
 	}
 
+	/* The same selectors as the rules that animate, so these win on
+	   source order in every adapter. */
 	@media (prefers-reduced-motion: reduce) {
-		.bannerEnterActive,
-		.bannerLeaveActive,
-		.bannerEnterFrom,
-		.bannerEnterTo,
-		.bannerLeaveFrom,
-		.bannerLeaveTo,
-		.overlayEnterActive,
-		.overlayLeaveActive,
-		.overlayEnterFrom,
-		.overlayEnterTo,
-		.overlayLeaveFrom,
-		.overlayLeaveTo,
-		.bannerVisible,
-		.bannerHidden,
-		.overlayVisible,
-		.overlayHidden:not(:global(.headless)),
-		.card:not(:global(.headless))[data-state='open'],
-		.card:not(:global(.headless))[data-state='closed'] {
+		.bannerEnterActive:not(:global(.headless)),
+		.bannerLeaveActive:not(:global(.headless)),
+		.bannerVisible:not(:global(.headless)),
+		.bannerHidden:not(:global(.headless)),
+		.overlayEnterActive:not(:global(.headless)),
+		.overlayLeaveActive:not(:global(.headless)),
+		.overlayVisible:not(:global(.headless)),
+		.overlayHidden:not(:global(.headless)) {
 			transition: none;
 			animation: none;
 		}

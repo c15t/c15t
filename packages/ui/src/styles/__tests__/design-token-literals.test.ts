@@ -510,10 +510,16 @@ describe('the literal detector', () => {
 			declarationViolations('--legal-links-color', 'hsl(228, 100%, 64%)')
 		).toEqual(['color default']);
 		expect(
-			declarationViolations('--frame-font-family', 'system-ui, sans-serif')
+			declarationViolations(
+				'--consent-gate-font-family',
+				'system-ui, sans-serif'
+			)
 		).toEqual(['font-family default']);
 		expect(
-			declarationViolations('--frame-placeholder-border-radius', '1.25rem')
+			declarationViolations(
+				'--consent-gate-placeholder-border-radius',
+				'1.25rem'
+			)
 		).toEqual(['radius default']);
 		expect(declarationViolations('--legal-links-gap', '0.75rem')).toEqual([
 			'spacing default',
@@ -535,7 +541,7 @@ describe('the literal detector', () => {
 		).toEqual([]);
 		expect(
 			declarationViolations(
-				'--frame-placeholder-border-radius',
+				'--consent-gate-placeholder-border-radius',
 				'calc(var(--c15t-radius-lg) * 5 / 3)'
 			)
 		).toEqual([]);

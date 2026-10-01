@@ -21,6 +21,12 @@ export interface ProviderServices {
 	clearRecords: () => void;
 	getPresentation: () => ConsentPresentation | undefined;
 	getConsentCategories: () => readonly AllConsentNames[];
+	/**
+	 * Store a language override and load its copy: init runs again on the
+	 * provider's own kernel while it is enabled, and a borrowed runtime
+	 * reinitializes itself.
+	 */
+	setLanguage: (code: string) => void;
 }
 export const ProviderServicesContext = createContext<ProviderServices | null>(
 	null

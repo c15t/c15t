@@ -17,7 +17,8 @@
  *
  * `data-c15t-category` accepts one category name. The tag is left alone
  * until consent is granted, then replaced by a live `<script>` in the same
- * position. Revoking consent does not un-run a script that already
+ * position. Add `data-c15t-vendor` with a vendor id to also wait until the
+ * visitor has not turned that vendor off. Revoking consent does not un-run a script that already
  * executed, so the element is marked and skipped instead.
  *
  * Under a nonce-based Content Security Policy, put the page's nonce on the
@@ -27,11 +28,18 @@
  * category is granted. With a page nonce, tags without it are skipped.
  */
 
-import { allConsentNames, has } from '@c15t/core';
+import { allConsentNames, has, isVendorDenied } from '@c15t/core';
 import type { AllConsentNames, ConsentSnapshot } from '@c15t/core';
 
 /** Attribute that marks a script for consent gating. */
 export const CATEGORY_ATTRIBUTE = 'data-c15t-category';
+
+/**
+ * Attribute naming the vendor a gated script belongs to. The script runs
+ * once its category is allowed and the visitor has not turned the vendor
+ * off. Only read alongside {@link CATEGORY_ATTRIBUTE}.
+ */
+export const VENDOR_ATTRIBUTE = 'data-c15t-vendor';
 
 /**
  * Set once a gated script has been activated (`true`), rejected for an
@@ -153,10 +161,15 @@ export const activateGatedScripts = function activateGatedScripts(
 			element.setAttribute(ACTIVATED_ATTRIBUTE, 'invalid');
 			continue;
 		}
-		const allowed = has(
-			category as AllConsentNames,
-			snapshot.effectivePermissions
-		);
+		const vendor = element.getAttribute(VENDOR_ATTRIBUTE);
+		// Vendor denials are inert under an IAB policy, as at every other gate.
+		const vendorOff =
+			Boolean(vendor) &&
+			snapshot.model !== 'iab' &&
+			isVendorDenied(snapshot, vendor as string);
+		const allowed =
+			!vendorOff &&
+			has(category as AllConsentNames, snapshot.effectivePermissions);
 		if (!allowed) {
 			continue;
 		}

@@ -83,6 +83,15 @@ describe('the colorScheme option', () => {
 		}
 	);
 
+	it("takes null, as the other adapters do, as an alias of 'none'", () => {
+		expect(
+			resolveOptions({
+				colorScheme: null,
+				mode: offlineMode({ policyRules: [testRule] }),
+			}).colorScheme
+		).toBe('none');
+	});
+
 	it('reaches the browser through the virtual options module', async () => {
 		expect(
 			(

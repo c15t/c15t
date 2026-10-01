@@ -3,24 +3,9 @@ import {
 	forwardRef as createForwardRef,
 	isValidElement,
 } from 'react';
-import type { ReactElement, ReactNode, Ref, RefCallback } from 'react';
+import type { ReactElement, ReactNode, Ref } from 'react';
 
-const composeRefs = function composeRefs<T>(
-	...refs: (Ref<T> | undefined)[]
-): RefCallback<T> {
-	return (node) => {
-		for (const ref of refs) {
-			if (typeof ref === 'function') {
-				ref(node);
-				continue;
-			}
-
-			if (ref && 'current' in ref) {
-				ref.current = node;
-			}
-		}
-	};
-};
+import { composeRefs } from './compose-refs';
 
 const mergeEventHandlers = function mergeEventHandlers(
 	slotHandler: unknown,

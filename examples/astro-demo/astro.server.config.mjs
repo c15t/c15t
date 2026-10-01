@@ -25,6 +25,34 @@ export default defineConfig({
 			),
 			mode: manifest({ backendURL }),
 			ui: 'svelte',
+			// #hide docs
+			// Demo-only: the example suite's vendor scenario.
+			// #region docs:vendors-option title="astro.config.mjs (partial)"
+			vendors: [
+				{
+					category: 'measurement',
+					description: 'Product analytics and session insights.',
+					id: 'posthog',
+					name: 'PostHog',
+					privacyPolicyUrl: 'https://posthog.com/privacy',
+				},
+				{
+					category: 'measurement',
+					description: 'Embedded videos.',
+					id: 'youtube',
+					name: 'YouTube',
+					privacyPolicyUrl: 'https://policies.google.com/privacy',
+				},
+				{
+					category: 'marketing',
+					description: 'Ad conversion tracking.',
+					id: 'x-pixel',
+					name: 'X Pixel',
+					privacyPolicyUrl: 'https://x.com/en/privacy',
+				},
+			],
+			// #endregion docs:vendors-option
+			// #endhide docs
 		}),
 	],
 	output: 'server',

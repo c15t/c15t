@@ -7,7 +7,8 @@
  * - `config/static`: prerendered or SPA output with `manifest: 'client'`.
  *   Selected with `C15T_NUXT_OUTPUT=static` and built with `nuxt generate`.
  *
- * Everything here is demo-only: the self-hosted backend fallback, styles, the
+ * Everything here is demo-only: the self-hosted backend fallback, the
+ * system color scheme with its dark primary, styles, the
  * test switch for client manifest mode, and two copies of `/consent-example`
  * whose HTML every visitor shares (`routeRules`), one prerendered at build
  * time and one cached by Nitro. c15t leaves visitor state out of that HTML
@@ -40,7 +41,10 @@ const c15t: ModuleOptions = {
 	// This demo self-hosts @c15t/backend at `/api/self-host` (see
 	// `server/api/self-host/[...all].ts`) when no backend URL is set.
 	backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
+	// Follow the visitor's system setting, with a dark primary of our own.
+	colorScheme: 'system',
 	experiment,
+	theme: { dark: { primary: '#7fd1a8' } },
 };
 // Left unset otherwise, so the layer's `manifest` applies.
 if (process.env.C15T_NUXT_MANIFEST === 'client') {

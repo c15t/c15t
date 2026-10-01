@@ -53,6 +53,7 @@ import type { ConsentControlOptions, ConsentRuntime } from '@c15t/core/runtime';
 import { connectConsentSource } from '@c15t/core/runtime/controls';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
+import { applyThemeSlots } from '@c15t/ui/utils';
 import type { ReactNode } from 'react';
 import {
 	useContext,
@@ -268,7 +269,7 @@ export interface ConsentProviderOptions
  */
 export type ExternalRuntimeProviderOptions = Omit<
 	ConsentProviderOptions,
-	'mode' | 'vendors'
+	'callbacks' | 'mode' | 'vendors'
 > & {
 	mode?: ConsentProviderOptions['mode'];
 	/**
@@ -276,6 +277,12 @@ export type ExternalRuntimeProviderOptions = Omit<
 	 * `createConsentRuntime({ vendors })`, and the kernel carries them.
 	 */
 	vendors?: never;
+	/**
+	 * Not accepted here: the runtime owner passes callbacks to
+	 * `createConsentRuntime({ callbacks })`, and the runtime runs them.
+	 * Passing them anyway logs a warning in development.
+	 */
+	callbacks?: never;
 };
 
 /** The provider builds and owns its own kernel. */
@@ -489,7 +496,8 @@ const createPrefetchSource = function createPrefetchSource(
 	prefetch: Promise<ConsentProviderPrefetch>,
 	providerOverrides: KernelOverrides | undefined,
 	getKernel: () => ConsentKernel | null,
-	runsExperiment: boolean
+	runsExperiment: boolean,
+	onResolved: (config: KernelConfig) => void
 ): FirstInitSource {
 	return async (ctx) => {
 		const recordsGeneration = getKernel()?.getRecordsGeneration();
@@ -503,6 +511,7 @@ const createPrefetchSource = function createPrefetchSource(
 		if (config.experiment && !runsExperiment) {
 			warnStreamedExperiment();
 		}
+		onResolved(config);
 
 		const response = kernelConfigToInitResponse(config);
 		if (response) {
@@ -541,7 +550,8 @@ const createPrefetchSource = function createPrefetchSource(
 const withPrefetchPromise = function withPrefetchPromise(
 	transport: KernelTransport,
 	options: ConsentProviderOptions,
-	getKernel: () => ConsentKernel | null
+	getKernel: () => ConsentKernel | null,
+	onResolved: (config: KernelConfig) => void
 ): KernelTransport {
 	const { prefetch } = options;
 	if (!isPromiseLike(prefetch)) {
@@ -553,7 +563,8 @@ const withPrefetchPromise = function withPrefetchPromise(
 			Promise.resolve(prefetch),
 			options.overrides,
 			getKernel,
-			options.experiment !== undefined
+			options.experiment !== undefined,
+			onResolved
 		)
 	);
 };
@@ -620,9 +631,16 @@ const createProviderKernel = function createProviderKernel(
 	const i18nTranslations =
 		resolveI18nTranslations(options.i18n) ?? DEFAULT_TRANSLATIONS;
 
+	// A pending prefetch resolves after the transport exists. The context
+	// reads the resolved config from then on, so a transport that checks it
+	// at init time (offline's detected `Accept-Language`) sees the server's
+	// values rather than the empty placeholder.
+	let transportPrefetch: KernelConfig = prefetch;
 	const transportContext: ProviderTransportContext = {
 		consentCategories: options.consentCategories,
-		prefetch,
+		get prefetch() {
+			return transportPrefetch;
+		},
 		translations: i18nTranslations,
 		translationsFor: (language) =>
 			resolveLocalTranslations(language, options.i18n?.messages),
@@ -636,7 +654,10 @@ const createProviderKernel = function createProviderKernel(
 	const transport = withPrefetchPromise(
 		baseTransport,
 		options,
-		() => kernelRef.current
+		() => kernelRef.current,
+		(resolved) => {
+			transportPrefetch = resolved;
+		}
 	);
 
 	const integrations = [
@@ -1261,15 +1282,22 @@ const ExperimentMount = ({
 	return null;
 };
 
-/** The services context: record clearing and the resolved presentation. */
+/**
+ * The services context: record clearing, the resolved presentation and
+ * language changes.
+ */
 const useProviderServices = function useProviderServices({
 	clearRef,
+	consentSource,
+	enabled,
 	experiment,
 	externalRuntime,
 	kernel,
 	presentation,
 }: {
 	clearRef: { current: (() => void) | null };
+	consentSource: ConsentProviderOptions['consentSource'];
+	enabled: boolean;
 	experiment: ConsentExperiment | undefined;
 	externalRuntime: ConsentRuntime | undefined;
 	kernel: ConsentKernel;
@@ -1308,8 +1336,31 @@ const useProviderServices = function useProviderServices({
 					experiment,
 					kernel.getSnapshot().experiment
 				),
+			setLanguage: (code: string) => {
+				if (code === kernel.getSnapshot().overrides.language) {
+					return;
+				}
+				kernel.set.language(code);
+				if (externalRuntime) {
+					void externalRuntime.reinit();
+					return;
+				}
+				// A disabled provider renders a permissive kernel with no policy
+				// to fetch, and an external authority replaces init entirely.
+				if (enabled && !consentSource) {
+					void kernel.commands.init();
+				}
+			},
 		}),
-		[clearRef, kernel, presentation, experiment, externalRuntime]
+		[
+			clearRef,
+			kernel,
+			presentation,
+			experiment,
+			externalRuntime,
+			enabled,
+			consentSource,
+		]
 	);
 };
 
@@ -1472,6 +1523,8 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 	const clearRef = useRef<(() => void) | null>(null);
 	const services = useProviderServices({
 		clearRef,
+		consentSource: owned.consentSource,
+		enabled,
 		experiment,
 		externalRuntime,
 		kernel,
@@ -1511,6 +1564,19 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			});
 		};
 	}, [owned, ownsRuntime]);
+
+	// Development only. A borrowed runtime already runs the callbacks its
+	// owner passed to `createConsentRuntime()`; attaching the provider's as
+	// well would split one app's handlers across two places.
+	const hasBorrowedCallbacks = !ownsRuntime && options.callbacks !== undefined;
+	useEffect(() => {
+		if (process.env.NODE_ENV === 'production' || !hasBorrowedCallbacks) {
+			return;
+		}
+		console.warn(
+			'c15t ConsentProvider: `options.callbacks` is ignored when you pass `runtime`. Pass them to createConsentRuntime({ callbacks }) instead.'
+		);
+	}, [hasBorrowedCallbacks]);
 
 	// The arm's theme overrides ride on the host theme, so the theme context
 	// follows the assignment.
@@ -1571,7 +1637,13 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 
 	const uiConfigValue = useMemo<V3UIConfigValue>(
 		() => ({
-			components: options.components,
+			// `theme.slots` style the same parts as `components`, which win
+			// where both set the same attribute.
+			components: applyThemeSlots(
+				userTheme?.slots,
+				options.components,
+				'className'
+			),
 			experiment,
 			legalLinks: options.legalLinks,
 			preloadDialog: options.preloadDialog,
@@ -1579,6 +1651,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			theme: options.theme,
 		}),
 		[
+			userTheme?.slots,
 			options.components,
 			experiment,
 			options.legalLinks,

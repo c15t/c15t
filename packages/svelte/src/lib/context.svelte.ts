@@ -5,6 +5,7 @@ import {
 	consentTypes as defaultConsentTypes,
 	defaultTranslationConfig,
 	has as evaluateHas,
+	isVendorAllowed,
 	resolveConsentPresentation,
 	vendorsListedUnder,
 } from '@c15t/core';
@@ -160,6 +161,16 @@ export interface ConsentManagerState extends Pick<
 	 */
 	getDisplayedVendors: (category: AllConsentNames) => ResolvedVendor[];
 	has: (condition: HasCondition<AllConsentNames>) => boolean;
+	/**
+	 * Whether one vendor may load: it is declared, its category condition
+	 * passes, and outside IAB the visitor has not turned it off.
+	 *
+	 * @param vendorId - Vendor id as declared in `vendors`, on a script or by
+	 * the backend.
+	 * @returns `true` while the vendor may load. An id nothing declares, such
+	 * as a typo, returns `false` and logs a development warning.
+	 */
+	isVendorAllowed: (vendorId: string) => boolean;
 	dismissNotice: () => Promise<unknown>;
 	saveConsents: (type: SaveType) => Promise<void>;
 	setActiveUI: (ui: ActiveUI, options?: { force?: boolean }) => void;
@@ -314,6 +325,10 @@ const createConsentState = function createConsentState(
 				condition,
 				snapshot.effectivePermissions as ConsentState
 			);
+		},
+		isVendorAllowed(vendorId: string) {
+			const snapshot = getSnapshotLocal();
+			return isVendorAllowed(snapshot, vendorId, snapshot.evaluatedAt);
 		},
 		dismissNotice() {
 			return kernel.commands.dismissNotice();

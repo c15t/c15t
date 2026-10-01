@@ -11,12 +11,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { boot } from '../client';
 import type { AstroConsentClient } from '../client';
+// Vite compiles the island's whole component tree on first import. That
+// takes seconds on a busy machine. A static import does it while this file
+// loads, so no test timeout covers the compile.
+import * as reactPanelSurface from '../components/islands/panel-surface';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import type { C15tAstroOptions, C15tColorScheme } from '../types';
 import { registerDialogAdapter, registerDialogSurface } from '../ui/adapter';
 import { reactDialogAdapter } from '../ui/react';
 import { testRule } from './policy-fixture';
+import { ISLAND_RENDER_TIMEOUT } from './react-dialog-island';
 
 interface MediaQueryStub {
 	matches: boolean;
@@ -188,26 +193,35 @@ describe("colorScheme: 'none'", () => {
 	});
 });
 
+describe('colorScheme: null', () => {
+	it("leaves the site's class alone like 'none'", () => {
+		stubMatchMedia(true);
+		document.documentElement.classList.add('dark');
+		client = boot(resolveOptions({ colorScheme: null, mode: offlineMode() }));
+		expect(isDark()).toBe(false);
+		expect(media.listeners.size).toBe(0);
+	});
+});
+
 describe('opening the React dialog', () => {
 	const openReactDialog = async function openReactDialog(
 		colorScheme: C15tColorScheme
 	): Promise<void> {
 		registerDialogAdapter('react', () => Promise.resolve(reactDialogAdapter));
-		registerDialogSurface(
-			'react',
-			() => import('../components/islands/panel-surface')
-		);
+		registerDialogSurface('react', () => Promise.resolve(reactPanelSurface));
 		const opened = start(colorScheme, {
 			mode: offlineMode({ policyRules: [testRule] }),
 			ui: 'react',
 		});
 		await opened.openDialog();
-		await vi.waitFor(() =>
-			expect(
-				document.querySelector(
-					'[data-testid="consent-widget-footer-save-button"]'
-				)
-			).not.toBeNull()
+		await vi.waitFor(
+			() =>
+				expect(
+					document.querySelector(
+						'[data-testid="consent-widget-footer-save-button"]'
+					)
+				).not.toBeNull(),
+			ISLAND_RENDER_TIMEOUT
 		);
 	};
 

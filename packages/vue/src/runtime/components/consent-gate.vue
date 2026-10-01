@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { evaluateConsent } from '@c15t/core';
 import type { AllConsentNames } from '@c15t/core';
-import frameStyles from '@c15t/ui/styles/components/frame';
+import gateStyles from '@c15t/ui/styles/components/consent-gate';
 
-import '@c15t/ui/styles/components/frame.css';
+import '@c15t/ui/styles/components/consent-gate.css';
 import { computed, watch } from 'vue';
 
 import {
@@ -11,7 +11,9 @@ import {
 	useConsentKernel,
 	useConsentSnapshot,
 } from '../composables';
+import { useConsentConfig } from '../composables/config';
 import { useSurfaceTranslations } from '../composables/use-surface-translations';
+import { slotAttrs } from '../utils/slot-attrs';
 import ConsentButton from './button.vue';
 
 const props = defineProps<{ category: AllConsentNames }>();
@@ -19,6 +21,7 @@ const snapshot = useConsentSnapshot();
 const kernel = useConsentKernel();
 const activeUI = useConsentActiveUI();
 const translations = useSurfaceTranslations();
+const config = useConsentConfig();
 const allowed = computed(() =>
 	evaluateConsent(
 		{ category: props.category },
@@ -61,23 +64,24 @@ const policyBlocked = computed(() => {
 	);
 });
 
-// The same `frame.*` copy the React and Svelte gates show.
+// The same `consentGate.*` copy the React and Svelte gates show.
 const title = computed(() => {
 	const { bundle, english } = translations.value;
 	if (policyBlocked.value) {
-		return bundle?.frame?.policyBlocked ?? english.frame.policyBlocked;
+		return (
+			bundle?.consentGate?.policyBlocked ?? english.consentGate.policyBlocked
+		);
 	}
-	return (bundle?.frame?.title ?? english.frame.title).replace(
+	return (bundle?.consentGate?.title ?? english.consentGate.title).replace(
 		'{category}',
 		categoryTitle.value
 	);
 });
 const actionLabel = computed(() => {
 	const { bundle, english } = translations.value;
-	return (bundle?.frame?.actionButton ?? english.frame.actionButton).replace(
-		'{category}',
-		categoryTitle.value
-	);
+	return (
+		bundle?.consentGate?.actionButton ?? english.consentGate.actionButton
+	).replace('{category}', categoryTitle.value);
 });
 
 const openPreferences = function openPreferences() {
@@ -92,16 +96,32 @@ const openPreferences = function openPreferences() {
 		name="placeholder"
 	>
 		<div
-			data-testid="frame-placeholder"
-			:class="frameStyles.placeholder"
+			v-bind="
+				slotAttrs(
+					config.components?.['consent-gate']?.root,
+					gateStyles.placeholder
+				)
+			"
+			data-testid="consent-gate-placeholder"
 		>
-			<div :class="frameStyles.title">{{ title }}</div>
+			<div
+				v-bind="
+					slotAttrs(
+						config.components?.['consent-gate']?.title,
+						gateStyles.title
+					)
+				"
+				data-testid="consent-gate-title"
+			>
+				{{ title }}
+			</div>
 			<ConsentButton
 				v-if="!policyBlocked"
+				v-bind="config.components?.['consent-gate']?.button"
 				variant="primary"
 				mode="stroke"
 				size="small"
-				data-testid="frame-open-dialog"
+				data-testid="consent-gate-button"
 				@click="openPreferences"
 			>
 				{{ actionLabel }}

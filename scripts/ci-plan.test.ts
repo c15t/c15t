@@ -103,6 +103,24 @@ describe('CI selection', () => {
 	});
 	it('keeps CSS consumers and backend databases covered', () => {
 		expect(plan(['packages/ui/src/styles.css']).styles).toBe(true);
+		// The Tailwind framework matrix covers adapters the Next.js fixtures
+		// never load.
+		expect(plan(['packages/svelte/src/lib/index.ts']).styles).toBe(true);
+		expect(plan(['packages/browser/src/index.ts']).styles).toBe(true);
+		expect(plan(['packages/vue/src/index.ts']).styles).toBe(true);
+		// The Next.js 15 matrix fixtures are nested packages that pin their own
+		// Next.js version, so they own their files.
+		expect(
+			plan(['benchmarks/tailwind-matrix/v3/next-15/app/globals.css']).styles
+		).toBe(true);
+		expect(
+			plan(['benchmarks/tailwind-matrix/v4/next-16-turbopack/app/globals.css'])
+				.styles
+		).toBe(true);
+		expect(
+			plan(['benchmarks/tailwind-matrix/v4/next-15-turbopack/app/globals.css'])
+				.styles
+		).toBe(true);
 		expect(plan(['packages/backend/src/index.ts']).backend).toBe(true);
 		expect(plan(['packages/cli/src/index.ts']).backend).toBe(false);
 	});

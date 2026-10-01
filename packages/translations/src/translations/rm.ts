@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Memorisar las configuraziuns',
 		securedBy: 'Protegiu da',
 	},
+	consentGate: {
+		actionButton: 'Activar il consentiment da {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Acceptai il consentiment da {category} per vesair quest cuntegn.',
+	},
 	consentManagerDialog: {
 		description:
 			'Persunalisai vossas configuraziuns da la sfera privata qua. Vus pudais tscherner tge tips da cookies e tecnologias da tracking che vus lubis.',
@@ -57,14 +65,6 @@ export const translations: CompleteTranslations = {
 			'Nus duvrain cookies e tecnologias sumegliantas per manar questa pagina, per mesirar il traffic e per persunalisar cuntegns e reclamas. Vus pudais refusar u administrar vossas preferenzas da tut temp.',
 		noticeTitle: 'Infurmaziun davart la protecziun da datas',
 		title: 'Nus stimain vossa sfera privata',
-	},
-	frame: {
-		actionButton: 'Activar il consentiment da {category}',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Acceptai il consentiment da {category} per vesair quest cuntegn.',
 	},
 	iab: {
 		banner: {

@@ -545,19 +545,29 @@
 		border-color: var(--consent-dialog-stroke-color-dark);
 	}
 
+	/* The same selectors as the rules that animate, so these win on
+	   source order in every adapter. */
 	@media (prefers-reduced-motion: reduce) {
-		.dialogVisible,
-		.dialogHidden,
-		.contentVisible,
-		.contentHidden,
-		.overlayVisible,
+		.dialogVisible:not(:global(.headless)),
+		.dialogHidden:not(:global(.headless)),
+		.contentVisible:not(:global(.headless)),
+		.contentHidden:not(:global(.headless)),
+		.overlayVisible:not(:global(.headless)),
 		.overlayHidden:not(:global(.headless)),
 		.overlay:not(:global(.headless))[data-state='open'],
 		.overlay:not(:global(.headless))[data-state='closed'],
 		.root:not(:global(.headless))[data-state='open'],
 		.root:not(:global(.headless))[data-state='closed'],
 		.root[data-state='open'] .container:not(:global(.headless)),
-		.root[data-state='closed'] .container:not(:global(.headless)) {
+		.root[data-state='closed'] .container:not(:global(.headless)),
+		.root[data-mode='sidebar-left'][data-state='open']
+			.container:not(:global(.headless)),
+		.root[data-mode='sidebar-left'][data-state='closed']
+			.container:not(:global(.headless)),
+		.root[data-mode='sidebar-right'][data-state='open']
+			.container:not(:global(.headless)),
+		.root[data-mode='sidebar-right'][data-state='closed']
+			.container:not(:global(.headless)) {
 			transition: none;
 			animation: none;
 		}

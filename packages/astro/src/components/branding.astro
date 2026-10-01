@@ -12,6 +12,7 @@
  * same markup from the same model.
  */
 import type { ConsentSnapshot } from '@c15t/core';
+import type { AllThemeKeys, Theme } from '@c15t/ui/theme';
 import {
 	C15T_MARK_SVG,
 	INTH_LOGO_SVG,
@@ -35,6 +36,10 @@ interface Props {
 	hostname?: string;
 	/** Test id, so each surface keeps its own. */
 	'data-testid'?: string;
+	/** The integration's `theme`, for the tag's `slots` entry. */
+	theme?: Theme;
+	/** The tag's `theme.slots` key, such as `consentBannerTag`. */
+	themeSlot?: AllThemeKeys;
 }
 
 const { securedBy, 'data-testid': testId, ...input } = Astro.props;
@@ -52,6 +57,7 @@ const model = resolveBrandingModel({
 			data-testid={testId}
 			data-variant={model.variant}
 			href={model.href}
+			style={model.style}
 		>
 			<span class={model.classes.content} data-slot="tag-content">
 				<span class={model.classes.copy}>

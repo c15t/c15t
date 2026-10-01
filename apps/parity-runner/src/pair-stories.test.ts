@@ -101,7 +101,7 @@ const entryFor = function entryFor(
 test('selectComparablePairs drops pairs only one framework ships', () => {
 	const pairs = selectComparablePairs(
 		{
-			react: [entryFor('react', 'Button'), entryFor('react', 'Frame')],
+			react: [entryFor('react', 'Button'), entryFor('react', 'ConsentGate')],
 			svelte: [entryFor('svelte', 'Button')],
 		},
 		{ frameworks: ['react', 'svelte'] }

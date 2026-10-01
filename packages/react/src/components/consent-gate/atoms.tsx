@@ -1,9 +1,11 @@
 import type { AllConsentNames } from '@c15t/core';
-import styles from '@c15t/ui/styles/components/frame';
+import styles from '@c15t/ui/styles/components/consent-gate';
 import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
 import { useTranslations } from '~/component-hooks/use-translations';
+import { useUIConfig } from '~/ui-config-context';
+import { getSlotProps, mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { Box } from '../shared/primitives/box';
 import type { BoxProps } from '../shared/primitives/box';
@@ -17,7 +19,8 @@ const ConsentGateRoot = createForwardRef<
 	<Box
 		ref={ref as Ref<HTMLDivElement>}
 		baseClassName={styles.placeholder}
-		data-testid="frame-placeholder"
+		data-testid="consent-gate-placeholder"
+		slotKey="consent-gate.root"
 		{...props}
 	>
 		{children}
@@ -28,11 +31,11 @@ const ConsentGateTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'> & { category?: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
-	const { frame, consentTypes } = useTranslations();
+	const { consentGate, consentTypes } = useTranslations();
 
 	const defaultTitle =
-		category && frame?.title
-			? frame.title.replace(
+		category && consentGate?.title
+			? consentGate.title.replace(
 					'{category}',
 					consentTypes?.[category as keyof typeof consentTypes]?.title ??
 						category
@@ -43,6 +46,8 @@ const ConsentGateTitle = createForwardRef<
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.title}
+			data-testid="consent-gate-title"
+			slotKey="consent-gate.title"
 			{...props}
 		>
 			{children ?? defaultTitle}
@@ -53,23 +58,34 @@ const ConsentGateTitle = createForwardRef<
 const ConsentGateButton = createForwardRef<
 	HTMLButtonElement,
 	Omit<ConsentButtonProps, 'slotKey'> & { category: AllConsentNames }
->(({ children, category, ...props }, ref) => {
-	const { frame, consentTypes } = useTranslations();
+>(({ children, category, className, style, ...props }, ref) => {
+	const { consentGate, consentTypes } = useTranslations();
+	const { components } = useUIConfig();
+	// The gate's slot goes on top of `button.primary`, which the button
+	// applies itself. The button's own class and style win over both.
+	const slotProps = mergeSlotProps(
+		getSlotProps(components, 'consent-gate.button'),
+		{ className, style }
+	);
 
 	const categoryTitle =
 		consentTypes?.[category as keyof typeof consentTypes]?.title ?? category;
-	const defaultText = frame?.actionButton?.replace('{category}', categoryTitle);
+	const defaultText = consentGate?.actionButton?.replace(
+		'{category}',
+		categoryTitle
+	);
 
 	return (
 		<ConsentButton
 			mode="stroke"
 			size="small"
 			variant="primary"
+			{...slotProps}
 			{...props}
 			ref={ref}
 			action="open-consent-dialog"
 			category={category}
-			data-testid="frame-open-dialog"
+			data-testid="consent-gate-button"
 		>
 			{children ?? defaultText}
 		</ConsentButton>

@@ -98,7 +98,7 @@ export const TriggerButton = createForwardRef<
 	) => {
 		const policy = usePolicyRule();
 		const { components } = useUIConfig();
-		const { noStyle: contextNoStyle } = useTheme();
+		const { disableAnimation, noStyle: contextNoStyle } = useTheme();
 		const {
 			corner,
 			isDragging,
@@ -155,6 +155,8 @@ export const TriggerButton = createForwardRef<
 				type="button"
 				data-c15t-trigger="true"
 				data-c15t-rights={policy.rights.join(' ')}
+				// Stops the hover and snap transitions, as on the other surfaces.
+				data-disable-animation={disableAnimation ? '' : undefined}
 				aria-label={ariaLabel}
 				onClick={handleClick}
 				onFocus={handleFocus}

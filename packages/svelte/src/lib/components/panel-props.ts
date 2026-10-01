@@ -15,6 +15,11 @@ export interface ConsentDialogTriggerProps {
 export interface ConsentDialogProps {
 	open?: boolean;
 	noStyle?: boolean;
+	/**
+	 * Skip the enter and exit animations. Defaults to the provider's
+	 * `disableAnimation`, which follows `prefers-reduced-motion`.
+	 */
+	disableAnimation?: boolean;
 	hideBranding?: boolean;
 	legalLinks?: (keyof LegalLinks)[] | null;
 	showTrigger?: boolean | ConsentDialogTriggerProps;

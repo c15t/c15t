@@ -6,6 +6,8 @@ import { computed, onMounted, ref } from 'vue';
 
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
 
+import { slotAttrs } from '../utils/slot-attrs';
+
 const props = defineProps<{
 	context: 'banner' | 'dialog' | 'manager' | 'iab-banner' | 'iab-dialog';
 }>();
@@ -81,18 +83,19 @@ const testId = computed(() => {
 <template>
 	<a
 		v-if="resolvedBranding !== 'none'"
-		v-bind="config.components?.tag?.[context]"
+		v-bind="
+			slotAttrs(config.components?.tag?.[context], [
+				brandingStyles.branding,
+				brandingStyles.brandingTag,
+				isBannerContext
+					? brandingStyles.brandingTagBanner
+					: brandingStyles.brandingTagDialog,
+			])
+		"
 		:href="href"
 		:data-branding="resolvedBranding"
 		:data-variant="isBannerContext ? 'banner-tag' : 'dialog-tag'"
 		:data-testid="testId"
-		:class="[
-			brandingStyles.branding,
-			brandingStyles.brandingTag,
-			isBannerContext
-				? brandingStyles.brandingTagBanner
-				: brandingStyles.brandingTagDialog,
-		]"
 		:data-context="contextAttr"
 	>
 		<span

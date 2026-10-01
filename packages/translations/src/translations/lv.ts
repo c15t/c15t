@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Saglabāt iestatījumus',
 		securedBy: 'Aizsardzību nodrošina',
 	},
+	consentGate: {
+		actionButton: 'Iespējot {category} piekrišanu',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Pieņemiet {category} piekrišanu, lai skatītu šo saturu.',
+	},
 	consentManagerDialog: {
 		description:
 			'Pielāgojiet savus privātuma iestatījumus šeit. Jūs varat izvēlēties, kāda veida sīkdatnes un izsekošanas tehnoloģijas atļaut.',
@@ -57,14 +65,6 @@ export const translations: CompleteTranslations = {
 			'Mēs izmantojam sīkdatnes un līdzīgas tehnoloģijas, lai nodrošinātu šīs vietnes darbību, mērītu datplūsmu un personalizētu saturu un reklāmas. Jūs jebkurā laikā varat atteikties vai pārvaldīt savas preferences.',
 		noticeTitle: 'Privātuma paziņojums',
 		title: 'Mēs novērtējam jūsu privātumu',
-	},
-	frame: {
-		actionButton: 'Iespējot {category} piekrišanu',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Pieņemiet {category} piekrišanu, lai skatītu šo saturu.',
 	},
 	iab: {
 		banner: {

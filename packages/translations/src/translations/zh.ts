@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: '保存设置',
 		securedBy: '安全保障由',
 	},
+	consentGate: {
+		actionButton: '启用 {category} 同意',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: '接受 {category} 以查看此内容。',
+	},
 	consentManagerDialog: {
 		description:
 			'在此自定义您的隐私设置。您可以选择允许哪些类型的cookies和跟踪技术。',
@@ -51,14 +59,6 @@ export const translations: CompleteTranslations = {
 			'我们使用 cookies 及类似技术来运行本网站、统计流量并个性化内容和广告。您可以随时选择退出或管理您的偏好设置。',
 		noticeTitle: '隐私声明',
 		title: '我们重视您的隐私',
-	},
-	frame: {
-		actionButton: '启用 {category} 同意',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: '接受 {category} 以查看此内容。',
 	},
 	iab: {
 		banner: {

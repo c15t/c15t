@@ -4,6 +4,13 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 
+// The fixture page imports these modules. Importing them here makes Vite
+// transform them while it collects this file, outside any test's timeout.
+// Otherwise the first page load transforms the whole client and UI graph
+// inside the test, which took over ten seconds in a busy parallel run.
+import '../auto-init';
+import '../client';
+import '../ui/mount';
 import type { UICSPPage } from './fixtures/ui-csp-page';
 
 const frames: HTMLIFrameElement[] = [];

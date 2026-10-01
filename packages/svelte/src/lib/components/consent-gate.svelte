@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { AllConsentNames } from '@c15t/core';
 	import { defaultTranslationConfig } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/frame';
+	import styles from '@c15t/ui/styles/components/consent-gate';
 	import { resolveTranslations } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import ConsentButton from './action-button.svelte';
 
 	let {
@@ -37,20 +38,61 @@
 			defaultTranslationConfig
 		)
 	);
-	const frameTitle = $derived(
+	const gateTitle = $derived(
 		(
-			translations.frame?.title ??
+			translations.consentGate?.title ??
 			'Accept {category} consent to view this content.'
 		).replace(
 			'{category}',
 			translations.consentTypes?.[category]?.title ?? (category as string)
 		)
 	);
-	const frameActionButton = $derived(
-		(translations.frame?.actionButton ?? 'Enable {category} consent').replace(
+	const gateActionButton = $derived(
+		(
+			translations.consentGate?.actionButton ?? 'Enable {category} consent'
+		).replace(
 			'{category}',
 			translations.consentTypes?.[category]?.title ?? (category as string)
 		)
+	);
+
+	const placeholderStyle = $derived(
+		resolveComponentStyles(
+			'consentGate',
+			theme.theme,
+			{ baseClassName: styles.placeholder, noStyle },
+			noStyle
+		)
+	);
+	const titleStyle = $derived(
+		resolveComponentStyles(
+			'consentGateTitle',
+			theme.theme,
+			{ baseClassName: styles.title, noStyle },
+			noStyle
+		)
+	);
+	// Goes on top of `buttonPrimary`. The button applies that slot's class
+	// itself, but a `style` passed here replaces its style attribute, so the
+	// two slot styles are merged first.
+	const buttonStyle = $derived(
+		resolveComponentStyles(
+			'consentGateButton',
+			theme.theme,
+			{ noStyle },
+			noStyle
+		)
+	);
+	const buttonStyleAttribute = $derived(
+		toStyleAttribute({
+			...resolveComponentStyles(
+				'buttonPrimary',
+				theme.theme,
+				{ noStyle },
+				noStyle
+			).style,
+			...buttonStyle.style,
+		})
 	);
 
 	let isMounted = $state(false);
@@ -76,19 +118,28 @@
 	{:else}
 		<!-- Default placeholder -->
 		<div
-			class={noStyle ? '' : styles.placeholder || ''}
-			data-testid="frame-placeholder"
+			class={placeholderStyle.className || ''}
+			style={toStyleAttribute(placeholderStyle.style)}
+			data-testid="consent-gate-placeholder"
 		>
-			<div class={noStyle ? '' : styles.title || ''}>{frameTitle}</div>
+			<div
+				class={titleStyle.className || ''}
+				style={toStyleAttribute(titleStyle.style)}
+				data-testid="consent-gate-title"
+			>
+				{gateTitle}
+			</div>
 			<ConsentButton
 				action="open-consent-dialog"
 				variant="primary"
 				mode="stroke"
 				size="small"
 				{noStyle}
-				data-testid="frame-open-dialog"
+				class={buttonStyle.className}
+				style={buttonStyleAttribute}
+				data-testid="consent-gate-button"
 			>
-				{frameActionButton}
+				{gateActionButton}
 			</ConsentButton>
 		</div>
 	{/if}

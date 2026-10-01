@@ -124,6 +124,17 @@ export default defineConfig({
 				},
 			],
 			ui,
+			// The video component reads client.isVendorAllowed('youtube'),
+			// which is false for a vendor nothing declares.
+			vendors: [
+				{
+					category: 'measurement',
+					description: 'Embedded videos.',
+					id: 'youtube',
+					name: 'YouTube',
+					privacyPolicyUrl: 'https://policies.google.com/privacy',
+				},
+			],
 			...(experiment && {
 				experiment: {
 					arms: { wall: { prompt: { variant: 'wall' } } },

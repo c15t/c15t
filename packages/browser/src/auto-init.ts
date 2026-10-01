@@ -155,7 +155,10 @@ export const readScriptOptions = function readScriptOptions(
 		surfaceOptions.legalLinks = Object.keys(legalLinks) as (keyof LegalLinks)[];
 	}
 	const scheme = element.getAttribute('data-color-scheme');
-	if (scheme && SCHEMES.has(scheme)) {
+	if (scheme === 'none') {
+		// An attribute cannot hold `null`; `none` is Astro's spelling of it.
+		ui.colorScheme = null;
+	} else if (scheme && SCHEMES.has(scheme)) {
 		ui.colorScheme = scheme as ConsentUIOptions['colorScheme'];
 	}
 	if (element.getAttribute('data-shadow') === 'false') {
@@ -163,6 +166,9 @@ export const readScriptOptions = function readScriptOptions(
 	}
 	if (readFlag(element, 'data-trigger')) {
 		ui.trigger = true;
+	}
+	if (readFlag(element, 'data-disable-animation')) {
+		ui.disableAnimation = true;
 	}
 	if (readFlag(element, 'data-hide-branding')) {
 		surfaceOptions.hideBranding = true;

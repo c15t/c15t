@@ -15,6 +15,14 @@ import { offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions } from '../types';
 import { testResolution, testRule } from './policy-fixture';
+// The client imports each banner renderer, and @c15t/iab for an IAB policy,
+// the first time it needs one. Vite compiles a module on its first import,
+// which can outlast a vi.waitFor on a busy machine; importing them here does
+// that while this file loads.
+import '@c15t/iab';
+
+import '../browser/render-iab-prompt';
+import '../browser/render-prompt';
 
 /**
  * A prerendered page is built once and served to every visitor, so the

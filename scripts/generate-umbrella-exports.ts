@@ -137,7 +137,21 @@ export interface UmbrellaSource {
 	 * never import. An entry ending in `/` leaves out every subpath under it.
 	 */
 	exclude?: string[];
+	/**
+	 * Mirror only these scoped subpaths, for a package whose other entries
+	 * are internal to the adapters (`@c15t/ui` contributes just its Tailwind 3
+	 * PostCSS plugin). Side effects the package declares for entries left
+	 * out are not claimed.
+	 */
+	include?: string[];
 }
+
+/**
+ * Every adapter re-exports the Tailwind 3 PostCSS plugin as
+ * `<package>/postcss-tailwind3`. The umbrella exposes it once, as
+ * `c15t/postcss-tailwind3` from `@c15t/ui`, rather than once per prefix.
+ */
+const TAILWIND3_PLUGIN = './postcss-tailwind3';
 
 /**
  * The scoped packages the umbrella mirrors, in emission order.
@@ -147,15 +161,27 @@ export interface UmbrellaSource {
  */
 export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 	{ directory: 'core', packageName: '@c15t/core', prefix: '' },
-	{ directory: 'react', packageName: '@c15t/react', prefix: 'react' },
-	{ directory: 'nextjs', packageName: '@c15t/nextjs', prefix: 'next' },
+	{
+		directory: 'react',
+		exclude: [TAILWIND3_PLUGIN],
+		packageName: '@c15t/react',
+		prefix: 'react',
+	},
+	{
+		directory: 'nextjs',
+		exclude: [TAILWIND3_PLUGIN],
+		packageName: '@c15t/nextjs',
+		prefix: 'next',
+	},
 	{
 		directory: 'tanstack-start',
+		exclude: [TAILWIND3_PLUGIN],
 		packageName: '@c15t/tanstack-start',
 		prefix: 'tanstack-start',
 	},
 	{
 		directory: 'vue',
+		exclude: [TAILWIND3_PLUGIN],
 		packageName: '@c15t/vue',
 		prefix: 'vue',
 		sourceRoot: { distPrefix: 'dist/', srcPrefix: 'src/' },
@@ -170,9 +196,18 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 			'./components/islands/',
 			'./islands/',
 			'./package.json',
+			TAILWIND3_PLUGIN,
 		],
 		packageName: '@c15t/astro',
 		prefix: 'astro',
+	},
+	{
+		// Tailwind 3 apps list the plugin in their PostCSS config, so an app
+		// that installed only `c15t` needs it as `c15t/postcss-tailwind3`.
+		directory: 'ui',
+		include: ['./postcss-tailwind3'],
+		packageName: '@c15t/ui',
+		prefix: '',
 	},
 ];
 
@@ -445,9 +480,33 @@ const isExcluded = function isExcluded(
 	config: UmbrellaSource,
 	subpath: string
 ): boolean {
+	if (config.include && !config.include.includes(subpath)) {
+		return true;
+	}
 	return (config.exclude ?? []).some((entry) =>
 		entry.endsWith('/') ? subpath.startsWith(entry) : subpath === entry
 	);
+};
+
+/**
+ * The export targets of the subpaths the umbrella mirrors from a source
+ * with an `include` list, as `./`-relative paths.
+ */
+const includedTargets = function includedTargets(
+	source: SourcePackage
+): Set<string> {
+	const targets = new Set<string>();
+	for (const [subpath, value] of Object.entries(source.exports)) {
+		if (isExcluded(source.config, subpath)) {
+			continue;
+		}
+		for (const target of typeof value === 'string'
+			? [value]
+			: Object.values(value)) {
+			targets.add(target);
+		}
+	}
+	return targets;
 };
 
 /**
@@ -567,9 +626,19 @@ const deriveSideEffects = function deriveSideEffects(
 	const sideEffects: string[] = ['**/*.css'];
 
 	for (const source of sources) {
-		const declared = source.sideEffects;
+		let declared = source.sideEffects;
 		if (declared === false) {
 			continue;
+		}
+		if (source.config.include && Array.isArray(declared)) {
+			// Keep only claims on files behind the mirrored subpaths.
+			const targets = includedTargets(source);
+			declared = declared.filter(
+				(pattern) =>
+					typeof pattern !== 'string' ||
+					pattern.endsWith('.css') ||
+					targets.has(pattern)
+			);
 		}
 		if (
 			Array.isArray(declared) &&

@@ -90,6 +90,15 @@ export interface ConsentComponentSlots<T = Record<string, unknown>> {
 		actions?: T;
 		actionGroup?: T;
 	};
+	/** The placeholder `ConsentGate` renders while its category is denied. */
+	'consent-gate'?: {
+		/** Placeholder card, `ConsentGate.Root` in React. */
+		root?: T;
+		/** Placeholder title, `ConsentGate.Title` in React. */
+		title?: T;
+		/** Button that opens the preferences, `ConsentGate.Button` in React. */
+		button?: T;
+	};
 	button?: {
 		primary?: T;
 		secondary?: T;
@@ -267,6 +276,11 @@ export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
 	button: {
 		primary: true,
 		secondary: true,
+	},
+	'consent-gate': {
+		button: true,
+		root: true,
+		title: true,
 	},
 	description: {
 		banner: true,

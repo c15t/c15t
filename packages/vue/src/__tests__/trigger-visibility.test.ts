@@ -37,11 +37,13 @@ const trigger = () =>
 
 /** Mount the floating trigger against an opt-in rule that owes a choice. */
 const renderTrigger = async function renderTrigger(
-	triggerShowWhen: ConsentDialogTriggerVisibility | undefined
+	triggerShowWhen: ConsentDialogTriggerVisibility | undefined,
+	extra: Partial<ConsentConfig> = {}
 ) {
 	const config = {
 		consentCategories: ['necessary', 'measurement'],
 		triggerShowWhen,
+		...extra,
 	} as ConsentConfig;
 	const context = createVueConsentKernelContext({
 		config,
@@ -116,4 +118,17 @@ describe('ConsentDialogTrigger triggerShowWhen', () => {
 		await flushPromises();
 		expect(trigger()).toBeNull();
 	});
+});
+
+describe('ConsentDialogTrigger disableAnimation', () => {
+	test.each([true, false])(
+		'marks the trigger for the stylesheet when disableAnimation is %s',
+		async (disableAnimation) => {
+			await renderTrigger('always', { disableAnimation });
+			// The stylesheet stops the hover and snap transitions on it.
+			expect(trigger()?.hasAttribute('data-disable-animation')).toBe(
+				disableAnimation
+			);
+		}
+	);
 });

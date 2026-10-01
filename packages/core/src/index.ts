@@ -350,6 +350,7 @@ export {
 	deniedVendorIds,
 	evaluateConsent,
 	getEffectiveGateState,
+	isVendorAllowed,
 	isVendorDenied,
 } from './modules/has';
 export type { RevocationReloadOptions } from './modules/revocation-reload';

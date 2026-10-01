@@ -7,18 +7,20 @@
  * the kernel rather than the DOM, and leaves nothing behind on destroy.
  */
 
-import { setTimeout as delay } from 'node:timers/promises';
-
 import { hosted } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntime } from '@c15t/core/runtime';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { C15tResolvedOptions } from '../types';
 import { registerDialogSurface } from '../ui/adapter';
 import type { ConsentDialogKind } from '../ui/adapter';
 import { reactDialogAdapter } from '../ui/react';
 import { vueDialogAdapter } from '../ui/vue';
+// The Vue adapter imports its plugin on first mount. Vite compiles it on that
+// first import, which takes seconds on a busy machine; importing it here does
+// that while this file loads, outside any test timeout.
+import '@c15t/vue/vue-plugin';
 
 const OPTIONS = {
 	consentCategories: ['necessary', 'marketing'],
@@ -84,10 +86,9 @@ describe('the react dialog adapter', () => {
 			runtime,
 			target: createHost(),
 		});
-		// React 19 renders concurrently; one macrotask is enough in jsdom.
-		await delay(0);
-
-		expect(seen.runtime).toBe(runtime);
+		// React 19 renders concurrently, so the first render can land after
+		// several macrotasks on a busy machine.
+		await vi.waitFor(() => expect(seen.runtime).toBe(runtime));
 		expect(seen.kind).toBe('iab');
 		await handle.destroy();
 	});

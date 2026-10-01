@@ -18,10 +18,11 @@ import type {
 	LegalLinks,
 } from '@c15t/core';
 import type { Translations } from '@c15t/translations';
-import type { ConsentActionStyle, Theme } from '@c15t/ui/theme';
+import type { AllThemeKeys, ConsentActionStyle, Theme } from '@c15t/ui/theme';
 import { getTextDirection } from '@c15t/ui/utils';
 
 import type { PromptClassNames } from './class-names';
+import { resolveSlotBinding } from './theme-slots';
 
 /** The `<ConsentBanner />` props that shape its markup. */
 export interface PromptProps {
@@ -39,6 +40,11 @@ export interface PromptProps {
 	customizeButtonText?: string;
 	/** Ship the DOM without the bundled stylesheet's class names. */
 	noStyle?: boolean;
+	/**
+	 * Skip the entry animation. Defaults to the integration's
+	 * `disableAnimation`.
+	 */
+	disableAnimation?: boolean;
 	/** Extra class on the banner root. */
 	class?: string;
 	/** Drop the "Secured by c15t" tag. */
@@ -55,8 +61,10 @@ export interface PromptModelInput {
 	presentation?: ConsentPresentation;
 	/** The integration's `legalLinks` option. */
 	legalLinks?: LegalLinks;
-	/** The integration's `theme` option. Only `consentActions` is read. */
+	/** The integration's `theme` option, for `consentActions` and `slots`. */
 	theme?: Theme;
+	/** The integration's `disableAnimation` option. */
+	disableAnimation?: boolean;
 	/** The stylesheet class names the markup uses. */
 	classNames: PromptClassNames;
 }
@@ -77,6 +85,10 @@ export interface PromptAction {
 	mode: string | undefined;
 	/** The button's `data-variant`, or `undefined` with `noStyle`. */
 	variant: string | undefined;
+	/** The button's classes, with its `buttonPrimary` or `buttonSecondary` slot. */
+	className: string;
+	/** The button's inline style from that slot. */
+	style: string | undefined;
 }
 
 /** Everything the banner markup needs. */
@@ -113,6 +125,8 @@ export interface PromptModel {
 		actionGroup: string;
 		button: string;
 	};
+	/** Inline styles from `theme.slots`, by the same element names. */
+	styles: Partial<Record<keyof PromptModel['classes'], string>>;
 }
 
 /**
@@ -237,22 +251,48 @@ const resolveCopy = function resolveCopy(
 	};
 };
 
+/** The `theme.slots` key each banner element answers to. */
+const PROMPT_SLOTS = {
+	actionGroup: 'consentBannerFooterSubGroup',
+	card: 'consentBannerCard',
+	description: 'consentBannerDescription',
+	footer: 'consentBannerFooter',
+	header: 'consentBannerHeader',
+	overlay: 'consentBannerOverlay',
+	rightLink: 'consentBannerRightLink',
+	rights: 'consentBannerRights',
+	root: 'consentBanner',
+	title: 'consentBannerTitle',
+} as const satisfies Partial<
+	Record<keyof PromptModel['classes'], AllThemeKeys>
+>;
+
 /**
- * Class names for every element, or none with `noStyle`.
+ * Class names and inline styles for every element: the stock classes, or
+ * none with `noStyle`, then the element's `theme.slots` entry. With
+ * `disableAnimation` the entering classes are left out before the slots
+ * apply.
  *
  * @param classNames - The stylesheet class maps.
  * @param props - The component props.
- * @returns The class list for each element.
+ * @param theme - The integration's `theme`.
+ * @param disableAnimation - Leave out the entering classes, which are the
+ * `@starting-style` state the entry animation starts from.
+ * @returns The class list and style for each element.
  */
 const resolveClasses = function resolveClasses(
 	classNames: PromptClassNames,
-	props: PromptProps
-): PromptModel['classes'] {
+	props: PromptProps,
+	theme: Theme | undefined,
+	disableAnimation: boolean
+): Pick<PromptModel, 'classes' | 'styles'> {
 	const { actions, banner, button } = classNames;
 	const noStyle = props.noStyle === true;
 	const cls = (...names: (string | undefined)[]): string =>
 		noStyle ? '' : joinClasses(...names);
-	return {
+	const entering = (name: string | undefined) =>
+		disableAnimation ? undefined : name;
+	const stock: PromptModel['classes'] = {
 		actionGroup: cls(actions.actionGroup),
 		button: cls(button.button),
 		card: cls(banner.card),
@@ -260,15 +300,33 @@ const resolveClasses = function resolveClasses(
 		description: cls(banner.description),
 		footer: cls(actions.actionRoot, banner.footer),
 		header: cls(banner.header),
-		overlay: cls(banner.overlay, banner.overlayVisible, banner.overlayEntering),
+		overlay: cls(
+			banner.overlay,
+			banner.overlayVisible,
+			entering(banner.overlayEntering)
+		),
 		rightLink: cls(banner.rightLink),
 		rights: cls(banner.rights),
-		root: joinClasses(
-			cls(banner.root, banner.bannerVisible, banner.bannerEntering),
-			props.class
+		root: cls(
+			banner.root,
+			banner.bannerVisible,
+			entering(banner.bannerEntering)
 		),
 		title: cls(banner.title),
 	};
+	const classes = { ...stock };
+	const styles: PromptModel['styles'] = {};
+	for (const [name, key] of Object.entries(PROMPT_SLOTS) as [
+		keyof typeof PROMPT_SLOTS,
+		AllThemeKeys,
+	][]) {
+		const binding = resolveSlotBinding(theme, key, stock[name]);
+		classes[name] = binding.class;
+		styles[name] = binding.style;
+	}
+	// The `class` prop goes last, as the component's own override.
+	classes.root = joinClasses(classes.root, props.class);
+	return { classes, styles };
 };
 
 /**
@@ -360,6 +418,12 @@ export const resolvePromptModel = function resolvePromptModel(
 			? orderedActions
 			: primaryActions;
 
+	const classesAndStyles = resolveClasses(
+		input.classNames,
+		props,
+		input.theme,
+		props.disableAnimation ?? input.disableAnimation ?? false
+	);
 	return {
 		actionGroups: actionGroups.map((group) =>
 			group.map((action) => {
@@ -371,17 +435,24 @@ export const resolvePromptModel = function resolvePromptModel(
 							primary,
 							input.theme?.consentActions
 						);
+				const slot = resolveSlotBinding(
+					input.theme,
+					primary ? 'buttonPrimary' : 'buttonSecondary',
+					classesAndStyles.classes.button
+				);
 				return {
 					action,
+					className: slot.class,
 					label: labels.actions[action] ?? action,
 					mode: style?.mode,
 					primary,
+					style: slot.style,
 					variant: style?.variant,
 				};
 			})
 		),
 		blocking,
-		classes: resolveClasses(input.classNames, props),
+		...classesAndStyles,
 		copy: resolveCopy(
 			bundle,
 			fallback,

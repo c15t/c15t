@@ -23,6 +23,11 @@ import {
 	useState as useNuxtState,
 } from '#imports';
 
+import {
+	applyColorScheme,
+	buildColorSchemeScript,
+	COLOR_SCHEME_SCRIPT_KEY,
+} from './color-scheme';
 import { consentConfigKey } from './composables/config';
 import type { ConsentConfig } from './config';
 import {
@@ -52,30 +57,55 @@ import {
 export default defineNuxtPlugin(async (nuxtApp) => {
 	const appConfig = useAppConfig();
 	const runtimeConfig = useRuntimeConfig();
-	const config = computed(
-		() =>
-			defu(
-				appConfig.c15t,
-				runtimeConfig.public.c15t
-			) as Partial<RuntimeConsentConfig>
-	);
+	const config = computed(() => {
+		const merged = defu(
+			appConfig.c15t,
+			runtimeConfig.public.c15t
+		) as Partial<RuntimeConsentConfig>;
+		// `defu` skips `null`, so an app config `colorScheme: null` would fall
+		// back to the module options. `null` leaves `c15t-dark` to the site.
+		if (appConfig.c15t?.colorScheme === null) {
+			merged.colorScheme = null;
+		}
+		return merged;
+	});
 	// Tokens go in the head from the plugin, so the server HTML carries them
 	// for the first paint and composed surfaces without ConsentRoot get
-	// them too. Registered before the first await, while the Nuxt context
-	// is still current.
+	// them too. The color scheme script sets `c15t-dark` in `<head>`, before
+	// the server-rendered banner paints. Registered before the first await,
+	// while the Nuxt context is still current.
 	useHead(
 		computed(() => {
+			const { colorScheme, nonce, theme, tokens } = config.value;
 			const style: Record<string, string> = {
 				id: TOKENS_STYLE_ID,
-				innerHTML: generateTokensCSS(config.value.tokens),
+				innerHTML: generateTokensCSS(tokens, { colorScheme, theme }),
 				key: TOKENS_STYLE_ID,
 			};
-			if (config.value.nonce) {
-				style.nonce = config.value.nonce;
+			if (nonce) {
+				style.nonce = nonce;
 			}
-			return { style: [style] };
+			const script: { innerHTML: string; key: string; nonce?: string }[] = [];
+			const scriptSource = buildColorSchemeScript(colorScheme);
+			if (scriptSource) {
+				const tag: (typeof script)[number] = {
+					innerHTML: scriptSource,
+					key: COLOR_SCHEME_SCRIPT_KEY,
+				};
+				if (nonce) {
+					tag.nonce = nonce;
+				}
+				script.push(tag);
+			}
+			return { script, style: [style] };
 		})
 	);
+	// The client keeps the class right after the first paint: it follows
+	// the system setting, or a site's `dark` class, as they change.
+	const releaseColorScheme =
+		typeof window === 'undefined'
+			? () => undefined
+			: applyColorScheme(config.value.colorScheme);
 	// HTML that is prerendered or cached is served to every visitor, so it
 	// must carry nobody's consent, location or request headers. The server
 	// decides once and the payload tells the browser, which then resolves
@@ -190,5 +220,8 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 			);
 		});
 	}
-	nuxtApp.vueApp.onUnmount(() => disposeRuntime());
+	nuxtApp.vueApp.onUnmount(() => {
+		disposeRuntime();
+		releaseColorScheme();
+	});
 });

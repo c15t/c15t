@@ -7,7 +7,7 @@
  * - kebab-case only
  * - prefix by component family: `consent-banner-*`, `consent-dialog-*`,
  *   `consent-widget-*`, `iab-consent-banner-*`, `iab-consent-dialog-*`,
- *   `frame-*`, `branding-*`
+ *   `consent-gate-*`, `branding-*`
  * - interpolated test-ids use a suffix token documented in PATTERNS below
  */
 
@@ -58,6 +58,11 @@ export const TEST_IDS = {
 		title: 'consent-dialog-title',
 		trigger: 'consent-dialog-trigger',
 	},
+	consentGate: {
+		button: 'consent-gate-button',
+		placeholder: 'consent-gate-placeholder',
+		title: 'consent-gate-title',
+	},
 	consentManager: {
 		accordion: 'consent-manager-accordion',
 		footer: 'consent-manager-footer',
@@ -76,10 +81,6 @@ export const TEST_IDS = {
 		footerSubGroup: 'consent-widget-footer-sub-group',
 		rejectButton: 'consent-widget-reject-button',
 		root: 'consent-widget-root',
-	},
-	frame: {
-		openDialog: 'frame-open-dialog',
-		placeholder: 'frame-placeholder',
 	},
 	iabConsentBanner: {
 		acceptButton: 'iab-consent-banner-accept-button',

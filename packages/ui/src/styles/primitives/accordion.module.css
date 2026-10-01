@@ -237,6 +237,7 @@
 	@media (prefers-reduced-motion: reduce) {
 		.item,
 		.content,
+		.contentInner,
 		.arrowOpen,
 		.arrowClose {
 			transition: none;

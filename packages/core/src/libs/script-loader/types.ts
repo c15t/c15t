@@ -225,6 +225,8 @@ export interface Script {
 	 * backend) so the preference surface can list it. The script loads when
 	 * `category` is satisfied and the subject has not turned this vendor
 	 * off. Inert in IAB mode, where `vendorId` and the TC string decide.
+	 * The kernel checks a denial only for a declared vendor; a slug no
+	 * declaration names leaves the script gated on `category` alone.
 	 *
 	 * @example
 	 * ```ts

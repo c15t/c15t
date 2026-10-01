@@ -642,6 +642,11 @@
 			"types": "./shims/astro/components/iab-panel.astro.d.ts",
 			"import": "./shims/astro/components/iab-panel.astro.js",
 			"default": "./shims/astro/components/iab-panel.astro.js"
+		},
+		"./postcss-tailwind3": {
+			"types": "./shims/postcss-tailwind3.d.ts",
+			"import": "./shims/postcss-tailwind3.js",
+			"default": "./shims/postcss-tailwind3.js"
 		}
 	},
 	"publishConfig": {

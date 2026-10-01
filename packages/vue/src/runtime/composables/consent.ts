@@ -1,5 +1,7 @@
+import { isVendorAllowed } from '@c15t/core';
 import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import { computed } from 'vue';
+import type { ComputedRef } from 'vue';
 
 import { useConsentKernel, useConsentKernelContext } from './kernel';
 
@@ -31,6 +33,32 @@ const useHasConsent = function useHasConsent() {
 	});
 };
 
+/**
+ * Whether one vendor may load: it is declared, its category condition
+ * passes, and outside IAB the visitor has not turned it off.
+ *
+ * @param vendorId - Vendor id as declared in `vendors`, on a script or by
+ * the backend.
+ * @returns A computed `true` while the vendor may load. An id nothing
+ * declares, such as a typo, stays `false` and logs a development warning.
+ * @example
+ * ```ts
+ * const youtubeAllowed = useVendorAllowed('youtube');
+ * ```
+ */
+const useVendorAllowed = function useVendorAllowed(
+	vendorId: string
+): ComputedRef<boolean> {
+	const context = useConsentKernelContext();
+	return computed(() =>
+		isVendorAllowed(
+			context.snapshot.value,
+			vendorId,
+			context.snapshot.value.evaluatedAt
+		)
+	);
+};
+
 export type ConsentSaveInput = CONSENT_CATEGORY[] | 'all' | 'none';
 
 const useConsentSave = function useConsentSave() {
@@ -60,4 +88,10 @@ const useConsentSave = function useConsentSave() {
 // inline `export function` declarations in the built output (kept #2/#4,
 // dropped #1/#3 -> useHasConsent/useStoredConsent undefined at runtime in
 // consumers). One export statement sidesteps the parser bug.
-export { useConsent, useConsentSave, useHasConsent, useStoredConsent };
+export {
+	useConsent,
+	useConsentSave,
+	useHasConsent,
+	useStoredConsent,
+	useVendorAllowed,
+};

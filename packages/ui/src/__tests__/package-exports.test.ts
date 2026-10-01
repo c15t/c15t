@@ -15,8 +15,8 @@ const COMPONENT_STYLE_MODULES = [
 	'consent-banner',
 	'consent-dialog',
 	'consent-dialog-trigger',
+	'consent-gate',
 	'consent-manager',
-	'frame',
 	'iab-consent-banner',
 	'iab-consent-dialog',
 	'legal-links',
@@ -207,6 +207,30 @@ describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
 			}
 		});
 	}
+});
+
+/**
+ * `frame` was ConsentGate's stylesheet before the rename. The old subpaths
+ * stay as deprecated aliases of `consent-gate` for one alpha.
+ */
+describe('package exports: deprecated frame stylesheet aliases', () => {
+	test.each([
+		['./styles/components/frame', BUNDLER_CONDITIONS, 'consent-gate.js'],
+		['./styles/components/frame', NODE_CONDITIONS, 'consent-gate.node.js'],
+		[
+			'./styles/components/frame.module.css',
+			BUNDLER_CONDITIONS,
+			'consent-gate.js',
+		],
+		['./styles/components/frame.css', BUNDLER_CONDITIONS, 'consent-gate.css'],
+	] as const)('%s resolves to %s', (subpath, conditions, filename) => {
+		const resolvedPath = resolveExport(subpath, conditions);
+
+		expect(resolvedPath).toBe(
+			join(PACKAGE_ROOT, 'dist/styles/components', filename)
+		);
+		expect(existsSync(resolvedPath)).toBe(true);
+	});
 });
 
 /**

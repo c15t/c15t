@@ -10,12 +10,17 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
 import {
 	acceptButton,
 	categoryControl,
+	expandCategory,
 	expectNoTracking,
 	openBrowserContext,
 	openPreferences,
+	readConsentMotion,
+	recordConsentMotion,
 	rejectButton,
 	saveButton,
 	setCategory,
+	setVendor,
+	vendorSwitch,
 	video,
 } from './browser';
 import type { Requests } from './browser';
@@ -67,13 +72,18 @@ for (const target of selectedTargets()) {
 			context = undefined;
 		});
 
-		const visit = async function visit(path: string, failInit = false) {
+		const visit = async function visit(
+			path: string,
+			failInit = false,
+			beforeLoad?: (page: Page) => Promise<void>
+		) {
 			({ context, page, requests } = await openBrowserContext(
 				browser,
 				server.baseURL,
 				server.backendURL,
 				failInit
 			));
+			await beforeLoad?.(page);
 			await page.goto(path);
 			await expect
 				.poll(() =>
@@ -127,11 +137,11 @@ for (const target of selectedTargets()) {
 				await page.addInitScript(() => {
 					const style = document.createElement('style');
 					style.textContent =
-						'[data-testid="frame-placeholder"] { animation-play-state: paused !important; }';
+						'[data-testid="consent-gate-placeholder"] { animation-play-state: paused !important; }';
 					document.documentElement.append(style);
 				});
 				await page.goto('/app-router');
-				const placeholder = page.getByTestId('frame-placeholder');
+				const placeholder = page.getByTestId('consent-gate-placeholder');
 				await placeholder.waitFor();
 				expect(
 					await placeholder.evaluate(
@@ -141,6 +151,25 @@ for (const target of selectedTargets()) {
 				await expectNoTracking(page, requests);
 			});
 		}
+
+		test('a reduced-motion visitor gets the banner and dialog without motion', async () => {
+			({ context, page, requests } = await openBrowserContext(
+				browser,
+				server.baseURL,
+				server.backendURL
+			));
+			await page.emulateMedia({ reducedMotion: 'reduce' });
+			await page.addInitScript(recordConsentMotion);
+			await page.goto(target.routes[0] ?? '/');
+			await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+			// Longer than any stock entrance or exit, so a transition shows.
+			await page.waitForTimeout(400);
+			await rejectButton(page).click();
+			await expect.poll(() => rejectButton(page).isVisible()).toBe(false);
+			await openPreferences(page);
+			await page.waitForTimeout(400);
+			expect(await readConsentMotion(page)).toEqual([]);
+		});
 
 		for (const route of target.routes) {
 			if (target.id === 'nextjs') {
@@ -157,7 +186,7 @@ for (const target of selectedTargets()) {
 					expect(html.includes('data-testid="consent-banner-root"')).toBe(
 						bannerInHTML
 					);
-					expect(html).toContain('data-testid="frame-placeholder"');
+					expect(html).toContain('data-testid="consent-gate-placeholder"');
 					expect(html).not.toContain('<iframe');
 				});
 			}
@@ -352,6 +381,140 @@ for (const target of selectedTargets()) {
 			});
 		}
 
+		// These examples declare PostHog and YouTube under measurement and
+		// X Pixel under marketing, and name each vendor on its script or
+		// iframe.
+		if (['astro', 'astro-static', 'html'].includes(target.id)) {
+			test('a vendor turned off stays blocked across reload until Accept all', async () => {
+				const route = target.routes[0] ?? '/';
+				await visit(route);
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				await rejectButton(page).click();
+				await openPreferences(page);
+				await setCategory(page, 'Measurement', true);
+				await setVendor(page, 'measurement', 'posthog', false);
+				await saveButton(page).click();
+				// YouTube shares the category and loads; PostHog stays blocked.
+				await expect.poll(() => video(page).count()).toBe(1);
+				await page.waitForTimeout(300);
+				expect(requests.posthog).toBe(0);
+				expect(requests.xPixel).toBe(0);
+
+				await page.reload();
+				await expect.poll(() => video(page).count()).toBe(1);
+				await page.waitForTimeout(300);
+				expect(requests.posthog).toBe(0);
+				await openPreferences(page);
+				await expandCategory(page, 'measurement');
+				expect(
+					await vendorSwitch(page, 'measurement', 'posthog').getAttribute(
+						'aria-checked'
+					)
+				).toBe('false');
+				expect(
+					await vendorSwitch(page, 'measurement', 'youtube').getAttribute(
+						'aria-checked'
+					)
+				).toBe('true');
+
+				// Accept all clears the vendor denial.
+				await page
+					.getByTestId('consent-widget-footer-accept-all-button')
+					.click();
+				await expect.poll(() => requests.posthog).toBe(1);
+				await expect.poll(() => requests.xPixel).toBe(1);
+				await openPreferences(page);
+				await expandCategory(page, 'measurement');
+				expect(
+					await vendorSwitch(page, 'measurement', 'posthog').getAttribute(
+						'aria-checked'
+					)
+				).toBe('true');
+				expect(requests.unexpected).toEqual([]);
+			});
+		}
+
+		if (target.id === 'html') {
+			test('Tailwind classes from theme.slots style the banner in its shadow root', async () => {
+				await visit('/consent-example/tailwind');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				const card = page.getByTestId('consent-banner-card');
+				expect(
+					await card.evaluate(
+						(element) => element.getRootNode() instanceof ShadowRoot
+					)
+				).toBe(true);
+				expect(await card.getAttribute('class')).toContain('border-sky-600');
+				// `border-sky-600` from the site's Tailwind build, linked into the
+				// shadow root, wins over the stock card border.
+				await expect
+					.poll(() =>
+						card.evaluate((element) => {
+							const style = getComputedStyle(element);
+							return [style.borderTopWidth, style.borderTopLeftRadius];
+						})
+					)
+					.toEqual(['4px', '0px']);
+				await expect
+					.poll(() =>
+						card.evaluate((element) => getComputedStyle(element).borderTopColor)
+					)
+					.toMatch(/^oklch\(0\.588 0\.158 241\.966\)$|^rgb\(0, 132, 209\)$/u);
+				expect(requests.unexpected).toEqual([]);
+			});
+
+			test('Tailwind 4 utilities that rely on @property also need the page link', async () => {
+				// The same page without its own <link> to the Tailwind build, so
+				// the build loads only inside the shadow root. The observer sees
+				// the document, not the shadow root, so c15t's link stays.
+				await visit('/consent-example/tailwind', false, async (fresh) => {
+					await fresh.addInitScript(() => {
+						new MutationObserver((records) => {
+							for (const record of records) {
+								for (const node of record.addedNodes) {
+									if (
+										node instanceof HTMLLinkElement &&
+										node.getAttribute('href') === '/tailwind.css'
+									) {
+										node.remove();
+									}
+								}
+							}
+						}).observe(document, { childList: true, subtree: true });
+					});
+				});
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				expect(
+					await page.evaluate(() =>
+						[...document.styleSheets].some((sheet) =>
+							sheet.href?.endsWith('/tailwind.css')
+						)
+					)
+				).toBe(false);
+				const card = page.getByTestId('consent-banner-card');
+				// `rounded-none` needs no registered property, so it proves the
+				// build loaded inside the shadow root.
+				await expect
+					.poll(() =>
+						card.evaluate(
+							(element) => getComputedStyle(element).borderTopLeftRadius
+						)
+					)
+					.toBe('0px');
+				// `border-4` sets `border-style: var(--tw-border-style)`. Tailwind
+				// gives that variable its `solid` default with @property, which a
+				// shadow root's stylesheet cannot register, so the border has no
+				// style and no width.
+				expect(
+					await card.evaluate((element) => {
+						const style = getComputedStyle(element);
+						return [style.borderTopStyle, style.borderTopWidth];
+					})
+				).toEqual(['none', '0px']);
+				expect(requests.unexpected).toEqual([]);
+			});
+		}
+
 		if (target.id.startsWith('tanstack-start')) {
 			// Awaited server rendering puts the banner in the HTML. A streamed
 			// loader and prerendered pages mount it after hydration.
@@ -464,6 +627,45 @@ for (const target of selectedTargets()) {
 				await expect.poll(() => card.isVisible()).toBe(true);
 				expect(await cardBackground()).not.toBe('rgba(0, 0, 0, 0)');
 				await expect.poll(() => saveButton(page).isVisible()).toBe(true);
+			});
+		}
+
+		if (target.id === 'nuxt') {
+			test('a system-dark visitor gets the dark tokens from the server HTML', async () => {
+				const response = await fetch(`${server.baseURL}/consent-example`, {
+					headers: { 'x-vercel-ip-country': 'DE' },
+				});
+				const html = await response.text();
+				const head = html.slice(0, html.indexOf('</head>'));
+				// The class is set in <head>, before the banner paints.
+				expect(head).toContain('prefers-color-scheme:dark');
+				expect(head).toContain('--c15t-primary: #7fd1a8;');
+
+				({ context, page, requests } = await openBrowserContext(
+					browser,
+					server.baseURL,
+					server.backendURL
+				));
+				await page.emulateMedia({ colorScheme: 'dark' });
+				await page.goto('/consent-example');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				expect(
+					await page.evaluate(() => ({
+						dark: document.documentElement.classList.contains('c15t-dark'),
+						primary: getComputedStyle(document.documentElement)
+							.getPropertyValue('--c15t-primary')
+							.trim(),
+					}))
+				).toEqual({ dark: true, primary: '#7fd1a8' });
+
+				await page.emulateMedia({ colorScheme: 'light' });
+				await expect
+					.poll(() =>
+						page.evaluate(() =>
+							document.documentElement.classList.contains('c15t-dark')
+						)
+					)
+					.toBe(false);
 			});
 		}
 

@@ -11,6 +11,15 @@ export const translations: CompleteTranslations = {
 		save: 'Uložit nastavení',
 		securedBy: 'Zabezpečuje',
 	},
+	consentGate: {
+		actionButton: 'Povolit souhlas s kategorií {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title:
+			'Pro zobrazení tohoto obsahu přijměte souhlas s kategorií {category}.',
+	},
 	consentManagerDialog: {
 		description:
 			'Zde si můžete přizpůsobit nastavení soukromí. Můžete zvolit, které typy souborů cookie a sledovacích technologií povolíte.',
@@ -57,15 +66,6 @@ export const translations: CompleteTranslations = {
 			'Používáme soubory cookie a podobné technologie k provozu tohoto webu, měření návštěvnosti a personalizaci obsahu a reklam. Kdykoli se můžete odhlásit nebo spravovat své předvolby.',
 		noticeTitle: 'Oznámení o ochraně soukromí',
 		title: 'Vážíme si vašeho soukromí',
-	},
-	frame: {
-		actionButton: 'Povolit souhlas s kategorií {category}',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title:
-			'Pro zobrazení tohoto obsahu přijměte souhlas s kategorií {category}.',
 	},
 	iab: {
 		banner: {

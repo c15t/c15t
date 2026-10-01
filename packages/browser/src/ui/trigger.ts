@@ -44,7 +44,7 @@ export const createTrigger = function createTrigger(
 	options: ConsentTriggerOptions
 ): Surface {
 	const styles = classes.trigger;
-	const { noStyle } = ctx;
+	const { noStyle, slot } = ctx;
 	const size = options.size ?? 'md';
 	const showWhen = options.showWhen ?? 'always';
 	const persist = options.persistPosition ?? true;
@@ -60,40 +60,71 @@ export const createTrigger = function createTrigger(
 	let startY = 0;
 	let startedAt = 0;
 	let snapTimer: ReturnType<typeof setTimeout> | undefined;
+	// The arm the slots were applied for.
+	let renderedExperiment = ctx.client.getSnapshot().experiment;
+
+	const createIcon = function createIcon(): HTMLSpanElement {
+		return slot(
+			h(
+				'span',
+				{ 'aria-hidden': 'true', class: noStyle ? '' : styles.icon },
+				svg('0 0 140 97', CONSENT_MARK)
+			),
+			'consentDialogTriggerIcon'
+		);
+	};
+	let icon = createIcon();
 
 	const element = h(
 		'button',
 		{
 			'aria-label': options.ariaLabel ?? 'Open privacy settings',
 			'data-c15t-trigger': 'true',
+			// Stops the hover and snap transitions, as on the other surfaces.
+			'data-disable-animation': ctx.disableAnimation,
 			'data-size': size,
 			'data-testid': 'consent-dialog-trigger',
 			hidden: true,
 			type: 'button',
 		},
-		h(
-			'span',
-			{ 'aria-hidden': 'true', class: noStyle ? '' : styles.icon },
-			svg('0 0 140 97', CONSENT_MARK)
-		)
+		icon
 	);
 
 	const applyClasses = function applyClasses(snapping = false): void {
 		element.setAttribute('data-position', corner);
-		if (noStyle) {
-			return;
+		if (!noStyle) {
+			element.setAttribute(
+				'class',
+				cx(
+					styles.trigger,
+					styles[size],
+					styles[POSITION_CLASS[corner]],
+					dragging && styles.dragging,
+					snapping && styles.snapping,
+					!visible && styles.hidden
+				)
+			);
 		}
-		element.setAttribute(
-			'class',
-			cx(
-				styles.trigger,
-				styles[size],
-				styles[POSITION_CLASS[corner]],
-				dragging && styles.dragging,
-				snapping && styles.snapping,
-				!visible && styles.hidden
-			)
-		);
+		// Rewriting the state classes drops the slot's; put them back.
+		slot(element, 'consentDialogTrigger');
+	};
+
+	/**
+	 * Drop the previous arm's slot classes, inline styles and `noStyle`
+	 * result, then apply the current arm's. The banner and dialogs rebuild
+	 * for a new arm; the button stays, so a drag in progress keeps going.
+	 */
+	const reapplySlots = function reapplySlots(): void {
+		const next = createIcon();
+		icon.replaceWith(next);
+		icon = next;
+		const { transform, transition } = element.style;
+		element.removeAttribute('style');
+		element.style.transform = transform;
+		element.style.transition = transition;
+		// `applyClasses` rewrites the class unless `noStyle` is set.
+		element.removeAttribute('class');
+		applyClasses(snapTimer !== undefined);
 	};
 
 	const moveTo = function moveTo(next: CornerPosition): void {
@@ -197,7 +228,12 @@ export const createTrigger = function createTrigger(
 			const allowed = showWhen === 'always' || hasDecided(snapshot);
 			visible = allowed && snapshot.activeUI === 'none';
 			element.hidden = !visible;
-			applyClasses(snapTimer !== undefined);
+			if (renderedExperiment === snapshot.experiment) {
+				applyClasses(snapTimer !== undefined);
+				return;
+			}
+			renderedExperiment = snapshot.experiment;
+			reapplySlots();
 		},
 	};
 };

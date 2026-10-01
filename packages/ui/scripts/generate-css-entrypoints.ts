@@ -47,6 +47,7 @@ import {
 	DIALOG_COMPONENTS,
 	FIRST_PAINT_COMPONENTS,
 	IAB_PREFIX,
+	LAYER_ORDER,
 } from './stylesheet-parts';
 
 const DIST_DIR = join(import.meta.dirname, '..', 'dist');
@@ -201,10 +202,13 @@ const findComponentsLayer = function findComponentsLayer(
  * consent-dialog-trigger, which inlines its variables into selectors) are
  * treated entirely as component rules.
  */
-const splitStylesheet = function splitStylesheet(css: string): {
+const splitStylesheet = function splitStylesheet(source: string): {
 	unlayered: string;
 	componentRules: string;
 } {
+	// Component files open with the layer order statement for Vue's
+	// per-component imports. The entrypoints write their own once.
+	const css = source.replace(LAYER_ORDER, '');
 	const layer = findComponentsLayer(css);
 	if (!layer) {
 		return { componentRules: css.trim(), unlayered: '' };
@@ -340,19 +344,6 @@ const DEFAULT_THEME_CSS = [
 	DEFAULT_THEME_BANNER,
 	generateDefaultThemeCSS(defaultTheme),
 ].join('\n');
-
-/**
- * Tailwind 4's layer order: it emits `@layer properties;` and then
- * `@layer theme, base, components, utilities;`. Layers rank by first
- * mention, so a page that loads a c15t sheet before Tailwind's (Astro
- * injects it from `page-ssr`; an app may import it above its own CSS) would
- * declare `components` first and rank it below `base`, where preflight
- * zeroes the banner's padding and borders. Every layered entrypoint opens
- * with the full order, so `components` lands between `base` and `utilities`
- * whichever sheet loads first. Without Tailwind the other four layers stay
- * empty. `@c15t/ui/postcss-tailwind3` removes the statement with the blocks.
- */
-const LAYER_ORDER = '@layer properties, theme, base, components, utilities;';
 
 /**
  * Sits directly above each layer block. Tailwind 3 without

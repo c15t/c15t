@@ -66,6 +66,13 @@ if (!c15t) {
 }
 
 const { snapshot } = c15t;
+// An arm's theme overrides ride on the host theme: its tokens, its
+// `consentActions` and its `slots` all follow the assignment.
+const theme = applyExperimentTheme(
+	c15t.options.theme,
+	c15t.options.experiment,
+	snapshot.experiment
+);
 // Rendered as a server island, this is a request of its own with its own
 // nonce, but the page's policy is the one that judges the inserted markup.
 const nonce = nonceProp ?? c15t.nonce;
@@ -82,17 +89,12 @@ const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
 const themeCSS = emitConfig
-	? buildThemeCSS(
-			applyExperimentTheme(
-				c15t.options.theme,
-				c15t.options.experiment,
-				snapshot.experiment
-			)
-		)
+	? buildThemeCSS(theme)
 	: '';
 
 const model = resolvePromptModel({
 	classNames: promptClassNames,
+	disableAnimation: c15t.options.disableAnimation,
 	legalLinks: c15t.options.legalLinks,
 	// The arm is the host-resolved `variant`, already on the server snapshot.
 	presentation: applyExperimentAssignment(
@@ -102,7 +104,7 @@ const model = resolvePromptModel({
 	),
 	props,
 	snapshot,
-	theme: c15t.options.theme,
+	theme,
 });
 ---
 
@@ -161,6 +163,7 @@ const model = resolvePromptModel({
 		<div
 			aria-hidden="true"
 			class={model.classes.overlay}
+			style={model.styles.overlay}
 			data-testid="consent-banner-overlay"
 			hidden={hidden ? true : undefined}
 		/>
@@ -171,6 +174,7 @@ const model = resolvePromptModel({
 	shouldRender && (
 		<div
 			class={model.classes.root}
+			style={model.styles.root}
 			data-blocking={model.blocking ? 'true' : undefined}
 			data-c15t-visible={hidden ? 'false' : 'true'}
 			data-model={model.model}
@@ -190,22 +194,34 @@ const model = resolvePromptModel({
 					hostname={Astro.url.hostname}
 					noStyle={props.noStyle}
 					securedBy={model.copy.securedBy}
+					theme={theme}
+					themeSlot="consentBannerTag"
 					variant="banner-tag"
 				/>
 				<div
 					aria-label={model.copy.title}
 					aria-modal={model.blocking ? "true" : undefined}
 					class={model.classes.card}
+					style={model.styles.card}
 					data-testid="consent-banner-card"
 					role={model.blocking ? "dialog" : "region"}
 					tabindex="-1"
 				>
-					<div class={model.classes.header} data-testid="consent-banner-header">
-						<h2 class={model.classes.title} data-testid="consent-banner-title">
+					<div
+						class={model.classes.header}
+						style={model.styles.header}
+						data-testid="consent-banner-header"
+					>
+						<h2
+							class={model.classes.title}
+							style={model.styles.title}
+							data-testid="consent-banner-title"
+						>
 							{model.copy.title}
 						</h2>
 						<div
 							class={model.classes.description}
+							style={model.styles.description}
 							data-context="banner"
 							data-testid="consent-banner-description"
 						>
@@ -224,16 +240,22 @@ const model = resolvePromptModel({
 					</div>
 					<div
 						class={model.classes.footer}
+						style={model.styles.footer}
 						data-direction={model.direction}
 						data-fill={model.shouldFill ? 'true' : undefined}
 						data-split={model.split ? 'true' : undefined}
 						data-testid="consent-banner-footer"
 					>
 						{model.rights.length > 0 && (
-							<div class={model.classes.rights} data-testid="consent-banner-rights">
+							<div
+								class={model.classes.rights}
+								style={model.styles.rights}
+								data-testid="consent-banner-rights"
+							>
 								{model.rights.map(({ right, label }) => (
 									<button
 										class={model.classes.rightLink}
+										style={model.styles.rightLink}
 										data-action="right"
 										data-c15t-action="customize"
 										data-right={right}
@@ -248,13 +270,15 @@ const model = resolvePromptModel({
 						{model.actionGroups.map((group) => (
 							<div
 								class={model.classes.actionGroup}
+								style={model.styles.actionGroup}
 								data-direction={model.direction}
 								data-fill={model.shouldFill ? 'true' : undefined}
 								data-testid="consent-banner-footer-sub-group"
 							>
-								{group.map(({ action, label, mode, variant }) => (
+								{group.map(({ action, className, label, mode, style, variant }) => (
 									<button
-										class={model.classes.button}
+										class={className}
+										style={style}
 										data-action={action}
 										data-c15t-action={action}
 										data-mode={mode}

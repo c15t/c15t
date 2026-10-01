@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getThemeContext } from '../context.svelte';
-	import { resolveComponentStyles } from '../utils';
+	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 
 	/**
 	 * The overlay class names from the caller's own style map. The overlay
@@ -77,11 +77,7 @@
 
 <div
 	class={className}
-	style={themeStyle.style
-		? Object.entries(themeStyle.style)
-				.map(([k, v]) => `${k}:${v}`)
-				.join(';')
-		: undefined}
+	style={toStyleAttribute(themeStyle.style)}
 	data-testid={testId}
 	aria-hidden="true"
 ></div>

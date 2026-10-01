@@ -6,6 +6,7 @@ import {
 	firstTabbable,
 	tabbableElements,
 	setupFocusTrap,
+	setupColorScheme,
 	setupScrollLock,
 	setupTextDirection,
 } from '../dom';
@@ -53,6 +54,35 @@ test('focus trapping follows controls inside a shadow root and restores the open
 	await flushFocusTimers();
 	expect(root.activeElement).toBe(opener);
 	host.remove();
+});
+
+describe('setupColorScheme without matchMedia', () => {
+	// jsdom and a few embedded webviews have no `matchMedia`.
+	const root = document.documentElement;
+	afterEach(() => {
+		root.className = '';
+	});
+
+	test.each([
+		{ expected: true, scheme: 'dark' },
+		{ expected: false, scheme: 'light' },
+		{ expected: false, scheme: 'system' },
+	] as const)('sets $scheme without throwing', ({ expected, scheme }) => {
+		root.classList.add('c15t-dark');
+		const release = setupColorScheme(scheme);
+		expect(root.classList.contains('c15t-dark')).toBe(expected);
+		release();
+	});
+
+	test('mirrors .dark when unset', async () => {
+		root.classList.add('dark');
+		const release = setupColorScheme(undefined);
+		expect(root.classList.contains('c15t-dark')).toBe(true);
+		root.classList.remove('dark');
+		await Promise.resolve();
+		expect(root.classList.contains('c15t-dark')).toBe(false);
+		release();
+	});
 });
 
 describe('getTextDirection', () => {

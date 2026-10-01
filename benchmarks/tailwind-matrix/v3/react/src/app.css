@@ -1,0 +1,8 @@
+/* #region docs:tailwind-css title="src/app.css" */
+/* Vite inlines @import first, so it goes above the directives. */
+@import 'c15t/react/styles.tw3.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* #endregion docs:tailwind-css */

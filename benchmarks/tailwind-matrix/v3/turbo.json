@@ -1,0 +1,14 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/benchmarks/tailwind-matrix/build-fixtures.ts",
+				"$TURBO_ROOT$/benchmarks/tailwind-matrix/fixtures.ts"
+			],
+			"outputs": ["*/dist/**", "*/build/**", "*/.output/public/**", "*/out/**"]
+		}
+	}
+}

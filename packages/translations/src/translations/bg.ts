@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Запази настройките',
 		securedBy: 'Защитено от',
 	},
+	consentGate: {
+		actionButton: 'Активирайте съгласие за {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Приемете съгласие за {category}, за да видите това съдържание.',
+	},
 	consentManagerDialog: {
 		description:
 			'Персонализирайте вашите настройки за поверителност тук. Можете да изберете кои видове бисквитки и технологии за проследяване разрешавате.',
@@ -56,14 +64,6 @@ export const translations: CompleteTranslations = {
 			'Използваме бисквитки и подобни технологии, за да поддържаме този сайт, да измерваме трафика и да персонализираме съдържанието и рекламите. Можете да се откажете или да управлявате предпочитанията си по всяко време.',
 		noticeTitle: 'Известие за поверителност',
 		title: 'Ценим вашата поверителност',
-	},
-	frame: {
-		actionButton: 'Активирайте съгласие за {category}',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Приемете съгласие за {category}, за да видите това съдържание.',
 	},
 	iab: {
 		banner: {

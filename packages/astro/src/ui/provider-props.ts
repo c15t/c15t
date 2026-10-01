@@ -30,6 +30,11 @@ export interface DialogPresentationOptions {
 	colorScheme: null;
 	consentCategories?: C15tResolvedOptions['consentCategories'];
 	/**
+	 * `<ConsentDialog disableAnimation>`, else the integration option.
+	 * Unset, the island's provider follows `prefers-reduced-motion`.
+	 */
+	disableAnimation?: boolean;
+	/**
 	 * The configured experiment. The island reads the assigned arm from the
 	 * runtime snapshot and merges that arm over `presentation`; `theme`
 	 * below already carries the arm's theme overrides.
@@ -37,6 +42,11 @@ export interface DialogPresentationOptions {
 	experiment?: C15tResolvedOptions['experiment'];
 	legalLinks?: C15tResolvedOptions['legalLinks'];
 	presentation?: C15tResolvedOptions['presentation'];
+	/**
+	 * Tokens and `theme.slots`. Every island's provider applies the slots
+	 * itself: Svelte reads them directly, React and Vue through their
+	 * `components` parts.
+	 */
 	theme?: C15tResolvedOptions['theme'];
 }
 
@@ -59,21 +69,21 @@ export const buildProviderProps = function buildProviderProps(
 	runtime: ConsentRuntime,
 	options: C15tResolvedOptions
 ): DialogProviderProps {
-	return {
-		options: {
-			colorScheme: null,
-			consentCategories: options.consentCategories,
-			experiment: options.experiment,
-			legalLinks: options.legalLinks,
-			presentation: options.presentation,
-			// The arm's theme overrides ride on the host theme. The island
-			// mounts after `start()`, so the assignment is already known.
-			theme: applyExperimentTheme(
-				options.theme,
-				options.experiment,
-				runtime.kernel.getSnapshot().experiment
-			),
-		},
-		runtime,
+	// The arm's theme overrides ride on the host theme. The island mounts
+	// after `start()`, so the assignment is already known.
+	const theme = applyExperimentTheme(
+		options.theme,
+		options.experiment,
+		runtime.kernel.getSnapshot().experiment
+	);
+	const presentationOptions: DialogPresentationOptions = {
+		colorScheme: null,
+		consentCategories: options.consentCategories,
+		disableAnimation: options.disableAnimation,
+		experiment: options.experiment,
+		legalLinks: options.legalLinks,
+		presentation: options.presentation,
+		theme,
 	};
+	return { options: presentationOptions, runtime };
 };

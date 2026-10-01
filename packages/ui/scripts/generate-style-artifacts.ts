@@ -31,6 +31,10 @@
  *
  * Relative `@import`s (the shared `animations/*.css` files) are inlined into
  * each component's CSS so every artifact is self-contained.
+ *
+ * Each `<name>.css` opens with Tailwind 4's layer order and keeps its rules
+ * in `@layer components`, the same shape as the aggregates, so a Vue app's
+ * utilities override c15t whichever stylesheet the bundler links first.
  */
 import {
 	existsSync,
@@ -40,6 +44,8 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
+
+import { LAYER_ORDER } from './stylesheet-parts';
 
 const PACKAGE_DIR = join(import.meta.dirname, '..');
 const SRC_COMPONENTS_DIR = join(PACKAGE_DIR, 'src', 'styles', 'components');
@@ -86,6 +92,23 @@ const inlineRelativeCssImports = function inlineRelativeCssImports(
 			return `${importedCss}\n`;
 		}
 	);
+};
+
+/**
+ * Give a component stylesheet the aggregates' layer shape: the layer order
+ * statement first, and every rule in `@layer components`. A source without
+ * a `components` layer (the dialog trigger inlines its variables into its
+ * selectors) is wrapped whole, which is how `styles.css` already carries it.
+ * A re-run on an already layered artifact leaves it unchanged.
+ */
+const toLayeredComponentCss = function toLayeredComponentCss(
+	css: string
+): string {
+	const body = css.replace(LAYER_ORDER, '').trim();
+	const layered = /@layer\s+components\s*\{/u.test(body)
+		? body
+		: `@layer components{${body}}`;
+	return `${LAYER_ORDER}\n${layered}\n`;
 };
 
 const normalizeStyleModule = function normalizeStyleModule(
@@ -152,7 +175,7 @@ for (const name of moduleNames) {
 	]);
 	writeFileSync(
 		join(DIST_COMPONENTS_DIR, `${name}.css`),
-		inlineRelativeCssImports(css.content, css.path)
+		toLayeredComponentCss(inlineRelativeCssImports(css.content, css.path))
 	);
 
 	const js = readExisting([

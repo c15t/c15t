@@ -11,7 +11,7 @@ type TranslationSection =
 	| 'cookieBanner'
 	| 'consentManagerDialog'
 	| 'consentTypes'
-	| 'frame'
+	| 'consentGate'
 	| 'legalLinks'
 	| 'iab'
 	| 'rights';
@@ -80,23 +80,77 @@ function deepMergeSection<TSection extends Record<string, unknown>>(
 	return result as TSection;
 }
 
+let warnedLegacyFrame = false;
+
+const warnLegacyFrameOnce = function warnLegacyFrameOnce(): void {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (warnedLegacyFrame || nodeEnv === 'production') {
+		return;
+	}
+	warnedLegacyFrame = true;
+	console.warn(
+		'c15t: the `frame` translations were renamed to `consentGate`. c15t reads `frame` as `consentGate` for now; rename the key in your translations.'
+	);
+};
+
+/**
+ * Read `frame`, the name of the `consentGate` section before the rename, as
+ * `consentGate`.
+ *
+ * Stored copy, custom translations and responses from older backends can
+ * still carry `frame`. Its keys fill whatever `consentGate` does not set,
+ * and the `frame` key is dropped. Warns once outside production when it
+ * finds one.
+ *
+ * @param translations - Translations that may use the old key.
+ * @returns The translations with `frame` folded into `consentGate`, or the
+ * input unchanged when it has no `frame` key.
+ * @example
+ * ```ts
+ * migrateLegacyTranslationKeys({ frame: { title: 'Blocked' } });
+ * // { consentGate: { title: 'Blocked' } }
+ * ```
+ */
+export const migrateLegacyTranslationKeys =
+	function migrateLegacyTranslationKeys<
+		TranslationsType extends Partial<Translations>,
+	>(translations: TranslationsType): TranslationsType {
+		if (!isPlainObject(translations) || !Object.hasOwn(translations, 'frame')) {
+			return translations;
+		}
+		const { frame, ...rest } = translations;
+		if (!isPlainObject(frame)) {
+			return rest as TranslationsType;
+		}
+		warnLegacyFrameOnce();
+		return {
+			...rest,
+			consentGate: { ...frame, ...rest.consentGate },
+		} as TranslationsType;
+	};
+
 /**
  * Deep merges translation objects
  *
  * This performs a deep merge across all translation sections so that
  * nested overrides (for example, only overriding the title of a consent
- * type) still preserve default values for other keys.
+ * type) still preserve default values for other keys. Either side may use
+ * the old `frame` key for `consentGate`; see
+ * {@link migrateLegacyTranslationKeys}.
  */
 export const deepMergeTranslations = function deepMergeTranslations(
-	base: Translations,
-	override: Partial<Translations>
+	legacyBase: Translations,
+	legacyOverride: Partial<Translations>
 ): Translations {
+	const base = migrateLegacyTranslationKeys(legacyBase);
+	const override = migrateLegacyTranslationKeys(legacyOverride);
 	const sections: TranslationSection[] = [
 		'cookieBanner',
 		'consentManagerDialog',
 		'common',
 		'consentTypes',
-		'frame',
+		'consentGate',
 		'legalLinks',
 		'iab',
 		'rights',

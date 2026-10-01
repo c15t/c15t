@@ -71,7 +71,11 @@ export interface ConsentTypeTranslations {
 	description: string;
 }
 
-export interface FrameTranslations {
+/**
+ * Copy for the placeholder `ConsentGate` renders while its category is
+ * denied.
+ */
+export interface ConsentGateTranslations {
 	/**
 	 * You can use the {category} placeholder to dynamically insert the consent category name.
 	 */
@@ -81,7 +85,7 @@ export interface FrameTranslations {
 	 */
 	actionButton: string;
 	/**
-	 * Message shown when the frame category is blocked by active policy scope.
+	 * Message shown when the gate's category is blocked by active policy scope.
 	 */
 	policyBlocked: string;
 	/**
@@ -93,6 +97,11 @@ export interface FrameTranslations {
 	 */
 	error?: string;
 }
+
+/**
+ * @deprecated Renamed to {@link ConsentGateTranslations}.
+ */
+export type FrameTranslations = ConsentGateTranslations;
 
 export interface IABBannerTranslations {
 	title: string;
@@ -233,7 +242,7 @@ export interface CompleteTranslations {
 	cookieBanner: CookieBannerTranslations;
 	consentManagerDialog: ConsentManagerDialogTranslations;
 	consentTypes: ConsentTypesTranslations;
-	frame: FrameTranslations;
+	consentGate: ConsentGateTranslations;
 	legalLinks: LegalLinksTranslations;
 	iab: IABTranslations;
 	rights: RightsTranslations;
@@ -247,7 +256,14 @@ export interface Translations {
 	consentTypes: {
 		[key in AllConsentNames]?: Partial<ConsentTypeTranslations>;
 	};
-	frame?: Partial<FrameTranslations>;
+	consentGate?: Partial<ConsentGateTranslations>;
+	/**
+	 * `consentGate` copy under its name before the rename. Read as
+	 * `consentGate` when that key is absent.
+	 *
+	 * @deprecated Use `consentGate`.
+	 */
+	frame?: Partial<ConsentGateTranslations>;
 	legalLinks?: Partial<LegalLinksTranslations>;
 	iab?: DeepPartial<IABTranslations>;
 	rights?: Partial<RightsTranslations>;

@@ -37,6 +37,7 @@ import {
 	SwitchRoot,
 	SwitchThumb,
 } from '../primitives';
+import { slotAttrs } from '../utils/slot-attrs';
 import ChevronRightIcon from './icons/chevron-right-icon.vue';
 import GlobeIcon from './icons/globe-icon.vue';
 import LegitimateInterestIcon from './icons/legitimate-interest-icon.vue';
@@ -223,10 +224,9 @@ const interpolate = function interpolate(
 			<PreferenceItemControl v-if="showConsentSwitch">
 				<SwitchRoot
 					v-model="checked"
-					v-bind="config.components?.switch?.root"
+					v-bind="slotAttrs(config.components?.switch?.root, switchStyles.root)"
 					:aria-label="purpose.name"
 					:disabled="isLocked"
-					:class="switchStyles.root"
 					data-size="medium"
 				>
 					<span

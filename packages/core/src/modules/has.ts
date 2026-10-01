@@ -245,7 +245,9 @@ export interface ConsentGate<
 	/**
 	 * Vendor slug the target belongs to. Outside `model === 'iab'` the target
 	 * is denied while the subject has this vendor turned off. Inert in IAB
-	 * mode, where vendor consent comes from the TC string.
+	 * mode, where vendor consent comes from the TC string. A slug no
+	 * declaration names is not checked, so the target follows its category;
+	 * `isVendorAllowed` reports the same id as not allowed.
 	 */
 	vendor?: string;
 }
@@ -421,4 +423,73 @@ export const evaluateConsent = function evaluateConsent<
 		return allowed;
 	}
 	return !isVendorDenied(snapshot, target.vendor);
+};
+
+/** Undeclared vendor ids already warned about, so each warns once. */
+const warnedUndeclaredVendors = new Set<string>();
+
+const warnUndeclaredVendor = function warnUndeclaredVendor(
+	vendorId: string
+): void {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (nodeEnv === 'production' || warnedUndeclaredVendors.has(vendorId)) {
+		return;
+	}
+	warnedUndeclaredVendors.add(vendorId);
+	console.warn(
+		`[c15t] Vendor "${vendorId}" is not declared, so it reads as not allowed. Add { id: '${vendorId}', category: ... } to the vendors option, or put vendor: '${vendorId}' on the script that loads it.`
+	);
+};
+
+/**
+ * Whether one declared vendor may load: its category condition passes and,
+ * outside IAB, the visitor has not turned it off. A stored denial for a
+ * vendor now declared `disabled` no longer counts. Under an `iab` policy the
+ * denial list is inert and the category condition decides.
+ *
+ * A vendor id that no declaration names returns `false`, so a typo or a
+ * missing declaration never reads as allowed. In development it also logs
+ * one warning per id. While the policy is still pending, the backend's
+ * vendor list may not have arrived yet, so no warning is logged then.
+ *
+ * This reader is stricter than the gates. A script, iframe or network rule
+ * whose `vendor` slug is undeclared still follows its category alone.
+ *
+ * @param snapshot - Immutable kernel snapshot.
+ * @param vendorId - Vendor id as declared in `vendors`, on a script or by
+ * the backend.
+ * @param now - Gate clock in epoch milliseconds. Defaults to `Date.now()`.
+ * @returns `true` when the vendor is declared and may load at `now`.
+ * @example
+ * ```ts
+ * import { isVendorAllowed } from 'c15t';
+ *
+ * if (isVendorAllowed(kernel.getSnapshot(), 'youtube')) {
+ *   mountVideo();
+ * }
+ * ```
+ */
+export const isVendorAllowed = function isVendorAllowed(
+	snapshot: ConsentSnapshot,
+	vendorId: string,
+	now = Date.now()
+): boolean {
+	const vendor = snapshot.vendors?.declared.find(
+		(entry) => entry.id === vendorId
+	);
+	if (!vendor) {
+		if (!snapshot.policyPending) {
+			warnUndeclaredVendor(vendorId);
+		}
+		return false;
+	}
+	if (snapshot.model !== 'iab' && isVendorDenied(snapshot, vendorId)) {
+		return false;
+	}
+	try {
+		return evaluateConsent({ category: vendor.category }, snapshot, now);
+	} catch {
+		return false;
+	}
 };

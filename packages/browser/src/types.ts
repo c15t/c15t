@@ -20,9 +20,11 @@ import type {
 	PolicyRule,
 	policyRulePresets,
 	ProviderTransportFactory,
+	ResolvedVendor,
 	Script,
 	StorageConfig,
 	Unsubscribe,
+	VendorChoice,
 } from '@c15t/core';
 import type {
 	ConsentRuntime,
@@ -73,6 +75,8 @@ export interface ConsentBannerOptions {
 	scrollLock?: boolean;
 	/** Legacy blocking override. Prefer `presentation.prompt.blocking`. */
 	trapFocus?: boolean;
+	/** Skip the enter and exit transitions. Defaults to the UI option. */
+	disableAnimation?: boolean;
 }
 
 /** Overrides for the preference centre dialog. */
@@ -81,6 +85,8 @@ export interface ConsentDialogOptions {
 	hideBranding?: boolean;
 	/** Which legal links to render inline. `null` renders none. */
 	legalLinks?: (keyof LegalLinks)[] | null;
+	/** Skip the enter and exit transitions. Defaults to the UI option. */
+	disableAnimation?: boolean;
 }
 
 /** The floating button that reopens the preference centre. */
@@ -117,14 +123,50 @@ export interface ConsentUIOptions {
 	 * Render inside a shadow root so the host page's CSS cannot restyle the
 	 * banner and vice versa. Defaults to `true`; set `false` when you want
 	 * to override the styles with your own stylesheet.
+	 *
+	 * In the shadow root, page CSS still reaches each part through
+	 * `::part()`: every element `theme.slots` can name carries its slot key
+	 * as a part, as in `[data-c15t-ui]::part(consentBannerCard)`.
 	 */
 	shadow?: boolean;
-	/** Colour scheme. Defaults to `system`. */
-	colorScheme?: 'light' | 'dark' | 'system';
-	/** Theme token overrides, the same shape `@c15t/react` accepts. */
+	/**
+	 * Colour scheme. `'system'` follows `prefers-color-scheme`. `null`
+	 * leaves the scheme to the page: the UI is dark while `<html>` has a
+	 * `dark` or `c15t-dark` class, and follows it as it changes. The script
+	 * tag reads `data-color-scheme`, with `none` for `null`.
+	 *
+	 * @default 'system'
+	 */
+	colorScheme?: 'light' | 'dark' | 'system' | null;
+	/**
+	 * Theme tokens, consent action styles and per-part `slots`, the
+	 * `@c15t/ui` theme shape `@c15t/svelte` also accepts.
+	 *
+	 * A slot adds classes (a string, or `className`) and inline `style` to
+	 * one part, keyed like `consentBannerCard` or `buttonPrimary`. The
+	 * classes' rules must reach the part: with `shadow: false` the page's
+	 * stylesheets do; in the shadow root, link them with `stylesheetURLs` or
+	 * pass their text in `css`.
+	 */
 	theme?: Theme;
 	/** Extra CSS appended after the bundled stylesheet. */
 	css?: string;
+	/**
+	 * Stylesheets to link inside the UI root, after the bundled stylesheet,
+	 * with the client's `nonce`. Use it to bring the rules behind
+	 * `theme.slots` classes (a Tailwind build, a CSS Modules or
+	 * vanilla-extract bundle) into the shadow root. They load
+	 * asynchronously, so the first frame can render without them.
+	 *
+	 * Keep loading the same sheet in the page too: `@property` rules, which
+	 * Tailwind 4 uses for utilities such as `border-4` and `shadow-lg`, only
+	 * register at document level. Unlayered element rules in a linked sheet
+	 * reach the UI as well, which is what the shadow root otherwise
+	 * prevents.
+	 *
+	 * @example ['/assets/site.css']
+	 */
+	stylesheetURLs?: string[];
 	/**
 	 * Include the bundled stylesheet. Defaults to `true`. With `shadow: false`,
 	 * set `false` when the page loads `@c15t/browser/styles.css`.
@@ -132,7 +174,12 @@ export interface ConsentUIOptions {
 	styles?: boolean;
 	/** Ship the DOM without any class names, for fully custom CSS. */
 	noStyle?: boolean;
-	/** Skip enter and exit transitions. */
+	/**
+	 * Skip enter and exit transitions. Defaults to whether the visitor asks
+	 * for reduced motion when the UI mounts. `banner` and `dialog` take the
+	 * same option for one surface. The script tag reads
+	 * `data-disable-animation`.
+	 */
 	disableAnimation?: boolean;
 	/** Render the banner. Defaults to `true`. */
 	banner?: boolean | ConsentBannerOptions;
@@ -141,6 +188,24 @@ export interface ConsentUIOptions {
 	/** Render the floating reopen button. Defaults to `false`. */
 	trigger?: boolean | ConsentTriggerOptions;
 }
+
+/**
+ * What {@link ConsentClient.save} records: categories to grant or deny, and
+ * optionally per-vendor grants keyed by vendor id.
+ *
+ * @example
+ * ```ts
+ * client.save({ measurement: true, vendors: { posthog: false } });
+ * ```
+ */
+export type ConsentSaveInput = Partial<ConsentState> & {
+	/**
+	 * Per-vendor grants, keyed by the ids declared in `vendors`. `false`
+	 * turns a vendor off inside a granted category. Vendors left out keep
+	 * their recorded state. Ignored under an IAB policy.
+	 */
+	vendors?: Record<string, boolean>;
+};
 
 /**
  * Everything `init()` accepts. Queue serializable options, transport
@@ -341,9 +406,33 @@ export interface ConsentClient {
 	/**
 	 * Persist a specific set of consents and close the UI.
 	 *
-	 * @param consents - Categories to grant or deny.
+	 * @param consents - Categories to grant or deny, and optionally
+	 * per-vendor grants under `vendors`.
 	 */
-	save: (consents: Partial<ConsentState>) => Promise<SaveResult>;
+	save: (consents: ConsentSaveInput) => Promise<SaveResult>;
+	/**
+	 * Vendors declared for vendor-level consent: from the `vendors` option,
+	 * the backend, and the slugs on scripts, gated tags and iframes. Empty
+	 * under an IAB policy, where the TC string decides.
+	 */
+	getDeclaredVendors: () => readonly ResolvedVendor[];
+	/**
+	 * The visitor's recorded vendor decision: the ids they turned off.
+	 *
+	 * @returns The decision, whose `denied` list is empty after a bulk action
+	 * lifted every denial, or `null` when no vendor decision was recorded.
+	 */
+	getVendorChoice: () => Readonly<VendorChoice> | null;
+	/**
+	 * Whether a vendor may load: it is declared, its category condition
+	 * passes, and outside an IAB policy the visitor has not turned it off.
+	 *
+	 * @param vendorId - Vendor id as declared in `vendors`, on a script or by
+	 * the backend.
+	 * @returns `true` while the vendor may load. An id nothing declares, such
+	 * as a typo, returns `false` and logs a development warning.
+	 */
+	isVendorAllowed: (vendorId: string) => boolean;
 	/** Confirm the current IAB vendor/purpose draft through the CMP. */
 	saveIAB: () => Promise<SaveResult>;
 	/** Acknowledge a notice without recording category choices. */

@@ -16,10 +16,15 @@
 		"react-dom": "^19.2.7"
 	},
 	"devDependencies": {
+		"@emotion/css": "11.13.5",
 		"@storybook/addon-a11y": "10.4.6",
 		"@storybook/react-vite": "10.4.6",
 		"@storybook/test-runner": "^0.24.4",
+		"@stylexjs/stylex": "0.19.1",
+		"@stylexjs/unplugin": "0.19.1",
 		"@tanstack/react-devtools": "0.10.13",
+		"@vanilla-extract/css": "1.21.2",
+		"@vanilla-extract/vite-plugin": "5.2.6",
 		"storybook": "10.4.6",
 		"typescript": "6.0.3",
 		"vite": "7.3.2"

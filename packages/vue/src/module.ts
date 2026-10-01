@@ -14,7 +14,7 @@ import type { Nuxt, NuxtModule } from '@nuxt/schema';
 import { defu } from 'defu';
 import { joinURL } from 'ufo';
 
-import type { ModuleOptions } from './nuxt-options';
+import type { C15tNuxtConfig, ModuleOptions } from './nuxt-options';
 import {
 	DEVTOOLS_ICON_ROUTE,
 	DEVTOOLS_PAGE_ROUTE,
@@ -101,6 +101,15 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		name: '@c15t/vue',
 	},
 	setup({ devtools, ...options }, nuxt) {
+		// Nuxt merges module options with `defu`, which skips `null`, so a
+		// `colorScheme: null` under the `c15t` key would arrive unset and
+		// mirror a `dark` class. Read it back: `null` leaves `c15t-dark` to
+		// the site.
+		const configured = (nuxt.options as { c15t?: Partial<C15tNuxtConfig> })
+			.c15t;
+		if (configured?.colorScheme === null) {
+			options.colorScheme = null;
+		}
 		const resolver = createResolver(import.meta.url);
 		const manifestMode = resolveManifestMode(options);
 		const initRoute = resolveNuxtInitRoute(options);
@@ -281,6 +290,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				'useConsentRestrictions',
 				'useDismissNotice',
 				'useConsentDraft',
+				'useVendorAllowed',
 				'useConsentPolicyActions',
 				'useExperiment',
 				'useResolvedPresentation',

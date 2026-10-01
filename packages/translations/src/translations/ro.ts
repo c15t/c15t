@@ -11,6 +11,15 @@ export const translations: CompleteTranslations = {
 		save: 'Salvează setările',
 		securedBy: 'Securizat de',
 	},
+	consentGate: {
+		actionButton: 'Activează consimțământul pentru {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title:
+			'Acceptă consimțământul pentru {category} pentru a vizualiza acest conținut.',
+	},
 	consentManagerDialog: {
 		description:
 			'Personalizează setările de confidențialitate aici. Poți alege ce tipuri de cookie-uri și tehnologii de urmărire permiți.',
@@ -57,15 +66,6 @@ export const translations: CompleteTranslations = {
 			'Folosim cookie-uri și tehnologii similare pentru a opera acest site, a măsura traficul și a personaliza conținutul și reclamele. Poți renunța sau gestiona preferințele oricând.',
 		noticeTitle: 'Notificare privind confidențialitatea',
 		title: 'Prețuim confidențialitatea ta',
-	},
-	frame: {
-		actionButton: 'Activează consimțământul pentru {category}',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title:
-			'Acceptă consimțământul pentru {category} pentru a vizualiza acest conținut.',
 	},
 	iab: {
 		banner: {

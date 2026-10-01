@@ -5,7 +5,7 @@
 	import { onMount } from 'svelte';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
-	import { resolveComponentStyles } from '../utils';
+	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import C15TIconOnly from './icons/c15-t-icon-only.svelte';
 	import InthLogo from './icons/inth-logo.svelte';
 
@@ -102,6 +102,7 @@
 	     wordmark below is pinned to LTR. -->
 	<a
 		class={brandingStyle.className || ''}
+		style={toStyleAttribute(brandingStyle.style)}
 		href={brandingHref}
 		data-branding={resolvedBranding}
 		data-variant={variant}

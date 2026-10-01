@@ -3,6 +3,7 @@
  */
 
 import type { ConsentSnapshot } from '@c15t/core';
+import type { AllThemeKeys, Theme } from '@c15t/ui/theme';
 
 import {
 	C15T_MARK_SVG,
@@ -65,6 +66,10 @@ export interface BrandingTagInput {
 	styles: ClassNameMap;
 	securedBy: string;
 	testId: string;
+	/** The integration's `theme`, for the tag's `slots` entry. */
+	theme?: Theme;
+	/** The tag's `theme.slots` key. */
+	themeSlot?: AllThemeKeys;
 }
 
 /**
@@ -82,6 +87,8 @@ export const renderBrandingTag = function renderBrandingTag(
 		hostname: window.location.hostname,
 		noStyle: input.noStyle,
 		styles: input.styles,
+		theme: input.theme,
+		themeSlot: input.themeSlot,
 		variant: 'banner-tag',
 	});
 	if (!branding.show) {
@@ -108,6 +115,7 @@ export const renderBrandingTag = function renderBrandingTag(
 			'data-testid': input.testId,
 			'data-variant': branding.variant,
 			href: branding.href,
+			style: branding.style,
 		},
 		[
 			element('span', { class: classes.content, 'data-slot': 'tag-content' }, [

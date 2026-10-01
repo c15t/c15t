@@ -1,0 +1,6 @@
+/* #region docs:tailwind-css title="src/styles.css" */
+@import 'tailwindcss';
+@import 'c15t/tanstack-start/styles.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+/* #endregion docs:tailwind-css */

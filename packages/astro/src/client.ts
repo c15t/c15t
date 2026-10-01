@@ -19,6 +19,7 @@
  * ```
  */
 
+import { isVendorAllowed } from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -26,7 +27,9 @@ import type {
 	KernelConfig,
 	KernelUser,
 	LegalLinks,
+	ResolvedVendor,
 	Unsubscribe,
+	VendorChoice,
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type {
@@ -98,6 +101,19 @@ export type ConsentAction =
 	| 'dismiss'
 	| 'close';
 
+/**
+ * What {@link AstroConsentClient.save} records: categories to grant or
+ * deny, and optionally per-vendor grants keyed by vendor id.
+ */
+export type AstroConsentSaveInput = Partial<ConsentState> & {
+	/**
+	 * Per-vendor grants keyed by the ids declared in `vendors`. `false` turns
+	 * a vendor off inside a granted category. Vendors left out keep their
+	 * recorded state. Ignored under an IAB policy.
+	 */
+	vendors?: Record<string, boolean>;
+};
+
 /** The page-level consent client. */
 export interface AstroConsentClient {
 	/** The runtime that owns this page's kernel. */
@@ -133,9 +149,49 @@ export interface AstroConsentClient {
 	/**
 	 * Save a specific set of consents.
 	 *
-	 * @param consents - The categories to persist.
+	 * @param consents - The categories to persist, and optionally per-vendor
+	 * grants under `vendors`.
+	 * @example
+	 * ```ts
+	 * await getConsentClient()?.save({
+	 *   measurement: true,
+	 *   vendors: { posthog: false },
+	 * });
+	 * ```
 	 */
-	save: (consents: Partial<ConsentState>) => Promise<void>;
+	save: (consents: AstroConsentSaveInput) => Promise<void>;
+	/**
+	 * Vendors declared for vendor-level consent: from the `vendors` option,
+	 * the backend manifest, and the slugs on scripts and iframes. Empty under
+	 * an IAB policy, where the TC string decides.
+	 */
+	getDeclaredVendors: () => readonly ResolvedVendor[];
+	/**
+	 * The visitor's recorded vendor decision: the ids they turned off.
+	 *
+	 * @returns The decision, whose `denied` list is empty after a bulk action
+	 * lifted every denial, or `null` when no vendor decision was recorded.
+	 */
+	getVendorChoice: () => Readonly<VendorChoice> | null;
+	/**
+	 * Whether a vendor may load: it is declared, its category condition
+	 * passes, and outside an IAB policy the visitor has not turned it off.
+	 *
+	 * @param vendorId - Vendor id as declared in `vendors`, on a script or by
+	 * the backend.
+	 * @returns `true` while the vendor may load. An id nothing declares, such
+	 * as a typo, returns `false` and logs a development warning.
+	 * @example
+	 * ```ts
+	 * const client = getConsentClient();
+	 * client?.subscribe(() => {
+	 *   if (client.isVendorAllowed('youtube')) {
+	 *     mountVideo();
+	 *   }
+	 * });
+	 * ```
+	 */
+	isVendorAllowed: (vendorId: string) => boolean;
 	/**
 	 * Associate this consent record with an external identity.
 	 *
@@ -379,6 +435,28 @@ const readDialogLegalLinks = function readDialogLegalLinks():
 };
 
 /**
+ * The `disableAnimation` prop of the `<ConsentDialog />` or
+ * `<IABConsentDialog />` on the page.
+ *
+ * Read when the island mounts, like the legal links, so it follows the
+ * page a ClientRouter navigation swapped in.
+ *
+ * @param kind - Which dialog is opening.
+ * @returns The prop, or `undefined` when the page left it unset.
+ */
+const readDialogDisableAnimation = function readDialogDisableAnimation(
+	kind: ConsentDialogKind
+): boolean | undefined {
+	const value = document
+		.querySelector(`[data-c15t-dialog-host="${kind}"]`)
+		?.getAttribute('data-disable-animation');
+	if (value === 'true' || value === 'false') {
+		return value === 'true';
+	}
+	return undefined;
+};
+
+/**
  * Undo the scroll lock and focus trap of a blocking banner, if one is
  * active. Module-level because the banner element can be replaced by a
  * ClientRouter swap while the lock is still held.
@@ -569,6 +647,8 @@ const resolveAction = function resolveAction(
 	};
 };
 
+const NO_VENDORS: readonly ResolvedVendor[] = [];
+
 const createClient = function createClient(
 	options: C15tResolvedOptions,
 	extension: C15tClientOptionsExtension = {}
@@ -622,6 +702,7 @@ const createClient = function createClient(
 		scripts,
 		storageConfig: options.storageConfig,
 		theme: options.theme,
+		vendors: options.vendors,
 	});
 
 	let dialog: ConsentDialogHandle | null = null;
@@ -684,8 +765,20 @@ const createClient = function createClient(
 		getConsent() {
 			return runtime.kernel.getSnapshot();
 		},
+		getDeclaredVendors() {
+			const snapshot = runtime.kernel.getSnapshot();
+			return snapshot.model === 'iab'
+				? NO_VENDORS
+				: (snapshot.vendors?.declared ?? NO_VENDORS);
+		},
+		getVendorChoice() {
+			return runtime.kernel.getSnapshot().vendorChoice;
+		},
 		async identify(user: KernelUser) {
 			await runtime.identify(user);
+		},
+		isVendorAllowed(vendorId: string) {
+			return isVendorAllowed(runtime.kernel.getSnapshot(), vendorId);
 		},
 		async openDialog(
 			kind: ConsentDialogKind = 'preferences',
@@ -748,7 +841,11 @@ const createClient = function createClient(
 						kind,
 						legalLinks:
 							kind === 'preferences' ? readDialogLegalLinks() : undefined,
-						options,
+						options: {
+							...options,
+							disableAnimation:
+								readDialogDisableAnimation(kind) ?? options.disableAnimation,
+						},
 						runtime,
 						tab,
 						target,
@@ -780,7 +877,7 @@ const createClient = function createClient(
 			await runtime.kernel.commands.save('none');
 		},
 		runtime,
-		async save(consents: Partial<ConsentState>) {
+		async save(consents: AstroConsentSaveInput) {
 			await runtime.kernel.commands.save(consents);
 		},
 		subscribe(listener) {
@@ -1242,6 +1339,7 @@ export const preloadDialog = async function preloadDialog(): Promise<void> {
 
 export { activateGatedScripts } from './browser/inline-scripts';
 export type { ConsentRuntime } from '@c15t/core/runtime';
+export type { ResolvedVendor, VendorChoice } from '@c15t/core';
 export type { ConsentDialogKind } from './ui/adapter';
 export { registerDialogAdapter, registerDialogSurface } from './ui/adapter';
 export { registerDialogStyles } from './browser/dialog-styles';

@@ -123,6 +123,10 @@ const REALISTIC_INIT_OUTPUT = {
 				rejectAll: 'Alle ablehnen',
 				save: 'Speichern',
 			},
+			consentGate: {
+				actionButton: 'Einstellungen oeffnen',
+				title: 'Cookie-Einstellungen',
+			},
 			consentManagerDialog: {
 				description: 'Verwalten Sie Ihre Praeferenzen.',
 				title: 'Datenschutzeinstellungen',
@@ -152,10 +156,6 @@ const REALISTIC_INIT_OUTPUT = {
 			cookieBanner: {
 				description: 'Waehlen Sie aus, welche Cookies verwendet werden.',
 				title: 'Cookies verwalten',
-			},
-			frame: {
-				actionButton: 'Einstellungen oeffnen',
-				title: 'Cookie-Einstellungen',
 			},
 			legalLinks: {
 				cookiePolicy: 'Cookie-Richtlinie',

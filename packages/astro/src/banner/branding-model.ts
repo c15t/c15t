@@ -4,9 +4,11 @@
  */
 
 import type { ConsentSnapshot } from '@c15t/core';
+import type { AllThemeKeys, Theme } from '@c15t/ui/theme';
 
 import type { ClassNameMap } from './class-names';
 import { joinClasses } from './prompt-model';
+import { resolveSlotBinding } from './theme-slots';
 
 /** Which surface the tag belongs to. */
 export type BrandingVariant = 'footer' | 'dialog-tag' | 'banner-tag';
@@ -25,6 +27,10 @@ export interface BrandingModelInput {
 	hostname?: string;
 	/** The branding stylesheet's class names. */
 	styles: ClassNameMap;
+	/** The integration's `theme`, for the tag's `slots` entry. */
+	theme?: Theme;
+	/** The tag's `theme.slots` key, such as `consentBannerTag`. */
+	themeSlot?: AllThemeKeys;
 }
 
 /** Everything the tag markup needs. */
@@ -33,6 +39,8 @@ export interface BrandingModel {
 	brand: 'c15t' | 'inth';
 	href: string;
 	variant: BrandingVariant;
+	/** The tag's inline style from its `theme.slots` entry. */
+	style: string | undefined;
 	classes: {
 		root: string;
 		content: string;
@@ -77,6 +85,17 @@ export const resolveBrandingModel = function resolveBrandingModel(
 	const refParam = input.hostname ? `?ref=${input.hostname}` : '';
 	const cls = (value: string | undefined): string =>
 		noStyle ? '' : (value ?? '');
+	const stockRoot = noStyle
+		? ''
+		: joinClasses(
+				styles.branding,
+				variant === 'footer' ? undefined : styles.brandingTag,
+				variant === 'dialog-tag' ? styles.brandingTagDialog : undefined,
+				variant === 'banner-tag' ? styles.brandingTagBanner : undefined
+			);
+	const root = input.themeSlot
+		? resolveSlotBinding(input.theme, input.themeSlot, stockRoot)
+		: { class: stockRoot, style: undefined };
 	return {
 		brand,
 		classes: {
@@ -84,14 +103,7 @@ export const resolveBrandingModel = function resolveBrandingModel(
 			copy: cls(styles.brandingCopy),
 			label: cls(styles.brandingWordmarkLabel),
 			mark: cls(styles.brandingC15TMark),
-			root: noStyle
-				? ''
-				: joinClasses(
-						styles.branding,
-						variant === 'footer' ? undefined : styles.brandingTag,
-						variant === 'dialog-tag' ? styles.brandingTagDialog : undefined,
-						variant === 'banner-tag' ? styles.brandingTagBanner : undefined
-					),
+			root: root.class,
 			text: cls(styles.brandingText),
 			wordmark: noStyle
 				? ''
@@ -105,6 +117,7 @@ export const resolveBrandingModel = function resolveBrandingModel(
 				? `https://inth.com${refParam}`
 				: `https://c15t.com${refParam}`,
 		show: !hide && resolved !== 'none',
+		style: root.style,
 		variant,
 	};
 };

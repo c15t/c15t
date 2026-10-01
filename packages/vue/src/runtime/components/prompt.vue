@@ -25,6 +25,7 @@ import { useConsentPolicyActions } from '../composables/use-consent-policy-actio
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useMounted } from '../composables/use-mounted';
 import { useFocusTrap } from '../primitives/use-focus-trap';
+import { slotAttrs } from '../utils/slot-attrs';
 import ConsentActions from './actions.vue';
 import DescriptionContent from './description-content.vue';
 import ConsentTag from './tag.vue';
@@ -45,8 +46,15 @@ const props = withDefaults(
 		position?: PromptPosition;
 		/** Backdrop, scroll lock, focus trap and no outside dismissal. */
 		blocking?: boolean;
+		/** Skip the enter and exit animations. Defaults to the config's. */
+		disableAnimation?: boolean;
 	}>(),
-	{ blocking: undefined, position: undefined, variant: undefined }
+	{
+		blocking: undefined,
+		disableAnimation: undefined,
+		position: undefined,
+		variant: undefined,
+	}
 );
 
 const mounted = useMounted();
@@ -124,7 +132,9 @@ const isOpen = computed(() => {
 	);
 });
 
-const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
+const disableAnimation = computed(() =>
+	Boolean(props.disableAnimation ?? config.value.disableAnimation)
+);
 
 const scrollLock = computed(() => surface.value.scrollLock);
 useConsentScrollLock(computed(() => isOpen.value && scrollLock.value));
@@ -234,14 +244,15 @@ const onAction = function onAction(action: PresentationAction) {
 		>
 			<div
 				v-if="isOpen && scrollLock"
-				v-bind="config.components?.banner?.overlay"
+				v-bind="
+					slotAttrs(config.components?.banner?.overlay, [
+						bannerStyles.overlay,
+						disableAnimation ? undefined : bannerStyles.overlayVisible,
+						disableAnimation ? undefined : bannerStyles.overlayEntering,
+					])
+				"
 				aria-hidden="true"
 				data-testid="consent-banner-overlay"
-				:class="[
-					bannerStyles.overlay,
-					disableAnimation ? undefined : bannerStyles.overlayVisible,
-					disableAnimation ? undefined : bannerStyles.overlayEntering,
-				]"
 			/>
 		</Transition>
 		<Transition
@@ -255,7 +266,13 @@ const onAction = function onAction(action: PresentationAction) {
 		>
 			<div
 				v-if="isOpen"
-				v-bind="config.components?.banner?.root"
+				v-bind="
+					slotAttrs(config.components?.banner?.root, [
+						bannerStyles.root,
+						bannerStyles.bannerVisible,
+						disableAnimation ? undefined : bannerStyles.bannerEntering,
+					])
+				"
 				data-testid="consent-banner-root"
 				:data-variant="variant"
 				:data-position="resolvedPosition"
@@ -263,11 +280,6 @@ const onAction = function onAction(action: PresentationAction) {
 				:data-prompt="promptKind"
 				:data-model="snapshot.policyRule.model"
 				:dir="textDirection"
-				:class="[
-					bannerStyles.root,
-					bannerStyles.bannerVisible,
-					disableAnimation ? undefined : bannerStyles.bannerEntering,
-				]"
 			>
 				<div
 					v-bind="config.components?.banner?.cardShell"
@@ -279,23 +291,32 @@ const onAction = function onAction(action: PresentationAction) {
 					/>
 					<div
 						ref="card"
-						v-bind="config.components?.banner?.card"
+						v-bind="
+							slotAttrs(config.components?.banner?.card, bannerStyles.card)
+						"
 						data-testid="consent-banner-card"
-						:class="bannerStyles.card"
 						:role="blocking ? 'dialog' : 'region'"
 						:aria-modal="blocking ? 'true' : undefined"
 						:aria-label="bannerTitle"
 						tabindex="-1"
 					>
 						<div
-							v-bind="config.components?.banner?.header"
+							v-bind="
+								slotAttrs(
+									config.components?.banner?.header,
+									bannerStyles.header
+								)
+							"
 							data-testid="consent-banner-header"
-							:class="bannerStyles.header"
 						>
 							<h2
-								v-bind="config.components?.banner?.title"
+								v-bind="
+									slotAttrs(
+										config.components?.banner?.title,
+										bannerStyles.title
+									)
+								"
 								data-testid="consent-banner-title"
-								:class="bannerStyles.title"
 							>
 								{{ bannerTitle }}
 							</h2>
@@ -306,7 +327,7 @@ const onAction = function onAction(action: PresentationAction) {
 						</div>
 						<ConsentActions
 							data-testid="consent-banner-footer"
-							:class="bannerStyles.footer"
+							:root-class="bannerStyles.footer"
 							button-size="small"
 							group-test-id="consent-banner-footer-sub-group"
 							:action-groups="actionGroups"
@@ -330,16 +351,24 @@ const onAction = function onAction(action: PresentationAction) {
 							<template #leading>
 								<div
 									v-if="preferenceControls.length > 0"
-									v-bind="config.components?.banner?.rights"
+									v-bind="
+										slotAttrs(
+											config.components?.banner?.rights,
+											bannerStyles.rights
+										)
+									"
 									data-testid="consent-banner-rights"
-									:class="bannerStyles.rights"
 								>
 									<button
 										v-for="right in preferenceControls"
 										:key="right"
-										v-bind="config.components?.banner?.rightLink"
+										v-bind="
+											slotAttrs(
+												config.components?.banner?.rightLink,
+												bannerStyles.rightLink
+											)
+										"
 										type="button"
-										:class="bannerStyles.rightLink"
 										data-action="right"
 										:data-c15t-rights="snapshot.policyRule.rights.join(' ')"
 										:data-right="right"

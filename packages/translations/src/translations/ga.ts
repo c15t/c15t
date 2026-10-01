@@ -11,6 +11,14 @@ export const translations: CompleteTranslations = {
 		save: 'Sábháil Socruithe',
 		securedBy: 'Cosanta ag',
 	},
+	consentGate: {
+		actionButton: 'Cumasaigh toiliú {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
+		title: 'Glac le toiliú {category} chun an t-ábhar seo a fheiceáil.',
+	},
 	consentManagerDialog: {
 		description:
 			'Saincheap do shocruithe príobháideachais anseo. Is féidir leat na cineálacha fianán agus teicneolaíochtaí rianaithe a cheadaíonn tú a roghnú.',
@@ -57,14 +65,6 @@ export const translations: CompleteTranslations = {
 			'Úsáidimid fianáin agus teicneolaíochtaí comhchosúla chun an suíomh seo a rith, trácht a thomhas, agus ábhar agus fógraí a phearsantú. Is féidir leat rogha an diúltaithe a dhéanamh nó do roghanna a bhainistiú am ar bith.',
 		noticeTitle: 'Fógra príobháideachais',
 		title: 'Tugaimid luach do do phríobháideachas',
-	},
-	frame: {
-		actionButton: 'Cumasaigh toiliú {category}',
-		error: 'This content could not be loaded.',
-		loading: 'Loading content…',
-		policyBlocked:
-			"This content is unavailable under your region's consent policy.",
-		title: 'Glac le toiliú {category} chun an t-ábhar seo a fheiceáil.',
 	},
 	iab: {
 		banner: {

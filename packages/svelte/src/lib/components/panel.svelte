@@ -10,7 +10,7 @@
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { Dialog, Portal } from '../primitives';
-	import { resolveComponentStyles } from '../utils';
+	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import Branding from './branding.svelte';
 	import InlineLegalLinks from './inline-legal-links.svelte';
 	import type { ConsentDialogProps } from './panel-props';
@@ -20,6 +20,7 @@
 	const {
 		open: openProp,
 		noStyle: localNoStyle,
+		disableAnimation: localDisableAnimation,
 		hideBranding,
 		legalLinks,
 		showTrigger = false,
@@ -46,7 +47,9 @@
 	);
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
-	const disableAnimation = $derived(theme.disableAnimation ?? false);
+	const disableAnimation = $derived(
+		localDisableAnimation ?? theme.disableAnimation ?? false
+	);
 
 	// Translations
 	const translations = $derived(
@@ -126,6 +129,15 @@
 		)
 	);
 
+	const overlayStyle = $derived(
+		resolveComponentStyles(
+			'consentDialogOverlay',
+			theme.theme,
+			{ baseClassName: styles.overlay, noStyle },
+			noStyle
+		)
+	);
+
 	// Trigger props
 	const triggerProps = $derived.by(() => {
 		if (showTrigger === true) {
@@ -176,19 +188,25 @@
 	<Portal>
 		{#if preferences.blocking}
 			<Dialog.Backdrop
-				class={noStyle ? '' : styles.overlay || ''}
+				class={overlayStyle.className || ''}
+				style={toStyleAttribute(overlayStyle.style)}
+				data-disable-animation={disableAnimation ? '' : undefined}
 				data-testid="consent-dialog-overlay"
 			/>
 		{/if}
+		<!-- `data-disable-animation` stops the `data-state` keyframes the
+		     stylesheet runs on the overlay and positioner. -->
 		<Dialog.Positioner
 			class={noStyle
 				? ''
 				: `${styles.root || ''} ${!disableAnimation ? (isOpen ? styles.dialogVisible || '' : styles.dialogHidden || '') : ''}`}
+			data-disable-animation={disableAnimation ? '' : undefined}
 		>
 			<Dialog.Content
 				class={noStyle
 					? rootStyle.className || ''
 					: `${styles.container || ''} ${rootStyle.className || ''} ${!disableAnimation ? (isOpen ? styles.contentVisible || '' : styles.contentHidden || '') : ''}`}
+				style={toStyleAttribute(rootStyle.style)}
 				dir={textDirection}
 				aria-labelledby="consent-dialog-title"
 				aria-describedby="consent-dialog-description"
@@ -199,24 +217,28 @@
 				<!-- Card -->
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<div
-					class={noStyle ? '' : cardStyle.className || ''}
+					class={cardStyle.className || ''}
+					style={toStyleAttribute(cardStyle.style)}
 					data-testid="consent-dialog-card"
 					tabindex={-1}
 				>
 					<!-- Header -->
 					<div
-						class={noStyle ? '' : headerStyle.className || ''}
+						class={headerStyle.className || ''}
+						style={toStyleAttribute(headerStyle.style)}
 						data-testid="consent-dialog-header"
 					>
 						<h2
-							class={noStyle ? '' : titleStyle.className || ''}
+							class={titleStyle.className || ''}
+							style={toStyleAttribute(titleStyle.style)}
 							data-testid="consent-dialog-title"
 							id="consent-dialog-title"
 						>
 							{translations.consentManagerDialog.title}
 						</h2>
 						<div
-							class={noStyle ? '' : descriptionStyle.className || ''}
+							class={descriptionStyle.className || ''}
+							style={toStyleAttribute(descriptionStyle.style)}
 							data-context="dialog"
 							data-testid="consent-dialog-description"
 							id="consent-dialog-description"
@@ -224,7 +246,6 @@
 							{translations.consentManagerDialog.description}
 							<InlineLegalLinks
 								links={legalLinks}
-								themeKey="consentDialogContent"
 								testIdPrefix="consent-dialog-legal-link"
 							/>
 						</div>
@@ -232,7 +253,8 @@
 
 					<!-- Content: ConsentWidget -->
 					<div
-						class={noStyle ? '' : contentStyle.className || ''}
+						class={contentStyle.className || ''}
+						style={toStyleAttribute(contentStyle.style)}
 						data-testid="consent-dialog-content"
 					>
 						<ConsentWidget

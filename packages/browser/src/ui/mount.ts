@@ -11,6 +11,7 @@ import type {
 import { createBanner } from './banner';
 import { createDialog } from './dialog';
 import { h, prefersReducedMotion } from './dom';
+import { createSlotApplier } from './slots';
 import type { Surface, SurfaceContext } from './surface';
 import { createTrigger } from './trigger';
 
@@ -51,16 +52,41 @@ const buildStyleText = function buildStyleText(
 };
 
 /**
+ * Add the `stylesheetURLs` links to the UI root.
+ *
+ * A nonce-based `style-src` blocks an unnonced `<link>`, even in a shadow
+ * root, so each link carries the client's nonce. Call it after the stock
+ * `<style>` is in place, so that sheet's `@layer` order statement comes
+ * first: a Tailwind 4 sheet's utilities then outrank the stock components.
+ */
+const appendStylesheetLinks = function appendStylesheetLinks(
+	root: ShadowRoot | HTMLElement,
+	options: ConsentUIOptions,
+	nonce: string | undefined
+): void {
+	for (const href of options.stylesheetURLs ?? []) {
+		const link = h('link', { href, rel: 'stylesheet' });
+		if (nonce) {
+			link.nonce = nonce;
+		}
+		root.append(link);
+	}
+};
+
+/**
  * Follow the configured colour scheme on the UI wrapper.
  *
  * The stylesheet keys dark tokens off a `.c15t-dark` ancestor of
  * `.c15t-theme-root`; inside a shadow root nothing on `<html>` reaches
- * it, so the wrapper carries the class itself.
+ * it, so the wrapper carries the class itself. For the same reason `null`
+ * cannot simply leave the class alone, as it does in the framework
+ * providers: the page's class would never reach the UI. It copies it
+ * instead, from either `dark` or `c15t-dark` on `<html>`.
  */
 const applyColorScheme = function applyColorScheme(
 	wrapper: HTMLElement,
 	host: HTMLElement,
-	scheme: NonNullable<ConsentUIOptions['colorScheme']>
+	scheme: Exclude<ConsentUIOptions['colorScheme'], undefined>
 ): () => void {
 	const set = function set(dark: boolean): void {
 		// The wrapper serves `.c15t-dark .c15t-theme-root`; the host serves the
@@ -69,6 +95,20 @@ const applyColorScheme = function applyColorScheme(
 		host.classList.toggle('c15t-dark', dark);
 		host.style.colorScheme = dark ? 'dark' : 'light';
 	};
+	if (scheme === null) {
+		const html = document.documentElement;
+		const follow = function follow(): void {
+			set(
+				html.classList.contains('dark') || html.classList.contains('c15t-dark')
+			);
+		};
+		follow();
+		const observer = new MutationObserver(follow);
+		observer.observe(html, { attributeFilter: ['class'] });
+		return () => {
+			observer.disconnect();
+		};
+	}
 	if (scheme !== 'system' || typeof window.matchMedia !== 'function') {
 		set(scheme === 'dark');
 		return () => {
@@ -94,6 +134,12 @@ const applyColorScheme = function applyColorScheme(
  * stylesheet, so a Framer or WordPress theme's global `button {}` rules
  * cannot reach it. Pass `shadow: false` to render into the page and style
  * it yourself.
+ *
+ * Every part named in `theme.slots` carries its slot key as a CSS part, so
+ * page CSS reaches it through `[data-c15t-ui]::part(consentBannerCard)`
+ * even inside the shadow root. A slot's classes need their rules in the
+ * same root: in the page with `shadow: false`, or through `stylesheetURLs`
+ * or `css` in shadow mode.
  *
  * @param client - The client to render.
  * @param options - Where and how to mount.
@@ -153,6 +199,7 @@ export const mountConsentUI = function mountConsentUI(
 		styleEl = createStyle(styleText);
 		root.append(styleEl);
 	}
+	appendStylesheetLinks(root, options, client.options.nonce);
 
 	const wrapper = h('div', { class: 'c15t-host' });
 	const themeRoot = h('div', { class: 'c15t-theme-root' });
@@ -160,10 +207,15 @@ export const mountConsentUI = function mountConsentUI(
 	root.append(wrapper);
 	container.append(host);
 
+	let slotApplier = createSlotApplier(renderedTheme?.slots);
+
 	const releaseScheme = applyColorScheme(
 		wrapper,
 		host,
-		options.colorScheme ?? 'system'
+		// `'system'` rather than the React provider's `.dark` mirroring: a
+		// plain HTML page has no `.dark` convention, and a page that has
+		// one opts in with `null`.
+		options.colorScheme === undefined ? 'system' : options.colorScheme
 	);
 
 	const ctx: SurfaceContext = {
@@ -172,6 +224,9 @@ export const mountConsentUI = function mountConsentUI(
 		legalLinks: client.options.legalLinks,
 		noStyle: options.noStyle ?? false,
 		root: themeRoot,
+		// Surfaces keep this function; it reads the current arm's slots, which
+		// `update()` swaps before the surfaces rebuild for the new arm.
+		slot: (element, key) => slotApplier(element, key),
 	};
 
 	const surfaces: Surface[] = [];
@@ -197,6 +252,7 @@ export const mountConsentUI = function mountConsentUI(
 		const theme = resolveTheme();
 		if (theme !== renderedTheme) {
 			renderedTheme = theme;
+			slotApplier = createSlotApplier(theme?.slots);
 			const text = buildStyleText(options, theme, extension?.stylesheet);
 			if (styleEl) {
 				styleEl.textContent = text;
