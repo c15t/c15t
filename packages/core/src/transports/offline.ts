@@ -70,17 +70,17 @@ export interface OfflineTransportOptions {
 	/**
 	 * Copy for a requested language, or `undefined` when none exists. With
 	 * it, a language change switches the copy, and a language without copy
-	 * keeps `translations` under its own label. Without it, `translations`
-	 * is relabelled with the requested language. Pass the transport
-	 * context's `translationsFor`.
+	 * gets `translations`, still labelled with that copy's own language.
+	 * Without it, `translations` is relabelled with the requested language.
+	 * Pass the transport context's `translationsFor`.
 	 */
 	translationsFor?: (language: string) => KernelTranslations | undefined;
 
 	/**
 	 * A language detected before the app started, such as the
 	 * `Accept-Language` a server prefetch recorded. Requesting it serves
-	 * `translations` unchanged, so only a language the app asks for
-	 * switches the copy.
+	 * `translations` unchanged until the app first asks for a different
+	 * language; from then on it switches the copy like any other.
 	 */
 	detectedLanguage?: string;
 
@@ -129,29 +129,39 @@ const normalizeTranslations = function normalizeTranslations(
 };
 
 /**
- * The copy an offline init serves for the requested language.
+ * Pick the copy each offline init serves for the requested language.
+ *
+ * The detected language only stands for "no choice yet". Once the app has
+ * asked for a different language, a later request for the detected one is
+ * the app's own and resolves its copy too.
  *
  * @param translations - The startup copy.
- * @param requested - The language the kernel asked for, if any.
- * @param options - The resolver and the detected language.
- * @returns The copy to serve.
+ * @param translationsFor - The copy for a requested language, if any.
+ * @param readDetectedLanguage - Reads the detected language at each init, so
+ * a prefetch that resolves after the transport is built still counts.
+ * @returns A function from the requested language, if any, to the copy.
  */
-const selectOfflineTranslations = function selectOfflineTranslations(
-	translations: KernelTranslations,
-	requested: string | undefined,
-	options: Pick<OfflineTransportOptions, 'detectedLanguage' | 'translationsFor'>
-): KernelTranslations {
-	if (!requested) {
-		return translations;
-	}
-	if (!options.translationsFor) {
-		return { ...translations, language: requested };
-	}
-	if (requested === options.detectedLanguage) {
-		return translations;
-	}
-	return options.translationsFor(requested) ?? translations;
-};
+const createOfflineTranslationSelector =
+	function createOfflineTranslationSelector(
+		translations: KernelTranslations,
+		translationsFor: OfflineTransportOptions['translationsFor'],
+		readDetectedLanguage: () => string | undefined
+	): (requested: string | undefined) => KernelTranslations {
+		let choseAnother = false;
+		return (requested) => {
+			if (!requested) {
+				return translations;
+			}
+			if (!translationsFor) {
+				return { ...translations, language: requested };
+			}
+			if (!choseAnother && requested === readDetectedLanguage()) {
+				return translations;
+			}
+			choseAnother = true;
+			return translationsFor(requested) ?? translations;
+		};
+	};
 
 /**
  * Build an offline transport. The returned object is plain — no
@@ -169,6 +179,11 @@ export const createOfflineTransport = function createOfflineTransport(
 	);
 	const rules =
 		options.policyRules ?? recommendedPolicyRules({ iab: iabEnabled });
+	const selectTranslations = createOfflineTranslationSelector(
+		translations,
+		options.translationsFor,
+		() => options.detectedLanguage
+	);
 
 	return {
 		init(ctx: InitContext): Promise<TransportInitResponse> {
@@ -183,11 +198,7 @@ export const createOfflineTransport = function createOfflineTransport(
 				rules,
 			});
 
-			const resolvedTranslations = selectOfflineTranslations(
-				translations,
-				ctx.overrides.language,
-				options
-			);
+			const resolvedTranslations = selectTranslations(ctx.overrides.language);
 
 			const response: TransportInitResponse = {
 				branding,
@@ -227,10 +238,11 @@ export interface OfflineModeOptions {
  * Selects a transport that resolves policy rules locally, with no network.
  *
  * A language the app sets through the kernel (`overrides.language`,
- * `kernel.set.language()`) switches the copy when the bundle or the
- * provider's `i18n.messages` has that language. A language with no copy
- * serves the default copy under its own label. The language a server
- * prefetch detected from `Accept-Language` does not switch the copy.
+ * `kernel.set.language()`) switches the copy when c15t's built-in copy or
+ * the provider's `i18n.messages` has that language. A language with no copy
+ * gets the startup copy back, still labelled with the startup language. The
+ * language a server prefetch detected from `Accept-Language` does not switch
+ * the copy until the app has asked for a different language.
  *
  * @param options - Explicit policy rules; absence resolves the recommended pack.
  * @returns A provider transport factory with no network requests.
@@ -254,6 +266,13 @@ export const offline = function offline(
 			const rules =
 				options.policyRules ??
 				recommendedPolicyRules({ iab: context.iabEnabled });
+			// Read at each init: a pending prefetch fills `context.prefetch`
+			// after this transport is built.
+			const selectTranslations = createOfflineTranslationSelector(
+				context.translations,
+				context.translationsFor,
+				() => context.prefetch.initialOverrides?.language
+			);
 			return {
 				init: ({ overrides }: InitContext) =>
 					Promise.resolve({
@@ -265,14 +284,7 @@ export const offline = function offline(
 								rules,
 							})
 						),
-						translations: selectOfflineTranslations(
-							context.translations,
-							overrides.language,
-							{
-								detectedLanguage: context.prefetch.initialOverrides?.language,
-								translationsFor: context.translationsFor,
-							}
-						),
+						translations: selectTranslations(overrides.language),
 					}),
 			};
 		},

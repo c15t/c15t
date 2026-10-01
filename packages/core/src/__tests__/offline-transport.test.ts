@@ -283,6 +283,49 @@ describe('offline(): language changes', () => {
 		);
 	});
 
+	test('the detected language switches the copy once the app chose another', async () => {
+		const runtime = createConsentRuntime({
+			i18n: { locale: 'en', messages } as never,
+			mode: offline(),
+			persistence: false,
+			prefetch: { initialOverrides: { language: 'de' } },
+			windowDebug: false,
+		});
+		const { kernel } = runtime;
+		await kernel.commands.init();
+
+		kernel.set.language('fr');
+		await kernel.commands.init();
+		kernel.set.language('de');
+		await kernel.commands.init();
+
+		expect(kernel.getSnapshot().translations?.language).toBe('de');
+		expect(
+			kernel.getSnapshot().translations?.translations.cookieBanner.title
+		).toBe('Wir schätzen Ihre Privatsphäre');
+		runtime.dispose();
+	});
+
+	test('a prefetch that resolves after the transport is built still counts as detected', async () => {
+		let prefetch: { initialOverrides?: { language?: string } } = {};
+		const transport = offline()({
+			get prefetch() {
+				return prefetch;
+			},
+			translations: resolveLocalTranslations('en', messages),
+			translationsFor: (language) =>
+				resolveLocalTranslations(language, messages),
+		} as never);
+		prefetch = { initialOverrides: { language: 'de' } };
+
+		const detected = await transport.init?.({
+			overrides: { language: 'de' },
+			user: null,
+		} as never);
+
+		expect(detected?.translations?.language).toBe('en');
+	});
+
 	test('a language a server prefetch detected does not switch the copy', async () => {
 		const runtime = createConsentRuntime({
 			i18n: { locale: 'en', messages } as never,
