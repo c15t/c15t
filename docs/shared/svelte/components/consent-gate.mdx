@@ -29,9 +29,9 @@ privacy signal such as Global Privacy Control.
   server HTML never contains the children or the placeholder, and the browser
   fills the wrapper one frame after mount.
 
-The built-in placeholder shows "Accept {category} consent to view this
-content." and a button labelled "Enable {category} consent", with the
-category's translated title in place of `{category}`. The copy comes from the
+The built-in placeholder shows `Accept {category} consent to view this content.`
+and a button labelled `Enable {category} consent`, with the category's
+translated title in place of `{category}`. The copy comes from the
 `consentGate.title` and `consentGate.actionButton` translations. The button opens the
 preference dialog; it does not grant the category, so mount `ConsentDialog`
 in the same provider.

@@ -37,10 +37,11 @@ group: reference
   network blocker or the iframe blocker modules; use those for markup you
   cannot wrap in a component.
 
-  The built-in placeholder shows the title `consentGate.title`, "Accept {category}
-  consent to view this content.", with `{category}` replaced by
-  `consentTypes.<category>.title`, and a button labelled `consentGate.actionButton`,
-  "Enable {category} consent". The button opens the preference center; it
+  The built-in placeholder shows the title `consentGate.title`,
+  `Accept {category} consent to view this content.`, with `{category}`
+  replaced by `consentTypes.<category>.title`, and a button labelled
+  `consentGate.actionButton`, `Enable {category} consent`. The button opens the
+  preference center; it
   does not grant the category by itself, because the visitor still has to
   save. Mount a `ConsentDialog` in the same provider so the button has
   something to open.
