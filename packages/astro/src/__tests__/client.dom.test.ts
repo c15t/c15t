@@ -1038,6 +1038,48 @@ describe('a CSP nonce on the page', () => {
 		warn.mockRestore();
 	});
 
+	it("replaces the next page's per-request nonce before a ClientRouter swap", async () => {
+		renderConfigScript();
+		renderBanner();
+		const booted = start();
+
+		const incoming = document.implementation.createHTMLDocument();
+		incoming.head.innerHTML = [
+			'<script data-c15t-config nonce="next-n0nce"></script>',
+			'<style id="c15t-theme" nonce="next-n0nce"></style>',
+			'<script nonce="unrelated">0</script>',
+		].join('');
+		incoming.body.innerHTML = [
+			document.body.innerHTML,
+			'<script type="text/plain" data-c15t-category="measurement" nonce="next-n0nce">1</script>',
+		].join('');
+		document.dispatchEvent(
+			Object.assign(new Event('astro:before-swap'), { newDocument: incoming })
+		);
+
+		const nonceOf = (selector: string) =>
+			incoming.querySelector<HTMLElement>(selector)?.getAttribute('nonce');
+		expect(nonceOf('script[data-c15t-config]')).toBe(NONCE);
+		expect(nonceOf('#c15t-theme')).toBe(NONCE);
+		expect(nonceOf('script[data-c15t-category]')).toBe(NONCE);
+		expect(nonceOf('script:not([data-c15t-config])')).toBe('unrelated');
+
+		document.body.replaceWith(incoming.body.cloneNode(true));
+		document.dispatchEvent(new Event('astro:after-swap'));
+		await booted.acceptAll();
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector<HTMLScriptElement>(
+					'script[data-c15t-activated="true"]:not([type])'
+				)?.nonce
+			).toBe(NONCE);
+		});
+		expect(
+			document.querySelector('[data-c15t-activated="untrusted"]')
+		).toBeNull();
+	});
+
 	it('goes on the dialog stylesheets it links', async () => {
 		renderConfigScript();
 		registerDialogStyles(['/_astro/dialog.css']);

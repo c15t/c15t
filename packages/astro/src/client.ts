@@ -189,7 +189,8 @@ const readInlinedConfig = function readInlinedConfig(): KernelConfig {
  * Module state because the gated-script and stylesheet passes run from
  * document listeners that only see the client. A ClientRouter swap keeps
  * the first document's policy, so the first page's nonce stays the right
- * one for the rest of the visit.
+ * one for the rest of the visit; {@link adoptPageNonce} moves each incoming
+ * page onto it.
  */
 let pageNonce: string | undefined;
 
@@ -201,17 +202,45 @@ let pageNonce: string | undefined;
  * Read through the `nonce` property first: browsers hide the attribute's
  * value once a policy has checked it, but keep it on the property.
  *
+ * @param root - The document to read. Defaults to the live page.
  * @returns The nonce, or `undefined` when the page was rendered without one.
  */
-const readPageNonce = function readPageNonce(): string | undefined {
+const readPageNonce = function readPageNonce(
+	root: Document = document
+): string | undefined {
 	// A page that still assigns the payload with `buildConfigScript()` has
 	// no `data-c15t-config` element; its own script carries the nonce.
 	const script =
-		document.querySelector<HTMLScriptElement>('script[data-c15t-config]') ??
-		Array.from(document.scripts).find((element) =>
+		root.querySelector<HTMLScriptElement>('script[data-c15t-config]') ??
+		Array.from(root.scripts).find((element) =>
 			element.textContent?.startsWith(`window.${CONFIG_KEY}=`)
 		);
 	return script?.nonce || script?.getAttribute('nonce') || undefined;
+};
+
+/**
+ * Move a page the ClientRouter is about to swap in onto the live nonce.
+ *
+ * With a nonce generated per request, the next page arrives with a new
+ * nonce while the browser keeps enforcing the first response's policy.
+ * Its c15t styles and scripts would be blocked, and its gated tags would
+ * fail the nonce check in {@link activateGatedScripts}. The server issued
+ * both nonces, so every element carrying the incoming one is given the
+ * live one. Elements with any other nonce are left alone.
+ *
+ * @param incoming - The parsed next page from `astro:before-swap`.
+ */
+const adoptPageNonce = function adoptPageNonce(incoming: Document): void {
+	const incomingNonce = readPageNonce(incoming);
+	if (!pageNonce || !incomingNonce || incomingNonce === pageNonce) {
+		return;
+	}
+	for (const element of incoming.querySelectorAll<HTMLElement>('[nonce]')) {
+		if ((element.nonce || element.getAttribute('nonce')) === incomingNonce) {
+			element.setAttribute('nonce', pageNonce);
+			element.nonce = pageNonce;
+		}
+	}
 };
 
 /**
@@ -1075,6 +1104,7 @@ export const boot = function boot(
 	const onBeforeSwap = function onBeforeSwap(event: Event): void {
 		const incoming = (event as Event & { newDocument?: Document }).newDocument;
 		if (incoming) {
+			adoptPageNonce(incoming);
 			keepDialogStylesOnSwap(incoming);
 		}
 	};
