@@ -113,73 +113,6 @@ const mergeSlot = function mergeSlot(
 };
 
 /**
- * Translate `theme.slots` into a `components` map and merge it under the
- * map a React or Vue app passes itself.
- *
- * Each slot's classes and `style` become the attributes the framework
- * binds: `className` for React, `class` for Vue. A slot's `noStyle` flag
- * has no `components` equivalent and is dropped: the slot's classes still
- * apply, on top of the stock ones.
- *
- * @param slots - The theme's `slots`.
- * @param components - The app's own `components` map, which wins where both
- * set the same attribute.
- * @param classAttribute - The attribute the framework reads classes from.
- * @returns The merged map, or `components` unchanged when the theme has no
- * slots.
- *
- * @internal
- * @example
- * ```ts
- * applyThemeSlots(
- * 	{ consentBannerCard: 'rounded-none' },
- * 	{ banner: { card: { 'data-brand': 'on' } } },
- * 	'className'
- * );
- * // { banner: { card: { className: 'rounded-none', 'data-brand': 'on' } } }
- * ```
- */
-export const applyThemeSlots = function applyThemeSlots<
-	Components extends object,
->(
-	slots: Partial<Record<AllThemeKeys, SlotStyle>> | undefined,
-	components: Components | undefined,
-	classAttribute: 'className' | 'class'
-): Components | undefined {
-	if (!slots) {
-		return components;
-	}
-	const merged: ComponentSlotMap = { ...(components as ComponentSlotMap) };
-	let applied = false;
-	for (const [key, target] of Object.entries(THEME_SLOT_COMPONENT_KEYS)) {
-		const value = slots[key as AllThemeKeys];
-		if (!value) {
-			continue;
-		}
-		const { className, style } =
-			typeof value === 'string'
-				? { className: value, style: undefined }
-				: value;
-		const attributes: ComponentSlotAttributes = {};
-		if (className) {
-			attributes[classAttribute] = className;
-		}
-		if (style && Object.keys(style).length > 0) {
-			attributes.style = style;
-		}
-		if (Object.keys(attributes).length === 0) {
-			continue;
-		}
-		const [group, slot] = target.split('.') as [string, string];
-		const groupSlots = { ...merged[group] };
-		groupSlots[slot] = mergeSlot(attributes, groupSlots[slot], classAttribute);
-		merged[group] = groupSlots;
-		applied = true;
-	}
-	return applied ? (merged as Components) : components;
-};
-
-/**
  * Properties whose numeric values take no unit, in kebab-case without a
  * vendor prefix. Mirrors React's `isUnitlessNumber` list, so a slot style
  * renders the same declaration in every adapter.
@@ -284,6 +217,89 @@ export const toCSSValue = function toCSSValue(
 		''
 	);
 	return UNITLESS_PROPERTIES.has(property) ? String(value) : `${value}px`;
+};
+
+/**
+ * A slot style with numeric values written as CSS text, so `{ padding: 8 }`
+ * reaches the element as `8px` in adapters that pass style objects through
+ * unchanged, such as Vue. React renders either form the same way.
+ */
+const withCSSLengths = function withCSSLengths(
+	style: CSSProperties
+): CSSProperties {
+	return Object.fromEntries(
+		Object.entries(style).map(([name, value]) => [
+			name,
+			typeof value === 'number' ? toCSSValue(name, value) : value,
+		])
+	);
+};
+
+/**
+ * Translate `theme.slots` into a `components` map and merge it under the
+ * map a React or Vue app passes itself.
+ *
+ * Each slot's classes and `style` become the attributes the framework
+ * binds: `className` for React, `class` for Vue. A slot's `noStyle` flag
+ * has no `components` equivalent and is dropped: the slot's classes still
+ * apply, on top of the stock ones.
+ *
+ * @param slots - The theme's `slots`.
+ * @param components - The app's own `components` map, which wins where both
+ * set the same attribute.
+ * @param classAttribute - The attribute the framework reads classes from.
+ * @returns The merged map, or `components` unchanged when the theme has no
+ * slots.
+ *
+ * @internal
+ * @example
+ * ```ts
+ * applyThemeSlots(
+ * 	{ consentBannerCard: 'rounded-none' },
+ * 	{ banner: { card: { 'data-brand': 'on' } } },
+ * 	'className'
+ * );
+ * // { banner: { card: { className: 'rounded-none', 'data-brand': 'on' } } }
+ * ```
+ */
+export const applyThemeSlots = function applyThemeSlots<
+	Components extends object,
+>(
+	slots: Partial<Record<AllThemeKeys, SlotStyle>> | undefined,
+	components: Components | undefined,
+	classAttribute: 'className' | 'class'
+): Components | undefined {
+	if (!slots) {
+		return components;
+	}
+	const merged: ComponentSlotMap = { ...(components as ComponentSlotMap) };
+	let applied = false;
+	for (const [key, target] of Object.entries(THEME_SLOT_COMPONENT_KEYS)) {
+		const value = slots[key as AllThemeKeys];
+		if (!value) {
+			continue;
+		}
+		const { className, style } =
+			typeof value === 'string'
+				? { className: value, style: undefined }
+				: value;
+		const attributes: ComponentSlotAttributes = {};
+		if (className) {
+			attributes[classAttribute] = className;
+		}
+		if (style && Object.keys(style).length > 0) {
+			attributes.style = withCSSLengths(style);
+		}
+		if (Object.keys(attributes).length === 0) {
+			continue;
+		}
+		const [group, slot] = target.split('.') as [string, string];
+		const groupSlots = { ...merged[group] };
+		groupSlots[slot] = mergeSlot(attributes, groupSlots[slot], classAttribute);
+		merged[group] = groupSlots;
+		applied = true;
+	}
+	return applied ? (merged as Components) : components;
 };
 
 /**

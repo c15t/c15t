@@ -74,7 +74,12 @@ test('puts slot classes and styles on the stock banner under components', async 
 			slots: {
 				consentBannerCard: {
 					className: 'theme-card',
-					style: { backgroundColor: 'rgb(1, 2, 3)', color: 'rgb(7, 8, 9)' },
+					style: {
+						backgroundColor: 'rgb(1, 2, 3)',
+						color: 'rgb(7, 8, 9)',
+						opacity: 0.5,
+						padding: 8,
+					},
 				},
 				consentBannerTitle: 'theme-title',
 			},
@@ -106,6 +111,9 @@ test('puts slot classes and styles on the stock banner under components', async 
 	// `components` wins where both set a property.
 	expect(card?.style.backgroundColor).toBe('rgb(1, 2, 3)');
 	expect(card?.style.color).toBe('rgb(4, 5, 6)');
+	// Vue writes style objects as given, so numeric lengths need their unit.
+	expect(card?.style.padding).toBe('8px');
+	expect(card?.style.opacity).toBe('0.5');
 	expect(part('consent-banner-title')?.classList).toContain('theme-title');
 });
 
