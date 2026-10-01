@@ -19,8 +19,8 @@ import {
 	saveGenerationJournal,
 	clearGenerationJournal,
 } from '../../machines/generate/journal';
-import { needsTailwind3PostcssPlugin } from '../shared/postcss-config';
 import { withC15tRelease } from '../../utils/c15t-release';
+import { needsTailwind3PostcssPlugin } from '../shared/postcss-config';
 import { planGenerateFiles } from './options/utils/generate-files';
 import type { GenerateMode } from './options/utils/generate-files';
 import type { UIStyle, ExpandedTheme } from './prompts';
