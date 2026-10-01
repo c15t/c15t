@@ -114,6 +114,13 @@ measurement is denied, so the SDK is told to opt out. `onConsentChange` runs on
 every later change. This does not delay the SDK import or its first request.
 `loadMode: 'disabled'` is not a substitute, because it syncs nothing.
 
+## Measure opt-in rate
+
+Running a banner experiment? The backend already counts visitors and choices
+per arm. To see the arm in PostHog as well, forward the `onSurfaceShown` and
+`onChoiceRecorded` callbacks, which carry `experiment: { id, arm }`. See
+[banner experiments](/docs/guides/banner-experiments#send-the-events-to-your-own-analytics-too).
+
 ## Verify PostHog
 
 These checks assume `loadMode: 'after-consent'` from the example. After you

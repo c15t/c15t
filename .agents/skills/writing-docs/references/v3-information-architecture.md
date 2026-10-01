@@ -14,7 +14,8 @@ and Changelog. Project and Legal pages belong in the footer.
    (`/docs/concepts/choose-your-setup`), Examples, Migrate to v3.
 2. Concepts: How consent works, Consent categories, Policies, Data fetching,
    Consent state reference.
-3. Customization: the shared customization pages.
+3. Customization: the shared customization pages, then Banner experiments,
+   which keeps its `/docs/guides/banner-experiments` route.
 4. Verify and troubleshoot: Verify consent, Troubleshooting.
 5. Frameworks, in selector order: Next.js, TanStack Start, React, Nuxt, Vue,
    Astro, Svelte, SvelteKit, HTML (script tag), JavaScript, React Native.

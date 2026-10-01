@@ -43,6 +43,13 @@ settings, or fire it from a Custom Event trigger on `consent-update`. If a
 vendor must make no request before consent, remove it from the container and
 register its own c15t helper instead.
 
+## Measure opt-in rate
+
+Running a banner experiment? The backend already counts visitors and choices
+per arm. To see the arm in GTM as well, forward the `onSurfaceShown` and
+`onChoiceRecorded` callbacks, which carry `experiment: { id, arm }`. See
+[banner experiments](/docs/guides/banner-experiments#send-the-events-to-your-own-analytics-too).
+
 ## Verify Google Tag Manager
 
 1. In a private window with an opt-in policy, load the page. `gtm.js` loads.

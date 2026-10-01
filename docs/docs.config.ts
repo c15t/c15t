@@ -92,7 +92,14 @@ export default defineDocsConfig({
 		},
 		{
 			base: 'customization',
-			pages: ['overview', 'recipes', 'tokens', 'slots', 'translations'],
+			pages: [
+				'overview',
+				'recipes',
+				'tokens',
+				'slots',
+				'translations',
+				'/guides/banner-experiments',
+			],
 			title: 'Customization',
 		},
 		{
