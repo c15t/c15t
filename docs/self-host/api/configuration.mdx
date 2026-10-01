@@ -133,18 +133,18 @@ if (!url) throw new Error('Set DATABASE_URL');
 const instances = new Map<string, C15TInstance>();
 
 export function instanceFor(tenantId: string | undefined) {
-  const key = tenantId ?? '';
-  let instance = instances.get(key);
-  if (!instance) {
-    instance = c15tInstance({
-      database: { dialect: 'postgres', url },
-      tenantId,
-      // Throws here if the tenant lookup returned undefined.
-      requireTenantId: true,
-    });
-    instances.set(key, instance);
-  }
-  return instance;
+	const key = tenantId ?? '';
+	let instance = instances.get(key);
+	if (!instance) {
+		instance = c15tInstance({
+			database: { dialect: 'postgres', url },
+			tenantId,
+			// Throws here if the tenant lookup returned undefined.
+			requireTenantId: true,
+		});
+		instances.set(key, instance);
+	}
+	return instance;
 }
 ```
 
