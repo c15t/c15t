@@ -145,4 +145,40 @@ describe('createStaticConsentResolver', () => {
 		});
 		await expect(resolution.resolved).resolves.toBe(resolution.initial);
 	});
+
+	test.each([
+		['a numeric country', { country: 276 }],
+		['blank strings', { countryCode: '  ', regionCode: '' }],
+	])('treats %s as an unknown location', async (_label, geo) => {
+		const known = createStaticConsentResolver({
+			geo: geo as never,
+			language: 'en',
+			manifest,
+		});
+		expect(known.initial.policyResolution.policy?.id).toBe('unknown-opt-out');
+		expect(known.initial.location).toEqual({
+			countryCode: null,
+			regionCode: null,
+		});
+
+		const fetched = createStaticConsentResolver({
+			fetch: geoResponse(geo),
+			geoURL: 'https://geo.test/context',
+			language: 'en',
+			manifest,
+		});
+		await expect(fetched.resolved).resolves.toBe(fetched.initial);
+	});
+
+	test('trims location fields and falls through to the other spelling', async () => {
+		const resolution = createStaticConsentResolver({
+			fetch: geoResponse({ country: 1, countryCode: ' US ', regionCode: 'CA' }),
+			geoURL: 'https://geo.test/context',
+			language: 'en',
+			manifest,
+		});
+		const resolved = await resolution.resolved;
+		expect(resolved.policyResolution.policy?.id).toBe('us-ca-opt-out');
+		expect(resolved.location).toEqual({ countryCode: 'US', regionCode: 'CA' });
+	});
 });

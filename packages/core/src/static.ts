@@ -88,12 +88,21 @@ const readBrowserGpc = function readBrowserGpc(): boolean | undefined {
 	);
 };
 
+const readGeoField = function readGeoField(value: unknown): string | undefined {
+	return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+};
+
+/**
+ * Keeps trimmed, non-empty string fields only. Geo JSON comes from an
+ * endpoint at runtime, so a number or blank string must count as "no
+ * location" rather than reach the policy resolver.
+ */
 const normalizeGeo = function normalizeGeo(
 	geo: StaticGeoResult | null | undefined
 ): Pick<ResolveInitFromManifestInputs, 'country' | 'region'> {
 	return {
-		country: geo?.country ?? geo?.countryCode ?? undefined,
-		region: geo?.region ?? geo?.regionCode ?? undefined,
+		country: readGeoField(geo?.country) ?? readGeoField(geo?.countryCode),
+		region: readGeoField(geo?.region) ?? readGeoField(geo?.regionCode),
 	};
 };
 
