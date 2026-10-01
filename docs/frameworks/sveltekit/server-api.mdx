@@ -124,7 +124,11 @@ request throws `@c15t/svelte/kit: configure backendURL, manifestURL, or the
 C15T_BACKEND_URL environment variable.` A relative URL resolves against
 `event.url`, which SvelteKit derives from the adapter's `ORIGIN`, or
 `PROTOCOL_HEADER` and `HOST_HEADER` settings. A forged `x-forwarded-host`
-header does not change it.
+header does not change it. Without `ORIGIN`, `adapter-node` takes the host
+from the request's `Host` header by default. If your server answers requests
+for any `Host`, such as a Node server exposed directly or a proxy that forwards
+`Host` from its default virtual host, set `ORIGIN` or use an absolute
+`backendURL` and `manifestURL`.
 
 The manifest is cached in memory per server process for as long as its
 `s-maxage` allows, then served stale while it refreshes in the background.

@@ -80,6 +80,10 @@ Know its limits before you add it:
   `x-forwarded-proto` and `forwarded`, and does not send them to the backend.
   Behind a proxy that overwrites those headers, pass
   `trustForwardedHeaders: true` to use them.
+- If your server answers requests for any `Host` header, such as a Node server
+  exposed directly or a proxy that forwards `Host` from its default virtual
+  host, pass `fetchSSRData` an absolute `backendURL`. A relative one resolves
+  against whatever `Host` the request sent.
 
 ### Render the banner in the server HTML
 

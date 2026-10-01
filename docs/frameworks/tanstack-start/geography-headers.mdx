@@ -76,6 +76,12 @@ read `x-forwarded-host`, `x-forwarded-proto` or `forwarded` for this, because
 any client can send them. If it did, a visitor could point the server's
 manifest fetch, or the proxied consent save, at a host of their choosing.
 
+The request URL still carries the request's `Host` header. If your server
+answers requests for any `Host`, such as a Node server exposed directly or a
+proxy that forwards `Host` from its default virtual host, use an absolute
+server-side `backendURL` and `manifestURL`. A relative one resolves against
+whatever `Host` the request sent.
+
 The consent proxy follows the same rule. It never copies those headers from the
 browser. It sets `x-forwarded-host` and `x-forwarded-proto` from the request
 URL, and sends the client IP chain in `x-forwarded-for` only when you opt in.

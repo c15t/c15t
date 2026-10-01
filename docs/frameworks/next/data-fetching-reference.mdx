@@ -22,6 +22,12 @@ and declaring URLs does not create routes. Values can be absolute HTTP or
 HTTPS URLs or paths beginning with `/`. Server helpers resolve relative paths
 against the incoming request's host.
 
+If your server answers requests for any `Host` header, such as a Node server
+exposed directly or a proxy that forwards `Host` from its default virtual host,
+use absolute `backendURL` and `manifestURL` values. A relative one resolves
+against whatever `Host` the request sent, so the request would choose the
+origin the server fetches.
+
 `defineConsentConfig` validates at call time and throws a `TypeError` when the
 argument is not an object, when `backendURL` is missing, or when any URL is
 neither an absolute `http(s)` URL nor a `/`-relative path. Protocol-relative
