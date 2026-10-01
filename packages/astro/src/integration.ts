@@ -177,39 +177,32 @@ const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
 };
 
 /**
- * Normalize user options into the serializable shape every consumer reads.
+ * Check a `manifest()` mode before the integration runs.
  *
- * @param options - The options passed to `c15t()`.
- * @returns Options with defaults applied.
- * @throws {Error} When `mode` is missing, is not a mode descriptor, is a
- * manifest mode with nowhere to save consent or no manifest to read, or
- * `experiment` has neither an `arm` nor a site-composed middleware to
- * resolve one.
+ * The injected routes cover `init` and `manifest`; consent is saved with
+ * `POST /subjects` at the backend itself, and the browser only learns
+ * where that is from these options. Without a `backendURL` it would post
+ * to the init route's own prefix, where nothing answers, so a bare
+ * `manifest()` or one with only a `manifestURL` fails here instead. A
+ * backend URL from the environment is written into the options so the
+ * browser gets it too. An inline `manifest` is the deliberately
+ * network-free path and is left alone: an app on it serves its own save
+ * route.
+ *
+ * `backendURL: ''` is set on purpose: the browser saves to this origin.
+ * It gives the server no manifest, though: `${backendURL}/manifest`
+ * needs an absolute or root-relative URL, and the environment's backend
+ * URL does not replace it. So it also needs a `manifestURL`, or
+ * `C15T_MANIFEST_URL`, which the server reads first.
+ *
+ * @param initial - The configured mode.
+ * @returns The mode, with a backend URL from the environment filled in.
+ * @throws {Error} When the browser or the server would have nowhere to go.
  */
-export const resolveOptions = function resolveOptions(
-	options: C15tAstroOptions
-): C15tResolvedOptions {
-	if (!options?.mode || typeof options.mode !== 'object') {
-		throw new Error(
-			'@c15t/astro: `mode` is required. Use hosted({ url }), offline() or manifest().'
-		);
-	}
-	// The injected routes cover `init` and `manifest`; consent is saved with
-	// `POST /subjects` at the backend itself, and the browser only learns
-	// where that is from these options. Without a `backendURL` it would post
-	// to the init route's own prefix, where nothing answers, so a bare
-	// `manifest()` or one with only a `manifestURL` fails here instead. A
-	// backend URL from the environment is written into the options so the
-	// browser gets it too. An inline `manifest` is the deliberately
-	// network-free path and is left alone: an app on it serves its own save
-	// route.
-	//
-	// `backendURL: ''` is set on purpose: the browser saves to this origin.
-	// It gives the server no manifest, though: `${backendURL}/manifest`
-	// needs an absolute or root-relative URL, and the environment's backend
-	// URL does not replace it. So it also needs a `manifestURL`, or
-	// `C15T_MANIFEST_URL`, which the server reads first.
-	let { mode } = options;
+const resolveManifestMode = function resolveManifestMode(
+	initial: C15tAstroOptions['mode']
+): C15tAstroOptions['mode'] {
+	let mode = initial;
 	if (mode.type === 'manifest' && !mode.manifest) {
 		if (mode.backendURL === undefined) {
 			const backendURL = backendURLFromEnv();
@@ -229,6 +222,28 @@ export const resolveOptions = function resolveOptions(
 			);
 		}
 	}
+	return mode;
+};
+
+/**
+ * Normalize user options into the serializable shape every consumer reads.
+ *
+ * @param options - The options passed to `c15t()`.
+ * @returns Options with defaults applied.
+ * @throws {Error} When `mode` is missing, is not a mode descriptor, is a
+ * manifest mode with nowhere to save consent or no manifest to read, or
+ * `experiment` has neither an `arm` nor a site-composed middleware to
+ * resolve one.
+ */
+export const resolveOptions = function resolveOptions(
+	options: C15tAstroOptions
+): C15tResolvedOptions {
+	if (!options?.mode || typeof options.mode !== 'object') {
+		throw new Error(
+			'@c15t/astro: `mode` is required. Use hosted({ url }), offline() or manifest().'
+		);
+	}
+	const mode = resolveManifestMode(options.mode);
 	// A JavaScript `astro.config.mjs` has no type checking, so `ui: 'solid'`
 	// reaches `buildBootScript()` and throws a bare `TypeError` on an
 	// undefined adapter entry. Name the supported values instead.
