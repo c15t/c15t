@@ -37,10 +37,19 @@ export interface ExampleRegion {
 	destination: string;
 }
 
-const openPattern =
-	/#region docs:(?<name>[a-z0-9][a-z0-9-]*)(?:\s+title="(?<title>[^"]+)")?/u;
-const closePattern = /#endregion docs:(?<name>[a-z0-9][a-z0-9-]*)/u;
-const anyMarker = /#(?:end)?region docs:/u;
+// Markers count only at the start of a line comment, block comment, JSX
+// comment, HTML comment or shell comment, so code or prose that mentions a
+// marker is published as written.
+const markerPrefix = String.raw`^\s*(?:\/\/|\{?\/\*|<!--|#)\s*`;
+const openPattern = new RegExp(
+	`${markerPrefix}#region docs:(?<name>[a-z0-9][a-z0-9-]*)(?:\\s+title="(?<title>[^"]+)")?`,
+	'u'
+);
+const closePattern = new RegExp(
+	`${markerPrefix}#endregion docs:(?<name>[a-z0-9][a-z0-9-]*)`,
+	'u'
+);
+const anyMarker = new RegExp(`${markerPrefix}#(?:end)?region docs:`, 'u');
 
 const languages: Record<string, string> = {
 	'.astro': 'astro',

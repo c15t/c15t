@@ -135,6 +135,31 @@ describe('region extraction', () => {
 		).toThrow('is not inside an example app');
 	});
 
+	test('keeps code that mentions a marker outside a comment', () => {
+		const content = [
+			'// #region docs:note',
+			"const marker = '#region docs:other';",
+			'// #endregion docs:note',
+		].join('\n');
+		expect(findRegions('examples/react/src/x.ts', content)).toHaveLength(1);
+		expect(extractRegion(content, 'note', 'x.ts')).toBe(
+			"const marker = '#region docs:other';"
+		);
+	});
+
+	test('reads markers in shell and block comments', () => {
+		const content = [
+			'# #region docs:env',
+			'KEY=1',
+			'# #endregion docs:env',
+			'/* #region docs:css */',
+			'a {}',
+			'/* #endregion docs:css */',
+		].join('\n');
+		expect(extractRegion(content, 'env', 'x')).toBe('KEY=1');
+		expect(extractRegion(content, 'css', 'x')).toBe('a {}');
+	});
+
 	test('rejects missing and unclosed regions', () => {
 		expect(() => extractRegion(source, 'absent', 'x.tsx')).toThrow(
 			'has no region'
