@@ -116,8 +116,8 @@ every later change. This does not delay the SDK import or its first request.
 
 ## Measure opt-in rate
 
-Running a banner experiment? The backend already counts visitors and choices
-per arm. To see the arm in PostHog as well, forward the `onSurfaceShown` and
+If you run a banner experiment, the backend already counts visitors and
+choices per arm. To see the arm in PostHog as well, forward the `onSurfaceShown` and
 `onChoiceRecorded` callbacks, which carry `experiment: { id, arm }`. See
 [banner experiments](/docs/guides/banner-experiments#send-the-events-to-your-own-analytics-too).
 
