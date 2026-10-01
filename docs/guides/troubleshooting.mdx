@@ -44,7 +44,8 @@ No banner is sometimes correct. Find out which case you have:
 | What DevTools shows | Cause | Fix |
 | --- | --- | --- |
 | The backend request failed or has a CORS error | Wrong backend URL, or your origin is not trusted | Copy the URL from your Inth project exactly, including any path. Add the site's origin, such as `https://www.example.com` or `http://localhost:3000`, to the project's trusted origins. |
-| No backend request at all | No provider mounted, or the environment variable is empty in this build | Check `window.c15t`. Public environment variables are compiled in; rebuild after setting them. |
+| Requests go to `your-project.inth.app` and fail | The placeholder backend URL from the guides is still in your code | Replace `https://your-project.inth.app` with the URL from your Inth project, including any path prefix. |
+| No backend request at all | No provider mounted, or the provider runs in offline mode | Check `window.c15t`. Confirm the provider receives `hosted()` with your backend URL, or the `backendURL` option your framework uses. |
 | The policy resolved and no prompt is needed | The visitor's location maps to a policy without a prompt, such as a US state without a privacy law in the recommended rules | Expected. Test from a location that needs a prompt. Server helpers such as Next.js `resolveConsent` accept a `country` override for testing; remove it before you deploy. |
 | The policy resolved and a choice is stored | A returning visitor | Expected. Clear site data or use a private window. |
 | The banner is in the DOM but invisible or unstyled | The stylesheet is missing, or loaded before Tailwind CSS 4 | Import your framework's c15t stylesheet from your global CSS. See [customization](/docs/customization/overview). |
@@ -93,7 +94,7 @@ That records consent the visitor did not give.
 A visitor turned off a category or vendor they had allowed. Scripts that
 already ran cannot be unloaded, so c15t reloads the page to start clean with
 only permitted code. Set `reloadOnConsentRevoked: false` if you clean up
-revoked vendors yourself; [clearing data on revocation](/docs/integrations/clear-on-revocation)
+revoked vendors yourself; [clear on revocation for your framework](/docs/integrations/overview#vendor-switches-and-cookie-cleanup)
 covers the options.
 
 ## Why does the server HTML differ from the browser?

@@ -14,16 +14,16 @@ the hosts c15t and your vendors need to the directives:
 
 ```js title="svelte.config.js (partial)"
 const config = {
-  kit: {
-    csp: {
-      mode: 'auto',
-      directives: {
-        'connect-src': ['self', 'https://your-project.inth.app'],
-        'frame-src': ['https://www.youtube-nocookie.com'],
-        'script-src': ['self', 'https://<vendor-script-host>'],
-      },
-    },
-  },
+	kit: {
+		csp: {
+			mode: 'auto',
+			directives: {
+				'connect-src': ['self', 'https://your-project.inth.app'],
+				'frame-src': ['https://www.youtube-nocookie.com'],
+				'script-src': ['self', 'https://<vendor-script-host>'],
+			},
+		},
+	},
 };
 ```
 

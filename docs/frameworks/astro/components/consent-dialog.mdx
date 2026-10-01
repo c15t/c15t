@@ -61,7 +61,9 @@ second one for a single dialog. See
 The dialog lists the categories the policy covers, each with a switch, and
 offers Accept All, Reject All and Save Settings. `necessary` is always on. The dialog
 follows the integration's `theme`, `presentation.preferences` and
-`consentCategories`.
+`consentCategories`. With `vendors` declared, each category also lists its
+vendors with a switch per vendor. See
+[vendor consent](/docs/frameworks/astro/vendor-consent).
 
 To link your policies from the dialog, define them in the integration's
 `legalLinks` option and list the keys in the `legalLinks` prop:

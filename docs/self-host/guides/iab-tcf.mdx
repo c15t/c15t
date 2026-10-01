@@ -18,15 +18,15 @@ const url = process.env.DATABASE_URL;
 if (!url) throw new Error('Set DATABASE_URL');
 
 export default defineConfig({
-  database: { dialect: 'postgres', url },
-  trustedOrigins: ['https://app.example.com'],
-  manifest: {
-    policyRules: [policyRulePresets.europeIab()],
-    iab: { enabled: true },
-  },
-  // The matched IAB rule asks for a list; this says where it comes from and
-  // which vendors it may name.
-  gvl: { cache: createMemoryCacheAdapter(), vendorIds: [3, 7, 41] },
+	database: { dialect: 'postgres', url },
+	trustedOrigins: ['https://app.example.com'],
+	manifest: {
+		policyRules: [policyRulePresets.europeIab()],
+		iab: { enabled: true },
+	},
+	// The matched IAB rule asks for a list; this says where it comes from and
+	// which vendors it may name.
+	gvl: { cache: createMemoryCacheAdapter(), vendorIds: [3, 7, 41] },
 });
 ```
 
@@ -63,8 +63,8 @@ list to fill gaps, and it filters whatever the upstream returns, so a vendor
 outside the list never reaches a client. Leave `vendorIds` out to serve every
 vendor in the published list.
 
-A native app can ask for fewer vendors by listing the ones it ships on each
-init request:
+A client can ask for fewer vendors by listing the ones it ships on each init
+request:
 
 ```bash
 curl -i 'http://localhost:3000/api/c15t/init' \
@@ -87,9 +87,9 @@ before you deploy.
 
 1. Request `/manifest` and confirm it lists the IAB rule and IAB metadata.
 2. Call `/init` with a location the rule covers, such as the `curl` request
-   above. The policy model is `iab` and the response has a `gvl` field. A native
-   app gets the list only from this response, so a missing `gvl` means the app
-   has no vendors to disclose.
+   above. The policy model is `iab` and the response has a `gvl` field. A client
+   that bundles no vendor list gets the list only from this response, so a
+   missing `gvl` means that client has no vendors to disclose.
 3. Call `/init` with a location outside the rule. The ordinary consent flow
    applies and the response has no list.
 4. Send `x-c15t-vendors` and confirm the `gvl` names only those vendors that

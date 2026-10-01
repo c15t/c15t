@@ -1,0 +1,93 @@
+---
+title: "Clear on revocation"
+description: "Shared clearOnRevocation explanation for the framework clear on revocation pages."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by docs/frameworks/<framework>/clear-on-revocation.mdx. */}
+
+<section id="targets">
+  ## Name cookies and keys
+
+  Each optional category takes three lists. Without `clearOnRevocation`, c15t
+  deletes nothing, and `necessary` cannot be configured.
+
+  | Field | Takes |
+  | --- | --- |
+  | `cookies` | Cookie names, prefixes ending in `*` such as `'_ga_*'`, or `{ name, domain?, path?, partitioned? }` objects. |
+  | `localStorage` | Keys, or prefixes ending in `*`. |
+  | `sessionStorage` | Keys, or prefixes ending in `*`. |
+
+  Use an exact name, or a prefix followed by `*`. `_ga_*` matches `_ga_ABC123`
+  but not `_ga`, so list both. Regular expressions, a `*` anywhere but the end,
+  and a bare `*` are not supported. Cookie names are matched as written,
+  without URL decoding.
+
+  By default c15t tries the current host and its parent domains, and the
+  current path and its parents. For a cookie set on a specific scope, use an
+  object:
+
+  {/* example: fragment */}
+
+  ```ts
+  const cookies = [
+    { name: 'analytics-id', domain: 'example.com', path: '/' },
+    { name: 'checkout-metrics', domain: '', path: '/checkout' },
+    { name: 'partitioned-metrics', partitioned: true },
+  ];
+  ```
+
+  An empty `domain` means a host-only cookie. A `domain` or `path` you set
+  replaces the automatic attempts for that field. Partitioned cookies need
+  `partitioned: true`. A prefix only finds cookies the current page can read,
+  so use an exact name for a cookie on another path.
+
+  c15t never deletes its own consent records, even when a pattern matches
+  them.
+</section>
+
+<section id="when">
+  ## When cleanup runs
+
+  - On the first page load after the policy resolves, for every denied
+    category. This covers a new opt-in visitor and a returning visitor whose
+    choice expired.
+  - Whenever a category changes from allowed to denied, after a saved refusal,
+    expiry, a policy change or a Global Privacy Control signal.
+
+  Cleanup does not run during server rendering, while the policy is still
+  loading, on draft switch changes in the dialog, or when the provider
+  unmounts. It runs once per change and does not poll. Under an opt-out
+  policy, an expired choice that stays allowed deletes nothing. If a resolved
+  policy later falls back to denial after a failed request, cleanup deletes
+  the data, and a successful retry cannot restore it.
+
+  Switching off one vendor inside an allowed category deletes nothing, because
+  the category stays allowed.
+</section>
+
+<section id="limits">
+  ## Browser limits
+
+  c15t can delete first-party cookies that JavaScript can read, and keys in
+  the current origin's `localStorage` and `sessionStorage`. It cannot delete
+  `HttpOnly` cookies or another origin's data; expire those from your server.
+  A vendor SDK still running on the page can write its cookies again, which is
+  one reason c15t reloads the page after a revocation. Deletion failures do
+  not block the consent update. See
+  [MDN on cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies).
+</section>
+
+<section id="verify">
+  ## Verify cleanup
+
+  1. Allow measurement and let Google Analytics run. In DevTools Application,
+     Cookies shows `_ga` and a `_ga_<id>` cookie.
+  2. Open Privacy settings, turn measurement off and save. c15t reloads the
+     page. Both cookies are gone, and `analytics:*` keys are gone from Local
+     storage.
+  3. Reload. The cookies do not come back, because Google Analytics no longer
+     loads.
+  4. If you listed a cookie with an explicit `domain` or `path`, repeat step 2
+     and check that the cookie is gone from that scope too.
+</section>

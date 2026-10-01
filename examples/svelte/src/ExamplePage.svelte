@@ -34,8 +34,8 @@
 			</li>
 		</ul>
 		<p>
-			Set your project IDs in .env.local to enable the vendor scripts. DevTools
-			shows their loading status.
+			Replace the placeholder project IDs in src/scripts.ts with your own.
+			DevTools shows the scripts' loading status.
 		</p>
 	</section>
 	<section class="card">

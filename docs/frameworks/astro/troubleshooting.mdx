@@ -32,15 +32,15 @@ already loads that framework.
 **Fix.** Set `ui` to it so visitors do not download Svelte as well, or set
 `ui: 'svelte'` to keep Svelte and silence the message.
 
-## `C15T_BACKEND_URL` is set in `.env` but the build cannot see it
+## Consent requests go to the wrong backend
 
-**Check.** Astro evaluates `astro.config.mjs` before it loads `.env`, so a value
-that exists only in `.env` is not set when the config runs.
+**Check.** Look at the URL in `hosted({ url })` or `manifest({ backendURL })`
+in `astro.config.mjs`. It is still the placeholder
+`https://your-project.inth.app`, or a URL from another project.
 
-**Fix.** Set the variable in your shell, for example
-`C15T_BACKEND_URL=https://your-project.inth.app npx astro build`, or in your
-host's build environment. Variables that start with `PUBLIC_` and are read in
-browser code, such as vendor IDs, do come from `.env`.
+**Fix.** Replace it with your Inth project's backend URL, including any path
+prefix. Astro reads the config when `astro dev` or `astro build` starts, so
+restart the dev server after you change it.
 
 ## A component says `Astro.locals.c15t` is missing
 
@@ -99,13 +99,11 @@ without the banner and the browser shows it after its own request.
 ## The build fails with "manifest mode needs a `backendURL`"
 
 **Check.** In manifest mode, the browser saves consent to the backend URL you
-give `manifest()`, so `astro.config` refuses to load without one. Astro reads
-the config before it loads `.env`, so a value only in `.env` does not count.
+give `manifest()`, so `astro.config` refuses to load without one.
 
-**Fix.** Pass `manifest({ backendURL })`, or set `C15T_BACKEND_URL` or
-`PUBLIC_C15T_BACKEND_URL` in the environment that runs `astro dev` or
-`astro build`. An inline `manifest` object needs no backend URL, because that
-app serves its own save route.
+**Fix.** Pass it as `manifest({ backendURL: 'https://your-project.inth.app' })`,
+with your project's URL in place of the placeholder. An inline `manifest`
+object needs no backend URL, because that app serves its own save route.
 
 ## A vendor loads before the visitor chooses
 

@@ -1,0 +1,101 @@
+---
+title: Vendor consent
+description: Let visitors allow a category such as marketing on an Astro site and still turn off one vendor in it, with the vendors option on the c15t() integration and the page client from c15t/astro/client.
+group: frameworks
+---
+
+<import src="../../shared/scripts/vendor-consent.mdx#how" />
+
+## Declare the vendors
+
+Add `vendors` to the `c15t()` integration in `astro.config.mjs`. Each entry
+uses the `vendor` slug its script already carries:
+
+<include src="../../shared/examples/astro-demo/vendors-option.mdx" />
+
+Vendor entries are plain data, so they survive the JSON serialization the
+integration options go through and can sit in `astro.config.mjs` next to
+`mode`. The server also asks about the categories these vendors sit in, so a
+vendor in `marketing` puts marketing in the banner decision and the
+preference dialog.
+
+<import src="../../shared/scripts/vendor-consent.mdx#fields" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#targets" />
+
+On an Astro site, two more targets take a vendor slug:
+
+| Target | Field |
+| --- | --- |
+| Inert inline script | `data-c15t-vendor="x-pixel"` next to `data-c15t-category` |
+| Your own custom element | `client.isVendorAllowed('youtube')` in its render function |
+
+An inert tag with `data-c15t-vendor` runs once its category is allowed and the
+visitor has not switched the vendor off:
+
+{/* example: fragment */}
+
+```astro title="src/pages/index.astro (partial)"
+<script
+  is:inline
+  type="text/plain"
+  data-c15t-category="marketing"
+  data-c15t-vendor="x-pixel"
+>
+  // X Pixel's base code
+</script>
+```
+
+`data-c15t-vendor` does nothing without `data-c15t-category`. Under a
+nonce-based Content Security Policy, the tag still needs the page's nonce. See
+[gate an inline script](/docs/frameworks/astro/scripts#gate-an-inline-script).
+[Embeds](/docs/frameworks/astro/embeds) covers the iframe blocker's
+`data-vendor` attribute and the custom element pattern.
+
+## What the preference dialog shows
+
+The preference dialog lists each declared vendor under its category, with its
+own switch, whichever `ui` framework renders the dialog island: React, Vue or
+Svelte.
+
+<import src="../../shared/scripts/vendor-consent.mdx#dialog" />
+
+## Read and record vendor choices in your own script
+
+The page client from `getConsentClient()` in `c15t/astro/client` reads and
+records vendor consent:
+
+| Member | Returns or does |
+| --- | --- |
+| `client.getDeclaredVendors()` | The vendors from `vendors`, the backend manifest and the slugs on scripts and iframes. Empty under an IAB policy. |
+| `client.getVendorChoice()` | The recorded vendor decision, whose `denied` lists the vendors the visitor switched off, or `null` before any vendor decision. |
+| `client.isVendorAllowed(id)` | `true` when the vendor is declared, its category is allowed and the visitor has not switched it off. |
+| `client.save({ ...categories, vendors })` | Saves the categories you pass and the vendor grants in `vendors`. Vendors you leave out keep their recorded state. |
+
+<import src="../../shared/scripts/vendor-consent.mdx#undeclared" />
+
+The [video component](/docs/frameworks/astro/embeds#gate-an-embed-with-a-custom-element)
+reads `client.isVendorAllowed('youtube')`, so it needs `youtube` in `vendors`.
+
+Call `save()` only from a visitor's action, such as a switch in your own
+form. This records marketing as allowed and X Pixel as off:
+
+{/* example: fragment */}
+
+```ts title="src/scripts/x-pixel-switch.ts (partial)"
+import { getConsentClient } from 'c15t/astro/client';
+
+await getConsentClient()?.save({
+	marketing: true,
+	vendors: { 'x-pixel': false },
+});
+```
+
+[Client API](/docs/frameworks/astro/client-api#save-consent) covers the rest
+of the page client.
+
+<import src="../../shared/scripts/vendor-consent.mdx#storage" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#limits" />
+
+<import src="../../shared/scripts/vendor-consent.mdx#verify" />

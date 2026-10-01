@@ -1,16 +1,17 @@
 ---
 title: Troubleshooting
-description: Fix a missing banner, an unset backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
+description: Fix a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
 group: frameworks
 ---
 
-## The app throws "Set `VITE_C15T_BACKEND_URL`"
+## Consent requests go to the wrong backend
 
-**Check.** `src/App.svelte` throws when the backend URL is empty. Vite reads
-env files only at startup and build, and writes the value into the bundle.
+**Check.** Look at the `url` passed to `hosted()` in `src/App.svelte`. It is
+still the placeholder `https://your-project.inth.app`, or a URL from another
+project.
 
-**Fix.** Add `VITE_C15T_BACKEND_URL` to `.env.local` and restart Vite. In
-production, set it where you run the build.
+**Fix.** Replace it with your Inth project's backend URL, including any path
+prefix. The project must also list your app's origin as trusted.
 
 ## The banner appears after the page
 

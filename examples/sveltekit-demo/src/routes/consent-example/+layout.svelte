@@ -1,7 +1,9 @@
 <!-- #region docs:layout title="src/routes/+layout.svelte" -->
 <script lang="ts">
-	import { env } from '$env/dynamic/public';
-	import { createExampleScripts } from '$lib/example-scripts';
+	import { scripts } from '$lib/example-scripts';
+	// #hide docs
+	import { testBackend } from '$lib/test-backend';
+	// #endhide docs
 	import {
 		ConsentBanner,
 		ConsentDialog,
@@ -14,15 +16,12 @@
 
 	let { children, data } = $props();
 
-	const backendURL = env.PUBLIC_C15T_BACKEND_URL;
-	if (!backendURL) {
-		throw new Error('Set PUBLIC_C15T_BACKEND_URL to the backend URL from Inth');
-	}
-	const mode = hosted({ url: backendURL });
-	const scripts = createExampleScripts(
-		env.PUBLIC_POSTHOG_KEY,
-		env.PUBLIC_X_PIXEL_ID
-	);
+	const mode = hosted({
+		url: 'https://your-project.inth.app',
+		// #hide docs
+		...testBackend('url'),
+		// #endhide docs
+	});
 </script>
 
 <ConsentManagerProvider

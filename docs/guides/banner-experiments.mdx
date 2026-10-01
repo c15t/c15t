@@ -108,7 +108,7 @@ the provider, with both imported from `c15t/react`:
 {/* example: fragment */}
 
 ```tsx
-<ConsentTheme theme={useResolvedTheme()} />
+<ConsentTheme theme={useResolvedTheme()} />;
 ```
 
 Rendered from a client component, `ConsentTheme` ships the theme generator.
@@ -190,7 +190,10 @@ export const FlaggedConsent = ({ children }: { children: ReactNode }) => {
 	const [arm, setArm] = useState<'control' | 'wall' | 'off' | null>(null);
 	useEffect(() => {
 		// The first answer wins: the provider reads the arm once.
-		const fallback = setTimeout(() => setArm((current) => current ?? 'off'), 1000);
+		const fallback = setTimeout(
+			() => setArm((current) => current ?? 'off'),
+			1000
+		);
 		const unsubscribe = posthog.onFeatureFlags(() => {
 			const flag = posthog.getFeatureFlag('banner-shape');
 			setArm((current) => current ?? (flag === 'wall' ? 'wall' : 'control'));

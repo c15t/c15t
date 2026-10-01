@@ -32,34 +32,16 @@ const savePreferences = () => {
 		aria-label="Cookie consent"
 	>
 		<p>We use cookies for measurement and marketing.</p>
-		<button
-			type="button"
-			@click="choose('none')"
-		>
-			Reject all
-		</button>
-		<button
-			type="button"
-			@click="choose('all')"
-		>
-			Accept all
-		</button>
-		<button
-			type="button"
-			@click="activeUI = 'manager'"
-		>
-			Customize
-		</button>
+		<button type="button" @click="choose('none')">Reject all</button>
+		<button type="button" @click="choose('all')">Accept all</button>
+		<button type="button" @click="activeUI = 'manager'">Customize</button>
 	</section>
 	<section
 		v-else-if="activeUI === 'manager'"
 		class="consent-prompt"
 		aria-label="Privacy settings"
 	>
-		<label
-			v-for="category in displayedCategories"
-			:key="category"
-		>
+		<label v-for="category in displayedCategories" :key="category">
 			<input
 				v-model="values[category]"
 				type="checkbox"
@@ -67,12 +49,7 @@ const savePreferences = () => {
 			/>
 			{{ category }}
 		</label>
-		<button
-			type="button"
-			@click="savePreferences"
-		>
-			Save
-		</button>
+		<button type="button" @click="savePreferences">Save</button>
 	</section>
 </template>
 ```

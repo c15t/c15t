@@ -2,13 +2,17 @@
 import { init } from '@c15t/browser';
 
 import { scripts } from './scripts';
+// #hide docs
+import { testBackend } from './test-backend';
+// #endhide docs
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth endpoint');
-}
-
-const consent = init({ backendURL, scripts });
+const consent = init({
+	backendURL: 'https://your-project.inth.app',
+	// #hide docs
+	...testBackend('backendURL'),
+	// #endhide docs
+	scripts,
+});
 
 document
 	.querySelector('#privacy-settings')

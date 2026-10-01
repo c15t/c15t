@@ -1,0 +1,120 @@
+---
+title: "Vendor consent"
+description: "Shared vendor consent explanation for the framework vendor consent pages."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by docs/frameworks/<framework>/vendor-consent.mdx. */}
+
+<section id="how">
+  ## How vendor consent works
+
+  A visitor allows marketing, then switches off X Pixel. Other marketing
+  scripts load; X Pixel does not. c15t loads a script, network request or
+  iframe that names a vendor only when both are true:
+
+  - Its category is allowed.
+  - The visitor has not switched its vendor off.
+
+  A vendor switch never grants a category. With marketing denied, X Pixel stays
+  blocked whatever its own switch says. You do not need IAB TCF for this. Under
+  an `iab` policy, c15t ignores vendor slugs and takes vendor consent from the
+  TC string instead; see [IAB TCF](./iab).
+</section>
+
+<section id="fields">
+  ## Vendor fields
+
+  | Field | Required | Behavior |
+  | --- | --- | --- |
+  | `id` | Yes | Lowercase slug of up to 64 characters: letters, digits, `.`, `_` and `-`. |
+  | `name` | Yes | Name shown in the preference dialog. |
+  | `category` | Yes | A category, or a condition such as `{ or: ['measurement', 'marketing'] }`. |
+  | `privacyPolicyUrl` | Yes | Link shown next to the vendor. |
+  | `description`, `legalName`, `homepageUrl` | No | Extra detail shown on the vendor card. |
+  | `disabled` | No | List the vendor without a switch. A stored denial for it no longer applies. |
+
+  The `id` must match the `vendor` slug on the script. Every `@c15t/integrations`
+  helper sets `vendor` to its script ID, so `xPixel()` is `x-pixel`, `gtag()`
+  is `gtag` and `cloudflareZaraz()` is `cloudflare-zaraz`. Each
+  [vendor guide](/docs/integrations/overview) names its slug.
+
+  A self-hosted backend can declare vendors too. `/init` returns them and c15t
+  merges them with the vendors in code. When both declare the same `id`, the
+  code declaration wins.
+</section>
+
+<section id="targets">
+  ## Gate scripts, requests and iframes by vendor
+
+  Put the vendor slug on each target:
+
+  | Target | Field |
+  | --- | --- |
+  | Script configuration | `vendor: 'x-pixel'` |
+  | Network blocker rule | `vendor: 'x-pixel'` |
+  | Iframe blocker | `data-vendor="x-pixel"` on the `<iframe>` |
+
+  An iframe with `data-vendor` and no `data-category` is gated on the vendor
+  alone. A script with `alwaysLoad` still loads when its vendor is off. Its
+  callbacks receive `info.vendor.granted`, so the SDK can stop itself. The
+  Google Consent Mode, RudderStack and Cloudflare Zaraz helpers do this for
+  you. While their vendor is off, they send every optional category as denied.
+</section>
+
+<section id="undeclared">
+  A vendor reads as allowed only when it is declared, its category is allowed
+  and the visitor has not switched it off. An id that nothing declares, in
+  `vendors`, on a script or iframe, or from the backend, reads as not allowed.
+  A typo such as `x-pixle` or a vendor you forgot to declare never looks like
+  consent. In development, c15t logs a console warning that names the id.
+</section>
+
+<section id="dialog">
+  The dialog lists only vendors that have a `name` and a `privacyPolicyUrl`.
+  A vendor's switch is disabled while its category is off. Save records the
+  vendors the visitor changed. Accept All and Reject All clear every vendor
+  denial, so each vendor follows its category again. The labels come from
+  `consentManagerDialog.vendors` in the translations: `title`,
+  `privacyPolicy`, `disabledByCategory` and `switchLabel`.
+</section>
+
+<section id="storage">
+  ## What c15t stores
+
+  c15t stores only the vendors a visitor switched off, and sends the full
+  vendor map to the backend with the consent record. Under an opt-out policy,
+  every vendor starts on. Turning a vendor off that was on reloads the page,
+  the same as withdrawing a category, so code the vendor already ran stops.
+</section>
+
+<section id="limits">
+  ## What switching a vendor off does not do
+
+  - It does not delete cookies the vendor already set.
+    [Clear on revocation](./clear-on-revocation) does not run, because the
+    category stays allowed. Delete the vendor's cookies from the script's
+    `onConsentChange` when `info.vendor.granted` is `false`.
+  - It does not expire. The switch stays off until the visitor changes it or
+    uses Accept All or Reject All, even across a policy change.
+  - Adding a vendor does not ask returning visitors again. A new vendor starts
+    on inside an allowed category. Change the policy's `copyRevision` if a new
+    vendor should prompt again.
+</section>
+
+<section id="verify">
+  ## Verify vendor consent
+
+  Test the production build in a private window with DevTools Network open and
+  filtered to `ads-twitter.com`:
+
+  1. Declare `x-pixel` and register `xPixel()`. Open Privacy settings. The
+     marketing row lists X Pixel with a switch.
+  2. Allow marketing and save. `uwt.js` loads.
+  3. Open Privacy settings, switch X Pixel off and save. c15t reloads the
+     page. After the reload there is no `uwt.js` request, and other marketing
+     scripts still load.
+  4. Reload again. The X Pixel switch is still off.
+  5. Turn marketing off. The X Pixel switch is disabled.
+  6. Open Privacy settings and click Accept All. `uwt.js` loads again.
+</section>

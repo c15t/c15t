@@ -32,14 +32,15 @@ test.each(PACKAGE_DOCS_CONFIGS)(
 	}
 );
 
-test('the umbrella bundle leaves out React Native, which ships separately', () => {
+test('the umbrella bundle covers every framework directory', () => {
 	const umbrella = PACKAGE_DOCS_CONFIGS.find(
 		(config) => config.name === 'c15t'
 	);
-	const files = fg.sync(umbrella?.include ?? [], { cwd: docsRoot });
-	expect(
-		files.some((file) => file.startsWith('frameworks/react-native/'))
-	).toBe(false);
+	const files = new Set(fg.sync(umbrella?.include ?? [], { cwd: docsRoot }));
+	const quickstarts = fg.sync('frameworks/*/quickstart.mdx', {
+		cwd: docsRoot,
+	});
+	expect(quickstarts.filter((file) => !files.has(file))).toEqual([]);
 	expect(files).toContain('frameworks/html/quickstart.mdx');
 });
 

@@ -20,9 +20,15 @@ your other options:
 
 ```ts
 networkBlocker: {
-  rules: [
-    { id: 'events', domain: 'example.com', pathIncludes: '/api/track', methods: ['POST'], category: 'measurement' },
-  ],
+	rules: [
+		{
+			id: 'events',
+			domain: 'example.com',
+			pathIncludes: '/api/track',
+			methods: ['POST'],
+			category: 'measurement',
+		},
+	],
 },
 ```
 

@@ -17,9 +17,7 @@ Then add them next to `scripts` in `app/app.config.ts`:
 {/* example: fragment */}
 
 ```ts title="app/app.config.ts"
-export default defineAppConfig({
-  c15t: { callbacks, scripts },
-});
+export default defineAppConfig({ c15t: { callbacks, scripts } });
 ```
 
 The module wires the callbacks once when its plugin runs. Visitor actions

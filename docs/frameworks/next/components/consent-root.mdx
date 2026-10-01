@@ -30,7 +30,7 @@ and can cross.
 | `config` | Shared configuration from `defineConsentConfig` in `c15t.config.ts` |
 | `backendURL` | Overrides `config.backendURL` |
 | `scripts` | Consent-managed script configurations |
-| `vendors` | Vendors the preference center lists under their category, each with its own switch. Merged with vendors the backend declares. See [granular consent](/docs/frameworks/next/scripts#let-visitors-turn-off-one-vendor) |
+| `vendors` | Vendors the preference center lists under their category, each with its own switch. Merged with vendors the backend declares. See [vendor consent](/docs/frameworks/next/vendor-consent) |
 | `clearOnRevocation` | Cookies and Web Storage keys to remove when their category is denied. Initial-only; remount `ConsentRoot` to replace it |
 | `scriptLoader` | Script-loader options |
 | `networkBlocker` | [Network-blocker](/docs/frameworks/next/network-blocker) options, or `false` to disable it |
@@ -51,9 +51,8 @@ Without `options.mode`, `ConsentRoot` picks the transport from its URLs:
   browser and nothing is recorded. Not recommended for production
   environments.
 
-The last case also applies when a `backendURL` prop is `undefined` because an
-environment variable was missing at build time. The `c15t.config.ts` in the
-router guides throws instead, so a misconfigured build fails. See
+The last case also applies when a `backendURL` prop is `undefined`, so check
+that the value you pass is set. See
 [offline configuration](/docs/frameworks/next/data-fetching-reference#offline-configuration).
 
 ## Provider options
@@ -105,9 +104,7 @@ Removing a script cannot stop code that already ran. A vendor's listeners,
 timers and widgets keep working until the page unloads. When an accept, reject
 or save turns off a category or vendor that was granted, `ConsentRoot` reloads
 the page once the save request settles, so the next page runs only permitted
-code. `onBeforeConsentRevocationReload` runs just before the reload. With a
-[`consentSource`](/docs/integrations/existing-cmp), any withdrawal the
-external CMP reports reloads the same way, including expiry.
+code. `onBeforeConsentRevocationReload` runs just before the reload.
 
 Otherwise, expiry, policy changes and privacy signals do not reload the page. Set
 `options.reloadOnConsentRevoked` to `false` only when every gated vendor stops
@@ -119,5 +116,5 @@ Pass `clearOnRevocation` to `ConsentRoot` to declare cookies and Web Storage
 keys by optional consent category. `ConsentRoot` does not accept it inside
 `options`. If you use `ConsentProvider` directly, pass it in that provider's
 `options`. Cleanup runs in the browser after policy resolution, and the value
-is initial-only. See [clear on revocation](/docs/integrations/clear-on-revocation)
+is initial-only. See [clear on revocation](/docs/frameworks/next/clear-on-revocation)
 for examples, cookie scopes, and browser limits.

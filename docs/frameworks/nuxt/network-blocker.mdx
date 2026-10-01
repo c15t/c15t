@@ -18,11 +18,11 @@ Rules are plain data, so they can go in the module options:
 
 ```ts title="nuxt.config.ts"
 export default defineNuxtConfig({
-  c15t: {
-    networkBlocker: {
-      rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
-    },
-  },
+	c15t: {
+		networkBlocker: {
+			rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
+		},
+	},
 });
 ```
 
@@ -34,12 +34,12 @@ added to the rules from `nuxt.config.ts`:
 
 ```ts title="app/app.config.ts"
 export default defineAppConfig({
-  c15t: {
-    networkBlocker: {
-      onRequestBlocked: (info) => console.info('Blocked', info.url),
-      rules: [],
-    },
-  },
+	c15t: {
+		networkBlocker: {
+			onRequestBlocked: (info) => console.info('Blocked', info.url),
+			rules: [],
+		},
+	},
 });
 ```
 

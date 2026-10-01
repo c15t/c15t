@@ -17,8 +17,8 @@ root route.
 import { useConsent } from 'c15t/tanstack-start';
 
 export function OptionalFeature() {
-  const allowed = useConsent('marketing');
-  return allowed ? <div>Optional marketing content</div> : null;
+	const allowed = useConsent('marketing');
+	return allowed ? <div>Optional marketing content</div> : null;
 }
 ```
 
@@ -37,12 +37,12 @@ Set the active surface to `'dialog'` from any component inside `ConsentRoot`:
 import { useSetActiveUI } from 'c15t/tanstack-start';
 
 export function PrivacyMenuItem() {
-  const setActiveUI = useSetActiveUI();
-  return (
-    <button type="button" onClick={() => setActiveUI('dialog')}>
-      Cookie preferences
-    </button>
-  );
+	const setActiveUI = useSetActiveUI();
+	return (
+		<button type="button" onClick={() => setActiveUI('dialog')}>
+			Cookie preferences
+		</button>
+	);
 }
 ```
 
@@ -56,8 +56,12 @@ export function PrivacyMenuItem() {
 import { useSaveConsents } from 'c15t/tanstack-start';
 
 export function RejectButton() {
-  const save = useSaveConsents();
-  return <button type="button" onClick={() => void save('none')}>Reject optional</button>;
+	const save = useSaveConsents();
+	return (
+		<button type="button" onClick={() => void save('none')}>
+			Reject optional
+		</button>
+	);
 }
 ```
 

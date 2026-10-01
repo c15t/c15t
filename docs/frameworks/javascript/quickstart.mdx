@@ -7,8 +7,7 @@ group: frameworks
 ## Connect Inth
 
 [Create an Inth project](https://inth.com), set its policy rules, add your
-app's origin to its trusted origins, and copy the project's backend URL. The
-URL is public configuration.
+app's origin to its trusted origins, and copy the project's backend URL.
 
 This guide uses `@c15t/browser` as an ES module in a Vite app. `init()` starts
 the consent runtime and mounts the stock banner and preference dialog. For
@@ -23,24 +22,6 @@ instead. Sites without a build step load the same package from a script tag;
 `@c15t/browser` is not part of the `c15t` package. `@c15t/integrations` supplies
 the PostHog and X Pixel helpers used below.
 
-## Set the backend URL
-
-This setup reads Vite's public environment variables. Put the Inth URL and your
-vendor IDs in `.env.local`:
-
-```dotenv title=".env.local"
-VITE_C15T_BACKEND_URL=https://your-project.inth.app
-VITE_POSTHOG_KEY=
-VITE_POSTHOG_HOST=
-VITE_X_PIXEL_ID=
-```
-
-The vendor IDs are optional. An empty ID leaves that vendor out. When you
-enable PostHog, set both its project key and the API host from your PostHog
-project. Vite embeds these values at build time, so restart the dev server
-after editing them and rebuild for deployment. Other bundlers have their own
-way to expose public values.
-
 ## Register consent-gated scripts
 
 Create `src/scripts.ts`. PostHog waits for measurement permission with
@@ -48,6 +29,10 @@ Create `src/scripts.ts`. PostHog waits for measurement permission with
 cookieless capture. X Pixel waits for marketing permission.
 
 <include src="../../shared/examples/javascript/scripts.mdx" />
+
+Replace `phc_your_project_key` with your PostHog project key and
+`your-pixel-id` with your X Pixel ID. The PostHog helper sends events to
+PostHog's EU cloud; for a US project, add `region: 'us'`.
 
 Include the measurement and marketing categories in your Inth policy. Remove
 any other loader for these vendors, such as a snippet in `index.html`, so each
@@ -58,6 +43,9 @@ one loads once and only through c15t.
 Call `init()` once, in your browser entry point:
 
 <include src="../../shared/examples/javascript/init.mdx" />
+
+Replace `https://your-project.inth.app` with your project's backend URL,
+including any path prefix.
 
 `init()` returns the client. It reads stored choices, asks Inth for the
 visitor's policy, shows the banner when the policy needs one, and loads each
@@ -92,7 +80,7 @@ purple and rounds the cards:
 <include src="../../shared/examples/javascript/theme.mdx" />
 
 `theme` takes the same tokens as every c15t package; see
-[tokens and CSS](/docs/customization/tokens). `presentation.prompt` changes the
+[theme tokens](/docs/customization/tokens). `presentation.prompt` changes the
 banner's shape and position, `ui.css` adds CSS inside the shadow root, and
 `i18n` changes the copy. [Customize](/docs/frameworks/javascript/customize)
 covers each option.

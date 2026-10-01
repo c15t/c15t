@@ -39,19 +39,19 @@ import { createMiddleware } from '@tanstack/react-start';
 import { setResponseHeader } from '@tanstack/react-start/server';
 
 export const cspMiddleware = createMiddleware().server(({ next }) => {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  const nonce = btoa(String.fromCharCode(...bytes));
-  setResponseHeader(
-    'Content-Security-Policy',
-    [
-      "default-src 'self'",
-      `script-src 'nonce-${nonce}' 'strict-dynamic'`,
-      `style-src 'self' 'nonce-${nonce}'`,
-      "connect-src 'self' https://<your-backend-host>",
-      "img-src 'self' data:",
-    ].join('; ')
-  );
-  return next({ context: { nonce } });
+	const bytes = crypto.getRandomValues(new Uint8Array(16));
+	const nonce = btoa(String.fromCharCode(...bytes));
+	setResponseHeader(
+		'Content-Security-Policy',
+		[
+			"default-src 'self'",
+			`script-src 'nonce-${nonce}' 'strict-dynamic'`,
+			`style-src 'self' 'nonce-${nonce}'`,
+			"connect-src 'self' https://<your-backend-host>",
+			"img-src 'self' data:",
+		].join('; ')
+	);
+	return next({ context: { nonce } });
 });
 ```
 
@@ -72,10 +72,10 @@ import { getGlobalStartContext } from '@tanstack/react-start';
 import { routeTree } from './routeTree.gen';
 
 export const getRouter = function getRouter() {
-  return createRouter({
-    routeTree,
-    ssr: { nonce: getGlobalStartContext()?.nonce },
-  });
+	return createRouter({
+		routeTree,
+		ssr: { nonce: getGlobalStartContext()?.nonce },
+	});
 };
 ```
 

@@ -59,13 +59,13 @@ exists:
 
 ```ts title="src/track-order.ts"
 export function trackOrder(marketingAllowed: boolean, orderId: string) {
-  if (!marketingAllowed || typeof window.oaiq !== 'function') return;
-  window.oaiq(
-    'measure',
-    'order_created',
-    { type: 'contents', amount: 2599, currency: 'USD' },
-    { event_id: orderId },
-  );
+	if (!marketingAllowed || typeof window.oaiq !== 'function') return;
+	window.oaiq(
+		'measure',
+		'order_created',
+		{ type: 'contents', amount: 2599, currency: 'USD' },
+		{ event_id: orderId }
+	);
 }
 ```
 

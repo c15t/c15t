@@ -49,12 +49,12 @@ permission first, then that the pixel has loaded:
 
 ```ts title="src/track-purchase.ts"
 export function trackPurchase(marketingAllowed: boolean, orderId: string) {
-  if (!marketingAllowed || typeof window.rdt !== 'function') return;
-  window.rdt('track', 'Purchase', {
-    conversionId: orderId,
-    currency: 'USD',
-    value: 99.99,
-  });
+	if (!marketingAllowed || typeof window.rdt !== 'function') return;
+	window.rdt('track', 'Purchase', {
+		conversionId: orderId,
+		currency: 'USD',
+		value: 99.99,
+	});
 }
 ```
 

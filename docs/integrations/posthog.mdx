@@ -16,12 +16,12 @@ SDK, and turns off cookieless capture after a refusal.
 import { posthog } from '@c15t/integrations/posthog';
 
 export const scripts = [
-  posthog({
-    id: 'phc_YOUR_PROJECT_TOKEN',
-    region: 'eu',
-    loadMode: 'after-consent',
-    initOptions: { cookieless_mode: 'never' },
-  }),
+	posthog({
+		id: 'phc_YOUR_PROJECT_TOKEN',
+		region: 'eu',
+		loadMode: 'after-consent',
+		initOptions: { cookieless_mode: 'never' },
+	}),
 ];
 ```
 
@@ -67,8 +67,8 @@ allowed:
 
 ```ts title="src/track-signup.ts"
 export function trackSignupStarted(measurementAllowed: boolean) {
-  if (!measurementAllowed) return;
-  window.posthog?.capture('signup_started');
+	if (!measurementAllowed) return;
+	window.posthog?.capture('signup_started');
 }
 ```
 
@@ -86,24 +86,24 @@ captures nothing before c15t reports a permission.
 import type { Script, ScriptCallbackInfo } from 'c15t/modules/script-loader';
 
 type PostHogConsentApi = {
-  opt_in_capturing: () => unknown;
-  opt_out_capturing: () => unknown;
+	opt_in_capturing: () => unknown;
+	opt_out_capturing: () => unknown;
 };
 
 export function posthogConsent(instance: PostHogConsentApi): Script {
-  const sync = ({ hasConsent }: ScriptCallbackInfo) => {
-    if (hasConsent) instance.opt_in_capturing();
-    else instance.opt_out_capturing();
-  };
+	const sync = ({ hasConsent }: ScriptCallbackInfo) => {
+		if (hasConsent) instance.opt_in_capturing();
+		else instance.opt_out_capturing();
+	};
 
-  return {
-    id: 'posthog-sdk-consent',
-    category: 'measurement',
-    callbackOnly: true,
-    alwaysLoad: true,
-    onBeforeLoad: sync,
-    onConsentChange: sync,
-  };
+	return {
+		id: 'posthog-sdk-consent',
+		category: 'measurement',
+		callbackOnly: true,
+		alwaysLoad: true,
+		onBeforeLoad: sync,
+		onConsentChange: sync,
+	};
 }
 ```
 

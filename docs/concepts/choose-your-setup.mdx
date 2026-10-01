@@ -35,7 +35,6 @@ to the alternatives it rules out.
 | Plain HTML, a CMS, a page builder, or a static site generator such as Hugo or Eleventy | One script tag, stock banner included | [HTML](/docs/frameworks/html/quickstart) |
 | JavaScript with a bundler and no UI framework | `@c15t/browser` module, stock banner included | [JavaScript](/docs/frameworks/javascript/quickstart) |
 | Your own UI, or a framework without an adapter such as Solid | Headless runtime | [JavaScript headless](/docs/frameworks/javascript/headless) |
-| React Native or Expo | Native consent SDK | [React Native](/docs/frameworks/react-native/quickstart) |
 
 Solid has no c15t adapter. Use the [headless runtime](/docs/frameworks/javascript/headless#use-c15t-with-solid)
 and subscribe to it from your components.
@@ -52,8 +51,9 @@ works with each option; only the URL changes.
 | Offline mode | Local development and tests. Policies live in your code and choices stay in the browser, with no consent records. Not recommended for production environments. |
 
 To use Inth, create a project, set its policy rules, add your site's origin to
-its trusted origins, and copy the backend URL. The URL is public configuration,
-not a secret; it ends up in browser code.
+its trusted origins, and copy the backend URL. The guides use the placeholder
+`https://your-project.inth.app`; replace it with your project's backend URL,
+including any path prefix.
 
 ## Server rendering or browser rendering
 

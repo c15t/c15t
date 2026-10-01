@@ -57,7 +57,7 @@ can belong to Inth or your own c15t backend.
 import { hosted } from 'c15t';
 
 export function createConsentMode(backendURL: string) {
-  return hosted({ url: backendURL });
+	return hosted({ url: backendURL });
 }
 ```
 
@@ -84,9 +84,9 @@ separate policy reads and record writes. With a backend rewrite mounted at
 import { hosted } from 'c15t';
 
 export const mode = hosted({
-  url: '/api/c15t',
-  initURL: '/api/c15t/init',
-  assertDecisionInputs: true,
+	url: '/api/c15t',
+	initURL: '/api/c15t/init',
+	assertDecisionInputs: true,
 });
 ```
 
@@ -108,11 +108,11 @@ and TLS connection to the consent backend. The app server still connects to
 the upstream backend for manifest refreshes and consent writes. Vendor scripts
 and vendor requests keep their own origins.
 
-Set the absolute upstream endpoint through `C15T_BACKEND_URL` in Next.js server
-configuration. The endpoint URL is public connection information, not a secret.
-The browser uses `/api/c15t` without needing the upstream URL. A static export
-cannot serve a Next.js route or rewrite at runtime; use the absolute Inth URL or
-a proxy provided by the static host instead.
+The rewrite destination and the init route use the absolute upstream endpoint,
+such as `https://your-project.inth.app`. The browser uses `/api/c15t` without
+needing the upstream URL. A static export cannot serve a Next.js route or
+rewrite at runtime; use the absolute Inth URL or a proxy provided by the static
+host instead.
 
 ## When should I use offline mode?
 

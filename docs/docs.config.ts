@@ -96,7 +96,12 @@ export default defineDocsConfig({
 				'overview',
 				'recipes',
 				'tokens',
+				'dark-mode',
+				'motion',
+				'stylesheets',
 				'slots',
+				'class-names',
+				'tailwind',
 				'translations',
 				'/guides/banner-experiments',
 			],
@@ -114,7 +119,13 @@ export default defineDocsConfig({
 					base: 'next',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -123,6 +134,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'/customization/dark-mode',
+								'/customization/tailwind',
 								'translations',
 								'compose',
 								'headless',
@@ -185,7 +198,13 @@ export default defineDocsConfig({
 					base: 'tanstack-start',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -194,6 +213,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'/customization/dark-mode',
+								'/customization/tailwind',
 								'translations',
 								'compose',
 								'headless',
@@ -242,7 +263,13 @@ export default defineDocsConfig({
 					base: 'react',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -251,6 +278,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'/customization/dark-mode',
+								'/customization/tailwind',
 								'translations',
 								'compose',
 								'headless',
@@ -300,7 +329,13 @@ export default defineDocsConfig({
 					base: 'nuxt',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -309,6 +344,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'/customization/dark-mode',
+								'/customization/tailwind',
 								'translations',
 								'headless',
 							],
@@ -359,7 +396,13 @@ export default defineDocsConfig({
 					base: 'vue',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -368,6 +411,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'/customization/dark-mode',
+								'/customization/tailwind',
 								'translations',
 								'headless',
 							],
@@ -418,7 +463,13 @@ export default defineDocsConfig({
 					base: 'astro',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -427,6 +478,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'/customization/dark-mode',
+								'/customization/tailwind',
 								'translations',
 							],
 							slug: 'customization',
@@ -480,7 +533,13 @@ export default defineDocsConfig({
 					base: 'svelte',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -489,6 +548,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'/customization/dark-mode',
+								'/customization/tailwind',
 								'translations',
 								'components/primitives',
 								'headless',
@@ -541,7 +602,13 @@ export default defineDocsConfig({
 					base: 'sveltekit',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -550,6 +617,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'/customization/dark-mode',
+								'/customization/tailwind',
 								'translations',
 								'components/primitives',
 								'headless',
@@ -607,7 +676,13 @@ export default defineDocsConfig({
 					base: 'html',
 					children: [
 						{
-							pages: ['scripts', 'embeds', 'network-blocker'],
+							pages: [
+								'scripts',
+								'embeds',
+								'network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
+							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
 						},
@@ -616,6 +691,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'/customization/dark-mode',
+								'/customization/tailwind',
 								'translations',
 								'headless',
 							],
@@ -668,6 +745,8 @@ export default defineDocsConfig({
 								'scripts',
 								'modules/iframe-blocker',
 								'modules/network-blocker',
+								'vendor-consent',
+								'clear-on-revocation',
 							],
 							slug: 'scripts-and-embeds',
 							title: 'Scripts and embeds',
@@ -677,6 +756,8 @@ export default defineDocsConfig({
 								'customize',
 								'/customization/recipes',
 								'/customization/tokens',
+								'/customization/dark-mode',
+								'/customization/tailwind',
 								'translations',
 								'headless',
 							],
@@ -701,7 +782,6 @@ export default defineDocsConfig({
 								'api/snapshot',
 								'modules/script-loader',
 								'modules/persistence',
-								'modules/clear-on-revocation',
 							],
 							slug: 'reference',
 							title: 'Reference',
@@ -716,24 +796,6 @@ export default defineDocsConfig({
 					slug: 'javascript',
 					title: 'JavaScript',
 				},
-				{
-					base: 'react-native',
-					children: [
-						{
-							pages: ['native-behaviour', 'platform-support'],
-							slug: 'advanced',
-							title: 'Advanced',
-						},
-						{
-							pages: ['troubleshooting', '/guides/verify-consent'],
-							slug: 'verify-and-troubleshoot',
-							title: 'Verify and troubleshoot',
-						},
-					],
-					pages: ['quickstart', 'usage', 'configuration'],
-					slug: 'react-native',
-					title: 'React Native',
-				},
 			],
 			pages: ['index'],
 			slug: 'frameworks',
@@ -742,11 +804,6 @@ export default defineDocsConfig({
 		{
 			base: 'integrations',
 			children: [
-				{
-					pages: ['granular-consent', 'clear-on-revocation', 'existing-cmp'],
-					slug: 'vendor-controls',
-					title: 'Vendor controls',
-				},
 				{
 					pages: ['google-maps', 'youtube'],
 					slug: 'embeds',

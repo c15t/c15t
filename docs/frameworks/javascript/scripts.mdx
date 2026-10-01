@@ -27,12 +27,12 @@ yourself:
 
 ```ts
 const scripts = [
-  {
-    id: 'analytics',
-    src: 'https://analytics.example/sdk.js',
-    category: 'measurement',
-    onLoad: () => window.analytics?.track('page_view'),
-  },
+	{
+		id: 'analytics',
+		src: 'https://analytics.example/sdk.js',
+		category: 'measurement',
+		onLoad: () => window.analytics?.track('page_view'),
+	},
 ];
 ```
 
@@ -79,17 +79,24 @@ Create `init()` or the runtime once per page. A second client, or a second
 loader on a kernel that `@c15t/browser` or `createConsentRuntime` owns, loads
 vendors twice.
 
+## Let visitors turn off one vendor
+
+A visitor can allow marketing and still switch off one vendor in it. Declare
+the vendors in the `vendors` option and render the switch yourself; helpers
+from `@c15t/integrations` already carry their vendor slug. See
+[vendor consent](/docs/frameworks/javascript/vendor-consent).
+
 ## Clear stored tracking data
 
 Script gating does not remove cookies or Web Storage entries that a script
-already wrote. Configure [clear on revocation](/docs/frameworks/javascript/modules/clear-on-revocation)
+already wrote. Configure [clear on revocation](/docs/frameworks/javascript/clear-on-revocation)
 to delete them when their category is denied.
 
-## Shared lifecycle controls
+## Send your own events to allowed vendors
 
-See [use c15t with an existing CMP](/docs/integrations/existing-cmp) for
-external CMPs, preference delegation, withdrawal reloads and application
-events. These controls use the same core runtime across frameworks.
+To send your own analytics events only to the vendors a visitor allows, use
+the event dispatcher from `@c15t/integrations`. See
+[send events only to allowed integrations](/docs/integrations/overview#send-events-only-to-allowed-integrations).
 
 ## Check it works
 

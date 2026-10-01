@@ -22,14 +22,9 @@ Then add them to the client entrypoint from the
 
 ```ts title="src/consent-client.ts (partial)"
 import { callbacks } from './consent-callbacks';
+import { scripts } from './example-scripts';
 
-export default {
-  callbacks,
-  scripts: createExampleScripts(
-    import.meta.env.PUBLIC_POSTHOG_KEY,
-    import.meta.env.PUBLIC_X_PIXEL_ID
-  ),
-} satisfies C15tClientOptionsExtension;
+export default { callbacks, scripts } satisfies C15tClientOptionsExtension;
 ```
 
 ## Choose the callback

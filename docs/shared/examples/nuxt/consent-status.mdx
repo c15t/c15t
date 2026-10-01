@@ -17,10 +17,7 @@ const activeUI = useConsentActiveUI();
 			Measurement is
 			{{ permissions.measurement ? 'allowed' : 'not allowed' }} right now.
 		</p>
-		<button
-			type="button"
-			@click="activeUI = 'manager'"
-		>
+		<button type="button" @click="activeUI = 'manager'">
 			Change your choices
 		</button>
 	</section>

@@ -14,8 +14,8 @@ from components rendered inside that provider and import them from
 import { useConsent } from 'c15t/react';
 
 export function OptionalFeature() {
-  const allowed = useConsent('marketing');
-  return allowed ? <div>Optional marketing content</div> : null;
+	const allowed = useConsent('marketing');
+	return allowed ? <div>Optional marketing content</div> : null;
 }
 ```
 
@@ -29,8 +29,12 @@ Render this component inside your existing `ConsentProvider`.
 import { useSaveConsents } from 'c15t/react';
 
 export function RejectButton() {
-  const save = useSaveConsents();
-  return <button type="button" onClick={() => void save('none')}>Reject optional</button>;
+	const save = useSaveConsents();
+	return (
+		<button type="button" onClick={() => void save('none')}>
+			Reject optional
+		</button>
+	);
 }
 ```
 

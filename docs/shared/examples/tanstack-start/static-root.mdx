@@ -19,10 +19,7 @@ import { scripts } from '../scripts';
 
 import consentCss from 'c15t/tanstack-start/styles.css?url';
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth backend URL');
-}
+const backendURL = 'https://your-project.inth.app';
 
 // No loader: the HTML is built ahead of time, so the browser resolves
 // consent after it loads.

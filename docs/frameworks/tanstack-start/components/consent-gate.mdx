@@ -16,15 +16,15 @@ it loads:
 import { ConsentGate } from 'c15t/tanstack-start';
 
 export function ProductVideo() {
-  return (
-    <ConsentGate category="marketing" style={{ aspectRatio: '16 / 9' }}>
-      <iframe
-        src="https://www.youtube-nocookie.com/embed/VIDEO_ID"
-        title="Product tour"
-        allowFullScreen
-      />
-    </ConsentGate>
-  );
+	return (
+		<ConsentGate category="marketing" style={{ aspectRatio: '16 / 9' }}>
+			<iframe
+				src="https://www.youtube-nocookie.com/embed/VIDEO_ID"
+				title="Product tour"
+				allowFullScreen
+			/>
+		</ConsentGate>
+	);
 }
 ```
 

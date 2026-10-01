@@ -1,6 +1,6 @@
 ---
 title: Client API
-description: Reference for c15t/astro/client on an Astro site, grouped by task, from reading permissions and recorded choices to opening dialogs, saving consent, gated scripts, the page runtime, external consent sources and analytics events.
+description: Reference for c15t/astro/client on an Astro site, grouped by task, from reading permissions and recorded choices to opening dialogs, saving consent, gated scripts, the page runtime and analytics events.
 group: frameworks
 ---
 
@@ -64,6 +64,21 @@ The snapshot fields you are most likely to read:
 A listener runs synchronously on each change. Keep it quick, and read only the
 fields you need.
 
+## Read vendor consent
+
+When the integration declares [vendors](/docs/frameworks/astro/vendor-consent),
+the client also answers per vendor:
+
+| Member | Returns |
+| --- | --- |
+| `client.getDeclaredVendors()` | The vendors from `vendors`, the backend manifest and the slugs on scripts and iframes. Empty under an IAB policy |
+| `client.getVendorChoice()` | The recorded vendor decision, whose `denied` lists the vendors the visitor switched off, or `null` |
+| `client.isVendorAllowed(id)` | `true` when the vendor is declared, its category is allowed and the visitor has not switched it off |
+
+`isVendorAllowed()` returns `false` for an id nothing declares, such as a
+typo or a vendor missing from `vendors`. In development it also logs a
+console warning that names the id.
+
 ## Open and close dialogs
 
 | Member | Does |
@@ -74,8 +89,7 @@ fields you need.
 
 `openDialog()` downloads and mounts the dialog island the first time. While
 the first `/init` answer is outstanding, it waits for it, then opens nothing
-if the policy owes no consent interface. With an external consent source, it
-opens the other platform's preferences.
+if the policy owes no consent interface.
 
 `ConsentDialogTrigger` needs no script. For a control you render yourself,
 call `openDialog()` from its click handler:
@@ -86,7 +100,7 @@ call `openDialog()` from its click handler:
 import { openDialog } from 'c15t/astro/client';
 
 document.querySelector('#privacy-link')?.addEventListener('click', () => {
-  void openDialog();
+	void openDialog();
 });
 ```
 
@@ -96,7 +110,7 @@ document.querySelector('#privacy-link')?.addEventListener('click', () => {
 | --- | --- |
 | `client.acceptAll()` | Saves a grant for every category the policy covers |
 | `client.rejectAll()` | Saves a rejection of everything except `necessary` |
-| `client.save(consents)` | Saves the categories you pass, such as `{ measurement: true }` |
+| `client.save(consents)` | Saves the categories you pass, such as `{ measurement: true }`. A `vendors` map, such as `{ vendors: { posthog: false } }`, saves vendor switches too |
 | `client.identify(user)` | Links the consent record to your own user, as `{ externalId }` |
 
 Each applies the choice in the browser at once and returns a promise that
@@ -115,7 +129,9 @@ ID. `identityProvider` and `properties` are optional.
 
 `activateGatedScripts(snapshot, root?)` runs every inline script marked
 `type="text/plain"` and `data-c15t-category` that the snapshot allows, inside
-`root` or the whole document. It returns the number of scripts it ran.
+`root` or the whole document. A script that also carries `data-c15t-vendor`
+waits until the visitor has not switched that vendor off. It returns the
+number of scripts it ran.
 
 c15t calls it after every consent change and every `ClientRouter`
 navigation. Call it yourself only for markup you insert from your own code:
@@ -127,7 +143,7 @@ import { activateGatedScripts, getConsent } from 'c15t/astro/client';
 
 const snapshot = getConsent();
 if (snapshot) {
-  activateGatedScripts(snapshot, container);
+	activateGatedScripts(snapshot, container);
 }
 ```
 
@@ -165,10 +181,10 @@ Markup your script changed is replaced on a swap. Render it again on
 import { getConsent, subscribe } from 'c15t/astro/client';
 
 const render = () => {
-  const allowed = getConsent()?.effectivePermissions.measurement ?? false;
-  document.querySelector('#analytics-state')?.replaceChildren(
-    allowed ? 'Analytics on' : 'Analytics off'
-  );
+	const allowed = getConsent()?.effectivePermissions.measurement ?? false;
+	document
+		.querySelector('#analytics-state')
+		?.replaceChildren(allowed ? 'Analytics on' : 'Analytics off');
 };
 
 subscribe(render);
@@ -177,35 +193,6 @@ document.addEventListener('astro:page-load', render);
 
 A custom element, like the video component above, reconnects on its own when
 the new page contains it.
-
-## Use an external consent source
-
-An existing consent platform can own decisions, the banner and consent records
-while c15t loads the scripts. Add `consentSource` to the default export of your
-client entrypoint:
-
-```ts title="src/consent-client.ts (partial)"
-export default {
-  scripts,
-  consentSource: {
-    getPermissions: () => provider.currentPermissions(),
-    subscribe: (notify) => provider.subscribe(notify),
-    openPreferences: () => provider.openPreferences(),
-  },
-} satisfies C15tClientOptionsExtension;
-```
-
-`provider` is your own adapter for the other platform, not a c15t export.
-`getPermissions()` returns the complete current decision, and categories it
-leaves out are denied. Call `notify` when the platform initializes, when the
-decision changes, and when consent is withdrawn or expires.
-
-Remove `ConsentBanner` and `ConsentDialog` from your layout. While an external
-source is set, c15t does not store choices or record consent, its save methods
-reject, and `openDialog()` opens the provider's preferences. When the source
-withdraws a category that was granted, c15t reloads the page so code that
-already ran stops. Set `reloadOnConsentRevoked: false` in the integration to
-handle that yourself. See [use c15t with an existing CMP](/docs/integrations/existing-cmp).
 
 ## Send analytics events after consent
 

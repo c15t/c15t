@@ -9,15 +9,12 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import { experimentCallbacks, experimentFromSearch } from './experiment';
 import { scripts } from './scripts';
-
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth backend URL');
-}
+import { testBackend } from './test-backend';
 
 createApp(App)
 	.use(c15tVue, {
-		backendURL,
+		backendURL: 'https://your-project.inth.app',
+		...testBackend('backendURL'),
 		callbacks: experimentCallbacks,
 		experiment: experimentFromSearch(location.search),
 		scripts,

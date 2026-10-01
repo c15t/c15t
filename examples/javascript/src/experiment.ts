@@ -12,11 +12,7 @@ import type {
 } from 'c15t';
 
 import { scripts } from './scripts';
-
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth endpoint');
-}
+import { testBackend } from './test-backend';
 
 const element = function element<Kind extends HTMLElement>(
 	selector: string
@@ -58,7 +54,8 @@ const logExperimentEvent = function logExperimentEvent(text: string): void {
 };
 
 const consent = init({
-	backendURL,
+	backendURL: 'https://your-project.inth.app',
+	...testBackend('backendURL'),
 	callbacks: {
 		onChoiceRecorded: (payload: OnChoiceRecordedPayload) => {
 			if (!payload.experiment) {

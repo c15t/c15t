@@ -24,20 +24,24 @@ model. Render the IAB components inside `ConsentRoot`, next to them:
 {/* example: fragment */}
 
 ```tsx title="src/components/iab-consent.tsx"
-import { IABConsentBanner, IABConsentDialog, IABProvider } from 'c15t/react/iab';
+import {
+	IABConsentBanner,
+	IABConsentDialog,
+	IABProvider,
+} from 'c15t/react/iab';
 import { useModel } from 'c15t/tanstack-start';
 
 export function IABConsent({ cmpId }: { cmpId: number }) {
-  const model = useModel();
-  if (model !== 'iab') {
-    return null;
-  }
-  return (
-    <IABProvider cmpId={cmpId}>
-      <IABConsentBanner />
-      <IABConsentDialog />
-    </IABProvider>
-  );
+	const model = useModel();
+	if (model !== 'iab') {
+		return null;
+	}
+	return (
+		<IABProvider cmpId={cmpId}>
+			<IABConsentBanner />
+			<IABConsentDialog />
+		</IABProvider>
+	);
 }
 ```
 

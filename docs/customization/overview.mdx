@@ -1,46 +1,78 @@
 ---
-title: Customize your consent interface
-description: Choose presentation, theme tokens, slots or custom markup for the change you need.
+title: Customize the interface
+description: Change c15t's consent banner and dialog one step at a time, from a prop to your own markup, and find where each step lives in your framework.
 group: customization
 ---
 
-## Start with the change you want
+## Climb the ladder one step at a time
 
-| Change | Use | Why |
-| --- | --- | --- |
-| Banner shape or location | Presentation or banner props | Keeps policy actions and built-in layout behavior |
-| Brand colors, radius, typography, spacing | Theme tokens | Changes related component parts together |
-| One card, footer, title or button group | Component slots | Targets existing markup |
-| Labels, descriptions or language | i18n configuration | Keeps banner and preferences copy consistent |
-| A different component structure | Compound components where available | Retains the component behavior while changing markup |
-| Your own interaction and markup | Headless APIs | You own rendering, focus behavior and policy action coverage |
+Each step keeps everything the step below it gives you. Stop at the first one
+that makes the change you need:
 
-Most brand changes need tokens and a few slots. Start there before opting out
-of the stock styles. See the [design gallery](/docs/customization/recipes) for
-five banner designs, from one prop to fully custom markup, with screenshots
-and tested code.
+1. **Props and presentation.** Pick a shape, a position, button order or
+   blocking. c15t keeps its markup, styles and behavior.
+2. **Theme tokens.** Change colors, type, radius, spacing, shadows and motion
+   everywhere at once. Dark mode is a second set of tokens.
+3. **Parts and classes.** Add a class or inline style to one part of one
+   component, such as the banner card. Tailwind, CSS Modules and CSS-in-JS
+   classes go here.
+4. **Compose.** Rebuild a component from c15t's parts, in your own layout, while
+   c15t still renders the actions the policy requires.
+5. **Headless.** Render your own markup from c15t's state and actions. You own
+   the layout, focus handling and labels.
+
+Most brand work needs tokens and a few part classes. See
+[banner designs](/docs/customization/recipes) for five banners built at
+different steps, with screenshots and tested code.
+
+## Where each step lives in your framework
+
+| Framework | Props and presentation | Tokens | Parts and classes | Compose | Headless |
+| --- | --- | --- | --- | --- | --- |
+| Next.js | `ConsentBanner` props, `options.presentation` | `ConsentTheme` in a Server Component | `options.components`, `className` | [Compose](/docs/frameworks/next/compose) | [Headless](/docs/frameworks/next/headless) |
+| TanStack Start | `ConsentBanner` props, `options.presentation` | `ConsentTheme` in the root route | `options.components`, `className` | [Compose](/docs/frameworks/tanstack-start/compose) | [Headless](/docs/frameworks/tanstack-start/headless) |
+| React | `ConsentBanner` props, `presentation` | `ConsentTheme`, or CSS variables | `components`, `className` | [Compose](/docs/frameworks/react/compose) | [Headless](/docs/frameworks/react/headless) |
+| Nuxt | `presentation` in `nuxt.config.ts` | `tokens` or `theme` in the module options | `components`, `class` | None | [Headless](/docs/frameworks/nuxt/headless) |
+| Vue | `presentation` in the `c15tVue` options | `tokens` or `theme` in the plugin options | `components`, `class` | None | [Headless](/docs/frameworks/vue/headless) |
+| Astro | `presentation` in the integration options | `theme` in the integration options | `theme.slots`, `class` on `ConsentBanner` | None | None |
+| Svelte | `ConsentBanner` props, `presentation` | CSS variables, or `generateThemeCSS()` | `theme.slots`, `class` on `ConsentBanner` | [Primitives](/docs/frameworks/svelte/components/primitives) | [Headless](/docs/frameworks/svelte/headless) |
+| SvelteKit | `ConsentBanner` props, `presentation` | `generateThemeCSS()` in a server load | `theme.slots`, `class` on `ConsentBanner` | [Primitives](/docs/frameworks/sveltekit/components/primitives) | [Headless](/docs/frameworks/sveltekit/headless) |
+| HTML | `presentation.prompt` in `config` | `ui.theme` | `ui.theme.slots`, `::part()`, `ui.css` | None | [Headless](/docs/frameworks/html/headless) |
+| JavaScript | `presentation.prompt` in `init()` | `ui.theme` | `ui.theme.slots`, `::part()`, `ui.css` | None | [Headless](/docs/frameworks/javascript/headless) |
+
+Configuration shapes differ between frameworks. React's
+`components.banner.card`, Vue's `components.banner.card` with `class`, and the
+`consentBannerCard` key in `theme.slots` target the same part through
+different APIs. Check your framework's customize page before you move a
+configuration from one framework to another.
 
 ## Keep behavior and appearance separate
 
-Presentation controls the prompt's shape, position and blocking behavior.
-Policy controls which actions and rights are required. Changing colors or button
-order does not change a saved choice or policy scope.
+Presentation controls the prompt's shape, position and blocking. The policy
+controls which actions and rights the visitor gets. Changing colors or button
+order does not change a saved choice or the policy's scope.
 
-A choice wall always blocks. Notices never block and cannot become a wall merely
-because `variant: 'wall'` was requested. Preference dialogs remain centered;
-prompt positioning does not move them. Required actions omitted from a custom
-layout can be restored by the policy renderer.
+A choice wall always blocks. A notice never blocks and does not become a wall
+because you asked for `variant: 'wall'`. The preference dialog stays centered,
+whatever position the banner has. If a custom layout leaves out an action the
+policy requires, c15t puts it back.
 
-## Use the adapter's configuration shape
+## Read the rest of this section
 
-React and Next.js accept provider `theme`, `presentation` and `components`
-options, and render theme tokens with `ConsentTheme` on the server. Vue and Nuxt expose their own shared configuration, including CSS
-`tokens` and component slots. Svelte accepts its provider options and theme
-slots; SvelteKit renders the token CSS from a server `load`. Astro serializes
-integration options, renders the theme tokens on the server and uses the
-selected adapter for dialogs. Do not move a configuration object between frameworks without checking
-the target types.
-
-Read [tokens and CSS](/docs/customization/tokens),
-[slots](/docs/customization/slots) or
-[copy and translations](/docs/customization/translations) for the next step.
+- [Banner designs](/docs/customization/recipes): five designs with tested code.
+- [Theme tokens](/docs/customization/tokens): every `--c15t-*` variable and
+  its theme key.
+- [Dark mode](/docs/customization/dark-mode): `colorScheme`, dark tokens and a
+  dark first paint.
+- [Motion and animation](/docs/customization/motion): duration and easing
+  tokens, `disableAnimation` and reduced motion.
+- [Stylesheets and CSS layers](/docs/customization/stylesheets): which file to
+  load, when the dialog's CSS loads, and how to run without c15t's styles.
+- [Component parts](/docs/customization/slots): every part, its keys in each
+  framework, and the `data-*` attributes to select on.
+- [Class names and CSS-in-JS](/docs/customization/class-names): CSS Modules,
+  vanilla-extract, StyleX and Emotion on c15t's parts.
+- [Tailwind CSS](/docs/customization/tailwind): Tailwind 4 and 3 in every
+  framework.
+- [Copy and translations](/docs/customization/translations): labels,
+  languages and right-to-left text.

@@ -7,11 +7,10 @@
  * - `config/static`: prerendered or SPA output with `manifest: 'client'`.
  *   Selected with `C15T_NUXT_OUTPUT=static` and built with `nuxt generate`.
  *
- * Everything here is demo-only: the self-hosted backend fallback, the
- * system color scheme with its dark primary, styles, the
- * test switch for client manifest mode, and two copies of `/consent-example`
- * whose HTML every visitor shares (`routeRules`), one prerendered at build
- * time and one cached by Nitro. c15t leaves visitor state out of that HTML
+ * Everything here is demo-only: the backend URL override, the system color
+ * scheme with its dark primary, styles, the test switch for client manifest
+ * mode, and two copies of `/consent-example` whose HTML every visitor shares
+ * (`routeRules`), one prerendered at build time and one cached by Nitro. c15t leaves visitor state out of that HTML
  * and resolves the visitor in the browser after hydration.
  * `C15T_NUXT_MANIFEST=client` builds the server output in client mode.
  *
@@ -25,8 +24,13 @@
 import type { ModuleOptions } from 'c15t/vue';
 
 const staticOutput = process.env.C15T_NUXT_OUTPUT === 'static';
+// The acceptance suite points the demo at a mock backend with this variable.
+// Otherwise it uses the @c15t/backend it self-hosts at `/api/self-host` (see
+// `server/api/self-host/[...all].ts`). Either value overrides the placeholder
+// URL in the published layer config.
+const testBackendURL = process.env.NUXT_PUBLIC_C15T_BACKEND_URL;
 const experimentArm = process.env.C15T_NUXT_EXPERIMENT_ARM;
-const experiment =
+const experiment: ModuleOptions['experiment'] =
 	process.env.C15T_NUXT_EXPERIMENT === '1'
 		? {
 				arms: { wall: { prompt: { variant: 'wall' as const } } },
@@ -38,17 +42,23 @@ const experiment =
 		: undefined;
 
 const c15t: ModuleOptions = {
-	// This demo self-hosts @c15t/backend at `/api/self-host` (see
-	// `server/api/self-host/[...all].ts`) when no backend URL is set.
-	backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
+	backendURL: testBackendURL ?? '/api/self-host',
+	// #region docs:color-scheme title="nuxt.config.ts (c15t options)"
 	// Follow the visitor's system setting, with a dark primary of our own.
 	colorScheme: 'system',
-	experiment,
 	theme: { dark: { primary: '#7fd1a8' } },
+	// #endregion docs:color-scheme
 };
+if (experiment) {
+	c15t.experiment = experiment;
+}
 // Left unset otherwise, so the layer's `manifest` applies.
 if (process.env.C15T_NUXT_MANIFEST === 'client') {
 	c15t.manifest = 'client';
+}
+// Static output downloads the manifest from the backend in the browser.
+if (staticOutput && testBackendURL) {
+	c15t.manifestURL = `${testBackendURL}/manifest`;
 }
 
 export default defineNuxtConfig({

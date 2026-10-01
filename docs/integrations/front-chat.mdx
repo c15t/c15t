@@ -53,11 +53,11 @@ callback in your consent options:
 import { shutdownFrontChat } from '@c15t/integrations/front-chat';
 
 export const callbacks = {
-  onBeforeConsentRevocationReload: ({ preferences }) => {
-    if (!preferences.functionality) {
-      shutdownFrontChat();
-    }
-  },
+	onBeforeConsentRevocationReload: ({ preferences }) => {
+		if (!preferences.functionality) {
+			shutdownFrontChat();
+		}
+	},
 };
 ```
 

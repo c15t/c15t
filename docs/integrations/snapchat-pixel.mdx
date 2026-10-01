@@ -48,13 +48,13 @@ permission first, then that the pixel has loaded:
 
 ```ts title="src/track-purchase.ts"
 export function trackPurchase(marketingAllowed: boolean, orderId: string) {
-  if (!marketingAllowed || typeof window.snaptr !== 'function') return;
-  window.snaptr('track', 'PURCHASE', {
-    client_dedup_id: orderId,
-    currency: 'USD',
-    price: 99,
-    transaction_id: orderId,
-  });
+	if (!marketingAllowed || typeof window.snaptr !== 'function') return;
+	window.snaptr('track', 'PURCHASE', {
+		client_dedup_id: orderId,
+		currency: 'USD',
+		price: 99,
+		transaction_id: orderId,
+	});
 }
 ```
 

@@ -23,6 +23,7 @@ cannot run on its own.
 | --- | --- | --- |
 | `type="text/plain"` | Yes | Stops the browser running the script. A tag without it runs at once, whatever its category. |
 | `data-c15t-category` | Yes | One category name: `necessary`, `functionality`, `experience`, `measurement` or `marketing`. |
+| `data-c15t-vendor` | No | A vendor slug. The tag also waits while the visitor has switched that vendor off. See [vendor consent](/docs/frameworks/html/vendor-consent). |
 | `src` | No | Load the script from a URL. Without it, c15t runs the tag's inline text. |
 | `async` | No | Load without waiting for earlier gated scripts, and let later ones start without waiting for this one. |
 | `data-c15t-activated` | Set by c15t | `true` once c15t has run the tag, `invalid` when its category name is unknown, `untrusted` when the page has a nonce and the tag lacks it. Do not set it yourself. |

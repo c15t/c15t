@@ -81,6 +81,7 @@ mode fits which Astro output.
 | --- | --- | --- | --- |
 | `consentCategories` | `AllConsentNames[]` | Inferred from scripts and the policy | Categories the banner and dialog offer |
 | `scripts` | `Script[]` | None | Scripts without callbacks, loaded when their category is allowed. See [Scripts](/docs/frameworks/astro/scripts) |
+| `vendors` | `Vendor[]` | None | Vendors the dialog lists with their own switch inside a category. Merged with vendors from the backend manifest. See [Vendor consent](/docs/frameworks/astro/vendor-consent) |
 | `networkBlocker` | `{ rules, enabled?, logBlockedRequests? } \| false` | Off | Blocks matching `fetch` and `XMLHttpRequest` calls until consent. See [Network blocker](/docs/frameworks/astro/network-blocker) |
 | `clearOnRevocation` | `ClearOnRevocationConfig` | None | Cookies and storage keys to remove when a category is withdrawn |
 | `reloadOnConsentRevoked` | `boolean` | `true` | Reloads the page after a save turns off a category that was allowed |
@@ -171,7 +172,6 @@ The default export is a `C15tClientOptionsExtension` from `c15t/astro`:
 | `callbacks` | `onChoiceRecorded`, `onPermissionsChanged`, `onError` and `onBeforeConsentRevocationReload`. See [Callbacks](/docs/frameworks/astro/callbacks) |
 | `networkBlocker` | Replaces the integration's `networkBlocker`, so it can include `onRequestBlocked` |
 | `clearOnRevocation` | Replaces the integration's `clearOnRevocation` |
-| `consentSource` | Hands decisions to another consent platform. See [use an external consent source](/docs/frameworks/astro/client-api#use-an-external-consent-source) |
 | `theme` | Merged over the integration's theme for button styles. Tokens here have no effect |
 
 The browser imports this module into the page script, so every page shares

@@ -69,10 +69,10 @@ functions.
 
 **Fix.** Move `scripts` to `app/app.config.ts`.
 
-**Check.** Check whether the vendor ID is empty at build time. `app.config.ts`
-cannot read `runtimeConfig`, so a value set only at runtime never reaches it.
+**Check.** Look at the vendor ID. It is still a placeholder, such as
+`phc_your_project_key`.
 
-**Fix.** Make the vendor ID available when the app builds.
+**Fix.** Replace it with the ID from your vendor account.
 
 **Check.** Look for a second loader, such as the vendor's own Nuxt module or a
 `useHead` script, that also loads the vendor.

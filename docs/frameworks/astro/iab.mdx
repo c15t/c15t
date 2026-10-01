@@ -24,15 +24,14 @@ Add `iab` to the integration options, next to the `mode` from the
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: manifest({ backendURL }),
-  iab: { cmpId: Number(process.env.C15T_CMP_ID) },
-  ui: 'svelte',
+	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
+	iab: { cmpId: 123 },
+	ui: 'svelte',
 });
 ```
 
-Set `C15T_CMP_ID` where you set `C15T_BACKEND_URL`. A hosted backend can
-supply the CMP ID through `/init`, so `cmpId` is optional when your Inth
-project has one. The integration adds `c15t/astro/iab/styles.css`
+Replace `123` with your registered CMP ID. A hosted backend can supply the CMP
+ID through `/init`, so `cmpId` is optional when your Inth project has one. The integration adds `c15t/astro/iab/styles.css`
 to every page once `iab` is set.
 
 | Option | Effect |

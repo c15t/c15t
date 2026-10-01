@@ -32,10 +32,6 @@ site's origin to its trusted origins. Copy the project's backend URL.
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the backend URL from your Inth project, such
-as `https://your-project.inth.app`,
-including any path prefix. The URL is public configuration, not a secret.
-
 Add the c15t stylesheet to your global CSS. With Tailwind CSS 4, put it after
 the Tailwind import so the c15t component layer follows Tailwind's:
 
@@ -46,7 +42,7 @@ the Tailwind import so the c15t component layer follows Tailwind's:
 
 Without Tailwind, keep only the c15t import. With Tailwind CSS 3, put the
 same import above the `@tailwind` directives and add
-`@c15t/ui/postcss-tailwind3` to your PostCSS config, as
+`c15t/postcss-tailwind3` to your PostCSS config, as
 [Customize](/docs/frameworks/next/customize#load-the-stylesheet) shows.
 Without the plugin, Tailwind 3 fails the build on c15t's `@layer components`
 rules.
@@ -61,14 +57,16 @@ resolution; a backend URL alone uses backend `/init`.
 
 <include src="../../shared/examples/nextjs/config.mdx" />
 
+Replace `https://your-project.inth.app` with your project's backend URL,
+including any path prefix.
+
 ## Serve the manifest route
 
 <include src="../../shared/examples/nextjs/manifest-route.mdx" />
 
-The route fetches `/manifest` from the backend in `C15T_BACKEND_URL`, falling
-back to `NEXT_PUBLIC_C15T_BACKEND_URL`. If you set both, point them at the same
-backend. The route caches the public policy, so warm requests make no policy
-request to Inth.
+`createNextConsentRouteHandlers` reads `backendURL` from the config and fetches
+`${backendURL}/manifest`. The route caches the public policy, so warm requests
+make no policy request to Inth.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 

@@ -20,7 +20,7 @@ script and reads no storage; the modules around it do that.
 
 ```ts
 const unsubscribe = kernel.subscribe((snapshot) => {
-  console.log(snapshot.resolution.status, snapshot.effectivePermissions);
+	console.log(snapshot.resolution.status, snapshot.effectivePermissions);
 });
 ```
 
@@ -82,7 +82,7 @@ records a choice.
 | `set.registerConsentCategories(categories)` | Add categories your integrations use. They stay for the kernel's lifetime. |
 | `set.vendors(patch, options?)` | Merge declared vendors. |
 | `set.subjectId(id)` | The subject ID. |
-| `set.iab(patch)`, `set.externalPermissions(values)` | Written by the IAB module and by `consentSource`. Do not call them yourself. |
+| `set.iab(patch)` | Written by the IAB module. Do not call it yourself. |
 
 ## Apply stored records
 
@@ -113,7 +113,6 @@ listener receives the event object.
 | `iab:set` | `snapshot` | The IAB state changed. |
 | `records:cleared` | none | Stored records were cleared. |
 | `save:replayed` | `subjectId`, `ok`, `rejected?` | A queued save was sent again. `rejected` holds the backend's refusal code. |
-| `preferences:requested` | none | An external CMP should open its preferences. |
 | `command:init:started`, `command:save:started` | none | A command began. |
 | `command:init:completed`, `command:save:completed` | `result` | A command finished. |
 | `command:error` | `command`, `error` | A command failed. |
@@ -163,7 +162,7 @@ before the kernel:
 | Script loader | `c15t/modules/script-loader` | [Script loader](/docs/frameworks/javascript/modules/script-loader) |
 | Network blocker | `c15t/modules/network-blocker` | [Network blocker](/docs/frameworks/javascript/modules/network-blocker) |
 | Iframe blocker | `c15t/modules/iframe-blocker` | [Iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker) |
-| Clear on revocation | `c15t/modules/clear-on-revocation` | [Clear on revocation](/docs/frameworks/javascript/modules/clear-on-revocation) |
+| Clear on revocation | `c15t/modules/clear-on-revocation` | [Clear on revocation](/docs/frameworks/javascript/clear-on-revocation) |
 | Reload after withdrawal | `watchRevocationReload` from `c15t` | This page, below |
 
 `watchRevocationReload({ kernel, isEnabled, getOnBeforeReload? })` reloads the

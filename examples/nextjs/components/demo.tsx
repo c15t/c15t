@@ -8,7 +8,6 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { VideoEmbed } from '@/components/video-embed';
-import { posthogConfigured, xPixelConfigured } from '@/lib/scripts';
 
 const routes = [
 	{ href: '/app-router', label: 'App Router' },
@@ -23,25 +22,14 @@ const designs = [
 	{ href: '/branded', label: 'Branded design' },
 ];
 
-const IntegrationStatus = ({
-	configured,
-	allowed,
-}: {
-	configured: boolean;
-	allowed: boolean;
-}) => {
-	if (!configured) {
-		return <span className="status">Not configured</span>;
-	}
-	return (
-		<span
-			className="status"
-			data-allowed={allowed}
-		>
-			{allowed ? 'Allowed' : 'Blocked'}
-		</span>
-	);
-};
+const IntegrationStatus = ({ allowed }: { allowed: boolean }) => (
+	<span
+		className="status"
+		data-allowed={allowed}
+	>
+		{allowed ? 'Allowed' : 'Blocked'}
+	</span>
+);
 
 /**
  * Demo gallery rendered by every example route inside that route's
@@ -151,10 +139,7 @@ export const Demo = ({ children }: { children: ReactNode }) => {
 								<h3>PostHog</h3>
 								<p>Measurement · loads after consent</p>
 							</div>
-							<IntegrationStatus
-								configured={posthogConfigured}
-								allowed={measurementAllowed}
-							/>
+							<IntegrationStatus allowed={measurementAllowed} />
 						</div>
 						<div
 							className="integration"
@@ -164,10 +149,7 @@ export const Demo = ({ children }: { children: ReactNode }) => {
 								<h3>X Pixel</h3>
 								<p>Marketing · loads after consent</p>
 							</div>
-							<IntegrationStatus
-								configured={xPixelConfigured}
-								allowed={marketingAllowed}
-							/>
+							<IntegrationStatus allowed={marketingAllowed} />
 						</div>
 						<p className="caption">
 							Open c15t DevTools in the corner to inspect consent state and

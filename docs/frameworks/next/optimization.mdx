@@ -62,27 +62,27 @@ The same setup works with a self-hosted c15t backend.
 
 ### Add the backend rewrite
 
-Set `C15T_BACKEND_URL` to the absolute endpoint supplied by your Inth project.
-The endpoint is public configuration. Merge this fallback into your existing
-Next.js configuration:
+Merge this fallback into your existing Next.js configuration:
 
 ```ts title="next.config.ts"
 import type { NextConfig } from 'next';
 
-const upstreamURL = process.env.C15T_BACKEND_URL?.replace(/\/$/, '');
-if (!upstreamURL) throw new Error('Set C15T_BACKEND_URL to the absolute Inth endpoint');
-
 export default {
-  async rewrites() {
-    return {
-      fallback: [{
-        source: '/api/c15t/:path*',
-        destination: `${upstreamURL}/:path*`,
-      }],
-    };
-  },
+	async rewrites() {
+		return {
+			fallback: [
+				{
+					source: '/api/c15t/:path*',
+					destination: 'https://your-project.inth.app/:path*',
+				},
+			],
+		};
+	},
 } satisfies NextConfig;
 ```
+
+Replace `https://your-project.inth.app` with your project's backend URL,
+including any path prefix.
 
 Next.js serves the local manifest handler first. Other consent requests, such
 as `/api/c15t/subjects`, reach Inth through the rewrite. An optional local init
@@ -97,8 +97,8 @@ In the manifest setup from your router guide, change only `backendURL` to
 import { defineConsentConfig } from 'c15t/next';
 
 export const consentConfig = defineConsentConfig({
-  backendURL: '/api/c15t',
-  manifestURL: '/api/c15t/manifest',
+	backendURL: '/api/c15t',
+	manifestURL: '/api/c15t/manifest',
 });
 ```
 
@@ -111,18 +111,23 @@ separate `ConsentRoot` `backendURL` prop because it overrides the shared value.
 
 ### Keep route handlers pointed upstream
 
-The ready-made handlers read the absolute upstream URL from
-`C15T_BACKEND_URL`, so the manifest route from your router guide needs no
-change. The same applies to the
-[optional local init route](/docs/frameworks/next/data-fetching-reference#do-i-need-the-local-init-route)
-if you added one. Set `C15T_BACKEND_URL` to the absolute backend URL. Without
-it the handlers fall back to `NEXT_PUBLIC_C15T_BACKEND_URL`, and if that is
-`/api/c15t` the manifest route fetches itself.
+The manifest route from your router guide passes `consentConfig` to
+`createNextConsentRouteHandlers`, which fetches from the config's
+`backendURL`. Once that is `/api/c15t`, the route would fetch itself. Pass the
+absolute upstream URL to the handler instead:
 
-If you configure handlers with `createNextConsentRouteHandlers({ backendURL })`,
-pass the absolute upstream URL. Passing the browser's local `consentConfig`
-would make the manifest handler fetch itself. An explicit `C15T_MANIFEST_URL`
-must also point upstream.
+{/* example: fragment */}
+
+```ts title="app/api/c15t/manifest/route.ts"
+export const { manifestGET: GET } = createNextConsentRouteHandlers({
+	backendURL: 'https://your-project.inth.app',
+});
+```
+
+Make the same change in the
+[optional local init route](/docs/frameworks/next/data-fetching-reference#do-i-need-the-local-init-route)
+if you added one, and in Pages Router `createPagesApiHandlers` calls. A
+`manifestURL` handler option must also point upstream.
 
 ### Check rewrite precedence
 
@@ -166,8 +171,11 @@ handler with the refresh promise, which never rejects:
 import { createNextConsentRouteHandlers } from 'c15t/next/api';
 import { after } from 'next/server';
 
+import { consentConfig } from '@/c15t.config';
+
 export const { manifestGET: GET } = createNextConsentRouteHandlers({
-  onBackgroundRevalidate: (refresh) => after(() => refresh),
+	...consentConfig,
+	onBackgroundRevalidate: (refresh) => after(() => refresh),
 });
 ```
 

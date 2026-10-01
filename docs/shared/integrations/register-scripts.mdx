@@ -17,7 +17,7 @@ The `scripts` export is a configuration, not an initializer. Add it to the c15t 
 point for your framework below. These are edits to that provider, not a second
 provider.
 
-<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript', 'React Native']}>
+<Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
   <Tab value="Next.js">
     Import the configuration into the client boundary from your router guide:
 
@@ -74,8 +74,8 @@ provider.
     <ConsentProvider options={{ mode, scripts }}>
     ```
 
-    `mode` is the `hosted({ url: backendURL })` value from the
-    [React quickstart](/docs/frameworks/react/quickstart). Keep the banner,
+    `mode` is the `hosted({ url: 'https://your-project.inth.app' })` value
+    from the [React quickstart](/docs/frameworks/react/quickstart). Keep the banner,
     dialog and preferences link inside the provider. See
     [React scripts and embeds](/docs/frameworks/react/scripts).
   </Tab>
@@ -96,8 +96,7 @@ provider.
     one script loader in the browser after hydration, once it has applied the
     visitor's stored choice and privacy signals. Keep `scripts` out of
     `nuxt.config.ts`, which reaches the browser as JSON and drops the vendor
-    callbacks. `app.config.ts` cannot read `runtimeConfig`, so write the vendor
-    IDs into `consent-scripts.ts` or read them from `VITE_` variables. See
+    callbacks. Write the vendor IDs into `consent-scripts.ts`. See
     [Nuxt scripts and embeds](/docs/frameworks/nuxt/scripts).
   </Tab>
 
@@ -109,7 +108,10 @@ provider.
     ```ts title="src/main.ts"
     import { scripts } from './consent-scripts';
 
-    app.use(c15tVue, { backendURL, scripts });
+    app.use(c15tVue, {
+      backendURL: 'https://your-project.inth.app',
+      scripts,
+    });
     ```
 
     Keep your existing backend URL and other options. The plugin starts one
@@ -148,9 +150,7 @@ provider.
       import { ConsentManagerProvider, hosted } from '@c15t/svelte';
       import { scripts } from './consent-scripts';
 
-      const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-      if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
-      const mode = hosted({ url: backendURL });
+      const mode = hosted({ url: 'https://your-project.inth.app' });
     </script>
 
     <ConsentManagerProvider {mode} {scripts}>
@@ -168,12 +168,11 @@ provider.
 
     ```svelte title="src/routes/+layout.svelte"
     <script lang="ts">
-      import { env } from '$env/dynamic/public';
       import { ConsentManagerProvider, hosted } from '@c15t/svelte';
       import { scripts } from '../consent-scripts';
 
       let { children, data } = $props();
-      const mode = hosted({ url: env.PUBLIC_C15T_BACKEND_URL });
+      const mode = hosted({ url: 'https://your-project.inth.app' });
     </script>
 
     <ConsentManagerProvider {mode} {scripts} prefetch={data.prefetch}>
@@ -213,34 +212,16 @@ provider.
     import { init } from '@c15t/browser';
     import { scripts } from './consent-scripts';
 
-    const consent = init({ backendURL, scripts });
+    const consent = init({
+      backendURL: 'https://your-project.inth.app',
+      scripts,
+    });
     ```
 
-    `backendURL` is the Inth URL from your quickstart. With
+    Keep the backend URL from your quickstart. With
     `createConsentRuntime` from `c15t/runtime`, pass `scripts` to it instead.
     A kernel you create yourself needs a loader from
     `c15t/modules/script-loader`. Attach one loader per kernel. See
     [JavaScript scripts](/docs/frameworks/javascript/scripts).
-  </Tab>
-
-  <Tab value="React Native">
-    There is no script loader to register. `@c15t/integrations` loads browser
-    documents, and a React Native app has none: the consent kernel runs natively
-    and the vendor ships as a native or JavaScript module you start yourself.
-
-    Gate the vendor where you start it, so the module never initialises without
-    permission:
-
-    ```tsx
-    import { ConsentGate } from '@c15t/react-native';
-
-    export function VendorInit() {
-      return <ConsentGate category="measurement">{() => <VendorSDK />}</ConsentGate>;
-    }
-    ```
-
-    An SDK you start outside React reads the same snapshot natively and has to
-    check it there too. See
-    [React Native setup](/docs/frameworks/react-native/quickstart).
   </Tab>
 </Tabs>

@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { basename, extname, resolve, sep } from 'node:path';
 
+import { formatDocsCode } from './docs-code-format';
+
 /**
  * Directories whose apps are built and tested in CI. Documentation code that
  * wires c15t into an application comes from marked regions in these files.
@@ -266,18 +268,24 @@ export const extractRegion = (
 	return dedent(body).join('\n');
 };
 
-/** Renders a region as an MDX partial containing one titled code fence. */
-export const renderExampleRegion = (
+/**
+ * Renders a region as an MDX partial containing one titled code fence. The
+ * code is reformatted for the docs (see `formatDocsCode`); a region that does
+ * not parse on its own is published as written.
+ */
+export const renderExampleRegion = async (
 	root: string,
 	region: ExampleRegion
-): string => {
+): Promise<string> => {
 	const content = readFileSync(resolve(root, region.source), 'utf8');
-	const code = extractRegion(content, region.name, region.source);
+	const extracted = extractRegion(content, region.name, region.source);
+	const language = languageFor(region.source);
+	const code = (await formatDocsCode(language, extracted)) ?? extracted;
 	const fence = code.includes('```') ? '````' : '```';
 	return [
 		`{/* Generated from ${region.source} (docs:${region.name}) by scripts/sync-example-docs.ts. Edit the source file. */}`,
 		'',
-		`${fence}${languageFor(region.source)} title="${region.title}"`,
+		`${fence}${language} title="${region.title}"`,
 		code,
 		fence,
 		'',

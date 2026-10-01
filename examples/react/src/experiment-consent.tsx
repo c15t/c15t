@@ -11,14 +11,18 @@ import type { ConsentProviderCallbacks } from 'c15t/react';
 import type { ReactNode } from 'react';
 
 import { scripts } from './scripts';
+// #hide docs
+import { testBackend } from './test-backend';
+// #endhide docs
 
 import 'c15t/react/styles.css';
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth backend URL');
-}
-const mode = hosted({ url: backendURL });
+const mode = hosted({
+	url: 'https://your-project.inth.app',
+	// #hide docs
+	...testBackend('url'),
+	// #endhide docs
+});
 
 // `control` is the stock banner. `wall` blocks the page until the visitor
 // chooses.

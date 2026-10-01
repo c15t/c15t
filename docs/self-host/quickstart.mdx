@@ -35,9 +35,9 @@ Create `c15t-backend.config.ts` in the app that will serve the backend:
 import { defineConfig, policyRulePresets } from '@c15t/backend';
 
 export default defineConfig({
-  database: { dialect: 'sqlite', filename: './consent.db' },
-  trustedOrigins: ['localhost'],
-  manifest: { policyRules: [policyRulePresets.europeOptIn()] },
+	database: { dialect: 'sqlite', filename: './consent.db' },
+	trustedOrigins: ['localhost'],
+	manifest: { policyRules: [policyRulePresets.europeOptIn()] },
 });
 ```
 
@@ -75,6 +75,7 @@ handler receives, so `/api/c15t/init` routes to `/init`.
 
 ```ts title="app/api/c15t/[[...path]]/route.ts"
 import { c15tInstance } from '@c15t/backend';
+
 import config from '../../../../c15t-backend.config';
 
 export const runtime = 'nodejs';

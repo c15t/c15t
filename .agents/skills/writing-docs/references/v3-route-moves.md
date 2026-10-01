@@ -16,7 +16,6 @@ the old page's task.
 | `/docs/frameworks/next/concepts/policy-presets` | `/docs/concepts/policies` | Merged; the policy diagnostic moved to `/docs/frameworks/next/troubleshooting` |
 | `/docs/frameworks/react/concepts/policy-presets` | `/docs/concepts/policies` | Merged; the policy diagnostic moved to `/docs/frameworks/react/troubleshooting` |
 | `/docs/frameworks/javascript/concepts/policy-presets` | `/docs/concepts/policies` | Merged; the policy diagnostic moved to `/docs/frameworks/javascript/troubleshooting` |
-| `/docs/guides/shared-consent-controls` | `/docs/integrations/existing-cmp` | Renamed to its task, keeping another CMP; the event dispatcher moved to `/docs/integrations/overview` |
 | `/docs/frameworks/next/server-side` | `/docs/frameworks/next/rendering` | Merged into the Next.js rendering decision page; the layouts live in `/docs/frameworks/next/app-router` |
 | `/docs/frameworks/next/data-fetching` | `/docs/frameworks/next/rendering#choose-how-the-server-gets-the-policy` | Merged into the Next.js rendering decision page |
 | `/docs/frameworks/next/script-loader` | `/docs/frameworks/next/scripts` | Merged with the network blocker into one scripts and embeds page |
@@ -46,17 +45,49 @@ the old page's task.
 | `/docs/frameworks/next/styling/css-variables` | `/docs/customization/tokens` | v2 styling route; CSS variables are theme tokens |
 | `/docs/frameworks/next/styling/slots` | `/docs/customization/slots` | v2 styling route |
 | `/docs/frameworks/next/styling/classnames` | `/docs/customization/slots` | v2 styling route; class names attach to component parts |
-| `/docs/frameworks/next/styling/tailwind` | `/docs/customization/overview` | v2 styling route; no customization page covers Tailwind yet, so send it to the overview |
-| `/docs/frameworks/next/styling/color-scheme` | `/docs/customization/overview` | v2 styling route; no customization page covers dark mode yet, so send it to the overview |
+| `/docs/frameworks/next/styling/tailwind` | `/docs/customization/tailwind` | v2 styling route |
+| `/docs/frameworks/next/styling/color-scheme` | `/docs/customization/dark-mode` | v2 styling route; the dark mode page covers the color scheme |
 | `/docs/frameworks/react/styling/overview` | `/docs/customization/overview` | v2 styling route; customization is shared across frameworks |
 | `/docs/frameworks/react/styling/tokens` | `/docs/customization/tokens` | v2 styling route |
 | `/docs/frameworks/react/styling/css-variables` | `/docs/customization/tokens` | v2 styling route; CSS variables are theme tokens |
 | `/docs/frameworks/react/styling/slots` | `/docs/customization/slots` | v2 styling route |
 | `/docs/frameworks/react/styling/classnames` | `/docs/customization/slots` | v2 styling route; class names attach to component parts |
-| `/docs/frameworks/react/styling/tailwind` | `/docs/customization/overview` | v2 styling route; no customization page covers Tailwind yet, so send it to the overview |
-| `/docs/frameworks/react/styling/color-scheme` | `/docs/customization/overview` | v2 styling route; no customization page covers dark mode yet, so send it to the overview |
+| `/docs/frameworks/react/styling/tailwind` | `/docs/customization/tailwind` | v2 styling route |
+| `/docs/frameworks/react/styling/color-scheme` | `/docs/customization/dark-mode` | v2 styling route; the dark mode page covers the color scheme |
 | `/docs/frameworks/react/optimization` | `/docs/frameworks/react/rendering` | v2 route; rendering covers loading and performance choices |
 | `/docs/frameworks/next/iframe-blocking` | `/docs/frameworks/next/embeds` | v2 route; the embeds page covers the iframe blocker |
 | `/docs/frameworks/react/iframe-blocking` | `/docs/frameworks/react/embeds` | v2 route; the embeds page covers the iframe blocker |
 | `/docs/frameworks/javascript/iframe-blocking` | `/docs/frameworks/javascript/modules/iframe-blocker` | v2 route |
 | `/docs/frameworks/javascript/network-blocker` | `/docs/frameworks/javascript/modules/network-blocker` | v2 route |
+| `/docs/integrations/granular-consent` | `/docs/frameworks/next/vendor-consent` | Became a framework page. Every framework that lists vendors has one: `next`, `tanstack-start`, `react`, `nuxt`, `vue`, `svelte`, `sveltekit` and `javascript` |
+| `/docs/integrations/clear-on-revocation` | `/docs/frameworks/next/clear-on-revocation` | Became a framework page. Every framework has one at `/docs/frameworks/<framework>/clear-on-revocation` |
+| `/docs/frameworks/javascript/modules/clear-on-revocation` | `/docs/frameworks/javascript/clear-on-revocation` | Merged with the option guide so JavaScript has one clear on revocation page, at the same slug as every other framework |
+
+## Removed routes
+
+These pages were removed, not moved, so no page covers their whole task.
+Redirect each route to the closest page that remains.
+
+The guide to running c15t beside another consent platform was removed, along
+with the v2 shared consent controls page it replaced. The integrations
+overview keeps the event controls.
+
+| Old route | Redirect to | Reason |
+| --- | --- | --- |
+| `/docs/guides/shared-consent-controls` | `/docs/integrations/overview` | Removed with the existing-CMP guide; the overview covers sending events only to allowed integrations |
+| `/docs/integrations/existing-cmp` | `/docs/integrations/overview` | Removed |
+
+React Native is not published with v3, so its pages were removed, not moved.
+No page covers their task. Redirect each route to `/docs/frameworks` so old
+links land on the framework list. Do not mention React Native, Expo or
+`@c15t/react-native` in the published docs until the package ships.
+
+| Old route | Redirect to | Reason |
+| --- | --- | --- |
+| `/docs/frameworks/react-native` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/quickstart` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/usage` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/configuration` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/native-behaviour` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/platform-support` | `/docs/frameworks` | Removed, not published in v3 |
+| `/docs/frameworks/react-native/troubleshooting` | `/docs/frameworks` | Removed, not published in v3 |

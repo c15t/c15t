@@ -36,15 +36,15 @@ import { cloudflareZaraz } from '@c15t/integrations/cloudflare-zaraz';
 declare const zaraz: { track: (event: string) => void };
 
 export const scripts = [
-  cloudflareZaraz({
-    purposes: {
-      measurement: ['your-measurement-purpose-id'],
-      marketing: ['your-marketing-purpose-id'],
-    },
-    onReady: () => {
-      zaraz.track('Pageview');
-    },
-  }),
+	cloudflareZaraz({
+		purposes: {
+			measurement: ['your-measurement-purpose-id'],
+			marketing: ['your-marketing-purpose-id'],
+		},
+		onReady: () => {
+			zaraz.track('Pageview');
+		},
+	}),
 ];
 ```
 
@@ -77,7 +77,7 @@ The bridge's vendor slug is `cloudflare-zaraz`. Declare a vendor with that
 `id` to give visitors a switch for Zaraz in the preference dialog. While a
 visitor has it switched off, the bridge denies every purpose mapped to an
 optional category, whatever the categories allow. See
-[let visitors turn off one vendor](/docs/integrations/granular-consent).
+[vendor consent for your framework](/docs/integrations/overview#vendor-switches-and-cookie-cleanup).
 
 When the Zaraz consent API is ready, the bridge reads `zaraz.consent.getAll()`
 and sets each returned purpose to `true` only if its mapped category is

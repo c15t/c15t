@@ -45,8 +45,8 @@ permission first, then that the pixel is set up:
 
 ```ts title="src/track-purchase.ts"
 export function trackPurchase(marketingAllowed: boolean, value: number) {
-  if (!marketingAllowed || typeof window.ttq?.track !== 'function') return;
-  window.ttq.track('CompletePayment', { currency: 'USD', value });
+	if (!marketingAllowed || typeof window.ttq?.track !== 'function') return;
+	window.ttq.track('CompletePayment', { currency: 'USD', value });
 }
 ```
 

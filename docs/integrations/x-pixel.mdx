@@ -45,12 +45,12 @@ loaded:
 
 ```ts title="src/track-purchase.ts"
 export function trackPurchase(marketingAllowed: boolean, orderId: string) {
-  if (!marketingAllowed || typeof window.twq !== 'function') return;
-  window.twq('event', 'tw-xxxx-xxxx', {
-    conversion_id: orderId,
-    currency: 'USD',
-    value: 99.99,
-  });
+	if (!marketingAllowed || typeof window.twq !== 'function') return;
+	window.twq('event', 'tw-xxxx-xxxx', {
+		conversion_id: orderId,
+		currency: 'USD',
+		value: 99.99,
+	});
 }
 ```
 

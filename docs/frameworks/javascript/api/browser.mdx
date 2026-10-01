@@ -37,7 +37,10 @@ module can create it at import time and call `client.start()` later:
 ```ts
 import { createConsentClient } from '@c15t/browser';
 
-export const consent = createConsentClient({ backendURL, scripts });
+export const consent = createConsentClient({
+	backendURL: 'https://your-project.inth.app',
+	scripts,
+});
 ```
 
 `start()` reads stored choices, requests the policy, starts the script loader,

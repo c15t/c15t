@@ -1,6 +1,6 @@
 ---
 title: Customize
-description: Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a TanStack Start app with the stylesheet, theme tokens, ConsentRoot options and slots.
+description: Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a TanStack Start app with the stylesheet, theme tokens, ConsentRoot options and component parts.
 group: frameworks
 ---
 
@@ -11,7 +11,8 @@ group: frameworks
 | Brand colors, fonts, radius, spacing | [Theme tokens](#change-colors-fonts-and-radius) |
 | Which button is filled or outlined | [`consentActions`](#style-the-action-buttons) |
 | Banner shape and position | [`ConsentBanner` props or `presentation`](#change-the-banner-shape) |
-| One element of a component | [Slots](#style-one-part-with-slots) |
+| One element of a component | [Component parts](#style-one-component-part) |
+| Light and dark colors, animation | [Dark mode and motion](#turn-on-dark-mode-and-change-motion) |
 | Labels and languages | [Copy and translations](#change-the-copy) |
 | Different markup entirely | [Headless](/docs/frameworks/tanstack-start/headless) |
 
@@ -38,31 +39,11 @@ import consentCss from 'c15t/tanstack-start/styles.css?url';
 
 If your app already has a global stylesheet, you can `@import` the c15t
 stylesheet from it instead. The rules live in `@layer components`, so
-Tailwind 4 utilities override them without extra specificity.
-
-With Tailwind 3, keep `c15t/tanstack-start/styles.css`. If you import it from
-CSS, put the import above the `@tailwind` directives; `postcss-import` ignores
-an `@import` that follows other rules. Then add `@c15t/ui/postcss-tailwind3`
-before `tailwindcss` in your PostCSS config. Tailwind 3 rejects
-`@layer components` without its own `@tailwind components` directive, and the
-plugin removes those layer wrappers from c15t's stylesheets, including the
-dialog stylesheet the bundler loads:
-
-```js title="postcss.config.mjs"
-export default {
-  plugins: {
-    '@c15t/ui/postcss-tailwind3': {},
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-};
-```
-
-Use this object form: the PostCSS loader Vite uses rejects plugin names in an
-array. With pnpm, add `@c15t/ui` to your dependencies so PostCSS can load the
-plugin. Tailwind 3 has no cascade layers, so utilities you pass to slots need
-the important modifier, such as `!bg-red-500`. Tailwind 4 utilities win
-without it.
+Tailwind 4 utilities override them without extra specificity. Tailwind 3 needs
+a PostCSS plugin and the import above the `@tailwind` directives;
+[Tailwind CSS](/docs/customization/tailwind) shows both setups for TanStack
+Start, and [stylesheets and CSS layers](/docs/customization/stylesheets)
+explains the layer order.
 
 ## Change colors, fonts and radius
 
@@ -105,8 +86,8 @@ use both, a variable set in both places takes the `ConsentTheme` value. Write
 your CSS overrides on `:root:root` to beat it, or move the values into the
 theme.
 
-[Tokens and CSS](/docs/customization/tokens) lists every variable, dark mode
-and scoping tokens to one consent model.
+[Theme tokens](/docs/customization/tokens) lists every variable and scoping
+tokens to one consent model.
 
 ## Style the action buttons
 
@@ -144,7 +125,7 @@ one shape everywhere, set `options.presentation.prompt` on `ConsentRoot`
 instead. [ConsentBanner](/docs/frameworks/tanstack-start/components/consent-banner#variants)
 lists every variant and position.
 
-## Style one part with slots
+## Style one component part
 
 Each component part is a slot that accepts any attribute its element takes,
 such as `className` or `style`. Set slots in `ConsentRoot`'s
@@ -162,8 +143,25 @@ options={{
 }}
 ```
 
-[Slots](/docs/customization/slots) lists the keys for every component and when
-to drop the built-in styles with `noStyle`.
+[Component parts](/docs/customization/slots) lists the keys for every component
+and when to drop the built-in styles with `noStyle`. The `ConsentGate`
+placeholder's parts are `components['consent-gate'].root`, `.title` and
+`.button`.
+[Class names and CSS-in-JS](/docs/customization/class-names) covers CSS
+Modules, vanilla-extract, StyleX and Emotion.
+
+## Turn on dark mode and change motion
+
+Pass `colorScheme` to `ConsentTheme` in the root route and the same value in
+`options` on `ConsentRoot`. Leave it unset to follow a `dark` class on
+`<html>`, and add dark colors with `theme.dark`.
+[Dark mode](/docs/customization/dark-mode) covers each value and a dark first
+paint.
+
+`options.disableAnimation` on `ConsentRoot` turns off the banner and dialog
+animations, and the same prop on `ConsentBanner` or `ConsentDialog` overrides
+it for one surface. [Motion and animation](/docs/customization/motion) covers
+the duration and easing tokens and reduced motion.
 
 ## Change the copy
 

@@ -1,86 +1,21 @@
 ---
 title: Theme tokens
-description: Style c15t with semantic tokens and use the stylesheet that matches your CSS tooling.
+description: Change c15t's colors, type, radius, spacing, shadows and motion with theme tokens, and see every --c15t-* variable with its default.
 group: customization
 ---
 
-## Load the stock stylesheet once
+## Where tokens come from
 
-React, Next.js and Svelte provide `styles.css`. Import the adapter's stylesheet
-at the app's global entry point. Vue includes styles in its components; Astro
-adds styles through its integration.
-
-The stylesheet blocks rendering, so it carries only what a first paint can
-show: the default tokens, every c15t CSS variable, and the rules for the
-banner, `ConsentDialogTrigger` and the `ConsentGate` placeholder. The consent
-dialog and preference widget bring their own rules. Each rule reaches the page
-once.
-
-```tsx
-import 'c15t/react/styles.css';
-```
-
-| File | Holds | Loaded by |
-| --- | --- | --- |
-| `styles.css` | Default tokens, all variables, banner, trigger and `ConsentGate` rules | Your app, once |
-| `@c15t/ui/styles/dialog.css` | Dialog and preference widget rules | The dialog component, with its lazy chunk |
-| `@c15t/ui/styles/primitives.css` | Rules for the `@c15t/ui/styles/primitives` class maps | Svelte's `styles.css`, or your app if it renders those class maps |
-| `iab/styles.css` | IAB TCF banner and dialog rules and variables | Your app, after `styles.css` |
-
-In React, Next.js and TanStack Start, the dialog's module imports
-`@c15t/ui/styles/dialog.css`. The bundler emits it with the dialog's chunk and
-loads it before that chunk runs, so the dialog never renders unstyled. The
-chunk loads after first paint, by the time the dialog first opens. Do not
-import `dialog.css` yourself. The `@c15t/react/components/consent-dialog`,
-`/components/consent-widget`, `/primitives`, `/primitives/*` and `/iab` entry
-points import it as soon as you import them, because they render dialog parts
-outside the lazy chunk.
-
-These modules import the stylesheet through `@c15t/ui/styles/dialog`. Under
-the `node` export condition that module imports nothing, so server code that
-loads `@c15t/react` with plain Node, such as the Pages Router or an SSR build
-that keeps dependencies external, does not fail on the `.css` file. In your
-own components, import `@c15t/ui/styles/dialog` rather than the `.css` file
-if the module can run on the server.
-
-Svelte loads its dialog in a separate chunk too, but
-`@c15t/svelte/styles.css` already includes the dialog and primitive rules, so
-Svelte apps import that one stylesheet. Astro injects the banner rules on every
-page and links the dialog's stylesheets when a visitor first points at, focuses
-or opens a control that opens the dialog, so in Astro the dialog rules do not
-block rendering. Vue components import their own stylesheets.
-
-The dialog rules sit in `@layer components` and declare no variables, so
-tokens from `theme`, variables you override in your own CSS, and Tailwind 4
-utilities still win over them even though they load later. If you import
-`styles.css` into a named layer, such as `@import 'c15t/react/styles.css'
-layer(c15t)`, the dialog rules still join the top-level `components` layer.
-List `components` in your layer order statement, for example
-`@layer c15t, components, app;`, so it does not land after your own layers.
-
-The stylesheets place rules in `@layer components`. Tailwind 3 rejects a
-stylesheet that uses `@layer components` without its own `@tailwind
-components` directive, and drops layer rules whose class names are not in your
-source. Keep importing `styles.css` and add the c15t plugin before
-`tailwindcss` in your PostCSS config. It removes the layer wrappers from
-`styles.css`, `iab/styles.css` and the dialog stylesheet the bundler loads, so
-Tailwind 3 keeps the rules and its preflight does not override them:
-
-```js title="postcss.config.mjs"
-export default {
-  plugins: {
-    '@c15t/ui/postcss-tailwind3': {},
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-};
-```
-
-Import `styles.css` above your `@tailwind` directives; `postcss-import`
-ignores an `@import` that follows other rules. Earlier setups that import
-`styles.tw3.css` keep working with the plugin. Do not load both
-`styles.css` and `styles.tw3.css`. For Tailwind 4 or unlayered CSS,
-inspect layer order before reaching for `!important`.
+c15t's components take their colors from `--c15t-*` CSS variables, and most
+of their fonts, radii, spacing, shadows and motion too. c15t's stylesheet sets
+the defaults. You change them with a theme object or with CSS, and every part
+that reads a token changes with it. Some values are still fixed for one
+component, such as button padding, the radius of the "Secured by" tag and
+several font sizes and weights, so a token change does not move them. Restyle
+those parts through [slots](/docs/customization/slots) or your own CSS.
+[Stylesheets and CSS layers](/docs/customization/stylesheets)
+covers which stylesheet to load, and [dark mode](/docs/customization/dark-mode)
+covers the dark set of tokens.
 
 ## Set semantic values together
 
@@ -92,23 +27,30 @@ readable in each state.
 import { defineTheme } from '@c15t/ui/theme';
 
 export const theme = defineTheme({
-  colors: { primary: '#2f6f4e' },
-  radius: { lg: '4px' },
-  consentActions: {
-    primary: { variant: 'primary', mode: 'filled' },
-    dismiss: { variant: 'neutral', mode: 'stroke' },
-  },
+	colors: { primary: '#2f6f4e' },
+	radius: { lg: '4px' },
+	consentActions: {
+		primary: { variant: 'primary', mode: 'filled' },
+		dismiss: { variant: 'neutral', mode: 'stroke' },
+	},
 });
 ```
 
-Install `@c15t/ui` if importing its theme helper directly. The browser does
-not turn tokens into CSS. In React and Next.js, render
-`<ConsentTheme theme={theme} />` where the app renders on the server, and pass
-`theme` in your provider options for `consentActions`. Elsewhere, call
-`generateThemeCSS(theme)` from `@c15t/ui/theme` on the server or at build time
-and put the result in a `<style>` element or your stylesheet. See
-[React customization](/docs/frameworks/react/customize) and
-[Next.js customization](/docs/frameworks/next/customize).
+Install `@c15t/ui` if importing its theme helper directly. Where the theme
+goes depends on the framework:
+
+| Framework | Tokens | `consentActions` |
+| --- | --- | --- |
+| Next.js, TanStack Start, React | `<ConsentTheme theme={theme} />`, rendered on the server where the app has one | `theme` in the provider options |
+| Nuxt, Vue | `theme` or `tokens` in the module or plugin options | Not available |
+| Astro | `theme` in the integration options | The same `theme` |
+| Svelte, SvelteKit | `generateThemeCSS(theme)` from `@c15t/ui/theme` on the server, in a `<style>` element, or `--c15t-*` variables in your stylesheet | `theme` on `ConsentManagerProvider` |
+| HTML, JavaScript | `ui.theme` | Not available |
+
+React and Svelte providers do not turn tokens in their `theme` option into
+CSS, and warn in development when a theme holds tokens but the page has no
+`<style id="c15t-theme">`. Your framework's customize page shows the full
+setup.
 
 `consentActions` selects styling by action role. A per-action entry overrides
 `primary`, which overrides `default`.
@@ -137,12 +79,13 @@ on the banner element itself, so they still apply inside it.
 
 ## Every token
 
-Every framework uses the same tokens. React, Next.js, TanStack Start and
-Astro take the theme key, such as `radius.lg`, in a `theme` object. Vue and
-Nuxt take the CSS variable name without the leading `--`, such as
-`c15t-radius-lg`, in `tokens`. Svelte and the HTML script tag set the CSS
-variable in a stylesheet. Your framework's customize page shows where each one
-goes.
+Every framework uses the same tokens. A theme object, such as `ConsentTheme`'s
+`theme`, Astro's and Vue's `theme` or the script tag's `ui.theme`, takes the
+theme key, such as `radius.lg`. Vue and Nuxt `tokens` take the CSS variable
+name without the leading `--`, such as `c15t-radius-lg`. A stylesheet sets the
+CSS variable itself. Your framework's customize page shows where each one goes.
+[Motion and animation](/docs/customization/motion) explains the duration and
+easing tokens.
 
 <include src="../shared/reference/theme-tokens.mdx" />
 
@@ -163,8 +106,9 @@ and its buttons the same 4px corners, set both `lg` and `md`.
 ```
 
 Use attributes exposed by the rendered component, not guessed class names.
-Test the prompt and the preferences dialog separately because tokens scoped to
-one prompt do not automatically reach a portaled dialog.
+The script tag's banner has no `data-prompt` or `data-model`. Test the prompt
+and the preferences dialog separately because tokens scoped to one prompt do
+not automatically reach a portaled dialog.
 
 | Size variable | Default | Target |
 | --- | --- | --- |

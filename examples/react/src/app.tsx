@@ -50,7 +50,7 @@ export const App = () => {
 					</li>
 				</ul>
 				<p>
-					Set your project IDs in .env.local to enable the vendor scripts.
+					Replace the placeholder project IDs in scripts.ts with your own.
 					DevTools shows their loading status in development.
 				</p>
 			</section>

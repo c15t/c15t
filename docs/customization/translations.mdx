@@ -56,6 +56,48 @@ The notice acknowledgement uses `common.acknowledge`, with `common.dismiss` as
 a fallback for older translation bundles. Keep the displayed label and the
 command's effect aligned.
 
+## Translate the ConsentGate placeholder
+
+The `ConsentGate` placeholder reads the `consentGate` section:
+
+| Key | Where it shows |
+| --- | --- |
+| `consentGate.title` | The placeholder text. `{category}` is replaced by the category's translated title. |
+| `consentGate.actionButton` | The button that opens preferences, with the same `{category}` replacement. |
+| `consentGate.policyBlocked` | React and Vue show it in place of the title, with no button, when a strict policy leaves the category out of scope. |
+
+Earlier versions called this section `frame`. Copy under `frame` in
+`i18n.messages`, custom translations or an older backend's `/init` response
+still applies. c15t reads it as `consentGate`, a key set under `consentGate`
+wins over the same key under `frame`, and c15t logs a warning once outside
+production. Rename the section to `consentGate` to remove the warning.
+
+## Show right-to-left languages
+
+c15t sets `dir="rtl"` on its surfaces when the resolved language is Arabic,
+Hebrew, Persian, Urdu, Pashto, Sindhi, Kurdish or Dhivehi. It matches the
+primary language, so `ar-EG` counts as Arabic. Hebrew is the only
+right-to-left translation c15t ships. For the others, supply your own
+messages or the copy from your Inth project.
+
+What follows the direction:
+
+- Text, headings and the button row in the banner, the preference dialog and
+  the preference widget flow right to left.
+- A floating or widget banner in its default corner moves to the mirrored
+  corner, so `bottom-left` becomes `bottom-right`. A `position` you set
+  yourself stays where you put it.
+- The HTML script tag, `@c15t/browser` and Astro's banner also set `lang` on
+  their surfaces. React, Vue and Svelte set `dir` only, so set `lang` on
+  `<html>` yourself.
+
+What does not follow yet:
+
+- The IAB TCF dialog aligns several labels, indents and borders to the left.
+- The floating `ConsentDialogTrigger` keeps the corner you give it.
+
+Test right-to-left pages with a real translation before you ship them.
+
 ## Test more than English
 
 Try the longest labels you support at a narrow width, with browser zoom and

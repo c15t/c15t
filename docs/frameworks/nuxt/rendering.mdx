@@ -52,10 +52,7 @@ policy asks for one.
 
 ```ts title="nuxt.config.ts"
 export default defineNuxtConfig({
-  routeRules: {
-    '/blog/**': { swr: 3600 },
-    '/about': { prerender: true },
-  },
+	routeRules: { '/blog/**': { swr: 3600 }, '/about': { prerender: true } },
 });
 ```
 
@@ -87,12 +84,12 @@ browser would call the missing `/api/c15t/init` route.
 
 ```ts title="nuxt.config.ts"
 export default defineNuxtConfig({
-  c15t: {
-    backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL,
-    manifest: 'client',
-    manifestURL: `${process.env.NUXT_PUBLIC_C15T_BACKEND_URL}/manifest`,
-  },
-  modules: ['c15t/vue'],
+	c15t: {
+		backendURL: 'https://your-project.inth.app',
+		manifest: 'client',
+		manifestURL: 'https://your-project.inth.app/manifest',
+	},
+	modules: ['c15t/vue'],
 });
 ```
 

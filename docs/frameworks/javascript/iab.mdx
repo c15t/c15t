@@ -14,26 +14,24 @@ dialog. The plain entry leaves them out.
 ```ts title="src/main.ts"
 import { init } from '@c15t/browser/iab';
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) throw new Error('Set VITE_C15T_BACKEND_URL');
-
 const consent = init({
-  backendURL,
-  iab: { cmpId: YOUR_CMP_ID, vendors: [1, 2, 755] },
+	backendURL: 'https://your-project.inth.app',
+	iab: { cmpId: YOUR_CMP_ID, vendors: [1, 2, 755] },
 });
 
 await consent.ready();
 const cmp = consent.runtime.iab;
 if (cmp) {
-  await cmp.whenReady?.();
-  cmp.setPurposeConsent(1, true);
-  cmp.setVendorConsent(755, true);
-  const result = await consent.saveIAB();
-  if (!result.ok) consent.openDialog();
+	await cmp.whenReady?.();
+	cmp.setPurposeConsent(1, true);
+	cmp.setVendorConsent(755, true);
+	const result = await consent.saveIAB();
+	if (!result.ok) consent.openDialog();
 }
 ```
 
-Replace `YOUR_CMP_ID` with your registered CMP ID, as explained below. The
+Replace `https://your-project.inth.app` with your project's backend URL and
+`YOUR_CMP_ID` with your registered CMP ID, as explained below. The
 second half shows confirming individual choices from code; the stock dialog
 does this for visitors. `ready()` waits for the policy, and `whenReady()` waits
 for the vendor list and CMP setup. `acceptAll()` and `rejectAll()` confirm
@@ -53,8 +51,11 @@ policy:
 ```ts
 import { createIAB } from '@c15t/iab';
 
-function attachIAB(kernel: Parameters<typeof createIAB>[0]['kernel'], cmpId: number) {
-  return createIAB({ kernel, cmpId });
+function attachIAB(
+	kernel: Parameters<typeof createIAB>[0]['kernel'],
+	cmpId: number
+) {
+	return createIAB({ kernel, cmpId });
 }
 ```
 
@@ -79,17 +80,20 @@ each restriction.
 ```ts
 import { createIAB } from '@c15t/iab';
 
-function attachIAB(kernel: Parameters<typeof createIAB>[0]['kernel'], cmpId: number) {
-  return createIAB({
-    kernel,
-    cmpId,
-    publisherRestrictions: [
-      // Vendors 10 and 755 may not use purpose 4.
-      { purposeId: 4, restrictionType: 0, vendorIds: [10, 755] },
-      // Vendor 755 must use legitimate interest for purpose 7.
-      { purposeId: 7, restrictionType: 2, vendorIds: [755] },
-    ],
-  });
+function attachIAB(
+	kernel: Parameters<typeof createIAB>[0]['kernel'],
+	cmpId: number
+) {
+	return createIAB({
+		kernel,
+		cmpId,
+		publisherRestrictions: [
+			// Vendors 10 and 755 may not use purpose 4.
+			{ purposeId: 4, restrictionType: 0, vendorIds: [10, 755] },
+			// Vendor 755 must use legitimate interest for purpose 7.
+			{ purposeId: 7, restrictionType: 2, vendorIds: [755] },
+		],
+	});
 }
 ```
 

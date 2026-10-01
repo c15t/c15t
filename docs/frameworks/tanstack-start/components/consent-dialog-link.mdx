@@ -18,12 +18,14 @@ renders one in the root route's footer.
 import { ConsentDialogLink } from 'c15t/tanstack-start';
 
 export function SiteFooter() {
-  return (
-    <footer>
-      <a href="/privacy">Privacy policy</a>
-      <ConsentDialogLink className="footer-link">Privacy settings</ConsentDialogLink>
-    </footer>
-  );
+	return (
+		<footer>
+			<a href="/privacy">Privacy policy</a>
+			<ConsentDialogLink className="footer-link">
+				Privacy settings
+			</ConsentDialogLink>
+		</footer>
+	);
 }
 ```
 

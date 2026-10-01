@@ -18,47 +18,50 @@ component inside `ConsentRoot` in place of `ConsentBanner`, and keep
 {/* example: fragment */}
 
 ```tsx title="src/components/consent-banner.tsx"
-import { useHeadlessConsentUI, useTranslations } from 'c15t/tanstack-start/headless';
+import {
+	useHeadlessConsentUI,
+	useTranslations,
+} from 'c15t/tanstack-start/headless';
 
 const ACTION_LABELS = {
-  accept: 'acceptAll',
-  reject: 'rejectAll',
-  customize: 'customize',
-  dismiss: 'acknowledge',
-  save: 'save',
+	accept: 'acceptAll',
+	reject: 'rejectAll',
+	customize: 'customize',
+	dismiss: 'acknowledge',
+	save: 'save',
 } as const;
 
 export function Banner() {
-  const { banner, performAction, openDialog } = useHeadlessConsentUI();
-  const { common, rights } = useTranslations();
+	const { banner, performAction, openDialog } = useHeadlessConsentUI();
+	const { common, rights } = useTranslations();
 
-  if (!banner.isVisible) {
-    return null;
-  }
+	if (!banner.isVisible) {
+		return null;
+	}
 
-  return (
-    <section role="region" aria-label="Privacy">
-      {banner.preferenceControls.map((right) => (
-        <button key={right} type="button" onClick={openDialog}>
-          {right === 'opt-out' ? rights?.optOut : rights?.preferences}
-        </button>
-      ))}
-      {banner.actionGroups.map((group) => (
-        <div key={group.join('-')}>
-          {group.map((action) => (
-            <button
-              key={action}
-              type="button"
-              data-primary={banner.primaryActions.includes(action) || undefined}
-              onClick={() => performAction(action)}
-            >
-              {common[ACTION_LABELS[action]]}
-            </button>
-          ))}
-        </div>
-      ))}
-    </section>
-  );
+	return (
+		<section role="region" aria-label="Privacy">
+			{banner.preferenceControls.map((right) => (
+				<button key={right} type="button" onClick={openDialog}>
+					{right === 'opt-out' ? rights?.optOut : rights?.preferences}
+				</button>
+			))}
+			{banner.actionGroups.map((group) => (
+				<div key={group.join('-')}>
+					{group.map((action) => (
+						<button
+							key={action}
+							type="button"
+							data-primary={banner.primaryActions.includes(action) || undefined}
+							onClick={() => performAction(action)}
+						>
+							{common[ACTION_LABELS[action]]}
+						</button>
+					))}
+				</div>
+			))}
+		</section>
+	);
 }
 ```
 

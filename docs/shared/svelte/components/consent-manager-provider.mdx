@@ -30,11 +30,10 @@ from `@c15t/svelte` lists every option.
 | `user` | `User` | none | Identity sent to the backend so the choice is linked to your user ID. A change after mount identifies the new user. |
 | `storageConfig` | `StorageConfig` | cookie and key `c15t` | Names and lifetime of the stored choice. Read once. On SvelteKit, pass the same name as `cookieName` to the server helpers. |
 | `persistence` | `boolean` or options | `true` | `false` keeps choices in memory only. Read once. |
-| `clearOnRevocation` | `ClearOnRevocationConfig` | off | Deletes first-party cookies and storage entries when their category is withdrawn. See [clearing data on revocation](/docs/integrations/clear-on-revocation). Read once. |
-| `vendors` | `Vendor[]` | none | Vendors offered for vendor-level consent outside IAB. Read once. |
+| `clearOnRevocation` | `ClearOnRevocationConfig` | off | Deletes first-party cookies and storage entries when their category is withdrawn. See [clearing data on revocation](../clear-on-revocation). Read once. |
+| `vendors` | `Vendor[]` | none | Vendors offered for vendor-level consent outside IAB. See [vendor consent](../vendor-consent). Read once. |
 | `nonce` | `string` | none | Content Security Policy nonce for the `<script>` elements the script loader adds. See [Content Security Policy](../content-security-policy). Read once. |
 | `enabled` | `boolean` | `true` | `false` grants every category, hides all consent UI and skips `/init`. Read once. |
-| `consentSource` | `ExternalConsentSource` | none | Takes permissions from another CMP. c15t then stores nothing and shows no choice UI. Read once. |
 | `runtime` | `ConsentRuntime` | none | A runtime you created with `createConsentRuntime()`. See [share one runtime](#share-one-runtime). |
 | `options` | `ConsentManagerOptions` | none | The same options as one object. |
 | `children` | `Snippet` | none | Your app. The provider renders no markup of its own. |

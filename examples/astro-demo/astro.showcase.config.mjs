@@ -8,6 +8,7 @@ import { defineConfig } from 'astro/config';
 import c15t, { hosted, offline } from 'c15t/astro';
 
 import { demoGvl, demoIabPolicy } from './demo-gvl.mjs';
+import { testBackend } from './test-backend.mjs';
 
 // The showcase build: offline policies, the IAB TCF surfaces and the
 // dialog-framework comparison. `astro.config.mjs` selects it when no
@@ -42,6 +43,10 @@ const experiment = process.env.C15T_EXPERIMENT === '1';
 // Then open /iab. A real site has one mode; the flag is here so the TCF
 // surfaces can be exercised without a second demo app.
 const iab = process.env.C15T_IAB === '1';
+
+// The acceptance suite's mock backend, when it sets one. Without it the
+// showcase runs offline.
+const { url: backendURL } = testBackend('url');
 
 // Built up rather than spread conditionally: the IAB options and the mode
 // travel together — a TCF policy pack with no vendor list resolves a
@@ -111,10 +116,7 @@ export default defineConfig({
 			// vendor list the server needs to render the IAB banner at all;
 			// hosted and manifest mode get theirs from `/init`.
 			...iabOptions,
-			mode:
-				process.env.C15T_BACKEND_URL && !iab
-					? hosted({ url: process.env.C15T_BACKEND_URL })
-					: iabOptions.mode,
+			mode: backendURL && !iab ? hosted({ url: backendURL }) : iabOptions.mode,
 			scripts: [
 				{
 					category: 'measurement',

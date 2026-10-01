@@ -1,0 +1,120 @@
+---
+title: Class names and CSS-in-JS
+description: Style c15t's component parts with CSS Modules, vanilla-extract, StyleX, Emotion or plain class names, and see which approach works in each framework.
+group: customization
+---
+
+## Pass a class to a part
+
+CSS Modules, vanilla-extract, StyleX, Emotion and Tailwind all end up as a class
+on an element and a rule in a stylesheet. Give c15t the class through your
+framework's part API, and the rule wins over c15t's own rule for that part:
+c15t's rules sit in the `components` cascade layer, and an unlayered rule from
+your stylesheet outranks any layered one.
+
+Each example below adds a 3px colored border and 4px corners to the banner card.
+The React examples run as Storybook stories in CI, which check that each class
+lands on the card and that the computed border comes from the class, not from
+c15t's own card rule. The script tag examples run in the example app's browser
+tests.
+
+| Framework | Part API | Class key | Inline `style` | Where the class's CSS must load |
+| --- | --- | --- | --- | --- |
+| Next.js, TanStack Start, React | `components.<component>.<part>`, or `theme.slots` | `className` | Yes | Anywhere on the page |
+| Nuxt, Vue | `components.<component>.<part>`, or `theme.slots` | `class` (`className` in `theme.slots`) | Yes | Anywhere on the page |
+| Svelte, SvelteKit | `theme.slots`, or `class` on a component | A string, or `className` in a slot object | Yes | A global stylesheet, or `:global()` |
+| Astro | `theme.slots` in the integration options, or `class` on `ConsentBanner` | A string, or `className` in a slot object | Yes | A global stylesheet |
+| HTML, JavaScript | `ui.theme.slots` | A string, or `className` in a slot object | Yes | Inside the shadow root through `ui.stylesheetURLs`, or anywhere with `shadow: false` |
+
+[Component parts](/docs/customization/slots) lists the parts and their keys in
+each framework.
+
+## CSS Modules
+
+Import the module and pass its class. This works wherever your bundler compiles
+CSS Modules:
+
+<include src="../shared/examples/storybook-react/class-names-css-modules-css.mdx" />
+
+<include src="../shared/examples/storybook-react/class-names-css-modules.mdx" />
+
+Pass `components` in your `ConsentProvider` options, or in `options` on
+`ConsentRoot` in Next.js and TanStack Start.
+
+## vanilla-extract
+
+vanilla-extract compiles `style()` calls in `.css.ts` files to static CSS at
+build time. Add its plugin for your bundler, such as
+`@vanilla-extract/vite-plugin`, then pass the class:
+
+<include src="../shared/examples/storybook-react/class-names-vanilla-extract.mdx" />
+
+## StyleX
+
+`stylex.props()` returns `className` and, for dynamic values, `style`. A React
+part accepts both, so spread the result into the part. Add the StyleX compiler
+plugin for your bundler, such as `@stylexjs/unplugin`:
+
+<include src="../shared/examples/storybook-react/class-names-stylex.mdx" />
+
+StyleX writes atomic classes into an unlayered stylesheet, so they outrank
+c15t's layered rules without extra specificity.
+
+## Emotion
+
+`css()` from `@emotion/css` returns a class name and inserts its rule into a
+`<style>` element in the document `<head>` when your code runs:
+
+<include src="../shared/examples/storybook-react/class-names-emotion.mdx" />
+
+Emotion inserts its rules into the page, not into a shadow root. With the HTML
+script tag or `@c15t/browser`, set `ui: { shadow: false }` so the UI renders
+in the page where those rules reach it. `ui.stylesheetURLs` cannot carry them,
+because they have no URL.
+
+## Use other frameworks' part APIs
+
+Vue and Nuxt bind a part's object to the element with `v-bind`, so write
+`class` rather than `className`. A class string from CSS Modules,
+vanilla-extract or Emotion works the same way. To use StyleX, map its
+`className` to `class`.
+
+Svelte scopes component styles, so a class defined in a component's `<style>`
+block does not reach a c15t part. Define it in a global stylesheet or with
+`:global(.your-class)`. `theme.slots` accepts a string or
+`{ className, style }`, and `class` on `ConsentBanner` goes on the banner root.
+
+Astro serializes its integration options, so `theme.slots` in
+`astro.config.mjs` takes plain strings and objects. Use class names from a
+global stylesheet or Tailwind there. Build-time tools that export class names
+from a module, such as CSS Modules, cannot reach `astro.config.mjs`.
+
+## Style the script tag's shadow root
+
+The script tag and `init()` from `@c15t/browser` render into a shadow root. A
+class from your page's stylesheet reaches a part only if the stylesheet reaches
+the shadow root. Pick one:
+
+- **`ui.stylesheetURLs`.** c15t links each URL inside the shadow root, after
+  its own stylesheet. Link the stylesheet that holds your classes, such as your
+  CSS Modules or Tailwind build.
+- **`::part()`.** Every part with a slot key carries it in a `part` attribute.
+  Page CSS can style it with `[data-c15t-ui]::part(consentBannerCard)`,
+  without any class.
+- **`ui.css`.** A string of CSS that c15t adds inside the shadow root.
+- **`shadow: false`.** c15t renders into the page and every page stylesheet
+  applies, including Emotion's.
+
+This example links a Tailwind build into the shadow root and puts utilities on
+two parts:
+
+<include src="../shared/examples/script-tag/tailwind-classes.mdx" />
+
+## Check the result
+
+1. Open the page in a private window so the banner shows.
+2. Select the banner card in the Elements panel. It carries your class.
+3. In the Styles panel, your rule applies and c15t's rule for the same
+   property is struck out. If your class is on the element but its rule is
+   missing, the stylesheet does not reach the part. Check the "Where the class's CSS
+   must load" column in [Pass a class to a part](#pass-a-class-to-a-part).

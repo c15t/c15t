@@ -51,8 +51,8 @@ permission first, then that the queue exists:
 
 ```ts title="src/track-signup.ts"
 export function trackSignup(measurementAllowed: boolean, plan: string) {
-  if (!measurementAllowed || !window.analytics) return;
-  window.analytics.track('Signup', { plan });
+	if (!measurementAllowed || !window.analytics) return;
+	window.analytics.track('Signup', { plan });
 }
 ```
 

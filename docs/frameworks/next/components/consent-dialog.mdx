@@ -36,12 +36,12 @@ surface:
 import { useSetActiveUI } from 'c15t/next';
 
 export function PrivacyMenuItem() {
-  const setActiveUI = useSetActiveUI();
-  return (
-    <button type="button" onClick={() => setActiveUI('dialog')}>
-      Cookie preferences
-    </button>
-  );
+	const setActiveUI = useSetActiveUI();
+	return (
+		<button type="button" onClick={() => setActiveUI('dialog')}>
+			Cookie preferences
+		</button>
+	);
 }
 ```
 

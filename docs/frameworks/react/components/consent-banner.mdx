@@ -92,9 +92,7 @@ button through the provider's theme:
 ```ts
 const theme = {
 	colors: { primary: '#2f6f4e', primaryHover: '#24563c' },
-	consentActions: {
-		primary: { variant: 'primary', mode: 'filled' },
-	},
+	consentActions: { primary: { variant: 'primary', mode: 'filled' } },
 } as const;
 ```
 
@@ -113,14 +111,14 @@ Set the variant on the banner, or on the provider under
 `presentation.prompt` when every banner should share it. The prop wins.
 
 ```tsx
-<ConsentBanner variant="floating" position="bottom-center" />
+<ConsentBanner variant="floating" position="bottom-center" />;
 ```
 
 A floating card in a corner or centered on an edge. This is the default for
 every prompt. A notice keeps the same card, with its right link and "OK" in the footer.
 
 ```tsx
-<ConsentBanner variant="bar" position="top" />
+<ConsentBanner variant="bar" position="top" />;
 ```
 
 A bar across the full width of the viewport. From 1024px wide the text, the
@@ -128,14 +126,14 @@ right links, and the controls share one row. Opt in to it for regions that
 expect a classic cookie bar.
 
 ```tsx
-<ConsentBanner variant="widget" position="bottom-right" />
+<ConsentBanner variant="widget" position="bottom-right" />;
 ```
 
 A compact card with smaller type. The full description and its legal links
 remain visible. Pair it with a short notice.
 
 ```tsx
-<ConsentBanner variant="wall" />
+<ConsentBanner variant="wall" />;
 ```
 
 A centered card over a backdrop that blocks the page until the visitor
@@ -218,7 +216,7 @@ Use the individual parts when you need a different order or your own markup:
 	<ConsentBanner.RightLink right="opt-out" asChild>
 		<a href="/privacy/do-not-sell">Do not sell or share my data</a>
 	</ConsentBanner.RightLink>
-</ConsentBanner.Rights>
+</ConsentBanner.Rights>;
 ```
 
 `useBannerCopy()` returns the title, description, and prompt kind the banner

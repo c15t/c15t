@@ -40,12 +40,7 @@ export const CookieBanner = () => {
 						}
 						const Action = actionParts[action];
 						return (
-							<Action
-								key={key}
-								{...props}
-								asChild
-								noStyle
-							>
+							<Action key={key} {...props} asChild noStyle>
 								<BrandButton tone={isPrimary ? 'solid' : 'outline'}>
 									{labels[action]}
 								</BrandButton>

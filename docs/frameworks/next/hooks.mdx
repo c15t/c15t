@@ -18,8 +18,8 @@ Client Component rendered inside that root and import them from
 import { useConsent } from 'c15t/next';
 
 export function OptionalFeature() {
-  const allowed = useConsent('marketing');
-  return allowed ? <div>Optional marketing content</div> : null;
+	const allowed = useConsent('marketing');
+	return allowed ? <div>Optional marketing content</div> : null;
 }
 ```
 
@@ -35,8 +35,12 @@ Place this Client Component inside your existing consent boundary.
 import { useSaveConsents } from 'c15t/next';
 
 export function RejectButton() {
-  const save = useSaveConsents();
-  return <button type="button" onClick={() => void save('none')}>Reject optional</button>;
+	const save = useSaveConsents();
+	return (
+		<button type="button" onClick={() => void save('none')}>
+			Reject optional
+		</button>
+	);
 }
 ```
 

@@ -11,11 +11,10 @@ bun install
 bun run build:libs
 ```
 
-Copy `.env.example` to `.env.local` in this directory. Set
-`VITE_C15T_BACKEND_URL` to your Inth endpoint and allow this app's origin in
-Inth. The URL is public. Set the PostHog project key and X Pixel ID to enable
-the corresponding integration; unset IDs leave those scripts unregistered.
-Then run:
+Replace `https://your-project.inth.app` in `src/main.ts`, `src/branded.ts`
+and `src/headless.ts` with your Inth backend URL, and allow this app's origin
+in Inth. Replace the PostHog project key and X Pixel ID placeholders in
+`src/scripts.ts` with your own. Then run:
 
 ```sh
 bun run --cwd examples/vue dev
@@ -48,7 +47,9 @@ The files the docs publish are complete recipes:
 
 `src/entry.ts` is demo-only: it mounts the branded setup for `?design=branded`,
 the headless setup for `/headless`, the experiment setup for `?experiment=1`,
-and `main.ts` otherwise. `src/HomePage.vue` holds the demo page content and
+and `main.ts` otherwise. `src/test-backend.ts` lets the acceptance suite
+replace the backend URL through `VITE_C15T_BACKEND_URL`; the lines that use it
+are left out of the docs. `src/HomePage.vue` holds the demo page content and
 loads DevTools in development builds.
 
 ## Banner experiment

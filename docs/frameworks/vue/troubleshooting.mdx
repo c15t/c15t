@@ -45,9 +45,9 @@ matched policy. In the Network tab, find the `/init` request.
    your site's origin is missing from the Inth project's trusted origins.
    While resolution fails, c15t shows no UI and keeps every optional category
    denied.
-4. **`VITE_C15T_BACKEND_URL` was not set when Vite built the app.** Vite
-   replaces it at build time, so restart the dev server or rebuild after
-   changing it.
+4. **`backendURL` is still the placeholder.** Use your project's URL, not
+   `https://your-project.inth.app`. In the Network tab, `/init` goes to your
+   backend's host.
 5. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
    or use a private window.
 

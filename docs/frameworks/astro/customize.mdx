@@ -16,12 +16,14 @@ serialization, so they hold values, not functions.
 | Which button looks primary | `theme.consentActions` |
 | Wording on every page | `i18n.messages` |
 | Wording on one banner | `ConsentBanner` props |
-| Light or dark surfaces | `colorScheme` |
+| Light or dark surfaces | `colorScheme` and `theme.dark` |
+| One part of a component | `theme.slots`, or `class` on `ConsentBanner` |
+| Animation | `disableAnimation` |
 | Banner position and blocking | `presentation` |
 | Links to your policies | `legalLinks`, and the banner's `legalLinks` prop |
 | Your own CSS from scratch | `noStyle` on the banner, or `styles: false` |
 
-[Customize your consent interface](/docs/customization/overview) explains how
+[Customization](/docs/customization/overview) explains how
 these choices relate across frameworks.
 
 See the [design gallery](/docs/customization/recipes) for five banner designs,
@@ -33,22 +35,22 @@ Put tokens in the integration's `theme` option:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
-  theme: {
-    colors: {
-      primary: '#146b56',
-      primaryHover: '#105442',
-      textOnPrimary: '#ffffff',
-    },
-    radius: { lg: '1.25rem' },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	theme: {
+		colors: {
+			primary: '#146b56',
+			primaryHover: '#105442',
+			textOnPrimary: '#ffffff',
+		},
+		radius: { lg: '1.25rem' },
+	},
 });
 ```
 
 `ConsentScript` renders the tokens on the server as a
 `<style id="c15t-theme">` element, so the banner and the dialog share them from
 the first paint. Set hover and text colors together with a brand color, so each
-button state stays readable. [Theme tokens and CSS](/docs/customization/tokens)
+button state stays readable. [Theme tokens](/docs/customization/tokens)
 lists the tokens.
 
 Put tokens in the integration options, not in the client entrypoint. The
@@ -63,13 +65,13 @@ primary, then `default`:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
-  theme: {
-    consentActions: {
-      primary: { mode: 'filled' },
-      customize: { mode: 'ghost', variant: 'neutral' },
-    },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	theme: {
+		consentActions: {
+			primary: { mode: 'filled' },
+			customize: { mode: 'ghost', variant: 'neutral' },
+		},
+	},
 });
 ```
 
@@ -82,17 +84,18 @@ language:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
-  i18n: {
-    messages: {
-      en: {
-        cookieBanner: {
-          title: 'Cookies on this site',
-          description: 'We use cookies to measure traffic and show relevant ads.',
-        },
-      },
-    },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	i18n: {
+		messages: {
+			en: {
+				cookieBanner: {
+					title: 'Cookies on this site',
+					description:
+						'We use cookies to measure traffic and show relevant ads.',
+				},
+			},
+		},
+	},
 });
 ```
 
@@ -117,16 +120,14 @@ and the message keys the banner reads.
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
-  presentation: {
-    prompt: { variant: 'bar', position: 'bottom' },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	presentation: { prompt: { variant: 'bar', position: 'bottom' } },
 });
 ```
 
 `variant` is `'floating'` (default), `'bar'`, `'widget'` or `'wall'`. The policy
 still decides which actions the banner must offer, and a notice never becomes a
-blocking wall. [Customize your consent interface](/docs/customization/overview#keep-behavior-and-appearance-separate)
+blocking wall. [Keep behavior and appearance separate](/docs/customization/overview#keep-behavior-and-appearance-separate)
 explains what presentation can and cannot change.
 
 ## Set light or dark mode
@@ -139,10 +140,12 @@ integration's `colorScheme` option decides who sets it:
 | `'system'` (default) | Follows `prefers-color-scheme`, including changes while the page is open |
 | `'dark'` | Always adds the class |
 | `'light'` | Always removes the class |
-| `'none'` | Never adds or removes the class. Your site sets it |
+| `'none'` or `null` | Never adds or removes the class. Your site sets it |
 
 With the first three values, `ConsentScript` sets the class before first paint,
-and c15t sets it again after each `ClientRouter` navigation.
+and c15t sets it again after each `ClientRouter` navigation. Set dark colors in
+`theme.dark`. [Dark mode](/docs/customization/dark-mode) explains why Astro
+follows the system setting by default.
 
 Use `'none'` when your site has its own theme switch. Toggle `c15t-dark` on
 `<html>` together with your own dark class. If your theme script does not run
@@ -155,11 +158,11 @@ Define the links once in the integration options:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
-  legalLinks: {
-    privacyPolicy: { href: '/privacy', label: 'Privacy policy' },
-    cookiePolicy: { href: '/cookies', label: 'Cookie policy' },
-  },
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	legalLinks: {
+		privacyPolicy: { href: '/privacy', label: 'Privacy policy' },
+		cookiePolicy: { href: '/cookies', label: 'Cookie policy' },
+	},
 });
 ```
 
@@ -169,39 +172,47 @@ A link without a `label` reads as the translated name for its type, such as
 "Privacy Policy". See
 [ConsentBanner legal links](/docs/frameworks/astro/components/consent-banner#legal-links).
 
+## Style one part of a component
+
+`theme.slots` in the integration options adds classes or inline styles to a
+named part of the banner, the IAB banner and the dialogs:
+
+{/* example: fragment */}
+
+```js title="astro.config.mjs (partial)"
+c15t({
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	theme: {
+		slots: { consentBannerCard: 'brand-card', buttonPrimary: 'brand-button' },
+	},
+});
+```
+
+Define the classes in a global stylesheet. `class` on `ConsentBanner` goes on
+the banner root. [Component parts](/docs/customization/slots) lists the slot
+keys, and [Tailwind CSS](/docs/customization/tailwind) shows the Astro setup
+for Tailwind 4 and 3.
+
+## Turn off animations
+
+`disableAnimation` in the integration options skips the banner's entry
+animation and the dialogs' enter and exit animations. The same prop on
+`ConsentBanner`, `ConsentDialog`, `IABConsentBanner` or `IABConsentDialog`
+overrides it for one surface. c15t's stylesheet already stops these
+animations for visitors who ask for reduced motion. [Motion and animation](/docs/customization/motion) covers the duration
+and easing tokens.
+
 ## Load the stylesheet yourself
 
 The integration adds `c15t/astro/styles.css` to every page ahead of your own
-CSS. It holds the tokens and the banner rules. The dialog's rules load only
-when a visitor first reaches for the dialog, and stay across `ClientRouter`
-navigation. Do not import `c15t/astro/styles.css` again.
+CSS, and links the dialog's rules when a visitor first reaches for the dialog.
+Do not import `c15t/astro/styles.css` again. To control the cascade layer
+order yourself, set `styles: false` and import the stylesheets from your own
+CSS. [Stylesheets and CSS layers](/docs/customization/stylesheets#load-astros-stylesheets-yourself)
+lists the files to import.
 
-The stylesheet starts with Tailwind CSS 4's layer order,
-`@layer properties, theme, base, components, utilities;`. Cascade layers rank
-by the order they are first named, so on a Tailwind 4 site c15t's `components`
-layer stays above Tailwind's preflight in `base`, and the banner keeps its
-padding and borders. Without Tailwind the extra layers stay empty.
-
-To control the order yourself, for example from a global stylesheet that names
-its own layers, set `styles: false` and import the files after your layer
-order statement. With `styles: false`, c15t links no dialog stylesheet either,
-so import the dialog rules too. The Svelte dialog, the default `ui`, also needs
-the primitives stylesheet:
-
-```css title="src/styles/global.css"
-@import 'c15t/astro/styles.css';
-@import 'c15t/astro/dialog.css';
-/* Only with ui: 'svelte'. */
-@import 'c15t/astro/primitives.css';
-/* Only when the integration sets iab. */
-@import 'c15t/astro/iab/styles.css';
-```
-
-Keep c15t's stylesheet when you restyle the surfaces. The browser hides the
-banner with the `hidden` attribute, and the stylesheet makes that attribute
-beat the banner's own `display` rule. For markup with no c15t class names at
-all, pass `noStyle` to `ConsentBanner` and style its `data-testid` and
-`data-*` attributes.
+For markup with no c15t class names at all, pass `noStyle` to `ConsentBanner`
+and style its `data-testid` and `data-*` attributes.
 
 ## Check your changes
 

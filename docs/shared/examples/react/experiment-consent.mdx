@@ -16,11 +16,7 @@ import { scripts } from './scripts';
 
 import 'c15t/react/styles.css';
 
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set VITE_C15T_BACKEND_URL to your Inth backend URL');
-}
-const mode = hosted({ url: backendURL });
+const mode = hosted({ url: 'https://your-project.inth.app' });
 
 // `control` is the stock banner. `wall` blocks the page until the visitor
 // chooses.

@@ -19,8 +19,8 @@ Create an Inth project, then:
    categories for the vendors below.
 2. Add your app's origin, such as `http://localhost:5173`, to its trusted
    origins.
-3. Copy the project's backend URL. It is public configuration, not a secret,
-   because the browser uses it to save choices.
+3. Copy the project's backend URL. The server uses it to resolve consent and
+   the browser uses it to save choices.
 
 A self-hosted backend works the same way with your own URL; see
 [self-hosting](/docs/self-host/overview).
@@ -32,17 +32,6 @@ A self-hosted backend works the same way with your own URL; see
 SvelteKit uses `@c15t/svelte`; its server helpers are in `@c15t/svelte/kit`.
 The `c15t` package has no Svelte entry point.
 
-## Set the backend URL
-
-Add the backend URL and your vendor IDs to `.env`:
-
-<include src="../../shared/examples/sveltekit-demo/env.mdx" />
-
-Paste the backend URL from your Inth project, such as
-`https://your-project.inth.app`. Leave a vendor ID empty to skip
-that vendor. The code reads these through `$env/dynamic/public`, so you can
-change them without rebuilding a server deployment.
-
 ## Register vendor scripts
 
 Create `src/lib/example-scripts.ts`. PostHog waits for measurement permission
@@ -51,14 +40,16 @@ and X Pixel for marketing permission. It selects PostHog's EU region; change
 
 <include src="../../shared/examples/sveltekit-demo/scripts.mdx" />
 
-Remove any `<script>` tags in `src/app.html` or SDK imports that already load
+Replace `phc_your_project_key` with your PostHog project key and
+`your-pixel-id` with your X Pixel ID. Remove any `<script>` tags in `src/app.html` or SDK imports that already load
 these vendors, so c15t is the only thing that loads them.
 
 ## Resolve consent in the root layout load
 
 <include src="../../shared/examples/sveltekit-demo/layout-server.mdx" />
 
-`loadConsent` reads the visitor's consent cookie, location headers and Global
+Replace `https://your-project.inth.app` with your project's backend URL,
+including any path prefix. `loadConsent` reads the visitor's consent cookie, location headers and Global
 Privacy Control, asks the backend's `/init` for the policy, and returns a
 plain, serializable object for the provider's `prefetch` prop. It never
 throws. If the backend fails or takes longer than 500 ms, it returns the
@@ -80,7 +71,7 @@ has the details.
 Pass `data.prefetch` through unchanged. The provider starts from it, so the
 server and the browser render the same banner and the browser makes no second
 `/init` request. `hosted()` points the browser at the same backend for saving
-choices.
+choices; use the same URL as the server load.
 
 `ConsentBanner` shows the banner when the policy asks for one.
 `ConsentDialog` is the preference dialog; it loads in its own chunk after the
@@ -89,8 +80,7 @@ preferences. Put it where visitors look for privacy settings, such as the
 footer. `@c15t/svelte/styles.css` holds the stock styles for all three.
 
 Keep the provider in the root layout so it stays mounted across client-side
-navigation. The layout throws if the backend URL is missing, which shows up as
-a 500 error until you set it.
+navigation.
 
 ## Verify consent
 

@@ -28,7 +28,7 @@ the stock UI puts it on its `<style>` element:
 {/* example: fragment */}
 
 ```ts
-init({ backendURL, scripts, nonce });
+init({ backendURL: 'https://your-project.inth.app', scripts, nonce });
 ```
 
 `createConsentRuntime` takes the same `nonce` option for the scripts it
@@ -63,7 +63,10 @@ from your bundle, which your bundler emits as a CSS file:
 ```ts
 import '@c15t/browser/styles.css';
 
-init({ backendURL, ui: { shadow: false, styles: false } });
+init({
+	backendURL: 'https://your-project.inth.app',
+	ui: { shadow: false, styles: false },
+});
 ```
 
 With `styles: false` and no `theme` or `css` option, c15t adds no `<style>`

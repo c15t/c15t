@@ -63,7 +63,6 @@ test('framework quickstarts resolve inside the host framework group', async () =
 		'sveltekit',
 		'html',
 		'javascript',
-		'react-native',
 	]);
 	for (const framework of frameworks?.children ?? []) {
 		expect(framework.pages[0]).toMatchObject({
@@ -141,11 +140,7 @@ test('c15t install commands select the documented release', async () => {
 		)) {
 			for (const name of (match.groups?.command ?? '').split(' ')) {
 				const bare = name.replace(/(?<=.)@[^/]*$/u, '');
-				// React Native is released separately and has no alpha tag.
-				if (
-					!/^(?:c15t|@c15t\/.+)$/u.test(bare) ||
-					bare === '@c15t/react-native'
-				) {
+				if (!/^(?:c15t|@c15t\/.+)$/u.test(bare)) {
 					continue;
 				}
 				const expected = installTag ? `${bare}@${installTag}` : bare;
@@ -156,6 +151,17 @@ test('c15t install commands select the documented release', async () => {
 		}
 	}
 	expect(wrong).toEqual([]);
+});
+
+// React Native is not published with v3. Drop this check when it ships.
+test('published docs do not mention React Native', async () => {
+	const files = await fg(['**/*.mdx', 'docs.config.ts'], { cwd: docsRoot });
+	const mentions = files.filter((file) =>
+		/react[- ]native|\bExpo\b/iu.test(
+			readFileSync(resolve(docsRoot, file), 'utf8')
+		)
+	);
+	expect(mentions).toEqual([]);
 });
 
 test('installation tabs flatten to usable umbrella-package commands', async () => {
@@ -181,7 +187,6 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		(group) => group.slug === 'integrations'
 	);
 	expect(integrations?.children.map((group) => group.slug)).toEqual([
-		'vendor-controls',
 		'embeds',
 		'tag-managers',
 		'analytics',
@@ -197,9 +202,6 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		'youtube',
 		'overview',
 		'building-integrations',
-		'granular-consent',
-		'clear-on-revocation',
-		'existing-cmp',
 	].map((slug) => `/docs/integrations/${slug}`);
 	const pages = [
 		...(integrations?.pages ?? []),
@@ -216,7 +218,7 @@ test('vendor registration tabs survive package Markdown conversion', async () =>
 		[remarkInclude, ...defaultRemarkPlugins]
 	);
 	expect(markdown).toContain('npm install @c15t/integrations');
-	expect(markdown).toContain('c15t/react');
+	expect(markdown).toContain('<ConsentProvider options={{ mode, scripts }}>');
 	expect(markdown).toContain('c15t/next');
 	expect(markdown).toContain('c15t/modules/script-loader');
 	expect(markdown).toContain("loadMode: 'after-consent'");
@@ -280,8 +282,9 @@ test('shared framework tabs match the selector and survive Markdown conversion',
 	);
 });
 
-// leadtype lints the whole docs tree; under the full parallel suite this can
-// take well over 15 seconds.
+// leadtype lints the whole docs tree. That takes 11 to 13 s alone and
+// reached 54 s while the rest of the suite ran on a busy machine, too close
+// to a 60 s limit.
 test('documentation links, includes and metadata are valid', async () => {
 	const result = await lintDocs({ srcDir: docsRoot });
 	const errors = result.violations.filter((violation) => {
@@ -305,7 +308,7 @@ test('documentation links, includes and metadata are valid', async () => {
 		return true;
 	});
 	expect(errors).toEqual([]);
-}, 60_000);
+}, 120_000);
 
 test('every include resolves to a file', async () => {
 	// leadtype 0.2.1 lint and conversion only warn when an include is missing,

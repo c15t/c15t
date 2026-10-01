@@ -31,10 +31,7 @@ const ConsentStatus = () => {
 	}
 	return (
 		// `colorScheme: null` leaves dark mode to the integration.
-		<ConsentProvider
-			options={{ colorScheme: null }}
-			runtime={runtime}
-		>
+		<ConsentProvider options={{ colorScheme: null }} runtime={runtime}>
 			<MeasurementStatus />
 		</ConsentProvider>
 	);

@@ -31,14 +31,14 @@ it an `id`, a `category`, and either a `src` or inline `textContent`:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: hosted({ url: backendURL }),
-  scripts: [
-    {
-      id: 'example-analytics',
-      category: 'measurement',
-      src: 'https://analytics.example.com/script.js',
-    },
-  ],
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+	scripts: [
+		{
+			id: 'example-analytics',
+			category: 'measurement',
+			src: 'https://analytics.example.com/script.js',
+		},
+	],
 });
 ```
 
@@ -58,6 +58,10 @@ Three attributes matter:
   the script never runs.
 - `is:inline` makes Astro ship the tag as written. Without it, Astro bundles the
   script and runs it regardless of consent.
+
+Add `data-c15t-vendor` with a vendor slug to also hold the script while the
+visitor has switched that vendor off. See
+[vendor consent](/docs/frameworks/astro/vendor-consent).
 
 Under a nonce-based Content Security Policy, where your middleware sets
 `Astro.locals.c15t.nonce`, also add `nonce={Astro.locals.c15t?.nonce}` to the
@@ -90,7 +94,7 @@ add rules to `networkBlocker`. See
 
 Set `clearOnRevocation` in the integration options to remove a vendor's
 cookies and storage keys when its category is withdrawn. See
-[clear on revocation](/docs/integrations/clear-on-revocation) for the shape.
+[clear on revocation](/docs/frameworks/astro/clear-on-revocation) for the shape.
 
 ## Withdraw consent without reloading
 

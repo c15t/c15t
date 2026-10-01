@@ -47,11 +47,11 @@ permission first:
 
 ```ts title="src/intercom-user.ts"
 export function updateIntercomUser(
-  functionalityAllowed: boolean,
-  userId: string
+	functionalityAllowed: boolean,
+	userId: string
 ) {
-  if (!functionalityAllowed || typeof window.Intercom !== 'function') return;
-  window.Intercom('update', { user_id: userId });
+	if (!functionalityAllowed || typeof window.Intercom !== 'function') return;
+	window.Intercom('update', { user_id: userId });
 }
 ```
 

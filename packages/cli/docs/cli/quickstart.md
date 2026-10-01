@@ -7,12 +7,12 @@ group: cli
 
 ## Plan the setup
 
-Run setup from the app directory with your Inth backend URL. Copy the URL from
-your Inth project and export it first:
+Run setup from the app directory with your Inth backend URL. Replace
+`https://your-project.inth.app` with the URL from your Inth project, including
+any path prefix:
 
 ```bash
-export C15T_BACKEND_URL="https://your-project.inth.app"
-npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --plan --json
+npx @c15t/cli@alpha setup hosted --backend-url https://your-project.inth.app --plan --json
 ```
 
 `--plan` writes nothing and installs nothing. The JSON result lists each file
@@ -25,7 +25,7 @@ proposed contents, and the packages it would install under
 When the plan looks right, apply it:
 
 ```bash
-npx @c15t/cli@alpha setup hosted --backend-url "$C15T_BACKEND_URL" --apply
+npx @c15t/cli@alpha setup hosted --backend-url https://your-project.inth.app --apply
 ```
 
 For a Next.js App Router app, setup adds a client provider component under

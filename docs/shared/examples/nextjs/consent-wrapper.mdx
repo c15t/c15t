@@ -15,18 +15,13 @@ import type { ReactNode } from 'react';
 import { consentConfig } from '@/c15t.config';
 import { scripts } from '@/lib/scripts';
 
-export const Consent = ({
-	children,
-	state,
-}: {
+interface ConsentProps {
 	children: ReactNode;
 	state: ConsentRootProps['state'];
-}) => (
-	<ConsentRoot
-		state={state}
-		config={consentConfig}
-		scripts={scripts}
-	>
+}
+
+export const Consent = ({ children, state }: ConsentProps) => (
+	<ConsentRoot state={state} config={consentConfig} scripts={scripts}>
 		{children}
 		<ConsentBanner />
 		<ConsentDialog />

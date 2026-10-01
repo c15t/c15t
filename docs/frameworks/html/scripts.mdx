@@ -93,7 +93,7 @@ element again when the visitor withdraws it.
 | `target` | `'head'` (default) or `'body'`. |
 | `async`, `defer`, `nonce`, `fetchPriority`, `attributes` | Attributes for the created `<script>` element. Without its own `nonce`, the script gets the c15t tag's nonce. |
 | `anonymizeId` | Give the element a random `id` so blockers cannot match it by name. On by default. |
-| `vendor` | A vendor ID for vendor-level consent. |
+| `vendor` | A vendor ID for vendor-level consent. See [vendor consent](/docs/frameworks/html/vendor-consent). |
 | `onBeforeLoad`, `onLoad`, `onError` | Run before a load attempt, after the script loads, or when it fails. |
 | `onConsentChange` | Run each time the script's consent changes. The argument has `hasConsent` and `consents`. |
 | `onDispose` | Run when the script is removed from the configuration or c15t is disposed. |
@@ -110,26 +110,9 @@ plain HTML page, paste the vendor's own snippet into a `text/plain` tag.
 ## Clear cookies when permission is withdrawn
 
 Gating stops new requests but does not delete what a vendor already stored.
-`clearOnRevocation` deletes named cookies and storage keys when their category
-is denied:
-
-{/* example: fragment */}
-
-```html
-<script>
-  window.c15t = window.c15t || [];
-  c15t.push(['config', {
-    clearOnRevocation: {
-      measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
-    },
-  }]);
-</script>
-```
-
-c15t reads this once, at start. It clears the listed data when a visitor
-withdraws the category, and once at start for categories that are already
-denied. [Clear on revocation](/docs/integrations/clear-on-revocation) covers
-patterns, cookie domains and browser limits.
+Add `clearOnRevocation` to the config to delete named cookies and storage keys
+when their category is denied. See
+[clear on revocation](/docs/frameworks/html/clear-on-revocation).
 
 ## Google Consent Mode and tag managers
 

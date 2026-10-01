@@ -19,10 +19,19 @@ This partial example adds the option next to the existing `mode` and
 
 ```tsx title="src/consent.tsx"
 const networkBlocker = {
-  rules: [
-    { id: 'google-analytics', domain: 'google-analytics.com', category: 'measurement' },
-    { id: 'meta-pixel', domain: 'facebook.com', pathIncludes: '/tr', category: 'marketing' },
-  ],
+	rules: [
+		{
+			id: 'google-analytics',
+			domain: 'google-analytics.com',
+			category: 'measurement',
+		},
+		{
+			id: 'meta-pixel',
+			domain: 'facebook.com',
+			pathIncludes: '/tr',
+			category: 'marketing',
+		},
+	],
 };
 
 <ConsentProvider options={{ mode, scripts, networkBlocker }}>

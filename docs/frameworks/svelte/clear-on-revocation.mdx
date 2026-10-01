@@ -1,0 +1,39 @@
+---
+title: Clear on revocation
+description: Delete the first-party cookies and Web Storage keys a consent category owns in a Svelte app when that category is denied, with the clearOnRevocation prop on ConsentManagerProvider.
+group: frameworks
+---
+
+## Configure cleanup
+
+Gating stops new requests, but it leaves the cookies and storage keys a vendor
+already wrote. List the ones each optional category owns and pass them to
+`ConsentManagerProvider` in `src/App.svelte`. When that category is denied,
+c15t deletes them:
+
+{/* example: fragment */}
+
+```svelte title="src/App.svelte (partial)"
+<script lang="ts">
+  import type { ConsentManagerOptions } from '@c15t/svelte';
+
+  const clearOnRevocation: ConsentManagerOptions['clearOnRevocation'] = {
+    measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
+    marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
+  };
+</script>
+
+<ConsentManagerProvider {mode} {scripts} {clearOnRevocation}>
+```
+
+The provider reads `clearOnRevocation` once, when it is created. For a shared
+runtime, pass it to `createConsentRuntime()` instead, not to a provider that
+borrows the runtime.
+
+<import src="../../shared/scripts/clear-on-revocation.mdx#targets" />
+
+<import src="../../shared/scripts/clear-on-revocation.mdx#when" />
+
+<import src="../../shared/scripts/clear-on-revocation.mdx#limits" />
+
+<import src="../../shared/scripts/clear-on-revocation.mdx#verify" />

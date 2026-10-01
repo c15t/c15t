@@ -1,0 +1,35 @@
+---
+title: Clear on revocation
+description: Delete the first-party cookies and Web Storage keys a consent category owns on a plain HTML page when that category is denied, with the clearOnRevocation option of the c15t script tag.
+group: frameworks
+---
+
+## Configure cleanup
+
+Gating stops new requests, but it leaves the cookies and storage keys a vendor
+already wrote. List the ones each optional category owns in the script tag's
+config. When that category is denied, c15t deletes them:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    clearOnRevocation: {
+      measurement: { cookies: ['_ga', '_ga_*'], localStorage: ['analytics:*'] },
+      marketing: { cookies: ['_fbp'], sessionStorage: ['campaign-id'] },
+    },
+  }]);
+</script>
+```
+
+Put this before the c15t script tag. c15t reads the config once, at start.
+
+<import src="../../shared/scripts/clear-on-revocation.mdx#targets" />
+
+<import src="../../shared/scripts/clear-on-revocation.mdx#when" />
+
+<import src="../../shared/scripts/clear-on-revocation.mdx#limits" />
+
+<import src="../../shared/scripts/clear-on-revocation.mdx#verify" />

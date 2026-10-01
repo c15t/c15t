@@ -24,11 +24,6 @@ exported site's origin to its trusted origins. Copy the project's backend URL.
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the backend URL from your Inth project, such
-as `https://your-project.inth.app`,
-before you build. Next.js writes public environment values into the exported
-JavaScript, so changing the URL needs a new build.
-
 ## Share the backend URL
 
 Create `c15t.config.ts` at the project root, or in `src/`, with only
@@ -38,16 +33,14 @@ server there is no manifest route, so the browser calls `${backendURL}/init`.
 ```ts title="c15t.config.ts"
 import { defineConsentConfig } from 'c15t/next';
 
-const backendURL = process.env.NEXT_PUBLIC_C15T_BACKEND_URL;
-if (!backendURL) {
-	throw new Error('Set NEXT_PUBLIC_C15T_BACKEND_URL to your Inth backend URL');
-}
-
-export const consentConfig = defineConsentConfig({ backendURL });
+export const consentConfig = defineConsentConfig({
+	backendURL: 'https://your-project.inth.app',
+});
 ```
 
-Keep `backendURL` absolute. A path such as `/api/c15t` would point at your
-static host, which has nothing to answer it.
+Replace `https://your-project.inth.app` with your project's backend URL,
+including any path prefix. Keep it absolute. A path such as `/api/c15t` would
+point at your static host, which has nothing to answer it.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 
@@ -63,7 +56,7 @@ the Tailwind import:
 
 Without Tailwind, keep only the c15t import. With Tailwind CSS 3, put the
 same import above the `@tailwind` directives and add
-`@c15t/ui/postcss-tailwind3` to your PostCSS config, as
+`c15t/postcss-tailwind3` to your PostCSS config, as
 [Customize](/docs/frameworks/next/customize#load-the-stylesheet) shows.
 Without the plugin, Tailwind 3 fails the build on c15t's `@layer components`
 rules.

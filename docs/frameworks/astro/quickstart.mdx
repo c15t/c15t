@@ -12,7 +12,7 @@ code:
 1. Add policy rules that cover the `measurement` and `marketing` categories.
    This guide loads PostHog on measurement and X Pixel on marketing.
 2. Add your site's origin to the project's trusted origins.
-3. Copy the project's backend URL. It is public configuration, not a secret.
+3. Copy the project's backend URL.
 
 Then decide how Astro builds your pages. The integration supports both, and
 [Rendering and deployment](/docs/frameworks/astro/rendering) covers mixed and
@@ -38,21 +38,11 @@ one for a single dialog. This guide uses Svelte, the default. For React, install
 `react()` and set `ui: 'react'`. For Vue, install `@astrojs/vue vue`, register
 `vue()` and set `ui: 'vue'`.
 
-## Set the backend URL
-
-The configuration below reads the backend URL from `C15T_BACKEND_URL`. Astro
-evaluates `astro.config.mjs` before it loads `.env` files, so set the variable
-in your shell for local work and in your host's build settings for deploys.
-Paste the URL from your Inth project in place of `https://your-project.inth.app`:
-
-```sh
-C15T_BACKEND_URL="https://your-project.inth.app" npx astro dev
-```
-
 ## Configure the integration
 
 Pick the file that matches your output. Register the framework integration
-before `c15t()`.
+before `c15t()`. Replace `https://your-project.inth.app` with your project's
+backend URL, including any path prefix.
 
 ### Static output
 
@@ -79,22 +69,13 @@ that `clientEntrypoint` names.
 ## Register vendor scripts
 
 Remove any existing PostHog or X Pixel snippet first, so each vendor loads once.
-Add the public IDs to your environment. Unlike the backend URL, Vite reads these
-from `.env`:
-
-```dotenv title=".env"
-PUBLIC_POSTHOG_KEY=
-PUBLIC_X_PIXEL_ID=
-```
-
-Astro builds these values into the browser code, so restart `astro dev` or
-rebuild after you change them. An empty value leaves that vendor out. Create
-the script list. It selects
-PostHog's EU region. Change `region` to `'us'` for a US project.
+Then create the script list. It selects PostHog's EU region. Change `region` to
+`'us'` for a US project.
 
 <include src="../../shared/examples/astro-demo/scripts.mdx" />
 
-PostHog waits for measurement permission and does not fall back to cookieless
+Replace `phc_your_project_key` with your PostHog project key and
+`your-pixel-id` with your X Pixel ID. PostHog waits for measurement permission and does not fall back to cookieless
 capture. X Pixel waits for marketing permission.
 
 Then export the scripts from the client entrypoint that `astro.config.mjs`

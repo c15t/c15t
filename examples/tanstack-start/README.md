@@ -11,17 +11,18 @@ A TanStack Start app wired to c15t through the `c15t` umbrella package
   `ConsentRoot` reads the result with `Route.useLoaderData()` and, with
   `initRoute={false}`, calls the backend directly from the browser.
 - `src/scripts.ts` registers PostHog and X Pixel.
-- `src/routes/api/c15t/$.ts` mounts `createConsentServerRoute({ proxy: true })`
-  for the same-origin rendering variant.
+- `src/routes/api/c15t/$.ts` mounts
+  `createConsentServerRoute({ backendURL, proxy: true })` for the same-origin
+  rendering variant.
 
 ```bash
 bun install
 bun run dev        # http://localhost:3010
 ```
 
-Without `VITE_C15T_BACKEND_URL`, `bun run dev` uses the self-hosted
-`@c15t/backend` mounted at `/api/self-host` (`src/routes/api/self-host/$.ts`).
-Production builds require `VITE_C15T_BACKEND_URL`.
+`bun run dev` uses the self-hosted `@c15t/backend` mounted at
+`/api/self-host` (`src/routes/api/self-host/$.ts`). Production builds use the
+backend URL written in the root route and the consent server route.
 
 ## Rendering variants
 
@@ -36,7 +37,7 @@ selects one at build time; the pages stay the same.
 | `static` | `src/rendering/static-root.tsx` | Every page is prerendered; the browser resolves consent |
 
 ```bash
-C15T_TANSTACK_RENDERING=static VITE_C15T_BACKEND_URL=https://your-project.inth.app bun run build
+C15T_TANSTACK_RENDERING=static bun run build
 bun run start:static   # serves dist/client only, like a static host
 ```
 
@@ -90,19 +91,24 @@ locally and only fails once deployed. Delete `.pgdata/` to reset the demo.
 
 ## Pointing at a hosted backend
 
-Set `VITE_C15T_BACKEND_URL` to the backend URL from your [Inth](https://inth.com)
-project and add this app's origin to the project's trusted origins. The URL is
-public; keep any other `C15T_*` value out of the `VITE_` prefix so it never
-reaches a bundle.
+Replace `https://your-project.inth.app` in the root routes and
+`src/routes/api/c15t/$.ts` with the backend URL from your
+[Inth](https://inth.com) project, and add this app's origin to the project's
+trusted origins.
+
+`VITE_C15T_BACKEND_URL` overrides that URL without editing the files.
+`src/test-backend.ts` applies it on lines the published docs snippets hide;
+`bun run dev` and the acceptance suite use it.
 
 ## Production build
 
 ```bash
-VITE_C15T_BACKEND_URL=https://your-project.inth.app bun run build
+bun run build
 bun run start
 ```
 
-Set `DATABASE_URL` as well if the build points at the self-hosted route.
+To build against the self-hosted route instead, set
+`VITE_C15T_BACKEND_URL=/api/self-host` and `DATABASE_URL`.
 
 `vite build` emits `dist/server/server.js` as a bare `{ fetch }` handler with
 no listener, so `bun run start` hosts it with `scripts/serve.mjs`: srvx on
@@ -112,14 +118,14 @@ which is the Node hosting shape TanStack Start documents for that output.
 
 ## Consent example
 
-Open `/consent-example` for the shared integration scenario. Public vendor
-settings are optional:
+Open `/consent-example` for the shared integration scenario. Replace the
+vendor placeholders in `src/scripts.ts`:
 
-- `VITE_POSTHOG_KEY`: PostHog browser project key. The example selects the EU
-  region; change `region` in `src/scripts.ts` for a US project.
-- `VITE_X_PIXEL_ID`: X Pixel ID, not a conversion event ID.
+- `phc_your_project_key`: PostHog browser project key. The example selects the
+  EU region; change `region` for a US project.
+- `your-pixel-id`: X Pixel ID, not a conversion event ID.
 
-An unset vendor setting omits that loader. PostHog uses
+PostHog uses
 `loadMode: 'after-consent'` and `cookieless_mode: 'never'`. X Pixel waits for
 marketing permission. The YouTube iframe only mounts with measurement
 permission and is removed on revocation. The Default theme and Branded theme

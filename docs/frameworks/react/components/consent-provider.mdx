@@ -14,10 +14,10 @@ The [quickstart](/docs/frameworks/react/quickstart) does this in
 
 <include src="../../../shared/examples/react/consent.mdx" />
 
-`hosted({ url })` points the provider at your Inth backend. Paste the URL from
-your Inth project into `VITE_C15T_BACKEND_URL`. The Next.js and TanStack
-Start adapters export `ConsentRoot` instead, which wraps this provider and
-passes it server-resolved state.
+`hosted({ url })` points the provider at your Inth backend. Replace
+`https://your-project.inth.app` with the URL from your Inth project. The
+Next.js and TanStack Start adapters export `ConsentRoot` instead, which wraps
+this provider and passes it server-resolved state.
 
 ## Provider options
 
@@ -30,7 +30,7 @@ when it mounts. Remount the provider to change them.
 | `mode` | Required. `hosted({ url })` for a backend, `offline()` for local policies, or `custom()` for your own transport |
 | `prefetch` | Server-resolved state, or a promise of it, from a framework adapter's server helper |
 | `scripts` | Consent-gated vendor scripts. See [scripts and embeds](/docs/frameworks/react/scripts) |
-| `vendors` | Vendors listed under their category with their own switch. See [granular consent](/docs/integrations/granular-consent) |
+| `vendors` | Vendors listed under their category with their own switch. See [vendor consent](/docs/frameworks/react/vendor-consent) |
 | `scriptLoader` | Options for the script loader module |
 | `networkBlocker` | Rules that hold `fetch` and `XMLHttpRequest` calls until their category is allowed, or `false` |
 | `iframeBlocker` | Gates DOM iframes that carry `data-category`. On by default; `false` turns it off |
@@ -42,7 +42,6 @@ when it mounts. Remount the provider to change them.
 | `overrides` | Force the country, region or language the policy is resolved for, for testing |
 | `user` | Link consent records to a signed-in user |
 | `callbacks` | Choice, permission and error events |
-| `consentSource` | Delegate decisions to another consent tool. See [use c15t with an existing CMP](/docs/integrations/existing-cmp) |
 | `i18n` | Languages and message overrides |
 | `legalLinks` | Privacy policy and other links shown in the banner and dialog |
 | `theme` | `consentActions` and slot styles. Tokens go through `ConsentTheme`; see [customize](/docs/frameworks/react/customize) |
@@ -84,9 +83,7 @@ Removing a script cannot stop code that already ran. A vendor's listeners,
 timers and widgets keep working until the page unloads. When an accept, reject
 or save turns off a category or vendor that was granted, the provider reloads
 the page once the save request settles, so the next page runs only permitted
-code. `onBeforeConsentRevocationReload` runs just before the reload. With a
-[`consentSource`](/docs/integrations/existing-cmp), any withdrawal the
-external CMP reports reloads the same way, including expiry.
+code. `onBeforeConsentRevocationReload` runs just before the reload.
 
 Otherwise, expiry, policy changes and privacy signals do not reload the page. Set
 `reloadOnConsentRevoked: false` only when every gated vendor stops itself on
@@ -98,5 +95,5 @@ Set `options.clearOnRevocation` to declare cookies, localStorage keys, and
 sessionStorage keys by optional consent category. Cleanup waits for policy
 resolution, then clears denied categories and later allowed-to-denied
 transitions. This option is initial-only. See
-[clear on revocation](/docs/integrations/clear-on-revocation) for examples,
+[clear on revocation](/docs/frameworks/react/clear-on-revocation) for examples,
 cookie scopes, and browser limits.

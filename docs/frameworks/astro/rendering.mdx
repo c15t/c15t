@@ -56,9 +56,8 @@ visitor's decision, so keep it out of shared caches. See
 `manifest()` downloads your project's public policy file, caches it on the
 server and resolves each request locally. The browser asks the injected
 `/api/c15t/init` route when it needs a decision, and saves consent to the
-`backendURL`. `manifest()` needs that URL, either as `backendURL` or from
-`C15T_BACKEND_URL` or `PUBLIC_C15T_BACKEND_URL` in the environment when
-`astro.config` loads. Without one, the config fails to load.
+`backendURL`. `manifest()` needs that URL as `backendURL`; without it, the
+config fails to load.
 [Data fetching](/docs/concepts/data-fetching) compares this with calling
 `/init` for every render.
 
@@ -77,8 +76,8 @@ Change the budget in the integration options:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: manifest({ backendURL }),
-  middleware: { timeoutMs: 800 },
+	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
+	middleware: { timeoutMs: 800 },
 });
 ```
 
@@ -94,8 +93,8 @@ on a skipped route:
 
 ```js title="astro.config.mjs (partial)"
 c15t({
-  mode: manifest({ backendURL }),
-  middleware: { skip: ['/api/webhooks', '/healthz'] },
+	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
+	middleware: { skip: ['/api/webhooks', '/healthz'] },
 });
 ```
 
@@ -155,10 +154,7 @@ swap, listen for `astro:page-load`. See the
 backend. Not recommended for production environments.
 
 ```js title="astro.config.mjs (partial)"
-c15t({
-  mode: offline(),
-  ui: 'svelte',
-});
+c15t({ mode: offline(), ui: 'svelte' });
 ```
 
 Import `offline` from `c15t/astro`. Choices persist in the visitor's cookie and

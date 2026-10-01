@@ -24,9 +24,6 @@ has applied the visitor's stored choice and privacy signals. Do not also call
 
 `scripts` must go in `app.config.ts`. Module options in `nuxt.config.ts`
 reach the browser as JSON, which drops the functions inside each script.
-`app.config.ts` is bundled into the browser, so it cannot read
-`runtimeConfig`. Read vendor IDs from `VITE_` variables at build time, as
-above, or write them into the file.
 
 Every vendor guide under [integrations](/docs/integrations/overview) gives the
 helper and options for that vendor.
@@ -51,7 +48,13 @@ to run code before the reload.
 
 `clearOnRevocation` deletes first-party cookies and storage keys that belong to
 a category when it is withdrawn. It is plain data, so it can go in
-`nuxt.config.ts`. See [clear on revocation](/docs/integrations/clear-on-revocation).
+`nuxt.config.ts`. See [clear on revocation](/docs/frameworks/nuxt/clear-on-revocation).
+
+## Let visitors turn off one vendor
+
+A visitor can allow marketing and still switch off one vendor in it. Declare
+the vendors in the `vendors` option; helpers from `@c15t/integrations` already carry
+their vendor slug. See [vendor consent](/docs/frameworks/nuxt/vendor-consent).
 
 ## Content Security Policy
 
