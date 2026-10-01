@@ -25,8 +25,11 @@ export interface ConsentManifestNuxtConfig {
 	 * Backend or CDN manifest URL. Server mode fetches this from the Nuxt route;
 	 * client mode fetches it directly in the browser. Defaults to
 	 * `${backendURL}/manifest` for server routes and `manifestRoute` in client
-	 * mode. Without `manifest`, Nuxt treats a `manifestURL` as server mode and
-	 * the plain Vue plugin, which has no server routes, as client mode.
+	 * mode. The Nuxt module defaults `manifest` to `false`, which calls the
+	 * backend's `/init` and ignores `manifestURL`, so set `manifest: 'server'`
+	 * for the server routes or `'client'` for the browser. The plain Vue
+	 * plugin, which has no server routes, treats a `manifestURL` without
+	 * `manifest` as client mode.
 	 */
 	manifestURL?: string;
 
