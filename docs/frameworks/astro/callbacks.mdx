@@ -90,6 +90,6 @@ takes the same event names the callbacks map to. See the
    `previous.measurement` set to `false`.
 2. Reload. `onChoiceRecorded` does not run, because loading a stored choice
    is not a new action.
-3. Open **Cookie preferences**, turn off Measurement and save.
+3. Open **Cookie preferences**, turn off **Analytics** (the `measurement` category) and save.
    `onChoiceRecorded` and `onPermissionsChanged` run, and
    `onBeforeConsentRevocationReload` runs before the page reloads.
