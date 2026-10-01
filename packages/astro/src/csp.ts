@@ -10,14 +10,16 @@
  * What c15t inlines is either static for a given set of options, or data:
  *
  * - the colour-scheme script, the banner reveal scripts, the theme
- *   stylesheet and the inline `scripts` entries the loader injects depend
- *   only on the integration options, so their hashes are known at config
- *   time and handed to Astro's config here;
+ *   stylesheet (one per experiment arm) and the inline `scripts` entries
+ *   the loader injects depend only on the integration options, so their
+ *   hashes are known at config time and handed to Astro's config here;
  * - the per-visitor boot payload is a `type="application/json"` data
  *   block, which never runs and which CSP does not govern.
  *
  * @internal
  */
+
+import { applyExperimentTheme } from '@c15t/core';
 
 import {
 	buildBannerRevealScript,
@@ -86,7 +88,21 @@ export const buildInlineCodeHashes = async function buildInlineCodeHashes(
 		// The loader injects an inline `scripts` entry with exactly this text.
 		...(options.scripts ?? []).map((script) => script.textContent ?? ''),
 	].filter(Boolean);
-	const styles = [buildThemeCSS(options.theme)].filter(Boolean);
+	// The components render the assigned arm's theme, so every arm's
+	// stylesheet needs a hash. `control` renders the host theme.
+	const { experiment } = options;
+	const armThemes = experiment
+		? Object.keys(experiment.arms).map((arm) =>
+				applyExperimentTheme(options.theme, experiment, {
+					arm,
+					id: experiment.id,
+				})
+			)
+		: [];
+	const themes = [options.theme, ...armThemes];
+	const styles = [
+		...new Set(themes.map((theme) => buildThemeCSS(theme))),
+	].filter(Boolean);
 	return {
 		scripts: await Promise.all(
 			scripts.map((script) => hashSource(script, algorithm))

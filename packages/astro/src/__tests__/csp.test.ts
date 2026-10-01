@@ -184,6 +184,49 @@ describe("Astro's own CSP", () => {
 		}
 	);
 
+	it('allows the theme stylesheet of every experiment arm', async () => {
+		const experiment = {
+			arms: {
+				bold: { theme: { colors: { primary: 'oklch(0.5 0.25 30)' } } },
+				plain: { prompt: { variant: 'bar' as const } },
+			},
+			id: 'banner-theme',
+		};
+		// Per-request arms (`consentMiddleware({ experimentArm })`) render any
+		// arm, so the hashes cover all of them whatever `arm` the config has.
+		const hashes = await buildInlineCodeHashes(
+			resolveOptions({
+				...shared,
+				experiment: { ...experiment, arm: 'control' },
+				mode: offlineMode({ policyRules: [testRule] }),
+			})
+		);
+
+		const pages = await Promise.all(
+			['control', 'bold', 'plain'].map(async (arm) => {
+				const locals = await buildLocals(
+					{
+						experiment: { ...experiment, arm },
+						mode: offlineMode({ policyRules: [testRule] }),
+					},
+					undefined
+				);
+				return container.renderToString(ConsentBanner, {
+					locals: { c15t: locals },
+				});
+			})
+		);
+		for (const html of pages) {
+			const { styles } = governedInlineCode(html);
+			expect(styles.length).toBeGreaterThan(0);
+			for (const style of styles) {
+				expect(hashes.styles).toContain(sha256(style));
+			}
+		}
+		// The bold arm adds one stylesheet; the plain arm keeps the host theme.
+		expect(hashes.styles).toHaveLength(2);
+	});
+
 	it('adds the hashes where the site turned CSP on', async () => {
 		const options = resolveOptions({
 			...shared,
