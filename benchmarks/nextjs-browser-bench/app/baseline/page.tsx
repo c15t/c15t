@@ -9,6 +9,8 @@ import { useEffect } from 'react';
 
 import { getState } from '../_bench/state';
 
+import '../_bench/app.css';
+
 const BaselineProbe = () => {
 	useEffect(() => {
 		const state = getState('baseline');
@@ -30,7 +32,7 @@ const BaselineProbe = () => {
 };
 
 const BaselinePage = () => (
-	<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+	<main>
 		<BaselineProbe />
 		<h1>Zero-consent baseline</h1>
 		<p>Identical app shell, no consent library.</p>

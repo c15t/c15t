@@ -7,6 +7,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
 import { getState } from '../bench/state';
+import { appStylesheetHead } from '../bench/stylesheets';
 
 const BaselineProbe = () => {
 	useEffect(() => {
@@ -29,7 +30,7 @@ const BaselineProbe = () => {
 };
 
 const BaselinePage = () => (
-	<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+	<main>
 		<BaselineProbe />
 		<h1>Zero-consent baseline</h1>
 		<p>Identical app shell, no consent library.</p>
@@ -44,4 +45,5 @@ const BaselinePage = () => (
 
 export const Route = createFileRoute('/baseline')({
 	component: BaselinePage,
+	head: appStylesheetHead,
 });
