@@ -95,6 +95,26 @@ describe('resolveRequestBackendURL', () => {
 		).toBe('https://edge.example.com/api/c15t');
 	});
 
+	test('honours a trusted forwarded scheme without a forwarded host', () => {
+		const headers = { host: 'localhost:3000', 'x-forwarded-proto': 'https' };
+		expect(resolveRequestBackendURL('/api/c15t', { headers })).toBe(
+			'http://localhost:3000/api/c15t'
+		);
+		expect(
+			resolveRequestBackendURL('/api/c15t', {
+				headers,
+				trustForwardedHeaders: true,
+			})
+		).toBe('https://localhost:3000/api/c15t');
+		expect(
+			resolveRequestBackendURL('/api/c15t', {
+				headers: new Headers({ 'x-forwarded-ssl': 'on' }),
+				requestURL: 'http://app.example.com/page',
+				trustForwardedHeaders: true,
+			})
+		).toBe('https://app.example.com/api/c15t');
+	});
+
 	test('rejects a host header that is not a bare authority', () => {
 		for (const host of [
 			'attacker.example/x',

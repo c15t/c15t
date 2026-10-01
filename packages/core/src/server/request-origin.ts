@@ -151,13 +151,26 @@ const toOrigin = function toOrigin(
 	}
 };
 
+/**
+ * The origin under trusted forwarding headers. The host and the scheme are
+ * read separately, so a proxy that keeps the incoming `host` and only sets
+ * `x-forwarded-proto` still decides the scheme.
+ *
+ * Host: `forwarded: host=`, `x-forwarded-host`, the request URL's host, then
+ * `host`. Scheme: `forwarded: proto=`, `x-forwarded-proto`,
+ * `x-forwarded-ssl: on`, the request URL's scheme, then the default for the
+ * host.
+ */
 const originFromForwardedHeaders = function originFromForwardedHeaders(
 	headers: RequestHeaderSource | undefined,
-	fallbackProtocol: 'http' | 'https' | undefined
+	requestOrigin: URL | null
 ): string | null {
 	const forwarded = parseForwardedHeader(readHeader(headers, 'forwarded'));
 	const host =
-		forwarded.host ?? firstListValue(readHeader(headers, 'x-forwarded-host'));
+		forwarded.host ??
+		firstListValue(readHeader(headers, 'x-forwarded-host')) ??
+		requestOrigin?.host ??
+		readHeader(headers, 'host')?.trim();
 	if (!host) {
 		return null;
 	}
@@ -167,7 +180,7 @@ const originFromForwardedHeaders = function originFromForwardedHeaders(
 			firstListValue(readHeader(headers, 'x-forwarded-proto'))
 		) ??
 		(readHeader(headers, 'x-forwarded-ssl') === 'on' ? 'https' : undefined) ??
-		fallbackProtocol ??
+		normalizeProtocol(requestOrigin?.protocol) ??
 		defaultProtocolForHost(host);
 	return toOrigin(protocol, host);
 };
@@ -190,10 +203,12 @@ const originFromRequestURL = function originFromRequestURL(
 /**
  * The origin a relative backend URL resolves against for this request.
  *
- * In order: the forwarding headers when `trustForwardedHeaders` is set, the
- * framework's `requestURL`, then the `host` header (`https` for a domain
- * name; `http` for `localhost`, an IP address or a single-label host). Client-supplied forwarding headers are never
- * read unless the app opts in.
+ * Without `trustForwardedHeaders`: the framework's `requestURL`, then the
+ * `host` header (`https` for a domain name; `http` for `localhost`, an IP
+ * address or a single-label host). With it, a forwarded host and a forwarded
+ * scheme each override that result on their own, so either header can be
+ * set without the other. Client-supplied forwarding headers are never read
+ * unless the app opts in.
  *
  * @param options - The request URL, headers, and forwarding trust.
  * @returns An origin such as `https://app.example.com`, or `null` when the
@@ -209,12 +224,9 @@ export const resolveRequestOrigin = function resolveRequestOrigin(
 ): string | null {
 	const fromURL = originFromRequestURL(options.requestURL);
 	if (options.trustForwardedHeaders) {
-		const fallbackProtocol = fromURL
-			? normalizeProtocol(new URL(fromURL).protocol)
-			: undefined;
 		const forwarded = originFromForwardedHeaders(
 			options.headers,
-			fallbackProtocol
+			fromURL ? new URL(fromURL) : null
 		);
 		if (forwarded) {
 			return forwarded;
