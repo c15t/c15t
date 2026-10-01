@@ -1,4 +1,4 @@
-import type { KernelTransport } from '@c15t/core';
+import type { KernelOverrides, KernelTransport } from '@c15t/core';
 import type { PolicyRule } from '@c15t/schema/types';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { flushPromises, mount } from '@vue/test-utils';
@@ -11,7 +11,10 @@ import NuxtConsentRoot from '../runtime/components/nuxt-root.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import { useConsentLanguage } from '../runtime/composables/language';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
+import {
+	createVueConsentKernelContext,
+	startVueConsentRuntime,
+} from '../runtime/kernel';
 import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
@@ -31,8 +34,11 @@ const rule: PolicyRule = {
 
 let mounted: {
 	context: VueConsentKernelContext;
+	stop?: () => void;
 	wrapper: VueWrapper<ComponentPublicInstance>;
 } | null = null;
+
+const config = { consentCategories: ['necessary'] } as ConsentConfig;
 
 /** A transport that answers each init with copy in the requested language. */
 const createTransport = function createTransport() {
@@ -54,12 +60,15 @@ const createTransport = function createTransport() {
 	} satisfies KernelTransport;
 };
 
-const renderWith = async function renderWith(component: Component) {
+const renderWith = async function renderWith(
+	component: Component,
+	initialOverrides?: KernelOverrides
+) {
 	const transport = createTransport();
-	const config = { consentCategories: ['necessary'] } as ConsentConfig;
 	const context = createVueConsentKernelContext({
 		config,
 		kernelConfig: {
+			initialOverrides,
 			initialPolicyResolution: resolvePolicyRules({
 				countryCode: 'DE',
 				regionCode: null,
@@ -87,9 +96,21 @@ const renderWith = async function renderWith(component: Component) {
 	return { context, transport };
 };
 
+/** Start the browser runtime, as the plugin does once the app mounts. */
+const start = function start(
+	context: VueConsentKernelContext,
+	options?: { runInit?: boolean }
+) {
+	const stop = startVueConsentRuntime(context, config, options);
+	if (mounted) {
+		mounted.stop = stop;
+	}
+};
+
 afterEach(() => {
 	if (mounted) {
 		mounted.wrapper.unmount();
+		mounted.stop?.();
 		mounted.context.dispose();
 		mounted = null;
 	}
@@ -145,14 +166,56 @@ describe('changing the consent language', () => {
 				setup: () => () => h(NuxtConsentRoot, { language: current.value }),
 			})
 		);
+		start(context);
+		await flushPromises();
 
-		expect(transport.init).toHaveBeenCalled();
+		// The startup init loads the prop's language; setup adds no second one.
+		expect(transport.init).toHaveBeenCalledTimes(1);
+		expect(transport.init.mock.calls[0]?.[0].overrides.language).toBe('fr');
 		expect(context.snapshot.value.translations?.language).toBe('fr');
 
 		current.value = 'de';
 		await nextTick();
 		await flushPromises();
 
+		expect(transport.init).toHaveBeenCalledTimes(2);
 		expect(context.snapshot.value.translations?.language).toBe('de');
+	});
+
+	test('a ConsentRoot prop equal to the prefetched override runs no init', async () => {
+		const { context, transport } = await renderWith(
+			defineComponent({
+				setup: () => () => h(NuxtConsentRoot, { language: 'en' }),
+			}),
+			{ country: 'DE', language: 'en' }
+		);
+		start(context, { runInit: false });
+		await flushPromises();
+
+		expect(transport.init).not.toHaveBeenCalled();
+		expect(context.snapshot.value.overrides).toMatchObject({
+			country: 'DE',
+			language: 'en',
+		});
+	});
+
+	test('a ConsentRoot prop that differs from the prefetch runs one init', async () => {
+		const { context, transport } = await renderWith(
+			defineComponent({
+				setup: () => () => h(NuxtConsentRoot, { language: 'fr' }),
+			}),
+			{ country: 'DE', language: 'en' }
+		);
+		expect(transport.init).not.toHaveBeenCalled();
+
+		start(context, { runInit: false });
+		await flushPromises();
+
+		expect(transport.init).toHaveBeenCalledTimes(1);
+		expect(transport.init.mock.calls[0]?.[0].overrides).toMatchObject({
+			country: 'DE',
+			language: 'fr',
+		});
+		expect(context.snapshot.value.translations?.language).toBe('fr');
 	});
 });

@@ -5,8 +5,9 @@ import {
 	useConsentActiveUI,
 	useConsentInit,
 	useConsentConfig,
-	useConsentKernel,
+	useConsentKernelContext,
 } from '../composables';
+import { applyRootOverrides } from '../root-overrides';
 import {
 	LazyConsentManager,
 	LazyIabConsentBanner,
@@ -26,17 +27,15 @@ const props = defineProps<{
 const config = useConsentConfig();
 const init = useConsentInit();
 const activeUI = useConsentActiveUI();
-const kernel = useConsentKernel();
+const context = useConsentKernelContext();
 
 watch(
-	() => [props.country, props.region, props.language] as const,
-	([country, region, language]) => {
-		if (!(country || region || language)) {
-			return;
-		}
-		kernel.set.overrides({ country, language, region });
-		void kernel.commands.init();
-	},
+	() => ({
+		country: props.country,
+		language: props.language,
+		region: props.region,
+	}),
+	(next, previous) => applyRootOverrides(context, next, previous),
 	{ immediate: true }
 );
 

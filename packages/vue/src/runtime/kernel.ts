@@ -59,6 +59,7 @@ import {
 	isServerManifestModeEnabled,
 	resolveClientManifestURL,
 } from './manifest';
+import { markRuntimeStarted } from './root-overrides';
 import { invalidateIABChoice } from './utils/save-iab-choice';
 
 export const INIT_HEADER_NAMES = [...CONSENT_REQUEST_HEADER_NAMES] as const;
@@ -947,8 +948,13 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	options: { runInit?: boolean } = {}
 ): () => void {
 	const disposers: (() => void)[] = [];
+	const overridesChanged = markRuntimeStarted(context);
 
 	if (!context.ownsKernel) {
+		// The host runtime ran its init before these overrides were set.
+		if (overridesChanged) {
+			void context.kernel.commands.init();
+		}
 		return () => {
 			context.dispose();
 		};
@@ -1078,6 +1084,10 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 
 	if (config.consentSource) {
 		// An external source owns permissions; there is nothing to initialise.
+	} else if (options.runInit === false && overridesChanged) {
+		// The prefetch answered for overrides a ConsentRoot prop has since
+		// changed. The init for the new ones also marks the kernel live.
+		void context.kernel.commands.init();
 	} else if (options.runInit === false) {
 		// No init call marks this kernel live, so do it here: the banner the
 		// server rendered is the visitor's first impression.
