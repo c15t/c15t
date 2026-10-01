@@ -63,6 +63,13 @@ if (!c15t) {
 }
 
 const { snapshot } = c15t;
+// An arm's theme overrides ride on the host theme: its tokens, its
+// `consentActions` and its `slots` all follow the assignment.
+const theme = applyExperimentTheme(
+	c15t.options.theme,
+	c15t.options.experiment,
+	snapshot.experiment
+);
 const model = resolveIABPromptModel({
 	classNames: iabPromptClassNames,
 	disableAnimation: c15t.options.disableAnimation,
@@ -74,20 +81,14 @@ const model = resolveIABPromptModel({
 	),
 	props,
 	snapshot,
-	theme: c15t.options.theme,
+	theme,
 });
 const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
 const themeCSS = emitConfig
-	? buildThemeCSS(
-			applyExperimentTheme(
-				c15t.options.theme,
-				c15t.options.experiment,
-				snapshot.experiment
-			)
-		)
+	? buildThemeCSS(theme)
 	: '';
 
 // No vendor list, no banner: every line of copy interpolates a count the
@@ -182,7 +183,7 @@ const hidden = c15t.prerendered && !force;
 					hostname={Astro.url.hostname}
 					noStyle={props.noStyle}
 					securedBy={model.copy.securedBy}
-					theme={c15t.options.theme}
+					theme={theme}
 					themeSlot="iabConsentBannerTag"
 					variant="banner-tag"
 				/>

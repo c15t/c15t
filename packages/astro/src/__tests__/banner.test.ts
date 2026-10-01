@@ -314,6 +314,29 @@ describe('<ConsentBanner />', () => {
 		expect(tag('consent-banner-title')).toContain('class="brand-title"');
 	});
 
+	it('applies the host-resolved arm theme slots', async () => {
+		const html = await render(
+			await buildLocals({
+				experiment: {
+					arm: 'branded',
+					arms: {
+						branded: {
+							theme: { slots: { consentBannerCard: 'arm-card' } },
+						},
+					},
+					id: 'card-class',
+				},
+				mode: offlineMode({ policyRules: [testRule] }),
+				theme: { slots: { consentBannerTitle: 'brand-title' } },
+			})
+		);
+		const tag = (testId: string) =>
+			new RegExp(`<[^>]*data-testid="${testId}"[^>]*>`, 'u').exec(html)?.[0];
+
+		expect(tag('consent-banner-card')).toContain('arm-card');
+		expect(tag('consent-banner-title')).toContain('brand-title');
+	});
+
 	it('keeps `theme.slots` classes with `noStyle`', async () => {
 		const html = await render(
 			await buildLocals({

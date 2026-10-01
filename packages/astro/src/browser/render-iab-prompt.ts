@@ -9,7 +9,12 @@
  * imports no stylesheet of its own.
  */
 
-import type { ConsentPresentation, ConsentSnapshot } from '@c15t/core';
+import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
+import type {
+	ConsentExperiment,
+	ConsentPresentation,
+	ConsentSnapshot,
+} from '@c15t/core';
 import type { Theme } from '@c15t/ui/theme';
 
 import type { IABPromptClassNames } from '../banner/class-names';
@@ -24,6 +29,8 @@ import { element, hiddenBanner, readSpot, renderBrandingTag } from './dom';
 
 /** Site options the IAB banner reads. */
 export interface RenderIABPromptOptions {
+	/** The integration's `experiment`, whose assigned arm is merged in. */
+	experiment?: ConsentExperiment;
 	presentation?: ConsentPresentation;
 	/** The integration's `theme`, for `slots`. */
 	theme?: Theme;
@@ -134,13 +141,24 @@ export const buildIABPrompt = function buildIABPrompt(
 	options: RenderIABPromptOptions
 ): HTMLElement[] {
 	const { props } = slot;
+	// The assigned arm rides on the host presentation and theme, as in
+	// `iab-prompt.astro`.
+	const theme = applyExperimentTheme(
+		options.theme,
+		options.experiment,
+		snapshot.experiment
+	);
 	const model = resolveIABPromptModel({
 		classNames: slot.classNames,
 		disableAnimation: options.disableAnimation,
-		presentation: options.presentation,
+		presentation: applyExperimentAssignment(
+			options.presentation,
+			options.experiment,
+			snapshot.experiment
+		),
 		props,
 		snapshot,
-		theme: options.theme,
+		theme,
 	});
 	if (!model.canRender) {
 		return [];
@@ -190,7 +208,7 @@ export const buildIABPrompt = function buildIABPrompt(
 		snapshot,
 		styles: slot.classNames.branding,
 		testId: 'iab-consent-banner-branding',
-		theme: options.theme,
+		theme,
 		themeSlot: 'iabConsentBannerTag',
 	});
 	const root = element(

@@ -66,6 +66,13 @@ if (!c15t) {
 }
 
 const { snapshot } = c15t;
+// An arm's theme overrides ride on the host theme: its tokens, its
+// `consentActions` and its `slots` all follow the assignment.
+const theme = applyExperimentTheme(
+	c15t.options.theme,
+	c15t.options.experiment,
+	snapshot.experiment
+);
 // Rendered as a server island, this is a request of its own with its own
 // nonce, but the page's policy is the one that judges the inserted markup.
 const nonce = nonceProp ?? c15t.nonce;
@@ -82,13 +89,7 @@ const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
 const themeCSS = emitConfig
-	? buildThemeCSS(
-			applyExperimentTheme(
-				c15t.options.theme,
-				c15t.options.experiment,
-				snapshot.experiment
-			)
-		)
+	? buildThemeCSS(theme)
 	: '';
 
 const model = resolvePromptModel({
@@ -103,7 +104,7 @@ const model = resolvePromptModel({
 	),
 	props,
 	snapshot,
-	theme: c15t.options.theme,
+	theme,
 });
 ---
 
@@ -193,7 +194,7 @@ const model = resolvePromptModel({
 					hostname={Astro.url.hostname}
 					noStyle={props.noStyle}
 					securedBy={model.copy.securedBy}
-					theme={c15t.options.theme}
+					theme={theme}
 					themeSlot="consentBannerTag"
 					variant="banner-tag"
 				/>

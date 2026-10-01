@@ -65,6 +65,37 @@ describe('browser-rendered banner and theme.slots', () => {
 	});
 });
 
+describe('browser-rendered banner and an experiment arm', () => {
+	it('applies the assigned arm theme slots', async () => {
+		const experiment = {
+			arm: 'branded',
+			arms: {
+				branded: { theme: { slots: { consentBannerCard: 'arm-card' } } },
+			},
+			id: 'card-class',
+		};
+		const locals = await resolveConsentContext({
+			headers: new Headers(),
+			options: resolveOptions({
+				experiment,
+				mode: offlineMode({ policyRules: [testRule] }),
+			}),
+		});
+		const host = document.createElement('div');
+		host.append(
+			...buildPrompt(
+				locals.snapshot,
+				{ classNames: promptClassNames, props: {} },
+				{ experiment }
+			)
+		);
+
+		expect(
+			host.querySelector('[data-testid="consent-banner-card"]')?.classList
+		).toContain('arm-card');
+	});
+});
+
 describe('browser-rendered IAB banner and theme.slots', () => {
 	it('adds slot classes to the IAB parts they name', async () => {
 		const locals = await resolveConsentContext({

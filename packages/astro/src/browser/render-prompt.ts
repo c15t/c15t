@@ -9,7 +9,9 @@
  * no stylesheet of its own.
  */
 
+import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
 import type {
+	ConsentExperiment,
 	ConsentPresentation,
 	ConsentSnapshot,
 	LegalLinks,
@@ -24,6 +26,8 @@ import { element, hiddenBanner, readSpot, renderBrandingTag } from './dom';
 
 /** Site options the banner reads. */
 export interface RenderPromptOptions {
+	/** The integration's `experiment`, whose assigned arm is merged in. */
+	experiment?: ConsentExperiment;
 	presentation?: ConsentPresentation;
 	legalLinks?: LegalLinks;
 	/** The integration's `theme`, for `consentActions` and `slots`. */
@@ -147,14 +151,25 @@ export const buildPrompt = function buildPrompt(
 	options: RenderPromptOptions
 ): HTMLElement[] {
 	const { props } = slot;
+	// The assigned arm rides on the host presentation and theme, as in
+	// `prompt.astro`.
+	const theme = applyExperimentTheme(
+		options.theme,
+		options.experiment,
+		snapshot.experiment
+	);
 	const model = resolvePromptModel({
 		classNames: slot.classNames,
 		disableAnimation: options.disableAnimation,
 		legalLinks: options.legalLinks,
-		presentation: options.presentation,
+		presentation: applyExperimentAssignment(
+			options.presentation,
+			options.experiment,
+			snapshot.experiment
+		),
 		props,
 		snapshot,
-		theme: options.theme,
+		theme,
 	});
 	const description = element(
 		'div',
@@ -222,7 +237,7 @@ export const buildPrompt = function buildPrompt(
 		snapshot,
 		styles: slot.classNames.branding,
 		testId: 'consent-banner-branding',
-		theme: options.theme,
+		theme,
 		themeSlot: 'consentBannerTag',
 	});
 	const root = element(
