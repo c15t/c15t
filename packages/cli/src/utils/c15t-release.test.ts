@@ -7,6 +7,7 @@ import {
 	LINKED_C15T_PACKAGES,
 	c15tReleaseSpecifier,
 	dependencyName,
+	isOnC15tRelease,
 	withC15tRelease,
 } from './c15t-release';
 
@@ -71,5 +72,29 @@ describe('c15t release specifier', () => {
 
 		expect(names.length).toBeGreaterThan(0);
 		expect([...LINKED_C15T_PACKAGES].toSorted()).toEqual(names.toSorted());
+	});
+});
+
+describe('declared c15t ranges', () => {
+	it.each([
+		['c15t', '^3.0.0-alpha.1', '3.0.0-alpha.3', true],
+		['c15t', '3.0.0-alpha.3', '3.0.0-alpha.3', true],
+		['@c15t/react', '^3.0.0', '3.0.0-alpha.3', true],
+		['@c15t/react', '^2.0.0', '3.0.0-alpha.3', false],
+		['@c15t/react', '2.0.0-rc.4', '3.0.0-alpha.3', false],
+		['c15t', '^3.0.0-rc.1', '3.0.0-alpha.3', false],
+		['@c15t/ui', '^2.1.0', '3.0.0-alpha.3', false],
+		['c15t', '^3.1.0', '3.2.1', true],
+		['c15t', '~3.0.0-alpha.3', '3.2.1', true],
+		['@c15t/react', '^2.0.0', '3.2.1', false],
+		['@c15t/ui', '^2.0.0', '3.2.1', true],
+		['c15t', 'workspace:*', '3.2.1', true],
+		['c15t', 'link:../c15t', '3.0.0-alpha.3', true],
+		['c15t', 'file:../c15t.tgz', '3.0.0-alpha.3', true],
+		['c15t', 'latest', '3.0.0-alpha.3', true],
+		['c15t', 'alpha', '3.2.1', true],
+		['c15t', '>=2.0.0 <4', '3.2.1', true],
+	])('%s@%s on a %s CLI matches: %s', (name, range, version, matches) => {
+		expect(isOnC15tRelease(name, range, version)).toBe(matches);
 	});
 });

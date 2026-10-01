@@ -62,7 +62,7 @@ describe('checkInstalledDependencies', () => {
 
 	it('treats an existing @c15t/react install as satisfying the umbrella requirement', async () => {
 		const root = await createProject({
-			dependencies: { '@c15t/react': '^2.0.0', react: '^19.0.0' },
+			dependencies: { '@c15t/react': '^3.0.0-alpha.1', react: '^19.0.0' },
 		});
 
 		const result = await checkInstalledDependencies({
@@ -76,7 +76,7 @@ describe('checkInstalledDependencies', () => {
 
 	it('treats an existing @c15t/nextjs install as satisfying the umbrella requirement', async () => {
 		const root = await createProject({
-			dependencies: { '@c15t/nextjs': '^2.0.0', next: '^15.0.0' },
+			dependencies: { '@c15t/nextjs': '^3.0.0-alpha.1', next: '^15.0.0' },
 		});
 
 		const result = await checkInstalledDependencies({
@@ -90,7 +90,7 @@ describe('checkInstalledDependencies', () => {
 
 	it('does not let scoped installs satisfy other packages', async () => {
 		const root = await createProject({
-			dependencies: { '@c15t/react': '^2.0.0' },
+			dependencies: { '@c15t/react': '^3.0.0-alpha.1' },
 		});
 
 		const result = await checkInstalledDependencies({
@@ -117,5 +117,57 @@ describe('checkInstalledDependencies', () => {
 
 		expect(result.installed).toEqual(['c15t@alpha', '@c15t/scripts@alpha']);
 		expect(result.missing).toEqual(['@c15t/dev-tools@alpha']);
+	});
+
+	it('reinstalls c15t packages declared on another major', async () => {
+		const root = await createProject({
+			dependencies: {
+				'@c15t/integrations': '^2.0.0',
+				c15t: '^2.0.0',
+			},
+		});
+
+		const result = await checkInstalledDependencies({
+			dependencies: ['c15t@alpha', '@c15t/integrations@alpha'],
+			projectRoot: root,
+		});
+
+		expect(result.installed).toEqual([]);
+		expect(result.missing).toEqual(['c15t@alpha', '@c15t/integrations@alpha']);
+	});
+
+	it('upgrades a v2 scoped framework install instead of adding the umbrella', async () => {
+		const root = await createProject({
+			dependencies: { '@c15t/react': '^2.0.0', react: '^19.0.0' },
+		});
+
+		const result = await checkInstalledDependencies({
+			dependencies: ['c15t@alpha'],
+			projectRoot: root,
+		});
+
+		expect(result.installed).toEqual([]);
+		expect(result.missing).toEqual(['@c15t/react@alpha']);
+	});
+
+	it('keeps workspace, linked and dist-tag ranges', async () => {
+		const root = await createProject({
+			dependencies: {
+				'@c15t/dev-tools': 'link:../dev-tools',
+				'@c15t/integrations': 'alpha',
+				c15t: 'workspace:*',
+			},
+		});
+
+		const result = await checkInstalledDependencies({
+			dependencies: [
+				'c15t@alpha',
+				'@c15t/integrations@alpha',
+				'@c15t/dev-tools@alpha',
+			],
+			projectRoot: root,
+		});
+
+		expect(result.missing).toEqual([]);
 	});
 });
