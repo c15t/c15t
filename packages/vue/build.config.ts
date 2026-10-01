@@ -10,7 +10,12 @@ export default defineBuildConfig({
 		'#imports': resolve(dir, 'src/runtime/vue/stubs.ts'),
 	},
 	declaration: true,
-	entries: ['./src/vite', './src/index', './src/devtools'],
+	entries: [
+		'./src/vite',
+		'./src/index',
+		'./src/devtools',
+		'./src/postcss-tailwind3',
+	],
 	externals: [
 		'vue',
 		'vite',

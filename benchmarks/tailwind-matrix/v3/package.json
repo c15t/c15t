@@ -8,7 +8,6 @@
 	"dependencies": {
 		"@c15t/browser": "workspace:*",
 		"@c15t/svelte": "workspace:*",
-		"@c15t/ui": "workspace:*",
 		"@tanstack/react-router": "1.170.32",
 		"@tanstack/react-start": "1.168.49",
 		"c15t": "workspace:*",

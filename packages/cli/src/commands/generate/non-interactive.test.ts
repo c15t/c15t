@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { detectFramework } from '../../context/framework-detection';
 import type { CliContext } from '../../context/types';
 import { c15tReleaseSpecifier } from '../../utils/c15t-release';
-import { TAILWIND3_CREATE_REACT_APP_WARNING } from '../shared/postcss-config';
+import { tailwind3CreateReactAppWarning } from '../shared/postcss-config';
 import { generateWithoutPrompts } from './non-interactive';
 
 const install = vi.fn();
@@ -251,8 +251,9 @@ describe('noninteractive setup', () => {
 
 			const result = await run(context);
 
-			expect(result.warnings).toEqual([TAILWIND3_CREATE_REACT_APP_WARNING]);
-			expect(warn).toHaveBeenCalledWith(TAILWIND3_CREATE_REACT_APP_WARNING);
+			const warning = tailwind3CreateReactAppWarning('c15t/postcss-tailwind3');
+			expect(result.warnings).toEqual([warning]);
+			expect(warn).toHaveBeenCalledWith(warning);
 			expect(
 				result.edits.filter((edit) => edit.path.includes('postcss'))
 			).toEqual([]);
@@ -263,6 +264,60 @@ describe('noninteractive setup', () => {
 				postcssConfig &&
 					(await readFile(join(root, 'postcss.config.js'), 'utf8'))
 			).toBe(postcssConfig);
+		},
+		30_000
+	);
+	it.each([
+		{
+			dependencies: [`c15t@${c15tReleaseSpecifier()}`],
+			installed: {},
+			plugin: 'c15t/postcss-tailwind3',
+		},
+		{
+			dependencies: [],
+			installed: { '@c15t/react': '3.0.0' },
+			plugin: '@c15t/react/postcss-tailwind3',
+		},
+	])(
+		'adds $plugin for Tailwind 3 without installing @c15t/ui',
+		async ({ dependencies, installed, plugin }) => {
+			const context = await fixture({ apply: true });
+			const root = context.projectRoot;
+			await writeFile(
+				join(root, 'package.json'),
+				JSON.stringify({
+					dependencies: {
+						react: '19.2.7',
+						'react-dom': '19.2.7',
+						...installed,
+					},
+					devDependencies: {
+						'@vitejs/plugin-react': '6.0.3',
+						tailwindcss: '3.4.17',
+					},
+				})
+			);
+			await writeFile(
+				join(root, 'postcss.config.js'),
+				'export default { plugins: { tailwindcss: {}, autoprefixer: {} } };\n'
+			);
+			await mkdir(join(root, 'src'));
+			await writeFile(
+				join(root, 'src/index.css'),
+				'@tailwind base;\n@tailwind components;\n@tailwind utilities;\n'
+			);
+			await writeFile(
+				join(root, 'src/App.jsx'),
+				'export default function App() { return <main />; }\n'
+			);
+			context.framework = await detectFramework(root);
+
+			const result = await run(context);
+
+			expect(result.dependencies).toEqual(dependencies);
+			expect(await readFile(join(root, 'postcss.config.js'), 'utf8')).toBe(
+				`export default { plugins: { '${plugin}': {}, tailwindcss: {}, autoprefixer: {} } };\n`
+			);
 		},
 		30_000
 	);

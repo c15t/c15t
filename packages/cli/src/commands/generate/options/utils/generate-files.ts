@@ -10,13 +10,17 @@ import { formatLogMessage } from '~/utils/logger';
 import {
 	ensureTailwind3PostcssPlugin,
 	isTailwindV3,
-	TAILWIND3_CREATE_REACT_APP_WARNING,
-	TAILWIND3_POSTCSS_INSTRUCTION,
+	tailwind3CreateReactAppWarning,
+	tailwind3PostcssInstruction,
+	tailwind3PostcssPluginName,
 } from '../../../shared/postcss-config';
 import { formatSearchedCssPaths } from '../../../shared/stylesheets';
 import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { generateClientConfigContent } from '../../templates/config';
-import { updateAppStylesheetImports } from '../../templates/css';
+import {
+	resolveStylesheetPackageName,
+	updateAppStylesheetImports,
+} from '../../templates/css';
 import {
 	generateEnvExampleContent,
 	generateEnvFileContent,
@@ -337,15 +341,18 @@ const handleEnvFiles = async function handleEnvFiles(options: {
 };
 
 /**
- * Add `@c15t/ui/postcss-tailwind3` to a Tailwind 3 app's PostCSS config, or
- * tell the user how when the config can't be edited.
+ * Add the installed package's `postcss-tailwind3` plugin (for example
+ * `c15t/postcss-tailwind3`) to a Tailwind 3 app's PostCSS config, or tell the
+ * user how when the config can't be edited.
  */
 const configureTailwind3Postcss = async function configureTailwind3Postcss({
 	cwd,
+	pkg,
 	projectRoot,
 	spinner,
 }: {
 	cwd: string;
+	pkg: 'c15t/next' | 'c15t/react';
 	projectRoot: string;
 	spinner: ReturnType<typeof p.spinner>;
 }): Promise<
@@ -355,7 +362,15 @@ const configureTailwind3Postcss = async function configureTailwind3Postcss({
 	>
 > {
 	spinner.start('Configuring PostCSS for Tailwind 3...');
-	const postcssResult = await ensureTailwind3PostcssPlugin({ projectRoot });
+	// The plugin comes from the package the app imports c15t from: `c15t`, or
+	// `@c15t/react` / `@c15t/nextjs` in apps that installed those directly.
+	const pluginName = tailwind3PostcssPluginName(
+		await resolveStylesheetPackageName(projectRoot, pkg)
+	);
+	const postcssResult = await ensureTailwind3PostcssPlugin({
+		pluginName,
+		projectRoot,
+	});
 	const result: Pick<
 		GenerateFilesResult,
 		'postcssConfigPath' | 'postcssConfigUpdated' | 'warnings'
@@ -381,8 +396,8 @@ const configureTailwind3Postcss = async function configureTailwind3Postcss({
 	} else {
 		const warning =
 			postcssResult.status === 'config-ignored'
-				? TAILWIND3_CREATE_REACT_APP_WARNING
-				: TAILWIND3_POSTCSS_INSTRUCTION;
+				? tailwind3CreateReactAppWarning(pluginName)
+				: tailwind3PostcssInstruction(pluginName);
 		spinner.stop(formatLogMessage('warn', warning));
 		result.warnings = [warning];
 	}
@@ -534,6 +549,7 @@ const generateFilesContent = async function generateFilesContent({
 				result,
 				await configureTailwind3Postcss({
 					cwd: context.cwd,
+					pkg,
 					projectRoot,
 					spinner,
 				})

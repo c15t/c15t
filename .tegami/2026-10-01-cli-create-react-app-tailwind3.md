@@ -5,7 +5,7 @@ packages:
 
 ### Warn that Create React App cannot run the Tailwind 3 plugin
 
-Create React App (`react-scripts`) builds CSS with its own PostCSS setup and never reads `postcss.config.js`, so `@c15t/ui/postcss-tailwind3` cannot run and a Tailwind 3 build fails on c15t's dialog stylesheet. `c15t setup` still added the plugin to a `postcss.config.js` it found and reported success.
+Create React App (`react-scripts`) builds CSS with its own PostCSS setup and never reads `postcss.config.js`, so c15t's Tailwind 3 PostCSS plugin (`c15t/postcss-tailwind3`) cannot run and a Tailwind 3 build fails on c15t's dialog stylesheet. `c15t setup` still added the plugin to a `postcss.config.js` it found and reported success.
 
 For Tailwind 3 apps that depend on `react-scripts`, setup now leaves PostCSS config alone, with or without a config file, and warns instead. To fix the build, add the plugin before `tailwindcss` through CRACO, eject, or move the app to Vite.
 

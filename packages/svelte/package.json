@@ -67,6 +67,11 @@
 	"exports": {
 		"./styles.css": "./dist/styles.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
+		"./postcss-tailwind3": {
+			"types": "./dist/postcss-tailwind3.d.ts",
+			"import": "./dist/postcss-tailwind3.js",
+			"default": "./dist/postcss-tailwind3.js"
+		},
 		"./headless": {
 			"types": "./dist/headless.d.ts",
 			"svelte": "./dist/headless.js",

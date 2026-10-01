@@ -25,8 +25,18 @@ const PREFIXES = [
 	{ packageName: '@c15t/astro', prefix: 'astro' },
 ];
 
+/**
+ * Root subpaths mirrored from a package other than `@c15t/core`, the
+ * `include` entries in `UMBRELLA_SOURCES`.
+ */
+const INCLUDED = new Map([['postcss-tailwind3', '@c15t/ui/postcss-tailwind3']]);
+
 const toScopedSpecifier = function toScopedSpecifier(subpath) {
 	const segment = subpath === '.' ? '' : subpath.slice(2);
+	const included = INCLUDED.get(segment);
+	if (included) {
+		return included;
+	}
 	for (const { packageName, prefix } of PREFIXES) {
 		if (segment === prefix) {
 			return packageName;

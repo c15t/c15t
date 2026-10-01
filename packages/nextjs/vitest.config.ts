@@ -88,6 +88,10 @@ export default mergeConfig(
 					__dirname,
 					'../react/dist/components/panel-link/index.js'
 				),
+				'@c15t/react/postcss-tailwind3': resolve(
+					__dirname,
+					'../react/dist/postcss-tailwind3.js'
+				),
 				'@c15t/react': resolve(__dirname, '../react/dist/index.js'),
 				'@c15t/translations/all': resolve(
 					__dirname,

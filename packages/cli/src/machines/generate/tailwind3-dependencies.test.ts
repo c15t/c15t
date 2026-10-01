@@ -81,15 +81,17 @@ const dependenciesFor = async function dependenciesFor(
 	}
 };
 
-it('installs @c15t/ui for a Tailwind 3 Next.js app', async () => {
-	await expect(dependenciesFor('c15t/next', '^3.4.17')).resolves.toEqual([
-		`c15t@${c15tReleaseSpecifier()}`,
-		`@c15t/ui@${c15tReleaseSpecifier(undefined, '@c15t/ui')}`,
-	]);
-});
-
-it('installs only c15t with Tailwind 4', async () => {
-	await expect(dependenciesFor('c15t/react', '^4.1.0')).resolves.toEqual([
-		`c15t@${c15tReleaseSpecifier()}`,
-	]);
-});
+// The Tailwind 3 PostCSS plugin ships as `c15t/postcss-tailwind3`, so a
+// Tailwind 3 app needs no `@c15t/ui` dependency of its own.
+it.each([
+	{ pkg: 'c15t/next', tailwindVersion: '^3.4.17' },
+	{ pkg: 'c15t/react', tailwindVersion: '^3.4.17' },
+	{ pkg: 'c15t/react', tailwindVersion: '^4.1.0' },
+])(
+	'installs only c15t for $pkg with Tailwind $tailwindVersion',
+	async ({ pkg, tailwindVersion }) => {
+		await expect(dependenciesFor(pkg, tailwindVersion)).resolves.toEqual([
+			`c15t@${c15tReleaseSpecifier()}`,
+		]);
+	}
+);

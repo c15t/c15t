@@ -513,6 +513,37 @@ describe('deriveUmbrellaArtifacts', () => {
 		expect(artifacts.sideEffects).toEqual(['**/*.css', 'shims/**']);
 	});
 
+	it('mirrors only the included subpaths of a partially mounted source', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({
+				config: {
+					directory: 'ui',
+					include: ['./postcss-tailwind3'],
+					packageName: '@c15t/ui',
+					prefix: '',
+				},
+				exports: {
+					'.': { import: './dist/index.js' },
+					'./postcss-tailwind3': {
+						import: './dist/postcss-tailwind3.js',
+						types: './dist-types/postcss-tailwind3.d.ts',
+					},
+					'./styles.css': './dist/styles.css',
+					'./styles/dialog': { import: './dist/styles/dialog.js' },
+				},
+				// The side effect belongs to a subpath the umbrella leaves out.
+				sideEffects: ['**/*.css', './dist/styles/dialog.js'],
+			}),
+		]);
+
+		expect(Object.keys(artifacts.exports)).toEqual(['./postcss-tailwind3']);
+		expect(artifacts.shimFiles['shims/postcss-tailwind3.js']).toContain(
+			"export * from '@c15t/ui/postcss-tailwind3';"
+		);
+		expect(artifacts.cssCopies).toEqual([]);
+		expect(artifacts.sideEffects).toEqual(['**/*.css']);
+	});
+
 	it('rejects sideEffects declarations it cannot mirror', () => {
 		expect(() =>
 			deriveUmbrellaArtifacts([
@@ -696,6 +727,19 @@ describe('committed umbrella package', () => {
 		);
 		expect(artifacts.shimFiles['shims/vue/devtools.js']).toContain(
 			"export { default } from '@c15t/vue/devtools';"
+		);
+	});
+
+	it('exposes the Tailwind 3 PostCSS plugin once, from @c15t/ui', () => {
+		// Each adapter publishes `<package>/postcss-tailwind3`; the umbrella
+		// leaves those out so `c15t/postcss-tailwind3` is the only name.
+		expect(
+			Object.keys(manifest.exports).filter((subpath) =>
+				subpath.endsWith('postcss-tailwind3')
+			)
+		).toEqual(['./postcss-tailwind3']);
+		expect(artifacts.shimFiles['shims/postcss-tailwind3.js']).toContain(
+			"export { default } from '@c15t/ui/postcss-tailwind3';"
 		);
 	});
 

@@ -9,8 +9,31 @@ import {
 	writeFile,
 } from '../generate/templates/shared/file-plan';
 
-/** The PostCSS plugin Tailwind 3 apps run so c15t's stylesheets build. */
-export const TAILWIND3_POSTCSS_PLUGIN = '@c15t/ui/postcss-tailwind3';
+/**
+ * Any c15t package's Tailwind 3 PostCSS plugin subpath. `c15t`, every
+ * adapter that publishes a stylesheet, and `@c15t/ui` export the same plugin
+ * as `<package>/postcss-tailwind3`.
+ */
+const C15T_TAILWIND3_PLUGIN = /^(?:c15t|@c15t\/[^/]+)\/postcss-tailwind3$/u;
+
+/**
+ * The Tailwind 3 PostCSS plugin name for an app that imports c15t from
+ * `importPath`. The plugin comes from the package the app installed, so
+ * PostCSS can resolve it without `@c15t/ui` as a direct dependency.
+ *
+ * @param importPath - The c15t entry point the app imports, such as
+ *   `c15t/next` or `@c15t/react`
+ * @returns The plugin name, such as `c15t/postcss-tailwind3`
+ */
+export const tailwind3PostcssPluginName = function tailwind3PostcssPluginName(
+	importPath: string
+): string {
+	const segments = importPath.split('/');
+	const packageName = importPath.startsWith('@')
+		? segments.slice(0, 2).join('/')
+		: segments[0];
+	return `${packageName}/postcss-tailwind3`;
+};
 
 /**
  * PostCSS config files, in `postcss-load-config`'s search order (Vite),
@@ -61,22 +84,6 @@ export const isTailwindV3 = function isTailwindV3(
 };
 
 /**
- * Whether setup should wire up the Tailwind 3 plugin: a React or Next.js app
- * (the targets that import c15t's prebuilt stylesheet) on Tailwind 3.
- *
- * @param framework - The detected framework, or null
- * @returns True when the app needs `@c15t/ui/postcss-tailwind3`
- */
-export const needsTailwind3PostcssPlugin = function needsTailwind3PostcssPlugin(
-	framework: { pkg: string; tailwindVersion: string | null } | null
-): boolean {
-	return (
-		(framework?.pkg === 'c15t/react' || framework?.pkg === 'c15t/next') &&
-		isTailwindV3(framework.tailwindVersion)
-	);
-};
-
-/**
  * Put `entry` in front of the match at `index`. A match that starts its line
  * gets the entry on a line of its own with the same indent.
  */
@@ -122,13 +129,14 @@ const quoteOf = function quoteOf(
  */
 const arrayEntry = function arrayEntry(
 	element: ts.Expression,
-	sourceFile: ts.SourceFile
+	sourceFile: ts.SourceFile,
+	pluginName: string
 ): PluginEntry | undefined {
 	const name = stringText(element);
 	if (name !== undefined) {
 		const quote = quoteOf(element, sourceFile);
 		return {
-			c15tEntry: `${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote}`,
+			c15tEntry: `${quote}${pluginName}${quote}`,
 			name,
 			node: element,
 		};
@@ -141,7 +149,7 @@ const arrayEntry = function arrayEntry(
 		if (head && tupleName !== undefined) {
 			const quote = quoteOf(head, sourceFile);
 			return {
-				c15tEntry: `${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote}`,
+				c15tEntry: `${quote}${pluginName}${quote}`,
 				name: tupleName,
 				node: element,
 			};
@@ -155,7 +163,7 @@ const arrayEntry = function arrayEntry(
 
 	// `require('name')(options)` loads the same module as `require('name')`.
 	if (ts.isCallExpression(element.expression)) {
-		const inner = arrayEntry(element.expression, sourceFile);
+		const inner = arrayEntry(element.expression, sourceFile, pluginName);
 		return inner && { ...inner, node: element };
 	}
 
@@ -171,7 +179,7 @@ const arrayEntry = function arrayEntry(
 	}
 	const quote = quoteOf(argument, sourceFile);
 	return {
-		c15tEntry: `require(${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote})`,
+		c15tEntry: `require(${quote}${pluginName}${quote})`,
 		name: requiredName,
 		node: element,
 	};
@@ -181,7 +189,8 @@ const arrayEntry = function arrayEntry(
 const objectEntry = function objectEntry(
 	property: ts.ObjectLiteralElementLike,
 	sourceFile: ts.SourceFile,
-	isJson: boolean
+	isJson: boolean,
+	pluginName: string
 ): PluginEntry | undefined {
 	if (!ts.isPropertyAssignment(property)) {
 		return undefined;
@@ -198,7 +207,7 @@ const objectEntry = function objectEntry(
 	return keyName === undefined
 		? undefined
 		: {
-				c15tEntry: `${quote}${TAILWIND3_POSTCSS_PLUGIN}${quote}: {}`,
+				c15tEntry: `${quote}${pluginName}${quote}: {}`,
 				name: keyName,
 				node: property,
 			};
@@ -245,14 +254,18 @@ type PostcssConfigEdit =
  * @param content - The config file's source
  * @param fileName - The config's file name, which selects JSON, JavaScript
  *   or TypeScript parsing
- * @returns `present` when the active plugin list already loads the c15t
- *   plugin before `tailwindcss`, `added` with the updated source, or `manual` when the config has
- *   no single plugin list with a `tailwindcss` entry this can edit
+ * @param pluginName - The plugin name to add, from
+ *   {@link tailwind3PostcssPluginName}
+ * @returns `present` when the active plugin list already loads a c15t
+ *   package's plugin (any `…/postcss-tailwind3`) before `tailwindcss`,
+ *   `added` with the updated source, or `manual` when the config has no
+ *   single plugin list with a `tailwindcss` entry this can edit
  */
 export const addTailwind3PluginToPostcssConfig =
 	function addTailwind3PluginToPostcssConfig(
 		content: string,
-		fileName: string
+		fileName: string,
+		pluginName: string
 	): PostcssConfigEdit {
 		const isJson = JSON_CONFIGS.has(fileName);
 		const sourceFile = isJson
@@ -271,12 +284,14 @@ export const addTailwind3PluginToPostcssConfig =
 		}
 
 		const entries = ts.isArrayLiteralExpression(list)
-			? list.elements.map((element) => arrayEntry(element, sourceFile))
+			? list.elements.map((element) =>
+					arrayEntry(element, sourceFile, pluginName)
+				)
 			: list.properties.map((property) =>
-					objectEntry(property, sourceFile, isJson)
+					objectEntry(property, sourceFile, isJson, pluginName)
 				);
 		const c15tIndex = entries.findIndex(
-			(entry) => entry?.name === TAILWIND3_POSTCSS_PLUGIN
+			(entry) => entry !== undefined && C15T_TAILWIND3_PLUGIN.test(entry.name)
 		);
 		const tailwindIndex = entries.findIndex(
 			(entry) => entry?.name === 'tailwindcss'
@@ -343,11 +358,13 @@ const hasDependency = function hasDependency(
 };
 
 /**
- * Make sure a Tailwind 3 app runs `@c15t/ui/postcss-tailwind3` before
+ * Make sure a Tailwind 3 app runs c15t's `postcss-tailwind3` plugin before
  * `tailwindcss`. Tailwind 3 rejects c15t's `@layer components` blocks and
  * purges their rules; the plugin flattens them first.
  *
  * @param options.projectRoot - App root to search for a PostCSS config
+ * @param options.pluginName - The plugin name to add, from
+ *   {@link tailwind3PostcssPluginName}
  * @param options.dryRun - Report the change without writing it
  * @returns `present` or `added` with the config path; `config-ignored`
  *   for Create React App, which never reads a PostCSS config; or `manual`
@@ -357,6 +374,7 @@ const hasDependency = function hasDependency(
 export const ensureTailwind3PostcssPlugin =
 	async function ensureTailwind3PostcssPlugin(options: {
 		projectRoot: string;
+		pluginName: string;
 		dryRun?: boolean;
 	}): Promise<EnsureTailwind3PostcssPluginResult> {
 		const found: string[] = [];
@@ -400,7 +418,11 @@ export const ensureTailwind3PostcssPlugin =
 
 		const filePath = join(options.projectRoot, candidate);
 		const content = await readFile(filePath, 'utf-8');
-		const edit = addTailwind3PluginToPostcssConfig(content, candidate);
+		const edit = addTailwind3PluginToPostcssConfig(
+			content,
+			candidate,
+			options.pluginName
+		);
 		if (edit.status === 'added' && !options.dryRun) {
 			await writeFile(filePath, edit.content, 'utf-8');
 		}
@@ -408,11 +430,26 @@ export const ensureTailwind3PostcssPlugin =
 		return { filePath, status: edit.status };
 	};
 
-/** The manual step for configs this module cannot edit. */
-export const TAILWIND3_POSTCSS_INSTRUCTION = `Tailwind 3 needs '${TAILWIND3_POSTCSS_PLUGIN}' before 'tailwindcss' in your PostCSS plugins, for example plugins: { '${TAILWIND3_POSTCSS_PLUGIN}': {}, tailwindcss: {}, autoprefixer: {} }. Install @c15t/ui as a direct dependency so PostCSS can load it.`;
+/**
+ * The manual step for configs this module cannot edit.
+ *
+ * @param pluginName - The plugin name, from {@link tailwind3PostcssPluginName}
+ * @returns The instruction to show
+ */
+export const tailwind3PostcssInstruction = function tailwind3PostcssInstruction(
+	pluginName: string
+): string {
+	return `Tailwind 3 needs '${pluginName}' before 'tailwindcss' in your PostCSS plugins, for example plugins: { '${pluginName}': {}, tailwindcss: {}, autoprefixer: {} }.`;
+};
 
 /**
  * Why Create React App cannot run Tailwind 3 with c15t, and the ways out.
  * react-scripts builds CSS with `postcss: { config: false }`.
+ *
+ * @param pluginName - The plugin name, from {@link tailwind3PostcssPluginName}
+ * @returns The warning to show
  */
-export const TAILWIND3_CREATE_REACT_APP_WARNING = `Create React App ignores PostCSS config files, so Tailwind 3 cannot run '${TAILWIND3_POSTCSS_PLUGIN}' and the build fails on c15t's dialog stylesheet. Add the plugin before 'tailwindcss' through CRACO, eject, or move the app to Vite.`;
+export const tailwind3CreateReactAppWarning =
+	function tailwind3CreateReactAppWarning(pluginName: string): string {
+		return `Create React App ignores PostCSS config files, so Tailwind 3 cannot run '${pluginName}' and the build fails on c15t's dialog stylesheet. Add the plugin before 'tailwindcss' through CRACO, eject, or move the app to Vite.`;
+	};

@@ -151,6 +151,11 @@
 		"./styles.tw3.css": "./dist/styles.tw3.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
 		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
+		"./postcss-tailwind3": {
+			"types": "./dist-types/postcss-tailwind3.d.ts",
+			"import": "./dist/postcss-tailwind3.js",
+			"default": "./dist/postcss-tailwind3.js"
+		},
 		"./primitives": {
 			"types": "./dist-types/primitives.d.ts",
 			"import": "./dist/primitives.js",

@@ -2,7 +2,7 @@
 // #region docs:postcss-config title="postcss.config.mjs"
 export default {
 	plugins: {
-		'@c15t/ui/postcss-tailwind3': {},
+		'c15t/postcss-tailwind3': {},
 		tailwindcss: {},
 		autoprefixer: {},
 	},

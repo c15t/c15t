@@ -31,12 +31,15 @@ const SCOPED_STYLESHEET_PACKAGES = {
  * umbrella CSS with scoped JS, a version-skew hazard. The scoped-to-umbrella
  * normalization only applies when the app actually depends on the umbrella.
  *
+ * The Tailwind 3 PostCSS plugin follows the same choice, so it loads from a
+ * package the app depends on directly.
+ *
  * @param projectRoot - App root containing package.json
  * @param packageName - The umbrella entry point requested by the caller
  * @returns The scoped package name for scoped-only apps, otherwise the
  * requested package name
  */
-const resolveStylesheetPackageName =
+export const resolveStylesheetPackageName =
 	async function resolveStylesheetPackageName(
 		projectRoot: string,
 		packageName: UpdateAppStylesheetImportsOptions['packageName']

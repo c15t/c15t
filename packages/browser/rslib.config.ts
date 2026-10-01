@@ -11,6 +11,8 @@ import { iabBundleBoundary } from './scripts/iab-bundle-boundary';
  *
  * - `dist/index.js` + `dist/headless.js` — ESM for bundler users, with the
  *   workspace packages left external so they dedupe against `@c15t/core`.
+ * - `dist/postcss-tailwind3.js` — a re-export of `@c15t/ui/postcss-tailwind3`
+ *   for Tailwind 3 PostCSS configs.
  * - `dist/c15t.js` — a self-contained script-tag build: runtime, the
  *   vanilla banner and preference centre, the stylesheet, and auto-init
  *   from the `<script>` tag's `data-*` attributes.
@@ -56,6 +58,7 @@ export default defineConfig({
 					headless: './src/headless.ts',
 					iab: './src/iab.ts',
 					index: './src/index.ts',
+					'postcss-tailwind3': './src/postcss-tailwind3.ts',
 				},
 			},
 		},

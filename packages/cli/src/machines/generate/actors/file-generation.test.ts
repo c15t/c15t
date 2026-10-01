@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, expect, it, vi } from 'vitest';
 import { createActor, toPromise } from 'xstate';
 
-import { TAILWIND3_CREATE_REACT_APP_WARNING } from '~/commands/shared/postcss-config';
+import { tailwind3CreateReactAppWarning } from '~/commands/shared/postcss-config';
 import { detectFramework } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 
@@ -65,7 +65,9 @@ it('shows the Create React App warning for Tailwind 3 without writing a PostCSS 
 	actor.start();
 	await toPromise(actor);
 
-	expect(warn).toHaveBeenCalledWith(TAILWIND3_CREATE_REACT_APP_WARNING);
+	expect(warn).toHaveBeenCalledWith(
+		tailwind3CreateReactAppWarning('c15t/postcss-tailwind3')
+	);
 	expect(
 		(await readdir(root)).filter((name) => name.includes('postcss'))
 	).toEqual([]);
