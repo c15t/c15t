@@ -101,6 +101,36 @@ describe('mountConsentUI', () => {
 		expect(query(root, 'consent-banner-root').dataset.variant).toBe('bar');
 	});
 
+	it('applies the assigned arm theme slots to the rendered parts', async () => {
+		const experiment = {
+			arms: {
+				branded: {
+					theme: { slots: { consentBannerCard: 'arm-card' } },
+				},
+			},
+			id: 'card-class',
+		};
+		const { client, root } = await mount(
+			{ theme: { slots: { consentBannerTitle: 'base-title' } } },
+			{ experiment }
+		);
+		await vi.waitFor(() => query(root, 'consent-banner-card'));
+		expect(query(root, 'consent-banner-card').classList).not.toContain(
+			'arm-card'
+		);
+		client.kernel.set.experiment({
+			acknowledgedDiagnostics: false,
+			arm: 'branded',
+			assignedBy: 'c15t',
+			id: 'card-class',
+		});
+		expect(query(root, 'consent-banner-card').classList).toContain('arm-card');
+		// The arm's slots merge over the host's, as the theme tokens do.
+		expect(query(root, 'consent-banner-title').classList).toContain(
+			'base-title'
+		);
+	});
+
 	it('creates the stylesheet when an arm theme arrives after mount', async () => {
 		const experiment = {
 			arms: {

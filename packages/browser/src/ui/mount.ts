@@ -207,6 +207,8 @@ export const mountConsentUI = function mountConsentUI(
 	root.append(wrapper);
 	container.append(host);
 
+	let slotApplier = createSlotApplier(renderedTheme?.slots);
+
 	const releaseScheme = applyColorScheme(
 		wrapper,
 		host,
@@ -222,7 +224,9 @@ export const mountConsentUI = function mountConsentUI(
 		legalLinks: client.options.legalLinks,
 		noStyle: options.noStyle ?? false,
 		root: themeRoot,
-		slot: createSlotApplier(options.theme?.slots),
+		// Surfaces keep this function; it reads the current arm's slots, which
+		// `update()` swaps before the surfaces rebuild for the new arm.
+		slot: (element, key) => slotApplier(element, key),
 	};
 
 	const surfaces: Surface[] = [];
@@ -248,6 +252,7 @@ export const mountConsentUI = function mountConsentUI(
 		const theme = resolveTheme();
 		if (theme !== renderedTheme) {
 			renderedTheme = theme;
+			slotApplier = createSlotApplier(theme?.slots);
 			const text = buildStyleText(options, theme, extension?.stylesheet);
 			if (styleEl) {
 				styleEl.textContent = text;
