@@ -47,5 +47,18 @@ The files the docs publish are complete recipes:
   the stock UI with the composables.
 
 `src/entry.ts` is demo-only: it mounts the branded setup for `?design=branded`,
-the headless setup for `/headless`, and `main.ts` otherwise. `src/HomePage.vue`
-holds the demo page content and loads DevTools in development builds.
+the headless setup for `/headless`, the experiment setup for `?experiment=1`,
+and `main.ts` otherwise. `src/HomePage.vue` holds the demo page content and
+loads DevTools in development builds.
+
+## Banner experiment
+
+Open `/?experiment=1` to run the banner-shape experiment: c15t picks the
+`control` arm (the default banner) or the `wall` arm, and the page shows
+`banner-shape · <arm> · c15t`. Open `/?experiment=1&arm=wall` to set the arm
+the way a flag provider would (`assignedBy: host`); any other `arm` value runs
+`control`. `src/experiment-main.ts` installs the plugin with the experiment from
+`src/experiment.ts`, whose `onSurfaceShown` and `onChoiceRecorded` callbacks
+list each impression and choice under the arm as `c15t_surface_shown` and
+`c15t_choice_recorded` and push the same events to `window.dataLayer`.
+See https://c15t.com/docs/guides/banner-experiments.

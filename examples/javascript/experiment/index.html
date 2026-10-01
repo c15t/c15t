@@ -6,7 +6,7 @@
 			name="viewport"
 			content="width=device-width, initial-scale=1"
 		/>
-		<title>c15t JavaScript example</title>
+		<title>c15t JavaScript experiment example</title>
 		<link
 			rel="stylesheet"
 			href="/src/style.css"
@@ -17,14 +17,34 @@
 			<p>c15t / JavaScript</p>
 			<h1>Consent example</h1>
 			<p>
-				The stock banner and preferences from <code>@c15t/browser</code>,
-				started from a bundled module. The
-				<a href="/headless/">headless example</a> renders its own HTML instead.
+				The stock banner from <code>@c15t/browser</code> running the
+				banner-shape experiment. The <a href="/">stock UI example</a> runs
+				without it.
 			</p>
 			<nav aria-label="Banner design">
 				<a href="/">Default</a><a href="/branded/">Branded</a
-				><a href="/experiment/">Experiment</a>
+				><a href="/experiment/">Experiment</a
+				><a href="/experiment/?arm=wall">Experiment (wall arm)</a>
 			</nav>
+			<section
+				class="card"
+				data-testid="experiment"
+			>
+				<h2>Banner experiment</h2>
+				<p>
+					Arm:
+					<code
+						id="experiment-arm"
+						data-testid="experiment-arm"
+						>assigning…</code
+					>
+				</p>
+				<ul
+					id="experiment-events"
+					class="statuses"
+				></ul>
+				<p>The same events are pushed to <code>window.dataLayer</code>.</p>
+			</section>
 			<section class="card">
 				<h2>Scripts follow your choices</h2>
 				<ul class="statuses">
@@ -59,7 +79,7 @@
 		</main>
 		<script
 			type="module"
-			src="/src/branded.ts"
+			src="/src/experiment.ts"
 		></script>
 	</body>
 </html>

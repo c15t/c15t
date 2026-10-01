@@ -89,6 +89,22 @@ requests are absent before their respective permissions, and the iframe is
 absent before measurement permission. Script removal cannot undo SDK code that
 already ran; application event calls must also stop after withdrawal.
 
+## Banner experiment
+
+Module config is static, so the banner-shape experiment is switched on at
+build time. Run `C15T_NUXT_EXPERIMENT=1 bun run --cwd examples/nuxt dev` and
+open `/consent-example`: c15t picks the `control` arm (the default banner) or
+the `wall` arm, and the page shows `banner-shape · <arm> · c15t` with a
+`c15t_surface_shown` and `c15t_choice_recorded` line for each impression and
+choice under the arm. `app/components/ExperimentReadout.vue` reads them from the
+kernel's `surface:shown` and `choice:recorded` events and pushes the same
+events to `window.dataLayer`. Add `C15T_NUXT_EXPERIMENT_ARM=wall` to set the
+arm the way a flag provider would; any other value runs `control`. Both
+variables work with `bun run build` and `bun run generate` too. They are not
+`NUXT_PUBLIC_*` names because Nitro applies those at runtime over
+`runtimeConfig.public.c15t`. See
+https://c15t.com/docs/guides/banner-experiments.
+
 ## Layout
 
 - `config/server/nuxt.config.ts`: the module with `manifest: 'server'`.
@@ -98,8 +114,9 @@ already ran; application event calls must also stop after withdrawal.
 - `app/app.config.ts` and `app/consent-scripts.ts`: vendor scripts.
 - `app/components/ConsentPrompt.vue`: the headless UI the docs publish. It is
   type-checked but not mounted.
-- `nuxt.config.ts`, `app/pages/` and `app/components/ConsentDebugTools.vue`:
-  demo shell, region preview and development DevTools.
+- `nuxt.config.ts`, `app/pages/`, `app/components/ConsentDebugTools.vue` and
+  `app/components/ExperimentReadout.vue`: demo shell, region preview,
+  development DevTools and the banner experiment.
 
 `EXAMPLE_TARGET=nuxt,nuxt-static bun run --cwd examples/shared test` runs both
 builds through the acceptance journeys.

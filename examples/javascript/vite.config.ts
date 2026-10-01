@@ -9,6 +9,7 @@ export default defineConfig({
 		rollupOptions: {
 			input: {
 				branded: page('./branded/index.html'),
+				experiment: page('./experiment/index.html'),
 				headless: page('./headless/index.html'),
 				main: page('./index.html'),
 			},

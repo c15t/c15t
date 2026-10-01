@@ -6,6 +6,7 @@
 import { useConsentSnapshot } from 'c15t/vue/vue-plugin';
 
 import ConsentDevTools from './ConsentDevTools.vue';
+import ExperimentReadout from './ExperimentReadout.vue';
 import VideoEmbed from './VideoEmbed.vue';
 
 const snapshot = useConsentSnapshot();
@@ -20,7 +21,10 @@ const snapshot = useConsentSnapshot();
 			<a href="/">Default</a>
 			<a href="/?design=branded">Branded</a>
 			<a href="/headless">Headless</a>
+			<a href="/?experiment=1">Experiment</a>
+			<a href="/?experiment=1&arm=wall">Experiment (wall arm)</a>
 		</nav>
+		<ExperimentReadout />
 		<section class="card">
 			<h2>Scripts follow your choices</h2>
 			<ul class="statuses">

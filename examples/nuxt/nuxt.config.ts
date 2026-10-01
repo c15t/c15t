@@ -13,9 +13,27 @@
  * time and one cached by Nitro. c15t leaves visitor state out of that HTML
  * and resolves the visitor in the browser after hydration.
  * `C15T_NUXT_MANIFEST=client` builds the server output in client mode.
+ *
+ * Module config is static, so the banner-shape experiment is switched on at
+ * build time with `C15T_NUXT_EXPERIMENT=1`. `C15T_NUXT_EXPERIMENT_ARM` stands
+ * in for a flag provider: `wall` runs the wall arm, any other value runs
+ * `control` (the default banner), and leaving it unset lets c15t pick. These
+ * are not `NUXT_PUBLIC_*` names because Nitro would apply those at runtime
+ * over `runtimeConfig.public.c15t.experiment`.
  */
 const staticOutput = process.env.C15T_NUXT_OUTPUT === 'static';
 const clientManifest = process.env.C15T_NUXT_MANIFEST === 'client';
+const experimentArm = process.env.C15T_NUXT_EXPERIMENT_ARM;
+const experiment =
+	process.env.C15T_NUXT_EXPERIMENT === '1'
+		? {
+				arms: { wall: { prompt: { variant: 'wall' as const } } },
+				id: 'banner-shape',
+				...(experimentArm !== undefined && {
+					arm: experimentArm === 'wall' ? 'wall' : 'control',
+				}),
+			}
+		: undefined;
 
 export default defineNuxtConfig({
 	c15t: {
@@ -23,6 +41,7 @@ export default defineNuxtConfig({
 		// `server/api/self-host/[...all].ts`) when no backend URL is set.
 		backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
 		...(clientManifest ? { manifest: 'client' as const } : {}),
+		experiment,
 	},
 	compatibilityDate: '2026-07-04',
 	css: ['~/consent-example.css'],

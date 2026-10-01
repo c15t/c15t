@@ -36,6 +36,7 @@ onUnmounted(() => {
 		>
 			Branded theme
 		</button>
+		<ExperimentReadout />
 		<h2>Watch the video</h2>
 		<VideoEmbed />
 		<ConsentDebugTools />
