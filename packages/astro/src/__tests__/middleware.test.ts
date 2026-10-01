@@ -205,6 +205,29 @@ describe('consent middleware', () => {
 		);
 	});
 
+	it('renders a regional locale over its primary language bundle', async () => {
+		const stock = baseTranslations.de;
+		const c15t = await run({
+			options: {
+				i18n: {
+					locale: 'de-AT',
+					messages: {
+						'de-AT': {
+							...stock,
+							cookieBanner: { ...stock.cookieBanner, title: 'Servus' },
+						},
+					},
+				},
+				mode: offlineMode({ policyRules: [testRule] }),
+			},
+		});
+		const copy = c15t.snapshot.translations?.translations;
+		expect(c15t.snapshot.translations?.language).toBe('de-AT');
+		expect(copy?.cookieBanner.title).toBe('Servus');
+		expect(copy?.cookieBanner.description).toBe(stock.cookieBanner.description);
+		expect(copy?.common.acceptAll).toBe(stock.common.acceptAll);
+	});
+
 	it('skips the network prefetch on a prerendered route', async () => {
 		const fetchImpl = vi.fn();
 		const c15t = await run({

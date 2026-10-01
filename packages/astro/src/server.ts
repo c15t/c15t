@@ -203,8 +203,14 @@ export const resolveTranslations = function resolveTranslations(
 		string,
 		TranslationsResponse
 	>;
+	// A regional locale such as `de-AT` uses its primary language's bundle,
+	// the same fallback the app's messages get.
+	const primary = language.split('-')[0]?.toLowerCase();
 	const base =
-		catalogue[language] ??
+		(Object.hasOwn(catalogue, language) ? catalogue[language] : undefined) ??
+		(primary && Object.hasOwn(catalogue, primary)
+			? catalogue[primary]
+			: undefined) ??
 		(defaultTranslationConfig.translations.en as TranslationsResponse);
 	return applyTranslationOverrides(
 		{ language, translations: base },
