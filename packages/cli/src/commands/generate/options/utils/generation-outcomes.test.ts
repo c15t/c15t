@@ -82,24 +82,18 @@ describe('generated project outcomes', () => {
 	it.each([
 		{
 			dependencies: { react: '19', vite: '7' },
-			env: 'VITE_C15T_URL',
-			expression: 'import.meta.env.VITE_C15T_URL',
 			file: 'src/App.tsx',
 			provider: 'src/components/consent-manager/provider.tsx',
 			source: 'const App = () => <main />; export default App;',
 		},
 		{
 			dependencies: { react: '19', 'react-scripts': '5' },
-			env: 'REACT_APP_C15T_URL',
-			expression: 'process.env.REACT_APP_C15T_URL',
 			file: 'src/App.tsx',
 			provider: 'src/components/consent-manager/provider.tsx',
 			source: 'export default function App() { return <main />; }',
 		},
 		{
 			dependencies: { next: '16', react: '19' },
-			env: 'NEXT_PUBLIC_C15T_URL',
-			expression: 'process.env.NEXT_PUBLIC_C15T_URL',
 			file: 'pages/_app.tsx',
 			provider: 'components/consent-manager/provider.tsx',
 			source:
@@ -107,15 +101,13 @@ describe('generated project outcomes', () => {
 		},
 		{
 			dependencies: { next: '16', react: '19' },
-			env: 'NEXT_PUBLIC_C15T_URL',
-			expression: 'process.env.NEXT_PUBLIC_C15T_URL',
 			file: 'app/layout.tsx',
 			provider: 'components/consent-manager/provider.tsx',
 			source:
 				'export function generateMetadata() { return { title: "Original" }; } export default function Layout({children}) { return <html><body>{children}</body></html>; }',
 		},
 	])(
-		'honors scripts, compound UI, theme, environment and component selection for $file / $env',
+		'honors scripts, compound UI, theme, backend URL and component selection for $file',
 		async (fixture) => {
 			const options = await project(fixture.dependencies, {
 				[fixture.file]: fixture.source,
@@ -128,17 +120,17 @@ describe('generated project outcomes', () => {
 				mode: 'hosted',
 				selectedScripts: ['google-tag-manager'],
 				uiStyle: 'expanded',
-				useEnvFile: true,
 			});
 			const root = options.context.projectRoot;
 			const provider = await readFile(join(root, fixture.provider), 'utf8');
 			expect(provider).toContain("from './consent-banner'");
 			expect(provider).toContain('googleTagManager({');
-			expect(provider).toContain(fixture.expression);
+			expect(provider).toContain('hosted({ url: "https://example.com" })');
+			expect(provider).not.toMatch(/process\.env|import\.meta\.env/u);
 			expect(provider).not.toContain("country: 'DE'");
-			expect(await readFile(join(root, '.env.local'), 'utf8')).toContain(
-				`${fixture.env}=https://example.com`
-			);
+			await expect(
+				readFile(join(root, '.env.local'), 'utf8')
+			).rejects.toThrow();
 			expect(await readFile(join(root, fixture.file), 'utf8')).toContain(
 				'<ConsentManager>'
 			);

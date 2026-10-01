@@ -4,7 +4,6 @@ import type { DevelopmentEnvironment } from '~/context/framework-detection';
 
 import type { StorageMode } from '../../../../constants';
 import type { ExpandedTheme, UIStyle } from '../../prompts';
-import { getEnvVarPrefix } from '../env';
 import { generateConsentComponent } from './components';
 import { getComponentsDirectory } from './directory';
 import {
@@ -14,7 +13,7 @@ import {
 	generateExpandedConsentDialogTemplate,
 } from './expanded-components';
 import fs, { createFile } from './file-plan';
-import { REACT_CONFIG, NEXTJS_CONFIG } from './framework-config';
+import { REACT_CONFIG } from './framework-config';
 import type { FrameworkConfig } from './framework-config';
 import { generateOptionsText } from './options';
 import { generateSimpleWrapperComponent } from './server-components';
@@ -30,7 +29,6 @@ export const createConsentManagerComponent =
 		sourceDir: string,
 		mode: StorageMode,
 		backendURL?: string,
-		useEnvFile?: boolean,
 		selectedScripts?: string[],
 		enableDevTools?: boolean,
 		expandedTheme?: ExpandedTheme,
@@ -50,17 +48,7 @@ export const createConsentManagerComponent =
 		);
 
 		// Generate component file content
-		const optionsText = generateOptionsText(
-			mode,
-			backendURL,
-			useEnvFile,
-			undefined,
-			true,
-			getEnvVarPrefix(
-				framework === NEXTJS_CONFIG ? 'c15t/next' : 'c15t/react',
-				developmentEnvironment
-			)
-		);
+		const optionsText = generateOptionsText(mode, backendURL, undefined, true);
 		const providerContent =
 			uiStyle === 'expanded'
 				? generateExpandedProviderTemplate({

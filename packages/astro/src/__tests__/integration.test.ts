@@ -125,16 +125,17 @@ describe('resolveOptions', () => {
 		// The browser would post saves to the init route's own prefix,
 		// `/api/c15t/subjects`, where nothing answers.
 		expect(() => resolveOptions({ mode: manifestMode() })).toThrowError(
-			/needs a .backendURL./u
+			/pass backendURL to manifest\(\)/u
 		);
 	});
 
-	it('hands a backend URL from the environment to the browser', () => {
+	it('does not read a backend URL from the environment', () => {
 		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
+		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://consent.example.com');
 		try {
-			expect(resolveOptions({ mode: manifestMode() }).mode).toMatchObject({
-				backendURL: 'https://consent.example.com',
-			});
+			expect(() => resolveOptions({ mode: manifestMode() })).toThrowError(
+				'@c15t/astro: pass backendURL to manifest()'
+			);
 		} finally {
 			vi.unstubAllEnvs();
 		}
@@ -167,17 +168,20 @@ describe('resolveOptions', () => {
 		}
 	});
 
-	it('accepts an empty backendURL with any manifest source', () => {
+	it('accepts an empty backendURL with an inline manifest', () => {
 		expect(
 			resolveOptions({
 				mode: manifestMode({ backendURL: '', manifest: INLINE_MANIFEST }),
 			}).mode
 		).toHaveProperty('backendURL', '');
+	});
+
+	it('does not take the manifest for an empty backendURL from the environment', () => {
 		vi.stubEnv('C15T_MANIFEST_URL', 'https://consent.example.com/manifest');
 		try {
-			expect(
-				resolveOptions({ mode: manifestMode({ backendURL: '' }) }).mode
-			).toHaveProperty('backendURL', '');
+			expect(() =>
+				resolveOptions({ mode: manifestMode({ backendURL: '' }) })
+			).toThrowError(/gives the server no manifest to fetch/u);
 		} finally {
 			vi.unstubAllEnvs();
 		}
@@ -195,7 +199,7 @@ describe('resolveOptions', () => {
 		// the backend's, so a `manifestURL` without one would 404 on save.
 		expect(() =>
 			resolveOptions({ mode: manifestMode({ manifestURL: '/m.json' }) })
-		).toThrowError(/needs a .backendURL./u);
+		).toThrowError(/pass backendURL to manifest\(\)/u);
 		expect(
 			resolveOptions({
 				mode: manifestMode({

@@ -108,7 +108,6 @@ describe('setup routing in an interactive terminal', () => {
 	});
 
 	it.each([
-		'env',
 		'proxy',
 		'ssr',
 		'devtools',

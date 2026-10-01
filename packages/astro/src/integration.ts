@@ -164,18 +164,6 @@ const resolveEndpoints = function resolveEndpoints(
 	};
 };
 
-const readEnv = function readEnv(): Record<string, string | undefined> {
-	if (typeof process === 'undefined') {
-		return {};
-	}
-	return (process.env as Record<string, string | undefined> | undefined) ?? {};
-};
-
-const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
-	const env = readEnv();
-	return env.C15T_BACKEND_URL ?? env.PUBLIC_C15T_BACKEND_URL;
-};
-
 /**
  * Check a `manifest()` mode before the integration runs.
  *
@@ -183,42 +171,31 @@ const backendURLFromEnv = function backendURLFromEnv(): string | undefined {
  * `POST /subjects` at the backend itself, and the browser only learns
  * where that is from these options. Without a `backendURL` it would post
  * to the init route's own prefix, where nothing answers, so a bare
- * `manifest()` or one with only a `manifestURL` fails here instead. A
- * backend URL from the environment is written into the options so the
- * browser gets it too. An inline `manifest` is the deliberately
- * network-free path and is left alone: an app on it serves its own save
- * route.
+ * `manifest()` or one with only a `manifestURL` fails here instead. An
+ * inline `manifest` is the deliberately network-free path and is left
+ * alone: an app on it serves its own save route.
  *
  * `backendURL: ''` is set on purpose: the browser saves to this origin.
  * It gives the server no manifest, though: `${backendURL}/manifest`
- * needs an absolute or root-relative URL, and the environment's backend
- * URL does not replace it. So it also needs a `manifestURL`, or
- * `C15T_MANIFEST_URL`, which the server reads first.
+ * needs an absolute or root-relative URL. So it also needs a
+ * `manifestURL`.
  *
- * @param initial - The configured mode.
- * @returns The mode, with a backend URL from the environment filled in.
+ * @param mode - The configured mode.
+ * @returns The mode, unchanged.
  * @throws {Error} When the browser or the server would have nowhere to go.
  */
 const resolveManifestMode = function resolveManifestMode(
-	initial: C15tAstroOptions['mode']
+	mode: C15tAstroOptions['mode']
 ): C15tAstroOptions['mode'] {
-	let mode = initial;
 	if (mode.type === 'manifest' && !mode.manifest) {
 		if (mode.backendURL === undefined) {
-			const backendURL = backendURLFromEnv();
-			if (!backendURL) {
-				throw new Error(
-					'@c15t/astro: manifest mode needs a `backendURL`, for example manifest({ backendURL: "https://your-project.inth.app" }), or the C15T_BACKEND_URL environment variable set when astro.config is loaded. The browser saves consent there with POST /subjects; the injected routes only serve init and manifest.'
-				);
-			}
-			mode = { ...mode, backendURL };
-		} else if (
-			mode.backendURL === '' &&
-			!mode.manifestURL &&
-			!readEnv().C15T_MANIFEST_URL
-		) {
 			throw new Error(
-				"@c15t/astro: manifest({ backendURL: '' }) saves consent on this origin but gives the server no manifest to fetch. Add a `manifestURL`, pass an inline `manifest`, or set the C15T_MANIFEST_URL environment variable when astro.config is loaded."
+				'@c15t/astro: pass backendURL to manifest(), for example manifest({ backendURL: "https://your-project.inth.app" }). The browser saves consent there with POST /subjects; the injected routes only serve init and manifest.'
+			);
+		}
+		if (mode.backendURL === '' && !mode.manifestURL) {
+			throw new Error(
+				"@c15t/astro: manifest({ backendURL: '' }) saves consent on this origin but gives the server no manifest to fetch. Add a `manifestURL` or pass an inline `manifest`."
 			);
 		}
 	}

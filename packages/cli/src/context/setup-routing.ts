@@ -4,7 +4,6 @@ const explicitSetupFlags = [
 	'mode',
 	'backend-url',
 	'project',
-	'env',
 	'proxy',
 	'ssr',
 	'devtools',

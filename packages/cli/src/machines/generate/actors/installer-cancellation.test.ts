@@ -97,7 +97,6 @@ setInterval(() => {
 				fileGeneration: fromPromise(() =>
 					Promise.resolve({
 						configPath: null,
-						envPath: null,
 						filesCreated: [join(directory, 'generated.txt')],
 						filesModified: [],
 						layoutPath: null,

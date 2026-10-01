@@ -130,7 +130,6 @@ export const setBackendOptions = function setBackendOptions({
 
 	return {
 		proxyNextjs: event.proxyNextjs,
-		useEnvFile: event.useEnvFile,
 	};
 };
 

@@ -4,8 +4,6 @@
  * Handles file creation and modification with backup support for rollback.
  */
 
-import path from 'node:path';
-
 import type * as ClackPromptsTypes from '@clack/prompts';
 import { fromPromise } from 'xstate';
 
@@ -28,7 +26,6 @@ export interface FileGenerationInput {
 	cliContext: CliContext;
 	mode: StorageMode;
 	backendURL: string | null;
-	useEnvFile: boolean;
 	proxyNextjs: boolean;
 	enableSSR: boolean;
 	enableDevTools: boolean;
@@ -46,7 +43,6 @@ export interface FileGenerationOutput {
 	configPath: string | null;
 	layoutPath: string | null;
 	nextConfigPath: string | null;
-	envPath: string | null;
 }
 
 /**
@@ -62,7 +58,6 @@ export const fileGenerationActor = fromPromise<
 		cliContext,
 		mode,
 		backendURL,
-		useEnvFile,
 		proxyNextjs,
 		enableSSR,
 		enableDevTools,
@@ -75,7 +70,6 @@ export const fileGenerationActor = fromPromise<
 	const filesModified: FileModification[] = [];
 	const result: FileGenerationOutput = {
 		configPath: null,
-		envPath: null,
 		filesCreated: [],
 		filesModified: [],
 		layoutPath: null,
@@ -108,7 +102,6 @@ export const fileGenerationActor = fromPromise<
 		signal,
 		spinner: spinnerMock as ReturnType<typeof ClackPromptsTypes.spinner>,
 		uiStyle,
-		useEnvFile,
 	});
 	await saveGenerationJournal(projectRoot, generateResult.edits);
 	try {
@@ -136,8 +129,6 @@ export const fileGenerationActor = fromPromise<
 	return {
 		...result,
 		configPath: generateResult.configPath ?? null,
-		envPath:
-			useEnvFile && backendURL ? path.join(projectRoot, '.env.local') : null,
 		filesCreated,
 		filesModified,
 		layoutPath: generateResult.layoutPath ?? null,

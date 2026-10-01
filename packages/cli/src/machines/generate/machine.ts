@@ -127,7 +127,6 @@ export const generateMachine = setup({
 				onDone: {
 					actions: assign({
 						proxyNextjs: ({ event }) => event.output.proxyNextjs,
-						useEnvFile: ({ event }) => event.output.useEnvFile,
 					}),
 					target: 'frontendOptions',
 				},
@@ -349,7 +348,6 @@ export const generateMachine = setup({
 					proxyNextjs: context.proxyNextjs,
 					selectedScripts: context.selectedScripts,
 					uiStyle: context.uiStyle,
-					useEnvFile: context.useEnvFile,
 				}),
 				onDone: {
 					actions: assign({

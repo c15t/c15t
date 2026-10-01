@@ -265,10 +265,49 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 			expect(eventFetch.mock.calls[0]?.[0]).toBe('/api/self-host/manifest');
 		});
 
-		test('throws when no manifest source is configured', async () => {
-			const { init } = createSvelteKitConsentRouteHandlers();
+		describe('explicit configuration', () => {
+			afterEach(() => {
+				vi.unstubAllEnvs();
+			});
 
-			await expect(init(createEvent())).rejects.toThrow(/backendURL/u);
+			test('throws without backendURL or manifestURL, even when the old environment variables are set', async () => {
+				vi.stubEnv('C15T_BACKEND_URL', 'https://env.example.com');
+				vi.stubEnv('C15T_MANIFEST_URL', 'https://env.example.com/manifest');
+				const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
+				const { init, manifest } = createSvelteKitConsentRouteHandlers({
+					fetch: fetchImpl,
+				});
+
+				await expect(init(createEvent())).rejects.toThrow(
+					'@c15t/svelte/kit: pass backendURL or manifestURL.'
+				);
+				await expect(
+					manifest(
+						createEvent({ url: 'https://app.example.com/api/c15t/manifest' })
+					)
+				).rejects.toThrow('@c15t/svelte/kit: pass backendURL or manifestURL.');
+				expect(fetchImpl).not.toHaveBeenCalled();
+			});
+
+			test('the proxy ignores C15T_BACKEND_URL', async () => {
+				vi.stubEnv('C15T_BACKEND_URL', 'https://env.example.com');
+				const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
+				const { POST } = createSvelteKitConsentRouteHandlers({
+					fetch: fetchImpl,
+					manifestURL: 'https://api.example.com/manifest',
+					proxy: true,
+				});
+
+				await expect(
+					POST(
+						createEvent({
+							method: 'POST',
+							url: 'https://app.example.com/api/c15t/subjects',
+						})
+					)
+				).rejects.toThrow('@c15t/svelte/kit: pass backendURL to use proxy.');
+				expect(fetchImpl).not.toHaveBeenCalled();
+			});
 		});
 	});
 

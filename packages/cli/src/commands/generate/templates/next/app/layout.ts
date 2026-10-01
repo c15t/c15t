@@ -33,7 +33,6 @@ interface UpdateAppLayoutOptions {
 	projectRoot: string;
 	mode: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
@@ -142,7 +141,6 @@ async function createExpandedConsentManagerComponents(
 	options: {
 		mode: string;
 		backendURL?: string;
-		useEnvFile?: boolean;
 		proxyNextjs?: boolean;
 		enableSSR: boolean;
 		enableDevTools?: boolean;
@@ -153,7 +151,6 @@ async function createExpandedConsentManagerComponents(
 	const {
 		mode,
 		backendURL,
-		useEnvFile,
 		proxyNextjs,
 		enableSSR,
 		enableDevTools,
@@ -170,22 +167,10 @@ async function createExpandedConsentManagerComponents(
 	);
 
 	// Get the backend URL value for the client boundary.
-	const backendURLValue = getBackendURLValue(
-		backendURL,
-		useEnvFile,
-		proxyNextjs,
-		NEXTJS_CONFIG.envVarPrefix
-	);
+	const backendURLValue = getBackendURLValue(backendURL, proxyNextjs);
 
 	// Generate options text for the provider component
-	const optionsText = generateOptionsText(
-		mode,
-		backendURL,
-		useEnvFile,
-		proxyNextjs,
-		undefined,
-		NEXTJS_CONFIG.envVarPrefix
-	);
+	const optionsText = generateOptionsText(mode, backendURL, proxyNextjs);
 
 	// Generate all component file contents
 	const serverComponentContent = generateServerComponent({
@@ -259,7 +244,6 @@ async function createPrebuiltConsentManagerComponents(
 	options: {
 		mode: string;
 		backendURL?: string;
-		useEnvFile?: boolean;
 		proxyNextjs?: boolean;
 		enableSSR: boolean;
 		enableDevTools?: boolean;
@@ -272,7 +256,6 @@ async function createPrebuiltConsentManagerComponents(
 	const {
 		mode,
 		backendURL,
-		useEnvFile,
 		proxyNextjs,
 		enableSSR,
 		enableDevTools,
@@ -291,22 +274,10 @@ async function createPrebuiltConsentManagerComponents(
 	);
 
 	// Get the backend URL value for the client boundary.
-	const backendURLValue = getBackendURLValue(
-		backendURL,
-		useEnvFile,
-		proxyNextjs,
-		NEXTJS_CONFIG.envVarPrefix
-	);
+	const backendURLValue = getBackendURLValue(backendURL, proxyNextjs);
 
 	// Generate options text for the client component
-	const optionsText = generateOptionsText(
-		mode,
-		backendURL,
-		useEnvFile,
-		proxyNextjs,
-		undefined,
-		NEXTJS_CONFIG.envVarPrefix
-	);
+	const optionsText = generateOptionsText(mode, backendURL, proxyNextjs);
 
 	// Generate component file contents
 	const consentManagerContent = generateServerComponent({
@@ -383,7 +354,6 @@ export function updateAppLayout({
 	projectRoot,
 	mode,
 	backendURL,
-	useEnvFile,
 	proxyNextjs,
 	enableSSR = false,
 	enableDevTools = false,
@@ -408,7 +378,6 @@ export function updateAppLayout({
 					mode,
 					proxyNextjs,
 					selectedScripts,
-					useEnvFile,
 				});
 			}
 			return createPrebuiltConsentManagerComponents(projectRoot, appDir, {
@@ -419,7 +388,6 @@ export function updateAppLayout({
 				mode,
 				proxyNextjs,
 				selectedScripts,
-				useEnvFile,
 			});
 		},
 		filePatterns: APP_LAYOUT_PATTERNS,

@@ -144,8 +144,8 @@ const toPagesApiHandler = function toPagesApiHandler(
  * `createNextConsentRouteHandlers` from `@c15t/nextjs/api` so each handler
  * takes the Node `req`/`res` of a `pages/api` route.
  *
- * @param options - Same options as `createNextConsentRouteHandlers`, or a
- * `defineConsentConfig` result
+ * @param options - Same options as `createNextConsentRouteHandlers`, with
+ * `backendURL` or `manifestURL`, or a `defineConsentConfig` result
  * @returns `init` for `GET /init` and `manifest` for `GET /manifest`
  *
  * @example
@@ -157,7 +157,7 @@ const toPagesApiHandler = function toPagesApiHandler(
  * ```
  */
 export const createPagesApiHandlers = function createPagesApiHandlers(
-	options: NextConsentManifestHandlersOptions | ConsentConfig = {}
+	options: NextConsentManifestHandlersOptions | ConsentConfig
 ): { init: PagesApiHandler; manifest: PagesApiHandler } {
 	const handlers = createNextConsentRouteHandlers(options);
 	const trustForwardedHeaders =

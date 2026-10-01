@@ -41,8 +41,9 @@
  * `backendURL` is the c15t backend itself, not the app's `/api/c15t` route:
  * init goes to the same-origin route by default, saves go to
  * `${backendURL}/subjects`, which the route does not proxy unless you opt
- * in with `createConsentServerRoute({ proxy: true })`; then
- * `backendURL="/api/c15t"` is the intended value.
+ * in with `createConsentServerRoute({ backendURL, proxy: true })`, giving
+ * the route the absolute backend URL; then `backendURL="/api/c15t"` on
+ * `ConsentRoot` is the intended value.
  *
  * Server helpers return serializable data and avoid module-level runtime
  * caches, so concurrent requests never share a kernel.

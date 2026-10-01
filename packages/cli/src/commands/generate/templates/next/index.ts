@@ -17,7 +17,6 @@ interface UpdateNextLayoutOptions {
 	projectRoot: string;
 	mode: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;

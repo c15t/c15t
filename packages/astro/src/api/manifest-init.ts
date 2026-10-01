@@ -54,15 +54,6 @@ export interface RequestSource {
 	headers: Headers;
 }
 
-const getEnv = function getEnv(name: string): string | undefined {
-	if (typeof process === 'undefined') {
-		return undefined;
-	}
-	return (process.env as Record<string, string | undefined> | undefined)?.[
-		name
-	];
-};
-
 const trimSlash = function trimSlash(value: string): string {
 	return value.endsWith('/') ? value.slice(0, -1) : value;
 };
@@ -92,7 +83,7 @@ const resolveAgainstRequest = function resolveAgainstRequest(
 /**
  * Work out where `GET /manifest` lives for this request.
  *
- * Explicit options win, then `C15T_MANIFEST_URL` / `C15T_BACKEND_URL`.
+ * `manifestURL` when set, otherwise `${backendURL}/manifest`.
  *
  * @param source - The request URL and headers, used to resolve relative URLs.
  * @param options - The resolved integration options.
@@ -104,9 +95,7 @@ export const resolveManifestSourceFrom = function resolveManifestSourceFrom(
 	options: C15tResolvedOptions
 ): string {
 	const { mode } = options;
-	const manifestURL =
-		(mode.type === 'manifest' ? mode.manifestURL : undefined) ??
-		getEnv('C15T_MANIFEST_URL');
+	const manifestURL = mode.type === 'manifest' ? mode.manifestURL : undefined;
 	if (manifestURL) {
 		const resolved = resolveAgainstRequest(manifestURL, source);
 		if (!resolved) {
@@ -117,13 +106,9 @@ export const resolveManifestSourceFrom = function resolveManifestSourceFrom(
 
 	const backendURL =
 		(mode.type === 'manifest' ? mode.backendURL : undefined) ??
-		(mode.type === 'hosted' ? mode.url : undefined) ??
-		getEnv('C15T_BACKEND_URL') ??
-		getEnv('PUBLIC_C15T_BACKEND_URL');
+		(mode.type === 'hosted' ? mode.url : undefined);
 	if (!backendURL) {
-		throw new Error(
-			'@c15t/astro: manifest mode requires `backendURL` or `manifestURL` (or the C15T_BACKEND_URL environment variable).'
-		);
+		throw new Error('@c15t/astro: pass backendURL or manifestURL.');
 	}
 	const resolved = resolveAgainstRequest(backendURL, source);
 	if (!resolved) {
@@ -251,14 +236,7 @@ export const resolveSessionReportURL = function resolveSessionReportURL(
 	if (mode.type !== 'manifest' || mode.reportSessions === false) {
 		return undefined;
 	}
-	return resolveSessionReportBackendURL({
-		// The same fallback chain the manifest source uses, so a deployment
-		// that loads its manifest from the public variable reports too.
-		backendURL:
-			mode.backendURL ??
-			getEnv('C15T_BACKEND_URL') ??
-			getEnv('PUBLIC_C15T_BACKEND_URL'),
-	});
+	return resolveSessionReportBackendURL({ backendURL: mode.backendURL });
 };
 
 /**

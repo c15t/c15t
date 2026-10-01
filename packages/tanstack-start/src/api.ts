@@ -15,7 +15,11 @@ import {
  * import { createConsentServerRoute } from '@c15t/tanstack-start/api';
  *
  * export const Route = createFileRoute('/api/c15t/$')({
- *   server: { handlers: createConsentServerRoute() },
+ *   server: {
+ *     handlers: createConsentServerRoute({
+ *       backendURL: 'https://your-project.inth.app',
+ *     }),
+ *   },
  * });
  * ```
  *
@@ -69,14 +73,14 @@ const INIT_CACHE_CONTROL = 'private, no-store';
 export interface ConsentServerRouteOptions {
 	/**
 	 * Backend base URL that serves `/manifest`, for example
-	 * `https://consent.example.com`. Defaults to the `C15T_BACKEND_URL`
-	 * environment variable, then `VITE_C15T_BACKEND_URL`.
+	 * `https://your-project.inth.app`. Pass this or `manifestURL`; the
+	 * proxy needs this one.
 	 */
 	backendURL?: string;
 
 	/**
-	 * Full manifest URL. Overrides `${backendURL}/manifest`. Defaults to
-	 * the `C15T_MANIFEST_URL` environment variable.
+	 * Full manifest URL. Overrides `${backendURL}/manifest`. Pass this or
+	 * `backendURL`.
 	 */
 	manifestURL?: string;
 
@@ -228,34 +232,14 @@ export type ConsentServerRouteHandlersFor<
 	? ConsentProxyRouteHandlers
 	: ConsentServerRouteHandlers;
 
-type EnvRecord = Record<string, string | undefined>;
-
-/**
- * Reads an environment variable without assuming Node globals exist:
- * `process.env` on Node and Vercel, then Vite's `import.meta.env` for
- * `VITE_*` variables on other hosts.
- */
-const getEnv = function getEnv(name: string): string | undefined {
-	const processEnv = (globalThis as { process?: { env?: EnvRecord } }).process
-		?.env;
-	if (processEnv?.[name]) {
-		return processEnv[name];
-	}
-	const metaEnv = (import.meta as { env?: EnvRecord }).env;
-	return metaEnv?.[name] || undefined;
-};
-
 const resolveBackendURL = function resolveBackendURL(
 	request: Request,
 	options: ConsentServerRouteOptions
 ): string {
-	const backendURL =
-		options.backendURL ??
-		getEnv('C15T_BACKEND_URL') ??
-		getEnv('VITE_C15T_BACKEND_URL');
+	const { backendURL } = options;
 	if (!backendURL) {
 		throw new Error(
-			'@c15t/tanstack-start/api: configure backendURL, C15T_BACKEND_URL, or C15T_MANIFEST_URL.'
+			'@c15t/tanstack-start/api: pass backendURL or manifestURL.'
 		);
 	}
 	const resolved = resolveRequestURL(
@@ -279,19 +263,14 @@ const resolveBackendURL = function resolveBackendURL(
 const resolveReportBackendURL = function resolveReportBackendURL(
 	options: ConsentServerRouteOptions
 ): string | undefined {
-	return resolveSessionReportBackendURL({
-		backendURL:
-			options.backendURL ??
-			getEnv('C15T_BACKEND_URL') ??
-			getEnv('VITE_C15T_BACKEND_URL'),
-	});
+	return resolveSessionReportBackendURL({ backendURL: options.backendURL });
 };
 
 const resolveSourceURL = function resolveSourceURL(
 	request: Request,
 	options: ConsentServerRouteOptions
 ): string {
-	const manifestURL = options.manifestURL ?? getEnv('C15T_MANIFEST_URL');
+	const { manifestURL } = options;
 	if (manifestURL) {
 		const resolved = resolveRequestURL(
 			manifestURL,
@@ -372,10 +351,12 @@ const readSplat = function readSplat(
 /**
  * Creates the same-origin consent route handlers.
  *
- * @param options - Backend location, fetch, GVL, cache, and proxy options.
+ * @param options - Backend location (`backendURL` or `manifestURL`), fetch,
+ * GVL, cache, and proxy options.
  * @returns Handlers for `createFileRoute('/api/c15t/$')({ server: { handlers } })`.
  * With `proxy` off the set is `GET`, `manifestGET`, and `initGET`; with it
  * on, `POST`, `PATCH`, `PUT`, `DELETE`, `OPTIONS`, and `proxyHandler` join.
+ * Each handler throws when neither `backendURL` nor `manifestURL` is set.
  * @example
  * ```ts
  * export const Route = createFileRoute('/api/c15t/$')({
@@ -390,8 +371,8 @@ const readSplat = function readSplat(
  */
 export const createConsentServerRoute = function createConsentServerRoute<
 	Options extends ConsentServerRouteOptions = ConsentServerRouteOptions,
->(options?: Options): ConsentServerRouteHandlersFor<Options> {
-	const resolved: ConsentServerRouteOptions = options ?? {};
+>(options: Options): ConsentServerRouteHandlersFor<Options> {
+	const resolved: ConsentServerRouteOptions = options;
 	const proxyOptions = resolveProxyOptions(
 		resolved.proxy,
 		resolved.trustForwardedHeaders ?? false
@@ -584,12 +565,3 @@ export const createConsentServerRoute = function createConsentServerRoute<
 	};
 	return proxied as ConsentServerRouteHandlersFor<Options>;
 };
-
-const defaultHandlers = createConsentServerRoute();
-
-/** Splat handler configured from environment variables. */
-export const { GET } = defaultHandlers;
-/** Manifest handler configured from environment variables. */
-export const { manifestGET } = defaultHandlers;
-/** Init handler configured from environment variables. */
-export const { initGET } = defaultHandlers;

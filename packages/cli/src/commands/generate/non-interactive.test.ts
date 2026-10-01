@@ -112,63 +112,27 @@ describe('noninteractive setup', () => {
 		]);
 		expect(install).not.toHaveBeenCalled();
 	});
-	it.each([false, true])(
-		'redacts existing environment contents when apply=%s',
-		async (apply) => {
-			const context = await fixture({
-				apply,
-				'backend-url': 'https://consent.example.com',
-				env: true,
-				json: true,
-				plan: !apply,
-				'skip-install': true,
-			});
-			context.commandArgs = ['hosted'];
-			const envPath = join(context.projectRoot, '.env.local');
-			const examplePath = join(context.projectRoot, '.env.example');
-			const secret = 'PRIVATE_KEY=local-secret-must-not-leak\n';
-			const exampleSecret = 'PRIVATE_KEY=example-secret-must-not-leak\n';
-			await writeFile(envPath, secret);
-			await writeFile(examplePath, exampleSecret);
-			const result = await run(context);
-			const output = JSON.stringify(result);
-			expect(output).not.toContain('local-secret-must-not-leak');
-			expect(output).not.toContain('example-secret-must-not-leak');
-			expect(
-				result.edits.filter(
-					(edit) => edit.path === envPath || edit.path === examplePath
-				)
-			).toEqual([
-				{ operation: 'update', path: envPath, redacted: true },
-				{ operation: 'update', path: examplePath, redacted: true },
-			]);
-			expect(await readFile(envPath, 'utf8')).toBe(
-				secret +
-					(apply ? '\nPUBLIC_C15T_URL=https://consent.example.com\n' : '')
-			);
-			expect(await readFile(examplePath, 'utf8')).toBe(
-				exampleSecret +
-					(apply
-						? '\n# c15t Configuration\nPUBLIC_C15T_URL=https://your-project.inth.app\n'
-						: '')
-			);
-			expect(install).not.toHaveBeenCalled();
-		}
-	);
-	it('returns safe create metadata for new environment files', async () => {
+	it('writes the hosted backend URL as a literal and no environment file', async () => {
 		const context = await fixture({
+			apply: true,
 			'backend-url': 'https://consent.example.com',
-			env: true,
-			plan: true,
+			'skip-install': true,
 		});
 		context.commandArgs = ['hosted'];
 		const result = await run(context);
-		expect(result.edits).toContainEqual({
-			operation: 'create',
-			path: join(context.projectRoot, '.env.local'),
-			redacted: true,
-		});
-		expect(await readdir(context.projectRoot)).toEqual(['package.json']);
+		expect(result.applied).toBe(true);
+		const config = await readFile(
+			join(context.projectRoot, 'c15t.config.ts'),
+			'utf8'
+		);
+		expect(config).toContain(
+			'createHostedTransport({ backendURL: "https://consent.example.com" })'
+		);
+		expect(config).not.toMatch(/process\.env|import\.meta\.env/u);
+		expect(await readdir(context.projectRoot)).toEqual([
+			'c15t.config.ts',
+			'package.json',
+		]);
 	});
 	it('redacts an internal stylesheet alias to an environment file', async () => {
 		const context = await fixture({ json: true, plan: true });
@@ -195,28 +159,6 @@ describe('noninteractive setup', () => {
 			redacted: true,
 		});
 		expect(await readFile(envPath, 'utf8')).toBe(secret);
-	});
-	it('redacts an environment file even when its link target has another name', async () => {
-		const context = await fixture({
-			'backend-url': 'https://consent.example.com',
-			env: true,
-			json: true,
-			plan: true,
-		});
-		context.commandArgs = ['hosted'];
-		const target = join(context.projectRoot, 'local-settings');
-		const envPath = join(context.projectRoot, '.env.local');
-		const secret = 'PRIVATE_KEY=environment-target-secret\n';
-		await writeFile(target, secret);
-		await symlink('local-settings', envPath);
-		const result = await run(context);
-		expect(JSON.stringify(result)).not.toContain('environment-target-secret');
-		expect(result.edits).toContainEqual({
-			operation: 'update',
-			path: envPath,
-			redacted: true,
-		});
-		expect(await readFile(target, 'utf8')).toBe(secret);
 	});
 	it.each([
 		{ postcssConfig: 'module.exports = { plugins: { tailwindcss: {} } };\n' },
@@ -351,7 +293,6 @@ describe('noninteractive setup', () => {
 		{ plan: true, resume: true },
 		{ resume: true },
 		{ mode: 'hosted' },
-		{ env: true },
 		{ 'backend-url': 'https://example.com', project: 'example' },
 	])('rejects conflicting setup options %j', async (flags) => {
 		const context = await fixture(flags);

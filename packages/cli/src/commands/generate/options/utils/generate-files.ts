@@ -21,17 +21,11 @@ import {
 	resolveStylesheetPackageName,
 	updateAppStylesheetImports,
 } from '../../templates/css';
-import {
-	generateEnvExampleContent,
-	generateEnvFileContent,
-	getEnvVarName,
-} from '../../templates/env';
 import { updateReactLayout } from '../../templates/layout';
 import { updateNextConfig } from '../../templates/next-config';
-import fs, {
+import {
 	createFile,
 	readFile,
-	writeFile,
 	collectFileEdits,
 	applyFileEdits,
 } from '../../templates/shared/file-plan';
@@ -52,7 +46,6 @@ export interface GenerateFilesOptions extends BaseOptions {
 	mode: GenerateMode;
 	proxyNextjs?: boolean;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	enableSSR?: boolean;
 	enableDevTools?: boolean;
 	uiStyle?: UIStyle;
@@ -98,7 +91,6 @@ const handleReactLayout = async function handleReactLayout(options: {
 	projectRoot: string;
 	mode: GenerateMode;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
 	enableSSR?: boolean;
@@ -113,7 +105,6 @@ const handleReactLayout = async function handleReactLayout(options: {
 		projectRoot,
 		mode,
 		backendURL,
-		useEnvFile,
 		proxyNextjs,
 		enableSSR,
 		enableDevTools,
@@ -137,7 +128,6 @@ const handleReactLayout = async function handleReactLayout(options: {
 		proxyNextjs,
 		selectedScripts,
 		uiStyle,
-		useEnvFile,
 	});
 
 	const spinnerMessage = () => {
@@ -212,20 +202,18 @@ const handleReactLayout = async function handleReactLayout(options: {
 const handleNextConfig = async function handleNextConfig(options: {
 	projectRoot: string;
 	backendURL?: string;
-	useEnvFile?: boolean;
 	spinner: ReturnType<typeof p.spinner>;
 }): Promise<{
 	nextConfigUpdated: boolean;
 	nextConfigPath: string | null;
 	nextConfigCreated: boolean;
 }> {
-	const { projectRoot, backendURL, useEnvFile, spinner } = options;
+	const { projectRoot, backendURL, spinner } = options;
 	spinner.start('Updating Next.js config...');
 
 	const configResult = await updateNextConfig({
 		backendURL,
 		projectRoot,
-		useEnvFile,
 	});
 
 	const spinnerMessage = () => {
@@ -262,82 +250,6 @@ const handleNextConfig = async function handleNextConfig(options: {
 		nextConfigPath: configResult.filePath,
 		nextConfigUpdated: configResult.updated,
 	};
-};
-
-/**
- * Handles the creation and updating of environment files
- * @param options - Configuration options for environment file handling
- */
-const handleEnvFiles = async function handleEnvFiles(options: {
-	developmentEnvironment?: CliContext['framework']['developmentEnvironment'];
-	projectRoot: string;
-	backendURL: string;
-	pkg: AvailablePackages;
-	spinner: ReturnType<typeof p.spinner>;
-	cwd: string;
-}): Promise<void> {
-	const { projectRoot, backendURL, pkg, spinner, cwd } = options;
-	const envPath = path.join(projectRoot, '.env.local');
-	const envExamplePath = path.join(projectRoot, '.env.example');
-
-	spinner.start('Creating/updating environment files...');
-
-	const envContent = generateEnvFileContent(
-		backendURL,
-		pkg,
-		options.developmentEnvironment
-	);
-	const envExampleContent = generateEnvExampleContent(
-		pkg,
-		options.developmentEnvironment
-	);
-	const envVarName = getEnvVarName(pkg, options.developmentEnvironment);
-
-	try {
-		const [envExists, envExampleExists] = await Promise.all([
-			fs
-				.access(envPath)
-				.then(() => true)
-				.catch(() => false),
-			fs
-				.access(envExamplePath)
-				.then(() => true)
-				.catch(() => false),
-		]);
-
-		if (envExists) {
-			const currentEnvContent = await readFile(envPath, 'utf-8');
-			if (!currentEnvContent.includes(envVarName)) {
-				await fs.appendFile(envPath, envContent);
-			}
-		} else {
-			await writeFile(envPath, envContent);
-		}
-
-		if (envExampleExists) {
-			const currentExampleContent = await readFile(envExamplePath, 'utf-8');
-			if (!currentExampleContent.includes(envVarName)) {
-				await fs.appendFile(envExamplePath, envExampleContent);
-			}
-		} else {
-			await writeFile(envExamplePath, envExampleContent);
-		}
-
-		spinner.stop(
-			formatLogMessage(
-				'info',
-				`Environment files added/updated successfully: ${color.cyan(path.relative(cwd, envPath))} and ${color.cyan(path.relative(cwd, envExamplePath))}`
-			)
-		);
-	} catch (error: unknown) {
-		spinner.stop(
-			formatLogMessage(
-				'error',
-				`Error processing environment files: ${error instanceof Error ? error.message : String(error)}`
-			)
-		);
-		throw error;
-	}
 };
 
 /**
@@ -415,7 +327,6 @@ const generateFilesContent = async function generateFilesContent({
 	context,
 	mode,
 	spinner,
-	useEnvFile,
 	proxyNextjs,
 	backendURL,
 	enableSSR,
@@ -453,7 +364,6 @@ const generateFilesContent = async function generateFilesContent({
 			selectedScripts,
 			spinner,
 			uiStyle,
-			useEnvFile,
 		});
 		if (!layoutResult.layoutPath) {
 			throw new Error(
@@ -474,7 +384,6 @@ const generateFilesContent = async function generateFilesContent({
 			backendURL,
 			projectRoot,
 			spinner,
-			useEnvFile,
 		});
 		result.nextConfigUpdated = configResult.nextConfigUpdated;
 		result.nextConfigPath = configResult.nextConfigPath;
@@ -486,9 +395,7 @@ const generateFilesContent = async function generateFilesContent({
 		result.configContent = generateClientConfigContent(
 			mode,
 			backendURL,
-			useEnvFile,
 			enableDevTools,
-			context.framework.developmentEnvironment,
 			selectedScripts
 		);
 		result.configPath = path.join(projectRoot, 'c15t.config.ts');
@@ -499,17 +406,6 @@ const generateFilesContent = async function generateFilesContent({
 				`Client configuration file generated: ${result.configPath}`
 			)
 		);
-	}
-
-	if (useEnvFile && backendURL) {
-		await handleEnvFiles({
-			backendURL,
-			cwd: context.cwd,
-			developmentEnvironment: context.framework.developmentEnvironment,
-			pkg,
-			projectRoot,
-			spinner,
-		});
 	}
 
 	if (pkg === 'c15t/react' || pkg === 'c15t/next') {

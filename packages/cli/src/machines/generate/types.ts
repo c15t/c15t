@@ -65,8 +65,6 @@ export interface GenerateMachineContext extends BaseMachineContext {
 	// --- Backend Options ---
 	/** Backend URL for hosted mode (inth.com or self-hosted provider) */
 	backendURL: string | null;
-	/** Whether to store backend URL in .env file */
-	useEnvFile: boolean;
 	/** Whether to proxy requests via Next.js rewrites */
 	proxyNextjs: boolean;
 
@@ -162,7 +160,6 @@ export type GenerateMachineEvent =
 	// Backend options events
 	| {
 			type: 'BACKEND_OPTIONS_COMPLETE';
-			useEnvFile: boolean;
 			proxyNextjs: boolean;
 	  }
 
@@ -287,7 +284,6 @@ export const createInitialContext = function createInitialContext(
 		stateHistory: [],
 
 		uiStyle: 'prebuilt',
-		useEnvFile: true,
 	};
 };
 

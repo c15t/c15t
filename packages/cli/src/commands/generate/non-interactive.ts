@@ -90,11 +90,6 @@ const readMode = (context: CliContext): GenerateMode => {
 			details: '--backend-url and --project require hosted mode.',
 		});
 	}
-	if (mode !== 'hosted' && flags.env) {
-		throw new CliError('FLAG_INVALID', {
-			details: '--env requires hosted mode.',
-		});
-	}
 	return mode;
 };
 
@@ -321,7 +316,6 @@ export const generateWithoutPrompts = async (
 			stop: () => undefined,
 		} as Parameters<typeof planGenerateFiles>[0]['spinner'],
 		uiStyle,
-		useEnvFile: flags.env === true,
 	});
 	const warnings = plan.warnings ?? [];
 	for (const warning of warnings) {

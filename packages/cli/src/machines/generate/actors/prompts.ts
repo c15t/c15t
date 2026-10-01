@@ -358,7 +358,6 @@ export interface BackendOptionsInput {
 }
 
 export interface BackendOptionsOutput {
-	useEnvFile: boolean;
 	proxyNextjs: boolean;
 }
 
@@ -367,20 +366,6 @@ export const backendOptionsActor = fromPromise<
 	BackendOptionsInput
 >(async ({ input }) => {
 	const { cliContext } = input;
-
-	// Env file prompt
-	const useEnvFile =
-		cliContext.flags?.yes === true
-			? true
-			: await p.confirm({
-					initialValue: true,
-					message:
-						'Store the backendURL in a .env file? (Recommended, URL is public)',
-				});
-
-	if (isCancel(useEnvFile)) {
-		throw new PromptCancelledError('env_file');
-	}
 
 	// Next.js proxy prompt (only for Next.js projects)
 	let proxyNextjs = false;
@@ -405,10 +390,7 @@ export const backendOptionsActor = fromPromise<
 		proxyNextjs = proxyResult as boolean;
 	}
 
-	return {
-		proxyNextjs,
-		useEnvFile: useEnvFile as boolean,
-	};
+	return { proxyNextjs };
 });
 
 // --- Frontend UI Options Prompt ---
