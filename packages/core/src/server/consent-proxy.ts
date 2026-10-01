@@ -552,6 +552,9 @@ export interface ForwardConsentRequestInput {
 
 const notFound = () => Response.json({ error: 'Not found' }, { status: 404 });
 
+const isTimeoutError = (error: unknown): boolean =>
+	(error as { name?: unknown } | null)?.name === 'TimeoutError';
+
 /**
  * Forwards one request to `${backendURL}/${path}${search}` and returns the
  * upstream status and body as a stream, with headers shaped for the browser.
@@ -563,8 +566,9 @@ const notFound = () => Response.json({ error: 'Not found' }, { status: 404 });
  * identity is marked `private, no-store`.
  *
  * @param input - Request, path, backend, options, forwarding and adapter.
- * @returns The upstream response, or a 404 JSON response when `path` is not
- * allowed.
+ * @returns The upstream response, a 404 JSON response when `path` is not
+ * allowed, a 504 when the upstream request times out, or a 502 when it
+ * fails before a response arrives.
  * @example
  * ```ts
  * return forwardConsentRequest({
@@ -628,7 +632,16 @@ export const forwardConsentRequest = async function forwardConsentRequest({
 		init.duplex = 'half';
 	}
 
-	const upstream = await (fetchImpl ?? globalThis.fetch)(target, init);
+	let upstream: Response;
+	try {
+		upstream = await (fetchImpl ?? globalThis.fetch)(target, init);
+	} catch (error) {
+		// An unreachable backend or the deadline above rejects `fetch`. Answer
+		// as a gateway so the client sees JSON, not the framework's 500 page.
+		return isTimeoutError(error)
+			? Response.json({ error: 'Upstream timeout' }, { status: 504 })
+			: Response.json({ error: 'Bad gateway' }, { status: 502 });
+	}
 	const responseHeaders = buildConsentProxyResponseHeaders(upstream.headers);
 	if (carriesIdentity(init.headers)) {
 		// The response may vary by the forwarded identity; never let a shared

@@ -45,7 +45,9 @@ Loopback `http:` backends still receive all three.
 The proxy rules now live in `@c15t/core/server` as `forwardConsentRequest`,
 `resolveConsentProxyOptions`, `isConsentProxyPathAllowed` and related
 helpers, and both adapters use them. Each adapter supplies only what its
-framework can trust for the forwarding headers. Both proxies now stop
+framework can trust for the forwarding headers. Both proxies now answer
+`504` with a JSON body when the backend misses the deadline and `502` when
+it cannot be reached, instead of a framework error page. They also stop
 passing `TE`, `Trailer` and any header the backend's `Connection` value
 names on to the browser. TanStack Start's proxy otherwise behaves as
 before.

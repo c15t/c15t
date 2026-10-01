@@ -276,6 +276,45 @@ describe('forwardConsentRequest', () => {
 	});
 });
 
+describe('forwardConsentRequest upstream failures', () => {
+	const failWith = async function failWith(error: Error) {
+		const options = resolveConsentProxyOptions(true);
+		if (!options) {
+			throw new Error('proxy options did not resolve');
+		}
+		const answer = await forwardConsentRequest({
+			adapter: '@c15t/test-adapter',
+			backendURL: BACKEND,
+			fetch: vi
+				.fn()
+				.mockRejectedValue(error) as unknown as typeof globalThis.fetch,
+			forwarding: FORWARDING,
+			options,
+			path: 'subjects',
+			request: new Request('https://shop.example/api/c15t/subjects', {
+				method: 'POST',
+			}),
+		});
+		return { body: await answer.json(), status: answer.status };
+	};
+
+	test('answers 504 when the upstream deadline passes', async () => {
+		const timeout = new DOMException('timed out', 'TimeoutError');
+
+		expect(await failWith(timeout)).toEqual({
+			body: { error: 'Upstream timeout' },
+			status: 504,
+		});
+	});
+
+	test('answers 502 when the backend cannot be reached', async () => {
+		expect(await failWith(new TypeError('fetch failed'))).toEqual({
+			body: { error: 'Bad gateway' },
+			status: 502,
+		});
+	});
+});
+
 describe('rewriteProxySetCookie', () => {
 	test('drops only the Domain attribute', () => {
 		expect(
