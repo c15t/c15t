@@ -1,6 +1,8 @@
+import { useExperiment } from 'c15t/tanstack-start';
 import { lazy, Suspense, useEffect, useSyncExternalStore } from 'react';
 
 import { VideoEmbed } from '../components/video-embed';
+import { useExperimentReadout } from '../experiment';
 
 const subscribe = () => () => {
 	/* Hydration state has no external events. */
@@ -11,6 +13,57 @@ const DevTools = import.meta.env.DEV
 			return { default: module.DevTools };
 		})
 	: null;
+
+/**
+ * Links to each experiment run, the assigned arm and the experiment events
+ * logged so far. Renders nothing unless `C15T_EXPERIMENT=1` selected the
+ * experiment root.
+ */
+const ExperimentReadout = () => {
+	const readout = useExperimentReadout();
+	const assignment = useExperiment();
+	if (!readout) {
+		return null;
+	}
+	return (
+		<>
+			{/* Plain links: the root loader resolves the arm per document load. */}
+			<nav aria-label="Banner experiment">
+				<a href="/consent-example">Default</a>{' '}
+				<a href="/consent-example?experiment=1">Experiment</a>{' '}
+				<a href="/consent-example?experiment=1&arm=wall">
+					Experiment (wall arm)
+				</a>
+			</nav>
+			{readout.running && (
+				<section data-testid="experiment">
+					<h2>Banner experiment</h2>
+					<p>
+						Arm:{' '}
+						<code data-testid="experiment-arm">
+							{assignment
+								? `${assignment.id} · ${assignment.arm} · ${assignment.assignedBy}`
+								: 'assigning…'}
+						</code>
+					</p>
+					<ul>
+						{readout.events.map((event, index) => (
+							<li
+								// oxlint-disable-next-line react/no-array-index-key -- append-only log
+								key={index}
+							>
+								<code>{event.name}</code> · {event.arm} · {event.detail}
+							</li>
+						))}
+					</ul>
+					<p>
+						The same events are pushed to <code>window.dataLayer</code>.
+					</p>
+				</section>
+			)}
+		</>
+	);
+};
 
 /**
  * Demo page shared by every rendering variant: a gated video, theme
@@ -56,6 +109,7 @@ export const ConsentExample = () => {
 			>
 				Branded theme
 			</button>
+			<ExperimentReadout />
 			<h2>Watch the video</h2>
 			<VideoEmbed />
 		</main>

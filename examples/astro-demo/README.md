@@ -57,9 +57,9 @@ dialog chunk graph can be walked from `dist/client/.vite/manifest.json`.
   `manifest()`. Used when `C15T_BACKEND_URL` is set.
 - `astro.static.config.mjs`: static output with no adapter and `hosted()`.
   Used when `C15T_BACKEND_URL` is set and `C15T_ASTRO_OUTPUT=static`.
-- `astro.showcase.config.mjs`: `offline()`, the IAB surfaces and the dialog
-  framework comparison. Used when no backend URL is set, or when `C15T_IAB`
-  or `C15T_UI` is set.
+- `astro.showcase.config.mjs`: `offline()`, the IAB surfaces, the dialog
+  framework comparison and the banner experiment. Used when no backend URL is
+  set, or when `C15T_IAB`, `C15T_UI` or `C15T_EXPERIMENT` is set.
 
 The first two are the setups the docs publish, and `examples/shared` runs the
 consent journeys against both. The server build also serves
@@ -69,6 +69,29 @@ consent journeys against both. The server build also serves
 Files and regions marked `#region docs:` are published in the docs. Keep demo
 scaffolding out of them: `layouts/demo.astro` adds the navigation, and
 `components/theme-switcher.astro` holds the branded theme buttons.
+
+## Banner experiment
+
+`C15T_EXPERIMENT=1` puts the banner-shape experiment in the showcase config.
+The banner is server-rendered, so `@c15t/astro` has no built-in assignment:
+the host resolves the arm, the way a flag provider would. The config sets
+`middleware: false` and registers `src/experiment-middleware.ts`, which
+exports `consentMiddleware({ experimentArm })` and reads the arm from the URL.
+
+```bash
+C15T_EXPERIMENT=1 bun run --cwd examples/astro-demo dev
+```
+
+Open `/consent-example?experiment=1` for the `control` arm (the default
+banner), shown as `banner-shape · control · host`, or
+`/consent-example?experiment=1&arm=wall` for the `wall` arm. Without
+`?experiment=1` no experiment runs. `src/experiment-client.ts` adds
+`onSurfaceShown` and `onChoiceRecorded` callbacks that push each impression
+and choice under the arm to `window.dataLayer` as `c15t_surface_shown` and
+`c15t_choice_recorded`, and the page lists them. The experiment needs server
+output: a prerendered page renders once for every visitor, so the middleware
+resolves no arm for it. With `C15T_BACKEND_URL` set the showcase uses `hosted()`.
+See https://c15t.com/docs/guides/banner-experiments.
 
 ## IAB TCF
 

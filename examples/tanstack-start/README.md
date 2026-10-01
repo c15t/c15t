@@ -40,6 +40,28 @@ C15T_TANSTACK_RENDERING=static VITE_C15T_BACKEND_URL=https://your-project.inth.a
 bun run start:static   # serves dist/client only, like a static host
 ```
 
+## Banner experiment
+
+`C15T_EXPERIMENT=1` swaps in `src/experiment-root.tsx`, the default root plus
+the banner-shape experiment. It cannot be combined with
+`C15T_TANSTACK_RENDERING`.
+
+```bash
+C15T_EXPERIMENT=1 bun run dev
+```
+
+Open `/consent-example?experiment=1`: c15t picks the `control` arm (the
+default banner) or the `wall` arm in the browser, and the page shows
+`banner-shape · <arm> · c15t`. `/consent-example?experiment=1&arm=wall`
+resolves the arm in the root loader, on the server, where a flag provider's
+answer would go. The server function passes it to
+`resolveConsent({ experiment })`, which counts the arm through `/init` and
+returns the experiment in the state, so `ConsentRoot` needs no `experiment`
+option. Any other `arm` value runs `control`. The root's `onSurfaceShown` and
+`onChoiceRecorded` callbacks list each impression and choice under the arm and
+push them to `window.dataLayer` as `c15t_surface_shown` and
+`c15t_choice_recorded`. See https://c15t.com/docs/guides/banner-experiments.
+
 ## Demo files
 
 `src/demo` holds the demo pages' components and CSS, and the IAB banner the

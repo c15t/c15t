@@ -7,12 +7,13 @@
  *   C15T_BACKEND_URL=https://your-project.inth.app bun run --cwd examples/astro-demo build
  *   C15T_BACKEND_URL=https://your-project.inth.app C15T_ASTRO_OUTPUT=static bun run --cwd examples/astro-demo build
  *
- * Without a backend URL, or with `C15T_IAB` or `C15T_UI` set, the showcase
- * build runs instead. See `astro.showcase.config.mjs`.
+ * Without a backend URL, or with `C15T_IAB`, `C15T_UI` or `C15T_EXPERIMENT`
+ * set, the showcase build runs instead. See `astro.showcase.config.mjs`.
  */
 const showcase =
 	!process.env.C15T_BACKEND_URL ||
 	process.env.C15T_IAB === '1' ||
+	process.env.C15T_EXPERIMENT === '1' ||
 	Boolean(process.env.C15T_UI);
 
 const load = async function load() {

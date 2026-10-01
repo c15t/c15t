@@ -1,0 +1,102 @@
+---
+/**
+ * Demo-only banner-experiment panel. It stays hidden unless the build runs
+ * with `C15T_EXPERIMENT=1`, which puts the banner-shape experiment in the
+ * showcase config. Lists the arm this request runs and each
+ * `window.dataLayer` event pushed under it by `src/experiment-client.ts`.
+ */
+---
+
+<experiment-readout hidden>
+	<!-- Full loads: the server resolves the arm, and the page runtime keeps
+	     the one it booted with across ClientRouter navigation. -->
+	<nav aria-label="Banner experiment">
+		<a data-astro-reload href="/consent-example">Default</a>
+		<a data-astro-reload href="/consent-example?experiment=1">Experiment</a>
+		<a data-astro-reload href="/consent-example?experiment=1&arm=wall"
+			>Experiment (wall arm)</a
+		>
+	</nav>
+	<section data-testid="experiment" hidden>
+		<h2>Banner experiment</h2>
+		<p>Arm: <code data-testid="experiment-arm">assigning…</code></p>
+		<ul></ul>
+		<p>The same events are pushed to <code>window.dataLayer</code>.</p>
+	</section>
+</experiment-readout>
+
+<script>
+	import { getConsentClient } from 'c15t/astro/client';
+
+	// Dispatched by `src/experiment-client.ts` after each push. Not imported
+	// from there, which would bundle the client entrypoint into this page.
+	const EXPERIMENT_EVENT = 'c15t-example:experiment';
+	type DataLayerEntry = Record<string, unknown>;
+
+	class ExperimentReadout extends HTMLElement {
+		dispose?: () => void;
+
+		connect = () => {
+			const client = getConsentClient();
+			const section = this.querySelector('section');
+			const arm = this.querySelector('[data-testid="experiment-arm"]');
+			const list = this.querySelector('ul');
+			if (this.dispose || !client?.options.experiment) {
+				return;
+			}
+			this.hidden = false;
+			if (
+				!section ||
+				!arm ||
+				!list ||
+				new URL(location.href).searchParams.get('experiment') !== '1'
+			) {
+				return;
+			}
+			section.hidden = false;
+			const render = () => {
+				const assignment = client.getConsent().experiment;
+				arm.textContent = assignment
+					? `${assignment.id} · ${assignment.arm} · ${assignment.assignedBy}`
+					: 'assigning…';
+				const page = window as Window & { dataLayer?: DataLayerEntry[] };
+				list.replaceChildren(
+					...(page.dataLayer ?? [])
+						.filter((entry) => entry.experiment_id)
+						.map((entry) => {
+							const item = document.createElement('li');
+							item.textContent = `${entry.event} · ${entry.arm} · ${
+								entry.surface ?? entry.consent_action
+							}`;
+							return item;
+						})
+				);
+			};
+			render();
+			const stop = client.subscribe(render);
+			window.addEventListener(EXPERIMENT_EVENT, render);
+			this.dispose = () => {
+				stop();
+				window.removeEventListener(EXPERIMENT_EVENT, render);
+			};
+		};
+
+		connectedCallback() {
+			// c15t boots from a module script, which can run after this one.
+			document.addEventListener('DOMContentLoaded', this.connect, {
+				once: true,
+			});
+			this.connect();
+		}
+
+		disconnectedCallback() {
+			document.removeEventListener('DOMContentLoaded', this.connect);
+			this.dispose?.();
+			this.dispose = undefined;
+		}
+	}
+
+	if (!customElements.get('experiment-readout')) {
+		customElements.define('experiment-readout', ExperimentReadout);
+	}
+</script>

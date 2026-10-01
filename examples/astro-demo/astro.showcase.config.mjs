@@ -22,6 +22,18 @@ import { demoGvl, demoIabPolicy } from './demo-gvl.mjs';
 //   C15T_UI=react bun run --cwd examples/astro-demo build
 const ui = process.env.C15T_UI ?? 'svelte';
 
+// Banner-shape experiment. The banner is server-rendered, so
+// `@c15t/astro` has no built-in assignment and the arm is resolved per
+// request: `src/experiment-middleware.ts` replaces the integration's
+// middleware and reads `?experiment=1&arm=wall`, the way a flag provider
+// would. `src/experiment-client.ts` pushes each impression and choice to
+// `window.dataLayer`.
+//
+//   C15T_EXPERIMENT=1 bun run --cwd examples/astro-demo dev
+//
+// Then open /consent-example?experiment=1&arm=wall.
+const experiment = process.env.C15T_EXPERIMENT === '1';
+
 // IAB TCF mode. The policy decides which surfaces a page gets, and one
 // request resolves one policy, so the whole demo switches together:
 //
@@ -78,7 +90,10 @@ export default defineConfig({
 		uiIntegrations[ui],
 		c15t({
 			clientEntrypoint: fileURLToPath(
-				new URL('./src/consent-client.ts', import.meta.url)
+				new URL(
+					experiment ? './src/experiment-client.ts' : './src/consent-client.ts',
+					import.meta.url
+				)
 			),
 			consentCategories: [
 				'necessary',
@@ -109,7 +124,32 @@ export default defineConfig({
 				},
 			],
 			ui,
+			...(experiment && {
+				experiment: {
+					arms: { wall: { prompt: { variant: 'wall' } } },
+					id: 'banner-shape',
+				},
+				middleware: false,
+			}),
 		}),
+		...(experiment
+			? [
+					{
+						hooks: {
+							'astro:config:setup': ({ addMiddleware }) => {
+								addMiddleware({
+									entrypoint: new URL(
+										'./src/experiment-middleware.ts',
+										import.meta.url
+									),
+									order: 'pre',
+								});
+							},
+						},
+						name: 'astro-demo:experiment-middleware',
+					},
+				]
+			: []),
 	],
 	output: isStatic ? 'static' : 'server',
 	// The bundle comparison reads this to walk the dialog chunk graph.

@@ -48,6 +48,7 @@ These routes are the SvelteKit docs recipes. The acceptance suite in
 | `/consent-example/branded` | Theme tokens from `generateThemeCSS()` in a server load |
 | `/manifest-example` | `loadConsent` through the manifest route in `src/routes/api/c15t` |
 | `/headless-example` | A custom banner from `getHeadlessConsent()` with the stock dialog |
+| `/experiment-example` | The `/consent-example` setup with the banner experiment (not published) |
 
 Docs publish marked regions from these routes' layouts, `src/hooks.server.ts`,
 `src/app.d.ts`, `src/lib/example-scripts.ts`, `src/lib/server/consent-theme.ts`,
@@ -80,6 +81,19 @@ Test a fresh rejection, grant, reload and withdrawal:
 ```sh
 EXAMPLE_TARGET=sveltekit bun run --cwd examples/shared test
 ```
+
+## Banner experiment
+
+Open `/experiment-example?experiment=1` to run the banner-shape experiment:
+c15t picks the `control` arm (the default banner) or the `wall` arm, and the
+page shows `banner-shape · <arm> · c15t`.
+`/experiment-example?experiment=1&arm=wall` sets the arm the way a flag
+provider would; any other `arm` value runs `control`. The route has its own
+layout because the `/consent-example` layout is published in the docs. Its
+provider's `onSurfaceShown` and `onChoiceRecorded` callbacks list each
+impression and choice under the arm and push them to `window.dataLayer` as
+`c15t_surface_shown` and `c15t_choice_recorded`.
+See https://c15t.com/docs/guides/banner-experiments.
 
 The showcase at `/` and its routes live in `src/routes/(showcase)` with their
 own provider and the `/api/showcase` endpoint. Benchmarks under `/bench` render

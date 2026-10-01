@@ -6,7 +6,10 @@
 	const consent = getConsentManager();
 </script>
 
-<section data-testid="experiment">
+<section
+	class="card"
+	data-testid="experiment"
+>
 	<h2>Banner experiment</h2>
 	<p>
 		Arm: <code data-testid="experiment-arm"
@@ -15,7 +18,7 @@
 				: 'assigning…'}</code
 		>
 	</p>
-	<ul>
+	<ul class="statuses">
 		{#each experimentEvents as event, index (index)}
 			<li>
 				<code>{event.name}</code> · {event.arm} · {event.detail}

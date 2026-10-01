@@ -23,20 +23,32 @@ if (rendering && !variants.has(rendering)) {
 	throw new Error(`Unknown C15T_TANSTACK_RENDERING ${rendering}`);
 }
 
+/**
+ * `C15T_EXPERIMENT=1` swaps in `src/experiment-root.tsx`: the default root
+ * plus the banner-shape experiment, run per request with `?experiment=1`.
+ */
+const experiment = process.env.C15T_EXPERIMENT === '1';
+if (experiment && rendering) {
+	throw new Error(
+		'C15T_EXPERIMENT runs on the default root; unset C15T_TANSTACK_RENDERING'
+	);
+}
+const rootFile = experiment
+	? 'src/experiment-root.tsx'
+	: rendering && `src/rendering/${rendering}-root.tsx`;
+
 const rootVariant = (): Plugin => ({
 	enforce: 'pre',
 	name: 'example-root-variant',
 	resolveId(source, importer) {
 		if (
-			!rendering ||
+			!rootFile ||
 			!importer?.endsWith('routeTree.gen.ts') ||
 			source !== './routes/__root'
 		) {
 			return null;
 		}
-		return fileURLToPath(
-			new URL(`src/rendering/${rendering}-root.tsx`, import.meta.url)
-		);
+		return fileURLToPath(new URL(rootFile, import.meta.url));
 	},
 });
 
