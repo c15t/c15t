@@ -327,6 +327,10 @@ export const generateWithoutPrompts = async (
 		uiStyle,
 		useEnvFile: flags.env === true,
 	});
+	const warnings = plan.warnings ?? [];
+	for (const warning of warnings) {
+		context.logger.warn(warning);
+	}
 	const apply =
 		!flags.plan &&
 		!flags['dry-run'] &&
@@ -351,5 +355,6 @@ export const generateWithoutPrompts = async (
 		framework: framework.framework,
 		installSkipped: !apply || flags['skip-install'] === true,
 		mode,
+		warnings,
 	};
 };

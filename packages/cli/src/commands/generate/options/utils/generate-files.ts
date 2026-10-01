@@ -10,6 +10,7 @@ import { formatLogMessage } from '~/utils/logger';
 import {
 	ensureTailwind3PostcssPlugin,
 	isTailwindV3,
+	TAILWIND3_CREATE_REACT_APP_WARNING,
 	TAILWIND3_POSTCSS_INSTRUCTION,
 } from '../../../shared/postcss-config';
 import { formatSearchedCssPaths } from '../../../shared/stylesheets';
@@ -68,6 +69,8 @@ export interface GenerateFilesResult {
 	tailwindCssPath?: string | null;
 	postcssConfigUpdated?: boolean;
 	postcssConfigPath?: string | null;
+	/** Setup steps the CLI could not do, for the user to do by hand. */
+	warnings?: string[];
 }
 
 interface LayoutUpdateResult {
@@ -346,10 +349,20 @@ const configureTailwind3Postcss = async function configureTailwind3Postcss({
 	projectRoot: string;
 	spinner: ReturnType<typeof p.spinner>;
 }): Promise<
-	Pick<GenerateFilesResult, 'postcssConfigPath' | 'postcssConfigUpdated'>
+	Pick<
+		GenerateFilesResult,
+		'postcssConfigPath' | 'postcssConfigUpdated' | 'warnings'
+	>
 > {
 	spinner.start('Configuring PostCSS for Tailwind 3...');
 	const postcssResult = await ensureTailwind3PostcssPlugin({ projectRoot });
+	const result: Pick<
+		GenerateFilesResult,
+		'postcssConfigPath' | 'postcssConfigUpdated' | 'warnings'
+	> = {
+		postcssConfigPath: postcssResult.filePath,
+		postcssConfigUpdated: postcssResult.status === 'added',
+	};
 
 	if (postcssResult.status === 'added') {
 		spinner.stop(
@@ -366,13 +379,15 @@ const configureTailwind3Postcss = async function configureTailwind3Postcss({
 			)
 		);
 	} else {
-		spinner.stop(formatLogMessage('warn', TAILWIND3_POSTCSS_INSTRUCTION));
+		const warning =
+			postcssResult.status === 'config-ignored'
+				? TAILWIND3_CREATE_REACT_APP_WARNING
+				: TAILWIND3_POSTCSS_INSTRUCTION;
+		spinner.stop(formatLogMessage('warn', warning));
+		result.warnings = [warning];
 	}
 
-	return {
-		postcssConfigPath: postcssResult.filePath,
-		postcssConfigUpdated: postcssResult.status === 'added',
-	};
+	return result;
 };
 
 /**

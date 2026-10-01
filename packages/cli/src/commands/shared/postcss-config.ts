@@ -44,7 +44,7 @@ const JSON_CONFIGS = new Set([
 
 export type EnsureTailwind3PostcssPluginResult =
 	| { status: 'present' | 'added'; filePath: string }
-	| { status: 'manual'; filePath: string | null };
+	| { status: 'manual' | 'config-ignored'; filePath: string | null };
 
 /**
  * Whether a `tailwindcss` dependency range targets Tailwind 3.
@@ -307,29 +307,39 @@ export const addTailwind3PluginToPostcssConfig =
 		};
 	};
 
-/** Whether package.json carries a `postcss` config object. */
-const hasPackageJsonPostcssConfig = async function hasPackageJsonPostcssConfig(
+/** The parsed package.json, or null when it is missing or invalid. */
+const readPackageJson = async function readPackageJson(
 	projectRoot: string
-): Promise<boolean> {
+): Promise<Record<string, unknown> | null> {
 	const packageJsonPath = join(projectRoot, 'package.json');
 	await resolvePlannedPath(packageJsonPath);
 	if (!existsSync(packageJsonPath)) {
-		return false;
+		return null;
 	}
 	try {
 		const packageJson: unknown = JSON.parse(
 			await readFile(packageJsonPath, 'utf-8')
 		);
-		return (
-			typeof packageJson === 'object' &&
-			packageJson !== null &&
-			'postcss' in packageJson &&
-			typeof packageJson.postcss === 'object' &&
-			packageJson.postcss !== null
-		);
+		return typeof packageJson === 'object' && packageJson !== null
+			? (packageJson as Record<string, unknown>)
+			: null;
 	} catch {
-		return false;
+		return null;
 	}
+};
+
+const hasDependency = function hasDependency(
+	packageJson: Record<string, unknown>,
+	name: string
+): boolean {
+	return ['dependencies', 'devDependencies'].some((field) => {
+		const dependencies = packageJson[field];
+		return (
+			typeof dependencies === 'object' &&
+			dependencies !== null &&
+			name in dependencies
+		);
+	});
 };
 
 /**
@@ -339,9 +349,10 @@ const hasPackageJsonPostcssConfig = async function hasPackageJsonPostcssConfig(
  *
  * @param options.projectRoot - App root to search for a PostCSS config
  * @param options.dryRun - Report the change without writing it
- * @returns `present` or `added` with the config path, or `manual` when no
- *   config was found, package.json holds the config, several config files
- *   exist, or the plugin list could not be edited
+ * @returns `present` or `added` with the config path; `config-ignored`
+ *   for Create React App, which never reads a PostCSS config; or `manual`
+ *   when no config was found, package.json holds the config, several config
+ *   files exist, or the plugin list could not be edited
  */
 export const ensureTailwind3PostcssPlugin =
 	async function ensureTailwind3PostcssPlugin(options: {
@@ -358,11 +369,22 @@ export const ensureTailwind3PostcssPlugin =
 			}
 		}
 
+		const packageJson = await readPackageJson(options.projectRoot);
+		// react-scripts runs Tailwind with `postcss: { config: false }`, so no
+		// config file can add the plugin.
+		if (packageJson && hasDependency(packageJson, 'react-scripts')) {
+			return {
+				filePath: found[0] ? join(options.projectRoot, found[0]) : null,
+				status: 'config-ignored',
+			};
+		}
+
 		// A `postcss` field in package.json wins over every file, and with
 		// several files the loaders disagree on which one runs. Editing a
 		// config the build ignores would report success and change nothing.
+		const packageJsonPostcss = packageJson?.postcss;
 		if (
-			(await hasPackageJsonPostcssConfig(options.projectRoot)) ||
+			(typeof packageJsonPostcss === 'object' && packageJsonPostcss !== null) ||
 			found.length > 1
 		) {
 			return {
@@ -388,3 +410,9 @@ export const ensureTailwind3PostcssPlugin =
 
 /** The manual step for configs this module cannot edit. */
 export const TAILWIND3_POSTCSS_INSTRUCTION = `Tailwind 3 needs '${TAILWIND3_POSTCSS_PLUGIN}' before 'tailwindcss' in your PostCSS plugins, for example plugins: { '${TAILWIND3_POSTCSS_PLUGIN}': {}, tailwindcss: {}, autoprefixer: {} }. Install @c15t/ui as a direct dependency so PostCSS can load it.`;
+
+/**
+ * Why Create React App cannot run Tailwind 3 with c15t, and the ways out.
+ * react-scripts builds CSS with `postcss: { config: false }`.
+ */
+export const TAILWIND3_CREATE_REACT_APP_WARNING = `Create React App ignores PostCSS config files, so Tailwind 3 cannot run '${TAILWIND3_POSTCSS_PLUGIN}' and the build fails on c15t's dialog stylesheet. Add the plugin before 'tailwindcss' through CRACO, eject, or move the app to Vite.`;

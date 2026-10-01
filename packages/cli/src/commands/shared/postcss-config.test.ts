@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -261,6 +261,35 @@ describe('ensureTailwind3PostcssPlugin', () => {
 			config
 		);
 	});
+
+	it.each([
+		{ config: 'module.exports = { plugins: { tailwindcss: {} } };\n' },
+		{ config: null },
+	])(
+		'leaves Create React App alone, which ignores PostCSS config (config: $config)',
+		async ({ config }) => {
+			const files: Record<string, string> = {
+				'package.json': JSON.stringify({
+					dependencies: { 'react-scripts': '5.0.1' },
+				}),
+			};
+			if (config) {
+				files['postcss.config.js'] = config;
+			}
+			const root = await createProject(files);
+
+			const result = await ensureTailwind3PostcssPlugin({ projectRoot: root });
+
+			expect(result).toEqual({
+				filePath: config ? join(root, 'postcss.config.js') : null,
+				status: 'config-ignored',
+			});
+			expect((await readdir(root)).sort()).toEqual(Object.keys(files).sort());
+			expect(
+				config && (await readFile(join(root, 'postcss.config.js'), 'utf-8'))
+			).toBe(config);
+		}
+	);
 
 	it('asks for a manual change without a config', async () => {
 		const root = await createProject({});

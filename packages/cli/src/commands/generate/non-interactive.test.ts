@@ -15,6 +15,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { detectFramework } from '../../context/framework-detection';
 import type { CliContext } from '../../context/types';
 import { c15tReleaseSpecifier } from '../../utils/c15t-release';
+import { TAILWIND3_CREATE_REACT_APP_WARNING } from '../shared/postcss-config';
 import { generateWithoutPrompts } from './non-interactive';
 
 const install = vi.fn();
@@ -217,6 +218,54 @@ describe('noninteractive setup', () => {
 		});
 		expect(await readFile(target, 'utf8')).toBe(secret);
 	});
+	it.each([
+		{ postcssConfig: 'module.exports = { plugins: { tailwindcss: {} } };\n' },
+		{ postcssConfig: null },
+	])(
+		'warns that Create React App cannot run the Tailwind 3 plugin (config: $postcssConfig)',
+		async ({ postcssConfig }) => {
+			const context = await fixture({ apply: true, 'skip-install': true });
+			const root = context.projectRoot;
+			await writeFile(
+				join(root, 'package.json'),
+				JSON.stringify({
+					dependencies: { react: '18.3.1', 'react-scripts': '5.0.1' },
+					devDependencies: { tailwindcss: '3.4.17' },
+				})
+			);
+			if (postcssConfig) {
+				await writeFile(join(root, 'postcss.config.js'), postcssConfig);
+			}
+			await mkdir(join(root, 'src'));
+			await writeFile(
+				join(root, 'src/index.css'),
+				'@tailwind base;\n@tailwind components;\n@tailwind utilities;\n'
+			);
+			await writeFile(
+				join(root, 'src/App.jsx'),
+				'export default function App() { return <main />; }\n'
+			);
+			context.framework = await detectFramework(root);
+			const warn = vi.fn();
+			context.logger = { ...context.logger, warn } as CliContext['logger'];
+
+			const result = await run(context);
+
+			expect(result.warnings).toEqual([TAILWIND3_CREATE_REACT_APP_WARNING]);
+			expect(warn).toHaveBeenCalledWith(TAILWIND3_CREATE_REACT_APP_WARNING);
+			expect(
+				result.edits.filter((edit) => edit.path.includes('postcss'))
+			).toEqual([]);
+			expect(
+				(await readdir(root)).filter((name) => name.includes('postcss'))
+			).toEqual(postcssConfig ? ['postcss.config.js'] : []);
+			expect(
+				postcssConfig &&
+					(await readFile(join(root, 'postcss.config.js'), 'utf8'))
+			).toBe(postcssConfig);
+		},
+		30_000
+	);
 	it('installs c15t packages from the release line of the CLI', async () => {
 		const context = await fixture({ apply: true, scripts: 'google-tag' });
 		const release = c15tReleaseSpecifier();
