@@ -34,7 +34,7 @@ group: reference
   | `description`, `legalName`, `homepageUrl` | No | Extra detail shown on the vendor card. |
   | `disabled` | No | List the vendor without a switch. A stored denial for it no longer applies. |
 
-  The `id` must match the `vendor` slug on the script. Every `@c15t/scripts`
+  The `id` must match the `vendor` slug on the script. Every `@c15t/integrations`
   helper sets `vendor` to its script ID, so `xPixel()` is `x-pixel`, `gtag()`
   is `gtag` and `cloudflareZaraz()` is `cloudflare-zaraz`. Each
   [vendor guide](/docs/integrations/overview) names its slug.
@@ -73,7 +73,7 @@ group: reference
 <section id="dialog">
   The dialog lists only vendors that have a `name` and a `privacyPolicyUrl`.
   A vendor's switch is disabled while its category is off. Save records the
-  vendors the visitor changed. Accept all and Reject all clear every vendor
+  vendors the visitor changed. Accept All and Reject All clear every vendor
   denial, so each vendor follows its category again. The labels come from
   `consentManagerDialog.vendors` in the translations: `title`,
   `privacyPolicy`, `disabledByCategory` and `switchLabel`.
@@ -96,7 +96,7 @@ group: reference
     category stays allowed. Delete the vendor's cookies from the script's
     `onConsentChange` when `info.vendor.granted` is `false`.
   - It does not expire. The switch stays off until the visitor changes it or
-    uses Accept all or Reject all, even across a policy change.
+    uses Accept All or Reject All, even across a policy change.
   - Adding a vendor does not ask returning visitors again. A new vendor starts
     on inside an allowed category. Change the policy's `copyRevision` if a new
     vendor should prompt again.
@@ -116,5 +116,5 @@ group: reference
      scripts still load.
   4. Reload again. The X Pixel switch is still off.
   5. Turn marketing off. The X Pixel switch is disabled.
-  6. Open Privacy settings and click Accept all. `uwt.js` loads again.
+  6. Open Privacy settings and click Accept All. `uwt.js` loads again.
 </section>
