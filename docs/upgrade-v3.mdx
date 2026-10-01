@@ -81,8 +81,8 @@ Before, in v2 and earlier v3 alphas:
 {/* example: fragment */}
 
 ```ts
-import { posthog } from '@c15t/scripts/posthog';
 import { createEventDispatcher } from '@c15t/scripts/events';
+import { posthog } from '@c15t/scripts/posthog';
 ```
 
 After:
@@ -90,8 +90,8 @@ After:
 {/* example: fragment */}
 
 ```ts
-import { posthog } from '@c15t/integrations/posthog';
 import { createEventDispatcher } from '@c15t/integrations/events';
+import { posthog } from '@c15t/integrations/posthog';
 ```
 
 The `scripts` configuration option and the `Script` type keep their names.
