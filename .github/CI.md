@@ -20,6 +20,27 @@ benchmark should reuse an existing group unless it proves a different contract.
 
 ## Selection and local commands
 
+### Native frontend CLI commands
+
+The CLI has a separate scriptc 0.2.0 integration suite. Install
+`@scriptc/compiler@0.2.0` in an external tool directory, then point the suite at
+that package's directory:
+
+```sh
+bun turbo run build --filter=@c15t/cli
+SCRIPTC_COMPILER_ROOT=/path/to/tools/node_modules/@scriptc/compiler bun run --cwd packages/cli test:native
+```
+
+The suite packs the CLI, vendors its published generation and frontend sources
+unchanged, and compiles generation and frontend hosts with `dynamic: false`.
+It compares native output with the packed Node entry points for all 11
+frameworks in hosted and offline modes, generation defaults, project list/select,
+and account status. It also checks invalid arguments and unavailable backends. It runs separately from normal
+unit tests because it needs a native compiler toolchain. The compiler API also
+allows verification when npm's scriptc 0.2.0 platform CLI package is unavailable.
+
+### Selected repository checks
+
 ```sh
 CI_DIFF_BASE=origin/canary bun scripts/ci-plan.ts
 bun scripts/ci-plan.ts --full
@@ -207,3 +228,11 @@ Vendor network probes retain their separate schedules and isolation because
 local SDK mocks cannot prove a real vendor's tracking behavior.
 
 See [benchmark commands and profiles](../benchmarks/README.md#ci-comparisons).
+
+`cli-native.yml` runs the packed CLI frontend suite on Linux and macOS for CLI
+changes and v3 pushes. It installs `@scriptc/compiler@0.2.0` in the runner's
+temporary directory, compiles with dynamic support disabled, and exercises
+plans, file apply, conflicts, symlinks, interrupted recovery and alpha installer
+arguments. It does not compile the standalone interactive Node executable or
+connect to hosted projects. The compiler API avoids the missing macOS launcher
+package in the scriptc 0.2.0 CLI distribution.

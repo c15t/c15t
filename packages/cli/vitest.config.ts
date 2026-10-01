@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 
 import { baseConfig } from '@c15t/vitest-config/base';
-import { defineConfig, mergeConfig } from 'vitest/config';
+import { configDefaults, defineConfig, mergeConfig } from 'vitest/config';
 
 export default mergeConfig(
 	baseConfig,
@@ -22,6 +22,7 @@ export default mergeConfig(
 					statements: 30,
 				},
 			},
+			exclude: [...configDefaults.exclude, 'src/__tests__/native/**'],
 			// Compiler fixtures create full TypeScript programs. Bound concurrency
 			// so they do not starve command tests of CPU and memory.
 			maxWorkers: 2,

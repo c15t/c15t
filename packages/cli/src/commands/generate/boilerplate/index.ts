@@ -5,6 +5,7 @@ import { detectFramework } from '../../../context/framework-detection';
 import type { CliContext } from '../../../context/types';
 import { CliError } from '../../../core/errors';
 import { findLayoutFile } from '../../../detection/layout';
+import { generateBoilerplateTemplate } from '../../../generate';
 import {
 	clearGenerationJournal,
 	recoverGeneration,
@@ -16,14 +17,8 @@ import {
 	createFile,
 } from '../templates/shared/file-plan';
 import { SCRIPT_SNIPPETS } from '../templates/shared/scripts';
-import { generateJavaScriptBoilerplate } from './javascript';
 import { planBoilerplateDependencies } from './package-source';
-import { generateReactBoilerplate } from './react';
-import type {
-	BoilerplateFramework,
-	BoilerplateOptions,
-	BoilerplateTemplate,
-} from './types';
+import type { BoilerplateFramework, BoilerplateOptions } from './types';
 
 export const boilerplateFrameworks: readonly BoilerplateFramework[] = [
 	'next-app',
@@ -199,37 +194,7 @@ const readOptions = (
 	};
 };
 
-/** Produces framework-specific integration files using the local v3 API contract. */
-export const generateBoilerplateTemplate = async (
-	options: BoilerplateOptions
-): Promise<BoilerplateTemplate> => {
-	switch (options.framework) {
-		case 'next-app':
-		case 'next-pages':
-		case 'react':
-			return generateReactBoilerplate(options);
-		case 'javascript':
-			return generateJavaScriptBoilerplate(options);
-		case 'vue':
-		case 'nuxt':
-			return (await import('./vue')).generateVueBoilerplate(options);
-		case 'svelte':
-		case 'sveltekit':
-			return (await import('./svelte')).generateSvelteBoilerplate(options);
-		case 'astro':
-			return (await import('./astro')).generateAstroBoilerplate(options);
-		case 'solid':
-			return (await import('./solid')).generateSolidBoilerplate(options);
-		case 'tanstack-start':
-			return (
-				await import('./tanstack-start')
-			).generateTanStackStartBoilerplate(options);
-		default:
-			throw new CliError('FLAG_INVALID', {
-				details: 'Unknown boilerplate framework.',
-			});
-	}
-};
+export { generateBoilerplateTemplate } from '../../../generate';
 
 /** Reject output outside the project, including paths routed through symlinks. */
 const checkOutputPath = async (root: string, target: string): Promise<void> => {

@@ -100,19 +100,17 @@ const resolveBackendURL = async (
 	let backendURL = stringFlag(context, 'backend-url');
 	if (mode === 'hosted' && !backendURL) {
 		const query =
-			stringFlag(context, 'project') ?? (await getSelectedInstanceId());
+			stringFlag(context, 'project') ??
+			(await getSelectedInstanceId(context.projectRoot));
 		if (!query) {
 			throw new CliError('INPUT_REQUIRED', {
 				details:
-					'Hosted setup requires --backend-url <url> or --project <id|organization/name>.',
+					'Hosted setup requires --backend-url <url> or --project <id|name>.',
 			});
 		}
-		const client = await createControlPlaneClientFromConfig();
-		if (!client) {
-			throw new CliError('FLAG_INVALID', {
-				details: 'Log in before using --project, or supply --backend-url.',
-			});
-		}
+		const client = await createControlPlaneClientFromConfig(
+			context.projectRoot
+		);
 		backendURL = requireInstanceBackendUrl(
 			resolveInstance(query, await client.listInstances())
 		);

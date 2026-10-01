@@ -9,10 +9,12 @@ import {
 } from '../../control-plane';
 import { CliError } from '../../core/errors';
 import { TelemetryEventName } from '../../core/telemetry';
-import { validateInstanceName } from '../../utils/validation';
+import { listProjects } from '../../frontend/projects';
 
-const getClient = async () => {
-	const client = await createControlPlaneClientFromConfig();
+const getClient = async (context: CliContext) => {
+	const client = await createControlPlaneClientFromConfig(
+		context.projectRoot ?? context.cwd
+	);
 	if (!client) {
 		throw new CliError('AUTH_NOT_LOGGED_IN');
 	}
@@ -37,8 +39,10 @@ const requireInteractive = (context: CliContext, needed: string) => {
 };
 
 export const listAction = async (context: CliContext) => {
-	const projects = await (await getClient()).listInstances();
-	const selectedProject = await getSelectedInstanceId();
+	const projects = await (await getClient(context)).listInstances();
+	const selectedProject = await getSelectedInstanceId(
+		context.projectRoot ?? context.cwd
+	);
 	for (const project of projects) {
 		context.logger.message(
 			`${project.organizationSlug ? `${project.organizationSlug}/` : ''}${project.name} (${project.id}) ${project.status}${project.id === selectedProject ? ' [selected]' : ''}`
@@ -52,11 +56,11 @@ export const listAction = async (context: CliContext) => {
 	context.telemetry.trackEvent(TelemetryEventName.PROJECTS_LISTED, {
 		count: projects.length,
 	});
-	return { projects, selectedProject };
+	return listProjects(projects, selectedProject);
 };
 
 export const selectAction = async (context: CliContext) => {
-	const projects = await (await getClient()).listInstances();
+	const projects = await (await getClient(context)).listInstances();
 	if (!projects.length) {
 		throw new CliError('INSTANCE_NOT_FOUND', {
 			details: 'No projects available. Create one first.',
@@ -64,11 +68,13 @@ export const selectAction = async (context: CliContext) => {
 	}
 	let query = flag(context, 'project') ?? context.commandArgs[0];
 	if (!query) {
-		requireInteractive(context, '--project <id|organization/name>');
+		requireInteractive(context, '--project <id|name>');
 		query = selectedValue(
 			await p.select({
-				initialValue: (await getSelectedInstanceId()) ?? undefined,
-				message: 'Select the default project for setup:',
+				initialValue:
+					(await getSelectedInstanceId(context.projectRoot ?? context.cwd)) ??
+					undefined,
+				message: 'Select the project for setup in this application:',
 				options: projects.map((project) => ({
 					label: `${project.organizationSlug ?? ''}/${project.name}`,
 					value: project.id,
@@ -77,7 +83,7 @@ export const selectAction = async (context: CliContext) => {
 		);
 	}
 	const project = resolveInstance(query, projects);
-	await setSelectedInstanceId(project.id);
+	await setSelectedInstanceId(project.id, context.projectRoot ?? context.cwd);
 	context.telemetry.trackEvent(TelemetryEventName.PROJECT_SELECTED, {
 		projectId: project.id,
 	});
@@ -92,12 +98,13 @@ export const createAction = async (context: CliContext) => {
 	if (!name || !organizationSlug || !region) {
 		requireInteractive(context, '--name, --organization and --region');
 	}
-	const client = await getClient();
+	const client = await getClient(context);
 	if (!name) {
 		name = selectedValue(
 			await p.text({
-				message: 'Project slug:',
-				validate: (value) => validateInstanceName(value?.trim() ?? ''),
+				message: 'Project name:',
+				validate: (value) =>
+					value?.trim() ? undefined : 'Enter a project name.',
 			})
 		);
 	}
@@ -119,12 +126,10 @@ export const createAction = async (context: CliContext) => {
 		);
 	}
 	if (!region) {
-		const regions = (await client.listRegions()).filter(
-			(item) => item.family === 'v2'
-		);
+		const regions = await client.listRegions();
 		if (!regions.length) {
 			throw new CliError('API_ERROR', {
-				details: 'No v2 provisioning regions available',
+				details: 'No provisioning regions available',
 			});
 		}
 		region = selectedValue(
@@ -138,15 +143,15 @@ export const createAction = async (context: CliContext) => {
 		config: { organizationSlug, region },
 		name,
 	});
-	await setSelectedInstanceId(project.id);
+	await setSelectedInstanceId(project.id, context.projectRoot ?? context.cwd);
 	context.telemetry.trackEvent(TelemetryEventName.PROJECT_CREATED, {
 		projectId: project.id,
 	});
 	context.logger.success(
-		`Created development project ${project.name} (${project.id}). Status: ${project.status}.`
+		`Created project ${project.name} (${project.id}). Status: ${project.status}.`
 	);
 	context.logger.info(
-		'Enable production mode in the Inth dashboard when ready. This is now the default project for setup.'
+		'This is now the selected project for setup in this application.'
 	);
 	return { project };
 };

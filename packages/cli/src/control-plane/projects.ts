@@ -1,6 +1,6 @@
 import { CliError } from '../core/errors';
+import { requireProjectBackendURL, resolveProject } from '../frontend/projects';
 import type { Instance } from '../types';
-import { validateInstanceName } from '../utils/validation';
 import type { ControlPlaneClient } from './client';
 import type { CreateInstanceRequest } from './types';
 
@@ -9,37 +9,20 @@ export const resolveInstance = (
 	query: string,
 	instances: Instance[]
 ): Instance => {
-	const byId = instances.find((instance) => instance.id === query);
-	if (byId) {
-		return byId;
+	try {
+		return resolveProject(query, instances);
+	} catch (error) {
+		throw CliError.from(error, 'INSTANCE_NOT_FOUND');
 	}
-	const matches = instances.filter(
-		(instance) =>
-			instance.name === query ||
-			`${instance.organizationSlug}/${instance.name}` === query
-	);
-	if (matches.length > 1) {
-		throw new CliError('INSTANCE_NOT_FOUND', {
-			details: `Project name "${query}" is ambiguous. Use an ID or organization/name.`,
-		});
-	}
-	const [match] = matches;
-	if (!match) {
-		throw new CliError('INSTANCE_NOT_FOUND', {
-			details: `Project not found: ${query}`,
-		});
-	}
-	return match;
 };
 
 /** Require a provisioned backend before writing application configuration. */
 export const requireInstanceBackendUrl = (instance: Instance): string => {
-	if (instance.status !== 'active' || !instance.url) {
-		throw new CliError('API_ERROR', {
-			details: `Project "${instance.name}" is still provisioning. Wait for its backend to become ready and retry.`,
-		});
+	try {
+		return requireProjectBackendURL(instance);
+	} catch (error) {
+		throw CliError.from(error, 'API_ERROR');
 	}
-	return instance.url;
 };
 
 /** Validate a project creation request before provisioning. */
@@ -48,9 +31,8 @@ export const createProject = async (
 	request: CreateInstanceRequest
 ): Promise<Instance> => {
 	const name = request.name.trim();
-	const error = validateInstanceName(name);
-	if (error) {
-		throw new CliError('INSTANCE_NAME_INVALID', { details: error });
+	if (!name) {
+		throw new CliError('FLAG_INVALID', { details: 'Enter a project name.' });
 	}
 	const [organizations, regions] = await Promise.all([
 		client.listOrganizations(),
@@ -59,21 +41,31 @@ export const createProject = async (
 	if (
 		!organizations.some(
 			(organization) =>
-				organization.organizationSlug === request.config.organizationSlug
+				organization.organizationSlug === request.config.organizationSlug ||
+				organization.organizationId === request.config.organizationSlug
 		)
 	) {
 		throw new CliError('API_ERROR', {
 			details: 'The selected organization is not available to this account',
 		});
 	}
-	if (
-		!regions.some(
-			(region) => region.id === request.config.region && region.family === 'v2'
-		)
-	) {
+	if (!regions.some((region) => region.id === request.config.region)) {
 		throw new CliError('API_ERROR', {
-			details: 'The selected region does not support v2 provisioning',
+			details: 'The selected region is unavailable',
 		});
 	}
-	return client.createInstance({ ...request, name });
+	const organization = organizations.find(
+		(item) =>
+			item.organizationSlug === request.config.organizationSlug ||
+			item.organizationId === request.config.organizationSlug
+	);
+	return client.createInstance({
+		...request,
+		config: {
+			...request.config,
+			organizationSlug:
+				organization?.organizationId ?? request.config.organizationSlug,
+		},
+		name,
+	});
 };

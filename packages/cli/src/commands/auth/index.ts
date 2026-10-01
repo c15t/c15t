@@ -1,8 +1,10 @@
-import { clearConfig, getAuthState, getControlPlaneBaseUrl } from '../../auth';
+import { getAuthState, getSelectedInstanceId } from '../../auth';
 import { login } from '../../auth/login';
 import type { CliCommand, CliContext } from '../../context/types';
 import { CliError } from '../../core/errors';
 import { TelemetryEventName } from '../../core/telemetry';
+import { getAuthenticationStatus } from '../../frontend/status';
+import { runInth } from '../../inth/runner';
 
 const requireNoArguments = (context: CliContext) => {
 	if (context.commandArgs.length) {
@@ -29,7 +31,7 @@ const loginAction = async (context: CliContext) => {
 const logoutAction = async (context: CliContext) => {
 	requireNoArguments(context);
 	// Local credential removal must work even after token expiry or corruption.
-	await clearConfig();
+	await runInth(['logout'], { cwd: context.projectRoot ?? context.cwd });
 	context.telemetry.trackEvent(TelemetryEventName.AUTH_LOGOUT);
 	context.logger.success('Logged out');
 	return { authenticated: false };
@@ -37,19 +39,17 @@ const logoutAction = async (context: CliContext) => {
 
 const statusAction = async (context: CliContext) => {
 	requireNoArguments(context);
-	const state = await getAuthState();
-	let status = 'logged-out';
-	if (state.isLoggedIn) {
-		status = state.isExpired ? 'expired' : 'logged-in';
-	}
-	context.logger.message(`Authentication: ${status}`);
-	return {
-		authenticated: state.isLoggedIn && !state.isExpired,
-		expiresAt: state.config?.expiresAt,
-		origin: getControlPlaneBaseUrl(),
-		selectedProject: state.config?.selectedInstanceId,
-		status,
-	};
+	const state = await getAuthState({ cwd: context.projectRoot ?? context.cwd });
+	const result = getAuthenticationStatus({
+		expiresAt: state.expiresAt,
+		isExpired: state.isExpired,
+		isLoggedIn: state.isLoggedIn,
+		selectedProject:
+			(await getSelectedInstanceId(context.projectRoot ?? context.cwd)) ??
+			undefined,
+	});
+	context.logger.message(`Authentication: ${result.status}`);
+	return result;
 };
 
 export const loginCommand: CliCommand = {

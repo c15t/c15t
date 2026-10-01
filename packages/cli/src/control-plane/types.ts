@@ -6,12 +6,10 @@
  * Control-plane client configuration
  */
 export interface ControlPlaneClientConfig {
-	/** Base URL of the control plane */
-	baseUrl: string;
-	/** Access token for authentication */
-	accessToken: string;
-	/** Request timeout in ms */
-	timeout?: number;
+	/** Application directory used for Inth's organization link. */
+	cwd?: string;
+	/** Inth organization ID override. */
+	organization?: string;
 	/** Optional caller cancellation. */
 	signal?: AbortSignal;
 }
@@ -40,7 +38,6 @@ export interface ControlPlaneOrganization {
 	organizationId: string;
 	organizationSlug: string;
 	organizationName: string;
-	role: string;
 }
 
 /**
@@ -49,5 +46,4 @@ export interface ControlPlaneOrganization {
 export interface ControlPlaneRegion {
 	id: string;
 	label: string;
-	family: string;
 }

@@ -1,13 +1,7 @@
 import { z } from 'zod';
 
-import {
-	getControlPlaneBaseUrl,
-	getControlPlaneOrigin,
-	normalizeControlPlaneBaseUrl,
-} from '../auth/base-url';
-import { fetchWithDeadline } from '../auth/http';
-import { TIMEOUTS } from '../constants';
 import { CliError } from '../core/errors';
+import { runInth } from '../inth/runner';
 import type { Instance } from '../types';
 import type {
 	ControlPlaneClientConfig,
@@ -16,192 +10,179 @@ import type {
 	CreateInstanceRequest,
 } from './types';
 
+const projectSchema = z.object({
+	consent: z.object({ backendUrl: z.string().url().nullable() }).nullish(),
+	createdAt: z.string().optional(),
+	id: z.string().min(1),
+	name: z.string(),
+	organizationSlug: z.string().optional(),
+	region: z.string().optional(),
+});
 const organizationSchema = z.object({
-	organizationId: z.string(),
-	organizationName: z.string(),
-	organizationSlug: z.string(),
-	role: z.string(),
+	id: z.string(),
+	name: z.string(),
+	slug: z.string(),
 });
 const regionSchema = z.object({
-	family: z.string(),
 	id: z.string(),
-	label: z.string(),
+	label: z.string().optional(),
+	name: z.string().optional(),
 });
-const instanceSchema = z.object({
-	backendURL: z.string().url().nullish(),
-	createdAt: z.string().optional(),
-	instanceId: z.string().min(1),
-	instanceName: z.string(),
-	organizationSlug: z.string().optional(),
-	region: z
-		.union([
-			z.string(),
-			z.object({
-				code: z.string().optional(),
-				id: z.string().optional(),
-				slug: z.string().optional(),
-			}),
-		])
-		.nullish(),
-	regionId: z.string().optional(),
-	regionSlug: z.string().optional(),
-});
+const parseResponse = <Output>(
+	schema: z.ZodType<Output>,
+	value: unknown
+): Output => {
+	const result = schema.safeParse(value);
+	if (!result.success) {
+		throw new CliError('API_ERROR', {
+			details: 'Invalid Inth resource data.',
+		});
+	}
+	return result.data;
+};
+const mapProject = (raw: z.infer<typeof projectSchema>): Instance => {
+	let status: Instance['status'] = 'inactive';
+	if (raw.consent) {
+		status = raw.consent.backendUrl ? 'active' : 'pending';
+	}
+	return {
+		createdAt: raw.createdAt,
+		id: raw.id,
+		name: raw.name,
+		organizationSlug: raw.organizationSlug,
+		region: raw.region,
+		status,
+		url: raw.consent?.backendUrl ?? '',
+	};
+};
 
-const mapInstance = (raw: z.infer<typeof instanceSchema>): Instance => ({
-	createdAt: raw.createdAt,
-	id: raw.instanceId,
-	name: raw.instanceName,
-	organizationSlug: raw.organizationSlug,
-	region:
-		(typeof raw.region === 'string'
-			? raw.region
-			: (raw.region?.id ?? raw.region?.slug ?? raw.region?.code)) ??
-		raw.regionId ??
-		raw.regionSlug,
-	status: raw.backendURL ? 'active' : 'pending',
-	url: raw.backendURL ?? '',
-});
-
-/** Validated HTTP operations for hosted projects. No terminal or credential storage access. */
+/** Hosted project operations delegated to Inth's authenticated native executable. */
 export class ControlPlaneClient {
 	private readonly config: ControlPlaneClientConfig;
-
-	constructor(config: ControlPlaneClientConfig) {
-		getControlPlaneOrigin(config.baseUrl);
-		this.config = {
-			...config,
-			baseUrl: normalizeControlPlaneBaseUrl(config.baseUrl),
-			timeout: config.timeout ?? TIMEOUTS.CONTROL_PLANE_CONNECTION,
-		};
+	constructor(config: ControlPlaneClientConfig = {}) {
+		this.config = config;
 	}
 
-	private async request<Output>(
-		path: string,
-		schema: z.ZodType<Output>,
-		init?: { method?: string; body?: unknown }
-	): Promise<Output> {
-		let response: Response;
-		try {
-			response = await fetchWithDeadline(
-				`${this.config.baseUrl}/api/v1${path}`,
-				{
-					body:
-						init?.body === undefined ? undefined : JSON.stringify(init.body),
-					headers: {
-						Authorization: `Bearer ${this.config.accessToken}`,
-						'Content-Type': 'application/json',
-					},
-					method: init?.method ?? 'GET',
-					signal: this.config.signal,
-				},
-				this.config.timeout
-			);
-		} catch (error) {
-			if (this.config.signal?.aborted) {
-				throw new CliError('CANCELLED');
-			}
+	private async detail(args: string[]): Promise<unknown> {
+		const value = await runInth(args, this.config);
+		const parsed = z
+			.object({ data: z.unknown(), success: z.literal(true) })
+			.safeParse(value);
+		if (!parsed.success) {
 			throw new CliError('API_ERROR', {
-				details:
-					error instanceof Error && error.name === 'TimeoutError'
-						? 'Control-plane request timed out'
-						: 'Could not reach the control plane',
+				details: 'Invalid Inth resource response.',
 			});
 		}
-		const payload: unknown = await response.json().catch(() => null);
-		const envelope = z
-			.object({ data: schema, success: z.literal(true) })
-			.safeParse(payload);
-		if (response.ok && envelope.success) {
-			return envelope.data.data;
-		}
-		const failure = z
-			.object({
-				error: z
-					.object({
-						code: z.string().optional(),
-						message: z.string().optional(),
-					})
-					.optional(),
-			})
-			.safeParse(payload);
-		const message = failure.success ? failure.data.error?.message : undefined;
-		throw new CliError(
-			response.status === 401 ? 'AUTH_TOKEN_INVALID' : 'API_ERROR',
-			{
-				details: `${response.status} ${message ?? (response.ok ? 'Invalid control-plane response' : 'Request failed')}`,
-			}
-		);
+		return parsed.data.data;
 	}
 
-	/** List organizations available to the authenticated user. */
-	listOrganizations(): Promise<ControlPlaneOrganization[]> {
-		return this.request('/consent/organizations', z.array(organizationSchema));
+	private async list(args: string[], paginated: boolean): Promise<unknown[]> {
+		const items: unknown[] = [];
+		const seen: string[] = [];
+		let cursor: string | undefined;
+		do {
+			// Each page depends on the preceding cursor.
+			// oxlint-disable-next-line no-await-in-loop
+			const value = await runInth(
+				[...args, ...(cursor ? ['--cursor', cursor] : [])],
+				this.config
+			);
+			const parsed = z
+				.object({
+					data: z.array(z.unknown()),
+					pagination: z
+						.object({ hasMore: z.boolean(), nextCursor: z.string().nullable() })
+						.optional(),
+					success: z.literal(true),
+				})
+				.safeParse(value);
+			if (!parsed.success) {
+				throw new CliError('API_ERROR', {
+					details: 'Invalid Inth list response.',
+				});
+			}
+			items.push(...parsed.data.data);
+			const page = parsed.data.pagination;
+			cursor =
+				paginated && page?.hasMore ? (page.nextCursor ?? undefined) : undefined;
+			if (paginated && page?.hasMore && (!cursor || seen.includes(cursor))) {
+				throw new CliError('API_ERROR', {
+					details: 'Invalid or repeated Inth pagination cursor.',
+				});
+			}
+			if (cursor) {
+				seen.push(cursor);
+			}
+		} while (cursor);
+		return items;
 	}
-	/** List available provisioning regions. */
-	listRegions(): Promise<ControlPlaneRegion[]> {
-		return this.request('/consent/regions', z.array(regionSchema));
+
+	/** List all organizations available through Inth. */
+	async listOrganizations(): Promise<ControlPlaneOrganization[]> {
+		return parseResponse(
+			z.array(organizationSchema),
+			await this.list(['org', 'list'], true)
+		).map((raw) => ({
+			organizationId: raw.id,
+			organizationName: raw.name,
+			organizationSlug: raw.slug,
+		}));
 	}
-	/** List hosted projects. Pending projects have no backend URL. */
+	/** List current project regions without legacy backend-version filtering. */
+	async listRegions(): Promise<ControlPlaneRegion[]> {
+		return parseResponse(
+			z.array(regionSchema),
+			await this.list(['region', 'list'], false)
+		).map((raw) => ({ id: raw.id, label: raw.label ?? raw.name ?? raw.id }));
+	}
+	/** List all projects in Inth's linked or selected organization. */
 	async listInstances(): Promise<Instance[]> {
-		return (
-			await this.request('/consent/instances', z.array(instanceSchema))
-		).map(mapInstance);
+		const args = [
+			'project',
+			'list',
+			...(this.config.organization
+				? ['--organization', this.config.organization]
+				: []),
+		];
+		return parseResponse(
+			z.array(projectSchema),
+			await this.list(args, true)
+		).map(mapProject);
 	}
-	/** Find a hosted project by ID. */
+	/** Read a project by its ID. */
 	async getInstance(id: string): Promise<Instance> {
-		const instance = (await this.listInstances()).find(
-			(item) => item.id === id
+		return mapProject(
+			parseResponse(projectSchema, await this.detail(['project', 'get', id]))
 		);
-		if (!instance) {
-			throw new CliError('INSTANCE_NOT_FOUND', {
-				details: `Project not found: ${id}`,
-			});
-		}
-		return instance;
 	}
-	/** Create a development project in the selected organization and region. */
+	/** Create a consent project through Inth's current provisioning command. */
 	async createInstance(request: CreateInstanceRequest): Promise<Instance> {
 		const { organizationSlug, region, trustedOrigins } = request.config;
-		if (!organizationSlug || !region) {
-			throw new CliError('API_ERROR', {
-				details: 'organizationSlug and region are required',
-			});
+		const args = [
+			'project',
+			'create',
+			'--name',
+			request.name,
+			'--region',
+			region,
+			'--organization',
+			organizationSlug,
+			'--branding',
+			'c15t',
+		];
+		if (trustedOrigins) {
+			args.push('--trusted-origins', JSON.stringify(trustedOrigins));
 		}
-		return mapInstance(
-			await this.request('/consent/instances', instanceSchema, {
-				body: {
-					name: request.name,
-					organizationSlug,
-					production: false,
-					region,
-					trustedOrigins: trustedOrigins ?? [],
-					useV2: true,
-				},
-				method: 'POST',
-			})
-		);
-	}
-	/** Delete a hosted project by ID. */
-	async deleteInstance(id: string): Promise<void> {
-		await this.request(
-			`/consent/instances/${encodeURIComponent(id)}`,
-			z.unknown(),
-			{ method: 'DELETE' }
-		);
+		return mapProject(parseResponse(projectSchema, await this.detail(args)));
 	}
 }
 
-/** Create an HTTP client with explicit credentials. */
+/** Create an adapter; authentication and token refresh remain inside Inth. */
 export const createControlPlaneClient = (
-	accessToken: string,
-	baseUrl = getControlPlaneBaseUrl()
+	config: ControlPlaneClientConfig = {}
 ): Promise<ControlPlaneClient> =>
-	Promise.resolve(new ControlPlaneClient({ accessToken, baseUrl }));
-/** Create a client using credentials belonging to this control-plane origin. */
-export const createControlPlaneClientFromConfig = async (
-	baseUrl = getControlPlaneBaseUrl()
-): Promise<ControlPlaneClient | null> => {
-	const { getAccessToken } = await import('../auth/config-store');
-	const accessToken = await getAccessToken(baseUrl);
-	return accessToken ? createControlPlaneClient(accessToken, baseUrl) : null;
-};
+	Promise.resolve(new ControlPlaneClient(config));
+/** Create an adapter in the application directory so Inth resolves its organization link. */
+export const createControlPlaneClientFromConfig = (
+	cwd = process.cwd()
+): Promise<ControlPlaneClient> => createControlPlaneClient({ cwd });

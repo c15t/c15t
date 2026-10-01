@@ -10,6 +10,11 @@ import type { CliLogger } from '../types';
 
 // --- Error Catalog ---
 export const ERROR_CATALOG = {
+	AGENT_FAILED: {
+		code: 'AGENT_FAILED',
+		hint: 'Review any agent edits before trying again',
+		message: 'Agent setup did not complete',
+	},
 	API_ERROR: {
 		code: 'API_ERROR',
 		hint: 'Check the error details and try again',

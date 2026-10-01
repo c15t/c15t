@@ -1,6 +1,7 @@
 import { URLS } from '../constants';
 import {
 	authFlags,
+	agentSetupFlags,
 	codemodFlags,
 	migrationFlags,
 	projectFlags,
@@ -18,9 +19,13 @@ const openUrl = async (context: CliContext, url: string) => {
 	return { url };
 };
 const setup: CliCommand = {
-	action: async (context) => (await import('./generate')).generate(context),
+	action: async (context) =>
+		context.flags.codex === true
+			? (await import('./setup')).setupWithAgent(context)
+			: (await import('./generate')).generate(context),
 	description: 'Set up c15t in a supported project.',
-	flags: setupFlags,
+	examples: ['c15t setup --codex', 'c15t setup --codex --plan --json'],
+	flags: [...setupFlags, ...agentSetupFlags],
 	hint: 'Set up consent management',
 	label: 'Setup',
 	name: 'setup',
@@ -30,7 +35,15 @@ const setup: CliCommand = {
 /** Command metadata is shared by parsing, help, and the interactive menu. */
 export const commands: CliCommand[] = [
 	setup,
-	{ ...setup, description: 'Alias for setup.', hidden: true, name: 'generate' },
+	{
+		...setup,
+		action: async (context) => (await import('./generate')).generate(context),
+		description: 'Generate c15t integration files.',
+		examples: undefined,
+		flags: setupFlags,
+		hidden: true,
+		name: 'generate',
+	},
 	{
 		action: async (context) =>
 			(await import('./codemods')).codemodsCommand.action(context),
@@ -46,7 +59,7 @@ export const commands: CliCommand[] = [
 	{
 		action: async (context) =>
 			(await import('./auth')).loginCommand.action(context),
-		description: 'Authenticate with Inth using a device code.',
+		description: 'Sign in using the installed Inth CLI.',
 		flags: authFlags,
 		hint: 'Authenticate with Inth',
 		label: 'Login',
@@ -77,7 +90,7 @@ export const commands: CliCommand[] = [
 		examples: [
 			'c15t projects list --json',
 			'c15t projects select my-project --json',
-			'c15t projects create my-app --organization my-org --region us-east-1 --json',
+			'c15t projects create my-app --organization <organization-id> --region <region-id> --json',
 		],
 		flags: projectFlags,
 		hint: 'Manage hosted projects',

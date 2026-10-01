@@ -1260,6 +1260,7 @@
         "@c15t/backend": "workspace:*",
         "@c15t/integrations": "workspace:*",
         "@clack/prompts": "1.7.0",
+        "@inth/cli": "0.0.4",
         "c12": "3.3.3",
         "evlog": "^2.19.2",
         "fs-extra": "11.3.6",
@@ -2525,6 +2526,16 @@
     "@inquirer/select": ["@inquirer/select@4.4.2", "", { "dependencies": { "@inquirer/ansi": "^1.0.2", "@inquirer/core": "^10.3.2", "@inquirer/figures": "^1.0.15", "@inquirer/type": "^3.0.10", "yoctocolors-cjs": "^2.1.3" }, "peerDependencies": { "@types/node": ">=18" }, "optionalPeers": ["@types/node"] }, "sha512-l4xMuJo55MAe+N7Qr4rX90vypFwCajSakx59qe/tMaC1aEHWLyw68wF4o0A4SLAY4E0nd+Vt+EyskeDIqu1M6w=="],
 
     "@inquirer/type": ["@inquirer/type@4.0.7", "", { "peerDependencies": { "@types/node": ">=18" }, "optionalPeers": ["@types/node"] }, "sha512-t28inv14nMQ1PhKpsJPY+kEs/c00qzeCOS2gTNRyTjG5d6qsVA2fItxW4hkvGZ5lvanGLdtCzVIx5dwdRpN1+g=="],
+
+    "@inth/cli": ["@inth/cli@0.0.4", "", { "optionalDependencies": { "@inth/cli-darwin-arm64": "0.0.4", "@inth/cli-linux-arm64": "0.0.4", "@inth/cli-linux-x64": "0.0.4", "@inth/cli-win32-x64": "0.0.4" }, "bin": { "inth": "scripts/run-published.js" } }, "sha512-VUCPs7I15F/k9BNmpqqDA4uE2UuYGVSmccvTY2T/ACMz7JX38E/fTLBHCt1OkIVprkCrDll7sJZg4O9JtxLGxw=="],
+
+    "@inth/cli-darwin-arm64": ["@inth/cli-darwin-arm64@0.0.4", "", { "os": "darwin", "cpu": "arm64", "bin": { "inth": "bin/inth" } }, "sha512-o62XckidAfzKYcpENEQUAlBJHa3IK8VUXuuKDODJwwWNZoNCzaf+sF5U3ZRAsfPqxGvE2C6cvUvWP6ompEDEXQ=="],
+
+    "@inth/cli-linux-arm64": ["@inth/cli-linux-arm64@0.0.4", "", { "os": "linux", "cpu": "arm64", "bin": { "inth": "bin/inth" } }, "sha512-Gik+qj1O7dOiBS+i6fmtketZqD2bEFWr9Ff/8F5bMkI8NKeeeZwFnTqJ6oWdJDKdFFFmtyJHH0s6R6er9oJ20Q=="],
+
+    "@inth/cli-linux-x64": ["@inth/cli-linux-x64@0.0.4", "", { "os": "linux", "cpu": "x64", "bin": { "inth": "bin/inth" } }, "sha512-2JrvfZbemSVzvTiOh9PL6VIbz8FnT+4Elr0ombZbD+ZYcOHo7cf7SABmSO82B13klxRd93hVpvheg/ECi5MKGw=="],
+
+    "@inth/cli-win32-x64": ["@inth/cli-win32-x64@0.0.4", "", { "os": "win32", "cpu": "x64", "bin": { "inth": "bin/inth.exe" } }, "sha512-GdhS6uJK+1RmLwoSkwzriG8mSijtt0ApIFfJTwBZSpyhqXKbceCNnip7WR97ZkC7sEXFNo0hop4zqmPYkJl/fg=="],
 
     "@ioredis/commands": ["@ioredis/commands@1.10.0", "", {}, "sha512-UmeW7z4LfctwoQ5wkhVzgq8tXkreED2xZGpX+Bg+zA+WJFZCT6c062AfCK/Dfk81xZnnwdhJCUMkitihRaoC2Q=="],
 

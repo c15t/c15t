@@ -11,11 +11,7 @@ import {
 import * as p from '@clack/prompts';
 import { fromPromise } from 'xstate';
 
-import {
-	getControlPlaneBaseUrl,
-	getSelectedInstanceId,
-	setSelectedInstanceId,
-} from '~/auth';
+import { getSelectedInstanceId, setSelectedInstanceId } from '~/auth';
 import { login } from '~/auth/login';
 import { getDevToolsOption } from '~/commands/generate/options/shared/dev-tools';
 import { getSSROption } from '~/commands/generate/options/shared/ssr';
@@ -180,11 +176,11 @@ const createInstanceInteractively = async (
 const selectOrCreateInstance = async function selectOrCreateInstance(
 	cliContext: CliContext
 ): Promise<Instance> {
-	const baseUrl = getControlPlaneBaseUrl();
+	const { projectRoot } = cliContext;
 	const listSpinner = createTaskSpinner('Fetching your inth.com projects...');
 	listSpinner.start();
 
-	const client = await createControlPlaneClientFromConfig(baseUrl);
+	const client = await createControlPlaneClientFromConfig(projectRoot);
 	if (!client) {
 		listSpinner.stop();
 		throw new CliError('AUTH_NOT_LOGGED_IN');
@@ -197,7 +193,7 @@ const selectOrCreateInstance = async function selectOrCreateInstance(
 		const selectedProject =
 			typeof explicitProject === 'string'
 				? explicitProject
-				: await getSelectedInstanceId(baseUrl);
+				: await getSelectedInstanceId(projectRoot);
 		if (selectedProject) {
 			return resolveInstance(selectedProject, instances);
 		}
@@ -338,7 +334,7 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 		await runConsentLogin(cliContext);
 		const instance = await selectOrCreateInstance(cliContext);
 
-		await setSelectedInstanceId(instance.id);
+		await setSelectedInstanceId(instance.id, cliContext.projectRoot);
 		cliContext.logger.info(
 			`Using project ${color.cyan(instance.name)} (${color.dim(instance.id)})`
 		);

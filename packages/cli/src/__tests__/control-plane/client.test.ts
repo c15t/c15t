@@ -5,100 +5,89 @@ import {
 	requireInstanceBackendUrl,
 	resolveInstance,
 } from '../../control-plane/projects';
+import * as inth from '../../inth/runner';
 
-const client = () =>
-	new ControlPlaneClient({
-		accessToken: 'test-token',
-		baseUrl: 'https://example.com',
-		timeout: 10,
-	});
-afterEach(() => vi.unstubAllGlobals());
-describe('hosted projects', () => {
-	it('normalizes long backend paths without rescanning interior slashes', async () => {
-		const baseUrl = `https://example.com/api/${'/'.repeat(100_000)}control`;
-		const fetch = vi
-			.fn()
-			.mockResolvedValue(Response.json({ data: [], success: true }));
-		vi.stubGlobal('fetch', fetch);
-		const start = performance.now();
-		const configured = new ControlPlaneClient({
-			accessToken: 'test-token',
-			baseUrl: `${baseUrl}///`,
+afterEach(() => vi.restoreAllMocks());
+describe('Inth project adapter', () => {
+	it('never substitutes a dashboard URL for a pending consent backend', async () => {
+		vi.spyOn(inth, 'runInth').mockResolvedValue({
+			data: [
+				{
+					consent: { backendUrl: null },
+					dashboardUrl: 'https://example.com/dashboard',
+					id: 'pending',
+					name: 'Pending',
+				},
+			],
+			success: true,
 		});
-		expect(performance.now() - start).toBeLessThan(1_000);
-		await configured.listInstances();
-		expect(fetch.mock.calls[0]?.[0]).toBe(
-			`${baseUrl}/api/v1/consent/instances`
-		);
-	});
-
-	it('never substitutes a dashboard URL for a pending backend', async () => {
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockResolvedValue(
-				Response.json({
-					data: [
-						{
-							backendURL: null,
-							dashboardURL: 'https://example.com/dashboard',
-							instanceId: 'pending',
-							instanceName: 'Pending',
-						},
-					],
-					success: true,
-				})
-			)
-		);
-		const projects = await client().listInstances();
+		const projects = await new ControlPlaneClient().listInstances();
 		expect(projects[0]).toMatchObject({ status: 'pending', url: '' });
 		expect(() =>
 			requireInstanceBackendUrl(resolveInstance('pending', projects))
 		).toThrow();
 	});
-	it('rejects malformed API data', async () => {
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockResolvedValue(Response.json({ data: {}, success: true }))
-		);
-		await expect(client().listInstances()).rejects.toThrow(
-			'API request failed'
-		);
+	it('rejects malformed project API data', async () => {
+		vi.spyOn(inth, 'runInth').mockResolvedValue({ data: {}, success: true });
+		await expect(new ControlPlaneClient().listInstances()).rejects.toThrow();
 	});
-	it('attaches a request deadline', async () => {
-		const fetch = vi
-			.fn()
-			.mockResolvedValue(Response.json({ data: [], success: true }));
-		vi.stubGlobal('fetch', fetch);
-		await client().listInstances();
-		expect(fetch.mock.calls[0]?.[1].signal).toBeInstanceOf(AbortSignal);
-	});
-	it('rejects ambiguous names and accepts organization/name', () => {
-		const projects = ['one', 'two'].map((org) => ({
-			id: org,
-			name: 'app',
-			organizationSlug: org,
-			status: 'active' as const,
-			url: 'https://example.com',
-		}));
-		expect(() => resolveInstance('app', projects)).toThrow();
-		expect(resolveInstance('two/app', projects).id).toBe('two');
-	});
-	it('aborts a stalled request at the configured deadline', async () => {
-		vi.stubGlobal(
-			'fetch',
-			vi.fn(
-				(_url: string, init: RequestInit) =>
-					new Promise((_resolve, reject) => {
-						init.signal?.addEventListener(
-							'abort',
-							() => reject(init.signal?.reason),
-							{ once: true }
-						);
-					})
-			)
-		);
-		await expect(client().listInstances()).rejects.toMatchObject({
-			context: { details: 'Control-plane request timed out' },
+	it('reports invalid project fields as API errors without leaking response data', async () => {
+		vi.spyOn(inth, 'runInth').mockResolvedValue({
+			data: {
+				consent: { backendUrl: 'private-secret' },
+				id: 'one',
+				name: 'App',
+			},
+			success: true,
 		});
+		await expect(
+			new ControlPlaneClient().getInstance('one')
+		).rejects.toMatchObject({
+			code: 'API_ERROR',
+			context: { details: 'Invalid Inth resource data.' },
+		});
+	});
+	it('rejects repeated or missing pagination cursors', async () => {
+		vi.spyOn(inth, 'runInth').mockResolvedValue({
+			data: [],
+			pagination: { hasMore: true, nextCursor: 'same' },
+			success: true,
+		});
+		await expect(
+			new ControlPlaneClient().listInstances()
+		).rejects.toMatchObject({ code: 'API_ERROR' });
+	});
+	it('creates through the current Inth command with explicit c15t branding', async () => {
+		const runner = vi.spyOn(inth, 'runInth').mockResolvedValue({
+			data: { consent: { backendUrl: null }, id: 'one', name: 'App' },
+			success: true,
+		});
+		await expect(
+			new ControlPlaneClient({ cwd: '/app' }).createInstance({
+				config: {
+					organizationSlug: 'org_one',
+					region: 'eu',
+					trustedOrigins: ['https://app.example.com'],
+				},
+				name: 'App',
+			})
+		).resolves.toMatchObject({ id: 'one', status: 'pending' });
+		expect(runner).toHaveBeenCalledWith(
+			[
+				'project',
+				'create',
+				'--name',
+				'App',
+				'--region',
+				'eu',
+				'--organization',
+				'org_one',
+				'--branding',
+				'c15t',
+				'--trusted-origins',
+				'["https://app.example.com"]',
+			],
+			{ cwd: '/app' }
+		);
 	});
 });

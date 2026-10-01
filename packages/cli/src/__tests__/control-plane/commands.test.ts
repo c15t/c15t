@@ -1,138 +1,119 @@
-import fs from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { getSelectedInstanceId, saveConfig } from '../../auth';
+import { getSelectedInstanceId } from '../../auth';
 import {
 	createAction,
 	projectsAction,
 	selectAction,
 } from '../../commands/instances';
 import type { CliContext } from '../../context/types';
+import * as inth from '../../inth/runner';
 
+const directories: string[] = [];
 const context = (
+	cwd: string,
 	flags: CliContext['flags'],
 	commandArgs: string[] = []
 ): CliContext =>
 	({
 		commandArgs,
+		cwd,
 		flags,
 		logger: { info: vi.fn(), message: vi.fn(), success: vi.fn() },
+		projectRoot: cwd,
 		telemetry: { trackEvent: vi.fn() },
 	}) as unknown as CliContext;
-let home: string;
-beforeEach(async () => {
-	home = await fs.mkdtemp(path.join(os.tmpdir(), 'c15t-projects-'));
-	vi.spyOn(os, 'homedir').mockReturnValue(home);
-	await saveConfig({ accessToken: 'test-token' });
-});
+const fixture = async () => {
+	const cwd = await mkdtemp(join(tmpdir(), 'c15t-project-'));
+	directories.push(cwd);
+	return cwd;
+};
 afterEach(async () => {
 	vi.restoreAllMocks();
-	vi.unstubAllGlobals();
-	await fs.rm(home, { force: true, recursive: true });
+	await Promise.all(
+		directories
+			.splice(0)
+			.map((cwd) => rm(cwd, { force: true, recursive: true }))
+	);
 });
-describe('project command input', () => {
-	it('requires provisioning inputs before fetching or prompting without a terminal', async () => {
-		const fetch = vi.fn();
-		vi.stubGlobal('fetch', fetch);
+
+describe('project command delegation', () => {
+	it('requires provisioning inputs before running Inth without a terminal', async () => {
+		const cwd = await fixture();
+		const runner = vi.spyOn(inth, 'runInth');
 		await expect(
-			createAction(context({ 'non-interactive': true }))
+			createAction(context(cwd, { 'non-interactive': true }))
 		).rejects.toThrow();
-		expect(fetch).not.toHaveBeenCalled();
+		expect(runner).not.toHaveBeenCalled();
 	});
-	it('passes explicit provisioning inputs and returns the created project', async () => {
-		const fetch = vi.fn((url: string, init: RequestInit) => {
-			if (url.endsWith('/organizations')) {
-				return Promise.resolve(
-					Response.json({
-						data: [
-							{
-								organizationId: 'org',
-								organizationName: 'Org',
-								organizationSlug: 'org',
-								role: 'owner',
-							},
-						],
-						success: true,
-					})
-				);
-			}
-			if (url.endsWith('/regions')) {
-				return Promise.resolve(
-					Response.json({
-						data: [{ family: 'v2', id: 'eu-west-1', label: 'Europe' }],
-						success: true,
-					})
-				);
-			}
-			expect(init.method).toBe('POST');
-			expect(JSON.parse(String(init.body))).toMatchObject({
-				name: 'app',
-				organizationSlug: 'org',
-				region: 'eu-west-1',
-			});
-			return Promise.resolve(
-				Response.json({
-					data: {
-						backendURL: null,
-						instanceId: 'project',
-						instanceName: 'app',
-					},
+	it('uses current regions, resolves organization IDs, and stores only the selected project', async () => {
+		const cwd = await fixture();
+		const runner = vi.spyOn(inth, 'runInth').mockImplementation((args) => {
+			if (args[0] === 'org') {
+				return Promise.resolve({
+					data: [{ id: 'org_one', name: 'Org', slug: 'org' }],
 					success: true,
-				})
-			);
+				});
+			}
+			if (args[0] === 'region') {
+				return Promise.resolve({
+					data: [{ id: 'eu', label: 'Europe' }],
+					success: true,
+				});
+			}
+			return Promise.resolve({
+				data: { consent: { backendUrl: null }, id: 'one', name: 'App' },
+				success: true,
+			});
 		});
-		vi.stubGlobal('fetch', fetch);
 		await expect(
 			createAction(
-				context({
-					name: 'app',
+				context(cwd, {
+					name: 'App',
 					'non-interactive': true,
 					organization: 'org',
-					region: 'eu-west-1',
+					region: 'eu',
 				})
 			)
-		).resolves.toMatchObject({
-			project: { id: 'project', status: 'pending', url: '' },
-		});
-		expect(await getSelectedInstanceId()).toBe('project');
-	});
-	it('rejects ambiguous names without changing the default project', async () => {
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockResolvedValue(
-				Response.json({
-					data: ['one', 'two'].map((organizationSlug) => ({
-						backendURL: null,
-						instanceId: organizationSlug,
-						instanceName: 'app',
-						organizationSlug,
-					})),
-					success: true,
-				})
-			)
+		).resolves.toMatchObject({ project: { id: 'one', status: 'pending' } });
+		expect(runner).toHaveBeenCalledWith(
+			expect.arrayContaining([
+				'--organization',
+				'org_one',
+				'--branding',
+				'c15t',
+			]),
+			{ cwd }
 		);
-		await expect(
-			selectAction(context({ 'non-interactive': true, project: 'app' }))
-		).rejects.toThrow();
-		expect(await getSelectedInstanceId()).toBeNull();
+		expect(await getSelectedInstanceId(cwd)).toBe('one');
 	});
-	it('throws for an unknown subcommand instead of listing projects', () => {
-		const fetch = vi.fn();
-		vi.stubGlobal('fetch', fetch);
-		expect(() => projectsAction(context({}, ['typo']))).toThrow();
-		expect(fetch).not.toHaveBeenCalled();
+	it('rejects ambiguous project names without changing selection', async () => {
+		const cwd = await fixture();
+		vi.spyOn(inth, 'runInth').mockResolvedValue({
+			data: ['one', 'two'].map((id) => ({
+				consent: { backendUrl: null },
+				id,
+				name: 'App',
+			})),
+			success: true,
+		});
+		await expect(
+			selectAction(context(cwd, { 'non-interactive': true, project: 'App' }))
+		).rejects.toThrow();
+		expect(await getSelectedInstanceId(cwd)).toBeNull();
 	});
 	it.each([
-		[['list'], { name: 'ignored' }],
-		[['create', 'one'], { name: 'two' }],
-		[['select', 'one', 'two'], {}],
-	] as const)('rejects ignored or conflicting inputs: %s', (args, flags) => {
-		const fetch = vi.fn();
-		vi.stubGlobal('fetch', fetch);
-		expect(() => projectsAction(context(flags, [...args]))).toThrow();
-		expect(fetch).not.toHaveBeenCalled();
+		{ args: ['typo'], flags: {} },
+		{ args: ['list'], flags: { name: 'ignored' } },
+		{ args: ['create', 'one'], flags: { name: 'two' } },
+		{ args: ['select', 'one', 'two'], flags: {} },
+	])('rejects unsupported or conflicting inputs $args', ({ args, flags }) => {
+		const runner = vi.spyOn(inth, 'runInth');
+		expect(() => projectsAction(context('/unused', flags, args))).toThrow();
+		expect(runner).not.toHaveBeenCalled();
 	});
 });

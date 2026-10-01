@@ -1,44 +1,73 @@
 ---
 title: Hosted projects and authentication
-description: Sign in to Inth from the c15t CLI, then list, select or create the
-  Inth project that setup uses.
+description: Use Inth authentication and provisioning from the c15t setup workflow.
 group: cli
 ---
 
-## Sign in to Inth
+`@c15t/cli` includes a pinned `@inth/cli` dependency. c15t delegates login,
+logout, account status, and hosted project operations to Inth's native
+executable. A separate global Inth installation is not required.
 
 ```bash
-npx @c15t/cli@alpha login
-npx @c15t/cli@alpha projects list --json
+c15t login
+c15t projects list --json
 ```
 
-Login uses a browser device flow. `--no-browser` prints the verification URL instead of opening a browser. A person has to approve the login, so scripts need existing credentials.
+Inth owns browser sign-in, saved connections, credential storage, organization
+selection, and token refresh. An existing Inth session works with c15t. For
+unattended setup, use an existing connection or an organization API key through
+`INTH_TOKEN`. `--no-browser` passes the browser preference to Inth. `--json`
+disables interactive login; c15t does not start a separate device grant.
 
-## Local authentication state
+## Account status and logout
 
 ```bash
-npx @c15t/cli@alpha status --json
-npx @c15t/cli@alpha logout
+c15t status --json
+c15t logout
 ```
 
-The CLI stores credentials in `~/.c15t/config.json`, readable only by your user, and scopes them to the control-plane origin. Logout removes them even when they have expired. `status` checks the local credentials; it does not ask the server whether a token was revoked. An expired session needs another login, because the CLI does not refresh tokens.
+Status reports credential presence and local expiry, not remote session
+validity. Inth validates or refreshes credentials when making project requests.
+Logout delegates to Inth and signs out the connection selected there. c15t
+never reads or returns Inth's access tokens, refresh tokens, or API keys.
 
-`CONSENT_URL` overrides the control-plane URL. The CLI never sends credentials from one origin to another. Signing in to another origin or account replaces the local session and clears its selected project.
+Older c15t credentials in `~/.c15t/config.json` are no longer read or migrated.
+Sign in through Inth once if you only have that legacy session. Existing
+credential files remain untouched. Control-plane and connection configuration
+now belong to Inth; `CONSENT_URL` no longer configures account operations.
 
 ## Select a project
 
 ```bash
-npx @c15t/cli@alpha projects select my-org/my-project --json
+c15t projects select <project-id> --json
 ```
 
-Selecting a project sets the default that setup uses for your account, not for one repository. Pass `--project` to setup to use a different one. A bare project name must be unambiguous, so prefer an ID or `organization/name`.
+Inth resolves the organization from its nearest application link or selected
+account default. c15t lists all project pages in that organization. Select an
+ID or an unambiguous name. Selection saves only the public project ID in
+`.c15t/project.json` inside the directory selected by `--cwd` or the current
+working directory. It applies to that application, not the entire account.
+Run project selection from the same application directory you use for setup.
+
+Use `--project` in setup to override this preference. Explicit
+`--backend-url` and offline setup do not require Inth account access.
 
 ## Create a project
 
 ```bash
-npx @c15t/cli@alpha projects create my-project --organization my-org --region us-east-1 --json
+c15t projects create my-project --organization <organization-id> --region <region-id> --json
 ```
 
-Pass a region available to your organization; in a terminal, the CLI lists organizations and regions to pick from. The new project is a development project and becomes the default. Turn on production mode in the Inth dashboard.
+Interactive creation asks for a project name, organization, and available
+region. An explicit organization may be its ID or slug. c15t invokes Inth's
+current `project create` command with c15t branding and selects the returned
+project for this application. Region discovery has no legacy v2 filtering.
 
-A new project can take a moment to provision, and setup refuses a project without a backend URL. The CLI has no commands to delete projects, deploy or manage domains.
+A newly created project's consent backend may still be pending. Setup requires
+`consent.backendUrl` from the project response. It never substitutes a dashboard
+URL. Project data and account errors stay within c15t's versioned JSON result.
+
+Inth distributes native executables for macOS arm64, Linux arm64/x64, and Windows
+x64. Install optional dependencies so the matching executable is available.
+The shared c15t generation and agent modules do not import or execute Inth;
+embedded hosts continue to supply their own configuration.

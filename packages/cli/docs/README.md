@@ -40,7 +40,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Agents and automation](./cli/automation.md): Read JSON results from the c15t CLI, call it from another program with runCli, and give a coding agent a v3 setup or migration task.
 - [Framework boilerplate](./cli/commands/boilerplate.md): Generate c15t integration files and wiring instructions for TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid, Astro, React, Next.js or JavaScript with the c15t CLI.
 - [Codemods](./cli/commands/codemods.md): Rewrite useConsentManager() calls to the c15t v3 hooks, rename @c15t/scripts imports to @c15t/integrations, and run the v1 to v2 source transforms with the c15t CLI codemods command.
-- [Hosted projects and authentication](./cli/commands/hosted.md): Sign in to Inth from the c15t CLI, then list, select or create the Inth project that setup uses.
+- [Hosted projects and authentication](./cli/commands/hosted.md): Use Inth authentication and provisioning from the c15t setup workflow.
 - [Self-hosted migrations](./cli/commands/self-host.md): Plan and apply database migrations for a self-hosted c15t backend with the c15t CLI self-host migrate command.
 - [setup](./cli/commands/setup.md): Flags and file handling for c15t setup, which plans and applies c15t integration files in Next.js, React and JavaScript apps.
 - [Global flags](./cli/global-flags.md): Flags every c15t CLI command accepts, for JSON output, the project directory, prompts and telemetry, plus exit codes.
