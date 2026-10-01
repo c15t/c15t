@@ -17,10 +17,11 @@ const TOKEN_KEYS = [
  * the page has no stylesheet for.
  *
  * The provider applies slots and `consentActions` from `theme`, but it does
- * not turn tokens into CSS in the browser. Without a `<style id="c15t-theme">`
- * rendered from `generateThemeCSS`, the tokens do nothing, silently. The
- * check is skipped in production builds, where `esm-env` resolves `DEV` to
- * `false`.
+ * not turn tokens into CSS in the browser. Tokens belong in a stylesheet; an
+ * app that already compiles them there should drop them from `theme`, which
+ * also silences this warning. A `<style id="c15t-theme">` rendered from
+ * `generateThemeCSS` counts as applied. The check is skipped in production
+ * builds, where `esm-env` resolves `DEV` to `false`.
  *
  * @internal
  * @param theme - The provider's `theme` option.
@@ -38,6 +39,6 @@ export const warnOnUnappliedThemeTokens = function warnOnUnappliedThemeTokens(
 		return;
 	}
 	console.warn(
-		'c15t: `theme` tokens are not turned into CSS in the browser, so these colors, radii and other tokens have no effect. Render generateThemeCSS(theme) from @c15t/ui/theme as <style id="c15t-theme"> in <svelte:head> from a server load, or put its output in your stylesheet. Slots and consentActions still apply from the provider. See https://c15t.com/docs/frameworks/sveltekit/quickstart'
+		'c15t: colors, radius and other tokens in the provider `theme` are ignored in the browser; `theme` applies slots and consentActions only. Put the --c15t-* variables, or the CSS from generateThemeCSS(theme), in your stylesheet and drop the tokens from `theme`. See https://c15t.com/docs/frameworks/sveltekit/quickstart'
 	);
 };

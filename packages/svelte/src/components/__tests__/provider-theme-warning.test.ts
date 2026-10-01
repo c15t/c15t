@@ -13,7 +13,7 @@ import { testOffline } from '../../__tests__/test-offline';
 
 const warningsAbout = (spy: MockInstance) =>
 	spy.mock.calls.filter(([message]) =>
-		String(message).includes('`theme` tokens')
+		String(message).includes('provider `theme`')
 	);
 
 describe('ConsentManagerProvider theme tokens warning', () => {
@@ -36,6 +36,9 @@ describe('ConsentManagerProvider theme tokens warning', () => {
 		await tick();
 
 		expect(warningsAbout(warn)).toHaveLength(1);
+		expect(String(warningsAbout(warn)[0]?.[0])).toContain(
+			'in your stylesheet and drop the tokens from `theme`'
+		);
 	});
 
 	test('stays quiet when the page renders the theme stylesheet', async () => {
