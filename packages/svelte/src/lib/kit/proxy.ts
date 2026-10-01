@@ -7,9 +7,11 @@
  * live in `@c15t/core/server`, shared with `@c15t/tanstack-start`. This
  * module adds what is specific to SvelteKit: the upstream path comes from the
  * route's rest parameter, and the forwarding values from
- * `event.getClientAddress()` and `event.url`, which SvelteKit derives from
- * the adapter's trusted configuration (`ADDRESS_HEADER`, `XFF_DEPTH`,
- * `ORIGIN`), so a visitor cannot pick the address or host the backend sees.
+ * `event.getClientAddress()` and `event.url`, never from the request's own
+ * forwarding headers. The adapter derives those from its configuration
+ * (`ADDRESS_HEADER`, `XFF_DEPTH`, `paths.origin` or SvelteKit 2's
+ * `ORIGIN`). Without a configured origin, adapter-node takes the host from
+ * the `Host` header, so the forwarded host is only as trustworthy as that.
  */
 
 import { forwardConsentRequest } from '@c15t/core/server';

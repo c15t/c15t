@@ -56,7 +56,8 @@ client's `x-forwarded-host` does not change it. Two options change that:
   SvelteKit 3 (the `ORIGIN` variable in SvelteKit 2), or from its
   `PROTOCOL_HEADER` and `HOST_HEADER` settings. With none of them, it takes
   the host from the request's `Host` header, so set the origin or pass an
-  absolute `backendURL`.
+  absolute `backendURL`. SvelteKit 3's `adapter-node` ignores `ORIGIN`
+  without a warning; move it to `paths.origin` when you upgrade.
 - `trustForwardedHeaders: true` resolves against the forwarding headers
   instead. When they name another host, `event.fetch` sends the call there
   over the network. Set it only when your proxy overwrites those headers.

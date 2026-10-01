@@ -58,9 +58,11 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	 * of `event.url`. Any client can send those headers, and `loadConsent`
 	 * forwards the visitor's cookies to the resolved backend, so set this
 	 * only behind a proxy that sets them and drops incoming ones. Prefer
-	 * SvelteKit's `ORIGIN`, `HOST_HEADER` and `PROTOCOL_HEADER` adapter
-	 * settings, which shape `event.url` itself. Also forwards those three
-	 * headers to the backend, which is skipped otherwise.
+	 * setting the origin where SvelteKit builds `event.url`: `paths.origin`
+	 * in SvelteKit 3 (adapter-node's `ORIGIN` in SvelteKit 2, which
+	 * SvelteKit 3 ignores), or the adapter's `HOST_HEADER` and
+	 * `PROTOCOL_HEADER`. Also forwards those three headers to the backend,
+	 * which is skipped otherwise.
 	 *
 	 * @defaultValue false
 	 */
