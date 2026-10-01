@@ -546,8 +546,10 @@ const notFound = () => Response.json({ error: 'Not found' }, { status: 404 });
  * upstream status and body as a stream, with headers shaped for the browser.
  *
  * Nothing identity-bearing crosses a cleartext link to a remote host: only
- * the public browser allowlist is sent, with no cookies. A response to a
- * request that carried identity is marked `private, no-store`.
+ * the public browser allowlist is sent, with no cookies and no
+ * `x-forwarded-for`, so such a backend cannot use the visitor's IP address
+ * for geolocation or rate limiting. A response to a request that carried
+ * identity is marked `private, no-store`.
  *
  * @param input - Request, path, backend, options, forwarding and adapter.
  * @returns The upstream response, or a 404 JSON response when `path` is not
@@ -599,7 +601,9 @@ export const forwardConsentRequest = async function forwardConsentRequest({
 						CONSENT_PROXY_PUBLIC_FORWARD_HEADERS.has(name.toLowerCase())
 					)
 				: options.forwardHeaders,
-			forwarding,
+			forwarding: cleartextRemote
+				? { ...forwarding, for: undefined }
+				: forwarding,
 			request,
 		}),
 		method,

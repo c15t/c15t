@@ -27,6 +27,12 @@ anything else gets `404`. Cookies are forwarded only when `cookieNames`
 names them. The client address comes from `event.getClientAddress()`, and
 `x-forwarded-host` and `x-forwarded-proto` from `event.url`.
 
+To a remote backend over plain `http:`, the proxy sends only the public
+browser headers: no cookies, no custom headers and no `x-forwarded-for`.
+Such a backend no longer sees the visitor's IP address, so it cannot use it
+for geolocation or rate limiting; use an `https:` backend URL to keep it.
+Loopback `http:` backends still receive all three.
+
 The proxy rules now live in `@c15t/core/server` as `forwardConsentRequest`,
 `resolveConsentProxyOptions`, `isConsentProxyPathAllowed` and related
 helpers, and both adapters use them. Each adapter supplies only what its

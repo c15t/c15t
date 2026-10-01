@@ -209,6 +209,31 @@ describe('forwardConsentRequest', () => {
 		expect(headers?.get('x-api-key')).toBeNull();
 	});
 
+	test('does not send the client IP to a remote http backend', async () => {
+		const forwarding = {
+			for: '203.0.113.9',
+			host: 'shop.example',
+			proto: 'https',
+		};
+		const remote = forward('subjects', {
+			backendURL: 'http://consent.example.com',
+			forwarding,
+		});
+		const loopback = forward('subjects', {
+			backendURL: 'http://localhost:8787',
+			forwarding,
+		});
+		await Promise.all([remote.response, loopback.response]);
+
+		expect(remote.calls[0]?.init.headers.get('x-forwarded-for')).toBeNull();
+		expect(remote.calls[0]?.init.headers.get('x-forwarded-host')).toBe(
+			'shop.example'
+		);
+		expect(loopback.calls[0]?.init.headers.get('x-forwarded-for')).toBe(
+			'203.0.113.9'
+		);
+	});
+
 	test('still sends named cookies to a loopback http backend', async () => {
 		const { calls, response } = forward('subjects', {
 			backendURL: 'http://localhost:8787',
