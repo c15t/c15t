@@ -68,3 +68,14 @@ test('skills fit the package they ship in', () => {
 	);
 	expect(next).toContain('New apps install `c15t`');
 });
+
+test('the umbrella skill names the package instead of repeating c15t', () => {
+	const skill = renderPackageSkill(
+		'c15t',
+		{ install: '`npm install c15t@alpha`', topic: 'the project uses c15t' },
+		new Set()
+	);
+	expect(skill).toContain('\n# c15t (umbrella package)\n');
+	expect(skill).toContain('with the c15t umbrella package.');
+	expect(skill).not.toContain('c15t with c15t');
+});

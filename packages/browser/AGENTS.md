@@ -6,7 +6,7 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 ## Using these docs
 
-These docs describe c15t v3. Find the app in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
+These docs describe c15t v3. Find your app's row in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
 
 ## Start here
 
@@ -21,6 +21,8 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 [Documentation index](https://c15t.com/docs/llms.txt) · [Full Markdown context](https://c15t.com/llms-full.txt). Prefer the index and individual pages for focused tasks.
 
 ## Frameworks
+
+### HTML script tag
 
 - [window.c15t API](./docs/frameworks/html/api.md): Reference for window.c15t on a plain HTML page, covering the call queue, manual start, reading permissions and recorded choices, saving choices, opening the banner and dialog, and properties.
 - [Script tag attributes](./docs/frameworks/html/attributes-and-api.md): Reference for the c15t script tag on plain HTML pages, covering the bundle files, every data attribute on the script tag, the DevTools tag and your own markup, and the modes the attributes select.
@@ -45,6 +47,9 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Scripts](./docs/frameworks/html/scripts.md): Hold vendor scripts on a plain HTML page until the visitor allows their category, load scripts with callbacks, handle withdrawal and clear vendor cookies with the c15t script tag and no build step.
 - [Translations](./docs/frameworks/html/translations.md): Choose the language of the c15t banner and preference dialog on a plain HTML site, change its wording, and add languages in hosted and offline mode with the script tag.
 - [Troubleshooting](./docs/frameworks/html/troubleshooting.md): Fix a missing banner, vendor scripts that run before consent, script tag errors and blocked requests on a plain HTML site that uses the c15t script tag.
+
+### JavaScript
+
 - [@c15t/browser API](./docs/frameworks/javascript/api/browser.md): Reference for the @c15t/browser ES module in a bundled JavaScript app, covering its entry points, init and createConsentClient, the client's methods and properties, events, page hooks and helper exports.
 - [@c15t/browser options](./docs/frameworks/javascript/api/browser-options.md): Every option init() and createConsentClient() from @c15t/browser accept in a bundled JavaScript app, from the backend URL and mode to scripts, blockers, callbacks, storage, presentation and the stock UI.
 - [Kernel API](./docs/frameworks/javascript/api/kernel.md): Reference for the c15t consent kernel in JavaScript, covering how to get or create one, its snapshot and subscriptions, commands, setters, hydration, events and listener ordering.
@@ -65,7 +70,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Scripts](./docs/frameworks/javascript/scripts.md): Register vendor scripts with @c15t/browser, createConsentRuntime or a consent kernel in JavaScript, and control what happens when a visitor withdraws permission.
 - [Translations](./docs/frameworks/javascript/translations.md): Choose the language of the c15t banner and preference dialog in a JavaScript app, change its wording with i18n, and add languages with @c15t/browser or createConsentRuntime.
 - [Transports](./docs/frameworks/javascript/transports.md): Choose where a JavaScript app's c15t policy comes from and where choices go, with the hosted, manifest, offline and custom transports for @c15t/browser, createConsentRuntime and your own kernel.
-- [Troubleshooting](./docs/frameworks/javascript/troubleshooting.md): Diagnose a missing banner, vendor scripts that run early, duplicate consent owners and policy resolution in a JavaScript app that uses @c15t/browser or c15t/runtime.
+- [Troubleshooting](./docs/frameworks/javascript/troubleshooting.md): Diagnose vendor scripts that run early, unexpected reloads, empty custom banners, CORS errors, duplicate consent owners and policy resolution in a JavaScript app that uses @c15t/browser or c15t/runtime.
 
 ## Concepts
 
@@ -97,7 +102,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Use c15t with an existing CMP](./docs/integrations/existing-cmp.md): Keep your current consent platform for the banner and records, and let c15t load scripts from its decisions with a consentSource adapter.
 - [Fathom Analytics](./docs/integrations/fathom-analytics.md): Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
 - [Front Chat](./docs/integrations/front-chat.md): Load the Front Chat widget only after functionality consent with the c15t frontChat helper, forward CSP nonces, clear the session on revocation and check it in DevTools.
-- [Google Maps](./docs/integrations/google-maps.md): Prevent a map iframe from mounting before the required permission.
+- [Google Maps](./docs/integrations/google-maps.md): Gate a Google Maps iframe embed with c15t v3 so the map loads only after the visitor allows its consent category, in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML or JavaScript.
 - [Google Tag](./docs/integrations/google-tag.md): Load gtag.js for Google Analytics or Google Ads with c15t Consent Mode v2 signals, and verify the consent commands in DevTools.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Load a Google Tag Manager container with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
 - [Let visitors turn off one vendor](./docs/integrations/granular-consent.md): Declare vendors so a visitor can allow a category such as marketing and still switch off one vendor in it, without adopting IAB TCF.
@@ -114,7 +119,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Mixpanel](./docs/integrations/mixpanel-analytics.md): Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
 - [OneDollarStats](./docs/integrations/one-dollar-stats.md): Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
 - [OpenAI Pixel](./docs/integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
-- [Overview](./docs/integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
+- [Integrations](./docs/integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
 - [Pinterest Tag](./docs/integrations/pinterest-tag.md): Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
 - [Pirsch](./docs/integrations/pirsch.md): Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
 - [Plausible Analytics](./docs/integrations/plausible-analytics.md): Load the Plausible Analytics tracker only after measurement consent with the c15t plausibleAnalytics helper, and check it in DevTools.

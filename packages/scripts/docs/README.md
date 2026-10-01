@@ -6,7 +6,7 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 ## Using these docs
 
-These docs describe c15t v3. Find the app in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
+These docs describe c15t v3. Find your app's row in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
 
 ## Start here
 
@@ -23,34 +23,63 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 
 ## Frameworks
 
-- [Embeds](./frameworks/astro/embeds.md): Gate YouTube videos, maps, social posts and other iframes on an Astro site so they load only after the visitor allows their consent category, with a custom element or the c15t iframe blocker.
-- [Network blocker](./frameworks/astro/network-blocker.md): Block fetch and XMLHttpRequest calls to tracking hosts on an Astro site until the visitor allows their consent category, with c15t's network blocker rules and an onRequestBlocked handler.
-- [Scripts](./frameworks/astro/scripts.md): Load vendor scripts and gated inline scripts on an Astro site only after the visitor allows their consent category, and stop them when consent is withdrawn.
-- [Embeds](./frameworks/html/embeds.md): Hold YouTube videos, maps and other iframes on a plain HTML page until their consent category is allowed with data-src and data-category, show a placeholder, and configure the c15t iframe blocker.
-- [Network blocker](./frameworks/html/network-blocker.md): Hold fetch and XMLHttpRequest calls from a plain HTML page until their consent category is allowed, with network blocker rules queued on the c15t script tag.
-- [Scripts](./frameworks/html/scripts.md): Hold vendor scripts on a plain HTML page until the visitor allows their category, load scripts with callbacks, handle withdrawal and clear vendor cookies with the c15t script tag and no build step.
-- [Scripts](./frameworks/javascript/scripts.md): Register vendor scripts with @c15t/browser, createConsentRuntime or a consent kernel in JavaScript, and control what happens when a visitor withdraws permission.
+### Next.js
+
 - [Embeds](./frameworks/next/embeds.md): Keep YouTube videos, maps and other iframes out of a Next.js page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
 - [Network blocker](./frameworks/next/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Next.js app until their consent category is allowed, with networkBlocker rules on ConsentRoot.
 - [Scripts](./frameworks/next/scripts.md): Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor and clear stored data after revocation.
-- [Embeds](./frameworks/nuxt/embeds.md): Keep YouTube videos, maps and other iframes out of a Nuxt page until their consent category is allowed, with ConsentGate or the iframe blocker.
-- [Network blocker](./frameworks/nuxt/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Nuxt app until their consent category is allowed, with rules in the c15t module options.
-- [Scripts](./frameworks/nuxt/scripts.md): Load vendor scripts by consent category in a Nuxt app with the c15t Nuxt module, and what happens when a visitor withdraws consent.
-- [Embeds](./frameworks/react/embeds.md): Keep YouTube videos, maps and other iframes out of a React page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentProvider.
-- [Network blocker](./frameworks/react/network-blocker.md): Hold fetch and XMLHttpRequest calls in a React app until their consent category is allowed, with networkBlocker rules in the ConsentProvider options.
-- [Scripts](./frameworks/react/scripts.md): Load vendor scripts by consent category in a React app with ConsentProvider, and clear stored data or reload the page when a visitor withdraws consent.
-- [Embeds](./frameworks/svelte/embeds.md): Keep YouTube videos, maps and other iframes out of a Svelte page until their consent category is allowed, with ConsentGate or the iframe blocker.
-- [Network blocker](./frameworks/svelte/network-blocker.md): Hold fetch and XMLHttpRequest calls to tracking domains in a Svelte app until their consent category is allowed, with the provider's networkBlocker option.
-- [Scripts](./frameworks/svelte/scripts.md): Load vendor scripts, iframes and network requests in a Svelte app only after the visitor allows their consent category, and stop them when consent is withdrawn.
-- [Embeds](./frameworks/sveltekit/embeds.md): Keep YouTube videos, maps and other iframes out of SvelteKit server HTML and the browser until their consent category is allowed.
-- [Network blocker](./frameworks/sveltekit/network-blocker.md): Hold browser fetch and XMLHttpRequest calls to tracking domains in a SvelteKit app until their consent category is allowed, with the networkBlocker option.
-- [Scripts](./frameworks/sveltekit/scripts.md): Load vendor scripts, iframes and network requests in a SvelteKit app only after the visitor allows their consent category, and stop them when consent is withdrawn.
+
+### TanStack Start
+
 - [Embeds](./frameworks/tanstack-start/embeds.md): Keep YouTube videos, maps and other iframes out of a TanStack Start page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
 - [Network blocker](./frameworks/tanstack-start/network-blocker.md): Hold fetch and XMLHttpRequest calls in a TanStack Start app until their consent category is allowed, with networkBlocker rules on ConsentRoot.
 - [Scripts](./frameworks/tanstack-start/scripts.md): Load vendor scripts by consent category in a TanStack Start app with ConsentRoot, and clear stored data or reload the page when a visitor withdraws consent.
+
+### React
+
+- [Embeds](./frameworks/react/embeds.md): Keep YouTube videos, maps and other iframes out of a React page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentProvider.
+- [Network blocker](./frameworks/react/network-blocker.md): Hold fetch and XMLHttpRequest calls in a React app until their consent category is allowed, with networkBlocker rules in the ConsentProvider options.
+- [Scripts](./frameworks/react/scripts.md): Load vendor scripts by consent category in a React app with ConsentProvider, and clear stored data or reload the page when a visitor withdraws consent.
+
+### Nuxt
+
+- [Embeds](./frameworks/nuxt/embeds.md): Keep YouTube videos, maps and other iframes out of a Nuxt page until their consent category is allowed, with ConsentGate or the iframe blocker.
+- [Network blocker](./frameworks/nuxt/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Nuxt app until their consent category is allowed, with rules in the c15t module options.
+- [Scripts](./frameworks/nuxt/scripts.md): Load vendor scripts by consent category in a Nuxt app with the c15t Nuxt module, and what happens when a visitor withdraws consent.
+
+### Vue
+
 - [Embeds](./frameworks/vue/embeds.md): Keep YouTube videos, maps and other iframes out of a Vue page until their consent category is allowed, with ConsentGate or the iframe blocker.
 - [Network blocker](./frameworks/vue/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Vue app until their consent category is allowed, with rules passed to the c15t Vue plugin.
 - [Scripts](./frameworks/vue/scripts.md): Load vendor scripts by consent category in a Vue app with the c15t Vue plugin, and what happens when a visitor withdraws consent.
+
+### Astro
+
+- [Embeds](./frameworks/astro/embeds.md): Gate YouTube videos, maps, social posts and other iframes on an Astro site so they load only after the visitor allows their consent category, with a custom element or the c15t iframe blocker.
+- [Network blocker](./frameworks/astro/network-blocker.md): Block fetch and XMLHttpRequest calls to tracking hosts on an Astro site until the visitor allows their consent category, with c15t's network blocker rules and an onRequestBlocked handler.
+- [Scripts](./frameworks/astro/scripts.md): Load vendor scripts and gated inline scripts on an Astro site only after the visitor allows their consent category, and stop them when consent is withdrawn.
+
+### Svelte
+
+- [Embeds](./frameworks/svelte/embeds.md): Keep YouTube videos, maps and other iframes out of a Svelte page until their consent category is allowed, with ConsentGate or the iframe blocker.
+- [Network blocker](./frameworks/svelte/network-blocker.md): Hold fetch and XMLHttpRequest calls to tracking domains in a Svelte app until their consent category is allowed, with the provider's networkBlocker option.
+- [Scripts](./frameworks/svelte/scripts.md): Load vendor scripts, iframes and network requests in a Svelte app only after the visitor allows their consent category, and stop them when consent is withdrawn.
+
+### SvelteKit
+
+- [Embeds](./frameworks/sveltekit/embeds.md): Keep YouTube videos, maps and other iframes out of SvelteKit server HTML and the browser until their consent category is allowed.
+- [Network blocker](./frameworks/sveltekit/network-blocker.md): Hold browser fetch and XMLHttpRequest calls to tracking domains in a SvelteKit app until their consent category is allowed, with the networkBlocker option.
+- [Scripts](./frameworks/sveltekit/scripts.md): Load vendor scripts, iframes and network requests in a SvelteKit app only after the visitor allows their consent category, and stop them when consent is withdrawn.
+
+### HTML script tag
+
+- [Embeds](./frameworks/html/embeds.md): Hold YouTube videos, maps and other iframes on a plain HTML page until their consent category is allowed with data-src and data-category, show a placeholder, and configure the c15t iframe blocker.
+- [Network blocker](./frameworks/html/network-blocker.md): Hold fetch and XMLHttpRequest calls from a plain HTML page until their consent category is allowed, with network blocker rules queued on the c15t script tag.
+- [Scripts](./frameworks/html/scripts.md): Hold vendor scripts on a plain HTML page until the visitor allows their category, load scripts with callbacks, handle withdrawal and clear vendor cookies with the c15t script tag and no build step.
+
+### JavaScript
+
+- [Scripts](./frameworks/javascript/scripts.md): Register vendor scripts with @c15t/browser, createConsentRuntime or a consent kernel in JavaScript, and control what happens when a visitor withdraws permission.
 
 ## Concepts
 
@@ -90,7 +119,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Use c15t with an existing CMP](./integrations/existing-cmp.md): Keep your current consent platform for the banner and records, and let c15t load scripts from its decisions with a consentSource adapter.
 - [Fathom Analytics](./integrations/fathom-analytics.md): Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
 - [Front Chat](./integrations/front-chat.md): Load the Front Chat widget only after functionality consent with the c15t frontChat helper, forward CSP nonces, clear the session on revocation and check it in DevTools.
-- [Google Maps](./integrations/google-maps.md): Prevent a map iframe from mounting before the required permission.
+- [Google Maps](./integrations/google-maps.md): Gate a Google Maps iframe embed with c15t v3 so the map loads only after the visitor allows its consent category, in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML or JavaScript.
 - [Google Tag](./integrations/google-tag.md): Load gtag.js for Google Analytics or Google Ads with c15t Consent Mode v2 signals, and verify the consent commands in DevTools.
 - [Google Tag Manager](./integrations/google-tag-manager.md): Load a Google Tag Manager container with c15t Consent Mode v2 signals, configure consent checks inside the container, and verify both in DevTools.
 - [Let visitors turn off one vendor](./integrations/granular-consent.md): Declare vendors so a visitor can allow a category such as marketing and still switch off one vendor in it, without adopting IAB TCF.
@@ -107,7 +136,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Mixpanel](./integrations/mixpanel-analytics.md): Load the Mixpanel SDK on every page with the c15t mixpanelAnalytics helper, which switches Mixpanel tracking on and off with measurement consent, and check it in DevTools.
 - [OneDollarStats](./integrations/one-dollar-stats.md): Load the OneDollarStats tracker only after measurement consent with the c15t oneDollarStats helper, forward its data-attribute settings, and check it in DevTools.
 - [OpenAI Pixel](./integrations/openai-pixel.md): Load the ChatGPT Ads Measurement Pixel only after marketing consent with the c15t openaiPixel helper, guard oaiq conversion calls, and check it in DevTools.
-- [Overview](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
+- [Integrations](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
 - [Pinterest Tag](./integrations/pinterest-tag.md): Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
 - [Pirsch](./integrations/pirsch.md): Load Pirsch Analytics only after measurement consent with the c15t pirsch helper, keep custom event bindings working, and check it in DevTools.
 - [Plausible Analytics](./integrations/plausible-analytics.md): Load the Plausible Analytics tracker only after measurement consent with the c15t plausibleAnalytics helper, and check it in DevTools.

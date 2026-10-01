@@ -6,7 +6,7 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 ## Using these docs
 
-These docs describe c15t v3. Find the app in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
+These docs describe c15t v3. Find your app's row in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
 
 ## Start here
 
@@ -47,7 +47,7 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Request logging](./docs/self-host/guides/observability.md): Inspect failed backend requests, enable request logs and send events to your existing logging pipeline.
 - [Policy configuration](./docs/self-host/guides/policy-packs.md): Author and validate the policy rules published by a self-hosted backend manifest.
 - [Backend overview](./docs/self-host/overview.md): What the c15t consent backend does, and when to use Inth or run @c15t/backend yourself with your own SQL database.
-- [Quickstart](./docs/self-host/quickstart.md): Run the c15t consent backend yourself with @c15t/backend, create its database schema with the CLI, mount it in Next.js, TanStack Start, Nuxt, SvelteKit or another server, and point your app at it.
+- [Self-host the backend](./docs/self-host/quickstart.md): Run the c15t consent backend yourself with @c15t/backend, create its database schema with the CLI, mount it in Next.js, TanStack Start, Nuxt, SvelteKit or another server, and point your app at it.
 
 ## Reference
 

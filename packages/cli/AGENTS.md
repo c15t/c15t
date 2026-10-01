@@ -6,7 +6,7 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 ## Using these docs
 
-These docs describe c15t v3. Find the app in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
+These docs describe c15t v3. Find your app's row in Choose your setup, then follow that framework guide from start to finish; it names the files to create and the backend URL to use. Install c15t packages with the @alpha dist-tag, because npm latest is still v2. A visible banner does not prove anything: check that vendor requests wait for consent, that rejection survives a reload, and that preferences can be reopened.
 
 ## Start here
 
@@ -44,8 +44,8 @@ These docs describe c15t v3. Find the app in Choose your setup, then follow that
 - [Self-hosted migrations](./docs/cli/commands/self-host.md): Plan and apply database migrations for a self-hosted c15t backend with the c15t CLI self-host migrate command.
 - [setup](./docs/cli/commands/setup.md): Flags and file handling for c15t setup, which plans and applies c15t integration files in Next.js, React and JavaScript apps.
 - [Global flags](./docs/cli/global-flags.md): Flags every c15t CLI command accepts, for JSON output, the project directory, prompts and telemetry, plus exit codes.
-- [Overview](./docs/cli/overview.md): Run the c15t CLI from @c15t/cli to add c15t to an app, migrate v2 code, manage Inth projects and migrate a self-hosted database.
-- [Quickstart](./docs/cli/quickstart.md): Use the c15t CLI to plan, review and apply c15t setup in an existing Next.js or React app, connected to an Inth backend.
+- [CLI overview](./docs/cli/overview.md): Run the c15t CLI from @c15t/cli to add c15t to an app, migrate v2 code, manage Inth projects and migrate a self-hosted database.
+- [CLI quickstart](./docs/cli/quickstart.md): Use the c15t CLI to plan, review and apply c15t setup in an existing Next.js or React app, connected to an Inth backend.
 
 ## Reference
 

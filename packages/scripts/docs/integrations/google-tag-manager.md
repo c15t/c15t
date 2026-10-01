@@ -316,8 +316,8 @@ register its own c15t helper instead.
 
 ## Measure opt-in rate
 
-Running a banner experiment? The backend already counts visitors and choices
-per arm. To see the arm in GTM as well, forward the `onSurfaceShown` and
+If you run a banner experiment, the backend already counts visitors and
+choices per arm. To see the arm in GTM as well, forward the `onSurfaceShown` and
 `onChoiceRecorded` callbacks, which carry `experiment: { id, arm }`. See
 [banner experiments](../guides/banner-experiments.md#send-the-events-to-your-own-analytics-too).
 

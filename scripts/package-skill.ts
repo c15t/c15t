@@ -1,5 +1,5 @@
 /** Framework guides a package skill can point to, in selector order. */
-const frameworkGuides = [
+export const frameworkGuides = [
 	['next', 'Next.js'],
 	['tanstack-start', 'TanStack Start'],
 	['react', 'React'],
@@ -41,6 +41,13 @@ export const renderPackageSkill = function renderPackageSkill(
 	bundledFiles: ReadonlySet<string>
 ): string {
 	const slug = packageName.replace(/^@/u, '').replace(/\//gu, '-');
+	// The umbrella package is itself named c15t, so "c15t with c15t" says
+	// nothing about which package the skill ships in.
+	const isUmbrella = packageName === 'c15t';
+	const packageLabel = isUmbrella ? 'the c15t umbrella package' : packageName;
+	const heading = isUmbrella
+		? 'c15t (umbrella package)'
+		: `c15t with ${packageName}`;
 	const quickstarts = frameworkGuides
 		.map(([dir, label]) =>
 			link(bundledFiles, `frameworks/${dir}/quickstart.md`, label)
@@ -49,10 +56,10 @@ export const renderPackageSkill = function renderPackageSkill(
 	const lines = [
 		'---',
 		`name: ${slug}`,
-		`description: Set up, customize or debug c15t consent management with ${packageName}. Use when ${skill.topic}, or when a task mentions a cookie banner, consent dialog, GDPR or CCPA prompts, blocking analytics until consent, Google Consent Mode or IAB TCF.`,
+		`description: Set up, customize or debug c15t consent management with ${packageLabel}. Use when ${skill.topic}, or when a task mentions a cookie banner, consent dialog, GDPR or CCPA prompts, blocking analytics until consent, Google Consent Mode or IAB TCF.`,
 		'---',
 		'',
-		`# c15t with ${packageName}`,
+		`# ${heading}`,
 		'',
 		'The Markdown under `./docs` matches the installed version. Read it before writing code: v3 renamed most v2 APIs, so remembered examples are usually wrong.',
 		'',

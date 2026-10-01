@@ -1,9 +1,9 @@
 ---
 name: c15t
-description: Set up, customize or debug c15t consent management with c15t. Use when the project uses c15t with Next.js, React, TanStack Start, Vue, Nuxt, Astro or plain JavaScript, or when a task mentions a cookie banner, consent dialog, GDPR or CCPA prompts, blocking analytics until consent, Google Consent Mode or IAB TCF.
+description: Set up, customize or debug c15t consent management with the c15t umbrella package. Use when the project uses c15t with Next.js, React, TanStack Start, Vue, Nuxt, Astro or plain JavaScript, or when a task mentions a cookie banner, consent dialog, GDPR or CCPA prompts, blocking analytics until consent, Google Consent Mode or IAB TCF.
 ---
 
-# c15t with c15t
+# c15t (umbrella package)
 
 The Markdown under `./docs` matches the installed version. Read it before writing code: v3 renamed most v2 APIs, so remembered examples are usually wrong.
 

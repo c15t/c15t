@@ -306,7 +306,7 @@ visitor has chosen anything. That is a permission, not a recorded choice.
 
 ## Verify the Google tag
 
-These checks are for the `googleTag` helper, which loads before a choice on
+These checks are for the `gtag` helper, which loads before a choice on
 purpose. On a plain HTML page with the script tag, you gate Google's snippet
 instead and it loads only after consent; see
 [HTML scripts](../frameworks/html/scripts.md#google-consent-mode-and-tag-managers).

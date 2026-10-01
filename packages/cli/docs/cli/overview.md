@@ -1,5 +1,5 @@
 ---
-title: Overview
+title: CLI overview
 description: Run the c15t CLI from @c15t/cli to add c15t to an app, migrate v2
   code, manage Inth projects and migrate a self-hosted database.
 group: cli
@@ -58,7 +58,8 @@ For TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid and Astro, `setup` with
 entry point unchanged. See [framework boilerplate](./commands/boilerplate.md).
 
 Remix and Gatsby have no CLI support. Follow the
-[JavaScript quickstart](https://c15t.com/docs/frameworks/javascript/quickstart) instead.
+[React guide](https://c15t.com/docs/frameworks/react/quickstart); see
+[Choose your setup](../concepts/choose-your-setup.md) for the rendering mode.
 
 ## Next steps
 

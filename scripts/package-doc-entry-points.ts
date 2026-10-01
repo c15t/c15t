@@ -1,3 +1,5 @@
+import { frameworkGuides } from './package-skill';
+
 const frameworkEntryPoints = [
 	['frameworks/next/quickstart.md', 'Next.js quickstart'],
 	['frameworks/next/app-router.md', 'App Router setup'],
@@ -49,4 +51,58 @@ export const withPackageSetupLinks = function withPackageSetupLinks(
 			: `${content.trimEnd()}\n\n${section}`;
 	}
 	return content.replace(heading, `${heading}${links}\n`);
+};
+
+const frameworkLabels = new Map<string, string>([
+	...frameworkGuides,
+	['react-native', 'React Native'],
+]);
+const frameworkOrder = [...frameworkLabels.keys()];
+const frameworkEntry = /^- \[[^\]]*\]\(\.\/docs\/frameworks\/(?<dir>[^/)]+)\//u;
+
+/**
+ * Groups the Frameworks index under one heading per framework when a bundle
+ * holds more than one. Every framework has pages such as Callbacks or
+ * Customize, so a flat list repeats the same titles with nothing to tell
+ * them apart.
+ */
+export const withFrameworkGroups = function withFrameworkGroups(
+	content: string
+): string {
+	const heading = '\n## Frameworks\n';
+	const start = content.indexOf(heading);
+	if (start === -1) {
+		return content;
+	}
+	const bodyStart = start + heading.length;
+	const next = content.indexOf('\n## ', bodyStart);
+	const bodyEnd = next === -1 ? content.length : next;
+	const lines = content.slice(bodyStart, bodyEnd).split('\n');
+	const shared: string[] = [];
+	const groups = new Map<string, string[]>();
+	for (const line of lines) {
+		const dir = line.match(frameworkEntry)?.groups?.dir;
+		if (dir) {
+			groups.set(dir, [...(groups.get(dir) ?? []), line]);
+		} else if (line.trim() !== '') {
+			shared.push(line);
+		}
+	}
+	if (groups.size < 2) {
+		return content;
+	}
+	const rank = (dir: string) => {
+		const index = frameworkOrder.indexOf(dir);
+		return index === -1 ? frameworkOrder.length : index;
+	};
+	const sections = [...groups.keys()]
+		.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b))
+		.map(
+			(dir) =>
+				`### ${frameworkLabels.get(dir) ?? dir}\n\n${(groups.get(dir) ?? []).join('\n')}`
+		);
+	const body = [shared.length > 0 ? shared.join('\n') : '', ...sections]
+		.filter(Boolean)
+		.join('\n\n');
+	return `${content.slice(0, bodyStart)}\n${body}\n${content.slice(bodyEnd)}`;
 };
