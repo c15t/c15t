@@ -205,6 +205,22 @@ describe('c15t.push after the tag loads', () => {
 		});
 	});
 
+	it('leaves consent rejected after separate acceptAll and rejectAll pushes', async () => {
+		const onConsent = vi.fn();
+		const api = loadTag([
+			['config', options],
+			['on', 'consent', onConsent],
+		]);
+
+		api.push(['acceptAll']);
+		api.push(['rejectAll']);
+
+		await vi.waitFor(() => {
+			expect(onConsent).toHaveBeenCalledTimes(2);
+		});
+		expect(api.has('measurement')).toBe(false);
+	});
+
 	it('warns about an unsupported method and keeps going', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const api = loadTag([['config', options]]);
