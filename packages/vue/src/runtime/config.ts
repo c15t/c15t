@@ -32,7 +32,7 @@ export interface ConsentManifestNuxtConfig {
 	/**
 	 * Optional browser-side geo microfetch used by client manifest mode. The
 	 * endpoint should return `{ country, region }`. Defaults to no geo fetch,
-	 * leaving the resolver on the manifest fallback/strict unknown-geo policy.
+	 * leaving the resolver on the manifest's unknown-location policy.
 	 */
 	geoURL?: string | false;
 

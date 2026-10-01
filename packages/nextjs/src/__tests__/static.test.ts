@@ -4,12 +4,13 @@ import {
 	createStaticConsentResolver,
 	createStaticManifestModule,
 	resolveStrictestDefaultInit,
+	resolveUnknownLocationInit,
 } from '../static';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 describe('@c15t/nextjs/static', () => {
 	test('unknown geography uses the configured fallback without rewriting matchers', () => {
-		const payload = resolveStrictestDefaultInit(MANIFEST_FIXTURE, {
+		const payload = resolveUnknownLocationInit(MANIFEST_FIXTURE, {
 			language: 'en',
 		});
 
@@ -19,6 +20,10 @@ describe('@c15t/nextjs/static', () => {
 		});
 		expect(payload.policyResolution?.policy?.model).toBe('opt-out');
 		expect(payload.location).toEqual({ countryCode: null, regionCode: null });
+	});
+
+	test('keeps the deprecated resolveStrictestDefaultInit name working', () => {
+		expect(resolveStrictestDefaultInit).toBe(resolveUnknownLocationInit);
 	});
 
 	test('uses the browser language when no language is configured', () => {
@@ -38,7 +43,7 @@ describe('@c15t/nextjs/static', () => {
 		}
 	});
 
-	test('geo microfetch resolves the geo-specific policy after initial strict default', async () => {
+	test('geo microfetch resolves the geo-specific policy after the unknown-location default', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ country: 'US', region: 'CA' }), {
 				status: 200,

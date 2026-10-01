@@ -20,7 +20,7 @@ export interface StaticTransportOptions {
 	manifest: CompatManifest;
 	/**
 	 * Optional geo endpoint for `createStaticConsentResolver`. Without one,
-	 * init resolves to the strictest policy in the manifest with no location.
+	 * init resolves to the manifest's unknown-location policy.
 	 */
 	geoURL?: string;
 }

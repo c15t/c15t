@@ -1,25 +1,32 @@
-import {
-	createConsentManifestPolicyPack,
-	POLICY_OPTIONAL_CATEGORIES,
-} from '@c15t/schema/types';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import {
 	createStaticConsentResolver,
 	createStaticManifestModule,
 	resolveStrictestDefaultInit,
+	resolveUnknownLocationInit,
 } from '../static';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 describe('@c15t/tanstack-start/static', () => {
-	test('strictest default uses opt-in while geo is unresolved', () => {
-		const payload = resolveStrictestDefaultInit(MANIFEST_FIXTURE, {
+	test('unknown geography uses the configured fallback, not a stricter pack', () => {
+		// The fixture's `notice-default` fallback is opt-out; `eu-opt-in` is
+		// stricter but only matches DE and must not apply to everyone.
+		const resolution = createStaticConsentResolver({
 			language: 'en',
+			manifest: MANIFEST_FIXTURE,
 		});
 
-		expect(payload.policyResolution?.policy?.id).toBe('eu-opt-in');
-		expect(payload.policyResolution?.policy?.model).toBe('opt-in');
-		expect(payload.location).toEqual({ countryCode: null, regionCode: null });
+		expect(resolution.initial.policyResolution).toMatchObject({
+			policyId: 'notice-default',
+			status: 'matched',
+		});
+		expect(resolution.initial.policyResolution.policy?.model).toBe('opt-out');
+		expect(resolution.initial.location).toEqual({
+			countryCode: null,
+			regionCode: null,
+		});
 	});
 
 	test('uses the browser language when no language is configured', () => {
@@ -39,7 +46,7 @@ describe('@c15t/tanstack-start/static', () => {
 		}
 	});
 
-	test('geo microfetch resolves the geo-specific policy after initial strict default', async () => {
+	test('geo microfetch resolves the geo-specific policy after the unknown-location default', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ country: 'US', region: 'CA' }), {
 				status: 200,
@@ -53,7 +60,9 @@ describe('@c15t/tanstack-start/static', () => {
 			manifest: MANIFEST_FIXTURE,
 		});
 
-		expect(resolution.initial.policyResolution?.policy?.id).toBe('eu-opt-in');
+		expect(resolution.initial.policyResolution?.policy?.id).toBe(
+			'notice-default'
+		);
 		const resolved = await resolution.resolved;
 		expect(resolved.policyResolution?.policy?.id).toBe('us-ca-opt-out');
 		expect(resolved.location).toEqual({ countryCode: 'US', regionCode: 'CA' });
@@ -116,37 +125,6 @@ describe('createStaticManifestModule: strict-mode names', () => {
 	});
 });
 
-describe('resolveStrictestDefaultInit: ties within a model', () => {
-	const loosened = function loosened(
-		pack: (typeof MANIFEST_FIXTURE.policyPacks)[number],
-		id: string
-	) {
-		const copy = structuredClone(pack);
-		copy.rule.id = id;
-		copy.rule.scopeMode = 'permissive';
-		return copy;
-	};
-
-	test('prefers the strict-scope pack regardless of manifest order', () => {
-		const [strict] = MANIFEST_FIXTURE.policyPacks;
-		if (!strict) {
-			throw new Error('fixture has no packs');
-		}
-		const loose = loosened(strict, 'eu-opt-in-loose');
-		for (const policyPacks of [
-			[strict, loose],
-			[loose, strict],
-		]) {
-			const payload = resolveStrictestDefaultInit(
-				{ ...MANIFEST_FIXTURE, policyPacks },
-				{ language: 'en' }
-			);
-			expect(payload.policyResolution?.policy?.id).toBe('eu-opt-in');
-			expect(payload.policyResolution?.policy?.scopeMode).toBe('strict');
-		}
-	});
-});
-
 describe('createStaticManifestModule: importSource', () => {
 	const fetchManifest = () =>
 		vi
@@ -177,76 +155,42 @@ describe('createStaticManifestModule: importSource', () => {
 	});
 });
 
-describe('resolveStrictestDefaultInit: effective permissions', () => {
-	const pack = (
-		id: string,
-		categories: string[],
-		scopeMode: 'strict' | 'permissive' = 'strict',
-		gpc: string[] = []
-	) =>
-		createConsentManifestPolicyPack({
-			categories,
-			id,
-			match: { fallback: true },
-			model: 'opt-out',
-			privacySignals: { gpc: { denyCategories: gpc } },
-			prompt: 'notice',
-			scopeMode,
-		});
-	const pick = (
-		policyPacks: typeof MANIFEST_FIXTURE.policyPacks,
-		gpc = false
-	) =>
-		resolveStrictestDefaultInit({ ...MANIFEST_FIXTURE, policyPacks }, { gpc })
-			.policyResolution;
-	test('prefers fewer permitted categories regardless of pack order', () => {
-		const narrow = pack('narrow', ['marketing']);
-		const wide = pack('wide', ['marketing', 'measurement']);
-		for (const packs of [
-			[narrow, wide],
-			[wide, narrow],
+describe('resolveUnknownLocationInit', () => {
+	const optIn = createConsentManifestPolicyPack({
+		categories: ['marketing', 'measurement'],
+		id: 'de-opt-in',
+		match: { countries: ['DE'] },
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'strict',
+	});
+	const fallback = createConsentManifestPolicyPack({
+		categories: ['marketing'],
+		id: 'unknown-opt-out',
+		match: { fallback: true },
+		model: 'opt-out',
+		prompt: 'notice',
+		scopeMode: 'permissive',
+	});
+
+	test('uses the fallback pack even when another pack is stricter', () => {
+		for (const policyPacks of [
+			[optIn, fallback],
+			[fallback, optIn],
 		]) {
-			expect(pick(packs)).toMatchObject({ policyId: 'narrow' });
+			const payload = resolveUnknownLocationInit(
+				{ ...MANIFEST_FIXTURE, policyPacks },
+				{ language: 'en' }
+			);
+			expect(payload.policyResolution).toMatchObject({
+				matchedBy: 'fallback',
+				policyId: 'unknown-opt-out',
+				status: 'matched',
+			});
 		}
 	});
-	test('necessary-only authoring expands to the default optional scope', () => {
-		expect(
-			pick([
-				pack('default-scope', ['necessary']),
-				pack('marketing', ['marketing']),
-			])
-		).toMatchObject({ policyId: 'marketing' });
-	});
-	test('permissive scope allows categories outside its scope', () => {
-		expect(
-			pick([
-				pack('permissive', [], 'permissive'),
-				pack('strict', ['marketing']),
-			])
-		).toMatchObject({ policyId: 'strict' });
-	});
-	test('GPC only restricts its configured categories', () => {
-		const limited = pack('limited', ['marketing']);
-		const mapped = pack('gpc', [...POLICY_OPTIONAL_CATEGORIES], 'strict', [
-			...POLICY_OPTIONAL_CATEGORIES,
-		]);
-		expect(pick([limited, mapped], false)).toMatchObject({
-			policyId: 'limited',
-		});
-		expect(pick([limited, mapped], true)).toMatchObject({ policyId: 'gpc' });
-	});
-	test('preselection does not grant permission before a choice', () => {
-		const preselected = createConsentManifestPolicyPack({
-			categories: ['marketing'],
-			id: 'preselected',
-			match: { fallback: true },
-			model: 'opt-in',
-			preselectedCategories: ['marketing'],
-			prompt: 'choice',
-			scopeMode: 'permissive',
-		});
-		expect(pick([preselected, pack('opt-out', ['marketing'])])).toMatchObject({
-			policyId: 'preselected',
-		});
+
+	test('keeps the deprecated resolveStrictestDefaultInit name working', () => {
+		expect(resolveStrictestDefaultInit).toBe(resolveUnknownLocationInit);
 	});
 });
