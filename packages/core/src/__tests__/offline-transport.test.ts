@@ -262,6 +262,27 @@ describe('offline(): language changes', () => {
 		runtime.dispose();
 	});
 
+	test('a regional language skips an undefined entry for its primary language', async () => {
+		const transport = createOfflineTransport({
+			translations: resolveLocalTranslations('en', messages),
+			translationsFor: (language) =>
+				resolveLocalTranslations(language, {
+					...messages,
+					'de-AT': undefined,
+				}),
+		} as never);
+
+		const austrian = await transport.init({
+			overrides: { language: 'de-AT' },
+			user: null,
+		});
+
+		expect(austrian.translations?.language).toBe('de-AT');
+		expect(austrian.translations?.translations.cookieBanner.title).toBe(
+			'Wir schätzen Ihre Privatsphäre'
+		);
+	});
+
 	test('a language a server prefetch detected does not switch the copy', async () => {
 		const runtime = createConsentRuntime({
 			i18n: { locale: 'en', messages } as never,

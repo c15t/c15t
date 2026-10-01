@@ -25,8 +25,9 @@ export type TranslationOverrides = Readonly<
 
 /**
  * Pick the overrides declared for a language: an exact key first, then its
- * primary subtag (`de` for `de-AT`). Own keys only, so a language named
- * `constructor` never reads the prototype.
+ * primary subtag (`de` for `de-AT`). An exact key set to `undefined` counts
+ * as missing. Own keys only, so a language named `constructor` never reads
+ * the prototype.
  *
  * @param overrides - Overrides keyed by language.
  * @param language - The language to look up.
@@ -39,8 +40,11 @@ export const selectTranslationOverride = function selectTranslationOverride(
 	if (!overrides) {
 		return undefined;
 	}
-	if (Object.hasOwn(overrides, language)) {
-		return overrides[language];
+	const exact = Object.hasOwn(overrides, language)
+		? overrides[language]
+		: undefined;
+	if (exact) {
+		return exact;
 	}
 	const primary = language.split('-')[0]?.toLowerCase();
 	if (primary && primary !== language && Object.hasOwn(overrides, primary)) {
