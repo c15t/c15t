@@ -130,9 +130,9 @@ when `C15T_NUXT_OUTPUT=static` is set.
 
 The [Nuxt module](/docs/frameworks/nuxt/module#backend-and-rendering) page
 lists `manifest`, `manifestURL`, `geoURL`, `timeoutMs`, `reportSessions` and
-the route options with their defaults. A `manifestURL` with `manifest` unset
-selects server mode, so set `manifest: 'client'` explicitly for static
-output.
+the route options with their defaults. `manifest` defaults to `false`, and
+setting `manifestURL` does not change that: set `manifest: 'server'` for the
+server routes, or `manifest: 'client'` for static output.
 
 The server reads the visitor's location from request headers. See
 [geography headers](/docs/frameworks/nuxt/geography-headers) for the list and

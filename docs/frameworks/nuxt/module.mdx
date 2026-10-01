@@ -54,7 +54,7 @@ keeps functions but cannot read `runtimeConfig`. Read values there from
 | --- | --- | --- |
 | `backendURL` | `'/api/c15t'` | Your Inth or self-hosted backend. Consent saves go here. |
 | `manifest` | `false` | `'server'` resolves each visitor on the Nuxt server from a cached manifest. `'client'` resolves in the browser. `false` calls the backend's `/init`. `true` is an older name for `'server'`. |
-| `manifestURL` | `${backendURL}/manifest` in server mode, `manifestRoute` in client mode | Where the manifest is downloaded from. Must be absolute in client mode on a static host. Setting it with `manifest` unset selects server mode. |
+| `manifestURL` | `${backendURL}/manifest` in server mode, `manifestRoute` in client mode | Where the manifest is downloaded from. Must be absolute in client mode on a static host. It does not choose a mode: with `manifest` unset the module keeps its `false` default and calls `/init`, so set `manifest: 'server'` (or `true`) to add the init and manifest server routes. |
 | `geoURL` | Unset | Client mode only. An endpoint that returns `{ country, region }` for the visitor. |
 | `manifestRoute` | `/api/c15t/manifest` | Path of the manifest route the module adds. |
 | `initRoute` | `/api/c15t/init` | Path of the init route the module adds in server mode. |

@@ -45,8 +45,9 @@ app.use(c15tVue, {
 ```
 
 In the plain Vue plugin, a `manifestURL` with `manifest` unset also selects
-client mode. The Nuxt module treats the same config as server mode, so keep
-`manifest: 'client'` in config you share with a Nuxt app.
+client mode. The Nuxt module defaults `manifest` to `false` and calls the
+backend's `/init` for the same config, so keep `manifest: 'client'` in config
+you share with a Nuxt app.
 
 The manifest is the same for every visitor, so a CDN can cache it. The
 browser has no request location, so without `geoURL` every visitor gets the
